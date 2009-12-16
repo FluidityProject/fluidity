@@ -44,8 +44,6 @@ FLIBS = -L../lib @FLIBS@
 # diagnostic output and FLabort:
 DEBUG_OBJECTS=../debug/Debug.o ../debug/Debug_Parameters.o
 
-DRAWTIMNEW = ../bin/drawtimnew
-MAKTIMUNIFORM = ../bin/maktimeuniform
 FLINTEGRATE = ../bin/flintegrate
 VERTICAL_INTEGRATION = ../bin/vertical_integration
 VTKDIAGNOSTIC = ../bin/vtkdiagnostic
@@ -65,7 +63,6 @@ TEST_PRESSURE_SOLVE = ../bin/test_pressure_solve
 PROJECT_TO_CONTINUOUS = ../bin/project_to_continuous
 PROJECT_TO_CONTINUOUS_PARALLEL = ../bin/project_to_continuous_parallel
 POPSTATE = ../bin/popstate
-EVMERGE = ../bin/evmerge
 UNIFIEDMESH = ../bin/unifiedmesh
 FLUIDITY = @FLUIDITY@
 LIBFLUIDITY=-l@FLUIDITY@

@@ -506,6 +506,13 @@ The position of the detectors and value of the selected variables at those posit
 \section{Offline diagnostics}
 \label{sect:offline_diagnostics}
 
+There are three main types of offline diagnostics:
+\begin{itemize}
+\item fltools, section \ref{sect:fltools}: programs written in fortran that are compiled by running \lstinline[language = XML]+make fltools+ on the command line in the top directory of the \fluidity source tree. The F90 source files can be found in \lstinline[language = XML]+tools+
+\item python scripts, section \ref{sect:diagnostics_useful_scripts}: scripts that can be run from the command line. They are found in \lstinline[language = XML]+scripts+
+\item python modules: modules that can be imported e.g. for use in a test case. They are found in \lstinline[language = XML]+python/fluidity/diagnostics+ and are imported with  \\ \lstinline[language = python]+import python.fluidity.diagnostics.modulename+
+\end{itemize}
+
 \subsection{vtktools}
 \label{sect:diagnostics_vtk_tools}
 
