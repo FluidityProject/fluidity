@@ -1,4 +1,4 @@
-\chapter{Numerical discretisation}\label{chap:numerical_discretisation}
+!\chapter{Numerical discretisation}\label{chap:numerical_discretisation}
 
 \section{Discretisation of the advection diffusion equation}
 Introductory paragraph about finite elements. References to standard books.
@@ -567,8 +567,31 @@ meshes is complicated since many neighbouring elements must be
 used. If one also uses the gradients from the element and the direct
 neighbours (Hermite interpolation) this is sufficient to obtain an
 essentially non-oscillatory scheme. This is called the Hermite-WENO
-method.
+method. In this method applied to P1, the complete set of
+approximations used for the solution in an element are:
+\begin{itemize}
+\item The original solution in the element $E$.
+\item Solutions with gradient constructed from the mean value of the
+  element $E$ and $d$ other elements which share a face with $E$.  In
+  2D this is 3 solutions, and in 3D this is 4 solutions. Each of these
+  solutions has the same mean value as the original solution.
+\item Solutions with gradient the same as one of the $d$ neighbouring
+  elements. Each of these solutions has the same mean value as the
+  original solution.
+\end{itemize}
+This is a total of $2d+1$ solutions which must be weighted according
+to their oscillator indicator value.
 
+The advantage of using WENO (and H-WENO) reconstruction is that it
+preserves the order of the approximation, and hence it is not quite so
+important to avoid it being used in smooth regions (other limiters
+would introduce too much diffusion in those regions). However,
+reconstruction is numerically intensive and so to make H-WENO more
+computationally feasible, it must be combined with a discontinuity
+detector which identifies troubled cells. It does not do too much
+damage to the solution if the discontinuity detector is too strict
+\emph{i.e.}  identifies too many elements as troubled, but will reduce
+the efficiency of the method. 
 
 \section{Diffusion term for DG/FV}\label{sec:NM_DG_diffusion}
 \index{diffusion!discontinuous Galerkin}
