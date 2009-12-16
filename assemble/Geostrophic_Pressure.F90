@@ -401,10 +401,9 @@ contains
     
     integer :: i, stat
     logical :: have_density
-    type(scalar_field) :: density
+    type(scalar_field), pointer :: density
     type(scalar_field), pointer :: buoyancy
-    type(vector_field), pointer :: gravity
-    type(vector_field) :: velocity
+    type(vector_field), pointer :: gravity, velocity
     real :: gravity_magnitude
     type(vector_field), pointer :: positions
     
@@ -429,13 +428,15 @@ contains
     assert(positions%dim == mesh_dim(gp_rhs))
     assert(ele_count(positions) == ele_count(gp_rhs))
     
-    density = extract_scalar_field(state, "Density", stat = stat)
+    density => extract_scalar_field(state, "Density", stat = stat)
     have_density = stat == 0
     if(have_density) then
       assert(ele_count(density) == ele_count(gp_rhs))
       
       ewrite_minmax(density%val)
     else
+      density => null()
+    
       ewrite(2, *) "No density"
     end if
     
@@ -461,13 +462,15 @@ contains
     end if
 
     if(include_coriolis) then
-      velocity = extract_vector_field(state, velocity_name)
+      velocity => extract_vector_field(state, velocity_name)
       assert(velocity%dim == mesh_dim(gp_rhs))
       assert(ele_count(velocity) == ele_count(gp_rhs))
     
       do i = 1, velocity%dim
         ewrite_minmax(velocity%val(i)%ptr)
       end do
+    else
+      velocity => null()
     end if
         
     if(assemble_matrix) then
@@ -476,15 +479,17 @@ contains
     call zero(gp_rhs)
     
     do i = 1, ele_count(gp_rhs)
+      if(.not. assemble_ele(gp_rhs, i)) cycle
+    
       call assemble_geostrophic_pressure_element_cg(i, positions, density, &
         & gravity_magnitude, buoyancy, gravity, velocity, &
         & have_density, &
         & gp_m, gp_rhs)
     end do
    
-    !!< Set the pressure level to zero at the first node of the first process
-    !!< (should be called by all processes though)
-    !!< This needs to be done every time, to zero the rhs
+    ! Set the pressure level to zero at the reference node of the first
+    ! process (should be called by all processes though). This needs to be done
+    ! every time, to zero the rhs.
     call set_geostrophic_pressure_reference_node(gp_m, gp_rhs)
     
     ewrite_minmax(gp_rhs%val)
