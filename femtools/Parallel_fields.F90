@@ -257,7 +257,7 @@ contains
     !!< Return whether the supplied element for the supplied mesh should be
     !!< assembled. An element need not be assembled if it has no owned nodes.
     
-    type(mesh_type), intent(inout) :: mesh
+    type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: ele
     
     logical :: assemble
@@ -283,7 +283,7 @@ contains
   end function assemble_ele_mesh
   
   function assemble_ele_scalar(s_field, ele) result(assemble)
-    type(scalar_field), intent(inout) :: s_field
+    type(scalar_field), intent(in) :: s_field
     integer, intent(in) :: ele
     
     logical :: assemble
@@ -293,7 +293,7 @@ contains
   end function assemble_ele_scalar
   
   function assemble_ele_vector(v_field, ele) result(assemble)
-    type(vector_field), intent(inout) :: v_field
+    type(vector_field), intent(in) :: v_field
     integer, intent(in) :: ele
     
     logical :: assemble
@@ -303,7 +303,7 @@ contains
   end function assemble_ele_vector
   
   function assemble_ele_tensor(t_field, ele) result(assemble)
-    type(tensor_field), intent(inout) :: t_field
+    type(tensor_field), intent(in) :: t_field
     integer, intent(in) :: ele
     
     logical :: assemble

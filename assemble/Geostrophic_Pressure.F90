@@ -298,27 +298,6 @@ contains
     end if
   
   end subroutine initialise_geostrophic_pressure_mesh
-
-  function geostrophic_pressure_parent_mesh(gp, state) result(parent_mesh)
-    !!< Return the (linear) parent mesh of the GeostrophicPressure mesh
-  
-    type(scalar_field), target, intent(inout) :: gp
-    type(state_type), intent(in) :: state
-    
-    type(mesh_type), pointer :: parent_mesh
-    
-    integer :: stat
-    type(scalar_field), pointer :: bp
-    
-    parent_mesh => gp%mesh
-    
-    call find_linear_parent_mesh(state, gp%mesh, parent_mesh, stat = stat)
-    if(stat /= 0) then
-      bp => extract_scalar_field(state, "BalancePressure")
-      parent_mesh => bp%mesh
-    end if
-    
-  end function geostrophic_pressure_parent_mesh
   
   subroutine initialise_geostrophic_pressure(gp_mesh, gp, gp_m, gp_rhs, state)
     !!< Allocate / extract GeostrophicPressure variables. gp_mesh, gp, gp_m and
@@ -395,17 +374,15 @@ contains
   subroutine assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
     !!< Assemble the elliptic equation for GeostrophicPressure
     
-    type(scalar_field), target, intent(inout) :: gp_rhs
+    type(scalar_field), intent(inout) :: gp_rhs
     type(state_type), intent(inout) :: state
     type(csr_matrix), intent(inout) :: gp_m
     
     integer :: i, stat
-    logical :: have_density
-    type(scalar_field), pointer :: density
-    type(scalar_field), pointer :: buoyancy
-    type(vector_field), pointer :: gravity, velocity
     real :: gravity_magnitude
-    type(vector_field), pointer :: positions
+    logical :: have_density
+    type(scalar_field), pointer :: buoyancy, density
+    type(vector_field), pointer :: gravity, positions, velocity
     
     ewrite(1, *) "In assemble_geostrophic_pressure_cg"
     
@@ -621,7 +598,7 @@ contains
     !!< equation RHS
     
     type(scalar_field), intent(inout) :: gp
-    type(vector_field), target, intent(inout) :: mom_rhs
+    type(vector_field), intent(inout) :: mom_rhs
     type(state_type), intent(in) :: state
     
     integer :: i
@@ -685,25 +662,6 @@ contains
     call remap_field(gp, bp)
     
   end subroutine set_balance_pressure_from_geostrophic_pressure
-  
-  subroutine add_geostrophic_pressure_to_balance_pressure(gp, state)
-    !!< Add remapped GeostrophicPressure to the BalancePressure field in the
-    !!< given state
-    
-    type(scalar_field), intent(in) :: gp
-    type(state_type), intent(in) :: state
-    
-    type(scalar_field) :: gp_remap
-    type(scalar_field), pointer :: bp
-    
-    bp => extract_scalar_field(state, "BalancePressure")
-    
-    call allocate(gp_remap, bp%mesh, gp_name)
-    call remap_field(gp, gp_remap)
-    call addto(bp, gp_remap)
-    call deallocate(gp_remap)
-    
-  end subroutine add_geostrophic_pressure_to_balance_pressure
   
   subroutine compute_balanced_velocity_diagnostics(state, u_imbal, u_bal_out)
     type(state_type), intent(inout) :: state
