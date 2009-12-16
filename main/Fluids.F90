@@ -433,6 +433,7 @@ contains
 99771 CONTINUE
 
     call compute_uses_old_code_path(uses_old_code_path)
+    if(uses_old_code_path) FLExit("The old code path is dead.")
     if(uses_old_code_path) call bc_mem_allocation()
 
     !     populate state or adapt_state_new_options has created a
