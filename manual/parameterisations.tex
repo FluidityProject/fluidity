@@ -1,0 +1,223 @@
+\chapter{Parameterisations}\label{chap:parameterisations}
+
+\section{General length scale subgridscale parameterisation}\label{Sec:GLS}
+\index{viscosity!eddy}
+\index{diffusivity!eddy}
+\index{Reynolds stress}
+\index{turbulence model}
+\index{GLS|see{generic length scale model}}
+\index{generic length scale model}
+
+Four GLS models have been implemented in Fluidity, based on the description given in \citet{warner2005}.
+Briefly, they rely on a local, temporally varying, kinematic eddy viscosity $K_M$ that parametrises 
+turbulence (local Reynolds stresses) in terms of mean-flow quantities (vertical shear) as, along with a buoyancy term that 
+parameterises the kinematic eddy diffusivity, $K_H$:
+
+\begin{equation}
+\overline{u'w'} = -K_M\frac{\partial u}{\partial z},\;\;\;
+\overline{v'w'} = -K_M\frac{\partial u}{\partial z},\;\;\;
+\overline{w'\rho'} = -K_H\frac{\partial\rho}{\partial z}
+\end{equation} 
+with
+\begin{equation}
+K_M = \sqrt{k}lS_M+\nu_M^0, \;\;\;
+K_H = \sqrt{k}lS_H+\nu_H^0
+\label{eq:diff}
+\end{equation}
+where $u$ and $v$ are the horizontal components of Reynolds-averaged velocity along the $x$- and $y$-axes, $w$ is 
+the vertical velocity along the vertical $z$-axis, positive upwards and $u'$, $v'$ and $w'$ are the components 
+of the turbulent fluctuations about mean velocity. $\nu_H^0$ is the background diffusivity, $\nu_M^0$ 
+is the background viscosity, $S_M$ and $S_H$ are stability functions, 
+$k$ is the turbulent kinetic energy, and $l$ is a general length-scale.
+
+The generic length scale turbulence closure model \citep{umlauf2003} is based in two equations, for the transport of turbulent kinetic energy and a generic second quantity, $\Psi$. The TKE equation is:
+\begin{equation}
+\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k}\frac{\partial k}{\partial z}\right) + P + B - \epsilon 
+\label{tke_one}
+\end{equation}
+\index{Schmidt number}
+where $\sigma_k$ is the turbulence Schmidt number for $k$, $P$ and $B$ represent production by shear and buoyancy as:
+\begin{equation}
+P=-\langle u'w'\rangle\frac{\partial u}{\partial z}-\langle v'w' \rangle\frac{\partial v}{\partial z}=K_MM^2, \;\;\; M^2=\left(\frac{\partial U}{\partial z}\right)^2 + \left(\frac{\partial V}{\partial z}\right)^2 
+\end{equation}
+\begin{equation}
+B=-\frac{g}{\rho_0}\langle\rho'w'\rangle=-K_HN^2, \;\;\; N^2= -\frac{g}{\rho_0}\frac{\partial\rho}{\partial z}
+\end{equation}
+where $N$ is the buoyancy frequency. The dissipation is modelled as:
+\begin{equation}
+\epsilon=\left(c_\mu^0\right)^{3+\frac{p}{n}}k^{\frac{3}{2}+\frac{m}{n}}\Psi^{-\frac{1}{n}}
+\end{equation}
+where $c_\mu^0$ is the stability coefficient based on experimental data for unstratified channel flow with a
+log-layer solution. It takes on a specific value when used with a stability function and other model
+parameters.
+
+The second equation is 
+\begin{equation}
+\frac{\partial \Psi}{\partial t} + U_i\frac{\partial \Psi}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\Psi}\frac{\partial \Psi}{\partial z}\right) + \frac{\Psi}{k}(c_1P + c_3B - c_2\epsilon F_{\mathrm{wall}})
+\label{psi_one}
+\end{equation}
+
+The parameter $\sigma_\Psi$ is the Schmidt number for $\Psi$ and $c_i$ are constants based on experimental data. The value of $c_3$ depends on if the flow is stably stratified (in which case $c_3=c_3^-$) or unstable ($c_3=c_3^+$). Here,
+\begin{equation}
+\Psi=\left(c_\mu^0\right)^pk^ml^n
+\end{equation}
+and
+\begin{equation}
+l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1}
+\end{equation}
+
+The equation for $l$ can be derived from previous equations.
+
+Choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$, $c_1$, $c_2$, $c_3$, $c_\mu^0$, and $F_{\mathrm{wall}}$ one can recover the exact formulation of three standard GLS models, $k-\epsilon$, $k-kl$, $k-\omega$, and an additional model based on \citet{umlauf2003}, the \emph{gen} model (see Table \ref{tab:glsparams} for values).
+
+\begin{table}[b]
+\begin{center} 
+\begin{tabular}{lllll}\hline
+Model: & $k-kl$   & $k-\epsilon$                  & $k-\omega$                       & \emph{gen}       \\ 
+$\Psi=$& $k^1l^1$ & $\left(c_\mu^0\right)^3k^{\frac{3}{2}}l^1$ & $\left(c_\mu^0\right)^{-1}k^{\frac{1}{2}}l^1$ & $\left(c_\mu^0\right)^2k^1l^{\frac{2}{3}}$  \\ \hline
+$p$                   & 0.0            & 3.0          & -1.0         & 2.0          \\
+$m$                   & 1.0            & 1.5          &  0.5         & 1.0          \\
+$n$                   & 1.0            & -1.0         & -1.0         & -0.67        \\
+$\sigma_k$            & 2.44           & 1.0          & 2.0          & 0.8          \\
+$\sigma_\Psi$         & 2.44           & 1.3          & 2.0          & 1.07         \\
+$c_1$                 & 0.9            & 1.44         & 0.555        & 1.0          \\
+$c_2$                 & 0.5            & 1.92         & 0.833        & 1.22         \\
+$c_3^+$               & 1.0            & 1.0          & 1.0          & 1.0          \\
+$k_{\mathrm{min}}$    & $5.0\times10^{-6}$    & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  \\
+$\Psi_{\mathrm{min}}$ & $1.0\times10^{-8}$    & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ \\
+$F_{\mathrm{wall}}$   & Eq \ref{fwall} & 1.0          & 1.0          & 1.0          \\ \hline
+\end{tabular}
+\end{center}
+\caption{Generic length scale parameters}
+\label{tab:glsparams}
+\end{table}
+
+\subsection{$k-\epsilon$ model} 
+\index{k-epsilon@$k-\epsilon$ closure}
+\begin{gather}
+\frac{\partial k}{\partial t}+U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma^\epsilon_k}\frac{\partial k}{\partial z}\right) + P + B -\epsilon\\
+\frac{\partial\epsilon}{\partial t}+U_i\frac{\partial\epsilon}{\partial x_i}
+= \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\epsilon}\frac{\partial k}{\partial z}\right) + \frac{\epsilon}{k}(c_1P + c_3B -c_2\epsilon)
+\end{gather}
+
+where where $\sigma^\epsilon_k$ (1.0) is the Schmidt number for the eddy diffusivity of turbulent kinetic energy 
+and $\sigma_\epsilon$ (1.4) is the Schmidt number for the eddy diffusivity of dissipation with $c_{\epsilon1}=1.44$, 
+$c_{\epsilon1}=1.92$, and $c_{\epsilon3}$ takes a value depending on the stability function.
+
+\subsection{MY25 (and $k-kl$)}
+\index{Mellor-Yamada closure}
+
+The Mellor-Yamada level 2.5 closure scheme, denoted here by $k-kl$. To arrive at $k-kl$, set $p=0$, $m=1.0$, and $n=0$, which yields:
+
+\begin{equation}
+\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(K_Q\frac{\partial k}{\partial z}\right) + P + B - \epsilon
+\end{equation}
+and
+\begin{equation}
+\frac{\partial}{\partial t}(kl) + U_i\frac{\partial}{\partial x_i}(kl) = \frac{\partial}{\partial z}\left(K_Q\frac{\partial}{\partial z}(kl)\right) + l(c_1P + c_3B - c_2\epsilon F_{\mathrm{wall}})
+\end{equation}
+
+where 
+\begin{equation}
+K_Q=\frac{K_M}{\sigma_q}
+\end{equation}
+where $\sigma_q=2.44$ is the Schmidt number for $k$ and the wall function, $F_{\mathrm{wall}}$:
+\begin{equation}
+F_{\mathrm{wall}}=\left(1+E_2\left(\frac{l}{\kappa}\frac{d_b + d_s}{d_bd_s}\right)^2\right)
+\label{fwall}
+\end{equation} 
+The parameters $d_b$ and $d_s$ are the distances to the bottom and surface respectively, $E_2=1.33$, and $\kappa=0.41$, the von Karman's constant. For values of $d_s$ or $d_b$ less than $1.0$, the term $\left(\frac{l}{\kappa}\frac{d_b + d_s}{d_bd_s}\right)^2$ is set to $1.0$. Note there are alternative formulations of the wall functions.
+
+\subsection{$k-\omega$}
+\index{k-omega@$k-\omega$ closure}
+The parameter $\omega$ can be considered ``a frequency characteristic of the turbulence decay process'' and is related to dissipation by:
+\begin{equation}
+\omega = \frac{\epsilon}{{\left(c_\mu^0\right)}^4k}
+\end{equation}
+
+This gives the two turbulence equations:
+\begin{equation}
+\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k^\omega}\frac{\partial k}{\partial z}\right) + P + B - \epsilon
+\end{equation}
+and
+\begin{equation}
+\frac{\partial\omega}{\partial t} + U_i\frac{\partial\omega}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\omega}\frac{\partial\omega}{\partial z}\right) + \frac{\omega}{k}(c_1P + c_3B - c_2\epsilon)
+\end{equation}
+
+where $\sigma_k^\omega=2.0$ is the Schmidt number for the eddy diffusivity of turbulent kinetic energy and $\sigma_\omega=2.0$ is the Schmidt number for the eddy diffusivity of $\omega$.
+
+\subsection{\emph{gen}}
+
+The \emph{gen} model can be obtained from the GLS equations \eqref{tke_one} and \eqref{psi_one} by specifying $p=2.0$, $m=1.0$, and $n=-0.67$, which returns equations , but does not require a wall function ($F_{\mathrm{wall}}=1.0$).
+
+\subsection{Stability functions}
+
+The second-order moments is now closed, bar the definition of the stability functions, $S_M$ and $S_H$, 
+which are a function of $\alpha_M$ and $\alpha_N$, defined as:
+\begin{equation*}
+\alpha_M=\frac{k^2}{\epsilon^2}M^2, \;\;\;
+\alpha_N=\frac{k^2}{\epsilon^2}N^2,
+\end{equation*}
+
+The two stability can be defined as:
+\begin{equation*}
+S_M(\alpha_M,\alpha_N) = \frac{n_0+n_1\alpha_N+n_2\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}
+\end{equation*}
+and
+\begin{equation*}
+S_H(\alpha_M,\alpha_N) = \frac{n_{b0}+n_{b1}\alpha_N+n_{b2}\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}
+\end{equation*}
+
+The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on the model parameters chosen
+and can be related to traditional stability functions \citep{umlauf2005}.
+
+However, using the equilibrium condition for the turbulent kinetic energy as $\frac{P+B}{\epsilon}=1$, one can write
+$\alpha_M$ and a function of $\alpha_N$, allowing elimination of $\alpha_M$ in the above equations \citep{umlauf2005}:
+\begin{equation*}
+S_M(\alpha_M,\alpha_N)\alpha_M - S_N(\alpha_M,\alpha_N)\alpha_N=1
+\end{equation*}
+
+A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative. 
+
+The GLS model included in \fluidity\ contains three choices of stability functions, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}.
+
+\section{Large-Eddy Simulation (LES)}
+\index{large eddy simulation}
+\index{turbulence model}
+
+Large-eddy simulation filters the velocity field into resolved and sub-filter-scale components. The eddy viscosity assumption is that the unresolved scales drain energy from the resolved scales in the manner of an extra turbulent viscosity $\nu_\tau$. Then \eqref{mtm} is written:
+
+\begin{equation}
+\frac{\partial \tilde u_i}{\partial t} + \tilde u_j \frac{\partial \tilde u_i}{\partial x_j}
+ = -\frac 1 \rho \frac{\partial \tilde p}{\partial x_i}
+ + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ) \right ],
+\end{equation}
+
+Two LES models are available in Fluidity.
+
+\subsection{Second-Order Dissipation}
+
+The following model developed by \citet{bentham2003} is similar to the original Smagorinsky model \citep{smagorinsky1963general}, but allows for an anisotropic eddy viscosity that gives better results for flow simulations on unstructured grids:
+
+\begin{equation}
+\frac{\partial \tau_{ij}}{\partial x_j} = \frac{\partial}{\partial x_i} \left [ \nu_{jk}\frac{\partial u_j}{\partial x_k} \right ],
+\end{equation}
+with the anisotropic tensorial eddy viscosity:
+
+\begin{equation}
+\nu_{jk} = 4C_S^2 \left | \mathcal{\tilde S} \right | \mathcal{M}^{-1},
+\end{equation}
+where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}), used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter width separating resolved and unresolved scales is twice the local element size, which is squared in the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and $\left | \mathcal{\tilde S} \right |$ is the local strain rate:
+
+\begin{equation}
+\left | \mathcal{\tilde S} \right | = (2 \tilde S_{ij} \tilde S_{ij})^{1/2},
+\end{equation}
+where:
+
+\begin{equation}
+\tilde S_{ij} = \frac 1 2 \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ).
+\end{equation}
+
+\subsection{Fourth-Order Dissipation}
+
+The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>porous_block</name>
+  <owner userid="jsaund"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml porous_block.flml </command_line>
+    <!-- Trivial 2D test case of uniform flow through a square. -->
+  </problem_definition>
+  <variables>
+    <variable name="pressure" language="python">
+import vtktools
+v = vtktools.vtu("porous_block_1.vtu")
+pressure = v.GetScalarRange("Pressure")
+    </variable>
+  </variables>
+    <pass_tests>
+    <test name="Pressure range correct." language="python">
+assert abs(pressure[0]) &lt; 1e-6
+assert abs(pressure[1] - 1.0e9) &lt; 1.0
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

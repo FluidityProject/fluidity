@@ -1,0 +1,35 @@
+			INSTALL for FLUIDITY
+
+To build and install fluidity you first need to create a Makefile via
+the supplied configure script.
+
+> ./configure
+
+For a complete list of configuration options, consult the configure's
+help.
+
+> ./configure --help
+
+In particular you may want to set your F77 and F90 enviroment
+variables to force the selection of a particular compiler for your
+system. You may also wish to specify an install path.
+
+After this you just need to:
+
+> make
+> make install
+
+Other specific make rules are also available. These are:
+all		      - Make and install everything
+fltools		      - Builds a set of tools that can be used on
+			  FLUIDITY data.
+
+install	              - Install everything
+install_fluidity      - Install FLUIDITY binary libraries and include files
+install_tools	      - Install FLUIDITY's compiled tools and scripts
+
+clean		      - Removes all libaries associated with current
+                        build.
+very_clean	      - Removes all binaries
+
+help		      - Prints out a small help message

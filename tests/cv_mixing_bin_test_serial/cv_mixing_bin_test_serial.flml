@@ -1,0 +1,343 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">mixing_bin_test</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">multimaterial</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="pseudo_2d_square">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">5</integer_value>
+      </degree>
+      <controlvolume_surface_degree>
+        <integer_value rank="0">5</integer_value>
+      </controlvolume_surface_degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <integer_value rank="0">0</integer_value>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">8.0</real_value>
+    </finish_time>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="Material1">
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <control_volumes>
+            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <diffusion_scheme name="BassiRebay"/>
+          </control_volumes>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">0.0</real_value>
+          </theta>
+          <control_volumes>
+            <pivot_theta>
+              <real_value rank="0">0.0</real_value>
+            </pivot_theta>
+          </control_volumes>
+        </temporal_discretisation>
+        <explicit/>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X, t):
+	from math import sqrt
+	dx1 = X[0]-1.5
+	dx2 = X[1]-2.25
+	dx3 = X[2]-0.0
+	r=sqrt(dx1*dx1+dx2*dx2+dx3*dx3)
+	if (r&lt;0.5) and ((X[0]&gt;1.56) or (X[0]&lt;1.44) or(X[1]&gt;2.35)):
+		return 1.0
+	else:
+		return 0.0</string_value>
+          </python>
+        </initial_condition>
+        <output/>
+        <stat>
+          <include_mixing_stats replaces="heaviside.dat file" name="cv_normalised">
+            <control_volumes>
+              <normalise/>
+            </control_volumes>
+            <mixing_bin_bounds>
+              <real_value shape="2" rank="1">0.0 1.0</real_value>
+            </mixing_bin_bounds>
+            <tolerance>
+              <real_value rank="0">1.E-8</real_value>
+            </tolerance>
+          </include_mixing_stats>
+          <include_mixing_stats replaces="heaviside.dat file" name="cv_unormalised">
+            <control_volumes/>
+            <mixing_bin_bounds>
+              <real_value shape="2" rank="1">0.0 1.0</real_value>
+            </mixing_bin_bounds>
+            <tolerance>
+              <real_value rank="0">1.E-8</real_value>
+            </tolerance>
+          </include_mixing_stats>
+          <include_mixing_stats replaces="heaviside.dat file" name="cg_normalised">
+            <continuous_galerkin>
+              <normalise/>
+            </continuous_galerkin>
+            <mixing_bin_bounds>
+              <real_value shape="2" rank="1">0.0 1.0</real_value>
+            </mixing_bin_bounds>
+            <tolerance>
+              <real_value rank="0">1.E-8</real_value>
+            </tolerance>
+          </include_mixing_stats>
+          <include_mixing_stats replaces="heaviside.dat file" name="cg_unormalised">
+            <continuous_galerkin/>
+            <mixing_bin_bounds>
+              <real_value shape="2" rank="1">0.0 1.0</real_value>
+            </mixing_bin_bounds>
+            <tolerance>
+              <real_value rank="0">1.E-8</real_value>
+            </tolerance>
+          </include_mixing_stats>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adaptivity_options>
+          <absolute_measure replaces="ADOPTT = 0">
+            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value rank="0">0.01</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat/>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+          </absolute_measure>
+        </adaptivity_options>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="MaterialVolume" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="MaterialDensity" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Material2">
+    <scalar_field name="Density" rank="0">
+      <aliased material_phase_name="Material1" field_name="Density"/>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="Material1" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_mixing_stats replaces="heaviside.dat file" name="cv">
+            <control_volumes>
+              <normalise/>
+            </control_volumes>
+            <mixing_bin_bounds>
+              <real_value shape="2" rank="1">0.0 1.0</real_value>
+            </mixing_bin_bounds>
+            <tolerance>
+              <real_value rank="0">1.E-8</real_value>
+            </tolerance>
+          </include_mixing_stats>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="MaterialDensity" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">2.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="MaterialVolume" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity replaces="ADMESH">
+      <period_in_timesteps>
+        <integer_value rank="0">5</integer_value>
+      </period_in_timesteps>
+      <maximum_number_of_nodes replaces="MXNODS">
+        <integer_value rank="0">10000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation/>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.01 0 0 0 0.01 0.0 0 0.0 0.01</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0 0 0 0 1.0 0 0 0 1.0</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+    </hr_adaptivity>
+  </mesh_adaptivity>
+</fluidity_options>

@@ -1,0 +1,8 @@
+       Integer   MaxH
+       Parameter(MaxH = 32)
+
+       Real*8    RelativeTrials
+       Parameter(RelativeTrials = 1D-1)
+C      Parameter(RelativeTrials = 1D0)
+
+

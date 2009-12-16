@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">python</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="square">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">5</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <integer_value rank="0">1</integer_value>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">1.0</real_value>
+    </finish_time>
+    <final_timestep>
+      <integer_value rank="0">1</integer_value>
+    </final_timestep>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="Water">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="Input" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+#	print X
+	return X[0]*X[1]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Output" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">for i in range(field.val.shape[0]):  
+	field.val[i] = state.vector_fields['Coordinate'].val2[i] *state.vector_fields['Coordinate'].val1[i]
+
+#print field.val
+#print state.scalar_fields['Input'].val</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="VectorDerived" rank="1">
+      <diagnostic>
+        <algorithm name="vector_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">X=state.vector_fields["Coordinate"]
+
+for n in range(field.node_count):
+	field.addto(n,X.node_val(n))</string_value>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+  </material_phase>
+</fluidity_options>

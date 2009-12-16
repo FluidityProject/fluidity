@@ -1,0 +1,222 @@
+
+Paraview (\url{http://www.paraview.org/paraviewindex.html}) is an open-source, multi-platform parallel visualization application, which makes use of scalable architecture to reproduce large scale simulations.
+
+\subsection{Obtaining Paraview}
+\subsubsection{Ubuntu}
+Paraview is available through the Ubuntu package system and can be installed by typing: 
+
+\begin{example}
+  \begin{lstlisting}[language=bash]
+wajig install paraview
+\end{lstlisting}
+\end{example}
+
+Intrepid provides paraview 3.2.2, Jaunty provides paraview 3.2.3, and Karmic
+provides paraview 3.4.0. The user should be aware that there are problems
+with paraview 3.2. In particular, it restricts axis scaling to 100 times the
+original, which may well not be sufficient for some oceanographic
+applications.
+
+When using an AMCG workstation, access to in-house packages for Paraview
+3.6.1, which as of this documentation is the latest version, will be
+available. To get access from other workstations, the repository lines for
+the AMCG repository in the sources.list file are:
+
+\begin{example}
+  \begin{lstlisting}[language=bash]
+deb http://amcg.ese.ic.ac.uk/debian intrepid main contrib non-free
+deb-src http://amcg.ese.ic.ac.uk/debian intrepid main contrib non-free
+\end{lstlisting}
+\end{example}
+
+Be aware they contain a number of other updated packages so if you only want
+paraview you may want to comment out or remove those lines once you have
+done the paraview install.
+
+\subsubsection{Direct Download}
+
+To either use a newer version of the software or to simply gain access to
+paraview without installing the system's packages, a pre-compiled paraview
+client can be downloaded from the paraview website at:
+
+\url{http://www.paraview.org/paraview/resources/software.html}
+
+This download page has pre-compiled client software for 32-bit and 64-bit
+Windows, Linux, and Mac OS X. Administrative privileges may be needed on the
+computer to install the software.
+
+\subsection{Running Paraview}
+
+On a Ubuntu system, paraview can be run by typing 'paraview' into a
+terminal. NB, when running it entirely locally it can be heavy on both CPU
+and graphics card which in turn means it is heavy on battery life if
+intensively used on a laptop.
+
+On a Mac the Paraview application will probably have been put in the
+Applications directory during the install procedure, and it can be run from
+there.
+
+No information is available about how to run Paraview in Windows. 
+
+\subsubsection{Starting up a serial visualisation session}
+
+If you don't require the parallel capabilities of paraview, just run it from
+the command line or from your applications folder and you should have the
+same functionality as you would with a parallel instance, just less
+capacity. You can skip directly to the data loading section, ignoring the
+extra work to set up the parallel back-end.
+
+\subsubsection{Starting up a parallel visualisation session}
+
+You will need to have both the paraview program and the pvserver program
+available to run a parallel visualisation, as well as a working mpiexec to
+run the pvserver. Check they're all available to you before you start; an
+easy way to check they're on your path is to run:
+
+\begin{example}
+  \begin{lstlisting}[language=bash]
+which pvserver
+which paraview
+which mpiexec
+\end{lstlisting}
+\end{example}
+
+which should return something like:
+
+\begin{example}
+  \begin{lstlisting}[language=bash]
+
+$ which pvserver
+/usr/bin/pvserver
+$ which paraview
+/usr/bin/paraview
+$ which mpiexec
+/usr/bin/mpiexec
+$
+
+\end{lstlisting}
+\end{example}
+
+Now start up your paraview session, and once you have the main window click on the server connection button, which looks like two computers connected by a line with a green dot on it. You will now have a window which allows you to choose a server, but you will not have any servers defined yet. By clicking 'add server', a new configure server window appears which needs to be filled in. Now, click on 'configure', and you will have a second configuration window which needs to be set by entering the command to run pvserver. These steps are all shown on fig. \ref{fig:paraview1} below.
+
+\begin{figure}[h!]
+ \centering
+ \label{fig:paraview1}
+ \subfigure[Screenshot highlighting the location of the server connection
+ button on paraview main
+ window.]{\fig[width=0.48\textwidth]{visualisation_and_diagnostics_images/Paraviewconnectbutton}}
+ \subfigure[Screenshot of the choose server window as viewed upon initial
+ opening.]{\fig[width=0.48\textwidth]{visualisation_and_diagnostics_images/Paraviewchooseserver}}
+ \subfigure[Screenshot showing how to configure the server on the
+ appropriate
+ window.]{\fig[width=0.48\textwidth]{visualisation_and_diagnostics_images/Paraviewconfigureserverwindow}}
+ \subfigure[Again, another window needs to be filled in as
+ shown.]{\fig[width=0.48\textwidth]{visualisation_and_diagnostics_images/Paraviewconfigureserverwindow2}}
+\caption{First steps when starting up the paraview parallel session.}
+\end{figure}
+ 
+
+Note that if pvserver is NOT on your path then you will need to give the full path to pvserver rather than just 'pvserver'. Also note that you can change the '2' to be the number of cores you want to run the parallel visualisation across on your machine. Now click on 'save' and you will be back to the 'choose server' window, with a server 'localhost' defined (see fig. \ref{fig:paraview5}). Click on 'connect' and pserver should run and connect. If there are any problems you'll get an output window telling you what went wrong.
+
+\begin{figure}[h!]
+\label{fig:paraview5}
+  \centering
+  \fig[width=.7\textwidth]{visualisation_and_diagnostics_images/Paraviewchooseserver2}
+\caption{The localhost server can now be selected for connection.}
+\end{figure}
+
+ 
+
+\subsubsection{What are the strange windows with random patterns in?}
+
+This is documented for running a parallel visualisation across the cores of your local system, using your graphics hardware for the rendering. It results in one X-window per pserver process being opened, which you can push to the back behind your paraview window. Don't close them, or pserver will fail! 
+
+\subsection{Reading in data}
+
+\subsubsection{Opening files}
+
+Paraview will natively handle the majority of datafiles that you will generate in the process of your work. To load in a new data file, access the 'File' menu and choose 'Open', then select the file you wish to load and click 'OK'. Single files should appear in the file list immediately, but where a directory contains a time-series of files they will often be condensed into a single entry in the paraview file listing with an arrow to the left of the entry (see fig. \ref{paraview6}). Clicking on the arrow expands the time series to allow you to access individual files, whilst clicking on the series' entry (the generic name, with a '..' before the file type) will select the whole time-series for loading. 
+
+\begin{figure}[h!]
+\label{paraview6}
+  \centering
+  \fig[width=.7\textwidth]{visualisation_and_diagnostics_images/Paraview-filedialogue-timeseries}
+\end{figure}
+
+\subsubsection{Reading in fields}
+
+So you have opened a file and an entry for it has appeared in the 'Pipeline Browser' window, generally upper-left of your Paraview session. At this point the file is open but not read, an intermediate state which allows you to select how much of the file should be read into memory. This is very important to be careful of where large files are concerned, as reading all fifty fields on a twenty five million node mesh could be prejudicial to the stability of the computer. 
+
+\begin{figure}[h!]
+\label{paraview7}
+  \centering
+  \fig[width=.7\textwidth]{visualisation_and_diagnostics_images/Paraview-subwindows}
+\end{figure}
+
+With the newly opened file highlighted in the Pipeline Browser, the Object Inspector window will show a list of available fields to be read. You can either select/deselect these individually, or select/deselect as a whole by using the tickbox above-left of the list. Once you have selected the fields you wish to read in, click on 'Apply' in the Object Inspector. 
+
+\subsection{Basic Visualisation}
+
+Having loaded in some data you may wish to examine it to check it is what you think it is. With the file highlighted in the pipeline browser you can look at aspects of the data by changing the drop-down menu entry selected in the 'Active Variable Controls' and 'Representation' toolbars. If either are not present you can re-enable them in the 'View' then 'Toolbars' menu. One drop-down menu should allow you to alter the colour of the visualised mesh from a default solid colour to either colour representations of properties of the mesh or colour representations of fields loaded in and defined for the mesh.
+
+For the representation menu, 'points', 'wireframe', 'outline', 'surface', and 'surface with edges' should be familiar concepts to Mayavi users. However, 'volume' may not be. 'Volume' displays the mesh as a partially-transparent cloud of points which can be very useful to denote the extent and fields of the mesh within a domain whilst primarily visualising another field or a specific cut.
+
+Controls for manipulating the object within the view window are the same as for the majority of visualisation packages - left click to turn the object, right click or use the mouse wheel to zoom, centre-click to drag the object. A useful trick after manipulating the object is to return to the Object Inspector's 'Display' page and use the 'Zoom to data' button to return the view zoom to a whole-object value. The 'Camera Controls' toolbar, as in Mayavi, allows you to reset the view to up or down an axis, but new to Mayavi users may be the three extra buttons which allow you to define a different rotation centre around which your mesh is rotated when you move it, and the subsequent ability to re-centre the rotation automatically around the centre of your mesh. 
+
+\subsubsection{Stretching along an axis}
+
+In many cases you may have data which has a very high aspect ratio in the original data that hinders interpretative visualisation, and want to scale the data along one axis. This is very simple to do on the x, y, and z axes within paraview by selecting the 'Display' tab in the 'Object Inspector' frame (make sure the object is selected above, otherwise you will not find any options under the Display tab) and scrolling down to the end of the frame where you'll find a 'Transformation' section, as shown on figure \ref{paraview8}.
+
+\begin{figure}[h!]
+\label{paraview8}
+  \centering
+  \fig[width=.7\textwidth]{visualisation_and_diagnostics_images/Paraview-rescaling-view}
+\end{figure}
+
+Of interest here is the row labelled 'Scale' which gives scaling factors for, in turn, the X, Y, and Z directions. Change the values in these boxes to rescale your data.
+
+Note that if you have set up a pipeline of actions (loading a file, taking a slice, contouring the slice, etc) and you change the scaling on one object in the pipeline you will find that the other objects in the pipeline look out of scale and you have to change the scaling for each one in turn.
+
+Additionally, there appears to be a bug when using the GL 'volume' rendering for a dataset where the scaling is not honoured. In this case, switching to something like near-transparent wireframe coloured by your field of interest may be the best option. 
+
+\subsubsection{Changing Opacity}
+
+You may want to be able to see multiple elements in the pipeline but have most of them sufficiently transparent that you can see through them to the main element of interest. To do this, reset the opacity of your object from the 'Style' panel part way down the 'Object Inspector' frame (see fig. \ref{paraview9} below).
+
+\begin{figure}[h!]
+\label{paraview9}
+  \centering
+  \fig[width=.7\textwidth]{visualisation_and_diagnostics_images/Paraview-opacity2}
+\end{figure}
+
+\subsubsection{Filters}
+
+Paraview offers a wide range of filters which can be applied to active data objects. Upon selection of a filter, the user is asked to accept the usage of the filter, which is then directly applied to the previously highlighted data object in the pipeline browser. During usage, the filter parameters can be adjusted in its property sheet, again located immediately below the pipeline browser. Display settings can thus be improved and useful information on the filter characteristics are here presented in a user-friendly way. Some of the most used filters are available on a separate "filters toolbar" located immediately above the pipeline browser.
+
+Table \ref{ParaviewFilters} gives a very brief overview of some of the filters which are usually the most useful when running a test case (see chapter \ref{chap:examples}). For a more in-depth account on using filters and a summary on the various display and 3D view properties supported by paraview, please refer to the online users guide:
+\url{www.paraview.org/files/v1.6/ParaViewUsersGuide.PDF}
+
+\begin{center}
+\begin{table}[h!]
+\begin{tabular}{cp{110mm}}
+{\bfseries Filter name} & {\bfseries\centering Main function} \\
+\hline
+CONNECTIVITY & Extract the largest "connected region" in the mesh data set. \\
+TRIANGULATE & Change the polygons in a mesh to triangles. \\ 
+DECIMATE & Reduce the number of triangles in a triangle mesh, keeping a good approximation - this needs to be applied on top of TRIANGULATE. \\
+QUADRIC CLUSTERING & See DECIMATE, but here the topology is affected. \\
+FEATURE EDGES & Extract special edge types from the mesh input polygonal data. \\
+LINEAR EXTRUSION & Create solid objects from 2D polygonal meshes. \\
+MASK POINTS & Render vertices only (not points). \\
+SHRINK & Disconnect the cells from one another. \\
+SMOOTH & Laplacially smooth down the mesh, "relaxing" it, i.e. make the cell shapes nicer and distribute vertices more evenly. \\
+STREAM TRACER & Generate stream traces in a vector field starting from a set of "seed points". \\
+\end{tabular}
+\label{ParaviewFilters}
+\caption{Some useful filters and their respective function when applied to a selected active data object.}
+\end{table}
+\end{center}
+
+
+
+

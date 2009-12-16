@@ -1,0 +1,262 @@
+#!/usr/bin/env python
+
+# James Maddison
+
+"""
+Clean text files
+"""
+
+import getopt
+import sys
+
+def EPrint(message):
+  """
+  Send an error message to standard error
+  """
+
+  sys.stderr.write(message + "\n")
+  sys.stderr.flush()
+
+  return
+
+def Help():
+  """
+  Prints program usage information
+  """
+
+  EPrint("Usage: txtclean [OPTIONS] ... INPUT OUTPUT\n" +
+         "\n"+
+         "Cleans the supplied file INPUT and outputs the cleaned file to OUTPUT.\n" +
+         "\n" +
+         "Options:\n" +
+         "\n" +
+         "-c         Consolidate multiple lines of empty Fortran comments into a single\n" +
+         "           empty fortran comment\n" +
+         "-d         Remove XML Diamond magic comments\n" +
+         "-E         Remove commented out Fortan ewrite statements\n" +
+         "-D         Remove XML Diamond magic comments, along with any spaces and newlines\n" +
+         "           surrounding the comments. Overrides -d.\n" +
+         "-l         Remove blank lines\n"+
+         "-s         Remove trailing spaces from lines\n" +
+         "-t SPACES  Remove tabs and replace them with SPACES spaces\n" +
+         "-T         Remove tabs and replace with zero spaces. Equivalent to -t 0.\n" +
+         "           Overrides -t.\n" +
+         "\n" +
+         "Cleaning is performed in the order:\n" +
+         "  Consolidate empty Fortan comment lines\n" +
+         "  Remove commented out Fortran ewrite statements\n" +
+         "  Remove XML Diamond magic comments\n" +
+         "  Remove XML empty comment elements\n" +
+         "  Remove tabs\n" +
+         "  Remove trailing spaces\n" +
+         "  Remove blank lines\n")
+
+def Error(message, displayHelp = True):
+  """
+  Print usage information, an error message and quit
+  """
+
+  if displayHelp:
+    Help()
+
+  EPrint(message)
+  sys.exit(1)
+
+# Read flags
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "cdDElst:T")
+except:
+  Error("Error reading program options")
+
+if len(args) > 2:
+  Error("Invalid argument \"" + args[2] + "\" supplied")
+
+# Reads compulsory command line arguments
+try:
+  input_file = args[0]
+except:
+  Help()
+  sys.exit(1)
+
+try:
+  output_file = args[1]
+except:
+  output_file = input_file
+
+# Read optional arguments
+clean_options = {}
+clean_options["consolidate_empty_fortran_comment_lines"] = ("-c", "") in opts
+clean_options["clean_diamond_comments"] = ("-d", "") in opts or ("-D", "") in opts
+clean_options["clean_diamond_comments_ws"] = ("-D", "") in opts
+clean_options["clean_commented_fortran_ewrites"] = ("-E", "") in opts
+clean_options["clean_trailing_spaces"] = ("-s", "") in opts
+clean_options["clean_blank_lines"] = ("-l", "") in opts
+clean_options["clean_tabs"] = False
+if ("-T", "") in opts:
+  clean_options["clean_tabs"] = True
+  tab_replace = ""
+else:
+  clean_tabs = False
+  for opt in opts:
+    if opt[0] == "-t":
+      try:
+        n_spaces = int(opt[1])
+        assert(n_spaces >= 0)
+      except:
+        EPrint("Warning: -t option supplied, but with invalid value - option ignored")
+        break
+      clean_options["clean_tabs"] = True
+      tab_replace = ""
+      for i in range(n_spaces):
+        tab_replace += " "
+      break
+
+if not True in clean_options.values():
+  Help()
+  sys.exit(1)
+
+try:
+  file_handle = open(input_file, "r")
+except:
+  Error("Failed to open file \"" + input_file + "\" for reading", False)
+
+output_data = file_handle.read()
+file_handle.close()
+
+fixed_form_fortran = (len(input_file) > 2 and input_file[len(input_file) - 2:].upper() == ".F")
+if fixed_form_fortran:
+  Error("Cannot safely clean fixed form Fortran files")
+
+if clean_options["consolidate_empty_fortran_comment_lines"]:         
+  def empty_fortran_comment_line(line):
+    data_split = line.split("!")
+    if len(data_split) == 1:
+      return False
+    else:
+      for split in data_split:
+        if len(split.strip(" ")) > 0:
+          return False
+      return True
+
+  data_split1 = output_data.split("\n")
+  output_data = ""
+  line_trimmed = [False for i in range(len(data_split1))]
+  empty_fortran_comment_lines_consolidated = 0
+  for i in range(len(data_split1)):
+    if line_trimmed[i]:
+      continue
+      
+    empty_fortran_comment_lines = 0
+    for j in range(i, len(data_split1)):
+      if empty_fortran_comment_line(data_split1[j]):
+        empty_fortran_comment_lines += 1
+        if not i == j:
+          line_trimmed[j] = True
+      else:
+        break
+        
+    output_data += data_split1[i]
+    if empty_fortran_comment_lines > 1:
+      empty_fortran_comment_lines_consolidated += empty_fortran_comment_lines - 1
+    if i <= len(data_split1) - 1:
+      output_data += "\n"
+      
+if clean_options["clean_commented_fortran_ewrites"]:
+  data_split1 = output_data.split("\n")
+  output_data = ""
+  commented_ewrite_remove_count = 0
+  for i in range(len(data_split1)):
+    strip = None
+    data_split2 = data_split1[i].split("!")
+    if len(data_split2) > 1:
+      strip = data_split2[1].strip(" ")
+    if not strip is None and strip.startswith("ewrite("):
+      commented_ewrite_remove_count += 1
+    else:
+      output_data += data_split1[i]
+      if i < len(data_split1) - 1:
+        output_data += "\n"
+
+if clean_options["clean_diamond_comments"]:
+  data_split1 = output_data.split("<!--DIAMOND MAGIC COMMENT")
+  output_data = data_split1[0]
+  diamond_comment_remove_count = 0
+  for i in range(len(data_split1))[1:]:
+    if clean_options["clean_diamond_comments_ws"]:
+      end = len(data_split1[i])
+      while not end == 0 and data_split1[i][end - 1:end] in [" ", "\n"]:
+        end -= 1
+      data_split1[i] = data_split1[i][:end]
+    data_split2 = data_split1[i].split("-->")
+    for j in range(len(data_split2))[1:]:
+      if clean_options["clean_diamond_comments_ws"] and i == 1:
+        start = 0
+        while not start == len(data_split2[j]) and data_split2[j][start:start + 1] in [" ", "\n"]:
+          start += 1
+        data_split2[j] = data_split2[j][start:]
+      output_data += data_split2[j]
+      if j < len(data_split2) - 1:
+        output_data += "-->"
+    diamond_comment_remove_count += 1
+
+if clean_options["clean_tabs"]:
+  data_split1 = output_data.split("\t")
+  output_data = ""
+  tab_remove_count = 0
+  for i in range(len(data_split1)):
+    output_data += data_split1[i]
+    if i < len(data_split1) - 1:
+      output_data += tab_replace
+      tab_remove_count += 1
+
+if clean_options["clean_trailing_spaces"]:
+  data_split1 = output_data.split("\n")
+  output_data = ""
+  trailing_space_remove_count = 0
+  trailing_space_lines_count = 0
+  for i in range(len(data_split1)):
+    section = data_split1[i]
+    line_trimmed = False
+    while len(section) > 0 and section[len(section) - 1:] == " ":
+      section = section[:len(section) - 1]
+      trailing_space_remove_count += 1
+      line_trimmed = True
+    output_data += section
+    if line_trimmed:
+      trailing_space_lines_count += 1
+    if i < len(data_split1) - 1:
+      output_data += "\n"
+
+if clean_options["clean_blank_lines"]:
+  data_split1 = output_data.split("\n")
+  output_data = ""
+  blank_line_remove_count = 0
+  for i in range(len(data_split1)):
+    if len(data_split1[i]) == 0:
+      blank_line_remove_count += 1
+    else:
+      output_data += data_split1[i]
+      if i < len(data_split1) - 1:
+        output_data += "\n"
+
+try:
+  file_handle = open(output_file, "w")
+except:
+  Error("Failed to open file \"" + output_file + "\" for writing")
+file_handle.write(output_data)
+file_handle.close()
+
+if clean_options["consolidate_empty_fortran_comment_lines"]:
+  print "Consolidated " + str(empty_fortran_comment_lines_consolidated) + " empty Fortran comment lines"
+if clean_options["clean_commented_fortran_ewrites"]:
+  print "Removed " + str(commented_ewrite_remove_count) + " commented Fortran ewrites"
+if clean_options["clean_diamond_comments"]:
+  print "Removed " + str(diamond_comment_remove_count) + " XML Diamond magic comment(s)"
+if clean_options["clean_diamond_comments_ws"]:
+  print "Cleaned spaces and newlines surrounding XML Diamond magic comments"
+if clean_options["clean_tabs"]:
+  print "Removed " + str(tab_remove_count) + " tab(s) and replaced them with " + str(len(tab_replace)) + " space(s)"
+if clean_options["clean_trailing_spaces"]:
+  print "Removed " + str(trailing_space_remove_count) + " trailing space(s) from " + str(trailing_space_lines_count) + " line(s)"
+if clean_options["clean_blank_lines"]:
+  print "Removed " + str(blank_line_remove_count) + " blank line(s)"

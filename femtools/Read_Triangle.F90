@@ -1,0 +1,836 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    C.Pain@Imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+
+#include "fdebug.h"
+
+module read_triangle
+  !!< This module reads triangle files and results in a vector field of
+  !!< positions.
+   
+  use futils
+  use elements
+  use fields
+  use state_module
+
+  implicit none
+
+  private
+
+  interface read_triangle_files
+     module procedure read_triangle_files_to_field, &
+          read_triangle_files_to_state, read_triangle_simple
+  end interface
+
+  public :: read_triangle_files, identify_triangle_file, read_elemental_mappings
+
+contains
+  
+  subroutine identify_triangle_file(filename, dim, loc, nodes, elements, &
+       node_attributes, selements, selement_boundaries)
+    !!< Discover the dimension and size of the triangle inputs. 
+    !!< Filename is the base name of the triangle file without .node or .ele.
+    !!< In parallel, filename must *include* the process number.
+      
+    character(len=*), intent(in) :: filename
+    !! Dimension of mesh elements.
+    integer, intent(out), optional :: dim
+    !! Number of vertices of elements.
+    integer, intent(out), optional :: loc
+    !! Node and element counts.
+    integer, intent(out), optional :: nodes, elements
+    integer, intent(out), optional :: node_attributes
+    ! Surface element meta data
+    integer, optional, intent(out) :: selements
+    integer, optional, intent(out) :: selement_boundaries
+
+    integer :: node_unit, element_unit, selement_unit
+    integer :: lnodes, ldim, lnode_attributes, node_boundaries
+    integer :: lelements, lloc, ele_attributes
+    integer :: lselements, lselement_boundaries
+    logical :: file_exists
+
+    ! Read node file header
+    inquire(file = trim(filename) // ".node", exist = file_exists)
+    if(.not. file_exists) then
+      ewrite(-1, *) "For triangle file with base name " // trim(filename)
+      FLAbort(".node file not found")
+    end if
+    ewrite(2, *) "Opening " // trim(filename) // ".node for reading."
+    node_unit = free_unit()
+    open(unit = node_unit, file = trim(filename) // ".node", err = 42, action = "read")
+    read (node_unit, *) lnodes, ldim, lnode_attributes, node_boundaries
+    close(node_unit)
+
+    ! Read volume element file header
+    lelements = 0
+    lloc = 0
+    ele_attributes = 0
+    inquire(file = trim(filename) // ".ele", exist = file_exists)
+    if(file_exists) then
+      ewrite(2, *) "Opening " // trim(filename) // ".ele for reading"
+      element_unit = free_unit()
+      open(unit = element_unit, file = trim(filename) // ".ele", err = 43, action = "read")
+      read (element_unit, *) lelements, lloc, ele_attributes
+      close(element_unit)
+    end if
+
+    ! Read the surface element file header
+    lselements = 0
+    lselement_boundaries = 0
+    select case(ldim)
+      case(1)
+        inquire(file = trim(filename) // ".bound", exist = file_exists)
+        if(file_exists) then
+          ewrite(2, *) "Opening " // trim(filename) // ".bound for reading"
+          selement_unit = free_unit()
+          open(unit = selement_unit, file = trim(filename) // ".bound", err = 44, action = "read")
+          read(selement_unit, *) lselements, lselement_boundaries
+          close(selement_unit)
+        end if
+      case(2)
+        inquire(file = trim(filename) // ".edge", exist = file_exists)
+        if(file_exists) then
+          ewrite(2, *) "Opening " // trim(filename) // ".edge for reading"
+          selement_unit = free_unit()
+          open(unit = selement_unit, file = trim(filename) // ".edge", err = 45, action = "read")
+          read(selement_unit, *) lselements, lselement_boundaries
+          close(selement_unit)
+        end if
+      case(3)
+        inquire(file = trim(filename) // ".face", exist = file_exists)
+        if(file_exists) then
+          ewrite(2, *) "Opening " // trim(filename) // ".face for reading"
+          selement_unit = free_unit()
+          open(unit = selement_unit, file = trim(filename) // ".face", err = 46, action = "read")
+          read(selement_unit, *) lselements, lselement_boundaries
+          close(selement_unit)
+        end if
+    end select
+
+    if(present(nodes)) then
+       nodes = lnodes
+    end if
+    if(present(dim)) then
+       dim = ldim
+    end if
+    if(present(node_attributes)) then
+       node_attributes = lnode_attributes
+    end if
+    if(present(loc)) then
+       loc = lloc
+    end if
+    if(present(elements)) then
+       elements = lelements
+    end if
+    if(present(selements)) then
+      selements = lselements
+    end if
+    if(present(selement_boundaries)) then
+      selement_boundaries = lselement_boundaries
+    end if
+
+    return
+
+42  FLAbort("Unable to open "//trim(filename)//".node")
+
+43  FLAbort("Unable to open "//trim(filename)//".ele")
+
+44  FLAbort("Unable to open " // trim(filename) // ".bound")
+
+45  FLAbort("Unable to open " // trim(filename) // ".edge")
+
+46  FLAbort("Unable to open " // trim(filename) // ".face")
+    
+  end subroutine identify_triangle_file
+
+  function read_triangle_files_to_field(filename, shape) result (field)
+    !!< Filename is the base name of the triangle file without .node or .ele .
+    !!< In parallel the filename must *not* include the process number.
+    
+    character(len=*), intent(in) :: filename
+    type(element_type), intent(in), target :: shape
+    type(vector_field)  :: field
+
+    integer :: node_unit, ele_unit
+    real, allocatable, dimension(:) :: read_buffer
+    integer, allocatable, dimension(:,:) :: edge_buffer
+    integer, allocatable, dimension(:) :: sndglno
+    integer, allocatable, dimension(:) :: boundary_ids
+    
+    character(len = parallel_filename_len(filename)) :: lfilename
+    integer :: i, j, nodes, dim, node_attributes, boundaries,&
+         & ele_attributes, loc, sloc, elements, edges, edge_count
+    integer, allocatable, dimension(:):: node_order
+    logical :: file_exists
+    type(mesh_type) :: mesh
+    
+    ! If running in parallel, add the process number
+    if(isparallel()) then
+      lfilename = parallel_filename(filename)
+    else
+      lfilename = trim(filename)
+    end if
+
+    node_unit=free_unit()
+
+    ewrite(2, *) "Opening "//trim(lfilename)//".node for reading."
+    ! Open node file
+    open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
+    
+    ! Read node file header.
+    read (node_unit, *) nodes, dim, node_attributes, boundaries
+
+    ele_unit=free_unit()
+
+    ewrite(2, *) "Opening "//trim(lfilename)//".ele for reading."
+    ! Open element file
+    open(unit=ele_unit, file=trim(lfilename)//".ele", err=43, action="read")
+    
+    ! Read element file header.
+    read (ele_unit, *) elements, loc, ele_attributes
+
+    assert(loc==shape%loc)
+    allocate(node_order(loc))
+    select case(loc)
+    case(3)
+       node_order = (/1,2,3/)
+    case(6)
+       node_order = (/1,6,2,5,4,3/)
+    case default
+       do j=1,loc
+          node_order(j)=j
+       end do
+    end select
+    
+    call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
+
+    call allocate(field, dim, mesh, name="Coordinate")
+
+    ! Drop the local reference to mesh - now field owns the only reference.
+    call deallocate(mesh)
+
+    allocate(read_buffer(dim+node_attributes+boundaries+1))
+
+    if(node_attributes==1) then ! this assumes the node attribute are column numbers
+      allocate(field%mesh%columns(1:nodes))
+    end if
+
+    do i=1,nodes
+       read(node_unit,*) read_buffer
+       forall (j=1:dim)
+          field%val(j)%ptr(i)=read_buffer(j+1)
+       end forall
+       if (node_attributes==1) then
+         field%mesh%columns(i)=floor(read_buffer(dim+1))
+       end if
+    end do
+
+    deallocate(read_buffer)
+    allocate(read_buffer(loc+ele_attributes+1))
+
+    if(ele_attributes==1) then  ! this assumes that the element attribute is a region id
+      allocate(field%mesh%region_ids(1:elements))
+    end if
+    
+    do i=1,elements
+       read(ele_unit,*) read_buffer
+       field%mesh%ndglno((i-1)*loc+1:i*loc)=floor(read_buffer(node_order+1))
+       if(ele_attributes==1) then
+          field%mesh%region_ids(i)=read_buffer(loc+2)
+       end if
+    end do
+
+    close(node_unit)
+    close(ele_unit)
+
+    ! Open edge file
+    select case (dim)
+    case(1)
+       inquire(file=trim(lfilename)//".bound",exist=file_exists)
+       if(file_exists) then
+          ewrite(2, *) "Opening "//trim(lfilename)//".bound for reading."
+          open(unit=node_unit, file=trim(lfilename)//".bound", err=41, &
+                action="read")
+       end if
+    case(2)
+       inquire(file=trim(lfilename)//".edge",exist=file_exists)
+       if(file_exists) then
+          ewrite(2, *) "Opening "//trim(lfilename)//".edge for reading."
+          open(unit=node_unit, file=trim(lfilename)//".edge", err=41, &
+                action="read")
+       end if
+    case(3)
+       inquire(file=trim(lfilename)//".face",exist=file_exists)
+       if(file_exists) then
+          ewrite(2, *) "Opening "//trim(lfilename)//".face for reading."
+          open(unit=node_unit, file=trim(lfilename)//".face", err=41, &
+                action="read")
+       end if
+    end select
+
+    if(file_exists) then
+      ! Read edge file header.
+      read (node_unit, *) edges, boundaries
+    else
+      edges = 0
+      boundaries = 1
+    end if
+    
+    if(edges==0) then
+       file_exists = .false.
+       close(node_unit)
+    end if
+
+    select case(shape%numbering%family)
+    case(FAMILY_SIMPLEX)
+      if ((loc/=dim+1).and.(boundaries/=0)) then
+        ewrite(0,*) "Warning: triangle boundary markers not supported for qua", &
+              &"dratic space elements."
+        if(file_exists) then
+            file_exists= .false.
+            close(node_unit)
+        end if
+      end if
+      sloc=loc-1
+    case(FAMILY_CUBE)
+      sloc=loc/2
+    case default
+      FLAbort('Illegal element family')
+    end select
+
+    allocate(edge_buffer(sloc+boundaries+1,edges))
+    edge_buffer=0
+    allocate(sndglno(edges*sloc))
+    sndglno=0
+    allocate(boundary_ids(1:edges))
+    boundary_ids=0
+    edge_count=0
+    
+    if (boundaries==0) then
+       ewrite(0,*) "Warning: triangle edge file has no boundary markers"
+       if(file_exists) then
+          file_exists=.false.
+          close(node_unit)
+       end if
+    else
+      if(file_exists) then
+        read(node_unit, *) edge_buffer
+        
+        do i=1, edges
+          if (edge_buffer(sloc+2,i)/=0) then
+            ! boundary edge/face
+            edge_count=edge_count+1
+            sndglno((edge_count-1)*sloc+1:edge_count*sloc)= &
+              edge_buffer(2:sloc+1,i)
+            boundary_ids(edge_count)=edge_buffer(sloc+2,i)
+          end if
+        end do
+        
+        file_exists=.false.
+        close(node_unit)
+      end if
+    end if
+    
+    if(isparallel()) then
+      ! Set private_nodes to zero, so that we don't generate surface elements
+      ! on the partition external / globally external faces
+      call add_faces(field%mesh, &
+        &               sndgln=sndglno(1:edge_count*sloc), &
+        &               boundary_ids=boundary_ids(1:edge_count), &
+        &               private_nodes = 0)
+    else
+      ! In serial, can safely generate surface elements for all elements that
+      ! are on the surface
+      call add_faces(field%mesh, &
+        &               sndgln=sndglno(1:edge_count*sloc), &
+        &               boundary_ids=boundary_ids(1:edge_count))
+    end if
+
+    deallocate(edge_buffer)
+    deallocate(sndglno)
+    deallocate(boundary_ids)
+
+41  continue ! We jump to here if there was no edge file.
+
+    return
+
+42  FLAbort("Unable to open "//trim(lfilename)//".node")
+
+43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+    
+    
+  end function read_triangle_files_to_field
+
+  function read_triangle_files_to_state(filename, shape,shape_type,n_states) result (result_state)
+    !!< Filename is the base name of the triangle file without .node or .ele.
+    !!< In parallel the filename must *not* include the process number.
+    
+    character(len=*), intent(in) :: filename
+    type(element_type), intent(in), target :: shape
+    logical , intent(in):: shape_type
+    integer, intent(in), optional :: n_states
+    type(state_type)  :: result_state
+    type(vector_field) :: field
+    type(scalar_field), allocatable, dimension(:) :: attribs
+    type(scalar_field) :: bndry_mark
+
+    character(len = parallel_filename_len(filename)) :: lfilename
+    integer :: node_unit, ele_unit
+    real, allocatable, dimension(:) :: read_buffer
+    character(len=6) :: write_buffer
+    integer :: i, j, nodes, dim, node_attributes, boundaries,&
+         & ele_attributes, loc, elements
+    integer, allocatable, dimension(:) :: node_order
+
+    type(mesh_type), dimension(:), allocatable, save :: meshes
+    integer, save :: counter=0
+
+    assert(shape_type)
+    
+    ! If running in parallel, add the process number
+    if(isparallel()) then
+      lfilename = parallel_filename(filename)
+    else
+      lfilename = trim(filename)
+    end if
+
+    node_unit=free_unit()
+
+    counter=counter+1
+    if (counter==1) then
+       if (present(n_states)) then
+          allocate(meshes(n_states))
+       else
+          allocate(meshes(1))
+       end if
+    end if
+    assert(counter .le. size(meshes))
+
+    call nullify(result_state)
+    call deallocate(result_state)
+
+    ewrite(2, *) "Opening "//trim(lfilename)//".node for reading."
+    ! Open node file
+    open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
+    
+    ! Read node file header.
+    read (node_unit, *) nodes, dim, node_attributes, boundaries
+
+    ele_unit=free_unit()
+
+    ewrite(2, *) "Opening "//trim(lfilename)//".ele for reading."
+    ! Open element file
+    open(unit=ele_unit, file=trim(lfilename)//".ele", err=43, action="read")
+    
+    ! Read element file header.
+    read (ele_unit, *) elements, loc, ele_attributes
+
+    assert(loc==shape%loc)
+    allocate(node_order(loc))
+    select case(loc)
+    case(3)
+       node_order = (/1,2,3/)
+    case(6)
+       node_order = (/1,6,2,5,4,3/)
+    case default
+       do j=1,loc
+          node_order(:)=j
+       enddo
+    end select
+    
+    call allocate(meshes(counter), nodes, elements, shape, name="CoordinateMesh")
+    call allocate(field, dim, meshes(counter), name=filename//' Coordinate')
+    allocate(attribs(node_attributes))
+    do j=1,node_attributes
+       write(write_buffer,'(i0)') j
+       call allocate(attribs(j),meshes(counter),&
+            name='Attribute '//trim(write_buffer))
+    end do
+       call allocate(bndry_mark,meshes(counter),&
+            name='Boundary Marker')
+
+    allocate(read_buffer(dim+node_attributes+boundaries+1))
+
+    do i=1,nodes
+       read(node_unit,*) read_buffer
+
+       forall (j=1:dim)
+          field%val(j)%ptr(i)=read_buffer(j+1)
+       end forall
+
+       forall (j=1:node_attributes)
+          attribs(j)%val(i)=read_buffer(j+1+dim)
+       end forall
+
+       if (boundaries>0) then
+          bndry_mark%val(i)=read_buffer(1+1+dim+node_attributes)
+       end if
+
+    end do
+
+
+    deallocate(read_buffer)
+    allocate(read_buffer(loc+ele_attributes+1))
+
+    if(ele_attributes==1) then  ! this assumes the element attribute is a region id
+      allocate(field%mesh%region_ids(1:elements))
+      do j=1,node_attributes
+        allocate(attribs(j)%mesh%region_ids(1:elements))
+      end do
+      allocate(bndry_mark%mesh%region_ids(1:elements))
+      allocate(meshes(counter)%region_ids(1:elements))
+    end if
+
+    do i=1,elements
+       read(ele_unit,*) read_buffer
+
+
+       field%mesh%ndglno((i-1)*loc+1:i*loc)=read_buffer(node_order+1)
+       forall (j=1:node_attributes)
+          attribs(j)%mesh%ndglno((i-1)*loc+1:i*loc)=read_buffer(node_order+1)
+       end forall
+       bndry_mark%mesh%ndglno((i-1)*loc+1:i*loc)=read_buffer(node_order+1)
+       meshes(counter)%ndglno((i-1)*loc+1:i*loc)=read_buffer(node_order+1)
+
+       if(ele_attributes==1) then
+          field%mesh%region_ids(i)=read_buffer(loc+2)
+          forall (j=1:node_attributes)
+              attribs(j)%mesh%region_ids(i)=read_buffer(loc+2)
+          end forall
+          bndry_mark%mesh%region_ids(i)=read_buffer(loc+2)
+          meshes(counter)%region_ids(i)=read_buffer(loc+2)
+       end if
+    end do
+    
+    close(node_unit)
+    close(ele_unit)
+
+
+    call insert(result_state,field,"Coordinate")    
+    do j=1,node_attributes
+       write(write_buffer,'(i0)') j
+       call insert(result_state,attribs(j),"Attributes "//trim(write_buffer))
+    end do
+    if(boundaries>0) call insert(result_state,bndry_mark,"Boundary Marker")
+    call insert(result_state,meshes(counter),filename)
+
+    return
+
+42  FLAbort("Unable to open "//trim(lfilename)//".node")
+
+43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+
+  end function read_triangle_files_to_state
+
+  function read_triangle_simple(filename, quad_degree, quad_ngi, no_faces, quad_family) result (field)
+    !!< A simpler mechanism for reading a triangle file into a field.
+    !!< In parallel the filename must *not* include the process number.
+    
+    character(len=*), intent(in) :: filename
+    !! The degree of the quadrature.
+    integer, intent(in), optional, target :: quad_degree
+    !! The degree of the quadrature.
+    integer, intent(in), optional, target :: quad_ngi
+    !! Whether to add_faces on the resulting mesh.
+    logical, intent(in), optional :: no_faces
+    !! What quadrature family to use
+    integer, intent(in), optional :: quad_family
+
+    type(vector_field) :: field
+    type(quadrature_type) :: quad
+    type(element_type) :: shape
+
+    integer :: dim, loc
+
+    if(isparallel()) then
+      call identify_triangle_file(parallel_filename(filename), dim, loc)
+    else
+      call identify_triangle_file(filename, dim, loc)
+    end if
+
+    if (present(quad_degree)) then
+      quad=make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
+    else if (present(quad_ngi)) then
+      quad=make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
+    else
+      FLAbort("Need to specify either quadrature degree or ngi")
+    end if
+
+    shape=make_element_shape(loc, dim, 1, quad)
+
+    if (present_and_true(no_faces)) then
+      field=read_triangle_files_to_field_no_faces(filename, shape)
+    else
+      field=read_triangle_files(filename, shape)
+    end if
+    
+    ! deallocate our references of shape and quadrature:
+    ! NOTE: we're using the specific deallocate interface here
+    !       to make the intel compiler shut up
+    call deallocate_element(shape)
+    call deallocate(quad)
+
+  end function read_triangle_simple
+
+  function read_elemental_mappings(positions, filename, map, stat) result(field)
+    type(vector_field), intent(in) :: positions
+    character(len=*), intent(in) :: filename, map
+    type(scalar_field) :: field
+    integer, optional, intent(out) :: stat
+
+    integer :: elements, unit, ele, current_element, target_element
+    integer :: io
+    real :: t
+
+    if(present(stat)) stat = 0
+
+    if(isparallel()) then
+      call identify_triangle_file(parallel_filename(filename), elements=elements)
+    else
+      call identify_triangle_file(filename, elements=elements)
+    end if
+
+    unit = free_unit()
+    open(unit=unit, file=trim(filename)// "." // trim(map), action="read", iostat=io, status="old")
+    if (io == 0) then
+      field = piecewise_constant_field(positions%mesh, trim(map))
+
+      do ele=1,elements
+        read (unit, *) current_element, target_element
+        t = target_element
+        call set(field, current_element, t)
+      end do
+    else
+      if(present(stat)) then
+        stat = io
+        return
+      else
+        FLAbort("Failed to read elemental mappings")
+      end if
+    end if
+
+    close(unit)
+
+  end function read_elemental_mappings
+
+  ! I'm sorry -- I had to copy this function.
+  ! The add_faces call on the triangle files I am using
+  ! crashes, because I am using the edge markers for
+  ! something different to defining boundary labels.
+  ! However, I couldn't add an optional logical,
+  ! as then that makes the interface indistinguishable
+  ! from read_triangle_files_to_state!
+  ! -- pfarrell
+
+  function read_triangle_files_to_field_no_faces(filename, shape) result (field)
+    !!< Filename is the base name of the triangle file without .node or .ele .
+    !!< In parallel the filename must *not* include the process number.
+    
+    character(len=*), intent(in) :: filename
+    type(element_type), intent(in), target :: shape
+    type(vector_field)  :: field
+
+    integer :: node_unit, ele_unit
+    real, allocatable, dimension(:) :: read_buffer
+    integer, allocatable, dimension(:,:) :: edge_buffer
+    integer, allocatable, dimension(:) :: sndglno
+    integer, allocatable, dimension(:) :: boundary_ids
+    
+    character(len = parallel_filename_len(filename)) :: lfilename
+    integer :: i, j, nodes, dim, node_attributes, boundaries,&
+         & ele_attributes, loc, sloc, elements, edges, edge_count
+    integer, allocatable, dimension(:):: node_order
+    logical :: file_exists
+    type(mesh_type) :: mesh
+    
+    ! If running in parallel, add the process number
+    if(isparallel()) then
+      lfilename = parallel_filename(filename)
+    else
+      lfilename = trim(filename)
+    end if
+
+    node_unit=free_unit()
+
+    ewrite(2, *) "Opening "//trim(lfilename)//".node for reading."
+    ! Open node file
+    open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
+    
+    ! Read node file header.
+    read (node_unit, *) nodes, dim, node_attributes, boundaries
+
+    ele_unit=free_unit()
+
+    ewrite(2, *) "Opening "//trim(lfilename)//".ele for reading."
+    ! Open element file
+    open(unit=ele_unit, file=trim(lfilename)//".ele", err=43, action="read")
+    
+    ! Read element file header.
+    read (ele_unit, *) elements, loc, ele_attributes
+
+    assert(loc==shape%loc)
+    allocate(node_order(loc))
+    select case(loc)
+    case(3)
+       node_order = (/1,2,3/)
+    case(6)
+       node_order = (/1,6,2,5,4,3/)
+    case default
+       do j=1,loc
+          node_order(j)=j
+       end do
+    end select
+    
+    call allocate(mesh, nodes, elements, shape, name=filename)
+
+    ! Field has an upper index of 3. Therefore, if dim==3 and
+    ! node_attributes>0 then we get an out of bounds reference. Assume
+    ! here that when there are node attributes they can be ignored.
+    call allocate(field, dim, mesh, name="Coordinate")
+
+    ! Drop the local reference to mesh - now field owns the only reference.
+    call deallocate(mesh)
+
+    allocate(read_buffer(dim+node_attributes+boundaries+1))
+
+    do i=1,nodes
+       read(node_unit,*) read_buffer
+       forall (j=1:dim)
+          field%val(j)%ptr(i)=read_buffer(j+1)
+       end forall
+    end do
+
+    deallocate(read_buffer)
+    allocate(read_buffer(loc+ele_attributes+1))
+
+    if(ele_attributes==1) then  ! this assumes that the element attribute is a region id
+      allocate(field%mesh%region_ids(1:elements))
+    end if
+
+    do i=1,elements
+       read(ele_unit,*) read_buffer
+       field%mesh%ndglno((i-1)*loc+1:i*loc)=floor(read_buffer(node_order+1))
+       if(ele_attributes==1) then
+          field%mesh%region_ids(i)=read_buffer(loc+2)
+       end if
+    end do
+
+    close(node_unit)
+    close(ele_unit)
+
+    ! Open edge file
+    select case (dim)
+    case(1)
+       inquire(file=trim(lfilename)//".bound",exist=file_exists)
+       if(file_exists) then
+          ewrite(2, *) "Opening "//trim(lfilename)//".bound for reading."
+          open(unit=node_unit, file=trim(lfilename)//".bound", err=41, &
+                action="read")
+       end if
+    case(2)
+       inquire(file=trim(lfilename)//".edge",exist=file_exists)
+       if(file_exists) then
+          ewrite(2, *) "Opening "//trim(lfilename)//".edge for reading."
+          open(unit=node_unit, file=trim(lfilename)//".edge", err=41, &
+                action="read")
+       end if
+    case(3)
+       inquire(file=trim(lfilename)//".face",exist=file_exists)
+       if(file_exists) then
+          ewrite(2, *) "Opening "//trim(lfilename)//".face for reading."
+          open(unit=node_unit, file=trim(lfilename)//".face", err=41, &
+                action="read")
+       end if
+    end select
+
+    if(file_exists) then
+      ! Read edge file header.
+      read (node_unit, *) edges, boundaries
+    else
+      edges = 0
+      boundaries = 1
+    end if
+    
+    if (boundaries==0 .or. edges==0) then
+       if(file_exists) then
+          close(node_unit)
+       end if
+       goto 41
+    end if
+
+    select case(shape%numbering%family)
+    case(FAMILY_SIMPLEX)
+      if (loc/=dim+1) then
+         ewrite(0,*) "Warning: triangle boundary markers not supported for qua",&
+               &"dratic space elements."
+         if(file_exists) then
+            close(node_unit)
+         end if
+         goto 41
+      end if
+      sloc=loc-1
+    case(FAMILY_CUBE)
+      sloc=loc/2
+    case default
+      FLAbort('Illegal element family')
+    end select
+    allocate(edge_buffer(sloc+boundaries+1,edges))
+    allocate(sndglno(edges*sloc))
+    allocate(boundary_ids(1:edges))
+
+    if(file_exists) then
+      read(node_unit, *) edge_buffer
+    end if
+
+    edge_count=0
+    do i=1, edges
+       if (edge_buffer(sloc+2,i)/=0) then
+         ! boundary edge/face
+         edge_count=edge_count+1
+         sndglno((edge_count-1)*sloc+1:edge_count*sloc)= &
+           edge_buffer(2:sloc+1,i)
+         boundary_ids(edge_count)=edge_buffer(sloc+2,i)
+       end if
+    end do
+    
+    deallocate(edge_buffer)
+    deallocate(sndglno)
+    deallocate(boundary_ids)
+
+    close(node_unit)
+
+41  continue ! We jump to here if there was no edge file.
+
+    return
+
+42  FLAbort("Unable to open "//trim(lfilename)//".node")
+
+43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+    
+    
+  end function read_triangle_files_to_field_no_faces
+end module read_triangle

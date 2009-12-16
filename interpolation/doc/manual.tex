@@ -1,0 +1,117 @@
+\documentclass[a4paper]{article}
+
+\usepackage{amsbsy,amsmath,amssymb,psfig}
+\usepackage{times,mathpi,mathptm}
+\usepackage{graphicx,psfrag,rotating,subfigure,supertabular}
+
+%\usepackage[german]{babel}
+
+\begin{document}
+
+\title{grid-to-grid interpolation}
+
+\author{Gerard J. Gorman\\ 
+Earth Science and Engineering\\
+Imperial College, Prince Consort Road\\ 
+London SW7 2BP, UK\\
+g.gorman@imperial.ac.uk}
+\maketitle
+\thispagestyle{empty}
+
+%\noindent
+%{\bf Abstract {\small\em }}
+%\vspace{0.5cm}
+%\noindent
+
+\section{Introduction}
+
+% The problems with having a static mesh
+This library implements a grid-to-grid interpolation as described by
+Rainald L\"{o}hner~\cite{lohner_grid2grid}.
+
+\section{Fortran Interface}
+
+In bath cases, mesh 1 refers to the source mesh while mesh 2 refers to
+the destination mesh that's being interpolated to.
+
+\subsection{Tri3 mesh Interpolation}
+SUBROUTINE FLTri3toTri3(NNode1, NElems1, X1, Y1, 
+                        ENLIST1, RMEM1, FIELDS1, NFIELDS,
+                        NNode2, NElems1, X2, Y2,
+                        ENLIST2, RMEM2, FIELDS2, IERROR)\\
+\\
+\noindent INTEGER NNode1, NElems1, NFIELDS         \\
+REAL X1(NNode1), Y1(NNode1), RMEM1(*),             \\
+INTEGER ENLIST1(NElems1*4)                         \\
+INTEGER FIELDS1(NFIELDS)                           \\
+INTEGER NNode2, NElems1,                           \\
+REAL X2(NNode2), Y2(NNode2), RMEM2(*)              \\
+INTEGER ENLIST2(NElems1*4)                         \\
+INTEGER FIELDS2(NFIELDS)                           \\
+INTEGER IERROR
+
+\vspace{5mm}
+
+\begin{supertabular}{lll}
+IN  & NNode1   & number of nodes in mesh 1\\ 
+IN  & NElems1  & number of elements in mesh 1\\ 
+IN  & X1       & array of x positions of nodes in mesh 1\\ 
+IN  & Y1       & array of y positions of nodes in mesh 1\\
+IN  & ENLIST1  & element-node connectivity in mesh 1\\ 
+IN  & RMEM1    & real memory array that contains the field vectors\\
+IN  & FIELDS1  & array containing base pointers to fields in RMEM1\\ 
+IN  & NFIELDS  & number of fields to be interpolated\\ 
+IN  & NNode2   & number of nodes in mesh 2\\ 
+IN  & NElems2  & number of elements in mesh 2\\ 
+IN  & X2       & array of x positions of nodes in mesh 2\\ 
+IN  & Y2       & array of x positions of nodes in mesh 2\\
+IN  & ENLIST2  & element-node connectivity in mesh 2\\ 
+OUT & RMEM2    & real memory array that contains the new field vectors\\
+IN  & FIELDS2  & array containing base pointers to fields in RMEM2\\ 
+OUT & IERROR   & return code for subroutine\\
+\end{supertabular}
+
+\subsection{Tetra4 mesh Interpolation}
+SUBROUTINE FLTetra4toTetra4(NNode1, NElems1, X1, Y1, Z1, ENLIST1, RMEM1, FIELDS1, NFIELDS,
+NNode2, NElems1, X2, Y2, Z2, ENLIST2, RMEM2, FIELDS2, IERROR)\\
+\\
+\noindent INTEGER NNode1, NElems1, NFIELDS         \\
+REAL X1(NNode1), Y1(NNode1), Z1(NNode1), RMEM1(*), \\
+INTEGER ENLIST1(NElems1*4)                         \\
+INTEGER FIELDS1(NFIELDS)                           \\
+INTEGER NNode2, NElems1,                           \\
+REAL X2(NNode2), Y2(NNode2), Z2(NNode2), RMEM2(*)  \\
+INTEGER ENLIST2(NElems1*4)                         \\
+INTEGER FIELDS2(NFIELDS)                           \\
+INTEGER IERROR
+
+\vspace{5mm}
+
+\begin{supertabular}{lll}
+IN  & NNode1   & number of nodes in mesh 1\\ 
+IN  & NElems1  & number of elements in mesh 1\\ 
+IN  & X1       & array of x positions of nodes in mesh 1\\ 
+IN  & Y1       & array of y positions of nodes in mesh 1\\ 
+IN  & Z1       & array of z positions of nodes in mesh 1\\ 
+IN  & ENLIST1  & element-node connectivity in mesh 1\\ 
+IN  & RMEM1    & real memory array that contains the field vectors\\
+IN  & FIELDS1  & array containing base pointers to fields in RMEM1\\ 
+IN  & NFIELDS  & number of fields to be interpolated\\ 
+IN  & NNode2   & number of nodes in mesh 2\\ 
+IN  & NElems2  & number of elements in mesh 2\\ 
+IN  & X2       & array of x positions of nodes in mesh 2\\ 
+IN  & Y2       & array of x positions of nodes in mesh 2\\ 
+IN  & Z2       & array of x positions of nodes in mesh 2\\ 
+IN  & ENLIST2  & element-node connectivity in mesh 2\\ 
+OUT & RMEM2    & real memory array that contains the new field vectors\\
+IN  & FIELDS2  & array containing base pointers to fields in RMEM2\\ 
+OUT & IERROR   & return code for subroutine\\
+\end{supertabular}
+
+\section{Conclusions}
+It works.
+
+\bibliographystyle{plain} 
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,81 @@
+C ===== POINTS === POINTS === POINTS === POINTS ======================
+C  Old definition of the colors
+C
+C  Colors:   T - tough point: can not be changed anyway,
+C                             boundary edges with T end points
+C                                can not be changed
+C                Remark: the T-color appears only in a
+C                        mixture with another color.
+C
+C            V - fixed point:       can not be changed anyway
+C           VB - edge point:        has to live on the edge
+C            B - surface point:     has to live on the surface
+C          VBI - internal VB-point: similar to VB
+C           BI - internal B-point:  similar to  B
+C            I - internal point:    free point inside the domain
+C
+C  Working colors which will be replaced by one from the above list:
+C           TV - tough  V-point
+C          TVB - tough VB-point
+C           TB - tough  B-point
+C
+C ==========================================================
+C     Integer   iTVnode, iTVBnode, iTBnode
+C     Parameter(iTVnode = 1, iTVBnode = 2, iTBnode = 3)
+C
+C     Integer   iVnode, iVBnode, iBnode, iVBInode, iBInode, iInode
+C     Parameter(iVnode   = 4, iVBnode = 5, iBnode = 6)
+C     Parameter(iVBInode = 7, iBInode = 8, iInode = 9)
+C
+C
+C ====================================================================
+C  New binary definition of colors. Each bit stands for specific
+C  location of a point: boundary, surface, vertex, temporary 
+C  frosen point, etc. Before mesh regeneration, we try to recover
+C  as many point characteristics as possible. For example, a fix 
+C  point on the domain boundary is vertex, boundary point and surface 
+C  point simulataneously. It could be also the temporary frosen point. 
+C
+C  The difefrence between V abd T nodes is as follows. We can put
+C  a new point on V-V or V-T edge, but we can not split T-T edge.
+C
+C  The characteristics are recovered with binary operations IAND 
+C  and IOR. To distinguish between old and new colors, we shall use
+C  prefix "j" instead of "i".
+C
+C   bit 01  -  vertex                (V)
+C   bit 02  -  edge node             (R)              
+C   bit 03  -  boundary node         (B) only outer boundary
+C   bit 04  -  surface node          (S)
+C   bit 05  -  reserved 
+C   bit 06  -  reserved
+C   bit 07  -  inner node            (I)
+C   bit 08  -  temporary frosen node (T)
+C
+C REMARK 1. All colors should be powers of 2.
+C
+C REMARK 2. The contradictory colors are jBnode and jInode.
+C
+C ====================================================================
+       Integer   jVnode,     jRnode,     jBnode,     jSnode
+       Parameter(jVnode = 1, jRnode = 2, jBnode = 4, jSnode = 8)
+
+       Integer   jInode,      jTnode
+       Parameter(jInode = 64, jTnode = 128)
+
+
+C ==========================================================
+C Colors for faces:
+C     F - fictitious faces: used for dummy face in IFE
+C                           supposed to be negative
+C     V - fixed faces:      face can not be modified
+C     M - material faces:   interface between different materials
+C                           interval of colors [iMface; MaxS]
+C                           is reserved for 100 different interfaces
+C ==========================================================
+      Integer   iFface
+      Parameter(iFface = -1)
+
+C     Integer   iVface, iMface
+C     Parameter(iVface = MaxS - 100 , iMface = MaxS - 99)
+

@@ -1,0 +1,147 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+SHELL = @SHELL@
+
+FC      = @FC@
+FCFLAGS = -I../include @FCFLAGS@
+
+F77      = @F77@
+FFLAGS = -I../include @FFLAGS@
+
+CC      = @CC@
+CFLAGS  = @CFLAGS@
+
+CXX     = @CXX@
+CXXFLAGS= @CXXFLAGS@
+
+MAKE    = @MAKE@
+AR  = @AR@
+ARFLAGS = @ARFLAGS@
+
+LIB = ../lib/libmba3d.a
+
+OBJS = mba_analytic.o mba_nodal.o \
+  ani2.o makM.o forlibmba.o \
+  makQ.o list.o \
+  auxSP.o auxSR.o auxSF.o auxSE.o update.o \
+  F2E.o E2F.o swapR.o insrtP.o deletP.o moveP.o clpsR.o splitE.o \
+  minim.o nlnfnc.o \
+  lintrp3D.o dsort.o utils.o refine.o smoothing.o \
+  ZZ.o \
+  error.o output.o isnan.o time.o \
+  check.o \
+  calVol.o cmpE.o findSE.o isnan_f.o
+
+.SUFFIXES: .f90 .F90 .c .o .a .f
+
+%.o: %.mod
+
+.f.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.F90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.c.o:
+	@echo "        CC $<"
+	$(CC) $(CFLAGS) -I../include -c $< || (rm $(LIB) && false)
+.cpp.o:
+	@echo "        CXX $<"
+	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
+
+default: $(OBJS)
+	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	cp *.mod ../include/
+
+clean:
+	rm -f *.o *.mod
+
+mba_analytic.o     : ani2.o \
+                     magic.fd  status.fd  output.fd
+mba_nodal.o        : ani2.o check.o forlibmba.o \
+                     magic.fd  status.fd  output.fd
+metric3D.o         : magic.fd
+
+ani2.o       	   : clpsR.o deletP.o dsort.o E2F.o F2E.o auxSE.o error.o insrtP.o lintrp3D.o makM.o moveP.o output.o splitE.o swapR.o \
+                     makS.fd  color.fd  magic.fd  output.fd  status.fd  operat.fd
+
+saveM.o  	   : color.fd
+makM.o  	   : auxSE.o auxSF.o auxSP.o auxSR.o cmpE.o makQ.o update.o utils.o \
+                     makS.fd  color.fd  status.fd  magic.fd
+makQ.o   	   : auxSE.o auxSP.o calVol.o \
+                     magic.fd cubature.fd
+
+F2E.o    	   : auxSE.o auxSF.o auxSP.o error.o list.o makQ.o update.o \
+                     makS.fd  color.fd  operat.fd  shutF.fd            status.fd
+
+E2F.o    	   : auxSE.o auxSF.o auxSP.o auxSR.o error.o list.o makQ.o update.o \
+                     makS.fd  color.fd  operat.fd  shutF.fd  magic.fd  status.fd
+swapR.o  	   : auxSE.o auxSF.o auxSP.o error.o list.o makM.o makQ.o update.o \
+                     makS.fd  color.fd  operat.fd  shutF.fd  magic.fd  status.fd
+insrtP.o 	   : auxSE.o auxSP.o auxSR.o error.o lintrp3D.o list.o makM.o makQ.o update.o \
+                     makS.fd  color.fd  operat.fd                      status.fd
+deletP.o 	   : auxSE.o auxSF.o auxSP.o error.o list.o makQ.o update.o \
+                     makS.fd  color.fd  operat.fd  magic.fd            status.fd
+moveP.o  	   : auxSF.o auxSP.o list.o makQ.o minim.o nlnfnc.o update.o \
+                     makS.fd  color.fd  operat.fd  shutF.fd  magic.fd  status.fd
+splitE.o 	   : error.o makQ.o update.o \
+                     makS.fd  color.fd  operat.fd
+
+minim.o 	   : auxSE.o makQ.o nlnfnc.o \
+		     makS.fd  status.fd
+nlnfnc.o	   : auxSP.o lintrp3D.o makM.o makQ.o \
+                     color.fd
+auxSP.o 	   : error.o findSE.o \
+                     makS.fd  color.fd  operat.fd
+auxSR.o 	   : auxSE.o auxSP.o \
+                     makS.fd  color.fd
+auxSF.o 	   : auxSE.o auxSR.o error.o findSE.o makQ.o \
+		     magic.fd
+auxSE.o 	   : auxSP.o calVol.o error.o \
+		     color.fd
+update.o 	   : auxSE.o error.o \
+                     makS.fd  color.fd
+
+lintrp3D.o 	   : error.o makQ.o \
+                     lintrp.fd
+lintrp3D_test.o    : lintrp.fd
+
+utils.o            : auxSE.o auxSF.o auxSP.o cmpE.o error.o \
+		     makS.fd
+output.o           : output.fd
+
+error.o  	   : output.fd
+time.o   	   : time.c
+
+clpsR.o 	   : auxSE.o lintrp3D.o list.o makM.o makQ.o update.o
+list.o  	   : error.o
+smoothing.o	   : error.o makQ.o utils.o
+refine.o	   : auxSE.o cmpE.o error.o makQ.o utils.o
+ZZ.o    	   : error.o findSE.o makQ.o utils.o

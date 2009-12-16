@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>test-advection_stratification_DG</name>
+  <owner userid="colin"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity slice_unstructured_exponential.flml; dfluidity slice_unstructured_linear.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="DeltaT_exp" language="python">
+import vtktools
+start_exp = vtktools.vtu("slice_unstructured_exponential_0.vtu")
+end_exp = vtktools.vtu("slice_unstructured_exponential_1.vtu")
+T_exp = end_exp.GetScalarField("Temperature")
+DeltaT_exp = max(start_exp.GetScalarField("Temperature")-end_exp.GetScalarField("Temperature"))
+    </variable>
+    <variable name="DeltaT_lin" language="python">
+import vtktools
+start_lin = vtktools.vtu("slice_unstructured_linear_0.vtu")
+end_lin = vtktools.vtu("slice_unstructured_linear_1.vtu")
+DeltaT_lin = max(start_lin.GetScalarField("Temperature")-end_lin.GetScalarField("Temperature"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Delta_T_exp" language="python">
+assert abs(DeltaT_exp) &lt; 0.035
+    </test>
+    <test name="Delta_T_lin" language="python">
+assert abs(DeltaT_lin) &lt; 1.0e-12
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -1,0 +1,290 @@
+\chapter{About this manual}
+
+\section{Introduction}
+
+This document attempts to give an introduction to the use of the
+\fluidity/ICOM code for CFD and ocean modelling applications.  Chapter \ref{chap:gettingstarted}
+gives introductory material and a step by step guide on how to run and
+visualise a simulation.  Chapter \ref{chap:model_physics} describes the
+mathematical formulation of the model including the various equations which
+may be solved with \fluidity. The following chapter, chapter
+\ref{chap:numerical_discretisation} describes the numerical algorithms
+employed in the model. Chapter
+\ref{chap:configuration} describes the configuration options which are
+available in \fluidity\ and serves as the primary reference for users setting
+up simulations. Chapter \ref{chap:Adaptivity} documents the adaptive
+algorithms which are available in \fluidity.
+
+Although this document may of course be printed, viewing it on screen may be
+wise as it allows colour images to be viewed, and links between sections and
+parameters should work. Also, where possible figures are `vectorised' so
+that if viewed electronically it is possible to zoom right in to see the
+structure of meshes for example.
+
+This manual is very much a work in progress. Therefore spelling, grammar,
+and accuracy can not be guaranteed. Users with commit access to the \fluidity\
+source tree are encouraged to make contributions directly. Other users are
+invited to email comments, corrections and contributions to
+\verb|m.d.piggott@imperial.ac.uk|
+
+A further source of material may be found at \url{http://amcg.ese.ic.ac.uk/}
+This points to a collection of wiki web pages that all users are able to
+update and add to. 
+
+\section{Audience and Scope}
+
+The manual is primarily designed to enable \fluidity\ users to run \fluidity\
+effectively. As such, this is the appropriate place for documentation
+concerning the available configuration options of the model and the correct
+method of employing them. It is also the correct place to document the
+mathematical formulation of the model and the equations which it
+solves. Other matters which should be covered include input and output
+formats, checkpointing and visualisation.
+
+This is not generally the appropriate forum for low-level documentation
+directed at model developers. Information concerning the finite element
+method and its implementation in \fluidity\ should be placed in the Femtools
+manual while other implementation details could be placed on the AMCG wiki.
+
+\section{Style guide}
+
+\subsection{Images}
+
+The manual is designed to be compilable to both PDF and html. This creates
+particular challenges when incorporating images. One approach which is
+particularly appropriate for diagrams and other images annotated with text
+or equations is to generate or annotate the figures using xfig. Xfig files
+may be automatically converted to Postscript for the PDF document and png
+for the html version. If the ``special'' attribute is set on text in the
+xfig document, then that text will be rendered in \LaTeX. This in particular
+enables equations to be included in figures in a manner consistent with the
+equations in the text.
+
+\subsubsection{Including xfig images}
+
+This manual defines the command \lstinline[language=TeX]+\xfig{basename}+
+which will import \verb+basename.pdftex_t+ for pdf output and
+\verb+basename.png+ for web output. Authors should ensure that their xfig
+file has the name \verb+basename.fig+ and that \verb+basename+ is added to
+the \verb+XFIG_IMAGES+ variable in the \verb+Makefile+. This will cause the
+commands \verb+make fluidity_manual.pdf+ and
+\verb+make fluidity_manual.html+ to also generate the pdf and png versions
+of the figure respectively.
+
+It will be observed that the \verb+\xfig+ command does not take any arguments
+for figure size. This is a deliberate decision designed to ensure that the
+font size matches between the figure and the text. Figures should instead be
+appropriately sized in xfig.
+
+\subsubsection{Including other figures}
+
+For other figures, the command
+\lstinline[language=TeX]+\fig[options]{basename}+ is provided. In this case,
+it is the author's responsibility to provide both \verb+basename.pdf+ and
+\verb+basename.png+ files. Please add \verb+basename+ to the \verb+IMAGES+
+variable in the \verb+Makefile+. This will cause the image files to become
+dependencies of the compiled manual.
+
+The \lstinline[language=TeX]+options+ provided to
+\lstinline[language=TeX]+\fig+ are passed straight to
+\lstinline[language=TeX]+\includegraphics+ and may therefore include any
+options which are legal in that context including resizing options.
+
+\subsection{flml options}
+
+The \verb+\option+ command is provided to format \fluidity\ option
+paths. Options should be formatted according to normal Spud conventions
+however it will frequently be desirable to show partial option paths not
+starting from the root. In this circumstance, an ellipsis should be used to
+show an unknown path component. For example, the mesh element of some
+prescribed field would be \option{\ldots/prescribed/mesh} which can be input
+in \LaTeX as \lstinline[language=TeX]+\option{\ldots/prescribed/mesh}+
+
+\subsection{Generating pdf and html output}
+
+The manual may be compiled to both pdf and html. For the former, type:
+\begin{lstlisting}[language=bash]
+  make fluidity_manual.pdf
+\end{lstlisting}
+and for the latter type:
+\begin{lstlisting}[language=bash]
+  make fluidity_manual.html
+\end{lstlisting}
+It may sometimes be necessary to introduce content which should only be
+rendered in one or other output format. For example, long option paths
+frequently defeat \LaTeX's line breaking algorithm so it may be necessary to
+force line breaks in the pdf document. Since the browser is responsible for
+line breaks in html, it would be inappropriate to force a linebreak in the
+html output. For this purpose, the manual provides the commands
+\lstinline[language=TeX]+\ifhtml{content for html}{content for pdf}+ as well
+as the commands \lstinline[language=TeX]+\onlyhtml+ and
+\lstinline[language=TeX]+\onlypdf+. The latter two commands take a single
+argument which is only rendered for the applicable output.
+
+\subsection{Representing source code}
+
+Source code and commands entered in the shell can be typeset using the
+\lstinline[language=TeX]+lstlisting+ environment. The environment typesets
+its argument literally so unlike normal \LaTeX, spaces and carriage returns
+are replicated in the output. The environment takes optional configuration
+parameters of which the most important is 
+\lstinline[language=TeX]+language+ which is used to select the programming
+language. \LaTeX will highlight the syntax of the chosen language. Inline
+commands can be typeset using\linebreak
+\lstinline[language=TeX]*\lstinline[language=TeX]+command+* substituting any
+applicable language. 
+
+\subsubsection{Shell commands}
+
+For shell commands, \lstinline[language=TeX]+language+ should be set to
+\lstinline[language=TeX]+bash+. For example:
+\begin{verbatim}
+\begin{lstlisting}[language=bash]
+dham@popper traffic > ls
+box.ele   fluidity.err-0  Makefile       traffic_1.vtu  traffic.xml
+box.face  fluidity.log-0  src            traffic.flml   vaf.bin
+box.node  gmon.out        traffic_0.vtu  traffic.stat   vaf.dat
+\end{lstlisting}
+\end{verbatim}
+will be rendered:
+\begin{lstlisting}[language=bash]
+dham@popper traffic > ls 
+box.ele   fluidity.err-0  Makefile       traffic_1.vtu  traffic.xml
+box.face  fluidity.log-0  src            traffic.flml   vaf.bin
+box.node  gmon.out        traffic_0.vtu  traffic.stat   vaf.dat
+\end{lstlisting}
+
+\subsubsection{Other languages}
+
+The other languages which are currently enabled are
+\lstinline[language=TeX]+TeX+, for \LaTeX, \lstinline[language=TeX]+Python+,
+\lstinline[language=TeX]+Make+ and \lstinline[language=TeX]+XML+. Many other
+languages are supported by the \lstinline[language=TeX]+listings+ package.
+
+\subsection{Mathematical notation conventions}
+
+\subsubsection{Continuous Vectors and tensors}
+
+There are two conceptually different forms of vector and tensor which occur
+in the finite element method. The first is for quantities, such as velocity,
+which are vector-valued in the continuum. These should be typeset in italic
+bold: $\bmu$. The \lstinline[language=TeX]+\vec+ command has been redefined
+for this purpose so a vector quantity named $\vec{b}$ would be typed
+\lstinline[language=TeX]+\vec{b}+. However, a large number of
+frequently-used vector quantities have convenience functions pre-defined in
+\lstinline[language=bash]+notation.tex+. These have the name
+\lstinline[language=TeX]+\bm+\textit{n}\ where \textit{n}\ is the symbol to
+be typeset. Examples include \lstinline[language=TeX]+\bmu+ ($\bmu$) and
+\lstinline[language=TeX]+\bmphi+ ($\bmphi$).
+
+Continuous tensors are represented using a double overbar:
+$\tensor{\tau}$. The \lstinline[language=TeX]+\tensor+ command is provided
+for this purpose. Once again, convenience functions are provided for common
+tensors, this time with the form
+\lstinline[language=TeX]+\+\textit{n}\lstinline[language=TeX]+tens+ for
+example \lstinline[language=TeX]+\tautens+ ($\tautens$) and
+\lstinline[language=TeX]+\ktens+ ($\ktens$).
+
+\subsubsection{Discrete vectors and matrices}
+
+Vectors composed of the value of a field at each node and matrices mapping
+between discrete spaces should be typeset differently from continuous
+vectors and tensors. Discrete vectors should be typeset with an underline
+using the \lstinline[language=TeX]+\dvec+ command. This can be combined with
+\lstinline[language=TeX]+vec+ for discretisations of vector quantities. For
+example \lstinline[language=TeX]+\dvec{\bmu}+ ($\dvec{\bmu}$) for the
+discretised velocity vector.
+
+Matrices should be typeset as upright upper case letters. The
+\lstinline[language=TeX]+\mat+ command is available for this purpose. For
+example \lstinline[language=TeX]+\mat{M}+ produces $\mat{M}$.
+
+\subsubsection{Derivatives}
+
+The full derivative and the material derivative should be typeset using an
+upright $\d$ and $\D$ respectively. The \lstinline[language=TeX]+\d+ and
+\lstinline[language=TeX]+\D+ commands are provided for this purpose. There
+are also a number of functions provided for typesetting derivatives. Each of
+these functions has one compulsory and one optional argument. The
+compulsory argument is the function of which the derivative is being taken,
+the optional argument is the variable with respect to which the derivative
+is being taken. So, for example \lstinline[language=TeX]+\ppt[q]{y}+ gives:
+\begin{equation*}
+  \ppt[q]{y}.
+\end{equation*}
+While simple \lstinline[language=TeX]+\ppt{}+ gives:
+\begin{equation*}
+  \ppt{}.
+\end{equation*}
+Table \ref{tab:derivatives}\ shows the derivative functions available.
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{lc}
+    \textbf{command} & \textbf{example}\\\hline
+    \lstinline[language=TeX]+\ddx[]{}+ & \rule{0pt}{4ex}$\displaystyle\ddx{}$\\
+    \lstinline[language=TeX]+\ddxx[]{}+ & \rule{0pt}{4ex}$\displaystyle\ddxx{}$\\
+    \lstinline[language=TeX]+\ddt[]{}+ & \rule{0pt}{4ex}$\displaystyle\ddt{}$\\
+    \lstinline[language=TeX]+\ddtt[]{}+ & \rule{0pt}{4ex}$\displaystyle\ddtt{}$\\
+    \lstinline[language=TeX]+\ppx[]{}+ & \rule{0pt}{4ex}$\displaystyle\ppx{}$\\
+    \lstinline[language=TeX]+\ppxx[]{}+ & \rule{0pt}{4ex}$\displaystyle\ppxx{}$\\
+    \lstinline[language=TeX]+\ppt[]{}+ & \rule{0pt}{4ex}$\displaystyle\ppt{}$\\
+    \lstinline[language=TeX]+\pptt[]{}+ & \rule{0pt}{4ex}$\displaystyle\pptt{}$\\
+    \lstinline[language=TeX]+\DDx[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDx{}$\\
+    \lstinline[language=TeX]+\DDxx[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDxx{}$\\
+    \lstinline[language=TeX]+\DDt[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDt{}$\\
+    \lstinline[language=TeX]+\DDtt[]{}+ & \rule{0pt}{4ex}$\displaystyle\DDtt{}$\\ 
+  \end{tabular}
+  \caption{Functions for correctly typesetting derivatives.}
+  \label{tab:derivatives}
+\end{table}
+
+\subsubsection{Integrals}
+
+Integrals in any number of dimensions should be typeset with an integral
+sign and no measure (\ie no $\d x$ or $\d V$). The domain over which the
+integral is taken should be expressed as a subscript to the integral sign
+itself. The integral of $\psi$ over the whole domain will therefore be
+written as:
+\begin{equation*}
+  \int_\Omega \phi.
+\end{equation*}
+
+\subsubsection{Units}
+
+Units should be typeset in upright font. The \LaTeX\ package
+\lstinline+units+ does this for you automagically. The correct syntax is
+\lstinline[language=TeX]+\unit[value]{unit}+. For example
+\lstinline[language=TeX]+\unit[5]{m}+ produces \unit[5]{m}. There are a
+number of convenience functions defined for the manual to make this job
+easier. These are shown in table \ref{tab:units}. Providing the value as an
+argument to the unit ensures that the spacing between the value and the unit
+is correct and will not break over lines. The value is an optional argument
+so if there is no value, just leave it out. \lstinline+units+ does the right
+thing in both text and math modes. Other convenience functions can easily be
+added to \lstinline[language=bash]+notation.tex+.
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{lcc}
+    \textbf{command} & \textbf{example}\\\hline
+    \lstinline[language=TeX]+\m[length]+ & \m[1] \\
+    \lstinline[language=TeX]+\km[length]+ & \km[1] \\
+    \lstinline[language=TeX]+\s[time]+ & \s[1] \\
+    \lstinline[language=TeX]+\ms[speed]+ & \ms[1] \\
+    \lstinline[language=TeX]+\mss[accel]+ & \mss[1] \\
+    \lstinline[language=TeX]+\K[temp]+ & \K[1] \\
+    \lstinline[language=TeX]+\PSU[salin]+ & \PSU[1] \\
+    \lstinline[language=TeX]+\Pa[press]+ & \Pa[1] \\
+    \lstinline[language=TeX]+\kg[mass]+ & \kg[1] \\
+    \lstinline[language=TeX]+\rads[ang_vel]+ & \rads[1] \\
+    \lstinline[language=TeX]+\kgmm[density]+ & \kgmm[1] \\
+  \end{tabular}
+  \caption{Convenience functions for physical units}
+  \label{tab:units}
+\end{table}
+
+
+\subsubsection{Abbreviations in formulae}
+
+Abbreviations in formulae should be typeset in upright maths mode using
+\lstinline[language=TeX]+\mathrm+. For example
+\lstinline[language=TeX]+F_{\mathrm{wall}}+ ($F_{\mathrm{wall}}$).  

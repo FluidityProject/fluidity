@@ -1,0 +1,178 @@
+nu_bar_scheme = (
+   ## The stabilisation parameter nu_bar is given by:
+   ##
+   ##   nu_bar = nu_scale xi u h
+   ##
+   ## With this scheme the optimal value for xi is chosen, as given by
+   ## equation 2.49 in Donea & Huerta (2003):
+   ##
+   ##   xi = coth(pe) - 1.0 / pe
+   ##
+   ## Note that is potentially expensive - for small (<~10) Peclet numbers this
+   ## involves evaluating hyperbolic tangents at quadrature points.
+   element nu_bar_optimal {
+      comment
+   }|
+   ## The stabilisation parameter nu_bar is given by:
+   ##
+   ##   nu_bar = nu_scale xi u h
+   ##
+   ## With this scheme a near-optimal (but more computationally efficient)
+   ## value for xi is chosen, as given by equation 2.29 in Donea & Huerta
+   ## (2003):
+   ##
+   ##   xi = pe / 3.0 if |pe| <= 3.0
+   ##          sign(pe) otherwise
+   element nu_bar_doubly_asymptotic {
+      comment
+   }|
+   ## The stabilisation parameter nu_bar is given by:
+   ##
+   ##   nu_bar = nu_scale xi u h
+   ##
+   ## With this scheme a near-optimal (but more computationally efficient)
+   ## value for xi is chosen, as given by equation 3.3.2 in Brookes and
+   ## Hughes, Computer Methods in Applied Mechanics and Engineering 32 (1982)
+   ## 199-259.
+   ##
+   ##   xi = -1 - 1 / pe  if pe < -1
+   ##          0 if -1 <= pe <= 1
+   ##          1 + 1 / pe if pe > 1
+   ##
+   ## This is the approximation for xi used by legacy_continuous_galerkin.
+   element nu_bar_critical_rule {
+      attribute replaces { "OPWIND" },
+      comment
+   }|
+   ## The stabilisation parameter nu_bar is given by:
+   ##
+   ##   nu_bar = nu_scale xi u h
+   ##
+   ## With this scheme xi is set equal to:
+   ##
+   ##   xi = sign(pe)
+   ##
+   ## This is sub-optimal, but more computationally efficient than other
+   ## approximations for the stabilisation parameter. For simulations with no
+   ## diffusivity, all other approximations for xi are equivalent to this one.
+   element nu_bar_unity {
+      comment
+   }
+)
+
+nu_scale_0.5 = (
+   ## nu_bar scale factor. This controls the amount of streamline upwinding.
+   ##
+   ## 0.5 - factor given in Donea and Huerta
+   element nu_scale {
+      attribute name { "0.5" },
+      element real_value {
+        attribute rank { "0" },
+        attribute shape { "1" },
+        "0.5"
+      },
+      comment
+   }
+)
+nu_scale_1_over_sqrt_15 = (
+   ## nu_bar scale factor. This controls the amount of streamline upwinding.
+   ##
+   ## 1/sqrt(15) - factor that maximises phase accuracy
+   ## in 1D transient pure advection with SUPG. See Raymond and
+   ## Garder, Monthly weather review 104 (1976)
+   ## 1583-1590 and Brookes and Hughes, Computer Methods
+   ## in Applied Mechanics and Engineering 32 (1982)
+   ## 199-259.
+   element nu_scale {
+      attribute name { "1_over_sqrt_15" },
+      element real_value {
+        attribute rank { "0" },
+        attribute shape { "1" },
+        "0.25819889"
+      },
+      comment
+   }
+)
+nu_scale_unity = (
+   ## nu_bar scale factor. This controls the amount of streamline upwinding.
+   ##
+   ## 1.0 - no scale factor
+   element nu_scale {
+      attribute name { "unity"},
+      element real_value {
+        attribute rank { "0" },
+        attribute shape { "1" },
+        "1.0"
+      },
+      comment
+   }
+)
+nu_scale_custom = (
+   ## nu_bar scale factor. This controls the amount of streamline upwinding.
+   ##
+   ## Custom scale factor.
+   element nu_scale {
+      attribute name { "custom" },
+      real,
+      comment
+   }
+)
+
+nu_scale_su = (
+   nu_scale_0.5|
+   nu_scale_unity|
+   nu_scale_custom
+)
+
+nu_scale_supg = (
+   nu_scale_0.5|
+   nu_scale_1_over_sqrt_15|
+   nu_scale_unity|
+   nu_scale_custom
+)
+
+no_stabilisation = (
+   ## No stabilisation
+   element no_stabilisation {
+      comment
+   }
+)
+
+su_stabilisation = (
+   ## Add a simple streamline upwind term to the advection term (if being used).
+   ##
+   ## This implements equation 2.52 in Donea & Huerta (2003):   
+   ##
+   ##   /      nu
+   ##   | ----------- (U_nl\dot grad N_j)(U_nl\dot grad N_i)
+   ##   / ||U_nl||**2
+   element streamline_upwind {
+      nu_bar_scheme,
+      nu_scale_su,
+      comment
+   }
+)
+
+supg_stabilisation = (
+   ## SUPG stabilisation, as in equation 2.51 of Donea and
+   ## Huerta (2003). This only acts to stabilise if advection
+   ## is not integrated by parts.
+   ##
+   ## <b>Under testing.</b>
+   element streamline_upwind_petrov_galerkin {
+      attribute replaces { "DISOTT = 3" },
+      nu_bar_scheme,
+      nu_scale_supg
+   }
+)
+
+advection_stabilisation_options = (
+   ## Stabilisation options for the galerkin discretisation
+   element stabilisation{
+      (
+         no_stabilisation|
+         su_stabilisation|
+         supg_stabilisation
+      )
+   }
+)

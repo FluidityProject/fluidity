@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<!-- Calculate wave speed in sloshing deep water tank
+  -->
+<testproblem>
+  <name>Wave speed sloshing water of large depth</name>
+  <owner userid="piggott"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>dfluidity -v3 -l sloshing_tank_deep.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="wave_speed" language="python">
+import fluidity_tools
+import numpy
+s = fluidity_tools.stat_parser("sloshing_tank_deep.detectors")
+t = s['ElapsedTime']['value']
+fs = s['water']['FreeSurface']['left_boundary_bottom']
+l1 = fs.shape[0]
+for i in range(l1-1,-1,-1):
+  if (fs[i]>fs[i-1]):
+    break
+time = t[i+1]
+print "Time found for 10th peak in free surface: %s" % time
+wave_speed = 10.0/time
+print "This implies a free surface speed of: %s" % wave_speed
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check that computed wave speed has an error less than 1.0% compared to the theoretical linear dispersion relation value (0.563137)." language="python">
+print (abs(wave_speed -  0.563137)/wave_speed)
+assert((abs(wave_speed -  0.563137)/wave_speed) &lt; 0.01)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

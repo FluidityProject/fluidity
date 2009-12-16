@@ -1,0 +1,38 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Coarse Corner (max. nodes limited version)</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>make clean-run; dfluidity -v2 -l coarse-corner-limited.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "times" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("coarse-corner-limited.stat")
+times = s["ElapsedTime"]["value"]
+    </variable>
+    <variable name = "node_counts" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("coarse-corner-limited.stat")
+node_counts = s["CoordinateMesh"]["nodes"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(len(times), 5, 1.0e-6)
+    </test>
+    <test name = "Correct initial node count" language = "python">
+import fluidity_tools
+assert(node_counts[0] == 1331)
+    </test>
+    <test name = "Correct adapted node count" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variables(node_counts[3:], [400.0 for i in range(len(node_counts[3:]))], 0.1)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

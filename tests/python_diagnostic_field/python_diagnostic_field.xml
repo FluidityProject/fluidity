@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>python_diagnostic_fields</name>
+  <owner userid="rdp07"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>export PYTHONPATH=$PWD/../../python:$PYTHONPATH;dfluidity --xml python.flml </command_line>
+    <!-- Set a diagnostic field using embedded python code.  -->
+  </problem_definition>
+  <variables>
+    <variable name="input_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("python.stat")
+input_integral = s["Water"]["Input"]["integral"][0]
+    </variable>
+    <variable name="output_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("python.stat")
+output_integral = s["Water"]["Output"]["integral"][0]
+    </variable>
+    <variable name="vector_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("python.stat")
+vector_max = s["Water"]["VectorDerived%magnitude"]["max"][0]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="field integral is the same when calculated in different ways." language="python">
+assert abs(input_integral-output_integral) &lt; 1.0e-10
+    </test>
+    <test name="maximum of vector field is 2*sqrt(2.0)" language="python">
+from math import sqrt
+assert abs(vector_max-2.0*sqrt(2.0)) &lt; 1.0e-8
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

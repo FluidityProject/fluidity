@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Python persistent variable</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>make clean-run-debug; dfluidity -v2 -l python_persistent.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "node_count" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("python-persistent.stat")
+node_count = s["CoordinateMesh"]["nodes"][-1]
+    </variable>
+    <variable name = "test_max" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("python-persistent.stat")
+test_max = s["Test"]["Test"]["max"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Persistent variable" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variables(test_max, [node_count * float(i) for i in range(1, len(test_max) + 1)], 1.0e-6)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

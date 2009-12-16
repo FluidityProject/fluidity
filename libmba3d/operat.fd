@@ -1,0 +1,42 @@
+C ==========================================================
+C The local operations with grid:
+C   F2E   : face is replaced by an edge. Two elements are
+C           replaced by three elements.
+C
+C   E2F   : reverse to F2E operation. It works if 3 elements
+C           have the common edge.
+C
+C   SWAP  : a generalization of E2F. The edge is destroyed
+C           and a hole is filled with new tetrahedra.
+C
+C   DELET : delete a point.
+C
+C   MOVE  : movement of a point.
+C
+C   SPLTE : the elements is splitted into 4 elements by an
+C           internal point. The operation is used only to
+C           make grid to satisfy some FE restrictions.
+C ==========================================================
+       Integer   iF2E, iE2F, iSWAP, iDELET, iINSRT, iMOVE
+
+       Parameter(iF2E   = 1, iE2F   = 2, iSWAP = 3)
+       Parameter(iDELET = 4, iINSRT = 5, iMOVE = 6)
+
+       Integer   iSPLTE,     iCLPSR
+       Parameter(iSPLTE = 7, iCLPSR = 8)
+
+ 
+C ...  available operations and their order (from 1 to 7 ONLY!)
+       Integer   iF2Eop,     iE2Fop,     iSWAPop
+       Parameter(iF2Eop = 2, iE2Fop = 3, iSWAPop = 5)
+ 
+       Integer   iDELETop,     iINSRTop,     iMOVEop
+       Parameter(iDELETop = 7, iINSRTop = 1, iMOVEop = 6)
+ 
+       Integer   iCLPSRop
+       Parameter(iCLPSRop = 4)
+
+C ...  number of operations
+       Integer   NUMop
+       Parameter(NUMop = 7)
+  

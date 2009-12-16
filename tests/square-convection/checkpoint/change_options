@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import sys
+
+file_name = "square-convection_50_checkpoint.flml"
+
+try:
+  flml_file = file(file_name, "r")
+  flml_options = flml_file.readlines()
+  flml_file.close()
+except:
+  sys.stderr.write("Error: change_options failed to read options file\n")
+  sys.exit(1)
+
+for i in range(len(flml_options))[:len(flml_options) - 1]:
+  line = flml_options[i]
+  if "<simulation_name>" in line:
+    # Change the simulation name
+    flml_options[i + 1] = "<string_value lines=\"1\">square-convection-picked-up</string_value>\n"
+    
+for i in range(len(flml_options)):
+  if "<checkpointing>" in flml_options[i]:
+    for j in range(i, len(flml_options)):
+      # Checkpoint at simulation start, rather than simulation end
+      if "<checkpoint_at_end></checkpoint_at_end>" in flml_options[j]:
+        flml_options[j] ="<checkpoint_at_start/>\n"
+        break
+    break
+
+try:
+  flml_file = file(file_name, "w")
+  flml_file.writelines(flml_options)
+  flml_file.close()
+except:
+  sys.stderr.write("Error: change_options failed to write options file\n")
+  sys.exit(1)

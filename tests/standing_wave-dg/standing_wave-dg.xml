@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Standing free surface wave in channel using P1DGP2.</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v3 -l -x standing_wave.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="halfway_free_surface" language="python">
+import vtktools
+import numpy
+# read in the .vtu after a half period
+u=vtktools.vtu("standing_wave_1.vtu")
+# get corner values
+xyz=u.GetLocations()
+loc1=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
+loc2=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 990.0)
+loc3=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
+loc4=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 990.0)
+p=u.GetField("Pressure")
+# in each location multiple nodes will be found (DG!), take the first one of each
+g=10.0
+halfway_free_surface=numpy.array([p.compress(loc1)[0],p.compress(loc2)[0], p.compress(loc3)[0], p.compress(loc4)[0]])/g
+    </variable>
+    <variable name="final_free_surface" language="python">
+import vtktools
+import numpy
+# read in the final .vtu
+u=vtktools.vtu("standing_wave_2.vtu")
+xyz=u.GetLocations()
+loc1=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
+loc2=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 990.0)
+loc3=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
+loc4=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 990.0)
+p=u.GetField("Pressure")
+# in each location multiple nodes will be found (DG!), take the first one of each
+g=10.0
+final_free_surface=numpy.array([p.compress(loc1)[0],p.compress(loc2)[0], p.compress(loc3)[0], p.compress(loc4)[0]])/g
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Correct amplitude left halfway" language="python">
+# pressure after a half period should be close to -1.0
+import fluidity_tools
+fluidity_tools.compare_variable(halfway_free_surface[1], -1.0, 0.005)
+    </test>
+    <test name="Correct amplitude right halfway" language="python">
+# pressure after a half period should be close to 1.0
+import fluidity_tools
+fluidity_tools.compare_variable(halfway_free_surface[3], 1.0, 0.005)
+  </test>
+    <test name="Correct bottom pressure left halfway" language="python">
+# pressure at the top should be the same as on the bottom
+import fluidity_tools
+fluidity_tools.compare_variable(halfway_free_surface[0], halfway_free_surface[1], 0.05)
+    </test>
+    <test name="Correct bottom pressure right halfway" language="python">
+# pressure at the top should be the same as on the bottom
+import fluidity_tools
+fluidity_tools.compare_variable(halfway_free_surface[2], halfway_free_surface[3], 0.05)
+    </test>
+    <test name="Correct amplitude left" language="python">
+# pressure after one period should be close to 1.0 again
+import fluidity_tools
+fluidity_tools.compare_variable(final_free_surface[1], 1.0, 0.005)
+</test>
+    <test name="Correct amplitude right" language="python">
+# pressure after one period should be close to -1.0 again
+import fluidity_tools
+fluidity_tools.compare_variable(final_free_surface[3], -1.0, 0.005)
+  </test>
+    <test name="Correct bottom pressure left" language="python">
+# pressure at the top should be the same as on the bottom
+import fluidity_tools
+fluidity_tools.compare_variable(final_free_surface[0], final_free_surface[1], 0.05)
+</test>
+    <test name="Correct bottom pressure right" language="python">
+# pressure at the top should be the same as on the bottom
+import fluidity_tools
+fluidity_tools.compare_variable(final_free_surface[2], final_free_surface[3], 0.05)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

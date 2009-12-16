@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>gls-StationPapa-biology</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+    <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity gls-StationPapa-3D.flml -l -v2  </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="FinalTime" language="python">
+import fluidity_tools
+FinalTime = fluidity_tools.stat_parser("gls-StationPapa-3D.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureMax" language="python">
+import fluidity_tools
+FinalTemperatureMax = fluidity_tools.stat_parser("gls-StationPapa-3D.stat")['Fluid']['Temperature']['max'][-1]
+    </variable>
+    <variable name="FinalTemperatureMin" language="python">
+import fluidity_tools
+FinalTemperatureMin = fluidity_tools.stat_parser("gls-StationPapa-3D.stat")['Fluid']['Temperature']['min'][-1]
+    </variable>
+    <variable name="FinalVelocityMagnitudeMax" language="python">
+import fluidity_tools
+FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("gls-StationPapa-3D.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+    </variable>
+    <variable name="FinalGLSTurbulentKineticEnergyMax" language="python">
+import fluidity_tools
+FinalGLSTurbulentKineticEnergyMax = fluidity_tools.stat_parser("gls-StationPapa-3D.stat")['Fluid']['GLSTurbulentKineticEnergy']['max'][-1]
+    </variable>
+    
+  </variables>    
+
+  <pass_tests> 
+    <test name="Final time greater than 3e7 (1 year)" language="python">
+assert FinalTime &gt; 3.e7
+    </test>
+    <test name="Final temperature max less than 8" language="python">
+assert FinalTemperatureMax &lt; 8
+    </test>
+    <test name="Final temperature min greater than 4" language="python">
+assert FinalTemperatureMin &gt; 4
+    </test>
+    <test name="Final velocity%magnitude max less than 0.02" language="python">
+assert FinalVelocityMagnitudeMax &lt; 0.02
+    </test>
+    <test name="Final GLSTurbulentKineticEnergy max less than 0.0005" language="python">
+assert FinalGLSTurbulentKineticEnergyMax &lt; 0.0005
+    </test>
+
+  </pass_tests>
+</testproblem>

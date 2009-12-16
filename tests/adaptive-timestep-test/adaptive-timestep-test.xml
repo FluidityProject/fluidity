@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Test of the adaptive timestep options.</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml channel_flow_input.flml </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="start_dt" language="python"> 
+import fluidity_tools
+start_dt = fluidity_tools.stat_parser("channel_flow.stat")['dt']['value'][0]
+    </variable>    
+     <variable name="next_dt" language="python"> 
+import fluidity_tools
+next_dt = fluidity_tools.stat_parser("channel_flow.stat")['dt']['value'][1]
+    </variable>    
+     <variable name="end_dt" language="python"> 
+import fluidity_tools
+end_dt = fluidity_tools.stat_parser("channel_flow.stat")['dt']['value'][-1]
+    </variable>    
+    <variable name="no_timesteps" language="python">
+import fluidity_tools
+no_timesteps = len(fluidity_tools.stat_parser("channel_flow.stat")['dt']['value'])
+    </variable>
+  </variables>
+    <pass_tests>  
+    <test name="check starting timestep is 0.021 (what is allowed from 0.02 by tolerance)" language="python">
+   assert abs(start_dt-0.021) &lt; 1e-10
+    </test>
+    <test name="check next timestep is 0.02205 (what is allowed by tolerance)" language="python">
+   assert abs(next_dt-0.02205) &lt; 1e-10
+    </test>
+    <test name="check final timestep is 0.03 (maximum allowed)" language="python">
+   assert abs(end_dt-0.03) &lt; 1e-10
+    </test>
+    <test name="check 12 timesteps have been taken" language="python">
+   assert no_timesteps == 12
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

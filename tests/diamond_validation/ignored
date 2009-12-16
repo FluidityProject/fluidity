@@ -1,0 +1,12 @@
+../../tests/longtests/mms_ns_p1lp1cv_steady_compressible/MMS_A.flml
+../../tests/longtests/mms_ns_p1lp1cv_steady_compressible/MMS_B.flml
+../../tests/longtests/mms_ns_p1lp1cv_steady_compressible/MMS_C.flml
+../../tests/longtests/mms_ns_p1lp1cv_steady_compressible/MMS_D.flml
+../../tests/longtests/mms_ns_p2lp1_steady_compressible/MMS_A.flml
+../../tests/longtests/mms_ns_p2lp1_steady_compressible/MMS_B.flml
+../../tests/longtests/mms_ns_p2lp1_steady_compressible/MMS_C.flml
+../../tests/longtests/mms_ns_p2lp1_steady_compressible/MMS_D.flml
+../../tests/longtests/mms_ns_p2lp1_supg_steady_compressible/MMS_A.flml
+../../tests/longtests/mms_ns_p2lp1_supg_steady_compressible/MMS_B.flml
+../../tests/longtests/mms_ns_p2lp1_supg_steady_compressible/MMS_C.flml
+../../tests/longtests/mms_ns_p2lp1_supg_steady_compressible/MMS_D.flml

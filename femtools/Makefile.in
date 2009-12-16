@@ -1,0 +1,457 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+
+SHELL = @SHELL@
+
+FC      = @FC@
+FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
+
+MPIF90  = @MPIF90@
+
+CC      = @CC@
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I../libwm -I/usr/local/include
+
+CXX     = @CXX@
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../libwm  -I../libvtkfortran/ -I/usr/local/include
+
+MAKE    = @MAKE@
+
+AR = @AR@
+ARFLAGS = @ARFLAGS@
+
+UNROLL_LOOPS = @UNROLL_LOOPS@
+
+LIB = ../lib/lib@FLUIDITY@.a
+
+F90LIB = libfemtools
+
+LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@
+
+TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
+
+OBJS = Dgtools.o Coordinates.o EventCounter.o Picker_fortran.o \
+  Elements.o Sparse_Tools.o Quadrature.o Futils.o		\
+  Polynomials.o Adjacency_Lists.o Element_Numbering.o Global_Numbering.o \
+  Shape_Functions.o Signals.o Signal_Vars.o signal_handlers.o		\
+  Global_Parameters.o Timers.o Transform_elements.o VTK_interfaces.o \
+  Fields.o FETools.o FEFields.o Vector_Tools.o Read_Triangle.o \
+  Timers.o Transform_elements.o Petsc_Tools.o Solvers.o Full_Projection.o Linked_Lists.o	\
+  Sparsity_Patterns.o Sparsity_Patterns_Meshes.o State.o Tensors.o \
+  Superconvergence.o Unittest_tools.o Fields_Data_Types.o Multigrid.o	\
+  ieee_arithmetic_dummy.o ieee_arithmetic_C99.o Diagnostic_variables.o	\
+  Diagnostic_Fields.o SampleNetCDF_fortran.o Tidal_Modelling.o \
+  AuxilaryOptions.o MeshDiagnostics.o VTK_interfaces.o Surface_Labels.o	\
+  ISCopyIndices.o \
+  Field_derivatives.o Node_boundary.o Parallel_fields.o \
+  Vector_set.o Element_set.o vecset.o intvecset.o eleset.o \
+  Matrix_Norms.o embed_python.o Embed_Python_Fortran.o \
+  external_function.o Generic_interface.o Reference_Counting.o \
+  Tokenize.o Boundary_Conditions.o Write_Triangle.o \
+  tictoc.o \
+  CVTools.o CV_Face_Values.o CV_Upwind_Values.o CV_Shape_Functions.o CV_Faces.o \
+  CV_Options.o Metric_tools.o \
+  Merge_tensors.o Write_State.o Field_Options.o \
+  Fields_Base.o Fields_Allocates.o Fields_Calculations.o Fields_Manipulation.o \
+  Sparse_Matrices_Fields.o Unittest_Tools_Cpp.o Adaptive_Timestepping.o \
+  Checkpoint.o Surface_Integrals.o\
+  python_state.o python_statec.o Dynamic_Bin_Sort.o \
+  Supermesh.o Supermesh_Assembly.o Conservative_interpolation.o \
+  Interpolation.o Pseudo_2D.o DG_interpolation.o \
+  Halo_Data_Types.o Halos.o Halos_Allocates.o Halos_Base.o \
+  Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Legacy.o \
+  Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
+  qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
+  tet_predicate.o Lagrangian_Remap.o Vertical_integration.o Weak_BCs.o \
+  Detector_Data_Types.o Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
+  Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
+  vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
+  Wandzura_Quadrature.o Grundmann_Moeller_Quadrature.o Bound_field.o \
+  Halos_Diagnostics.o Mixing_Statistics.o projections.o Memory_Diagnostics.o \
+  Sparse_Tools_Petsc.o C_Interfaces.o C_Interfaces_Fortran.o Tetrahedron_intersection.o \
+  Node_Owner_Finder.o Node_Owner_Finder_Fortran.o Node_Ownership.o \
+  Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
+  CGAL_Tools_C.o CGAL_Tools.o
+
+
+# objects to be included in libfemtools:
+F90LIB_OBJS := ../debug/*.o ../tinyxml/*.o ../parallel/*.o ../interpolation/*.o ../libwm/*.o  \
+  $(OBJS)
+ifeq (@ALGENCAN@,yes)
+F90LIB_OBJS := $(F90LIB_OBJS) ../libalgencan/*.o
+endif
+
+.SUFFIXES: .f90 .F90 .cpp .c .o .a
+
+# cancel implicit rule that tries to make .o from .mod with m2c:
+%.o: %.mod
+
+.f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.F.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.F90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.c.o:
+	@echo "        CC $<"
+	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+.cpp.o:
+	@echo "        CXX $<"
+	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+
+default: $(OBJS)
+	@mkdir -p ../lib
+	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	cp *.mod ../include/
+
+$(F90LIB): $(F90LIB_OBJS)
+	@mkdir -p ../lib
+	$(AR) $(ARFLAGS) $(F90LIB).a $(F90LIB_OBJS)
+	cp *.mod ../include/
+
+clean:
+	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB).a
+
+Pseudo_2D.o: Global_Parameters.o
+Timers.o: Global_Parameters.o
+tictoc.o: Timers.o
+Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
+	@sed 's/REFCOUNT_TYPE/$*/' $< > $@
+	@sed 's/REFCOUNT_TYPE/$*/' Refcount_interface_templates.F90 > Reference_count_interface_$*.F90
+
+Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
+  Field_Options.o Write_Triangle.o
+Vertical_integration.o: Fields.o Solvers.o
+Weak_BCs.o: State.o Generic_interface.o
+
+Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconvergence.o Supermesh.o Futils.o Transform_elements.o \
+                              MeshDiagnostics.o Vector_Tools.o FETools.o Sparsity_Patterns.o Sparse_Tools.o \
+                              Solvers.o Interpolation.o Adjacency_Lists.o Unittest_tools.o qsortd.o Tensors.o Intersection_finder.o \
+                              Sparse_Matrices_Fields.o Bound_field.o Diagnostic_Fields.o Tetrahedron_intersection.o
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
+
+Supermesh.o: Fields_Base.o Fields_Allocates.o Fields_Data_Types.o Sparse_Tools.o Futils.o \
+  Metric_tools.o Linked_Lists.o Unify_meshes.o Transform_elements.o \
+  Global_Parameters.o Tetrahedron_intersection.o
+Supermesh_Assembly.o: Adaptive_interpolation.o Elements.o Fields.o \
+  Intersection_finder.o Field_Options.o Interpolation.o Linked_Lists.o \
+  Quadrature.o Sparse_Tools.o Solvers.o State.o State_Fields.o Supermesh.o \
+  Transform_elements.o
+../include/Element_Intersection.h: ../include/MeshDataStream.h ../include/Precision.h
+Element_Intersection.o: ../include/Element_Intersection.h
+../include/Node_Owner_Finder.h: ../include/Element_Intersection.h \
+  ../include/MeshDataStream.h ../include/Precision.h
+Node_Owner_Finder.o: ../include/Node_Owner_Finder.h
+Node_Owner_Finder_Fortran.o: Fields.o Global_Parameters.o
+Node_Ownership.o: Adjacency_Lists.o Fields.o Linked_Lists.o \
+ Node_Owner_Finder_Fortran.o Pickers.o Sparse_Tools.o
+Interpolation.o: Fields.o Superconvergence.o Field_derivatives.o State.o \
+  Sparse_Tools.o Supermesh.o Futils.o Transform_elements.o MeshDiagnostics.o \
+  Node_Ownership.o
+DG_interpolation.o: Conservative_interpolation.o VTK_interfaces.o
+
+Sparsity_Patterns.o: Elements.o Fields.o Linked_Lists.o
+
+Sparsity_Patterns_Meshes.o: Sparsity_Patterns.o Fields.o Sparse_Tools.o State.o Global_Parameters.o
+
+vtk_read_files.o: ../include/Precision.h
+VTK_interfaces.o: State.o Fields.o Parallel_fields.o Global_Parameters.o
+MeshDiagnostics.o: Elements.o Fields_Base.o Parallel_fields.o
+
+Diagnostic_variables.o: FETools.o Field_derivatives.o State.o  \
+   Write_State.o Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
+   Detector_Data_Types.o Embed_Python_Fortran.o MeshDiagnostics.o Pickers.o \
+   State_Fields.o Mixing_Statistics.o C_Interfaces_Fortran.o \
+   Memory_Diagnostics.o
+Memory_Diagnostics.o: Global_Parameters.o
+
+Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
+   Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
+   Halos.o MeshDiagnostics.o 
+
+Diagnostic_Fields.o: FETools.o Field_derivatives.o State.o\
+   CV_Shape_Functions.o CV_Face_Values.o CV_Upwind_Values.o CV_Options.o \
+   Write_State.o Field_Options.o Boundary_Conditions.o Unittest_tools.o \
+   Halos.o Interpolation.o
+
+State.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o Global_Parameters.o \
+   Halo_Data_Types.o Halos_Allocates.o Fields_Manipulation.o Linked_Lists.o \
+   Sparse_Tools_Petsc.o Halos_Communications.o
+
+Bound_field.o: Fields.o Vector_Tools.o FETools.o Field_Options.o qsortd.o Sparse_Matrices_Fields.o \
+  Sparse_Tools.o Transform_elements.o Sparsity_Patterns.o Halos.o Global_Parameters.o
+
+Shape_Functions.o: Polynomials.o Elements.o Element_Numbering.o Superconvergence.o 
+
+Dgtools.o: Elements.o Sparse_Tools.o Vector_Tools.o Fields.o FETools.o \
+   Transform_elements.o Sparsity_Patterns.o Boundary_Conditions.o
+
+Generic_interface.o: Fields.o
+
+Detector_Data_Types.o: Global_Parameters.o
+
+Picker_fortran.o: Global_Parameters.o
+Picker_Data_Types.o: Global_Parameters.o Reference_count_picker_type.F90 \
+  Reference_Counting.o
+Pickers.o: Picker_Data_Types.o Pickers_Allocates.o Pickers_Base.o \
+  Pickers_Deallocates.o Pickers_Inquire.o
+Pickers_Allocates.o: Elements.o EventCounter.o Fields_Base.o \
+  Fields_Data_Types.o Global_Parameters.o Node_Owner_Finder_Fortran.o \
+  Picker_Data_Types.o Pickers_Base.o Pickers_Deallocates.o
+Pickers_Base.o: Picker_Data_Types.o
+Pickers_Deallocates.o: Fields_Data_Types.o Global_Parameters.o \
+  Picker_Data_Types.o Pickers_Base.o Reference_Counting.o
+Pickers_Inquire.o: Detector_Data_Types.o Fields.o Node_Owner_Finder_Fortran.o \
+  Picker_Data_Types.o Pickers_Allocates.o Pickers_Base.o
+
+Fields.o: Fields_Base.o Fields_Allocates.o Fields_Calculations.o \
+   Fields_Data_Types.o Fields_Manipulation.o
+Fields_Base.o: Shape_Functions.o Tensors.o \
+   Embed_Python_Fortran.o Fields_Data_Types.o Reference_Counting.o 
+
+Fields_Allocates.o: Data_structures.o Elements.o Fields_Data_Types.o \
+   Fields_Base.o Reference_count_mesh_type.F90 \
+   Reference_count_scalar_field.F90 Reference_count_vector_field.F90 \
+   Reference_count_tensor_field.F90 Halos_Allocates.o Halos_Repair.o \
+   Pickers_Deallocates.o Global_Numbering.o Memory_Diagnostics.o ieee_arithmetic_dummy.o
+
+Fields_Manipulation.o: Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
+  Element_set.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
+  Halos_Debug.o Halos_Ownership.o Halos_Numbering.o Halos_Repair.o qsortd.o
+
+Fields_Calculations.o: Fields_Data_Types.o Fields_Base.o Fields_Manipulation.o \
+   FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o
+Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
+   Sparse_Tools_Petsc.o
+
+qsortd.o: Global_Parameters.o
+
+Halo_Data_Types.o: Futils.o Global_Parameters.o Reference_count_halo_type.F90 Reference_Counting.o
+Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
+  Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Diagnostics.o \
+  Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o
+Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
+  Halos_Debug.o Reference_Counting.o
+Halos_Base.o: Halo_Data_Types.o qsortd.o
+Halos_Communications.o: Fields_Data_Types.o Futils.o Halos_Allocates.o Halos_Base.o \
+  Halo_Data_Types.o Halos_Debug.o Halos_Ownership.o Halos_Numbering.o \
+  Halos_Registration.o Fields_Manipulation.o
+Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
+Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
+  Global_Parameters.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
+  Halos_Debug.o Halos_Numbering.o Halos_Ownership.o Halos_Registration.o \
+  Halos_Repair.o Sparse_Tools.o Data_structures.o
+Halos_Legacy.o: Futils.o Halos.o
+Halos_Ownership.o: Futils.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o Halos_Numbering.o
+Halos_Numbering.o: Data_structures.o Futils.o Halo_Data_Types.o \
+  Halos_Allocates.o Halos_Base.o Halos_Debug.o qsortd.o
+Halos_Registration.o: Fields_Data_Types.o Fields_Base.o Futils.o \
+  Halo_Data_Types.o Halos_Base.o Halos_Debug.o Halos_Ownership.o \
+  Halos_Numbering.o
+Halos_Repair.o: Halo_Data_Types.o Halos_Base.o Halos_Debug.o \
+  Halos_Numbering.o Halos_Ownership.o qsortd.o Fields_Base.o
+Halos_Diagnostics.o: VTK_interfaces.o Fields_Base.o Fields_Data_Types.o \
+  Fields_Allocates.o Shape_Functions.o Halos_Numbering.o
+
+
+Sparse_Tools.o: Futils.o Reference_Counting.o \
+Reference_count_csr_matrix.F90 Reference_count_block_csr_matrix.F90 \
+Reference_count_dynamic_csr_matrix.F90 \
+Reference_count_block_dynamic_csr_matrix.F90 \
+Reference_count_csr_sparsity.F90 \
+Halo_Data_Types.o Halos_Allocates.o Memory_Diagnostics.o \
+ieee_arithmetic_dummy.o
+
+Global_Numbering.o: Elements.o Adjacency_Lists.o Linked_Lists.o \
+  Halo_Data_Types.o Halos_Allocates.o Halos_Numbering.o Halos_Base.o \
+  Halos_Debug.o Halos_Ownership.o
+  
+Sparse_Tools_Petsc.o: Sparse_Tools.o Petsc_Tools.o Reference_Counting.o \
+  Reference_count_petsc_csr_matrix.F90 Halos_Allocates.o \
+  Fields_Base.o Fields_Manipulation.o
+
+Adjacency_Lists.o: Fields_Data_Types.o Futils.o
+
+Futils.o: Global_Parameters.o
+
+FETools.o: FETools.F90 Elements.o Transform_elements.o Sparse_Tools.o
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) -c $< || (rm $(LIB) && false)
+
+FEFields.o: Fields.o Elements.o FETools.o Transform_elements.o Field_Options.o
+
+Transform_elements.o: Elements.o CV_Faces.o Fields_Base.o EventCounter.o \
+Memory_Diagnostics.o Quadrature.o
+
+Elements.o: Element_Numbering.o Quadrature.o Polynomials.o \
+Reference_count_element_type.F90 Reference_Counting.o
+
+Element_Numbering.o: Futils.o
+
+Signals.o: Signal_Vars.o
+
+signal_handlers.o: Signal_Vars.o
+
+Polynomials.o: Futils.o
+
+Quadrature.o: Unittest_tools.o \
+  Reference_count_quadrature_type.F90 Reference_Counting.o Wandzura_Quadrature.o \
+  Vector_Tools.o Grundmann_Moeller_Quadrature.o
+Grundmann_Moeller_Quadrature.o: Global_Parameters.o
+Wandzura_Quadrature.o: Global_Parameters.o
+
+Solvers.o: Petsc_Tools.o Signal_Vars.o Multigrid.o Fields.o \
+  Sparse_Tools.o Global_Parameters.o Sparse_Tools_Petsc.o \
+  Sparse_Matrices_Fields.o Halos.o
+
+Full_Projection.o: Solvers.o Petsc_Tools.o Multigrid.o Fields_Base.o Sparse_Tools.o \
+  Global_Parameters.o Sparse_Matrices_Fields.o Sparse_Tools_Petsc.o
+
+Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
+  Fields_Base.o Reference_count_petsc_numbering_type.F90 Fields_Manipulation.o \
+  Halo_Data_Types.o Halos_Base.o Reference_Counting.o Halos_Communications.o \
+  Halos_Numbering.o
+
+Coordinates.o: Vector_Tools.o
+
+Superconvergence.o: Elements.o Vector_Tools.o
+
+Unittest_tools.o: Vector_Tools.o Sparse_Tools.o ieee_arithmetic_dummy.o \
+  Reference_Counting.o
+
+# The refcount template dependencies are not actually needed for
+# Reference_counting.o but they are needed by everything which depends on
+# Reference_counting.o
+Reference_Counting.o: Global_Parameters.o \
+  Refcount_templates.F90 Refcount_interface_templates.F90
+
+Fields_Data_Types.o: Global_Parameters.o Picker_Data_Types.o \
+  Shape_Functions.o Sparse_Tools.o Reference_Counting.o
+
+Multigrid.o: Sparse_Tools.o Petsc_Tools.o
+
+Parallel_fields.o : Fields_Base.o Halos_Ownership.o Halos_Communications.o \
+  Halos_Numbering.o 
+
+Field_derivatives.o: Vector_set.o Parallel_fields.o Node_boundary.o
+
+Vector_set.o: vecset.o intvecset.o
+
+Element_set.o: eleset.o
+
+Node_boundary.o: Surface_Labels.o 
+
+Matrix_Norms.o: Fields.o Vector_Tools.o Node_boundary.o
+
+Boundary_Conditions.o: Fields_Data_Types.o Fields.o
+
+Read_Triangle.o: Fields.o State.o Futils.o Elements.o
+
+Read_GiD_custom.o: Fields.o Futils.o Elements.o VTK_interfaces.o 
+
+Write_Triangle.o: Fields.o Futils.o Elements.o State.o Field_Options.o
+
+CV_Faces.o: Shape_Functions.o
+
+CV_Shape_Functions.o : CV_Faces.o
+
+CVTools.o : State.o Vector_Tools.o Futils.o Field_Options.o
+
+CV_Options.o : CVTools.o Element_Numbering.o
+
+CV_Upwind_Values.o : CV_Options.o Elements.o Quadrature.o Boundary_Conditions.o Field_derivatives.o
+
+CV_Face_Values.o : CV_Options.o Field_derivatives.o
+
+Merge_tensors.o: Metric_tools.o Fields.o
+
+Metric_tools.o: Unittest_tools.o Fields_Data_Types.o Vector_Tools.o Fields_Manipulation.o
+
+Surface_Labels.o: Merge_tensors.o Vector_Tools.o Fields.o Elements.o \
+   VTK_interfaces.o Global_Parameters.o Data_structures.o Halos.o
+
+Write_State.o: State.o Fields.o Timers.o VTK_interfaces.o \
+  Global_Parameters.o Field_Options.o Halos.o
+
+Field_Options.o: Metric_tools.o Fields_Data_Types.o Quadrature.o Elements.o \
+  State.o Fields_Base.o Fields_Allocates.o Fields_Calculations.o Data_structures.o
+ 
+Adaptive_Timestepping.o: Field_Options.o State.o Diagnostic_Fields.o \
+  Signal_Vars.o Unittest_tools.o
+
+Surface_Integrals.o: Elements.o Field_Options.o Fields.o Global_Parameters.o \
+  Parallel_fields.o State.o
+
+Lagrangian_Remap.o: Conservative_interpolation.o Fields.o State.o VTK_interfaces.o
+
+Embed_Python_Fortran.o: Global_Parameters.o
+python_state.o: Quadrature.o Elements.o Fields.o Global_Parameters.o State.o
+
+Smoothing_module.o: Solvers.o Sparsity_Patterns.o Sparse_Tools.o Fields.o \
+                    Global_Parameters.o
+
+Adaptive_interpolation.o: Conservative_interpolation.o
+
+Data_structures.o: Integer_hash_table.o Integer_set.o
+
+Intersection_finder.o: Elements.o Fields_Data_Types.o Fields_Base.o Adjacency_Lists.o Linked_Lists.o \
+  Supermesh.o Adjacency_Lists.o Fields_Allocates.o Transform_elements.o \
+  Parallel_fields.o
+
+State_Fields.o: Fields.o State.o FEFields.o Sparsity_Patterns_Meshes.o Dgtools.o
+
+Unify_meshes.o: Fields_Base.o Fields_Data_Types.o Fields_Allocates.o Fields_Manipulation.o
+
+CGAL_Tools.o: Fields.o
+CGAL_Tools_C.o: ../include/CGAL_Tools_C.h
+
+Tetrahedron_intersection.o: Vector_Tools.o Elements.o Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
+   Fields_Manipulation.o
+
+test_element_numbering:test_element_numbering.F90 Futils.o \
+	Element_Numbering.o
+	$(FC) $(FCFLAGS) -o $@ $^
+
+testshapefunctions:testshapefunctions.F90 Futils.o Shape_Functions.o \
+	Polynomials.o Elements.o Quadrature.o Element_Numbering.o
+	$(FC) $(FCFLAGS) -o $@ $^
+
+testvectortools:testvectortools.F90 Futils.o Vector_Tools.o
+	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
+
+test_laplacian:test_laplacian.F90 Read_Triangle.o Futils.o Shape_Functions.o \
+	Polynomials.o Elements.o Quadrature.o Element_Numbering.o \
+	FETools.o Fields.o
+	$(FC) $(FCFLAGS) -o $@ $^ $(LIBS)
+
+test_invert_dg_mass_matrix: test_invert_dg_mass_matrix.F90
+
+test_projections: projections.cpp
+	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)

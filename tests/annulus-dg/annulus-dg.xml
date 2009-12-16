@@ -1,0 +1,124 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Thermally driven annulus (P1DG-P2 version)</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "special" nprocs = "1">
+    <command_line>make clean-run; dfluidity -v2 -l annulus-dg.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "times" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("annulus.stat")
+times = s["ElapsedTime"]["value"]
+    </variable>
+    <variable name = "max_cfl_numbers" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("annulus.stat")
+max_cfl_numbers = s["Water"]["CFLNumber"]["max"]
+    </variable>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name = "min_ts" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("annulus.stat")
+min_ts = s["Water"]["Temperature"]["min"]
+    </variable>
+    <variable name = "max_ts" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("annulus.stat")
+max_ts = s["Water"]["Temperature"]["max"]
+    </variable>
+    <variable name = "inner_wall_nus" language = "python">
+import math
+import numpy
+import fluidity_tools
+s = fluidity_tools.stat_parser("annulus.stat")
+inner_wall_h = s["Water"]["Temperature"]["surface_integral%InnerH"]
+inner_wall_nus = [h * math.log(8.0 / 2.5) / (2.0 * math.pi * 14.0) for h in inner_wall_h]
+inner_wall_nus = numpy.array(inner_wall_nus)
+    </variable>
+    <variable name = "mid_point_t_ffts" language = "python">
+import sys
+sys.path.append("./src/python")
+
+import numpy
+
+import fluidity.diagnostics.calc as calc
+import fluidity.diagnostics.fluiditytools as fluidity_tools
+
+# Read the .detector file
+det = fluidity_tools.Stat("annulus.detectors")
+
+timeData = det["ElapsedTime"]
+arrayData = fluidity_tools.DetectorArrays(det)["Water%Temperature%MidPoint"]
+
+# Transpose
+if len(arrayData) > 0:
+  tArrayData = [[] for i in range(len(arrayData[0]))]
+for detectorData in arrayData:
+  for i, datum in enumerate(detectorData):
+    tArrayData[i].append(datum)
+arrayData = tArrayData
+del(tArrayData)
+
+mid_point_t_ffts = []
+for i in range(len(arrayData)):
+  mid_point_t_ffts.append(calc.NormalisedFft(arrayData[i]))
+  
+mid_point_t_ffts = numpy.array(mid_point_t_ffts)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Simulation completed" language = "python">
+assert(len(times) == 5)
+    </test>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "CFL number constrained" language = "python">
+max_cfl = max(max_cfl_numbers)
+print "Max CFL number = ", max_cfl
+assert(max_cfl &lt;= 4.8)
+    </test>
+    <test name = "Temperature bounded" language = "python">
+min_t = min(min_ts)
+max_t = max(max_ts)
+print "Min T = ", min_t
+print "Max T = ", max_t
+assert(min_t &gt;= -0.1)
+assert(max_t &lt;= 1.1)
+    </test>
+<!--
+    <test name = "Expected mode" language = "python">
+fft = mid_point_t_ffts[-1]
+dominant_mode = 1
+max_amp = fft[1]
+for i in range(2, len(fft)):
+  amp = fft[i]
+  if amp > max_amp:
+    dominant_mode = i
+    max_amp = amp
+print "Mode = ", str(dominant_mode)
+assert(dominant_mode == 3)
+    </test>
+-->
+<!--Comparing against data from P. L. Read, J. Fluid Mech. (2003), vol. 489, pp. 301-323-->
+<!--
+    <test name = "Inner wall Nu" language = "python">
+import fluidity_tools
+avg_nu = 0.0
+for nu in inner_wall_nus[-100:]:
+  avg_nu += abs(nu)
+avg_nu /= 100.0
+fluidity_tools.compare_variable(avg_nu, 10.1378, 0.10)
+    </test>
+-->
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

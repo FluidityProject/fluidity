@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Standing free surface wave in channel.</name>
+  <owner userid="dham"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity rossby_equatorial_soliton.flml</command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

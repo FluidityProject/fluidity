@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="source_field">
+    <attribute name="source_field_name">
+      <data type="string"/>
+    </attribute>
+  </define>
+  <define name="source_fields">
+    <ref name="source_field"/>
+  </define>
+  <define name="internal_algorithm">
+    <element name="algorithm">
+      <a:documentation>This diagnostic is internal - i.e. it is calculated somewhere within
+the main code, and is not wrapped by the automatic diagnostics
+wrappers.</a:documentation>
+      <attribute name="name">
+        <value>Internal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="internal_velocity_source_algorithm">
+    <element name="algorithm">
+      <a:documentation>Some code paths (e.g. porous media and the traffic model)
+use their own internal diagnostic source field. Select
+this option to these these internal algorithms.</a:documentation>
+      <attribute name="name">
+        <value>Internal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="internal_velocity_absorption_algorithm">
+    <element name="algorithm">
+      <a:documentation>Some code paths (e.g. porous media and the traffic model)
+use their own internal diagnostic absorption field. Select
+this option to these these internal algorithms.</a:documentation>
+      <attribute name="name">
+        <value>Internal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+    </element>
+  </define>
+  <!-- Simple equality algorithms -->
+  <define name="scalar_copy_algorithm">
+    <element name="algorithm">
+      <a:documentation>Copies the source field. This is intended for testing purposes
+&lt;b&gt;only&lt;/b&gt;.</a:documentation>
+      <attribute name="name">
+        <value>scalar_copy</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="vector_copy_algorithm">
+    <element name="algorithm">
+      <a:documentation>Copies the source field. This is intended for testing purposes
+&lt;b&gt;only&lt;/b&gt;.</a:documentation>
+      <attribute name="name">
+        <value>vector_copy</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="tensor_copy_algorithm">
+    <element name="algorithm">
+      <a:documentation>Copies the source field. This is intended for testing purposes
+&lt;b&gt;only&lt;/b&gt;.</a:documentation>
+      <attribute name="name">
+        <value>tensor_copy</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <!-- Differential operator diagnostic algorithms -->
+  <define name="div_algorithm">
+    <element name="algorithm">
+      <a:documentation>div (source field)</a:documentation>
+      <attribute name="name">
+        <value>div</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="grad_algorithm">
+    <element name="algorithm">
+      <a:documentation>grad (source field)</a:documentation>
+      <attribute name="name">
+        <value>grad</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="curl_algorithm">
+    <element name="algorithm">
+      <a:documentation>curl (source field)</a:documentation>
+      <attribute name="name">
+        <value>curl</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="scalar_advection_algorithm">
+    <element name="algorithm">
+      <a:documentation>u dot nabla (source field)</a:documentation>
+      <attribute name="name">
+        <value>scalar_advection</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="vector_advection_algorithm">
+    <element name="algorithm">
+      <a:documentation>u dot nabla (source field)</a:documentation>
+      <attribute name="name">
+        <value>vector_advection</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="scalar_laplacian_algorithm">
+    <element name="algorithm">
+      <a:documentation>nabla^2 (source field). Applies natural boundary conditions on all
+boundaries.</a:documentation>
+      <attribute name="name">
+        <value>scalar_laplacian</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <define name="vector_laplacian_algorithm">
+    <element name="algorithm">
+      <a:documentation>nabla^2 (source field). Applies natural boundary conditions on all
+boundaries.</a:documentation>
+      <attribute name="name">
+        <value>vector_laplacian</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <!-- Surface diagnostics -->
+  <define name="grad_normal_algorithm">
+    <element name="algorithm">
+      <a:documentation> /
+ | grad (source field) dot dn
+ /
+
+The output is P0 on the surface. Errors will occur at domain edges -
+this is a limitation of current output formats.</a:documentation>
+      <attribute name="name">
+        <value>grad_normal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+      <optional>
+        <element name="surface_ids">
+          <a:documentation>Surface IDs defining the surface over which to compute the
+diagnostic. If disabled, computes over the whole surface.</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <!-- Momentum diagnostics -->
+  <define name="coriolis_algorithm">
+    <element name="algorithm">
+      <a:documentation>Interpolates the Coriolis term onto the mesh of this diagnostic field</a:documentation>
+      <attribute name="name">
+        <value>coriolis</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="depends">
+        <value>Velocity</value>
+      </attribute>
+      <choice>
+        <element name="consistent_interpolation">
+          <a:documentation>Consistently interpolate Coriolis onto this mesh</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="galerkin_projection">
+          <a:documentation>Galerkin project Coriolis onto this mesh</a:documentation>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
+          </element>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="bulk_viscosity_algorithm">
+    <element name="algorithm">
+      <a:documentation>The average (or bulk) viscosity formed from the MaterialViscosity for
+each material_phase, weighted according to the MaterialVolumeFraction
+fields from each material_phase:
+
+  \bar\nu = \alpha^i\nu^i
+ 
+where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+for material i and \nu^i is the viscosity of material i</a:documentation>
+      <attribute name="name">
+        <value>bulk_viscosity</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple </value>
+      </attribute>
+    </element>
+  </define>
+  <!-- Parallel diagnostics -->
+  <define name="node_halo_diagnostic_algorithm">
+    <element name="algorithm">
+      <a:documentation>Paints the node halo.</a:documentation>
+      <attribute name="name">
+        <value>node_halo</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="element_halo_diagnostic_algorithm">
+    <element name="algorithm">
+      <a:documentation>Paints the element halo. Requires a degree 0 mesh.</a:documentation>
+      <attribute name="name">
+        <value>element_halo</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
+  <!-- Python diagnostics -->
+  <define name="scalar_python_diagnostic_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for the diagnostic value coded in Python. 
+The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+and 'tensor_fields';
+'field' is the diagnostic field to be set</a:documentation>
+      <attribute name="name">
+        <value>scalar_python_diagnostic</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="python_code"/>
+    </element>
+  </define>
+  <define name="vector_python_diagnostic_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for the diagnostic value coded in Python. 
+The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+and 'tensor_fields';
+'field' is the diagnostic field to be set</a:documentation>
+      <attribute name="name">
+        <value>vector_python_diagnostic</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="python_code"/>
+    </element>
+  </define>
+  <define name="tensor_python_diagnostic_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for the diagnostic value coded in Python. 
+The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+and 'tensor_fields';
+'field' is the diagnostic field to be set</a:documentation>
+      <attribute name="name">
+        <value>tensor_python_diagnostic</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="python_code"/>
+    </element>
+  </define>
+  <define name="scalar_diagnostic_algorithms">
+    <ref name="scalar_python_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_copy_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="div_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_advection_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_laplacian_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="grad_normal_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="node_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="element_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms">
+    <ref name="vector_python_diagnostic_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_copy_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="grad_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="curl_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_advection_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_laplacian_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms">
+    <ref name="tensor_python_diagnostic_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="tensor_copy_algorithm"/>
+  </define>
+</grammar>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>photosynthetic_radiation_cg</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity --xml photosynthetic_radiation.flml </command_line>
+    <!-- Calculate the amount of light in the ocean. This version is CG. -->
+  </problem_definition>
+  <variables>
+    <variable name="light_stats" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("photosynthetic_radiation.stat")
+light_stats = [s["Water"]["PhotosyntheticRadiation"]["integral"][-1],
+ s["Water"]["PhotosyntheticRadiation"]["min"][-1],
+ s["Water"]["PhotosyntheticRadiation"]["max"][-1]]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Maximum intensity is 100" language="python">
+assert abs(light_stats[2]-100.0) &lt; 1.0
+    </test>
+    <test name="Minimum intensity is 0" language="python">
+assert abs(light_stats[1]) &lt; 1e-5
+    </test>
+    <test name="Integral is 25 000 000" language="python">
+assert abs(light_stats[0]-25000000) &lt; 5.0
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

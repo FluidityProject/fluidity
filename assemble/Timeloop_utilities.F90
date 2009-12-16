@@ -1,0 +1,373 @@
+!    Copyright (C) 2008 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    C.Pain@Imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+#include "fdebug.h"
+
+module timeloop_utilities
+  use state_module
+  use fields
+  use spud
+  use signal_vars
+  use timers
+  use global_parameters, only: simulation_start_cpu_time, simulation_start_wall_time
+  implicit none
+  
+  private
+
+  public :: copy_to_stored_values, copy_from_stored_values,&
+       & relax_to_nonlinear, simulation_completed
+
+contains
+
+  subroutine copy_to_stored_values(state, prefix)
+    !!< For each field, copy its value to Oldfield if Oldfield is present.
+    type(state_type), dimension(:), intent(inout) :: state
+    character(len=*), intent(in) :: prefix
+
+    integer :: s, f, stat
+    
+    type(scalar_field) :: sfield, old_sfield
+    type(vector_field) :: vfield, old_vfield
+    type(tensor_field) :: tfield, old_tfield
+
+    do s=1,size(state)
+
+       do f=1,scalar_field_count(state(s))
+
+          sfield=extract_scalar_field(state(s), f)
+
+          if(.not.aliased(sfield)) then
+
+            old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
+                & stat=stat)
+
+            if (stat==0) then
+              ! In this case there is an old field to be set.
+
+              call set(old_sfield, sfield)
+
+            end if
+
+          end if
+
+       end do
+
+       do f=1,vector_field_count(state(s))
+
+          vfield=extract_vector_field(state(s), f)
+
+          if(.not.aliased(vfield)) then
+
+            old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
+                & stat=stat)
+
+            if (stat==0) then
+              ! In this case there is an old field to be set.
+
+              call set(old_vfield, vfield)
+
+            end if
+
+          end if
+
+       end do
+       
+       do f=1,tensor_field_count(state(s))
+
+          tfield=extract_tensor_field(state(s), f)
+
+          if(.not.aliased(tfield)) then
+
+            old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
+                & stat=stat)
+  
+            if (stat==0) then
+              ! In this case there is an old field to be set.
+  
+              call set(old_tfield, tfield)
+  
+            end if
+
+          end if
+
+       end do
+
+    end do
+
+  end subroutine copy_to_stored_values
+
+  subroutine copy_from_stored_values(state, prefix)
+    !!< For each field, copy its value from Oldfield if Oldfield is present.
+    type(state_type), dimension(:), intent(inout) :: state
+    character(len=*), intent(in) :: prefix
+
+    integer :: s, f, stat
+    
+    type(scalar_field) :: sfield, old_sfield
+    type(vector_field) :: vfield, old_vfield
+    type(tensor_field) :: tfield, old_tfield
+
+    do s=1,size(state)
+
+       do f=1,scalar_field_count(state(s))
+
+          sfield=extract_scalar_field(state(s), f)
+
+          if(.not.aliased(sfield)) then
+
+            ! Special case: do not copy back pressure
+            if (sfield%name=="Pressure") then
+              cycle
+            end if
+
+            old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
+                & stat=stat)
+
+            if (stat==0) then
+              ! In this case there is an old field to be set.
+
+              call set(sfield, old_sfield)
+
+            end if
+
+          end if
+
+       end do
+
+       do f=1,vector_field_count(state(s))
+
+          vfield=extract_vector_field(state(s), f)
+
+          if(.not.aliased(vfield)) then
+
+            old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
+                & stat=stat)
+
+            if (stat==0) then
+              ! In this case there is an old field to be set.
+
+              call set(vfield, old_vfield)
+
+            end if
+
+          end if
+
+       end do
+       
+       do f=1,tensor_field_count(state(s))
+
+          tfield=extract_tensor_field(state(s), f)
+
+          if(.not.aliased(tfield)) then
+
+            old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
+                & stat=stat)
+
+            if (stat==0) then
+              ! In this case there is an old field to be set.
+
+              call set(tfield, old_tfield)
+
+            end if
+
+          end if
+
+       end do
+
+    end do
+
+  end subroutine copy_from_stored_values
+
+  subroutine relax_to_nonlinear(state)
+    !!< For each field, set the nonlinearfield if present.
+    type(state_type), dimension(:), intent(inout) :: state
+
+    integer :: s, f, old_stat, nl_stat, stat
+    real :: itheta
+
+    type(scalar_field) :: sfield, old_sfield, nl_sfield
+    type(vector_field) :: vfield, old_vfield, nl_vfield
+    type(tensor_field) :: tfield, old_tfield, nl_tfield
+
+    type(vector_field), pointer :: velocity
+
+    do s=1,size(state)
+
+       velocity=>extract_vector_field(state(s), "Velocity", stat)
+       if(stat==0) then
+         call get_option(trim(velocity%option_path)//"/prognostic&
+                        &/temporal_discretisation/relaxation", itheta, default=1.0)
+       else
+         itheta = 1.0
+       end if
+
+       do f=1,scalar_field_count(state(s))
+
+          sfield=extract_scalar_field(state(s), f)
+
+          if(.not.aliased(sfield)) then
+
+            old_sfield=extract_scalar_field(state(s), "Old"//trim(sfield%name),&
+                & stat=old_stat)
+
+            nl_sfield=extract_scalar_field(state(s), "Nonlinear"//trim(sfield%name),&
+                & stat=nl_stat)
+
+            if ((old_stat==0).and.(nl_stat==0)) then
+            
+              call set(nl_sfield, sfield, old_sfield, itheta)
+
+            end if
+
+          end if
+
+       end do
+
+       do f=1,vector_field_count(state(s))
+
+          vfield=extract_vector_field(state(s), f)
+
+          if(.not.aliased(vfield)) then
+
+            old_vfield=extract_vector_field(state(s), "Old"//trim(vfield%name),&
+                & stat=old_stat)
+
+            nl_vfield=extract_vector_field(state(s), "Nonlinear"//trim(vfield%name),&
+                & stat=nl_stat)
+
+            if ((old_stat==0).and.(nl_stat==0)) then
+
+              call set(nl_vfield, vfield, old_vfield, itheta)
+
+            end if
+
+          end if
+
+       end do
+
+       do f=1,tensor_field_count(state(s))
+
+          tfield=extract_tensor_field(state(s), f)
+
+          if(.not.aliased(tfield)) then
+
+            old_tfield=extract_tensor_field(state(s), "Old"//trim(tfield%name),&
+                & stat=old_stat)
+
+            nl_tfield=extract_tensor_field(state(s), "Nonlinear"//trim(tfield%name),&
+                & stat=nl_stat)
+
+            if ((old_stat==0).and.(nl_stat==0)) then
+
+              call set(nl_tfield, tfield, old_tfield, itheta)
+
+            end if
+
+          end if
+
+       end do
+
+    end do
+
+  end subroutine relax_to_nonlinear
+
+  function simulation_completed(current_time, timestep)
+    !!< Simulation end test routine. Tests standard timestep loop exit
+    !!< conditions (many listed under /timestepping). Returns .true. if these
+    !!< conditions are satisfied and .false. otherwise.
+
+    real, intent(in) :: current_time
+    integer, intent(in), optional :: timestep
+
+    logical :: simulation_completed
+
+    integer :: final_timestep, i, stat
+    real :: current_cpu_time, time_limit, current_wall_time
+
+    simulation_completed = .false.
+
+    do i = 1, 5
+       select case(i)
+       case(1)
+          call get_option("/timestepping/finish_time", time_limit)
+          if(current_time >= time_limit) then
+             simulation_completed = .true.
+             ewrite(1, *) "Finish time reached"
+             exit
+          end if
+       case(2)
+          if(present(timestep)) then
+             call get_option("/timestepping/final_timestep", final_timestep, stat)
+             if(stat == SPUD_NO_ERROR) then
+                if(timestep > final_timestep) then
+                   simulation_completed = .true.
+                   ewrite(1, *) "Passed final timestep"
+                   exit
+                end if
+             end if
+          end if
+       case(3)
+          call get_option("/timestepping/cpu_time_limit", time_limit, stat)
+          if(stat == SPUD_NO_ERROR) then
+             call cpu_time(current_cpu_time)
+             call allmax(current_cpu_time)
+             if(current_cpu_time - simulation_start_cpu_time >= time_limit) then
+                simulation_completed = .true.
+                ewrite(1, *) "CPU time limit reached"
+                exit
+             end if
+          end if
+       case(4)
+          call get_option("/timestepping/wall_time_limit", time_limit, stat)
+          if(stat == SPUD_NO_ERROR) then
+             current_wall_time = wall_time()
+             call allmax(current_wall_time)
+             if(current_wall_time - simulation_start_wall_time >= time_limit) then
+                simulation_completed = .true.
+                ewrite(1, *) "Wall time limit reached"
+                exit
+             end if
+          end if
+       case(5)
+          if(SIG_INT) then
+             simulation_completed = .true.
+             ewrite(1, *) "Interrupt signal received"
+             exit
+          end if
+       case default
+          FLAbort("Invalid loop index")
+       end select
+    end do
+
+    if(simulation_completed) then
+       ewrite(2, *) "simulation_completed returning .true."
+    else
+       ewrite(2, *) "simulation_completed returning .false."
+    end if
+
+  end function simulation_completed
+
+end module timeloop_utilities

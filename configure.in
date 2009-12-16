@@ -1,0 +1,1433 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(assemble/Makefile.in)
+AC_CONFIG_HEADERS(include/config.h)
+
+echo "Hostname: `hostname`"
+
+# Store enviroment variables
+env_f77="${F77}"
+env_fflags="${FFLAGS}"
+env_flibs="${FLIBS}"
+
+env_fc="${FC}"
+env_fcflags="${FCFLAGS}"
+env_fclibs="${FCLIBS}"
+env_cflags="${CFLAGS}"
+env_cxxflags="${CXXFLAGS}"
+
+env_libs="${LIBS}"
+
+# Set the default compile flags.
+if test "no$FFLAGS" = "no"; then
+    FFLAGS=""
+fi
+
+if test "no$FCFLAGS" = "no"; then
+    FCFLAGS=""
+fi
+
+if test "no$CFLAGS" = "no"; then
+    CFLAGS=""
+fi
+
+if test "no$CXXFLAGS" = "no"; then
+    CXXFLAGS=""
+fi
+
+#
+# Name fluidity
+#
+AC_ARG_ENABLE(gcov,
+    [AC_HELP_STRING([--enable-gcov],
+	    [turns on GNUs coverage tool - gcov])])
+
+AC_ARG_ENABLE(debugging,
+    [AC_HELP_STRING([--enable-debugging],
+	    [turns on debugging flags])])
+
+if test "x$enable_gcov" == "xyes" ; then
+    enable_debugging="yes"
+    FCFLAGS="$FCFLAGS -fprofile-arcs -ftest-coverage"
+    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
+    LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
+fi
+ 
+FLUIDITY="fluidity"
+FLADJOINT="fladjoint"
+FLFEMDEM="femdem"
+
+if test "$enable_debugging" = "yes" ; then
+  FLUIDITY="$FLUIDITY-debug"
+  FLADJOINT="$FLADJOINT-debug"
+  FLFEMDEM="$FLFEMDEM-debug"	
+fi
+
+# Check system type
+AC_CANONICAL_HOST
+
+# Find compilers
+AC_MSG_NOTICE([*** Fishing for legacy fortran compiler.])
+AC_PROG_F77(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
+AC_F77_LIBRARY_LDFLAGS
+fcompiler=`basename $F77`
+
+AC_MSG_NOTICE([*** Fishing for modern Fortran compiler])
+AC_PROG_FC(ifort ifc efc sunf95 gfortran pgf95 pathf95 g95 f90,,f90,$PATH)
+AC_FC_LIBRARY_LDFLAGS
+fccompiler=`basename $FC`
+
+if test "$fcompiler" = "sunf95" ; then
+    MODINC_FLAG="-M"
+    FFLAGS="-M../include $FFLAGS"
+    FCFLAGS="-M../include $FCFLAGS"
+else
+    MODINC_FLAG="-I"
+fi
+
+if test "$F77" = "$FC" ; then
+    smart_fortran="yes"
+    AC_MSG_NOTICE([*** Assuming that $FC can process both free and fixed form fortran files.])
+else
+    AC_MSG_NOTICE([*** Assuming that $FC cannot process both free and fixed form fortran files (silly fortran).])
+    smart_fortran="no"
+fi
+
+if test "$fcompiler" = "ifort" ; then
+    if ifort -v 2>&1 |grep 11.0; then 
+	AC_MSG_ERROR(Intel 11.0 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
+    fi
+    if ifort -v 2>&1 |grep 11.1; then 
+	AC_MSG_ERROR(Intel 11.1 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
+    fi
+fi
+
+
+AC_PROG_CC(icc ecc suncc pgcc gcc cc)
+AC_PROG_CXX(icpc icc ecc sunCC pgCC g++ CC)
+AC_PROG_CPP
+LINKER=$CXX
+
+AC_LONG_64_BITS
+
+# Find fortran libraries required when linking with C++ main.
+
+AC_F77_LIBRARY_LDFLAGS
+AC_FC_LIBRARY_LDFLAGS
+
+AC_F77_WRAPPERS
+
+# Find python to link against.
+AC_ARG_ENABLE(python,
+[AC_HELP_STRING([--enable-python],
+[embed python in fluidity for generic functions.])])
+
+if test "$enable_python" != "no"
+then
+    AC_MSG_NOTICE([Checking for Python automagic.])
+    AC_LANG_PUSH([C++])
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM([[
+     #include <Python.h>
+                        ]],[[
+                        Py_Initialize();
+                        PyRun_SimpleString("from time import time,ctime\n"
+                            "print 'Today is',ctime(time())\n");
+                        Py_Finalize();
+		        ]])],
+        [
+	    AC_MSG_NOTICE([Python automagic works.])
+	    CPPFLAGS="$CPPFLAGS -DHAVE_PYTHON"],
+        [
+            AC_MSG_NOTICE([No Python automagic.])
+	    search_for_python=yes	    
+        ])
+    AC_LANG_POP([C++])
+    
+    if test "x$search_for_python" == "xyes" ; then
+        mycppflag=$CPPFLAGS
+        AC_PYTHON_DEVEL
+        CPPFLAGS=$mycppflag
+    # Save variables...
+        if test "$pythonexists" = "yes";
+        then
+	    if  test "$fcompiler" = "pgf90"; then
+	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
+	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
+	    fi
+      if test "$enable_debugging" = "yes"; then
+        export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
+      fi
+	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+	    FLIBS="$FLIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+            CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
+            CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
+        fi
+    fi
+    
+    # Additionally check for numpy
+    NUMPY=$(python -c 'import numpy; print numpy.get_include()' 2>/dev/null)
+    if ! test -z "$NUMPY"; then	
+	echo "Numpy is " $NUMPY	
+	CXXFLAGS="$CXXFLAGS -DHAVE_NUMPY -I$NUMPY"
+        CPPFLAGS="$CPPFLAGS -DHAVE_NUMPY -I$NUMPY"
+        CFLAGS="$CFLAGS -DHAVE_NUMPY -I$NUMPY"
+        FFLAGS="$FFLAGS -DHAVE_NUMPY -I$NUMPY"
+        FCFLAGS="$FCFLAGS -DHAVE_NUMPY -I$NUMPY"
+    else
+	echo "Failed to locate Numpy"
+    fi
+fi
+AC_SUBST(HAVE_PYTHON)
+
+AC_ARG_ENABLE(cgal, [AC_HELP_STRING([--enable-cgal], [turns on use of the CGAL library])])
+if test "$enable_cgal" = "yes" ; then
+  AC_CHECK_LIB(CGAL, cos, [HAVE_CGAL=yes], [HAVE_CGAL=no])
+  AC_SUBST(HAVE_CGAL)
+  if test "$HAVE_CGAL" = "yes"; then
+    cat >> confdefs.h << EOF
+#define HAVE_CGAL 1
+EOF
+    LIBS="$LIBS -lCGAL -lgmp -lmpfr"
+  else
+    AC_MSG_ERROR("Use of CGAL enabled but cannot identify CGAL. Check that it is installed.")
+  fi
+fi
+
+# Find a library which will give us blas and lapack routines
+AC_LANG_PUSH([C])
+found_blas="no"
+if test -z "$with_lapack" -a -z "$with_blas" && \
+   test \( "$fcompiler" = "ifc" \) -o \( "$fcompiler" = "ifort" \) -o \( "$fcompiler" = "efc" \)
+    then
+    AC_MSG_NOTICE([Appear to be using Intel compiler suite. Check if MKL is also available.])
+    for i in `echo $LD_LIBRARY_PATH | sed -e 's/:/ /g'`
+      do
+      echo "looking in $i"
+      if test \( -f $i/libmkl.a \) -o \( -f $i/libmkl.so \)
+      then
+          AC_MSG_NOTICE([Will look in $i for MKL.])
+      LIBS="$LIBS -L$i"
+      LAPACK_LIBS="-L$i $LAPACK_LIBS"
+      fi
+    done
+    ACX_BLAS([found_blas="yes"],[found_blas="no"])
+elif  test "$fcompiler" = "pgf90"
+    then
+    AC_MSG_NOTICE([Appear to be using Portland Group compiler suite. Check if ACML is also available.])
+    AC_CHECK_LIB(acml, dgesv, [found_blas=yes], [found_blas=no])
+
+elif test "$fcompiler" = "sunf95"
+    then
+    LIBS="$LIBS -lfui -lfai -lfsu -lmtsk -lpthread -lm"
+    AC_MSG_NOTICE([Appear to be using Sun Studio compiler suite. Check if Sun Performance Library is also available.])
+    AC_CHECK_LIB(sunperf, dgesv, [found_blas=yes ; acx_blas_ok=yes], [found_blas=no])
+fi
+AC_LANG_POP([C])
+
+AC_LANG_PUSH([Fortran 77])
+if test "$found_blas" = "no"
+    then
+    AC_MSG_NOTICE([checking the position of the stars to help find a versions of BLAS])
+    ACX_BLAS([],[AC_MSG_ERROR("Cannot identify BLAS. Check that it is installed.")])
+fi
+ACX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
+AC_LANG_POP([Fortran 77])
+
+FLIBS=`echo $FLIBS | sed 's/)//g'` 
+
+# Check for standard libraries
+AC_LANG_PUSH([C])
+AC_CHECK_LIB(stdc++,main,,)
+AC_CHECK_LIB(m,main,,)
+AC_CHECK_LIB(pthread,main,,)
+AC_CHECK_LIB(udunits,utInit,,)
+
+LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
+
+AC_SUBST(LAPACK_LIBS)
+AC_SUBST(BLAS_LIBS)
+
+LINKER=$CXX
+
+AC_ARG_ENABLE(shared,
+[AC_HELP_STRING([--enable-shared],
+[Compile objects with -fPIC to enable the 'make shared' target.])])
+
+if test "$enable_shared" = "yes" ; then
+  PIC_FLAG="-fPIC"
+  FFLAGS="$FFLAGS $PIC_FLAG"
+  FCFLAGS="$FCFLAGS $PIC_FLAG"
+  CFLAGS="$CFLAGS $PIC_FLAG"
+  CXXFLAGS="$CXXFLAGS $PIC_FLAG"
+else
+  PIC_FLAG=""
+fi
+
+##
+## what compiler options work
+##
+if test "$FC" = "g95"; then
+    FFLAGS="-ffast-math -fno-second-underscore $FFLAGS"
+    FCFLAGS="-ffast-math -fno-second-underscore $FCFLAGS"
+fi
+
+# How to unroll loops?
+AC_MSG_CHECKING(["Checking for -funroll-loops"])
+UNROLL_LOOPS=""
+OLD_FFLAGS="$FFLAGS"
+FFLAGS="-funroll-loops"
+AC_LANG_PUSH([Fortran 77])
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM(,[[
+                    PRINT*, "hello world"
+                    ]])],
+    [
+        AC_MSG_RESULT(-funroll-loops works)
+        UNROLL_LOOPS="-funroll-loops"
+    ])
+FFLAGS="$OLD_FFLAGS"
+AC_SUBST(UNROLL_LOOPS)
+AC_LANG_POP()
+
+if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4"; then
+  USING_GFORTRAN="yes"
+else
+  USING_GFORTRAN="no"
+fi
+
+if test "$USING_GFORTRAN" = "yes"; then
+    if test "$enable_debugging" = "yes" ; then
+	FFLAGS="-frecord-marker=4 $FFLAGS"
+	FCFLAGS="-frecord-marker=4 $FCFLAGS"
+    else
+	FFLAGS="-ffast-math -frecord-marker=4 $FFLAGS"
+	FCFLAGS="-ffast-math -frecord-marker=4 $FCFLAGS"
+    fi
+    cat >> confdefs.h << EOF
+#define USING_GFORTRAN 1
+EOF
+fi
+AC_LANG_POP([C])
+
+AC_LANG_PUSH(Fortran 77)
+AC_MSG_CHECKING([how do we get fortran 77 to allow long lines])
+old_FLAGS="$FFLAGS"
+extended_source_flag=none
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM(,[[
+                    PRINT*, "hello world                                                                                      "
+                    ]])],
+    [
+        AC_MSG_RESULT(no extra flags required)
+        extended_source_flag=happy
+    ])
+
+if test "$extended_source_flag" != happy ; then
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-extend_source"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-132"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffree-line-length-none -ffixed-line-length-none"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffixed-line-length-huge -ffree-line-length-huge"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffixed-line-length-132 -ffree-line-length-huge"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[   
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-ffixed-line-length-132"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-Mextend"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-qfixed=256"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-e"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+                            PRINT*, "hello world                                                                                      "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        AC_MSG_RESULT([we cannot])
+    else
+        FCFLAGS="$FCFLAGS $extended_source_flag"
+    fi
+fi
+
+AC_LANG_POP([Fortran 77])
+
+AC_PROG_INSTALL
+AC_CHECK_PROG(MAKE, gmake, gmake, make, $PATH)
+
+# Set default for ARFLAGS, since autoconf does not have a macro for
+# it. This allows people to set it when running configure or make.
+AC_CHECK_PROG(AR, ar, ar, ,$PATH)
+test -n "$ARFLAGS" || ARFLAGS="cr"
+AC_PROG_RANLIB
+
+AC_ARG_ENABLE(verbose,
+[AC_HELP_STRING([--enable-verbose],
+[turns on super verbosity])])
+
+if test "$enable_verbose" = "yes" ; then
+cat >> confdefs.h << EOF
+#define VERBOSE_MESSAGES 1
+EOF
+fi
+
+if test "$enable_debugging" = "yes" ; then
+  CFLAGS="-g -O0 `echo $CFLAGS | sed 's/-O2//g'`"
+  CXXFLAGS="-g -O0 `echo $CXXFLAGS | sed 's/-O2//g'`"
+  FFLAGS="-g -O0 `echo $FFLAGS | sed 's/-O2//g'`"
+  FCFLAGS="-g -O0 `echo $FCFLAGS | sed 's/-O2//g'`"
+cat >> confdefs.h << EOF
+#define DDEBUG 1
+EOF
+
+  if test "$fcompiler" = "ifort" ; then
+    FFLAGS="-C -traceback -check nooutput_conversion -check noarg_temp_created ${FFLAGS}"
+    FCFLAGS="-C -traceback -check nooutput_conversion -check noarg_temp_created  ${FCFLAGS}"
+    CFLAGS="-fno-omit-frame-pointer ${CFLAGS}"
+    CXXFLAGS="-fno-omit-frame-pointer ${CXXFLAGS}"
+  elif test "$USING_GFORTRAN" = "yes" ; then
+    old_fflags="$FFLAGS"
+    old_fcflags="$FCFLAGS"
+    FFLAGS="$FFLAGS -finit-integer=-66666 -finit-real=nan"
+    FCFLAGS="$FCFLAGS -finit-integer=-66666 -finit-real=nan"
+    AC_LANG_PUSH([Fortran])
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM(,[[
+                        PRINT*, "hello world"
+                        ]])],
+        [
+            AC_MSG_RESULT(can initialise integers and reals)
+            old_fflags="$FFLAGS"
+            old_fcflags="$FCFLAGS"
+            ], [
+            AC_MSG_RESULT(cannot initialise integers and reals)
+        ])
+    AC_LANG_POP()
+    FFLAGS="$old_fflags"
+    FCFLAGS="$old_fcflags"
+
+    FFLAGS="-fbounds-check -Wall ${FFLAGS}"
+    FCFLAGS="-fbounds-check -Wall -Wimplicit-interface -Wno-surprising ${FCFLAGS}"
+    CFLAGS="-fbounds-check -Wall ${CFLAGS}"
+    CXXFLAGS="-fbounds-check -Wall ${CXXFLAGS}"
+    LDFLAGS="-rdynamic ${LDFLAGS}"
+  elif test "$fcompiler" = "g95" ; then
+    FFLAGS="-fbounds-check -ftrace=full ${FFLAGS}"
+    FCFLAGS="-fbounds-check -ftrace=full ${FCFLAGS}"
+  elif test "$fcompiler" = "sunf95" ; then
+    FFLAGS="-C -ftrap=invalid -fpover ${FFLAGS}"
+    FCFLAGS="-C -ftrap=invalid -fpover ${FCFLAGS}"
+    CFLAGS="-ftrap=invalid ${CFLAGS}"
+    CXXFLAGS="-ftrap=invalid ${CXXFLAGS}"
+  fi
+
+else
+    AC_MSG_NOTICE([Setting optimisation flags for $F77])
+    cat >> confdefs.h << EOF
+#define NDEBUG 1
+EOF
+    OPTIMIZATION_FFLAGS="$OPTIMIZATION_FFLAGS -O3"
+fi
+
+FFLAGS="$FFLAGS $OPTIMIZATION_FFLAGS"
+FCFLAGS="$FCFLAGS $OPTIMIZATION_FFLAGS"
+
+if test "$FC" = "ifc" ; then
+  FFLAGS="-implicitnone -132 -w95 $FFLAGS"
+  FCFLAGS="-implicitnone -w95 $FCFLAGS"
+fi
+
+##########################################
+# Are we using FEMDEM
+##########################################
+AC_ARG_WITH(femdem,
+    [AC_HELP_STRING([--with-femdem@<:@=femdem_library@:>@],
+        [specify the femdem path])])
+if test -n "$with_femdem" ; then
+  FLFEMDEM_PATH="${with_femdem}"
+  LIB_FEMDEM="${with_femdem}""/lib/libd$FLFEMDEM.a"
+  FEMDEM="yes"
+  cat >> confdefs.h << EOF
+#define USING_FEMDEM 1
+EOF
+else
+  FLFEMDEM_PATH=""
+  LIB_FEMDEM=""
+  FEMDEM=""
+fi
+AC_SUBST(FLFEMDEM_PATH)
+AC_SUBST(LIB_FEMDEM)
+AC_SUBST(FEMDEM)
+
+##########################################
+# Adjoint model
+##########################################
+
+AC_ARG_ENABLE(adjoint,
+[AC_HELP_STRING([--enable-adjoint],
+[turns on complilation of the adjoint model])])
+
+if test "$enable_adjoint" = "yes" ; then
+   ADJOINT="yes"
+else
+   ADJOINT=""
+fi
+
+# save compiler name for libadapt before it's changed by MPI stuff
+saved_FC="${FC}"
+saved_F77="${F77}"
+
+##########################################
+# MPI
+##########################################
+check_for_mpich=""
+check_for_lmpi=""
+
+AC_LANG(C)
+AC_ARG_ENABLE(mpi,
+[AC_HELP_STRING([--enable-mpi],
+[turns on MPI support])])
+
+# various synonyms accepted to disable MPI
+if test "$with_mpi" = no ; then enable_mpi=no; fi
+if test "$with_MPI" = no ; then enable_mpi=no; fi
+if test "$enable_MPI" = no ; then enable_mpi=no; fi
+if test "$enable_mpi" != "no" ; then
+  AC_CHECK_PROGS(MPIF90, mpif90 mpf90, $FC, $PATH)
+  if test "$smart_fortran" = "yes" ; then
+    MPIF77=$MPIF90
+  else
+    AC_CHECK_PROGS(MPIF77, mpif77 mpf77,       $F77, $PATH)
+  fi
+  AC_CHECK_PROGS(MPICC,  mpicc mpcc,        $CC,  $PATH)
+  AC_CHECK_PROGS(MPICXX, mpicxx mpiCC mpCC, $CXX, $PATH)
+
+  F77=$MPIF77
+  FC=$MPIF90
+  CC=$MPICC
+  CXX=$MPICXX
+
+  AC_MSG_CHECKING([if we can compile and link without using -lmpi])
+  LIBS_bck="$LIBS"
+  LIBS=""
+  AC_TRY_LINK([
+  #include <mpi.h>
+  ],[
+  int flag;
+  MPI_Initialized(&flag);
+  ],[
+  AC_MSG_RESULT([yes])
+  LIBS="$LIBS_bck"
+  mpi="yes"
+  ],[
+  AC_MSG_RESULT([no])
+  LIBS="$LIBS_bck"
+  check_for_lmpi="yes"
+  ])
+else
+  AC_MSG_WARN([mpi disabled])
+  MPIF77=$F77
+  MPIF90=$FC
+  MPICC=$CC
+  MPICXX=$CXX
+fi
+
+if test "$check_for_lmpi" = "yes" ; then
+  AC_MSG_CHECKING([if we can compile and link using -lmpi])
+  LIBS_bck="$LIBS"
+  LIBS="-lmpi"
+  AC_TRY_LINK([
+  #include <mpi.h>
+  ],[
+  int flag;
+  MPI_Initialized(&flag);
+  ],[
+  AC_MSG_RESULT([yes])
+  LIBS="$LIBS $LIBS_bck"
+  mpi="yes"
+  ],[
+  AC_MSG_RESULT([no])
+  LIBS="$LIBS_bck"
+  check_for_mpich="yes"
+  ])
+fi
+
+if test "$check_for_mpich" = "yes" ; then
+  AC_MSG_CHECKING([if we can compile and link using mpich libs])
+  LIBS_bck="$LIBS"
+  LIBS="$MPICH_LIBS"
+
+  CPPFLAGS_bck="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $MPICH_INCLUDES"
+
+  AC_TRY_LINK([
+  #include <mpi.h>
+  ],[
+  int flag;
+  MPI_Initialized(&flag);
+  ],[
+  AC_MSG_RESULT([yes])
+  LIBS="$LIBS $LIBS_bck"
+  mpi="yes"
+  ],[
+  AC_MSG_RESULT([no])
+  LIBS="$LIBS_bck"
+  CPPFLAGS="$CPPFLAGS_bck"
+  ])
+fi
+
+# should this go inside the "$mpi" = "yes" test below?
+# i.e. only bother looking for pmpich++ if mpi is enabled...?
+# shouldn't really do this, since it assumes we know the name
+# of the mpich C++ library (but it can be different to below)
+# Also, we only needed it when trying to link C++ with Fortran
+# main -but that won't work reliably across compilers (gcc is ok)
+#AC_CHECK_LIB(pmpich++,main,,)
+
+if test "$mpi" = "yes" ; then
+cat >> confdefs.h << EOF
+#define HAVE_MPI 1
+#define HAVE_MPI_CXX 1
+#define _MPI_CPP_BINDINGS 1
+EOF
+  enable_mpi="yes"
+else
+  AC_MSG_WARN([no mpi support found on system])
+  enable_mpi="no"
+fi
+
+# netCDF support
+AC_LANG_PUSH([C])
+AC_ARG_WITH(netcdf,
+[AC_HELP_STRING([--with-netcdf@<:@=netcdf_ROOT@:>@],
+[specify where to find lib/ and include/ for netCDF])])
+
+# allow various synonyms to disable NetCDF
+if test -z "$with_netcdf" ; then
+  if test "$enable_netcdf" = no; then
+    with_netcdf=no
+  elif test "$enable_NetCDF" = no; then
+    with_netcdf=no
+  elif test "$with_NetCDF" != "yes" ; then
+    if test -n "$with_NetCDF" ; then
+      with_netcdf="$with_NetCDF"
+    fi
+  fi
+fi
+if test "$with_netcdf" != "no" ; then
+  if test -n "$with_netcdf" ; then
+    if test "$with_netcdf" != "yes" ; then
+      LIBS="$LIBS -L$with_netcdf"
+    fi
+  fi
+  AC_CHECK_LIB(netcdf, nc_create)
+  if test $ac_cv_lib_netcdf_nc_create = yes; then
+cat >> confdefs.h << EOF
+#define HAVE_NETCDF 1
+EOF
+    LIBS="$LIBS -lnetcdf"
+  fi
+  # Check for separate fortran lib.
+  AC_CHECK_LIB(netcdff, ncopn_)
+  if test $ac_cv_lib_netcdff_ncopn_ = yes; then
+    LIBS="$LIBS -lnetcdff"
+  fi
+fi
+
+# PETSc
+if test "$enable_mpi" != "no"
+    then
+    ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
+    if test "$with_zoltan" != "no"; then
+      if test ! -z "$with_zoltan"; then
+        ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
+     fi
+    fi
+fi
+# various synonyms accepted for disabling PETSc
+if test "$enable_PETSc" = no ; then with_PETSc=no; fi
+if test "$enable_petsc" = no ; then with_PETSc=no; fi
+if test "$with_petsc" = no ; then with_PETSc=no; fi
+if test "$with_PETSc" != "no" # -a -n "$with_PETSc"
+    then
+    AC_MSG_NOTICE([Checking for PETSc automagic.])
+    AC_LANG_PUSH([Fortran 77])
+    AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM([],[[
+			use petsc
+			print*, "hello petsc"
+			]])],
+	[
+	    AC_MSG_NOTICE([PETSc automagic works.])
+	    CPPFLAGS="$CPPFLAGS -DHAVE_PETSC -DHAVE_PETSC_MODULES -DHAVE_HYPRE"],
+	[
+            AC_MSG_NOTICE([No PETSc automagic.])
+	    search_for_petsc=yes	    
+	])
+    AC_LANG_POP([Fortran 77])
+fi
+
+if test "x$search_for_petsc" == "xyes" ; then
+    AC_MSG_NOTICE([Searching for PETSc.])
+    ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_WARN(["PETSc not found"])])
+    ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
+fi
+
+# Double precision.
+AC_MSG_CHECKING(what voodoo is required to get 64 bit reals....)
+
+AC_LANG_PUSH([Fortran])
+old_fcflags="$FCFLAGS"
+if test -z "$FORTRAN_REAL_8" ; then
+   # gfortran
+    FORTRAN_REAL_8="-fdefault-real-8"
+    FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
+    AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
+       implicit none
+       real::a
+       real*8::b
+
+       if(kind(a).ne.kind(b)) then
+          call exit(-1)
+       end if
+])],
+        [AC_MSG_RESULT($FORTRAN_REAL_8)],
+        [FCFLAGS="$old_fc_flags" ; FORTRAN_REAL_8=""])
+    FCFLAGS="$old_fcflags"
+fi
+if test -z "$FORTRAN_REAL_8" ; then
+   # Intel compiler suite
+    FORTRAN_REAL_8="-r8"
+    FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
+    AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
+       implicit none
+       real::a
+       real*8::b
+
+       if(kind(a).ne.kind(b)) then
+          call exit(-1)
+       end if
+])],
+        [AC_MSG_RESULT($FORTRAN_REAL_8)],
+        [FCFLAGS="$old_fc_flags" ; FORTRAN_REAL_8=""])
+    FCFLAGS="$old_fcflags"
+fi
+if test -z "$FORTRAN_REAL_8" ; then
+   # SUN compiler suite
+    FORTRAN_REAL_8="-xtypemap=real:64,double:64"
+    FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
+    AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
+       implicit none
+       real::a
+       real*8::b
+
+       if(kind(a).ne.kind(b)) then
+          call exit(-1)
+       end if
+])],
+        [AC_MSG_RESULT($FORTRAN_REAL_8)],
+        [FCFLAGS="$old_fc_flags" ; FORTRAN_REAL_8=""])
+    FCFLAGS="$old_fcflags"
+fi
+if test -z "$FORTRAN_REAL_8" ; then
+   # PGI compiler suite
+    old_fcflags="$FCFLAGS"
+
+    FORTRAN_REAL_8="-Mr8"
+    FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
+    AC_RUN_IFELSE([AC_LANG_PROGRAM([], [
+       implicit none
+       real::a
+       real*8::b
+
+       if(kind(a).ne.kind(b)) then
+          call exit(-1)
+       end if
+])],
+        [AC_MSG_RESULT($FORTRAN_REAL_8)],
+        [FCFLAGS="$old_fc_flags" ; FORTRAN_REAL_8=""])
+fi
+if test -z "$FORTRAN_REAL_8" ; then
+   AC_MSG_ERROR(none found)
+fi
+
+AC_LANG_POP([Fortran])
+
+AC_ARG_ENABLE(dp,
+[AC_HELP_STRING([--enable-dp[=flag]],
+[compile with 64 bit floating point numbers (default)])])
+
+if test "$enable_dp" = "no"
+  then
+  FORTRAN_REAL_8=""
+  AC_MSG_NOTICE([Selecting 4 byte floating point numbers])
+else
+  AC_MSG_NOTICE([Turning on double 8 byte floating point numbers])
+  if test -n "$enable_dp" ; then
+    if test "$enable_dp" != "yes" ; then
+      FORTRAN_REAL_8="$enable_dp"
+    fi
+  fi
+  enable_dp="yes"
+
+  FLUIDITY="d$FLUIDITY"
+  FLADJOINT="d$FLADJOINT"
+
+cat >> confdefs.h << EOF
+#define DOUBLEP 1
+EOF
+  FFLAGS="$FFLAGS $FORTRAN_REAL_8"
+  FCFLAGS="$FCFLAGS $FORTRAN_REAL_8"
+fi
+
+#####
+#
+LIBS="$LIBS -L./lib"
+
+##############################################################
+# Stream I/O
+#
+AC_LANG_PUSH([Fortran])
+
+AC_MSG_CHECKING([for compiler stream I/O support.])
+
+# Attempt to autodetect stream support.
+AC_LINK_IFELSE(
+  [
+      program teststream
+
+      open(unit = 0, access = "stream")
+
+      end program teststream
+  ],
+  [
+  stream_support=yes
+  AC_MSG_RESULT([yes])
+cat >> confdefs.h << EOF
+#define STREAM_IO
+EOF
+  ],
+  stream_support=no
+  AC_MSG_RESULT([no])
+cat >> confdefs.h << EOF
+#undef STREAM_IO
+EOF
+  [
+])
+
+AC_LANG_POP(Fortran)
+
+##############################################################
+# Signal handling.
+#
+AC_LANG_PUSH([Fortran])
+
+AC_MSG_CHECKING([for compiler signal handling support.])
+
+# Attempt to autodetect signal support.
+AC_LINK_IFELSE(
+  [
+      program testsignal
+
+      integer :: result
+
+      interface
+       function handle_sigint(signum)
+         integer :: handle_sigint
+         integer, intent(in) :: signum
+       end function handle_sigint
+      end interface
+
+      result=signal(1, handle_sigint, -1)
+      end program testsignal
+
+      function handle_sigint(signal)
+
+      implicit none
+      integer :: handle_sigint
+      integer, intent(in) :: signal
+
+      handle_sigint=0
+
+      end function handle_sigint
+  ],
+  [
+  signal_support=yes
+  AC_MSG_RESULT([yes])
+cat >> confdefs.h << EOF
+#define SIGNAL
+#define SIGNAL_HAVE_FLAG
+EOF
+  ],
+  [
+  AC_LINK_IFELSE(
+  [
+      program testsignal
+
+      integer :: result
+
+      interface
+       function handle_sigint(signum)
+         integer :: handle_sigint
+         integer, intent(in) :: signum
+       end function handle_sigint
+      end interface
+
+      result=signal(1, handle_sigint)
+      end program testsignal
+
+      function handle_sigint(signal)
+
+      implicit none
+      integer :: handle_sigint
+      integer, intent(in) :: signal
+
+      handle_sigint=0
+
+      end function handle_sigint
+  ],
+  [
+  signal_support=yes
+  AC_MSG_RESULT([yes])
+cat >> confdefs.h << EOF
+#define SIGNAL
+EOF
+  ],
+  signal_support=no
+  AC_MSG_RESULT([no])
+cat >> confdefs.h << EOF
+#undef SIGNAL
+#define SIGNAL_HAVE_FLAG
+EOF
+  [
+])
+])
+
+AC_LANG_POP(Fortran)
+
+##############################################################
+# enable gprof profiling
+
+AC_ARG_ENABLE(profiling,
+[AC_HELP_STRING([--enable-profiling],
+[enable gprof profiling])])
+
+if test "$enable_profiling" = "yes" ; then
+  PROFILING_FLAG="-pg"
+  CPPFLAGS="-pg $CPPFLAGS"
+  FFLAGS="-pg $FFLAGS"
+  FCFLAGS="-pg $FCFLAGS"
+
+  LINKER="$LINKER -pg"
+  LIBS="$LIBS -pg"
+else
+  PROFILING_FLAG=""
+fi
+AC_SUBST(PROFILING_FLAG)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+# These tests were just giving too much trouble. Need to investigate further.
+#AC_C_CONST
+#AC_C_INLINE
+
+VERSION=`svnversion .`
+AC_SUBST(VERSION)
+cat >> confdefs.h << EOF
+#undef __FLUIDITY_VERSION__
+#define __FLUIDITY_VERSION__ "$VERSION"
+EOF
+AC_SUBST(FORTRAN_REAL_8)
+AC_SUBST(OPTIMIZATION_FFLAGS)
+AC_SUBST(LINKER)
+
+dnl Specific f90 options
+AC_SUBST(USE_CPP)
+
+dnl Specific -D options
+AC_SUBST(DEFINE_MPI)
+
+AC_SUBST(FLUIDITY)
+AC_SUBST(FLADJOINT)
+
+dnl Checks for library functions.
+if test "$smart_fortran" = "yes" ; then
+  F77=$MPIF90
+else
+  F77=$MPIF77
+fi
+FC=$MPIF90
+CC=$MPICC
+CXX=$MPICXX
+LINKER=$CXX
+
+# Configure adaptivity
+if test -d libadaptivity ; then
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+    AC_MSG_NOTICE([Configuring libadaptivity])
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+
+    pushd libadaptivity
+    # We don't really want to use the same FFLAGS and LIBS as fluidity has
+    # worked out, because they contain all sorts of fluidity-specific junk,
+    # so we let libadapt's configure work out everything for itself
+    # * EXCEPT * for the compiler, which we MUST make sure is the same as
+    # fluidity's (except for MPI)
+    if test "$enable_dp" = "yes" ; then     
+        FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+    else
+        FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
+            FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+    fi
+    popd
+    BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
+    CLEAN_LIBADAPT="@cd libadaptivity; echo '    CLEAN libadaptivity'; \$(MAKE) -s clean;cd .."
+    AC_SUBST(BUILD_LIBADAPT)
+    AC_SUBST(CLEAN_LIBADAPT)
+
+cat >> confdefs.h << EOF
+#define HAVE_ADAPTIVITY 1
+EOF
+else
+    AC_MSG_ERROR("libadaptivity directory missing!!")
+fi
+
+# Configure libjudy
+if test -d libjudy ; then
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+    AC_MSG_NOTICE([Configuring libjudy])
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+
+    cd libjudy
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" ./configure --prefix=${PWD}/..
+    cd ..
+    AC_CHECK_SIZEOF(void *)
+    if test "$ac_cv_sizeof_void_p" = 8; then
+        JUDY_CFLAGS="-DJU_64BIT"
+    else
+        JUDY_CFLAGS="-UJU_64BIT"
+    fi
+    AC_SUBST(JUDY_CFLAGS)
+
+    
+cat >> confdefs.h << EOF
+#define HAVE_JUDY 1
+EOF
+else
+    AC_MSG_ERROR("libjudy directory missing!!")
+fi
+
+# Configure libspud
+if test -d libspud ; then
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+    AC_MSG_NOTICE([Configuring libspud])
+    AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+
+    cd libspud
+    # We don't really want to use the same FFLAGS and LIBS as fluidity has
+    # worked out, because they contain all sorts of fluidity-specific junk,
+    # so we let libadapt's configure work out everything for itself
+    # * EXCEPT * for the compiler, which we MUST make sure is the same as
+    # fluidity's (except for MPI)
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" ./configure --prefix=${PWD}/..
+    cd ..
+    
+cat >> confdefs.h << EOF
+#define HAVE_SPUD 1
+EOF
+else
+    AC_MSG_ERROR("libspud directory missing!!")
+fi
+
+#*************SpatialIndex******
+AC_ARG_ENABLE(experimental_spatialindex, 
+[AC_HELP_STRING([--enable-experimental-spatialindex],
+[Enable experimental spatialindex version])])
+
+if test "$enable_experimental_spatialindex" = "yes"
+then
+  SPATIALINDEXDIR="spatialindex-1.4.0exp"
+else
+  SPATIALINDEXDIR="spatialindex-1.3.2"
+fi
+AC_SUBST(SPATIALINDEXDIR)
+
+AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+AC_MSG_NOTICE([Configuring spatialindex])
+AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
+cd $SPATIALINDEXDIR
+if test "$enable_debugging" = "yes" ; then
+   SPATIALINDEX_CONFIGURE_DEBUG_OPTION=--enable-debug=yes
+fi
+if test "$enable_profiling" = "yes" ; then
+   SPATIALINDEX_CONFIGURE_PROF_OPTION=--enable-profiling=yes
+fi
+CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
+    LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
+    ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION}
+cd ../
+
+#*************ARPACK*********
+AC_LANG_PUSH([Fortran])
+AC_ARG_WITH(arpack-lib,
+[AC_HELP_STRING([--with-arpack-lib@<:@=<lib>@:>@],
+[specify arpack library])])
+
+if test -n "$with_arpack_lib" ; then
+    AC_MSG_NOTICE([Linking against $with_arpack_lib])
+    CPPFLAGS="-DHAVE_ARPACK $CPPFLAGS"
+    LIBS="$with_arpack_lib $LIBS"
+else
+    AC_CHECK_LIB(arpack, dsaupd,,)
+fi
+
+vtk_header_relative_path=""
+AC_ARG_ENABLE(vtk,[AC_HELP_STRING([--enable-vtk], [Only use to disable vtk])])
+# various synonyms accepted for disabling VTK
+if test "$with_vtk" = no ; then enable_vtk=no; fi
+if test "$with_VTK" = no ; then enable_vtk=no; fi
+if test "$enable_VTK" = no ; then enable_vtk=no; fi
+if test "$enable_vtk" != "no" ; then
+    AC_MSG_NOTICE([Checking for VTK automagic.])
+    AC_LANG_PUSH([C++])
+    AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM([[
+#include <vtkVersion.h>
+#include <vtkUnstructuredGrid.h>
+                        ]],
+		[[
+                        vtkVersion::GetVTKMajorVersion();
+                        vtkUnstructuredGrid *ug=vtkUnstructuredGrid::New();
+                        ]])
+            ],
+	[
+            AC_MSG_NOTICE([VTK automagic works.])
+	    CPPFLAGS="$CPPFLAGS -DHAVE_VTK"
+            VTK=yes
+            search_for_vtk=no
+            ],
+	[
+            AC_MSG_NOTICE([No VTK automagic])
+	    search_for_vtk=yes	    
+	])
+    
+    if test "x$search_for_vtk" == "xyes" ; then
+        # Usually the location of the libraries is not a mystery. The
+        # header files are another matter.
+        AC_CHECK_LIB(dl, main)
+        AC_CHECK_LIB(vtksys, main)
+        AC_CHECK_LIB(vtkCommon, main, [], 
+            [if test "x$VTK_LIBS" != "x" ; then
+                LIBS="$LIBS -L$VTK_LIBS"
+                unset ac_cv_lib_vtkCommon_main
+                AC_CHECK_LIB(vtkCommon, main, [], 
+                   [
+                      AC_MSG_ERROR([Cannot find vtk installation.])
+                      exit -1
+                   ])
+             else
+                AC_MSG_ERROR([Cannot find vtk installation.])
+                exit -1
+             fi
+            ])
+        AC_CHECK_LIB(vtkzlib, main)
+        AC_CHECK_LIB(vtkexpat, main)
+        AC_CHECK_LIB(vtkFiltering, main)
+        AC_CHECK_LIB(vtkGraphics, main)
+        AC_CHECK_LIB(vtkIO, main)
+        
+        # check at the usual places:
+        for i in $(ls -d /usr/include/vtk*) $VTK_INCLUDE; do
+            if test -r $i/vtkCellData.h; then
+                CPPFLAGS="-I$i $CPPFLAGS"
+            fi
+        done
+        AC_CHECK_HEADER(vtkCellData.h,
+            [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                VTK=yes
+                ],
+            [AC_CHECK_HEADER(vtk-5.0/vtkCellData.h,
+                    [CPPFLAGS="$CPPFLAGS -DHAVE_VTK=1"
+                        VTK=yes
+                        vtk_header_relative_path="vtk-5.0/"
+                        ],
+                    [       
+                        AC_MSG_ERROR([Cannot find vtk installation.])
+                        exit -1
+                    ])
+          ])
+    fi
+fi
+cat > include/vtk.h <<EOF
+#ifndef VTK_H
+#define VTK_H
+
+#ifdef HAVE_VTK
+#include <${vtk_header_relative_path}vtkBMPWriter.h>
+#include <${vtk_header_relative_path}vtkCellData.h>
+#include <${vtk_header_relative_path}vtkCellDataToPointData.h>
+#include <${vtk_header_relative_path}vtkCellDerivatives.h>
+#include <${vtk_header_relative_path}vtkCell.h>
+#include <${vtk_header_relative_path}vtkCellType.h>
+#include <${vtk_header_relative_path}vtkClipDataSet.h>
+#include <${vtk_header_relative_path}vtkContourGrid.h>
+#include <${vtk_header_relative_path}vtkDataArray.h>
+#include <${vtk_header_relative_path}vtkDataObject.h>
+#include <${vtk_header_relative_path}vtkDataSet.h>
+#include <${vtk_header_relative_path}vtkDataSetReader.h>
+#include <${vtk_header_relative_path}vtkDoubleArray.h>
+#include <${vtk_header_relative_path}vtkFloatArray.h>
+#include <${vtk_header_relative_path}vtkGenericCell.h>
+#include <${vtk_header_relative_path}vtkHexahedron.h>
+#include <${vtk_header_relative_path}vtkIdList.h>
+#include <${vtk_header_relative_path}vtkImageData.h>
+#include <${vtk_header_relative_path}vtkIntArray.h>
+#include <${vtk_header_relative_path}vtkPointData.h>
+#include <${vtk_header_relative_path}vtkPointLocator.h>
+#include <${vtk_header_relative_path}vtkPolyData.h>
+#include <${vtk_header_relative_path}vtkShortArray.h>
+#include <${vtk_header_relative_path}vtkStructuredGrid.h>
+#include <${vtk_header_relative_path}vtkTetra.h>
+#include <${vtk_header_relative_path}vtkUnsignedCharArray.h>
+#include <${vtk_header_relative_path}vtkUnsignedIntArray.h>
+#include <${vtk_header_relative_path}vtkUnstructuredGrid.h>
+#include <${vtk_header_relative_path}vtkUnstructuredGridReader.h>
+#include <${vtk_header_relative_path}vtkXMLImageDataWriter.h>
+#include <${vtk_header_relative_path}vtkXMLPolyDataWriter.h>
+#include <${vtk_header_relative_path}vtkXMLPUnstructuredGridReader.h>
+#include <${vtk_header_relative_path}vtkXMLPUnstructuredGridWriter.h>
+#include <${vtk_header_relative_path}vtkXMLStructuredGridWriter.h>
+#include <${vtk_header_relative_path}vtkXMLUnstructuredGridReader.h>
+#include <${vtk_header_relative_path}vtkXMLUnstructuredGridWriter.h>
+#include <${vtk_header_relative_path}vtkZLibDataCompressor.h>
+
+#ifndef vtkFloatingPointType
+#define vtkFloatingPointType vtkFloatingPointType
+typedef float vtkFloatingPointType;
+#endif
+
+#endif
+#endif
+EOF
+cp include/vtk.h libvtkfortran/
+
+AC_SUBST(ADJOINT)
+AC_SUBST(ARFLAGS)
+
+AC_SUBST(MODINC_FLAG)
+
+# It appears this is not good practice but...go sue me
+#cat confdefs.h | grep -v std > include/confdefs.h    <-- see below...
+cat confdefs.h | grep DOUBLEP > libvtkfortran/confdefs.h
+cat confdefs.h | grep F77_FUNC >> libvtkfortran/confdefs.h
+cat confdefs.h | grep VTK >> libvtkfortran/confdefs.h
+cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" > include/confdefs.h
+
+if test "$enable_experimental_spatialindex" = "yes"
+then
+  echo "#define EXPERIMENTAL_SPATIALINDEX 1" >> include/confdefs.h
+fi
+
+AC_ARG_ENABLE(2d-adaptivity,
+[AC_HELP_STRING([--enable-2d-adaptivity],
+[Link against 2D adaptivity library (GPL license)])])
+
+if test "$enable_2d_adaptivity" = "yes"; then
+  echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
+  LIBS="$LIBS -lmba2d"
+  MBA2D="yes"
+  AC_SUBST(MBA2D)
+fi
+
+AC_ARG_ENABLE(mba3d,
+[AC_HELP_STRING([--enable-mba3d],
+[Enabled libmba3d 3D adaptivity library])])
+
+if test "$enable_mba3d" = "yes"; then
+  echo "#define HAVE_MBA_3D 1" >> include/confdefs.h
+  LIBS="$LIBS -lmba3d"
+  MBA3D="yes"
+  AC_SUBST(MBA3D)
+fi
+
+AC_ARG_ENABLE(algencan,
+[AC_HELP_STRING([--enable-algencan],
+[Enabled algencan optimisation library])])
+
+if test "$enable_algencan" = "yes"; then
+  echo "#define HAVE_ALGENCAN 1" >> include/confdefs.h
+  LIBS="$LIBS -lalgencan"
+  ALGENCAN="yes"
+  AC_SUBST(ALGENCAN)
+fi
+
+AC_ARG_ENABLE(memory_stats,
+[AC_HELP_STRING([--enable-memory-stats],
+[Enable memory statistics])])
+
+if test "$enable_debugging" = "yes" ; then
+  if test "$enable_memory_stats" != "no"; then
+    echo "#define HAVE_MEMORY_STATS 1" >> include/confdefs.h
+    MEMORY_STATS="yes"
+    AC_SUBST(MEMORY_STATS)
+  fi
+else
+  if test "$enable_memory_stats" = "yes"; then
+    echo "#define HAVE_MEMORY_STATS 1" >> include/confdefs.h
+    MEMORY_STATS="yes"
+    AC_SUBST(MEMORY_STATS)
+  fi
+fi
+
+AC_OUTPUT(Makefile
+          debug/Makefile
+          ocean_forcing/Makefile ocean_forcing/tests/Makefile
+          parallel/Makefile parallel/tests/Makefile
+          interpolation/Makefile 
+          femtools/Makefile femtools/tests/Makefile
+          legacy_femtools/Makefile
+          forward_interfaces/Makefile
+          horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile
+          preprocessor/Makefile
+          error_measures/Makefile error_measures/tests/Makefile
+          parameterisation/Makefile parameterisation/tests/Makefile
+          decomp/Makefile decomp/tests/Makefile
+          assemble/Makefile assemble/tests/Makefile
+          diagnostics/Makefile
+          adjoint/Makefile
+          main/Makefile
+          scripts/Makefile tools/Makefile
+          python/setup.py
+          climatology/Makefile
+          libmba2d/Makefile
+      	  libmba3d/Makefile
+          libjudy/Makefile
+          libjudy/src/Makefile
+          libjudy/src/JudyCommon/Makefile
+          libjudy/src/Judy1/Makefile
+          libjudy/src/JudyL/Makefile
+          libjudy/src/JudySL/Makefile
+          libjudy/src/JudyHS/Makefile
+      	  libalgencan/Makefile
+          libwm/Makefile
+          tinyxml/Makefile
+          gallopede/Makefile libvtkfortran/Makefile 
+          qg_strat/Makefile qg_strat/unittests/Makefile
+          tests/lauwerier/Makefile)

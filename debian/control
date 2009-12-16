@@ -1,0 +1,18 @@
+Source: fluidity
+Section: unknown
+Priority: extra
+Maintainer: David Ham <david.ham@imperial.ac.uk>
+Build-Depends: debhelper (>= 5), autotools-dev
+Standards-Version: 3.7.2
+
+Package: fluidity
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, fluidity-dev
+Description: 3D adaptive CFD from Imperial College London
+ Fluidity is a general purpose multi-phase CFD code capable of solving
+ numerically the Navier-Stokes and accompanying field equations on
+ arbitrary unstructured finite element meshes. It uses a moving finite
+ element/spectral element method which allows arbitrary movement of
+ the mesh with time dependent problems. It has a wide range of Finite
+ element/spectral elements and full spectral methods which include
+ many elements for mixed formulations.

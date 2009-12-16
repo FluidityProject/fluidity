@@ -1,0 +1,21 @@
+Adds the ability to open Triangle files in MayaVi2.
+
+Adds the following new filters for use in MayaVi2:
+
+  * BoundaryMarkerEditor
+    Edit the boundary marker of a Triangle surface mesh. To use: select the label to
+    assign, hover your cursor over the cell you wish to edit, and press 'p'.
+
+  * FieldOperations
+    Performs standard field operations. Use this filter in conjunction with SetActiveAttribute
+    filter to view new/modified fields.
+
+  * ProjectionAndDepthStretch
+    Depth stretching and simple projection of earth's surface onto a plane.
+
+  * MeshDiagnostics
+    Identifies stiff elements of a solid mesh. Also includes diagnostics from vtkMeshQuality:
+    <http://www.vtk.org/doc/release/5.0/html/a01739.html>
+
+  * TensorEigenvectorsEigenvalues
+    Computes the eigenvectors and eigenvalues of tensor fields.

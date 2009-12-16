@@ -1,0 +1,25 @@
+R = difficulty rating {easy, intermediate, difficult, master}
+ 
+- Change all scripts and codes so that they know if absolute or
+  relative paths are being used. This will then make flcur
+  redundant. (R=easy)
+
+- Replace eigenvalue decomposition routines in jacdia() with those
+  from LAPACK. (R=intermediate)
+
+- Set NIMEM and NRMEM according to NONODS/MXNODS in project file
+  (R=intermediate).
+
+- Update RPM support (R=intermediate)
+
+- Replace existing IO with CGNS - requires a rewrite of
+  at least COMSCA(),REDFIL() and DATFLU() (in gem). This will also fix
+  check-pointing when adaptivity is used. (R=master)
+
+- Make all arrays dynamically allocateable. (R=master)
+
+- Write a "CREDITS" file for the project.
+
+- Add an appropiate copyright(left) notice.
+
+Done:

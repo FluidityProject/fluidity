@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Visco-elastic solid block test</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="medium" nprocs="1">
+    <command_line>dfluidity --xml lagrangian_bingham_slope.flml  </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="maxxvel" language="python">
+import vtktools
+vtufile=vtktools.vtu('lagrangian_bingham_slope_1.vtu')
+velocity = vtufile.GetVectorField('Velocity') 
+maxxvel=max(velocity[:,0])
+   </variable>    
+    <variable name="minxvel" language="python">
+import vtktools
+vtufile=vtktools.vtu('lagrangian_bingham_slope_1.vtu')
+velocity = vtufile.GetVectorField('Velocity') 
+minxvel=min(velocity[:,0])
+   </variable>    
+    <variable name="maxxpos" language="python">
+import vtktools
+vtufile=vtktools.vtu('lagrangian_bingham_slope_1.vtu')
+pos = vtufile.GetLocations()
+maxxpos=max(pos[:,0])
+   </variable>    
+    <variable name="maxypos" language="python">
+import vtktools
+vtufile=vtktools.vtu('lagrangian_bingham_slope_1.vtu')
+pos = vtufile.GetLocations()
+maxypos=max(pos[:,1])
+   </variable>    
+  </variables>
+    <pass_tests>  
+    <test name="check maximum x velocity is negative" language="python">
+   assert maxxvel &lt; 1e-10
+    </test>    
+    <test name="check minimum x velocity is negative" language="python">
+   assert minxvel &lt; 1e-10
+    </test>    
+    <test name="check maximum x coordinate is bigger than 3.2 (its original position)" language="python">
+   assert maxxpos &gt; 3.2
+    </test>    
+    <test name="check maximum y coordinate is less than 1.0 (its original position)" language="python">
+   assert maxypos &lt; 1.0
+    </test>    
+    <test name="check maximum x coordinate is 3.2" language="python">
+   assert abs(maxxpos-3.2) &lt; 1.E-1
+    </test>
+    <test name="check maximum y coordinate is 0.8" language="python">
+   assert abs(maxypos-0.8) &lt; 1.E-1
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

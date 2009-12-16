@@ -1,0 +1,76 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Square tiny memory test (with mesh adaptivity)</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "special" nprocs = "1">
+    <command_line>make clean-run-debug &amp;&amp; rm -f memory.log &amp;&amp; ../../scripts/memwrap -t 1 dfluidity -v2 -l square-tiny-adaptive.flml > memory.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "timesteps" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("square-tiny-adaptive.stat")
+times = s["ElapsedTime"]["value"]
+timesteps = len(times)
+    </variable>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name = "memory_usage" language = "python">
+class MemoryUsage():
+  def __init__(self):
+    self.usage = []
+    
+    return
+    
+  def __str__(self):
+    string = "Memory usage, " + str(len(self.usage)) + " entries"
+    if len(self.usage) &gt; 0:
+      string += "\nFinal entry: " + str(self.usage[-1])
+    
+    return string
+    
+fileHandle = open("memory.log", "r")
+memory_usage = MemoryUsage()
+line = fileHandle.readline().strip()
+while len(line) &gt; 0:
+  time, rssize, vsize = line.split()
+  time = float(time)
+  rssize = int(rssize)
+  vsize = int(vsize)
+  memory_usage.usage.append([time, rssize, vsize])
+  line = fileHandle.readline().strip()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Simulation completed" language = "python">
+assert(timesteps == 1000)
+    </test>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "Leak detection" language = "python">
+usage = memory_usage.usage
+finalTime, finalRssize, finalVsize = usage[-1]
+for i in range(len(usage) / 2):
+  time, rssize, vsize = usage[len(usage) - i - 2]
+  assert(rssize &gt;= finalRssize)
+  assert(vsize &gt;= finalVsize)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name = "Limited resident set size" language = "python">
+usage = memory_usage.usage
+print "Final resident set size: " + str(usage[-1][1])
+assert(usage[-1][1] &lt; 35000)
+    </test>
+    <test name = "Limited virtual memory size" language = "python">
+usage = memory_usage.usage
+print "Final virtual memory size: " + str(usage[-1][2])
+assert(usage[-1][2] &lt; 150000)
+    </test>
+  </warn_tests>
+</testproblem>

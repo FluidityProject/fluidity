@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>diffusion-dg</name>
+  <owner userid="colin"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity diffusion_dg_A.flml -v3 -l; dfluidity diffusion_dg_B.flml -v3 -l; dfluidity diffusion_dg_C.flml -v3 -l; dfluidity diffusion_dg_D.flml -v3 -l; dfluidity diffusion_dg_E.flml -v3 -l;</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence_AB" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+errorT_BR_A = stat("diffusion_dg_A.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_A = stat("diffusion_dg_A.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_A = stat("diffusion_dg_A.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+errorT_BR_B = stat("diffusion_dg_B.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_B = stat("diffusion_dg_B.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_B = stat("diffusion_dg_B.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+
+print errorT_BR_A
+print errorT_IP_A
+print errorT_CDG_A
+print errorT_BR_B
+print errorT_IP_B
+print errorT_CDG_B
+
+ab_ratio_br = errorT_BR_A / errorT_BR_B
+ab_ratio_ip = errorT_IP_A / errorT_IP_B
+ab_ratio_cdg = errorT_CDG_A / errorT_CDG_B
+
+convergence_AB = [ log(ab_ratio_br,2), log(ab_ratio_ip,2), log(ab_ratio_cdg,2) ]
+    </variable>
+    <variable name="convergence_BC" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+errorT_BR_B = stat("diffusion_dg_B.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_B = stat("diffusion_dg_B.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_B = stat("diffusion_dg_B.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+errorT_BR_C = stat("diffusion_dg_C.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_C = stat("diffusion_dg_C.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_C = stat("diffusion_dg_C.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+
+print errorT_BR_B
+print errorT_IP_B
+print errorT_CDG_B
+print errorT_BR_C
+print errorT_IP_C
+print errorT_CDG_C
+
+bc_ratio_br = errorT_BR_B / errorT_BR_C
+bc_ratio_ip = errorT_IP_B / errorT_IP_C
+bc_ratio_cdg = errorT_CDG_B / errorT_CDG_C
+
+convergence_BC = [ log(bc_ratio_br,2), log(bc_ratio_ip,2), log(bc_ratio_cdg,2) ]
+    </variable>
+    <variable name="convergence_CD" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+errorT_BR_C = stat("diffusion_dg_C.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_C = stat("diffusion_dg_C.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_C = stat("diffusion_dg_C.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+errorT_BR_D = stat("diffusion_dg_D.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_D = stat("diffusion_dg_D.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_D = stat("diffusion_dg_D.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+
+print errorT_BR_C
+print errorT_IP_C
+print errorT_CDG_C
+print errorT_BR_D
+print errorT_IP_D
+print errorT_CDG_D
+
+cd_ratio_br = errorT_BR_C / errorT_BR_D
+cd_ratio_ip = errorT_IP_C / errorT_IP_D
+cd_ratio_cdg = errorT_CDG_C / errorT_CDG_D
+
+convergence_CD = [ log(cd_ratio_br,2), log(cd_ratio_ip,2), log(cd_ratio_cdg,2) ]
+    </variable>
+    <variable name="convergence_DE" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+errorT_BR_D = stat("diffusion_dg_D.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_D = stat("diffusion_dg_D.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_D = stat("diffusion_dg_D.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+errorT_BR_E = stat("diffusion_dg_E.stat")["MyState"]["BR_error"]["l2norm"][-1]
+errorT_IP_E = stat("diffusion_dg_E.stat")["MyState"]["IP_error"]["l2norm"][-1]
+errorT_CDG_E = stat("diffusion_dg_E.stat")["MyState"]["CDG_error"]["l2norm"][-1]
+
+print errorT_BR_D
+print errorT_IP_D
+print errorT_CDG_D
+print errorT_BR_E
+print errorT_IP_E
+print errorT_CDG_E
+
+de_ratio_br = errorT_BR_D / errorT_BR_E
+de_ratio_ip = errorT_IP_D / errorT_IP_E
+de_ratio_cdg = errorT_CDG_D / errorT_CDG_E
+
+convergence_DE = [ log(de_ratio_br,2), log(de_ratio_ip,2), log(de_ratio_cdg,2) ]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="BR ratio AB" language="python">
+from math import log
+assert( convergence_AB[0] &gt; 1.5)
+    </test>
+    <test name="BR ratio BC" language="python">
+assert( convergence_BC[0] &gt; 1.8)
+    </test>
+    <test name="BR ratio CD" language="python">
+assert( convergence_CD[0] &gt; 1.85)
+    </test>
+    <test name="BR ratio DE" language="python">
+assert( convergence_DE[0] &gt; 1.9)
+    </test>
+    <test name="IP ratio AB" language="python">
+assert( convergence_AB[1] &gt; 1.8)
+    </test>
+    <test name="IP ratio BC" language="python">
+assert( convergence_BC[1] &gt; 1.9)
+    </test>
+    <test name="IP ratio CD" language="python">
+assert( convergence_CD[1] &gt; 1.9)
+    </test>
+    <test name="IP ratio DE" language="python">
+assert( convergence_DE[1] &gt; 1.9)
+    </test>
+    <test name="CDG ratio AB" language="python">
+assert( convergence_AB[2] &gt; 1.5)
+    </test>
+    <test name="CDG ratio BC" language="python">
+assert( convergence_BC[2] &gt; 1.8)
+    </test>
+    <test name="CDG ratio CD" language="python">
+assert( convergence_CD[2] &gt; 1.6)
+    </test>
+    <test name="CDG ratio DE" language="python">
+assert( convergence_DE[2] &gt; 2.0)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

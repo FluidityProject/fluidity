@@ -1,0 +1,1251 @@
+\chapter{Configuring \fluidity}\label{chap:configuration}
+
+\section{Overview}
+\fluidity\ is configured by creating a \fluidity\ options (or flml) file using
+Diamond.  The left-hand pane of Diamond allows users to browse the
+\emph{options tree}, while the right-hand pane provides brief documentation
+about the option and is where users enter input data and record their own
+comments.  For more information about Diamond see ???
+
+This chapter aims to provide a detailed description of all the options in
+the tree.  From section~\ref{Sect:OptionsTree} onwards, \fluidity\ options are
+described in the order in which they appear in Diamond.  Prior to this are
+some important general notes about the different types of options and, in
+particular, how to work with fields in \fluidity.
+
+\section{Options syntax}
+\index{options!syntax}
+\fluidity\ options files, or flml files, are XML files whose grammar is defined by the
+fluidity options schema \verb+fluidity_options.rng+. XML files have a
+tree-like structure of elements containing other elements. This structure is
+reflected in the left hand pane of Diamond, the graphical XML editor which
+is used to write flml files.
+
+In text, and in code using the Spud library on which the \fluidity\ options
+system is based, a location in the options tree can be written as a path,
+much like the path of a file on disk. So, for example, the option
+controlling the physical dimension of the problem domain is written as
+\option{/geometry/dimension}. This should be read as the \option{dimension}
+option which is found under \option{geometry} which is in turn at the top
+level of the options tree. In Diamond, and in the flml file, the absolute
+top level element is always \option{fluidity\_options} but this element is
+always discarded from paths. Figure \ref{fig:geometry_dimension}\ shows a
+Diamond screenshot open at the \option{/geometry/dimension} option.
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=.7\textwidth]{geometry_dimension}
+  \caption{A Diamond screenshot showing the \option{/geometry/dimension}
+    option. Note that the option path is displayed at the bottom of the
+    diamond window}
+  \label{fig:geometry_dimension}
+\end{figure}
+
+\subsection{Allowed Characters}
+Only certain characters are recognised by the options dictionary, which contains the flml input once it is read into fluidity. Therefore only the following letters are allowed in any input field:
+
+\begin{verbatim}
+ /_:[]1234567890qwertyuioplkjhgfdsazxcvbnmMNBVCXZASDFGHJKLPOIUYTREWQ
+\end{verbatim}
+
+Comment boxes may contain any characters. 
+
+\subsection{Named options}
+\index{options!names}
+Some options in the tree, such as fields and meshes, have name
+attributes. The name attribute is represented with a double colon so that,
+for example, the coordinate mesh has options path\onlypdf\linebreak
+\option{/geometry/mesh::CoordinateMesh}. Note that this differs from the
+convention in Diamond in which name attributes are given in brackets. Figure
+\ref{fig:mesh_name}
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=.7\textwidth]{mesh_name}
+  \caption{A Diamond screenshot showing the \option{/geometry/mesh::Coordinate}
+    option. Note that the name is shown in brackets in the main Diamond
+    window but after double colons in the path in the bottom bar.}
+  \label{fig:mesh_name}
+\end{figure}
+
+Names of objects (fields, material phases, meshes, etc.) should be camel cased (MyOwnField) and not contain spaces or underscores. Furthermore, the characters \verb+/:[]+ are prohibited as these have special meanings in the options dictionary inside \fluidity. 
+
+\section{Working with Fields}
+\index{field}
+\subsection{Types of field}
+
+A field associates a value with every node in the domain. Examples of fields
+in a fluids simulation include the velocity and pressure. Fields in \fluidity
+are distinguished by the rank of the data on the field and the way in which
+that field is calculated. 
+
+\begin{description}
+\item[Scalar fields] have a scalar value at each node. Common examples
+  include temperature, pressure and density.
+\item[Vector fields] have a vector value, in other words a list of numbers,
+  at each node. The rank of a vector field is 1 and the length of the
+  vector is given by the dimension of the problem.
+\item[Tensor fields] have a value given by a square matrix at each
+  node. The side length of the matrix is the problem dimension and the rank
+  is naturally 2. The diffusivity of a tracer is a typical example of a
+  tensor-valued field.
+\end{description}
+
+Fields can also be characterised by the manner in which their value is
+calculated. \fluidity\ recognises three such categories:
+
+\begin{description}
+\item[Prognostic fields] are the result of solving a partial differential
+  equation. In a typical fluids simulation, the velocity and pressure are
+  prognostic and are calculated by solving some variant of the Navier-Stokes
+  equations. Similarly, tracers such as temperature and salinity are usually
+  the result of solving and advection-diffusion equation. Prognostic fields
+  typically have specified initial and boundary conditions and it will be
+  necessary to specify spatial and temporal discretisation options. If an
+  implicit timestepping scheme is in use (and it almost always is in
+  \fluidity), it is also necessary to specify solver options. 
+\item[Diagnostic fields] are calculated from other fields without solving a
+  partial differential equation. A typical example is the CFL number which
+  may be calculated from the timestep, the mesh spacing and the velocity
+  field. 
+\item[Prescribed fields] receive their values from sources external to
+  \fluidity. This might be a constant or varying function specified by the
+  user, or it might be interpolated from some external data set. Fields such
+  as diffusivity and viscosity are often prescribed as are source and
+  absorption terms.
+\end{description}
+
+\subsection{Meshes}\label{Sect:Element}
+
+Every field is associated with a mesh. The mesh defines the discrete
+function space in which the field's values lie. For example, the mesh
+defines what degree of polynomials are employed on each element, whether the
+field is continuous or discontinuous between elements, and whether the
+domain is periodic in any direction. 
+
+Meshes are defined in the flml file by \option{/geometry/mesh} options. The
+mesh associated with each field is referred to by name in the
+\option{\ldots/mesh} option under that field.
+
+\subsubsection{Reading meshes from file}
+\index{mesh!input}
+There must always be one mesh which is read in from a set of files in
+triangle format. This is usually the \option{CoordinateMesh}. To specify the
+triangle files from which the coordinate mesh should be read, set the
+\option{file\_name} attribute of
+\option{/geometry/dimension/mesh::CoordinateMesh/from\_file} to the basename
+of the triangle files (that is, the filename without .node, .ele etc.)
+
+The coordinate mesh read in from file will always have linear elements and
+the Coordinate field is always continuous between elements.
+
+For information on generating meshes in triangle format, see chapter
+\ref{chap:meshes}. 
+
+\subsubsection{Deriving meshes from other meshes}
+\index{mesh!derived}
+The alternative to reading a mesh from a file is to derive it from another
+mesh. In the simplest case, this can be used to specify that one mesh is the
+same as another mesh. For example, since \option{CoordinateMesh} is linear
+and continuous, it is possible to specify that \option{VelocityMesh} will
+also be continuous and linear by selecting \option{from\_mesh} under
+\option{/geometry/mesh::VelocityMesh} and selecting
+\option{mesh::CoordinateMesh}\ under that.
+
+The more interesting case occurs where we wish to derive a mesh with
+different continuity or elements from the original mesh. To specify a
+discontinuous mesh, under \option{\ldots/from\_mesh} enable
+\option{mesh\_continuity} and select \option{discontinuous}.
+
+Similarly, to specify a mesh with higher polynomial degree elements, enable
+\option{mesh\_shape} under \option{\ldots/from\_mesh} and set
+\option{polynomial\_degree}.
+
+\subsubsection{Periodic meshes}
+\index{mesh!periodic}
+\index{periodic domain}
+Periodic meshes are those that are ``virtually'' connected in one or more directions. To make a periodic mesh you must first
+create a triangle file where the edges that are periodic can be mapped exactly by a simple transformation. For example,
+if the mesh is periodic in the X-direction, the two edges must have nodes at exactly the same height on each side. This
+can be easily accomplished using the create\_aligned\_mesh script in the scripts folder.
+
+In Diamond, a periodic mesh can now be formed. Add a new mesh under \option{/geometry/mesh}. 
+Select \option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn on\onlypdf\linebreak
+\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension that is periodic. There are three fields that need to be completed: the surface IDs of one side, the surface IDs of the opposite side and a python function (\option{coordinate\_map}) which contains the necessary mapping function
+
+Meshes that are required to be periodic can now be derived from this periodic mesh.
+
+\subsubsection{Extruded meshes}
+\index{mesh!extruded}
+
+\subsubsection{Required meshes}
+\index{mesh!required}
+
+\subsection{Setting field values}\label{Sect:setting_field_values}
+\index{field!values}
+\index{initial conditions!setting}
+Field values must be specified by the user in two circumstances: the initial
+value of most prognostic fields and the value throughout the simulation of
+all prescribed fields. 
+
+The initial value of prognostic fields is set with the
+\option{\ldots/prognostic/initial\_condition} option while the value of
+prescribed fields is set with the \option{\ldots/prescribed/value} option.
+
+\subsubsection{Constant fields}
+\index{field!constant}
+Fields which are constant in space and (for prescribed fields) time may be
+specified by simply providing a constant value in the \option{constant}
+option under \option{\ldots/prognostic/initial\_condition},
+\option{\ldots/prescribed/value}. For a scalar field, this is a single
+floating point (real) value while for a vector field this is a list of reals
+of length equal to the field dimension.
+
+For tensor valued fields there are more options. It is possible to specify
+an isotropic, or rotation invariant, value by choosing
+\option{\ldots/value/isotropic/constant} and specifying a single real which
+will be used for all the diagonal entries of the tensor field at all mesh
+nodes. The off-diagonal entries of an isotropic tensor field are always
+zero. A constant anisotropic field may be specified by choosing
+\option{\ldots/value/anisotropic\_asymmetric/constant} and providing the
+entire matrix. Finally, a constant symmetric anisotropic tensor field may be
+specified by selecting \onlypdf\linebreak
+\option{\ldots/value/anisotropic\_symmetric/constant}. In this case, the
+user must specify all of the entries in the upper half of the matrix and
+those in the lower half will be filled automatically by symmetry.
+
+\subsubsection{Setting fields with a Python function}\label{Sect:setting_with_python}
+\index{field!Python function}
+\index{Python!field values}
+The value of a field which varies in space and (for prescribed fields) in
+time may be specified by providing an appropriate function written in
+Python. The Python function will be evaluated for each node in the mesh at
+the start of the simulation to populate the field values. For time-varying
+prescribed fields, the function will be evaluated again at the beginning of
+every timestep to update the field value. If it is known that the value of
+the field does not in fact vary in time, then the re-evaluation of the
+Python function on each timestep can be inhibited by setting the
+\onlypdf\linebreak \option{\ldots/prescribed/do\_not\_recalculate} option.
+
+The Python function must be provided as the value of the
+\option{\ldots/python} option which may be chosen as an alternative to the
+\option{\ldots/constant} function. The option may contain any Python code
+but it must define a function \lstinline[language=Python]+val(X,t)+ where
+the sequence \lstinline[language=Python]+X+ is the coordinates of the point
+at which the field is being evaluated and \lstinline[language=Python]+t+ is
+the current time. 
+
+For a scalar field, the function must return a single floating point
+value. Similarly for a vector field, a sequence of values of length equal to
+the field dimension must be returned. For a tensor field, there are two
+cases. For an isotropic field specified with
+\option{\ldots/value/isotropic/python}, the function must return a single
+float which will be used for all the diagonal entries of the tensor at that
+point. The off-diagonal entries will be set to zero. For the anisotropic case,
+the function must return a two-dimensional array (a sequence of
+sequences). It is the user's responsibility to ensure that the tensor is
+symmetric in cases where it should be.
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(X,t):
+    return (-X[1],X[0])
+  \end{lstlisting}
+  \caption{A Python function returning a two-dimensional solid rotating
+    vector field about the origin.}
+\end{example}
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(X,t):
+    from numpy import matrix
+    from math import sqrt
+    dx= (matrix(X)-matrix((-0.5,0)))
+    r=sqrt(dx*dx.T)
+    if (r<0.25):
+        return 1.0
+    else:
+        return 0    
+  \end{lstlisting}
+  \caption{A Python function returning a scalar tracer value which is 1.0 in
+  a disk of radius 0.25 about the point (-0.5,0) and zero elsewhere. This
+  example illustrates that it is possible to use a range of Python commands
+  including importing modules.}
+\end{example}
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(X,t):
+   t_ramp=50.
+   if t<t_ramp:
+       scale=t/t_ramp
+   else:
+       scale=1.
+   return [[scale*100, 0, 0],
+           [0, scale*100, 0],
+           [0, 0, scale*1.e-3]]
+  \end{lstlisting}
+  \caption{A Python function returning a tensor which might be a typical
+    three-dimensional diffusivity. The diffusivity ramps up from zero over
+    the first 50 time units.}
+\end{example}
+
+\subsubsection{Reading fields from a file}
+\index{field!input}
+A field can be populated using saved data from a file. This is intended primarily
+for picking up prescribed fields from previously run prognostic simulations
+(checkpointing) and may be specified by providing the file name in
+the \option{from\_file} option under \option{\ldots/prognostic/initial\_condition},
+\option{\ldots/prescribed/value}.
+
+For prescribed fields the format of the input file containing field data must be
+vtu, and this will only work for those prescribed fields directly underneath
+\option{\ldots/material\_phase}. For prognostic fields it is possible to select
+the type of input file, under \option{\ldots/initial\_condition/from\_file/format};
+the available supported formats for this include \option{vtu} and \option{NetCDF-CF 1.x}.
+
+The file mesh must match the mesh of this field (except for piecewise constant
+fields which will be remapped back from the discontinuous nodal values). In
+parallel the process number is appended to the filename, e.g. if the file name
+attribute is set to \option{input.vtu}, process 0 reads from \option{input-0.vtu}.
+
+\subsubsection{Setting fields from NEMO data}\label{Sect:setting_from_nemo}
+\index{field!from Nemo}
+Initial conditions of prognostic fields and the values of prescribed fields can also be set from an external NEMO
+data file. The external data file is in the NETCDF format and data is currently available for pressure, temperature, salinity
+and velocity. To set the initial condition of a prognostic field from NEMO data, chose the option 
+\option{\ldots/prognostic/initial\_condition/NEMO\_data} and then under \option{format} select the required data format. For scalar fields
+the formats available are `Temperature', `Salinity' and `Free-surface height', for vector fields `Velocity' is the only available format.
+Setting the value of prescribed fields from NEMO data works similarly. Set the option \option{\ldots/prescribed/value/NEMO\_data} and then proceed as above.
+
+\subsection{Region IDs}
+\index{region ID}
+If the input mesh defines a number of region IDs then these may be employed
+to specify different field values for each region. For a prescribed field,
+this is achieved by changing the \option{\ldots/value::WholeMesh} element to
+the unnamed \option{\ldots/value}. The user must then specify a new name for
+that value element. Next, enable the  \option{\ldots/value/region\_ids}
+option and set it to a list of region ids to which this value should
+apply. Any number of  \option{\ldots/value} elements may be added to allow
+different values to be specified in different regions. For prognostic
+fields, analogous behaviour for initial conditions may be achieved by
+switching \option{\ldots/initial\_condition} from \option{WholeMesh} to a
+user-specified name and specifying the region IDs appropriately.
+
+See section \ref{sect:region_ids}\ for information on including region IDs
+in meshes.
+
+\subsection{Mathematical constraints on initial conditions}\label{Sect:ICs}
+
+For well-posedness, the initial condition of the velocity field must
+satisfy both continuity (\ref{conty}) and the boundary conditions
+imposed on the problem. If the normal component of velocity is
+imposed on the entire boundary then the additional
+compatibility constraint of global mass conservation must be
+satisfied:
+\begin{equation*}
+\int_{\partial\Omega}\bmn\cdot\bmu=0.
+\end{equation*}
+
+\section{The options tree}\label{Sect:OptionsTree}
+The top level of the options tree contains the following compulsory elements:
+
+\begin{itemize}
+\item Simulation Name
+\item Problem Type
+\item Geometry
+\item IO
+\item Timestepping
+\item Physical Parameters
+\item Material/Phase
+\end{itemize}
+
+The first six of these are described here.
+
+\subsection{Simulation Name}
+The simulation name is the base name for all output files. For example if you set the simulation name to foo then your statistics output file will be called foo.stat
+
+\subsection{Problem Type}
+Setting problem type gives fluidity a hint as to what sort of simulation you are conducting and therefore what combinations of options are likely to be valid. If you do not know which category applies to your problem, choose "fluids". 
+\subsection{Geometry}
+This element contains all the options required to specify the geometry of the mesh and the accuracy of the finite element discretisation.
+
+\subsubsection{Dimension}
+\index{dimension}
+The dimension of the domain of your problem. For most users this should be
+set to 3. Be careful, once you set the dimension you can't change it again!
+This is necessary to ensure that all vectors and tensors are of the correct
+dimension.
+
+\subsubsection{Meshes}
+Meshes are the finite element spaces on which your problem is solved. Meshes are either read from file or are derived from other meshes. Mesh options are described in detail in section~\ref{Sect:Element}.
+
+\subsubsection{Quadrature}
+\index{quadrature!options}
+\fluidity\ uses numerical quadrature to integrate the equations over each
+element. There is a performance/accuracy trade off in quadrature: the more
+quadrature points that are employed, the more accurate the integrals are but
+the more expensive the assembly operation is. Quadrature rules in \fluidity
+are categorised by the degree of polynomial which they will integrate
+exactly. The higher the degree of the quadrature rule, the more quadrature
+points which will be employed. As a general rule of thumb, the quadrature
+degree employed should be at least $\max(2n_{\vec{u}+1},2n_p)$ where
+$n_{\vec{u}}$ is the degree of the elements employed for velocity and $n_p$
+is the degree of the elements employed for pressure. This means that degree
+4 quadrature is sufficient for most of the fluidity configurations currently
+in use.
+
+The quadrature degree is specified by setting \option{/geometry/quadrature/degree}.
+
+\subsubsection{Spherical Earth}
+To be written...
+
+\subsubsection{Ocean Boundaries}
+\index{boundary conditions!ocean}
+These options are required if you are running an ocean simulation with a
+free surface or with various other ocean options which require the code to
+know where the ocean surface and bed lie.
+\option{/geometry/ocean\_boundaries/top\_surface\_ids} and
+\onlypdf\linebreak\option{/geometry/ocean\_boundaries/bottom\_surface\_ids}
+are lists of boundary tags from your input mesh which lie on the ocean
+surface and bed respectively.
+
+It is not usually necessary to change the settings for either of the scalar fields under this option. 
+
+\subsection{IO}
+These options control the frequency and form of model outputs.
+\subsubsection{Dump format}
+\index{vtk}
+Whether to dump vtk files or the old fluidity dumpfiles. Unless you know there is a particular reason to choose the old mechanism, set this to vtk. Support for dumpfiles will be dropped at some point in the future. 
+
+\subsubsection{Dump period}
+This is the interval between the state fields being output to disk. You should usually start by setting this to a rather low value (possibly as short as your timestep) for testing and then increase it for production runs once you know your configuration works.
+
+It is possible to swap \option{/io/dump\_period} for \option{/io/dump\_period\_in\_timesteps} to specify that you wish to have a dump every fixed number of timesteps.
+
+\subsubsection{Output mesh}
+\index{mesh!output}
+
+All fields will be interpolated onto the same mesh for output. Usually the
+VelocityMesh is the right choice but it can be necessary to change this if,
+for example, the domain is periodic.
+
+\subsubsection{Disable dump at start}
+
+A dump is normally performed at the start of the simulation. This options disables that.
+
+\subsubsection{Disable dump at end}
+
+A dump is normally performed at the end of the simulation. This options disables that.
+
+\subsubsection{CPU dump period}
+
+This outputs dumps at specified CPU times. Not recommended.
+
+\subsubsection{Wall time dump period}
+
+Outputs at specified walltime periods. Not recommended.
+
+\subsubsection{Max dump file count}
+
+Limits the number of dumps by overwriting the previous dumps after the number specified here.
+
+\subsubsection{Convergence}
+
+
+
+\subsubsection{Checkpointing}
+\index{checkpointing} Enables checkpointing, which saves sufficient
+information (including a new flml options file) to restart a simulation. You
+must specify how often to checkpoint in terms of the number of dumps. There
+are also options to checkpoint at the start of the simulation and at the
+end. This latter is useful when running on batch systems that have a time
+limit.
+
+Up to five sets of files are created when checkpointing from new options:
+\begin{enumerate}
+\item Mesh files - The from\_file meshes, in triangle format. Surface IDs
+  and (if present) region IDs are written to the mesh files, and adaptivity
+  is supported. In parallel a triangle mesh is written for each process.
+\item Halo files (in parallel) - Halo information for each process.
+\item Field files - A vtu is written for each mesh with prognostic fields in
+  each state and (in parallel) for each process.
+\item Checkpointed option file - A new FLML file, with the from\_file mesh
+  set to read from the checkpoint mesh files and the prognostic fields set
+  to initialise from the checkpoint field files.
+\item Checkpointed detector files - Two files related to checkpointing of
+  detectors are created.
+\end{enumerate}
+
+The first checkpointed detector file has the extension .groups and contains
+a header with the names of the groups of detectors in the order they were
+read in the simulation. It also contains information about the number of
+detectors in each group. This is to guarantee that when restarting from a
+checkpoint, the detectors will be read in the same order and consequently
+will be saved in that same order into the output detector file for
+consistency.  The second checkpointed detector file has the extension
+.positions.dat and contains the last position of the detectors at the time 
+of checkpointing in binary format.
+
+No checkpointed detectors files will be created if only static detectors are
+defined in Diamond, since the position of these detectors remains always the
+same. This is mainly used when Lagrangian detectors are set that are
+advected by the flow and hence, their position changes as the simulation
+proceeds.
+
+At the same time as creating the two files related to checkpointing of
+detectors, the detector options in the options tree or Diamond are updated
+so that in the new flml file the detectors are set to initialise from the
+checkpoint detectors files \\
+(\option{/io/detectors/detector\_array/from\_checkpoint\_file} or \\
+\option{/io/detectors/lagrangian\_detector/from\_checkpoint\_file}). For
+simplicity, the static detectors are also read from the checkpoint file that
+contains the position of all detectors, static and Lagrangian
+(\option{/io/detectors/static\_detector/from\_checkpoint\_file}).
+
+Checkpoint filenames all end with [dump
+no.]\_checkpoint[-[process]].[extension], where the process number is added
+to the mesh, halo and field files in parallel.  The checkpoint detectors
+filenames contain \_det after [dump no.]\_checkpoint.
+
+\index{checkpointing!restarting}
+To restart from a checkpoint, specify the checkpointed FLML file as input.
+
+\subsubsection{Stat}
+\index{stat file}
+Contains additional options for handling stat files, for example outputting
+a stat file at the start (timestep zero) and outputting stat data before and
+after an adapt.
+
+\subsubsection{Detectors}
+\index{detectors!options}
+Note that the algorithm used to determine the element containing a detector (of
+any kind) assumes that the detector is known to be within the simulation domain.
+For points outside the simulation domain the field values will be extrapolated
+if within 0.1 (in ideal space) from any element, or set to zero otherwise.
+
+Detectors are set in Diamond with the \option{/io/detectors} option. The detectors can be set to be static detectors, \option{/io/detectors/static\_detector}, Lagrangian detectors \\
+\option{/io/detectors/lagrangian\_detector} or an array of detectors, \\
+\option{/io/detectors/detector\_array}.
+
+When choosing to set detectors using an array, the total number of detectors
+needs to be specified in
+\option{/io/detectors/detector\_array/number\_of\_detectors} and the type of
+detectors is indicated with the option
+\option{/io/detectors/detector\_array/static} or \\
+\option{/io/detectors/detector\_array/lagrangian}.
+
+\index{Python!detector positions}
+Examples \ref{examp:python_function_detectors} and
+\ref{examp:python_function_detectors_1} illustrate the use of a Python
+function to set an array of detectors, that can be static or Lagrangian.
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(t):
+            import math
+
+            ret=[]
+            for i in range(100):
+                    ret.append([-2.5,(-0.495 + i * 0.01)])
+
+            return ret
+  \end{lstlisting}
+  \caption{A Python function setting 100 detectors. This
+  example illustrates that it is possible to use a Python function to set an array of detectors.}
+  \label{examp:python_function_detectors}
+\end{example}
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(t):
+            import math
+
+            ret=[]
+            for k in range(100,2000,100):
+                for j in range(7000,25100,100):
+	               for i in range(7000,25100,100):
+		             ret.append([i,j,k])
+
+	return ret
+  \end{lstlisting}
+  \caption{A Python function setting 622459 detectors uniformly distributed
+    at intervals of 100 m in the three orthogonal directions. They cover 19 z planes, from z=100 to z=1900, with 32761 detectors in each plane, from
+    x=7000 to x=25000 and y=7000 to y=25000.}
+  \label{examp:python_function_detectors_1}
+\end{example}
+
+The output of the detectors is an ascii file called
+\option{name\_of\_simulation.detectors} where the name of the simulation has
+been indicated in \option{/simulation\_name}. If binary output
+\option{/io/detectors/} \option{binary\_output} option is set then the file is called
+\option{name\_of\_simulation.detectors.dat} and in this case \option{name\_of\_simulation.detectors} contains only the header with the
+information about the detectors (name of each detector, in which column the
+position of each detector is stored, etc.).
+
+\subsubsection{Log output}
+
+Enables additional output to the screen or log file. Usually controlled
+using the -v option when running \fluidity. However, a useful option for
+logging memory diagnostics can be switched on here.
+
+\subsection{Timestepping}
+\index{time!step}
+These options control the start and end time of the simulation as well as options regarding timestep size.
+
+\subsubsection{Current time}
+This is the model time at the start of the simulation. In most cases this is likely to be zero.
+
+\textbf{Time units}
+
+If your simulation contains real data, for example when using
+\option{ocean\_forcing}, \fluidity\ must know how to map simulated time onto
+real time. This option allows the user to specify the ``real-world'' start
+time of the simulation.  The input is a string of the form:
+\begin{lstlisting}[language=bash]
+seconds since 1992-10-8 15:15:42.5 -6:00 
+\end{lstlisting} 
+
+which indicates seconds since October 8th, 1992 at 3 hours, 15 minutes and
+42.5 seconds in the afternoon in the time zone which is six hours to the
+west of Coordinated Universal Time (i.e. Mountain Daylight Time). The time
+zone specification can also be written without a colon using one or
+two-digits (indicating hours) or three or four digits (indicating hours and
+minutes).
+
+
+\subsubsection{Timestep}
+The simulation timestep. If adaptive timestepping is not used this will
+define the size of the timestep used throughout the simulation.  If adaptive
+timestepping is used this option defines only the size of the first
+timestep.
+
+\subsubsection{Finish time}
+The model time at which the simulation should halt. Note that the simulation
+may overrun slightly due to roundoff in calculating the current time or if
+the timestep does not divide the simulation time exactly.
+
+\subsubsection{Final timestep}
+
+Rather than specify a finish time, the final timestep may be specified. This is the number of timestep after which the simulation will stop.
+
+\subsubsection{CPU time limit}
+
+This option will stop the simulation after the CPU time reaches this limit.
+This option is useful when coupled with
+\option{/io/checkpointing/checkpoint\_at\_end} enabled.
+
+\subsubsection{Wall time limit}
+
+This option will stop the simulation after the wall time (real time) reaches
+this limit. This option is useful when coupled with
+\option{/io/checkpointing/checkpoint\_at\_end} enabled.
+
+\subsubsection{Nonlinear iterations}
+Nonlinear quantities in the equations are represented by their last known
+values. It may be necessary to solve the equations more than once to produce
+better approximations to those last known values for reasons of accuracy or
+stability. Unless there are reasons to do otherwise, set this value to 2.
+
+\subsubsection{Adaptive timestep}
+\subsubsection{Steady state}
+
+\subsection{Physical parameters}
+These options control global physical quantities.
+
+\subsubsection{Gravity}
+\index{gravity}
+The importance of buoyancy is discussed in section \ref{sect:buoyancy}. This
+required a gravitational field to be set and involves both its magnitude
+(\eg \mss[9.8]) and a vector field specifying the direction in which gravity
+points. For a 3D simulation in a flat domain with gravity pointing in the
+negative z direction you would set \verb+value(WholeMesh)+ for this field to
+the vector (0.0, 0.0, -1.0). For a gravitational force with spatially
+varying direction, e.g. on the Earth considered in Cartesian space with
+gravity pointing in the negative radial direction you could use a Python
+function of the form
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(X, t):
+   from math import sqrt
+   radius=sqrt(X[0]**2+X[1]**2+X[2]**2)
+   rx=X[0]/radius
+   ry=X[1]/radius
+   rz=X[2]/radius
+   return (-rx, -ry, -rz)
+  \end{lstlisting}
+  \caption{A Python function returning a vector pointing in the negative radial direction.}
+\end{example}
+
+\subsubsection{Coriolis}
+\index{Coriolis!options}
+
+\fluidity\ supports the specification of the Coriolis term (section
+\ref{sect:coriolis}) in a number of different ways. The following options
+are available:
+
+\begin{enumerate}
+  \item \option{f\_plane} -- a single float is prescribed which corresponds to
+        $f_0$ in \eqref{eq:f-plane};
+  \item \option{beta\_plane} -- here two floats are prescribed, $f_0$ and
+        $\beta$ in \eqref{eq:beta-plane};
+  \item \option{sine\_of\_latitude} -- here the Coriolis parameter from
+        \eqref{eq:coriolis_parameters} is used and $\Omega$, 
+        $R_{\textrm{earth}}$ and $\textrm{latitude}_0$ are defined as floats with
+        latitude calculated via 
+        $\phi = y/R_{earth} + \textrm{latitude}_0$;
+  \item \option{on\_sphere} -- here $\Omega$ the rotation vector pointing in the
+        inertial frame $z$ direction  \eqref{eq:on_sphere_rotation} is set,
+        note this is the direction pointing from the centre of mass to the North
+        Pole on the Earth;
+ \item \option{python\_f\_plane} -- time dependent python input
+       prescribing a single float which corresponds to
+       $f_0$ in \eqref{eq:f-plane} - see example \ref{ex:python_f_plane}.
+\end{enumerate}
+
+Recall that there is a factor $2$ relationship between $f$ and $\Omega$
+\eqref{eq:f_omega} --- make sure you don't get caught out by this.
+
+\begin{example}
+\begin{lstlisting}[language = Python]
+if t < 4000.0:
+  omega = 3.0
+elif t < 6000.0:
+  omega = 2.5
+elif t < 8000.0:
+  omega = 2.0
+elif t < 10000.0:
+  omega = 1.5
+elif t < 12000.0:
+  omega = 1.0
+elif t < 14000.0:
+  omega = 0.5
+else:
+  omega = 0.0
+
+return 2.0 * omega
+\end{lstlisting}
+\caption{\option{python\_f\_plane} definition, sweeping through a number of
+         rotation rates. Note the factor of $2$ between $f$ and $\Omega$ (see
+         equation \eqref{eq:f_omega}).}
+\label{ex:python_f_plane}
+\end{example}
+
+\section{Material/Phase}
+The final compulsory element in the top level of the options tree is
+\option{/material\_phase}.  A \option{/material\_phase} element groups all
+of the fields which pertain to one phase of one material. See
+Chapter~\ref{chap:model_physics} for an explanation of the distinction
+between a phase and material in this context.
+
+When configuring ocean problems (or single material/single phase fluids
+problems), only one \option{/material\_phase} is required.  Multi-material
+and multi-phase problems will require one \option{/material\_phase} for each
+phase or material in the problem.
+
+Note that you must give each of your material phases a name.
+
+The following sections describe the options below the
+\option{/material\_phase} option.
+
+\section{Advected quantities: momentum and tracers}
+
+\subsection{Spatial discretisations}
+\index{advection-diffusion equation!discretisation options}
+\index{momentum equation!discretisation options}
+
+A number of underlying finite element schemes are available for tracer
+fields and velocity. In each case there are restrictions on the mesh
+continuity which must be employed. In addition, the \onlypdf\linebreak
+\option{conservative\_advection} option is applicable to all discretisation
+types. See chapter \ref{chap:numerical_discretisation} for details.
+
+For each field, the spatial discretisations can be selcted using
+\option{\ldots/prognostic/spatial\_discretisation}.  Once selected a number
+of other options will open underneath this option.
+
+\subsubsection{Continuous Galerkin}
+
+Continuous Galerkin (CG) implements the CG scheme detailed in \ref{sec:balancing_diffusion}. Once selected
+the stabilisation method used, and what is included in the advection terms and mass terms need to be selected.
+
+\subsubsection{Control volumes}
+
+The Control Volume implements the advection scheme described in section [CROSS REF]. There are 
+several options to control the face value and how diffusion is implemented. Face value can be set to one of:
+\begin{description}
+\item[First Order Upwind]
+\item[Trapizoidal] requires an optional face value limiter
+\item[Finite Element] requires an optional face value limiter
+\item[HyperC] requires CFL number
+\item[UltraC] requires CFL number along with a maximum and minimum target
+\end{description}
+
+For the diffusion scheme one can choose either Bassi Rebay or the element gradient method [CROSS REF].
+
+\subsubsection{Discontinuous Galerkin}
+
+The Discontinuous Galerkin option implements the advection-diffusion algorithm described in section [CROSS REF].
+There are two options to set - the advection scheme and the diffusion scheme. The advection scheme can be one of upwind
+or none. The diffusion scheme can be one of:
+\begin{description}
+\item[Bassi Rebay]
+\item[Compact DG]
+\item[Arbitrary upwind]
+\item[Interior penalty]
+\end{description}
+
+
+\subsubsection{Conservative advection}
+
+
+\subsection{Temporal discretisations}
+
+\subsection{Source and absorption terms}\label{Sect:Source}
+\index{source terms}
+\index{absorption terms}
+
+The source and absorption terms allow for external forcing of the tracer and
+momentum equations. The source is a rate of change of the tracer which is
+independent of the system state while the absorption term is linear in the
+tracer. That is to say, the source and absorption terms modify the tracer
+equation as follows:
+\begin{equation}
+  \frac{\partial T}{\partial t} = F(T,u,t) - AT + S
+\end{equation}
+where $F$ represents the advection and diffusion terms, $A$ is the
+absorption and $S$ is the source. The source and absorption are usually
+prescribed fields supplied by the user but in some cases it may be necessary
+to provide a diagnostic field which will be set by a parameterisation
+somewhere in the model. If this is the case then this will be specified in
+the documentation of that parameterisation.
+
+For tracer fields, the source and absorption are specified by the\onlypdf\\
+\option{\ldots/scalar\_field/prognostic/scalar\_field::Source} and\onlypdf\\
+\option{\ldots/scalar\_field/prognostic/scalar\_field::Absorption} options
+respectively. For velocity, the corresponding fields are naturally
+vector-valued and are set by options\onlypdf\linebreak
+\option{\ldots/vector\_field::Velocity/prognostic/vector\_field::Source} and\onlypdf\\
+\option{\ldots/vector\_field::Velocity/prognostic/vector\_field::Absorption}
+respectively.
+
+\subsection{Sponge regions}\label{Sect:Sponge}
+\index{sponge regions}
+It is often useful to be able to relax momentum or a field variable to a
+given state in regions of the domain, typically in regions close to
+boundaries. This may be done using a combination of source and absorption
+terms. If $S$ is the value of the source at a point and $A$ is the
+absorption, then the value of the tracer $T$ will tend to relax to a value
+of $S/A$. The absorption, $A$, has units $1/\mathrm{time}$ and controls the
+time over which the relaxation occurs.
+
+\section{Solving for pressure}
+\index{pressure!options}
+
+\subsection{Geostrophic pressure solvers}
+\index{pressure!geostrophic balance}
+
+\subsection{Removing the null space of the pressure gradient operator} \label{Nullspaceremove}
+\index{pressure!null space}
+
+If the normal component of velocity is imposed on all boundaries then the
+appropriate boundary condition for pressure 
+\citep[see][]{gresho87} is obtained by taking the normal component of
+(\ref{mtm}), this yielding a Neumann boundary condition for
+pressure. This only serves to define the pressure field up to an
+arbitrary additive constant.
+
+There are two different and mutually exclusive options which may be used to
+fix the additive constant in the pressure field. The first is that the
+pressure at a single point may be set to 0. This is achieved by setting the
+\option{\ldots/scalar\_field::Pressure/prognostic/reference\_node} option. The
+value of the option is the number of a node at which the pressure is to be
+constrained to be zero. It is an error for the node number specified here to
+be greater than the number of nodes in the simulation.
+
+The second method is to instruct the linear solver to remove the null space
+of the pressure equation as a part of the solution procedure. This is
+achieved by enabling the\linebreak
+\option{\ldots/scalar\_field::Pressure/prognostic/solver/remove\_null\_space}
+option. This approach often leads to better convergence rates than setting
+the \option{reference\_node}.
+
+If however there is a single location on the boundary where the normal
+component of velocity is not specified then there is no free constant in the
+pressure and neither \option{\ldots/reference\_node} nor
+\option{\ldots/remove\_null\_space} should be set. An example
+may be stress free outflow, or the presence of a free surface.
+
+\section{Solution of linear systems}\label{Sect:Solve}
+\index{linear solvers!options}
+
+\subsection{Iterative Method}
+\index{GMRES}
+\index{conjugate gradient}
+\index{multigrid}
+\index{PETSc}
+As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems so called iterative methods are usually employed, as they avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modeled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
+
+\subsection{Preconditioner}
+\index{linear solvers!preconditioners}
+
+The requirement for a suitable preconditioner is described in Section \ref{ND_Preconditioners}. In a manner analogous to the selection of the iterative method, some common preconditioning options are explicitly listed under \option{solver/preconditioner}, for example MG: \option{solver/preconditioner::mg}, whereas others can be selected by entering the name of the chosen scheme in \option{solver/preconditioner}. 
+
+\subsubsection{Direct Solve}
+
+Note that the option to solve a system exactly is available in FLUIDITY. For this, \option{solver/iterative\_method::preonly} must be selected (preonly -- preconditioner only) and the preconditioner must be set to \option{solver/preconditioner::LU}. A full LU decomposition of the system is then carried out.
+
+\subsection{Relative Error}
+\index{linear solvers!convergence criteria}
+
+The solver finishes if the preconditioned error becomes smaller than the original preconditioned error times this value. 
+
+\subsection{Absolute Error}
+
+The solver finishes if the preconditioned error becomes smaller than this value.
+
+\subsection{Max Iterations}
+
+The maximum number of iterations allowed for the linear solver, before quitting.
+
+\subsection{Start from Zero}
+
+Switch on to start a solve with a zero vector and not a guess from a previous solve. Note that some solves always start at zero in which case this switch will have no effect (to check this, the user should refer to the log output). 
+
+\subsection{Remove Null Space}
+
+As documented in Section \ref{Nullspaceremove}, this option removes the null space.
+
+\subsection{Solver Failures}
+\index{errors!linear solver}
+
+Three options are available here:
+
+\begin{enumerate}
+\item Never ignore solver failures: Solver failures are always treated as fatal errors. The model stops at the end of the time step in order to allow for the latest output to be written. 
+\item Ignore non-convergence during spin-up: Allow for an initial period in which solver failures caused by non-convergence in the maximum number of iterations are ignored. 
+\item Ignore all solver failures: Ignore all solver failures. This is a dangerous option that should only be used in exceptional cases. 
+\end{enumerate}
+
+It is recommended that users use the first option: Never ignore solver failures, however, on occasions (e.g. challenging initial conditions) the second might also be applicable. 
+
+\subsection{Reordering RCM}
+
+A bandwidth reduction algorithm --- reverse Cuthill-McKee reordering --- is used to improve cache performance.
+
+\subsection{Solver Diagnostics}
+
+This subsection includeds a series of extra diagnostic options to help debug solver problems. 
+
+\subsubsection{Print norms}
+Print out the norm of vectors and matrices before the solve, and that of the solution vector afterwards. Norms are printed at verbosity level 2, so run \fluidity\ with -v2 or -v3.
+
+\subsubsection{Monitors}
+Options to give extra information for each iteration of the the solve. Note that some of those may really slow down your computation. 
+
+
+\section{Equation of State (EoS)}\label{Sect:ConfigEOS}
+\index{equation of state!options}
+
+Setting the equation of state is optional.  If unset the material is assumed to be incompressible (see section~\ref{sect:equation_of_state}).  There are two ``fluids'' equations of state available and one ``multimaterial'' EOS:
+
+\begin{description}
+\item\option{\ldots/equation\_of\_state/fluids/linear} Is a simple linear equation of state for quasi-incompressible materials, where density is a function of temperature and salinity (or any other compositional volume fraction).
+\item\option{\ldots/equation\_of\_state/fluids/ocean\_pade\_approximation} Is a complex EOS for ocean modelling where density is a function of temperature, salinity and pressure.
+\item\option{\ldots/equation\_of\_state/multimaterial/miegrunneisen} Is simple compressible material EOS.
+\end{description}
+
+\subsubsection{Linear fluid EOS}
+\index{equation of state!linear}
+This EOS (\option{\ldots/equation\_of\_state/linear}) can be used when simulating incompressible flow to account for the effect on buoyancy of small changes in density caused by variations in temperature and/or salinity (for more details see section~\ref{Sect:IncompressibleFlow}).
+
+\begin{description}
+\item\option{\ldots/linear/reference\_density} Specifies the reference density of the fluid in SI units. If only this option is set the fluid is incompressible.
+\item\option{\ldots/linear/temperature\_dependency} Activate this option to make the fluid density depend on temperature.
+\item\option{\ldots/linear/temperature\_dependency/reference\_temperature} Defines the reference (or background) temperature of the fluid $T_0$; \ie in the absence of any other influence, the temperature at which $\rho=\rho_0$.
+\item\option{\ldots/linear/temperature\_dependency/thermal\_expansion\_coefficient} Specifies the volumetric thermal expansion coefficient (Eq.~\ref{thermalexpansioncoeff}) $\alpha$, controlling the change in density for a given change in temperature.
+\item\option{\ldots/linear/salinity\_dependency} Activate this option to make the fluid density depend on salinity.
+\item\option{\ldots/linear/salinity\_dependency/reference\_salinity} Defines the reference (or background) salinity of the fluid $S_0$; \ie in the absence of any other influence, the salinity at which $\rho=\rho_0$.
+\item\option{\ldots/linear/salinity\_dependency/saline\_contraction\_coefficient} Specifies the saline contraction coefficient $\beta$, controlling the change in density for a given change in salinity.
+\end{description}
+
+\subsubsection{Pade ocean EOS}
+\index{equation of state!Pade approximation}
+This EOS is described in section~\ref{Sect:PadeDescription}.
+This option uses mean hydrostatic pressure based on depth to calculate the
+pressure (hence why you need to provide the value of z on the top surface.
+For this option, the temp field represents potential temperature \emph{not} in
+situ temperature - so beware (see \citet{mcdougall2003} for a formula for converting
+from in-situ to potential). The units are degrees Centigrade for potential
+temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
+\kgmm[1000] and the momentum equation is Boussinesq using this reference density.
+
+\subsubsection{Multi-material compressible EOS}
+\index{equation of state!stiffened gas}
+\option{\ldots/equation\_of\_state/multimaterial/miegrunneisen} defines a simple compressible equation of state that can be used to describe gases, liquids and solids, known as the Mie-Gruneisen (or stiffened gas) EOS (see section~\ref{Sect:StiffenedGas}).
+
+\begin{description}
+\item\option{\ldots/miegrunneisen/reference\_density} Specifies the reference density of the material in SI units.
+\item\option{\ldots/miegrunneisen/ratio\_specific\_heats} Specifies the ratio of specific heats of the gas minus 1 $(c_p/c_V-1)$ in the perfect gas EOS and the Gruneisen parameter in the stiffened gas equation of state. Not activating this option simplifies the compressible EOS to that of a compressible liquid.
+\item\option{\ldots/miegrunneisen/bulk\_sound\_speed\_squared} Specifies the bulk sound speed squared for the material $c_B^2$. Not activating this option simplifies the compressible EOS to that of a perfect gas.
+\end{description}
+
+\section{Subgridscale Parameterisations}
+
+\fluidity\ contains a number of subgridscale parameterisations which model physical process below the resolution of the mesh.
+
+\subsection{GLS}
+
+This option enables the model described in section [ADD CROSSREF]. There are a few different sub-options to configure. First, you must choose which GLS method to use from $k-\epsilon$, $k-kl$, $k-\omega$ and $gen$. Next, the stability functions
+can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model, then switching on the 
+\option{\ldots/calculate\_boundaries} is recommended. You must also enable 
+\option{/geometry/ocean\_boundaries}. Finally, you can enable a number of optional diagnostic fields.
+
+For each field that will be effected by the subgrid scale parameterisations, you must enable the correct diffusivity. This
+is done by specifying \option{\ldots/subgridscale\_parameterisation} in the field to \option{GLS}. Normally, this would
+be the temperature, salinity and any biology fields active.
+
+\section{Boundary conditions}\label{Sect:BCs_configure}
+\index{boundary conditions}
+
+The simulated system requires suitable boundary conditions for full closure.
+An example could be the amount of sunlight at the ocean surface, a specified value of
+temperature heating material from below, or a momentum stress in the form of wind for velocity.
+It is also possible to leave boundary conditions undefined, in which case "stress-free" conditions are
+applied. See section \ref{Sect:BCs} for further details.
+
+\subsection{Adding a boundary condition}\label{Sect:BCs:adding}
+
+Boundary conditions are set for each field contained in state under \option{\ldots/boundary\_conditions}. 
+Multiple boundary conditions can be set for each field, such that the sides, surface and bottom can 
+have different conditions. There is only one exception to this which are the \option{/ocean\_forcing} 
+boundary conditions which are set globally. A boundary conditions is added by clicking the "+" symbol
+in the appropriate field
+
+\subsection{Selecting surfaces}\label{Sect:BCs:selecting}
+\index{surface ID}
+
+When generating the mesh it is possible to specify regions and surfaces (see
+section \ref{sect:surface_ids}). These surface IDs can be used to specify which surfaces
+a boundary conditions applies to. For example if the top and bottom of your mesh is defined as surface
+1, then simply add a one to \option{\ldots/boundary\_conditions/surface\_ids}. Multiple surfaces 
+can be added, separated by a space.
+
+\subsection{Boundary condition types}\label{Sect:BCs:types}
+\index{boundary conditions!setting}
+
+\subsubsection{Dirichlet}
+\index{boundary conditions!Dirichlet}
+
+A Dirichlet condition sets the value of the field at each location over the surface $\partial\Omega$:
+\begin{equation*}
+y(\bmx) = f(\bmx), \;\textrm{on}\; \partial\Omega
+\end{equation*}
+
+Dirichlet boundary conditions can also be applied weakly by selecting the \option{\ldots/apply\_weakly}
+option. Unlike the strong form of the Dirichlet conditions, weak Dirichlet
+conditions do not force the solution on the boundary to be pointwise equal
+to the boundary condition. 
+
+\subsubsection{Neumann}
+\index{boundary conditions!Neumann}
+
+A Neumann boundary condition sets the derivative to the normal ($n$) of the surface, $\partial\Omega$:
+\begin{equation*}
+\frac{\partial y}{\partial n} = \hat{\vec{n}}\cdot\nabla y = f(\bmx), \;\textrm{on}\;  \partial\Omega
+\end{equation*}
+
+\subsubsection{Robin}
+\index{boundary conditions!Robin}
+
+A Robin boundary conditions are a weighted combination of the Dirichlet and Neumann boundary 
+conditions:
+\begin{equation*}
+\alpha y + \beta\frac{\partial y}{\partial n} = f(\bmx), \;\textrm{on}\;  \partial\Omega
+\end{equation*}
+
+for two constants $\alpha$ and $\beta$. In \fluidity\ these correspond to the \option{\ldots/order\_zero\_coefficient}
+and the \option{\ldots/order\_one\_coefficient} respectively.
+
+\subsubsection{Zero flux}
+\index{boundary conditions!zero flux}
+
+For control volume discretisations only this options prevents the field fluxing from the boundary.
+
+\subsubsection{Free surface}
+\index{boundary conditions!free surface}
+\index{free surface!boundary condition}
+
+The \option{\ldots/order\_zero\_coefficient} option allows the height of upper surface to vary according
+to the pressure and velocity fields. This boundary condition is available on the velocity field only. It is
+recommended you activate a diagnostic Free Surface field also.
+
+\subsubsection{Drag}
+\index{boundary conditions!drag}
+
+Applies a quadratic or linear drag to the Velocity field. Both the value and the type of drag need to be set.
+
+\subsubsection{Wind forcing}
+\index{boundary conditions!wind stress}
+\index{wind forcing}
+
+A wind forcing can be applied to the Velocity field as either a stress or
+velocity. For stress values, the physical units should match those of the
+simulation, so for example, if you use the non-dimensional value of $\rho$
+as 1.0, your stresses (in \unit{kgm\ensuremath{^{-1}}s\ensuremath{^{-2}}})
+should be divided by the reference density (1000).  If using wind velocity
+(at 10m height) the density of the air needs to be specified in the same
+units, i.e. $\rho_{\textrm{air}} = 1.3\times10^{-3}$.
+
+Alternatively
+\option{\ldots/Velocity/boundary\_conditions/wind\_forcing/wind\_stress}
+sets the value of wind forcing from a NETCDF file. The NETCDF file must
+contain East-West and North-South components, along with times locations
+(latitude/longitude) for the values. In addition, one must set
+\option{/timestepping/current\_time/time\_units} in order for the simulated
+time to be matched to the NETCDF data.
+
+\subsubsection{No normal flow}
+\index{boundary conditions!no normal flow}
+
+When using \option{\ldots/control\_volumes} under Pressure \option{\ldots/spatial\_discretisation} or when using 
+\option{\ldots/integrate\_continuity\_by\_parts} with CG Pressure and Velocity this boundary condition type 
+imposes a weak no normal flow boundary condition on the surfaces specified.
+
+\subsubsection{Near-wall treatment}
+
+This option implements a penalty function for the near wall region, negating the need to use fine meshes
+near walls \citet{bazilevs2007}. This option should be used in conjunction with a 
+\option{\ldots/no\_normal\_flow} boundary on the same surface.
+
+\subsubsection{Log-law of wall}
+
+This option sets the velocity to proportional to the logarithm of the distance from the boundary. 
+A surface roughness needs to be specified which is the thickness of laminar sublayer.
+
+\subsection{Specialised boundaries}\label{Sect:BCs:special}
+
+\option{\ldots/from\_file} allows the specification of a single file
+containing something useful. This option is available on the Pressure, Free
+Surface
+
+\index{boundary conditions!NEMO data}
+\option{\ldots/NEMO\_data} will set the field according to a specified NEMO
+input file. This option is available for the Pressure (Free Surface) field.
+In order to use this option a prescribed field containing NEMO pressure
+field data must first be created. See section \ref{Sect:setting_from_nemo}
+for information on setting prescribed fields from NEMO data. Then, under
+\ldots/NEMO\_data/field\_name, set the string to that of the prescribed
+field containing the NEMO pressure data to enable this option.
+
+\option{\ldots/synthetic\_eddy\_method} does stuff. Available for velocity.
+
+\subsection{Special cases}\label{Sect:BCs:special}
+
+There are a few special cases of boundary conditions that are not applied
+using the methods described above.  These include ocean surface forcing and
+the boundary conditions on the General Length Scale (GLS) turbulence model.
+
+\subsubsection{Ocean surface forcing}\label{Sect:BCs:special:oceans}
+\index{boundary conditions!ocean}
+
+Ocean surface forcing takes parameters from ERA40 datasets, passes them
+through bulk formulae and gives a boundary condition for the salinity,
+temperature, photosynthetic radiation and velocity fields. The settings for
+these options are in \option{/ocean\_forcing}. However, you must also set up
+\option{/timestepping/current\_time/time\_units} and
+\option{/geometry/ocean\_boundaries}.
+
+Under \option{/ocean\_forcing} an input file and a mesh must be defined. One or more of the surface
+fluxes can then be turned on. The input file must contain the following ERA40 parameters for the
+duration of the simulated time:
+\begin{itemize}
+ \item 10 metre U wind component (\ms)
+ \item 10 metre V wind component (\ms)
+ \item \m[2] temperature (\K)
+ \item Surface solar radiation downward (\unit{Wm\ensuremath{^{-2}}s})
+ \item Surface thermal radiation downward (\unit{Wm\ensuremath{^{-2}}s})
+ \item Total precipitation (\unit{ms})
+ \item Run off (\unit{ms})
+ \item \m[2] dew point temperature (\K)
+ \item Mean sea-level pressure (\Pa)
+\end{itemize}
+
+These variables are surface variables on data defined on the ERA40 website. Note that some parameters are accumulated values
+and as such are automatically divided by the ERA40 temporal resolution. These parameters are used as input to the 
+bulk forcing formulae of \citet{large2004} included in \fluidity.
+
+\subsubsection{GLS subgridscale parameterisation}\label{Sect:BCs:special:gls}
+\index{generic length scale model!boundary conditions}
+
+The GLS model (see section \ref{Sec:GLS}) requires that Neumann boundary
+conditions are set for stability, however, the boundary conditions on the
+Generic Second Quantity ($\Psi$) depend on other modelled variables. In
+order for the boundary conditions to be set correctly, enable the \linebreak
+\option{\ldots/subgridscale\_parameterisations/GLS/calculate\_boundaries}
+option.
+
+
+\section{Ocean biology}
+\index{biology}
+
+Enabling this turns on the ocean biology model. In addition you also need to add several scalar fields in the first material phase:
+\begin{itemize}
+\item Phytoplankton
+\item Zooplankton
+\item Nutrient
+\item Detritus
+\item Primary production
+\end{itemize}
+
+There are several items that need configuring before biology can be used.
+First a relationship between sources and sinks needs encoding. This is best
+done by importing fluidity.ocean\_biology into
+\option{/ocean\_biology/pznd/source\_and\_sink\_algorithm} and calling the
+models from there. An example is given below.
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+import fluidity.ocean_biology as biology
+
+day=1./(3600*24)
+
+p={}
+p["alpha"]=0.015*day
+p["beta"]=0.75
+p["gamma"]=0.5
+p["g"]=1*day
+p["k_N"]=0.5
+p["k"]=0.5
+p["mu_P"]=0.1*day
+p["mu_Z"]=0.2*day
+p["mu_D"]=0.05*day
+p["p_P"]=0.75
+p["v"]=1.5*day
+
+biology.pznd(state, p)  
+  \end{lstlisting}
+  \caption{A Python function that imports the biology module and sets the algorithm to use.}
+\end{example}
+
+The final thing to change is to add absorption coefficients in the photsynthetic radiation field for water and plankton concentration.
+
+\section{Sediment model}
+\index{sediments}
+
+\fluidity\ contains a basic sediment model in which sediment is treated as a
+tracer with a settling velocity and the amount of sediment falling through
+the bottom boundary is recorded. Enabling sediments creates two template
+fields: one for sediment concetration in the fluid and one for the flux of
+sediment over the bottom boundary. These can be found at
+\option{\ldots/sediment/scalar\_field::SedimentTemplate} and
+\option{\ldots/sediment/scalar\_field::SedimentFluxTemplate} respectively.
+It is also possible to specify multiple sediment classes, each of which can
+contain a different settling velocity and hence when coupled with the
+density, represent different sediment grain sizes. At least one class must
+be present.
+
+The sediment classes can use either the Template initial concentration or set their own.
+
+Note: to use sediment, a linear equation of state must also be enabled \option{\ldots/equation\_of\_state/fluids/linear}
+

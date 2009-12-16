@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>gyre_2d -- gyre on beta plane in proper 2d, uses "new navsto"</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity -v3 -l -x gyre.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="western_boundary_width" language="python">
+import vtktools
+f=vtktools.vtu('gyre_2.vtu')
+xyz=f.GetLocations()
+uvw=f.GetField('Velocity')
+# x locations of nodes with negative v-velocity
+downx=xyz[:,0].compress( (uvw[:,1] &lt; -1e-9) &amp; (xyz[:,1] &gt; 0.5) )
+western_boundary_width=min(downx)
+    </variable>    
+  </variables>
+  <pass_tests>
+    <test name="Check width of western boundary current (&amp;0.25)." language="python">
+import fluidity_tools
+assert( western_boundary_width &lt; 0.25 )
+    </test>
+</pass_tests>
+</testproblem>

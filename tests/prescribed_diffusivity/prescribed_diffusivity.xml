@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>prescribed_diffusion</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity --xml prescribed_diffusivity.flml </command_line>
+    <!-- Prescribe a tensor field as a python function. -->
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

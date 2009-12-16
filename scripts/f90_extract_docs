@@ -1,0 +1,887 @@
+#!/usr/bin/env python
+# Parse a fortran file in python and output html.
+import re
+import string
+import sys
+import os
+from optparse import OptionParser
+
+def make_re_list(re):
+    return r"(?:\s*"+re+r"\s*(?:,\s*"+re+r"\s*)*)"
+
+def split_list(regexp, string):
+    """ Repeatedly match re against list and return the list of first
+    groups"""
+
+    list_re=r"\s*,?\s*"+regexp
+
+    list=[]
+    
+    match=re.match(list_re, string)
+
+    while(match):
+        list.append(match.group(1))
+
+        string=string[match.end()+1:]
+        
+        match=re.match(list_re, string)
+
+    return list
+
+url_re=r"(http://\S*)"
+
+def htmlise(string):
+    """Substitute html character references in a string and apply
+    pseudo-markup formatting."""
+
+    lines=string.split("\n")
+
+    string=""
+
+    inpara=0
+    inpre=0
+    for line in lines:
+        line=line.replace("&", "&amp;")
+        line=line.replace("<", "&lt;")
+        line=line.replace(">", "&gt;")
+
+        # Turn URLs into links.
+        line=re.sub(url_re,r'<a href="\1">\1</a>' ,line)
+
+        if (line.strip()=="") and inpara:
+            # End of paragraph.
+            string=string+"</p>\n"
+            
+        elif line[0:2]=="  ":
+            # Preprocessed text.
+            if inpara:
+                string=string+"</p>\n"                
+                inpara=0
+            if not inpre:
+                string=string+"<pre>"+line+"\n"
+                inpre=1
+            else: 
+                string=string+line+"\n"
+                
+        else:
+            # Paragraph
+            if inpre:
+                string=string+"</pre>\n"
+                inpre=0
+            if not inpara:
+                string=string+"<p>"
+                inpara=1
+            string=string+line+"\n"
+
+    if inpre:
+        string=string+"</pre>\n"
+    if inpara:
+        string=string+"</p>\n"
+            
+    return string
+
+html_header=r"""
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+            "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+
+  <head>
+    <link href="fortran.css" type="text/css" rel="stylesheet">
+    <title>?title?</title>
+  </head>
+
+  <body>
+    """
+
+html_footer=r"""
+  </body>
+
+</html>
+"""
+
+# Match any block sort.
+blocks_re=r"(?ix)(?:(?:function)|(?:subroutine)|(?:module)|(?:program)|(?:interface)|(?:type))"
+
+# Match any variable type.
+types_re=r"(?ix)(?:(?:(?:integer)|(?:real)|(?:complex)|(?:logical)|(?:character)|(?:type\(.*?\)))(?:\*\d*)?(?:\(.*?\))?)"
+
+# Match any variable or argument attribute.
+attribute_re=r"(?ix)((?:parameter)|(?:save)|(?:private)|(?:public)|(?:pointer)|(?:target)|(?:optional)|(?:intent\(.*?\))|(?:dimension\(.*?\)))"
+attribute_list_re=make_re_list(attribute_re)
+
+# Match any legal fortran name.
+name_re=r"(?ix)\w+"
+name_list_re=make_re_list(name_re)
+name_item_re="("+name_re+")"
+
+# Match a variable name in a declaration.
+# This matches any name followed by anything in brackets and anything
+# outside brackets except a comma.
+variable_re="("+name_re+r"(?:(?:\(.*?\))|[^,:])*)"
+variable_list_re=make_re_list(variable_re)
+
+# Match a fortran name or an operator.
+name_operator_re=r"("+name_re+r"(?:\s*\(.*?\))?)"
+name_operator_list_re=make_re_list(name_operator_re)
+
+# Match an operator name.
+operator_re=r"(?:(?:operator)|(?:assignment))\s*\(.*\)"
+
+# Function prefix.
+prefix_re=r"("+types_re+"|(?:public)|(?:private)|(?:pure)|(?:elemental)|(?:recursive))"
+prefix_list_re=make_re_list(prefix_re)
+
+# Match lines containing only whitespace.
+empty_line_re=r"(?ix)^\s*$"
+
+# Match lines containing only a comment. 
+comment_line_re=r"(?ix)^\s*(?:!!(?!\$)(?P<comment>.*)|(?:!(?!!).*))$"
+
+# Match lines starting !!< . This indicates that the comment belongs to the
+# preceding rather than the successor item.
+trailing_comment_line_re=r"(?ix)^\s*(?:!!<(?P<comment>.*)|(?:!(?!!).*))$"
+
+# Separate a line from any trailing comment and extract magic comments.
+trailing_comment_re=r"(?ix)^(?P<line>.*)(?:(?:!!(?!\$)(?P<comment>.*))|(?:(?<!!)!(?!!).*))$"
+
+# Recognise leading and trailing continuation characters.
+continued_line_re=r"(?ix)^(?P<cont>\s*&)?(?P<line>.*)(?P<continued>&)\s*$"
+
+# Recognise lines with no trailing continuation character.
+terminal_line_re=r"(?ix)^(?P<cont>\s*&)?(?P<line>.*)"
+
+# Match the opening line of a block.
+open_block_line_re=r"""(?ix)^\s*                      # Strip leading spaces.
+(?:(?P<prefix>"""+prefix_list_re+r""")\s+)?           # Function prefix.
+(?P<block_type>"""+blocks_re+r""")\s*                 # What sort of block?
+(?:\s*,\s*(?P<public>(?:public)|(?:private)))?(?:\s*::\s*)? # Public/private (type)
+(?:\s+(?P<name>(?:"""+operator_re+""")|(?:"""+name_re+r"""))\s*)? # Name of the block.
+(?:\((?P<arguments>"""+name_list_re+r"""?)\s*\))?        # Argument list.
+(?:\s*result\s*\(\s*(?P<result>"""+name_re+r")\s*\))?\s*$"# Function result name.
+
+# Match the closing line of a block.
+end_block_line_re=r"(?ix)^\s*end\s+(?P<block_type>"+blocks_re+")"
+
+# Match a variable or argument declaration.
+variable_line_re=r"""(?ix)^\s*                        # Strip leading spaces.
+(?P<type>"""+types_re+r""")\s*(?:                     # Find the variable type.
+(?:\s*(?P<attributes>,"""+attribute_list_re+r""")?::)|,)# Attributes if present.
+\s*(?P<variables>"""+variable_list_re+")\s*$"         # List of variable names.
+
+# Match private or public.
+public_line_re=r"""(?ix)^\s*(?P<public>(?:public)|(?:private))(?:\s*::)?(?P<names>\s*"""+name_operator_list_re+r""")?\s*$"""
+
+# Match use statements.
+use_line_re=r"(?ix)^\s*use\s+(?P<name>"+name_re+r")"
+
+# Match module procedure lines.
+module_procedure_line_re=r"(?i)^\s*module\s+procedure\s+(?P<procedures>"+name_list_re+r")"
+
+class parser:
+    def __init__(self, lines):
+
+        self.comment=""
+        self.children=[]
+        self.line=""
+        self.literal_line=[]
+        self.type=""
+        i=-1
+        
+        while(1):
+            i=i+1
+            if i>=len(lines):
+                break
+            line=lines[i]
+
+            # Skip preprocessor directives.
+            if line[0]=="#":
+                continue
+
+            # Implement !!@skip to skip the next line.
+            if line[0:7]=="!!@skip":
+                i=i+1
+                continue
+            
+            # Leading comments.
+            match=re.match(trailing_comment_re, line)
+            if match:
+                # Grab the line without the comment.
+                line=match.group("line")
+                if not line:
+                    line=""
+                #    # If there is no non-comment part then we can discard
+                #    # this comment.
+                #    if (self.line).strip()=="":
+                #        continue
+
+                if match.group("comment"):
+                    self.comment=self.comment+match.group("comment")+"\n"
+
+            # Skip empty lines.
+            if re.match(empty_line_re, line):
+                continue
+
+            # Append non comment form of line.
+            self.literal_line.append(line.rstrip("\n")+"\n")
+
+            # Parse line for continuation.
+            match=re.match(continued_line_re, line)
+            if match:
+                self.line=self.line+match.group("line").rstrip("\n")
+                continue
+
+            # Remove any leading continuation marker.
+            match=re.match(terminal_line_re, line)
+            if not match:
+                # Can't happen
+                raise RuntimeError, line
+            
+            self.line=self.line+match.group("line").rstrip("\n")
+
+            # Browse forwards to collect any trailing comments.
+            while(1):
+                if i>len(lines)-2:
+                    break
+                match=re.match(trailing_comment_line_re,lines[i+1])
+
+                if match:
+                    if type(match.group("comment"))==type(""):
+                        self.comment=self.comment+match.group("comment")+"\n"
+                    i=i+1
+                    continue
+                else:
+                    break
+
+            # Check if we are a variable declaration.
+            match=re.match(variable_line_re, self.line)
+            if match:
+                self.type="variable"
+                self.names=split_list(variable_re,match.group("variables"))
+                try:
+                    self.attributes=split_list(attribute_re,match.group("attributes"))
+                except:
+                    self.attributes=[]
+                self.variable_type=match.group("type")
+                break
+            
+            # Check for public/private.
+            match=re.match(public_line_re, self.line)
+            if match:
+                self.type="public"
+                self.value=match.group("public")
+                try:
+                    self.names=split_list(name_operator_re,match.group("names"))
+                except:
+                    self.names=[]
+                break
+
+            # Check for use statements.
+            match=re.match(use_line_re, self.line)
+            if match:
+                self.type="use"
+                self.name=match.group("name")
+                break
+
+            # Check for module procedure lines.
+            match=re.match(module_procedure_line_re, self.line)
+            if match:
+                self.type="module procedure"
+                self.names=split_list(name_item_re,match.group("procedures"))
+                break
+
+            # Check for end of blocks.
+            match=re.match(end_block_line_re, self.line)
+            if match:
+                self.type="end"
+                self.block_type=match.group("block_type")
+                break
+
+            # Check for block starts.
+            match=re.match(open_block_line_re, self.line)
+            if match:
+                self.type=match.group("block_type").lower().strip()
+                self.name=match.group("name")
+                if not self.name:
+                    self.name=""
+                try:
+                    self.arguments=split_list(name_item_re,match.group("arguments"))
+                except:
+                    self.arguments=[]
+                self.result=match.group("result")
+                if not self.result:
+                    self.result=""
+                try:
+                    self.prefix=split_list(prefix_re,match.group("prefix"))
+                except:
+                    self.prefix=[]
+
+                if options.verbose:
+                    print self.line
+
+                lines=lines[i+1:]
+                while (1):
+                    next=parser(lines)
+                    # Discard empty parsers.
+                    if next.type!="":
+                        self.children.append(next)
+                    lines=next.lines
+                    i=-1
+                    try:
+                        if next.type=="end":
+                            break
+                    except:
+                        break
+                    if len(lines)==0:
+                        break
+                break
+
+            # If we have got to here then this is an unrecognised line.
+            self.line=""
+            self.literal_line=[]
+
+        # If we get to here then the object is assembled.
+        self.postprocess()
+        self.lines=lines[i+1:]
+
+    def postprocess(self):
+        """Clean up an object once it has been assembled"""
+
+        if self.type=="":
+            return
+
+        # If we have a procedure then we need to get rid of non-argument
+        # variables. And internal routines.
+        if self.type=="function" or self.type=="subroutine":
+
+            # Lower case version of argument names.
+            arguments=map(string.lower, self.arguments)
+
+            if self.type=="function":
+                if self.result:
+                    arguments.append(self.result.lower())
+                else:
+                    arguments.append(self.name.lower())
+
+            i=0
+            while i<len(self.children):
+                child=self.children[i]
+                
+                # Remove internal procedures.
+                if child.type=="function" or child.type=="subroutine":
+                    del self.children[i]
+                    continue
+
+                # Also their end statements.
+                if child.type=="end" and i<(len(self.children)-1):
+                    del self.children[i]
+                    continue
+                
+                # Remove non-argument variables.
+                if child.type=="variable":
+                    j=0
+                    while j<len(child.names):
+                        name=re.match(name_re,child.names[j]).group(0).lower()
+                        # Perform case insensitive match.
+                        if name not in arguments:
+                            del child.names[j]
+                        else:
+                            j=j+1
+
+                    # Remove this object if it has no children.
+                    if len(child.names)==0:
+                        del self.children[i]
+                        continue
+
+                i=i+1
+
+        # Set the public/private attribute. This only applies to modules.
+        if self.type=="module":
+            default_public="public"
+            public=[]
+            private=[]
+            # This is the list of objects which should be displayed. It
+            # consists of all public objects and all private objects which
+            # are referred to in types or interfaces. All types and interfaces are
+            # always displayed anyway (truly private types and iterfaces are of limited use).
+            display=[]
+            
+            # Discover public and private values.
+            for child in self.children:
+                if child.type=="public":
+                    if child.names:
+                        if child.value.lower()=="public":
+                            public=public+child.names
+                        elif child.value.lower()=="private":
+                            private=private+child.names
+                        else:
+                            #Can't happen.
+                            raise ValueError, child.value
+
+                    else:
+                        default_public=child.value.lower()
+
+            display=public
+
+            # Apply public/private values to interfaces.
+            i=0
+            for child in self.children:
+
+                if child.type=="interface":
+                    for prefix in child.prefix:
+                        if prefix.lower()=="private":
+                            child.display="private"
+                            continue
+                        elif prefix.lower()=="public":
+                            child.display="public"
+                            for gchild in child.children:
+                                if gchild.type=="module procedure":
+                                    display=display+map(string.lower,gchild.names)
+                            continue
+
+
+                    if child.name.lower() in private:
+                        child.prefix.append("private")
+                        child.display="private"
+                    elif child.name.lower() in public:
+                        child.prefix.append("public")
+                        child.display="public"
+                        for gchild in child.children:
+                            if gchild.type=="module procedure":
+                                display=display+map(string.lower,gchild.names)
+                    else:
+                        child.prefix.append(default_public)
+                        child.display=default_public
+                        if default_public=="public":
+                            for gchild in child.children:
+                                if gchild.type=="module procedure":
+                                    display=display+map(string.lower,gchild.names)
+            
+                        
+            # Apply public/private values to procedures and variables.
+            i=0
+            while i<len(self.children):
+                child=self.children[i]
+                
+                if child.type=="function" or child.type=="subroutine":
+                    for prefix in child.prefix:
+                        if prefix.lower()=="private":
+                            if child.name.lower() in display:
+                                child.display="public"
+                                i=i+1
+                            else:
+                                del self.children[i]
+                            continue
+                        elif prefix.lower()=="public":
+                            child.display="public"
+                            i=i+1
+                            continue
+                            
+                    if child.name.lower() in private:
+                        child.prefix.append("private")
+                        child.display="private"
+                    elif child.name.lower() in public:
+                        child.prefix.append("public")
+                        child.display="public"
+                    else:
+                        child.prefix.append(default_public)
+                        child.display=default_public
+
+                    if child.name.lower() in display:
+                        child.display="public"
+
+                    if child.display=="public":
+                        i=i+1
+                        continue
+                    else:
+                        del self.children[i]
+                        continue
+
+                # Remove private variables.
+                if child.type=="variable":
+                    found=0
+                    for attribute in child.attributes:
+                        if attribute.lower()=="private":
+                            del self.children[i]
+                            found=1
+                            break
+                        elif attribute.lower()=="public":
+                            found=1
+                            i=i+1
+                            break
+                    if found:
+                        continue
+                        
+                    j=0
+                    while j<len(child.names):
+                        name=re.match(name_re,child.names[j]).group(0).lower()
+                        # Perform case insensitive match.
+                        if default_public=="public":
+                            if name.lower() in private:
+                                del child.names[j]
+                                continue
+                            else:
+                                j=j+1
+                                continue
+                        else:
+                            if name.lower() not in public:
+                                del child.names[j]
+                                continue
+                            else:
+                                j=j+1
+                                continue
+
+                    # Remove this object if it has no children.
+                    if len(child.names)==0:
+                        del self.children[i]
+                        continue
+                i=i+1
+                     
+    def module_make_namedict(self):
+        """Generate a dictionary of all the names defined in a module."""
+
+        self.namedict={}
+
+        for child in self.children:
+
+            if child.type in ["function", "subroutine", "type"]:
+                self.namedict[child.name]=child.type+"_"+child.name
+
+            if child.type=="interface":
+                # Only insert interface names if no real names exist.
+                if not self.namedict.has_key(child.name):
+                    self.namedict[child.name]=child.type+"_"+child.name
+
+            if child.type=="variable":
+                for name in child.names:
+                    rname=re.match(name_re, name).group(0)
+                    self.namedict[rname]=child.type+"_"+rname
+
+    def html_file(self, dirname="."):
+        """Write an html file containing this parser as the main object. The
+        file will be called dirname/name.html where name is the name of the
+        top parser."""
+
+        try:
+            name=self.name.strip().lower()
+        except:
+            print self.type
+            print dir(self)
+            print self.block_type
+            sys.exit(1)
+        longname=self.type.lower()+" "+name
+        
+        outfile=open(dirname+"/"+name+".html",'w')
+
+        outfile.write(html_header.replace("?title?", longname))
+
+        # Title
+        outfile.write("<h1>"+longname+"</h1>\n\n")
+
+        if self.comment:
+            # Leading comment.
+            outfile.write("<p>"+htmlise(self.comment)+"</p>\n\n")
+            
+        if self.type=="module" or self.type=="program":
+            outfile.write(self.html_module())
+        else:
+            outfile.write(self.html())
+
+        outfile.write(html_footer)
+        
+        outfile.close()
+
+    def html_name(self):
+        """Return a single line description of an object including a link to
+        the (presumed) later detailed description"""
+
+        out=""
+
+        if self.type == "variable":
+            out=out+self.variable_type
+
+            if self.attributes:
+                out=out+", "+", ".join(self.attributes)
+
+            out=out+" :: "
+
+            lname=[]
+            for name in self.names:
+                # Extract the actual name from any trailing gumf
+                rname=re.match(name_re, name).group(0)
+                lname.append('<a href="#variable_'+rname.lower()+'">'+rname+'</a>')
+                
+            out=out+", ".join(lname)
+
+        elif self.type == "use":
+            out=out+"use "+'<a href="'+self.name.lower()+'.html">'+self.name+'</a>'
+            
+        else:
+            out=out+self.type+" "+'<a href="#'+self.name.lower()+'">'+self.name+'</a>'
+
+        return out
+
+    def html_title(self):
+        """Return a single line title of an object"""
+
+        out="<h3>"
+
+        if self.type == "variable":
+            lname=[]
+            for name in self.names:
+                # Extract the actual name from any trailing gumf
+                name=re.match(name_re, name).group(0)
+                lname.append('<a name="variable_'+name.lower()+'">'+name+'</a>')
+
+            out=out+", ".join(lname)
+            
+        else:
+            out=out+'<a name="'+self.name.lower()+'">'+self.name+'</a>'
+
+        out=out+"</h3>"
+
+        return out
+
+    def html(self):
+        """Return an html rendering of a parser"""
+
+        out=""
+
+        classname=self.type
+        if re.match(blocks_re+r"\s*$", classname):
+            classname=classname+" block"
+        
+        out=out+'<div class="'+classname+'">'
+
+        out=out+"<pre>"
+        for line in self.literal_line:
+            out=out+line
+        out=out+"</pre>\n\n"
+
+        if self.comment:
+            out=out+"<blockquote>"+htmlise(self.comment)+"</blockquote>\n\n"
+        
+        for child in self.children:
+            out=out+child.html()
+        
+        out=out+"</div>\n\n"
+
+        return out
+
+    def html_module(self):
+        """html rendering of module contents."""
+
+        out=""
+
+        out=out+"<h2>Contents</h2>\n\n"
+
+        # Snoop for module contents.
+        uses=[]
+        types=[]
+        vars=[]
+        interfaces=[]
+        procs=[]
+        for child in self.children:
+            if child.type=="use":
+                uses.append(child)
+            if child.type=="type":
+                types.append(child)               
+            if child.type=="variable":
+                vars.append(child)
+            if child.type=="interface":
+                interfaces.append(child)
+            if child.type=="function" or child.type=="subroutine":
+                procs.append(child)
+
+        if uses:
+            out=out+"<h3>Uses</h3>\n\n<pre>"
+
+            for child in uses:
+                out=out+("   "+child.html_name()+"\n")
+            
+            out=out+"</pre>"
+
+        if types:
+            out=out+"<h3>Types</h3>\n\n<pre>"
+
+            for child in types:
+                out=out+("   "+child.html_name()+"\n")
+
+            out=out+"</pre>"
+
+        if vars:
+            out=out+"<h3>Variables</h3>\n\n<pre>"
+
+            for child in vars:
+                out=out+("   "+child.html_name()+"\n")
+
+            out=out+"</pre>"
+
+        if interfaces:
+            out=out+"<h3>Interfaces</h3>\n\n<pre>"
+
+            for child in interfaces:
+                out=out+("   "+child.html_name()+"\n")
+
+            out=out+"</pre>"
+
+        if procs:
+            out=out+"<h3>Procedures</h3>\n\n<pre>"
+
+            for child in procs:
+                out=out+("   "+child.html_name()+"\n")
+
+            out=out+"</pre>"
+
+        # Now output detailed descriptions.
+        if types:
+            out=out+"<h2>Types</h2>"
+
+            for child in types:
+                out=out+("   "+child.html_title()+"\n")
+                out=out+("   "+child.html()+"\n")
+
+        if vars:
+            out=out+"<h2>Variables</h2>"
+
+            for child in vars:
+                out=out+("   "+child.html_title()+"\n")
+                out=out+("   "+child.html()+"\n")
+
+        if interfaces:
+            out=out+"<h2>Interfaces</h2>"
+
+            for child in interfaces:
+                out=out+("   "+child.html_title()+"\n")
+                out=out+("   "+child.html()+"\n")
+
+        if procs:
+            out=out+"<h2>Procedures</h2>"
+
+            for child in procs:
+                out=out+("   "+child.html_title()+"\n")
+                out=out+("   "+child.html()+"\n")
+        
+        return out
+        
+def parse_file(filename, cppflags):
+    """Parse the file named filename and return a list of parsers of the top
+    level objects in the file."""
+    file=os.popen("cpp -traditional -undef "+cppflags+" -w "+filename,"r")
+    lines=file.readlines()
+    file.close()
+
+    parser_list=[]
+
+    while len(lines)>0:
+        p=parser(lines)
+
+        if p.type:
+            parser_list.append(p)
+
+        lines=p.lines
+        
+    return parser_list 
+
+def output_index(indexdict):
+    """Write an html file containing an index of all the parsers output."""
+
+    longname=options.project+" source code documentation"
+
+    outfile=open(options.dir+"/index.html",'w')
+
+    outfile.write(html_header.replace("?title?", longname))
+
+    # Title
+    outfile.write("<h1>"+longname+"</h1>\n\n")
+
+    modules=[]
+    programs=[]
+    procedures=[]
+
+    for key, val in indexdict.iteritems():
+        if val=="module":
+            modules.append(key)
+        elif val=="program":
+            programs.append(key)
+        else:
+            procedures.append(key)
+
+    modules.sort(lambda x,y: cmp(x.lower(), y.lower()))
+    procedures.sort(lambda x,y: cmp(x.lower(), y.lower()))
+            
+    if modules:
+        outfile.write("<h2>Modules</h2>\n\n")
+
+        outfile.write("<ul>\n")
+        for key in modules:
+            outfile.write('<li><a href="'+key.lower()+'.html">'+key+'</a></li>\n')
+
+        outfile.write("</ul>\n")
+
+    if procedures:
+        outfile.write("<h2>Procedures</h2>\n\n")
+
+        outfile.write("<ul>\n")
+        for key in procedures:
+            outfile.write('<li><a href="'+key.lower()+'.html">'+key+'</a></li>\n')
+
+        outfile.write("</ul>\n")
+        
+    if programs:
+        outfile.write("<h2>Programs</h2>\n\n")
+
+        outfile.write("<ul>\n")
+        for key in programs:
+            outfile.write('<li><a href="'+key.lower()+'.html">'+key+'</a></li>\n')
+
+        outfile.write("</ul>\n")
+        
+
+    outfile.write(html_footer)
+
+    outfile.close()
+
+#####################################################################
+# Script starts here.
+optparser=OptionParser(usage='usage: %prog [options] <filenames>',
+                    add_help_option=True)
+
+optparser.add_option("--verbose", action="store_true",
+                     dest="verbose", default=False,
+                     help="verbose output")
+
+optparser.add_option("--dir", dest="dir",
+                  help="output directory")
+
+optparser.add_option("--project", dest="project",
+                  help="project name")
+
+optparser.add_option("--cppflags", dest="cppflags", default="",
+                     help="preprocessor flags for fortran files")
+
+optparser.set_defaults(dir=".", project="")
+
+(options, argv) = optparser.parse_args()
+
+if len(argv)<1:
+    optparser.print_help()
+    sys.exit(1)
+
+indexdict={}
+
+for filename in argv:
+
+    print "processing "+ filename
+    
+    parser_list=parse_file(filename, options.cppflags)
+
+    for fortran_parser in parser_list:
+        fortran_parser.html_file(options.dir)
+    
+        indexdict[fortran_parser.name]=fortran_parser.type
+    
+
+if len(argv)>1:
+    output_index(indexdict)
+

@@ -1,0 +1,94 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+SHELL = @SHELL@
+
+FC      = @FC@
+FCFLAGS = -I../include @FCFLAGS@
+
+UTFC    = ../scripts/unittest_f90
+
+CC      = @CC@
+CFLAGS  = @CFLAGS@
+
+CXX     = @CXX@
+CXXFLAGS= @CXXFLAGS@
+
+MAKE    = @MAKE@
+AR  = @AR@
+ARFLAGS = @ARFLAGS@
+
+LIB = ../lib/lib@FLUIDITY@.a
+
+TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
+
+# These are all the objects that are supposed to go into the makefile
+OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Convective_metric.o Edge_lengths.o \
+	   Gradation_metric.o Bounding_box_metric.o \
+     Boundary_metric.o \
+     Recovery_estimator.o Aspect_ratios.o Interpolation_error.o Geometric_constraints_metric.o Goals.o Goal_metric.o \
+     Conformity_measurement.o Metric_advection.o  Mba_adapt.o Limit_metric.o Anisotropic_gradation_metric.o \
+     Project_metric_to_surface.o Field_preprocessing.o Anisotropic_ZZ.o Richardson_metric.o \
+     Metric_Diagnostics.o Reference_Meshes.o
+
+.SUFFIXES: .f90 .F90 .c .o .a
+
+.f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.F90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.cpp.o:
+	@echo "        CXX $<"
+	$(CXX) $(CXXFLAGS) -I../include -c $< || (rm $(LIB) && false)
+
+default: $(OBJS)
+	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+	cp *.mod ../include/
+
+clean:
+	rm -f *.o *.mod
+
+Assemble_metric.o: Form_metric.o Edge_lengths.o Interpolation_metric.o Convective_metric.o \
+		           Gradation_metric.o Bounding_box_metric.o Boundary_metric.o \
+               Geometric_constraints_metric.o Goals.o Goal_metric.o Metric_advection.o Limit_metric.o Anisotropic_gradation_metric.o \
+               Richardson_metric.o Anisotropic_ZZ.o Reference_Meshes.o
+Interpolation_metric.o: Form_metric.o Edge_lengths.o Aspect_ratios.o Field_preprocessing.o Project_metric_to_surface.o
+Form_metric.o: Recovery_estimator.o
+Gradation_metric.o: Edge_lengths.o
+Bounding_box_metric.o: Edge_lengths.o
+Boundary_metric.o: Bounding_box_metric.o
+Goal_metric.o: Goals.o Gradation_metric.o
+Geometric_constraints_metric.o: Edge_lengths.o Form_metric.o Gradation_metric.o
+Metric_advection.o: Form_metric.o 
+Mba_adapt.o: Limit_metric.o
+Anisotropic_gradation_metric.o: Form_metric.o Gradation_metric.o
+Anisotropic_ZZ.o: Conformity_measurement.o Bounding_box_metric.o Edge_lengths.o Form_metric.o Limit_metric.o
+Richardson_metric.o: Edge_lengths.o Limit_metric.o
+Metric_Diagnostics.o: Conformity_measurement.o Edge_lengths.o
+Conformity_measurement.o: Limit_metric.o
+Reference_Meshes.o: Conformity_measurement.o

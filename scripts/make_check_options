@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+import re
+import glob
+
+# File header
+header="""
+subroutine check_options
+
+"""
+footer="""
+end subroutine check_options
+"""
+
+outfile=file("preprocessor/check_options.F90", "w")
+
+outfile.write(header)
+
+# List of fortran source files.
+fortran_files=glob.glob("*/*.F")+glob.glob("*/*.F90")
+
+module_re=re.compile(r"^\s*module\s+(\w+)\s*$",re.IGNORECASE|re.MULTILINE)
+
+module_list=[]
+
+for filename in fortran_files:
+    
+    fortran=file(filename,"r").read()
+
+    modules=module_re.findall(fortran)
+
+    for module in modules:
+
+        if re.search(r"^\s*subroutine\s+"+module+"_check_options\s*$",\
+                     fortran,\
+                     re.IGNORECASE|re.MULTILINE):
+            module_list.append(module)
+
+for module in module_list:
+
+    outfile.write("  use "+module+"\n")
+
+# Ensure that the subroutine is legal in the trivial case.
+outfile.write("""
+   continue
+   """)
+
+for module in module_list:
+
+    outfile.write("  call "+module+"_check_options\n")
+
+outfile.write(footer)

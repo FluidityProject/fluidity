@@ -1,0 +1,163 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!    
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    C.Pain@Imperial.ac.uk
+!    
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+
+#include "fdebug.h"
+
+subroutine flredecomp(input_basename, input_basename_len, output_basename, output_basename_len, &
+  & input_nprocs, target_nprocs)
+  !!< Peform a redecomposition of an input checkpoint with input_nprocs
+  !!< processes to a new checkpoint with target_nprocs processes.
+  
+  use checkpoint
+  use fldebug
+  use global_parameters, only: is_active_process
+  use parallel_tools
+  use populate_state_module
+  use spud
+  use sam_integration
+  use state_module
+  
+  interface
+    subroutine check_options()
+    end subroutine check_options
+
+#ifdef HAVE_PYTHON
+    subroutine python_init()
+    end subroutine python_init
+#endif
+  end interface
+  
+  integer :: input_basename_len
+  integer :: output_basename_len
+  
+  character(len = input_basename_len), intent(in) :: input_basename
+  character(len = output_basename_len), intent(in) :: output_basename
+  integer, intent(in) :: input_nprocs
+  integer, intent(in) :: target_nprocs
+  
+  integer :: nprocs
+  type(state_type), dimension(:), pointer :: state
+  integer :: i
+  
+  ewrite(1, *) "In flredecomp"
+
+#ifdef HAVE_PYTHON
+  call python_init()
+#endif
+  
+  nprocs = getnprocs()
+  
+  ewrite(2, "(a)") "Input base name: " // trim(input_basename)
+  ewrite(2, "(a)") "Output base name: " // trim(output_basename)
+  ewrite(2, "(a,i0)") "Input number of processes: ", input_nprocs
+  ewrite(2, "(a,i0)") "Target number of processes: ", target_nprocs
+  ewrite(2, "(a,i0)") "Job number of processes: ", nprocs
+  
+  ! Input check
+  if(input_nprocs < 0) then
+    FLExit("Input number of processes cannot be negative!")
+  else if(target_nprocs < 0) then
+    FLExit("Target number of processes cannot be negative!")
+  else if(input_nprocs > nprocs) then
+    ewrite(-1, *) "The input number of processes must equal or less than the number of processes currently running."
+    FLExit("Running on insufficient processes.")
+  else if(target_nprocs > nprocs) then
+    ewrite(-1, *) "The target number of processes must equal or less than the number of processes currently running."
+    FLExit("Running on insufficient processes.")
+  end if
+  
+  ! Load the options tree
+  call load_options(trim(input_basename) // ".flml")
+  if(.not. have_option("/simulation_name")) then
+    FLExit("Failed to find simulation name after loading options file")
+  end if
+
+  if(debug_level() >= 1) then
+    ewrite(1, *) "Options tree:"
+    call print_options()
+  end if
+
+#ifdef DDEBUG
+  ewrite(1, *) "Performing options sanity check"
+  call check_options()
+  ewrite(1, *) "Options sanity check successful"
+#endif
+
+  is_active_process = getprocno() <= input_nprocs
+  call populate_state(state)
+  is_active_process = .true.
+  
+  call strip_level_2_halo(state)
+  call sam_drive(state, sam_options(target_nprocs))
+  
+  ! Output
+  assert(associated(state))
+  call checkpoint_simulation(state, prefix = output_basename, postfix = "", protect_simulation_name = .false.)
+
+  do i = 1, size(state)
+    call deallocate(state(i))
+  end do
+    
+  ewrite(1, *) "Exiting flredecomp"
+  
+contains
+
+  function sam_options(target_nparts)
+    !!< Return sam options array
+    
+    integer, intent(in) :: target_nparts
+
+    integer, dimension(10) :: sam_options
+    
+    sam_options = 0
+    
+    ! Target number of partitions - 0 indicates size of MPI_COMM_WORLD
+    sam_options(1) = target_nparts
+
+    ! Graph partitioning options:
+    sam_options(2) = 1    ! Clean partitioning to optimise the length of the 
+                          ! interface boundary.
+    ! sam_options(2) = 2  ! Local diffusion
+    ! sam_options(2) = 3  ! Directed diffusion
+    ! sam_options(2) = 4  ! Clean partitioning to optimise the length of the 
+                          ! interface boundary. This partitioning is then remapped
+                          ! onto the original partitioning to maximise overlap and
+                          ! therefore the volume of data migration.
+
+    ! Heterogerious options (disabled)
+    sam_options(3) = 1
+    ! No node weights
+    sam_options(4) = 1
+    ! No edge weights
+    sam_options(5) = 1
+    ! Mixed formulation options
+    sam_options(6) = 2 ! Enabled
+                       ! Restore the level 2 halo
+
+  end function sam_options
+  
+end subroutine flredecomp  

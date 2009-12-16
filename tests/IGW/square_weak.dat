@@ -1,0 +1,4 @@
+&IGW_data tmax=0.1, tdump=0.01, dt=0.01, fr=1.0, ro=0.1, u_degree=1,
+h_degree=2,u_cty=-1,balanced_u=T,steady_state=T, mesh="square.1",
+u_input="square1_u.py", h_input="square_weak_h.py", get_streamfunction=F,
+projection_test=F, compute_error=F/

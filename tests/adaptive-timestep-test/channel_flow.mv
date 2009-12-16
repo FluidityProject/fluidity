@@ -1,0 +1,65 @@
+### DataVizManagers ###
+1
+### 1. DataVizManager ###
+### VtkXMLDataReader ###
+VtkXMLDataReader
+channel_flow_0.vtu
+Tracer
+Velocity
+
+vtkXMLUnstructuredGridReader
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetFileName', 'channel_flow_0.vtu'), ('SetProgress', 1.0), ('SetTimeStep', 0), ('SetTimeStepRange', (0, -1))]
+### End of VtkXMLDataReader ###
+### ModuleManagers ###
+1
+### 1. ModuleManager ###
+### Scalar Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': (0.0, 1.0), 'reverse_lut_var': 0, 'base_file_name': '/data/cwilson/work/fluidity/source/trunk/tests/explicit-hyperc-tets/channel_flow.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetVectorComponent': 0, 'SetTableRange': (0.0, 1.0)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetHeight': 0.14000000000000001, 'SetOrientation': 0, 'SetLabelFormat': '%-#6.3g', 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'Tracer'}}, 'file_name': '', 'lut_var': 0}
+### End of Scalar Lookup Table ###
+### Vector Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': [0.0, 1.0], 'reverse_lut_var': 0, 'base_file_name': '/data/cwilson/work/fluidity/source/trunk/tests/explicit-hyperc-tets/channel_flow.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetVectorComponent': 0, 'SetTableRange': (0.0, 1.0)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetHeight': 0.14000000000000001, 'SetOrientation': 0, 'SetLabelFormat': '%-#6.3g', 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'Velocity'}}, 'file_name': '', 'lut_var': 1}
+### End Vector Lookup Table ###
+### Filters ###
+0
+### End of Filters ###
+### Modules ###
+1
+### 1. SurfaceMap ###
+SurfaceMap
+0, 10, 0.000000, 1.000000
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 1), ('SetProgress', 0.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 1), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 1.0))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetInterpolation', 1), ('SetRepresentation', 2), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (1.0, 1.0, 1.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 1. SurfaceMap ###
+### End of Modules ###
+### End of 1. ModuleManager ###
+### End of ModuleManagers ###
+### End of 1. DataVizManager ###
+### End of DataVizManagers ###
+### RenderWindow ###
+vtkOpenGLRenderer
+[('SetAutomaticLightCreation', 1), ('SetBackingStore', 0), ('SetDebug', 0), ('SetErase', 1), ('SetInteractive', 1), ('SetLightFollowCamera', 1), ('SetTwoSidedLighting', 1), ('SetAllocatedRenderTime', 10000.0), ('SetAmbient', (1.0, 1.0, 1.0)), ('SetAspect', (1.1070110701107012, 1.0)), ('SetBackground', (1.0, 1.0, 1.0)), ('SetDisplayPoint', (0.0, 0.0, 0.0)), ('SetLayer', 0), ('SetNearClippingPlaneTolerance', 0.001), ('SetPixelAspect', (1.0, 1.0)), ('SetViewPoint', (0.0, 0.0, 0.0)), ('SetViewport', (0.0, 0.0, 1.0, 1.0)), ('SetWorldPoint', (0.0, 0.0, 0.0, 0.0))]
+vtkOpenGLCamera
+[('SetDebug', 0), ('SetParallelProjection', 0), ('SetUseHorizontalViewAngle', 0), ('SetClippingRange', (1.183313757430112, 3.0501373640845708)), ('SetDistance', 2.0076390766013437), ('SetEyeAngle', 2.0), ('SetFocalDisk', 1.0), ('SetFocalPoint', (0.10000000149011612, 0.0, 0.10000000149011612)), ('SetParallelScale', 0.51961524284420912), ('SetPosition', (1.2591109628015136, 1.1591109613113975, 1.2591109628015136)), ('SetRoll', -120.00000000000001), ('SetThickness', 1.8668236066544588), ('SetViewAngle', 30.0), ('SetViewPlaneNormal', (0.57735026918962573, 0.57735026918962573, 0.57735026918962573)), ('SetViewShear', (0.0, 0.0, 1.0)), ('SetViewUp', (0.0, 0.0, 1.0)), ('SetWindowCenter', (0.0, 0.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 1), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 6.123233995736766e-17, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+### End of RenderWindow ###

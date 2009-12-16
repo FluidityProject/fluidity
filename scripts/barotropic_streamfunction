@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+#
+# James Maddison
+
+"""
+A script to combine two vertical integration vtus of velocity components into
+a single vtu, with streamfunction
+"""
+
+import optparse
+import subprocess
+
+import numpy
+import vtk
+
+import fluidity.diagnostics.debug as debug
+import fluidity.diagnostics.optimise as optimise
+import fluidity.diagnostics.vtutools as vtktools
+
+optionParser = optparse.OptionParser( \
+  usage = "%prog [OPTIONS] ... UCOMP VCOMP OUTPUT", \
+  add_help_option = True, \
+  description = "Combines two vertical integration vtus containing velocity " + \
+    "components into a single vtu, with streamfunction")
+    
+optionParser.add_option("-o", "--optimisation", action = "store_true", dest = "optimisation", help = "Enable optimisation", default = False)
+optionParser.add_option("-v", "--verbose", action = "store_true", dest = "verbose", help = "Verbose mode", default = False)
+
+opts, args = optionParser.parse_args()
+if len(args) < 1:
+  debug.FatalError("U component vtu required")
+elif len(args) < 2:
+  debug.FatalError("V component vtu required")
+elif len(args) < 3:
+  debug.FatalError("Output vtu required")
+elif len(args) > 3:
+  debug.FatalError("Unrecognised trailing argument")
+uCompVtuName = args[0]
+vCompVtuName = args[1]
+outputName = args[2]
+
+if not opts.verbose:
+  debug.SetDebugLevel(0)
+  
+if opts.optimisation:
+  optimise.EnableAll()
+
+try:
+  process = subprocess.Popen("streamfunction_2d -h".split(), stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+  process.wait()
+except OSError:
+  debug.FatalError("streamfunction_2d not found")
+  
+uCompVtu = vtktools.vtu(uCompVtuName)
+vCompVtu = vtktools.vtu(vCompVtuName)
+
+if "Velocity%1VerticalIntegral" in uCompVtu.GetFieldNames():
+  u = uCompVtu.GetField("Velocity%1VerticalIntegral")
+else:
+  debug.deprint("Warning: Failed to find u component - attemping to project from cell data")
+  uCompVtu.ugrid.GetCellData().SetActiveScalars("Velocity%1VerticalIntegral")
+  projectionFilter = vtk.vtkCellDataToPointData()
+  projectionFilter.SetInput(uCompVtu.ugrid)
+  projectionFilter.Update()
+  projectedVtu = vtktools.vtu()
+  projectedVtu.ugrid = vtktools.PolyDataToUnstructuredGrid(projectionFilter.GetOutput())
+  u = projectedVtu.GetField("Velocity%1VerticalIntegral")
+if "Velocity%2VerticalIntegral" in vCompVtu.GetFieldNames():
+  v = vCompVtu.GetField("Velocity%2VerticalIntegral")
+else:
+  debug.deprint("Warning: Failed to find v component - attemping to project from cell data")
+  vCompVtu.ugrid.GetCellData().SetActiveScalars("Velocity%2VerticalIntegral")
+  projectionFilter = vtk.vtkCellDataToPointData()
+  projectionFilter.SetInput(vCompVtu.ugrid)
+  projectionFilter.Update()
+  projectedVtu = vtktools.vtu()
+  projectedVtu.ugrid = vtktools.PolyDataToUnstructuredGrid(projectionFilter.GetOutput())
+  v = projectedVtu.GetField("Velocity%2VerticalIntegral")
+
+assert(len(u) == len(v))
+vel = [[float(u[i]), float(v[i]), 0.0] for i in range(len(u))]
+vel = numpy.array(vel)
+vel.shape = (len(vel), 3)
+
+outputVtu = vtktools.CopyVtu(uCompVtu)
+for name in vCompVtu.GetFieldNames():
+  outputVtu.AddField(name, vCompVtu.GetField(name))
+for i in range(vCompVtu.ugrid.GetCellData().GetNumberOfArrays()):
+  outputVtu.ugrid.GetCellData().AddArray(vCompVtu.ugrid.GetCellData().GetArray(i))
+outputVtu.AddField("Velocity", vel)
+
+outputVtu.Write(outputName)
+if debug.GetDebugLevel() > 0:
+  stdout = None
+  stderr = None
+else:
+  stdout = subprocess.PIPE
+  stderr = subprocess.PIPE
+command = ["streamfunction_2d"]
+if debug.GetDebugLevel() > 0:
+  command += ["-v"]
+command += [outputName, outputName]
+process = subprocess.Popen(command, stdout = stdout, stderr = stdout)
+process.wait()
+if not process.returncode == 0:
+  debug.FatalError("streamfunction_2d error")

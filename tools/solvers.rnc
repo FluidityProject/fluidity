@@ -1,0 +1,480 @@
+# these are the options under the solver/ block for the prognostic fields
+
+# the only difference between the _asym and _sym versions
+# is the order of cg and gmres. Not providing cg for _asym is
+# not possible as in some cases the asymmetric equation is in fact symmetric
+# (e.g. momentum with no advection or coriolis).
+linear_solver_options_asym =
+   (
+      ## Iterative (Krylov) method to solve the linear discretised equation
+      ## Given are the most frequently used methods. The solution is done
+      ## by the PETSc library. Many more methods are provided.
+      ##
+      (
+         kspgmres_options|
+         kspcg_options|
+         ksppreonly_options|
+         ksprichardson_options|
+         kspother_options
+      ),
+      ## Preconditioner to be used in combination with the iterative method.
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pcilu_options|
+         pclu_options|
+         pcmg_options_no_lumping|
+         pcprometheus_options|
+         pchypre_options|
+         pcbjacobi_options|
+         pcasm_options|
+         pcother_options
+      ),
+      generic_solver_options
+   )
+
+linear_solver_options_sym =
+   (
+      ## Iterative (Krylov) method to solve the linear discretised equation
+      ## Given are the most frequently used methods. The solution is done
+      ## by the PETSc library. Many more methods are provided.
+      ##
+      (
+         kspcg_options|
+         kspgmres_options|
+         ksppreonly_options|
+         ksprichardson_options|
+         kspother_options 
+      ),
+      ## Preconditioner to be used in combination with the iterative method.
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pcilu_options|
+         pcicc_options|
+         pclu_options|
+         pcmg_options|
+         pcprometheus_options|
+         pchypre_options|
+         pcbjacobi_options|
+         pcasm_options|
+         pcksp_options|
+         pcother_options
+      ),
+      generic_solver_options
+   )
+
+# ####################################################################
+#
+# options for the different iterative ksp methods
+#
+# ####################################################################
+
+kspgmres_options =
+   (
+      ## GMRES
+      ##
+      ## Your safest bet for non-symmetric systems.
+      element iterative_method {
+         attribute name { "gmres" },
+         ## Restart value for gmres iteration
+         ## Higher values give better convergence but require more memory.
+         ## Suggested value: 30
+         element restart {
+            integer
+         }
+      }
+   )
+   
+kspcg_options =
+   (
+      ## Conjugate gradient method
+      ##
+      ## Only works for symmetric systems.
+      element iterative_method {
+         attribute name { "cg" }
+      }
+   )
+
+ksppreonly_options =
+   (
+      ## Direct method
+      ##
+      ## This is for non-iterative methods
+      ## Only makes sense in combination with preconditioners that do a complete solve, e.g. lu.
+      element iterative_method {
+         attribute name { "preonly" }
+      }
+   )
+   
+ksprichardson_options =
+   (
+      ## Richardson iteration
+      ##
+      ## Only apply preconditioner each iteration, no krylov acceleration
+      element iterative_method {
+         attribute name { "richardson" }
+      }
+   )
+   
+kspother_options =
+   (
+      ## Other methods
+      ##
+      ## Any method provided by the PETSc library
+      ## http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html
+      ## (available methods may depend on the PETSc library installed on your system)
+      element iterative_method {
+         attribute name { xsd:string }
+      }
+   )
+   
+# ####################################################################
+#
+# options for the different preconditioners
+#
+# ####################################################################
+
+pcsor_options =
+   (
+      ## Succesive Over-Relaxation
+      ##
+      ## This includes SSOR (symmetric sor)
+      element preconditioner {
+         attribute name { "sor" }
+      }
+   )
+   
+pceisenstat_options =
+   (
+      ## The Eisenstat method
+      ##
+      ## This preconditioner is equivalent to SOR but only uses
+      ## half the number of flops,
+      ## i.e. same convergence rate but twice as fast per
+      ## iteration. Because it computes
+      ## a different preconditioned residual the convergence in
+      ## practice may be quite different though.
+      ## It does not work in parallel!
+      element preconditioner {
+         attribute name { "eisenstat" }
+      }
+   )
+   
+pcilu_options = 
+   (
+      ## Incomplete LU decomposition
+      element preconditioner {
+         attribute name { "ilu" }
+      }
+   )
+   
+pcicc_options =
+   (
+      ## Incomplete Cholesky decomposition (only works for symmetric matrices)
+      element preconditioner {
+         attribute name { "icc" }
+      }
+   )
+   
+pclu_options =
+   (
+      ## LU direct solver
+      ##
+      ## This performs a complete, direct solve of the equation and should only be used in combination with preonly as iterative method.
+      element preconditioner {
+         attribute name { "lu" }
+     }
+   )
+pcmg_options =
+   (
+      ## Fluidity`s own multigrid method
+      ##
+      ## Especially suited for ill-conditioned, large aspect ratio problems.
+      element preconditioner {
+         attribute name { "mg" },
+         ## apply vertical lumping from the full mesh to the surface mesh
+         ## as the first coarsening step instead of the default
+         ## aggregation method.
+         element vertical_lumping {
+            ## Does additional smoothing by solving the equation but with
+            ## a dirichilet boundary condition on top given by the last iteration
+            ## of the multigrid cycle. May be quite expensive per iteration
+            ## but improves the solution quite a lot for difficult meshes.
+            element internal_smoother {
+               empty
+            }?
+         }?
+      }
+   )
+pcmg_options_no_lumping =
+   (
+      ## Fluidity`s own multigrid method
+      ##
+      ## Especially suited for ill-conditioned, large aspect ratio problems.
+      element preconditioner {
+         attribute name { "mg" }
+      }
+   )
+
+pcprometheus_options =
+   (
+      ## Prometheus multigrid method
+      element preconditioner {
+         attribute name { "prometheus" }
+      }
+   )
+pchypre_options =
+   (
+      ## Hypre preconditioners (includes boomeramg)
+      element preconditioner {
+         attribute name { "hypre" },
+         (
+            ## BoomerAMG multigrid method
+            element hypre_type {
+               attribute name { "boomeramg" }
+            }|
+            ## Other Hypre preconditioners
+            element hypre_type {
+               attribute name { string }
+            }
+         )
+      }
+   )
+pcbjacobi_options =
+   (
+      ## Block Jacobi
+      ##
+      ## This option is for parallel runs. A preconditioner is applied
+      ## locally within each domain. This means within the domain you can
+      ## choose whatever preconditioner you would choose in serial. Because
+      ## there is no coupling between the domains in the preconditioning
+      ## the performance may be less than in serial and degrade with 
+      ## increasing number of processors/decreasing local domain size.
+      element preconditioner {
+         attribute name { "bjacobi" },
+         subpc_options
+      }
+   )
+pcasm_options =
+   (
+      ## Additive Schwartz Method
+      ##
+      ## This option is for parallel runs. A preconditioner is applied
+      ## locally within each domain (like bjacobi) only the local domains
+      ## are extended a bit to overlap. This increases the coupling between
+      ## the domain and thus improves the convergence. This does of course
+      ## increase the communication cost, so iterations may be more expensive
+      ## than with bjacobi.
+      element preconditioner {
+         attribute name { "asm" },
+         subpc_options
+      }
+   )
+# sub preconditioner to choose for bjacobi or asm
+subpc_options =
+   (
+      ## Preconditioner to apply within the local domains
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pcilu_options|
+         pcicc_options|
+         pclu_options|
+         pcmg_options|
+         pcprometheus_options|
+         pchypre_options|
+         pcother_options
+      )
+   )
+   
+pcother_options =
+   (
+      ## Other preconditioners
+      ##
+      ## Any preconditioner provided by the PETSc library
+      ## http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/PC/PCType.html
+      ## (available preconditiors may depend on the PETSc library installed on your system)
+      element preconditioner {
+         attribute name { string }
+      }
+   )
+   
+pcksp_options =
+   (
+      ## This only makes sense for solves where a different approximated preconditioner
+      ## matrix is provided. For instance when solving pressure with the 
+      ## option full_schur_complement and using a masslumped schur complement
+      ## as preconditioner matrix.
+      ##
+      ## NOTE: If you are using a krylov method (cg/gmres) for this preconditioner 
+      ## solve you either need to set your tolerances much stricter for it
+      ## than in the outer solve (so that the preconditioner is close to an
+      ## exact matrix inversion), or use fgmres in the outer solve.
+      element preconditioner {
+         attribute name { "ksp" },
+         (
+             ## Solver options for the full solve done by this preconditioner
+             element solver {
+                pc_ksp_solver_options
+             }
+         )
+      }
+   )
+
+# this is a copy linear_solver_options_sym, but with preconditioner "ksp"
+# removed to avoid infinite recursion
+pc_ksp_solver_options =
+   (
+      ## Iterative (Krylov) method to solve the linear discretised equation
+      ## Given are the most frequently used methods. The solution is done
+      ## by the PETSc library. Many more methods are provided.
+      ##
+      (
+         kspcg_options|
+         kspgmres_options|
+         ksppreonly_options|
+         ksprichardson_options|
+         kspother_options
+      ),
+      ## Preconditioner to be used in combination with the iterative method.
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pclu_options|
+         pcicc_options|
+         pcmg_options|
+         pcprometheus_options|
+         pchypre_options|
+         pcbjacobi_options|
+         pcasm_options|
+         pcother_options
+      ),
+      generic_solver_options
+   )
+
+# ####################################################################
+#
+# all the other solver options
+#
+# ####################################################################
+
+generic_solver_options =
+   (
+      ## Relative error
+      ##
+      ## The solver finishes if the preconditioned error becomes smaller than the original preconditioned error times this value.
+      ## Suggested value: 1.0e-7
+      element relative_error {
+         real
+      },
+      ## Absolute error bound
+      ##
+      ## The solver finishes if the preconditioned error becomes smaller than this value.
+      element absolute_error {
+         real
+      }?,
+      ## Maximum number of iterations allowed in the linear solver
+      ## before giving up.
+      element max_iterations {
+         integer
+      },
+      ## Switch on to not use an initial guess from a previous solve but
+      ## start with a zero vector. Note that some of the solves always
+      ## start at zero in which case this switch will have no effect (see the log output).
+      element start_from_zero {
+         empty
+      }?,
+      ## Remove Null-space from residual after applying preconditioner.
+      ## This often leads to better convergence rates, when compared to
+      ## imposing a reference_node to pin the solution.
+      element remove_null_space {
+         empty
+      }?,
+      (
+         ## Solver failures are always treated as fatal errors. The
+         ## model stops at the end of the time step in order to allow
+         ## for the latest output to be written.
+         element never_ignore_solver_failures {
+            empty
+         }|
+         ## Allow for an initial period in which solver failures
+         ## caused by non-convergence in the maximum number of
+         ## iterations are ignored.
+         element ignore_non_convergence_during_spin_up {
+            ## As long as current_time < spin_up_time, solver failures
+            ## due to non-convergence in the maximum number of
+            ## iterations are ignored. This might be used for spinning
+            ## up the model. As there is no guarantee we're actually
+            ## solving the flow equations to any accuracy, the results
+            ## in this period should not be trusted.
+            element spin_up_time {
+               real
+            }
+         }|
+         ## Ignore all solver failures. This is a dangerous option
+         ## that should only be used in exceptional cases.
+         element ignore_all_solver_failures {
+            empty
+         }
+      ),
+      (
+         ## Use Reverse Cuthill-McKee reordering to improve cache performance
+         element reordering {
+           attribute name { "rcm" }
+         }|
+         ## Use one way dissecting reordering to improve cache performance
+         element reordering {
+           attribute name { "1wd" }
+         }|
+         ## Use natural ordering as reordering, i.e. change nothing.
+         ## Only useful for debugging purposes.
+         element reordering {
+           attribute name { "natural" }
+         }|
+         ## Specify any other reordering mechanism supported by PETSc
+         ## see http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
+         element reordering {
+           attribute name { xsd:string }
+         }
+      )?,
+      ## Extra diagnostics to help debug solver problems
+      element diagnostics {
+         ## Print out the norm of vectors and matrices before the
+         ## solve, and that of the solution vector afterwards.
+         ## Norms are printed at verbosity level 2, so run fluidity with -v2 or -v3
+         element print_norms {
+            empty
+         }?,
+         ## Options to give extra information for each iteration of the
+         ## the solve. Some of those may really slow down your computation!
+         element monitors {
+            ## Prints the preconditioned residual for each iteration of the solve.
+            ## This is the error estimation PETSc uses during the solve.
+            element preconditioned_residual {
+               empty
+            }?,
+            ## Prints the "true" residual for each iteration of the solve,
+            ## i.e. PETSc computes the L2-norm of r=A-bx. This may mean
+            ## PETSc has to do extra computations.
+            element true_residual {
+               empty
+            }?,
+            ## Draws a graph over the convergence of the preconditioned residual
+            ## during the solve. This option only works for systems where PETSc
+            ## has been linked with the X library.
+            element preconditioned_residual_graph {
+               empty
+            }?,
+            ## Prints the error by computing the difference with the provided
+            ## exact solution each time step.
+            element true_error {
+               ## Give the field name of the field that contains the exact
+               ## solution to be compared with each iteration
+               attribute exact_solution_field {
+                  string
+               }
+            }?
+         }
+      }
+   )

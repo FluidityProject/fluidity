@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>heat_2d_dg</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -np 2 ../../bin/dfluidity -l heat.flml </command_line>
+    <!-- Two dimensional diffusion only problem. -->
+  </problem_definition>
+  <variables>
+    <variable name="tracer_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer_integral = s["Water"]["Tracer"]["integral"][-1]
+    </variable>
+    <variable name="tracer_error" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"][-1]-9.9e-5
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="tracer integral is 1.0" language="python">
+assert abs(tracer_integral - 1.0) &lt; 1e-3
+    </test>
+    <test name="tracer error compared with serial run" language="python">
+assert abs(tracer_error) &lt; 5.e-9
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

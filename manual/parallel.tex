@@ -1,0 +1,35 @@
+\chapter{Parallel}
+
+\fluidity\ is a fully-parallel program, capable of running on thousands of processors. 
+It uses the Message Passing Interface (MPI) library to communicate information between 
+processors. Running \fluidity\ in parallel requires that MPI is available on your system
+and is properly configured. This chapter assumes that this is the case. The 
+terminology for parallel processing can sometime be confusing. Here, we use the 
+term \emph{processor} to mean one physical CPU core and \emph{process} is one part
+of a parallel instance of \fluidity. Normally, the number of processors used matches
+the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run on 256 processors.
+
+\section{Set up}
+
+The first step in running a \fluidity\ set-up in parallel is to create the software
+use to decompose the initial mesh into multiple parts, fldecomp. This can be made using:
+\begin{lstlisting}[language=bash]
+make fltools
+\end{lstlisting}
+inside your \fluidity\ folder.The fldecomp binary will then be created in the bin/ directory. 
+You can then decompose the initial mesh into multiple regions, one per process using the following command
+\begin{lstlisting}[language=bash]
+fldecomp -i triangle -n [PARTS] [BASENAME]
+\end{lstlisting}
+where BASENAME is the triangle mesh base name (excluding extensions). "-i triangle"
+instruct fldecomp to perform a triangle-to-triangle decomposition. 
+This will create PARTS partition triangle meshes together with PARTS .halo files. 
+
+\section{Running}
+
+To run in parallel there are no further changes needed, apart from running \fluidity
+within the mpirun or mpiexec framework. Simply prepend the normal command line with mpiexec:
+\begin{lstlisting}[language=bash]
+mpiexec -n [PROCESSES] dfluidity -l -v2 my_setup.flml
+\end{lstlisting}
+

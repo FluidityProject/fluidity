@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Cube-DG</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml cube.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="maxspeed1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cube-1.stat")
+maxspeed1 = s["Water"]["Velocity%magnitude"]["max"][0]
+    </variable>
+    <variable name="maxspeed2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cube-1.stat")
+maxspeed2 = s["Water"]["Velocity%magnitude"]["max"][1]
+    </variable>
+    <variable name="minspeed1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cube-1.stat")
+minspeed1 = s["Water"]["Velocity%magnitude"]["min"][0]
+    </variable>
+    <variable name="minspeed2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cube-1.stat")
+minspeed2 = s["Water"]["Velocity%magnitude"]["min"][1]
+    </variable>
+    <variable name="cfl" language="python">
+import fluidity_tools
+cfl = fluidity_tools.stat_parser("cube-1.stat")['Water']['CFLNumber']['max'][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="max speed (first timestep)" language="python">
+assert abs(maxspeed1 - 1.0) &lt; 1e-5
+    </test>
+    <test name="max speed (second timestep)" language="python">
+assert abs(maxspeed2 - 1.0) &lt; 1e-5
+    </test>
+    <test name="min speed (first timestep)" language="python">
+assert abs(minspeed1 - 1.0) &lt; 1e-5
+    </test>
+    <test name="max speed (second timestep)" language="python">
+assert abs(minspeed2 - 1.0) &lt; 1e-5
+    </test>
+    <test name="maximum cfl number (second timestep)" language="python">
+assert abs(cfl-0.025) &lt; 1e-5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

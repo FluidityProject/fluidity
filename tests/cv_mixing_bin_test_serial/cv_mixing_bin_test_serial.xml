@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material flow test for testing mixing stats</name>
+  <owner userid="hhiester"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v3 -l cv_mixing_bin_test_serial.flml </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name = "matvolume_base" language = "python">
+import vtktools
+matvolume_base = [[],[]]
+filenames = ["base_mixing_bin_test_1.vtu","base_mixing_bin_test_4.vtu","base_mixing_bin_test_7.vtu"]
+for file in filenames:
+  matvolume_base[0].append(sum(vtktools.vtu(file).GetScalarField("Material1::MaterialVolume"))) 
+  matvolume_base[1].append(sum(vtktools.vtu(file).GetScalarField("Material2::MaterialVolume")))  
+    </variable> 
+    <variable name = "matvolume" language = "python">
+import vtktools
+matvolume = [[],[]]
+filenames = ["mixing_bin_test_1.vtu","mixing_bin_test_4.vtu","mixing_bin_test_7.vtu"]
+for file in filenames:
+  matvolume[0].append(sum(vtktools.vtu(file).GetScalarField("Material1::MaterialVolume"))) 
+  matvolume[1].append(sum(vtktools.vtu(file).GetScalarField("Material2::MaterialVolume")))  
+    </variable> 
+     <variable name="mat2lbin" language="python">
+import fluidity_tools
+from fluidity_tools import stat_parser
+mat2lbin = fluidity_tools.stat_parser("mixing_bin_test.stat")['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][0][0]
+    </variable>    
+     <variable name="mat2ubin" language="python"> 
+import fluidity_tools
+from fluidity_tools import stat_parser
+mat2ubin = fluidity_tools.stat_parser("mixing_bin_test.stat")['Material2']['MaterialVolumeFraction']['mixing_bins%cv'][1][0]
+    </variable>    
+     <variable name="mixing_stats" language="python"> 
+# mixing stats will contain [normalised_cv, normalised_cg, unormalised_cv, unormalised_cg] 
+# mixing stats, each of those contains the amount in the bins (bounds 0 and 1) over time
+import fluidity_tools
+from fluidity_tools import stat_parser
+stat = fluidity_tools.stat_parser("./mixing_bin_test.stat")
+time = stat['ElapsedTime']['value']
+stat_type_a = ['cv','cg']
+stat_type_b = ['normalised','unormalised']
+mixing_stats = []
+for types_b in stat_type_b:
+  for types_a in stat_type_a:
+    mixing_stats_current = []
+    for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b])):
+      bin = []
+      for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i])):
+        bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%'+types_a+'_'+types_b][i][j]) 
+      mixing_stats_current.append(bin)
+    mixing_stats_current.append([types_b + '_' + types_a])
+    mixing_stats.append(mixing_stats_current) 
+    </variable>  
+  </variables>
+    <pass_tests>  
+    <test name = "check base and current volumes are same" language = "python">
+for i in range(len(matvolume)):
+  for j in range(len(matvolume[i])):
+    print "i=", i
+    print "j=", j
+    tolerance = 1e-6
+    if (j==2):tolerance = 1e-4
+    print abs(matvolume[i][j]-matvolume_base[i][j])
+    assert abs(matvolume[i][j]-matvolume_base[i][j]) &lt; tolerance
+    </test>
+    <test name="check lower mixing bin of material 2 is correct" language="python">
+   assert abs(mat2lbin - (matvolume_base[0][0]/(matvolume_base[0][0]+matvolume_base[1][0]))) &lt; 1e-6
+    </test>
+    <test name="check upper mixing bin of material 2 is correct" language="python">
+   assert abs(mat2ubin - (matvolume_base[1][0]/(matvolume_base[0][0]+matvolume_base[1][0]))) &lt; 1e-6
+    </test>
+    <test name = "check fixed normalised lower mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+mixing_stats_pick = [0,3,6]
+for i in [0,1]:
+  for j in range(len(stat_type_a)):
+    print mixing_stats[j][2]
+    print abs(mixing_stats[j][0][mixing_stats_pick[i]] - (matvolume_base[1][i]/(matvolume_base[0][i]+matvolume_base[1][i])))
+    tolerance = 1e-6
+    if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+    assert abs(mixing_stats[j][0][mixing_stats_pick[i]] - (matvolume_base[1][i]/(matvolume_base[0][i]+matvolume_base[1][i]))) &lt; tolerance
+    </test>
+    <test name = "check fixed normalised upper mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+mixing_stats_pick = [0,3,6]
+for i in [0,1]:
+  for j in range(len(stat_type_a)):
+    print mixing_stats[j][2]
+    print abs(mixing_stats[j][1][mixing_stats_pick[i]] - matvolume_base[0][i]/(matvolume_base[0][i]+matvolume_base[1][i])) 
+    tolerance = 1e-6
+    if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+    assert abs(mixing_stats[j][1][mixing_stats_pick[i]] - matvolume_base[0][i]/(matvolume_base[0][i]+matvolume_base[1][i])) &lt; tolerance
+    </test>
+    <test name = "check adapt normalised lower mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+for j in range(len(stat_type_a)):
+  print mixing_stats[j][2]
+  print abs(mixing_stats[j][0][6] - matvolume_base[1][2]/(matvolume_base[0][2]+matvolume_base[1][2]))
+  tolerance = 1e-1
+  if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+  assert abs(mixing_stats[j][0][6] - matvolume_base[1][2]/(matvolume_base[0][2]+matvolume_base[1][2])) &lt; tolerance
+    </test>
+    <test name = "check adapt normalised upper mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+mixing_stats_pick = [0,3,6]
+for j in range(len(stat_type_a)):
+  print mixing_stats[j][2]
+  print abs(mixing_stats[j][1][6] - matvolume_base[0][2]/(matvolume_base[0][2]+matvolume_base[1][2])) 
+  tolerance = 1e-1
+  if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+  assert abs(mixing_stats[j][1][6] - matvolume_base[0][2]/(matvolume_base[0][2]+matvolume_base[1][2])) &lt; tolerance
+    </test>
+    <test name = "check fixed unormalised lower mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+mixing_stats_pick = [0,3,6]
+for i in [0,1]:
+  for j in range(len(stat_type_a)):
+    print mixing_stats[j+2][2]
+    print abs(mixing_stats[j+2][0][mixing_stats_pick[i]] - matvolume_base[1][i]) 
+    tolerance = 1e-6
+    if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+    assert abs(mixing_stats[j+2][0][mixing_stats_pick[i]] - matvolume_base[1][i]) &lt; tolerance
+    </test>
+    <test name = "check fixed unormalised upper mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+mixing_stats_pick = [0,3,6]
+for i in [0,1]:
+  for j in range(len(stat_type_a)):
+    print mixing_stats[j+2][2]
+    print abs(mixing_stats[j+2][1][mixing_stats_pick[i]] - matvolume_base[0][i])
+    tolerance = 1e-6
+    if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+    assert abs(mixing_stats[j+2][1][mixing_stats_pick[i]] - matvolume_base[0][i]) &lt; tolerance
+    </test>
+    <test name = "check adapt unormalised lower mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+for j in range(len(stat_type_a)):
+  print len(mixing_stats[j+2][0])
+  print mixing_stats[j+2][2]
+  print abs(mixing_stats[j+2][0][6] - matvolume_base[1][2])
+  tolerance = 1e-2
+  if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+  assert abs(mixing_stats[j+2][0][6] - matvolume_base[1][2]) &lt; tolerance
+    </test>
+    <test name = "check adapt unormalised upper mixing bins of material 1 are correct " language = "python">
+stat_type_a = ['cv','cg']
+mixing_stats_pick = [0,3,6]
+for j in range(len(stat_type_a)):
+  print mixing_stats[j+2][2]
+  print abs(mixing_stats[j+2][1][6] - matvolume_base[0][2])
+  tolerance = 1e-1
+  if stat_type_a[j].split('_')[0] == 'cg': tolerance = 1e-1
+  assert abs(mixing_stats[j+2][1][6] - matvolume_base[0][2]) &lt; tolerance
+    </test>
+    <test name="check all normalised mixing bins of material 1 sum to 1" language="python">
+stat_type_a = ['cv','cg']
+for i in range(len(mixing_stats[0][0])):
+  for j in range(len(stat_type_a)):
+    print mixing_stats[j][2]
+    print abs(mixing_stats[j][0][i] + mixing_stats[j][1][i] - 1.0)
+    assert abs(mixing_stats[j][0][i] + mixing_stats[j][1][i] - 1.0) &lt; 1e-6
+    </test>
+    <test name="check all unormalised mixing bins of material 1 sum to right number" language="python">
+stat_type_a = ['cv','cg']
+for i in range(len(mixing_stats[0][0])):
+  for j in range(len(stat_type_a)):
+    print mixing_stats[j+2][2]
+    print abs(((mixing_stats[j+2][0][i] + mixing_stats[j+2][1][i])/(matvolume_base[0][0]+matvolume_base[1][0])) - 1.0)
+    assert abs(((mixing_stats[j+2][0][i] + mixing_stats[j+2][1][i])/(matvolume_base[0][0]+matvolume_base[1][0])) - 1.0) &lt; 1e-6
+    </test>
+    <test name="check lower and upper mixing bins of material 2 sum to 1" language="python">
+   assert abs(mat2lbin + mat2ubin - 1.0) &lt; 1e-6
+    </test>
+  </pass_tests>
+</testproblem>

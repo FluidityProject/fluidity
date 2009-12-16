@@ -1,0 +1,159 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>FLML validation (Diamond version)</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>true</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ignoredOptionsFiles" language="python">ignoredOptionsFiles = []
+try:
+  warningsFile = open("ignored", "r")
+except IOError:
+  warningsFile = None
+if warningsFile is None:
+  ignoredOptionsFiles = []
+else:
+  ignoredOptionsFiles = warningsFile.readlines()
+  for i, filename in enumerate(ignoredOptionsFiles):
+    ignoredOptionsFiles[i] = filename[:-1]</variable>
+    <variable name="warningOnlyOptionsFiles" language="python">warningOnlyOptionsFiles = []
+try:
+  warningsFile = open("warnings", "r")
+except IOError:
+  warningsFile = None
+if warningsFile is None:
+  warningOnlyOptionsFiles = []
+else:
+  warningOnlyOptionsFiles = warningsFile.readlines()
+  for i, filename in enumerate(warningOnlyOptionsFiles):
+    warningOnlyOptionsFiles[i] = filename[:-1]</variable>
+    <variable name="optionErrors" language="python">import glob
+import os
+import sys
+import xml.dom.minidom
+
+import gtk.gdk
+
+import diamond.debug as debug
+import diamond.schema as schema
+
+debug.SetDebugLevel(0)
+
+rootDir = os.path.join(os.path.pardir, os.path.pardir)
+testDir = os.path.join(rootDir, "tests")
+
+filenames = glob.glob(os.path.join(testDir, "*", "*.flml"))
+filenames += glob.glob(os.path.join(testDir, "*", "*", "*.flml"))
+
+schemafile = os.path.join(rootDir, "tools", "fluidity_options.rng")
+sch = schema.Schema(schemafile)
+
+passes = 0
+optionErrors = {}
+for filename in filenames: 
+  optionsTree = sch.read(filename)
+  lost_eles, added_eles = sch.read_errors()
+  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+    print filename + " : Pass"
+    passes += 1
+  else:
+    print filename + " : Fail"
+    optionErrors[filename] = (lost_eles, added_eles)
+    
+filenames = glob.glob(os.path.join(testDir, "*", "*.xml"))
+filenames += glob.glob(os.path.join(testDir, "*", "*", "*.xml"))
+for filename in filenames:
+  xmlParse = xml.dom.minidom.parse(filename)
+  rootEles = xmlParse.getElementsByTagName("fluidity_options")
+  if len(rootEles) == 0:
+    continue
+
+  optionsTree = sch.read(filename)
+  lost_eles, added_eles = sch.read_errors()
+  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+    print filename + " : Pass"
+    passes += 1
+  else:
+    print filename + " : Fail"
+    optionErrors[filename] = (lost_eles, added_eles)
+
+print "Summary of options files with failures:"
+for filename in optionErrors.keys():
+  print filename
+print "Passes: " + str(passes)
+print "Failures: " + str(len(optionErrors))</variable>
+    <variable name="testXmlErrors" language="python">import glob
+import os
+import sys
+import xml.dom.minidom
+
+import gtk.gdk
+
+import diamond.debug as debug
+import diamond.schema as schema
+
+debug.SetDebugLevel(0)
+
+rootDir = os.path.join(os.path.pardir, os.path.pardir)
+testDir = os.path.join(rootDir, "tests")
+
+filenames = glob.glob(os.path.join(testDir, "*", "*.xml"))
+filenames += glob.glob(os.path.join(testDir, "*", "*", "*.xml"))
+
+schemafile = os.path.join(rootDir, "tools", "test_options.rng")
+sch = schema.Schema(schemafile)
+
+passes = 0
+testXmlErrors = {}
+for filename in filenames:
+  xmlParse = xml.dom.minidom.parse(filename)
+  rootEles = xmlParse.getElementsByTagName("testproblem")
+  if len(rootEles) == 0:
+    continue
+
+  optionsTree = sch.read(filename)
+  lost_eles, added_eles = sch.read_errors()
+  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+    print filename + " : Pass"
+    passes += 1
+  else:
+    print filename + " : Fail"
+    testXmlErrors[filename] = (lost_eles, added_eles)
+
+print "Summary of test XML files with failures:"
+for filename in testXmlErrors.keys():
+  print filename
+print "Passes: " + str(passes)
+print "Failures: " + str(len(testXmlErrors))</variable>
+  </variables>
+  <pass_tests>
+    <test name="Options files validate" language="python">failures = []
+for filename in optionErrors.keys():
+  if not filename in warningOnlyOptionsFiles and not filename in ignoredOptionsFiles:
+    failures.append(filename)
+print "Summary of options files with failures:"
+for filename in failures:
+  print filename
+print "Failures: " + str(len(failures))
+assert(len(failures) == 0)</test>
+    <test name="Test XML files validate" language="python">failures = testXmlErrors
+print "Summary of test XML files with failures:"
+for filename in failures:
+  print filename
+print "Failures: " + str(len(failures))
+assert(len(failures) == 0)</test>
+  </pass_tests>
+  <warn_tests>
+    <test name="Options files validate" language="python">failures = []
+for filename in optionErrors.keys():
+  if not filename in ignoredOptionsFiles:
+    failures.append(filename)
+print "Summary of options files with failures:"
+for filename in failures:
+  print filename
+print "Failures: " + str(len(failures))
+assert(len(failures) == 0)</test>
+  </warn_tests>
+</testproblem>

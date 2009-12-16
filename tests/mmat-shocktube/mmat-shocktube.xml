@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material surface integral pressure check</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v3 --xml 1material_shocktube.flml &gt; output </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="pressureerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((3,1))*0.005
+coly=array([[-0.95],[0.1],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_15.vtu')
+probedpressure=vtktools.vtu.ProbeData(vtufile,coordinates,'Pressure')
+expectedpressure=array([[0.99965836],[0.39541752],[0.2034909]])
+pressureerror = max(abs(probedpressure-expectedpressure))-0.2
+    </variable>
+    <variable name="yvelocityerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((3,1))*0.005
+coly=array([[-0.95],[0.15],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_15.vtu')
+probedvelocity=vtktools.vtu.ProbeData(vtufile,coordinates,'Velocity')
+expectedyvelocity=array([[1.65554811e-04],[6.42810225e-01],[1.00077298e-02]])
+yvelocityerror = max(abs(probedvelocity[:,1][:,newaxis]-expectedyvelocity))
+    </variable>
+    <variable name="matdenserror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((4,1))*0.005
+coly=array([[-0.95],[0.1],[0.3],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_15.vtu')
+probedmatdens=vtktools.vtu.ProbeData(vtufile,coordinates,'MaterialDensity')
+expectedmatdens=array([[0.99975598],[0.49841449],[0.38144737],[0.20248826]])
+matdenserror = max(abs(probedmatdens-expectedmatdens))
+    </variable>
+    <variable name="densityerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((4,1))*0.005
+coly=array([[-0.95],[0.1],[0.3],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_15.vtu')
+probeddensity=vtktools.vtu.ProbeData(vtufile,coordinates,'Density')
+expecteddensity=array([[0.99975598],[0.49841449],[0.38144737],[0.20248826]])
+densityerror = max(abs(probeddensity-expecteddensity))
+    </variable>
+    <variable name="matnrgerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((4,1))*0.005
+coly=array([[-0.95],[0.0],[0.4],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_15.vtu')
+probedmatnrg=vtktools.vtu.ProbeData(vtufile,coordinates,'MaterialInternalEnergy')
+expectedmatnrg=array([[2.49975586],[1.98061311],[2.81699848],[2.51237893]])
+matnrgerror = max(abs(probedmatnrg-expectedmatnrg))
+    </variable>
+<!--    <variable name="checkpointpressureerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((3,1))*0.005
+coly=array([[-0.95],[0.1],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_checkpoint_3.vtu')
+probedpressure=vtktools.vtu.ProbeData(vtufile,coordinates,'Pressure')
+expectedpressure=array([[0.99966669],[0.43788859],[0.20216571]])
+checkpointpressureerror = max(abs(probedpressure-expectedpressure))
+    </variable>
+    <variable name="checkpointyvelocityerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((3,1))*0.005
+coly=array([[-0.95],[0.15],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_checkpoint_3.vtu')
+probedvelocity=vtktools.vtu.ProbeData(vtufile,coordinates,'Velocity')
+expectedyvelocity=array([[1.86053134e-04],[6.65042877e-01],[5.99852111e-03]])
+checkpointyvelocityerror = max(abs(probedvelocity[:,1][:,newaxis]-expectedyvelocity))
+    </variable>
+    <variable name="checkpointmatdenserror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((4,1))*0.005
+coly=array([[-0.95],[0.1],[0.3],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_checkpoint_3.vtu')
+probedmatdens=vtktools.vtu.ProbeData(vtufile,coordinates,'MaterialDensity')
+expectedmatdens=array([[0.99976194],[0.54250795],[0.41570103],[0.20154488]])
+checkpointmatdenserror = max(abs(probedmatdens-expectedmatdens))
+    </variable>
+    <variable name="checkpointdensityerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((4,1))*0.005
+coly=array([[-0.95],[0.1],[0.3],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_checkpoint_3.vtu')
+probeddensity=vtktools.vtu.ProbeData(vtufile,coordinates,'Density')
+expecteddensity=array([[0.99976194],[0.54250795],[0.41570103],[0.20154488]])
+checkpointdensityerror = max(abs(probeddensity-expecteddensity))
+    </variable>
+    <variable name="checkpointmatnrgerror" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colxz=ones((4,1))*0.005
+coly=array([[-0.95],[0.0],[0.4],[0.95]])
+coordinates=concatenate((colxz,coly,colxz),1)
+vtufile=vtktools.vtu('1material_shocktube_checkpoint_3.vtu')
+probedmatnrg=vtktools.vtu.ProbeData(vtufile,coordinates,'MaterialInternalEnergy')
+expectedmatnrg=array([[2.49976206],[1.99864984],[2.91237092],[2.50770044]])
+checkpointmatnrgerror = max(abs(probedmatnrg-expectedmatnrg))
+    </variable>-->
+    <variable name="mxvfrac" language="python">
+import fluidity_tools
+mxvfrac=fluidity_tools.stat_parser('1material_shocktube.stat')['Gas']['MaterialVolumeFraction']['max'][-1]
+    </variable>
+    <variable name="mnvfrac" language="python">
+import fluidity_tools
+mnvfrac=fluidity_tools.stat_parser('1material_shocktube.stat')['Gas']['MaterialVolumeFraction']['min'][-1]
+    </variable>
+    <variable name="time" language="python">
+import fluidity_tools
+time=fluidity_tools.stat_parser('1material_shocktube.stat')['ElapsedTime']['value'][-1]
+    </variable>
+<!--    <variable name="checkpointtime" language="python">
+import fluidity_tools
+checkpointtime=fluidity_tools.stat_parser('1material_shocktube_checkpoint.stat')['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="checkpointstarttime" language="python">
+import fluidity_tools
+checkpointstarttime=fluidity_tools.stat_parser('1material_shocktube_checkpoint.stat')['ElapsedTime']['value'][0]
+    </variable>-->
+  </variables>
+    <pass_tests>  
+    <test name="check pressure follows a step pattern" language="python">
+   assert pressureerror &lt; 1e-3
+    </test>    
+    <test name="check y velocity follows a top hat pattern" language="python">
+   assert yvelocityerror &lt; 1e-3
+    </test>    
+    <test name="check material density follows a double step pattern" language="python">
+   assert matdenserror &lt; 1e-3
+    </test>    
+    <test name="check bulk density follows a double step pattern" language="python">
+   assert densityerror &lt; 1e-3
+    </test>    
+<!--    <test name="check checkpointed pressure follows a step pattern" language="python">
+   assert checkpointpressureerror &lt; 1e-3
+    </test>    
+    <test name="check checkpointed y velocity follows a top hat pattern" language="python">
+   assert checkpointyvelocityerror &lt; 1e-3
+    </test>    
+    <test name="check checkpointed material density follows a double step pattern" language="python">
+   assert checkpointmatdenserror &lt; 1e-3
+    </test>    
+    <test name="check checkpointed bulk density follows a double step pattern" language="python">
+   assert checkpointdensityerror &lt; 1e-3
+    </test>    -->
+    <test name="check max volume fraction is 1" language="python">
+   assert abs(mxvfrac-1.0) &lt; 1e-6
+    </test>    
+    <test name="check min volume fraction is 1" language="python">
+   assert abs(mnvfrac-1.0) &lt; 1e-6
+    </test>    
+    <test name="check finish time is 0.375" language="python">
+   assert abs(time-0.375) &lt; 1e-10
+    </test>    
+<!--    <test name="check checkpointed start time is 0.125" language="python">
+   assert abs(checkpointstarttime-0.125) &lt; 1e-10
+    </test>    
+    <test name="check checkpointed finish time is 0.375" language="python">
+   assert abs(checkpointtime-0.375) &lt; 1e-10
+    </test>    -->
+  </pass_tests>
+  <warn_tests>
+    <test name="check pressure follows a step pattern" language="python">
+   assert pressureerror &lt; 1e-6
+    </test>    
+    <test name="check y velocity follows a top hat pattern" language="python">
+   assert yvelocityerror &lt; 1e-6
+    </test>    
+    <test name="check material density follows a double step pattern" language="python">
+   assert matdenserror &lt; 1e-6
+    </test>    
+    <test name="check bulk density follows a double step pattern" language="python">
+   assert densityerror &lt; 1e-6
+    </test>    
+  </warn_tests>
+</testproblem>

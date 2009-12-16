@@ -1,0 +1,3 @@
+&IGW_data tmax=10.0, tdump=1.0, dt=0.01, fr=1.0, ro=0.1, u_degree=1,
+h_degree=2,u_cty=-1,steady_state=F, mesh="basin",
+u_input="basin_u.py", h_input="basin_h.py", get_streamfunction=F/

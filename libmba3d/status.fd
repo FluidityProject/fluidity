@@ -1,0 +1,80 @@
+C ==========================================================
+C The mesh generation can be controled in a few ways.
+C The main way is through the metric field. However, some
+C mesh features may be missing. In order to ensure additional
+C mesh features, we introduce integer variable status. 
+C The non-zero bits of this variable turn on the 
+C following mesh features:
+C
+C  bit 01 - (ANIForbidBoundaryElements=1): the final mesh will
+C           not contain tetrahedra with all vertices on the
+C           domain boundary.
+C
+C  bit 02 - (ANIUse2ArmRule=2): each boundary point of the mesh
+C           may be connected to an inner mesh point with at
+C           most 2 mesh edges.
+C
+C           The feature allows more stable implementation of
+C           Hessian recovering algorithms.
+C
+C  bit 03 - (ANIFixBoundaryFaces=4): the surface faces will be
+C           added to the list of fixed faces.
+C
+C           The feature may be useful for generating multi-block
+C           meshes.
+C
+C  bit 04 - (ANIDeleteTemporaryFaces=8): the new faces created by
+C           the algorithm will be removed from the final mesh.
+C           The new egdes may include material interfaces.
+C
+C  bit 05 - (ANIFixSurfacePoints=16): the surface points will be
+C           added to the list of fixed points.
+C
+C           The feature may be useful for preserving complex
+C           geometries in anisotropic metric fields.
+C
+C  bit 06 - (reserved=32)
+C
+C ==========================================================
+C The following bits reflect mesh features discovered by
+C the algorithm. We keep it for the user disposal.
+C
+C  bit 07 - (ANIMultiConnectedGeometry=64): the geometry is
+C           multi-connected.
+C
+C  bit 08 - (reserved=128)
+C
+C
+C ==========================================================
+C The following bits are under development. They will be
+C automatically removed from the initial value of status.
+C
+C  bit 09 - (reserved=256)
+C
+C  bit 10 - (ANITangledMesh=512): the tangled initial mesh
+C           will be fixed. 
+C
+C  bit 11 - (reserved=1024):
+C
+C ==========================================================
+      Integer   ANIForbidBoundaryElements
+      Parameter(ANIForbidBoundaryElements = 1)
+
+      Integer   ANIUse2ArmRule
+      Parameter(ANIUse2ArmRule = 2)
+
+      Integer   ANIFixBoundaryFaces
+      Parameter(ANIFixBoundaryFaces = 4)
+
+      Integer   ANIDeleteTemporaryFaces
+      Parameter(ANIDeleteTemporaryFaces = 8)
+
+      Integer   ANIFixSurfacePoints
+      Parameter(ANIFixSurfacePoints = 16)
+
+      Integer   ANIMultiConnectedGeometry
+      Parameter(ANIMultiConnectedGeometry = 64)
+
+      Integer   ANITangledMesh
+      Parameter(ANITangledMesh = 512)
+

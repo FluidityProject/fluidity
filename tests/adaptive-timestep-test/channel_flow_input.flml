@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">channel_flow</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="channel">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">3</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <integer_value rank="0">100</integer_value>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">0.02</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">0.3</real_value>
+    </finish_time>
+    <adaptive_timestep replaces="TIMAUT">
+      <requested_cfl>
+        <real_value rank="0">0.4</real_value>
+      </requested_cfl>
+      <courant_number name="ControlVolumeCFLNumber">
+        <mesh name="VelocityMesh"/>
+      </courant_number>
+      <maximum_timestep replaces="MAXDT">
+        <real_value rank="0">0.03</real_value>
+      </maximum_timestep>
+      <increase_tolerance>
+        <real_value rank="0">1.05</real_value>
+      </increase_tolerance>
+      <at_first_timestep/>
+    </adaptive_timestep>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="Water">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.01 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+  </material_phase>
+</fluidity_options>

@@ -1,0 +1,25 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Vertical integration</name>
+  <owner userid="maddison"/>
+  <problem_definition length = "medium" nprocs = "1">
+    <command_line>rm -f vertical_integration.log; make clean-run; vertical_integration -b 0.0 -p 2 -t 1.0 -s 0.1 -v target src/integrated.vtu IntegrationField output > vertical_integration.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "result" language = "python">
+import numpy
+import vtktools
+vtu = vtktools.vtu("output.vtu")
+result = vtu.GetScalarField("IntegrationFieldVerticalIntegral")
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Correct integral" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variables(result, [1.0 for i in range(len(result))], 1.0e-9)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

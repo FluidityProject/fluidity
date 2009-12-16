@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>region_id check</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v2 -l region_id_input.flml </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="lwmatvfrac" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.25]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+matvfrac=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialVolumeFraction')
+lwmatvfrac=matvfrac[0,0]
+    </variable>
+    <variable name="uwmatvfrac" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.75]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+matvfrac=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialVolumeFraction')
+uwmatvfrac=matvfrac[0,0]
+    </variable>
+    <variable name="lamatvfrac" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.25]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+matvfrac=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialVolumeFraction')
+lamatvfrac=matvfrac[0,0]
+    </variable>
+    <variable name="uamatvfrac" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.75]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+matvfrac=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialVolumeFraction')
+uamatvfrac=matvfrac[0,0]
+    </variable>
+    <variable name="lyvel" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.25]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+lvel=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::Velocity')
+lyvel=lvel[0,1]
+    </variable>
+    <variable name="uyvel" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.75]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+uvel=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::Velocity')
+uyvel=uvel[0,1]
+    </variable>
+    <variable name="lwmatvisxx" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.25]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+lwmatvis=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialViscosity')
+lwmatvisxx=lwmatvis[0,0,0]
+    </variable>
+    <variable name="uwmatvisxx" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.75]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+uwmatvis=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialViscosity')
+uwmatvisxx=uwmatvis[0,0,0]
+    </variable>
+    <variable name="lamatvisxx" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.25]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+lamatvis=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialViscosity')
+lamatvisxx=lamatvis[0,0,0]
+    </variable>
+    <variable name="uamatvisxx" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.75]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+uamatvis=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialViscosity')
+uamatvisxx=uamatvis[0,0,0]
+    </variable>
+    <variable name="lwmatdensmx" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.5]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+matdens=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialDensity')
+lwmatdensmx=matdens[0,0]
+    </variable>
+    <variable name="lamatdensmx" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.5]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_0.vtu')
+matdens=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialDensity')
+lamatdensmx=matdens[0,0]
+    </variable>
+    <variable name="region35" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.44]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_2.vtu')
+region=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::Regions')
+region35=region[0,0]
+    </variable>
+    <variable name="region36" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.475]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_2.vtu')
+region=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::Regions')
+region36=region[0,0]
+    </variable>
+    <variable name="region37" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.525]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_2.vtu')
+region=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::Regions')
+region37=region[0,0]
+    </variable>
+    <variable name="region38" language="python">
+import vtktools
+from numpy import concatenate, arange, newaxis, ones, array
+colx=array([[0.25]])
+coly=array([[0.56]])
+colz=array([[0.005]])
+coordinates=concatenate((colx,coly,colz),1)
+vtufile=vtktools.vtu('region_id_2.vtu')
+region=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::Regions')
+region38=region[0,0]
+    </variable>
+    <variable name="nodesstart" language="python">
+from fluidity_tools import stat_parser as stat
+nodesstart = stat("region_id.stat")["CoordinateMesh"]["nodes"][0]
+   </variable>
+    <variable name="nodesend" language="python">
+from fluidity_tools import stat_parser as stat
+nodesend = stat("region_id.stat")["CoordinateMesh"]["nodes"][-1]
+     </variable>
+  </variables>
+    <pass_tests>  
+    <test name="check lower mesh water volume fraction" language="python">
+   assert abs(lwmatvfrac-1.0) &lt; 1e-12
+    </test>
+    <test name="check upper mesh water volume fraction" language="python">
+   assert abs(uwmatvfrac) &lt; 1e-12
+    </test>
+    <test name="check upper mesh air volume fraction" language="python">
+   assert abs(uamatvfrac-1.0) &lt; 1e-12
+    </test>
+    <test name="check lower mesh air volume fraction" language="python">
+   assert abs(lamatvfrac) &lt; 1e-12
+    </test>
+    <test name="check lower mesh y velocity" language="python">
+   assert abs(uyvel-1.0) &lt; 1e-12
+    </test>
+    <test name="check upper mesh y velocity" language="python">
+   assert abs(lyvel-1.0) &lt; 1e-12
+    </test>
+    <test name="check lower mesh xx water material viscosity" language="python">
+   assert abs(lwmatvisxx+1.0) &lt; 1e-12
+    </test>
+    <test name="check upper mesh xx water material viscosity" language="python">
+   assert abs(uwmatvisxx-1.0) &lt; 1e-12
+    </test>
+    <test name="check lower mesh xx air material viscosity" language="python">
+   assert abs(lamatvisxx-1.0) &lt; 1e-12
+    </test>
+    <test name="check upper mesh xx air material viscosity" language="python">
+   assert abs(uamatvisxx+1.0) &lt; 1e-12
+    </test>
+    <test name="check water material density max" language="python">
+   assert abs(lwmatdensmx-1000.0) &lt; 1e-12
+    </test>
+    <test name="check air material density max" language="python">
+   assert abs(lamatdensmx-1.0) &lt; 1e-12
+    </test>
+    <test name="check region id 35 is preserved" language="python">
+   assert abs(region35-35.0) &lt; 1.0
+    </test>
+    <test name="check region id 36 is preserved" language="python">
+   assert abs(region36-36.0) &lt; 1.0
+    </test>
+    <test name="check region id 37 is preserved" language="python">
+   assert abs(region37-37.0) &lt; 1.0
+    </test>
+    <test name="check region id 38 is preserved" language="python">
+   assert abs(region38-38.0) &lt; 1.0
+    </test>
+    <test name="check no. nodes has changed - i.e. adapt has happened" language="python">
+   assert abs(nodesend-nodesstart) &gt; 0
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

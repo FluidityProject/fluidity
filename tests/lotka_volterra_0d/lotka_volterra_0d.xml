@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lotka_volterra</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml lotka_volterra.flml</command_line>
+    <!-- Symmetric predator-prey problem. Zooplankton and Phytoplankton should both form stable cycles with maxmima at 20.0 -->
+  </problem_definition>
+  <variables>
+    <variable name="maximum_zooplankton" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("lotka_volterra.stat")
+maximum_zooplankton = max(s["Water"]["Zooplankton"]["max"][10:])
+    </variable>
+    <variable name="maximum_phytoplankton" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("lotka_volterra.stat")
+maximum_phytoplankton = max(s["Water"]["Phytoplankton"]["max"][10:])
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="maximum zooplankton is 20" language="python">
+assert abs(maximum_zooplankton-20.0) &lt; 2.e-2
+    </test>
+    <test name="maximum phytoplankton is 20" language="python">
+assert abs(maximum_phytoplankton-20.0) &lt; 2.e-2
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

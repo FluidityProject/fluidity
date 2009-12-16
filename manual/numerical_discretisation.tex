@@ -1,0 +1,952 @@
+\chapter{Numerical discretisation}\label{chap:numerical_discretisation}
+
+\section{Discretisation of the advection diffusion equation}
+Introductory paragraph about finite elements. References to standard books.
+
+\subsection{Weak form}
+\index{weak form}
+\index{test function}
+\index{advection diffusion equation!weak form}
+The finite element method always starts by writing the equations in 
+\emph{weak form}. Take for instance the tracer advection-diffusion 
+equation \eqref{heat}. 
+The weak form of this equation is 
+obtained by multiplying it with a suitable test 
+function $\phi$ and integrating over the domain $\Omega$
+\begin{equation*}
+  \int_\Omega \phi \left( \frac{\partial T}{\partial t} + \vec{u}\cdot\vec\nabla T + 
+    \vec\nabla\cdot\tensor{\mu}\cdot\vec{\nabla}T\right) = 0.
+\end{equation*}
+For simplicity sake let us first assume the boundaries are closed ($\vec{u}\cdot\vec{n}=0$)
+and we apply a homogeneous Neumann boundary condition everywhere: $\partial T/\partial n=0$.
+Integration by parts of the diffusion term then gives us
+\begin{equation}\label{eq:weak_adv_diff}
+  \int_\Omega \phi \frac{\partial T}{\partial t} + 
+    \phi\vec{u}\cdot\vec\nabla T -
+    \vec\nabla\phi\cdot \tensor{\mu}\cdot\vec{\nabla} T = 0. 
+\end{equation}
+Note that due to the Neumann boundary condition the boundary term has dropped out. The tracer 
+field $T$ is now called a \emph{weak solution} of the equations if \eqref{eq:weak_adv_diff} holds true
+for all $\phi$ in some space of test functions $V$. What is a suitable test space $V$ 
+is dependent on the equation (for more details see \citet{elman08}). 
+
+\index{Sobolev space}
+An important observation is that \eqref{eq:weak_adv_diff} only contains first derivatives 
+of the field $T$, so that we can now include solutions that do not have a continuous 
+second derivative. For these solutions the original equation \eqref{heat}
+would not be well-defined. All that is required is that the first derivatives of $T$ can be 
+integrated along with the test function. A more precise definition of this space, the 
+\emph{Sobolev space}, can again be found \citet{elman08}.
+
+\subsection{Finite element discretisation}
+\index{trial function}
+Instead of looking for a solution in the entire Sobolev space,
+in finite element methods discretisation
+happens by restricting the solution to a 
+finite-dimensional subspace. Thus the solution can be 
+written as a linear combination of a finite number of functions,
+the \emph{trial functions} $\phi_i$ that form a basis of the 
+\emph{trial space}.
+\begin{equation*}
+  T(\vec{x})=\sum_i T_i \phi_i(\vec(x)).
+\end{equation*}
+The coefficients $T_i$ can be written in vector format. The 
+dimension of this vector equals the dimension of the trial 
+space. In the rest of the manual, any function in 
+this way represented as a vector will be denoted as $\dvec{T}$.
+
+\index{Galerkin!methods}
+\index{Galerkin!projection}
+Because the set of trial functions is now much smaller, we also need
+a much smaller set of test functions for the equation in weak 
+form \eqref{eq:weak_adv_diff} to have a unique 
+solution. A common choice is in fact to choose the same
+test and trial space. Finite element methods that make this choice are 
+referred to as \emph{Galerkin methods} - the discretisation 
+can be seen as a so called \emph{Galerkin 
+projection} of the weak equation to a finite subspace.
+
+\index{PN@\PN}
+\index{Galerkin!continuous}
+\index{Galerkin!discontinuous}
+There are many possibilities for choosing the finite-dimensional trial and test spaces. 
+A straightforward choice is to restrict the functions to be polynomials of degree 
+$n\leq N$ within each element. These are referred to as \PN discretisations. 
+As we generally need functions for which the first 
+derivatives are integrable, a further restriction 
+is needed. If we allow the functions to be any polynomial of 
+degree $n\leq N$ within the elements the function can be 
+discontinuous in the boundary between elements. 
+Continuous Galerkin methods therefore
+restrict the test and trial functions to arbitrary polynomials 
+that are continuous between the elements. Discontinuous Galerkin methods, 
+that allow any polynomial, are also possible but require 
+extra care when integrating by parts (see section \ref{sec:NM_DG_advection}).
+
+\index{P1@\Pone}
+\index{basis function}
+If we choose \Pone as our test and trial functions, \ie piecewise linear
+functions, within each element we only need to know the value 
+of the function at 3 points in 2D, and 4 points in 3D. 
+In \fluidity\ these points are chosen to be the vertices of 
+the triangles (in 2D) or tetrahedra (3D). 
+For Continuous Galerkin the continuity 
+requirement then comes down to requiring 
+the functions to have a single value in each
+vertex. A set of basis functions $\phi_i$ 
+for this space is easily found by choosing the piecewise linear functions
+$\phi_i$ that satisfy:
+\begin{equation*}
+  \phi_i(x_i)=1, \phi_i(x_{j\neq i})=0,
+\end{equation*}
+where $x_i$ are the vertices in the mesh. 
+This choice of basis functions has the following useful property:
+\begin{equation*}
+  T_i=T(\vec{x}_i),\quad \text{for all nodes $x_i$ in the mesh.}
+\end{equation*}
+This naturally describes trial functions that are linearly 
+interpolated between the values $T_i$ in the nodes.
+Higher order polynomials can be represented using more 
+nodes in the element.
+(insert \Ptwo example figure here)
+
+As discussed previously the test space in Galerkin FEM methods is the same as the 
+trial space. So for \PN the test functions can be an arbitrary linear combination 
+of the same set of basis functions. To make sure that the equation we are solving 
+tested integrates to zero with all such test functions, all we have to do is make sure
+that the equation tested with the basis functions integrate to zero. The discretised 
+version of \eqref{eq:weak_adv_diff} therefore becomes
+\index{advection diffusion equation!weak form!discretised}
+\begin{equation}\label{eq:weak_adv_diff}
+  \sum_j \int_\Omega \phi_i \frac{\partial \phi_j}{\partial t} \phi_j T_j+ 
+    \phi_i\vec{u}\cdot\vec\nabla \phi_j T_j - 
+    \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j T_j = 0,
+    \quad\text{for all }\phi_i.
+\end{equation}
+where we have substituted $T=\sum_j \phi_j T_j$. From this it is readily seen that 
+we have in fact obtained a matrix equation of the following form
+\begin{equation*}
+  \mat{M} \ddt{\dvec{T}}+\mat{A}(\vec{u})\dvec{T}-\mat{K}\dvec{T}=0,
+  \label{eq:cg_adv_diff_mat}
+\end{equation*}
+where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
+\begin{equation*}
+  \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \phi_i\vec{u}\cdot\vec{\nabla} \phi_j, \quad
+  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j.
+\end{equation*}
+
+\subsection{Boundary conditions}
+\index{boundary conditions!Neumann!weakly imposed}
+In the derivation of \eqref{eq:weak_adv_diff} we have assumed a homogeneous Neumann 
+boundary condition on all boundaries. If we are considering all possible 
+solutions $T$, the boundary term we have left out is
+\begin{equation}\label{eq:missing_boundary_term}
+  \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\mu}\cdot\vec{\nabla} T.
+\end{equation}
+A natural way of imposing an inhomogeneous boundary Neumann boundary condition
+\begin{equation*}
+  \vec{n}\cdot\tensor{\mu}\cdot\vec{\nabla} T=g_N,
+\end{equation*}
+where $g_N$ can be any function on the boundary $\partial\Omega$, is to impose it 
+weakly. This is done in the same way as before:
+\begin{equation}\label{eq:weak_neumann}
+  \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\mu}\cdot\vec{\nabla} T=
+    \int_{\partial\Omega} \phi~g_N, \quad \text{for all }\phi.
+\end{equation}
+Thus \eqref{eq:weak_neumann} can be used to replace the missing 
+boundary term \eqref{eq:missing_boundary_term} with an integral of $\phi~g_N$ 
+over the boundary.
+
+\index{boundary conditions!Dirichlet!weakly imposed}
+In a similar way, a weakly imposed Dirichlet boundary condition can be related to an 
+integration by parts of the advection term. Let us consider a pure advection problem 
+($\mu=0$). The weak form of this equation integrated by parts reads:
+\begin{equation*}
+  \int_\Omega \phi \frac{\partial T}{\partial t} -
+    \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T +
+    \int_{\partial\Omega} \vec{n}\cdot\vec{u}~T
+    = 0.
+\end{equation*}
+The last (boundary) term can again be substituted by a weakly imposed boundary condition $T=g_D$.
+In this case however we only want to impose this on the inflow boundary, and the original term
+remains for the outflow boundary:
+\begin{equation}\label{eq:adv_integrated_by_parts}  
+  \int_\Omega \phi \frac{\partial T}{\partial t} -
+    \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T +
+    \int_{\partial\Omega_-} \vec{n}\cdot\vec{u}~g_D +
+    \int_{\partial\Omega_+} \vec{n}\cdot\vec{u}~T
+    = 0,
+\end{equation}
+where $\partial\Omega_-$ and $\partial\Omega_+$ refer to respectively 
+the inflow and outflow boundaries.
+
+It is to be noted that when we are applying boundary conditions weakly we still consider the full 
+set of test functions, even those that don't satisfy the boundary condition. This means the discrete
+solution will not satisfy the boundary condition exactly. Instead the solution will converge 
+to the right boundary condition along with the solution in the interior as the mesh is refined.
+
+\index{boundary conditions!Dirichlet!strongly imposed}
+An alternative way of implementing boundary conditions, so called \emph{strongly imposed}
+boundary conditions, is to restrict the trial space to only those functions that satisfy 
+the boundary condition. In the discrete trial space this means 
+we no longer allow the coefficients $T_i$ that are associated with the nodes $x_i$ on the boundary,
+to vary but instead substitute the imposed Dirichlet boundary condition. As this decreases the 
+dimension of the trial space, we also need to limit the size of the test space. This is simply 
+done by removing the test function $\phi_i$ associated with the nodes $x_i$ on the boundary, from the
+test space. Although this guarantees the Dirichlet boundary condition to be satisfied exactly, 
+it does not at all mean that the discrete solution converges to the exact continuous solution 
+more quickly than it would with weakly imposed boundary conditions. Strongly imposed boundary 
+conditions may sometimes be necessary if the boundary condition needs to be imposed strictly 
+for physical reasons.
+
+\section{Discontinuous Galerkin advection}\label{sec:NM_DG_advection}
+\index{Galerkin!discontinuous!advection}
+\index{advection-diffusion equation!discontinuous Galerkin}
+Integration by parts can be used to avoid taking 
+derivatives of discontinuous functions.
+When using discontinuous test \emph{and} trial functions however, 
+neither the original advection equation, equation \eqref{eq:weak_adv_diff} with $\mu=0$, 
+nor the version \eqref{eq:adv_integrated_by_parts} integrated by parts are well-defined. 
+Within an element however the functions are continuous, and everything is well defined. So within 
+a single element we may write
+\begin{equation}\label{eq:adv_integrated_by_parts}
+  \int_e \phi \frac{\partial T}{\partial t} -
+    \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T +
+    \int_{\partial e_-} \phi\vec{n}\cdot\vec{u}~T_- +
+    \int_{\partial e_+} \phi\vec{n}\cdot\vec{u}~T
+    = 0,
+\end{equation}
+Here $\partial e_-$ and $\partial e_+$ are the inflow and outflow boundaries of this element, where
+$u$ flows in from upwind elements, and out into downwind elements. The field $T$ will be 
+discontinuous across both boundaries. On the inflow boundary we need 
+to specify a value $T_-$ to determine what value of $T$ flows in. On the outflow boundary we have 
+chosen the value of $T$, inside the element, that is the upwind value $T_{\mathrm{upw}}$.
+To ensure conservation it is therefore a natural choice to choose the same value 
+for the inflow boundary of the downwind element. That is, we can apply this value as a 
+boundary condition $T_-=T_{\mathrm{upw}}$ for the inflow boundary of the downwind 
+element. This provides the coupling between the elements that a discontinuous method would otherwise 
+not have.
+
+The complete DG discretisation over the whole domain is now given by summing over the elements
+\begin{equation}
+\begin{split}
+  \sum_e \int_e \phi \frac{\partial T}{\partial t}
+    - \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T 
+    &+ \int_{\partial e \cap\partial\Omega_D} \vec{n}\cdot\vec{u}~g_D \\
+    &+ \int_{\partial e \cap\partial\Omega_N} \vec{n}\cdot\vec{u}~T_{\mathrm{int}} \\
+    &+ \int_{\partial e\setminus (\partial\Omega_D\cap\partial\Omega_N)} \vec{n}\cdot\vec{u}~T_{\mathrm{upw}}.
+      \label{eq:dg_adv_diff_integrated_once}
+\end{split}
+\end{equation}
+Here we have included the terms for element boundaries that are actually on
+the domain boundary, which has been divided up in a part $\partial\Omega_D$
+where a Dirichlet boundary condition $T=g_D$ is applied, and
+$\partial\Omega_N$ where a Neumann boundary condition is applied. The actual value of
+the Neumann boundary condition is only imposed via the viscosity term (see
+section \ref{sec:NM_DG_diffusion}). $T_{\mathrm{int}}$ refers to the value of
+$T$ on the inside of the boundary.
+
+In \fluidity\ the advection term is subsequently integrated by parts again within each elements. As 
+this is just a local operation on the continuous pieces of $T$ within each element, 
+the new boundary integrals take the value of the $T$ on the inside of the element. On the outflow 
+boundary of each element this means the $T_{\mathrm{int}}$ cancels against 
+$T_{\mathrm{upw}}$. So we obtain:
+\begin{equation}
+\begin{split}
+  \sum_e \int_e \phi \frac{\partial T}{\partial t}
+    - \phi~\vec{u}\cdot\vec{\nabla} T 
+    +& \int_{\partial e \cap\partial\Omega_D} \vec{n}\cdot\vec{u}~(g_D -T_{\mathrm{int}}) \\
+    +& \int_{\partial e_-\setminus (\partial\Omega_D\cap\partial\Omega_N)} \vec{n}\cdot\vec{u}~
+      (T_{\mathrm{upw}}-T_{\mathrm{int}}).
+    \label{eq:dg_adv_diff_integrated_twice}
+\end{split}
+\end{equation}
+The difference $T_{\mathrm{int}}-T_{\mathrm{upw}}$ on the inflow boundary remains, and is often referred 
+to as a \emph{jump condition}. Note also that the boundary terms on the Neumann domain boundary have
+disappeared. Note that \eqref{eq:dg_adv_diff_integrated_once} and 
+\eqref{eq:dg_adv_diff_integrated_twice} are completely equivalent. The advantage of the second form, 
+referred to in \fluidity\ as ``integrated-by-parts-twice'', is that the numerical evaluation of the
+integrals (quadrature), may not be exact (incomplete quadrature). For this reason the second form may be
+more accurate as the internal outflow boundary integrals are canceled exactly.
+
+\section{Control volume advection}
+\index{control volume!advection}
+\index{advection-diffusion equation!control volume}
+
+
+\section{Advective stabilisation for CG}
+\index{advection-diffusion equation!continuous Galerkin}
+\index{Galerkin!continuous!advection}
+\index{stabilisation!advection}
+
+It is well known that a continuous Galerkin discretisation of an
+advection-diffusion equation for an advection dominated flow can suffer from
+over- and under-shoot errors. Furthermore, these overshoot errors are not
+localised: they can propagate throughout the simulation domain and pollute the
+global solution \citep{hughes1987}. Consider a simple 1D linear steady-state
+advection-diffusion problem for a single scalar $T$:
+
+\begin{equation}\label{eqn:trivial_advdif}
+  u \ppx{T} - \kappa \ppxx{T} = f(x),
+\end{equation}
+or equivalently in weak form:
+\begin{equation}\label{eqn:trivial_advdif_weak}
+  \int_\Omega \phi (u \ppx{T} + \kappa \ppx{\phi} \ppx{T} - f(x)) = 0,
+\end{equation}
+where we have integrated by parts and applied the natural Neumann boundary
+condition $\partial T / \partial x = 0$ on $\partial \Omega$.
+Discretising \eqref{eqn:trivial_advdif_weak} with a continuous Galerkin method
+leads to truncation errors in the advection term equivalent to a negative
+diffusivity term of magnitude \citep{DoneaBook}:
+\begin{equation}\label{eqn:cg_implicit_diffusivity}
+  \bar{\kappa} = \xi \kappa \Pe,
+\end{equation}
+where:
+\begin{equation}\label{eqn:xi_parameter}
+  \xi = \frac{1}{\tanh(\Pe)} - \frac{1}{\Pe},
+\end{equation}
+and:
+\begin{equation}\label{eqn:grid_pe}
+  \Pe = \frac{u h}{2 \kappa},
+\end{equation}
+is a grid P\'eclet number, with grid spacing $h$.
+\index{P\'eclet number!grid}
+
+This implicit negative diffusivity becomes
+equal to the explicit diffusivity at a P\'eclet greater than one, and hence
+instability occurs for $\Pe \geq 1$. In order to achieve a stable discretisation
+using a continuous Galerkin method one is therefore required either to increase
+the model resolution so as to reduce the grid P\'eclet number, or to apply
+advective stabilisation methods.
+
+\subsection{Balancing diffusion}\label{sec:balancing_diffusion}
+\index{stabilisation!advection!balancing diffusion}
+
+A simple way to stabilise the system is to add an extra diffusivity of
+equal magnitude to that introduced by the discretisation of the advection term,
+but of opposite sign. This method is referred to as \textit{balancing diffusion}.
+Note, however, that for two or more dimensions, we require this balancing
+diffusion to apply in the along-stream direction only \citep{brooks1982, DoneaBook}.
+For this reason this method is also referred to as \textit{streamline-upwind}
+stabilisation. The multidimensional weak-form equation:
+\begin{equation}\label{eqn:trivial_advdif_weak_md}
+  \int_\Omega \phi (\vec{u} \cdot \nabla T + \kappa \nabla \phi \nabla T -f(x)) = 0,
+\end{equation}
+is therefore modified to include an additional artificial balancing diffusion
+term \citep{DoneaBook}:
+\begin{equation}\label{eqn:balancing_diffusion}
+  \int_\Omega \phi (\vec{u} \cdot \nabla T + \kappa \nabla \phi \nabla T - f(x)) + 
+  \int_\Omega \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2}
+  (\vec{u} \cdot \nabla \phi) (\vec{u} \cdot \nabla \vec{T}) 
+  = 0.
+\end{equation}
+
+The exact form of the multidimensional stability parameter $\bar{\kappa}$
+is a research issue. See \ref{sec:stabilisation_parameter} for implementations in
+\fluidity.
+
+The addition of the balancing diffusion term combats the negative implicit
+diffusivity of the continuous Galerkin method. However, we are no longer solving
+the original equation - for a pure advection flow we are now solving a modified
+version of the original advection-diffusion equation with the grid
+P\'eclet number artificially reduced from
+infinity to unity everywhere. Hence streamline-upwind is not a \textit{consistent}
+stabilisation method, and there is a reduction in the degree of numerical
+convergence.
+
+\subsection{Streamline-upwind Petrov-Galerkin}\label{sec:supg}
+\index{Galerkin!Petrov-}
+\index{Petrov-Galerkin}
+\index{stabilisation!advection!Petrov-Galerkin}
+
+The streamline-upwind stabilisation method can be extended to a consistent (and
+hence high order accurate) method by introducing stabilisation in the form of a weighted
+residual \citep{DoneaBook}:
+\begin{equation*}
+  \int_\Omega \phi (\vec{u} \cdot \nabla T + \kappa \nabla \phi \nabla T - f(x)) +
+  \int_\Omega \tau P(\phi) R(\phi)
+  = 0,
+\end{equation*}
+where:
+\begin{equation*}
+  R(\phi) = \vec{u} \cdot \nabla T - \kappa \nabla^2 T - f(x),
+\end{equation*}
+is the equation residual, $\tau$ is a stabilisation parameter and $P(\phi)$ is
+some operator.
+Note that this is equivalent to replacing the test function in the original
+equation with $\tilde{\phi} = \phi + \tau P(\phi)$.
+Looking at equation \eqref{eqn:balancing_diffusion}, it can seen that the
+balancing diffusion term is equivalent to replacing the test function for the
+advection term with:
+\begin{equation}\label{eqn:supg_test_function}
+  \tilde{\phi} = \phi + \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2} u \cdot \nabla.
+\end{equation}
+
+This suggests a stabilisation method whereby the test function in the advection-diffusion
+equation is replaced with the test function in \eqref{eqn:supg_test_function}.
+This approach defines the \textit{streamline-upwind Petrov-Galerkin} (SUPG) method. The
+weighted residual formulation of this method guarantees consistency, and hence
+preserves the accuracy of the method. Furthermore, while this method does
+still possess under- and over-shoot errors in the presence of sharp solution
+gradients, these errors remain localised \citep{hughes1987}.
+
+\subsubsection{Stabilisation parameter}\label{sec:stabilisation_parameter}
+
+Note that, as mentioned in \ref{sec:balancing_diffusion}, the choice of
+stabilisation parameter $\bar{\kappa}$ is somewhat arbitrary. \fluidity\ implements \citep{brooks1982, DoneaBook}:
+
+\begin{equation}\label{eqn:md_nu_bar}
+  \bar{\kappa} = \frac{1}{2} \sum{\xi_i u_i h_i},
+\end{equation}
+
+where the summation is over the quadrature points of an individual element. The
+grid spacings $h_i$ are approximated from the elemental Jacobian.
+
+As an alternative, \citet{raymond1976} show that for
+1D transient pure-advection a choice of:
+
+\begin{equation}\label{eqn:md_nu_bar_transient}
+  \bar{\kappa} = \frac{1}{\sqrt{15}} \sum{\xi_i u_i h_i},
+\end{equation}
+
+minimises phase errors.
+
+Computing the $\xi$ factor at quadrature points is potentially expensive due to
+the evaluation of a hyperbolic-tangent. Sub-optimal but more computationally
+efficient approximations for $\xi$ are the critical rule approximation \citep{brooks1982}:
+
+\begin{equation}
+  \xi = \begin{cases}
+          -1 - 1 / \Pe  & \Pe < -1 \\
+          0             & -1 \le \Pe \le 1 \\
+          1 + 1 / \Pe   & \Pe > 1
+        \end{cases}
+\end{equation}
+
+and the doubly-asymptotic approximation \citep{DoneaBook}:
+
+\begin{equation}
+  \xi = \begin{cases}
+          \Pe / 3.0  & \left| \Pe \right| \le 3.0 \\
+          \sgn(\Pe)  & \textrm{otherwise}.
+        \end{cases}
+\end{equation}
+
+\subsubsection{Implementation limitations}
+
+The SUPG implementation in \fluidity\ does not modify the test function derivatives
+or the face test functions. Hence the SUPG implementation is only consistent
+for degree one elements with no non-zero Neumann or weak Dirichlet boundary
+conditions.
+
+SUPG is considered ready for production use for scalar advection-diffusion
+equation discretisation, but is still experimental for momentum discretisation.
+
+\subsection{Example}
+
+The following example considers pure advection of a 1D top hat of unit magnitude
+and width 0.25 in a periodic domain of unit size. The top hat is advected with a
+CFL number of $1 / 8$. Figure \ref{fig:top_hat_cg} shows the solution after
+80 timesteps using a continuous Galerkin discretisation. Figure \ref{fig:top_hat_su}
+shows the solution when streamline-upwind stabilisation is applied.
+Figure \ref{fig:top_hat_supg} shows the solution when streamline-upwind
+Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_nu_bar}.
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/cg}
+  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+           using a continuous Galerkin discretisation.}
+  \label{fig:top_hat_cg}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/su}
+  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+           using a continuous Galerkin discretisation with streamline-upwind
+           stabilisation.}
+  \label{fig:top_hat_su}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/supg}
+  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+           using a continuous Galerkin discretisation with streamline-upwind
+           Petrov-Galerkin stabilisation.}
+  \label{fig:top_hat_supg}
+\end{figure}
+
+\section{Advective stabilisation for DG}
+\index{stabilisation!advection!discontinuous Galerkin}
+
+As described by \cite{CoSh2001}, the DG method with $p$-th order
+polynomials using an appropriate Riemann flux (the upwind flux in the
+case of the scalar advection equation) applied to hyperbolic systems
+is always stable and $(p+1)$-th order accurate. However, Godunov's
+theorem states that linear monotone\footnote{A monotone scheme is a
+  scheme that does not generate new extrema.} schemes are at most
+first-order accurate. Hence, for $p>0$, we expect the DG method to
+generate new extrema, which are observed as undershoots and overshoots
+for the scalar advection equation. However, the DG method does have
+the additional property that if the DG solution fields\footnote{For a
+  system of equations this refers to the characteristic variables
+  obtained from the diagonalisation of the hyperbolic system} are
+bounded element-wise, \emph{i.e.} at each element face a solution
+field lies between the average value for that element and the average
+value for the neighbouring element on the other side of the face, then
+the element-averaged DG field (\emph{i.e.} the projection of the DG
+field to P0) does not obtain any new minima. This result only holds if
+the explicit Euler timestepping method (or one of the higher-order
+extensions, namely the Strongly Structure Preserving Runge-Kutta
+(SSPRK) methods) is used. Hence, the DG field can be made monotonic by
+adjusting the solution at the end of each timestep (or after each
+SSPRK stage) so that it becomes bounded element-wise. This is done in
+a conservative manner \emph{i.e.} without changing the element-averaged
+values. For P1, only the slopes can be adjusted to make the solution 
+bounded element-wise, and hence the adjustment schemes are called
+\emph{Slope Limiters}.
+
+\subsection{Types of slope limiter}
+\index{slope limiters}
+There are two stages in any slope limiter. First all the elements
+which do not currently satisfy the element bounded condition must be
+identified. Secondly, the slopes (and possibly higher-order components
+of the solution) in each of these elements must be adjusted so that
+they satisfy the bounded condition. In general, this type of
+adjustment introduces extra diffusion, and so it is important to ($a$)
+identify as few elements as possible, and ($b$) adjust the slopes as
+little as possible, in order to introduce as little extra diffusion as
+possible. For high-order elements, exactly how to do this is a very
+contentious issue but a few approaches are satisfactory for low-order
+elements.
+\subsubsection{Cockburn-Shu limiter}
+This limiter, introduced in \cite{CoSh2001}, only checks the element
+bounded condition at face centres. There is a tolerance parameter, the
+TVB factor, which controls how sensitive the method is to the bounds
+(the value recommended in the paper is 5) and a limit factor, which
+scales the reconstructed slope (the value recommended in the paper is
+1.1). The method seems not to be independent of scaling, and the paper
+assumes an $\mathcal{O}(1)$ field, so these factors need tuning for
+other scalings.
+
+\subsubsection{Hermite-WENO limiter}
+This limiter makes use of the Weighted Essentially Non-Oscillatory
+(WENO) interpolation methods, originally used to obtain high-order
+non-oscillatory fluxes for finite volume methods, to reconstruct the
+solution in elements which do not satisfy the element-wise bounded
+condition (sometimes referred to as ``troubled elements''). The
+principle is the following: if we try to reconstruct the solution as a
+$p$-th order polynomial in an element by fitting to the cell average
+of the element and of some neighbouring elements, then if there is a
+discontinuity in the solution within the elements used then the $p$-th
+order polynomial is very wiggly and will exceed it's bounds. The WENO
+approach is as follows:
+\begin{enumerate}
+\item Construct a number of polynomials approximations using various
+  different combinations of elements, each having the same cell-average
+  in the troubled element.
+\item Calculate a measure of the wiggly-ness of each polynomial (called 
+an oscillation indicator).
+\item The reconstructed solution is a weighted average of each of the
+  polynomials, with the weights decreasing with increasing oscillation
+  indicator.
+\end{enumerate}
+Thus if there is a discontinuity to one side of the element, the
+reconstructed solution will mostly use information from the other side
+of the discontinuity. The power law relating the weights with the
+oscillation indicators can be selected by the user, but is configured
+so that in the case of very smooth polynomials, the reconstruction
+accuracy exceeds the order of the polynomials \emph{e.g.} 5th order for
+3rd order polynomials. 
+
+In practise, making high order reconstructions from unstructured
+meshes is complicated since many neighbouring elements must be
+used. If one also uses the gradients from the element and the direct
+neighbours (Hermite interpolation) this is sufficient to obtain an
+essentially non-oscillatory scheme. This is called the Hermite-WENO
+method.
+
+
+\section{Diffusion term for DG/FV}\label{sec:NM_DG_diffusion}
+\index{diffusion!discontinuous Galerkin}
+\subsection{Bassi Rebay}
+\index{diffusion!discontinuous Galerkin!Bassi Rebay}
+\index{Bassi Rebay}
+\subsection{CDG}
+\index{CDG}
+\index{diffusion!discontinuous Galerkin!CDG}
+
+
+\section{Incompressible Navier-Stokes}
+\index{Navier-Stokes equations!weak form}
+Most terms have been dealt with in
+previous sections
+
+\subsection{Weak form of the continuity equation}
+\index{continuity equation!weak form}
+In \fluidity\ it is possible to use a different set of test/trial 
+functions for pressure and velocity, a so called mixed element discretisation. 
+From this section on, we will use the notation $\phi_i$ for the velocity 
+basis functions and $\psi_i$ for the pressure basis functions.
+See section \ref{later} for a discussion of suitable element-pairs.
+
+As discussed in section \ref{somewhere} the continuity equation of the incompressible Navier 
+Stokes equations enforces the incompressibility. As will be discussed in section \ref{}
+this equation will be used to derive the pressure. For reasons that will become clear
+from this section, the continuity equation is tested with the pressure basis 
+functions. Boundary conditions are applied weakly in similar manner as 
+before. The only possible boundary conditions for this equation are a 
+Dirichlet boundary condition in the normal direction $\vec u\cdot\vec n=u_n$, 
+or a free (outflow) boundary.
+\begin{equation*}
+  \int_\Omega \psi_i \vec\nabla \cdot \vec u
+    + \int_{\partial\Omega_D} \psi_i\left(u_n-\vec u\cdot \vec n\right)
+    = 0,\quad
+    \text{for all } \psi_i,
+\end{equation*}
+or integrated by parts:
+\begin{equation*}
+  -\int_\Omega \vec\nabla\psi_i \cdot \vec u
+  + \int_{\partial\Omega_D} \psi_i u_n
+  + \int_{\partial\Omega\setminus\partial\Omega_D} \psi_i\vec n\cdot \vec u
+  = 0,\quad
+  \text{for all } \psi_i.
+\end{equation*}
+This simplifies the Dirichlet boundary integral, in particular for the common 
+case of a closed boundary where $u_n=0$. 
+
+The DG continuity equation in \fluidity\ always uses
+this integrated by parts version, as it transfers the derivatives to the continuous 
+pressure test functions (DG velocity in \fluidity\ can only be combined with CG pressure). The 
+equation could be integrated by parts again, but this would introduce boundary integrals for all
+boundaries between the elements.
+
+\subsection{Momentum equation}
+The discretisation of the momentum equation in non-conservative 
+form \eqref{nonconmom} is very 
+similar to that of the advection diffusion equation. Assuming a 
+tensor form for viscosity, we can write it in the same matrix form as
+\eqref{eq:cg_adv_diff_mat}
+\begin{equation*}
+  \mat{M} \ddt{\dvec{\vec u}}
+    +\mat{A}(\vec{u})\dvec{\vec u}-\mat{K}\dvec{\vec u}
+    +\vec{\mat{C}} \dvec p
+    =0,
+\end{equation*}
+where now the mass matrix $\mat{M}$, advection matrix $\mat{A}$ and
+viscosity matrix $\mat{K}$ are given by
+\begin{equation*}
+  \mat{M}_{ij}=\int_\Omega \rho\phi_i\phi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \phi_i\rho\vec{u}\cdot\vec{\nabla} \phi_j, \quad
+  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j.
+\end{equation*}
+Note the introduction of the density $\rho$ in the mass and advection 
+term. For the boussinesq approximation \eqref{mtm} we simply set $\rho=1$.
+Additionaly we have the pressure gradient matrix $\vec{\mat{C}}$
+(in fact a matrix for each partial derivative in \vec\nabla)
+\begin{equation*}
+  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j
+\end{equation*}
+
+\subsection{Pressure correction}
+\index{pressure!correction}
+
+\subsection{CG and mass lumping}
+\index{mass lumping}
+
+
+\subsection{DG and not mass lumping}
+
+\subsection{Consistent solve CG/DG/FV}
+
+\section{Compressible equations}
+
+\section{Multi-whatever}
+
+\section{Balance pressure}
+\index{pressure!balance}
+Why and how
+
+\section{Free surface}
+\index{free surface!weak form}
+Mostly dealt with in previous physics chapter.
+Moving of free surface nodes.
+Old method??
+
+\section{Linear solvers} \label{ND_Linear_solvers}
+\index{linear solvers}
+The discretised equations (such as \eqref{bla,foo}) form 
+a linear system of equations that can be written 
+in the following general form:
+\begin{equation*}
+  \mat{A}\dvec{x}=\dvec{b},
+\end{equation*}
+where $\mat{A}$ is a matrix, $\dvec{x}$ is a vector of the values 
+to solve for (typically the values at the nodes of a field $x$), 
+and $\dvec{b}$ contains all the terms that do not depend on 
+$x$. One important property of the matrices that come from 
+finite element discretisations is that they are \emph{sparse}, 
+\ie most of the entries are zero. Take for example the mass matrix
+\begin{equation*}
+  \mat{M}_{ij}=\int \phi_i \psi_j.
+\end{equation*}
+The entries $\mat{M}_{ij}$ are only nonzero if the support of the 
+test function $\phi_i$ overlaps that of the trial function 
+$\psi_j$ which for standard \PN discretisations is only the case if
+$i$ and $j$ are nodes in the same element. For the solution of large
+sparse linear systems so called iterative methods are usually employed
+\footnote{some blah about direct solver techniques} as they 
+avoid having to explicitly construct the inverse of the matrix, 
+which is generally dense and therefore costly to compute 
+(both in memory and computer time).
+
+\subsection{Iterative solvers}
+\index{linear solvers}
+\index{solvers|see{linear solvers}}
+Iterative methods try to solve a linear system by a sequence 
+of approximations $\dvec{x}^k$ such that $\dvec{x}^k$ converges to
+the exact solution $\dvec{\hat x}$. In each iteration one can 
+calculate the \emph{residual}
+\begin{equation*}
+  \dvec{r}^k = \dvec{b} - \mat{A}\dvec{x}^k.
+\end{equation*}
+When reaching the exact solution $\dvec{x}^k\to\dvec{\hat x}$ the 
+residual $\dvec{r}^k\to 0$. The following important relation holds
+\begin{equation}\label{eq:residual_error}
+  \dvec{r}^k = \mat{A}\left( \dvec{\hat x} - \dvec{x}^k \right).
+\end{equation}
+
+\subsubsection{Stationary iterative methods} \label{sec:stationary_iterative_methods}
+Suppose we have an approximation $\mat{M}$ of $\mat{A}$, for which 
+the inverse $\mat{M}^{-1}$ is easy to compute, and we apply this inverse
+to \eqref{eq:residual_error}, we get the following approximation of the
+error in each iteration
+\begin{equation}
+  \dvec{e}^k=\dvec{\hat x}-\dvec{x}^k \approx \mat{M}^{-1}\dvec{r}^k
+    \label{eq:iterative_solver_error_estimate}
+\end{equation}
+This leads to an iterative method of the following form
+\begin{equation}\label{eq:stationary_iterative_methods}
+  \dvec{x}^{k+1}=\dvec{x}^{k} + \mat{M}^{-1} \dvec{r}^{k}.
+\end{equation}
+Because the same operator is applied at each iteration, these are 
+called \emph{stationary methods}.
+
+\index{Jacobi iteration}
+A well known example is the
+\emph{Jacobi} iteration, where for each row $i$ the associated unknown $x_i$ 
+is solved approximately by using the values of the previous iteration 
+for all other $x_j, j\neq i$. So in iteration $k$ we solve for $x^{k+1}_i$ in
+\begin{equation*}
+  \sum_{j<i} \mat{A}_{ij} x^k_j + \mat{A}_{ii} x^{k+1}_i +
+  \sum_{j>i} \mat{A}_{ij} x^k_j = b_i
+\end{equation*}
+Using the symbols $\mat{L}, \mat{U}$ and $\mat{D}$ for respectively 
+the lower and upper diagonal part, and the diagonal matrix, 
+this is written as
+\begin{equation*}
+  \mat{L} \dvec{x}^k +
+  \mat{D} \dvec{x}^{k+1} +
+  \mat{U} \dvec{x}^k = \dvec b.
+\end{equation*}
+Because when solving for $x^{k+1}_i$ all the $x^{k+1}_{j<i}$ are already 
+known, one could also include these in the approximate solve. This leads 
+to the \emph{Gauss-Seidel} iterative method
+\index{Gauss-Seidel iteration}
+\begin{equation*}
+  \mat{L} \dvec{x}^{k+1} +
+  \mat{D} \dvec{x}^{k+1} +
+  \mat{U} \dvec{x}^k = \dvec b.
+\end{equation*}
+After some rewriting both can be written in the form of 
+\eqref{eq:stationary_iterative_methods}
+\begin{equation}
+\begin{split}
+  \text{Jacobi:   } & \dvec{x}^{k+1}=\dvec{x}^k + \mat{D}^{-1} r^k, \\
+  \text{Gauss-Seidel forward:  } & \dvec{x}^{k+1}=\dvec{x}^k + \left(\mat{L}+\mat{D}\right)^{-1} r^k, \\
+  \text{Gauss-Seidel backward: } & \dvec{x}^{k+1}=\dvec{x}^k + \left(\mat{U}+\mat{D}\right)^{-1} r^k.
+\end{split}
+\end{equation}
+
+\subsubsection{Krylov subspace methods} \label{sec:krylov_subspace_methods}
+\index{Krylov subspace methods}
+Another class of iterative methods are the so called 
+\emph{Krylov Subspace} methods. Consider the following very 
+simple iterative method
+\begin{equation*}
+  \dvec{x}^{k+1}=\dvec{x}^k + \alpha_k \dvec{r}^k,
+\end{equation*}
+where $\alpha_k$ is a scalar coefficient which, 
+in contrast to that used in stationary methods, may be different in each 
+iteration. It is then easy to show that
+\begin{equation*}
+  \dvec{r}^{k+1}=\dvec{r}^k+\alpha_k \mat{A}\dvec{r}^k.
+\end{equation*}
+Since therefore the residual in each iteration is the linear 
+combination of the residual in the previous iteration and $\mat{A}$ 
+applied to the previous residual, one can further derive that the 
+residual is a linear combination of the following vectors:
+\begin{equation}\label{krylov_vectors}
+  r^0, \mat{A}\dvec{r}^{0}, \mat{A}^2\dvec{r}^0, \ldots, \mat{A}^k\dvec{r}^0.
+\end{equation}
+The subspace spanned by these vectors is called the \emph{Krylov subspace} 
+and \emph{Krylov subspace} methods solve the linear system by choosing 
+the optimal set of coefficients $\alpha_k$ that minimises the residual.
+
+\index{GMRES}
+A well known, generally applicable Krylov method is GMRES 
+(Generalised Minimum RESidual). Because the approximate solution 
+is built from all vectors in \eqref{krylov_vectors}, all of these need
+to be stored in memory. For solves that require a large number of 
+iterations this will become too expensive. Restarted GMRES therefore sets
+a maximum of those vectors to be stored (specified by the user), 
+after reaching this maximum the corresponding coefficients are fixed 
+and a new Krylov subspace is built. This typically leads to a 
+temporary decay in the convergence
+
+\index{conjugate gradients}
+A very efficient Krylov method that only works for symmetric 
+positive definite (SPD) matrices is the Conjugate 
+Gradient (CG) method. An SPD matrix is a symmetric matrix for which
+\begin{equation*}
+  \langle \dvec{x}, \mat{A}\dvec{x}\rangle \geq 0, \quad \text{for all }\dvec{x}\in\mathbb{R}^n.
+\end{equation*}
+Using this property the CG method can find an optimal solution 
+in the Krylov subspace without having to store all of its 
+vectors. If the matrix is SPD, CG is usually the most 
+effective choice. Linear systems to be solved in \fluidity\ that are SPD 
+comprise the pressure matrix (only for incompressible flow), and the 
+diffusion equation. (references to equations before in this chapter)
+
+\subsection{Preconditioned Krylov subspace methods} \label{ND_Preconditioners}
+\index{preconditioners}
+\index{linear solvers!preconditioners}
+Because Krylov methods work by repeatedly applying the matrix 
+$A$ to the initial residual, eigenvectors with large 
+eigenvalues will become dominant in the subsequent iterations, whereas 
+eigenvectors with small eigenvalues are rapidly ``overpowered''. This 
+means the component of the error associated with small eigenvalues 
+is only very slowly reduced in a basic Krylov method. A measure for the
+spread in the magnitude of eigenvalues is the so called 
+\emph{condition number}
+\begin{equation*}
+  C_{\mat{A}}=\frac{ \lambda_{\text{largest}} }
+    { \lambda_{\text{smallest}} },
+\end{equation*}
+the ratio between the smallest and largest eigenvalue. A large 
+condition number therefore means the matrix system will be hard to solve.
+
+A solution to this problem is to combine the stationary methods of 
+section \ref{sec:stationary_iterative_methods} with the 
+Krylov subspace methods of section \ref{sec:krylov_subspace_methods}
+
+By pre-multiplying the equation
+$\mat{A}\dvec{x}=\dvec{b}$ by the approximate inverse 
+$\mat{M}^{-1}$, we instead solve for
+\begin{equation*}
+  \mat{M}^{-1}\mat{A}\dvec{x} = \mat{M}^{-1}b.
+\end{equation*}
+If $\mat{M}^{-1}$ is a good approximation of the inverse of $\mat{A}$, 
+then
+$\mat{M}^{-1}\mat{A}\approx I$ and therefore $\mat{M}^{-1}\mat{A}$
+should have a much better condition number than the 
+original matrix $A$. This way of transforming the equation to improve
+the conditioning of the system is referred to as preconditioning. Note
+that we in general do not compute $\mat{M}^{-1}\mat{A}$ explicitly
+as a matrix, but instead each iteration 
+apply matrix $A$ followed by a multiplication 
+with $\mat{M}^{-1}$, the preconditioner.
+
+For SPD matrix systems solved with CG we can use a change 
+of variables to keep the transformed system SPD as long as the 
+preconditioner $\mat{M}^{-1}$ is SPD as well.
+
+...List of common preconditioner choices...
+
+\subsubsection{Multigrid methods}
+\index{multigrid}
+\index{multigrid methods}
+...very short...
+
+\subsubsection{Parallel preconditioning}
+\index{parallel!preconditioners}
+...some of the issues...
+
+\subsection{Convergence criteria}
+\index{linear solvers!convergence criteria}
+\index{convergence criteria}
+In each iterative method we need some way of telling when to stop.
+As we have seen in equation \eqref{eq:iterative_solver_error_estimate}
+the preconditioner applied to the residual gives a good estimate of the
+error we have. So a good stop condition might be
+\begin{equation*}
+  \|\mat{M}^{-1} \dvec{r}^k\| \leq \epsilon_{\text{atol}},
+\end{equation*}
+with a user specified 
+\emph{absolute tolerance} $\epsilon_{\text{atol}}$, a small value
+that indicates the error we are willing to tolerate.
+
+One problem is that we quite often don't know how big the 
+typical value of our field is going to be (also it might change in time),
+so we don't know how small $\epsilon_{\text{atol}}$ should be.
+A better choice is therefore to use a \emph{relative tolerance} 
+$\epsilon_{\text{rtol}}$
+which relates the tolerated error to a rough order estimate of the answer:
+\begin{equation}\label{eq:convergence_rel_tol}
+  \|\mat{M}^{-1} \dvec{r}^k\| \leq 
+    \epsilon_{\text{rtol}}~ \|\mat{M}^{-1} \dvec{b}\|.
+\end{equation}
+
+In some exceptional cases the right-handside of the equation may 
+become zero. For instance the lock exchange problem 
+(see \ref{sect:lock_exchange}) starts with an unstable equilibrium in which the righthand 
+side of the momentum equation will be zero. The right solution in this case
+is of course $\dvec{x}=0$, but due to numerical round off the solver may
+never exactly reach this, 
+and therefore never satisfy \ref{eq:convergence_rel_tol}. In this case 
+it is best to specify both a relative and an absolute tolerance.
+
+Note, that the stopping criterion is always based on an \emph{approximation}
+of the actual error. Especially in ill-conditioned systems this may not
+always be a very good approximation. The quality of the error estimate is 
+then very much dependent on the quality of the preconditioner.
+
+\section{Algorithm for detectors (Lagrangian trajectories)}
+\index{Lagrangian trajectories} \index{detectors!Lagrangian} 
+Detectors can be set in the code at specific positions where the user wants
+to know the values of certain variables at each time step. They are virtual
+probes in the simulation and can be fixed in space (static detectors) or can
+move with the flow (Lagrangian detectors). The configuration of detectors in
+\fluidity\ is detailed in chapter
+\ref{chap:configuration}. This section summarises the method
+employed in the calculation of the new position of each Lagrangian detector
+as it moves with the flow. 
+
+The second-order Runge-Kutta algorithm indicated in \eqref{eq:detectors_RK}
+is used to advect the Lagrangian detectors with the flow. This is similar to
+that used by \cite{walters2007}.
+
+% \begin{equation}
+% \mathsf{x^{n+1}} =  \mathsf{x^{n}} + \Delta t \mathsf{u}(\mathsf{x^{n}} + \frac{\Delta t }{2} \mathsf{u}(\mathsf{x^{n}}))
+% \label{eq:detectors_RK}
+% \end{equation}
+
+\begin{equation}\label{eq:detectors_RK}
+\bmx^{n+1} =  \bmx^{n} + \Delta t \bmu\left(\bmx^{n} + \frac{\Delta t }{2} \bmu(\bmx^{n})\right),
+\end{equation}
+where $\bmx^{n}$ is the initial position of the detector at the beginning of the time step, $\bmx^{n+1}$ the final position of the detector at the end of the time step, $\Delta t$ is the model or fundamental time step and $\bmu(\bmx^{n})$ is the average of the velocity at position $\bmx^{n}$ at the beginning and at the end of $\Delta t$. 
+
+In combination with the previous algorithm, a bisection method is employed consisting of bisecting the fundamental time step multiple times as the detector is moved from element to element in the mesh until all the bisected or sub-time steps add up to the fundamental time step. Figure \ref{fig:bisection_menthod} illustrates the bisection method. The procedure is find out the new position of the detector after $\Delta t$ and if it is outside the initial element, reduce $\Delta t$ and find the exit point from the element and the time required to traverse the element. Then repeat the procedure for the next element until all the sub time steps add up to the model time step. The exit point from an element is found via an iterative process stopping when the detector is in the edge between two elements within a small tolerance.
+% 
+\begin{figure}[ht]
+  \centering
+  \xfig{numerical_discretisation_images/bisection_method}
+  %\fig[width=.7\textwidth]{numerical_discretisation_images/bisection_method}
+  \caption{A sketch representing the bisection method used in combination with a second order Runge-Kutta algorithm to advect the Lagrangian detectors with the flow.}
+  \label{fig:bisection_menthod}
+\end{figure}
+
+

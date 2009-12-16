@@ -1,0 +1,230 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+SHELL = @SHELL@
+
+FC      = @FC@
+FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+
+MPIF90  = @MPIF90@
+
+CC      = @CC@
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
+
+CXX     = @CXX@
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+
+MAKE    = @MAKE@
+AR  = @AR@
+ARFLAGS = @ARFLAGS@
+
+LIB = ../lib/lib@FLUIDITY@.a
+
+
+ifeq (@ADJOINT@,yes)
+ADJOINTOBJS =   FsMom.o   sourceFS.o\
+	fluids_forward.o  fluids_adjoint.o   Momentum_Matrix_CG_3D_adjoint.o \
+	Assnav_adjoint.o navsto_adjoint.o sortnu.o
+endif
+
+OBJS    = advdif.o \
+	Assnav.o    \
+	Assemble_Boundary_Conditions.o    Assemble_Buoyancy.o    \
+	GetCriticalDt.o Momentum_Diagnostic_Fields.o \
+	Conacc.o    \
+	Limit_Gradient.o Momentum_Equation.o Momentum_CG.o \
+	Momentum_Matrix_CG_2D.o    Momentum_Matrix_CG_3D.o    \
+	getrdr.o \
+	Advection_Diffusion_CG_2D.o	\
+	Advection_Diffusion_CG_3D.o    hart3d_allsorts.o       \
+	momsuf.o		\
+	navsto.o    poscmc.o    \
+	qmesh.o        spaerr.o \
+	roctrt.o    geoeli1p.o		\
+	shape.o     \
+	Surface_Integration.o  \
+	OceanSurfaceForcing.o \
+	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
+	Time_dependent_t_source.o \
+	$(ADJOINTOBJS) \
+	Preprocess.o Shape_Transformations.o \
+        Solid_Configuration.o Explicit_ALE.o \
+        VolumeSource.o reduced_model.o snapsvd.o support.o \
+        verticaldg.o mesh_connections.o \
+	reduced_model_errormeasure.o  \
+	MeshMovement.o \
+	traffic.o \
+	Solid_Update.o Legacy_Advection_Diffusion_CV.o Field_Equations_CV.o Assemble_CMC.o \
+	Solid_assembly.o Solidity.o sdetnx.o \
+	Momentum_Source.o \
+	Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
+	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
+	Automatic_Timestep.o State_Matrices.o \
+	ctmult.o \
+	ctyexa.o  getrhs.o  getrhu.o \
+	Solve_Momentum_CG.o \
+	mulinv.o \
+	solmom.o \
+	solnav.o \
+	Drag.o    diagnostic_body_drag.o \
+	Multimaterials.o Diagnostic_fields_wrapper.o Diagnostic_Fields_Matrices.o Vorticity_Diagnostics.o \
+	Compressible_Projection.o \
+	Vertical_Extrapolation.o Biology.o \
+	Timeloop_utilities.o Pseudo_supermesh.o \
+        mulmat.o Sam_integration.o Solenoidal_interpolation.o \
+        Interpolation_manager.o  Discrete_Properties.o Free_Surface.o  \
+	Surface_Id_Interleaving.o \
+	Geostrophic_Pressure.o \
+	Adapt_Integration.o Node_Locking.o Mba3d_Integration.o \
+	Adapt_State.o Adapt_State_Prescribed.o Adapt_State_Unittest.o \
+	Upwind_Stabilisation.o \
+        Coriolis.o \
+        Mba2d_Integration.o Slope_limiters_DG.o \
+        Porous_Media.o Spontaneous_Potentials.o LES_viscosity.o \
+        Petsc_Solve_State.o Rotated_Boundary_Conditions.o Adaptivity_1D.o \
+	Sediment_Diagnostics.o Linear_Shallow_Water.o Zoltan_integration.o \
+        Diagnostic_Children.o
+
+.SUFFIXES: .f90 .F90 .c .cpp .o .a
+
+.f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.F90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+.c.o:
+	@echo "        CC $<"
+	$(CC) $(CFLAGS) -c $< || (rm $(LIB) && false)
+.cpp.o:
+	@echo "        CXX $<"
+	$(CXX) $(CXXFLAGS) -c $< || (rm $(LIB) && false)
+
+default: $(OBJS)
+	cp *.mod ../include/
+	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
+# cancel implicit rule that tries to make .o from .mod with m2c:
+%.o: %.mod
+
+Advection_Diffusion_FV.o: Upwind_Stabilisation.o
+Adapt_State_Prescribed.o: Interpolation_manager.o
+Adaptivity_1D.o: Node_Locking.o
+Adapt_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
+Sam_integration.o: Surface_Id_Interleaving.o Shape_Transformations.o
+Adapt_State.o: Adapt_Integration.o Adaptivity_1D.o \
+  Diagnostic_fields_wrapper.o Discrete_Properties.o Interpolation_manager.o \
+  Mba2d_Integration.o Mba3d_Integration.o Sam_integration.o Timeloop_utilities.o \
+  Zoltan_integration.o
+Adapt_State_Unittest.o: Adapt_Integration.o Mba2d_Integration.o Adapt_State.o \
+  Sam_integration.o
+Explicit_ALE.o: Solid_Configuration.o
+reduced_model.o:
+support.o: snapsvd.o spaerr.o Explicit_ALE.o
+traffic.o: qmesh.o
+Mba3d_Integration.o: Node_Locking.o qmesh.o Surface_Id_Interleaving.o
+navsto.o: OceanSurfaceForcing.o Assnav.o \
+  geoeli1p.o Legacy_Advection_Diffusion_CV.o Assemble_CMC.o \
+  solnav.o Drag.o shape.o Divergence_Matrix_CV.o \
+  solmom.o State_Matrices.o \
+  Assemble_Boundary_Conditions.o Compressible_Projection.o \
+  momsuf.o roctrt.o spaerr.o
+Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
+advdif.o: OceanSurfaceForcing.o Time_dependent_t_source.o Momentum_Matrix_CG_3D.o \
+  Assnav.o VolumeSource.o Legacy_Advection_Diffusion_CV.o Field_Equations_CV.o  \
+  shape.o Surface_Integration.o solmom.o Advection_Diffusion_CG_2D.o \
+  Assemble_Boundary_Conditions.o spaerr.o
+Assnav.o: Momentum_Matrix_CG_3D.o Advection_Diffusion_CG_3D.o \
+   Solid_assembly.o Pressure_Gradient_Matrix_Wrapper.o Momentum_Matrix_CG_2D.o \
+   Advection_Diffusion_CG_2D.o Coriolis.o
+Momentum_Matrix_CG_2D.o: Limit_Gradient.o
+Momentum_Matrix_CG_3D.o: Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
+   Shape_Transformations.o mesh_connections.o \
+   hart3d_allsorts.o Limit_Gradient.o ctmult.o spaerr.o \
+   Coriolis.o LES_viscosity.o Shape_Transformations.o
+geoeli1p.o: Assnav.o verticaldg.o mesh_connections.o  \
+   Shape_Transformations.o Vertical_Extrapolation.o \
+   reduced_model.o Free_Surface.o
+verticaldg.o: mesh_connections.o  Shape_Transformations.o Coriolis.o Assnav.o
+mesh_connections.o: Shape_Transformations.o
+Advection_Diffusion_CG_3D.o:  Shape_Transformations.o hart3d_allsorts.o Momentum_Matrix_CG_3D.o
+Advection_Diffusion_CG.o: Upwind_Stabilisation.o
+Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
+hart3d_allsorts.o: shape.o
+shape.o: 
+reduced_model.o: Shape_Transformations.o Coriolis.o
+reduced_model_errormeasure.o: Coriolis.o
+GetCriticalDt.o: Shape_Transformations.o
+Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
+   Rotated_Boundary_Conditions.o
+Assemble_CMC.o: hart3d_allsorts.o Multimaterials.o  Shape_Transformations.o
+Legacy_CV_Shape_Functions.o: Legacy_CV_Numbering.o
+Legacy_Advection_Diffusion_CV.o: Legacy_CV_Shape_Functions.o Surface_Integration.o Momentum_Matrix_CG_3D.o
+Field_Equations_CV.o: Divergence_Matrix_CV.o
+solnav.o: ctyexa.o Solve_Momentum_CG.o getrdr.o getrhs.o getrhu.o
+Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
+ctyexa.o: mulinv.o mulmat.o Free_Surface.o ctmult.o hart3d_allsorts.o \
+   mulmat.o geoeli1p.o
+getrhu.o: mulinv.o
+Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
+  Field_Equations_CV.o Vorticity_Diagnostics.o \
+  Diagnostic_Fields_Matrices.o Free_Surface.o Porous_Media.o \
+  Spontaneous_Potentials.o Sediment_Diagnostics.o Geostrophic_Pressure.o
+Multimaterials.o: Diagnostic_Fields_Matrices.o
+Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
+  Divergence_Matrix_CV.o State_Matrices.o
+State_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
+  Divergence_Matrix_CV.o
+Vorticity_Diagnostics.o: Coriolis.o
+Adv_Phase.o: Surface_Integration.o
+diagnostic_body_drag.o: Surface_Integration.o
+OceanSurfaceForcing.o: Vertical_Extrapolation.o
+Geostrophic_Pressure.o: Momentum_DG.o Petsc_Solve_State.o
+Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
+   Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
+   Drag.o Geostrophic_Pressure.o OceanSurfaceForcing.o \
+   Petsc_Solve_State.o State_Matrices.o Rotated_Boundary_Conditions.o
+Compressible_Projection.o: Legacy_CV_Shape_Functions.o Multimaterials.o
+Free_Surface.o: Vertical_Extrapolation.o
+Pseudo_supermesh.o: Adapt_State_Unittest.o
+Solenoidal_interpolation.o: Assemble_CMC.o Momentum_Equation.o Divergence_Matrix_CV.o
+
+Interpolation_manager.o: Assemble_Buoyancy.o
+Discrete_Properties.o: Solenoidal_interpolation.o
+sdetnx.o: Shape_Transformations.o
+Surface_Integration.o: sdetnx.o
+Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o Geostrophic_Pressure.o State_Matrices.o \
+   Rotated_Boundary_Conditions.o
+Momentum_Diagnostic_Fields.o: Multimaterials.o
+Mba2d_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
+Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
+Petsc_Solve_State.o: Free_Surface.o
+Spontaneous_Potentials.o: Porous_Media.o
+Zoltan_integration.o: Surface_Id_Interleaving.o
+
+clean:
+	rm -f *.o *.d *.mod
+

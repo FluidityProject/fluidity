@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+import getopt
+import subprocess
+import sys
+import time
+
+def Help():
+  print "Usage: memwrap [OPTIONS] COMMAND\n" + \
+        "\n" + \
+        "Polls an executing process (specified by COMMAND) for memory usage.\n" + \
+        "\n" + \
+        "Options:\n" + \
+        "\n" + \
+        "-h       Display this help\n" + \
+        "-t TIME  Poll interval (in s)"
+
+  return
+
+def FatalError(msg):
+  sys.stderr.write(msg + "\n")
+  sys.stderr.flush()
+  sys.exit(-1)
+  
+def MemoryUsage(pid):
+  command = ["ps", "-p", str(pid), "-o", "rssize"]
+  process = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+  process.wait()
+  lines = process.stdout.readlines()
+  rssize = int(lines[-1].strip())
+  
+  command = ["ps", "-p", str(pid), "-o", "vsize"]
+  process = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+  process.wait()
+  lines = process.stdout.readlines()
+  vsize = int(lines[-1].strip())
+  
+  return rssize, vsize
+
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "ht:")
+except getopt.GetoptError:
+  Help()
+  sys.exit(-1)
+
+if ("-h", "") in opts:
+  Help()
+  sys.exit(0)
+
+timeInterval = None
+for opt in opts:
+  if opt[0] == "-t":
+    try:
+      timeInterval = float(opt[1])
+    except ValueError:
+      FatalError("Invalid memory poll interval")
+
+if timeInterval is None:
+  FatalError("Memory poll interval required")
+
+if len(args) == 0:
+  FatalError("Command required")
+  
+command = args[0]
+commandArgs = args[1:]
+
+stdout = subprocess.PIPE
+stderr = subprocess.PIPE
+proc = subprocess.Popen([command] + commandArgs, stdout = stdout, stderr = stderr)
+pid = proc.pid
+
+startTime = time.time()
+time.sleep(timeInterval)
+while proc.poll() is None:
+  rssize, vsize = MemoryUsage(pid)
+  currentTime = time.time()
+  if rssize + vsize > 0:
+    print currentTime - startTime, rssize, vsize
+  else:
+    break
+  time.sleep(timeInterval)
+  
+proc.wait()

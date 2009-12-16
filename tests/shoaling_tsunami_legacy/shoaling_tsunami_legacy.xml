@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<!-- Shoaling of a tsunami generated in deep water. Legacy discretisation used
+  -->
+<testproblem>
+  <name>Shoaling of a tsunami generated in deep water. Legacy discretisation used.</name>
+  <owner userid="piggott"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity -v3 -l shoaling_tsunami_legacy.flml</command_line>
+  </problem_definition>
+  <variables>
+
+  </variables>
+  <pass_tests>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

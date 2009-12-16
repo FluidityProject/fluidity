@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material flow test</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v2 -l 3material-oneblobs.flml </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="mxvfracwater" language="python"> 
+import fluidity_tools
+mxvfracwater = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracwater" language="python"> 
+import fluidity_tools
+mnvfracwater = min(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracdrop" language="python">
+import fluidity_tools
+mxvfracdrop = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Droplet']['MaterialVolumeFraction']['max'])
+    </variable>
+     <variable name="mnvfracdrop" language="python">
+import fluidity_tools
+mnvfracdrop = min(fluidity_tools.stat_parser("3material-oneblobs.stat")['Droplet']['MaterialVolumeFraction']['min'])
+    </variable>
+     <variable name="mxvfracair" language="python"> 
+import fluidity_tools
+mxvfracair = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Air']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracair" language="python"> 
+import fluidity_tools
+mnvfracair = min(fluidity_tools.stat_parser("3material-oneblobs.stat")['Air']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracsum" language="python">
+import fluidity_tools
+mxvfracsum = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['SumMaterialVolumeFractions']['max'])
+    </variable>
+     <variable name="mnvfracsum" language="python">
+import fluidity_tools
+mnvfracsum = min(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['SumMaterialVolumeFractions']['min'])
+    </variable>
+    <variable name="mxvelocity" language="python">
+import fluidity_tools
+mxvelocity = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['Velocity%magnitude']['max'])
+    </variable>    
+    <variable name="mxcfl" language="python">
+import fluidity_tools
+mxcfl = max(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['ControlVolumeCFLNumber']['max'])
+    </variable>    
+    <variable name="mncfl" language="python">
+import fluidity_tools
+mncfl = min(fluidity_tools.stat_parser("3material-oneblobs.stat")['Water']['ControlVolumeCFLNumber']['min'])
+    </variable>    
+  </variables>
+    <pass_tests>  
+    <test name="check minimum water volume fraction is 0.0" language="python">
+   assert abs(mnvfracwater) &lt; 1e-10
+    </test>
+    <test name="check maximum water volume fraction is 1.0" language="python">
+   assert abs(mxvfracwater-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum droplet volume fraction is 0.0" language="python">
+   assert abs(mnvfracdrop) &lt; 1e-10
+    </test>
+    <test name="check maximum droplet volume fraction is between 0.0 and 1.0" language="python">
+   assert abs(mxvfracdrop-0.5) &lt; 0.5
+    </test>
+    <test name="check minimum air volume fraction is 0.0" language="python">
+   assert abs(mnvfracair) &lt; 1e-10
+    </test>
+    <test name="check maximum air volume fraction is 1.0" language="python">
+   assert abs(mxvfracair-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum sum volume fraction is 0.0" language="python">
+   assert abs(mnvfracsum) &lt; 1e-10
+    </test>
+    <test name="check maximum sum volume fraction is less than 1.1" language="python">
+   assert abs(mxvfracsum-1.0) &lt; 1e-10
+    </test>
+    <test name="check maximum speed is 1.0" language="python">
+	assert abs(mxvelocity-1.0) &lt; 1e-10
+    </test>    
+    <test name="check maximum cv cfl" language="python">
+      assert abs(mxcfl-0.16) &lt; 1e-10
+    </test>    
+    <test name="check minimum cv cfl" language="python">
+      assert abs(mncfl-0.08) &lt; 1e-10
+    </test>    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

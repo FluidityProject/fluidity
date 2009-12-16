@@ -1,0 +1,62 @@
+C ============================================================
+C Magic numbers are used to adjust the code performance:
+C
+C magicNumber      - corection to the final number of tetrahedrons 
+C
+C MaxItrSwap       - the maximal permissible number of local 
+C                    iterations in swapR.f
+C
+C cMax2DAngle      - the cosine of the minimal angle between neighboring 
+C                    triangles living on a curvilinear surface 
+C
+C ***PREC          - under reconstruction at the moment
+C
+C MinMPIElements   - the minimal number of tetrahedrons per processor
+C
+C LocalItrFactor   - the relative number of local sweeps with respect
+C                    to the number of tetrahedrons
+C
+C MaxEdgeRefine    - refinement of curvilinear boundary edges
+C
+C MaxCutSearch     - the maximal number of cuts of a search direction
+C
+C MaxInertiaTensor - the maximal number of inertial tensors
+C
+C MaxBaskets       - the maximal number of baskets with bad tetrahedra
+C                    (for the whole grid)
+C
+C AniRatio         - the maximal ratio of Hessian eigenvalues
+C ============================================================
+       Real*8    magicNumber
+       Parameter(magicNumber = 1D0)
+
+       Integer   MaxItrSwap
+       Parameter(MaxItrSwap = 300)
+
+       Real*8    cMax2DAngle
+       Parameter(cMax2DAngle = 0.5)
+
+       Real*8    volPREC, angPREC, crvPREC
+       Parameter(volPREC = 1D-10,  angPREC = 1D-8, crvPREC = 1D-10)
+
+       Integer   MinMPIElements
+       Parameter(MinMPIElements = 1000)
+
+       Real*8    LocalItrFactor
+       Parameter(LocalItrFactor = 0.9D0)
+
+       Integer   MaxEdgeRefine
+       Parameter(MaxEdgeRefine = 3)
+
+       Integer   MaxCutSearch
+       Parameter(MaxCutSearch = 3)
+       
+       Integer   MaxInertiaTensor
+       Parameter(MaxInertiaTensor = 2)
+
+       Integer   MaxBasketsGrid
+       Parameter(MaxBasketsGrid = 1000)
+    
+       Real*8    AniRatio
+       Parameter(AniRatio = 1D-8)
+

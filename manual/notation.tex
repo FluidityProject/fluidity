@@ -1,0 +1,133 @@
+\usepackage{units}
+\usepackage{amsfonts,amsmath,amssymb,amsthm,amsbsy,amssymb}
+
+% Place any maths notation which is also required in figures here.
+
+% Text abbreviations.
+\newcommand{\ie}{{\em{i.e., }}}
+\newcommand{\eg}{{\em{e.g., }}}
+\newcommand{\cf}{{\em{cf., }}}
+\newcommand{\fluidity}{Fluidity}
+\newcommand{\wrt}{with respect to}
+\newcommand{\lhs}{left hand side}
+\newcommand{\rhs}{right hand side}
+
+% Commands definining mathematical notation.
+
+% This is for quantities which are physically vectors.
+\renewcommand{\vec}[1]{{\mbox{\boldmath$#1$}}}
+% Physical rank 2 tensors
+\newcommand{\tensor}[1]{\overline{\overline{#1}}}
+% This is for vectors formed of the value of a quantity at each node.
+\newcommand{\dvec}[1]{\underline{#1}}
+% This is for matrices in the discrete system.
+\newcommand{\mat}[1]{\mathrm{#1}}
+
+
+\DeclareMathOperator{\sgn}{sgn}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lemma}[thm]{Lemma}
+
+%\newcommand\qed{\hfill\mbox{$\Box$}}
+\newcommand{\re}{{\mathrm{I}\hspace{-0.2em}\mathrm{R}}}
+\newcommand{\inner}[2]{\langle#1,#2\rangle}
+\renewcommand\leq{\leqslant}
+\renewcommand\geq{\geqslant}
+\renewcommand\le{\leqslant}
+\renewcommand\ge{\geqslant}
+\renewcommand\epsilon{\varepsilon}
+\newcommand\eps{\varepsilon}
+\renewcommand\phi{\varphi}
+\newcommand{\bmF}{\vec{F}}
+\newcommand{\bmphi}{\vec{\phi}}
+\newcommand{\bmn}{\vec{n}}
+\newcommand{\bmns}{{\textrm{\scriptsize{\boldmath $n$}}}}
+\newcommand{\bmi}{\vec{i}}
+\newcommand{\bmj}{\vec{j}}
+\newcommand{\bmk}{\vec{k}}
+\newcommand{\bmx}{\vec{x}}
+\newcommand{\bmu}{\vec{u}}
+\newcommand{\bmv}{\vec{v}}
+\newcommand{\bmr}{\vec{r}}
+\newcommand{\bma}{\vec{a}}
+\newcommand{\bmg}{\vec{g}}
+\newcommand{\bmU}{\vec{U}}
+\newcommand{\bmI}{\vec{I}}
+\newcommand{\bmq}{\vec{q}}
+\newcommand{\bmT}{\vec{T}}
+\newcommand{\bmM}{\vec{M}}
+\newcommand{\bmtau}{\vec{\tau}}
+\newcommand{\bmOmega}{\vec{\Omega}}
+\newcommand{\pp}{\partial}
+\newcommand{\kaptens}{\tensor{\kappa}}
+\newcommand{\tautens}{\tensor{\tau}}
+\newcommand{\sigtens}{\tensor{\sigma}}
+\newcommand{\etens}{\tensor{\dot\epsilon}}
+\newcommand{\ktens}{\tensor{k}}
+\newcommand{\half}{{\textstyle \frac{1}{2}}}
+\newcommand{\tote}{E}
+\newcommand{\inte}{e}
+\newcommand{\strt}{\dot\epsilon}
+\newcommand{\modu}{|\bmu|}
+% Derivatives
+\renewcommand{\d}{\mathrm{d}}
+\newcommand{\D}{\mathrm{D}}
+\newcommand{\ddx}[2][x]{\frac{\d#2}{\d#1}}
+\newcommand{\ddxx}[2][x]{\frac{\d^2#2}{\d#1^2}}
+\newcommand{\ddt}[2][t]{\frac{\d#2}{\d#1}}
+\newcommand{\ddtt}[2][t]{\frac{\d^2#2}{\d#1^2}}
+\newcommand{\ppx}[2][x]{\frac{\partial#2}{\partial#1}}
+\newcommand{\ppxx}[2][x]{\frac{\partial^2#2}{\partial#1^2}}
+\newcommand{\ppt}[2][t]{\frac{\partial#2}{\partial#1}}
+\newcommand{\pptt}[2][t]{\frac{\partial^2#2}{\partial#1^2}}
+\newcommand{\DDx}[2][x]{\frac{\D#2}{\D#1}}
+\newcommand{\DDxx}[2][x]{\frac{\D^2#2}{\D#1^2}}
+\newcommand{\DDt}[2][t]{\frac{\D#2}{\D#1}}
+\newcommand{\DDtt}[2][t]{\frac{\D^2#2}{\D#1^2}}
+% Norms
+\newcommand{\Ltwo}{\ensuremath{L_2} }
+% Basis functions
+\newcommand{\Qone}{\ensuremath{Q_1} }
+\newcommand{\Qtwo}{\ensuremath{Q_2} }
+\newcommand{\Qthree}{\ensuremath{Q_3} }
+\newcommand{\QN}{\ensuremath{Q_N} }
+\newcommand{\Pzero}{\ensuremath{P_0} }
+\newcommand{\Pone}{\ensuremath{P_1} }
+\newcommand{\Ptwo}{\ensuremath{P_2} }
+\newcommand{\Pthree}{\ensuremath{P_3} }
+\newcommand{\PN}{\ensuremath{P_N} }
+\newcommand{\Poo}{\ensuremath{P_1P_1} }
+\newcommand{\PoDGPt}{\ensuremath{P_{-1}P_2} }
+
+\newcommand{\metric}{\tensor{M}}
+\newcommand{\configureflag}[1]{\texttt{#1}}
+
+% Units
+\newcommand{\m}[1][]{\unit[#1]{m}}
+\newcommand{\km}[1][]{\unit[#1]{km}}
+\newcommand{\s}[1][]{\unit[#1]{s}}
+\newcommand{\invs}[1][]{\unit[#1]{s}\ensuremath{^{-1}}}
+\newcommand{\ms}[1][]{\unit[#1]{m\ensuremath{\,}s\ensuremath{^{-1}}}}
+\newcommand{\mss}[1][]{\unit[#1]{m\ensuremath{\,}s\ensuremath{^{-2}}}}
+\newcommand{\K}[1][]{\unit[#1]{K}}
+\newcommand{\PSU}[1][]{\unit[#1]{PSU}}
+\newcommand{\Pa}[1][]{\unit[#1]{Pa}}
+\newcommand{\kg}[1][]{\unit[#1]{kg}}
+\newcommand{\rads}[1][]{\unit[#1]{rad\ensuremath{\,}s\ensuremath{^{-1}}}}
+\newcommand{\kgmm}[1][]{\unit[#1]{kg\ensuremath{\,}m\ensuremath{^{-2}}}}
+\newcommand{\kgmmm}[1][]{\unit[#1]{kg\ensuremath{\,}m\ensuremath{^{-3}}}}
+\newcommand{\Nmm}[1][]{\unit[#1]{N\ensuremath{\,}m\ensuremath{^{-2}}}}
+
+% Dimensionless numbers
+\newcommand{\dimensionless}[1]{\mathrm{#1}}
+\renewcommand{\Re}{\dimensionless{Re}}
+\newcommand{\Ro}{\dimensionless{Ro}}
+\newcommand{\Fr}{\dimensionless{Fr}}
+\newcommand{\Bu}{\dimensionless{Bu}}
+\newcommand{\Ri}{\dimensionless{Ri}}
+\renewcommand{\Pr}{\dimensionless{Pr}}
+\newcommand{\Pe}{\dimensionless{Pe}}
+\newcommand{\Ek}{\dimensionless{Ek}}
+\newcommand{\Gr}{\dimensionless{Gr}}
+\newcommand{\Ra}{\dimensionless{Ra}}
+

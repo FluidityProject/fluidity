@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, periodic multi-material flow test</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v3 -l --xml channel_flow_input.flml</command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="mxvfrac0" language="python"> 
+import fluidity_tools
+mxvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['max'][0]
+    </variable>    
+     <variable name="mnvfrac0" language="python"> 
+import fluidity_tools
+mnvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['min'][0]
+    </variable>    
+    <variable name="mxvfrac" language="python">
+import fluidity_tools
+mxvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['max'][-1]
+    </variable>
+     <variable name="mnvfrac" language="python">
+import fluidity_tools
+mnvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['min'][-1]
+    </variable>
+     <variable name="intvfrac0" language="python">
+import fluidity_tools
+intvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['integral'][0]
+    </variable>
+    <variable name="intvfrac" language="python">
+import fluidity_tools
+intvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['integral'][-1]
+    </variable>
+    <variable name="mxvelocity" language="python">
+import fluidity_tools
+mxvelocity = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Velocity%magnitude']['max'][-1]
+    </variable>    
+    <variable name="mxcfl" language="python">
+import fluidity_tools
+mxcfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['max'][-1]
+    </variable>    
+    <variable name="mncfl" language="python">
+import fluidity_tools
+mncfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['min'][-1]
+    </variable>    
+  </variables>
+    <pass_tests>  
+    <test name="check minimum volume fraction is 0.0" language="python">
+assert abs(mnvfrac) &lt; 1e-8
+    </test>
+    <test name="check maximum volume fraction is 1.0" language="python">
+assert abs(mxvfrac-1.0) &lt; 1e-8
+    </test>
+    <test name="check initial minimum volume fraction is 0.0" language="python">
+assert abs(mnvfrac0) &lt; 1e-8
+    </test>
+    <test name="check initial maximum volume fraction is 1.0" language="python">
+assert abs(mxvfrac0-1.0) &lt; 1e-8
+    </test>
+    <test name="check maximum speed is 1.0" language="python">
+assert abs(mxvelocity-1.0) &lt; 1e-10
+    </test>    
+    <test name="check maximum cv cfl" language="python">
+assert abs(mxcfl-0.5) &lt; 1e-10
+    </test>    
+    <test name="check minimum cv cfl" language="python">
+assert abs(mncfl-0.5) &lt; 1e-10
+    </test>    
+    <test name="check material was conserved" language="python">
+assert abs(intvfrac-intvfrac0) &lt; 1e-10
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

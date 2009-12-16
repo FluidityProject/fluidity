@@ -1,0 +1,161 @@
+\chapter{Dimensional analysis}
+
+\section{Non-dimensionalisation and Buckingham-Pi}
+Consider system (\ref{boussinesq}) and rescale spatial lengths with the transformation
+\begin{equation}
+\tilde{x}=\frac{x}{L},\quad \tilde{y}=\frac{y}{L},\quad \tilde{z}=\frac{z}{H},
+\end{equation}
+where $\tilde{x},\tilde{y},\tilde{z}$ are nondimensional numbers and $L$ and $H$
+are scaling values in the horizontal and vertical respectively. These generally take
+typical values for length scales so that $\tilde{x},\tilde{y},\tilde{z}$ are ${\cal O}(1)$.
+
+The momentum equations in (\ref{boussinesq}) then become (for simplicity dropping $\bmF$, $\hat{\bmu}$
+and assuming that $2 \bmOmega \times \bmu=f\bmk\times\bmu$ and $\nabla\cdot \tautens = \nu\nabla^2\bmu$),
+\begin{subeqnarray*}
+\frac{\pp u}{\pp t}
++ L^{-1}u\frac{\pp u}{\pp\tilde{x}} + L^{-1}v\frac{\pp u}{\pp\tilde{y}} + H^{-1}w\frac{\pp u}{\pp\tilde{z}}
+-fv
+&=& -L^{-1}\frac{\pp p}{\pp\tilde{x}} - L^{-1}g\frac{\pp \eta}{\pp\tilde{x}}\\&&\quad
++L^{-2}\nu\frac{\pp^2 u}{\pp\tilde{x}^2}+L^{-2}\nu\frac{\pp^2 u}{\pp\tilde{y}^2}+H^{-2}\nu\frac{\pp^2 u}{\pp\tilde{z}^2},\\
+\frac{\pp v}{\pp t}
++ L^{-1}u\frac{\pp v}{\pp\tilde{x}} + L^{-1}v\frac{\pp v}{\pp\tilde{y}} + H^{-1}w\frac{\pp v}{\pp\tilde{z}}
++fu
+&=& -L^{-1}\frac{\pp p}{\pp\tilde{y}} - L^{-1}g\frac{\pp \eta}{\pp\tilde{y}}\\&&\quad
++L^{-2}\nu\frac{\pp^2 v}{\pp\tilde{x}^2}+L^{-2}\nu\frac{\pp^2 v}{\pp\tilde{y}^2}+H^{-2}\nu\frac{\pp^2 v}{\pp\tilde{z}^2},\\
+\frac{\pp w}{\pp t}
++ L^{-1}u\frac{\pp w}{\pp\tilde{x}} + L^{-1}v\frac{\pp w}{\pp\tilde{y}} + H^{-1}w\frac{\pp w}{\pp\tilde{z}}
+&=& -H^{-1}\frac{\pp p}{\pp\tilde{z}} - \rho g\\&&\quad
++L^{-2}\nu\frac{\pp^2 w}{\pp\tilde{x}^2}+L^{-2}\nu\frac{\pp^2 w}{\pp\tilde{y}^2}+H^{-2}\nu\frac{\pp^2 w}{\pp\tilde{z}^2}.
+\end{subeqnarray*}
+
+Now suppose that we also have representative velocity scales in the horizontal and vertical ($U,W$) and
+define
+\begin{equation}
+\tilde{u}=\frac{u}{U},\quad \tilde{v}=\frac{v}{U},\quad \tilde{w}=\frac{w}{W},
+\end{equation}
+then substituting we have
+\begin{subeqnarray*}
+U\frac{\pp \tilde{u}}{\pp t}
++ U^2L^{-1}\left(\tilde{u}\frac{\pp \tilde{u}}{\pp\tilde{x}} + \tilde{v}\frac{\pp \tilde{u}}{\pp\tilde{y}}\right) + UWH^{-1}\tilde{w}\frac{\pp \tilde{u}}{\pp\tilde{z}}
+-Uf\tilde{v}
+&=& -L^{-1}\frac{\pp p}{\pp\tilde{x}} - L^{-1}g\frac{\pp \eta}{\pp\tilde{x}}\\&&\quad
++UL^{-2}\nu\left(\frac{\pp^2 \tilde{u}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{u}}{\pp\tilde{y}^2}\right)+H^{-2}U\nu \frac{\pp^2 \tilde{u}}{\pp\tilde{z}^2},\\
+U\frac{\pp \tilde{v}}{\pp t}
++ U^2L^{-1}\left(\tilde{u}\frac{\pp \tilde{v}}{\pp\tilde{x}} + \tilde{v}\frac{\pp \tilde{v}}{\pp\tilde{y}}\right) + UWH^{-1}\tilde{w}\frac{\pp \tilde{v}}{\pp\tilde{z}}
++Uf\tilde{u}
+&=& -L^{-1}\frac{\pp p}{\pp\tilde{y}} - L^{-1}g\frac{\pp \eta}{\pp\tilde{y}}\\&&\quad
++UL^{-2}\nu\left(\frac{\pp^2 \tilde{v}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{v}}{\pp\tilde{y}^2}\right)+H^{-2}U\nu\frac{\pp^2 \tilde{v}}{\pp\tilde{z}^2},\\
+W\frac{\pp \tilde{w}}{\pp t}
++ UWL^{-1}\left(\tilde{u}\frac{\pp \tilde{w}}{\pp\tilde{x}} + \tilde{v}\frac{\pp \tilde{w}}{\pp\tilde{y}}\right) + W^2H^{-1}\tilde{w}\frac{\pp \tilde{w}}{\pp\tilde{z}}
+&=& -L^{-1}\frac{\pp p}{\pp\tilde{z}} -  \rho g\\&&\quad
++WL^{-2}\nu\left(\frac{\pp^2 \tilde{w}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{w}}{\pp\tilde{y}^2}\right)+H^{-2}W\nu\frac{\pp^2 \tilde{w}}{\pp\tilde{z}^2}.
+\end{subeqnarray*}
+
+Once representative length and velocity scales have been defined this automatically sets a temporal scale
+\begin{equation*}
+\tilde{t}=\frac{t}{T},\quad T=\frac{L}{U},
+\end{equation*}
+and it makes sense now to impose that
+\begin{equation}
+\frac{W}{H}=\frac{U}{L}.
+\label{aspect99}
+\end{equation}
+
+Again, substituting and dividing through by $UT^{-1}$ in the horizontal and $WT^{-1}$
+in the vertical, and making use of (\ref{aspect99}) yields
+\begin{subeqnarray*}
+\frac{\pp \tilde{u}}{\pp \tilde{t}}
++ \tilde{u}\frac{\pp \tilde{u}}{\pp\tilde{x}} + \tilde{v}\frac{\pp \tilde{u}}{\pp\tilde{y}} + \tilde{w}\frac{\pp \tilde{u}}{\pp\tilde{z}}
+-\frac{Lf}{U}\tilde{v}
+&=& -U^{-2}\frac{\pp p}{\pp\tilde{x}} - U^{-2}g\frac{\pp \eta}{\pp\tilde{x}}\\&&\quad
++U^{-1}L^{-1}\nu\left(\frac{\pp^2 \tilde{u}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{u}}{\pp\tilde{y}^2}\right)+H^{-2}LU^{-1}\nu \frac{\pp^2 \tilde{u}}{\pp\tilde{z}^2},\\
+\frac{\pp \tilde{v}}{\pp \tilde{t}}
++ \tilde{u}\frac{\pp \tilde{v}}{\pp\tilde{x}} + \tilde{v}\frac{\pp \tilde{v}}{\pp\tilde{y}} + \tilde{w}\frac{\pp \tilde{v}}{\pp\tilde{z}}
++\frac{Lf}{U}\tilde{u}
+&=& -U^{-2}\frac{\pp p}{\pp\tilde{y}} - U^{-2}g\frac{\pp \eta}{\pp\tilde{y}}\\&&\quad
++U^{-1}L^{-1}\nu\left(\frac{\pp^2 \tilde{v}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{v}}{\pp\tilde{y}^2}\right)+H^{-2}LU^{-1}\nu \frac{\pp^2 \tilde{v}}{\pp\tilde{z}^2},\\
+\frac{\pp \tilde{w}}{\pp \tilde{t}}
++ \tilde{u}\frac{\pp \tilde{w}}{\pp\tilde{x}} + \tilde{v}\frac{\pp \tilde{w}}{\pp\tilde{y}} + \tilde{w}\frac{\pp \tilde{w}}{\pp\tilde{z}}
+&=& -LH^{-1}U^{-1}W^{-1}\frac{\pp p}{\pp\tilde{z}} - LU^{-1}W^{-1}\rho g\\&&\quad
++U^{-1}L^{-1}\nu\left(\frac{\pp^2 \tilde{v}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{v}}{\pp\tilde{y}^2}\right)+H^{-2}LU^{-1}\nu \frac{\pp^2 \tilde{v}}{\pp\tilde{z}^2}.
+\end{subeqnarray*}
+
+The Coriolis term takes the form
+\begin{equation*}
+\frac{Lf}{U}\bmk\times\tilde{\bmu}=\Ro^{-1}\bmk\times\tilde{\bmu}.
+\end{equation*}
+The buoyancy term takes the form
+\begin{equation*}
+\frac{L}{UW}\rho g = \frac{L}{H}\frac{U}{W}\Fr^{-1}\rho = \frac{L^2}{H^2}\Fr^{-1}\rho = \Delta^2\Fr^{-1}\rho.
+\end{equation*}
+The viscous term takes the form
+\begin{equation*}
+U^{-1}L^{-1}\nu\left(\frac{\pp^2 \tilde{u}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{u}}{\pp\tilde{y}^2}\right)+H^{-2}LU^{-1}\nu \frac{\pp^2 \tilde{u}}{\pp\tilde{z}^2}
+=\Re_H^{-1}\left(\frac{\pp^2 \tilde{u}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{u}}{\pp\tilde{y}^2}\right) + \Re_V^{-1}\frac{\pp^2 \tilde{u}}{\pp\tilde{z}^2},
+\end{equation*}
+where $\Re_H=UL/\nu$ and $\Re_V=WH/\nu$. Note that is would have been trivial in the above to use
+a tensor of viscosity values rather than a constant.
+Rescaling the free surface height in terms of the vertical coordinate ($\tilde{\eta}=\eta/H$) yields
+a free surface term
+\begin{equation*}
+\frac{Hg}{U^2}\nabla_{\tilde{x}}\tilde{\eta}=\Fr^{-1}\nabla_{\tilde{x}}\tilde{\eta}.
+\end{equation*}
+
+Dropping tildes and using $p=U^{-2}p$ we have finally that
+\begin{subeqnarray*}
+\frac{\pp {u}}{\pp {t}}
++ \bmu\cdot\nabla u
+-\Ro^{-1}{v}
+&=& \frac{\pp p}{\pp {x}} - \Fr^{-1}\frac{\pp \eta}{\pp {x}}
++\Re_H^{-1}\left(\frac{\pp^2 {u}}{\pp {x}^2}+\frac{\pp^2 {u}}{\pp {y}^2}\right)+ \Re_V^{-1}\frac{\pp^2 {u}}{\pp {z}^2},\\
+\frac{\pp {v}}{\pp {t}}
++ \bmu\cdot\nabla v
++\Ro^{-1}{u}
+&=& \frac{\pp p}{\pp {y}} - \Fr^{-1}\frac{\pp \eta}{\pp {y}}
++\Re_H^{-1}\left(\frac{\pp^2 {v}}{\pp {x}^2}+\frac{\pp^2 {v}}{\pp {y}^2}\right)+ \Re_V^{-1}\frac{\pp^2 {v}}{\pp {z}^2},\\
+\frac{\pp {w}}{\pp \tilde{t}}
++ \bmu\cdot\nabla w
+&=& -\Delta^2 \frac{\pp p}{\pp {z}} - \Delta^2 \Fr^{-1}g
++\Re_H^{-1}\left(\frac{\pp^2 {v}}{\pp {x}^2}+\frac{\pp^2  {v}}{\pp {y}^2}\right)+ \Re_V^{-1}\frac{\pp^2 {v}}{\pp {z}^2}.
+\end{subeqnarray*}
+
+\begin{thm}[Buckingham-Pi Theorem]
+Why nondimensionalising can help reduce parameter phase space ... Barenblatt ...
+\end{thm}
+
+
+\section{Dimensionless parameters}
+
+\begin{table}[t]
+\begin{center}
+\begin{tabular}{lll} \hline
+Name        &   Description         &   Form        \\  \hline
+            &                           &               \\
+Aspect ratio   &   Ratio of length scales   &   $\Delta=L/H$  \\
+Reynolds    &   inertial/viscous        &   $\Re=UL/\nu$    \\
+Rossby      &   inertial/Coriolis\footnotemark[6]            &   $\Ro=U/fL$      \\
+Froude      &   inertial/gravitational\footnotemark[7] &   $\Fr=U^2/gH$    \\
+Froude (internal)   &   inertial/buoyancy   &   $\Fr_{\mathrm{internal}}=U^2/g'H=U/NH$   \\
+Burger      &  $\Bu=\Ro/\Fr$    &   $\Bu = NH/fL$  \\
+Richardson  &   buoyancy/inertial\footnotemark[8]       &   $\Ri=N^2/(U/L)^2$   \\
+Richardson (gradient)   &   buoyancy/shear  &   $\Ri_{\mathrm{gradient}}=N^2/(\Delta U/\Delta L)^2$ \\
+Stokes      &   viscous/gravitational   &   \\
+Prandtl     &   viscosity/diffusivity   &  $\nu/\kappa$ \\
+P\'ecl\'et  &     $\Pe=\Re\,\Pr$  &  $UL/\kappa$ \\
+Ekman       &   viscous/Coriolis    &   $\Ek=2\nu_H/fL^2$   \\
+Grashof     &    free convective/viscous    & $\Gr=g\Delta\rho L^3/\rho \nu^2$\\
+Rayleigh    &     $Ra=\Gr\,\Pr$                 & $\Ra = g\beta(T-T_0)L^3/\alpha\nu$\\
+            &                           &               \\  \hline
+\end{tabular}
+\end{center}
+
+\caption{Summary of useful dimensionless numbers}
+\label{tab:dimensionless}
+\end{table}
+
+\footnotetext[6]{Also ratio of rotational and convective timescales.}
+\footnotetext[7]{This sometimes termed the first Froude number and is also often defined as the square root of this (the second Froude number).}
+\footnotetext[8]{also $(\textrm{internal Froude number})^{-2}$ if $H=L$}
+$N^2=-\frac{g}{\rho_0}\ddt[z]{\rho} \approx \frac{g}{\rho_0}\frac{\Delta\rho}{H}=\frac{g'}{H}$
+
+$g' =\frac{\Delta\rho}{\rho_0}g$

@@ -1,0 +1,270 @@
+source_field =
+   (
+      attribute source_field_name { xsd:string }
+   )
+source_fields = source_field
+
+internal_algorithm =
+   (
+      ## This diagnostic is internal - i.e. it is calculated somewhere within
+      ## the main code, and is not wrapped by the automatic diagnostics
+      ## wrappers.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+internal_velocity_source_algorithm =
+   (
+      ## Some code paths (e.g. porous media and the traffic model)
+      ## use their own internal diagnostic source field. Select
+      ## this option to these these internal algorithms.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+internal_velocity_absorption_algorithm =
+   (
+      ## Some code paths (e.g. porous media and the traffic model)
+      ## use their own internal diagnostic absorption field. Select
+      ## this option to these these internal algorithms.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+   
+# Simple equality algorithms
+scalar_copy_algorithm =
+   (
+     ## Copies the source field. This is intended for testing purposes
+     ## <b>only</b>.
+     element algorithm {
+        attribute name { "scalar_copy" },
+        attribute material_phase_support { "single" },
+        source_field
+     }
+   )
+vector_copy_algorithm =
+   (
+     ## Copies the source field. This is intended for testing purposes
+     ## <b>only</b>.
+     element algorithm {
+        attribute name { "vector_copy" },
+        attribute material_phase_support { "single" },
+        source_field
+     }
+   )
+tensor_copy_algorithm =
+   (
+     ## Copies the source field. This is intended for testing purposes
+     ## <b>only</b>.
+     element algorithm {
+        attribute name { "tensor_copy" },
+        attribute material_phase_support { "single" },
+        source_field
+     }
+   )
+
+# Differential operator diagnostic algorithms
+div_algorithm =
+   (
+      ## div (source field)
+      element algorithm {
+        attribute name { "div" },
+        attribute material_phase_support { "single" },
+        source_field
+      }
+   )
+grad_algorithm =
+   (
+      ## grad (source field)
+      element algorithm {
+        attribute name { "grad" },
+        attribute material_phase_support { "single" },
+        source_field
+      }
+   )
+curl_algorithm =
+   (
+      ## curl (source field)
+      element algorithm {
+        attribute name { "curl" },
+        attribute material_phase_support { "single" },
+        source_field
+      }
+   )
+scalar_advection_algorithm =
+   (
+      ## u dot nabla (source field)
+      element algorithm {
+         attribute name { "scalar_advection" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
+   )
+vector_advection_algorithm =
+   (
+      ## u dot nabla (source field)
+      element algorithm {
+         attribute name { "vector_advection" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
+   )
+scalar_laplacian_algorithm =
+   (
+      ## nabla^2 (source field). Applies natural boundary conditions on all
+      ## boundaries.
+      element algorithm {
+         attribute name { "scalar_laplacian" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
+   )
+vector_laplacian_algorithm =
+   (
+      ## nabla^2 (source field). Applies natural boundary conditions on all
+      ## boundaries.
+      element algorithm {
+         attribute name { "vector_laplacian" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
+   )
+   
+# Surface diagnostics
+grad_normal_algorithm =
+   (
+      ##  /
+      ##  | grad (source field) dot dn
+      ##  /
+      ##
+      ## The output is P0 on the surface. Errors will occur at domain edges -
+      ## this is a limitation of current output formats.
+      element algorithm {
+         attribute name { "grad_normal" },
+         attribute material_phase_support { "single" },
+         source_field,
+         ## Surface IDs defining the surface over which to compute the
+         ## diagnostic. If disabled, computes over the whole surface.
+         element surface_ids {
+            integer_vector
+         }?
+      }
+   )
+   
+# Momentum diagnostics
+coriolis_algorithm =
+   (
+      ## Interpolates the Coriolis term onto the mesh of this diagnostic field
+      element algorithm {
+         attribute name { "coriolis" },
+         attribute material_phase_support { "single" },
+         attribute depends { "Velocity" },
+         (
+            ## Consistently interpolate Coriolis onto this mesh
+            element consistent_interpolation {
+               comment
+            }|
+            ## Galerkin project Coriolis onto this mesh
+            element galerkin_projection {
+               element solver {
+                  linear_solver_options_sym
+               },
+               comment
+            }
+         )
+      }
+   )
+bulk_viscosity_algorithm =
+   (
+       ## The average (or bulk) viscosity formed from the MaterialViscosity for
+       ## each material_phase, weighted according to the MaterialVolumeFraction
+       ## fields from each material_phase:
+       ##
+       ##   \bar\nu = \alpha^i\nu^i
+       ##  
+       ## where \bar\nu is the bulk viscosity, \alpha^i is the volume fraction
+       ## for material i and \nu^i is the viscosity of material i
+       element algorithm {
+          attribute name { "bulk_viscosity" },
+          attribute material_phase_support { "multiple "}
+       }
+   )
+   
+# Parallel diagnostics
+node_halo_diagnostic_algorithm =
+   (
+      ## Paints the node halo.
+      element algorithm {
+         attribute name { "node_halo" },
+         attribute material_phase_support { "single" }
+      }
+   )
+element_halo_diagnostic_algorithm =
+   (
+      ## Paints the element halo. Requires a degree 0 mesh.
+      element algorithm {
+         attribute name { "element_halo" },
+         attribute material_phase_support { "single" }
+      }
+   )
+
+# Python diagnostics
+scalar_python_diagnostic_algorithm = 
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set
+      element algorithm {
+         attribute name { "scalar_python_diagnostic" },
+         attribute material_phase_support { "single" },
+         python_code
+      }
+   )
+vector_python_diagnostic_algorithm = 
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set
+      element algorithm {
+         attribute name { "vector_python_diagnostic" },
+         attribute material_phase_support { "single" },
+         python_code
+      }
+   )
+tensor_python_diagnostic_algorithm = 
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set
+      element algorithm {
+         attribute name { "tensor_python_diagnostic" },
+         attribute material_phase_support { "single" },
+         python_code
+      }
+   )
+   
+scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
+scalar_diagnostic_algorithms |= scalar_copy_algorithm
+scalar_diagnostic_algorithms |= div_algorithm
+scalar_diagnostic_algorithms |= scalar_advection_algorithm
+scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
+scalar_diagnostic_algorithms |= grad_normal_algorithm
+scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
+scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
+   
+vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
+vector_diagnostic_algorithms |= vector_copy_algorithm
+vector_diagnostic_algorithms |= grad_algorithm
+vector_diagnostic_algorithms |= curl_algorithm
+vector_diagnostic_algorithms |= vector_advection_algorithm
+vector_diagnostic_algorithms |= vector_laplacian_algorithm
+
+tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
+tensor_diagnostic_algorithms |= tensor_copy_algorithm

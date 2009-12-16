@@ -1,0 +1,5 @@
+&IGW_data tmax=10.0, tdump=1.0, dt=0.001, fr=1.0, ro=0.1, u_degree=1,
+h_degree=2,u_cty=-1,balanced_u=F, steady_state=F, mesh="kelvin_mod",
+u_input="kelvin_u.py", h_input="kelvin_h.py", 
+exact_h_input="kelvin_h.py", get_streamfunction=F,
+projection_test=F,compute_error=F, exact_u_input="kelvin_u.py" /

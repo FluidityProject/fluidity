@@ -1,0 +1,16 @@
+A common question arises from developers:
+
+'My .flml is being failed by buildbot in diamond_validation; what can I do
+about this and what does it mean?'
+
+What it means is that during diamond's automatic validation of an flml file
+(see http://amcg.ese.ic.ac.uk/index.php?title=Spud#Diamond ) against a supplied
+schema an error has been raised to let you know that the XML you have provided
+is invalid for your current schema.
+
+You can easily find out what the error is by loading the flml file yourself
+into diamond (having opened the relevant schema where necessary). It is advised
+that you make this part of your workflow before submitting updated or new flml
+files for buildbot tests, and check the alexander-gcc4 buildtest which runs
+diamond_validation in the medium-test suite to verify that your flml is in fact
+valid.

@@ -1,0 +1,43 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Prescribed adaptivity</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>make clean-run-debug; dfluidity -v2 -l prescribed_adaptivity.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "timesteps" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("prescribed_adaptivity.stat")
+timesteps = len(s["ElapsedTime"]["value"])
+    </variable>
+    <variable name = "nodes" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("prescribed_adaptivity.stat")
+nodes = s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name = "tracer_integrals" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("prescribed_adaptivity.stat")
+tracer_integrals = s["Fluid"]["Tracer"]["integral"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Simulation completed" language = "python">
+assert(timesteps == 10)
+    </test>
+    <test name = "Mesh adaptivity" language = "python">
+for i in range(5):
+  assert(nodes[i * 2] == 404)
+  assert(nodes[i * 2 + 1] == 204)
+    </test>
+    <test name = "Conservative projection" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variables(tracer_integrals[1:], [tracer_integrals[0] for i in range(len(tracer_integrals) - 1)], 1.0e-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

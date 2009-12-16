@@ -1,0 +1,128 @@
+Project name:  Ani3D-MBA
+               (Generator of adaptive tetrahedral meshes)
+ 
+ 
+Contents:
+ 1. What is Ani3D?
+ 2. Main features of Ani3D.
+ 3. Installation guide.
+ 4. Available support.
+ 5. References.
+ 
+ 
+1. What is Ani3D?
+  The Fortran 77 package Ani3D generates unstructured tetrahedral 
+meshes adapted to a solution function defined at mesh nodes. It
+can be shown that the resulting mesh is optimal in a sense that
+an interpolation error is minimized on such a grid (see references
+below).
+
+
+2. The main features of Ani3D.
+
+(a) Simplicity and portability. It is written in Fortran 77,
+    contains few files, and a very simple Makefile. Since we have
+    not used any system dependent calls (except time measurement),
+    the code is widely portable.
+
+(b) Robustness. The algorithm is a sequence of topological
+    operations on mesh superelements. This enables a careful
+    treatment of complex situations which in turn results in 
+    algorithm robustness.
+
+(c) Careful checking the output mesh.
+
+(d) Very simple input interface. We know very well how complicated
+    and restrictive input interface may be. We tried to simplify it
+    as far as possible. We have chosen neither a solid constructive
+    geometry, nor a surface description technique. In input, we
+    require a mesh. It may be very coarse mesh consisting of a few
+    elements (made by hands), or very fine mesh made by any other
+    mesh generator. Recall that the main purpose of Ani3D is to
+    adapt a mesh to the solution function.
+
+    The input mesh provides generator with information about the 
+    computational domain. Apart the standard mesh data (list of node
+    coordinates, connectivity table, list of boundary edges), we
+    allow to provide more input data such as a list of fixed nodes,
+    surface tiangles, and tetrahedra which will be never touched. 
+    These additional arrays of data may be empty. The detailed 
+    description of input parameters is given in file mba_solution.f.
+
+(e) Very simple output. We return the modified sets of data. In
+    addition, we provide routine for generating GMV-files of the 
+    input and the output meshes which alleviates the process of 
+    understanding how the code responses to different input data.
+
+(g) Ability to construct locally refined meshes, both isotropic
+    and anisotropic. This is important for applications.
+
+(h) The generator constructs a mesh with as many elements, as
+    the user wants.
+
+(i) The package can generate meshes based on an analytic metric.
+    The user has to define a 3x3 symmetric positive definite
+    matrix. The generated mesh will be QUASI-UNIFORM in this
+    metric and will consist of a given number of elements.
+    For instance, if the metric is the identity matrix, then
+    the output mesh will be quasi-uniform (in conventional sense).
+    If the metric is chosen to be anisotropic in some parts of
+    the domain, then the output mesh will be anisotropic in there.
+
+(j) Very easy interface to make an adaptive loop. If the user
+    does not want to provide the governing metric analytically,
+    he may provide just a scalar discrete function defined at
+    mesh nodes. The generator will generate a metric based on
+    the discrete Hessian recovered from the given discrete
+    function. The adaptive loop can be organized as follows:
+
+     loop 1
+       discrete solution + input mesh  -->>  new mesh
+
+     loop 2
+       new discrete solution + mesh from loop 1  -->>  new mesh
+
+     loop N+1
+       new discrete solution + mesh from loop N  -->>  new mesh
+
+
+3. Installation guide.
+  The detailed user guide is not available at the moment. Please
+refer to short documents in directory doc/ and to user guide for 
+the package ani3D available at sourceforge.net.
+
+
+4. Available support.
+  We hope that our friends and colleagues will try the beta
+version of package Ani3D in their research. We shall appreciate
+any remarks, comments and we shall response to them ASAP. It may
+help us make future versions of the code better. The contact
+information is
+
+      Developer             E-mail
+
+      Konstantin Lipnikov   lipnikov@hotmail.com
+      Yuri Vassilevski      vasilevs@dodo.inm.ras.ru
+
+
+5. References
+      (a) Yu.Vassilevski, K.Lipnikov,
+          An Adaptive Algorithm for Quasioptimal Mesh Generation,
+          Computational Mathematics and Mathematical Physics,
+          Vol.39,No.9,1999,1468-1486.
+
+      (b) A.Agouzal, K.Lipnikov, Yu.Vassilevski,
+          Adaptive Generation of Quasi-optimal Tetrahedral Meshes,
+          East-West Journal, Vol.7,No.4,1999,223-244.
+
+      (c) K.Lipnikov, Y.Vassilevski,
+          Parallel adaptive solution of 3D boundary value problems
+          by Hessian recovery,
+          Comput. Methods Appl. Mech. Engrg.Vol.192,2003,1495-1513.
+
+      (d) K.Lipnikov, Yu. Vassilevski,
+          Optimal triangulations: existence, approximation and double
+          differentiation of P_1 finite element functions,
+          Computational Mathematics and Mathematical Physics,
+          V.43,No.6,2003,827-835.
+

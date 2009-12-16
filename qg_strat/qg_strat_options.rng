@@ -1,0 +1,1254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <include href="spud_base.rng"/>
+  <start>
+    <element name="qg_strat_options">
+      <a:documentation>The root node of the options dictionary.</a:documentation>
+      <ref name="comment"/>
+      <element name="simulation_name">
+        <a:documentation>Model output files are named according to the simulation name, e.g. [simulation_name]_0.vtu. Non-standard characters in the simulation name should be avoided.</a:documentation>
+        <ref name="anystring"/>
+      </element>
+      <element name="geometry">
+        <a:documentation>Options dealing with the specification of geometry</a:documentation>
+        <element name="dimension">
+          <a:documentation>Dimension of the problem.
+&lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>3</value>
+          </element>
+        </element>
+        <element name="mesh">
+          <a:documentation>The position mesh</a:documentation>
+          <attribute name="name">
+            <value>CoordinateMesh</value>
+          </attribute>
+          <ref name="mesh_info"/>
+        </element>
+        <optional>
+          <element name="mesh">
+            <attribute name="name">
+              <value>PotentialVorticityMesh</value>
+            </attribute>
+            <ref name="mesh_info"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh">
+            <attribute name="name">
+              <value>StreamfunctionMesh</value>
+            </attribute>
+            <ref name="mesh_info"/>
+          </element>
+        </optional>
+        <element name="quadrature">
+          <a:documentation>Quadrature</a:documentation>
+          <element name="degree">
+            <a:documentation>Quadrature degree
+note: this specifies the degree of quadrature not the number of gauss points</a:documentation>
+            <ref name="integer"/>
+          </element>
+        </element>
+      </element>
+      <element name="io">
+        <a:documentation>Input/output options</a:documentation>
+        <element name="dump_period">
+          <a:documentation>Period between dumps in time units.
+Specifies the period between each dump of the solution to disk.
+A value of 0.0 indicates that there would be a dump at every timestep.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="timestepping">
+        <a:documentation>Options dealing with time discretisation</a:documentation>
+        <element name="current_time">
+          <a:documentation>Current simulation time. At the start of the simulation this
+is the start time.</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="timestep">
+          <a:documentation>The time step size. If adaptive time stepping is used
+then this is the initial time step size.</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="finish_time">
+          <a:documentation>Simulation time at which the simulation should end.</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="rungekutta">
+          <a:documentation>Settings for Runge-Kutta timestepping</a:documentation>
+          <element name="stages">
+            <ref name="real_vector"/>
+          </element>
+          <element name="weights">
+            <ref name="real_vector"/>
+          </element>
+        </element>
+      </element>
+      <element name="physical_parameters">
+        <a:documentation>The physical parameters</a:documentation>
+        <element name="buoyancy_frequency">
+          <a:documentation>Set buoyancy frequency N where N^2=-(g/rho)(d rho/dz)</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="coriolis">
+          <choice>
+            <element name="f_plane">
+              <a:documentation>f-plane approximation
+f / 2 = f_0</a:documentation>
+              <element name="f_0">
+                <a:documentation>f / 2 = f_0</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+            <element name="beta_plane">
+              <a:documentation>Beta-plane approximation
+f / 2 = f_0 + beta_vector . x</a:documentation>
+              <element name="f_0">
+                <a:documentation>f_0, where:
+
+f / 2 = f_0 + beta_vector . x</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="beta_vector">
+                <a:documentation>beta_vector, where:
+f / 2 = f_0 + beta_vector . x
+Note that this is not necessarily a unit vector (unlike GravityDirection).</a:documentation>
+                <ref name="real_dim_vector"/>
+              </element>
+            </element>
+            <element name="sine_of_latitude">
+              <a:documentation>Full Coriolis parameter:
+f / 2 = omega sin (latitude)
+Specify omega.</a:documentation>
+              <element name="omega">
+                <ref name="real"/>
+              </element>
+            </element>
+            <element name="on_sphere">
+              <a:documentation>Full representation on sphere</a:documentation>
+              <element name="omega">
+                <a:documentation>Domain rotation vector</a:documentation>
+                <ref name="real_dim_vector"/>
+              </element>
+            </element>
+          </choice>
+        </element>
+      </element>
+      <element name="material_phase">
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>PotentialVorticity</value>
+          </attribute>
+          <element name="prognostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>Streamfunction</value>
+          </attribute>
+          <choice>
+            <a:documentation>Field type</a:documentation>
+            <element name="prognostic">
+              <ref name="mesh_choice"/>
+              <ref name="prognostic_streamfunction_field"/>
+            </element>
+            <element name="prescribed">
+              <ref name="mesh_choice"/>
+              <ref name="prescribed_scalar_field"/>
+            </element>
+          </choice>
+        </element>
+      </element>
+      <optional>
+        <element name="mesh_adaptivity">
+          <optional>
+            <element name="hr_adaptivity">
+              <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
+              <attribute name="replaces">
+                <value>ADMESH</value>
+              </attribute>
+              <choice>
+                <element name="period">
+                  <a:documentation>Time interval (in simulation time) when mesh adaptivity performed.
+Usually set to 10-20 times the timestep.</a:documentation>
+                  <attribute name="replaces">
+                    <value>TIMMES</value>
+                  </attribute>
+                  <ref name="real"/>
+                </element>
+                <element name="period_in_timesteps">
+                  <a:documentation>Adapt period in timesteps.</a:documentation>
+                  <ref name="integer"/>
+                </element>
+              </choice>
+              <optional>
+                <element name="cpu_period">
+                  <a:documentation>Time interval (in cpu time) when mesh adaptivity performed
+Manual suggests disabling this option.</a:documentation>
+                  <attribute name="replaces">
+                    <value>CPUMES</value>
+                  </attribute>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <element name="maximum_number_of_nodes">
+                <a:documentation>The maximum number of nodes this simulation may use.
+In parallel, this is the maximum number of nodes per process.
+If the mesh adaptivity algorithm wants to place more
+nodes than this, the desired mesh is coarsened
+everywhere in space until it will fit within this limit.
+In general, the error tolerances should be set so that
+this is never reached; it should only be a safety catch.
+A typical value is 100000.</a:documentation>
+                <attribute name="replaces">
+                  <value>MXNODS</value>
+                </attribute>
+                <ref name="integer"/>
+              </element>
+              <optional>
+                <element name="functional_tolerance">
+                  <a:documentation>Functional value above which elements are considered for adaption.
+0.5 to 1.0 seems O.K- it can be negative.
+0.5 corresponds to a minimum insphere radius 0f 0.3 relative 1 and max-edge size 2.
+Value used in code is MAX(ABS(MESTP1), 0.15)
+Manual suggests 0.0</a:documentation>
+                  <attribute name="replaces">
+                    <value>MESTP1</value>
+                  </attribute>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <choice>
+                <element name="enable_gradation">
+                  <a:documentation>Gradation constrains the jump
+in desired edge lengths along an edge, i.e.
+it controls how fast the mesh size may change.</a:documentation>
+                  <optional>
+                    <element name="gradation_parameter">
+                      <a:documentation>The gradation parameter. Must be a real &gt;= 1.0.
+The gradation parameter constrains the jump
+in desired edge lengths along an edge, i.e.
+it controls how fast the mesh size may change.
+A constant of 1.0 enforces a mesh of constant
+edge length everywhere. A value of 2.0 would
+allow the element size to double from element
+to element. The default value is 1.5.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="disable_gradation">
+                  <a:documentation>Gradation constrains the jump
+in desired edge lengths along an edge, i.e.
+it controls how fast the mesh size may change.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+              <optional>
+                <element name="geometric_constraints">
+                  <a:documentation>Apply geometric constraints to the metric formation.
+
+As specified in (Pain, 2001), the mesh adaptivity
+scheme attempts to formulate an appropriate edge length
+for each direction at each point in space, independent
+of problem, PDE or domain.
+
+This option instructs the error metric formation
+code to inspect the boundaries of the domain
+and to bound the edge lengths requested appropriately.
+This procedure stops the metric from asking for edge lengths
+that are inappropriately large in comparison to the
+resolution required to preserve the geometric accuracy
+of the boundaries.
+
+If you get 'knife elements' near domain boundaries,
+turn this on.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="bounding_box_factor">
+                  <a:documentation>Bounding box factor.
+
+If the length scales specified by the metric are
+unrealistically large, the mesh optimisation
+algorithm can get confused. An example
+would be specifying a length scale in a direction to be an
+order of magnitude greater than the width
+of the domain.
+
+In order to fix this, the edge lengths requested
+are bounded by the bounding box of the domain
+(the smallest cuboid that contains the domain).
+However, it was found that bounding by the bounding
+box impairs the generation of anisotropic elements
+in the mesh optimisation algorithm.
+
+This option is multiplied by the bounding box of the domain
+before it bounds the metric formed from other
+considerations. By default, it is set to 2.0.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="goal_based_adaptivity">
+                  <a:documentation>Goal-based adaptivity. With this option,
+rather than taking the user-specified interpolation
+error bounds as the weights to form the error metric
+from the Hessians of the solution fields,
+the interpolation weight is computed to optimally
+represent the value of some specified functional
+of state. In other words, the mesh is optimised
+for the representation of a particular goal.
+
+This is currently experimental. Activating
+this option induces the code to ignore
+any error bounds associated with the fields
+specified under a material_phase.
+
+For more information on this scheme,
+see (Venditti &amp; Darmofal, 2003), or
+(Power et. al, 2006).
+
+Coding your own goal is also possible
+but currently undocumented. See
+error_measures/Goals.F90
+for examples.</a:documentation>
+                  <choice>
+                    <element name="enstrophy_goal">
+                      <a:documentation>Optimise for the representation of
+enstrophy,
+0.5 * int( |curl(velocity)|**2 ) dV.</a:documentation>
+                      <attribute name="subroutine">
+                        <value>goal_enstrophy</value>
+                      </attribute>
+                      <attribute name="dependencies">
+                        <value>Velocity%1 Velocity%2 Velocity%3</value>
+                      </attribute>
+                    </element>
+                    <element name="temperature_gradient_goal">
+                      <a:documentation>Optimise for the representation of
+gradients of temperature,
+int(|grad(temperature)|**2) dV.</a:documentation>
+                      <attribute name="subroutine">
+                        <value>goal_temp</value>
+                      </attribute>
+                      <attribute name="dependencies">
+                        <value>Temperature</value>
+                      </attribute>
+                    </element>
+                    <element name="les_goal">
+                      <a:documentation>Optimise for the contribution of the standard
+Smagorinsky LES tensor.
+
+In effect, this goal minimises
+the contribution of the sub-filter scale
+model -- it applies mesh resolution where
+the sub-grid scale model has an effect.
+
+int( transpose(grad(u)) . kappa . grad(u) ) dV,
+with u ranging over the components of (nonlinear)
+velocity and kappa the LES tensor.</a:documentation>
+                      <attribute name="subroutine">
+                        <value>goal_les_velocity</value>
+                      </attribute>
+                      <attribute name="dependencies">
+                        <value>NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3</value>
+                      </attribute>
+                      <optional>
+                        <element name="nonlinear_iterations">
+                          <a:documentation>The number of nonlinear iterations to perform when
+forming the metric with this goal.
+
+Because the LES tensor explicitly depends on mesh sizing,
+we can form a metric and feed this back into the goal,
+using the proposed mesh sizing instead of the current mesh.
+This allows us to simulate adapts without actually incurring
+the cost of adaptation, for the purposes of converging the metric.
+The default value is 3.</a:documentation>
+                          <ref name="integer"/>
+                        </element>
+                      </optional>
+                    </element>
+                    <element name="higher_order_les_goal">
+                      <a:documentation>Optimise for the contribution of the new 4th-order
+LES tensor.
+
+In effect, this goal minimises
+the contribution of the sub-filter scale
+model -- it applies mesh resolution where
+the sub-grid scale model has an effect.
+
+int( transpose(grad(u))   . kappa . grad(u) ) dV -
+int( transpose(grad_h(u)) . kappa . grad_h(u) ) dV
+with u ranging over the components of (nonlinear)
+velocity, kappa the LES tensor,
+grad(.) differentiation of basis functions and
+grad_h(.) the Galerkin projection of the first derivative.</a:documentation>
+                      <attribute name="subroutine">
+                        <value>goal_les_velocity_4th</value>
+                      </attribute>
+                      <attribute name="dependencies">
+                        <value>NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3</value>
+                      </attribute>
+                      <optional>
+                        <element name="nonlinear_iterations">
+                          <a:documentation>The number of nonlinear iterations to perform when
+forming the metric with this goal.
+
+Because the LES tensor explicitly depends on mesh sizing,
+we can form a metric and feed this back into the goal,
+using the proposed mesh sizing instead of the current mesh.
+This allows us to simulate adapts without actually incurring
+the cost of adaptation, for the purposes of converging the metric.
+The default value is 3.</a:documentation>
+                          <ref name="integer"/>
+                        </element>
+                      </optional>
+                    </element>
+                  </choice>
+                  <choice>
+                    <element name="relative_tolerance">
+                      <a:documentation>The tolerance of the goal specifies the acceptable
+error in the quantity computed. The adaptation scheme
+attempts to adapt the mesh to ensure that the
+goal computed from the primitive solution is 
+within the tolerance specified here.
+
+A relative tolerance specifies that the acceptable error
+in the goal is some fraction of the value as computed
+from the primitive solution. It is generally 
+the easiest to use. This is a unitless percentage.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="absolute_tolerance">
+                      <a:documentation>The tolerance of the goal specifies the acceptable
+error in the quantity computed. The adaptation scheme
+attempts to adapt the mesh to ensure that the
+goal computed from the primitive solution is 
+within the tolerance specified here.
+
+An absolute tolerance specifies the acceptable error
+in the goal, in the units of the goal itself.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </choice>
+                </element>
+              </optional>
+              <choice>
+                <element name="constant_size_constraint">
+                  <a:documentation>The mesh size constraint. This choice specifies
+a mesh size constraint that is both spatially
+and directionally homogenous.
+
+OPHSAM = 0 -- Constant size constraint
+OPHSAM = 1 -- Variable size constraint</a:documentation>
+                  <attribute name="replaces">
+                    <value>OPHSAM = 0</value>
+                  </attribute>
+                  <element name="minimum_edge_length">
+                    <a:documentation>The minimum edge length of the mesh.
+This should only be used as a safety net to ensure
+sanity of the resulting mesh; ideally you should set your adaptivity
+weights appropriately so that this is never used.</a:documentation>
+                    <attribute name="replaces">
+                      <value>MINCH</value>
+                    </attribute>
+                    <ref name="real"/>
+                  </element>
+                  <element name="maximum_edge_length">
+                    <a:documentation>The maximum edge length of the mesh.
+This should only be used as a safety net to ensure
+sanity of the resulting mesh; ideally you should set your adaptivity
+weights appropriately so that this is never used.</a:documentation>
+                    <attribute name="replaces">
+                      <value>MAXCH</value>
+                    </attribute>
+                    <ref name="real"/>
+                  </element>
+                </element>
+                <element name="variable_size_constraint">
+                  <a:documentation>The mesh size constraint. This choice specifies
+a mesh size constraint that can vary both spatially
+and directionally. To vary it directionally,
+specify a symmetric metric tensor for the maximum
+and minimum edge lengths; to vary it spatially,
+add more size_tensors and place them appropriately:
+the mesh size constraint at a given point will be
+the interpolant of the size_tensors you have specified.
+
+OPHSAM = 0 -- Constant size constraint
+OPHSAM = 1 -- Variable size constraint</a:documentation>
+                  <attribute name="replaces">
+                    <value>OPHSAM = 1</value>
+                  </attribute>
+                  <oneOrMore>
+                    <element name="size_tensor">
+                      <a:documentation>The minimum and maximum edge lengths are symmetric tensors;
+the position specifies where it is in the domain.</a:documentation>
+                      <attribute name="replaces">
+                        <value>NHSAMP</value>
+                      </attribute>
+                      <element name="minimum_edge_length">
+                        <a:documentation>The minimum edge length, expressed as a symmetric tensor.</a:documentation>
+                        <attribute name="replaces">
+                          <value>HMINXX HMINXY HMINXZ HMINYY HMINYZ HMINZZ</value>
+                        </attribute>
+                        <ref name="real_dim_symmetric_tensor"/>
+                      </element>
+                      <element name="maximum_edge_length">
+                        <a:documentation>The maximum edge length, expressed as a symmetric tensor.</a:documentation>
+                        <attribute name="replaces">
+                          <value>HMAXXX HMAXXY HMAXXZ HMAXYY HMAXYZ HMAXZZ</value>
+                        </attribute>
+                        <ref name="real_dim_symmetric_tensor"/>
+                      </element>
+                      <element name="position">
+                        <a:documentation>The position of these tensors in the domain.</a:documentation>
+                        <attribute name="replaces">
+                          <value>XHSAMP YHSAMP ZHSAMP</value>
+                        </attribute>
+                        <ref name="real_dim_vector"/>
+                      </element>
+                    </element>
+                  </oneOrMore>
+                </element>
+              </choice>
+              <optional>
+                <element name="element_length_limits">
+                  <a:documentation>lower &amp; upper limits for derefinment and refinment
+respectively - we do not change mesh unless our mesh is outside
+these limits. These are the lower and upper limits of element
+lengths in the undistorted system where =1 is ideal.</a:documentation>
+                  <attribute name="replaces">
+                    <value>CRIUP</value>
+                  </attribute>
+                  <element name="lower">
+                    <attribute name="replaces">
+                      <value>CRILOW = MOD(CRIUP,100.)</value>
+                    </attribute>
+                    <ref name="real"/>
+                  </element>
+                  <element name="upper">
+                    <attribute name="replaces">
+                      <value>(CRIUP-CRILOW)/100.</value>
+                    </attribute>
+                    <ref name="real"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="adapt_at_first_timestep">
+                  <optional>
+                    <element name="output_adapted_mesh">
+                      <a:documentation>Outputs mesh in triangle format, right after the first adapts are finished
+this is useful when needing to re-run simulations and don`t want to wait
+for first adapts again.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+              <optional>
+                <element name="preserve_mesh_regions">
+                  <a:documentation>Enable this option to preserve any regions in your mesh (i.e. those specified by region_ids).
+Also, any prescribed fields using region_ids will be reinitialised using them on the new mesh.
+Therefore this is a required option if you want your prescribed region_id fields to survive adapts!
+Obviously this does not apply to initial conditions set using region_ids.</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </start>
+  <define name="input_choice_real_dim_vector">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real_dim_vector"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+def val(X, t):
+   # Function code
+   return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+    </choice>
+  </define>
+  <define name="prescribed_scalar_field">
+    <ref name="prescribed_scalar_field_no_adapt"/>
+    <ref name="adaptivity_options"/>
+  </define>
+  <define name="prescribed_scalar_field_no_adapt">
+    <element name="value">
+      <a:documentation>Value for WholeMesh</a:documentation>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="input_choice_real"/>
+    </element>
+  </define>
+  <define name="prognostic_scalar_field">
+    <element name="temporal_discretisation">
+      <element name="theta">
+        <a:documentation>Implicit/explicit control (TTHETA)
+=0.  -- explicit
+=0.5 -- Crank-Nicholson
+=1.  -- implicit</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
+    <element name="spatial_discretisation">
+      <element name="conservative_advection">
+        <ref name="real"/>
+      </element>
+    </element>
+    <element name="initial_condition">
+      <a:documentation>Initial condition for WholeMesh</a:documentation>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="input_choice_initial_condition_real"/>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options"/>
+    </element>
+    <optional>
+      <element name="tensor_field">
+        <a:documentation>Diffusivity for field</a:documentation>
+        <attribute name="name">
+          <value>Diffusivity</value>
+        </attribute>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="prescribed_values_tensor_field"/>
+        </element>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>source term</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="prescribed_scalar_field_no_adapt"/>
+        </element>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>Absorption term</a:documentation>
+        <attribute name="name">
+          <value>Absorption</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="prescribed_scalar_field_no_adapt"/>
+        </element>
+      </element>
+    </optional>
+    <ref name="adaptivity_options_scalar_field">
+      <a:documentation>adaptivity options</a:documentation>
+    </ref>
+  </define>
+  <define name="prognostic_buoyancy_field">
+    <element name="temporal_discretisation">
+      <element name="theta">
+        <a:documentation>Implicit/explicit control (TTHETA)
+=0.  -- explicit
+=0.5 -- Crank-Nicholson
+=1.  -- implicit</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
+    <element name="spatial_discretisation">
+      <element name="conservative_advection">
+        <ref name="real"/>
+      </element>
+    </element>
+    <element name="initial_condition">
+      <a:documentation>Initial condition for WholeMesh</a:documentation>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="input_choice_initial_condition_real"/>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options"/>
+    </element>
+    <optional>
+      <element name="tensor_field">
+        <a:documentation>Diffusivity for field</a:documentation>
+        <attribute name="name">
+          <value>Diffusivity</value>
+        </attribute>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="prescribed_values_dim_minus_one_tensor_field"/>
+        </element>
+      </element>
+    </optional>
+  </define>
+  <define name="prognostic_streamfunction_field">
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options"/>
+    </element>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions
+You must specify the surface ids for the side boundaries where we set the streamfunction to zero.
+For the top and bottom boundaries, we solve an advection-diffusion equation for the buoyancy.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <choice>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <element name="constant">
+              <ref name="real"/>
+            </element>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>buoyancy</value>
+            </attribute>
+            <element name="scalar_field">
+              <element name="prognostic">
+                <ref name="prognostic_buoyancy_field"/>
+              </element>
+            </element>
+          </element>
+        </choice>
+      </element>
+    </zeroOrMore>
+  </define>
+  <!--
+    Choice of input method for initial conditions
+    Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
+  -->
+  <define name="input_choice_initial_condition_real">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+def val(X, t):
+   # Function code
+   return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+      <element name="from_file">
+        <a:documentation>Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field. In parallel the process number is appended to the filename, e.g. if the file_name attribute is set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <element name="format">
+          <a:documentation>The format of the input file containing field data.</a:documentation>
+          <element name="string_value">
+            <value>vtu</value>
+          </element>
+        </element>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+  <define name="prescribed_values_tensor_field">
+    <element name="value">
+      <a:documentation>Value for WholeMesh
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="input_choice_tensor_field"/>
+    </element>
+  </define>
+  <define name="prescribed_values_dim_minus_one_tensor_field">
+    <element name="value">
+      <a:documentation>Value for WholeMesh
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+      <attribute name="name">
+        <value>WholeMesh</value>
+      </attribute>
+      <ref name="input_choice_dim_minus_one_tensor_field"/>
+    </element>
+  </define>
+  <!-- Choice of input method, e.g. for boundary conditions -->
+  <define name="input_choice_real">
+    <choice>
+      <element name="constant">
+        <a:documentation>Constant value</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="python">
+        <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+def val(X, t):
+   # Function code
+   return # Return value
+
+where X is a tuple of length geometry dimension.</a:documentation>
+        <ref name="python_code"/>
+      </element>
+    </choice>
+  </define>
+  <define name="input_choice_tensor_field">
+    <choice>
+      <element name="isotropic">
+        <ref name="input_choice_real"/>
+      </element>
+      <element name="anisotropic_symmetric">
+        <ref name="input_choice_real_dim_symmetric_tensor"/>
+      </element>
+      <element name="anisotropic_asymmetric">
+        <ref name="input_choice_real_dim_tensor"/>
+      </element>
+    </choice>
+  </define>
+  <!--
+    Choice of input method for initial/boundary conditions
+    version for real symmetric tensor
+  -->
+  <define name="input_choice_real_dim_symmetric_tensor">
+    <element name="constant">
+      <a:documentation>Constant symmetric tensor</a:documentation>
+      <ref name="real_dim_symmetric_tensor"/>
+    </element>
+  </define>
+  <define name="input_choice_dim_minus_one_tensor_field">
+    <choice>
+      <element name="isotropic">
+        <ref name="input_choice_real"/>
+      </element>
+      <element name="anisotropic_symmetric">
+        <ref name="input_choice_real_dim_minus_one_symmetric_tensor"/>
+      </element>
+      <element name="anisotropic_asymmetric">
+        <ref name="input_choice_real_dim_minus_one_tensor"/>
+      </element>
+    </choice>
+  </define>
+  <!--
+    Choice of input method for initial/boundary conditions
+    version for real symmetric tensor
+  -->
+  <define name="input_choice_real_dim_minus_one_symmetric_tensor">
+    <element name="constant">
+      <a:documentation>Constant symmetric tensor</a:documentation>
+      <ref name="real_dim_minus_one_symmetric_tensor"/>
+    </element>
+  </define>
+  <!--
+    Choice of input method for initial/boundary conditions
+    version for real tensor
+  -->
+  <define name="input_choice_real_dim_minus_one_tensor">
+    <element name="constant">
+      <a:documentation>Constant tensor</a:documentation>
+      <ref name="real_dim_minus_one_tensor"/>
+    </element>
+  </define>
+  <define name="mesh_choice">
+    <!-- Most common mesh choices -->
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>PotentialVorticityMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>StreamfunctionMesh</value>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="mesh_info">
+    <choice>
+      <element name="from_file">
+        <a:documentation>Read mesh from file.</a:documentation>
+        <element name="format">
+          <a:documentation>Triangle mesh format.
+Enter the base name without the .edge .ele, .face or .node extensions, and without process numbers.</a:documentation>
+          <attribute name="name">
+            <value>triangle</value>
+          </attribute>
+          <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
+          <element name="string_value">
+            <value>triangle</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+      <element name="from_mesh">
+        <a:documentation>Make mesh from existing mesh. The existing mesh cannot itself be made from an existing mesh (i.e. it must be read from a file).</a:documentation>
+        <ref name="mesh_choice"/>
+        <optional>
+          <element name="mesh_shape">
+            <element name="polynomial_degree">
+              <ref name="integer"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh_continuity">
+            <element name="string_value">
+              <choice>
+                <value>continuous</value>
+                <value>discontinuous</value>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <zeroOrMore>
+          <element name="periodic_boundary_conditions">
+            <a:documentation>Make mesh periodic</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="physical_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased to</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="aliased_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="coordinate_map">
+              <a:documentation>Python code which takes coordinate of an aliased boundary node and returns the coordinate of a physical boundary node</a:documentation>
+              <ref name="python_code"/>
+            </element>
+          </element>
+        </zeroOrMore>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+  <define name="adaptivity_options_scalar_field">
+    <optional>
+      <element name="adaptivity_options">
+        <choice>
+          <element name="absolute_measure">
+            <attribute name="replaces">
+              <value>ADOPTT = 0</value>
+            </attribute>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADWEIT</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_scalar_field_no_adapt"/>
+              </element>
+            </element>
+          </element>
+          <element name="relative_measure">
+            <attribute name="replaces">
+              <value>ADOPTT = 1</value>
+            </attribute>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADADOT</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_scalar_field_no_adapt"/>
+              </element>
+            </element>
+            <element name="tolerance">
+              <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and psi_min is the tolerance. The tolerance prevents division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+              <attribute name="replaces">
+                <value>ADATOT</value>
+              </attribute>
+              <ref name="real"/>
+            </element>
+          </element>
+        </choice>
+        <optional>
+          <element name="lp_norm">
+            <a:documentation>Normally, adaptivity optimises the mesh to minimise
+the L_\infty norm. By specifying p here, you can
+instruct adaptivity to optimise the mesh for
+the L_p norm instead.
+
+See
+F. Alauzet et al.
+Multi-Dimensional Continuous Metric for Mesh Adaptation
+Proceedings of the 15th International Meshing Roundtable</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+      </element>
+    </optional>
+  </define>
+  <define name="linear_solver_options">
+    <choice>
+      <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
+Given are the most frequently used methods. The solution is done
+by the PETSc library. Many more methods are provided.
+</a:documentation>
+      <element name="iterative_method">
+        <a:documentation>Conjugate gradient method
+Only works for symmetric systems.</a:documentation>
+        <attribute name="name">
+          <value>cg</value>
+        </attribute>
+      </element>
+      <element name="iterative_method">
+        <a:documentation>GMRES
+Your safest bet for non-symmetric systems.</a:documentation>
+        <attribute name="name">
+          <value>gmres</value>
+        </attribute>
+        <element name="restart">
+          <a:documentation>Restart value for gmres iteration
+Higher values give better convergence but require more memory.
+Suggested value: 30</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </element>
+      <element name="iterative_method">
+        <a:documentation>Direct method
+This is for non-iterative methods
+Only makes sense in combination with preconditioners that do a complete solve, e.g. lu.</a:documentation>
+        <attribute name="name">
+          <value>preonly</value>
+        </attribute>
+      </element>
+      <element name="iterative_method">
+        <a:documentation>Richardson iteration
+Only apply preconditioner each iteration, no krylov acceleration</a:documentation>
+        <attribute name="name">
+          <value>richardson</value>
+        </attribute>
+      </element>
+      <element name="iterative_method">
+        <a:documentation>Other methods
+Any method provided by the PETSc library
+http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html
+(available methods may depend on the PETSc library installed on your system)</a:documentation>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
+    <choice>
+      <a:documentation>Preconditioner to be used in combination with the iterative method.</a:documentation>
+      <element name="preconditioner">
+        <a:documentation>Succesive Over-Relaxation
+This includes SSOR (symmetric sor)</a:documentation>
+        <attribute name="name">
+          <value>sor</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>The Eisenstat method
+This preconditioner is equivalent to SOR but only uses half the number of flops,
+i.e. same convergence rate but twice as fast per iteration. Because it computes
+a different preconditioned residual the convergence in practice may be quite different though.
+It does not work in parallel!</a:documentation>
+        <attribute name="name">
+          <value>eisenstat</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>Incomplete LU decomposition</a:documentation>
+        <attribute name="name">
+          <value>ilu</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>Incomplete Cholesky decomposition (only works for symmetric matrices)</a:documentation>
+        <attribute name="name">
+          <value>icc</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>LU direct solver
+This performs a complete, direct solve of the equation and should only be used in combination with preonly as iterative method.</a:documentation>
+        <attribute name="name">
+          <value>lu</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>Fluidity`s own multigrid method
+Especially suited for ill-conditioned, large aspect ratio problems.
+Currently does not work in parallel.</a:documentation>
+        <attribute name="name">
+          <value>mg</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>Prometheus multigrid method</a:documentation>
+        <attribute name="name">
+          <value>prometheus</value>
+        </attribute>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>Hypre preconditioners (includes boomeramg)</a:documentation>
+        <attribute name="name">
+          <value>hypre</value>
+        </attribute>
+        <choice>
+          <element name="hypre_type">
+            <a:documentation>BoomerAMG multigrid method</a:documentation>
+            <attribute name="name">
+              <value>boomeramg</value>
+            </attribute>
+          </element>
+          <element name="hypre_type">
+            <a:documentation>Other Hypre preconditioners</a:documentation>
+            <attribute name="name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+          </element>
+        </choice>
+      </element>
+      <element name="preconditioner">
+        <a:documentation>Other preconditioners
+Any preconditioner provided by the PETSc library
+http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/PC/PCType.html
+(available preconditiors may depend on the PETSc library installed on your system)</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
+    <element name="relative_error">
+      <a:documentation>Relative error
+The solver finishes if the preconditioned error becomes smaller than the original preconditioned error times this value.
+Suggested value: 1.0e-7</a:documentation>
+      <ref name="real"/>
+    </element>
+    <optional>
+      <element name="absolute_error">
+        <a:documentation>Absolute error bound
+The solver finishes if the preconditioned error becomes smaller than this value.</a:documentation>
+        <ref name="real"/>
+      </element>
+    </optional>
+    <element name="max_iterations">
+      <a:documentation>Maximum number of iterations allowed in the linear solver
+before giving up.</a:documentation>
+      <ref name="integer"/>
+    </element>
+    <optional>
+      <element name="start_from_zero">
+        <a:documentation>Switch on to not use an initial guess from a previous solve but
+start with a zero vector. Note that some of the solves always
+start at zero in which case this switch will have no effect (see the log output).</a:documentation>
+        <empty/>
+      </element>
+    </optional>
+    <optional>
+      <element name="petsc_options">
+        <a:documentation>Miscellaneous PETSc options
+Any options not included above can be set using the PETSc option syntax
+For example: -ksp_dtol 1e5 -ksp_monitor_draw</a:documentation>
+        <data type="string" datatypeLibrary=""/>
+      </element>
+    </optional>
+    <choice>
+      <element name="never_ignore_solver_failures">
+        <a:documentation>Solver failures are always treated as fatal errors. The model stops at the end of the time step in order to allow for the latest output to be written.</a:documentation>
+        <empty/>
+      </element>
+      <element name="ignore_non_convergence_during_spin_up">
+        <a:documentation>Allow for an initial period in which solver failures caused by non-convergence in the maximum number of iterations are ignored.</a:documentation>
+        <element name="spin_up_time">
+          <a:documentation>As long as current_time &lt; spin_up_time, solver failures due to non-convergence in the maximum number of iterations are ignored. This might be used for spinning up the model. As there is no guarantee we're actually solving the flow equations to any accuracy, the results in this period should not be trusted.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="ignore_all_solver_failures">
+        <a:documentation>Ignore all solver failures. This is a dangerous option that should only be used in exceptional cases.</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+    <element name="diagnostics">
+      <a:documentation>Extra diagnostics to help debug solver problems</a:documentation>
+      <optional>
+        <element name="print_norms">
+          <a:documentation>Print out the norm of vectors and matrices before the solve, and that of the solution vector afterwards.
+Norms are printed at verbosity level 2, so run fluidity with -v2 or -v3</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+    </element>
+  </define>
+</grammar>

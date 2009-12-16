@@ -1,0 +1,209 @@
+\chapter{Embedded models}\label{chap:embedded}
+
+The parameterisations described in chapter \ref{chap:parameterisations}\ are
+used to model fluids processes which cannot be resolved by the model. In
+contrast, the models described in this chapter detail models embedded in
+\fluidity\ which model non-fluids processes.
+
+\section{Biology}
+
+The Biology model in \fluidity\ is a very simple four-equation model in
+which the variables are phytoplankton, zooplankton, nutrient and detritus.
+These four variables evolve under an advection-diffusion equation similar to
+that for other tracers such as temperature and salinity but modified by the
+addition of a source term which contains the interactions between the
+biological fields.
+
+Figure \ref{fig:biofluxes} shows the interactions between the four
+biological tracers. Nutrients (plus sunlight) are converted into
+phytoplankton. Zooplankton feed on phytoplankton and detritus but in doing
+so produce some nutrients and detritus so grazing also results in fluxes
+from phytoplankton and detritus to nutrient and detritus. Both phytoplankton
+and zooplanton die producing detritus and detritus is gradually converted to
+nutrient by a remineralisation process.
+\begin{figure}[hb]
+  \centering
+  \onlypdf{\begin{pdfdisplay}}
+    \begin{psmatrix}[colsep=4,rowsep=4]
+      \psframebox[framearc=.2]{\
+        \begin{minipage}[c][7ex]{0.3\linewidth}
+          \centering
+          Phytoplankton
+        \end{minipage}} &
+      \psframebox[framearc=.2]{
+        \begin{minipage}[c][7ex]{0.3\linewidth}
+          \centering
+          Zooplankton
+        \end{minipage}}\\
+      \psframebox[framearc=.2]{
+        \begin{minipage}[c][7ex]{0.3\linewidth}
+          \centering
+          Nutrient
+        \end{minipage}}&
+      \psframebox[framearc=.2]{
+        \begin{minipage}[c][7ex]{0.3\linewidth}
+          \centering
+          Detritus
+        \end{minipage}}\\
+      \ncarc[angleB=270]{->}{1,1}{1,2}
+      \naput{grazing}
+      \ncarc[angleA=0,angleB=180]{->}{2,1}{1,1}
+      \naput{fertilisation}
+      \ncarc[angleA=180,angleB=0]{->}{1,1}{2,1}
+      \naput{grazing}
+      \ncarc[angleA=270]{->}{2,2}{2,1}
+      \naput{remineralisation}
+      \ncarc[angleA=270]{<-}{2,1}{2,2}
+      \naput{grazing}
+      \ncarc[angleA=180,angleB=0]{->}{1,2}{2,2}
+      \naput{death}
+      \ncarc[angleA=0,angleB=180]{->}{2,2}{1,2}
+      \naput{grazing}
+      \ncarc[angleA=315,angleB=135]{<-}{2,2}{1,1}
+      \naput{death}
+      \ncarc[angleA=135,angleB=315]{->}{1,1}{2,2}
+      \naput{grazing}
+    \end{psmatrix}
+  \onlypdf{\end{pdfdisplay}}
+  \caption{The fluxes between the biological tracers. Grazing refers to the
+    feeding activity of zooplankton on phytoplankton and detritus.}
+  \label{fig:biofluxes}
+\end{figure}
+
+\subsection{Biological source terms}
+The source terms for phytoplankton ($P$), zooplankton ($Z$), nutrient ($N$)
+and detritus ($D$) respectively are given by the following expressions:
+\begin{gather}
+  S_P=\mathrm{R}_P -  \mathrm{G}_P -\mathrm{De}_P\\
+  S_Z=\gamma\beta(\mathrm{G}_P+\mathrm{G}_D) - \mathrm{De}_Z\\
+  S_N=-\mathrm{R}_P + \mathrm{De}_D +
+  (1-\gamma)\beta(\mathrm{G}_P+\mathrm{G}_D)\\
+  S_D=-\mathrm{De}_D + \mathrm{De}_P + \mathrm{De}_Z + (1-\beta)\mathrm{G}_P
+  -\beta\mathrm{G}_D)
+\end{gather}
+The definitions of each of these terms are given below. It is significant
+that the right-hand sides of these equations sum to zero. This implies that,
+for a closed biological system, the total of the biological constituents is
+always conserved. The terms in these equations are given in table
+\ref{tab:bioparameters}. The variable terms are explained in more detail below.
+
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{clll}
+    \textbf{Symbol} & \textbf{Meaning} & \textbf{Typical value} & \textbf{Section}\\\hline
+    $\mathrm{R}_P$ & phytoplankton growth rate & & \ref{sec:R_P}\\
+    $\mathrm{G}_P$ & rate of zooplankton grazing on phytoplankton && \ref{sec:G_P}\\
+    $\mathrm{De}_P$ & death rate of phytoplankton && \ref{sec:De_P}\\
+    $\mathrm{G}_D$ & rate of zooplankton grazing on detritus && \ref{sec:G_D}\\
+    $\mathrm{De}_Z$ & death rate of zooplankton && \ref{sec:De_Z}\\
+    $\mathrm{De}_D$ & death rate of detritus && \ref{sec:De_D}\\
+    $I$ & photosynthetically active radiation & & \ref{sec:I} \\
+    $\alpha$ & sensitivity of phytoplankton to light & \unit[0.015]{m$^2$\,W$^{-1}$\,day$^{-1}$}  & \ref{sec:R_P}\\
+    $\beta$ & assimilation efficiency of zooplankton & 0.75 \\
+    $\gamma$ & zooplankton excretion parameter & 0.5 \\
+    $\mu_P$ & phytoplankton mortality rate & \unit[0.1]{day$^{-1}$} & \ref{sec:De_P}\\
+    $\mu_Z$ & zooplankton mortality rate & \unit[0.2]{day$^{-1}$} & \ref{sec:De_Z}\\
+    $\mu_D$ & detritus remineralisation rate & \unit[0.05]{day$^{-1}$} & \ref{sec:De_D}\\
+    $g$ & zooplankton maximum growth rate & \unit[1]{day$^{-1}$} & \ref{sec:G_P}\\
+    $k_N$ & half-saturation constant for nutrient & 0.5  & \ref{sec:G_D}\\
+    $k$ & zooplankton grazing parameter & 0.5 & \ref{sec:G_P}\\
+    $p_P$ & zooplankton preference for phytoplankton & 0.75 & \ref{sec:G_P}\\
+    $v$ & maximum phytoplankton growth rate & \unit[1.5]{day$^{-1}$} & \ref{sec:R_P}
+  \end{tabular}
+  \caption{Meanings of symbols in the biology model. Typical values are
+    provided for externally set parameters.}
+  \label{tab:bioparameters}
+\end{table}
+
+\subsubsection{$\mathrm{R}_P$, the phytoplankton growth rate}\label{sec:R_P}
+
+$\mathrm{R}_P$ is the growth-rate of phytoplankton which is governed by the
+current phytoplankton concentration, the available nutrients and the
+available light:
+\begin{equation}
+  \mathrm{R}_P=J\,P\,Q
+\end{equation}
+$J$ is the light-limited phytoplankton growth rate which is in turn given
+by:
+\begin{equation}
+  J=\frac{v\alpha I}{(v^2+\alpha^2 I^2)^{0.5}}
+\end{equation}
+In this expression, $v$ is the maximum phytoplankton growth rate, $\alpha$
+controls the sensitivity of growth rate to light and $I$ is the available
+photosynthetically active radiation.
+
+$Q$ is the nutrient limiting factor and is given by:
+\begin{equation}
+  Q=\frac{N}{k_N+N}
+\end{equation}
+where $k_N$ is the half-saturation constant for nutrient.
+
+\subsubsection{$\mathrm{G}_P$, the rate of phytoplankton grazing by zooplankton}\label{sec:G_P}
+The rate at which zooplankton eat phytoplankton is given by:
+\begin{equation}
+  \mathrm{G}_P=\frac{g p_P P^2 Z}{k^2 + p_P P^2 + (1-p_P) D^2}
+\end{equation}
+in which $p_P$ is the preference of zooplankton for grazing phytoplankton
+over grazing detritus, $g$ is the maximum zooplankton growth rate and $k$ is
+a parameter which limits the grazing rate if the concentration of
+phytoplankton and detritus becomes very low.
+
+\subsubsection{$\mathrm{G}_D$, the rate of detritus grazing by zooplankton}\label{sec:G_D}
+The rate at which zooplankton eat detritus is given by:
+\begin{equation}
+  \mathrm{G}_D=\frac{g (1-p_P) D^2 Z}{k^2 + p_P P^2 + (1-p_P) D^2}
+\end{equation}
+in which all of the parameters have the meaning given in the previous
+section.
+
+\subsubsection{$\mathrm{De}_P$, the phytoplankton death rate}\label{sec:De_P}
+
+A proportion of the phytoplankton in the system will die in any given time
+interval. The dead phytoplankton become detritus:
+\begin{equation}
+  \mathrm{De}_P=\frac{\mu_P P^2}{P+1}
+\end{equation}
+in which $\mu_P$ is the phytoplankton mortality rate.
+
+\subsubsection{$\mathrm{De}_Z$, the zooplankton death rate}\label{sec:De_Z}
+
+A proportion of the zooplankton in the system will die in any given time
+interval. The dead zooplankton become detritus:
+\begin{equation}
+  \mathrm{De}_Z=\mu_Z Z^2
+\end{equation}
+
+\subsubsection{$\mathrm{De}_D$, the detritus remineralisation rate}\label{sec:De_D}
+
+As the detritus falls through the water column, it gradually converts to
+nutrient:
+\begin{equation}
+  \mathrm{De}_D=\mu_D D
+\end{equation}
+
+\subsection{Photosynthetically active radiation}\label{sec:I}
+
+Phytoplankton depends on the levels of light in the water column at the
+frequencies useful for photosynthesis. This is referred to as
+photosynthetically active radiation. Sunlight falls on the water surface and
+is absorbed by both water and phytoplankton. This is represented by the
+following equation:
+\begin{equation}
+  \ppx[z]{I}=(A_{\mathrm{water}}+A_PP)I
+\end{equation}
+where $A_{\mathrm{water}}$ and $A_P$ are the absorption rates of
+photosynthetically active radiation by water and phytoplankton respectively.
+
+This equation has the form of a one-dimensional advection equation and
+therefore requires a single boundary condition: the amount of light incident
+on the water surface. This is a Dirichlet condition on $I$.
+
+\subsection{Detritus falling velocity}\label{sec:detritus}
+
+Phytoplankton, zooplankton and nutrient are assumed to be neutrally buoyant
+and therefore move only under the advecting velocity of the water or by
+diffusive mixing. Detritus, on the other hand, is assumed to be denser than
+water so it will slowly sink through the water-column. This is modelled by
+modifying the advecting velocity in the advection-diffusion equation for
+detritus by subtracting a sinking velocity $u_{\mathrm{sink}}$ from the
+vertical component of the advecting velocity.

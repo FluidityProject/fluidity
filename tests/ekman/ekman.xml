@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>ekman</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>dfluidity -v3 -l -x ekman.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="max_uv_error" language="python">
+import vtktools
+from numpy import sqrt,exp, pi, cos, sin, zeros, array
+
+# read in the final .vtu 
+u=vtktools.vtu("ekman_1.vtu")
+uvw_num=u.GetField("Velocity")
+uvw_num[:,2]=0.0
+
+# read in the final .vtu
+u=vtktools.vtu("ekman_2.vtu")
+xyz=u.GetLocations()
+
+rho_air=1.3
+rho_water=1025.34
+C_s=1.4e-3
+nu_H=100
+nu_V=1.4e-2
+u10=0
+v10=10
+f=1.03124e-4
+# derived quantities:
+BigTau=rho_air/rho_water*C_s*sqrt(u10**2+v10**2)*v10
+D=pi*sqrt(2*nu_V/f)
+u0=BigTau*D/sqrt(2.0)/pi/nu_V
+
+z=xyz[:,2]-max(xyz[:,2])
+uv_exact=zeros( [z.size, 2] )
+uv_exact[:,0]=u0*exp(pi*z/D)*cos(pi/4.0+pi*z/D)
+uv_exact[:,1]=u0*exp(pi*z/D)*sin(pi/4.0+pi*z/D)
+
+# finally the errors:
+max_uv_error=array([0.0,0.0])
+max_uv_error[0]=abs(uvw_num[:,0]-uv_exact[:,0]).max()
+max_uv_error[1]=abs(uvw_num[:,1]-uv_exact[:,1]).max()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Checking error is smaller than 1e-3" language="python">
+assert all( max_uv_error &lt; 1e-3 )
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

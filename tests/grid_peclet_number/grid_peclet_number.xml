@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>tracer_inflow_1d_dg</name>
+  <owner userid="hhiester"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity grid_peclet_number.flml -v3 -l</command_line>
+    <!-- One dimensional problem with a prescribed velocity field and an advected tracer field with diffusion -->
+    <!-- primarily here should someone wish to see how the stability of the simulation changes with changes in -->
+    <!-- diffusion and thus grid peclet number -->
+    <!-- The simulation ends when it has converged to a steady state -->
+  </problem_definition>
+  <variables>
+    <variable name="difference_vtus" language="python">
+import glob
+import numpy
+import vtktools
+
+filelist_not_sorted = glob.glob('./*.vtu')
+vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
+filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+
+phi_1 = vtktools.vtu(filelist[-2]).GetScalarField('Tracer')
+phi_2 = vtktools.vtu(filelist[-1]).GetScalarField('Tracer')
+difference_vtus = [abs(phi_1[i]-phi_2[i]) for i in range(len(phi_1))]
+    </variable>
+    <variable name="grid_peclet_number" language="python">
+import glob
+import numpy
+import vtktools
+
+filelist_not_sorted = glob.glob('./*.vtu')
+vtu_nos_not_sorted = [int(file.split('.vtu')[0].split('_')[-1]) for file in filelist_not_sorted]
+filelist = [filelist_not_sorted[i] for i in numpy.argsort(vtu_nos_not_sorted)]
+
+grid_peclet_number = numpy.average(vtktools.vtu(filelist[-1]).GetScalarField('GridPecletNumber'))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="the simulation has converged" language="python">
+for value in difference_vtus:
+    assert value &lt; 1.0e-7
+    </test>
+    <test name="the grid peclet number is correct" language="python">
+assert abs(grid_peclet_number-1.0) &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

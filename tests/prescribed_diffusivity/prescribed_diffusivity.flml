@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">prescribed_diffusivity</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">oceans</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="column">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">5</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period replaces="TIMDUM">
+      <real_value rank="0">1.0</real_value>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">1</real_value>
+    </finish_time>
+    <nonlinear_iterations replaces="ITINOI">
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="Water">
+    <subgridscale_parameterisations>
+      <prescribed_diffusivity>
+        <tensor_field name="PrescribedDiffusivity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <python>
+                  <string_value lines="20" type="python">from math import cos, sin, pi
+global cos, sin, pi
+global depth
+depth=None
+
+def val(X,t):
+  global depth
+
+  # Depth of the thermocline (m)
+  if depth==None:
+    depth=-100-50*cos(t*2*pi/365.0)
+  
+  #Width of the thermocline interface (m)
+  width=20
+  
+  # Fixed horizontal diffusivity.
+  d=[[0.01,0.0,0.0],
+        [0.0,0.01,0.0],
+        [0.0,0.0, 0.0]]
+  
+  if (X[2]&amp;gt;depth+0.5*width):
+    # In the mixed layer
+    d[2][2]=1.0
+  elif(X[2]&amp;lt;depth-0.5*width):  
+    d[2][2]=0.01
+  else:
+    taper=0.5*(1-sin(pi*(X[2]-depth)/width))
+    
+    d[2][2]=(1-taper)*1.0 + taper*0.01
+  
+  return d</string_value>
+                </python>
+              </anisotropic_symmetric>
+            </value>
+          </prescribed>
+        </tensor_field>
+      </prescribed_diffusivity>
+    </subgridscale_parameterisations>
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+  </material_phase>
+</fluidity_options>

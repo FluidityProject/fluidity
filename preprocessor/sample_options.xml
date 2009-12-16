@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">Flow past a bif</string_value>
+  </simulation_name>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="Coordinate">
+      <from_file file_name="square">
+        <format>
+	  <string_value>triangle</string_value>
+	</format>
+      </from_file>
+    </mesh>
+    <mesh name="Velocity">
+      <from_mesh model_mesh_name="Coordinate"/>
+    </mesh>
+    <mesh name="Pressure">
+      <from_mesh model_mesh_name="Coordinate"/>
+    </mesh>
+    <quadrature>
+      <quadrature_degree>
+        <integer_value rank="0">4</integer_value>
+      </quadrature_degree>
+      <number_surface_gauss_points replaces="SNGI">
+        <integer_value rank="0">7</integer_value>
+      </number_surface_gauss_points>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period replaces="TIMDUM">
+      <real_value rank="0">42.0</real_value>
+    </dump_period>
+    <cpu_dump_period replaces="CPUDUM">
+      <integer_value rank="0">3</integer_value>
+    </cpu_dump_period>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0"/>
+    </current_time>
+    <finish_time replaces="LTIME">
+      <real_value rank="0"/>
+    </finish_time>
+    <cpu_time_limit replaces="CPULIM">
+      <integer_value rank="0"/>
+    </cpu_time_limit>
+  </timestepping>
+  <physical_parameters>
+  </physical_parameters>
+  <material_phase name="None">
+    <equation_of_state>
+      <linear_equation_of_state>
+        <reference_density replaces="DENINI">
+          <real_value rank="0"/>
+        </reference_density>
+        <reference_temperature replaces="TEMINI">
+          <real_value rank="0"/>
+        </reference_temperature>
+        <reference_salinity replaces="S0">
+          <real_value rank="0"/>
+        </reference_salinity>
+        <thermal_expansion_coefficient replaces="DENGAM">
+          <real_value rank="0"/>
+        </thermal_expansion_coefficient>
+        <saline_contraction_coefficient replaces="DENGAM_SAL">
+          <real_value rank="0"/>
+        </saline_contraction_coefficient>
+        <subtract_out_hydrostatic_level replaces="BHOUT">
+          <logical_value rank="0"/>
+        </subtract_out_hydrostatic_level>
+      </linear_equation_of_state>
+    </equation_of_state>
+    <scalar_field name="pressure" rank="0">
+      <prognostic>
+        <reference_node>
+          <integer_value rank="0"/>
+        </reference_node>
+        <solver>
+          <mass_matrix>
+            <max_iterations replaces="MASNOI">
+              <integer_value rank="0"/>
+            </max_iterations>
+            <preconditioner replaces="MASPRE">
+              <integer_value rank="0"/>
+            </preconditioner>
+            <tolerance replaces="MASERR">
+              <real_value rank="0"/>
+            </tolerance>
+          </mass_matrix>
+          <pressure_matrix>
+            <max_iterations_outer replaces="PRENOI">
+              <integer_value rank="0"/>
+            </max_iterations_outer>
+            <max_iterations_inner replaces="PINNOI">
+              <integer_value rank="0"/>
+            </max_iterations_inner>
+            <tolerance_outer replaces="PREERR">
+              <real_value rank="0"/>
+            </tolerance_outer>
+            <tolerance_inner replaces="PINERR">
+              <real_value rank="0"/>
+            </tolerance_inner>
+          </pressure_matrix>
+        </solver>
+      </prognostic>
+    </scalar_field>
+    <velocity name="velocity" rank="1">
+      <prognostic>
+        <spatial_discretisations>
+          <legacy_discretisation replaces="DISOPT">
+            <integer_value rank="0"/>
+          </legacy_discretisation>
+          <legacy_discretisation_control_volume replaces="NDISOP">
+            <integer_value rank="0"/>
+          </legacy_discretisation_control_volume>
+          <conservative_discretisation replaces="BETA">
+            <real_value rank="0"/>
+          </conservative_discretisation>
+          <lump_mass_matrix replaces="MLUMP">
+            <logical_value rank="0"/>
+          </lump_mass_matrix>
+        </spatial_discretisations>
+        <temporal_discretisations>
+          <theta replaces="THETA">
+            <real_value rank="0"/>
+          </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0"/>
+          </relaxation>
+        </temporal_discretisations>
+        <mesh_topology>
+          <integer_value rank="0"/>
+        </mesh_topology>
+        <solver>
+          <momentum_matrix>
+            <max_iterations_outer replaces="MOMNO1">
+              <integer_value rank="0"/>
+            </max_iterations_outer>
+            <max_iterations_inner replaces="MOMNO2">
+              <integer_value rank="0"/>
+            </max_iterations_inner>
+            <max_nonrestarted_iterations_outer replaces="MINTE1">
+              <integer_value rank="0"/>
+            </max_nonrestarted_iterations_outer>
+            <max_nonrestarted_iterations_inner replaces="MINTE2">
+              <integer_value rank="0"/>
+            </max_nonrestarted_iterations_inner>
+            <max_iterations_inner_minnoi replaces="MINNOI">
+              <integer_value rank="0"/>
+            </max_iterations_inner_minnoi>
+            <tolerance_inner_minerr replaces="MINERR">
+              <real_value rank="0"/>
+            </tolerance_inner_minerr>
+            <tolerance_outer replaces="MOMER1">
+              <real_value rank="0"/>
+            </tolerance_outer>
+            <tolerance_inner replaces="MOMER2">
+              <real_value rank="0"/>
+            </tolerance_inner>
+          </momentum_matrix>
+        </solver>
+        <absorption>
+          <constant>
+            <real_value shape="None" dim1="dim" rank="1"/>
+          </constant>
+          <lump_absorption replaces="ABSLUM">
+            <logical_value rank="0"/>
+          </lump_absorption>
+        </absorption>
+        <source>
+          <constant>
+            <real_value shape="None" dim1="dim" rank="1"/>
+          </constant>
+        </source>
+      </prognostic>
+    </velocity>
+  </material_phase>
+  <mesh_adaptivity replaces="ADMESH">
+    <period replaces="TIMMES">
+      <real_value rank="0"/>
+    </period>
+    <cpu_period replaces="CPUMES">
+      <real_value rank="0"/>
+    </cpu_period>
+    <adaptive_timestep_tolerance replaces="AUTACC">
+      <real_value rank="0"/>
+    </adaptive_timestep_tolerance>
+    <maximum_number_of_nodes replaces="MXNODS">
+      <integer_value rank="0"/>
+    </maximum_number_of_nodes>
+    <maximum_aspect_ratio replaces="MESTP2">
+      <real_value rank="0"/>
+    </maximum_aspect_ratio>
+    <variable_size_constraint>
+      <size_tensor replaces="NHSAMP">
+        <minimum_edge_length replaces="HMINXX HMINXY HMINXZ HMINYY HMINYZ HMINZZ">
+          <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.1 0.2 0.3 0.4 0.5 0.6</real_value>
+        </minimum_edge_length>
+        <maximum_edge_length replaces="HMAXXX HMAXXY HMAXXZ HMAXYY HMAXYZ HMAXZZ">
+          <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">2 3 4 5 6 7 8 9 10</real_value>
+        </maximum_edge_length>
+        <position replaces="XHSAMP YHSAMP ZHSAMP">
+          <real_value shape="3" dim1="dim" rank="1">0.0 0.1 0.2</real_value>
+        </position>
+      </size_tensor>
+      <size_tensor replaces="NHSAMP">
+        <minimum_edge_length replaces="HMINXX HMINXY HMINXZ HMINYY HMINYZ HMINZZ">
+          <real_value symmetric="true" dim2="dim" shape="None" dim1="dim" rank="2"/>
+        </minimum_edge_length>
+        <maximum_edge_length replaces="HMAXXX HMAXXY HMAXXZ HMAXYY HMAXYZ HMAXZZ">
+          <real_value symmetric="true" dim2="dim" shape="None" dim1="dim" rank="2"/>
+        </maximum_edge_length>
+        <position replaces="XHSAMP YHSAMP ZHSAMP">
+          <real_value shape="None" dim1="dim" rank="1"/>
+        </position>
+      </size_tensor>
+      <size_tensor replaces="NHSAMP">
+        <minimum_edge_length replaces="HMINXX HMINXY HMINXZ HMINYY HMINYZ HMINZZ">
+          <real_value symmetric="true" dim2="dim" shape="None" dim1="dim" rank="2"/>
+        </minimum_edge_length>
+        <maximum_edge_length replaces="HMAXXX HMAXXY HMAXXZ HMAXYY HMAXYZ HMAXZZ">
+          <real_value symmetric="true" dim2="dim" shape="None" dim1="dim" rank="2"/>
+        </maximum_edge_length>
+        <position replaces="XHSAMP YHSAMP ZHSAMP">
+          <real_value shape="None" dim1="dim" rank="1"/>
+        </position>
+      </size_tensor>
+      <size_tensor replaces="NHSAMP">
+        <minimum_edge_length replaces="HMINXX HMINXY HMINXZ HMINYY HMINYZ HMINZZ">
+          <real_value symmetric="true" dim2="dim" shape="None" dim1="dim" rank="2"/>
+        </minimum_edge_length>
+        <maximum_edge_length replaces="HMAXXX HMAXXY HMAXXZ HMAXYY HMAXYZ HMAXZZ">
+          <real_value symmetric="true" dim2="dim" shape="None" dim1="dim" rank="2"/>
+        </maximum_edge_length>
+        <position replaces="XHSAMP YHSAMP ZHSAMP">
+          <real_value shape="None" dim1="dim" rank="1"/>
+        </position>
+      </size_tensor>
+    </variable_size_constraint>
+  </mesh_adaptivity>
+  <stephans_options>
+    <alice>
+      <integer_value shape="3" rank="1">1 2 3</integer_value>
+    </alice>
+    <bob>
+      <integer_value shape="3 3" rank="2">1 2 3 4 5 6 7 8 9</integer_value>
+    </bob>
+    <claire>
+      <integer_value shape="1" rank="1">9</integer_value>
+    </claire>
+    <dan>
+      <integer_value symmetric="true" shape="3 3" rank="2">1 2 3 4 5 6</integer_value>
+    </dan>
+  </stephans_options>
+</fluidity_options>

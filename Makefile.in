@@ -1,0 +1,430 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#    
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#    
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+SHELL = @SHELL@
+
+PROGRAM	 = ./bin/@FLUIDITY@
+ADJOINT	 = ./bin/@FLADJOINT@
+FLDECOMP = ./bin/fldecomp
+
+LIB_FLUIDITY = ./lib/lib@FLUIDITY@.a
+SLIB_FLUIDITY = lib@FLUIDITY@.so
+
+prefix  = @prefix@
+FLUIDITY_ROOT=$(DESTDIR)@prefix@
+
+FC      = @FC@
+
+MPIF90  = @MPIF90@
+MPICC   = @MPICC@
+MPICXX  = @MPICXX@
+
+CC	= @CC@
+CFLAGS	= @CPPFLAGS@ @CFLAGS@
+
+CXX	= @CXX@
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
+
+LINKER  = @LINKER@ @LDFLAGS@
+
+# Some enteries are duplicated on purpose because of the insane way some linkers resolve symbols
+LIBS    = -L./lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
+           ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
+           @LIBS@
+
+OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
+MAKE = @MAKE@ -s
+
+AR = @AR@
+
+ARFLAGS	= r
+
+EVAL = scripts/silenteval
+
+VERSION = $(shell svnversion .)
+
+ifeq (@MBA2D@,yes)
+LIBMBA2D = lib/libmba2d.a
+endif
+ifeq (@MBA3D@,yes)
+LIBMBA3D = lib/libmba3d.a
+endif
+ifeq (@ALGENCAN@,yes)
+LIBALGENCAN = lib/libalgencan.a
+endif
+
+.SUFFIXES: .f90 .F90 .c .cpp .o .a
+
+.cpp.o:
+	@echo "        CXX $<"
+	$(CXX) $(CXXFLAGS) -c $<
+
+default: bin/@FLUIDITY@
+
+sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
+	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
+	lib/libspud.a lib/libjudy.a
+ 
+lib/libjudy.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd libjudy; echo '    MAKE libjudy'; $(MAKE) > make.log ; $(MAKE) install >> make.log ; cd ..
+
+lib/libmba2d.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd libmba2d; echo '    MAKE libmba2d'; $(MAKE) ; cd ..
+
+lib/libmba3d.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd libmba3d; echo '    MAKE libmba3d'; $(MAKE) ; cd ..
+
+lib/libalgencan.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd libalgencan; echo '    MAKE libalgencan'; $(MAKE) ; cd ..
+
+lib/libadaptivity.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@BUILD_LIBADAPT@
+
+lib/libvtkfortran.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd libvtkfortran; echo '    MAKE libvtkfortran'; $(MAKE) 2>make.log 2>&1 ; cp libvtkfortran.a ../lib/; cd ..
+
+lib/libspatialindex.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd @SPATIALINDEXDIR@ ; echo '    MAKE libspatialindex'; $(MAKE); $(MAKE) install >> make.log 2>&1
+
+lib/libspud.a:
+	@echo '    MKDIR lib'; mkdir -p lib
+	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install; cp python/libspud.py ../python
+
+libfemtools: sub_system
+	@echo '    MKDIR lib'; mkdir -p lib
+	@echo '    MAKE debug'
+	@cd debug; $(MAKE)
+	@echo '    MAKE tinyxml'
+	@cd tinyxml; $(MAKE)
+	@echo '    MAKE parallel'
+	@cd parallel; $(MAKE)
+	@echo '    MAKE interpolation'
+	@cd interpolation; $(MAKE)
+	@echo '    MAKE libwm'
+	@cd libwm; $(MAKE)
+	@cd femtools; echo '    MAKE libfemtools'; $(MAKE) libfemtools ; cp libfemtools.a ../lib/; cd ..
+ifeq (@FEMDEM@,yes)
+@LIB_FEMDEM@:
+	@echo '    MAKE 3dfemdem library'
+	@cd @FLFEMDEM_PATH@;$(MAKE)
+endif
+
+bin/@FLUIDITY@: main.o ADmain.o fluidity_library
+	@echo "BUILD fluidity"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD $(PROGRAM)"
+	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
+ifeq (@ADJOINT@,yes)
+	@echo "    LD $(ADJOINT)"
+	@$(EVAL) $(LINKER) -o $(ADJOINT) ADmain.o $(LIBS)
+endif
+
+bin/shallow_water: fluidity_library main/Shallow_Water.F90
+	@cd main; $(MAKE) Shallow_Water.o
+	@echo "BUILD shallow_water"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD shallow_water"
+	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
+
+static: fluidity_library
+
+shared: lib/shared/$(SLIB_FLUIDITY).1
+
+lib/shared/$(SLIB_FLUIDITY).1: fluidity_library 
+	@echo "BUILD shared libfluidity"
+	@rm -rf tmp
+	@mkdir -p tmp lib/shared
+	@cp $(LIB_FLUIDITY) tmp
+	@cd tmp; ar x lib@FLUIDITY@.a; rm lib@FLUIDITY@.a; cd ..
+	@echo "    LD lib@FLUIDITY@.so"
+	@$(EVAL) $(LINKER) -shared -Wl,-soname,$(SLIB_FLUIDITY).1 -o lib/shared/$(SLIB_FLUIDITY).1 tmp/* -L./lib -lvtkfortran 
+	@rm -rf tmp
+	@cd lib/shared; ln -sf $(SLIB_FLUIDITY).1 $(SLIB_FLUIDITY); cd ../..
+
+gallopede: 
+	@cd gallopede; $(MAKE)
+
+fltools: fluidity_library
+	@$(MAKE) fldecomp
+	@echo "BUILD fluidity tools"
+	@cd tools; $(MAKE)
+	@echo "    MAKE climatology"
+	@cd climatology; $(MAKE)
+
+python_build:
+ifeq (@HAVE_PYTHON@,yes)
+	@echo "    MAKE python"
+	@cd python; python setup.py build > build.log 2>&1
+	@cd python/fluidity; find ../build/lib* -name '*.so' -exec ln -sf {} . \;
+endif
+
+python_clean:
+	@echo "    CLEAN python"
+	@cd python; rm -rf build
+	@cd python/fluidity; find . -type l -name '*.so' -exec rm -f {} \;
+
+fluidity_library: lib/lib@FLUIDITY@.a
+lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
+	@echo "DEFINE __FLUIDITY_VERSION__"
+	@echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h
+	@echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h
+	@echo "BUILD libfluidity"
+	@echo "    MKDIR lib"
+	@mkdir -p lib
+	@rm -f lib/lib@FLUIDITY@.a 
+	@echo "    MAKE debug"
+	@cd debug; 	$(MAKE)
+	@echo '    MAKE tinyxml'
+	@cd tinyxml;  $(MAKE)
+	@echo "    MAKE parallel"
+	@cd parallel; 	$(MAKE)
+	@echo "    MAKE interpolation"
+	@cd interpolation; $(MAKE)
+	@echo '    MAKE libwm'
+	@cd libwm; $(MAKE)
+	@echo "    MAKE femtools"
+	@cd femtools;	$(MAKE)
+	@echo "    MAKE legacy_femtools"
+	@cd legacy_femtools;	$(MAKE)
+	@echo "    MAKE ocean_forcing"
+	@cd ocean_forcing; $(MAKE)
+	@echo "    MAKE forward_interfaces"
+	@cd forward_interfaces;	$(MAKE)
+	@echo "    MAKE horizontal_adaptivity"
+	@cd horizontal_adaptivity;   	$(MAKE)
+	@echo "    MAKE preprocessor"
+	@cd preprocessor; $(MAKE)
+	@echo "    MAKE error_measures"
+	@cd error_measures;   	$(MAKE)
+	@echo "    MAKE parameterisation"
+	@cd parameterisation; $(MAKE)
+	@echo "    MAKE decomp"
+	@cd decomp;   	$(MAKE)
+	@echo "    MAKE assemble"
+	@cd assemble;   	$(MAKE)
+	@echo "    MAKE diagnostics"
+	@cd diagnostics;   	$(MAKE)
+ifeq (@ADJOINT@,yes)
+	@echo "    MAKE adjoint"
+	@cd adjoint; $(MAKE)
+endif
+	@echo "    MAKE main"
+	@cd main; $(MAKE)
+	@echo "    MAKE options_check"
+	@./scripts/make_check_options
+	@cd preprocessor; $(MAKE) check_options
+
+fldecomp: fluidity_library fldecomp.o
+	@echo "BUILD fldecomp"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD $(FLDECOMP)"
+	@$(EVAL) $(LINKER) -o $(FLDECOMP) -I./include/ fldecomp.o $(LIBS) -lmetis
+
+.PHONY: doc
+
+doc:
+	@mkdir -p doc
+	./scripts/f90_extract_docs --dir=doc --project=fluidity */*.F90 --cppflags="$(FCLAGS) -I./include"
+	@cp include/fortran.css doc/
+
+install:
+	@$(MAKE) install_fluidity
+	@$(MAKE) install_tools
+	@$(MAKE) install_python
+
+install_fluidity:
+	@echo "    MKDIR bin"
+	@mkdir -p $(FLUIDITY_ROOT)/bin
+	@echo "        $(PROGRAM)		  --> $(FLUIDITY_ROOT)/bin/@FLUIDITY@"
+	@INSTALL@ $(PROGRAM) $(FLUIDITY_ROOT)/bin/@FLUIDITY@
+	@echo "    MKDIR lib"
+	@mkdir -p $(FLUIDITY_ROOT)/lib
+	@echo "        $(LIB_FLUIDITY)	  --> $(FLUIDITY_ROOT)/lib/lib@FLUIDITY@.a"
+	@INSTALL@ $(LIB_FLUIDITY) $(FLUIDITY_ROOT)/lib/lib@FLUIDITY@.a
+#	mkdir -p $(FLUIDITY_ROOT)/include
+#	@INSTALL@ include/*.h $(FLUIDITY_ROOT)/include/
+ifeq (@ADJOINT@,yes)
+	@echo "        $(LIB_FLADJOINT)	--> $(prefix)/lib/lib@FLADJOINT@.a"
+	@cp lib/$(LIB_FLADJOINT) $(prefix)/lib/lib@FLADJOINT@.a
+	@chmod a+r $(prefix)/lib/lib@FLADJOINT@.a
+endif
+
+install_tools:
+	@mkdir -p $(FLUIDITY_ROOT)/bin
+	@for file in bin/*; do echo "        ./$$file		  --> $(FLUIDITY_ROOT)/bin/$$file"; cp $$file $(FLUIDITY_ROOT)/bin; done
+	@cd scripts; $(MAKE) install DESTDIR=$(DESTDIR)
+
+install_python:
+	@echo "installing python"
+	@cd tools; $(MAKE) install_python DESTDIR=$(DESTDIR)
+
+all:
+	$(MAKE) default
+	$(MAKE) fltools
+	$(MAKE) install
+
+clean-light:
+	@echo "    CLEAN debug"
+	@cd debug; $(MAKE) clean
+	@echo "    CLEAN parallel"
+	@cd parallel; $(MAKE) clean
+	@echo "    CLEAN parallel/tests"
+	@cd parallel/tests; $(MAKE) clean
+	@echo "    CLEAN interpolation"
+	@cd interpolation;  $(MAKE) clean
+	@echo "    CLEAN femtools"
+	@cd femtools; $(MAKE) clean
+	@echo "    CLEAN femtools/tests"
+	@cd femtools/tests; $(MAKE) clean
+	@echo "    CLEAN legacy_femtools"
+	@cd legacy_femtools; $(MAKE) clean
+	@echo "    CLEAN forward_interfaces"
+	@cd forward_interfaces; $(MAKE) clean
+	@echo "    CLEAN parameterisation"
+	@cd parameterisation; $(MAKE) clean
+	@echo "    CLEAN parameterisation/tests"
+	@cd parameterisation/tests; $(MAKE) clean
+	@echo "    CLEAN assemble"
+	@cd assemble;   $(MAKE) clean
+	@echo "    CLEAN assemble/tests"
+	@cd assemble/tests;   $(MAKE) clean
+	@echo "    CLEAN diagnostics"
+	@cd diagnostics;   $(MAKE) clean
+	@echo "    CLEAN decomp"
+	@cd decomp;   $(MAKE) clean
+	@echo "    CLEAN preprocessor"
+	@cd preprocessor; $(MAKE) clean
+	@echo "    CLEAN error_measures/tests"
+	@cd error_measures/tests;   $(MAKE) clean
+	@echo "    CLEAN error_measures"
+	@cd error_measures;   $(MAKE) clean
+	@echo "    CLEAN horizontal_adaptivity"
+	@cd horizontal_adaptivity;   $(MAKE) clean
+	@echo "    CLEAN horizontal_adaptivity/tests"
+	@cd horizontal_adaptivity/tests;   $(MAKE) clean
+	@echo "    CLEAN tools"
+	@cd tools;    $(MAKE) clean
+	@echo "    CLEAN ocean_forcing"
+	@cd ocean_forcing;  $(MAKE) clean
+	@cd ocean_forcing/tests;   $(MAKE) clean
+	@echo "    CLEAN adjoint"
+	@cd climatology;  $(MAKE) clean
+	@echo "    CLEAN climatology"
+	@cd adjoint; $(MAKE) clean
+	@echo "    CLEAN main"
+	@cd main; $(MAKE) clean
+	@echo "    CLEAN qg_strat"
+	@cd qg_strat; $(MAKE) clean
+	@echo "    CLEAN qg_strat/unittests"
+	@cd qg_strat/unittests; $(MAKE) clean
+	@rm -fr bin/* lib
+
+clean: clean-light python_clean
+	@echo "    CLEAN libvtkfortran"
+	@cd libvtkfortran; $(MAKE) clean
+	@echo "    CLEAN libjudy"
+	@cd libjudy; $(MAKE) clean >> make.log 2>&1
+	@echo "    CLEAN libspud"
+	@cd libspud; $(MAKE) clean
+	@echo "    CLEAN libspatialindex"
+	@cd @SPATIALINDEXDIR@; $(MAKE) clean >> make.log
+	@echo "    CLEAN libmba2d"
+	@cd libmba2d; $(MAKE) clean
+	@echo "    CLEAN libmba3d"
+	@cd libmba3d; $(MAKE) clean
+	@echo "    CLEAN libalgencan"
+	@cd libalgencan; $(MAKE) clean
+	@echo "    CLEAN tinyxml"
+	@cd tinyxml; $(MAKE) clean
+	@echo "    CLEAN libwm"
+	@cd libwm; $(MAKE) clean
+	@CLEAN_LIBADAPT@
+	@rm -fr doc include/*.mod *.cache core *.o config.status
+	@find ./ \( -name work.pc \) -exec rm {} \;
+	@find ./ \( -name work.pcl \) -exec rm {} \;
+
+test: fltools bin/@FLUIDITY@ serialtest
+
+serialtest:
+ifeq (@MBA2D@,yes)
+	@cd tests; ../tools/testharness.py -l short -p serial
+else
+	@cd tests; ../tools/testharness.py -l short -p serial -e 2dadapt
+endif
+
+adjtest:
+	@cd tests; ../tools/testharness.py -l any -t adjoint -p serial
+
+mediumtest:
+	@cd tests; ../tools/testharness.py -l medium
+
+setuputs: 
+	@echo "SETUP tests"
+	@echo "    RMDIR bin/tests"
+	@rm -rf bin/tests
+	@echo "    MKDIR bin/tests"
+	@mkdir -p bin/tests
+	@ln -sf ../../tests/data bin/tests/data
+
+
+build_unittest: fluidity_library libfemtools setuputs
+	@echo "    UNITTEST libspud"
+	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \; 
+	@echo "    UNITTEST decomp"
+	@cd decomp/tests; $(MAKE) unittest
+	@echo "    UNITTEST error_measures"
+	@cd error_measures/tests; $(MAKE) unittest
+	@echo "    UNITTEST horizontal_adaptivity"
+	@cd horizontal_adaptivity/tests; $(MAKE) unittest
+	@echo "    UNITTEST femtools"
+	@cd femtools/tests; $(MAKE) unittest
+	@echo "    UNITTEST parallel"
+	@cd parallel/tests; $(MAKE) unittest
+	@echo "    UNITTEST parameterisation"
+	@cd parameterisation/tests; $(MAKE) unittest
+	@echo "    UNITTEST assemble"
+	@cd assemble/tests; $(MAKE) unittest
+	@echo "    UNITTEST ocean_forcing"
+	@cd ocean_forcing/tests; $(MAKE) unittest
+
+
+unittest: build_unittest
+	@echo "RUN bin/tests"
+	@tools/unittestharness.py bin/tests
+
+gcov:
+	@echo "RUN gcov"
+	@scripts/options_test_options_report.sh  .

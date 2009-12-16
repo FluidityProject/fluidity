@@ -1,0 +1,81 @@
+### DataVizManagers ###
+1
+### 1. DataVizManager ###
+### VtkXMLDataReader ###
+VtkXMLDataReader
+gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA_1.vtu
+GLSTurbulentKineticEnergy
+Velocity
+SalinityDiffusivity
+vtkXMLUnstructuredGridReader
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetFileName', 'gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA_1.vtu'), ('SetProgress', 1.0), ('SetTimeStep', 0), ('SetTimeStepRange', (0, -1))]
+### End of VtkXMLDataReader ###
+### ModuleManagers ###
+1
+### 1. ModuleManager ###
+### Scalar Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': (7.6000000000000001e-06, 7.6750132256702059e-05), 'reverse_lut_var': 0, 'base_file_name': '/data2/flu-030309/tests/gls-Kato_Phillips-mixed_layer_depth/gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetVectorComponent': 0, 'SetTableRange': (7.6000000000000001e-06, 7.6750132256702059e-05)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetHeight': 0.14000000000000001, 'SetOrientation': 0, 'SetLabelFormat': '%-#6.3g', 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 1, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'GLSTurbulentKineticEnergy'}}, 'file_name': '', 'lut_var': 1}
+### End of Scalar Lookup Table ###
+### Vector Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.01, 0.14999999999999999, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.14000000000000001, 0.84999999999999998, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': [0.0, 0.06557972228128281], 'reverse_lut_var': 0, 'base_file_name': '/data2/flu-030309/tests/gls-Kato_Phillips-mixed_layer_depth/gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetVectorComponent': 0, 'SetTableRange': (0.0, 0.06557972228128281)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetHeight': 0.84999999999999998, 'SetOrientation': 1, 'SetLabelFormat': '%-#6.3g', 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.14000000000000001, 0.84999999999999998), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 1, 'SetPickable': 1, 'SetPosition': (0.01, 0.14999999999999999), 'SetWidth': 0.14000000000000001, 'SetTitle': 'Velocity'}}, 'file_name': '', 'lut_var': 1}
+### End Vector Lookup Table ###
+### Filters ###
+0
+### End of Filters ###
+### Modules ###
+2
+### 1. SurfaceMap ###
+SurfaceMap
+0, 10, 0.000008, 0.000077
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 1), ('SetProgress', 0.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 1), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (7.6000000000000001e-06, 7.6750132256702059e-05))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetInterpolation', 1), ('SetRepresentation', 2), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (1.0, 1.0, 1.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 1. SurfaceMap ###
+### 2. VelocityVector ###
+VelocityVector
+9, -1
+vtkConeSource
+[('SetAbortExecute', 0), ('SetCapping', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetAngle', 11.309932561631101), ('SetCenter', (0.0, 0.0, 0.0)), ('SetDirection', (1.0, 0.0, 0.0)), ('SetHeight', 1.0), ('SetProgress', 0.0), ('SetRadius', 0.20000000000000001), ('SetResolution', 5)]
+vtkGlyphSource2D
+[('SetAbortExecute', 0), ('SetCross', 0), ('SetDash', 0), ('SetDebug', 0), ('SetFilled', 0), ('SetReleaseDataFlag', 0), ('SetGlyphType', 9), ('SetCenter', (0.5, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetProgress', 1.0), ('SetRotationAngle', 0.0), ('SetScale', 1.0), ('SetScale2', 1.5)]
+vtkGlyph3D
+[('SetAbortExecute', 0), ('SetClamping', 1), ('SetDebug', 0), ('SetGeneratePointIds', 0), ('SetOrient', 1), ('SetReleaseDataFlag', 0), ('SetScaling', 1), ('SetColorMode', 2), ('SetIndexMode', 0), ('SetScaleMode', 1), ('SetVectorMode', 0), ('SetPointIdsName', 'InputPointIds'), ('SetProgress', 1.0), ('SetRange', (0.0, 0.06557972228128281)), ('SetScaleFactor', 10.0)]
+vtkOpenGLPolyDataMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 1), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetGhostLevel', 0), ('SetNumberOfPieces', 1), ('SetNumberOfSubPieces', 1), ('SetPiece', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 0.06557972228128281))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetInterpolation', 1), ('SetRepresentation', 2), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (1.0, 1.0, 1.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 2. VelocityVector ###
+### End of Modules ###
+### End of 1. ModuleManager ###
+### End of ModuleManagers ###
+### End of 1. DataVizManager ###
+### End of DataVizManagers ###
+### RenderWindow ###
+vtkOpenGLRenderer
+[('SetAutomaticLightCreation', 1), ('SetBackingStore', 0), ('SetDebug', 0), ('SetErase', 1), ('SetInteractive', 1), ('SetLightFollowCamera', 1), ('SetTwoSidedLighting', 1), ('SetAllocatedRenderTime', 10000.0), ('SetAmbient', (1.0, 1.0, 1.0)), ('SetAspect', (2.1494464944649447, 1.0)), ('SetBackground', (1.0, 1.0, 1.0)), ('SetDisplayPoint', (0.0, 0.0, 0.0)), ('SetLayer', 0), ('SetNearClippingPlaneTolerance', 0.001), ('SetPixelAspect', (1.0, 1.0)), ('SetViewPoint', (0.0, 0.0, 0.0)), ('SetViewport', (0.0, 0.0, 1.0, 1.0)), ('SetWorldPoint', (0.0, 0.0, 0.0, 0.0))]
+vtkOpenGLCamera
+[('SetDebug', 0), ('SetParallelProjection', 0), ('SetUseHorizontalViewAngle', 0), ('SetClippingRange', (1354.0919036295113, 1388.2861436201554)), ('SetDistance', 1367.7695996257689), ('SetEyeAngle', 2.0), ('SetFocalDisk', 1.0), ('SetFocalPoint', (500.0, -25.0, 0.0)), ('SetParallelScale', 500.62460986251966), ('SetPosition', (500.0, -25.0, 1367.7695996257689)), ('SetRoll', 0.0), ('SetThickness', 34.194239990644064), ('SetViewAngle', 30.0), ('SetViewPlaneNormal', (-0.0, -0.0, 1.0)), ('SetViewShear', (0.0, 0.0, 1.0)), ('SetViewUp', (0.0, 1.0, 0.0)), ('SetWindowCenter', (0.0, 0.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 1), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 6.123233995736766e-17, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+### End of RenderWindow ###

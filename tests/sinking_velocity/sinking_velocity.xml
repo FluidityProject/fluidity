@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>sinking_velocity</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>dfluidity --xml sinking_velocity.flml </command_line>
+    <!-- Check that the sinking velocity term works. -->
+  </problem_definition>
+  <variables>
+    <variable name="detritus_initial" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("sinking_velocity.stat")
+detritus_initial = s["Water"]["Detritus"]["integral"][0]
+    </variable>
+    <variable name="detritus_final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("sinking_velocity.stat")
+detritus_final = s["Water"]["Detritus"]["integral"][-1]
+    </variable>
+    <variable name="mixed_layer_detritus_final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("sinking_velocity.stat")
+mixed_layer_detritus_final = s["Water"]["MixedLayerDetritus"]["integral"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Detritus is conserved" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(detritus_final, detritus_initial, 1.0e-8)
+    </test>
+    <test name="MixedLayerDetritus vanishes" language="python">
+assert (abs(mixed_layer_detritus_final)&lt;1.0)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

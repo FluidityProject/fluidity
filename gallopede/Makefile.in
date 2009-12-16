@@ -1,0 +1,99 @@
+SHELL = @SHELL@
+
+#PETSC_FLAGS = -I$(PETSC_DIR) -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) -I$(PETSC_DIR)/include -I$(PETSC_DIR)/include/mpiuni $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetsc.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscvec.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscmat.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscksp.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscsnes.a /usr/X11R6/lib/libX11.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libmpiuni.a
+#PETSC_LINK_FLAGS = -Wl,-rpath,$(PETSC_DIR)/lib/$(PETSC_ARCH) -L$(PETSC_DIR)/lib/$(PETSC_ARCH) -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -Wl,-rpath,$(PETSC_DIR)/lib/$(PETSC_ARCH) $(MPI_UNI_L) -L/usr/X11R6/lib -lX11 -llapack -lblas -lm -Wl,-rpath,/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0 -L/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0 -Wl,-rpath,/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0/../../.. -L/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0/../../.. -ldl -lgcc_s -lgfortranbegin -lgfortran -lm -Wl,-rpath,/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0 -Wl,-rpath,/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0/../../.. -lm  -Wl,-rpath,/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0 -L/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0 -Wl,-rpath,/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0/../../.. -L/opt/packages/gcc4/lib/gcc/i686-pc-linux-gnu/4.2.0/../../.. -ldl -lgcc_s -ldl $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetsc.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscvec.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscmat.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscksp.a $(PETSC_DIR)/lib/$(PETSC_ARCH)/libpetscsnes.a $(MPI_UNI_A) /usr/X11R6/lib/libX11.a
+
+TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
+
+FC      = @FC@
+FCFLAGS = -I../include @FCFLAGS@ -I/usr/local/include -I./
+
+MPIF90  = @MPIF90@
+
+CC      = @CC@
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I/usr/local/include -g
+
+CXX     = @CXX@
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I/usr/local/include
+
+LIBFLUIDITY = lib@FLUIDITY@.a
+LIBADAPT = libadaptivity.a
+
+LIBS    = -L../lib -l@FLUIDITY@ ../lib/libvtkfortran.a @LIBS@ @BLAS_LIBS@
+FLIBS = -L../lib @FLIBS@
+
+GN_OP = ../bin/gn_op
+GALLOPEDE = ../bin/gallopede
+GN = ../bin/gn
+HELMHOLTZ = ../bin/helmholtz
+
+HELM_OBJS = Global_parameters_gallopede.o Text_IO.o Helmholtz.o
+GN_OP_OBJS = Global_parameters_gallopede.o Mesh_tools.o Text_IO.o Data_structures.o Gallopede_solvers.o VTK_IO.o GN_operator.o
+GN_MAIN_OBJS = Global_parameters_gallopede.o Text_IO.o Gallopede_solvers.o \
+    Mesh_tools.o Density_equation.o GN_operator.o \
+    GN_momentum_equation.o Data_structures.o VTK_IO.o gn_main.o \
+    gn_main_cxx.o Multilayer_tools.o
+MAIN_OBJS = Global_parameters_gallopede.o Text_IO.o Gallopede_solvers.o \
+    Mesh_tools.o  \
+    Data_structures.o VTK_IO.o Multilayer_tools.o \
+    MLCM_scalar_formulation.o
+
+
+.SUFFIXES: .f90 .F90 .c .cpp .o .a
+
+.f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $<
+.F90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $<
+.c.o:
+	@echo "        CC $<"
+	$(CC) $(CFLAGS) -c $<
+.cpp.o:
+	@echo "        CXX $<"
+	$(CXX) $(CXXFLAGS) -c $<
+
+default: $(GALLOPEDE)
+
+libsetup:
+	cp ../lib/$(LIBFLUIDITY) lib/$(LIBFLUIDITY)
+	cp ../lib/$(LIBADAPT) lib/$(LIBADAPT)
+
+helm: helmholtz_main.o $(HELM_OBJS)
+	$(FC) $(FCLAGS) -o $(HELMHOLTZ) $(FLIBS) $(LIBS)
+
+helm: helmholtz_main.o $(HELM_OBJS)
+	$(FC) $(FCLAGS) -o $(HELMHOLTZ) $(FLIBS) $(LIBS)
+
+gn_op: GN_operator_main_cxx.o GN_operator_main.o $(GN_OP_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(GN_OP) GN_operator_main_cxx.o GN_operator_main.o $(GN_OP_OBJS) -l@FLUIDITY@ $(LIBS) 
+
+gn_main: $(GN_MAIN_OBJS)
+	$(CXX) $(CXXFLAGS) -o $(GN) $(GN_MAIN_OBJS) -l@FLUIDITY@ $(LIBS) 
+
+
+$(GALLOPEDE): gallopede.o gallopede_main.o $(MAIN_OBJS)
+	cd lib; ln -s ../../lib/lib* .; cd ..
+	$(CXX) $(CXXFLAGS) -o $(GALLOPEDE) gallopede.o gallopede_main.o $(MAIN_OBJS) $(LIBS) 
+	rm lib/*
+
+GN_operator_main.o: $(GN_OP_OBJS)
+gallopede_main.o: $(MAIN_OBJS)
+
+helmholtz_main.o: $(HELM_OBJS)
+
+Density_equation.o: Gallopede_solvers.o
+GN_momentum_equation.o: Data_structures.o Gallopede_solvers.o
+Text_IO.o: Data_structures.o Mesh_tools.o
+NC_tools.o: Data_structures.o
+GN_operator.o: Gallopede_solvers.o
+MLCM_operator.o: Density_equation.o VTK_IO.o Multilayer_tools.o Gallopede_solvers.o
+MLCM_momentum_equation.o: Gallopede_barotropic_equation.o MLCM_operator.o Density_equation.o
+VTK_IO.o: Multilayer_tools.o
+Mesh_tools.o: Data_structures.o Gallopede_solvers.o
+Gallopede_solvers.o: Multilayer_tools.o
+
+clean:
+	rm -f *.o *.mod lib/lib*
+

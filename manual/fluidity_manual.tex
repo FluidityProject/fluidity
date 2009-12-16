@@ -1,0 +1,243 @@
+\documentclass[11pt,a4paper]{book}
+\usepackage{pifont}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{fancyhdr}
+\usepackage{subeqnarray}
+\usepackage{ifthen}
+\usepackage{floatflt}
+\usepackage[hyperindex,pagebackref=true]{hyperref}
+\usepackage{supertabular}
+\usepackage{moreverb}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{natbib}
+\usepackage{doi}
+\usepackage{longtable}
+\usepackage{pdflscape}
+\usepackage{makeidx}
+\usepackage{palatino}
+
+%Flag for htlatex compilation to html.
+\newboolean{HTLatex}
+\setboolean{HTLatex}{false}
+\newcommand{\ifhtml}[2]{\ifthenelse{\boolean{HTLatex}}{#1}{#2}}
+\newcommand{\onlypdf}[1]{\ifthenelse{\boolean{HTLatex}}{}{#1}}
+\newcommand{\onlyhtml}[1]{\ifthenelse{\boolean{HTLatex}}{#1}{}}
+\newcommand{\targetlabel}[1]{\hypertarget{#1}{}\label{#1}}
+
+\usepackage{pdftricks}
+\usepackage{pstricks}
+\usepackage{pst-node}
+\begin{psinputs}
+  \usepackage{palatino}
+  \usepackage{color}
+  \usepackage{pst-node}
+\end{psinputs}
+
+
+
+\input{notation.tex}
+
+\makeindex
+% Command to enable the labelling of the primary reference. 
+% To do this use \index{term|primary}
+\newcommand{\primary}[1]{\textbf{\hyperpage{#1}}}
+
+% Cause numbering of subsubsections. 
+\setcounter{secnumdepth}{5}
+
+\definecolor{DarkBlue}{rgb}{0.00,0.00,0.55}
+\hypersetup{
+    linkcolor   = DarkBlue,
+    anchorcolor = DarkBlue,
+    citecolor   = DarkBlue,
+    filecolor   = DarkBlue,
+    pagecolor   = DarkBlue,
+    urlcolor    = DarkBlue,
+    colorlinks  = true,
+    pdftitle    = {Fluidity Manual},
+}
+
+% Define date in european format
+\def\today{\number\day\space\ifcase\month\or
+ January\or February \or March\or April\or May\or June\or
+ July\or August\or September\or October\or November\or December\fi
+ \space\number\year}
+
+\usepackage[margin=2cm]{geometry}
+
+\newcommand{\xfig}[1]{
+  \ifhtml{
+    \includegraphics{#1.png}
+  }{
+    \input{#1.pdftex_t}
+  }
+}
+
+\newcommand{\fig}[2][]{
+  \ifhtml{
+    \includegraphics[#1]{#2.png}
+  }{
+    \includegraphics[#1]{#2.pdf}
+  }
+}
+
+\newcommand{\option}[1]{\texttt{#1}}
+
+\lstloadlanguages{[LaTeX]TeX,Python,bash,[gnu]Make,XML}
+
+\lstset{basicstyle=\ttfamily,
+  emph=anyfield,
+  emphstyle=\textit,
+  morekeywords={pure}
+}
+ 
+\usepackage{float}
+ 
+\floatstyle{boxed}
+\newfloat{example}{thp}{leg}[chapter]
+\floatname{example}{Example}
+
+
+
+\setlength{\parindent}{0.0in} \setlength{\parskip}{0.1in}
+
+%set a few paragraph parameters
+%\setlength{\parskip}{1.1ex plus 0.3ex minus 0.1ex}
+%\setlength{\parindent}{0.0pt}
+
+\pagestyle{fancy}
+\fancyfoot{} % No footers.
+\fancyhead[RO,LE]{\thepage}
+\fancyhead[RE]{\rightmark}
+\fancyhead[LO]{\leftmark}
+\renewcommand{\sectionmark}[1]{\renewcommand{\leftmark}{\thesection\qquad #1}}
+\renewcommand{\chaptermark}[1]{\renewcommand{\rightmark}{#1}}
+
+\begin{document}
+
+\bibliographystyle{plainnat}
+
+\frontmatter
+
+\begin{titlepage}
+
+\begin{center}
+
+%\usefont{OT1}{cmss}{m}{n}
+%\textbf{\Huge Fluidity Manual}\\
+\mbox{}
+
+\vfill
+
+%{\bfseries{\huge
+%Fluidity Manual
+%\\}}
+
+\begin{figure*}[h]
+\centering
+\includegraphics[]{misc_images/manual_title.pdf}
+\end{figure*}
+
+
+\vspace{40mm}
+
+{\LARGE
+Applied Modelling and Computation Group (AMCG)
+\\}
+
+\vspace{1mm}
+
+
+{\LARGE
+\lstinline[language=html]+http://amcg.ese.ic.ac.uk+
+\\}
+
+\vspace{10mm}
+
+{\LARGE
+Department of Earth Science and Engineering,\\
+South Kensington Campus,\\
+Imperial College London,\\
+London, SW7 2AZ, UK
+\\}
+
+%\vspace{25mm}
+
+%Please contact\\
+%Dr M.D. Piggott\\
+%(m.d.piggott@imperial.ac.uk)\\
+%for additions, corrections, etc.
+
+\vspace{80mm}
+
+
+{\Large
+Version 1.0 (\today)
+\\}
+
+\vfill
+
+\end{center}
+
+
+
+\end{titlepage}
+
+\makeatletter
+% originals from book.cls
+%\newcommand*\l@section{\@dottedtocline{1}{1.5em}{2.3em}}
+%\newcommand*\l@subsection{\@dottedtocline{2}{3.8em}{3.2em}}
+%\newcommand*\l@subsubsection{\@dottedtocline{3}{7.0em}{4.1em}}
+\renewcommand\l@section{\@dottedtocline{1}{1.5em}{2.7em}}
+\renewcommand\l@subsection{\@dottedtocline{2}{4.2em}{3.6em}}
+\renewcommand\l@subsubsection{\@dottedtocline{3}{7.8em}{4.5em}}
+\makeatother
+
+{ \setlength{\parskip}{0pt} \tableofcontents \listoffigures }
+
+\newpage \clearpage \thispagestyle{plain}
+
+\include{about}
+
+\mainmatter
+
+\include{getting_started}
+\include{model_physics}
+\include{numerical_discretisation}
+\include{parameterisations}
+\include{embedded_models}
+\include{adaptivity}
+\include{mesh_generation}
+\include{configuring_fluidity}
+\include{visualisation_and_diagnostics}
+\include{examples}
+
+% Whole bunch of format hacking because Bibliography isn't a real chapter.
+\cleardoublepage
+\phantomsection
+\renewcommand\leftmark{}
+\renewcommand\rightmark{Bibliography}
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliography{bibliography}
+
+\appendix
+
+\include{mathematical_notation}
+\include{useful_numbers}
+\include{dimensionless}
+\include{external_libraries}
+\include{parallel}
+\include{trouble_shooting}
+
+
+\cleardoublepage
+\phantomsection
+\renewcommand\leftmark{}
+\renewcommand\rightmark{Index}
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+
+\end{document}

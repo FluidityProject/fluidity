@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material flow test</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec -np 2 ../../bin/dfluidity -v2 -l 5material-droplet.flml &amp;&amp; ../../scripts/pvtu2vtu 5material-droplet 0 20</command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="endtime" language="python">
+from fluidity_tools import stat_parser as stat
+endtime=stat("5material-droplet.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="endtimestep" language="python">
+from fluidity_tools import stat_parser as stat
+endtimestep=stat("5material-droplet.stat")["dt"]["value"][-1]
+    </variable>
+    <variable name="mindivergence" language="python">
+from fluidity_tools import stat_parser as stat
+mindivergence=max(abs(stat("5material-droplet.stat")["Water"]["ControlVolumeDivergence"]["min"]))
+    </variable>
+    <variable name="maxdivergence" language="python">
+from fluidity_tools import stat_parser as stat
+maxdivergence=max(stat("5material-droplet.stat")["Water"]["ControlVolumeDivergence"]["max"])
+    </variable>
+     <variable name="vfracintwater0" language="python"> 
+import fluidity_tools
+vfracintwater0 = fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['integral'][0]
+    </variable>    
+     <variable name="vfracintwater" language="python"> 
+import fluidity_tools
+vfracintwater = fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
+    </variable>    
+     <variable name="vfracintdrop0" language="python"> 
+import fluidity_tools
+vfracintdrop0 = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['integral'][0]
+    </variable>    
+     <variable name="vfracintdrop" language="python"> 
+import fluidity_tools
+vfracintdrop = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['integral'][-1]
+    </variable>    
+     <variable name="vfracintwater20" language="python"> 
+import fluidity_tools
+vfracintwater20 = fluidity_tools.stat_parser("5material-droplet.stat")['Water2']['MaterialVolumeFraction']['integral'][0]
+    </variable>    
+     <variable name="vfracintwater2" language="python"> 
+import fluidity_tools
+vfracintwater2 = fluidity_tools.stat_parser("5material-droplet.stat")['Water2']['MaterialVolumeFraction']['integral'][-1]
+    </variable>    
+     <variable name="vfracintdrop20" language="python"> 
+import fluidity_tools
+vfracintdrop20 = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet2']['MaterialVolumeFraction']['integral'][0]
+    </variable>    
+     <variable name="vfracintdrop2" language="python"> 
+import fluidity_tools
+vfracintdrop2 = fluidity_tools.stat_parser("5material-droplet.stat")['Droplet2']['MaterialVolumeFraction']['integral'][-1]
+    </variable>    
+     <variable name="mxvfracwater" language="python"> 
+import fluidity_tools
+mxvfracwater = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracwater" language="python"> 
+import fluidity_tools
+mnvfracwater = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracdrop" language="python">
+import fluidity_tools
+mxvfracdrop = max(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['max'])
+    </variable>
+     <variable name="mnvfracdrop" language="python">
+import fluidity_tools
+mnvfracdrop = min(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['min'])
+    </variable>
+     <variable name="mxvfracwater2" language="python"> 
+import fluidity_tools
+mxvfracwater2 = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracwater2" language="python"> 
+import fluidity_tools
+mnvfracwater2 = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracdrop2" language="python">
+import fluidity_tools
+mxvfracdrop2 = max(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['max'])
+    </variable>
+     <variable name="mnvfracdrop2" language="python">
+import fluidity_tools
+mnvfracdrop2 = min(fluidity_tools.stat_parser("5material-droplet.stat")['Droplet']['MaterialVolumeFraction']['min'])
+    </variable>
+     <variable name="mxvfracair" language="python"> 
+import fluidity_tools
+mxvfracair = max(fluidity_tools.stat_parser("5material-droplet.stat")['Air']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracair" language="python"> 
+import fluidity_tools
+mnvfracair = min(fluidity_tools.stat_parser("5material-droplet.stat")['Air']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracsum" language="python">
+import fluidity_tools
+mxvfracsum = max(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['SumMaterialVolumeFractions']['max'])
+    </variable>
+     <variable name="mnvfracsum" language="python">
+import fluidity_tools
+mnvfracsum = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['SumMaterialVolumeFractions']['min'])
+    </variable>
+    <variable name="serial_error_10" language="python">
+import vtktools
+from numpy import array as arr
+vtup = vtktools.vtu("5material-droplet_10.vtu")
+vtus = vtktools.vtu("src/5material-droplet-serial_10.vtu")
+vtud = vtktools.VtuDiff(vtus,vtup)
+names = vtud.GetFieldNames()
+serial_error_10 = [0,0,0]
+for i in range(len(names)):
+   if((vtud.GetFieldRank(names[i])==0)and(names[i]!="Water::Pressure")and(names[i]!="Water::Density")):
+      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+      print names[i], field_error
+      serial_error_10[0] = max(serial_error_10[0], field_error)
+   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Pressure")):
+      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+      print names[i], field_error
+      serial_error_10[1] = max(serial_error_10[1], field_error)
+   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Density")):
+      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+      print names[i], field_error
+      serial_error_10[2] = max(serial_error_10[2], field_error)
+    </variable>
+    <variable name="serial_error_20" language="python">
+import vtktools
+from numpy import array as arr
+vtup = vtktools.vtu("5material-droplet_20.vtu")
+vtus = vtktools.vtu("src/5material-droplet-serial_20.vtu")
+vtud = vtktools.VtuDiff(vtus,vtup)
+names = vtud.GetFieldNames()
+serial_error_20 = [0,0,0]
+for i in range(len(names)):
+   if((vtud.GetFieldRank(names[i])==0)and(names[i]!="Water::Pressure")and(names[i]!="Water::Density")):
+      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+      print names[i], field_error
+      serial_error_20[0] = max(serial_error_20[0], field_error)
+   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Pressure")):
+      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+      print names[i], field_error
+      serial_error_20[1] = max(serial_error_20[1], field_error)
+   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Density")):
+      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+      print names[i], field_error
+      serial_error_20[2] = max(serial_error_20[2], field_error)
+    </variable>
+  </variables>
+    <pass_tests>  
+    <test name="check end time" language="python">
+assert endtime &gt; 0.45
+    </test>
+    <test name="check end timestep" language="python">
+assert abs(endtimestep-0.0025) &lt; 1.E-9
+    </test>
+<!-- water has left the domain so this is not possible
+    <test name="check water volume fraction was conserved" language="python">
+print 'conservation error = ', abs(vfracintwater0-vfracintwater)
+assert abs(vfracintwater0-vfracintwater) &lt; max(maxdivergence, mindivergence)
+    </test>-->
+    <test name="check droplet volume fraction was conserved" language="python">
+print 'conservation error = ', abs(vfracintdrop0-vfracintdrop)
+assert abs(vfracintdrop0-vfracintdrop) &lt; max(maxdivergence, mindivergence)
+    </test>
+    <test name="check water2 volume fraction was conserved" language="python">
+print 'conservation error = ', abs(vfracintwater20-vfracintwater2)
+assert abs(vfracintwater20-vfracintwater2) &lt; max(maxdivergence, mindivergence)
+    </test>
+    <test name="check droplet2 volume fraction was conserved" language="python">
+print 'conservation error = ', abs(vfracintdrop20-vfracintdrop2)
+assert abs(vfracintdrop20-vfracintdrop2) &lt; max(maxdivergence, mindivergence)
+    </test>
+    <test name="check that reasonable tolerance is being used to test conservation" language="python">
+print 'divergence tolerance = ', max(maxdivergence, mindivergence)
+assert max(maxdivergence, mindivergence) &lt; 1.E-7
+    </test>
+    <test name="check minimum water volume fraction is 0.0" language="python">
+assert abs(mnvfracwater) &lt; 1e-10
+    </test>
+    <test name="check maximum water volume fraction is 1.0" language="python">
+assert abs(mxvfracwater-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum droplet volume fraction is 0.0" language="python">
+assert abs(mnvfracdrop) &lt; 1e-10
+    </test>
+    <test name="check maximum droplet volume fraction is 1.0" language="python">
+assert abs(mxvfracdrop-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum water2 volume fraction is 0.0" language="python">
+assert abs(mnvfracwater2) &lt; 1e-10
+    </test>
+    <test name="check maximum water2 volume fraction is 1.0" language="python">
+assert abs(mxvfracwater2-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum droplet2 volume fraction is 0.0" language="python">
+assert abs(mnvfracdrop2) &lt; 1e-10
+    </test>
+    <test name="check maximum droplet2 volume fraction is 1.0" language="python">
+assert abs(mxvfracdrop2-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum air volume fraction is 0.0" language="python">
+assert abs(mnvfracair) &lt; 1e-10
+    </test>
+    <test name="check maximum air volume fraction is 1.0" language="python">
+assert abs(mxvfracair-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum sum volume fraction is 0.0" language="python">
+assert abs(mnvfracsum) &lt; 1e-10
+    </test>
+    <test name="check maximum sum volume fraction is 1.0" language="python">
+assert abs(mxvfracsum-1.0) &lt; 1e-10
+    </test>
+    <test name="check error to serial in middle" language="python">
+assert serial_error_10[0] &lt; 5.E-9
+    </test>
+    <test name="check error to serial at end" language="python">
+assert serial_error_20[0] &lt; 5.E-9
+    </test>
+    <test name="check pressure error to serial in middle" language="python">
+assert serial_error_10[1] &lt; 5.E-5
+    </test>
+    <test name="check pressure error to serial at end" language="python">
+assert serial_error_20[1] &lt; 7.E-5
+    </test>
+    <test name="check density error to serial in middle" language="python">
+assert serial_error_10[2] &lt; 5.E-6
+    </test>
+    <test name="check density error to serial at end" language="python">
+assert serial_error_20[2] &lt; 5.E-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

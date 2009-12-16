@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+  <UnstructuredGrid>
+    <Piece NumberOfPoints="8"            NumberOfCells="6"           >
+      <PointData Vectors="Coordinate">
+        <DataArray type="Float32" Name="Coordinate" NumberOfComponents="3" format="appended" offset="0"           />
+      </PointData>
+      <CellData>
+      </CellData>
+      <Points>
+        <DataArray type="Float32" NumberOfComponents="3" format="appended" offset="60"          />
+      </Points>
+      <Cells>
+        <DataArray type="Int32" Name="connectivity" format="appended" offset="120"         />
+        <DataArray type="Int32" Name="offsets" format="appended" offset="204"         />
+        <DataArray type="UInt8" Name="types" format="appended" offset="260"         />
+      </Cells>
+    </Piece>
+  </UnstructuredGrid>
+  <AppendedData encoding="base64">
+   _AQAAAACAAABgAAAAGQAAAA==eJxjYEAGDfaobHQ+ulqYGIyNKQYAP8sI9Q==AQAAAACAAABgAAAAGQAAAA==eJxjYEAGDfaobHQ+ulqYGIyNKQYAP8sI9Q==AQAAAACAAABgAAAAKwAAAA==eJxjZGBgYAZiJiBmA2JWKM0OFWdEEofxGaBsFqg4O5QNk2dF4gMAEaQAWQ==AQAAAACAAAAYAAAAGAAAAA==eJxjYWBg4ABiHiAWAGIRIJYAYgADmABVAQAAAACAAAAGAAAACwAAAA==eJzj4gIBAADYAD0=
+  </AppendedData>
+</VTKFile>

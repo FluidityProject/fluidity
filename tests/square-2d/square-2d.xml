@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>2D square adaptivity</name>
+  <owner userid="pfarrell"/>
+  <tags>flml 2dadapt</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml square-2d.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="final_time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("square-2d.stat")
+final_time = s["ElapsedTime"]["value"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="assert no crash during adaptivity" language="python">
+assert final_time == 0.05
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

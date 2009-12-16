@@ -1,0 +1,200 @@
+#!/usr/bin/env python
+#
+# James Maddison
+
+"""
+Plot data in a .stat file
+"""
+
+import getopt
+import os
+import sys
+import time
+
+import gtk
+
+import fluidity.diagnostics.debug as debug
+import fluidity.diagnostics.fluiditytools as fluidity_tools
+import fluidity.diagnostics.gui as gui
+import fluidity.diagnostics.plotting as plotting
+
+def Help():
+  debug.dprint("Usage: statplot [OPTIONS] FILENAME\n" + \
+               "\n" + \
+               "Options:\n" + \
+               "\n" + \
+               "-h  Display this help\n" + \
+               "-v  Verbose mode",  0)
+
+  return
+
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "hv")
+except getopt.GetoptError:
+  Help()
+  sys.exit(-1)
+  
+if not ("-v", "") in opts:
+  debug.SetDebugLevel(0)
+  
+if ("-h", "") in opts:
+  Help()
+  sys.exit(1)
+  
+if len(args) == 0:
+  debug.FatalError("Filename must be specified")
+elif len(args) > 1:
+  debug.FatalError("Unrecognised trailing argument")
+
+filename = args[0]
+
+class StatplotWindow(gtk.Window):
+  def __init__(self, filename):
+    self._filename = filename
+  
+    gtk.Window.__init__(self)
+    self.set_title(self._filename)
+    self.connect("key-press-event", self._KeyPressed)
+    
+    failcount = 0
+    self._stat = None
+    while failcount < 5:
+      try:
+        self._stat = fluidity_tools.Stat(self._filename)
+        break
+      except TypeError, ValueError:
+        # We opened the .stat when it was being written to by fluidity
+        time.sleep(0.2)
+        failcount = failcount + 1
+
+    if self._stat is None:
+      debug.FatalError("Could not open %s" % self._filename)
+
+    # Containers
+    self._vBox = gtk.VBox()
+    self.add(self._vBox)
+    
+    self._hBox = gtk.HBox()
+    self._vBox.pack_end(self._hBox, expand = False, fill = False)
+    
+    # The plot widget
+    self._xField = None
+    self._yField = None
+    self._xData = None
+    self._yData = None
+    self._plotWidget = None
+    self._plotType = plotting.ScatterPlot
+    
+    # The combos
+    self._xCombo = gui.ComboBoxFromEntries(self._stat.Paths())
+    self._xCombo.connect("changed", self._XComboChanged)
+    iter = self._xCombo.get_model().get_iter_first()
+    if not iter is None:
+      self._xCombo.set_active_iter(iter)
+    self._hBox.pack_start(self._xCombo)
+    
+    self._yCombo = gui.ComboBoxFromEntries(self._stat.Paths())
+    self._yCombo.connect("changed", self._YComboChanged)
+    iter = self._yCombo.get_model().get_iter_first()
+    if not iter is None:
+      iter2 = self._yCombo.get_model().iter_next(iter)
+      if iter2 is None:
+        self._yCombo.set_active_iter(iter)
+      else:
+        self._yCombo.set_active_iter(iter2)
+    self._hBox.pack_end(self._yCombo)
+    
+    self._vBox.show_all()
+    
+    return
+    
+  def _RefreshData(self, keepBounds = False):
+    self._xField = self._xCombo.get_active_text()
+    self._xData = self._stat[self._xField]
+    self._yField = self._yCombo.get_active_text()
+    self._yData = self._stat[self._yField]
+    if keepBounds:
+      axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
+      bounds = (axis.get_xbound(), axis.get_ybound())
+    else:
+      bounds = None
+    self._RefreshPlot(bounds)
+    
+    return
+
+  def _RefreshPlot(self, bounds = None):
+    if not self._xData is None and not self._yData is None:
+      assert(len(self._xData) == len(self._yData))
+      if not self._plotWidget is None:
+        self._vBox.remove(self._plotWidget)
+      self._plotWidget = self._plotType(x = self._xData, y = self._yData, xLabel = self._xField, yLabel = self._yField, bounds=bounds).Widget()
+      self._vBox.pack_start(self._plotWidget)
+      self._plotWidget.show_all()
+    
+    return
+    
+  def SetXField(self, field):
+    self._xField = field
+    self._xData = self._stat[self._xField]
+    
+    self._RefreshPlot()
+    
+    return
+    
+  def SetYField(self, field):
+    self._yField =  field
+    self._yData = self._stat[self._yField]
+    
+    self._RefreshPlot()
+      
+    return
+    
+  def _XComboChanged(self, widget):
+    self.SetXField(self._xCombo.get_active_text())
+      
+    return
+    
+  def _YComboChanged(self, widget):
+    self.SetYField(self._yCombo.get_active_text())
+      
+    return
+    
+  def _KeyPressed(self, widget, event):
+    char = event.string
+    if char == "R":
+      try:
+       self._stat = fluidity_tools.Stat(self._filename)
+      except TypeError:
+        # Tolerate a half written line in the .stat file
+        return
+      except ValueError:
+        # Tolerate a half written line in the .stat file
+        return
+      self._RefreshData(keepBounds = True)
+    elif char == "l":
+      self._plotType = plotting.LinePlot
+      self._RefreshData(keepBounds = True)
+    elif char == "q":
+      self.destroy()
+    elif char == "r":
+      try:
+        self._stat = fluidity_tools.Stat(self._filename)
+      except TypeError:
+        # Tolerate a half written line in the .stat file
+        return
+      except ValueError:
+        # Tolerate a half written line in the .stat file
+        return
+      self._RefreshData()
+    elif char == "s":
+      self._plotType = plotting.ScatterPlot
+      self._RefreshData(keepBounds = True)
+            
+    return
+
+# The window
+window = StatplotWindow(filename)
+window.set_default_size(640, 480)
+
+# Fire up the GUI
+gui.DisplayWindow(window)

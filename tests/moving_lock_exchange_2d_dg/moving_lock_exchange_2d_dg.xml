@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>moving_lock_exchange_2d_dg</name>
+  <owner userid="yves"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity --xml moving_lock_exchange_2d_dg.flml </command_line>
+    <!-- Two dimensional wind driven cavity. -->
+  </problem_definition>
+  <variables>
+    <variable name="maxspeed" language="python">
+      import fluidity_tools
+      maxspeed =max(fluidity_tools.stat_parser("moving_lock_exchange.stat")['StratifiedFluid']['Velocity%magnitude']['max'])
+    </variable>
+  </variables>
+  <pass_tests>
+    <!-- l2norm should remain within 1% of a constant detemined analytically -->
+    <test name="l2norm(speed) at last timestep" language="python">
+      assert abs(maxspeed) &lt; 100000.0
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

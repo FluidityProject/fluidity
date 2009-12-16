@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>driven_cavity_2d</name>
+  <owner userid="piggott"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>dfluidity -v3 -l driven_cavity_2d.flml </command_line>
+    <!-- Two dimensional wind driven cavity. -->
+  </problem_definition>
+  <variables>
+    <variable name="erturk_u_norm" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu("driven_cavity_2d_6.vtu")
+pts=vtktools.arr([[0.5, 0.000, 0.000, 0.0000],
+[0.5, 0.000, 0.000,  0.0000],
+[0.5, 0.020, 0.000, -0.0757],
+[0.5, 0.040, 0.000, -0.1392],
+[0.5, 0.060, 0.000, -0.1951],
+[0.5, 0.080, 0.000, -0.2472],
+[0.5, 0.100, 0.000, -0.2960],
+[0.5, 0.120, 0.000, -0.3381],
+[0.5, 0.140, 0.000, -0.3690],
+[0.5, 0.160, 0.000, -0.3854],
+[0.5, 0.180, 0.000, -0.3869],
+[0.5, 0.200, 0.000, -0.3756],
+[0.5, 0.500, 0.000, -0.0620],
+[0.5, 0.900, 0.000,  0.3838],
+[0.5, 0.910, 0.000,  0.3913],
+[0.5, 0.920, 0.000,  0.3993],
+[0.5, 0.930, 0.000,  0.4101],
+[0.5, 0.940, 0.000,  0.4276],
+[0.5, 0.950, 0.000,  0.4582],
+[0.5, 0.960, 0.000,  0.5102],
+[0.5, 0.970, 0.000,  0.5917],
+[0.5, 0.980, 0.000,  0.7065],
+[0.5, 0.990, 0.000,  0.8486],
+[0.5, 1.000, 0.000,  1.0000]])
+
+
+velocity = u.ProbeData(pts, "Velocity")
+(ilen, jlen) = velocity.shape
+
+norm=0.0
+for i in range(ilen):
+      diff = pts[i][3] - velocity[i][0]
+      print i,pts[i][1],pts[i][3],velocity[i][0],diff
+      norm = norm + diff*diff
+  
+norm = math.sqrt(norm)/ilen
+print norm
+erturk_u_norm=norm
+    </variable>
+    <variable name="erturk_v_norm" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu("driven_cavity_2d_6.vtu")
+pts=vtktools.arr([
+[0.000, 0.5, 0.0,  0.0000],
+[0.015, 0.5, 0.0,  0.1019],
+[0.030, 0.5, 0.0,  0.1792],
+[0.045, 0.5, 0.0,  0.2349],
+[0.060, 0.5, 0.0,  0.2746],
+[0.075, 0.5, 0.0,  0.3041],
+[0.090, 0.5, 0.0,  0.3273],
+[0.105, 0.5, 0.0,  0.3460],
+[0.120, 0.5, 0.0,  0.3605],
+[0.135, 0.5, 0.0,  0.3705],
+[0.150, 0.5, 0.0,  0.3756],
+[0.500, 0.5, 0.0,  0.0258],
+[0.850, 0.5, 0.0, -0.4028],
+[0.865, 0.5, 0.0, -0.4407],
+[0.880, 0.5, 0.0, -0.4803],
+[0.895, 0.5, 0.0, -0.5132],
+[0.910, 0.5, 0.0, -0.5263],
+[0.925, 0.5, 0.0, -0.5052],
+[0.940, 0.5, 0.0, -0.4417],
+[0.955, 0.5, 0.0, -0.3400],
+[0.970, 0.5, 0.0, -0.2173],
+[0.985, 0.5, 0.0, -0.0973],
+[1.000, 0.5, 0.0,  0.0000]])
+
+
+velocity = u.ProbeData(pts, "Velocity")
+(ilen, jlen) = velocity.shape
+
+norm=0.0
+for i in range(ilen):
+      diff = pts[i][3] - velocity[i][1]
+      print i,pts[i][0],pts[i][3],velocity[i][1],diff
+      norm = norm + diff*diff
+  
+norm = math.sqrt(norm)/ilen
+print norm
+erturk_v_norm=norm
+    </variable>    
+    <variable name="botella_u_norm" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu("driven_cavity_2d_6.vtu")
+pts=vtktools.arr([
+[0.5, 0.0000, 0.0,  0.0000000],
+[0.5, 0.0547, 0.0, -0.1812881],
+[0.5, 0.0625, 0.0, -0.2023300],
+[0.5, 0.0703, 0.0, -0.2228955],
+[0.5, 0.1016, 0.0, -0.3004561],
+[0.5, 0.1719, 0.0, -0.3885691],
+[0.5, 0.2813, 0.0, -0.2803696],
+[0.5, 0.4531, 0.0, -0.1081999],
+[0.5, 0.5000, 0.0, -0.0620561],
+[0.5, 0.6172, 0.0,  0.0570178],
+[0.5, 0.7344, 0.0,  0.1886747],
+[0.5, 0.8516, 0.0,  0.3372212],
+[0.5, 0.9531, 0.0,  0.4723329],
+[0.5, 0.9609, 0.0,  0.5169277],
+[0.5, 0.9688, 0.0,  0.5808359],
+[0.5, 0.9766, 0.0,  0.6644227],
+[0.5, 1.0000, 0.0,  1.0000000]])
+
+velocity = u.ProbeData(pts, "Velocity")
+(ilen, jlen) = velocity.shape
+pressure = u.ProbeData(pts, "Pressure")
+
+pts0=vtktools.arr([[0.5, 0.5, 0.0]])
+press0 = u.ProbeData(pts0, "Pressure")
+print press0[0][0]
+
+norm=0.0
+for i in range(ilen):
+      diff = pts[i][3] - velocity[i][0]
+      print i,pts[i][1],pts[i][3],velocity[i][0],diff
+      norm = norm + diff*diff
+
+norm = math.sqrt(norm)/ilen
+print norm
+botella_u_norm=norm
+    </variable>
+    <variable name="botella_v_norm" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu("driven_cavity_2d_6.vtu")
+pts=vtktools.arr([
+[1.0000, 0.5, 0.0,  0.0000000],
+[0.9688, 0.5, 0.0, -0.2279225],
+[0.9609, 0.5, 0.0, -0.2936869],
+[0.9531, 0.5, 0.0, -0.3553213],
+[0.9453, 0.5, 0.0, -0.4103754],
+[0.9063, 0.5, 0.0, -0.5264392],
+[0.8594, 0.5, 0.0, -0.4264545],
+[0.8047, 0.5, 0.0, -0.3202137],
+[0.5000, 0.5, 0.0,  0.0257995],
+[0.2344, 0.5, 0.0,  0.3253592],
+[0.2266, 0.5, 0.0,  0.3339924],
+[0.1563, 0.5, 0.0,  0.3769189],
+[0.0938, 0.5, 0.0,  0.3330442],
+[0.0781, 0.5, 0.0,  0.3099097],
+[0.0703, 0.5, 0.0,  0.2962703],
+[0.0625, 0.5, 0.0,  0.2807056],
+[0.0000, 0.5, 0.0,  0.0000000]])
+
+velocity = u.ProbeData(pts, "Velocity")
+(ilen, jlen) = velocity.shape
+
+norm=0.0
+for i in range(ilen):
+      diff = pts[i][3] - velocity[i][1]
+      print i,pts[i][0],pts[i][3],velocity[i][1],diff
+      norm = norm + diff*diff
+
+norm = math.sqrt(norm)/ilen
+print norm
+botella_v_norm=norm
+    </variable>
+    <variable name="botella_p_norm1" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu("driven_cavity_2d_6.vtu")
+pts=vtktools.arr([
+[0.5, 0.0000, 0.0,  0.110591],
+[0.5, 0.0547, 0.0,  0.109689],
+[0.5, 0.0625, 0.0,  0.109200],
+[0.5, 0.0703, 0.0,  0.108566],
+[0.5, 0.1016, 0.0,  0.104187],
+[0.5, 0.1719, 0.0,  0.081925],
+[0.5, 0.2813, 0.0,  0.040377],
+[0.5, 0.4531, 0.0,  0.004434],
+[0.5, 0.5000, 0.0,  0.000000],
+[0.5, 0.6172, 0.0, -0.000827],
+[0.5, 0.7344, 0.0,  0.012122],
+[0.5, 0.8516, 0.0,  0.034910],
+[0.5, 0.9531, 0.0,  0.050329],
+[0.5, 0.9609, 0.0,  0.050949],
+[0.5, 0.9688, 0.0,  0.051514],
+[0.5, 0.9766, 0.0,  0.052009],
+[0.5, 1.0000, 0.0,  0.052987]])
+
+velocity = u.ProbeData(pts, "Velocity")
+(ilen, jlen) = velocity.shape
+pressure = u.ProbeData(pts, "Pressure")
+
+pts0=vtktools.arr([[0.5, 0.5, 0.0]])
+press0 = u.ProbeData(pts0, "Pressure")
+print press0[0][0]
+
+norm=0.0
+for i in range(ilen):
+      diff = pts[i][3] - (pressure[i][0]-press0[0][0])
+      print i,pts[i][1],pts[i][3],pressure[i][0]-press0[0][0],diff
+      norm = norm + diff*diff
+
+norm = math.sqrt(norm)/ilen
+print norm
+botella_p_norm1=norm
+    </variable>    
+    <variable name="botella_p_norm2" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu("driven_cavity_2d_6.vtu")
+pts=vtktools.arr([
+[1.0000, 0.5, 0.0,  0.077455],
+[0.9688, 0.5, 0.0,  0.078837],
+[0.9609, 0.5, 0.0,  0.078685],
+[0.9531, 0.5, 0.0,  0.078148],
+[0.9453, 0.5, 0.0,  0.077154],
+[0.9063, 0.5, 0.0,  0.065816],
+[0.8594, 0.5, 0.0,  0.049029],
+[0.8047, 0.5, 0.0,  0.034552],
+[0.5000, 0.5, 0.0,  0.000000],
+[0.2344, 0.5, 0.0,  0.044848],
+[0.2266, 0.5, 0.0,  0.047260],
+[0.1563, 0.5, 0.0,  0.069511],
+[0.0938, 0.5, 0.0,  0.084386],
+[0.0781, 0.5, 0.0,  0.086716],
+[0.0703, 0.5, 0.0,  0.087653],
+[0.0625, 0.5, 0.0,  0.088445],
+[0.0000, 0.5, 0.0,  0.090477]])
+
+
+velocity = u.ProbeData(pts, "Velocity")
+(ilen, jlen) = velocity.shape
+pressure = u.ProbeData(pts, "Pressure")
+
+pts0=vtktools.arr([[0.5, 0.5, 0.0]])
+press0 = u.ProbeData(pts0, "Pressure")
+print press0[0][0]
+
+norm=0.0
+for i in range(ilen):
+      diff = pts[i][3] - (pressure[i][0]-press0[0][0])
+      print i,pts[i][0],pts[i][3],pressure[i][0]-press0[0][0],diff
+      norm = norm + diff*diff
+
+norm = math.sqrt(norm)/ilen
+print norm
+botella_p_norm2=norm
+    </variable>
+    <variable name="kinetic_energy_error" language="python">
+import fluidity_tools
+vel_l2_norm = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['Velocity%magnitude']['l2norm'][-1]
+kinetic_energy = 0.5*vel_l2_norm**2
+kinetic_energy_error = abs( kinetic_energy - 0.044503 )
+print kinetic_energy,kinetic_energy_error
+    </variable>   
+    <variable name="streamfunction_min_error" language="python">
+import fluidity_tools
+streamfunction_min = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['StreamFunction']['min'][-1]
+streamfunction_min_error = abs( streamfunction_min - -0.118942 )
+print streamfunction_min,streamfunction_min_error
+    </variable>   
+  </variables>
+  <pass_tests>
+    <test name="L2 norm of u velocity along centre line (cf. Erturk)" language="python">
+assert erturk_u_norm &lt; 0.0035
+    </test>
+    <test name="L2 norm of v velocity along centre line (cf. Erturk)" language="python">
+assert erturk_v_norm &lt; 0.004
+    </test>
+    <test name="L2 norm of u velocity along centre line (cf. Botella)" language="python">
+assert botella_u_norm &lt; 0.0035
+    </test>
+    <test name="L2 norm of v velocity along centre line (cf. Botella)" language="python">
+assert botella_v_norm &lt; 0.0045
+    </test>
+    <test name="L2 norm of p velocity along centre line (cf. Botella)" language="python">
+assert botella_p_norm1 &lt; 0.0025
+    </test>    
+    <test name="L2 norm of p velocity along centre line (cf. Botella)" language="python">
+assert botella_p_norm2 &lt; 0.0025
+    </test>    
+    <test name="Difference in KE (cf. Botella)" language="python">
+assert kinetic_energy_error &lt; 0.005
+    </test>    
+    <test name="Difference in streamfunction min (cf. Erturk)" language="python">
+assert streamfunction_min_error &lt; 0.007
+    </test>    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

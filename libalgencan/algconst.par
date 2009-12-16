@@ -1,0 +1,89 @@
+C     PARAMETERS
+
+C     General constants
+
+      double precision fmin
+
+      parameter ( fmin       = - 1.0d+20 )
+
+C     Line search constants
+
+      integer maxextrap,mininterp
+      double precision beta,etaint,etaext,gamma,sigma1,sigma2
+
+      parameter ( maxextrap  =       100 )
+      parameter ( mininterp  =         4 )
+
+      parameter ( gamma      =   1.0d-04 )
+      parameter ( beta       =     0.5d0 )
+      parameter ( sigma1     =     0.1d0 )
+      parameter ( sigma2     =     0.9d0 )
+      parameter ( etaint     =     2.0d0 )
+      parameter ( etaext     =     2.0d0 )
+
+C     Safeguarding spectral step constants
+
+      double precision lspgma,lspgmi
+
+      parameter ( lspgma     =   1.0d+10 )
+      parameter ( lspgmi     =   1.0d-10 )
+
+C     Conjugate gradients constants
+
+      integer maxcgitnp
+      double precision epsnqmp,theta
+
+      parameter ( theta      =   1.0d-06 )
+      parameter ( epsnqmp    =   1.0d-08 )
+      parameter ( maxcgitnp  =         5 )
+
+C     BETRA constants
+
+      logical extrp2,extrp4,extrp5
+      integer msmaxit
+      double precision mseps,msrho,mssig,phieps,trdelini,trdelmin,
+     +        tralpha
+
+      parameter ( extrp2     =   .true. )
+      parameter ( extrp4     =   .true. )
+      parameter ( extrp5     =   .true. )
+
+      parameter ( msmaxit    =       20 )
+
+      parameter ( mseps      =  1.0d-08 )    
+      parameter ( mssig      =  1.0d-01 )
+      parameter ( msrho      =  9.0d-01 )
+      parameter ( phieps     =  1.0d-08 )
+      parameter ( trdelini   =  1.0d+02 )
+      parameter ( trdelmin   =  1.0d-08 )
+      parameter ( tralpha    =  1.0d-01 )
+
+C     GENCAN constants
+
+      integer maxinnitnp
+      double precision cggpnf,cgepsi,cgepsf,delmin,eta
+
+      parameter ( maxinnitnp =         5 )
+      parameter ( delmin     =   1.0d+04 )
+      parameter ( eta        =   0.1d0   )
+      parameter ( cggpnf     =   1.0d-04 )
+      parameter ( cgepsi     =   1.0d-01 )
+      parameter ( cgepsf     =   1.0d-08 )
+
+C     ALGENCAN constants
+
+      logical rhoauto,rhoiden
+      integer maxoutitnp,maxoutit
+      double precision lammax,lammin,rhofrac,rhomax,rhomult
+
+      parameter ( maxoutitnp =        10 )
+      parameter ( maxoutit   =        50 )
+
+      parameter ( lammin     = - 1.0d+20 )
+      parameter ( lammax     =   1.0d+20 )
+
+      parameter ( rhoauto    =    .true. )
+      parameter ( rhoiden    =    .true. )
+      parameter ( rhofrac    =   0.5d0   )
+      parameter ( rhomult    =   1.0d+01 )
+      parameter ( rhomax     =   1.0d+20 )

@@ -1,0 +1,11 @@
+#! /bin/bash
+
+python ../../tools/tri_make.py box2 5000.0
+triangle -Ypqa25000000.0 box2.1
+python ../../tools/tri_read.py box2.2
+triangle -Ypqa25000000.0 box2.1
+
+cp box2.2.ele Positions.ele
+cp box2.2.node Positions.node
+
+

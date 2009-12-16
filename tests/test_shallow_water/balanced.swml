@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='utf8'?>
+<shallow_water_options>
+  <simulation_name>
+    <string_value lines="1">balanced</string_value>
+  </simulation_name>
+  <debug/>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="basin">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <integer_value rank="0">100</integer_value>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">100.0</real_value>
+    </timestep>
+    <nonlinear_iterations replaces="ITINOI">
+      <integer_value rank="0">1</integer_value>
+    </nonlinear_iterations>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">10000.0</real_value>
+    </finish_time>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude replaces="GRAVTY">
+        <real_value rank="0">10</real_value>
+      </magnitude>
+    </gravity>
+    <coriolis replaces="OPTOME">
+      <f_plane replaces="OPTOME = 0">
+        <f replaces="OMEGA">
+          <real_value rank="0">1.0313e-04</real_value>
+        </f>
+      </f_plane>
+    </coriolis>
+  </physical_parameters>
+  <material_phase name="Fluid">
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="ShallowWater"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin replaces="DISOPT">
+            <advection_scheme>
+              <none/>
+            </advection_scheme>
+          </discontinuous_galerkin>
+        </spatial_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-100</real_value>
+          </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </absolute_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <balanced/>
+        </initial_condition>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="LayerThickness" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="THETA">
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <relaxation replaces="ITHETA">
+          <real_value rank="0">0.5</real_value>
+        </relaxation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+   from math import exp
+   LR = 40000.
+   u = [0.0,0.0]
+   r0 = 250000.
+   r = ((X[0])**2 + (X[1]**2))**0.5
+   if(r&lt;-1.0e-5+r0):
+      return 0.05*exp(-r/LR)
+   else:
+      return 0.</string_value>
+          </python>
+        </initial_condition>
+        <mean_layer_thickness>
+          <real_value rank="0">5.0</real_value>
+        </mean_layer_thickness>
+        <output/>
+        <stat/>
+      </prognostic>
+    </scalar_field>
+  </material_phase>
+</shallow_water_options>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Cube-1</name>
+  <owner userid="pfarrell"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v2 -l cube-1.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="norm1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cube-1.stat")
+norm1 = s["Water"]["GeostrophicPressure"]["max"][0]-s["Water"]["GeostrophicPressure"]["min"][0]
+    </variable>
+    <variable name="norm2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cube-1.stat")
+norm2 = s["Water"]["GeostrophicPressure"]["max"][1]-s["Water"]["GeostrophicPressure"]["min"][1]
+    </variable>
+    <variable name="cfl" language="python">
+import fluidity_tools
+cfl = fluidity_tools.stat_parser("cube-1.stat")['Water']['CFLNumber']['max'][-1]
+    </variable>
+    <variable name="grn" language="python">
+import fluidity_tools
+grn = fluidity_tools.stat_parser("cube-1.stat")['Water']['GridReynoldsNumber']['max'][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+<!-- The difference in the geostrophic pressure accross the channel should be 2*Omega. 
+In this case this is 2.0 -->
+    <test name="geostrophic pressure difference (first timestep)" language="python">
+assert abs(norm1 - 2.0) &lt; 1e-5
+    </test>
+    <test name="geostrophic pressure difference (second timestep)" language="python">
+assert abs(norm2 - 2.0) &lt; 1e-5
+    </test>
+    <test name="maximum cfl number (second timestep)" language="python">
+assert abs(cfl-0.025) &lt; 1e-5
+    </test>
+    <test name="maximum grid reynolds number (second timestep)" language="python">
+assert abs(grn-1.0) &lt; 1e-5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

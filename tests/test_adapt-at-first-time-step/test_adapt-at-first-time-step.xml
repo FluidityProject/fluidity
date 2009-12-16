@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Test adapt_at_first_timestep</name>
+  <owner userid="hhiester"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -n 2 ../../bin/dfluidity -v3 -l test_adapt-at-first-time-step.flml </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="filelist" language="python">
+import glob
+import numpy
+######################################################
+
+def GetFiles(filename):
+# gets list of vtus and sorts them into ascending time order
+
+  filelist_not_sorted = glob.glob('./'+filename+'*.pvtu')
+  vtu_nos_not_sorted = []
+  for file in filelist_not_sorted:
+    if "checkpoint" in file: filelist_not_sorted.remove(file)
+    else: vtu_nos_not_sorted.append(int(file.split('.pvtu')[0].split('_')[-1]))
+  
+  vtu_nos_sorted = numpy.argsort(vtu_nos_not_sorted)
+  filelist_sorted = []
+  for i in vtu_nos_sorted:
+    filelist_sorted.append(filelist_not_sorted[i])
+
+  return filelist_sorted
+
+######################################################
+
+filelist = GetFiles('test_adapt-at-first-time-step')
+     </variable>
+  </variables>
+    <pass_tests>  
+    <test name="check have 2 vtus" language="python">
+   assert len(filelist) == 2
+    </test>
+  </pass_tests>
+</testproblem>

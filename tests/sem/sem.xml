@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<!-- Test Synthetic Eddy Method...
+-->
+<testproblem>
+  <name>sem</name>
+  <owner userid="dpavlidis"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v3 -x sem.flml &gt; sem.log 2&gt;&amp;1</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="mxdiff" language="python">
+import vtktools
+from numpy import zeros, ones, array, concatenate
+
+colx = zeros((3,1))
+coly = ones((3,1))*1.5
+colz = array([[0.0],[1.5],[1.75]])
+
+coordinates = concatenate((colx,coly,colz),1)
+
+vtufile = vtktools.vtu('sem_1.vtu')
+probedvelocity = vtktools.vtu.ProbeData(vtufile,coordinates,'Velocity')
+
+expectedvelocity = (\
+[-7.03510722e-28, -1.34339999e-28, 1.44165597e-27],\
+[ 1.84019988e+01,  7.64894433e-03, 8.48415022e-02],\
+[ 1.31414306e+01,  7.35396131e-03, 1.52148580e-01])
+
+diff=abs(probedvelocity-expectedvelocity)
+
+print 'differences for u,v,w'
+print  diff
+
+mxdiff = diff.max()
+    </variable>
+  </variables>
+
+  <pass_tests>
+  <test name="Inlet Condition Test" language="python">
+assert mxdiff &lt; 0.5
+ </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>unresolvable_mesh_dependency</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity mesh.flml -l || true</command_line>
+    <!-- Problem with a dependency loop in the meshes. -->
+  </problem_definition>
+  <variables>
+    <variable name="error_present" language="python">
+error_present=False
+for line in file("fluidity.err-0","r"):
+   if line.startswith("Error message: Unresolvable mesh dependencies"):
+      error_present=True
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Fluidity failed with the expected error" language="python">
+assert(error_present)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

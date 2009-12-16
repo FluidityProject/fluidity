@@ -1,0 +1,14 @@
+#! /bin/bash
+
+python ./tri_make.py $1 $2
+triangle -o2 -Ypqa$2 $1.1
+python ./tri_read.py $1.2 variables
+triangle -Ypqa$2 $1.1
+python ./tri_read.py $1.2 clean
+
+cp Variables.* $3
+cp Connectivity.* $3
+cp $1.2.ele $3/Positions.ele
+cp $1.2.node $3/Positions.node
+
+

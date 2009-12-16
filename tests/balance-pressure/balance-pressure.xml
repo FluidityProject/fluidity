@@ -1,0 +1,45 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Balance Pressure</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>make clean-run; dfluidity -v2 -l balance-pressure.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "times" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("balance-pressure.stat")
+times = s["ElapsedTime"]["value"]
+    </variable>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+        <variable name = "max_us" language = "python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("balance-pressure.stat")
+max_us = s["Fluid"]["Velocity%magnitude"]["max"]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(len(times), 20, 1.0e-6)
+    </test>
+    <test name = "Hydrostatic balance" language = "python">
+max_u = 0.0
+for u in max_us:
+  max_u = max(max_u, u)
+print max_u
+assert(max_u &lt; 1.0e-10)
+  </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

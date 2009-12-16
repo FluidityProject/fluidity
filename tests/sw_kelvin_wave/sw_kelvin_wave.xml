@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>sw_kelvin_wave</name>
+  <owner userid="colin"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>shallow_water -v 3 kelvin_wave.swml &amp;&gt; sw.log</command_line>
+    <!-- Kelvin wave test case -->
+  </problem_definition>
+  <variables>
+    <variable name="Denergy" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("kelvin_wave.stat")
+g = 10.
+H = 5.
+kinetic0 = (s["Fluid"]["Velocity%magnitude"]["l2norm"][0])**2
+kinetic1 = (s["Fluid"]["Velocity%magnitude"]["l2norm"][-1])**2
+potential0 = (s["Fluid"]["LayerThickness"]["l2norm"][0])**2
+potential1 = (s["Fluid"]["LayerThickness"]["l2norm"][-1])**2
+energy0 = H*kinetic0 + g*potential0
+energy1 = H*kinetic1 + g*potential1
+print energy0,energy1
+Denergy = abs(energy1-energy0)/energy0
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Energy conservation" language="python">
+assert Denergy &lt; 1e-5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

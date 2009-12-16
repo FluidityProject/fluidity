@@ -1,0 +1,15 @@
+&params
+ tmax=86400,
+ dt=10,
+ dtmax=10,
+ tdumpmax=600.0,
+ theta=0.55,
+ mom_maxnits=4,
+ den_maxnits=4,
+ g0=9.81,
+ kappa=1.e2,
+ alpha=1.e2,
+cpu_lim=72000,
+tidal_t=43200
+tidal_mag=3.0/
+

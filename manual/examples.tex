@@ -1,0 +1,1142 @@
+\chapter{Examples}
+\label{chap:examples}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%--------------------WRITING A TEST CASE--------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Writing a test case} 
+\label{sect:test_case}
+
+\subsection{Overview}
+
+Test cases can be written to test a particular functionality of the code or to ensure that changes to the code do not break a given set-up and the ability to run a certain problem to within a given set of specifications is maintained. The test case is run in the Buildbot \citep{warner2003} by the test harness program. A test case consists of two things: 
+\begin{itemize}
+\item A problem to run
+\item A way to check if the problem ran correctly
+\end{itemize}
+
+The simple cdisk\_2d\_dg test case from the fluidity trunk \lstinline[language=bash]+tests/cdisk_2d_dg+ will be used to demonstrate how to write a test case. This test sets up a concentration of tracer and advects and diffuses it around.
+
+\subsection{Format of the test case}
+
+The contents of the \lstinline[language=bash]+tests/cdisk_2d_dg+ are as follows:
+\begin{example}
+\begin{lstlisting}[language=bash]
+[skramer@ese-luigi]{FLUIDITY_PATH}$ ls -l tests/cdisk_2d_dg/ 
+total 228 
+-rw-r--r-- 1 skramer skramer    777 2009-01-29 12:07 cdisk_2d_dg.xml 
+-rw-r--r-- 1 skramer skramer 213383 2008-09-23 11:05 cdisk.flml
+-rw-r--r-- 1 skramer skramer    166 2009-01-29 12:02 Makefile 
+drwxr-xr-x 3 skramer skramer   4096 2009-01-29 12:02 src
+\end{lstlisting}
+\end{example}
+
+\begin{example}
+\begin{lstlisting}[language=bash]
+[skramer@ese-luigi]{FLUIDITY_PATH}$ ls -l tests/cdisk_2d_dg/src 
+total 196 
+-rw-r--r-- 1 skramer skramer    412 2008-09-23 11:05 cdisk.geo
+\end{lstlisting}
+\end{example}
+
+These serve the following purpose:
+\begin{itemize}
+\item the \lstinline[language=bash]+src/+ subdirectory of \lstinline[language=bash]+tests/cdisk_2d_dg+ contains the mesh file, in this case just the .geo file that serves as input for gmsh, and any extra files that may be needed to setup the problem. 
+\item \lstinline[language=bash]+cdisk.flml+ is the \fluidity\ options file required to run the problem with \fluidity.
+\item the Makefile is a way of grouping together commands that do a particular thing. It gives instructions to the test harness so that it can build the problem from scratch. Here is an example:
+
+\begin{example}
+\begin{lstlisting}[language=bash]
+[skramer@ese-luigi]{FLUIDITY_PATH}$ cat tests/cdisk_2d_dg/Makefile
+\end{lstlisting}
+\begin{lstlisting}[language=Make]
+input: clean
+	gmsh -2 -o cdisk.msh src/cdisk.geo 
+	../../scripts/gmsh2triangle --2d cdisk.msh
+
+clean:
+	rm -f  *.ele *.edge *.node *.poly *.vtu *.s *.d.1 *.stat *.msh 
+\end{lstlisting}
+\end{example}
+
+This defines an input 'target' that runs gmsh to create a mesh from \lstinline[language=bash]+src/cdisk.geo+ and output it as \lstinline[language=bash]+cdisk.msh+ and then runs \lstinline[language=bash]+gmsh2triangle+ to make the triangle mesh (in 2d: \lstinline[language=bash]+cdisk.node, cdisk.ele+ and \lstinline[language=bash]+cdisk.edge+) that is specified in the \lstinline[language=bash]+cdisk.flml+. It also defines a clean target that removes all output from a previous run. The fact that clean is also behind the colon of input means that clean always gets run before 'making the input'. You can try it out by running 'make input' on the command line. 
+
+\item \lstinline[language=bash]+cdisk_2d_dg.xml+ tells the test harness how to run the problem and how to perform the tests. It is described in the section below. {\bf It has to have the same name as the test directory}. 
+\end{itemize}
+
+\subsection{The XML file}
+
+In order to run the problem, the test harness has to know:
+\begin{itemize}
+\item Exactly how to run your problem - is it serial or parallel? If parallel, how many processors? What command line do you use? Are there any other special options? 
+\item What do you want to test? What variables do you want to look at? What about them do you want to check? What consists of a pass and what consists of a failure? 
+\end{itemize}
+
+Test case XML files can be created and edited using the Diamond GUI ***REF SECTION*** 
+
+\begin{example}
+\begin{lstlisting}[language=bash]
+diamond -s [FLUIDITY_PATH]/tools/test_options.rng [XML_FILE]
+\end{lstlisting}
+\end{example}
+
+The XML file (in this case, \lstinline[language=bash]+cdisk_2d_dg.xml+) contains the following information, disected by section (don't be put off by syntax: it's very easy):
+\begin{example}
+\begin{lstlisting}[language=bash]
+[skramer@ese-luigi]{FLUIDITY_PATH}$ cat tests/cdisk_2d_dg/cdisk_2d_dg.xml
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd"> 
+\end{lstlisting}
+\end{example}
+
+These first two lines are necessary but will never need to be understood or changed.
+\begin{example}
+\begin{lstlisting}[language=xml]
+<testproblem> 
+  <name>cdisk_2d_dg</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml cdisk.flml </command_line>
+    <!-- Trivial 2D test case of uniform flow through a square. -->
+  </problem_definition>
+\end{lstlisting} 
+\end{example}
+
+The above section tells the test harness what the name of the problem is (cdisk\_2d\_dg), the owner, how long it takes to run, how many processors it uses, and the command line to execute. Taking them in turn:
+\begin{itemize}
+\item The name: used for printing out the results of the test case. There are no particular requirements for it.
+\item The owner: username of the person who wrote and will maintain the test
+\item The tags: you can associate arbitrary labels with tests, so that you can group them later. All tests should have at least one tag, e.g. `flml', depending on how the problem is set up.
+\item The length: can be one of `short', `medium', `long' and `special'. This is used in the buildbot to decide how and when to run your problem automatically. If you select `long' then you need to put `mpiexec' at the start of the command line before `dfluidity'. 
+\end{itemize} 
+
+Short test cases (less than 2 minutes) are run everywhere (32- and 64-bit, intel and gcc compilers) for every commit. Medium test cases (2-30 minutes) are run on beefier machines (the 64-bit ones). Long ones (more than 30 minutes) will be run continuously. (Times are runtime with debugging enabled.) Special test cases are never automatically invoked (this is useful for test cases that you know currently fail, etc.). 
+
+\begin{itemize}
+\item The number of processors: here this is a serial job, so the number of processors (nprocs) is 1.
+\item The command line: what command to execute to run your problem. The test harness executes this command and waits for it to finish before moving on. Previous to this the test harness has made the input files as described in the Makefile.  
+\item There is also a comment line \lstinline[language=xml]+<!-- text -->+, here, explaining what the test is.
+\end{itemize}
+
+The next section defines variables - numbers - that you want to look at. Each variable has a name. Here the maximum concentration of tracer left after it has been diffused is checked to test that it is diffusing correctly. This written in the XML file as:
+
+\begin{example}
+\begin{lstlisting}[language=xml] 
+  <variables>
+    <variable name="conservation1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cdisk.stat")
+conservation1=s["Water"]["Tracer"]["integral"][0]
+    </variable>
+    <variable name="conservation2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cdisk.stat")
+conservation2=s["Water"]["Tracer"]["integral"][1]
+    </variable>
+    </variables>
+\end{lstlisting}
+\end{example}
+
+This section of code tells the test harness how to get the variables "conservation1"  and "conservation2" . For conservation1 the first line of code imports the stat\_parser, which is very useful for writing test cases. It is used in the second line to read all information contained in the .stat file into a variable s. The third line means take the first, denoted by [0], (of all time steps) of the "integral" of the field "Tracer" of the material\_phase "Water" and assign that value to variable conservation1. conservation2 has an almost identical calculation except that the third line now has a [1] instead of a [0] meaning take the second value (of all the timesteps).
+
+Now that the variables to be checked have been obtained, they need to be checked to ensure they have suitable values. This is the function of the next section of code from \lstinline[language=bash]+tests/cdisk_2d_dg/cdisk_2d_dg.xml+:
+
+\begin{example}
+\begin{lstlisting}[language=xml] 
+    <pass_tests>
+    <test name="Tracer is conserved." language="python">
+assert abs(conservation1-conservation2) &lt; 1e-6
+    </test>
+  </pass_tests>
+\end{lstlisting}
+\end{example}
+
+This defines a test, called "Tracer is conserved", that checks that the integral of the concentration at the first and second time step are sufficiently close in value. The test passes if no assertion is raised, and it fails if the assertion is not true. It is possible to have more than one test, just make a separate \lstinline[language=xml]+<test name="--" language="--">..</test>+ block for each one.The above example is of a pass test. It is also possible to have warning tests that are contained in a \lstinline[language=xml]+<warn_tests>..</warn_tests>+ block with each test in a  \lstinline[language=xml]+<test name="--" language="--">..</test>+ block as before. The test passes if no assertion is raised, and it warns if the assertion is not true. \lstinline[language=bash]+cdisk_2d_dg/cdisk_2d_dg.xml+ has no warn tests so \lstinline[language=xml]+<warn_tests>..</warn_tests>+ is empty:
+
+\begin{example}
+\begin{lstlisting}[language=xml] 
+ <warn_tests>
+ </warn_tests>
+</testproblem>
+\end{lstlisting}
+\end{example}
+
+Finally \lstinline[language=xml]+</testproblem>+ closes the \lstinline[language=bash]+<testproblem>..</testproblem>+ block.
+
+Note the use of \&gt; \&lt; and \&amp; instead of the $>$, $<$ and \& characters. You must use these since $>$, $<$ and \& are special characters in XML.
+
+\subsection{How to run the test case}
+
+Now the Makefile (specifying how to mesh the problem) and the .xml file (specifying what to run and what to check) have been written, the test case can be run on the command line from the tests directory with: 
+
+\begin{example}
+\begin{lstlisting}[language=bash] 
+[skramer@ese-luigi]{FLUIDITY_PATH/tests}$ 
+                   ../tools/testharness.py -f TESTCASE.xml
+\end{lstlisting}
+\end{example}
+
+This will make the input, run the command line, fetch the variables and check they meet all the conditions specified.
+
+If the test case has already been run and so have vtu files etc available, what is checked in the xml file is to be tested or modified, you can run the tests without having to run the simulation with \fluidity\ all over again. To do this type:
+
+\begin{example}
+\begin{lstlisting}[language=bash] 
+[skramer@ese-luigi]{FLUIDITY_PATH/tests}$ 
+                   ../tools/testharness.py -f TESTCASE.xml --just-test
+\end{lstlisting}
+\end{example}
+
+\subsection{Notes on long test cases}
+\begin{itemize}
+\item Long test cases are NOT scheduled automatically. After committing a long test case, contact the buildbot administrator to have it scheduled.
+\item Long test cases must have mpiexec before any executables in \lstinline[language=xml]+<command_line>+. This is so it will work nicely with PBS. 
+\end{itemize}
+
+\subsection{Options file validation}
+
+Since the grammar of \fluidity\ options files is defined in terms of a RelaxNG
+schema, it is possible to check whether a given options file is valid. The
+medium test ``diamond\_validation'' validates all test problem options files
+with the .flml file extension. Hence if the options schema is updated in such
+a way that an options file becomes invalid, the diamond\_validation test will
+flag an error. Test problem XML files are also tested for validation against a
+RelaxNG schema defining their format.
+
+Some validation failures, such as the addition of new compulsory options, can
+be repaired automatically using Diamond. The \lstinline[language = Bash]+update_options+
+script can be used to attempt an automatic update of all test options files.
+
+\subsection{The method of manufactured solutions}\label{sect:mms}
+\index{method of manufactured solutions}
+Problems with analytical solutions provide a powerful mechanism for testing the implementation
+of numerical algorithms (code verification). The problem can be run on a series of meshes
+with increasing resolution (\eg $\Delta x \rightarrow \Delta x/2$), or decreasing time step,
+and the exact error between numerical and analytical solution computed in any norm. The theoretical
+order of convergence of the algorithm can then be confirmed for the implentation code. Any significant
+deviation from the theoretical order of convergence can be identified and is often due to coding bugs
+or because the treatment of boundary conditions is reducing accuracy.
+
+However, analytical solutions are not generally available, especially for complex equations sets
+and for problems with physical realism. These are of course the problems that we are primarily 
+interested in tackling numerically.
+The method of manufactured solutions (MMS) takes the opoosite approach to deriving a solution to 
+a given equation set: it starts from a given solution and derives the equations that admit this
+solution. This achieved by substituting the solution into the eqution set and evaluating the residual
+symbolically. This residual is then taken as a prescribed source term in the equation set being considered
+and the identical procedure used for verification with an analytical solution used. The flexibility of the MMS
+approach means that individual terms and discretisations can be rigorously tested through a suite of MMS problems. 
+
+This procedure is especially useful in \fluidity\ as it is very easy to prescibe source terms in the equations
+being solved. When substituting in a relatively simple analytical form for a solution into the governing
+equations one will typically obtain a very complex expression for the residual or source term. While this
+can result in a problem for many codes, in \fluidity\ one is able to prescribe anaytical source terms easily
+within Diamond's Python function interface. The complex source term can be obtained using a Python symbolic algebra
+library such as SAGE and then simply cut-and-paste into the Diamond file.
+
+Some background material on the method of manufactured solutions, and guidelines for selecting good solutions,
+in given in \cite{????}. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------THE LOCK-EXCHANGE---------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{The lock-exchange}
+\label{sect:lock_exchange}
+\subsection{Overview}
+\label{sect:lock_exchange_overview}
+
+The lock-exchange is a well-known laboratory-scale set-up that has been studied theoretically, experimentally and numerically, \citep{benjamin_68, klemp_94, hartel_00}. A channel is divided by a barrier and either side is filled to the same level with fluids of different density. The barrier (or ‘lock’) is removed and the dense fluid collapses. Two gravity currents flow in opposite directions, the denser fluid flowing below the lighter, and
+a shear instability can manifest in the interfacial layer. It provides a good test case for \fluidity\ and in particular demands the use of the non-hydrostatic Navier-Stokes equations, section \ref{sect:typical_ICOM_equations}, in order to capture the turbulent dynamics of the flow. These governing equations have also used the Boussinesq approximation, section \ref{sect:boussinesq_approximation}, and as the density differences in the flow are sufficiently small it may be adpoted. 
+
+\subsection{Configuration}
+\label{sect:lock_exchange_configuration}
+
+The domain and physical parameters are set up after \cite{fringer_06} and \cite{ozgokmen_07}, table \ref{tab:le_physical_parameters}. The domain is a 2D rectangular box, $0\leq x \leq 0.8\,$m, $0 \leq z \leq 0.1\,$m and the mesh used is generated with gmsh, section \ref{sect:gmsh}. Initially, dense, cold water, $T = -0.5\,^\circ$C fills one half of the domain, $x<0.4\,$m, and light, warm water $T = 0.5\,^\circ$C fills the other half, $x\geq0.4\,$m, figure \ref{fig:lock_exchange}. At $t=0\,$s, ${\bf u} = {\bf 0}$ everywhere. A no-slip boundary condition is applied along the bottom of the domain, ${\bf u = 0}$ at $z=0$, and a free-slip boundary condition is applied to the top of the domain, $w = 0$ at $z = 0.1$. A free-slip condition is applied to the end walls with $u=0$ at $x = 0.0,\, 0.8\,$m.
+
+The basic choices for the numerical set-up are outlined in table \ref{tab:le_numerical_configuration}. They comprise a set of standard options for a buoyancy-driven flow such as the lock-exchange. The mesh is adapted before the simulation begins. The mesh is adapted to both the velocity and the temperature fields.  
+
+\begin{table}[th]
+\centering
+\begin{tabular}[h]{ll}  \hline
+Parameter                                                                     & value \\ \hline
+gravitational acceleration, $g$                                               & $10.0$ ms$^{-2}$ \\
+background density, $\rho_0$                                                  & $1.0$ Q$\,$m$^{-3}$ \\
+reduced gravity, $g' = g\frac{\triangle \rho}{\rho_0} = g\alpha \triangle T $ & $1,0 \times 10^{-2}$ ms$^{-2}$ \\
+buoyancy velocity, $u_b = \sqrt{g'h}$                                         & $\sqrt{5 \times 10^{-4}}$ \\
+kinematic viscosity, $\bar{\bar{\bf \nu}} = \nu\bar{\bf I}$                   & $(1.0 \times 10^{-6})\bar{\bf I}$ m$^2$s$^{-1}$ \\
+Grashof number, $Gr = \left( \frac{u_bh}{\nu} \right)^2$                      & $1.25 \times 10^{-6}$\\
+thermal expansion coefficient, $\alpha$                                       & $1.0 \times 10^{-3} \;^\circ$C$^{-1}$ \\
+background temperature, $T_0$                                                 & $0.0\,^{\circ}$C \\ \hline
+\end{tabular}
+\caption{Physical parameters for the lock-exchange}
+\label{tab:le_physical_parameters}
+\end{table}
+
+\begin{table}[th]
+\centering
+\begin{tabular}[h]{llp{150mm}}  \hline
+Numerical component                           & Configuration             & Comment \\ \hline
+Geometry                                      & from gmsh 	          & section \ref{sect:gmsh}, has also been setup in 3D \\
+Time step                                      & 0.025                     & keeps CFL no $< 2.5$ \\
+Equation of state                             & linear                    & suitable approximation, section \ref{sect:equation_of_state} \\
+Momentum discretisation                       & \Poo                     & section ??? has also been set up with \PoDGPt \\
+                                              & non-conservative          & section ??? \\
+                                              & Crank-Nicholson           & section ??? \\
+Temperature advection                         & control volumes           & section ??? \\
+                                              & non-conservative          & section ??? \\
+                                              & Crank-Nicholson           & section ??? \\\hline
+\end{tabular}
+\caption{Numerical configuration for the lock-exchange}
+\label{tab:le_numerical_configuration}
+\end{table}
+
+
+\subsection{Results} 
+\label{sect:lock_exchange_results}
+
+The expected dynamics of a lock-exchange flow are observed, figure \ref{fig:lock_exchange}: two heads propagate in opposite directions with the foremost point of the no-slip head raised above the lower boundary. Kelvin-Helmholtz billows form at the interface leading to mixing of the two fluids which would not be observed with a hydrostatic formulation. The mesh is adapted well, increasing the resolution around the interface and Kelvin-Helmholtz billows with anisotropic elements. The speed of the free-slip and no-slip heads are calculated as 0.0150 and 0.0132 respectively and gives agreement to within 5\% values of \cite{hartel_00} and the test case tests that the values are within 20\% (pass), 15\% (warn).
+
+\begin{figure}[ht]
+  \centering
+  % For some reason tex4ht doesn't like these images.
+  \onlypdf{
+  \subfigure[$t = 0\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_0_T}}
+  \subfigure[$t = 0\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_0_mesh_nice}}
+  \subfigure[$t = 12.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_10_T}}
+  \subfigure[$t = 12.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_10_mesh}}
+  \subfigure[$t = 37.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_30_T}}
+  \subfigure[$t =
+  37.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_30_mesh}}
+  }
+  \caption{Lock-exchange temperature distribution (colour) with meshes, over time ($t$)}
+  \label{fig:lock_exchange}
+\end{figure}
+
+\subsection{Notes on the test case}
+This example has been based on the test case \lstinline[language=bash]+\ldots/tests/lock_exchange_2d_cg+. This test, as well as checking the head speed against \cite{hartel_00} has a brief test of the mixing statistics, section \ref{sect:diagnostics_stat_file}. Two bins are used for temperature ($T$) with $-0.5\leq T<0.0$ and $0.0 \leq T$. The test checks that at the start of the simulation half the material is in each bin and that at the start and end of the simulation the total amount of material is correct ($=1$ as it has been chosen to normalise the values). 
+
+There are also several other versions of the test which are for example in 3d or use an alternative discretisation. All the names begin with \lstinline[language=bash]+lock_exchange_+ and can be found in the \lstinline[language=bash]+\ldots/tests+ and \lstinline[language=bash]+\ldots/fluidity-longtests+ directories of the \fluidity\ trunk.  
+
+%\option{
+\subsection{Lagrangian trajectories illustrated in the lock-exchange}
+\label{sect:lock_exchange_Lagrangian_trajectories}
+Lagrangian trajectories from moving or Lagrangian detectors have been calculated in a lock-exchange test case. The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_} \\ \option{Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
+
+In this case, the denser (cooler) fluid is on the right ($0<x \leq 5\,$m) as opposed to the lock-exchange test case described in sections \ref{sect:lock_exchange_configuration} and \ref{sect:lock_exchange_results}  where the denser fluid is on the left. This can be observed in Figure \ref{fig:lock_exchange_Lag_traject_Temp_mesh}, where the Temperature distribution and the adapted mesh at two different times are displayed.
+
+% The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
+
+Figure \ref{fig:lock_exchange_Lagrangian_trajectories} illustrates the Lagrangian trajectories from three particles initially at three different positions in the interface between the fluids.
+
+\begin{figure}[ht]
+  \centering
+\begin{minipage}{1\linewidth}
+  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1000vtu}
+  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1000vtu}
+\end{minipage}\\
+\begin{minipage}{1\linewidth}
+\vspace{0.5cm}
+  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Temp_at_1500vtu}
+  \fig[width=0.48\textwidth]{./examples_images/lock_exchange/Mesh_adaptivity_at_1500vtu}
+\end{minipage}
+  \caption{Lock-exchange temperature distribution and meshes at two different instants in time}
+  \label{fig:lock_exchange_Lag_traject_Temp_mesh}
+\end{figure}
+
+%\vspace*{-1.8cm}
+
+\begin{figure}[ht]
+  \centering
+\vspace*{-2.6cm}
+  \fig[width=0.6\textwidth]{./examples_images/lock_exchange/Lag_paths_lock_exchange_labels}
+\vspace{-2.8cm}
+  \caption{An example of Lagrangian trajectories in a lock-exchange. Note that in this test case the denser fluid is on the right as opposed to the lock-exchange test case from Figure \ref{fig:lock_exchange} where the denser fluid is on the left. Here, the denser fluid flows below the lighter from right to left. The particles presented at initially three different positions in the interface between the fluids, follow the vortical structures resulting from the shear instability in the interface.}
+  \label{fig:lock_exchange_Lagrangian_trajectories}
+\end{figure}
+
+Note that the results indicated in Figures \ref{fig:lock_exchange_Lag_traject_Temp_mesh} and \ref{fig:lock_exchange_Lagrangian_trajectories} have been calculated with a time step $\Delta t$=0.1 s. This is a large time step for this simulation but has been chosen for this test case since it runs faster and illustrates the Lagrangian trajectories. However, when accuracy is sought, it is recommended to use a smaller time step, i.e., $\Delta t$=0.01 s.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------ADVECTION--------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Advection example}
+\label{sect:advection}
+
+In this problem the advection of a passive tracer by a prescribed velocity field is considered.
+The problem is taken from \cite{hanert2004}, see also \cite{hecht2000}. The problem domain
+is an $L\times L$ box with $L=\km[1000]$. The prescribed velocity field is obtained from the
+Stommel streamfunction
+\begin{equation*}
+\Psi(x,y) = \frac{FL}{\pi \gamma \rho H}\sin\left(\frac{\pi y}{L}\right)\left(p e^{Ax} + q e^{Bx}-1\right),
+\end{equation*}
+\begin{equation*}
+p = 1-q = \frac{1-e^{LB}}{e^{LA}-e^{LB}},\quad
+A=-\frac{\alpha}{2}+\sqrt{\frac{\alpha^2}{4}+\left(\frac{\pi}{L}\right)^2},\quad
+B=-\frac{\alpha}{2}-\sqrt{\frac{\alpha^2}{4}+\left(\frac{\pi}{L}\right)^2}.
+\end{equation*}
+where the magnitude of the wind stress is $F = \Nmm[0.1]$, the frictional
+coefficient is $\gamma = \invs[10^{-6}]$, the density is $\rho = \kgmmm[1000]$, the
+fluid depth is $H=\m[200]$ and $\alpha = \beta/\gamma$ is chosen such that $\alpha^{-1}=\km[100]$.
+
+The initial condition for the passive tracer is given by the Gaussian function:
+\begin{equation}
+s_0(x,y) = 10\exp\left({-\frac{(x-2L/3)^2 + (y-L/3)^2}{(L/50)^2}}\right).
+\label{eqn:guassian}
+\end{equation}
+
+The reference solution at time $t$ used to compare numerical results against
+is constructed as follows.  The ordinary differential equation (ODE) system
+$\dot{\pmb{x}}=\pmb{u}$ is integrated repeatedly from time $t$ to $0$, with
+initial condition given by the node positions on the mesh at time $t$.  This
+yields the departure point, at time $0$, for each node on the current mesh.
+The reference solution is found by evaluating the function
+(\ref{eqn:guassian}) at these departure points.  Integration of the system
+of ODEs for departure points is computed using the SciPy (Scientific tools
+for Python) odeint function, which itself is a wrapper around the LSODE ODE
+solver \cite{hindmarsh1983}.
+
+In this example equation (\ref{PDE}) with $\kappa = 0$ is solved for the evolution of the tracer field until a
+time of $\s[10^7]$ . The time step is taken to be $\s[1000]$ and $\theta=0.5$.
+For the adaptive simulations the mesh is adapted every 20 time steps.
+Linear interpolation is again used to transfer the solution field between adapted meshes.
+
+\subsubsection{Results}
+
+Figure \ref{fig:stommel_fix} shows results at four time levels for three
+different fixed uniform isotropic mesh resolutions. Figures \ref{fig:stommel3}
+and \ref{fig:stommel4} show the corresponding results computed with anisotropic
+adapted meshes. Figure \ref{fig:stommel4} shows the results using a lower interpolation
+error in the construction of the metric and hence has higher resolution. While there
+are some qualitative differences between the results from the highest resolution fixed
+mesh results in figure \ref{fig:stommel_fix} with those shown in figure \ref{fig:stommel3},
+the differences are minimal compared with figure \ref{fig:stommel4}.
+
+For quantitative comparison between the fixed and adapted mesh results figures \ref{fig:Stommel2Errors}
+and \ref{fig:Stommel2_L2_Errors} show the time evolution of the maximum value of the advected field,
+for which the analytical solution preserves a value of ten,
+and the relative \Ltwo norm \cite{hanert2004} of the difference between the numerical and the reference
+solution whose construction is described above. The results from figures \ref{fig:stommel3} and \ref{fig:stommel4}
+correspond to the lowest and middle resolution adaptive results in figures \ref{fig:Stommel2Errors} and
+\ref{fig:Stommel2_L2_Errors}.
+
+
+%\begin{figure}
+%\centering
+%\subfigure{
+%\fig[width=2.95cm,clip]{images/Adapt_C_2}}
+%\subfigure{
+%\fig[width=2.95cm,clip]{images/Adapt_C_10}}
+%\subfigure{
+%\fig[width=2.95cm,clip]{images/Adapt_C_12}}
+%\subfigure{
+%\fig[width=2.95cm,clip]{images/Adapt_C_20}}
+%\caption{Adapted mesh (top) and isolines of the tracer field
+%in the advection through a Stommel gyre simulation (section 3(b)) at
+%(left to right) time levels $1,5,6,10\times 10^6$s. This simulation uses a tighter tolerance in the definition
+%of the metric compared to those results presented in figure \ref{fig:stommel3}.
+%At each time level there are 2397, 10433, 9893, 4303 nodes respectively which were obtained from a metric (\ref{eqn:ME}) with $\epsilon_u=0.05$.
+%The maximum value for the tracer field at each time level is 9.76, 9.50, 9.46, 9.35 respectively.}
+%\label{fig:stommel4}
+%\end{figure}
+
+The fixed mesh results can be seen to diffuse more than the adaptive mesh
+when the tracer is close to the western boundary current, even for the highest resolution mesh
+where over $150\,000$ nodes are used. The adaptive mesh results lose
+some of the initial magnitude in the tracer field at the start of the simulation due to the resolution of the
+initial mesh used before the first adapt, i.e. in the first 20 time steps.
+Improved results would be obtained if a higher resolution initial mesh was used,
+or if the mesh was adapted at the start of the simulation to better represent the initial condition.
+At the end of the simulated time the magnitude of the tracer field for the highest resolution mesh ($157\, 045$ nodes)
+can be seen to have dropped to below that of the middle adaptive resolution simulation, which corresponds to
+figure \ref{fig:stommel4}, i.e. ($4303$ nodes).
+
+%\begin{figure}
+%\centering
+%\fig[width=12.5cm,clip]{images/Stommel2Errors}
+%\caption{Left: Maximum value of the advected field in the fixed isotropic mesh simulations for problem 3(b).
+%The upper, middle and lower lines correspond to the fine
+%($157\,045$ nodes), medium ($39\,490$ nodes) and coarse ($10\,056$ nodes)
+%scale meshes respectively. The maximum value for the medium and coarse resolution at the end of the simulated time
+%are 7.94 and 5.67 respectively. Middle: Maximum value of the advected field in the adaptive mesh simulations;
+%the lines (top-bottom) correspond to the five interpolation errors used, the
+%variation in time of the number of nodes in these simulations is shown in the panel on the right
+%with the upper line corresponding to the lowest interpolation error and the upper line in the middle panel,
+%and so on. The maximum number of nodes used in the highest resolution adaptive simulation is
+%$41\,778$ and occurs at time $5.3\times 10^6$s.}
+%\label{fig:Stommel2Errors}
+%\end{figure}
+
+In the adaptive mesh results the number of nodes used increases as the tracer field
+enters the western boundary current, this is due to the gradients (and curvatures)
+increasing as the tracer field is stretched, the number of nodes then decreases as
+the tracer field leaves the western boundary current region and the simulation becomes
+less computationally demanding. This demonstrates an important capability of adaptive methods,
+the ability to remove resolution where it is no longer required.
+
+The loss in magnitude of the tracer can be seen to be most significant while the
+tracer field is in the western boundary current region, this is due to the resolution
+being comparably lower as the scale of the advected field reduces, hence numerical
+diffusion increases. The effect is lower in the adaptive simulations as the mesh resolution is increased
+more significantly in this area at this time.
+
+These results are consistent with the error plots in figure \ref{fig:Stommel2_L2_Errors}.
+The errors grow more rapidly when the tracer is being advected through the western boundary current.
+This is the case for both fixed and adaptive mesh results, where again the highest fixed resolution
+mesh results match most closely those obtained from the middle adaptive mesh simulation (figure \ref{fig:stommel4}),
+i.e. using over an order of magnitude fewer nodes.
+
+With both the \Ltwo error and the maximum value of the advected field, the fixed mesh results
+actually tend to perform better before and after the tracer is passing through the western boundary current.
+For example, as can be seen from the growth rates of the plotted lines in figures \ref{fig:Stommel2Errors} and \ref{fig:Stommel2_L2_Errors}
+ at the start and end of the simulation. The adaptive mesh runs perform better, in terms of
+growth of errors, when the problem becomes more challenging numerically and the model is able to automatically use
+increased anisotropic resolution close to the western boundary.
+
+%\begin{figure}
+%\centering
+%\fig[width=8cm,clip]{images/Stommel2_L2_Errors}
+%\caption{Relative \Ltwo norm of error between the numerical and reference solutions (for problem 3(b))
+%plotted against time using left: fixed uniform mesh and right: adapted meshes.
+%Each line, with decreasing error, corresponds to a mesh with increased number of nodes. The details
+%of the meshes are the same as those described in the caption to figure \ref{fig:Stommel2Errors}.}
+%\label{fig:Stommel2_L2_Errors}
+%\end{figure}
+
+The computational cost of the metric construction and the mesh optimisation procedure are approximately
+equal for this problem. When combined they correspond approximately to the time taken for the model
+to complete 3 time steps for this problem. Hence, the computational overhead of adaptivity can be estimated
+at 15 percent of total run time. The middle adaptive mesh simulation (corresponding to figure \ref{fig:stommel4})
+uses a maximum number of nodes which corresponds closely to the number used by the coarsest fixed mesh simulation.
+However, the adaptive simulation runs approximately 60 percent faster than the fixed mesh simulation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------STOKES FLOW---------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Square convection Stokes flow}
+\label{sect:stokes_flow}
+
+\subsection{Overview}
+Viscosity-driven square convection flow is a typical geodynamical Stokes problem. In particular, convection in the Earth's mantle is governed by a set of parameters which can be prescribed in computational simulations to produce simple approximations of the real physics involved. This is done using fast-iterative solvers such as finite-element adaptive meshes to compute the solutions to the equations governing the flow at the mesh nodes. Here, quantities such as temperature, velocity, heat flow and topography can be calculated. Results for simple problems such as time-independent, thermal convection in an isoviscous square cavity are initially compared to pre-existing accurate benchmark results (\citep{blankenbach1989}, \citep{davies2007}) to verify the validity of the code, as shown in this example. 
+
+\subsection{Configuration}
+The problem at hand enforces the ratio between kinematic and thermal diffusivity (the Prandtl number) as infinite inside a Cartesian box (with the origin at the bottom-left corner of the square).
+The dimensionless equations thus describing the resulting incompressible convection in this isoviscous cavity are the Momentum, Continuity (mass) and Energy equations, (\ref{squareconv1}), (\ref{squareconv2}) and (\ref{squareconv3}) in Section \ref{mantlespecifics}. Here, (\ref{squareconv4}) defines the Rayleigh number, Ra, a dimensionless parameter combining all material properties and measuring convective vigour. A more detailed discussion on Stokes flow can be found in Section \ref{stokesflow}.
+
+In our test case, initial simulations were conducted for a value of Ra = $10^4$, obtained setting the thermal expansion coefficient, density, thermal diffusivity, kinematic viscosity and temperature drop across the domain all to 1, and gravity to $10^4$. Velocity and pressure were respectively evaluated using quadratic and linear unstructured, uniform, non-adaptive meshing. In particular, sets of data were obtained for the mean surface temperature gradient, expressed by the Nusselt Number:
+
+\begin{equation}
+Nu = \int_0^\textit{l} \! -\frac{\partial T}{\partial y} (x,y=1) \, dx
+\end{equation}
+
+where \textit{l} is the length of the side of the square cavity (i.e., the size of the domain).
+
+Similarly, the nondimensional Root-Mean-Square velocity was computed,
+
+\begin{equation}
+V_{RMS} = \sqrt{\frac{1}{V} \int_V ||\textbf{u}||^2 }
+\end{equation}
+
+where V is the area of the computational domain.
+
+In this simple case, the boundary conditions were set so that the vertical and horizontal edges exhibited respectively free slip vertical and horizontal velocity components. Whilst the vertical edges were set to be heat insulators, temperature was fixed to 0 and 1 at the top and bottom edges, creating a temperature gradient along the vertical axis.
+
+\subsection{Results}
+
+Figure \ref{Stokessquareconv1} below shows a surface representation for the temperature field obtained using an unstructured mesh with 7719 nodes across the domain. From the data reported on table \ref{Stokessquareconv2}, the model is clearly well reproducing the problem, with the Nusselt Number and Vrms values coming increasingly closer to the benchmark results when improving the resolution by using finer and finer meshes.
+
+\begin{figure}[h!]
+  \label{Stokessquareconv1}
+  \centering
+  \fig[width=0.5\textwidth]{examples_images/stokes/stokessquareconvection2_1e4_p2p1}
+  \caption{Surface representation of the temperature field for square convection at Ra= $10^4$, with a 7719 nodes unstructured mesh.}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{lll}
+\hline
+\textbf{Mesh-Nodes} & \textbf{RMS Velocity} & \textbf{Nu} \\
+\hline
+487 & 46.12 & 4.16 \\
+\hline
+1814 & 43.62 & 4.36 \\ 
+\hline
+7719 & 43.06 & 4.58 \\
+\hline
+(BENCHMARK) & 42.86 & 4.88 \\
+\hline
+\end{tabular}
+\label{Stokessquareconv2}
+\caption{Nusselt Number and RMS Velocity values obtained with different meshes for Ra = $10^4$ Stokes square convection simulations.}
+\end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------LID DRIVEN CAVITY---------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Lid-driven cavity}
+\label{sect:lid_driven_cavity}
+
+\subsection{Overview}
+The lid-driven cavity is a problem that is often used as part of the verification procedure for
+CFD codes. The geometry and boundary conditions are simple to prescribe and in
+two dimensions there are a number of highly accurate numerical benchmark solutions
+available for a wide range of Reynolds numbers \citep{botella1998,bruneau2006,erturk2005}. Here the two-dimensional
+problem at a Reynolds number of 1000 is given as an example.
+
+\subsection{Configuration}
+The unsteady momentum equations with nonlinear advection and viscosity
+terms are solved in a unit square in the $x$ and $y$
+directions along with the continuity equations expressing incompressibility. 
+No-slip velocity boundary conditions are imposed on boundaries $x=0,1$ and $y=0$, and the prescribed velocity $u=1$, $v=0$ are
+set on the boundary $y=1$ (the `lid'). Here the problem is initialised with a zero velocity field and the solution
+allowed to converge to steady state via time-stepping.
+A subset of the benchmark data available from the literature is then used to
+test for numerical convergence. Here this involves the calculation of the kinetic energy
+\begin{equation}
+\int_{\Omega} (u^2+v^2) \; d\Omega,
+\end{equation}
+which is compared against the value 0.044503 taken from \cite{bruneau2006}. In addition, the x-component of velocity and
+pressure are evaluated at 17 points along the line $x=0.5$ and compared against the data from \cite{botella1998}.
+
+
+
+%\begin{table}
+%\centering
+%\caption{Results from Botella along the $x=0.5$ line ... need to double check these values}
+%\smallskip
+%\renewcommand{\tabcolsep}{1cm}
+%\renewcommand{\arraystretch}{1.0}
+%\begin{tabular}{@{\hspace{0.3cm}}c@{\hspace{0.3cm}} @{\hspace{0.3cm}}c@{\hspace{0.3cm}} @{\hspace{0.3cm}}c@{\hspace{0.3cm}}}
+%\hline
+%$y$     \ &     $u$          \  &  $p$  \\
+%
+%\hline
+%
+%0.0000 \   &  0.0000000 \   &  0.110591   \\
+%0.0547 \   & -0.1812881 \   &  0.109689   \\
+%0.0625 \   & -0.2023300 \   &  0.109200   \\
+%0.0703 \   & -0.2228955 \   &  0.108566   \\
+%0.1016 \   & -0.3004561 \   &  0.104187   \\
+%0.1719 \   & -0.3885691 \   &  0.081925   \\
+%0.2813 \   & -0.2803696 \   &  0.040377   \\
+%0.4531 \   & -0.1081999 \   &  0.004434   \\
+%0.5000 \   & -0.0620561 \   &  0.000000   \\
+%0.6172 \   &  0.0570178 \   & -0.000827   \\
+%0.7344 \   &  0.1886747 \   &  0.012122   \\
+%0.8516 \   &  0.3372212 \   &  0.034910   \\
+%0.9531 \   &  0.4723329 \   &  0.050329   \\
+%0.9609 \   &  0.5169277 \   &  0.050949   \\
+%0.9688 \   &  0.5808359 \   &  0.051514   \\
+%0.9766 \   &  0.6644227 \   &  0.052009   \\
+%1.0000 \   &  1.0000000 \   &  0.052987   \\
+%\hline
+%\end{tabular}
+%\label{Tab:drivcav}
+%\end{table}
+
+\subsection{Results}
+Plots of the solutions and benchmark data are given in figure \ref{fig:drivcav1}. Also shown is a plot
+of the error convergence with mesh spacing. Here a regular triangular mesh is used with progressive uniform
+refinement in the $x,y$ plane. Second order spatial convergence can clearly be seen for the three quantities compared.
+Adaptive refinement is not particularly advantageous for the problem at this reasonably low Reynolds number, but
+yields significant improvements in efficiency at higher Reynolds number where boundary layers and
+recirculating eddies are more dynamic, anisotropic and smaller in size compared to the entire domain.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------BACKWARD FACING STEP------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Backward facing step}
+\label{sect:backward_facing_step}
+
+
+\subsection{Overview}
+The backward-facing step is a classical CFD example and one of the most frequently selected
+problems for simulating the separation and reattachment of turbulent flows.
+It is also often used as a test problem for validating and benchmarking numerical codes.
+At high Reynolds numbers and in three spatial dimensions the problem has substantial
+computing requirements, this makes it an ideal HPC benchmark problem for use here.
+In the context of ocean modelling flow separation is important
+in large scale western boundary currents such as the Gulf Stream.
+
+Accurate experimental results for a wide range of flow regimes exist
+(e.g. see \cite{armaly1983}) and the problem has several important flow
+characteristics, such as the downstream length at which the flow reattaches
+with the bottom of the domain.
+
+
+\subsection{Configuration}
+\subsubsection{Geometry}
+A schematic of the domain is shown in figure \ref{Fig:Schematic}.
+An inflow is imposed at the left hand boundary and encounters a step
+down in the geometry. The region directly downstream of the step is
+of particular interest in this problem. An outflow boundary is located at the
+right hand end of the geometry.
+
+%\begin{figure}
+%\centering
+%\fig[width=12.0cm]{images/BackwardStep-schematic.pdf}
+%\caption{Schematic of the domain for the three-dimensional flow past a backward facing step
+%problem.}
+%\label{Fig:Schematic}
+%\end{figure}
+
+Following \cite{le1997} the length scales are given by: $L_x=30$, $L_i=10$, $L_y=4$, $h=1$, $L_z=6$,
+so that $L_z-h=5$ and the expansion ratio is $L_z/(L_z-h)=1.2$.
+The base of the domain is located at $z=0$, the inflow plane is given by $x=-10$ with the step
+at $x=0$, and the back of the domain in the spanwise direction is given by $y=0$.
+
+Note that the choice of an expansion ratio
+of 2 is also common in the literature, where the upper boundary in that case is often treated as no-slip.
+
+
+\subsubsection{Initial and boundary conditions}
+The inflow boundary condition at $x=-10$ is given by
+\begin{equation}
+u(z) = \frac{u_{\tau}}{\kappa} \log \left(\frac{z - h}{z_0}\right), \quad v = w = 0,
+\end{equation}
+with parameters $u_{\tau} = 0.1$, $z_0 = 0.01$, $\kappa = 0.41$, and $u(z)$ set to zero for
+$z<h+z_0$.
+A plot of this inflow profile is given in figure \ref{Fig:Inflow}.
+
+%\begin{figure}
+%\centering
+%\fig[width=8.0cm]{images/StepInflow.pdf}
+%\caption{Inflow profile.}
+%\label{Fig:Inflow}
+%\end{figure}
+
+No-normal flow, free-stress boundary conditions are applied at the upper and lateral
+(spanwise) boundaries:
+\begin{eqnarray*}
+&&w=0,\quad \frac{\partial u}{\partial z} = \frac{\partial v}{\partial z} = 0 \quad\textrm{--- upper boundary},\\
+&&v=0,\quad \frac{\partial u}{\partial z} = \frac{\partial w}{\partial z} = 0 \quad\textrm{--- lateral boundaries}.
+\end{eqnarray*}
+
+Free-stress boundary conditions are applied at the outflow boundary boundary:
+\begin{equation*}
+\frac{\partial u}{\partial x} = \frac{\partial v}{\partial x} = \frac{\partial w}{\partial x} = 0.
+\end{equation*}
+
+No-slip boundary conditions are applied at the bottom of the domain and at the step down:
+\begin{equation*}
+u=v=w=0.
+\end{equation*}
+
+
+
+
+\subsection{Results}
+Three snapshots of the velocity vectors from the small benchmark run
+are shown in figure \ref{Fig:Vectors} at times
+5, 25 and 50. A vertical slice through the centre of the domain and a horizontal slice
+at the level of the step are shown.
+
+
+%\begin{figure}
+%\centering
+%\subfigure{\fig[width=15.0cm]{images/VectorSlice_10.pdf}}
+%\subfigure{\fig[width=15.0cm]{images/VectorSlice_50.pdf}}
+%\subfigure{\fig[width=15.0cm]{images/VectorSlice_100.pdf}}
+%\caption{Snapshots of the velocity fields at times 5, 25 and 50 time units (top to bottom) into the simulation
+%from the smaller benchmark run.
+%A vertical slice through the centre of the domain and a horizontal slice at the height
+%of the step are shown. The evolution of the dynamics can be seen, in particular the onset of fully
+%three-dimensional structures and the reattachment of the velocity with the bottom of the domain approximately
+%8 units downstream of the step.}
+%\label{Fig:Vectors}
+%\end{figure}
+
+
+As this is a highly turbulent problem, making quantitative comparisons of
+individual snapshots is impossible. However, time-averaged quantities are of diagnostic interest.
+Figure \ref{Fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
+benchmark run and a time
+averaged field. The removal of fluctuating components in the velocity field can be seen.
+
+%\begin{figure}
+%\centering
+%\subfigure{\fig[width=15.0cm]{images/Velocity1.pdf}}
+%\subfigure{\fig[width=15.0cm]{images/Velocity33.pdf}}
+%\subfigure{\fig[width=15.0cm]{images/Velocity64.pdf}}
+%\subfigure{\fig[width=15.0cm]{images/VelocityAverage.pdf}}
+%\caption{Snapshots of the $u$ velocity components at three time slices (top three frames) and the
+%average field from 64 input snapshots spaced equally between times 70 and 102 (bottom).
+%Contours are displayed at the $-0.05$, $0.0$, $0.05$, $0.1$, $0.5$ and $1.0$ levels.}
+%\label{Fig:TimeAverage}
+%\end{figure}
+
+
+
+One of the metrics most often considered is the point at which the flow which separates from the step
+reattaches to the bottom of the domain. The length downstream of the step at which this happens
+has been found from laboratory experiments and direct numerical simulations and is considered a
+sensitive measure of the quality of the numerical method. It is typically used to examine the impact
+of turbulence parameterisations and here will be used to examine this in addition to the use of mesh
+adaptivity to simulate this problem.
+
+The reattachment length was defined here to be the length
+from the step at which the zero-isosurface of the $x$-component of $\bar{u}$ intersects with
+the bottom boundary. This quantity was computed from $\bar{u}$
+using the VTK library. For the simulation described, the reattachment
+length was approximately 10 times the step height, which is consistent with the value
+given in the literature \cite{le1997}.
+The precise value for the reattachment length is dependent on exact configuration on the domain and inflow
+conditions, and also strongly on the Reynolds number of the flow.
+A more rigorous analysis would involve
+repeating the experiment for a range of Reynolds numbers and comparing the reattachment
+length of multiple model runs. It may be seen that pseudo-supermeshing is an efficient
+method to produce a common mesh suitable for the interpolation of fields from multiple
+meshes, such as is necessary in time-averaging.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------SEAMOUNT------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Flow past a seamount}
+\label{sect:seamount}
+
+Matt Piggott
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------BAROTROPIC GYRE-----------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Barotropic gyre}
+\label{sect:barotropic_gyre}
+\subsection{Overview}
+In this problem the unsteady velocity field in the domain $\Omega = L\times L$
+($L=1000\,\textrm{km}$) driven by a constant
+wind stress is computed.
+The two-dimensional constant density Navier-Stokes equations in the following form are considered.
+
+\subsection{Configuration}
+The (eddy) kinematic viscosity is given by $\nu = 1000\,\textrm{m}^2\,\textrm{s}^{-1}$.
+The rotation vector is defined in terms of the beta-plane approximation
+$2\bmOmega=(0,0,f_0 + \beta y)^T$, where $f_0=0$ and $\beta=1.8\times 10^{-11}$.
+A wind stress is applied through the source term $\pmb{f}$ where $f_x = -\tau \cos (\pi y/L)$,
+$\tau = 2\times 10^{-7}$ and $f_y=0$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------BAROCLINIC GYRE-----------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Baroclinic gyre}
+\label{sect:baroclinic_gyre}
+
+Stephan Kramer
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------ANNULUS-------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Baroclinic Annulus}
+\label{sect:annulus}
+
+\subsection{Overview}
+
+The rotating annulus is a classic laboratory scale analogue for large scale
+geophysical flows and processes. It dates back to the PhD work of Raymond Hide,
+originally developed as an analogue for Earth core dynamics \citep{hide1952} and only
+later recognised for its relevant to atmospheric flows \citep{hide1953, hide2006}.
+In contrast to earlier dish-pan type experiments \citep{fultz1951}, the rotating
+annulus allows for rigorous reproducible experiments and was instrumental in the
+development of the theory of deterministic chaos \citep{lorenz1963}.
+
+The rotating annulus test problem is configured to simulate the classic
+differentially heated baroclinic annulus. The dynamics
+of this system are dependent upon a number of external parameters, most notably
+the thermal Rossby (or Hide) number:
+
+\begin{equation}\label{eqn:hide_number}
+  \Theta = \frac{g \alpha \Delta T}{\Omega^2} \frac{d}{(b - a)^2},
+\end{equation}
+
+representing the relative strength of thermal forcing to rotation, and the Taylor number:
+
+\begin{equation}\label{eqn:taylor_number}
+  T = \frac{\Omega^2}{\nu^2} \frac{4(b - a)^5}{d},
+\end{equation}
+
+representing the relative strength of rotation to viscous dissipation (a rotational
+Reynolds number \citep{lorenz1967}). Here $\Delta T$ is the thermal forcing, $d$ is the tank depth and $a$ and $b$
+are the smaller and larger annulus radii respectively.
+
+The system exhibits a range of dynamical regimes depending upon the external parameters.
+In order of increasing rotation
+rate these are, broadly speaking: geometrically modified natural convection,
+axisymmetric Hadley regime, non-axisymmetric Rossby regime with fully developed
+baroclinic waves, and geostrophic turbulence. See \citet{hide1975} and \citet{frueh1997}
+for a more complete description.
+
+The emergent regime is dependent upon a number of features of the flow. At
+sufficiently high rotation rate (low Rossby number) the flow is, to leading
+order, in thermal wind balance, with the dynamics being a small perturbation to
+this background state. Furthermore, the dynamics of baroclinic instability are
+highly dependent upon the representation of the active Ekman layers at the tank
+base and lid \citep{hide1969}. It is therefore essential that a numerical model
+of the rotating annulus be able to represent these processes with a high degree
+of accuracy.
+
+\subsection{Configuration}
+
+The model parameters in the rotating annulus test problem have been chosen such
+that one expects a baroclinically unstable flow with a steady dominant mode three
+wave. Owing to hysteresis in the system these parameters are also consistent with
+a dominant mode two wave.
+
+The model is configured to use the \Poo velocity-pressure element pair with a \Ptwo
+geostrophic pressure. Temperature is discretised via a control volume method using
+the Sweby limiter. Dynamic mesh adaptivity is applied with all of velocity, pressure
+and temperature interpolated via Galerkin projection. The simulation is initialised
+with a linear stratification, and uses an initial mesh stretched in
+the radial and azimuthal direction as described in \citet{farnell1975}. The
+configuration uses an adaptive timestep targetting a CFL number of 1.0, and is
+integrated for 600\s[] on 8 processes.
+
+The test has a runtime of approximately 28 hours on cx1.
+
+\subsection{Results}
+
+At simulation end it is tested that a dominant mode three wave has developed,
+although it is not expected that this wave will have equilibrated after this
+length of simulated time. The heat transport of this system is compared against the experimental
+value from \citet{read2003}. Other properties of the system, including the integrated
+temperature, the velocity \Ltwo norm and the dominant mode amplitude
+are also measured and compared against previous simulations
+for regression testing purposes.
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.48\textwidth]{./examples_images/annulus/TemperatureSlices}
+  \caption{Vertical and horizontal cuts through the final temperature field
+           for the baroclinic annulus test case. Normalised temperature
+           $\bar{T} = T / \Delta T$.}
+  \label{fig:lock_exchange}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \subfigure{\fig[width=0.46\textwidth]{./examples_images/annulus/ArrayHovmueller}}
+  \subfigure{\fig[width=0.46\textwidth]{./examples_images/annulus/ArrayFft}}
+  \caption{Left: Hovm\"uller plot of the mid-radius mid-height temperature field
+           for the baroclinic annulus test case. Right: FFT of left, showing
+           growth of the baroclinic modes and a final dominant mode three wave.}
+  \label{fig:lock_exchange}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------SEDIMENT TRANSPORT--------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Sediment transport}
+\label{sect:sediment_transport}
+
+\subsection{Overview}
+
+In this simulation a 2D density-driven current, laden with four classes of sediment
+moves down a 2$^{\circ}$ slope. This problem demonstrates how to set up sediments, 
+the non-uniform deposition of sediments and the reduction in density as sediment is
+deposited. It is not intended to replicated any laboratory or observational data.
+
+\subsubsection{Configuration}
+
+The initial geometry is shown in figure \ref{Fig:sediment:bathymetry}. A vertical column of sediment-
+laden fluid is placed in the last 300m of the right-hand side of the plateau above the slope. 
+This initial concentration of sediment is 6\%, with each of the four classes starting with
+1.5\% concentration. Each sediment class has a different sinking velocity, corresponding to 
+grain sizes of 800, 500, 200 and 20 microns. The lower boundary of the domain is a 
+no-slip boundary, with the two lateral boundaries and top set to no outflow, making this domain closed.
+
+\begin{figure}[ht]
+  \centering
+  \xfig{examples_images/sediment/bathymetry}
+  \caption{Initial bathymetry of the sediment example.}
+  \label{Fig:sediment:bathymetry}
+\end{figure}
+
+\subsubsection{Results}
+
+The results show a density current travelling downslope, with Kelvin-Helmholtz billows
+on the upper surface of the density-driven flow (figure \ref{fig:sediment_concentration}). 
+The coarser sediment drops from suspension first, with the majority of this
+grain size deposited at the head of the slope. In the final stages the density current contains
+only the finest sediment.
+\begin{figure}[ht]
+  \centering
+  \subfigure[$t = 200\,$s]{\fig[width=0.4\textwidth]{./examples_images/sediment/sed_conc_20}}
+  \subfigure[$t = 350\,$s]{\fig[width=0.4\textwidth]{./examples_images/sediment/sed_conc_35}}
+  \subfigure[$t = 500\,$s]{\fig[width=0.4\textwidth]{./examples_images/sediment/sed_conc_50}}
+  \caption{Sediment concentration of the four sediment classes at time ($t$)}
+  \label{fig:sediment_concentration}
+\end{figure}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------TIDES---------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Tides}
+\label{sect:tides}
+
+Rhodri Nelson
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------MULTIMATERIAL-------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Multimaterial}
+\label{sect:multimaterial}
+
+Cian Wilson/Gareth Collins
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---Idealised density driven rotating overflow--------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Idealised density driven rotating overflow}
+\label{sect:DOME}
+\subsection{Overview}
+In this simulation a 3D domain following \cite{DOME} is set
+up. The model is initialized with a region of cooler water in the
+embayment which is forced via a sponge region to remain ?? degrees
+lower than the background homogenous temperature of the fluid.  The
+domain is on an $f$-plane with $f=10^{-4}\,\textrm{s}^{-1}$, the time step is ??
+minutes and the mesh is adapted every 3.5 hours. The viscosity in the
+horizontal is $??\,\textrm{m}^{2}\textrm{s}^{-1}$ and is two orders of magnitude smaller
+in the vertical. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---Open ocean deep convection--------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Open ocean deep convection}
+\label{sect:OODC}
+\subsection{Overview}
+Open-ocean deep convection (OODC) has been recognised as an
+important mixing process for over 25 years, and
+has been studied in the ocean, simulated in the laboratory, and modelled numerically.
+A much-cited study in the field of numerically simulating
+open-ocean deep convection is that of \cite{jones1993} and this is recreated here.
+In their work, a fixed resolution ($240 \times 240 \times
+100$m in $X, Y, Z$) model is used to study the physics and
+characteristic scalings of OODC. Their simulations use a disc
+of cooling in a simple box geometry to investigate the effects of rotation.
+
+Ocean convection is important to the meridional overturning
+circulation. It is a small scale non-hydrostatic process which
+is difficult to capture in general circulation models. Applying
+an unstructured adaptive mesh model to study this process is
+novel, and this approach may produce new insights into the
+simulation and parameterisation of convection in structures and
+unstructured mesh models.
+
+Although OODC itself is a small-scale process, it interacts with
+processes on the basin-scale, both in the preconditioning stage and
+in the sinking and spreading stages. It is therefore important for us
+to be able to represent a large range of scales. Finite elements and adapting
+unstructured meshes are particularly suited for this application, as the
+resolution used can vary in size smoothly over a wide area.
+
+\subsection{Configuration}
+
+\subsubsection{Geometry}
+
+%\begin{figure}
+%\centering
+%\fig[width=8.0cm]{images/oodc-schematic.pdf}
+%\caption{Schematic of the domain for the three-dimensional open ocean deep convection
+%problem.}
+%\label{Fig:Schematic}
+%\end{figure}
+
+
+A schematic of the domain is shown in figure \ref{Fig:Schematic}.
+The domain is 32km square in the horizontal and 2km deep. A cooling disk of radius
+8km is centred at middle of the upper boundary.
+
+
+
+
+\subsubsection{Parameters}
+The thermal expansion coefficient is set to
+$\alpha=2 \times 10^{-4} \,\mathrm{K}^{-1}$ and gravity to $g=9.81 \,\mathrm{m}\,\mathrm{s}^{-2}$.
+
+The eddy viscosity
+and thermal diffusivity were set to the same values as those
+used in \cite{jones1993}: $\kappa_h = 5.0 \mathrm{m}^2\mathrm{s}^{-1}$ and
+$\kappa_v = 0.2 \mathrm{m}^2\mathrm{s}^{-1}$.
+
+
+\subsubsection{Initial and boundary conditions}
+The domain is initialised at rest with a weak temperature stratification
+in the vertical, with a top-to-bottom temperature difference of
+$0.05\,$K.
+This therefore corresponds to a buoyancy frequency ($N$) value
+of $2.2 \times 10^{-4} \,\mathrm{s}^{-1}$.
+
+
+A heat loss of $-800\,\mathrm{W}\,\mathrm{m}^{-2}$ is
+applied as a flux boundary condition. Assuming density $\rho=1000\,\mathrm{Kg}\,\mathrm{m}^{-3}$,
+specific heat capacity $c_p=4\times 10^3\,\mathrm{J}\,\mathrm{Kg}^{-1}\,\mathrm{K}^{-1}$,
+the flux $q=\bmn\cdot\left ( \kaptens_T  \nabla T\right)$
+takes the value $q = 2\times 10^{-4}\,\mathrm{K}\,\mathrm{m}^{-1}\,\mathrm{s}^{-1}$.
+This value is applied in a disk of radius $7750\,\mathrm{m}$ with a linear ramp to zero flux to a radius
+$8000\,\mathrm{m}$. In addition, this forcing is only applied for the first 48 hours of the simulation and
+then switched off, so that the restratification stage of the problem can be considered.
+
+
+
+No-normal flow, free-stress boundary conditions are applied at the upper and lateral
+(spanwise) boundaries.
+
+
+\subsection{Results}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------ELECTROKINETICS-----------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Electrokinetics}
+\label{sect:electrokinetics}
+
+Murtaza Gulamali
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------TRAFFIC-------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Traffic}
+\label{sect:traffic_eg}
+
+Dimitrios Pavlidis
+
+
+
+
+
+
+
+
+

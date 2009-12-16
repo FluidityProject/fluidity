@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>test_shallow_water</name>
+  <owner userid="colin"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>shallow_water -v 3 balanced.swml &amp;&gt; sw.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="DeltaD" language="python">
+import vtktools
+start_v = vtktools.vtu("balanced_0.vtu")
+end_v = vtktools.vtu("balanced_2.vtu")
+DeltaD = max(start_v.GetScalarField("LayerThickness")-end_v.GetScalarField("LayerThickness"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="DeltaD" language="python">
+assert abs(DeltaD) &lt; 1.0e-9
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

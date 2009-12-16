@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material flow test</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml channel_flow_input.flml || true &amp;&amp; dfluidity --xml channel_flow_1_checkpoint.flml </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="mxvfrac0" language="python"> 
+import fluidity_tools
+mxvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['max'][0]
+    </variable>    
+     <variable name="mnvfrac0" language="python"> 
+import fluidity_tools
+mnvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['min'][0]
+    </variable>    
+    <variable name="mxvfrac" language="python">
+import fluidity_tools
+mxvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['max'][-1]
+    </variable>
+     <variable name="mnvfrac" language="python">
+import fluidity_tools
+mnvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Tracer']['min'][-1]
+    </variable>
+    <variable name="tracerbehindfront" language="python">
+import vtktools
+from numpy import array
+coordinates=array([[0.005, 0.2, 0.005]])
+vtufile=vtktools.vtu('channel_flow_3.vtu')
+tracerbehindfront=vtktools.vtu.ProbeData(vtufile,coordinates,'Tracer')
+    </variable>
+     <variable name="tracerfrontfront" language="python">
+import vtktools
+from numpy import array
+coordinates=array([[0.005, 0.3, 0.005]])
+vtufile=vtktools.vtu('channel_flow_3.vtu')
+tracerfrontfront=vtktools.vtu.ProbeData(vtufile,coordinates,'Tracer')
+    </variable>
+    <variable name="mxvelocity" language="python">
+import fluidity_tools
+mxvelocity = fluidity_tools.stat_parser("channel_flow.stat")['Water']['Velocity%magnitude']['max'][-1]
+    </variable>    
+    <variable name="mxcfl" language="python">
+import fluidity_tools
+mxcfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['max'][-1]
+    </variable>    
+    <variable name="mncfl" language="python">
+import fluidity_tools
+mncfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['min'][-1]
+    </variable>    
+    <variable name="checkpointtracer" language="python">
+import vtktools
+vtu=vtktools.vtu('channel_flow_3.vtu')
+vtu_checkpoint=vtktools.vtu('channel_flow_checkpoint_2.vtu')
+vtu_diff=vtktools.VtuDiff(vtu,vtu_checkpoint)
+checkpointtracer=max(vtu_diff.GetScalarRange("Tracer"))
+    </variable>
+  </variables>
+    <pass_tests>  
+    <test name="check minimum volume fraction is 0.0" language="python">
+   assert abs(mnvfrac) &lt; 1e-6
+    </test>
+    <test name="check maximum volume fraction is 1.0" language="python">
+   assert abs(mxvfrac-1.0) &lt; 1e-10
+    </test>
+    <test name="check volume fraction in front of front is 0.0" language="python">
+   assert abs(tracerfrontfront) &lt; 1e-6
+    </test>
+    <test name="check volume fraction behind front is 1.0" language="python">
+   assert abs(tracerbehindfront-1.0) &lt; 1e-10
+    </test>
+    <test name="check initial minimum volume fraction is 0.0" language="python">
+   assert abs(mnvfrac0) &lt; 1e-10
+    </test>
+    <test name="check initial maximum volume fraction is 1.0" language="python">
+   assert abs(mxvfrac0-1.0) &lt; 1e-10
+    </test>
+    <test name="check maximum speed is 3.0" language="python">
+	assert abs(mxvelocity-3.0) &lt; 1e-10
+    </test>    
+    <test name="check maximum cv cfl" language="python">
+      assert abs(mxcfl-2.4) &lt; 1e-10
+    </test>    
+    <test name="check minimum cv cfl" language="python">
+      assert abs(mncfl-1.2) &lt; 1e-10
+    </test>    
+    <test name="check difference is zero to checkpointed run" language="python">
+      assert abs(checkpointtracer) &lt; 1e-10
+    </test>    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

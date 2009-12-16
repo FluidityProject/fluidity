@@ -1,0 +1,20 @@
+This test runs a 1D diffusion problem :
+
+a*phi_x - nu*phi_xx = s(x) on interval ]0,L[
+phi = 0                    x = 0, L
+
+as in Donea and Huerta (pg 38)
+
+set:
+dx = 0.1, a = 1, s = 1 and in the committed flml nu = 0.1
+
+This gives a grid Peclet number of a*dx/nu = 1.0 which should be reproduced and is tested for in the test case
+The grid Peclet number can be used in multiple dimensions and is calculated as nu^(-1)*a*J where J is the Jacobian
+Note in Donea and Huerta the Peclet number = a*dx/2*nu
+
+If you wish to compare the value of phi for different Peclet numbers you need to
+1) create a directory for each Peclet number you wish to test
+2) run the test case in each of those directories, changing the diffusion (nu) accordingly (making sure the output is in those directories)
+3) edit and run the python script compare_Pe_stability.py (notes on this can be found in the script) 
+
+

@@ -1,0 +1,14 @@
+C ==========================================================
+C MaxS evaluates the number of elements in a superelement.
+C Additionaly, it bounds the number of different boundary
+C identificators.
+C ==========================================================
+      Integer   MaxS
+      Parameter(MaxS = 1500)
+
+C ==========================================================
+C Colors: iVface - a fixed face
+C         iMface - a material face
+C ==========================================================
+      Integer   iVface, iMface
+      Parameter(iVface = MaxS - 100 , iMface = MaxS - 99)

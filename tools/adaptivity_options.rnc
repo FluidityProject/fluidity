@@ -1,0 +1,598 @@
+hr_adaptivity =
+   (
+   ## Anisotropic mesh hr-adaptivity
+      element hr_adaptivity {
+         attribute replaces {"ADMESH"},
+         (
+            ## Time interval (in simulation time) when mesh adaptivity performed.
+            ##
+            ## DO NOT SET THIS EQUAL TO OR LESS THAN ONE TIME-STEP SMALLER
+            ## THAN YOUR DUMP PERIOD BECAUSE ALL YOUR DIAGNOSTIC FIELDS WILL
+            ## APPEAR AS ZERO OR JUNK
+            ## DIAGNOSTIC FIELDS GET ZEROED AFTER AN ADAPT
+            ##
+            ## Usually set to 10-20 times the timestep.
+            element period {
+               attribute replaces {"TIMMES"},
+               real
+            }|
+            ## Adapt period in timesteps.
+            element period_in_timesteps {
+               integer
+            }
+         ),
+         ## Time interval (in cpu time) when mesh adaptivity performed
+         ## Manual suggests disabling this option.
+         element cpu_period {
+            attribute replaces {"CPUMES"},
+            real
+         }?,
+         ## The minimum number of nodes this simulation may use.
+         ## In parallel, by default, this is the global minimum number of nodes.
+         ##
+         ## If the mesh adaptivity algorithm wants to place fewer nodes
+         ## than this, the desired mesh is refined everywhere in space
+         ## until it will exceed this limit. This option should generally
+         ## only be used if a specified node count is being targetted.
+         ## Default value: 0
+         element minimum_number_of_nodes {
+            ## Define minimum_number_of_nodes to be the minimum number of
+            ## nodes per process (rather than the global minimum number of
+            ## nodes).
+            element per_process {
+              comment
+            }?,
+            integer
+         }?,
+         ## The maximum number of nodes this simulation may use.
+         ## In parallel, by default, this is the global maximum number of nodes.
+         ##
+         ## If the mesh adaptivity algorithm wants to place more
+         ## nodes than this, the desired mesh is coarsened
+         ## everywhere in space until it will fit within this limit.
+         ## In general, the error tolerances should be set so that
+         ## this is never reached; it should only be a safety catch.
+         ## A typical value is 100000.
+         ##
+         ## When using vertically_structured_adaptivity this indicates the 
+         ## maximum number of nodes in the horizontal mesh, i.e. the number
+         ## of nodes in the full mesh will be much bigger and depends on the 
+         ## number of layers specified, or if using inhomogenous_vertical_resolution
+         ## on the resolution produced by the vertical adaptivity step.
+         element maximum_number_of_nodes {
+            attribute replaces {"MXNODS"},
+            ## Define maximum_number_of_nodes to be the maximum number of
+            ## nodes per process (rather than the global maximum number of
+            ## nodes).
+            element per_process {
+              comment
+            }?,
+            integer
+         },
+         ## The maximum ratio by which the number of nodes is allowed to
+         ## increase in an adapt. e.g., a value of 1.1 indicates that the
+         ## number of nodes may be increased by at most 10%.
+         element max_node_increase {
+            real
+         }?,
+         ## Enable to lock nodes in the mesh.
+         element node_locking {
+           ## Python function defining nodes to lock. Return 0 for free
+           ## nodes, and non-zero for locked nodes. Functions should be
+           ## of the form:
+           ##
+           ##  def val(x, t):
+           ##     # Function code
+           ##     return # Return value
+           ##
+           ## The return value must be an integer.
+           element python {
+              python_code
+           },
+           comment
+         }?,
+         ## Functional value above which elements are considered for adaption.
+         ##  0.5 to 1.0 seems O.K- it can be negative.
+         ##  0.5 corresponds to a minimum insphere radius of 0.3 relative 1 and max-edge size 2.
+         ##  Value used in code is MAX(ABS(MESTP1), 0.15)
+         ##  Manual suggests 0.0
+         element functional_tolerance {
+            attribute replaces {"MESTP1"},
+            real
+         }?,
+         (
+            ## Gradation constrains the jump
+            ## in desired edge lengths along an edge, i.e.
+            ## it controls how fast the mesh size may change.
+            element enable_gradation {
+               ## The gradation parameter. Must be a real >= 1.0.
+               ##
+               ## The gradation parameter constrains the jump
+               ## in desired edge lengths along an edge, i.e.
+               ## it controls how fast the mesh size may change.
+               ## A constant of 1.0 enforces a mesh of constant
+               ## edge length everywhere. A value of 2.0 would
+               ## allow the element size to double from element
+               ## to element. The default value is 1.5.
+               element gradation_parameter {
+                  real
+               }?
+            }|
+            ## Gradation constrains the jump
+            ## in desired edge lengths along an edge, i.e.
+            ## it controls how fast the mesh size may change.
+            element disable_gradation {
+               empty
+            }|
+            ## Anisotropic gradation algorithm, allowing for
+            ## anisotropic bounds on the gradient of the sizing
+            ## function.
+            element anisotropic_gradation {
+              ## Gamma is the tensor field that contains
+              ## the bounds on the edge length specified by the error metric.
+              element tensor_field {
+                attribute name { "Gamma" },
+                element anisotropic_symmetric {
+                  input_choice_real_dim_symmetric_tensor
+                }
+              }
+            }
+         ),
+         ## Metric advection algorithm.
+         ## By advecting the metric with the flow velocity,
+         ## we can push mesh resolution ahead of the flow dynamics,
+         ## rather than always lagging behind.
+         element metric_advection {
+            ## Spatial discretisation options
+            element spatial_discretisation {
+              (
+                  element control_volumes {
+                    standard_control_volume_options
+                  }
+              ),
+              ## Conservative discretisation of field advection equation
+              ##  TBETA=1. -- conservative (divergence form)
+              ##  TBETA=0. -- non-conservative
+              ##  0. < TBETA < 1.
+              element conservative_advection {
+                  attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
+                  real
+              }
+            },
+            element temporal_discretisation {
+              ## Implicit/explicit control (TTHETA)
+              ##  =0.  -- explicit
+              ##  =0.5 -- Crank-Nicolson
+              ##  =1.  -- implicit
+              element theta {
+                attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
+                real
+              },
+              (
+                  ## Use subcycling to advect the metric.
+                  ## 
+                  ## Specify the maximum courant number per subcycle.
+                  element maximum_courant_number_per_subcycle {
+                    real,
+                    field_based_cfl_number_options
+                  }|
+                  ## Use subcycling to advect the metric.
+                  ## 
+                  ## Specify the number of subcycles.
+                  element number_advection_subcycles {
+                    integer
+                  }
+              ),
+              ## Scale the time period over which the metric is
+              ## advected by this factor.
+              ##
+              ## Default is 1.1
+              element scale_advection_time {
+                  real
+              }?,
+              ## Temporal discretisation options for the control volume discretisation
+              element control_volumes {
+                ## Number of iterations within an advection solve.
+                ## This increases the accuracy of the face values and ensures that
+                ## the pivoted solution is cancelled out.
+                ## Defaults to 1 if unselected.
+                element number_advection_iterations {
+                    attribute replaces { "INT(ABS(NDISOT)/10)" },
+                    integer
+                }?,
+                ## If not active then the theta specified above will be used.
+                ## Otherwise use variable limited theta on individual faces.
+                element limit_theta {
+                    attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
+                    empty
+                }?,
+                ## Time discretisation of upwind discretisation off which the
+                ## higher order solution is pivotted.
+                ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+                ##                      best choice if not intentionally modifying
+                ##                      scheme to be explicit)
+                ##  - pivot_theta = 0 - explicit pivot
+                element pivot_theta {
+                    real
+                }?
+              }
+            },
+            (
+              ## Solver
+              element solver {
+                  linear_solver_options_asym
+              }|
+              ## Assume this field is being solved explicitly and skip the solver.
+              ##
+              ## Assumes lhs matrix only has diagonal lumped mass
+              ## and divides the rhs by this.
+              element explicit {
+                  empty
+              }
+            ),
+            ## Debugging output options
+            element output {
+              ## Output vtus of the advected metric and edge lengths at every subcycle
+              element output_subcycle_vtus {
+                empty
+              }?,
+              ## Output vtus of the final metric merged over all the subcycles
+              element output_final_vtus {
+                empty
+              }?
+            }
+         }?,
+         ## Apply geometric constraints to the metric formation.
+         ##
+         ## As specified in (Pain, 2001), the mesh adaptivity
+         ## scheme attempts to formulate an appropriate edge length
+         ## for each direction at each point in space, independent
+         ## of problem, PDE or domain.
+         ##
+         ## This option instructs the error metric formation
+         ## code to inspect the boundaries of the domain
+         ## and to bound the edge lengths requested appropriately.
+         ## This procedure stops the metric from asking for edge lengths
+         ## that are inappropriately large in comparison to the
+         ## resolution required to preserve the geometric accuracy
+         ## of the boundaries.
+         ##
+         ## If you get 'knife elements' near domain boundaries,
+         ## turn this on.
+         element geometric_constraints {
+            empty
+         }?,
+         ## Bounding box factor.
+         ##
+         ## If the length scales specified by the metric are
+         ## unrealistically large, the mesh optimisation
+         ## algorithm can get confused. An example
+         ## would be specifying a length scale in a direction to be an
+         ## order of magnitude greater than the width
+         ## of the domain.
+         ##
+         ## In order to fix this, the edge lengths requested
+         ## are bounded by the bounding box of the domain
+         ## (the smallest cuboid that contains the domain).
+         ## However, it was found that bounding by the bounding
+         ## box impairs the generation of anisotropic elements
+         ## in the mesh optimisation algorithm.
+         ##
+         ## This option is multiplied by the bounding box of the domain
+         ## before it bounds the metric formed from other
+         ## considerations. By default, it is set to 2.0.
+         element bounding_box_factor {
+            real
+         }?,
+         ## Goal-based adaptivity. 
+
+         ## With this option,
+         ## rather than taking the user-specified interpolation
+         ## error bounds as the weights to form the error metric
+         ## from the Hessians of the solution fields,
+         ## the interpolation weight is computed to optimally
+         ## represent the value of some specified functional
+         ## of state. In other words, the mesh is optimised
+         ## for the representation of a particular goal.
+         ##
+         ## This is currently experimental. Activating
+         ## this option induces the code to ignore
+         ## any error bounds associated with the fields
+         ## specified under a material_phase.
+         ##
+         ## For more information on this scheme,
+         ## see (Venditti & Darmofal, 2003), or
+         ## (Power et. al, 2006).
+         ##
+         ## Coding your own goal is also possible
+         ## but currently undocumented. See
+         ## error_measures/Goals.F90
+         ## for examples.
+         element goal_based_adaptivity {
+            (
+               ## Optimise for the representation of
+               ## enstrophy,
+               ##   0.5 * int( |curl(velocity)|**2 ) dV.
+               element enstrophy_goal {
+                  attribute subroutine {"goal_enstrophy"},
+                  attribute dependencies {"Velocity%1 Velocity%2 Velocity%3"}
+               }|
+               ## Optimise for the representation of
+               ## gradients of temperature,
+               ##   int(|grad(temperature)|**2) dV.
+               element temperature_gradient_goal {
+                  attribute subroutine {"goal_temp"},
+                  attribute dependencies {"Temperature"}
+               }|
+               ## Optimise for the contribution of the standard
+               ## Smagorinsky LES tensor.
+               ##
+               ## In effect, this goal minimises
+               ## the contribution of the sub-filter scale
+               ## model -- it applies mesh resolution where
+               ## the sub-grid scale model has an effect.
+               ##
+               ## int( transpose(grad(u)) . kappa . grad(u) ) dV,
+               ## with u ranging over the components of (nonlinear)
+               ## velocity and kappa the LES tensor.
+               element les_goal {
+                  attribute subroutine {"goal_les_velocity"},
+                  attribute dependencies {"NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3"},
+                  ## The number of nonlinear iterations to perform when
+                  ## forming the metric with this goal.
+                  ##
+                  ## Because the LES tensor explicitly depends on mesh sizing,
+                  ## we can form a metric and feed this back into the goal,
+                  ## using the proposed mesh sizing instead of the current mesh.
+                  ## This allows us to simulate adapts without actually incurring
+                  ## the cost of adaptation, for the purposes of converging the metric.
+                  ## The default value is 3.
+                  element nonlinear_iterations {
+                     integer
+                  }?
+               }|
+               ## Optimise for the contribution of the new 4th-order
+               ## LES tensor.
+               ##
+               ## In effect, this goal minimises
+               ## the contribution of the sub-filter scale
+               ## model -- it applies mesh resolution where
+               ## the sub-grid scale model has an effect.
+               ##
+               ## int( transpose(grad(u))   . kappa . grad(u) ) dV -
+               ## int( transpose(grad_h(u)) . kappa . grad_h(u) ) dV
+               ## 
+               ## with u ranging over the components of (nonlinear)
+               ## velocity, kappa the LES tensor,
+               ## grad(.) differentiation of basis functions and
+               ## grad_h(.) the Galerkin projection of the first derivative.
+               element higher_order_les_goal {
+                  attribute subroutine {"goal_les_velocity_4th"},
+                  attribute dependencies {"NonlinearVelocity%1 NonlinearVelocity%2 NonlinearVelocity%3"},
+                  ## The number of nonlinear iterations to perform when
+                  ## forming the metric with this goal.
+                  ##
+                  ## Because the LES tensor explicitly depends on mesh sizing,
+                  ## we can form a metric and feed this back into the goal,
+                  ## using the proposed mesh sizing instead of the current mesh.
+                  ## This allows us to simulate adapts without actually incurring
+                  ## the cost of adaptation, for the purposes of converging the metric.
+                  ## The default value is 3.
+                  element nonlinear_iterations {
+                     integer
+                  }?
+               }
+            ),
+            (
+               ## The tolerance of the goal specifies the acceptable
+               ## error in the quantity computed. The adaptation scheme
+               ## attempts to adapt the mesh to ensure that the
+               ## goal computed from the primitive solution is 
+               ## within the tolerance specified here.
+               ##
+               ## A relative tolerance specifies that the acceptable error
+               ## in the goal is some fraction of the value as computed
+               ## from the primitive solution. It is generally 
+               ## the easiest to use. This is a unitless percentage.
+               element relative_tolerance {
+                  real
+               }|
+               ## The tolerance of the goal specifies the acceptable
+               ## error in the quantity computed. The adaptation scheme
+               ## attempts to adapt the mesh to ensure that the
+               ## goal computed from the primitive solution is 
+               ## within the tolerance specified here.
+               ##
+               ## An absolute tolerance specifies the acceptable error
+               ## in the goal, in the units of the goal itself.
+               element absolute_tolerance {
+                  real
+               }
+            )
+         }?,
+         ## Mesh size constraints: the minimum edge length bound.
+         element tensor_field {
+           attribute name { "MinimumEdgeLengths" },
+           element anisotropic_symmetric {
+             input_choice_real_dim_symmetric_tensor
+           }
+         },
+         ## Mesh size constraints: the maximum edge length bound.
+         element tensor_field {
+           attribute name { "MaximumEdgeLengths" },
+           element anisotropic_symmetric {
+             input_choice_real_dim_symmetric_tensor
+           }
+         },
+         ## Supply a reference mesh with which to bound the metric
+         element reference_mesh {
+            attribute name { xsd:string },
+            attribute mesh_name { xsd:string },
+            (
+               ## Use this reference mesh as a bound on the minimum edge
+               ## length of the metric
+               element minimum {
+                  comment
+               }|
+               ## Use this reference mesh as a bound on the maximum edge
+               ## length of the metric
+               element maximum {
+                  comment
+               }
+            ),
+            comment
+         }*,
+         ## Maximum aspect ratio in the adapted mesh.
+         element aspect_ratio_bound {
+           real
+         }?,
+               ## Adapt at first timestep
+         element adapt_at_first_timestep {
+            ## Number of adapts done after initialisation but
+            ## before the actual simulation starts
+            element number_of_adapts{integer},
+            ## Write out the first timestep adapted mesh.
+            ## This is useful when needing to re-run simulations
+            ## without waiting for the first timestep adapt
+            element output_adapted_mesh {
+               comment
+            }?
+         }?,
+         ## Enable this option to preserve any regions in your
+         ## mesh (i.e. those specified by region_ids).
+         ## Also, any prescribed fields using region_ids will be
+         ## reinitialised using them on the new mesh.
+         ##
+         ## Therefore this is a required option if you want your
+         ## prescribed region_id fields to survive adapts!
+         ## Obviously this does not apply to initial conditions
+         ## set using region_ids.
+         element preserve_mesh_regions {
+            comment
+         }?,
+         ## Vertically structured adaptivity.
+         ##
+         ## The mesh will be unstructured in the horizontal, but columnar
+         ## in the vertical.
+         ## To enable this, your meshes must be derived by extrusion
+         ## from a lower-dimensional horizontal mesh.
+         ## This will give a columnar, layered mesh.
+         element vertically_structured_adaptivity {
+           ## If this is enabled, the resolution along each column
+           ## will be computed from the error metric.
+           ## This will give a columnar mesh, but not a layered one.
+           element inhomogenous_vertical_resolution {
+             empty
+           }?
+         }?,
+         ## Select the adaptivity library used by hr-adaptivity. If disabled,
+         ## the defaults are:
+         ##   In 3D: libadaptivity
+         ##   In 2D: libmba2d
+         ##   In 1D: adaptivity_1d
+         element adaptivity_library {
+            ## libadaptivity. 3D, parallelised.
+            element libadaptivity {
+               ## The number of adaptivity sweeps. Default value: 10
+               element sweeps {
+                  integer
+               }?,
+               comment
+            }|
+            ## libmba2d. 2D. A testing parallel implementation is available.
+            element libmba2d {               
+               ## Desired output mesh quality, 0 <= quality <= 1.
+               ## Default value 0.6.
+               element quality {
+                 real
+               }?,
+               comment
+            }|
+            ## Re-uses 1D adaptivity code from 2+1D adaptivity. 1D, serial only.
+            element adaptivity_1d {
+               comment
+            }|
+            ## libmba3d. 3D, serial only.
+            element libmba3d {
+               comment
+            }
+         }?,
+         ## hr adptivity debugging options
+         element debug {
+            ## Write out error metric at each stage of the processing
+            ## pipeline. This can be very useful in diagnosing why
+            ## adaptivity is doing something you don't expect.
+            element write_metric_stages {
+               comment
+            }?,
+            ## Write out the Coordinate field to a triangle mesh for every
+            ## state adapt. In parallel, a triangle mesh and .halo files
+            ## will be written for every parallel adapt iteration.
+            element write_adapted_mesh {
+               comment
+            }?,
+            ## Write out the system state to a vtu adapt every state adapt.
+            ## In parallel, a vtu will be written for every parallel
+            ## adapt iteration.
+            element write_adapted_state {
+               comment
+            }?,
+            ## Checkpoint the simulation after every adapt. In parallel, a
+            ## checkpoint will be written <b>only</b> after the final adapt
+            ## iteration. Checkpoints are postfixed with "adapt_checkpoint".
+            element checkpoint {
+               ## Number of checkpoints to write before overwriting existing
+               ## checkpoints.
+               element max_checkpoint_count {
+                  integer
+               }?,
+               comment
+            }?,
+            comment
+         }?
+      }
+   )
+      
+prescribed_adaptivity =
+   (
+      ## Mesh adaptivity, with prescribed adapt interval and target meshes.
+      ## <b>Serial only</b>.
+      element prescribed_adaptivity {
+         ## Options relating the the frequency of mesh adaptivity
+         element adapt_interval {
+            ## Python code defining whether to adapt the mesh, evaluated at the
+            ## end of each timestep. Return non-zero to signal a mesh adapt, and
+            ## zero otherwise. Functions should be of the form:
+            ##
+            ##  def val(t):
+            ##    # Function code
+            ##    return # Return value
+            ##
+            ## The return value must be an integer.
+            element python {
+               python_code
+            },
+            comment
+         },
+         ## Options relating to the target meshes
+         element mesh {
+            ## The target mesh. This must be a mesh specified under /geometry.
+            element name {
+               ## Python code defining the target mesh. Functions should be of
+               ## the form:
+               ##
+               ##  def val(t):
+               ##    # Function code
+               ##    return # Return value
+               ##
+               ## The return value must be a string.
+               element python {
+                  python_code
+               },
+               comment
+            },
+            comment
+         },
+         comment
+      }
+   )

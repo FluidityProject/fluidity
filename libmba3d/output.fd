@@ -1,0 +1,10 @@
+C ==========================================================
+C MaxLines   - the maximal number of output lines per processor
+C LineLenght - the maximal lenght of a message
+C ==========================================================
+       Integer   MaxLines, LineLenght
+       Parameter(MaxLines = 100, LineLenght = 100)
+
+
+
+

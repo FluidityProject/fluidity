@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material surface integral pressure check</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v2 -l mmat-balancepressure-p0p1cv-gpp2.flml  </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="pressure" language="python">
+import fluidity_tools
+pressure = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Pressure']['max'])
+    </variable>    
+    <variable name="minpressure" language="python">
+import fluidity_tools
+minpressure = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Pressure']['min'])
+    </variable>    
+    <variable name="geopressure" language="python">
+import fluidity_tools
+geopressure = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['GeostrophicPressure']['max'])
+    </variable>    
+    <variable name="mingeopressure" language="python">
+import fluidity_tools
+mingeopressure = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['GeostrophicPressure']['min'])
+    </variable>    
+    <variable name="velocity" language="python">
+import fluidity_tools
+velocity = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['Velocity%magnitude']['max'])
+    </variable>    
+    <variable name="volfrac0" language="python">
+import fluidity_tools
+volfrac0 = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['MaterialVolumeFraction']['integral'][0]
+    </variable>    
+    <variable name="volfracend" language="python">
+import fluidity_tools
+volfracend = fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
+    </variable>    
+    <variable name="maxdivergence" language="python">
+import fluidity_tools
+maxdivergence = max(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['ControlVolumeDivergence']['max'])
+    </variable>    
+    <variable name="mindivergence" language="python">
+import fluidity_tools
+mindivergence = min(fluidity_tools.stat_parser("mmat-balancepressure-p0p1cv-gpp2.stat")['Water']['ControlVolumeDivergence']['min'])
+    </variable>    
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+   </variables>
+    <pass_tests>  
+    <test name="check maximum pressure is 0.0" language="python">
+   assert abs(pressure) &lt; 1e-6
+    </test>    
+    <test name="check minimum pressure 0.0" language="python">
+   assert abs(minpressure) &lt; 1e-6
+    </test>    
+    <test name="check minimum geopressure" language="python">
+   assert abs(mingeopressure+2212) &lt; 10
+    </test>    
+    <test name="check maximum geopressure" language="python">
+   assert abs(geopressure) &lt; 1e-6
+    </test>    
+    <test name="check maximum speed is zero" language="python">
+   assert abs(velocity) &lt; 1e-6
+    </test>
+    <test name="check volume fraction conserved" language="python">
+   assert abs(volfracend-volfrac0) &lt; 1e-9
+    </test>
+    <test name="check divergence" language="python">
+   assert max(abs(maxdivergence), abs(mindivergence)) &lt; 1e-9
+    </test>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

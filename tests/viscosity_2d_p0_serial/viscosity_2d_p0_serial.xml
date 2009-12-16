@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>heat_2d_dg</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity -v2 -l heat.flml </command_line>
+    <!-- Two dimensional diffusion only problem. -->
+  </problem_definition>
+  <variables>
+    <variable name="tracer1_integral0" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer1_integral0 = s["Water"]["Velocity%1"]["integral"][0]
+    </variable>
+    <variable name="tracer2_integral0" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer2_integral0 = s["Water"]["Velocity%2"]["integral"][0]
+    </variable>
+    <variable name="tracer1_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer1_integral = s["Water"]["Velocity%1"]["integral"][-1]
+    </variable>
+    <variable name="tracer2_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer2_integral = s["Water"]["Velocity%2"]["integral"][-1]
+    </variable>
+    <variable name="tracer1_error0" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer1_error0 = s["Water"]["VectorAbsoluteDifference%1"]["max"][0]
+    </variable>
+    <variable name="tracer1_error" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer1_error = s["Water"]["VectorAbsoluteDifference%1"]["max"][-1]
+    </variable>
+    <variable name="tracer2_error0" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer2_error0 = s["Water"]["VectorAbsoluteDifference%2"]["max"][0]
+    </variable>
+    <variable name="tracer2_error" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer2_error = s["Water"]["VectorAbsoluteDifference%2"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="tracer1 integral is 1.0" language="python">
+assert abs(tracer1_integral - 1.0) &lt; 1e-6
+    </test>
+    <test name="tracer2 integral is 1.0" language="python">
+assert abs(tracer2_integral - 1.0) &lt; 1e-6
+    </test>
+    <test name="initial tracer1 integral is 1.0" language="python">
+assert abs(tracer1_integral0 - 1.0) &lt; 1e-3
+    </test>
+    <test name="initial tracer2 integral is 1.0" language="python">
+assert abs(tracer2_integral0 - 1.0) &lt; 1e-3
+    </test>
+    <test name="tracer1 error is initially less than 0.01" language="python">
+assert tracer1_error0 &lt; 0.01
+    </test>
+    <test name="tracer1 error less than 0.01" language="python">
+assert tracer1_error &lt; 0.01
+    </test>
+    <test name="tracer2 error is initially less than 0.01" language="python">
+assert tracer2_error0 &lt; 0.01
+    </test>
+    <test name="tracer2 error less than 0.01" language="python">
+assert tracer2_error &lt; 0.01
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

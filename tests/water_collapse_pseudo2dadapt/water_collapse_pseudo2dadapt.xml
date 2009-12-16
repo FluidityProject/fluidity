@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>water collapse 2d</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+    <problem_definition length="special" nprocs="1">
+    <command_line>mpiexec -np 2 ../../bin/dfluidity -v2 -l water_collapse.flml</command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="error_present" language="python">
+error_present=False
+for line in file("fluidity.err-0","r"):
+  if (line.find("ERROR")!=-1):
+     error_present=True
+for line in file("fluidity.err-1","r"):
+  if (line.find("ERROR")!=-1):
+     error_present=True
+    </variable>
+  </variables>    
+  <pass_tests>
+    <test name="Fluidity didn't throw an error" language="python">
+assert not error_present
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

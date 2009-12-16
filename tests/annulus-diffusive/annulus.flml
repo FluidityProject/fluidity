@@ -1,0 +1,401 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <comment>Rotating annulus  model
+James Maddison
+
+Based on Matthew's magicannulus4
+
+Changelog:
+
+06/01/08	Converted to XML (based on square-convection FLML file)
+22/02/08	Further conversion work
+
+Differences between gem and FLML annulus model:
+
+Option/Variable	Old Value	New Value	Reason for difference
+
+PATMOS			1013250.0	0.0			Not required
+RDENP(IP)		1.043		0.0			Not in new system
+ZSOX(IP)			F			T			No sources
+CONSOX(IP)		T			F			Not in new system
+ROTAT			T			F			Not required
+NTSOL			1			2			Require BalancePressure field
+										in new system
+ENERGYEQ		0			1			Solidity option (!)
+VFRACEQ		0			1				""
+DENMATEQ		0			1				""
+NOBCT(IT)		(varies)		(varies)		Due to change in application of
+										boundary conditions
+DISOPT			-7			7			-ve not required
+MASERR			1.0E-7		-666.0		Legacy solver options (cannot
+										enter without disabling PetSc)
+MASNOI			220			-666			""
+MASW			1.0			-666.0			""
+MASPRE			1			-666			""
+PREPRE			6			-666			""
+ABSLUM			T			F			No sinks
+D0				1.0			0.0			Not in new system
+
+25/02/2008	Enabled adaptivity
+			Density changed to 1.0 (as indicated by p. 14 of manual draft v. 1.2)
+27/02/2008	Updated to latest schema
+28/02/2008	Some adaptivity tweaks
+25/03/2008	Added a velocity source of zero (required if gravity is enabled)
+			Enabled checkpointing
+26/03/2008	Enabled adaptive timestepping
+			Increased timestep by x 10 (as typical CFL numbers ~0.1), with maximum
+			timestep set to x50 original timestep
+			Increased adaptivity interval to 20.0
+                        Enabled /io/adaptive_timestep/adaptive_timestep_repeat option (set to
+                        manual suggested value)
+01/04/2008	Update for Cian's new advection diffusion code
+			Validity update
+			Changed to frequency based dumps and adaptivity
+02/04/2008	Set stat options
+			Changed Velocity and BalancePressure preconditioners to mg
+			Removed maximum timestep
+			Increased checkpoint frequency to match adapt frequency
+			Added some random noise to velocity field initialisation
+03/04/2008	Changed pressure to mg preconditioner
+			Changed velocity preconditioner back to sor
+			Reconfigured with parameters as in Read, J. Fluid Mech. (2003) vol. 489
+			pp. 301-323
+04/06/2008	Alterations for parallel runs:
+				Changed solver options for parallel runs (sor -&gt; sor,
+				mg -&gt; hypre (boomeramg)
+				Removed checkpointing (not yet supported in parallel)
+				Changed dump format to fluidity_dumpfile (need to manually
+				generate .fld, or use .fld created by gem)
+			Changed temperature spatial discretisation to mixed_cv_cg, using
+			discretisation options as in square-convection
+				spatial_discretisation
+					mixed_cv_cg
+						face_value::FiniteElement
+							limit_face_value
+								slopes
+									lower (value 0.0)
+								project_upwind_value_from_point
+									store_upwind_elements
+				temporal_discretisation
+					contol_volumes
+						number_advection_iterations (value 3)
+						limit_theta
+05/06/2008	Enabled s_files due to problems with .stat file norms and integrals in
+			parallel
+09/06/2008	Reduced adaptive timestep cfl number to 3.0 and increased
+			tolerance to 1.1, due to observed instability
+			Added CFL number field
+			Removed randomisation in v initialisation
+13/06/2008	Basing adaptive timestepping of CFLNumber field. Increased maximum_cfl
+			to 4.0 and deleted other adaptive_timestep options.
+24/06/2008	Validity update following Cian's conversion of default adaptive timestepping
+			to basing of CFLNumber field
+			timestepping
+27/06/2008	Enabled checkpointing
+			Increased requested_cfl to 4.0
+28/06/2008	Corrected gravity comment - gravity was set correctly, comment contained
+			incorrect expansion coeff.
+			Removed velocity source (no longer required)
+			Removed adaptive timestep tolerance
+29/06/2008	Reduced requested CFL number to 3.0 due to observed instability on redqueen
+[unknown]	Reduced CFL number to 2.5
+09/09/2008	Added mesh diagnostics
+			Added Nusselt number diagnostics
+			Converted to use CG-test velocity discretisation
+			Increased checkpoint period to 50
+			Altered beta to 1.0 in velocity and temperature discretisations
+			Added some extra diagnostic fields
+			Use default "lower" in temperature CV limiter slopes (trust Sweby)
+			Added some additional diagnostic fields
+			Converted back to traditional CG
+27/09/2008	Decreased initial timestep
+			Removed Density from dumps
+			Added neumann boundary conditions for temperature
+			Removed GridReynoldsNumber diagnostic
+			Relaxed BalancePressure solver tolerance from 1.0E-7 to 1.0E-4
+07/10/2008	Removed s_file output
+08/10/2008	Set beta = 0.0 for velocity and temperature, as beta = 1.0 led to
+			temperature field becoming unbounded
+			Added an effectively disabled wall time limit
+			Changed wall time limit to CPU time limit, as wall time is not
+			always supported
+15/10/2008	Switched adaptivity to rmem_free
+21/10/2008	Validity update
+			Changed to tanh stretch initial mesh
+04/11/2008	Validity update
+			Disabled interpolation of Pressure/BalancePressure
+			Increased checkpointing period from 50 to 100
+06/11/2008	Validity update for adaptivity size constraints
+			Applying perturbation to temperature field at time zero
+11/11/2008	Changed adapt period from 20 timesteps to 80s, in line with
+			081005-static-navsto4-perturbed analysis
+			Changed velocity absolute measure value, in line with
+			081005-static-navsto4-perturbed checkpoint 800
+17/11/2008	Deleting HorizontalVelocityDivergence diagnostic - it's too expensive
+			Removing normalisation from and renaming heat transport diagnostics
+21/11/2008	Changed to pure CV advection-diffusion
+01/12/2008	Selecting a diffusion scheme
+			Disabling BalancePressure interpolation
+18/12/2008	Increased dump and checkpointing period (from 5 to 25, 100 to 250)
+			Added mid-point detector array
+			Switched to CG-test
+			Enabled interpolation for BalancePressure
+			Changed to ElementGradient diffusion
+22/12/2008	Disabled interpolation for BalancePressure - enabled for Pressure
+12/01/2009	Added an increase_tolerance of 1.2 for adaptive timestepping
+			Decreate checkpointing period (from 250 to 200)
+22/01/2009	Added adaptivity options for BalancePressure
+			Reconfigured for f0 = 5.528
+			Added min and max node limiting to adaptivity (64000 nodes)
+			Reduced quadrature degree to 3 (from 4)
+			Disabled PIG
+23/01/2009	Added phi=0 detector array for stratification analysis (looking forward
+			to sloping bottom simulations)
+			Enabled conservative interpolation for Temperature
+			Switch all use of hypre to sor, due to bugs encountered on redqueen
+26/01/2009	Disabled conservative interpolation for Pressure - it isn't working in
+			parallel yet
+			Disabled adaptivity node count targetting
+			Tightened T adaptivity tolerance (from 0.1 to 0.05) based on
+			081222-static-read2003-5.528 error metric testing
+29/01/2009	Checkpoint more frequently (200 -&gt; 100)
+			Tightened w adaptivity tolerance (from 0.5 to 0.05) based on
+			081222-static-read2003-5.528 error metric testing
+			Enabled BalancePressure interpolation
+04/04/2009	Reduced IO interval to 20 timesteps (to be equal with adapt period)
+			Enable state and mesh debug output on mesh adapts
+			Changed Pressure and BalancePressure pcs to mg
+			Changed default f0 to 5.528
+15/06/2009	Updated discretisation names (cg_test -&gt; cg)
+			Removed explicit neumann T bcs (can be applied naturally)</comment>
+  <simulation_name>
+    <string_value lines="1">annulus</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">oceans</string_value>
+    <comment>Original gemfile value: "fluids ocean"</comment>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="annulus-structured-tanh-23x64">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">2</integer_value>
+        <comment>Original gemfile value: NGI 11</comment>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <integer_value rank="0">20</integer_value>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">4000.0</real_value>
+    </finish_time>
+    <steady_state>
+      <tolerance replaces="STEDER">
+        <real_value rank="0">1.0e-7</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </steady_state>
+  </timestepping>
+  <physical_parameters/>
+  <material_phase name="Water">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+            <comment>Normalised</comment>
+          </reference_density>
+          <temperature_dependency replaces="BOUSIN, EQNSTA=0">
+            <reference_temperature replaces="TEMINI">
+              <real_value rank="0">0.0</real_value>
+              <comment>Normalised delta T</comment>
+            </reference_temperature>
+            <thermal_expansion_coefficient replaces="DENGAM">
+              <real_value rank="0">1.0</real_value>
+              <comment>Normalised</comment>
+            </thermal_expansion_coefficient>
+          </temperature_dependency>
+          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+          </continuous_galerkin>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">1.0</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+              <comment>Not in original gemfile - Taking suggested value (30)</comment>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0E-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(x, t):
+	return x[2] / 14.0</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="MaintainInnerWallT">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="MaintainOuterWallT">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">1.3E-3</real_value>
+                </constant>
+              </isotropic>
+            </value>
+          </prescribed>
+        </tensor_field>
+        <output/>
+        <stat>
+          <surface_integral type="gradient_normal" name="InnerH">
+            <surface_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="OuterH">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="TopH">
+            <surface_ids>
+              <integer_value shape="1" rank="1">3</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="BottomH">
+            <surface_ids>
+              <integer_value shape="1" rank="1">4</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>

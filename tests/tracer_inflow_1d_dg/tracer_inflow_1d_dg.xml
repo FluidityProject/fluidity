@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>tracer_inflow_1d_dg</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml tracer.flml </command_line>
+    <!-- One dimensional poroblem in which a pulse of tracer us introduced via a dirichlet boundary condition on the tracer. The tracer then flows out of the domain. -->
+  </problem_definition>
+  <variables>
+    <variable name="tracer_integral_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("tracer.stat")
+tracer_integral_max = max(s["Water"]["Tracer"]["integral"])
+    </variable>
+    <variable name="tracer_integral_final" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("tracer.stat")
+tracer_integral_final = s["Water"]["Tracer"]["integral"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="maximum tracer integral is 10/pi" language="python">
+from math import pi
+assert abs(tracer_integral_max - 10/pi) &lt; 1.5e-2
+    </test>
+    <test name="final tracer integral is 0" language="python">
+assert abs(tracer_integral_final) &lt; 2e-4
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

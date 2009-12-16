@@ -1,0 +1,169 @@
+#!/usr/bin/env python
+
+"""
+Large (out of core) gmsh to triangle convertor
+"""
+
+import optparse
+import os
+import sys
+
+import fluidity.diagnostics.debug as debug
+import fluidity.diagnostics.gmshtools as gmshtools
+import fluidity.diagnostics.utils as utils
+  
+def StripComment(line):
+  if "#" in line:
+    return line.split("#")[0]
+  else:
+    return line
+    
+def ReadNonCommentLine(fileHandle):
+  line = fileHandle.readline()
+  while len(line) > 0:
+    line = StripComment(line).strip()
+    if len(line) > 0:
+      return line
+    line = fileHandle.readline()
+    
+  return line
+  
+optionParser = optparse.OptionParser( \
+  usage = "%prog INPUT", \
+  add_help_option = True, \
+  description = "Converts a gmsh .msh file and produces an output triangle mesh, using on-the-fly\n" + \
+                "I/O. Currently 3D only.")
+optionParser.add_option("--2D", "--2d", "-2",
+                  help="discard 3rd coordinate of node positions",
+		     action="store_const", const=2, dest="dim", default=3)
+
+opts, args = optionParser.parse_args()
+
+if len(args) < 1:
+  optionParser.print_help()
+  sys.exit(1)
+elif len(args) > 1:
+  debug.FatalError("Unrecognised trailing argument")
+
+dim = opts.dim
+  
+mshFilename = args[0]
+triangleBasename = os.path.basename(mshFilename[:len(mshFilename) - len(mshFilename.split(".")[-1]) - 1])
+
+mshHandle = open(mshFilename, "r")
+
+debug.dprint("Reading header")
+
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$MeshFormat")
+line = ReadNonCommentLine(mshHandle)
+lineSplit = line.split()
+assert(len(lineSplit) == 3)
+versionNumber = float(lineSplit[0])
+fileType = int(lineSplit[1])
+dataSize = int(lineSplit[2])
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$EndMeshFormat")
+
+debug.dprint("Processing nodes")
+
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$Nodes")
+line = ReadNonCommentLine(mshHandle)
+nNodes = int(line)
+assert(nNodes >= 0)
+debug.dprint("Nodes: " + str(nNodes))
+
+nodeHandle = open(triangleBasename + ".node", "w")
+nodeHandle.write(utils.FormLine([nNodes, dim, 0, 0]))
+for i in range(nNodes):
+  line = ReadNonCommentLine(mshHandle)
+  lineSplit = line.split()
+  assert(len(lineSplit) == 4)
+  assert(int(lineSplit[0]) == i + 1)
+  coord = [word for word in lineSplit[1:1 + dim]]
+  nodeHandle.write(utils.FormLine([i + 1, coord]))
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$EndNodes")
+nodeHandle.close()
+
+debug.dprint("Processing elements (pass 1 of 2)")
+
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$Elements")
+line = ReadNonCommentLine(mshHandle)
+nEles = int(line)
+assert(nEles >= 0)
+
+debug.dprint("Total elements: " + str(nEles))
+
+nVEles = 0
+nSEles = 0
+nNodesPerVEle = None
+nIds = None
+for i in range(nEles):
+  line = ReadNonCommentLine(mshHandle)
+  lineSplit = line.split()
+  assert(int(lineSplit[0]) == i + 1)
+  type = gmshtools.GmshElementType(gmshElementTypeId = int(lineSplit[1]))
+  if type.GetDim() == dim - 1:
+    nSEles += 1
+  elif type.GetDim() == dim:
+    nVEles += 1
+    if nNodesPerVEle is None:
+      nNodesPerVEle = type.GetNodeCount()
+    else:
+      assert(type.GetNodeCount() == nNodesPerVEle)
+  if nIds is None:
+    nIds = int(lineSplit[2])
+  else:
+    assert(int(lineSplit[2]) == nIds)
+  assert(len(lineSplit) == 3 + nIds + type.GetNodeCount())
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$EndElements")
+
+debug.dprint("Volume elements: " + str(nVEles))
+debug.dprint("Nodes per volume element: " + str(nNodesPerVEle))
+debug.dprint("Surface elements: " + str(nSEles))
+debug.dprint("Other elements: " + str(nEles - nVEles - nSEles))
+debug.dprint("Element IDs: " + str(nIds))
+
+debug.dprint("Processing elements (pass 2 of 2)")
+
+mshHandle.seek(0)
+line = ReadNonCommentLine(mshHandle)
+while len(line) > 0 and not line.strip() == "$Elements":
+  line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$Elements")
+line = ReadNonCommentLine(mshHandle)
+assert(int(line) == nEles)
+
+eleHandle = open(triangleBasename + ".ele", "w")
+if dim == 1:
+  seleHandle = open(triangleBasename + ".bound", "w")
+elif dim == 2:
+  seleHandle = open(triangleBasename + ".edge", "w")
+else:
+  assert(dim == 3)
+  seleHandle = open(triangleBasename + ".face", "w")
+  
+eleHandle.write(utils.FormLine([nVEles, nNodesPerVEle, nIds]))
+seleHandle.write(utils.FormLine([nSEles, nIds]))
+for i in range(nEles):
+  line = ReadNonCommentLine(mshHandle)
+  lineSplit = line.split()
+  assert(int(lineSplit[0]) == i + 1)
+  type = gmshtools.GmshElementType(gmshElementTypeId = int(lineSplit[1]))
+  assert(len(lineSplit) == 3 + nIds + type.GetNodeCount())
+  ids = [int(word) for word in lineSplit[3:3 + nIds]]
+  nodes = [int(word) for word in lineSplit[-type.GetNodeCount():]]
+  if type.GetDim() == dim - 1:
+    seleHandle.write(utils.FormLine([i + 1, nodes, ids]))
+  elif type.GetDim() == dim:
+    eleHandle.write(utils.FormLine([i + 1, nodes, ids]))
+line = ReadNonCommentLine(mshHandle)
+assert(line.strip() == "$EndElements")
+eleHandle.close()
+seleHandle.close()
+
+mshHandle.close()

@@ -1,0 +1,202 @@
+
+\chapter{Adaptive remeshing}\label{chap:Adaptivity}
+
+\section{Motivation}
+Historically, numerical analysts concerned themselves
+with \emph{a priori} error bounds of particular numerical
+schemes, i.e.\@ \ asymptotic analyses of the order of convergence
+of a discretisation with respect to some discretisation parameter
+such as mesh sizing $h$ or polynomial order $p$. However, such
+\emph{a priori} error bounds do not provide useful estimates
+of the simulation error of a particular physical system on
+a particular mesh for a specified norm: they merely describe
+how that error behaves as the discretisation is modified. Since
+such \emph{a priori} error bounds involve the unknown exact solution,
+they are, in general, not computable.
+
+In the late 1970s, the pioneering work of Babu\v ska
+and Rheinboldt laid the foundations for \emph{a posteriori}
+error estimates \citep{babuska1978,babuska1978b}.
+In contrast to \emph{a priori} bounds,
+\emph{a posteriori} error estimates involve only
+the approximate computed solution and data from the problem,
+and are thus computable (or approximately so, if they involve the
+solution of an auxiliary problem). These error
+estimates can then be used in an adaptive loop, modifying
+the discretisation until some user-specified error criterion
+is reached. Most \emph{a posteriori} error estimation literature deals with estimating
+the error in the natural norm induced by the bilinear form
+of the problem, the energy norm.
+For a review of \emph{a posteriori} error estimation
+with emphasis on energy norm estimation
+see the books of Verf\"urth \citep{verfurth1996} and
+Ainsworth and Oden \citep{ainsworth2000}. The goal-oriented
+adaptive framework of Rannacher and co-workers, which estimates
+the error in the computation of a given goal functional, is detailed
+in \citet{becker2001} and \citet{bangerth2003}.
+
+Once \emph{a posteriori} estimates have been computed, 
+there are many possible ways of modifying the discretisation
+to achieve some error target. These include $h$-adaptivity,
+which changes the connectivity of the mesh \citep{berger1989}; $p$-adaptivity,
+which increases the polynomial order of the approximation 
+\citep{babuska1994}; and $r$-adaptivity, which relocates
+the vertices of the mesh while retaining the same connectivity
+\citep{budd2009}. Combinations of these methods are also
+possible (e.g., \citet{houston2001,ledger2003}).
+
+This review focuses on adaptive remeshing in multiple dimensions, as this is
+the technology available in \fluidity.
+This approach is the most powerful of all $hr$-adaptive methods, since the meshes produced are not constrained
+by the previous mesh; therefore, this approach allows for maximum flexibility in
+adapting to solution features. However, this flexibility comes
+at a cost: guiding the adaptive remeshing procedure (choosing
+what mesh to construct), executing the adaptation (constructing
+the chosen mesh) and data transfer of solution fields (from the previous mesh to
+the newly adapted mesh) become more complicated than with hierarchical refinement.
+
+This chapter is divided as follows. Section \ref{sec:meshes_and_metrics} describes how a metric tensor field
+may be used to encode the geometric properties (length scales and orientations) of the
+elements of a mesh. Section \ref{sec:adaptive_remeshing_technology} describes how the
+mesh optimisation procedure in \fluidity\ generates an adapted mesh, given a metric
+describing its desired geometric properties. Section \ref{sec:metric_formation}
+describes how the desired metric is generated from the computed solution. Section
+\ref{sec:interpolation} then discusses how fields are interpolated between the
+previous mesh and the newly adapted mesh. Section \ref{sec:adaptivity_related_topics}
+discusses some related topics.
+
+\section{Representing meshes as metric tensors} \label{sec:meshes_and_metrics}
+The process of adaptive remeshing divides naturally into two parts. The first is to
+decide what mesh is desired; the second is to actually generate that mesh. The form
+of communication between these two stages is a symmetric positive-definite tensor field
+which encodes the desired geometric properties of the mesh. This representation was first introduced
+in \citet{vallet1990}. 
+
+Let $M$ be a symmetric positive-definite tensor (not a field, for now).
+$M$ induces an inner product by
+\begin{equation}
+\langle x, y\rangle_M = x^T M y
+\end{equation}
+and so $M$ also induces a notion of distance between two points in the usual manner:
+\begin{equation}
+d_M(x, y) = ||x - y||_M = \sqrt{\langle x - y, x - y \rangle}.
+\end{equation}
+
+Now let $\metric$ be a symmetric positive-definite tensor field. As long as
+$\metric$ is sufficiently smooth, then it also induces an inner product
+(see \citet{simpson1994} for details). We say that a mesh $\cal{T}$ satisfies
+$\metric$ if every edge has unit edge length with respect to its inner product;
+$\cal{T}$ is a unit mesh with respect to this metric.
+
+In order to see how the metric representing a mesh may be derived, consider the transformation from the reference element to the physical
+element inherent in the finite element assembly procedure \citep{femtools}. 
+Let $K$ be an element of a linear simplicial mesh. $K$ is geometrically characterised by the affine map
+$T_K: \hat{K} \rightarrow K$, where $\hat{K}$ is the reference isotropic element. Since
+$T_K$ is assumed affine, we can write this transformation as
+\begin{equation}
+x = T_K(\hat{x}) = J_K\hat{x} + t_K,
+\end{equation}
+where $J_K$ is the Jacobian of the transformation. The metric for this element is derived
+from the polar decomposition of the Jacobian, which yields
+\begin{equation}
+J_K = M_K Z_K
+\end{equation}
+where $M_K$ is a symmetric positive-definite matrix referred to as the metric,
+and $Z_K$ is orthogonal \citep{micheletti2006}. The geometric properties of a simplicial mesh can be represented
+as a piecewise constant (P0) field over it. The same argument applies to
+nonlinear or non-simplicial elements, but here the Jacobian varies over the element,
+and so the metric does too.
+
+For more background information and discussion on representing meshes in this manner,
+see \citet{george1998}.
+
+\section{Adaptive remeshing technology} \label{sec:adaptive_remeshing_technology}
+Given a metric $\metric$, there are three main ways to generate a mesh which satisfies
+that metric: global remeshing, local remeshing, and mesh optimisation. For a thorough discussion
+of the relevant literature, see \citet{farrell2009i}.
+
+Global remeshing is the act of generating an entirely new mesh of the same domain satisfying the sizing
+specification, by means of an automatic mesh generator. This was first introduced in \citet{peraire1987} by incorporating 
+sizing and directionality inputs to an advancing front mesh generator.
+
+By contrast, local remeshing is a mechanism of adaptive remeshing in which cavities of elements are removed
+and the hole remeshed \citep{hassan1998}. These cavities are identified by measuring
+their conformity to the given sizing specification.
+
+Mesh optimisation is a mechanism of adaptive remeshing which deforms the previous mesh
+to the adapted mesh by a sequence of local operations.
+The mesh quality is measured by a functional measuring how close the mesh is to
+the mesh encoded in the sizing specification. The local mesh modification
+operations are applied successively to optimise this functional. This is the choice
+adopted in \fluidity.
+
+Mesh optimisation is available by default in three dimensions using the algorithm
+of \citet{pain2001}. It is available in two dimensions using the \texttt{mba2d} algorithm of
+\citet{vasilevskii1999} if \fluidity\ was configured with
+the \configureflag{--enable-2d-adaptivity} flag; this is not enabled by default
+as \texttt{mba2d} is licensed under the GPL, while \fluidity\ is licensed under the LGPL,
+and so its default inclusion would cause licensing complications.
+
+\section{Metric formation} \label{sec:metric_formation}
+The flexibility of adaptive remeshing comes at a cost.
+Adaptive remeshing is more complicated to guide than hierarchical or $p$-refinement. 
+To guide hierarchical or $p$-refinement, one needs element-level indicators
+measuring the contribution of the element to some quantification of
+the error. By contrast, the input to the adaptive remeshing algorithm
+is a metric specifying the sizing and orientation of the desired output
+mesh. This extra step of computing what mesh would (approximately)
+give a desired target error is the characteristic challenge of guiding
+the adaptive remeshing algorithm.
+
+Most of the work to date has been guided by considerations of
+interpolation error; this is the approach used in \fluidity. In one dimension, for interpolation
+using $p^{th}$ order Lagrange polynomials, this is related to the
+$(p+1)^{th}$ derivative of the function being interpolated; in multiple
+dimensions, this extends to the tensor of $(p+1)^{th}$ order partial
+derivatives of the function being interpolated. For linear interpolation
+($p=1$), the interpolation error depends on the Hessian (the matrix
+of second-order partial derivatives), which naturally induces
+a metric in which to form a unit mesh. 
+
+Consider a field $u$ and its P1 projection onto a mesh $\cal{T}$,
+$\Pi_h u$. It can be shown \citep{frey2005} that
+\begin{equation}
+\epsilon = ||u - \Pi_h u||_{{\infty},K} \le c \cdot \max_e e^T \left| H \right| e,
+\end{equation}
+where $c$ is a constant independent of mesh size, $K$ is an element, $e$ ranges
+over the edges of $K$, and $\left| H \right|$ is the absolute Hessian (the Hessian
+with the absolute value function applied to its eigenvalues). 
+Therefore, one can write
+\begin{equation}
+\epsilon \approx c \cdot \max_e e^T \left| H \right| e,
+\end{equation}
+and so if $\epsilon$ is the target error in the $L_{\infty}$ norm,
+\begin{equation}
+1 \approx \max_e e^T \left( \frac{c}{\epsilon} \left| H \right| \right) e,
+\end{equation}
+i.e. the edges are of unit length with respect to the metric
+$\frac{c}{\epsilon} \left| H \right|$.
+
+Thus, in order to achieve a user-specified target interpolation error of $\epsilon$, 
+the metric $\frac{c}{\epsilon} \left| H \right|$ is used.
+
+Metrics for norms other than the $L_{\infty}$ norm and interpolation functions
+other than P1 are given in \citet{huang2005}. 
+
+\section{Interpolation} \label{sec:interpolation}
+As the meshes produced by adaptive remeshing are in general entirely
+unrelated, data must be interpolated from the old mesh to the new mesh
+to proceed with the simulation.
+
+There are two main approaches available in fluidity: consistent interpolation
+and Galerkin projection. Consistent interpolation evaluates the old function
+at the nodes of the new mesh. This is fast, but not conservative. It can be inaccurate,
+and this approach is not well-defined for discontinuous fields.
+Galerkin projection is more expensive (but not much more), is optimally accurate,
+conservative, and well-defined for discontinuous fields \citep{farrell2009i}.
+However, Galerkin projection is not bounded; a variant is available for P1 fields
+which approximately bounds the resulting interpolant \citep{farrell2009a}.
+
+\section{Related topics} \label{sec:adaptivity_related_topics}
+For a discussion of related topics such as Hessian recovery, gradation, and parallelisation,
+see \citep{farrell2009i}.

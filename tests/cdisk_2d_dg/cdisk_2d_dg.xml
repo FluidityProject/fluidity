@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>cdisk_2d_dg</name>
+  <owner userid="dham"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml cdisk.flml </command_line>
+    <!-- Trivial 2D test case of uniform flow through a square. -->
+  </problem_definition>
+  <variables>
+    <variable name="conservation1" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cdisk.stat")
+conservation1=s["Water"]["Tracer"]["integral"][0]
+    </variable>
+    <variable name="conservation2" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("cdisk.stat")
+conservation2=s["Water"]["Tracer"]["integral"][1]
+    </variable>
+    </variables>
+    <pass_tests>
+    <test name="Tracer is conserved." language="python">
+assert abs(conservation1-conservation2) &lt; 1e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

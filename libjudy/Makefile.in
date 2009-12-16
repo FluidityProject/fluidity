@@ -1,0 +1,12 @@
+MAKE = @MAKE@
+
+default:
+	cd src; $(MAKE)
+
+clean:
+	cd src; $(MAKE) clean
+
+install:
+	cp src/libjudy.a ../lib
+	cp src/Judy.h ../include
+ 

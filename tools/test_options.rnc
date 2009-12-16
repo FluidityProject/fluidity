@@ -1,0 +1,67 @@
+include "spud_base.rnc"
+
+start =
+(
+   ## The test problem root node
+   element testproblem {
+      ## The test problem name
+      element name {
+         xsd:string,
+         comment
+      },
+      ## The test owner
+      element owner {
+        attribute userid { xsd:string },
+        comment
+      },
+      ## Test tags
+      element tags {
+        xsd:string,
+        comment
+      }?,
+      ## Test execution options
+      element problem_definition {
+         attribute length { "short" | "medium" | "long" | "special" },
+         attribute nprocs { xsd:integer },
+         ## Test execution command
+         element command_line {
+            xsd:string,
+            comment
+         },
+         comment
+      },
+      ## Variables. These are evaluated prior to running any tests.
+      element variables {
+         ## A test variable
+         element variable {
+            attribute name { xsd:string },
+            attribute language { "python" | "bash" },
+            xsd:string,
+            comment
+         }*,
+         comment
+      },
+      ## Tests that emit a failure if they fail to pass
+      element pass_tests {
+         test*,
+         comment
+      },
+      ## Tests that emit a warning if they fail to pass
+      element warn_tests {
+         test*,
+         comment
+      }?,
+      comment
+   }
+)
+
+test =
+(
+   ## A test
+   element test {
+      attribute name { xsd:string },
+      attribute language { "python" | "bash" },
+      xsd:string,
+      comment
+   }
+)

@@ -1,0 +1,90 @@
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    C.Pain@Imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+SHELL = @SHELL@
+
+FC      = @FC@
+FCFLAGS = -I../../include @FCFLAGS@ @MODINC_FLAG@../
+
+CC  = @CC@
+CFLAGS  = @CFLAGS@ -I../../include
+
+CXX = @CXX@ -I../../include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
+
+LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@
+LIBFLUIDITY=../../lib/lib@FLUIDITY@.a
+
+FORTRANTESTS= $(basename $(wildcard *.F90))
+
+
+CTESTS= $(basename $(wildcard *.c)) $(basename $(wildcard *.cpp)) 
+
+TESTS=$(CTESTS) $(FORTRANTESTS)
+
+# the test binaries NOT to be built
+DISABLED_TESTS= test_main
+
+# the test programs to be built:
+TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(TESTS))
+
+unittest: $(TEST_BINARIES)
+	ln -sf $(addprefix ../../ocean_forcing/tests/,$(TEST_BINARIES)) ../../bin/tests/
+	
+
+.SUFFIXES: .f90 .F90 .c .cpp .o
+
+%.o:	%.f90
+	$(FC) $(FCFLAGS) -c $<
+%.o:	%.F90
+	$(FC) $(FCFLAGS) -c $<
+%.o:	%.c
+	$(CC) $(CFLAGS) -c $<
+%.o:	%.cpp
+	$(CXX) $(CXXFLAGS) -c $<
+%: %.cpp
+
+# creates a TESTNAME_main_f.o from test_main_f.cpp which calls the subroutine
+# TESTNAME, that should be a subroutine in TESTNAME.F90
+%_main.o: test_main.cpp
+	$(CXX) $(CXXFLAGS) -D TESTNAME=$(subst _main.o,,$@)_ -o $@ -c $^ 
+
+# link this TESTNAME_main.o with TESTNAME.o from TESTNAME.F90
+test_python_state:  python_state.o test_python_state_main.o test_python_state.o python_statec.o lib/
+	$(CXX) -o $@ $(filter %.o,$^) $(LIBS) 
+
+# link this TESTNAME_main_f.o with TESTNAME.o from TESTNAME.F90
+%: %_main.o %.o lib/
+	$(CXX) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS) 
+
+# make a temp sym-link to the directory containing fluidity, adapt and sam libs
+lib/:
+	ln -s ../../lib
+
+clean:
+	rm -f $(TEST_BINARIES)
+	rm -f *.o *.mod
+	rm -f lib

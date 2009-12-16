@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>electrochemical_p1p1_2d</name>
+  <owner userid="jsaund"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>dfluidity --xml electrochemical.flml </command_line>
+    <!-- Calculate potential from simple salinity gradient. -->
+  </problem_definition>
+  <variables>
+    <variable name="electrical_potential" language="python">
+import vtktools
+v = vtktools.vtu("electrochemical_1.vtu")
+electrical_potential = v.GetScalarRange("ElectricalPotential")
+    </variable>
+  </variables>
+    <pass_tests>
+    <test name="electrical potential range correct." language="python">
+assert abs(electrical_potential[0] + 1.0e-1) &lt; 1.0e-3
+assert abs(electrical_potential[1]) &lt; 1.0e-5
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

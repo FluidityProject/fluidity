@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>IGW</name>
+  <owner userid="colin"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>../../bin/IGW square1 IGW.log &amp;&gt; IGW.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="DeltaH" language="python">
+import vtktools
+start = vtktools.vtu("square1_0.vtu")
+end = vtktools.vtu("square1_1.vtu")
+DeltaH = max(start.GetScalarField("height") - end.GetScalarField("height"))
+    </variable>
+  </variables>
+  <pass_tests>
+    <!-- The height should not change -->
+    <test name="Height difference (1.0e-12)" language="python">
+assert DeltaH &lt; 1e-12
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

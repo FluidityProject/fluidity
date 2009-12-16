@@ -1,0 +1,3 @@
+C 2nd order quadrature with 4 points
+      Real*8    T2A, T2B
+      Parameter(T2A = 0.13819660112501D0, T2B = 0.58541019662497D0)
