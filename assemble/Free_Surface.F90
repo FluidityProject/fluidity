@@ -298,16 +298,16 @@ contains
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g)
     call get_option('/timestepping/timestep', dt)
+    ! eos/fluids/linear/subtract_out_hydr.level is options checked below
+    ! so the ref. density should be present
+    call get_option('/material_phase::'//trim(state%name)// &
+      '/equation_of_state/fluids/linear/reference_density', rho0)
     
     positions => extract_vector_field(state, "Coordinate")
     original_positions => extract_vector_field(state, "OriginalCoordinate")
     old_positions => extract_vector_field(state, "OldCoordinate")
     gravity_normal => extract_vector_field(state, "GravityDirection")
     
-    ! eos/fluids/linear/subtract_out_hydr.level is options checked below
-    ! so the ref. density should be present
-    call get_option('/material_phase::'//trim(state%name)// &
-      '/equation_of_state/fluids/linear/reference_density', rho0)
       
     p => extract_scalar_field(state, "Pressure")
     if (.not. p%mesh==positions%mesh) then
@@ -391,7 +391,7 @@ contains
     ewrite(1, *) "Constructing vertical_prolongator_from_free_surface to be used in mg"
     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
     if (stat/=0) then
-       FLAbort("For vertical lumping you need to specify the ocean_boundaries under /geometry")
+       FLExit("For vertical lumping you need to specify the ocean_boundaries under /geometry")
     end if
        
     positions => extract_vector_field(state, "Coordinate")
@@ -504,10 +504,12 @@ contains
   type(scalar_field), intent(inout):: free_surface
     
      integer, dimension(:), pointer:: surface_element_list
-     type(vector_field), pointer:: x
+     type(vector_field), pointer:: x, u
      type(scalar_field), pointer:: p, topdis
+     character(len=FIELD_NAME_LEN):: bctype
      logical:: on_sphere
-     real:: g
+     real:: g, rho0
+     integer:: i, j, sele, stat
      
      ! the prognostic free surface is calculated elsewhere (this is the
      ! separate free surface equation approach in the old code path)
@@ -516,23 +518,58 @@ contains
      x => extract_vector_field(state, "Coordinate")
      p => extract_scalar_field(state, "Pressure")
      assert(free_surface%mesh==p%mesh)
-     ! note we're not using the actual free_surface bc here, as 
-     ! that may be specified in parts, or not cover the whole area
-     topdis => extract_scalar_field(state, "DistanceToTop")
-     call get_boundary_condition(topdis, 1, &
-       surface_element_list=surface_element_list)
-     
+
      call get_option('/physical_parameters/gravity/magnitude', g)
-     ! this may even work on the sphere?
-     on_sphere=have_option('/geometry/spherical_earth')
+     call get_option('/material_phase::'//trim(state%name)// &
+      '/equation_of_state/fluids/linear/reference_density', rho0)
+          
+     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
+     if (stat==0) then
+       ! note we're not using the actual free_surface bc here, as 
+       ! that may be specified in parts, or not cover the whole area
+       call get_boundary_condition(topdis, 1, &
+         surface_element_list=surface_element_list)     
      
-     ! vertically extrapolate pressure values at the free surface downwards
-     call VerticalExtrapolation(p, free_surface, x, &
-       flat_earth=.not. on_sphere, surface_element_list=surface_element_list)
+       ! this may even work on the sphere?
+       on_sphere=have_option('/geometry/spherical_earth')
      
-     ! divide by g
-     call scale(free_surface, 1/g)
+       ! vertically extrapolate pressure values at the free surface downwards
+       call VerticalExtrapolation(p, free_surface, x, &
+         flat_earth=.not. on_sphere, surface_element_list=surface_element_list)
+         
+       ! divide by rho0 g
+       call scale(free_surface, 1/g/rho0)
+       
+     else
      
+       ! if no vertical extrapolation is available, only copy
+       ! the values at the free surface nodes and divide by rho0 g
+       
+       ! make sure other nodes are zeroed
+       call zero(free_surface)
+       
+       u => extract_vector_field(state, "Velocity")
+       do i=1, get_boundary_condition_count(u)
+          call get_boundary_condition(u, i, type=bctype, &
+             surface_element_list=surface_element_list)
+          if (bctype=="free_surface") then
+        
+             face_loop: do j=1, size(surface_element_list)
+
+               sele=surface_element_list(j)
+               
+               call set(free_surface, &
+                 face_global_nodes(free_surface, sele), &
+                 face_val(p, sele)/rho0/g)
+               
+             end do face_loop
+               
+          end if
+          
+       end do
+       
+     end if
+    
   end subroutine calculate_diagnostic_free_surface
     
   subroutine free_surface_module_check_options
@@ -594,7 +631,9 @@ contains
           FLExit("The diagnostic FreeSurface field and the Pressure field have to be on the same mesh")
         end if
         if (.not. have_option('/geometry/ocean_boundaries')) then
-          FLExit("For the diagnostic FreeSurface field you need to specify /geometry/ocean_boundaries")
+          ewrite(0,*) "Warning: your diagnostic free surface will only be" // &
+            "defined at the free surface nodes and not extrapolated downwards," // &
+            "because you didn't specify geometry/ocean_boundaries."
         end if
       end if
       

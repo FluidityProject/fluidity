@@ -656,8 +656,7 @@ contains
 
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
-    got_top_bottom_distance= geostrophic_solver_option>=2 .or.&
-         &      has_scalar_field(state(1), "DistanceToTop")
+    got_top_bottom_distance=has_scalar_field(state(1), "DistanceToTop")
 
     if (got_top_bottom_distance) then
        if (.not. got_top_bottom_markers) then
