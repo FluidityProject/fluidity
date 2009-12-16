@@ -434,7 +434,6 @@ contains
 
     call compute_uses_old_code_path(uses_old_code_path)
     if(uses_old_code_path) FLExit("The old code path is dead.")
-    if(uses_old_code_path) call bc_mem_allocation()
 
     !     populate state or adapt_state_new_options has created a
     !     'populated' state as if read from disk
@@ -503,8 +502,6 @@ contains
          & bcw1_mem, bcw2_mem, &
          & bct1_mem, bct2_mem, &
          &              size(state),state, uses_old_code_path)
-
-    if(uses_old_code_path) call bcw_mem_allocation()
 
     ! We jump to here before a mesh adapt (but after metric assembly), with
     ! remesh = .true.
@@ -630,6 +627,7 @@ contains
 
     NOPHAS=MAX(1,NPHASE)
     call compute_phase_uses_new_code_path(state, phase_uses_new_code_path)
+    if (any(.not.phase_uses_new_code_path)) FLExit("The old code path is dead")
 
     call nonfield_allocation()
 
@@ -666,80 +664,6 @@ contains
     end if
 
     NOPHAS=MAX(1,NPHASE)
-
-    if (uses_old_code_path) then
-
-       IF(.NOT.BOUINI) THEN
-          ! Use zero b.c's OR TIME PERIODIC.
-          do  IT=1,NTSOL
-
-             IF((.NOT.((NPHASE.GT.1).AND.(IT.LE.NPHASE))).AND.(TELEDI(IT).EQ.0)) THEN
-                bct1w_mem(IT)%ptr = 0.
-             ELSE
-                bct1w_mem(IT)%ptr = bct1_mem(IT)%ptr
-             ENDIF
-          end do
-          IF(NAV) THEN
-             do  IP=1,MAX(1,NPHASE)! Was loop 444
-                BCU1W_mem(IP)%ptr = 0.0
-                BCV1W_mem(IP)%ptr = 0.0
-                IF(D3) BCW1W_mem(IP)%ptr = 0.0
-             end do ! Was loop 444
-          ENDIF
-       ELSE
-          !------------
-          ! Convert the boundary conditions to acceleration.
-          ! Initialise b.c's
-          !       IF(BOUINI) THEN
-          ! Initialise b.c's
-
-          do  IT=1,NTSOL
-
-             IF((.NOT.((NPHASE.GT.1).AND.(IT.LE.NPHASE))) &
-                  &            .AND.(TELEDI(IT).EQ.0)) THEN
-                Tracer = extract_scalar_field(state(field_state_list(it)), &
-                     field_name_list(it))
-                CALL CONACC(BCT1W_mem(IT)%ptr,BCT1_mem(IT)%ptr,BCT2_mem(IT)%ptr,&
-                     &  Tracer%val ,dt,.false.)
-             ELSE
-                bct1w_mem(IT)%ptr = bct1_mem(IT)%ptr
-             ENDIF
-          end do
-
-          IF(NAV) THEN
-             do  IP=1,MAX(1,NPHASE)! Was loop 789
-                ! Apply specified boundary conditions before zeroing.
-                ! This is fairly primitive and won't support rotations
-                ! or time varying boundary conditions.
-                ! NOW DOES SUPPORT TIME DEPENDENT BCS
-                ! BUT NOT WITH ADAPTIVITY
-                velocity = extract_vector_field(state(ip),"Velocity")
-                VelocityX = extract_scalar_field_from_vector_field(Velocity,1)
-                if (Velocity%dim>1) then
-                   VelocityY = extract_scalar_field_from_vector_field(Velocity&
-                        &,2)
-                end if
-                if (D3) &
-                     VelocityZ = extract_scalar_field_from_vector_field(Velocity,3)
-
-                CALL CONACC(BCU1W_MEM(IP)%PTR,BCU1_MEM(IP)%PTR&
-                     &   ,BCU2_MEM(IP)%PTR,VelocityX%val,&
-                     & dt, copyu)
-                if (Velocity%dim>1) then
-                   CALL CONACC(BCV1W_MEM(IP)%PTR,BCV1_MEM(IP)%PTR&
-                        &   ,BCV2_MEM(IP)%PTR,VelocityY%val, &
-                        &   DT,copyv)
-                end if
-                IF(D3) CALL CONACC(BCW1W_MEM(IP)%PTR,BCW1_MEM(IP)%PTR&
-                     &   ,BCW2_MEM(IP)%PTR,VelocityZ%val &
-                     &   ,DT,copyw)
-             end do ! Was loop 789
-
-          ENDIF
-          BOUINI=.FALSE.
-          ! IF(BOUINI) THEN
-       ENDIF
-    end if
 
     CMCGET=.TRUE.
     GETC12=.TRUE.
@@ -866,13 +790,6 @@ contains
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
-
-       if (uses_old_code_path) then
-          ! copy new boundary values back to bc[t|u|v|w]1:
-          call set_legacy_boundary_values(state, &
-               nobct(1:ntsol), nobcu(1:nophas), nobcv(1:nophas), nobcw(1:nophas), &
-               bct1_mem, bcu1_mem, bcv1_mem, bcw1_mem,ntsol,nphase)
-       end if
 
        !579    CONTINUE  ! Go back to here for repeating time step.
 
@@ -1159,56 +1076,6 @@ contains
                 ENDIF
              END DO
 
-             if (.not. phase_uses_new_code_path(1)) then
-
-                IP=1
-                GOTBOY=.FALSE.
-
-                do  IT=1,NTSOL! Was loop 134
-
-                   ITP=TPHASE(IT)
-                   ewrite(2,*) 'it,BOUSIN(IT),ITP,nphase:',it,BOUSIN(IT),ITP,nphase
-                   ewrite(1,*) 'going in=',(BOUSIN(IT)).AND.((ITP.EQ.IPHASE).OR.(NPHASE.LE.1))
-
-                   IF((BOUSIN(IT)).AND.((ITP.EQ.IPHASE).OR.(NPHASE.LE.1))) THEN
-                      ITP=MAX(1,ITP)
-                      ewrite(2,*)'ITP=',ITP
-                      ewrite(2,*)'CHADEN(ITP)=',CHADEN(ITP)
-
-                      ewrite(1,*) 'may be going into bsines ip=',ip
-                      IF((abs(BSOUX(IP))+abs(BSOUY(IP))+abs(BSOUZ(IP)).NE.0)&
-                           & .or.((.not.COGRAX).or.(.not.COGRAY).or.(.not.COGRAZ))) THEN
-                         ewrite(1,*) 'got in'
-
-
-                         GOTBOY=.TRUE.
-
-                         ewrite(1,*) 'going into bsines ITP,IT,it_salt',ITP,IT,it_salt
-                         CALL BSINES(IT,&
-                              GAMDE2(ip),GAMDE3(ip), ztop,&
-                              NSUBTLOC(IT),NSUBTLOC(IT_SALT), &
-                              NLOC,TOTELE, &
-                              NSOGRASUB, &
-                              ITS,ITHETA, &
-                              BSOUX(IP),BSOUY(IP),BSOUZ(IP),&
-                              NONODS, &
-                              BOUSIN(IT),BHOUT,&
-                              CHADEN(ITP).AND.(.NOT.COMPRE(ITP)), &
-                              TEMINI(ITP),DENINI(ITP),DENGAM(ITP),&
-                              COGRAX,COGRAY,COGRAZ,&
-                              GRAVTY,&
-                              RAD.AND.((ITKE.EQ.1).OR.(NPHASE.EQ.1)),&
-                              (IPHASE.EQ.2),D3,NPHASE,&
-                              state(1))
-
-                         ! ADD THE OLD SOURCES BACK INTO BUOYANCY TERMS -mdp
-                      ENDIF
-                   ENDIF
-
-                end do ! Was loop 134
-
-             end if
-
              !-------------------------------------------------------------
              ! Call to porous_media_momentum (leading to multiphase)
              ! jhs - 16/01/09
@@ -1230,182 +1097,7 @@ contains
              ! Add in externally defined momentum source
              ! term. Don't even think about doing this with multiple
              ! material phases !
-             call simple_source_python(state(1))
-
-             phase_loop: do  IPHASE=MAX(NPHASE,1),1,-1! Was loop 9177
-                if(phase_uses_new_code_path(iphase)) cycle
-                IP=IPHASE
-                IPN=(IPHASE-1)*NONODS
-                IPF=(IPHASE-1)*FREDOP
-
-                ! Search for a free surface...
-                ITFREEimp=1
-                freesdisott=0
-                NOBCTITFREEimp=0
-                do ITS4=1,NTSOL
-                   IF(IDENT(ITS4).EQ.PSIDEN .or. ident(its4)==frees_ident) THEN
-                      ITFREEimp=ITS4
-                      freesdisott=disott(its4)
-                      NOBCTITFREEimp=NOBCT(ITFREEimp)
-                   ENDIF
-                END DO
-
-                !-------------------------------------------------------------
-                !---- Start addition for solid drag calculation    -- jem 02-07-2008
-                IF(have_solids) THEN
-                   ewrite(2,*) 'into solid_drag_calculation'
-                   ewrite(2,*) 'SLUMP :',SLUMP(state2phase_index(ss))
-                   ewrite(2,*) 'ABSLUM :',ABSLUM(state2phase_index(ss))
-                   call solid_drag_calculation(state(ss:ss),its,itinoi)
-                   ewrite(2,*) 'out of solid_drag_calculation'
-                END IF
-                !---- End addition                                 -- jem 02-07-2008
-
-                CALL NAVSTO&
-                     & ( &
-                                !       solidity -  plastic strains:
-                     &  STVPXX,STVPYY,STVPZZ,&
-                     &  STVPYZ,STVPXZ,STVPXY,&
-                                !     ----------------------end of add by crgw 31/03/06
-                     &  (ITS/=1),& ! IGUESS
-                     &  freesdisott,&
-                     &  NOBCTITFREEimp,BCT1W_mem(ITFREEimp)%ptr, &
-                     &  BCT2_mem(ITFREEimp)%ptr,&                     
-                     &  R0,D0,&
-                     &  MVMESH,&
-                     &  FREDOP,TOTELE,&
-                     &  NONODS, &
-                     &  NLOC,NGI,MLOC,DT,&
-                     &  DISOPT(IP),NDISOP(IP),THETA(IP),BETA(IP),LUMP(IP),MAKSYM(IP),&
-                     &  CMCGET,NDPSET,GETC12,&
-                     &  PREOPT(IP),CONVIS(IP),&
-                     &  NONODS, NONODS,&
-                     &  XNONOD,   &
-                     &  DCYL,&
-                     &  NOBCU(IP),BCU1W_MEM(IP)%PTR,BCU2_MEM(IP)%PTR,BCU1_MEM(IP)%PTR,&
-                     &  NOBCV(IP),BCV1W_MEM(IP)%PTR,BCV2_MEM(IP)%PTR,BCV1_MEM(IP)%PTR,&
-                     &  NOBCW(IP),BCW1W_MEM(IP)%PTR,BCW2_MEM(IP)%PTR,BCW1_MEM(IP)%PTR,&
-                     &  NDWISP,NCMCB,NPRESS,&
-                     &  NPROPT,RADISO,ALFST2,SPRESS,&
-                     &  ABSLUM(IP),SLUMP(IP),&
-                     &  UZAWA(IP),  MULPA(IP),CGSOLQ(IP),GMRESQ(IP),&
-                     &  MIXMAS(IP),POISO2(IP),PROJEC(IP),&
-                     &  halo_tag,&
-                     &  halo_tag_p,NNODP,NNODPP,&
-                                ! The following is for rotations only ROTAT=.TRUE.If GETTAN find tangents
-                     &  GETTAN, &
-                     &  ROTAT,NNODRO,NRTDR, &
-                                ! New stuff for ASSNAV...
-                     &  DSPH, &
-                     &  GEOBAL, &
-                     &  STOTEL,SNLOC,SNGI,&
-                     &  GRAVTY,&
-                                ! The multiphase stuff...
-                     &  NPHASE,IPHASE,&
-                                ! Some extra stuff MDP added for the free surface
-                     &  NEWMES2, &
-                     &  SCFACTH0,&
-                     &  ITS,ITINOI, &
-                     &  GOTTRAF,&
-                                ! sub element modelling...
-                     &  NSUBVLOC(IP),NSUBNVLOC(IP),&
-                                ! for free surface
-                     &  got_top_bottom_distance, geostrophic_solver_option, nlevel,&
-                     &  GOTBOY,BSOUX(IP),BSOUY(IP),BSOUZ(IP),&
-                     &  COGRAX,&
-                     &  VERSIO,ISPHER2,MISNIT,&
-                                !     Encapsulated state information. -dham
-                     &  state,&
-                                !     --------------------start of add by crgw 20/03/06
-                                !       solidity - flags:
-                     &  SOLIDS,&
-                                !       solidity - compressibility matrices:
-                     &  MKCOMP, &
-                                ! for LES -Jemma
-                     &  metric_tensor &
-                     &  )
-
-                velocity = extract_vector_field(state(1),"Velocity")
-                VelocityX = extract_scalar_field_from_vector_field(Velocity,1)
-                call halo_update(VelocityX)
-                if (Velocity%dim>1) then
-                   VelocityY =&
-                        & extract_scalar_field_from_vector_field(Velocity,2)
-                   call halo_update(VelocityY)
-                end if
-                if(d3) then
-                   VelocityZ = extract_scalar_field_from_vector_field(Velocity,3)
-                   call halo_update(VelocityZ)
-                end if
-
-                NEWMES2=.FALSE.
-
-                !     -------------------start of add by crgw 14/03/06
-                !     solidity - make sure the grid velocities eliminate
-                !     the nonlinear term if
-                !     we are using a lagrangian mesh but itinoi>1 for
-                !     material model purposes
-                IF(MVMESH.AND.SOLIDS.GT.0) THEN
-                   velocity = extract_vector_field(state(1),"Velocity")
-                   VelocityX = extract_scalar_field_from_vector_field(Velocity,1)
-                   VelocityY = extract_scalar_field_from_vector_field(Velocity,2)
-                   if(d3) & 
-                        VelocityZ = &
-                        extract_scalar_field_from_vector_field(Velocity,3)
-                   gridvelocity = extract_vector_field(state(1),"GridVelocity")
-                   GridvelocityX = extract_scalar_field_from_vector_field(Gridvelocity,1)
-                   GridvelocityY = extract_scalar_field_from_vector_field(Gridvelocity,2)
-                   if(d3) &
-                        GridvelocityZ = &
-                        extract_scalar_field_from_vector_field(Gridvelocity,3)
-                   GridVelocityX%val = VelocityX%val
-                   GridVelocityY%val = VelocityY%val
-                   if (D3) GridVelocityZ%val = VelocityZ%val
-                ENDIF
-
-                ! solidity - update the displacement vectors based on the new iterate
-                IF(SOLIDS.GT.0) THEN
-                   call displacement_update(state(phase2state_index(ip)))
-                ENDIF
-
-                !  -----------------------------start of add by crgw 23/06/06
-                !  solidity - plastic integration step
-
-                IF(SOLIDS.GT.0) THEN
-                   IF(SOLIDS.EQ.3) THEN
-                      EWRITE(2,*) 'ITS = ', ITS
-                      CALL STEVAL(&
-                           &NLOC,NGI,MLOC, &
-                           &STVPXX,STVPYY,STVPZZ,&
-                           &STVPYZ,STVPXZ,STVPXY,&
-                           &YIELDF,YIELDFOLD,&
-                           &SOLIDS,&
-                           &OFFYIELDENV&
-                           &,state(phase2state_index(ip)))
-
-                      IF((OFFYIELDENV.AND.ITS.LE.100).AND.(ITS.EQ.ITINOI)) ITINOI = ITINOI + 1
-                   ENDIF
-                ENDIF
-
-                ! -----------------------end of add by crgw 23/06/06
-
-                !Explicit ALE coordinate update   -jem 21/07/08
-                if (use_ale) then
-                   call coordinate_update(state)
-                end if
-                !End explicit ALE coordinate update -jem 21/07/08
-
-                !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-                !update solid position and densities, and recover density -jem 02-07-08
-                if(have_solids) then
-                   call solid_data_update(state(ss:ss),its,itinoi)
-                end if
-                !end addition                                             -jem 02-07-08
-                !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
-             end do phase_loop ! Was loop 9177
-             
+             call simple_source_python(state(1))             
              
              do ip = 1, max(1,nphase)
                 poiso2(ip) = max(0,poison(ip))
@@ -1470,35 +1162,6 @@ contains
        OLDDT =DT
 
        ACCTIM=ACCTIM+DT
-
-       if (uses_old_code_path) then
-          ! Now set strong dirichlet boundary conditions to accelleration form.
-          do  IT=1,NTSOL
-             Tracer = extract_scalar_field(state(field_state_list(it)), &
-                  trim(field_name_list(it)))
-             CALL CONACC(BCT1W_mem(IT)%ptr,BCT1_mem(IT)%ptr,BCT2_mem(IT)%ptr,&
-                  &  Tracer%val,dt,.false.)
-          end do
-          do  IP=1,MAX(1,NPHASE)! Was loop 527
-             ! Apply specified boundary conditions before zeroing.
-
-             velocity = extract_vector_field(state(ip),"Velocity")
-             VelocityX = extract_scalar_field_from_vector_field(Velocity,1)
-             if (Velocity%dim>1) then
-                VelocityY = extract_scalar_field_from_vector_field(Velocity,2)
-             end if
-             if (d3) VelocityZ = extract_scalar_field_from_vector_field(Velocity,3)
-
-             CALL CONACC(BCU1W_MEM(IP)%PTR,BCU1_MEM(IP)%PTR&
-                  & ,BCU2_MEM(IP)%PTR,VelocityX%val,dt,copyu)
-             if (Velocity%dim>1) then
-                CALL CONACC(BCV1W_MEM(IP)%PTR,BCV1_MEM(IP)%PTR&
-                     & ,BCV2_MEM(IP)%PTR,VelocityY%val,dt,copyv)
-             end if
-             IF(D3) CALL CONACC(BCW1W_MEM(IP)%PTR,BCW1_MEM(IP)%PTR&
-                  & ,BCW2_MEM(IP)%PTR,VelocityZ%val,dt,copyw)
-          end do ! Was loop 527
-       end if
 
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
