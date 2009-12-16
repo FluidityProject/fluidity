@@ -232,7 +232,6 @@ contains
     integer :: option_stat
     INTEGER, SAVE :: NCMCB
 
-    LOGICAL, SAVE :: CMCGET,GETC12
     REAL, SAVE :: CHANGE,CHAOLD
 
     !     --------------------------------------start of add by crgw 31/03/06
@@ -260,31 +259,24 @@ contains
     INTEGER, SAVE :: IT,IT2,IP,ITP,ITS
     integer it_KE, it_LKE, it_temp, it_MY_vis, it_MY_diff
     INTEGER, SAVE :: I,II,IPN,IPF
-    INTEGER, SAVE :: NOPHAS
 
     ! The pointers for radiation ...
     ! pointers for reals
     INTEGER, SAVE :: NRTDR
 
-    INTEGER, SAVE :: ITKE
-    LOGICAL, SAVE :: BOUINI
-    LOGICAL, SAVE :: NDWISP
     ! FOR SOURCES...
     INTEGER, SAVE :: NSOUPT
     INTEGER, PARAMETER :: MXNSOU=3000
     INTEGER, SAVE :: FIESOU(MXNSOU)
 
-    REAL, SAVE ::     YOUR_SCFACTH0 = 1.0
-
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     SALINITY STUFF FOR OCEAN MODELLING - cjc
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-    integer, save :: it_salt
     real, save ::  ztop
     !cccccIDENTITY FOR SALTcccccccccc
     integer, parameter :: ident_sal = 42
-    logical, save :: gotsal, gotvis
+    logical, save :: gotvis
     !cccccccccccccccccccccccccccccccc
     logical, save :: got_top_bottom_distance
     logical, save :: got_top_bottom_markers
@@ -386,8 +378,6 @@ contains
 
     NPRESS=1
     NPROPT=1
-
-    BOUINI=.TRUE.
 
     ! Initialise PVM and find PROCNO, PROCNO & NPROCS ***********
     ! AND initialise some other parallel stuff.
@@ -572,11 +562,6 @@ contains
     !     end initialise solid-fluid coupling, and ALE  -Julian 17-07-2008
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-    IF(ACCTIM.EQ.0) SCFACTH0 = SCFACTH0*YOUR_SCFACTH0 ! IF WE DON'T HAVE/NOT USING EITHER OF THESE THEN THEY WILL JUST BE ONE
-    !####################################################################
-
-    NDWISP=.FALSE.
-    IF((MLOC.GE.NLOC).and.((disopt(1)<70).or.(disopt(1)>90))) NDWISP=.TRUE.
 
     if(remesh) then
        ! ******************
@@ -619,13 +604,6 @@ contains
     ! REMESHING ************************************************
     ! **********************************************************
 
-    ! If POISON=-1 do first time step with POISON press determin
-    do  IP=1,MAX(1,NPHASE)
-       POISO2(IP)=POISON(IP)
-       IF(POISON(IP).EQ.-1) POISO2(IP)=1
-    end do
-
-    NOPHAS=MAX(1,NPHASE)
     call compute_phase_uses_new_code_path(state, phase_uses_new_code_path)
     if (any(.not.phase_uses_new_code_path)) FLExit("The old code path is dead")
 
@@ -662,11 +640,6 @@ contains
        end if
        call CalculateTopBottomDistance(state(1), cograx)
     end if
-
-    NOPHAS=MAX(1,NPHASE)
-
-    CMCGET=.TRUE.
-    GETC12=.TRUE.
 
     !**********************Reduced model************************
     ! these are used only when the inital condition is inversed
@@ -870,81 +843,6 @@ contains
 
              ITP=TPHASE(IT)
 
-             IF((IDENT(IT)==KE_ident).OR.(IDENT(IT)==LKE_ident)) THEN
-                ! Mellor Yamada turbulence modelling
-
-                ! Set gotsal and gotvis to false until we (maybe) find
-                ! them later
-                gotsal=.false.
-                gotvis=.false.
-
-                do IT2=1,NTSOL
-                   ! Search for IT corresponding to prognostic
-                   ! MellorYamada fields
-                   IF(IDENT(IT2)==KE_ident) THEN
-                      it_KE=IT2
-                   else if(ident(it2)==LKE_ident) then
-                      it_LKE=IT2
-                   else IF(IDENT(IT2)==ident_sal) THEN
-                      ! Find salt index it_salt
-                      it_salt=IT2
-                      GOTSAL=.TRUE.
-                   else if(ident(it2)==MY_vis_ident) then
-                      ! Check for presence of MellorYamada visualisation fields
-                      it_MY_vis=it2
-                      gotvis=.true.
-                   else if(ident(it2)==MY_diff_ident) then
-                      ! Check for presence of MellorYamada visualisation fields
-                      it_MY_diff=it2
-                      gotvis=.true.
-                   ENDIF
-                   ! Find temp index it_temp
-                   IF(BOUSIN(IT2)) it_temp=IT2
-                END DO
-
-                ! Necessary evil
-                if(.not.gotsal) it_salt=it_temp
-
-                ! trying to fix this insanity for new options
-                if (has_scalar_field(state(1), "VerticalViscosity") .or. &
-                     has_scalar_field(state(1), "VerticalDiffusivity")) then
-                   ewrite(0,*) "Warning: Specified diagnostic fields for Mellor Yamada,"
-                   ewrite(0,*) "This doesn't currently work,fields will be ignored,"
-                end if
-                gotvis=.false.
-                ! hopefully not overwritten with gotvis==.false.:
-                it_MY_vis=1
-                it_MY_diff=1
-
-                ewrite(2,*) "index of KineticEnergy field:", it_KE
-                ewrite(2,*) &
-                     & "index of TurbulentLengthScalexKineticEnergy field:", &
-                     & it_LKE
-                ewrite(2,*) "index of Temperature field:", it_temp
-                ewrite(2,*) "index of Salinity field:", it_salt
-                ewrite(2,*) "index of VerticalViscosity field:", it_MY_vis
-                ewrite(2,*) "index of VerticalDiffusivity field:", it_MY_diff
-
-                II=NOBCT(it_KE)
-
-                ewrite(1,*) 'just before calling mellor_yamada_turbulence'
-
-                !WE NEED A TEST CASE FOR THIS BEFORE CHANGING -- cjc
-                call mellor_yamada_state(state(1),&
-                     DENGAM(1),DENINI(1),TEMINI(1),GRAVTY,&
-                     COGRAX,BSOUX(1),BSOUY(1),BSOUZ(1),&
-                     (DISOPT(1).EQ.45).OR.(DISOPT(1).EQ.46),&
-                                ! Salt...
-                     EQNSTA(1),GAMDE2(1),GAMDE3(1), got_top_bottom_distance, &
-                                ! BCS...
-                     NOBCT(it_KE),BCT1W_mem(it_KE)%ptr,BCT2_mem(it_KE)%ptr,&
-                     NOBCT(it_LKE),BCT1W_mem(it_LKE)%ptr, &
-                     BCT2_mem(it_LKE)%ptr,DT,&
-                                ! parallel stuff...
-                     nnodp,para,halo_tag)
-
-             ENDIF
-
              ! do we have the generic length scale vertical turbulence model - search in first material_phase only at the moment
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
                 if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
@@ -1014,36 +912,6 @@ contains
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
                    call solve_field_equation_cg(field_name_list(it), state(tphase(it)), dt)
-
-                ELSEIF(have_option(trim(field_optionpath_list(it))//&
-                     & "/prognostic/spatial_discretisation/legacy_continuous_galerkin").or.&
-                     have_option(trim(field_optionpath_list(it))//&
-                     & "/prognostic/spatial_discretisation/legacy_mixed_cv_cg").or.&
-                     have_option(trim(field_optionpath_list(it))//&
-                     & "/prognostic/spatial_discretisation/legacy_discretisation")) then
-
-                   ! Solve the equation with at least some form of legacy cg in it.
-
-                   assert(misnit==0)
-
-                   ewrite(1, *) "Calling advdif from fluids"
-                   CALL ADVDIF(&
-                        & NEWMES2,&
-                        & NOBCT(IT),BCT1W_mem(IT)%ptr, &
-                        & BCT2_mem(IT)%ptr,&
-                        & NONODS,TOTELE,r0,d0, &
-                        & NLOC,NGI,&
-                        & DISOTT(IT),NDISOT(IT),TTHETA(IT),TBETA(IT),TLUMP(IT),&
-                        & NONODS,NONODS,&
-                        & CGSOLT(IT),GMREST(IT),&
-                        & SUFTEM(IT),SNLOC,SNGI, &
-                                ! sub element modelling...
-                        & NSUBTLOC(IT),NSUBNVLOC(ITP),&
-                        & VERSIO,ISPHER2,&
-                        & metric_tensor, FREDOP,&
-                        & state(field_state_list(it):field_state_list(it)), field_name_list(it))
-                   ewrite(1, *) "Exited advdif"
-
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."
@@ -1064,17 +932,6 @@ contains
           ! Assemble and solve N.S equations.
           !
           IF(NAV) THEN
-             !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-             !     finding out which field is salinity - cjc
-             !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-             it_salt=1
-             GOTSAL=.FALSE.
-             do IT=1,NTSOL
-                IF(IDENT(IT).EQ.IDEnt_sal) THEN
-                   it_salt=IT
-                   GOTsal=.TRUE.
-                ENDIF
-             END DO
 
              !-------------------------------------------------------------
              ! Call to porous_media_momentum (leading to multiphase)
@@ -1103,14 +960,6 @@ contains
                 poiso2(ip) = max(0,poison(ip))
              end do
 
-             ! See subroutine SOLNAV for definitions of the
-             ! following from DP onwards
-             GETC12=CMCHAN
-             CMCGET=CMCHAN
-             IF(MVMESH) THEN
-                GETC12=.true.
-                CMCGET=.true.
-             ENDIF
              ! end of NAV if.
           ENDIF
 
@@ -1199,8 +1048,6 @@ contains
           end if
 
        end if
-
-       NOPHAS=MAX(1,NPHASE)
 
        if(simulation_completed(acctim)) exit timestep_loop
 
