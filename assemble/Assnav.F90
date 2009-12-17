@@ -36,7 +36,6 @@ module assnav_module
   use fields
   use FLdebug
   use global_parameters, only: new_options, OPTION_PATH_LEN
-  use advection_diffusion_cg_3d
   use shape_transformations
   use solvers
   use sparse_tools
@@ -53,7 +52,6 @@ module assnav_module
   use coriolis_module
   
   use diff3d_module
-  use advection_diffusion_cg_2d
   
   implicit none
     

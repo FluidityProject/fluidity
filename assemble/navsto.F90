@@ -44,7 +44,6 @@
       use solmom_module
       use global_parameters, only:ISPHERE, OPTION_PATH_LEN, phase2state_index, my_new_options => new_options
       use diff3d_module
-      use Legacy_Advection_Diffusion_CV, only: ASSEMBLE_MOMENTUM_ADVECTION_CV
       use assemble_cmc
       use compressible_projection, only: assemble_compressible_projection
       use spud
