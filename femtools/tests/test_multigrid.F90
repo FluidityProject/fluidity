@@ -69,16 +69,16 @@ subroutine test_multigrid
   do i=1, DIM
     call set(dcsr1, i, i, 1.0)
     call set(dcsr2, i, i, 2.0)
-    call addto(dcsr1, i, min(i+1, DIM), 0.1)
-    call addto(dcsr1, i, max(i-1, 1), 0.1)
-    call addto(dcsr2, i, min(i+2, DIM), 0.2)
-    call addto(dcsr2, i, max(i-2, 1), 0.2)
+    call addto(dcsr1, i, min(i+1, DIM), 0.2)
+    call addto(dcsr1, i, max(i-1, 1), 0.2)
+    call addto(dcsr2, i, min(i+2, DIM), 0.4)
+    call addto(dcsr2, i, max(i-2, 1), 0.4)
   end do
   csr1=dcsr2csr(dcsr1)
   csr2=dcsr2csr(dcsr2)
   
   ! uncomment this to see some solver output:
-  !call set_debug_level(3)
+  call set_debug_level(3)
   
   call set_solver_options("/scalar_field::Field", ksptype=KSPCG, &
      pctype=PCMG, atol=1e-10, rtol=0.0)
