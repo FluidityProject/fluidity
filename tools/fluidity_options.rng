@@ -5583,6 +5583,12 @@ want this.</a:documentation>
           </attribute>
           <ref name="integer"/>
         </element>
+        <element name="zero_point">
+          <a:documentation>Sets the value of the field to zero at a supplied coordinate.
+This is a post-processing step after the solve, and hence should
+be used with the solver/remove_null_space option.</a:documentation>
+          <ref name="real_dim_vector"/>
+        </element>
       </choice>
     </optional>
     <element name="solver">

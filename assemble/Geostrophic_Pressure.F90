@@ -39,6 +39,7 @@ module geostrophic_pressure
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use petsc_solve_state_module
+  use pickers
   use solvers
   use sparse_matrices_fields
   use sparse_tools
@@ -89,8 +90,10 @@ contains
     character(len = OPTION_PATH_LEN) :: path, geostrophic_pressure_option
     integer :: reference_node, stat
     logical :: assemble_matrix, include_buoyancy, include_coriolis
+    real, dimension(:), allocatable :: zero_coord
     type(scalar_field) :: lgp
     type(scalar_field), pointer :: gp_options_field
+    type(vector_field), pointer :: positions
     
     ewrite(1, *) "In calculate_geostrophic_pressure_options"
     
@@ -114,6 +117,14 @@ contains
     call calculate_geostrophic_pressure(state, gp = lgp, &
       & velocity_name = "NonlinearVelocity", assemble_matrix = assemble_matrix, include_buoyancy = include_buoyancy, include_coriolis = include_coriolis, &
       & reference_node = reference_node)
+
+    allocate(zero_coord(mesh_dim(lgp)))
+    call get_option(trim(gp_options_field%option_path) // "/zero_coord", zero_coord, stat = stat)
+    if(stat == SPUD_NO_ERROR) then
+      positions => extract_vector_field(state, "Coordinate")
+      call set_zero_point(lgp, positions, zero_coord)
+    end if
+    deallocate(zero_coord)
         
     ! Set the BalancePressure field (if present)
     if(has_scalar_field(state, "BalancePressure")) call set_balance_pressure_from_geostrophic_pressure(lgp, state)
@@ -592,7 +603,31 @@ contains
     ewrite_minmax(gp%val)
     
   end subroutine solve_geostrophic_pressure
+  
+  subroutine set_zero_point(s_field, positions, coord)
+    !!< Enforce a value of zero at the given coordinate
+
+    type(scalar_field), intent(inout) :: s_field
+    type(vector_field), intent(inout) :: positions
+    real, dimension(positions%dim) :: coord
+
+    integer :: ele
+    real :: zp_val
+    real, dimension(ele_loc(positions, 1)) :: local_coord
+
+    call picker_inquire(positions, coord, ele, local_coord = local_coord)
     
+    if(ele > 0) then
+      zp_val = dot_product(ele_val(s_field, ele), local_coord)
+    else
+      zp_val = 0.0
+    end if
+    call allsum(zp_val)
+
+    call addto(s_field, -zp_val)
+
+  end subroutine set_zero_point
+
   subroutine subtract_given_geostrophic_pressure_gradient(gp, mom_rhs, state)
     !!< Subtract the gradient of the GeostrophicPressure from the momentum
     !!< equation RHS

@@ -4200,6 +4200,12 @@ prognostic_geostrophic_pressure_field =
          element reference_node {
             attribute name { "custom"},
             integer
+         }|
+         ## Sets the value of the field to zero at a supplied coordinate.
+         ## This is a post-processing step after the solve, and hence should
+         ## be used with the solver/remove_null_space option.
+         element zero_point {
+           real_dim_vector
          }
       )?,
       (
