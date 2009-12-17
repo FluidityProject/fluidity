@@ -119,7 +119,7 @@ contains
       & reference_node = reference_node)
 
     allocate(zero_coord(mesh_dim(lgp)))
-    call get_option(trim(gp_options_field%option_path) // "/zero_coord", zero_coord, stat = stat)
+    call get_option(trim(path) // "/zero_coord", zero_coord, stat = stat)
     if(stat == SPUD_NO_ERROR) then
       positions => extract_vector_field(state, "Coordinate")
       call set_zero_point(lgp, positions, zero_coord)
@@ -623,6 +623,7 @@ contains
       zp_val = 0.0
     end if
     call allsum(zp_val)
+    ewrite(2, *) "Zero point offet: ", zp_val
 
     call addto(s_field, -zp_val)
 
