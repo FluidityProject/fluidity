@@ -106,7 +106,7 @@ CONTAINS
           call construct_2d_state_for_boundary_conditions(state(1), bc_states)
        end if
        ! Can now solve for streamfunction
-       call solve_streamfunction_qg(state(1), PV)
+       call solve_streamfunction_qg(state(1))
     end if
 
     ! Always calculate velocity from streamfunction
@@ -181,7 +181,7 @@ CONTAINS
                 call insert_surface_field(streamfunction, trim(bc_name), &
                      buoyancy)
              end do
-             call solve_streamfunction_qg(state(1), PV)
+             call solve_streamfunction_qg(state(1))
              call streamfunction2velocity(state(1))
           end if
 

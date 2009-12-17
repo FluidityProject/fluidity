@@ -132,13 +132,12 @@ contains
 
   end subroutine streamfunction2velocity_ele
 
-  subroutine solve_streamfunction_qg(state, PV)
+  subroutine solve_streamfunction_qg(state)
     !!< Compute the streamfunction from the PV
     !! state variable
     type(state_type), intent(inout) :: state
-    !! potential vorticity
-    type(scalar_field), intent(in) :: PV
 
+    type(scalar_field), pointer :: PV
     type(vector_field), pointer :: positions
     character(len=FIELD_NAME_LEN) :: bc_path, bc_name
     integer :: i, n_bcs
@@ -146,6 +145,8 @@ contains
     if(.not.initialised) then
        call initialise_pv_inversion(state)       
     end if
+
+    PV => extract_scalar_field(state, "PotentialVorticity")
 
     !allocate rhs and matrix
     streamfunction => extract_scalar_field(state, "Streamfunction")
@@ -159,8 +160,8 @@ contains
 
     call construct_streamfunction_qg(streamfunction_mat, RHS, PV, state)
 
-    call apply_dirichlet_conditions(streamfunction_mat,RHS, &
-         streamfunction, -1.0)
+    call apply_dirichlet_conditions(streamfunction_mat, RHS, &
+         streamfunction)
 
     n_bcs=option_count("/material_phase["//int2str(0)//&
          "]/scalar_field::Streamfunction/prognostic/boundary_conditions/&
@@ -179,7 +180,6 @@ contains
                positions, bc_name)
        end if
     end do
-    ewrite(1,*) "Out of buoyancy boundary condition loop"
 
     !zero streamfunction and solve for it
     call zero(streamfunction)
