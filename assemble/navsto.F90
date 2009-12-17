@@ -1338,23 +1338,7 @@
             ENDIF
          ENDIF
          
-         CALL ASSEMBLE_MOMENTUM_ADVECTION_CV(&
-     &        NONODS,VNONOD,XNONOD,TOTELE,NLOC,NGI,&
-     &        SNLOC, STOTEL,&
-     &        NDGLNO,XONDGL,VONDGL,&
-     &        SNDGLN,&
-     &        FINDRM,COLM,NCOLM,CENTRM,&
-     &        NBIGM,BIGM1, VECX,VECY,VECZ,&
-     &        X,Y,Z,&
-     &        N,NLX,NLY,NLZ, WEIGHT,&
-     &        NU,NV,NW, UG,VG,WG, &
-     &        U,V,W, U,V,W,&
-     &        DENPT,DENPT,&
-     &        DISOPN,DT,THETA,BETA, D3,DCYL,&
-     &        PARA,halo_tag,NNODP,&
-     &        NOBCU,BCU1,BCU2,&
-     &        NOBCV,BCV1,BCV2,&
-     &        NOBCW,BCW1,BCW2, velocity_option_path)
+         FLAbort("ASSEMBLE_MOMENTUM_ADVECTION_CV has been deleted")     
       ENDIF
 !     Add in the 1st order spatial derivative -transport. ******
       
