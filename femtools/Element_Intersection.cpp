@@ -296,7 +296,6 @@ void ElementIntersectionFinder::SetTestElement(const double*& positions, const i
 {
   assert(positions);
   assert(dim == this->dim);
-  assert(loc == this->loc);
   
   visitor.clear();
   
