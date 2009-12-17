@@ -58,8 +58,7 @@ OBJS    = advdif.o \
 	Limit_Gradient.o Momentum_Equation.o Momentum_CG.o \
 	Momentum_Matrix_CG_2D.o    Momentum_Matrix_CG_3D.o    \
 	getrdr.o \
-	Advection_Diffusion_CG_2D.o	\
-	Advection_Diffusion_CG_3D.o    hart3d_allsorts.o       \
+	hart3d_allsorts.o       \
 	momsuf.o		\
 	navsto.o    poscmc.o    \
 	qmesh.o        spaerr.o \
@@ -77,7 +76,7 @@ OBJS    = advdif.o \
 	reduced_model_errormeasure.o  \
 	MeshMovement.o \
 	traffic.o \
-	Solid_Update.o Legacy_Advection_Diffusion_CV.o Field_Equations_CV.o Assemble_CMC.o \
+	Solid_Update.o Field_Equations_CV.o Assemble_CMC.o \
 	Solid_assembly.o Solidity.o sdetnx.o \
 	Momentum_Source.o \
 	Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
@@ -147,19 +146,15 @@ support.o: snapsvd.o spaerr.o Explicit_ALE.o
 traffic.o: qmesh.o
 Mba3d_Integration.o: Node_Locking.o qmesh.o Surface_Id_Interleaving.o
 navsto.o: OceanSurfaceForcing.o Assnav.o \
-  geoeli1p.o Legacy_Advection_Diffusion_CV.o Assemble_CMC.o \
+  geoeli1p.o Assemble_CMC.o \
   solnav.o Drag.o shape.o Divergence_Matrix_CV.o \
   solmom.o State_Matrices.o \
   Assemble_Boundary_Conditions.o Compressible_Projection.o \
   momsuf.o roctrt.o spaerr.o
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
-advdif.o: OceanSurfaceForcing.o Time_dependent_t_source.o Momentum_Matrix_CG_3D.o \
-  Assnav.o VolumeSource.o Legacy_Advection_Diffusion_CV.o Field_Equations_CV.o  \
-  shape.o Surface_Integration.o solmom.o Advection_Diffusion_CG_2D.o \
-  Assemble_Boundary_Conditions.o spaerr.o
-Assnav.o: Momentum_Matrix_CG_3D.o Advection_Diffusion_CG_3D.o \
+Assnav.o: Momentum_Matrix_CG_3D.o \
    Solid_assembly.o Pressure_Gradient_Matrix_Wrapper.o Momentum_Matrix_CG_2D.o \
-   Advection_Diffusion_CG_2D.o Coriolis.o
+   Coriolis.o
 Momentum_Matrix_CG_2D.o: Limit_Gradient.o
 Momentum_Matrix_CG_3D.o: Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
    Shape_Transformations.o mesh_connections.o \
@@ -170,7 +165,6 @@ geoeli1p.o: Assnav.o verticaldg.o mesh_connections.o  \
    reduced_model.o Free_Surface.o
 verticaldg.o: mesh_connections.o  Shape_Transformations.o Coriolis.o Assnav.o
 mesh_connections.o: Shape_Transformations.o
-Advection_Diffusion_CG_3D.o:  Shape_Transformations.o hart3d_allsorts.o Momentum_Matrix_CG_3D.o
 Advection_Diffusion_CG.o: Upwind_Stabilisation.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
 hart3d_allsorts.o: shape.o
@@ -182,7 +176,6 @@ Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
    Rotated_Boundary_Conditions.o
 Assemble_CMC.o: hart3d_allsorts.o Multimaterials.o  Shape_Transformations.o
 Legacy_CV_Shape_Functions.o: Legacy_CV_Numbering.o
-Legacy_Advection_Diffusion_CV.o: Legacy_CV_Shape_Functions.o Surface_Integration.o Momentum_Matrix_CG_3D.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 solnav.o: ctyexa.o Solve_Momentum_CG.o getrdr.o getrhs.o getrhu.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
