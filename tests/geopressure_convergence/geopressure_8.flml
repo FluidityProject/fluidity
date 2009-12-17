@@ -190,9 +190,9 @@
         </zero_coord>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-16</real_value>
+            <real_value rank="0">1.0e-14</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">3000</integer_value>
