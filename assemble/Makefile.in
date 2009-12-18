@@ -51,9 +51,7 @@ ADJOINTOBJS =   FsMom.o   sourceFS.o\
 endif
 
 OBJS    = advdif.o \
-	Assemble_Boundary_Conditions.o    Assemble_Buoyancy.o    \
 	Momentum_Diagnostic_Fields.o \
-	Conacc.o    \
 	Limit_Gradient.o Momentum_Equation.o Momentum_CG.o \
 	getrdr.o \
 	hart3d_allsorts.o       \

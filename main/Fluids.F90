@@ -32,8 +32,6 @@ module fluids_module
   use AllSorts
   use AdvectionDiffusion
   use AuxilaryOptions
-  use conacc_module
-  use CriticalTimeStep
   use MeshDiagnostics
   use oceansurfaceforcing, only : initialise_ocean_surface_forcing => initialise
   use signal_vars
