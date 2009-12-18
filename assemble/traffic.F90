@@ -1330,7 +1330,7 @@ contains
       use FLDebug
       use parallel_tools
       use generic_interface 
-      use Picker
+      use pickers
       
       implicit none
 
@@ -1352,9 +1352,8 @@ contains
       integer                           :: i,l1,l2,l3,pp1
       real                              :: zz
 
-      integer,dimension(:),allocatable  :: eid,rank
-      real,dimension(:),allocatable     :: eshape
-      integer                           :: picker_id,ele_type
+      integer,dimension(:),allocatable  :: eid
+      real,dimension(:, :),allocatable     :: eshape
       type(vector_field)                :: bc_position
       type(mesh_type), pointer          :: surface_mesh
 
@@ -1402,21 +1401,13 @@ contains
 
       call allocate(bc_position,positions%dim,surface_mesh)
       call remap_field_to_surface(positions,bc_position,surface_element_list)
-
-      ele_type = 5 !VTK_TRIANGLE
       
-      ! These can be replaced with:
-      ! call picker_inquire(bc_position, eid, local_coords = eshape)
-      call picker_create(bc_position%val(1)%ptr,bc_position%val(2)%ptr, &
-           bc_position%val(3)%ptr,bc_position%mesh%ndglno,              & 
-           element_count(bc_position),ele_type,2,1,1,picker_id)
-      allocate(eid(points), eshape(snloc*points), rank(points))
-      call picker_pFind2D(picker_id, &
-           pointX, pointY, points,   &
-           eid, eshape, rank, default_ownership_tolerance, 0)
+      allocate(eid(points), eshape(snloc, points))
+      call picker_inquire(bc_position, coordsx = pointX, coordsy = pointY, &
+        & eles = eid, local_coords = eshape, global = .true.)
       
       do i=1, points         
-         if (rank(i)==GetRank())then
+         if (eid(i) > 0)then
             
             pp1 = (eid(i)-1)*snloc+1
             
@@ -1424,9 +1415,9 @@ contains
             l2  = senlist(pp1+1)
             l3  = senlist(pp1+2)
             
-            zz = z(l1)*eshape(1+3*(i-1))+ &
-                 z(l2)*eshape(2+3*(i-1))+ &
-                 z(l3)*eshape(3+3*(i-1))            
+            zz = z(l1)*eshape(1, i)+ &
+                 z(l2)*eshape(2, i)+ &
+                 z(l3)*eshape(3, i)            
          endif
          
 #ifdef HAVE_MPI
@@ -1436,9 +1427,8 @@ contains
 #endif
       enddo
 
-      call picker_destroy(picker_id)
       call deallocate(bc_position)
-      deallocate(eid,eshape,rank)
+      deallocate(eid,eshape)
       deallocate(senlist)
         
       return

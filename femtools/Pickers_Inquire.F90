@@ -45,11 +45,48 @@ module pickers_inquire
 
   interface picker_inquire
     module procedure picker_inquire_single_position, &
-      & picker_inquire_multiple_positions, picker_inquire_node, &
+      & picker_inquire_single_position_xyz, picker_inquire_multiple_positions, &
+      & picker_inquire_multiple_positions_xyz, picker_inquire_node, &
       & picker_inquire_nodes
   end interface picker_inquire
 
 contains
+
+  subroutine picker_inquire_single_position_xyz(positions, coordx, coordy, coordz, ele, local_coord, global)
+    !!< Find the owning elements in positions of the supplied coordinate
+  
+    type(vector_field), intent(inout) :: positions
+    real, intent(in) :: coordx
+    real, optional, intent(in) :: coordy
+    real, optional, intent(in) :: coordz
+    integer, intent(out) :: ele
+    !! The local coordinates of the coordinate in the owning element
+    real, dimension(ele_loc(positions, 1)), optional, intent(out) :: local_coord
+    !! If present and .false., do not perform a global inquiry across all
+    !! processes
+    logical, optional, intent(in) :: global
+   
+    real, dimension(:), allocatable :: coord
+    
+    if(present(coordy)) then
+      if(present(coordz)) then
+        allocate(coord(3))
+        coord = (/coordx, coordy, coordz/)
+      else
+        allocate(coord(2))
+        coord = (/coordx, coordy/)
+      end if
+    else
+      assert(.not. present(coordz))
+      allocate(coord(1))
+      coord = (/coordx/)
+    end if
+    
+    call picker_inquire(positions, coord, ele, local_coord = local_coord, global = global)
+    
+    deallocate(coord)
+        
+  end subroutine picker_inquire_single_position_xyz
 
   subroutine picker_inquire_single_position(positions, coord, ele, local_coord, global)
     !!< Find the owning elements in positions of the supplied coordinate
@@ -77,6 +114,45 @@ contains
     end if
         
   end subroutine picker_inquire_single_position
+  
+  subroutine picker_inquire_multiple_positions_xyz(positions, coordsx, coordsy, coordsz, eles, local_coords, global)
+    !!< Find the owning elements in positions of the supplied coordinates
+  
+    type(vector_field), intent(inout) :: positions
+    real, dimension(:), intent(in) :: coordsx
+    real, dimension(size(coordsx)), optional, intent(in) :: coordsy
+    real, dimension(size(coordsx)), optional, intent(in) :: coordsz
+    integer, dimension(size(coordsx)), intent(out) :: eles
+    !! The local coordinates of the coordinates in the owning elements
+    real, dimension(ele_loc(positions, 1), size(coordsx)), optional, intent(out) :: local_coords
+    !! If present and .false., do not perform a global inquiry across all
+    !! processes
+    logical, optional, intent(in) :: global
+    
+    real, dimension(:, :), allocatable :: coords
+    
+    if(present(coordsy)) then
+      if(present(coordsz)) then
+        allocate(coords(3, size(coordsx)))
+        coords(1, :) = coordsx
+        coords(2, :) = coordsy
+        coords(3, :) = coordsz
+      else
+        allocate(coords(2, size(coordsx)))
+        coords(1, :) = coordsx
+        coords(2, :) = coordsy
+      end if
+    else
+      assert(.not. present(coordsz))
+      allocate(coords(1, size(coordsx)))
+      coords(1, :) = coordsx
+    end if
+    
+    call picker_inquire(positions, coords, eles, local_coords = local_coords, global = global)
+    
+    deallocate(coords)
+      
+  end subroutine picker_inquire_multiple_positions_xyz
   
   subroutine picker_inquire_multiple_positions(positions, coords, eles, local_coords, global)
     !!< Find the owning elements in positions of the supplied coordinates

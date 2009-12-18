@@ -1674,6 +1674,18 @@ Solves 2 additional equations for diffusivity epsilon and turbulent kinetic ener
                       </element>
                     </choice>
                   </element>
+                  <optional>
+                    <element name="calculate_boundaries">
+                      <a:documentation>Enable this option to use recommended boundary conditions:
+k = 0, and eps = nu * (delta^2 k/delta n^2) on walls, where n = wall normal.</a:documentation>
+                      <element name="string_value">
+                        <choice>
+                          <value>neumann</value>
+                          <value>dirichlet</value>
+                        </choice>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
 Recommended value: 0.09.</a:documentation>
@@ -3255,8 +3267,7 @@ requires a fine mesh to perform well</a:documentation>
           </optional>
         </element>
         <element name="discontinuous_galerkin">
-          <a:documentation>Discontinuous galerkin formulation. This causes Momentum_DG to be
-called instead of diff3d. Confusingly it is not necessary to provide
+          <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
 a discontinuous velocity field for this to work!</a:documentation>
           <attribute name="replaces">
             <value>DISOPT</value>
@@ -3809,8 +3820,7 @@ UNDER DEVELOPMENT
       <a:documentation>Spatial discretisation options</a:documentation>
       <choice>
         <element name="continuous_galerkin">
-          <a:documentation>Development continuous Galerkin formulation. This causes
-Advection_Diffusion_CG to be used instead of hart3d.</a:documentation>
+          <a:documentation>Continuous Galerkin formulation</a:documentation>
           <ref name="advection_stabilisation_options"/>
           <element name="advection_terms">
             <a:documentation>Discretisation options for the advection terms.</a:documentation>
@@ -3852,8 +3862,7 @@ temporal_discretisation).</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="discontinuous_galerkin">
-          <a:documentation>Discontinuous galerkin formulation. This causes Advection_diffusion_DG 
-to be called instead of hart3D. You can also use this
+          <a:documentation>Discontinuous galerkin formulation. You can also use this
 formulation with a continuous field in which case a simple
 galerkin formulation will result. </a:documentation>
           <attribute name="replace">

@@ -53,7 +53,7 @@ LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
-OBJS = Dgtools.o Coordinates.o EventCounter.o Picker_fortran.o \
+OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Elements.o Sparse_Tools.o Quadrature.o Futils.o		\
   Polynomials.o Adjacency_Lists.o Element_Numbering.o Global_Numbering.o \
   Shape_Functions.o Signals.o Signal_Vars.o signal_handlers.o		\
@@ -217,7 +217,6 @@ Generic_interface.o: Fields.o
 
 Detector_Data_Types.o: Global_Parameters.o
 
-Picker_fortran.o: Global_Parameters.o
 Picker_Data_Types.o: Global_Parameters.o Reference_count_picker_type.F90 \
   Reference_Counting.o
 Pickers.o: Picker_Data_Types.o Pickers_Allocates.o Pickers_Base.o \
