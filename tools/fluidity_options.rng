@@ -3443,188 +3443,6 @@ twice.</a:documentation>
             </optional>
           </element>
         </element>
-        <element name="legacy_continuous_galerkin">
-          <a:documentation>Use the legacy finite element discretisation</a:documentation>
-          <attribute name="replaces">
-            <value>DISOPT</value>
-          </attribute>
-          <choice>
-            <element name="balancing_diffusion_x">
-              <a:documentation>balancing diffusion based on (x,y) space.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 1</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="laxwendroff_balancing_diffusion">
-              <a:documentation>Laxwendrof balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 2</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="balancing_diffusion_xt">
-              <a:documentation>(x,y,t) -balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 3</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="no_balancing_diffusion">
-              <a:documentation>No balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 4</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="nonlinear_streamline_w_crossstream_diffusion">
-              <a:documentation>nonlinear streamline and cross stream diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 5</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="nonlinear_upwind_steepest">
-              <a:documentation>nonlinear upwind in steapest direction.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 6</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="nonlinear_streamline_w_restricted_crossstream_diffusion">
-              <a:documentation>nonlinear streamline+ cross stream diffusion(but restricted)</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 7</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_constant_length_scale">
-              <a:documentation>LES option using constant length scale.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 42</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_isotropic_length_scale">
-              <a:documentation>LES option using isotropic length scale.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 43</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_no_balancing_diffusion">
-              <a:documentation>LES option which uses no balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 44</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_no_balancing_diffusion_2">
-              <a:documentation>LES option which uses no balancing diffusion.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 45</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_no_balancing_diffusion_fourth_order_dissipation">
-              <a:documentation>same as 45 but with 4th order dissipation.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 46</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_tensor_form">
-              <a:documentation>LES but in tensor form like hart3d</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 47</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="les_fourth_order">
-              <a:documentation>LES 4th order version of 47</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 48</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="no_balancing_diffusion_remove_nonlinear_terms">
-              <a:documentation>NO balancing diffusion(DISOPT=4)and take out non-linear terms.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOPT = 125</value>
-              </attribute>
-              <empty/>
-            </element>
-          </choice>
-          <optional>
-            <element name="lump_mass_matrix">
-              <a:documentation>Lump the mass matrix in the momentum equation</a:documentation>
-              <attribute name="replaces">
-                <value>MLUMP</value>
-              </attribute>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-        <element name="legacy_discretisation">
-          <element name="legacy_disopt">
-            <a:documentation>Legacy discretisation option (DISOPT)
-
- From diff3d comments (other possibilities are known to exist!):
- ==============================================================
- DISOPT=1 - balancing diffusion based on (x,y) space.
- DISOPT=2 - Laxwendrof balancing diffusion.
- DISOPT=3 - (x,y,t) -balancing diffusion.
- DISOPT=4 - No balancing diffusion.
- DISOPT=5 - nonlinear streamline and cross stream diffusion.
- DISOPT=6 - nonlinear upwind in steapest direction.
- DISOPT=7 - nonlinear streamline+ cross stream diffusion(but restricted)
- 
- DISOPT=42- LES option using constant length scale.
- DISOPT=43- LES option using isotropic length scale.
- DISOPT=44- LES option which uses no balancing diffusion.
- DISOPT=45- LES option which uses no balancing diffusion.
- DISOPT=46- same as 45 but with 4th order dissipation.
- DISOPT=47 -LES but in tensor form like hart3d.
- DISOPT=48 -LES 4th order version of 47.
- 
- DISOPT=125 - NO balancing diffusion(DISOPT=4)and take out non-linear terms.</a:documentation>
-            <attribute name="replaces">
-              <value>DISOPT</value>
-            </attribute>
-            <ref name="integer"/>
-          </element>
-          <optional>
-            <element name="legacy_mlump">
-              <a:documentation>Lump the mass matrix in the momentum equation</a:documentation>
-              <attribute name="replaces">
-                <value>MLUMP</value>
-              </attribute>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="legacy_ndisop">
-              <a:documentation>Legacy discretisation option for control volume advection of momentum (DISOPT)
-Set to 0 if not activated
-           Method for face-value est.   Time-stepping     Limiting
- ------------------------------------------------------------------
-   =0      1st order in space          Theta=specified    UNIVERSAL
-   =1      1st order in space          Theta=non-linear   UNIVERSAL
-   =2      Trapazoidal rule in space   Theta=specified    UNIVERSAL
-   =3      Trapazoidal rule in space   Theta=non-linear   UNIVERSAL
-   =4      Finite elements in space    Theta=specified    UNIVERSAL
-   =5      Finite elements in space    Theta=non-linear   UNIVERSAL
-   =6      Finite elements in space    Theta=specified    NONE
-   =7      Finite elements in space    Theta=non-linear   NONE
-   =8      Finite elements in space    Theta=specified    DOWNWIND+
-   =9      Finite elements in space    Theta=non-linear   DOWNWIND+</a:documentation>
-              <attribute name="replaces">
-                <value>NDISOP</value>
-              </attribute>
-              <ref name="integer"/>
-            </element>
-          </optional>
-        </element>
       </choice>
       <element name="conservative_advection">
         <a:documentation>Conservative discretisation of momentum equations
@@ -3636,9 +3454,6 @@ Set to 0 if not activated
         </attribute>
         <ref name="real"/>
       </element>
-      <optional>
-        <ref name="inner_element_velocity"/>
-      </optional>
     </element>
     <element name="temporal_discretisation">
       <a:documentation>Temporal discretisation options</a:documentation>
@@ -4413,170 +4228,6 @@ Not for production runs.</a:documentation>
         </element>
         <ref name="pure_cv_options"/>
         <ref name="coupled_cv_options"/>
-        <ref name="legacy_mixed_cv_cg_options"/>
-        <element name="legacy_continuous_galerkin">
-          <a:documentation>Use the legacy finite element discretisation</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT</value>
-          </attribute>
-          <choice>
-            <element name="petrof_galerkin_xt">
-              <a:documentation>Petrof Galerkin x-t.</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 1</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="weighted_petrof_galerkin_xt">
-              <a:documentation>Petrof Galerkin x-t(BUT weighted to get correct
-diffusion at steady state).</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 2</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="petrof_galerkin_x">
-              <a:documentation>Petrof Galerkin (x,y)</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 3</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="least_squares_xt">
-              <a:documentation>Least squares (x,y,t). (symmetric)</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 4</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="least_squares_x">
-              <a:documentation>Least squares (x,y).</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 5</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="least_squares_xtheta">
-              <a:documentation>Least squares THETA-method. (symmetric)</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 6</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="galerkin_theta">
-              <a:documentation>Galerkin THETA-method.(symmetric when MAKSYM=.true.)</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 7</value>
-              </attribute>
-              <empty/>
-            </element>
-            <element name="space_weighting">
-              <a:documentation>Space weighting</a:documentation>
-              <attribute name="replaces">
-                <value>DISOTT = 8</value>
-              </attribute>
-              <empty/>
-            </element>
-          </choice>
-          <optional>
-            <element name="optimally_upwind">
-              <attribute name="replaces">
-                <value>DISOTT &lt; 0</value>
-              </attribute>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="lump_mass_matrix">
-              <a:documentation>Lump the mass matrix in the field advection equation</a:documentation>
-              <attribute name="replaces">
-                <value>TLUMP</value>
-              </attribute>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-        <element name="legacy_discretisation">
-          <element name="legacy_disott">
-            <a:documentation>Legacy discretisation option (DISOTT)
-
-From advdif comments (other possibilities may exist):
- ==============================================================
- DISOTT .LT. 0 then optimaly upwinded.
- The following are absolute values of DISOTT(NOT SPHERICAL COORDS)...
- DISOTT=1 - Petrof Galerkin x-t.
- DISOTT=2 - Petrof Galerkin x-t(BUT weighted to get correct diffusion at steady state).
- DISOTT=3 - Petrof Galerkin (x,y).
- DISOTT=4 - Least squares (x,y,t). (symmetric)
- DISOTT=5 - Least squares (x,y).
- DISOTT=6 - Least squares THETA-method. (symmetric)
- DISOTT=7 - Galerkin THETA-method.(symmetric when MAKSYM=.true.)
- DISOTT=8 - Space weighting.
- FOR SPHERICAL COORDS...
- DISOTT=1 - balancing diffusion based on (x,y) space.
- DISOTT=2 - Laxwendrof balancing diffusion.
- DISOTT=3 - (x,y,t) -balancing diffusion.
- DISOTT=4 - No balancing diffusion.
- ==============================================================</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT, DEFALT (DISOTT = 1), ADV (DISOTT = 4, DEFALT = TRUE), DIFF (DISSOTT = 7)</value>
-            </attribute>
-            <ref name="integer"/>
-          </element>
-          <optional>
-            <element name="legacy_tlump">
-              <a:documentation>Lump the mass matrix in the field advection equation</a:documentation>
-              <attribute name="replaces">
-                <value>TLUMP, DEFALT (TLUMP = FALSE)</value>
-              </attribute>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="legacy_suftem">
-              <a:documentation>have a surface integral for the field equations.
-Manual suggests false</a:documentation>
-              <attribute name="replaces">
-                <value>SUFTEM</value>
-              </attribute>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <!-- Should be set to 0 if not activated. -->
-            <element name="legacy_ndisot">
-              <a:documentation>Legacy discretisation option for control volume
-advection of field (NDISOT)
-
-Should be a 2-to-4-digit number
-
-1st digit (optional) : 1 to improve efficiency of
-upwind value calculation
-
-2nd&amp;3rd digits : Number of nonlinear iterations over
-advection equation
-
-4th digit            : Discretisation option (see below)
-
- 4th DIGIT Method for face-value est.   Time-stepping     Limiting
- ------------------------------------------------------------------
-   =0      1st order in space          Theta=specified    UNIVERSAL
-   =1      1st order in space          Theta=non-linear   UNIVERSAL
-   =2      Trapazoidal rule in space   Theta=specified    UNIVERSAL
-   =3      Trapazoidal rule in space   Theta=non-linear   UNIVERSAL
-   =4      Finite elements in space    Theta=specified    UNIVERSAL
-   =5      Finite elements in space    Theta=non-linear   UNIVERSAL
-   =6      Finite elements in space    Theta=specified    NONE
-   =7      Finite elements in space    Theta=non-linear   NONE
-   =8      Finite elements in space    Theta=specified    DOWNWIND+
-   =9      Finite elements in space    Theta=non-linear   DOWNWIND+</a:documentation>
-              <attribute name="replaces">
-                <value>NDISOT</value>
-              </attribute>
-              <ref name="integer"/>
-            </element>
-          </optional>
-        </element>
         <element name="finite_volume">
           <a:documentation>**DO NOT USE!**
 This is a temporary discretisation option to help Cian
@@ -4607,9 +4258,6 @@ implement P0 advection-diffusion.</a:documentation>
         </attribute>
         <ref name="real"/>
       </element>
-      <optional>
-        <ref name="inner_element_scalar"/>
-      </optional>
     </element>
     <element name="temporal_discretisation">
       <element name="theta">
@@ -4694,8 +4342,8 @@ requires a distinct name for the options dictionary.</a:documentation>
             <optional>
               <element name="apply_weakly">
                 <a:documentation>Apply the dirichlet bc weakly.  Available
-automatically with discontinuous_galerkin,
-control_volume, and legacy_mixed_cv_cg
+automatically with discontinuous_galerkin and
+control_volume
 spatial_discretisations.
 If not selected boundary conditions are applied strongly.</a:documentation>
                 <optional>
@@ -4986,9 +4634,6 @@ quadrature not the number of surface gauss points</a:documentation>
           <element name="controlvolume_surface_degree">
             <a:documentation>Sets the degree of quadrature on each quadrilateral
 face of the control volume. 
-
-Does not affect legacy
-control volume discretisations.
 
 Defaults to 1 if
 unselected which is the same as pre-new options
@@ -5583,9 +5228,8 @@ requires a distinct name for the options dictionary.</a:documentation>
           <optional>
             <element name="apply_weakly">
               <a:documentation>Apply the dirichlet bc weakly.  Available
-automatically with discontinuous_galerkin,
-control_volume, and legacy_mixed_cv_cg
-spatial_discretisations.
+automatically with discontinuous_galerkin and
+control_volume spatial_discretisations.
 If not selected boundary conditions are applied strongly.</a:documentation>
               <optional>
                 <element name="boundary_overwrites_initial_condition">
@@ -5807,192 +5451,151 @@ requires a distinct name for the options dictionary.</a:documentation>
     removing all options that don't apply (mainly advection related)
   -->
   <define name="prognostic_free_surface_field">
-    <choice>
-      <element name="spatial_discretisation">
-        <a:documentation>Spatial discretisation options</a:documentation>
-        <optional>
-          <element name="free_surface_3D">
-            <a:documentation>Form a full 3D system for the free surface</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^0 (frees3d)</value>
-            </attribute>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="fourth_order_dissipation">
-            <attribute name="replaces">
-              <value>DISOTT=2^2 (fourthfrees_diss)</value>
-            </attribute>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="low_order_free_surface">
-            <a:documentation>low order (linear) free surface</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^3 (geo_short)</value>
-            </attribute>
-            <empty/>
-          </element>
-        </optional>
-        <choice>
-          <element name="default_free_surface_filter">
-            <a:documentation>Select free surface filter
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <optional>
+        <element name="free_surface_3D">
+          <a:documentation>Form a full 3D system for the free surface</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^0 (frees3d)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="fourth_order_dissipation">
+          <attribute name="replaces">
+            <value>DISOTT=2^2 (fourthfrees_diss)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="low_order_free_surface">
+          <a:documentation>low order (linear) free surface</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^3 (geo_short)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <choice>
+        <element name="default_free_surface_filter">
+          <a:documentation>Select free surface filter
 
 With PN-PN we need some filter to supress spurious modes.</a:documentation>
-            <empty/>
-          </element>
-          <element name="user_specified_free_surface_filter">
-            <a:documentation>Select free surface filter
+          <empty/>
+        </element>
+        <element name="user_specified_free_surface_filter">
+          <a:documentation>Select free surface filter
 
 With PN-PN we need some filter to supress spurious modes.</a:documentation>
-            <element name="non_linear_filter_coefficient">
-              <a:documentation>Default is to apply 0.01 and for wetting and drying cases 1.0</a:documentation>
-              <ref name="real"/>
+          <element name="non_linear_filter_coefficient">
+            <a:documentation>Default is to apply 0.01 and for wetting and drying cases 1.0</a:documentation>
+            <ref name="real"/>
+          </element>
+        </element>
+        <element name="switch_off_free_surface_filter">
+          <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^8 (nofsta)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </choice>
+      <optional>
+        <element name="wetting_drying">
+          <a:documentation>Apply wetting and drying routines</a:documentation>
+          <attribute name="replaces">
+            <value>DISOTT=2^10 (wetdry)</value>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="tidal_forcing">
+          <a:documentation>Tidal forcing options </a:documentation>
+          <optional>
+            <element name="M2">
+              <a:documentation>M2</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^11</value>
+              </attribute>
+              <empty/>
             </element>
-          </element>
-          <element name="switch_off_free_surface_filter">
-            <a:documentation>Switch off free surface filter, this is more efficient than setting the coefficient to 0.</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^8 (nofsta)</value>
-            </attribute>
-            <empty/>
-          </element>
-        </choice>
-        <optional>
-          <element name="wetting_drying">
-            <a:documentation>Apply wetting and drying routines</a:documentation>
-            <attribute name="replaces">
-              <value>DISOTT=2^10 (wetdry)</value>
-            </attribute>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="tidal_forcing">
-            <a:documentation>Tidal forcing options </a:documentation>
-            <optional>
-              <element name="M2">
-                <a:documentation>M2</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^11</value>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="S2">
-                <a:documentation>S2</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="N2">
-                <a:documentation>N2</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="K2">
-                <a:documentation>K2</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="K1">
-                <a:documentation>K1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="O1">
-                <a:documentation>O1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="P1">
-                <a:documentation>P1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="Q1">
-                <a:documentation>Q1</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="all_tidal_components">
-                <a:documentation>Switch on all tidal components</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^5 (tidallcom)</value>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="love_number">
-                <a:documentation>Switches on a Love number of 0.3</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^6 (tlove)</value>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="static_tidal_force">
-                <a:documentation>Use static tidal force for testing</a:documentation>
-                <attribute name="replaces">
-                  <value>DISOTT=2^7 (statid)</value>
-                </attribute>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </optional>
-      </element>
-      <element name="Legacy_Free_Surface">
-        <a:documentation>Legacy Free Surface
-Allows astronomical forcing for multiple tidal constituents.
-Integer should be sum of desired components as follows:
-
-3D Free Surface = 1
-
-Fourth Order Dissipation = 4
-
-Low Order Free Surface = 8
-
-Implicit absorption in the free surface (good for wetting/drying) = 16
-
-Turn on all tides = 32
-
-Love Number = 64
-
-Static Tidal Force = 128
-
-M2 constituent = 2048
-
-S2 constituent = 4096
-
-N2 constituent = 8192
-
-K2 constituent = 16384
-
-K1 constituent = 32768
-
-O1 constituent = 65536
-
-P1 constituent = 131072
-
-Q1 constituent = 262144</a:documentation>
-        <attribute name="replaces">
-          <value>FREESDISOTT</value>
-        </attribute>
-        <ref name="integer"/>
-      </element>
-    </choice>
+          </optional>
+          <optional>
+            <element name="S2">
+              <a:documentation>S2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="N2">
+              <a:documentation>N2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K2">
+              <a:documentation>K2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K1">
+              <a:documentation>K1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="O1">
+              <a:documentation>O1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="P1">
+              <a:documentation>P1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Q1">
+              <a:documentation>Q1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="all_tidal_components">
+              <a:documentation>Switch on all tidal components</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^5 (tidallcom)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="love_number">
+              <a:documentation>Switches on a Love number of 0.3</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^6 (tlove)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="static_tidal_force">
+              <a:documentation>Use static tidal force for testing</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^7 (statid)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
     <!--
       atheta, ctheta and fstheta (absorption, coriolis and free surface)
       need to go in temporal discretisation
@@ -7853,8 +7456,6 @@ Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Free Surface
-NOTE: the prognostic FreeSurface field only works with the
-legacy_continuous_galerkin code path
 NOTE: if you are using the free_surface boundary condition
 applied to the Velocity field (recommended), you should not 
 use the prognostic FreeSurface field. In this case you may 
@@ -7865,42 +7466,26 @@ use the prognostic FreeSurface field. In this case you may
         <attribute name="name">
           <value>FreeSurface</value>
         </attribute>
-        <choice>
-          <element name="prognostic">
-            <a:documentation>Free Surface
-NOTE: the prognostic FreeSurface field only works with the
-legacy_continuous_galerkin code path</a:documentation>
-            <element name="mesh">
-              <a:documentation>Note that this is not the quadratic mesh balance pressure is
-actually calculated on, but the linear mesh it is projected back
-on for output purposes.</a:documentation>
-              <attribute name="name">
-                <value>VelocityMesh</value>
-              </attribute>
-            </element>
-            <ref name="prognostic_free_surface_field"/>
-          </element>
-          <element name="diagnostic">
-            <a:documentation>Free Surface
+        <element name="diagnostic">
+          <a:documentation>Free Surface
 NOTE: the diagnostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
 field. It gives you a 3D field (constant over the vertical)
 of the free surface elevation.</a:documentation>
-            <ref name="internal_algorithm"/>
-            <!--
-              this is hard-coded on the PressureMesh as long as the Pressure is
-              if this is no longer true, it should be option-checked to be on the
-              same mesh as Pressure
-            -->
-            <element name="mesh">
-              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
-              <attribute name="name">
-                <value>PressureMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field"/>
+          <ref name="internal_algorithm"/>
+          <!--
+            this is hard-coded on the PressureMesh as long as the Pressure is
+            if this is no longer true, it should be option-checked to be on the
+            same mesh as Pressure
+          -->
+          <element name="mesh">
+            <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            <attribute name="name">
+              <value>PressureMesh</value>
+            </attribute>
           </element>
-        </choice>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
       </element>
       <element name="scalar_field">
         <a:documentation>Second Fluid</a:documentation>
@@ -11359,36 +10944,6 @@ Specify the number of subcycles.</a:documentation>
       </optional>
     </element>
   </define>
-  <define name="legacy_mixed_cv_cg_options">
-    <element name="legacy_mixed_cv_cg">
-      <a:documentation>Use a mixed control volume - continuous galerkin
-discretisation.
-
-This uses a control volume discretisation of the advective
-terms and a continuous galerkin representation of the
-diffusion, source and absorption terms.
-Clearly, in terms of discretisation this does the same thing
-as a pure control volume discretisation if diffusion terms
-are zero.
-However it still follows a partially legacy code path.</a:documentation>
-      <attribute name="replaces">
-        <value>NDISOT &gt;= 10, DISOTT = -7, TLUMP = .TRUE.</value>
-      </attribute>
-      <ref name="spatial_control_volume_options"/>
-      <optional>
-        <element name="legacy_disott">
-          <a:documentation>Allows legacy options to be set.
-BE WARNED: this probably means you're using inconsistent discretisations
-on different terms - make sure you're happy with what your code path is doing
-before selecting this.</a:documentation>
-          <attribute name="replaces">
-            <value>DISOTT</value>
-          </attribute>
-          <ref name="integer"/>
-        </element>
-      </optional>
-    </element>
-  </define>
   <define name="pure_cv_options">
     <element name="control_volumes">
       <a:documentation>Use a pure control volume discretisations.
@@ -12410,94 +11965,6 @@ electrokinetic, electrochemical or electrothermal sources </a:documentation>
       </element>
     </choice>
   </define>
-  <define name="inner_element_scalar">
-    <element name="inner_element">
-      <a:documentation>Inner element sub-grid scale model (Candy and Pain)
-Requires legacy_continuous_galerkin selected above.</a:documentation>
-      <attribute name="replaces">
-        <value>NSUBTLOC, NSUBNTLOC</value>
-      </attribute>
-      <element name="scalar_field">
-        <a:documentation>Inner element solution of the scalar field.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>InnerElement</value>
-        </attribute>
-        <element name="prognostic">
-          <element name="mesh">
-            <attribute name="name">
-              <value>InnerElementMesh</value>
-            </attribute>
-          </element>
-          <ref name="prognostic_scalar_output_options"/>
-          <ref name="prognostic_scalar_stat_options"/>
-          <ref name="prognostic_detector_options"/>
-        </element>
-      </element>
-    </element>
-  </define>
-  <define name="inner_element_velocity">
-    <optional>
-      <element name="inner_element">
-        <a:documentation>Inner element sub-grid scale model (Candy and Pain)
-Requires legacy_continuous_galerkin selected above.</a:documentation>
-        <attribute name="replaces">
-          <value>NSUBVLOC, NSUBNVLOC</value>
-        </attribute>
-        <element name="vector_field">
-          <a:documentation>SGS velocity in an inner element SGS treatment of momentum
-
-Limitations:
- - Requires a geometry dimension of 3.
- - Requires inner element active for momentum</a:documentation>
-          <attribute name="rank">
-            <value>1</value>
-          </attribute>
-          <attribute name="name">
-            <value>InnerElement</value>
-          </attribute>
-          <element name="prognostic">
-            <element name="mesh">
-              <attribute name="name">
-                <value>InnerElementMesh</value>
-              </attribute>
-            </element>
-            <ref name="prognostic_vector_output_options"/>
-            <ref name="prognostic_vector_stat_options"/>
-            <ref name="vector_convergence_options"/>
-          </element>
-        </element>
-        <optional>
-          <element name="use_filter">
-            <a:documentation>A filter for the sub-grid scale equations
-Add diffusion to matrix D of the Inner Element model</a:documentation>
-            <element name="strength">
-              <a:documentation>Strength of the diffusion term
-Suggested value: 0.01</a:documentation>
-              <ref name="real"/>
-            </element>
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="use_quadratic_pressure">
-            <attribute name="replaces">
-              <value>PREOPT=PREOPT+1000</value>
-            </attribute>
-          </element>
-        </optional>
-        <optional>
-          <element name="apply_full_discontinuous_Galerkin">
-            <attribute name="replaces">
-              <value>PREOPT=PREOPT+10000</value>
-            </attribute>
-          </element>
-        </optional>
-      </element>
-    </optional>
-  </define>
   <define name="forcing">
     <element name="ocean_forcing">
       <a:documentation>Add forcing from ocean data
@@ -12705,8 +12172,8 @@ radiation for water and phytoplankton.</a:documentation>
             </attribute>
             <element name="apply_weakly">
               <a:documentation>Apply the dirichlet bc weakly.  Only available with
-discontinuous_galerkin, control_volume and
-legacy_mixed_cv_cg spatial_discretisations.
+discontinuous_galerkin and control_volume
+spatial_discretisations.
 
 If not selected boundary conditions are applied strongly.</a:documentation>
               <empty/>

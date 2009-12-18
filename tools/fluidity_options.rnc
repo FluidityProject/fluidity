@@ -2534,142 +2534,6 @@ prognostic_velocity_field =
                     empty
                   }?
                }
-            }|
-            ## Use the legacy finite element discretisation
-            element legacy_continuous_galerkin {
-               attribute replaces { "DISOPT" },
-               (
-                  ## balancing diffusion based on (x,y) space.
-                  element balancing_diffusion_x {
-                     attribute replaces { "DISOPT = 1" },
-                     empty
-                  }|
-                  ## Laxwendrof balancing diffusion.
-                  element laxwendroff_balancing_diffusion {
-                     attribute replaces { "DISOPT = 2" },
-                     empty
-                  }|
-                  ## (x,y,t) -balancing diffusion.
-                  element balancing_diffusion_xt {
-                     attribute replaces { "DISOPT = 3" },
-                     empty
-                  }|
-                  ## No balancing diffusion.
-                  element no_balancing_diffusion {
-                     attribute replaces { "DISOPT = 4" },
-                     empty
-                  }|
-                  ## nonlinear streamline and cross stream diffusion.
-                  element nonlinear_streamline_w_crossstream_diffusion {
-                     attribute replaces { "DISOPT = 5" },
-                     empty
-                  }|
-                  ## nonlinear upwind in steapest direction.
-                  element nonlinear_upwind_steepest {
-                     attribute replaces { "DISOPT = 6" },
-                     empty
-                  }|
-                  ## nonlinear streamline+ cross stream diffusion(but restricted)
-                  element nonlinear_streamline_w_restricted_crossstream_diffusion {
-                     attribute replaces { "DISOPT = 7" },
-                     empty
-                  }|
-                  ## LES option using constant length scale.
-                  element les_constant_length_scale {
-                     attribute replaces { "DISOPT = 42" },
-                     empty
-                  }|
-                  ## LES option using isotropic length scale.
-                  element les_isotropic_length_scale {
-                     attribute replaces { "DISOPT = 43" },
-                     empty
-                  }|
-                  ## LES option which uses no balancing diffusion.
-                  element les_no_balancing_diffusion {
-                     attribute replaces { "DISOPT = 44" },
-                     empty
-                  }|
-                  ## LES option which uses no balancing diffusion.
-                  element les_no_balancing_diffusion_2 {
-                     attribute replaces { "DISOPT = 45" },
-                     empty
-                  }|
-                  ## same as 45 but with 4th order dissipation.
-                  element les_no_balancing_diffusion_fourth_order_dissipation {
-                     attribute replaces { "DISOPT = 46" },
-                     empty
-                  }|
-                  ## LES but in tensor form like hart3d
-                  element les_tensor_form {
-                     attribute replaces { "DISOPT = 47" },
-                     empty
-                  }|
-                  ## LES 4th order version of 47
-                  element les_fourth_order {
-                     attribute replaces { "DISOPT = 48" },
-                     empty
-                  }|
-                  ## NO balancing diffusion(DISOPT=4)and take out non-linear terms.
-                  element no_balancing_diffusion_remove_nonlinear_terms {
-                     attribute replaces { "DISOPT = 125" },
-                     empty
-                  }
-               ),
-               ## Lump the mass matrix in the momentum equation
-               element lump_mass_matrix {
-                  attribute replaces {"MLUMP"},
-                  empty
-               }?
-            }|
-            element legacy_discretisation {
-               ## Legacy discretisation option (DISOPT)
-               ##
-               ##  From diff3d comments (other possibilities are known to exist!):
-               ##  ==============================================================
-               ##  DISOPT=1 - balancing diffusion based on (x,y) space.
-               ##  DISOPT=2 - Laxwendrof balancing diffusion.
-               ##  DISOPT=3 - (x,y,t) -balancing diffusion.
-               ##  DISOPT=4 - No balancing diffusion.
-               ##  DISOPT=5 - nonlinear streamline and cross stream diffusion.
-               ##  DISOPT=6 - nonlinear upwind in steapest direction.
-               ##  DISOPT=7 - nonlinear streamline+ cross stream diffusion(but restricted)
-               ##  
-               ##  DISOPT=42- LES option using constant length scale.
-               ##  DISOPT=43- LES option using isotropic length scale.
-               ##  DISOPT=44- LES option which uses no balancing diffusion.
-               ##  DISOPT=45- LES option which uses no balancing diffusion.
-               ##  DISOPT=46- same as 45 but with 4th order dissipation.
-               ##  DISOPT=47 -LES but in tensor form like hart3d.
-               ##  DISOPT=48 -LES 4th order version of 47.
-               ##  
-               ##  DISOPT=125 - NO balancing diffusion(DISOPT=4)and take out non-linear terms.
-               element legacy_disopt {
-                  attribute replaces {"DISOPT"},
-                  integer
-               },
-               ## Lump the mass matrix in the momentum equation
-               element legacy_mlump {
-                  attribute replaces {"MLUMP"},
-                  empty
-               }?,
-               ## Legacy discretisation option for control volume advection of momentum (DISOPT)
-               ## Set to 0 if not activated
-               ##            Method for face-value est.   Time-stepping     Limiting
-               ##  ------------------------------------------------------------------
-               ##    =0      1st order in space          Theta=specified    UNIVERSAL
-               ##    =1      1st order in space          Theta=non-linear   UNIVERSAL
-               ##    =2      Trapazoidal rule in space   Theta=specified    UNIVERSAL
-               ##    =3      Trapazoidal rule in space   Theta=non-linear   UNIVERSAL
-               ##    =4      Finite elements in space    Theta=specified    UNIVERSAL
-               ##    =5      Finite elements in space    Theta=non-linear   UNIVERSAL
-               ##    =6      Finite elements in space    Theta=specified    NONE
-               ##    =7      Finite elements in space    Theta=non-linear   NONE
-               ##    =8      Finite elements in space    Theta=specified    DOWNWIND+
-               ##    =9      Finite elements in space    Theta=non-linear   DOWNWIND+
-               element legacy_ndisop {
-                  attribute replaces {"NDISOP"},
-                  integer
-               }?
             }
          ),
          ## Conservative discretisation of momentum equations
@@ -2679,8 +2543,7 @@ prognostic_velocity_field =
          element conservative_advection {
             attribute replaces {"BETA"},
             real
-         },
-         inner_element_velocity?
+         }
       },
       ## Temporal discretisation options
       element temporal_discretisation {
@@ -3299,130 +3162,6 @@ prognostic_scalar_field =
             }|
             pure_cv_options|
             coupled_cv_options|
-            legacy_mixed_cv_cg_options|
-            ## Use the legacy finite element discretisation
-            element legacy_continuous_galerkin {
-               attribute replaces { "DISOTT" },
-               (
-                  ## Petrof Galerkin x-t.
-                  element petrof_galerkin_xt {
-                     attribute replaces { "DISOTT = 1" },
-                     empty
-                  }|
-                  ## Petrof Galerkin x-t(BUT weighted to get correct
-                  ## diffusion at steady state).
-                  element weighted_petrof_galerkin_xt {
-                     attribute replaces { "DISOTT = 2" },
-                     empty
-                  }|
-                  ## Petrof Galerkin (x,y)
-                  element petrof_galerkin_x {
-                     attribute replaces { "DISOTT = 3" },
-                     empty
-                  }|
-                  ## Least squares (x,y,t). (symmetric)
-                  element least_squares_xt {
-                     attribute replaces { "DISOTT = 4" },
-                     empty
-                  }|
-                  ## Least squares (x,y).
-                  element least_squares_x {
-                     attribute replaces { "DISOTT = 5" },
-                     empty
-                  }|
-                  ## Least squares THETA-method. (symmetric)
-                  element least_squares_xtheta {
-                     attribute replaces { "DISOTT = 6" },
-                     empty
-                  }|
-                  ## Galerkin THETA-method.(symmetric when MAKSYM=.true.)
-                  element galerkin_theta {
-                     attribute replaces { "DISOTT = 7" },
-                     empty
-                  }|
-                  ## Space weighting
-                  element space_weighting {
-                     attribute replaces { "DISOTT = 8" },
-                     empty
-                  }
-               ),
-               element optimally_upwind {
-                  attribute replaces { "DISOTT < 0" },
-                  empty
-               }?,
-               ## Lump the mass matrix in the field advection equation
-               element  lump_mass_matrix {
-                  attribute replaces {"TLUMP"},
-                  empty
-               }?
-            }|
-            element legacy_discretisation {
-               ## Legacy discretisation option (DISOTT)
-               ##
-               ## From advdif comments (other possibilities may exist):
-               ##  ==============================================================
-               ##  DISOTT .LT. 0 then optimaly upwinded.
-               ##  The following are absolute values of DISOTT(NOT SPHERICAL COORDS)...
-               ##  DISOTT=1 - Petrof Galerkin x-t.
-               ##  DISOTT=2 - Petrof Galerkin x-t(BUT weighted to get correct diffusion at steady state).
-               ##  DISOTT=3 - Petrof Galerkin (x,y).
-               ##  DISOTT=4 - Least squares (x,y,t). (symmetric)
-               ##  DISOTT=5 - Least squares (x,y).
-               ##  DISOTT=6 - Least squares THETA-method. (symmetric)
-               ##  DISOTT=7 - Galerkin THETA-method.(symmetric when MAKSYM=.true.)
-               ##  DISOTT=8 - Space weighting.
-               ##  FOR SPHERICAL COORDS...
-               ##  DISOTT=1 - balancing diffusion based on (x,y) space.
-               ##  DISOTT=2 - Laxwendrof balancing diffusion.
-               ##  DISOTT=3 - (x,y,t) -balancing diffusion.
-               ##  DISOTT=4 - No balancing diffusion.
-               ##  ==============================================================
-               element legacy_disott {
-                  attribute replaces {"DISOTT, DEFALT (DISOTT = 1), ADV (DISOTT = 4, DEFALT = TRUE), DIFF (DISSOTT = 7)"},
-                  integer
-               },
-               ## Lump the mass matrix in the field advection equation
-               element  legacy_tlump {
-                  attribute replaces {"TLUMP, DEFALT (TLUMP = FALSE)"},
-                  empty
-               }?,
-               ## have a surface integral for the field equations.
-               ## Manual suggests false
-               element legacy_suftem {
-                  attribute replaces {"SUFTEM"},
-                  empty
-               }?,
-               ## Legacy discretisation option for control volume
-               ## advection of field (NDISOT)
-               ##
-               ## Should be a 2-to-4-digit number
-               ##
-               ## 1st digit (optional) : 1 to improve efficiency of
-               ## upwind value calculation
-               ##
-               ## 2nd&3rd digits : Number of nonlinear iterations over
-               ## advection equation
-               ##
-               ## 4th digit            : Discretisation option (see below)
-               ##
-               ##  4th DIGIT Method for face-value est.   Time-stepping     Limiting
-               ##  ------------------------------------------------------------------
-               ##    =0      1st order in space          Theta=specified    UNIVERSAL
-               ##    =1      1st order in space          Theta=non-linear   UNIVERSAL
-               ##    =2      Trapazoidal rule in space   Theta=specified    UNIVERSAL
-               ##    =3      Trapazoidal rule in space   Theta=non-linear   UNIVERSAL
-               ##    =4      Finite elements in space    Theta=specified    UNIVERSAL
-               ##    =5      Finite elements in space    Theta=non-linear   UNIVERSAL
-               ##    =6      Finite elements in space    Theta=specified    NONE
-               ##    =7      Finite elements in space    Theta=non-linear   NONE
-               ##    =8      Finite elements in space    Theta=specified    DOWNWIND+
-               ##    =9      Finite elements in space    Theta=non-linear   DOWNWIND+
-               # Should be set to 0 if not activated.
-               element legacy_ndisot {
-                  attribute replaces {"NDISOT"},
-                  integer
-               }?
-            }|
             ## **DO NOT USE!**
             ## This is a temporary discretisation option to help Cian
             ## implement P0 advection-diffusion.
@@ -3448,8 +3187,7 @@ prognostic_scalar_field =
          element conservative_advection {
             attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
             real
-         },
-         inner_element_scalar?
+         }
       },
       element temporal_discretisation {
          ## Implicit/explicit control (TTHETA)
@@ -3513,8 +3251,8 @@ prognostic_scalar_field =
             element type {
                attribute name { "dirichlet" },
                ## Apply the dirichlet bc weakly.  Available
-               ## automatically with discontinuous_galerkin,
-               ## control_volume, and legacy_mixed_cv_cg
+               ## automatically with discontinuous_galerkin and
+               ## control_volume
                ## spatial_discretisations.
                ## If not selected boundary conditions are applied strongly.
                element apply_weakly {
@@ -3722,9 +3460,6 @@ geometry =
             }?,
             ## Sets the degree of quadrature on each quadrilateral
             ## face of the control volume. 
-            ##
-            ## Does not affect legacy
-            ## control volume discretisations.
             ##
             ## Defaults to 1 if
             ## unselected which is the same as pre-new options
@@ -4209,9 +3944,8 @@ prognostic_pressure_field =
          element type {
             attribute name { "dirichlet" },
             ## Apply the dirichlet bc weakly.  Available
-            ## automatically with discontinuous_galerkin,
-            ## control_volume, and legacy_mixed_cv_cg
-            ## spatial_discretisations.
+            ## automatically with discontinuous_galerkin and
+            ## control_volume spatial_discretisations.
             ## If not selected boundary conditions are applied strongly.
             element apply_weakly {
               ## If the initial condition and boundary conditions
@@ -4485,43 +4219,6 @@ prognostic_free_surface_field =
                   empty
                }?
             }?
-         }|
-         ## Legacy Free Surface
-         ## Allows astronomical forcing for multiple tidal constituents.
-         ## Integer should be sum of desired components as follows:
-         ##
-         ## 3D Free Surface = 1
-         ##
-         ## Fourth Order Dissipation = 4
-         ##
-         ## Low Order Free Surface = 8
-         ##
-         ## Implicit absorption in the free surface (good for wetting/drying) = 16
-         ##
-         ## Turn on all tides = 32
-         ##
-         ## Love Number = 64
-         ##
-         ## Static Tidal Force = 128
-         ##
-         ## M2 constituent = 2048
-         ##
-         ## S2 constituent = 4096
-         ##
-         ## N2 constituent = 8192
-         ## 
-         ## K2 constituent = 16384
-         ##
-         ## K1 constituent = 32768
-         ##
-         ## O1 constituent = 65536
-         ## 
-         ## P1 constituent = 131072
-         ##
-         ## Q1 constituent = 262144
-         element Legacy_Free_Surface {
-            attribute replaces {"FREESDISOTT"},
-            integer
          }
       ),
       # atheta, ctheta and fstheta (absorption, coriolis and free surface)
@@ -6063,8 +5760,6 @@ scalar_field_choice =
             )
          }|
          ## Free Surface
-         ## NOTE: the prognostic FreeSurface field only works with the
-         ## legacy_continuous_galerkin code path
          ## NOTE: if you are using the free_surface boundary condition
          ## applied to the Velocity field (recommended), you should not 
          ## use the prognostic FreeSurface field. In this case you may 
@@ -6073,18 +5768,6 @@ scalar_field_choice =
             attribute rank { "0" },
             attribute name { "FreeSurface" },
             (
-               ## Free Surface
-               ## NOTE: the prognostic FreeSurface field only works with the
-               ## legacy_continuous_galerkin code path
-               element prognostic {
-                  ## Note that this is not the quadratic mesh balance pressure is
-                  ## actually calculated on, but the linear mesh it is projected back
-                  ## on for output purposes.
-                  element mesh {
-                     attribute name { "VelocityMesh" }
-                  },
-                  prognostic_free_surface_field
-               }|
                ## Free Surface
                ## NOTE: the diagnostic FreeSurface field only works in combination
                ## with the free_surface boundary condition applied to the Velocity
@@ -8915,33 +8598,6 @@ temporal_discontinuous_galerkin_options =
       }
    )
 
-legacy_mixed_cv_cg_options = 
-   (
-      ## Use a mixed control volume - continuous galerkin
-      ## discretisation.
-      ##
-      ## This uses a control volume discretisation of the advective
-      ## terms and a continuous galerkin representation of the
-      ## diffusion, source and absorption terms.
-      ## Clearly, in terms of discretisation this does the same thing
-      ## as a pure control volume discretisation if diffusion terms
-      ## are zero.
-      ## However it still follows a partially legacy code path.
-      element legacy_mixed_cv_cg {
-         attribute replaces { "NDISOT >= 10, DISOTT = -7, TLUMP = .TRUE." },
-         spatial_control_volume_options,
-         
-         ## Allows legacy options to be set.
-         ## BE WARNED: this probably means you're using inconsistent discretisations
-         ## on different terms - make sure you're happy with what your code path is doing
-         ## before selecting this.
-         element legacy_disott {
-            attribute replaces { "DISOTT" },
-            integer
-         }?
-      }
-   )
-
 pure_cv_options = 
    (
       ## Use a pure control volume discretisations.
@@ -9776,69 +9432,6 @@ scalar_equation_choice =
       )
    )
 
-inner_element_scalar = 
-   (
-      ## Inner element sub-grid scale model (Candy and Pain)
-      ## Requires legacy_continuous_galerkin selected above.
-      element inner_element {
-         attribute replaces { "NSUBTLOC, NSUBNTLOC" },
-         ## Inner element solution of the scalar field.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "InnerElement" },
-            element prognostic {
-               element mesh {
-                  attribute name {  "InnerElementMesh" }
-               },
-               prognostic_scalar_output_options,
-               prognostic_scalar_stat_options,
-               prognostic_detector_options
-            }
-         }
-      }
-   )
-      
-inner_element_velocity =
-   (
-      ## Inner element sub-grid scale model (Candy and Pain)
-      ## Requires legacy_continuous_galerkin selected above.
-      element inner_element {
-         attribute replaces { "NSUBVLOC, NSUBNVLOC" },
-         ## SGS velocity in an inner element SGS treatment of momentum
-         ##
-         ## Limitations:
-         ##  - Requires a geometry dimension of 3.
-         ##  - Requires inner element active for momentum
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "InnerElement" },
-            element prognostic {
-               element mesh {
-                  attribute name {  "InnerElementMesh" }
-               },
-               prognostic_vector_output_options,
-               prognostic_vector_stat_options,
-               vector_convergence_options
-            }
-         },
-         ## A filter for the sub-grid scale equations
-         ## Add diffusion to matrix D of the Inner Element model
-         element use_filter {
-            ## Strength of the diffusion term
-            ## Suggested value: 0.01
-            element strength {
-               real
-            },
-            empty
-         }?,
-         element use_quadratic_pressure {
-            attribute replaces { "PREOPT=PREOPT+1000" }
-         }?,
-         element apply_full_discontinuous_Galerkin {
-            attribute replaces { "PREOPT=PREOPT+10000" }
-         }?
-      }?
-   )
 forcing =
   (
     ## Add forcing from ocean data
@@ -10026,8 +9619,8 @@ prognostic_photosynthetic_radiation =
             element type {
                attribute name { "dirichlet" },
                ## Apply the dirichlet bc weakly.  Only available with
-               ## discontinuous_galerkin, control_volume and
-               ## legacy_mixed_cv_cg spatial_discretisations.
+               ## discontinuous_galerkin and control_volume
+               ## spatial_discretisations.
                ##
                ## If not selected boundary conditions are applied strongly.
                element apply_weakly {
