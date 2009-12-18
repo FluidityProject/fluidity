@@ -88,7 +88,6 @@ module fluids_module
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
-  use spaerr_module
   use legacy_field_lists
   use boundary_conditions
   use porous_media
