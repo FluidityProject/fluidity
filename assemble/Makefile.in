@@ -54,10 +54,7 @@ OBJS    = advdif.o \
 	Momentum_Diagnostic_Fields.o \
 	Momentum_Equation.o Momentum_CG.o \
 	hart3d_allsorts.o       \
-	momsuf.o		\
-	poscmc.o    \
 	qmesh.o        spaerr.o \
-	roctrt.o    	\
 	shape.o     \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
@@ -66,7 +63,6 @@ OBJS    = advdif.o \
 	Preprocess.o Shape_Transformations.o \
         Solid_Configuration.o Explicit_ALE.o \
         VolumeSource.o reduced_model.o snapsvd.o support.o \
-        mesh_connections.o \
 	reduced_model_errormeasure.o  \
 	MeshMovement.o \
 	traffic.o \
