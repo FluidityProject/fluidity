@@ -726,7 +726,7 @@ contains
         model_mesh = model
         ! Grab an extra reference to make the deallocate at the end safe.
         call incref(model_mesh)
-        ndglno = model%ndglno
+        ndglno = model%ndglno(1:sz_enlist)
       end if
     else
       ! if the model mesh is p/q0 then use the position mesh to output the mesh
