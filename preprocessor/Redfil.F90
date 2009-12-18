@@ -630,38 +630,6 @@ subroutine sndgln2tsndgl(sndgln, tsndgl, stotel_times_snloc, nonods, sufnod)
 end subroutine sndgln2tsndgl
 
 
-subroutine initialise_state_phase_lists_from_options()
-
-    logical, save:: initialised=.false.
-    integer :: nphase, counter, p, nmaterial_phases
-
-    if (initialised) return
-
-    nmaterial_phases = option_count('/material_phase')  
-    allocate(state2phase_index(nmaterial_phases))
-    state2phase_index = 0
-
-    call get_nphase(nphase)
-    allocate(phase2state_index(nphase))
-
-    counter = 0
-    do p = 0, nmaterial_phases-1
-      if (have_option('/material_phase['//int2str(p)//']/vector_field::Velocity')) then
-          ! don't know if prescribed or diagnostic fields should be included in nphase but
-          ! suspect that for things like traffic they should be
-          ! definitely don't want aliased - crgw
-          if (.not.have_option('/material_phase['//int2str(p)//']/vector_field::Velocity/aliased')) then
-            counter = counter + 1
-            state2phase_index(p+1) = counter
-            phase2state_index(counter) = p+1
-          end if
-      end if
-    end do
-  
-    initialised = .true.
-
-end subroutine initialise_state_phase_lists_from_options
-
 subroutine initialise_state_phase_lists_from_file(nphase)
 
     logical, save:: initialised=.false.

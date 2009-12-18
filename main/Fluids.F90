@@ -40,7 +40,6 @@ module fluids_module
 ! NOTE: VARIABLES NOT DEFINED HERE MAY BE FOUND IN Global_Parameters.F90
   use global_parameters
   use spud
-  use mellor_yamada
   use equation_of_state
   use timers
   use adapt_state_module 
