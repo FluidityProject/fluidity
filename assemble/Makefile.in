@@ -69,7 +69,6 @@ OBJS    = advdif.o \
 	Solid_Update.o Field_Equations_CV.o Assemble_CMC.o \
 	Solid_assembly.o Solidity.o  \
 	Momentum_Source.o \
-	Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
 	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
 	State_Matrices.o \
 	ctmult.o \
@@ -145,7 +144,6 @@ reduced_model_errormeasure.o: Coriolis.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
    Rotated_Boundary_Conditions.o
 Assemble_CMC.o: hart3d_allsorts.o Multimaterials.o  Shape_Transformations.o
-Legacy_CV_Shape_Functions.o: Legacy_CV_Numbering.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
 getrhu.o: mulinv.o
@@ -165,12 +163,11 @@ Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
    Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
    Drag.o Geostrophic_Pressure.o OceanSurfaceForcing.o \
    Petsc_Solve_State.o State_Matrices.o Rotated_Boundary_Conditions.o
-Compressible_Projection.o: Legacy_CV_Shape_Functions.o Multimaterials.o
+Compressible_Projection.o: Multimaterials.o
 Free_Surface.o: Vertical_Extrapolation.o
 Pseudo_supermesh.o: Adapt_State_Unittest.o
 Solenoidal_interpolation.o: Assemble_CMC.o Momentum_Equation.o Divergence_Matrix_CV.o
 
-Interpolation_manager.o: Assemble_Buoyancy.o
 Discrete_Properties.o: Solenoidal_interpolation.o
 Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o Geostrophic_Pressure.o State_Matrices.o \
    Rotated_Boundary_Conditions.o LES_viscosity.o

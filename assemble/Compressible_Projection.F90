@@ -36,7 +36,6 @@ module compressible_projection
   use multimaterial_module, only: extract_prognostic_pressure, &
                                   calculate_material_eos
   use global_parameters, only: new_options, OPTION_PATH_LEN
-  use legacy_cv_shape_functions
   use fefields, only: compute_lumped_mass
   implicit none 
 
