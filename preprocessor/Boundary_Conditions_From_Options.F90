@@ -1997,48 +1997,33 @@ contains
     normal, tangent_1, tangent_2, debugging_mode)
     
     integer, dimension(:),intent(in):: surface_element_list
+    ! vector fields on the surface mesh
     type(vector_field),intent(inout):: normal, tangent_1, tangent_2
+    ! positions on the entire mesh (may not be same order as surface mesh!!)
     type(vector_field),intent(in)   :: x
+    logical, intent(in):: debugging_mode
+      
     type(vector_field)              :: bc_position
 
-    integer, dimension(face_loc(x, 1))    :: nodes_bdy
     real, dimension(x%dim, face_ngi(x, 1)):: normal_bdy
-    
-    real, dimension(x%dim, ele_loc(x, 1)) :: x_ele
-    real, dimension(x%dim, face_loc(x, 1)):: x_ele_bdy, tmp_normal
     real, dimension(face_ngi(x, 1))       :: detwei_bdy
-    type(element_type), pointer           :: x_shape_bdy
 
-    integer                       :: i, bcnod, iloc
-    integer                       :: ele, sele, nod
-    integer, dimension(:),pointer :: local_nodes
+    integer                       :: i, bcnod
+    integer                       :: sele
     integer                       :: t1_max, n_max
     real, dimension(x%dim)        :: t1, t2, t1_norm, n
     real                          :: proj1, det
 
-    logical                       :: debugging_mode
 
     do i=1, size(surface_element_list)
        
        sele = surface_element_list(i)
-       ele = face_ele(x, sele)
-
-       nodes_bdy = face_global_nodes(x, sele)
-       local_nodes => ele_nodes(normal, i)
        
-       x_ele = ele_val(x, ele)
-       x_ele_bdy = face_val(x, sele)
-       x_shape_bdy=>face_shape(x, sele)
-
        call transform_facet_to_physical(x, sele, &
             detwei_f=detwei_bdy, normal=normal_bdy)
        
-       tmp_normal=shape_vector_rhs(x_shape_bdy, normal_bdy, detwei_bdy)
-
-       do iloc=1, face_loc(x, sele)
-          nod=local_nodes(iloc)
-          call addto(normal, nod, tmp_normal(:,iloc) )
-       end do
+       call addto(normal, ele_nodes(normal, i), &
+         shape_vector_rhs(ele_shape(normal, i), normal_bdy, detwei_bdy))
     end do ! surface_element_list
 
     bcnod=normal%mesh%nodes
