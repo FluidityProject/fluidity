@@ -80,7 +80,7 @@ OBJS    = advdif.o \
 	Momentum_Source.o \
 	Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
 	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
-	Automatic_Timestep.o State_Matrices.o \
+	State_Matrices.o \
 	ctmult.o \
 	ctyexa.o  getrhs.o  getrhu.o \
 	Solve_Momentum_CG.o \
