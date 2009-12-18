@@ -71,8 +71,6 @@ OBJS    = advdif.o \
 	Momentum_Source.o \
 	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
 	State_Matrices.o \
-	ctmult.o \
-	getrhs.o  getrhu.o \
 	Solve_Momentum_CG.o \
 	mulinv.o \
 	solmom.o \
@@ -146,7 +144,6 @@ Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
 Assemble_CMC.o: hart3d_allsorts.o Multimaterials.o  Shape_Transformations.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
-getrhu.o: mulinv.o
 Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
   Field_Equations_CV.o Vorticity_Diagnostics.o \
   Diagnostic_Fields_Matrices.o Free_Surface.o Porous_Media.o \
