@@ -121,13 +121,6 @@ contains
   SUBROUTINE FLUIDS(filename)
     character(len = *), intent(in) :: filename
 
-    ! KE_ident and LKE_ident are the idents for the KineticEnergy and TurbulentLengthScalexKineticEnergy fields that are used in the MY 2.5 eqn turbulence model.
-    ! MY_vis_ident and MY_diff_ident are the idents for the MY 2.5 eqn turbulence model vertical viscosity and diffusivity.
-    integer, parameter ::KE_ident=101,LKE_ident=102
-    INTEGER, PARAMETER ::MY_vis_ident=103,MY_diff_ident=104
-    INTEGER, PARAMETER ::PSIDEN=-2003
-    integer, parameter:: FREES_IDENT=-29
-
     INTEGER, PARAMETER ::MXNTSO=31
     ! MXNTSO=max no of field equations.
 
@@ -145,7 +138,7 @@ contains
          & VERSIO,&
          & NPRESS,NPROPT,&
          & RADISO,&
-         & nlevel, geostrophic_solver_option,&
+         & geostrophic_solver_option,&
                                 ! Phase momentum equations...
          & MULPA(MXNPHA), CGSOLQ(MXNPHA),GMRESQ(MXNPHA),&
          & MIXMAS(MXNPHA),UZAWA(MXNPHA),&
@@ -216,7 +209,6 @@ contains
     INTEGER, SAVE :: NSOGRASUB=0
     LOGICAL, SAVE :: GOTBOY
 
-    INTEGER, SAVE :: GOTTRAF
 
     ! **** ENDOF VARIABLES USED IN REDFIL
     ! ***********************************
@@ -234,12 +226,6 @@ contains
 
     REAL, SAVE :: CHANGE,CHAOLD
 
-    !     --------------------------------------start of add by crgw 31/03/06
-    !     solidity - strain for plastic flow:
-    REAL, ALLOCATABLE, DIMENSION(:) :: STVPXX, STVPYY, STVPZZ
-    REAL, ALLOCATABLE, DIMENSION(:) :: STVPYZ, STVPXZ, STVPXY
-    REAL, ALLOCATABLE, DIMENSION(:) :: YIELDF, YIELDFOLD
-    !     --------------------------------------end of add by crgw 31/03/06
 
     ! More pointers(to do with iteration & time stepping)
 
@@ -250,7 +236,6 @@ contains
     LOGICAL, SAVE :: REMESH
 
     !c Pointers used in this memory
-    LOGICAL, SAVE ::  NEWMES2
     INTEGER, SAVE ::  ITFREEimp,NOBCTITFREEimp,ITS4
     ! the disott of the free surface field (ident -29) or of balanced pressure (-2003)
     ! used to binary decode into free surface options in geoeli1p()
@@ -296,8 +281,7 @@ contains
 
     !     Solid-fluid coupling - Julian 18-09-06
     !New options
-    INTEGER, save :: NSOLIDS
-    INTEGER, save ::  ITSOLID(30),ss,ph
+    INTEGER, save :: ss,ph
     LOGICAL, SAVE :: have_solids
 
     ! Pointers for scalars and velocity fields
@@ -326,7 +310,6 @@ contains
     !     mkcomp <= 0... incompressible
     !     mkcomp = 3... compressible scheme using modified gradient operator
 
-    LOGICAL, SAVE :: OFFYIELDENV        !determines (written to by steval) whether another cycle is necesarry
     INTEGER, SAVE :: OITINOI            !remembers initial itinoi and defaults back at next timestep
     INTEGER, SAVE :: adapt_count
 
@@ -352,8 +335,6 @@ contains
     ! this is to make sure the option /io/log_output/memory_diagnostics is read
     call reset_memory_logs()
 #endif
-
-    call initial_allocation()
 
     call initialise_qmesh
     call initialise_write_state
@@ -512,8 +493,6 @@ contains
     have_solids=.false.
     use_ale=.false.
 
-    GOTTRAF=0
-    NSOLIDS=0
     !Read the amount of SolidConcentration fields
     !and save their IT numbers.
     if(have_option(trim('/imported_solids'))) then
@@ -522,25 +501,13 @@ contains
           write(tmpstring, '(a,i0,a)') "/material_phase[",ph-1,"]"
           if(have_option(trim(tmpstring)//"/scalar_field::SolidConcentration")) then
              ss = ph
+             have_solids=.true.
           end if
        end do phaseloop
        if(ss==0) then
           FLAbort("Havent found a material phase containing solid concentration")
        end if
        EWRITE(2,*) 'solid state= ',ss
-       NSOLIDS=0
-       DO IT=1,NTSOL
-          ewrite(2,*) trim(field_name_list(it))
-          if (trim(field_name_list(it))=='SolidConcentration') then
-             NSOLIDS=NSOLIDS+1
-             ITSOLID(NSOLIDS)=IT
-          end if
-       END DO
-       ewrite(2,*) 'Running with imported solids',NSOLIDS
-       if(NSOLIDS.GT.0) then
-          have_solids=.true.
-          GOTTRAF=1
-       end if
     end if
 
     if(have_option(trim('/mesh_adaptivity/mesh_movement/explicit_ale'))) then
@@ -597,8 +564,7 @@ contains
        if (admesh) then
           call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
        end if
-       got_top_bottom_markers=any(ident==frees_ident) .or.&
-            &            have_option('/geometry/ocean_boundaries')
+       got_top_bottom_markers=have_option('/geometry/ocean_boundaries')
 
     ENDif
     ! REMESHING ************************************************
@@ -606,10 +572,6 @@ contains
 
     call compute_phase_uses_new_code_path(state, phase_uses_new_code_path)
     if (any(.not.phase_uses_new_code_path)) FLExit("The old code path is dead")
-
-    call nonfield_allocation()
-
-    NEWMES2=.TRUE.
 
     !     Determine the output format.
     call get_option('/io/dump_format', option_buffer, option_stat)
@@ -627,8 +589,6 @@ contains
        !0== don't, which is what we want as solving is done by PETSc
        geostrophic_solver_option=0
     end if
-    nlevel=0
-
 
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
@@ -1144,139 +1104,6 @@ contains
     end if
 
   contains
-
-    subroutine initial_allocation()
-      !!< This subroutine is called immediately after the declaration of
-      !!< allocatable memory in fluids to ensure that its allocation status is defined.
-      logical, save :: initialised=.false.
-
-      if(.not.initialised) then
-         allocate(STVPXX(0), STVPYY(0), STVPZZ(0), &
-              STVPYZ(0), STVPXZ(0), STVPXY(0), &
-              YIELDF(0), YIELDFOLD(0))
-         initialised = .true.
-      end if
-
-    end subroutine initial_allocation
-
-    subroutine bc_mem_allocation()
-      !!< This subroutine allocates memory for old style boundary conditions
-      !!< hopefully to be deprecated soon
-      !local variables
-      integer :: i
-
-      if(associated(bct1_mem)) then
-         if(ntsol>0) then
-            do i = 1, ntsol
-               if(associated(bct1_mem(i)%ptr)) deallocate(bct1_mem(i)%ptr)
-            end do
-         end if
-         deallocate(bct1_mem)         
-      end if
-
-      if(associated(bct1w_mem)) then
-         if(ntsol>0) then
-            do i = 1, ntsol
-               if(associated(bct1w_mem(i)%ptr)) deallocate(bct1w_mem(i)%ptr)
-            end do
-         end if
-         deallocate(bct1w_mem)
-      end if
-
-      if(associated(bct2_mem)) then
-         if(ntsol>0) then
-            do i = 1, ntsol
-               if(associated(bct2_mem(i)%ptr)) deallocate(bct2_mem(i)%ptr)
-            end do
-         end if
-         deallocate(bct2_mem)
-      end if
-
-      allocate(bct1_mem(0))
-      allocate(bct1w_mem(0))
-      allocate(bct2_mem(0))
-
-      !do i = 1, ntsol
-      !   allocate( bct1_mem(i)%ptr(0) )
-      !   allocate( bct1w_mem(i)%ptr(0) )
-      !   allocate( bct2_mem(i)%ptr(0) )
-      !end do
-
-    end subroutine bc_mem_allocation
-
-    subroutine bcw_mem_allocation()
-      !!< This subroutine allocates memory for old style boundary conditions
-      !!< in acceleration form
-      !!< hopefully to be deprecated soon
-      !local variables
-      integer :: i
-
-      if(associated(bct1w_mem)) deallocate(bct1w_mem)
-      if(associated(bcu1w_mem)) deallocate(bcu1w_mem)
-      if(associated(bcv1w_mem)) deallocate(bcv1w_mem)
-      if(associated(bcw1w_mem)) deallocate(bcw1w_mem)
-
-      allocate(bcu1w_mem(nphase))
-      allocate(bcv1w_mem(nphase))
-      allocate(bcw1w_mem(nphase))
-      call nullify(bcu1w_mem)
-      call nullify(bcv1w_mem)
-      call nullify(bcw1w_mem)
-      if(ntsol>0) then
-         allocate(bct1w_mem(ntsol))
-         call nullify(bct1w_mem)
-         do i = 1, ntsol
-            if(associated( bct1w_mem(i)%ptr )) deallocate(bct1w_mem(i)%ptr)
-            allocate( bct1w_mem(i)%ptr(nobct(i)) )
-         end do
-      else
-         allocate(bct1w_mem(1))
-         allocate(bct1w_mem(1)%ptr(1))
-      end if
-
-      do i = 1, nphase
-         if(associated( bcu1w_mem(i)%ptr )) deallocate(bcu1w_mem(i)%ptr)
-         if(associated( bcv1w_mem(i)%ptr )) deallocate(bcv1w_mem(i)%ptr)
-         if(associated( bcw1w_mem(i)%ptr )) deallocate(bcw1w_mem(i)%ptr)
-         allocate( bcu1w_mem(i)%ptr(nobcu(i)) )
-         allocate( bcv1w_mem(i)%ptr(nobcv(i)) )
-         allocate( bcw1w_mem(i)%ptr(nobcw(i)) )
-      end do
-    end subroutine bcw_mem_allocation
-
-    subroutine nonfield_allocation()
-      !!< Allocate memory for things that aren't fields but need to exist in the fluids loop.
-      !!< Allocation status must be defined so that they can be initially deallocated to prevent
-      !!< memory leaks through adapts
-
-      if(allocated(STVPXX)) deallocate(STVPXX)
-      if(allocated(STVPYY)) deallocate(STVPYY)
-      if(allocated(STVPZZ)) deallocate(STVPZZ)
-      if(allocated(STVPYZ)) deallocate(STVPYZ)
-      if(allocated(STVPXZ)) deallocate(STVPXZ)
-      if(allocated(STVPXY)) deallocate(STVPXY)
-      if(allocated(YIELDF)) deallocate(YIELDF)
-      if(allocated(YIELDFOLD)) deallocate(YIELDFOLD)
-
-      if(SOLIDS.GT.0) then
-         allocate(STVPXX(TOTELE*NGI), STVPYY(TOTELE*NGI), STVPZZ(TOTELE*NGI), &
-              STVPYZ(TOTELE*NGI), STVPXZ(TOTELE*NGI), STVPXY(TOTELE*NGI), &
-              YIELDF(TOTELE*NGI), YIELDFOLD(TOTELE*NGI))
-         STVPXX = 0.0
-         STVPYY = 0.0
-         STVPZZ = 0.0
-         STVPYZ = 0.0
-         STVPXZ = 0.0
-         STVPXY = 0.0
-         YIELDF = 0.0
-         YIELDFOLD = 0.0
-      else
-         ALLOCATE(STVPXX(0), STVPYY(0), STVPZZ(0), &
-              STVPYZ(0), STVPXZ(0), STVPXY(0), &
-              YIELDF(0), YIELDFOLD(0))
-      end if
-
-    end subroutine nonfield_allocation
 
     subroutine set_simulation_start_times()
       !!< Set the simulation start times
