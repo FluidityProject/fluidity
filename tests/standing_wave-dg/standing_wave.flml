@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">standing_wave</string_value>
@@ -49,48 +49,6 @@
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
-    <ocean_boundaries>
-      <top_surface_ids>
-        <integer_value shape="1" rank="1">1</integer_value>
-      </top_surface_ids>
-      <bottom_surface_ids>
-        <integer_value shape="1" rank="1">2</integer_value>
-      </bottom_surface_ids>
-      <scalar_field name="DistanceToTop" rank="0">
-        <diagnostic>
-          <algorithm name="Internal" material_phase_support="multiple"/>
-          <mesh name="CoordinateMesh"/>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-        </diagnostic>
-      </scalar_field>
-      <scalar_field name="DistanceToBottom" rank="0">
-        <diagnostic>
-          <algorithm name="Internal" material_phase_support="multiple"/>
-          <mesh name="CoordinateMesh"/>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-        </diagnostic>
-      </scalar_field>
-    </ocean_boundaries>
   </geometry>
   <io>
     <dump_format>
@@ -167,9 +125,7 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="mg">
-            <vertical_lumping/>
-          </preconditioner>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
@@ -349,6 +305,23 @@
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
+    <scalar_field name="FreeSurface" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <mesh_adaptivity>
     <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE"/>
