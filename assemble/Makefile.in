@@ -53,7 +53,7 @@ endif
 OBJS    = advdif.o \
 	Assnav.o    \
 	Assemble_Boundary_Conditions.o    Assemble_Buoyancy.o    \
-	GetCriticalDt.o Momentum_Diagnostic_Fields.o \
+	Momentum_Diagnostic_Fields.o \
 	Conacc.o    \
 	Limit_Gradient.o Momentum_Equation.o Momentum_CG.o \
 	Momentum_Matrix_CG_2D.o    Momentum_Matrix_CG_3D.o    \
@@ -170,7 +170,6 @@ hart3d_allsorts.o: shape.o
 shape.o: 
 reduced_model.o: Shape_Transformations.o Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
-GetCriticalDt.o: Shape_Transformations.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
    Rotated_Boundary_Conditions.o
 Assemble_CMC.o: hart3d_allsorts.o Multimaterials.o  Shape_Transformations.o
