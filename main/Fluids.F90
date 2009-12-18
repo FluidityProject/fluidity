@@ -84,7 +84,6 @@ module fluids_module
   use legacy_boundary_conditions
   use redfil_module
   use solid_update
-  use assemble_buoyancy
   use write_triangle
   use biology
   use momentum_equation

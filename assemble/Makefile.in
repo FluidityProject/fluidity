@@ -71,9 +71,6 @@ OBJS    = advdif.o \
 	Momentum_Source.o \
 	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
 	State_Matrices.o \
-	Solve_Momentum_CG.o \
-	mulinv.o \
-	solmom.o \
 	Drag.o    \
 	Multimaterials.o Diagnostic_fields_wrapper.o Diagnostic_Fields_Matrices.o Vorticity_Diagnostics.o \
 	Compressible_Projection.o \
