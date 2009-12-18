@@ -29,7 +29,7 @@
   
 module traffic
 
-  use picker
+  use pickers
   use FLDebug
   use parallel_tools
   use spud
@@ -1330,7 +1330,6 @@ contains
       use FLDebug
       use parallel_tools
       use generic_interface 
-      use pickers
       
       implicit none
 
