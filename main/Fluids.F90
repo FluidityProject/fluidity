@@ -91,7 +91,6 @@ module fluids_module
   use biology
   use momentum_equation
   use timeloop_utilities
-  use navsto_module
   use free_surface_module
   use spaerr_module
   use legacy_field_lists
