@@ -173,7 +173,7 @@ Solenoidal_interpolation.o: Assemble_CMC.o Momentum_Equation.o Divergence_Matrix
 Interpolation_manager.o: Assemble_Buoyancy.o
 Discrete_Properties.o: Solenoidal_interpolation.o
 Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o Geostrophic_Pressure.o State_Matrices.o \
-   Rotated_Boundary_Conditions.o
+   Rotated_Boundary_Conditions.o LES_viscosity.o
 Momentum_Diagnostic_Fields.o: Multimaterials.o
 Mba2d_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
 Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
