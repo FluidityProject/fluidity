@@ -52,8 +52,7 @@ endif
 
 OBJS    = advdif.o \
 	Momentum_Diagnostic_Fields.o \
-	Limit_Gradient.o Momentum_Equation.o Momentum_CG.o \
-	getrdr.o \
+	Momentum_Equation.o Momentum_CG.o \
 	hart3d_allsorts.o       \
 	momsuf.o		\
 	poscmc.o    \
