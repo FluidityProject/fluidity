@@ -335,8 +335,8 @@ contains
     end if
 
     call enforce_discrete_properties(state)
+    call get_option("/timestepping/timestep", dt)
     if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
-       call get_option("/timestepping/timestep", dt)
        call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
        call set_option("/timestepping/timestep", dt)
     end if
@@ -354,7 +354,6 @@ contains
 
     call initialise_field_lists_from_options(state, ntsol)
     call initialise_state_phase_lists_from_options()
-
 
     ! We get back here after a mesh adapt with remesh = .false.
 99771 CONTINUE
@@ -732,7 +731,7 @@ contains
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
 
-             ITP=TPHASE(IT)
+             ITP=STATE2PHASE_INDEX(FIELD_STATE_LIST(IT))
 
              ! do we have the generic length scale vertical turbulence model - search in first material_phase only at the moment
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
@@ -782,14 +781,14 @@ contains
 
                    ! Solve the DG form of the equations.
                    call solve_advection_diffusion_dg(field_name=field_name_list(it), &
-                        & state=state(tphase(it)))
+                        & state=state(state2phase_index(field_state_list(it))))
 
                 ELSEIF(have_option(trim(field_optionpath_list(it))//&
                      & "/prognostic/spatial_discretisation/finite_volume")) then
 
                    ! Solve the FV form of the equations.
                    call solve_advection_diffusion_fv(field_name=field_name_list(it), &
-                        & state=state(tphase(it)))
+                        & state=state(state2phase_index(field_state_list(it))))
 
                 ELSEIF(have_option(trim(field_optionpath_list(it))//&
                      & "/prognostic/spatial_discretisation/control_volumes")) then
@@ -802,7 +801,7 @@ contains
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
-                   call solve_field_equation_cg(field_name_list(it), state(tphase(it)), dt)
+                   call solve_field_equation_cg(field_name_list(it), state(state2phase_index(field_state_list(it))), dt)
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."
