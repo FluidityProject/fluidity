@@ -44,11 +44,6 @@
     <mesh name="GeostrophicPressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>

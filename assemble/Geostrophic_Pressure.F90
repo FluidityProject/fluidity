@@ -74,6 +74,10 @@ module geostrophic_pressure
   logical, save :: include_buoyancy = .true.
   logical, save :: include_coriolis = .true.
   integer, save :: reference_node = 0
+  
+  interface eval_field
+    module procedure eval_field_scalar
+  end interface eval_field
     
 contains
   
@@ -118,6 +122,7 @@ contains
       & velocity_name = "NonlinearVelocity", assemble_matrix = assemble_matrix, include_buoyancy = include_buoyancy, include_coriolis = include_coriolis, &
       & reference_node = reference_node)
 
+    ! Enforce zero point coordinate (if selected)
     allocate(zero_coord(mesh_dim(lgp)))
     call get_option(trim(path) // "/zero_coord", zero_coord, stat = stat)
     if(stat == SPUD_NO_ERROR) then
@@ -618,7 +623,7 @@ contains
     call picker_inquire(positions, coord, ele, local_coord = local_coord)
     
     if(ele > 0) then
-      zp_val = dot_product(ele_val(s_field, ele), local_coord)
+      zp_val = eval_field(ele, s_field, positions, local_coord)
     else
       zp_val = 0.0
     end if
@@ -628,6 +633,41 @@ contains
     call addto(s_field, -zp_val)
 
   end subroutine set_zero_point
+  
+  function eval_field_scalar(ele, s_field, positions, local_coord) result(val)
+    integer, intent(in) :: ele
+    type(scalar_field), intent(inout) :: s_field
+    type(vector_field), intent(in) :: positions
+    real, dimension(ele_loc(positions, ele)), intent(in) :: local_coord
+    
+    real :: val
+    
+    integer :: i
+    real, dimension(ele_loc(s_field, ele)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => ele_shape(s_field, ele)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    val = dot_product(ele_val(s_field, ele), n)
+      
+  end function eval_field_scalar
 
   subroutine subtract_given_geostrophic_pressure_gradient(gp, mom_rhs, state)
     !!< Subtract the gradient of the GeostrophicPressure from the momentum
