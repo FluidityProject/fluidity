@@ -1958,62 +1958,6 @@ SUBROUTINE COMSCA(PARA,PROCNO,NPROCS, TOFIL,MXNTSO,MXNPHA, &
 
 END SUBROUTINE COMSCA
 
-subroutine get_ntsol(ntsol)
-  integer, intent(out) :: ntsol
-  integer :: nphases,nfields,ncars,p,f
-  character(len=FIELD_NAME_LEN) :: tmpstring
-  logical :: aliased, pressure, density
-
-  ntsol = 0
-
-  nphases = option_count('/material_phase')  
-  do p = 0, nphases-1
-     nfields = option_count('/material_phase[' &
-          //int2str(p)//']/scalar_field')
-     do f = 0, nfields-1
-        aliased = have_option('/material_phase['// &
-             int2str(p)//']/scalar_field['//int2str(f)//']/aliased')
-        call get_option('/material_phase['// &
-             int2str(p)//']/scalar_field['//int2str(f)//']/name', tmpstring)
-        pressure = (trim(tmpstring)=='Pressure')
-        density = (trim(tmpstring)=='Density')
-
-        if ((.not.aliased).and.(.not.pressure).and.(.not.density)) then
-          ntsol = ntsol + 1
-        end if
-     end do
-     ! prognostic scalar fields for Mellor Yamada:
-     if (have_option('/material_phase[' &
-          //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::KineticEnergy/prognostic')) then
-        ntsol=ntsol + 1
-     end if
-     if (have_option('/material_phase[' &
-          //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::TurbulentLengthScalexKineticEnergy/prognostic')) then
-        ntsol=ntsol + 1
-     end if
-     if (have_option('/material_phase[' &
-          //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic')) then
-        ntsol=ntsol + 1
-     end if
-     if (have_option('/material_phase[' &
-          //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic')) then
-        ntsol=ntsol + 1
-     end if
-     ! Prognostic sediment fields.
-     ntsol=ntsol+option_count('/material_phase[' &
-          //int2str(p)//']/sediment/sediment_class')
-  end do
-  
-  ! tracers for traffic modelling
-  if(have_option('traffic_model'))then
-     if(have_option('traffic_model/scalar_field::TrafficTracerTemplate'))then
-        call get_option('/traffic_model/number_of_vehicles',ncars)
-        ntsol=ntsol+ncars
-     endif
-  endif
-  
-end subroutine get_ntsol
-
 subroutine get_nphase(nphase)
   integer, intent(out) :: nphase
   integer :: nmaterial_phases,p

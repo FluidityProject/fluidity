@@ -315,11 +315,6 @@ SUBROUTINE REDFIL(&
   
   ewrite(1, *) "In redfil"
 
-  
-  call get_ntsol(ntsol)
-
-  call initialise_field_lists_from_options(state, ntsol)
-  call initialise_state_phase_lists_from_options()
 
   NProcs = GetNProcs()
   PARA=0

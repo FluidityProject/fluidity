@@ -138,7 +138,6 @@ contains
          & VERSIO,&
          & NPRESS,NPROPT,&
          & RADISO,&
-         & geostrophic_solver_option,&
                                 ! Phase momentum equations...
          & MULPA(MXNPHA), CGSOLQ(MXNPHA),GMRESQ(MXNPHA),&
          & MIXMAS(MXNPHA),UZAWA(MXNPHA),&
@@ -205,7 +204,7 @@ contains
     type(integer_vector), pointer, dimension(:), save :: bcw2_mem => null()
 
     ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
-    INTEGER, SAVE :: PARA,NPROCS,PROCNO
+    INTEGER, SAVE :: PROCNO
     INTEGER, SAVE :: NSOGRASUB=0
     LOGICAL, SAVE :: GOTBOY
 
@@ -254,23 +253,6 @@ contains
     INTEGER, PARAMETER :: MXNSOU=3000
     INTEGER, SAVE :: FIESOU(MXNSOU)
 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     SALINITY STUFF FOR OCEAN MODELLING - cjc
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-    real, save ::  ztop
-    !cccccIDENTITY FOR SALTcccccccccc
-    integer, parameter :: ident_sal = 42
-    logical, save :: gotvis
-    !cccccccccccccccccccccccccccccccc
-    logical, save :: got_top_bottom_distance
-    logical, save :: got_top_bottom_markers
-
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     Stuff for ramped boundary conditions - cjc
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    logical, save :: copyu, copyv, copyw
-
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
@@ -285,10 +267,7 @@ contains
     LOGICAL, SAVE :: have_solids
 
     ! Pointers for scalars and velocity fields
-    type(scalar_field) :: Tracer
-    type(vector_field) :: Velocity,GridVelocity
-    type(scalar_field) :: VelocityX, VelocityY, VelocityZ    
-    type(scalar_field) :: GridVelocityX, GridVelocityY, GridVelocityZ
+    type(vector_field) :: Velocity
     type(scalar_field), pointer :: sfield
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -310,7 +289,6 @@ contains
     !     mkcomp <= 0... incompressible
     !     mkcomp = 3... compressible scheme using modified gradient operator
 
-    INTEGER, SAVE :: OITINOI            !remembers initial itinoi and defaults back at next timestep
     INTEGER, SAVE :: adapt_count
 
     logical, dimension(MXNPHA), save :: phase_uses_new_code_path=.false.
@@ -346,28 +324,12 @@ contains
 
     adapt_count = 0
 
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    !     Flags to say if we need to copy u,v,w - cjc
-
-    copyu = .true.
-    copyv = .true.
-    copyw = .true.
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
     DT=0.0
     REMESH=.FALSE.
 
     NPRESS=1
     NPROPT=1
 
-    ! Initialise PVM and find PROCNO, PROCNO & NPROCS ***********
-    ! AND initialise some other parallel stuff.
-    IF(IsParallel()) THEN
-       PARA = 1
-    ELSE
-       PARA = 0
-    END IF
-    NPROCS = GetNProcs()
     PROCNO = GetProcNo()
 
     ! Read state from .flml file
@@ -405,11 +367,19 @@ contains
 
     call compute_uses_old_code_path(uses_old_code_path)
     if(uses_old_code_path) FLExit("The old code path is dead.")
-
+    
+    ! Calculate the number of scalar fields to solve for and their correct
+    ! solve order taking into account dependencies.
+    call get_ntsol(ntsol)
+    
+    call initialise_field_lists_from_options(state, ntsol)
+    call initialise_state_phase_lists_from_options()
+    
     !     populate state or adapt_state_new_options has created a
     !     'populated' state as if read from disk
     !     so we continue as from the start:
     !     redfil() reads from state
+
 
     CALL REDFIL(&
                                 ! THE VARIABLES DEFINED IN COMSCA(1ST LINES IS USED IN)
@@ -556,7 +526,6 @@ contains
        
        if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
 
-       GETTAN=.TRUE.
        remesh = .false.
 
        GOTO 99771
@@ -564,7 +533,6 @@ contains
        if (admesh) then
           call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
        end if
-       got_top_bottom_markers=have_option('/geometry/ocean_boundaries')
 
     ENDif
     ! REMESHING ************************************************
@@ -581,21 +549,11 @@ contains
        FLAbort("You must specify a dump format and it must be vtk")
     end if
 
-    if (have_option('/material_phase[0]/scalar_field::FreeSurface')) then
-       !solve for free surface
-       geostrophic_solver_option=2
-    else
-       !1== use mulgridvert to solve pressure and balanced pressure
-       !0== don't, which is what we want as solving is done by PETSc
-       geostrophic_solver_option=0
-    end if
-
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
-    got_top_bottom_distance=has_scalar_field(state(1), "DistanceToTop")
 
-    if (got_top_bottom_distance) then
-       if (.not. got_top_bottom_markers) then
+    if (has_scalar_field(state(1), "DistanceToTop")) then
+       if (.not. have_option('/geometry/ocean_boundaries')) then
           FLAbort("There are no top and bottom boundary markers.")
        end if
        call CalculateTopBottomDistance(state(1), cograx)
@@ -653,9 +611,6 @@ contains
        end if
     end do
 
-    ! itinoi loop modification - allows it to dynamically update
-    OITINOI = ITINOI
-
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -674,8 +629,6 @@ contains
        end if
 
        !     solidity -------------------------------------------
-       !     itinoi loop modification - allows it to dynamically update
-       ITINOI = OITINOI
        ITS = 0
        !     ----------------------------------------- added by crgw 23/06/06
        total_its_count = 0
@@ -747,11 +700,6 @@ contains
              call copy_from_stored_values(state, "Old")
           ENDIF ! if(its.gt.1)
 
-
-          ! needed for rotated boundary conditions
-          !nrtdr=nonods*3
-          !if (d3) nrtdr=nonods*6
-
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008
           if (have_option("/imported_solids/calculate_drag_on_surface")) then
@@ -760,13 +708,6 @@ contains
 
           !     Addition for reading solids in - jem  02-04-2008
           if(have_solids) call solid_configuration(state(ss:ss),its,itinoi)
-
-          !Setup tests for solid forces
-          !  if(have_option('/imported_solids/tests')) then
-          !     call get_option('/imported_solids/tests/ntests',nstests)             
-          !     DO itest=1,nstests                
-          !     END DO
-          !  end if
 
           !Explicit ALE ------------   jem 21/07/08         
           if (use_ale) then 

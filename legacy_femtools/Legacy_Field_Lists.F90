@@ -47,7 +47,8 @@ module legacy_field_lists
 
   private
   public :: field_name_list, field_list, field_optionpath_list,&
-       & field_state_list, initialise_field_lists_from_options
+       & field_state_list, initialise_field_lists_from_options,&
+       & get_ntsol
 contains
 
   subroutine initialise_field_lists_from_options(state, ntsol)
@@ -229,32 +230,62 @@ contains
           
   end subroutine initialise_field_lists_from_options
     
-  subroutine initialise_field_lists_from_file(ntsol, ident, tphase)
-  integer, intent(in):: ntsol
-  integer, dimension(1:ntsol), intent(in):: ident, tphase
-  integer :: i
-    
-    logical, save:: initialised=.false.
-    
-    ! if called for the second time return immediately
-    if (initialised) return
-    
-    allocate( field_name_list(ntsol), &
-      field_state_list(ntsol), &
-      field_optionpath_list(ntsol) )
-      
-    field_name_list = ident_name(ident)
-    ! field_optionpath_list is obviously not filled in
-    field_state_list= tphase
 
-    do i=1,ntsol
-      field_optionpath_list(i) = "/material_phase[" // int2str(tphase(i) - 1) // "]/" // &
-                       & "scalar_field::" // ident_name(ident(i))
+  subroutine get_ntsol(ntsol)
+    integer, intent(out) :: ntsol
+    integer :: nphases,nfields,ncars,p,f
+    character(len=FIELD_NAME_LEN) :: tmpstring
+    logical :: aliased, pressure, density
+
+    ntsol = 0
+
+    nphases = option_count('/material_phase')  
+    do p = 0, nphases-1
+       nfields = option_count('/material_phase[' &
+            //int2str(p)//']/scalar_field')
+       do f = 0, nfields-1
+          aliased = have_option('/material_phase['// &
+               int2str(p)//']/scalar_field['//int2str(f)//']/aliased')
+          call get_option('/material_phase['// &
+               int2str(p)//']/scalar_field['//int2str(f)//']/name', tmpstring)
+          pressure = (trim(tmpstring)=='Pressure')
+          density = (trim(tmpstring)=='Density')
+
+          if ((.not.aliased).and.(.not.pressure).and.(.not.density)) then
+             ntsol = ntsol + 1
+          end if
+       end do
+       ! prognostic scalar fields for Mellor Yamada:
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::KineticEnergy/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/Mellor_Yamada/scalar_field::TurbulentLengthScalexKineticEnergy/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       ! Prognostic sediment fields.
+       ntsol=ntsol+option_count('/material_phase[' &
+            //int2str(p)//']/sediment/sediment_class')
     end do
 
-    initialised = .true.
-    
-  end subroutine initialise_field_lists_from_file
+    ! tracers for traffic modelling
+    if(have_option('traffic_model'))then
+       if(have_option('traffic_model/scalar_field::TrafficTracerTemplate'))then
+          call get_option('/traffic_model/number_of_vehicles',ncars)
+          ntsol=ntsol+ncars
+       endif
+    endif
+
+  end subroutine get_ntsol
 
 
 end module legacy_field_lists
