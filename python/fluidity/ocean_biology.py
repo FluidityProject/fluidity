@@ -58,7 +58,7 @@ def pznd(state, parameters):
         Q=N_n/(k_N+N_n)
 
         # Total phytoplankton growth rate.
-        P_r=J*P_n*Q
+        R_P=J*P_n*Q
 
         # Zooplankton grazing of phytoplankton.
         G_P=(g * p_P * P_n**2 * Z_n)/(k**2 + p_P*P_n**2 + p_D*D_n**2)
@@ -75,16 +75,16 @@ def pznd(state, parameters):
         # Detritus remineralisation.
         De_D=mu_D*D_n
 
-        P_source.addto(n, P_r - G_P - De_P)
+        P_source.addto(n, R_P - G_P - De_P)
         
         if PP:
-            PP.set(n, P_r)
-	if PG:
-	    PG.set(n, G_P)
+            PP.set(n, R_P)
+        if PG:
+            PG.set(n, G_P)
 
         Z_source.addto(n, gamma*beta*(G_P+G_D) - De_Z)
         
-        N_source.addto(n, -P_r + De_D + (1-gamma)*beta*(G_P+G_D))
+        N_source.addto(n, -R_P + De_D + (1-gamma)*beta*(G_P+G_D))
 
         D_source.addto(n, -De_D + De_P + De_Z +(1-beta)*G_P - beta*G_D)                     
 
