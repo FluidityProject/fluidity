@@ -33,7 +33,6 @@ module sparsity_patterns_meshes
   use fields
   use state_module
   use fldebug
-  use flcomms_module
   use global_parameters, only : FIELD_NAME_LEN
   
   implicit none

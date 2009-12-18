@@ -33,7 +33,6 @@ module preprocess_module
   use fields
   use state_module
   use fldebug
-  use flcomms_module
   use global_parameters, only : halo_tag, halo_tag_p
   use sparsity_patterns_meshes
   implicit none

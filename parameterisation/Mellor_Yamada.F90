@@ -35,7 +35,6 @@ module mellor_yamada
   use fields
   use equation_of_state
   use rotated_boundary_conditions_legacy
-  use flcomms_module
   use sml
   use detnlxr_module
   use legacy_tensor_fields

@@ -52,7 +52,6 @@ module populate_state_module
   use transform_elements
   use parallel_tools
   use boundary_conditions_from_options
-  use flcomms_module
   use nemo_states_module
 
   implicit none

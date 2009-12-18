@@ -21,7 +21,6 @@ module adaptive_interpolation_module
   use unittest_tools
   use spud
   use quicksort
-  use flcomms_module
   use global_parameters, only : halo_tag
   use intersection_finder_module
   use linked_lists

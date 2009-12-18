@@ -36,7 +36,6 @@ module solvers
   use sparse_tools_petsc
   use sparse_matrices_fields
   use Fields
-  use flcomms_module
   use Global_Parameters
   use spud
   use halos

@@ -50,7 +50,6 @@ module field_equations_cv
   use solvers, only: petsc_solve
   use transform_elements, only: transform_cvsurf_to_physical, &
                                 transform_cvsurf_facet_to_physical
-  use flcomms_module
   use parallel_tools, only: getprocno
   use halos
   use field_options, only: get_coordinate_field, convergence_norm_integer

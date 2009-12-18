@@ -36,7 +36,6 @@
     use sparse_tools_petsc
     use Sparse_matrices_fields
     use Fields_Base
-    use flcomms_module
     use Global_Parameters
     use spud
     use halos

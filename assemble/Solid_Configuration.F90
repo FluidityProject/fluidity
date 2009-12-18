@@ -1670,11 +1670,7 @@ contains
     particle_mass=0.0
     total_volume=0.0
 
-    if(IsParallel()) then
-       call flcomms_get_nowned_nodes(1, nprivatenodes)
-    else
-       nprivatenodes=node_count(positions)
-    end if
+    nprivatenodes = nowned_nodes(positions)
 
     ewrite(0,*)'Private Nodes: ',nprivatenodes
     do ipart=1,nparticles

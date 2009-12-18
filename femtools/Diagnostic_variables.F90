@@ -53,7 +53,6 @@ module diagnostic_variables
   use eventcounter
   use pickers
   use sparse_tools
-  use flcomms_module  
   use mixing_statistics
   use c_interfaces
 !  use checkpoint

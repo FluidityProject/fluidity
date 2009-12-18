@@ -24,7 +24,6 @@ module conservative_interpolation_module
   use vtk_interfaces
   use unittest_tools
   use spud
-  use flcomms_module
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use intersection_finder_module
   use linked_lists

@@ -33,7 +33,6 @@ module redfil_module
   use state_module
   use fields
   use spud
-  use flcomms_module
   use global_parameters, only : FIELD_NAME_LEN, phase2state_index, &
        state2phase_index
   use Legacy_Boundary_Conditions
@@ -436,13 +435,8 @@ SUBROUTINE REDFIL(&
   fredop = node_count(P_mesh)
   mloc = P_mesh%shape%loc
 
-  if(isparallel()) then
-    nnodp = get_nowned_nodes(halo_tag)
-    nnodpp = get_nowned_nodes(halo_tag_p)
-  else
-    nnodp = nonods
-    nnodpp = fredop
-  end if
+  nnodp = nowned_nodes(U_mesh)
+  nnodpp = nowned_nodes(P_mesh)
 
   TELEDI = 0
 

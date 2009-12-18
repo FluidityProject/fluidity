@@ -47,7 +47,7 @@ module parallel_fields
   private
 
   public :: halo_communicator, element_owned, node_owned, assemble_ele, &
-    & surface_element_owned
+    & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
   
@@ -79,6 +79,11 @@ module parallel_fields
     module procedure halo_communicator_mesh, halo_communicator_scalar, &
       & halo_communicator_vector, halo_communicator_tensor
   end interface halo_communicator
+  
+  interface nowned_nodes
+    module procedure nowned_nodes_mesh, nowned_nodes_scalar, &
+      & nowned_nodes_vector, nowned_nodes_tensor
+  end interface nowned_nodes
 
 contains
   
@@ -543,5 +548,48 @@ contains
     end subroutine create_owner_map_ele
 
   end function owner_map
+  
+  pure function nowned_nodes_mesh(mesh) result(nodes)
+    type(mesh_type), intent(in) :: mesh
+    
+    integer :: nodes
+    
+    integer :: nhalos
+    
+    nhalos = halo_count(mesh)
+    if(nhalos > 0) then
+      nodes = halo_nowned_nodes(mesh%halos(nhalos))
+    else
+      nodes = node_count(mesh)
+    end if
+  
+  end function nowned_nodes_mesh
+  
+  pure function nowned_nodes_scalar(s_field) result(nodes)
+    type(scalar_field), intent(in) :: s_field
+    
+    integer :: nodes
+    
+    nodes = nowned_nodes(s_field%mesh)
+  
+  end function nowned_nodes_scalar
+  
+  pure function nowned_nodes_vector(v_field) result(nodes)
+    type(vector_field), intent(in) :: v_field
+    
+    integer :: nodes
+    
+    nodes = nowned_nodes(v_field%mesh)
+  
+  end function nowned_nodes_vector
+  
+  pure function nowned_nodes_tensor(t_field) result(nodes)
+    type(tensor_field), intent(in) :: t_field
+    
+    integer :: nodes
+    
+    nodes = nowned_nodes(t_field%mesh)
+  
+  end function nowned_nodes_tensor
 
 end module parallel_fields

@@ -38,9 +38,9 @@ module mixing_statistics
   use futils
   use fetools
   use fefields
+  use halos
   use MeshDiagnostics
   use spud
-  use flcomms_module  
   implicit none
 
   interface heaviside_integral
@@ -151,7 +151,7 @@ contains
   subroutine heaviside_integral_new(f_mix_fraction, sfield, Xfield, mixing_stats_count)
 
     real, dimension(:), intent(out) :: f_mix_fraction
-    type(scalar_field), target, intent(in) :: sfield
+    type(scalar_field), target, intent(inout) :: sfield
     type(vector_field), target, intent(in) :: Xfield
     integer, intent(in) :: mixing_stats_count
 
@@ -198,7 +198,7 @@ contains
           call heaviside_integral(integral=f_mix_fraction(j), scalar_field=sfield%val, &
                &heavi_value = mixing_bin_bounds(j), x=x, y=y, z=z, nonods = nonods, &
                &totele=totele, nloc=nloc, ndglno=ndglno, tolerance&
-               &=tolerance)
+               &=tolerance, mesh=sfield%mesh)
        end do
 
        deallocate(mixing_bin_bounds)
@@ -253,9 +253,10 @@ contains
   end subroutine heaviside_integral_new
 
   subroutine heaviside_integral_old(integral,scalar_field,heavi_value, &
-       x,y,z,nonods,totele,nloc,ndglno,tolerance)
+       x,y,z,nonods,totele,nloc,ndglno,tolerance, mesh)
     real, intent(out)::integral
-    real, intent(in)::scalar_field(nonods), heavi_value
+    real, intent(inout) :: scalar_field(nonods)
+    real, intent(in) :: heavi_value
     integer, intent(in)::nonods,totele,nloc,ndglno(totele*nloc)
     real, intent(in)::x(nonods),y(nonods),z(nonods)
     !c
@@ -265,8 +266,7 @@ contains
     integer ii,ele,iloc,globi
     real dd,a1,a2
     integer counter1,counter2,counter3,counter4,counter5
-
-    integer myrank, element_owner
+    type(mesh_type), intent(in) :: mesh
 
     real, intent(in), optional :: tolerance
     real :: l_tolerance
@@ -277,8 +277,9 @@ contains
        l_tolerance = epsilon(0.0)
     end if
 
-    myrank = GetRank()
-    call flcomms_update(1, scalar_field, 1, 1, 0)
+    if(halo_count(mesh) > 0) then
+      call halo_update(mesh%halos(1), scalar_field)
+    end if
 
     if(nloc.eq.4) then ! this only works for linear tets
        counter1=0
@@ -290,10 +291,7 @@ contains
 
        do ele = 1,totele
           ! Check if this processor is integrating this element
-          element_owner = element_owner_rank(halo_tag_p, ele)
-          if(element_owner/=myrank) then
-             cycle
-          end if
+          if(.not. element_owned(mesh, ele)) cycle
 
           !c          print *,'#####################'
           !c          print *,'ele',ele

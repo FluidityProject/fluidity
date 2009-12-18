@@ -32,7 +32,6 @@ module traffic
   use picker
   use FLDebug
   use parallel_tools
-  use flcomms_module
   use spud
   use global_parameters, only: option_path_len, acctim, dt, halo_tag
   use state_module
@@ -92,11 +91,7 @@ contains
     totele=ele_count(s_field)
     
     nonods = s_field%mesh%nodes
-    if ( IsParallel() ) then
-       nnodp=get_nowned_nodes(halo_tag)
-    else
-       nnodp=nonods
-    end if
+    nnodp = nowned_nodes(s_field)
 
     do isou=1,cars
 
@@ -177,11 +172,7 @@ contains
     sourceZ = extract_scalar_field(source, 3)
 
     nonods = source%mesh%nodes
-    if ( IsParallel() ) then
-       nnodp=get_nowned_nodes(halo_tag)
-    else
-       nnodp=nonods
-    end if
+    nnodp = nowned_nodes(source)
     
     lfiem_s=.true.
     

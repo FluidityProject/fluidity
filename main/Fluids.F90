@@ -100,7 +100,6 @@ module fluids_module
   use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential
   use discrete_properties_module
-  use flcomms_module
   use gls
   use halos
   use memory_diagnostics
@@ -1018,10 +1017,6 @@ contains
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
-
-    if(isparallel()) then
-       ewrite(1, *) "Halos registered in halo manager at simulation end: ", halo_registered_count()
-    end if
 
   contains
 

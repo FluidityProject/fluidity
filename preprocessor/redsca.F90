@@ -33,7 +33,6 @@ module redsca_module
   use state_module
   use fetools
   use spud
-  use flcomms_module
   use fldebug
   use global_parameters, only : halo_tag, halo_tag_p
 
@@ -54,14 +53,6 @@ contains
     
     !     state/options stuff -- cjc
     integer :: mat, n_pressure, tmpint, stat
-
-    if(IsParallel()) then
-       nnodp = get_nowned_nodes(halo_tag)
-       nnodpp = get_nowned_nodes(halo_tag_p)
-    else
-       nnodp = 0
-       nnodpp = 0
-    end if
 
     NDPSET = 0 ! to avoid it being unitialised when there's no prognostic pressure
     n_pressure = option_count("/material_phase/scalar_field::Pressure/prognostic")
