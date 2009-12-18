@@ -64,7 +64,6 @@ OBJS    = advdif.o \
 	qmesh.o        spaerr.o \
 	roctrt.o    geoeli1p.o		\
 	shape.o     \
-	Surface_Integration.o  \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
 	Time_dependent_t_source.o \
@@ -77,7 +76,7 @@ OBJS    = advdif.o \
 	MeshMovement.o \
 	traffic.o \
 	Solid_Update.o Field_Equations_CV.o Assemble_CMC.o \
-	Solid_assembly.o Solidity.o sdetnx.o \
+	Solid_assembly.o Solidity.o  \
 	Momentum_Source.o \
 	Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
 	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
@@ -88,7 +87,7 @@ OBJS    = advdif.o \
 	mulinv.o \
 	solmom.o \
 	solnav.o \
-	Drag.o    diagnostic_body_drag.o \
+	Drag.o    \
 	Multimaterials.o Diagnostic_fields_wrapper.o Diagnostic_Fields_Matrices.o Vorticity_Diagnostics.o \
 	Compressible_Projection.o \
 	Vertical_Extrapolation.o Biology.o \
@@ -192,8 +191,6 @@ Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
 State_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o
 Vorticity_Diagnostics.o: Coriolis.o
-Adv_Phase.o: Surface_Integration.o
-diagnostic_body_drag.o: Surface_Integration.o
 OceanSurfaceForcing.o: Vertical_Extrapolation.o
 Geostrophic_Pressure.o: Momentum_DG.o Petsc_Solve_State.o
 Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
@@ -207,8 +204,6 @@ Solenoidal_interpolation.o: Assemble_CMC.o Momentum_Equation.o Divergence_Matrix
 
 Interpolation_manager.o: Assemble_Buoyancy.o
 Discrete_Properties.o: Solenoidal_interpolation.o
-sdetnx.o: Shape_Transformations.o
-Surface_Integration.o: sdetnx.o
 Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o Geostrophic_Pressure.o State_Matrices.o \
    Rotated_Boundary_Conditions.o
 Momentum_Diagnostic_Fields.o: Multimaterials.o
