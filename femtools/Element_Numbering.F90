@@ -1326,7 +1326,7 @@ contains
   function face_local_num_no_int(nodes, ele_num)
     ! This function exists only to make interior in effect an optional
     ! argument. 
-    integer, dimension(3), intent(in) :: nodes
+    integer, dimension(:), intent(in) :: nodes
     type(ele_numbering_type), intent(in) :: ele_num
     !output variable
     integer, dimension(face_num_length(ele_num, interior=.false.)) ::&
@@ -1344,14 +1344,14 @@ contains
     !
     ! The numbers returned are those for the element numbering ele_num and
     ! they are in the order given by the order in nodes.
-    integer, dimension(3), intent(in) :: nodes
+    integer, dimension(:), intent(in) :: nodes
     type(ele_numbering_type), intent(in) :: ele_num
     logical, intent(in) :: interior
 
     integer, dimension(face_num_length(ele_num,interior)) :: face_local_num_int
 
     integer, dimension(4) :: l
-    integer :: i, j, k, cnt, j12, j13, inc12, inc13
+    integer :: i, j, k, cnt, j12, j13, inc12, inc13, tmp
     
     select case (ele_num%family)
     case (FAMILY_SIMPLEX)
@@ -1399,14 +1399,20 @@ contains
            l(i)=iand(nodes(1)-1, k)/k
            
            ! increment to go from node 1 to node 2: 0, -1 or +1
-           inc12=iand(nodes(2)-1, k)/k-l(i)
+           tmp=iand(nodes(2)-1, k)/k-l(i)
            ! remember the coordinate in which node 1 and 2 differ:
-           if (inc12/=0) j12=i
+           if (tmp /= 0) then
+             j12=i
+             inc12 = tmp
+           end if
 
-           ! increment to go from node 1 to node 2: 0, -1 or +1
-           inc13=iand(nodes(3)-1, k)/k-l(i)
-           ! remember the coordinate in which node 1 and 2 differ:
-           if (inc13/=0) j13=i
+           ! increment to go from node 1 to node 3: 0, -1 or +1
+           tmp=iand(nodes(3)-1, k)/k-l(i)
+           ! remember the coordinate in which node 1 and 3 differ:
+           if (tmp/=0) then
+             j13=i
+             inc13 = tmp
+           end if
            k=k*2
         end do
           
@@ -1420,25 +1426,25 @@ contains
         if (interior) then
            ! leave out boundary nodes
            do i=1, ele_num%degree-1
-              l(j12)=l(j12)+inc12
-              k=l(j13) ! save original value of node1
+              l(j13)=l(j13)+inc13
+              k=l(j12) ! save original value of node1
               do j=1, ele_num%degree-1
-                 l(j13)=l(j13)+inc13
+                 l(j12)=l(j12)+inc12
                  cnt=cnt+1
                  face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
               end do
-              l(j13)=k
+              l(j12)=k
            end do
         else
            do i=0, ele_num%degree
-              k=l(j13) ! save original value of node1
+              k=l(j12) ! save original value of node1
               do j=0, ele_num%degree
                  cnt=cnt+1
                  face_local_num_int(cnt)=ele_num%count2number(l(1), l(2), l(3))
-                 l(j13)=l(j13)+inc13
+                 l(j12)=l(j12)+inc12
               end do
-              l(j13)=k
-              l(j12)=l(j12)+inc12
+              l(j12)=k
+              l(j13)=l(j13)+inc13
            end do
         end if
         
