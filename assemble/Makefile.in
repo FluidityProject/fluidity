@@ -51,12 +51,10 @@ ADJOINTOBJS =   FsMom.o   sourceFS.o\
 endif
 
 OBJS    = advdif.o \
-	Assnav.o    \
 	Assemble_Boundary_Conditions.o    Assemble_Buoyancy.o    \
 	Momentum_Diagnostic_Fields.o \
 	Conacc.o    \
 	Limit_Gradient.o Momentum_Equation.o Momentum_CG.o \
-	Momentum_Matrix_CG_2D.o    Momentum_Matrix_CG_3D.o    \
 	getrdr.o \
 	hart3d_allsorts.o       \
 	momsuf.o		\
@@ -144,14 +142,6 @@ support.o: snapsvd.o spaerr.o Explicit_ALE.o
 traffic.o: qmesh.o
 Mba3d_Integration.o: Node_Locking.o qmesh.o Surface_Id_Interleaving.o
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
-Assnav.o: Momentum_Matrix_CG_3D.o \
-   Solid_assembly.o Pressure_Gradient_Matrix_Wrapper.o Momentum_Matrix_CG_2D.o \
-   Coriolis.o
-Momentum_Matrix_CG_2D.o: Limit_Gradient.o
-Momentum_Matrix_CG_3D.o: Legacy_CV_Numbering.o Legacy_CV_Shape_Functions.o \
-   Shape_Transformations.o mesh_connections.o \
-   hart3d_allsorts.o Limit_Gradient.o ctmult.o spaerr.o \
-   Coriolis.o LES_viscosity.o Shape_Transformations.o
 mesh_connections.o: Shape_Transformations.o
 Advection_Diffusion_CG.o: Upwind_Stabilisation.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
