@@ -48,7 +48,7 @@ module legacy_field_lists
   private
   public :: field_name_list, field_list, field_optionpath_list,&
        & field_state_list, initialise_field_lists_from_options,&
-       & get_ntsol
+       & get_ntsol, get_nphase
 contains
 
   subroutine initialise_field_lists_from_options(state, ntsol)
@@ -286,6 +286,26 @@ contains
     endif
 
   end subroutine get_ntsol
+
+  subroutine get_nphase(nphase)
+    integer, intent(out) :: nphase
+    integer :: nmaterial_phases,p
+
+    nphase = 0
+
+    nmaterial_phases = option_count('/material_phase')  
+    do p = 0, nmaterial_phases-1
+       if (have_option('/material_phase['//int2str(p)//']/vector_field::Velocity')) then
+          ! don't know if prescribed or diagnostic fields should be included in nphase but
+          ! suspect that for things like traffic they should be
+          ! definitely don't want aliased - crgw
+          if (.not.have_option('/material_phase['//int2str(p)//']/vector_field::Velocity/aliased')) then
+             nphase = nphase + 1
+          end if
+       end if
+    end do
+  end subroutine get_nphase
+
 
 
 end module legacy_field_lists

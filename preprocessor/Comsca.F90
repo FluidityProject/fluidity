@@ -1958,24 +1958,6 @@ SUBROUTINE COMSCA(PARA,PROCNO,NPROCS, TOFIL,MXNTSO,MXNPHA, &
 
 END SUBROUTINE COMSCA
 
-subroutine get_nphase(nphase)
-  integer, intent(out) :: nphase
-  integer :: nmaterial_phases,p
-
-  nphase = 0
-
-  nmaterial_phases = option_count('/material_phase')  
-  do p = 0, nmaterial_phases-1
-     if (have_option('/material_phase['//int2str(p)//']/vector_field::Velocity')) then
-        ! don't know if prescribed or diagnostic fields should be included in nphase but
-        ! suspect that for things like traffic they should be
-        ! definitely don't want aliased - crgw
-        if (.not.have_option('/material_phase['//int2str(p)//']/vector_field::Velocity/aliased')) then
-          nphase = nphase + 1
-        end if
-     end if
-  end do
-end subroutine get_nphase
 
   subroutine get_ndisot(thisfield, ndisot)
     character(len=*), intent(in) :: thisfield

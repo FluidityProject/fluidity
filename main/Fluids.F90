@@ -193,20 +193,18 @@ contains
          &  NNODRO, STOTEL
 
     !local memory for old style boundary conditions for NTSOL tracers
-    type(real_vector), pointer, dimension(:), save :: bct1_mem => null(), bct1w_mem => null()
+    type(real_vector), pointer, dimension(:), save :: bct1_mem => null()
     type(integer_vector), pointer, dimension(:), save :: bct2_mem => null()
     !local memory for old style boundary conditions for velocities
-    type(real_vector), pointer, dimension(:), save :: bcu1_mem => null(), bcu1w_mem => null()
-    type(real_vector), pointer, dimension(:), save :: bcv1_mem => null(), bcv1w_mem => null()
-    type(real_vector), pointer, dimension(:), save :: bcw1_mem => null(), bcw1w_mem => null()
+    type(real_vector), pointer, dimension(:), save :: bcu1_mem => null()
+    type(real_vector), pointer, dimension(:), save :: bcv1_mem => null()
+    type(real_vector), pointer, dimension(:), save :: bcw1_mem => null()
     type(integer_vector), pointer, dimension(:), save :: bcu2_mem => null()
     type(integer_vector), pointer, dimension(:), save :: bcv2_mem => null()
     type(integer_vector), pointer, dimension(:), save :: bcw2_mem => null()
 
     ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
     INTEGER, SAVE :: PROCNO
-    INTEGER, SAVE :: NSOGRASUB=0
-    LOGICAL, SAVE :: GOTBOY
 
 
     ! **** ENDOF VARIABLES USED IN REDFIL
@@ -221,32 +219,14 @@ contains
     character(len=666) :: option_buffer
     !     Status variable for option retrieval.
     integer :: option_stat
-    INTEGER, SAVE :: NCMCB
 
     REAL, SAVE :: CHANGE,CHAOLD
 
 
-    ! More pointers(to do with iteration & time stepping)
-
-    REAL, SAVE :: OLDDT
-    INTEGER, SAVE :: POISO2(MXNPHA)
-    INTEGER, SAVE :: IPHASE
-
     LOGICAL, SAVE :: REMESH
 
-    !c Pointers used in this memory
-    INTEGER, SAVE ::  ITFREEimp,NOBCTITFREEimp,ITS4
-    ! the disott of the free surface field (ident -29) or of balanced pressure (-2003)
-    ! used to binary decode into free surface options in geoeli1p()
-    integer freesdisott
-
-    INTEGER, SAVE :: IT,IT2,IP,ITP,ITS
-    integer it_KE, it_LKE, it_temp, it_MY_vis, it_MY_diff
-    INTEGER, SAVE :: I,II,IPN,IPF
-
-    ! The pointers for radiation ...
-    ! pointers for reals
-    INTEGER, SAVE :: NRTDR
+    INTEGER, SAVE :: IT,ITP,ITS
+    INTEGER, SAVE :: I
 
     ! FOR SOURCES...
     INTEGER, SAVE :: NSOUPT
@@ -362,19 +342,30 @@ contains
        call set_option("/timestepping/timestep", dt)
     end if
 
+    call get_option('/timestepping/nonlinear_iterations',ITINOI,&
+         & default=1)
+     MVMESH=have_option("/mesh_adaptivity/mesh_movement")
+     call get_option("/timestepping/current_time", ACCTIM)
+     call get_option("/timestepping/finish_time", LTIME)
+
+    ! Calculate the number of scalar fields to solve for and their correct
+    ! solve order taking into account dependencies.
+    call get_ntsol(ntsol)
+    call get_nphase(nphase)
+
+    call initialise_field_lists_from_options(state, ntsol)
+    call initialise_state_phase_lists_from_options()
+
+
     ! We get back here after a mesh adapt with remesh = .false.
 99771 CONTINUE
 
     call compute_uses_old_code_path(uses_old_code_path)
     if(uses_old_code_path) FLExit("The old code path is dead.")
     
-    ! Calculate the number of scalar fields to solve for and their correct
-    ! solve order taking into account dependencies.
-    call get_ntsol(ntsol)
     
-    call initialise_field_lists_from_options(state, ntsol)
-    call initialise_state_phase_lists_from_options()
-    
+
+
     !     populate state or adapt_state_new_options has created a
     !     'populated' state as if read from disk
     !     so we continue as from the start:
@@ -832,38 +823,30 @@ contains
           !
           ! Assemble and solve N.S equations.
           !
-          IF(NAV) THEN
 
-             !-------------------------------------------------------------
-             ! Call to porous_media_momentum (leading to multiphase)
-             ! jhs - 16/01/09
-             ! moved to here 04/02/09
-             if (have_option("/porous_media")) then
-                call porous_media_momentum(state,nonods)
-             end if
-
-             if (have_option("/traffic_model")) then
-                call traffic_source(state(1),timestep)
-                call traffic_density_update(state(1))
-             endif
-
-             ! This is where the non-legacy momentum stuff happens
-             ! a loop over state (hence over phases) is incorporated into this subroutine call
-             ! hence this lives outside the phase_loop
-             call momentum_loop(state, at_first_timestep=((timestep==1).and.(its==1)))
-
-             ! Add in externally defined momentum source
-             ! term. Don't even think about doing this with multiple
-             ! material phases !
-             call simple_source_python(state(1))             
+          !-------------------------------------------------------------
+          ! Call to porous_media_momentum (leading to multiphase)
+          ! jhs - 16/01/09
+          ! moved to here 04/02/09
+          if (have_option("/porous_media")) then
+             call porous_media_momentum(state,nonods)
+          end if
+          
+          if (have_option("/traffic_model")) then
+             call traffic_source(state(1),timestep)
+             call traffic_density_update(state(1))
+          endif
+          
+          ! This is where the non-legacy momentum stuff happens
+          ! a loop over state (hence over phases) is incorporated into this subroutine call
+          ! hence this lives outside the phase_loop
+          call momentum_loop(state, at_first_timestep=((timestep==1).and.(its==1)))
+          
+          ! Add in externally defined momentum source
+          ! term. Don't even think about doing this with multiple
+          ! material phases !
+          call simple_source_python(state(1))             
              
-             do ip = 1, max(1,nphase)
-                poiso2(ip) = max(0,poison(ip))
-             end do
-
-             ! end of NAV if.
-          ENDIF
-
           if(itinoi > 1) then
              ! Check for convergence between non linear iteration loops
              call test_and_write_convergence(state, acctim + dt, dt, its, change)
@@ -906,10 +889,6 @@ contains
           call solid_coordinate_update(state(1))
        ENDIF
        !     --------------------------------------end of add by crgw 14/03/06
-
-       ! Calculate next timestep size
-       ! two different subroutines, one for single phase, one for multi phase (although there need be no difference . . .) 
-       OLDDT =DT
 
        ACCTIM=ACCTIM+DT
 
