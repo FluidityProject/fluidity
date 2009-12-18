@@ -50,8 +50,7 @@ ADJOINTOBJS =   FsMom.o   sourceFS.o\
 	Assnav_adjoint.o navsto_adjoint.o sortnu.o
 endif
 
-OBJS    = advdif.o \
-	Momentum_Diagnostic_Fields.o \
+OBJS    = Momentum_Diagnostic_Fields.o \
 	Momentum_Equation.o Momentum_CG.o \
 	hart3d_allsorts.o       \
 	qmesh.o        spaerr.o \
@@ -76,7 +75,7 @@ OBJS    = advdif.o \
 	Compressible_Projection.o \
 	Vertical_Extrapolation.o Biology.o \
 	Timeloop_utilities.o Pseudo_supermesh.o \
-        mulmat.o Sam_integration.o Solenoidal_interpolation.o \
+	Sam_integration.o Solenoidal_interpolation.o \
         Interpolation_manager.o  Discrete_Properties.o Free_Surface.o  \
 	Surface_Id_Interleaving.o \
 	Geostrophic_Pressure.o \

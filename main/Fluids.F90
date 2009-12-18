@@ -30,7 +30,6 @@
 module fluids_module
 
   use AllSorts
-  use AdvectionDiffusion
   use AuxilaryOptions
   use MeshDiagnostics
   use oceansurfaceforcing, only : initialise_ocean_surface_forcing => initialise

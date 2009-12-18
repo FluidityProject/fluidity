@@ -32,13 +32,14 @@ module timeloop_utilities
   use spud
   use signal_vars
   use timers
-  use global_parameters, only: simulation_start_cpu_time, simulation_start_wall_time
+  use global_parameters, only: simulation_start_cpu_time,&
+       & simulation_start_wall_time, OPTION_PATH_LEN
   implicit none
   
   private
 
   public :: copy_to_stored_values, copy_from_stored_values,&
-       & relax_to_nonlinear, simulation_completed
+       & relax_to_nonlinear, simulation_completed, get_copied_field
 
 contains
 
@@ -200,6 +201,25 @@ contains
     end do
 
   end subroutine copy_from_stored_values
+
+  subroutine get_copied_field(fieldname, state)
+
+    type(state_type), intent(in) :: state
+    character(len=*), intent(in) :: fieldname
+
+    type(scalar_field), pointer :: copiedfield
+    type(scalar_field), pointer :: tmpfield
+    character(len=OPTION_PATH_LEN) :: tmpstring
+
+    if(trim(fieldname)=="CopiedField") then
+      copiedfield=>extract_scalar_field(state, "CopiedField")
+      call get_option(trim(copiedfield%option_path)//"/prognostic/copy_from_field", &
+                              tmpstring)
+      tmpfield=>extract_scalar_field(state, "Old"//trim(tmpstring))
+      call set(copiedfield, tmpfield)
+    end if
+
+  end subroutine get_copied_field
 
   subroutine relax_to_nonlinear(state)
     !!< For each field, set the nonlinearfield if present.
