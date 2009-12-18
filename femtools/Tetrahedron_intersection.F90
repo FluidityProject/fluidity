@@ -9,10 +9,14 @@ module tetrahedron_intersection_module
   use fields_base
   use fields_allocates
   use fields_manipulation
+  use transform_elements
   implicit none
 
   type tet_type
     real, dimension(3, 4) :: V ! vertices of the tet
+#ifdef RETAIN_FACE_COLOURING
+    integer, dimension(4) :: colours = 0 ! surface colours
+#endif
   end type tet_type
 
   type plane_type
@@ -173,6 +177,11 @@ module tetrahedron_intersection_module
            w0 * tet_array_tmp(tet_cnt_tmp)%V(:, pos_idx(i)) + &
            w1 * tet_array_tmp(tet_cnt_tmp)%V(:, neg_idx(1))
       end do
+#ifdef RETAIN_FACE_COLOURING
+      ! The colours will have been inherited already; we just need to zero
+      ! the one corresponding to the plane cut
+      tet_array_tmp(tet_cnt_tmp)%colours(face_no(pos_idx(1), pos_idx(2), pos_idx(3))) = 0
+#endif
     case(2)
       select case(neg_cnt)
       case(2)
@@ -194,6 +203,11 @@ module tetrahedron_intersection_module
         tet_array_tmp(tet_cnt_tmp) = tet
         tet_array_tmp(tet_cnt_tmp)%V(:, pos_idx(1)) = tet_tmp%V(:, 3)
         tet_array_tmp(tet_cnt_tmp)%V(:, pos_idx(2)) = tet_tmp%V(:, 2)
+#ifdef RETAIN_FACE_COLOURING
+        ! Zero any face involving the two 
+        tet_array_tmp(tet_cnt_tmp)%colours(face_no(neg_idx(1), pos_idx(1), pos_idx(2))) = 0
+        tet_array_tmp(tet_cnt_tmp)%colours(face_no(neg_idx(2), pos_idx(1), pos_idx(2))) = 0
+#endif
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet%V(:, neg_idx(2))
@@ -314,16 +328,11 @@ module tetrahedron_intersection_module
   function get_planes_hex(positions, ele) result(plane)
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele
-    type(plane_type), dimension(8) :: plane
+    type(plane_type), dimension(6) :: plane
     integer, dimension(:), pointer :: faces
     integer :: i, face, j
-    ! dim x f_loc
-    real, dimension(3, 4) :: pos
-    real, dimension(3) :: edgeA, edgeB
     integer, dimension(4) :: fnodes
-    integer, dimension(8) :: enodes
-    integer :: node_not_on_face
-    real :: det
+    real, dimension(positions%dim, face_ngi(positions, ele)) :: normals
 
     ! This could be done much more efficiently by exploiting
     ! more information about how we number faces and such on a hex
@@ -332,33 +341,14 @@ module tetrahedron_intersection_module
     assert(positions%mesh%shape%degree == 1)
 
     faces => ele_faces(positions, ele)
-    assert(size(faces) == 8)
-    enodes = ele_nodes(positions, ele)
-    do i=1,8
+    assert(size(faces) == 6)
+
+    do i=1,size(faces)
       face = faces(i)
-      pos = face_val(positions, face)
       fnodes = face_global_nodes(positions, face)
 
-      ! Only need 3 points to constrain the plane, so pos(:, 4) is never used
-      edgeA = pos(:, 2) - pos(:, 1)
-      edgeB = pos(:, 3) - pos(:, 1)
-      plane(i)%normal = unit_cross(edgeA, edgeB)
-
-      ! Find a node not on the face
-      do j=1,8
-        if (.not. any(fnodes == enodes(j)) ) then
-          node_not_on_face = enodes(j)
-          exit
-        end if
-      end do
-
-      ! Now we need to make sure that we have the correct sense of the normal
-      det = dot_product(plane(i)%normal, node_val(positions, node_not_on_face))
-      ! The node of the element not on the face should be on the positive side
-      ! of the face, so if it is on the negative side we need to invert the normal
-      if (det < 0) then
-        plane(i)%normal = -plane(i)%normal
-      end if
+      call transform_facet_to_physical(positions, face, normal=normals)
+      plane(i)%normal = normals(:, 1)
 
       ! Now we calibrate the constant (setting the 'zero level' of the plane, as it were)
       ! with a node we know is on the face
@@ -403,5 +393,15 @@ module tetrahedron_intersection_module
 
     vol = dot_product(vecA, cross) / 6.0
   end function tet_volume
+
+#ifdef RETAIN_FACE_COLOURING
+  function face_no(i, j, k) result(face)
+    ! Given three local node numbers, what is the face that they share?
+    integer, intent(in) :: i, j, k
+    integer :: face
+
+    face = i + j + k - 5
+  end function face_no
+#endif
 
 end module tetrahedron_intersection_module

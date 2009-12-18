@@ -433,7 +433,7 @@ CGAL_Tools.o: Fields.o
 CGAL_Tools_C.o: ../include/CGAL_Tools_C.h
 
 Tetrahedron_intersection.o: Vector_Tools.o Elements.o Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
-   Fields_Manipulation.o
+   Fields_Manipulation.o Transform_elements.o
 
 test_element_numbering:test_element_numbering.F90 Futils.o \
 	Element_Numbering.o
