@@ -1212,6 +1212,71 @@ start =
                ## [UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
                ## Solves 2 additional equations for diffusivity epsilon and turbulent kinetic energy k, in order to close momentum equations.
                element k-epsilon {
+                  ## Turbulent kinetic energy (k)
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "TurbulentKineticEnergy" },
+                     (
+                        element prognostic {
+                           velocity_mesh_choice,
+                           prognostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  },
+                  ## Turbulent diffusivity (epsilon)
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "TurbulentDiffusivity" },
+                     (
+                        element prognostic {
+                           velocity_mesh_choice,
+                           prognostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                      )
+                  },
+                  ## Length scale (a diagnostic with k-epsilon)
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "LengthScale" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  },
+                  ## Eddy viscosity
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "EddyViscosity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_tensor_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  },
+                  ## Enable this option to use recommended boundary conditions:
+                  ## k = 0, and eps = nu * (delta^2 k/delta n^2) on walls, where n = wall normal.
+                  element calculate_boundaries {
+                     element string_value {
+                     "neumann"|"dirichlet"
+                     }
+                  }?,
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value: 0.09.
                   element C_mu {real},
@@ -1221,10 +1286,10 @@ start =
                   ## Diffusivity destruction coefficient.
                   ## Recommended value: 1.92.
                   element C_eps_2 {real},
-                  ## Eddy viscosity coefficient from k equation.
+                  ## Turbulent Schmidt number (eddy viscosity coefficient from k equation).
                   ## Recommended value: 1.0.
                   element sigma_k {real},
-                  ## Eddy-viscosity coefficient from epsilon equation.
+                  ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
                   ## Recommended value: 1.3.
                   element sigma_eps {real}
 
