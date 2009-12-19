@@ -52,7 +52,7 @@ implicit none
     & wrap_vector_field, wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist
+    & remove_nelist, remove_eelist, extract_elements
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
