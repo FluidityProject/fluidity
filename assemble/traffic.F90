@@ -36,7 +36,6 @@ module traffic
   use global_parameters, only: option_path_len, acctim, dt, halo_tag
   use state_module
   use boundary_conditions
-  use shape_module
   use generic_interface
   use fields
   use elements
@@ -536,8 +535,7 @@ contains
             y0(iloc) = y(nod)
             z0(iloc) = z(nod)
          end do
-         vol = abs( tetvolume(x0(1),y0(1),z0(1),x0(2),y0(2),z0(2),&
-              x0(3),y0(3),z0(3),x0(4),y0(4),z0(4)) )
+         vol = abs( tetvol(x0, y0, z0) )
 
          do iloc=1,nloc
             nod=ndglno((ele-1)*nloc+iloc)
@@ -1353,7 +1351,7 @@ contains
 
       integer,dimension(:),allocatable  :: eid
       real,dimension(:, :),allocatable     :: eshape
-      type(vector_field)                :: bc_position
+      type(vector_field)                :: bc_position, bc_position_2d
       type(mesh_type), pointer          :: surface_mesh
 
 #ifdef HAVE_MPI
@@ -1402,7 +1400,8 @@ contains
       call remap_field_to_surface(positions,bc_position,surface_element_list)
       
       allocate(eid(points), eshape(snloc, points))
-      call picker_inquire(bc_position, coordsx = pointX, coordsy = pointY, &
+      bc_position_2d = wrap_vector_field(bc_position%mesh, bc_position%val(1)%ptr, bc_position%val(2)%ptr, name = trim(bc_position%name) // "2d")
+      call picker_inquire(bc_position_2d, coordsx = pointX, coordsy = pointY, &
         & eles = eid, local_coords = eshape, global = .true.)
       
       do i=1, points         
@@ -1426,6 +1425,7 @@ contains
 #endif
       enddo
 
+      call deallocate(bc_position_2d)
       call deallocate(bc_position)
       deallocate(eid,eshape)
       deallocate(senlist)

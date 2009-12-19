@@ -52,9 +52,7 @@ endif
 
 OBJS    = Momentum_Diagnostic_Fields.o \
 	Momentum_Equation.o Momentum_CG.o \
-	hart3d_allsorts.o       \
 	qmesh.o        spaerr.o \
-	shape.o     \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
 	Time_dependent_t_source.o \
@@ -131,13 +129,11 @@ Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.
 mesh_connections.o: Shape_Transformations.o
 Advection_Diffusion_CG.o: Upwind_Stabilisation.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
-hart3d_allsorts.o: shape.o
-shape.o: 
 reduced_model.o: Shape_Transformations.o Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
    Rotated_Boundary_Conditions.o
-Assemble_CMC.o: hart3d_allsorts.o Multimaterials.o  Shape_Transformations.o
+Assemble_CMC.o: Multimaterials.o  Shape_Transformations.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
 Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
