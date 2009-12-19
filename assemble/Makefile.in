@@ -57,7 +57,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
 	Time_dependent_t_source.o \
 	$(ADJOINTOBJS) \
-	Preprocess.o Shape_Transformations.o \
+	Preprocess.o \
         Solid_Configuration.o Explicit_ALE.o \
         VolumeSource.o reduced_model.o snapsvd.o support.o \
 	reduced_model_errormeasure.o  \
@@ -113,7 +113,7 @@ Advection_Diffusion_FV.o: Upwind_Stabilisation.o
 Adapt_State_Prescribed.o: Interpolation_manager.o
 Adaptivity_1D.o: Node_Locking.o
 Adapt_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
-Sam_integration.o: Surface_Id_Interleaving.o Shape_Transformations.o
+Sam_integration.o: Surface_Id_Interleaving.o
 Adapt_State.o: Adapt_Integration.o Adaptivity_1D.o \
   Diagnostic_fields_wrapper.o Discrete_Properties.o Interpolation_manager.o \
   Mba2d_Integration.o Mba3d_Integration.o Sam_integration.o Timeloop_utilities.o \
@@ -126,14 +126,13 @@ support.o: snapsvd.o spaerr.o Explicit_ALE.o
 traffic.o: qmesh.o
 Mba3d_Integration.o: Node_Locking.o qmesh.o Surface_Id_Interleaving.o
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
-mesh_connections.o: Shape_Transformations.o
 Advection_Diffusion_CG.o: Upwind_Stabilisation.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
-reduced_model.o: Shape_Transformations.o Coriolis.o
+reduced_model.o: Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
    Rotated_Boundary_Conditions.o
-Assemble_CMC.o: Multimaterials.o  Shape_Transformations.o
+Assemble_CMC.o: Multimaterials.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
 Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \

@@ -7,7 +7,6 @@ module reduced_model_error_measure
   use fldebug
   use position_in_matrix
   use shape_functions
-  use shape_transformations
   use tr2d_module
   use coriolis_module
   

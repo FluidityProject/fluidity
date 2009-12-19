@@ -5,7 +5,6 @@ module reduced_model
   use allSorts
   use coordinates
   use fldebug
-  use shape_transformations
   use solvers
   use tr2d_module
   use coriolis_module
