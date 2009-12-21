@@ -587,7 +587,8 @@ module sam_integration
        call incref(level_1_halo)
        if(.not. serial_storage_halo(level_1_halo)) then  ! Cannot derive halos in serial
          allocate(output_linear_mesh%element_halos(1))
-         call derive_element_halo_from_node_halo(output_linear_mesh)
+         call derive_element_halo_from_node_halo(output_linear_mesh, &
+           & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
        end if
 
        deallocate(new_ndglno)
@@ -1005,11 +1006,13 @@ module sam_integration
 
          ! Derive the elements halo
          allocate(linear_mesh%element_halos(2))
-         call derive_element_halo_from_node_halo(linear_mesh)  
+         call derive_element_halo_from_node_halo(linear_mesh, &
+           & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)  
        else
          if(.not. serial_storage_halo(linear_mesh%halos(1))) then  ! Cannot derive halos in serial
            allocate(linear_mesh%element_halos(1))
-           call derive_element_halo_from_node_halo(linear_mesh)
+           call derive_element_halo_from_node_halo(linear_mesh, &
+             & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
          else
            allocate(linear_mesh%element_halos(0))
          end if

@@ -551,7 +551,6 @@ contains
       do i = 1, nprocs
         do j = 1, halo_send_count(sele_halo, i)
           face = halo_send(sele_halo, i, j)
-          ! Update surface element send buffer
           old_id = surface_ids(face)
           send_buffer(i)%ptr(j) = old_id
         end do

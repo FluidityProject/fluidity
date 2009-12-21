@@ -275,7 +275,8 @@ contains
              call import_halo(halo_tag_p, mesh%halos(2))
              
              allocate(mesh%element_halos(2))
-             call derive_element_halo_from_node_halo(mesh) 
+             call derive_element_halo_from_node_halo(mesh, &
+               & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES) 
              ! The mesh descriptor inside position will now be out of date.
              position%mesh=mesh
              call reorder_element_numbering(position)

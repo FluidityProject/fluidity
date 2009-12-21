@@ -163,7 +163,8 @@ program pseudo_supermesh_parallel
       call import_halo(halo_tag, positions%mesh%halos(1))
       call import_halo(halo_tag_p, positions%mesh%halos(2))
       allocate(positions%mesh%element_halos(2))
-      call derive_element_halo_from_node_halo(positions%mesh)       
+      call derive_element_halo_from_node_halo(positions%mesh, &
+        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)       
     end if
   end subroutine halo_business
 

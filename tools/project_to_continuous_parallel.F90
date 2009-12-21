@@ -86,7 +86,8 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   call import_halo(halo_tag, cg_mesh%halos(1))
   call import_halo(halo_tag_p, cg_mesh%halos(2))
   allocate(cg_mesh%element_halos(2))
-  call derive_element_halo_from_l2_halo(cg_mesh)
+  call derive_element_halo_from_l2_halo(cg_mesh, &
+    & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
 
   do i = 1, scalar_field_count(dg_state)
     dg_s_field => extract_scalar_field(dg_state, i)

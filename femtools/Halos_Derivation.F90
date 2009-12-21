@@ -370,7 +370,6 @@ contains
       & nreceives = key_count(receives), &
       & name = trim(mesh%name) // "MaximalSurfaceElementHalo", &
       & communicator = communicator, &
-      & tag = halo_tag_dg2, &
       & nowned_nodes = nowned_eles, &
       & data_type = HALO_TYPE_ELEMENT, &
       & ordering_scheme = lordering_scheme)
