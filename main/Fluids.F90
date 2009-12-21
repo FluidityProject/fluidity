@@ -70,7 +70,6 @@ module fluids_module
   use goals
   use adaptive_timestepping
   use conformity_measurement
-  use EletemFeinte_module
   ! Use Solid-fluid coupling and ALE - Julian- 18-09-06
   use ale_module
   use adjacency_lists
@@ -80,7 +79,6 @@ module fluids_module
   use parallel_tools
   use SolidConfiguration
   use MeshMovement
-  use legacy_boundary_conditions
   use redfil_module
   use solid_update
   use write_triangle

@@ -43,9 +43,9 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = AllSorts.o sml.o tr2d.o detnlxr.o EletemFeinte.o \
-   synthetic_bc.o Rotated_Boundary_Conditions_Legacy.o lagrot.o Legacy_Field_Lists.o \
-   rgptwe.o Legacy_Tensor_Fields.o
+OBJS = AllSorts.o sml.o tr2d.o detnlxr.o \
+   synthetic_bc.o lagrot.o Legacy_Field_Lists.o \
+   rgptwe.o
    
 .SUFFIXES: .f90 .F90 .c .o .a
 
