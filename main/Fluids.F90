@@ -196,14 +196,20 @@ contains
        if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
 
        call adapt_state_first_timestep(state)
+   
+       call enforce_discrete_properties(state)
+       ! Auxilliary fields. Note that these must be generated *after* enforcing
+       ! discrete properties.
        call allocate_and_insert_auxilliary_fields(state)
        
        if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
     else
+       call enforce_discrete_properties(state)
+       ! Auxilliary fields. Note that these must be generated *after* enforcing
+       ! discrete properties.
        call allocate_and_insert_auxilliary_fields(state)
     end if
-
-    call enforce_discrete_properties(state)
+    
     call get_option("/timestepping/timestep", dt)
     if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
        call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
@@ -604,11 +610,6 @@ contains
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, acctim, dt)
 
-       ! Note that other adaptive timestepping routines are deliberately disabled:
-       ! - adaptive_timestepping_check_options ensures that autacc must be
-       !   positive, thereby preventing non-linear iteration based adaptive
-       !   timestepping
-       ! - tagain is currently not available
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
 
        ! Update the options dictionary for the new timestep and current_time.
@@ -640,11 +641,7 @@ contains
        ! *** Mesh adapt ***
        ! ******************
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
-          if( &
-               ! Test qmesh conditions
-               & do_adapt_mesh(acctim, timestep) &
-               & ) then
-               
+          if(do_adapt_mesh(acctim, timestep)) then               
              call qmesh(state, metric_tensor)
 
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
@@ -657,8 +654,7 @@ contains
              call run_diagnostics(state)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-          if(do_adapt_state_prescribed(acctim)) then
-          
+          if(do_adapt_state_prescribed(acctim)) then          
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)             
              call run_diagnostics(state)
              
@@ -738,14 +734,20 @@ contains
     logical :: flat_earth
     type(vector_field), pointer :: velocity
     
-    ! Discrete properties
-    call enforce_discrete_properties(state)
-    
     ! The adaptivity metric
     call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
     
-    ! Auxilliary fields
+    ! Discrete properties
+    call enforce_discrete_properties(state)
+    ! Auxilliary fields. Note that these must be generated *after* enforcing
+    ! discrete properties.
     call allocate_and_insert_auxilliary_fields(state)
+
+    ! Timestep adapt
+    if(have_option("/timestepping/adaptive_timestep")) then
+      call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
+      call set_option("/timestepping/timestep", dt)
+    end if
     
     ! Ocean boundaries
     if (has_scalar_field(state(1), "DistanceToTop")) then
@@ -765,12 +767,6 @@ contains
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the next adapt. 
     if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))
-    
-    ! Timestep adapt
-    if(have_option("/timestepping/adaptive_timestep")) then
-      call calc_cflnumber_field_based_dt(state, dt)
-      call set_option("/timestepping/timestep", dt)
-    end if
    
     ! Free surface movement
     do i=1, size(state)
