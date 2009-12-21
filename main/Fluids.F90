@@ -118,13 +118,7 @@ contains
 
     INTEGER :: NONODS
     
-    ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
-    INTEGER :: PROCNO
-
     logical :: flat_earth
-
-    ! **** ENDOF VARIABLES USED IN REDFIL
-    ! ***********************************
 
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
@@ -132,7 +126,7 @@ contains
     !     Dump index
     integer :: dump_no = 0
     !     Temporary buffer for any string options which may be required.
-    character(len=666) :: option_buffer
+    character(len=OPTION_PATH_LEN) :: option_buffer
     !     Status variable for option retrieval.
     integer :: option_stat
 
@@ -164,8 +158,6 @@ contains
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
     logical::use_electrical_potential_solver=.false.  !jhs 05/05/2009
-    character(len=OPTION_PATH_LEN) :: tmpstring
-    integer :: tmpstat
 
     !***********************************************************************
     !     Begin parameters for SOLIDITY            --Added by gsc 2006-03-13
@@ -216,8 +208,6 @@ contains
 
     DT=0.0
     REMESH=.FALSE.
-
-    PROCNO = GetProcNo()
 
     ! Read state from .flml file
     call populate_state(state)
@@ -293,8 +283,8 @@ contains
     if(have_option(trim('/imported_solids'))) then
        ss=0
        phaseloop: do ph = 1, size(state)
-          write(tmpstring, '(a,i0,a)') "/material_phase[",ph-1,"]"
-          if(have_option(trim(tmpstring)//"/scalar_field::SolidConcentration")) then
+          write(option_buffer, '(a,i0,a)') "/material_phase[",ph-1,"]"
+          if(have_option(trim(option_buffer)//"/scalar_field::SolidConcentration")) then
              ss = ph
              have_solids=.true.
           end if
@@ -312,8 +302,8 @@ contains
        use_ale=.true.
        fs=-1
        phaseloop1: do ph = 1, size(state)
-          write(tmpstring, '(a,i0,a)') "/material_phase[",ph-1,"]"
-          if(have_option(trim(tmpstring)//"/scalar_field::MaterialVolumeFraction/prognostic")) then
+          write(option_buffer, '(a,i0,a)') "/material_phase[",ph-1,"]"
+          if(have_option(trim(option_buffer)//"/scalar_field::MaterialVolumeFraction/prognostic")) then
              fs = ph
           end if
        end do phaseloop1
@@ -553,10 +543,10 @@ contains
              call porous_media_advection(state, nonods)
              ! compute spontaneous electrical potentials (myg - 28/10/09)
              do i=1,size(state)
-                tmpstring = '/material_phase['//int2str(i-1)//']/electrical_properties/coupling_coefficients/'
-                if (have_option(trim(tmpstring)//'scalar_field::Electrokinetic').or.&
-                    have_option(trim(tmpstring)//'scalar_field::Thermoelectric').or.&
-                    have_option(trim(tmpstring)//'scalar_field::Electrochemical')) then
+                option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/coupling_coefficients/'
+                if (have_option(trim(option_buffer)//'scalar_field::Electrokinetic').or.&
+                    have_option(trim(option_buffer)//'scalar_field::Thermoelectric').or.&
+                    have_option(trim(option_buffer)//'scalar_field::Electrochemical')) then
                    call calculate_electrical_potential(state(i), i)
                 end if
              end do
@@ -583,9 +573,9 @@ contains
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
-                  tmpstring, stat=tmpstat)
-             if (tmpstat==0) then
-                select case(trim(tmpstring))
+                  option_buffer, stat=option_stat)
+             if (option_stat==0) then
+                select case(trim(option_buffer))
                 case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy" )
                    use_advdif=.true.
                 case ( "ElectricalPotential" )
