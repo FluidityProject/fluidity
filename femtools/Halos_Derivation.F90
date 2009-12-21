@@ -360,7 +360,7 @@ contains
     end do
     ewrite(2, *) "Maximal receive elements: ", sum(key_count(receives))
     
-    nowned_eles = ele_count(mesh) - sum(key_count(receives))
+    nowned_eles = surface_element_count(mesh) - sum(key_count(receives))
     ewrite(2, *) "Owned elements: ", nowned_eles
     
     ! Step 2: Allocate the halo and set the receives
