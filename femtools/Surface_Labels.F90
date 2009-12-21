@@ -291,6 +291,8 @@ contains
     integer current_id, sngi, stotel
     integer j, k, sele, pos, ele
     
+    type(vector_field) :: dummy
+    
     if (.not. has_faces(mesh)) then
        call add_faces(mesh)
     end if
@@ -379,7 +381,8 @@ contains
     deallocate(normals)
     
     call merge_surface_ids(mesh, coplanar_ids, max_id = current_id - 1)
-    !call vtk_write_coplanar_ids("coplanar_ids", dummy, coplanar_ids)
+    dummy = positions
+    call vtk_write_coplanar_ids("coplanar_ids", dummy, coplanar_ids)
 
   end subroutine get_coplanar_ids
   
@@ -482,11 +485,10 @@ contains
     integer, optional, intent(in) :: max_id
     
 #ifdef HAVE_MPI
-    integer :: comm, communicated_nsele, communicator, ele, face, i, id_base, &
-      & ierr, j, lmax_id, new_id, nhalos, nprocs, nsele, old_id, procno
+    integer :: comm, communicator, face, i, id_base, ierr, j, lmax_id, new_id, &
+      & nhalos, nprocs, nsele, old_id, procno
     integer, dimension(:), allocatable :: requests, statuses
-    integer, dimension(:), pointer :: faces
-    integer, parameter :: max_comm_count = 100, vals_per_comm = 3
+    integer, parameter :: max_comm_count = 100
     logical :: complete
     type(integer_hash_table) :: gens, id_map
     type(integer_vector), dimension(:), allocatable :: receive_buffer, &
@@ -529,9 +531,8 @@ contains
     allocate(send_buffer(nprocs))
     allocate(receive_buffer(nprocs))
     do i = 1, nprocs
-      communicated_nsele = halo_send_count(sele_halo, i)
-      allocate(send_buffer(i)%ptr(communicated_nsele * vals_per_comm))
-      allocate(receive_buffer(i)%ptr(halo_receive_count(sele_halo, i) * vals_per_comm))
+      allocate(send_buffer(i)%ptr(halo_send_count(sele_halo, i)))
+      allocate(receive_buffer(i)%ptr(halo_receive_count(sele_halo, i)))
     end do
     call get_universal_numbering_inverse(ele_halo, gens)
     comm = 0
@@ -549,73 +550,36 @@ contains
       end if
       ewrite(2, *) "Performing surface merge ", comm
     
-      ! Pack send data. For each face this consists of three values:
-      !   1. The old surface ID of the face
-      !   2. The universal element number of the owning element
-      !   3. The local face number of the face in its owning element
-      ! These are packed with the surface_ids at the head of the buffer, as
-      ! only these need communicating for indirect merge checking
+      ! Pack the old surface IDs for sending
             
       do i = 1, nprocs
-        communicated_nsele = halo_send_count(sele_halo, i)
-        if(comm == 1) then
-          do j = 1, communicated_nsele
-            face = halo_send(sele_halo, i, j)
-            ! Pack surface element send buffer
-            old_id = surface_ids(face)
-            send_buffer(i)%ptr(j) = old_id
-            send_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 1) = halo_universal_number(ele_halo, face_ele(mesh, face))
-            send_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 2) = local_face_number(mesh, face)
-          end do
-        else
-          do j = 1, communicated_nsele
-            face = halo_send(sele_halo, i, j)
-            ! Update surface element send buffer
-            old_id = surface_ids(face)
-            send_buffer(i)%ptr(j) = old_id
-          end do
-        end if
+        do j = 1, halo_send_count(sele_halo, i)
+          face = halo_send(sele_halo, i, j)
+          ! Update surface element send buffer
+          old_id = surface_ids(face)
+          send_buffer(i)%ptr(j) = old_id
+        end do
       end do
           
-      ! Communicate the face data
+      ! Communicate the old surface IDs
                     
       allocate(requests(nprocs * 2))
       requests = MPI_REQUEST_NULL
       call mpi_barrier(communicator, ierr)
       assert(ierr == MPI_SUCCESS)
-      if(comm == 1) then
-        ! This is the first merge. Send everything in the buffer.
+      do i = 1, nprocs          
+        ! Non-blocking sends
+        if(size(send_buffer(i)%ptr) > 0) then
+          call mpi_isend(send_buffer(i)%ptr, size(send_buffer(i)%ptr), getpinteger(), i - 1, procno - 1, communicator, requests(i), ierr)
+          assert(ierr == MPI_SUCCESS)
+        end if
         
-        do i = 1, nprocs          
-          ! Non-blocking sends
-          if(size(send_buffer(i)%ptr) > 0) then
-            call mpi_isend(send_buffer(i)%ptr, size(send_buffer(i)%ptr), getpinteger(), i - 1, procno - 1, communicator, requests(i), ierr)
-            assert(ierr == MPI_SUCCESS)
-          end if
-          
-          ! Non-blocking receives
-          if(size(receive_buffer(i)%ptr) > 0) then
-            call mpi_irecv(receive_buffer(i)%ptr, size(receive_buffer(i)%ptr), getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
-            assert(ierr == MPI_SUCCESS)
-          end if
-        end do   
-      else 
-        ! This is an indirect merge check. Send just the updated surface IDs.
-      
-        do i = 1, nprocs          
-          ! Non-blocking sends
-          if(size(send_buffer(i)%ptr) > 0) then
-            call mpi_isend(send_buffer(i)%ptr, size(send_buffer(i)%ptr) / vals_per_comm, getpinteger(), i - 1, procno - 1, communicator, requests(i), ierr)
-            assert(ierr == MPI_SUCCESS)
-          end if
-          
-          ! Non-blocking receives
-          if(size(receive_buffer(i)%ptr) > 0) then
-            call mpi_irecv(receive_buffer(i)%ptr, size(receive_buffer(i)%ptr) / vals_per_comm, getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
-            assert(ierr == MPI_SUCCESS)
-          end if
-        end do   
-      end if
+        ! Non-blocking receives
+        if(size(receive_buffer(i)%ptr) > 0) then
+          call mpi_irecv(receive_buffer(i)%ptr, size(receive_buffer(i)%ptr), getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+          assert(ierr == MPI_SUCCESS)
+        end if
+      end do  
           
       ! Wait for all non-blocking communications to complete
       allocate(statuses(MPI_STATUS_SIZE * size(requests)))
@@ -624,35 +588,22 @@ contains
       deallocate(statuses)
       deallocate(requests)
       
-      ! Now we invert the received data. This generates a map "id_map", mapping
-      ! surface IDs to their new (merged) values. The new surface ID chosen is
-      ! the lowest ID received overlaying the old surface ID.
+      ! Generate a map "id_map", mapping surface IDs to their new (merged)
+      ! values. The new surface ID chosen is the lowest ID received overlaying
+      ! the old surface ID.
       
       call allocate(id_map)
       do i = 1, nprocs
-        communicated_nsele = size(receive_buffer(i)%ptr) / vals_per_comm
-        do j = 1, communicated_nsele
-          ! Unpack surface element receive buffer
+        do j = 1, halo_receive_count(sele_halo, i)
           new_id = receive_buffer(i)%ptr(j)
-          if(comm == 1) then
-            ! Invert the received uen in the buffer, as this won't change for
-            ! subsequent merges
-            receive_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 1) = &
-              & fetch(gens, receive_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 1))
-          end if
-          ele = receive_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 1)
-          face = receive_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 2)
-          
-          faces => ele_faces(mesh, ele)
-          old_id = surface_ids(faces(face))
+          old_id = surface_ids(halo_receive(sele_halo, i, j))
           
           if(new_id == old_id) then
             ! This has already been merged
             cycle
           else if(new_id > old_id) then
-            ! The incoming ID is larger than the existing ID, and we sent the
-            ! existing ID to the incoming ID sender. The sender should be
-            ! swapping out its corresponding ID for the one on this process.
+            ! The incoming ID is larger than the existing ID. The sender should
+            ! be swapping out its corresponding ID for the one on this process.
             cycle
           else if(has_key(id_map, old_id)) then
             if(fetch(id_map, old_id) <= new_id) then
