@@ -198,6 +198,7 @@ contains
     ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
     INTEGER, SAVE :: PROCNO
 
+    logical :: flat_earth
 
     ! **** ENDOF VARIABLES USED IN REDFIL
     ! ***********************************
@@ -340,6 +341,10 @@ contains
      call get_option("/timestepping/current_time", ACCTIM)
      call get_option("/timestepping/finish_time", LTIME)
 
+     call get_option("/timestepping/steady_state/tolerance", &
+          STEDER, default = -666.01)
+
+
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
     call get_ntsol(ntsol)
@@ -363,68 +368,68 @@ contains
     !     redfil() reads from state
 
 
-    CALL REDFIL(&
-                                ! THE VARIABLES DEFINED IN COMSCA(1ST LINES IS USED IN)
-                                ! *****************************************************
-         & MXNTSO,MXNPHA,&
-                                ! For the INTEGERS ...
-         & NPHASE,NTSOL,  &
-         & NLOC,NGI,MLOC,&
-         & ITINOI,&
-         & NCOLOP,&
-         & SNLOC, SNGI,VERSIO, &
-         & NPRESS,NPROPT,&
-         & RADISO,&
-         & GEOBAL,OPTSOU,ISPHER2,&
-         & MISNIT,&
-                                ! Phase momentum equations...
-         & DISOPT,MULPA, CGSOLQ,GMRESQ,&
-         & MIXMAS,UZAWA,POISON,PROJEC,&
-         & EQNSTA,PREOPT,NDISOP,NSUBVLOC,NSUBNVLOC,&
-                                ! Field equation...
-         & DISOTT,TPHASE,CGSOLT,GMREST,&
-         & IDENT,&
-         & TELEDI,&
-         & NSUBTLOC,&
-         & NDISOT,&
-                                ! This is for LOGICALS...
-         & D3,DCYL  ,NAV   ,MVMESH,&
-         & CMCHAN,GETTAN,&
-         & ROTAT,DSPH,BHOUT,RAD,COGRAX,COGRAY,COGRAZ,ADMESH,&
-                                ! Phase momentum equations...
-         & LUMP  ,MAKSYM,CONVIS,&
-         & CHADEN, &
-         & ABSLUM,SLUMP,&
-         & COMPRE,&
-                                ! Field equation...
-         & BOUSIN,TLUMP,&
-         & SUFTEM,&
-                                ! For the REALS ...
-         & ACCTIM,LTIME ,DT,&
-         & ITHETA,ITIERR,STEDER,&
-         & R0,D0,GRAVTY, &
-         & ALFST2,SPRESS,&
-                                ! Phase momentum equations...
-         & THETA ,BETA  , &
-         &DENGAM,&
-         & TEMINI,DENINI,&
-         & BSOUX,BSOUY,BSOUZ,&
-         & GAMDE2,GAMDE3,&
-                                ! Field equation...
-         & TTHETA,TBETA,&
-                                ! THE FOLLOWING ARE USED IN REDSCA*********************
-         & NONODS,XNONOD,TOTELE,FREDOP,&
-         & NOBCU,NOBCV,NOBCW,  NOBCT, NNODP,&
-         & NNODPP, NDPSET,&
-         & NNODRO, STOTEL, &
-         & NSOUPT,MXNSOU,FIESOU,&
-                                ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
-         & procno, halo_tag, halo_tag_p,&
-         & bcu1_mem, bcu2_mem, &
-         & bcv1_mem, bcv2_mem, &
-         & bcw1_mem, bcw2_mem, &
-         & bct1_mem, bct2_mem, &
-         &              size(state),state, uses_old_code_path)
+!!$    CALL REDFIL(&
+!!$                                ! THE VARIABLES DEFINED IN COMSCA(1ST LINES IS USED IN)
+!!$                                ! *****************************************************
+!!$         & MXNTSO,MXNPHA,&
+!!$                                ! For the INTEGERS ...
+!!$         & NPHASE,NTSOL,  &
+!!$         & NLOC,NGI,MLOC,&
+!!$         & ITINOI,&
+!!$         & NCOLOP,&
+!!$         & SNLOC, SNGI,VERSIO, &
+!!$         & NPRESS,NPROPT,&
+!!$         & RADISO,&
+!!$         & GEOBAL,OPTSOU,ISPHER2,&
+!!$         & MISNIT,&
+!!$                                ! Phase momentum equations...
+!!$         & DISOPT,MULPA, CGSOLQ,GMRESQ,&
+!!$         & MIXMAS,UZAWA,POISON,PROJEC,&
+!!$         & EQNSTA,PREOPT,NDISOP,NSUBVLOC,NSUBNVLOC,&
+!!$                                ! Field equation...
+!!$         & DISOTT,TPHASE,CGSOLT,GMREST,&
+!!$         & IDENT,&
+!!$         & TELEDI,&
+!!$         & NSUBTLOC,&
+!!$         & NDISOT,&
+!!$                                ! This is for LOGICALS...
+!!$         & D3,DCYL  ,NAV   ,MVMESH,&
+!!$         & CMCHAN,GETTAN,&
+!!$         & ROTAT,DSPH,BHOUT,RAD,COGRAX,COGRAY,COGRAZ,ADMESH,&
+!!$                                ! Phase momentum equations...
+!!$         & LUMP  ,MAKSYM,CONVIS,&
+!!$         & CHADEN, &
+!!$         & ABSLUM,SLUMP,&
+!!$         & COMPRE,&
+!!$                                ! Field equation...
+!!$         & BOUSIN,TLUMP,&
+!!$         & SUFTEM,&
+!!$                                ! For the REALS ...
+!!$         & ACCTIM,LTIME ,DT,&
+!!$         & ITHETA,ITIERR,STEDER,&
+!!$         & R0,D0,GRAVTY, &
+!!$         & ALFST2,SPRESS,&
+!!$                                ! Phase momentum equations...
+!!$         & THETA ,BETA  , &
+!!$         &DENGAM,&
+!!$         & TEMINI,DENINI,&
+!!$         & BSOUX,BSOUY,BSOUZ,&
+!!$         & GAMDE2,GAMDE3,&
+!!$                                ! Field equation...
+!!$         & TTHETA,TBETA,&
+!!$                                ! THE FOLLOWING ARE USED IN REDSCA*********************
+!!$         & NONODS,XNONOD,TOTELE,FREDOP,&
+!!$         & NOBCU,NOBCV,NOBCW,  NOBCT, NNODP,&
+!!$         & NNODPP, NDPSET,&
+!!$         & NNODRO, STOTEL, &
+!!$         & NSOUPT,MXNSOU,FIESOU,&
+!!$                                ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
+!!$         & procno, halo_tag, halo_tag_p,&
+!!$         & bcu1_mem, bcu2_mem, &
+!!$         & bcv1_mem, bcv2_mem, &
+!!$         & bcw1_mem, bcw2_mem, &
+!!$         & bct1_mem, bct2_mem, &
+!!$         &              size(state),state, uses_old_code_path)
 
     ! We jump to here before a mesh adapt (but after metric assembly), with
     ! remesh = .true.
@@ -512,7 +517,7 @@ contains
 
        GOTO 99771
     ELSE
-       if (admesh) then
+       if (have_option("/mesh_adaptivity/hr_adaptivity")) then
           call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
        end if
 
@@ -538,7 +543,11 @@ contains
        if (.not. have_option('/geometry/ocean_boundaries')) then
           FLAbort("There are no top and bottom boundary markers.")
        end if
-       call CalculateTopBottomDistance(state(1), cograx)
+       flat_earth=.not.(have_option("/physical_parameters/gravity/&
+          &vector_field::GravityDirection/prescribed/value/python")&
+          &.or. option_count("/physical_parameters/&
+          &gravity/vector_field::GravityDirection/value") > 1)
+       call CalculateTopBottomDistance(state(1), flat_earth)
     end if
 
     !**********************Reduced model************************
