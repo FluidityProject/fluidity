@@ -159,14 +159,11 @@ program pseudo_supermesh_parallel
     if (nprocs > 1) then
       call read_halos(filename(1:len_trim(filename)))
 
-      call register_elements_halo(halo_tag_p, node_count(positions), ele_count(positions), ele_loc(positions, 1), positions%mesh%ndglno)
-      call register_elements_halo(halo_tag, node_count(positions), ele_count(positions), ele_loc(positions, 1), positions%mesh%ndglno)
-
       allocate(positions%mesh%halos(2))
       call import_halo(halo_tag, positions%mesh%halos(1))
       call import_halo(halo_tag_p, positions%mesh%halos(2))
       allocate(positions%mesh%element_halos(2))
-      call derive_element_halo_from_node_halo(mesh)       
+      call derive_element_halo_from_node_halo(positions%mesh)       
     end if
   end subroutine halo_business
 
