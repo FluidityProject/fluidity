@@ -31,7 +31,6 @@ module fluids_module
 
   use AuxilaryOptions
   use MeshDiagnostics
-  use oceansurfaceforcing, only : initialise_ocean_surface_forcing => initialise
   use signal_vars
   use spud
   use equation_of_state
@@ -325,7 +324,6 @@ contains
 
        call allocate_and_insert_auxilliary_fields(state)
        call enforce_discrete_properties(state)
-       call initialise_ocean_surface_forcing(state(1))
 
        ! reinitialise the auxilliary fields before the adaptive timestep check
        IF(ITINOI.GT.1) THEN
@@ -775,7 +773,6 @@ contains
 
              call allocate_and_insert_auxilliary_fields(state)
              call enforce_discrete_properties(state)
-             call initialise_ocean_surface_forcing(state(1))
 
              ! reinitialise the auxilliary fields before the adaptive timestep check
              if(itinoi > 1) then
