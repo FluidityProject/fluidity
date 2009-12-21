@@ -128,10 +128,7 @@ contains
 
     REAL :: CHANGE,CHAOLD
 
-    LOGICAL :: REMESH
-
-    INTEGER :: IT,ITP,ITS
-    INTEGER :: I
+    integer :: i, it, itp, its
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -147,7 +144,7 @@ contains
     LOGICAL :: have_solids
 
     ! Pointers for scalars and velocity fields
-    type(vector_field) :: Velocity
+    type(vector_field), pointer :: Velocity
     type(scalar_field), pointer :: sfield
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -164,9 +161,6 @@ contains
 
     ! Current simulation timestep
     integer :: timestep
-
-    ! a counter for the total number of global non linear iterations including repeated timesteps 
-    integer :: total_its_count
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -191,7 +185,6 @@ contains
     adapt_count = 0
 
     DT=0.0
-    REMESH=.FALSE.
 
     ! Read state from .flml file
     call populate_state(state)
@@ -201,19 +194,13 @@ contains
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
        if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
+
        call adapt_state_first_timestep(state)
-       
        call allocate_and_insert_auxilliary_fields(state)
-       call copy_to_stored_values(state,"Old")
-       call copy_to_stored_values(state, "Iterated")
-       call relax_to_nonlinear(state)
        
        if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
     else
        call allocate_and_insert_auxilliary_fields(state)
-       call copy_to_stored_values(state,"Old")
-       call copy_to_stored_values(state, "Iterated")
-       call relax_to_nonlinear(state)
     end if
 
     call enforce_discrete_properties(state)
@@ -232,7 +219,6 @@ contains
      call get_option("/timestepping/steady_state/tolerance", &
           STEDER, default = -666.01)
 
-
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
     call get_ntsol(ntsol)
@@ -240,9 +226,6 @@ contains
 
     call initialise_field_lists_from_options(state, ntsol)
     call initialise_state_phase_lists_from_options()
-
-    ! We get back here after a mesh adapt with remesh = .false.
-99771 CONTINUE
 
     call compute_uses_old_code_path(uses_old_code_path)
     if(uses_old_code_path) FLExit("The old code path is dead.")
@@ -290,58 +273,21 @@ contains
     !     end initialise solid-fluid coupling, and ALE  -Julian 17-07-2008
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-
-    if(remesh) then
-       ! ******************
-       ! *** Mesh adapt ***
-       ! ******************
-       if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
-       
-       call adapt_state(state, metric_tensor)
-
-       call allocate_and_insert_auxilliary_fields(state)
-       call enforce_discrete_properties(state)
-
-       ! reinitialise the auxilliary fields before the adaptive timestep check
-       IF(ITINOI.GT.1) THEN
-          call copy_to_stored_values(state,"Old")
-          call copy_to_stored_values(state, "Iterated")
-          call relax_to_nonlinear(state)
-       ENDIF
-
-       if(have_option("/timestepping/adaptive_timestep")) then
-          call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-          call set_option("/timestepping/timestep", dt)
-       end if
-       
-       if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
-
-       remesh = .false.
-
-       GOTO 99771
-    ELSE
-       if (have_option("/mesh_adaptivity/hr_adaptivity")) then
-          call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
-       end if
-
-    ENDif
-    ! REMESHING ************************************************
-    ! **********************************************************
+    if (have_option("/mesh_adaptivity/hr_adaptivity")) then
+       call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
+    end if
 
     call compute_phase_uses_new_code_path(state, phase_uses_new_code_path)
     if (any(.not.phase_uses_new_code_path)) FLExit("The old code path is dead")
 
     !     Determine the output format.
-    call get_option('/io/dump_format', option_buffer, option_stat)
-    if(option_stat /= 0) then
-       FLAbort("You must specify a dump format and it must be vtk")
-    else if(trim(option_buffer) /= "vtk") then
+    call get_option('/io/dump_format', option_buffer)
+    if(trim(option_buffer) /= "vtk") then
        FLAbort("You must specify a dump format and it must be vtk")
     end if
 
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
-
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
           FLAbort("There are no top and bottom boundary markers.")
@@ -353,18 +299,8 @@ contains
        call CalculateTopBottomDistance(state(1), flat_earth)
     end if
 
-    !**********************Reduced model************************
-    ! these are used only when the inital condition is inversed
-    if(have_option("/model/fluids/reduced/initial")) then
-       FLExit("Calling the reduced model from new options doesn't work yet")
-    endif
-    !******************End reduced model***********************
-
-    ! if adaptivity hasn't just happened then initialise the multimaterial
-    ! fields on the first timestep
-    if(timestep == 0) then
-       call initialise_diagnostic_material_properties(state)
-    end if
+    ! initialise the multimaterial fields
+    call initialise_diagnostic_material_properties(state)
 
     call calculate_diagnostic_variables(State)
     call calculate_diagnostic_variables_new(state)
@@ -374,30 +310,26 @@ contains
        call calculate_biology_terms(state(1))
     end if
 
-    ! We really really only want first timestep output on the first timestep
-    ! (not when leaping around with adaptivity gotos)
-    if(timestep == 0) then
-      ! Dump at start
-      if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
-      ! Dump at start  
-      if( &
-             ! if this is not a zero timestep simulation (otherwise, there would
-             ! be two identical dump files)
-           & acctim < ltime &
-             ! unless explicitly disabled
-           & .and. .not. have_option("/io/disable_dump_at_start") &
-           & ) then
-         call write_state(dump_no, state)
-      end if
-
-      call initialise_diagnostics(filename, state)
-      call initialise_convergence(filename, state)
-      call initialise_advection_convergence(state)
-      if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, acctim, dt)
+    ! Checkpoint at start
+    if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
+    ! Dump at start  
+    if( &
+           ! if this is not a zero timestep simulation (otherwise, there would
+           ! be two identical dump files)
+         & acctim < ltime &
+           ! unless explicitly disabled
+         & .and. .not. have_option("/io/disable_dump_at_start") &
+         & ) then
+       call write_state(dump_no, state)
     end if
-
+    
+    call initialise_diagnostics(filename, state)
+    call initialise_convergence(filename, state)
+    call initialise_advection_convergence(state)
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, acctim, dt)
+    
     do i=1, size(state)
-       velocity = extract_vector_field(state(i), "Velocity")
+       velocity => extract_vector_field(state(i), "Velocity")
        if (has_boundary_condition(velocity, "free_surface") .and. &
             & have_option('/mesh_adaptivity/mesh_movement')) then
           ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates from initial condition"
@@ -421,17 +353,6 @@ contains
           ewrite(-1, *) "Timestep size (dt): ", dt
           FLAbort("The timestep is not global across all processes!")
        end if
-
-       !     solidity -------------------------------------------
-       ITS = 0
-       !     ----------------------------------------- added by crgw 23/06/06
-       total_its_count = 0
-
-       !******************REDUCED MODEL--ffx****************
-       if(have_option("/model/fluids/reduced")) then
-          FLExit("Calling the reduced model from new options doesn't work yet")
-       endif
-       !******************END REDUCED MODEL--ffx****************
 
        IF(MVMESH) THEN
           ! Make oldcoordinate a copy of coordinate.
@@ -471,8 +392,6 @@ contains
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
 
-       !579    CONTINUE  ! Go back to here for repeating time step.
-
        ! ITINOI=maximum no of iterations within a time step
        ! NB TEMPT is T from previous iteration.
        nonlinear_iteration_loop: do  ITS=1,ITINOI
@@ -480,8 +399,6 @@ contains
           ewrite(1,*)'###################'
           ewrite(1,*)'Start of another nonlinear iteration; ITS,ITINOI=',ITS,ITINOI
           ewrite(1,*)'###################'
-
-          total_its_count = total_its_count + 1
 
           IF(ITINOI.GT.1) THEN
              call copy_to_stored_values(state, "Iterated")
@@ -718,51 +635,40 @@ contains
        end if
 
        if(simulation_completed(acctim)) exit timestep_loop
-
+       
+       ! ******************
+       ! *** Mesh adapt ***
+       ! ******************
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
           if( &
-                                ! Test qmesh conditions
+               ! Test qmesh conditions
                & do_adapt_mesh(acctim, timestep) &
                & ) then
-
-             call zero(metric_tensor)
+               
              call qmesh(state, metric_tensor)
 
-             ! Let's go adapt the mesh
-             remesh = .true.
-             goto 99771
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
+             call run_diagnostics(state)
+             
+             call adapt_state(state, metric_tensor)
+             call update_state_post_adapt(state, metric_tensor, dt)
+             
+             call run_diagnostics(state)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(acctim)) then
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
+          
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)             
+             call run_diagnostics(state)
              
              call adapt_state_prescribed(state, acctim)
-
-             call allocate_and_insert_auxilliary_fields(state)
-             call enforce_discrete_properties(state)
-
-             ! reinitialise the auxilliary fields before the adaptive timestep check
-             if(itinoi > 1) then
-                call copy_to_stored_values(state, "Old")
-                call copy_to_stored_values(state, "Iterated")
-                call relax_to_nonlinear(state)
-             endif
-
-             if(have_option("/timestepping/adaptive_timestep")) then
-                call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-                call set_option("/timestepping/timestep", dt)
-             end if
-
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
+             call update_state_post_adapt(state, metric_tensor, dt)
              
-             ! We now have a perfectly valid system state ready for timestepping.
-             ! However we need to set up the legacy variables, so let's leap out
-             ! of the timestep loop to set them up.
-             remesh = .false.
-             goto 99771
+             call run_diagnostics(state)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
           end if
        end if
-
 
     end do timestep_loop
     ! ****************************
@@ -822,6 +728,61 @@ contains
     end subroutine set_simulation_start_times
 
   end subroutine fluids
+  
+  subroutine update_state_post_adapt(state, metric_tensor, dt)
+    type(state_type), dimension(:), intent(inout) :: state
+    type(tensor_field), intent(out) :: metric_tensor
+    real, intent(inout) :: dt
+    
+    integer :: i
+    logical :: flat_earth
+    type(vector_field), pointer :: velocity
+    
+    ! Discrete properties
+    call enforce_discrete_properties(state)
+    
+    ! The adaptivity metric
+    call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
+    
+    ! Auxilliary fields
+    call allocate_and_insert_auxilliary_fields(state)
+    
+    ! Ocean boundaries
+    if (has_scalar_field(state(1), "DistanceToTop")) then
+      if (.not. have_option('/geometry/ocean_boundaries')) then
+         FLAbort("There are no top and bottom boundary markers.")
+      end if
+      flat_earth=.not.(have_option("/physical_parameters/gravity/&
+         &vector_field::GravityDirection/prescribed/value/python")&
+         &.or. option_count("/physical_parameters/&
+         &gravity/vector_field::GravityDirection/value") > 1)
+      call CalculateTopBottomDistance(state(1), flat_earth)
+    end if
+        
+    ! Diagnostic fields
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
+    ! This is mostly to ensure that the photosynthetic radiation
+    ! has a non-zero value before the next adapt. 
+    if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))
+   
+    ! Free surface movement
+    do i=1, size(state)
+      velocity => extract_vector_field(state(i), "Velocity")
+      if (has_boundary_condition(velocity, "free_surface") .and. &
+           & have_option('/mesh_adaptivity/mesh_movement')) then
+         ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates from initial condition"
+         call move_free_surface_nodes(state(i))
+      end if
+    end do
+    
+    ! Timestep adapt
+    if(have_option("/timestepping/adaptive_timestep")) then
+      call calc_cflnumber_field_based_dt(state, dt)
+      call set_option("/timestepping/timestep", dt)
+    end if
+           
+  end subroutine update_state_post_adapt
   
   subroutine fluids_module_check_options
     !!< Check fluids specific options
