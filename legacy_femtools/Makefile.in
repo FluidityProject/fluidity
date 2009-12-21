@@ -43,10 +43,8 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = AllSorts.o sml.o tr2d.o detnlxr.o \
-   synthetic_bc.o lagrot.o Legacy_Field_Lists.o \
-   rgptwe.o
-   
+OBJS = AllSorts.o synthetic_bc.o Legacy_Field_Lists.o
+
 .SUFFIXES: .f90 .F90 .c .o .a
 
 .f90.o:

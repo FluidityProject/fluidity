@@ -44,7 +44,9 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = Fluids.o Reduced_Fluids.o Usage.o mainfl.o 
+OBJS = Fluids.o Usage.o mainfl.o 
+
+REDUCED_OBJS = Reduced_Fluids.o 
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -70,7 +72,7 @@ default: $(OBJS)
 
 Usage.o: ../include/Usage.h
 Reduced_Fluids.o: Fluids.o
-mainfl.o: Fluids.o Reduced_Fluids.o
+mainfl.o: Fluids.o 
 
 clean:
 	rm -f *.o *.d *.mod
