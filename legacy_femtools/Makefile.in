@@ -43,7 +43,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = AllSorts.o synthetic_bc.o
+OBJS = AllSorts.o 
 
 .SUFFIXES: .f90 .F90 .c .o .a
 
@@ -61,8 +61,6 @@ default: $(OBJS)
 	cp *.mod ../include/
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
-lagrot.o: rgptwe.o
-tr2d.o: lagrot.o
 
 clean:
 	rm -f *.o *.mod
