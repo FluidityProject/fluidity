@@ -35,7 +35,6 @@
 module AllSorts
 
   use fldebug
-  use flcomms_module
   use parallel_tools
   
   implicit none

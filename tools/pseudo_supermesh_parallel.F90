@@ -150,9 +150,8 @@ program pseudo_supermesh_parallel
 
   subroutine halo_business(nprocs, positions, filename)
     use halos
-    use global_parameters, only: halo_tag, halo_tag_p, halo_tag_dg1, halo_tag_dg2
+    use global_parameters, only: halo_tag, halo_tag_p
     use flcomms_io
-    use flcomms_module
     integer, intent(in) :: nprocs
     type(vector_field), intent(inout) :: positions
     character(len=255), intent(in) :: filename
@@ -167,8 +166,7 @@ program pseudo_supermesh_parallel
       call import_halo(halo_tag, positions%mesh%halos(1))
       call import_halo(halo_tag_p, positions%mesh%halos(2))
       allocate(positions%mesh%element_halos(2))
-      call import_halo(halo_tag_dg1, positions%mesh%element_halos(1))
-      call import_halo(halo_tag_dg2, positions%mesh%element_halos(2))             
+      call derive_element_halo_from_node_halo(mesh)       
     end if
   end subroutine halo_business
 

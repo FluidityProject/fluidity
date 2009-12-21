@@ -33,7 +33,6 @@ module halos_communications
   use fields_data_types
   use fields_base
   use fields_manipulation
-  use flcomms_module
   use fldebug
   use futils
   use global_parameters, only : tag => halo_tag, tag_p => halo_tag_p

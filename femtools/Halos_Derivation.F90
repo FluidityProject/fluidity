@@ -32,7 +32,6 @@ module halos_derivation
   use fields_allocates
   use fields_base
   use fldebug
-  use flcomms_module
   use global_parameters, only : halo_tag, halo_tag_p, halo_tag_dg1, halo_tag_dg2
   use halo_data_types
   use halos_allocates
@@ -51,7 +50,7 @@ module halos_derivation
   private
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
-    & derive_maximal_surface_element_halo, update_element_halo
+    & derive_maximal_surface_element_halo
   public :: ele_owner
   
   interface derive_l1_from_l2_halo
@@ -618,19 +617,6 @@ contains
     assert(ele_owner > 0)
    
   end function ele_owner
-
-  subroutine update_element_halo(mesh)
-    !!< For the supplied mesh, re-generate the FLComms element halos from the
-    !!< level 2 node halo
-    
-    type(mesh_type), intent(inout) :: mesh
-      
-    assert(halo_count(mesh) >= 2)
-    assert(has_references(mesh%halos(2)))
-
-    call register_elements_halo(mesh, mesh%halos(2), tag = legacy_halo_tag(mesh%halos(2)))
-
-  end subroutine update_element_halo
   
   function invert_comms_sizes(knowns_sizes, communicator) result(unknowns_sizes)
     !!< Given a set of knowns with size knowns_sizes (e.g. halo receive node

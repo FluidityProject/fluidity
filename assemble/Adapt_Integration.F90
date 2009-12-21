@@ -576,7 +576,6 @@ contains
         call set_halo_tag(output_mesh%halos(2), halo_tag_p)
         call register_halo(output_mesh%halos(1))
         call register_halo(output_mesh%halos(2))
-        call update_element_halo(output_mesh)
       else
         call unregister_halo(halo_tag, stat = stat)
         call set_halo_tag(output_mesh%halos(1), halo_tag)

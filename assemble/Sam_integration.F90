@@ -35,7 +35,6 @@ module sam_integration
   use field_options
   use state_module
   use surfacelabels
-  use flcomms_module
   use global_parameters, only : tag => halo_tag, tag_p => halo_tag_p, OPTION_PATH_LEN, FIELD_NAME_LEN
   use halos
   use halos_legacy
@@ -588,8 +587,7 @@ module sam_integration
        call incref(level_1_halo)
        if(.not. serial_storage_halo(level_1_halo)) then  ! Cannot derive halos in serial
          allocate(output_linear_mesh%element_halos(1))
-         call derive_element_halo_from_node_halo(output_linear_mesh, &
-           & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+         call derive_element_halo_from_node_halo(output_linear_mesh)
        end if
 
        deallocate(new_ndglno)
@@ -1005,26 +1003,13 @@ module sam_integration
          ! Register the new halo
          call register_halo(linear_mesh%halos(2))
 
-         ! Register the level 1 elements halo
-         call register_elements_halo(tag, node_count(linear_mesh), &
-              ele_count(linear_mesh), ele_loc(linear_mesh, 1), &
-              linear_mesh%ndglno)
-              
+         ! Derive the elements halo
          allocate(linear_mesh%element_halos(2))
-
-         ! Register the level 2 elements halo
-         call register_elements_halo(tag_p, node_count(linear_mesh),&
-              & ele_count(linear_mesh), ele_loc(linear_mesh, 1),&
-              & linear_mesh%ndglno) 
-         call import_halo(-tag_p, linear_mesh%element_halos(2))   
-         
-         ! Note that currently only the level 2 halo may be successfully extracted.
-         call import_halo(-tag_p, linear_mesh%element_halos(1))
+         call derive_element_halo_from_node_halo(linear_mesh)  
        else
          if(.not. serial_storage_halo(linear_mesh%halos(1))) then  ! Cannot derive halos in serial
            allocate(linear_mesh%element_halos(1))
-           call derive_element_halo_from_node_halo(linear_mesh, &
-             & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+           call derive_element_halo_from_node_halo(linear_mesh)
          else
            allocate(linear_mesh%element_halos(0))
          end if

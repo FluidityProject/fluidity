@@ -31,7 +31,6 @@
 !
 module rotated_boundary_conditions
 use fldebug
-use flcomms_module
 implicit none
 
 contains

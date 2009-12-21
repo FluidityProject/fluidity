@@ -47,11 +47,8 @@ module halos_registration
   
   private
   
-  public :: import_halo, register_halo, register_elements_halo, unregister_halo
-  
-  interface register_elements_halo
-    module procedure register_elements_halo_mesh
-  end interface register_elements_halo
+  public :: import_halo, register_halo
+  public :: unregister_halo, reset_halo_manager
   
 contains
 
@@ -227,50 +224,4 @@ contains
     
   end subroutine register_halo
   
-  subroutine register_elements_halo_mesh(mesh, l2_halo, tag, stat)
-    !!< Register an element halo using the level 2 halo on the supplied mesh.
-    !!< This also registers the level 2 node halo.
-    
-    type(mesh_type), intent(in) :: mesh
-    type(halo_type), intent(in) :: l2_halo
-    !! This should be the positive node halo tag
-    integer, optional, intent(in) :: tag
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat, ltag
-    
-    if(present(stat)) stat = 0
-    
-    if(present(tag)) then
-      ltag = tag
-    else
-      ltag = legacy_halo_tag(l2_halo)
-    end if
-    assert(ltag > 0)
-    
-    call unregister_halo(ltag, stat = lstat)
-    call register_halo(l2_halo, tag = ltag, stat = lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-        return
-      else
-        FLAbort("Failed to register halo")
-      end if
-    end if
-    
-    call unregister_halo(-ltag, stat = lstat)
-    assert(ele_loc(mesh, 1) > 0)
-    call register_elements_halo(ltag, node_count(mesh), ele_count(mesh), ele_loc(mesh, 1), mesh%ndglno, stat = lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-        return
-      else
-        FLAbort("Failed to register halo")
-      end if
-    end if
-    
-  end subroutine register_elements_halo_mesh
-
 end module halos_registration

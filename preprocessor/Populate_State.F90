@@ -34,7 +34,7 @@ module populate_state_module
   use read_triangle
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, halo_tag, halo_tag_p, &
-       halo_tag_dg1, halo_tag_dg2, is_active_process, pi
+       is_active_process, pi
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -270,16 +270,12 @@ contains
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
              call read_halos(mesh_file_name)
-             call register_elements_halo(halo_tag_p, node_count(mesh),&
-                  & ele_count(mesh), ele_loc(mesh, 1), mesh%ndglno)
-             call register_elements_halo(halo_tag, node_count(mesh),&
-                  & ele_count(mesh), ele_loc(mesh, 1), mesh%ndglno)
              allocate(mesh%halos(2))
              call import_halo(halo_tag, mesh%halos(1))
              call import_halo(halo_tag_p, mesh%halos(2))
+             
              allocate(mesh%element_halos(2))
-             call import_halo(halo_tag_dg1, mesh%element_halos(1))
-             call import_halo(halo_tag_dg2, mesh%element_halos(2))             
+             call derive_element_halo_from_node_halo(mesh) 
              ! The mesh descriptor inside position will now be out of date.
              position%mesh=mesh
              call reorder_element_numbering(position)
