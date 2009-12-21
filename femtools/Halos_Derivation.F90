@@ -51,7 +51,7 @@ module halos_derivation
   private
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
-    & update_element_halo
+    & derive_maximal_surface_element_halo, update_element_halo
   public :: ele_owner
   
   interface derive_l1_from_l2_halo
@@ -226,7 +226,7 @@ contains
     end do
 #endif
 
-    mesh%element_halos(1) = derive_maximal_element_halo_from_node_halo(mesh, mesh%halos(halo_count(mesh)), &
+    mesh%element_halos(1) = derive_maximal_element_halo(mesh, mesh%halos(halo_count(mesh)), &
       & ordering_scheme = ordering_scheme, create_caches = create_caches)
     if(element_halo_count(mesh) > 1) then
       mesh%element_halos(2) = mesh%element_halos(1)
@@ -235,7 +235,7 @@ contains
     
   end subroutine derive_element_halo_from_node_halo
   
-  function derive_maximal_element_halo_from_node_halo(mesh, node_halo, ordering_scheme, create_caches) result(element_halo)
+  function derive_maximal_element_halo(mesh, node_halo, ordering_scheme, create_caches) result(element_halo)
     !!< Given a node halo for the supplied mesh, derive the maximal element halo
   
     type(mesh_type), intent(in) :: mesh
@@ -252,7 +252,7 @@ contains
       & owner, procno
     type(integer_set), dimension(:), allocatable :: receives
 
-    ewrite(1, *) "In derive_maximal_element_halo_from_node_halo"
+    ewrite(1, *) "In derive_maximal_element_halo"
         
     assert(continuity(mesh) == 0)
     assert(halo_data_type(node_halo) == HALO_TYPE_CG_NODE)
@@ -312,9 +312,92 @@ contains
       call create_global_to_universal_numbering(element_halo)
     end if
     
-    ewrite(1, *) "Exiting derive_maximal_element_halo_from_node_halo"
+    ewrite(1, *) "Exiting derive_maximal_element_halo"
 
-  end function derive_maximal_element_halo_from_node_halo
+  end function derive_maximal_element_halo
+  
+  function derive_maximal_surface_element_halo(mesh, node_halo, element_halo, ordering_scheme, create_caches) result(selement_halo)
+    !!< Given an element halo for the supplied mesh, derive the maximal surface
+    !!< element halo
+  
+    type(mesh_type), intent(inout) :: mesh
+    type(halo_type), intent(in) :: node_halo
+    type(halo_type), intent(in) :: element_halo
+    !! By default the maximal element halo will have a HALO_ORDER_GENERAL
+    !! ordering scheme. Supply this to override.
+    integer, optional, intent(in) :: ordering_scheme
+    !! If present and .false., do not create halo caches
+    logical, optional, intent(in) :: create_caches
+
+    type(halo_type) :: selement_halo
+ 
+    integer :: communicator, i, lordering_scheme, nowned_eles, nprocs, &
+      & owner, procno
+    type(integer_set), dimension(:), allocatable :: receives
+
+    ewrite(1, *) "In derive_maximal_surface_element_halo"
+        
+    assert(continuity(mesh) == 0)
+    assert(halo_data_type(element_halo) == HALO_TYPE_ELEMENT)
+    assert(.not. serial_storage_halo(element_halo))
+
+    if(present(ordering_scheme)) then
+      lordering_scheme = ordering_scheme
+    else
+      lordering_scheme = HALO_ORDER_GENERAL
+    end if
+        
+    communicator = halo_communicator(element_halo)
+    nprocs = halo_proc_count(element_halo)
+    procno = getprocno(communicator = communicator)
+   
+    ! Step 1: Generate the maximal set of receives
+ 
+    allocate(receives(nprocs))
+    call allocate(receives)
+    do i = 1, surface_element_count(mesh)
+      owner = ele_owner(face_ele(mesh, i), mesh, node_halo)
+      if(owner /= procno) call insert(receives(owner), i)
+    end do
+    ewrite(2, *) "Maximal receive elements: ", sum(key_count(receives))
+    
+    nowned_eles = ele_count(mesh) - sum(key_count(receives))
+    ewrite(2, *) "Owned elements: ", nowned_eles
+    
+    ! Step 2: Allocate the halo and set the receives
+
+    call allocate(selement_halo, &
+      & nsends = spread(0, 1, nprocs), &
+      & nreceives = key_count(receives), &
+      & name = trim(mesh%name) // "MaximalSurfaceElementHalo", &
+      & communicator = communicator, &
+      & tag = halo_tag_dg2, &
+      & nowned_nodes = nowned_eles, &
+      & data_type = HALO_TYPE_ELEMENT, &
+      & ordering_scheme = lordering_scheme)
+    
+    do i = 1, nprocs
+      call set_halo_receives(selement_halo, i, set2vector(receives(i)))
+      call deallocate(receives(i))
+    end do
+    deallocate(receives)
+ 
+    ! Step 3: Invert the receives to form the sends
+    call invert_surface_element_halo_receives(mesh, element_halo, selement_halo)
+    
+#ifdef DDEBUG
+    if(halo_ordering_scheme(selement_halo) == HALO_ORDER_TRAILING_RECEIVES) then
+      assert(trailing_receives_consistent(selement_halo))
+    end if
+#endif
+
+    if(.not. present_and_false(create_caches)) then
+      call create_global_to_universal_numbering(selement_halo)
+    end if
+    
+    ewrite(1, *) "Exiting derive_maximal_surface_element_halo"
+
+  end function derive_maximal_surface_element_halo
   
   subroutine derive_element_halos_from_l2_halo_mesh(mesh, create_caches)
     !!< For the supplied mesh, generate element halos from the level 2 node
@@ -665,6 +748,100 @@ contains
     deallocate(sends_uenlist)
         
   end subroutine invert_element_halo_receives
+  
+  subroutine invert_surface_element_halo_receives(mesh, element_halo, selement_halo)
+    !!< Invert surface element halo receives to form the surface element halo
+    !!< sends, using the unn cache of an element halo
+
+    type(mesh_type), intent(in) :: mesh
+    type(halo_type), intent(in) :: element_halo
+    type(halo_type), intent(inout) :: selement_halo
+    
+    integer :: communicator, ele, face, i, ierr, j, lface, nprocs, rank
+    integer, dimension(:), allocatable :: nreceives, nsends, requests, statuses
+    integer, dimension(:), pointer :: faces
+    type(integer_hash_table) :: gnns
+    type(integer_vector), dimension(:), allocatable :: receives_uenlist, sends_uenlist
+    
+    assert(continuity(mesh) == 0)
+    assert(halo_data_type(element_halo) == HALO_TYPE_ELEMENT)
+    assert(halo_data_type(selement_halo) == HALO_TYPE_ELEMENT)
+    assert(has_global_to_universal_numbering(element_halo))
+    assert(.not. has_global_to_universal_numbering(selement_halo))
+    
+    communicator = halo_communicator(element_halo)
+    nprocs = halo_proc_count(element_halo)
+    rank = getrank(communicator) 
+
+    allocate(nsends(nprocs))
+    allocate(nreceives(nprocs))
+    call halo_receive_counts(selement_halo, nreceives)
+    nsends = invert_comms_sizes(nreceives, communicator = communicator)
+    deallocate(nreceives)
+    call reallocate(selement_halo, nsends = nsends)
+    deallocate(nsends)
+    
+    assert(valid_halo_node_counts(selement_halo))
+    
+    allocate(receives_uenlist(nprocs))
+    do i = 1, nprocs
+      allocate(receives_uenlist(i)%ptr(halo_receive_count(selement_halo, i)*2))
+      do j = 1, halo_receive_count(selement_halo, i)
+        face = halo_receive(selement_halo, i, j)
+        receives_uenlist(i)%ptr((j - 1) * 2 + 1) = halo_universal_number(element_halo, face_ele(mesh, face))
+        receives_uenlist(i)%ptr((j - 1) * 2 + 2) = local_face_number(mesh, face)
+      end do
+    end do
+    
+    ! Set up non-blocking communications
+    allocate(sends_uenlist(nprocs))
+    allocate(requests(nprocs * 2))
+    requests = MPI_REQUEST_NULL
+    call mpi_barrier(communicator, ierr)
+    assert(ierr == MPI_SUCCESS)
+    do i = 1, nprocs
+      allocate(sends_uenlist(i)%ptr(halo_send_count(selement_halo, i)*2))
+      
+      ! Non-blocking sends
+      if(size(receives_uenlist(i)%ptr) > 0) then
+        call mpi_isend(receives_uenlist(i)%ptr, size(receives_uenlist(i)%ptr), getpinteger(), i - 1, rank, communicator, requests(i), ierr)
+        assert(ierr == MPI_SUCCESS)
+      end if
+      
+      ! Non-blocking receives
+      if(size(sends_uenlist(i)%ptr) > 0) then
+        call mpi_irecv(sends_uenlist(i)%ptr, size(sends_uenlist(i)%ptr), getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+        assert(ierr == MPI_SUCCESS)
+      end if
+    end do    
+        
+    ! Wait for all non-blocking communications to complete
+    allocate(statuses(MPI_STATUS_SIZE * size(requests)))
+    call mpi_waitall(size(requests), requests, statuses, ierr)
+    assert(ierr == MPI_SUCCESS)
+    deallocate(statuses)
+    deallocate(requests)
+    do i = 1, nprocs
+      deallocate(receives_uenlist(i)%ptr)
+    end do
+    deallocate(receives_uenlist)
+      
+    call get_universal_numbering_inverse(element_halo, gnns)
+    do i = 1, nprocs
+      do j = 1, halo_send_count(selement_halo, i)
+        ele = sends_uenlist(i)%ptr((j - 1) * 2 + 1)
+        lface = sends_uenlist(i)%ptr((j - 1) * 2 + 2)
+        faces => ele_faces(mesh, fetch(gnns, ele))
+        face = faces(lface)
+        assert(face > 0)
+        call set_halo_send(selement_halo, i, j, face)
+      end do
+      deallocate(sends_uenlist(i)%ptr)
+    end do
+    call deallocate(gnns)
+    deallocate(sends_uenlist)
+        
+  end subroutine invert_surface_element_halo_receives
   
   function nodes_ele(mesh, nodes) result(ele)
     !!< Inverse of ele_nodes

@@ -744,7 +744,7 @@ contains
     
     type(scalar_field) :: sfield
     
-    sfield = extract_scalar_field_from_vector_field(vfield, dim)
+    sfield = extract_scalar_field(vfield, dim)
     verifies = halo_verifies(halo, sfield)
     
   end function halo_verifies_vector_dim

@@ -278,7 +278,7 @@ contains
   !!< The calculated coplanar_ids are caches inside the mesh, so that if
   !!< this routine is called again they are exactly the same.
   type(mesh_type), intent(inout):: mesh
-  type(vector_field), intent(in):: positions
+  type(vector_field), target, intent(in):: positions
   integer, dimension(:), pointer:: coplanar_ids
     type(mesh_type), pointer:: surface_mesh
     type(csr_sparsity), pointer :: eelist
@@ -378,8 +378,8 @@ contains
     end do
     deallocate(normals)
     
-    call merge_surface_ids_flcomms(mesh, coplanar_ids, max_id = current_id - 1)
-    !call vtk_write_coplanar_ids("coplanar_ids", positions, coplanar_ids)
+    call merge_surface_ids(mesh, coplanar_ids, max_id = current_id - 1)
+    !call vtk_write_coplanar_ids("coplanar_ids", dummy, coplanar_ids)
 
   end subroutine get_coplanar_ids
   
@@ -477,21 +477,21 @@ contains
     !!< Given a local set of surface IDs on a mesh, merge the surface IDs
     !!< across all processes
     
-    type(mesh_type), intent(in) :: mesh
+    type(mesh_type), intent(inout) :: mesh
     integer, dimension(surface_element_count(mesh)), intent(inout) :: surface_ids
     integer, optional, intent(in) :: max_id
     
 #ifdef HAVE_MPI
     integer :: comm, communicated_nsele, communicator, ele, face, i, id_base, &
-      & ierr, j, lmax_id, new_id, nhalos, nprocs, nsele, old_id, proc, procno
-    integer, dimension(:), allocatable :: nreceives, requests, statuses
+      & ierr, j, lmax_id, new_id, nhalos, nprocs, nsele, old_id, procno
+    integer, dimension(:), allocatable :: requests, statuses
     integer, dimension(:), pointer :: faces
     integer, parameter :: max_comm_count = 100, vals_per_comm = 3
     logical :: complete
     type(integer_hash_table) :: gens, id_map
-    type(integer_set), dimension(:), allocatable :: send_paint, sends, sent_ids
     type(integer_vector), dimension(:), allocatable :: receive_buffer, &
       & send_buffer
+    type(halo_type) :: sele_halo
     type(halo_type), pointer :: ele_halo, node_halo
     
     ewrite(1, *) "In merge_surface_ids"
@@ -520,52 +520,20 @@ contains
     assert(ierr == MPI_SUCCESS)
     id_base = id_base - lmax_id
     surface_ids = surface_ids + id_base
+        
+    ! Derive the maximal surface element halo
     
-    ! Paint the sends
-    
-    allocate(send_paint(ele_count(mesh)))
-    call allocate(send_paint)
-    do i = 1, nprocs    
-      do j = 1, halo_send_count(ele_halo, i)
-        call insert(send_paint(halo_send(ele_halo, i, j)), i)
-      end do
-    end do
-    
-    ! Construct lists of owned faces to send to other processes ("sends") and
-    ! the number of non-owned faces to receive from other processes
-    ! ("nreceives"). This is maximal surface element halo data.
-    
-    allocate(sends(nprocs))
-    call allocate(sends)
-    allocate(nreceives(nprocs))
-    nreceives = 0
-    do i = 1, nsele
-      ele = face_ele(mesh, i)
-      proc = ele_owner(ele, mesh, node_halo)
-      if(proc == procno) then
-        do j = 1, key_count(send_paint(ele))
-          proc = fetch(send_paint(ele), j)
-          assert(proc /= procno)
-          call insert(sends(proc), i)
-        end do
-      else
-        assert(proc /= procno)
-        nreceives(proc) = nreceives(proc) + 1
-      end if
-    end do
-    call deallocate(send_paint)
-    deallocate(send_paint)
-    
+    sele_halo = derive_maximal_surface_element_halo(mesh, node_halo, ele_halo, &
+      & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+        
     allocate(send_buffer(nprocs))
     allocate(receive_buffer(nprocs))
     do i = 1, nprocs
-      communicated_nsele = key_count(sends(i))
+      communicated_nsele = halo_send_count(sele_halo, i)
       allocate(send_buffer(i)%ptr(communicated_nsele * vals_per_comm))
-      allocate(receive_buffer(i)%ptr(nreceives(i) * vals_per_comm))
+      allocate(receive_buffer(i)%ptr(halo_receive_count(sele_halo, i) * vals_per_comm))
     end do
-    deallocate(nreceives)
     call get_universal_numbering_inverse(ele_halo, gens)
-    allocate(sent_ids(nprocs))
     comm = 0
     comm_loop: do
       ! We loop until all new surface IDs match the incoming old surface IDs.
@@ -588,26 +556,23 @@ contains
       ! These are packed with the surface_ids at the head of the buffer, as
       ! only these need communicating for indirect merge checking
             
-      call allocate(sent_ids)
       do i = 1, nprocs
-        communicated_nsele = key_count(sends(i))
+        communicated_nsele = halo_send_count(sele_halo, i)
         if(comm == 1) then
           do j = 1, communicated_nsele
-            face = fetch(sends(i), j)
+            face = halo_send(sele_halo, i, j)
             ! Pack surface element send buffer
             old_id = surface_ids(face)
             send_buffer(i)%ptr(j) = old_id
-            call insert(sent_ids(i), old_id)
             send_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 1) = halo_universal_number(ele_halo, face_ele(mesh, face))
             send_buffer(i)%ptr(communicated_nsele + (j - 1) * (vals_per_comm - 1) + 2) = local_face_number(mesh, face)
           end do
         else
           do j = 1, communicated_nsele
-            face = fetch(sends(i), j)
+            face = halo_send(sele_halo, i, j)
             ! Update surface element send buffer
             old_id = surface_ids(face)
             send_buffer(i)%ptr(j) = old_id
-            call insert(sent_ids(i), old_id)
           end do
         end if
       end do
@@ -684,12 +649,7 @@ contains
           if(new_id == old_id) then
             ! This has already been merged
             cycle
-          else if(new_id > old_id &
-            ! A nasty corner case - it's possible for the incoming ID to be
-            ! larger than the existing ID, but we didn't send the existing ID to
-            ! the incoming ID sender. This can happen when partition boundaries
-            ! align with surface ID boundaries.
-            & .and. has_value(sent_ids(i), old_id)) then
+          else if(new_id > old_id) then
             ! The incoming ID is larger than the existing ID, and we sent the
             ! existing ID to the incoming ID sender. The sender should be
             ! swapping out its corresponding ID for the one on this process.
@@ -704,7 +664,6 @@ contains
           call insert(id_map, old_id, new_id)
         end do
       end do
-      call deallocate(sent_ids)
       
       ! This is where a divide and conquer algorithm would live. We need to
       ! communicate (for comms > 1) information from the map id_map:
@@ -733,8 +692,7 @@ contains
       ! We have to check for indirect merges (merges with processes that are not
       ! adjacent to this one). Let's go around again ...
     end do comm_loop
-    call deallocate(sends)
-    deallocate(sends)
+    call deallocate(sele_halo)
     do i = 1, nprocs
       deallocate(send_buffer(i)%ptr)
       deallocate(receive_buffer(i)%ptr)
@@ -742,7 +700,6 @@ contains
     deallocate(send_buffer) 
     deallocate(receive_buffer) 
     call deallocate(gens)
-    deallocate(sent_ids)  
     
     ewrite(1, *) "Exiting merge_surface_ids"
 #endif
