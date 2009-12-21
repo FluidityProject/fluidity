@@ -19,7 +19,6 @@ module meshmovement
   use sparse_tools
   use vtk_interfaces
   use unittest_tools
-  use AllSorts
   use spud
   use sparsity_patterns_meshes
   use eventcounter

@@ -29,7 +29,6 @@
 
 module fluids_module
 
-  use AllSorts
   use AuxilaryOptions
   use MeshDiagnostics
   use oceansurfaceforcing, only : initialise_ocean_surface_forcing => initialise
@@ -61,7 +60,6 @@ module fluids_module
   use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
   use volumesource
   use vertical_extrapolation_module
-  use momentum_source
   use qmesh_module
   use checkpoint
   use write_state_module
@@ -764,12 +762,7 @@ contains
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
           call momentum_loop(state, at_first_timestep=((timestep==1).and.(its==1)))
-          
-          ! Add in externally defined momentum source
-          ! term. Don't even think about doing this with multiple
-          ! material phases !
-          call simple_source_python(state(1))             
-             
+                       
           if(itinoi > 1) then
              ! Check for convergence between non linear iteration loops
              call test_and_write_convergence(state, acctim + dt, dt, its, change)

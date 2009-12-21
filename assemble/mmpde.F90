@@ -43,7 +43,6 @@ module mmpde_module
   use sparse_tools
   use vtk_interfaces
   use unittest_tools
-  use AllSorts
   use spud
 !
 implicit none

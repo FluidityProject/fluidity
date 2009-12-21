@@ -35,7 +35,6 @@ module k_epsilon
   use sparse_matrices_fields
   use state_module
   use spud
-  use allsorts
   use global_parameters, only:   OPTION_PATH_LEN
   use state_fields_module
   use boundary_conditions

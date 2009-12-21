@@ -34,7 +34,6 @@ module gls
   use sparse_matrices_fields
   use state_module
   use spud
-  use allsorts
   use global_parameters, only:   OPTION_PATH_LEN
   use equation_of_state
   use state_fields_module
