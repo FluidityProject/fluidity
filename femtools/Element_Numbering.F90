@@ -1289,7 +1289,7 @@ contains
     !
     ! If stat is present then it returns 1 if any node is not in the
     ! element and 0 otherwise.
-    integer, dimension(3), intent(in) :: nodes
+    integer, dimension(:), intent(in) :: nodes
     integer, dimension(:), intent(in) :: element
     type(ele_numbering_type), intent(in) :: ele_num
     logical, intent(in) :: interior
@@ -1388,7 +1388,13 @@ contains
     !    assert(cnt==size(face_local_num_int))
     case (FAMILY_CUBE)
         
-        ! same as in edge_local_num only now with 2 loops
+        ! this first loop works out the count coordinates
+        ! of the first given node N, using the following formula:
+        !   l(i)=iand( N-1, 2**(3-i) ) / 2**(3-i)
+        ! also it finds out in which count coordinate node1 and node2
+        ! differ and the increment in this coordinate needed to walk 
+        ! from node1 to node2, stored in j12 and inc12 resp.
+        ! same for node1 and node3, stored in j13 and inc13
         
         l=0
         k=1 ! bit mask
@@ -1420,6 +1426,10 @@ contains
           FLAbort("Twice the same node given in edge_local_num.")
         end if
           
+        ! Now find the nodes on the face by walking through the count
+        ! numbers, starting at node1 and walking from node1 to node2
+        ! in the inner loop, and from node1 to node3 in the outer loop
+        
         ! instead of between 0 and 1, between 0 and degree
         l=l*ele_num%degree
         cnt=0
