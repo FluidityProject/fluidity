@@ -28,7 +28,7 @@
 #include "fdebug.h"
 
 module field_priority_lists
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, ident_name,&
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN,&
        phase2state_index, state2phase_index
   use fields
   use state_module

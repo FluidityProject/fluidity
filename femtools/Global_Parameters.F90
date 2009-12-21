@@ -200,7 +200,7 @@ module global_parameters
   logical :: is_active_process = .true.
 
   !------------------------------------------------------------------------
-  ! Ident names and numbers.
+  ! Field names and paths
   !------------------------------------------------------------------------
 
   ! Zeroing long strings is EXPENSIVE.
@@ -228,88 +228,8 @@ module global_parameters
   !! indexes between states and phases
   integer, save, dimension(:), allocatable :: phase2state_index, state2phase_index
 
-  type ident
-     !!< Type for storing idents. These associate GEM ident numbers with
-     !!< field names.
-     character(len=FIELD_NAME_LEN) ::name
-     integer :: ident
-  end type ident
-
-  !! list of legacy "idents" Don't add any new ones!!
-  integer, parameter :: ident_count=11
-  type(ident), dimension(ident_count), parameter :: ident_list = (/ &
-       ident("Salinity", 42), &
-       ident("Temperature", -1), &
-       ident("Tracer", 666), & ! This is for totally passive tracer tests.
-       ident("SecondFluid",56), &
-       ident("DiffuseInterface",57), &
-       ident("KineticEnergy", 101), &
-       ident("TurbulentLengthScalexKineticEnergy", 102), &
-       ident("VerticalViscosity", 103), &
-       ident("VerticalDiffusivity", 104), &
-       ident("FreeSurface", -29), &
-       ident("BalancePressure", -2003) &
-       /)
-
-
-  private :: ident, ident_list
-
 contains
   
-  elemental function ident_name(ident)
-    !!< Given an ident number return the field name.
-    character(len=FIELD_NAME_LEN) :: ident_name
-    integer, intent(in) :: ident
-
-    integer :: loc
-
-    loc=0
-    ! Unfortunately the following line caused an internal compiler error in
-    ! gfortran.
-    !loc=minval(ident_list%ident, (ident_list%ident==ident))
-    do loc=1,size(ident_list)
-       if (ident_list(loc)%ident==ident) then
-          goto 42
-       end if
-    end do
-    
-    ! Fallthrough case for unknown fields.
-!     write(ident_name, '(a,i0)') "UnknownField", ident  ! can't use this as in case of
-!                                                        ! negative idents it introduces hyphens
-!                                                        ! which aren't allowed in the options dictionary
-    write(ident_name, '(a,i0)') "UnknownField", abs(ident) ! very nonideal solution
-  
-    return
-    
-42  ident_name=ident_list(loc)%name
-    
-  end function ident_name
-
-  pure function name_ident(name)
-    !!< Given a field name return the ident number
-    character(len=FIELD_NAME_LEN), intent(in) :: name
-    integer :: name_ident
-
-    integer :: loc
-
-    loc=0
-    ! Unfortunately the following line caused an internal compiler error in
-    ! gfortran.
-    !loc=minval(ident_list%ident, (ident_list%ident==ident))
-    do loc=1,size(ident_list)
-       if (ident_list(loc)%name==name) then
-          goto 43
-       end if
-    end do
-    
-    ! Fallthrough case for unknown fields.
-    name_ident = 0
-
-    return
-    
-43  name_ident = ident_list(loc)%ident
-    
-  end function name_ident
 
   function domain_is_2d() result(bool)
     !!< Is the domain pseudo2d or not?
