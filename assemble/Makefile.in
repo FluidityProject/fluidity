@@ -64,9 +64,8 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         VolumeSource.o \
 	MeshMovement.o \
 	traffic.o \
-	Solid_Update.o Field_Equations_CV.o Assemble_CMC.o \
-	Solid_assembly.o Solidity.o  \
-	Pressure_Gradient_Matrix_Wrapper.o Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
+	Field_Equations_CV.o Assemble_CMC.o \
+	Divergence_Matrix_CG.o Gradient_Matrix_CG.o Divergence_Matrix_CV.o \
 	State_Matrices.o \
 	Drag.o    \
 	Multimaterials.o Diagnostic_fields_wrapper.o Diagnostic_Fields_Matrices.o Vorticity_Diagnostics.o \

@@ -68,13 +68,10 @@ module fluids_module
   ! Use Solid-fluid coupling and ALE - Julian- 18-09-06
   use ale_module
   use adjacency_lists
-  use solidity
   use multimaterial_module
-  use solid_assembly, only: steval
   use parallel_tools
   use SolidConfiguration
   use MeshMovement
-  use solid_update
   use write_triangle
   use biology
   use momentum_equation
@@ -157,18 +154,6 @@ contains
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
     logical::use_electrical_potential_solver=.false.  !jhs 05/05/2009
-
-    !***********************************************************************
-    !     Begin parameters for SOLIDITY            --Added by gsc 2006-03-13
-
-    !     These options are set in "solidity_options.inp"
-    !                                 (see GET_SOLIDTY_OPTIONS in Solidity.F90)
-    INTEGER :: SOLIDS            !Solid or fluid rheology
-
-    !     crgw - compressible schemes
-    INTEGER :: MKCOMP
-    !     mkcomp <= 0... incompressible
-    !     mkcomp = 3... compressible scheme using modified gradient operator
 
     INTEGER :: adapt_count
 
@@ -263,14 +248,6 @@ contains
     if(uses_old_code_path) FLExit("The old code path is dead.")
 
     call run_diagnostics(state)
-
-    !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-    !     Solidity modification -----------------------
-    !        Get the last remaining old style solidity variables
-    CALL GET_SOLIDITY_OPTIONS(SOLIDS,MKCOMP)
-
-    !     -------------------------------- Added by gsc 2006-03-29
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
     !     Initialise solid-fluid coupling, and ALE ----------- -Julian 17-07-2008
@@ -456,7 +433,7 @@ contains
        endif
        !******************END REDUCED MODEL--ffx****************
 
-       IF(MVMESH.AND.(SOLIDS.EQ.0)) THEN
+       IF(MVMESH) THEN
           ! Make oldcoordinate a copy of coordinate.
           call set_vector_field_in_state(state(1), "OldCoordinate", &
                "Coordinate")
@@ -700,16 +677,6 @@ contains
           !move the mesh and calculate the grid velocity
           call movemeshy(state(1))
        endif
-
-       !     -------------------------------start of add by crgw 14/03/06
-       ! solidity - move the nodes using the final grid velocities
-       ! (not intermediate steps) if
-       !  we are using a lagrangian mesh but itinoi>1 for material model
-       !  purposes
-       IF(MVMESH.AND.SOLIDS.GT.0) THEN
-          call solid_coordinate_update(state(1))
-       ENDIF
-       !     --------------------------------------end of add by crgw 14/03/06
 
        ACCTIM=ACCTIM+DT
 

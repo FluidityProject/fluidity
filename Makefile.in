@@ -307,8 +307,6 @@ clean-light:
 	@cd femtools; $(MAKE) clean
 	@echo "    CLEAN femtools/tests"
 	@cd femtools/tests; $(MAKE) clean
-	@echo "    CLEAN legacy_femtools"
-	@cd legacy_femtools; $(MAKE) clean
 	@echo "    CLEAN forward_interfaces"
 	@cd forward_interfaces; $(MAKE) clean
 	@echo "    CLEAN parameterisation"
