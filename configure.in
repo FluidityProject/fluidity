@@ -1402,7 +1402,6 @@ AC_OUTPUT(Makefile
           parallel/Makefile parallel/tests/Makefile
           interpolation/Makefile 
           femtools/Makefile femtools/tests/Makefile
-          legacy_femtools/Makefile
           forward_interfaces/Makefile
           horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile
           preprocessor/Makefile

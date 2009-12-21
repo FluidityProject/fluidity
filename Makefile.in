@@ -216,8 +216,6 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@cd libwm; $(MAKE)
 	@echo "    MAKE femtools"
 	@cd femtools;	$(MAKE)
-	@echo "    MAKE legacy_femtools"
-	@cd legacy_femtools;	$(MAKE)
 	@echo "    MAKE ocean_forcing"
 	@cd ocean_forcing; $(MAKE)
 	@echo "    MAKE forward_interfaces"
