@@ -33,8 +33,6 @@ module fluids_module
   use MeshDiagnostics
   use oceansurfaceforcing, only : initialise_ocean_surface_forcing => initialise
   use signal_vars
-! NOTE: VARIABLES NOT DEFINED HERE MAY BE FOUND IN Global_Parameters.F90
-  use global_parameters
   use spud
   use equation_of_state
   use timers
@@ -107,91 +105,21 @@ contains
 
   SUBROUTINE FLUIDS(filename)
     character(len = *), intent(in) :: filename
-
-    INTEGER, PARAMETER ::MXNTSO=31
-    ! MXNTSO=max no of field equations.
-
-    ! ********************************
-    ! THE VARIABLES USED IN REDFIL ...
-    ! For the INTEGERS ...
-    INTEGER, SAVE :: &
+    
+    INTEGER :: &
          & NPHASE,NTSOL,  &
-         & NLOC  ,NGI   ,MLOC,&
-         & ITINOI,&
-         & NCOLOP,&
-         & SNLOC, SNGI  ,&
-         & OPTSOU,ISPHER2,&
-         & MISNIT,&
-         & VERSIO,&
-         & NPRESS,NPROPT,&
-         & RADISO,&
-                                ! Phase momentum equations...
-         & MULPA(MXNPHA), CGSOLQ(MXNPHA),GMRESQ(MXNPHA),&
-         & MIXMAS(MXNPHA),UZAWA(MXNPHA),&
-         & POISON(MXNPHA),PROJEC(MXNPHA),&
-         & EQNSTA(MXNPHA),PREOPT(MXNPHA),&
-                                ! Field equation...
-         & DISOTT(MXNTSO),TPHASE(MXNTSO),&
-         & CGSOLT(MXNTSO),&
-         & GMREST(MXNTSO),&
-         & IDENT(MXNTSO),&
-         & TELEDI(MXNTSO),&
-         & NSUBTLOC(MXNTSO),&
-         & NDISOT(MXNTSO)
+         & ITINOI
 
+    LOGICAL :: MVMESH
 
-    ! This is for LOGICALS...
-    LOGICAL, SAVE :: &
-         & NAV   ,MVMESH,&
-         & CMCHAN,&
-         & GETTAN,ROTAT, DSPH,  BHOUT,&
-         & RAD, &
-         & COGRAX,COGRAY,COGRAZ,&
-         & ADMESH,&
-                                ! Phase momentum equations...
-         & MAKSYM(MXNPHA),&
-         & CONVIS(MXNPHA),&
-         & CHADEN(MXNPHA),&
-         & SLUMP(MXNPHA),&
-         & COMPRE(MXNPHA),&
-                                ! Field equation...
-         & BOUSIN(MXNTSO),TLUMP(MXNTSO),&
-         & SUFTEM(MXNTSO)
-
-    ! For the REALS ...
-    REAL, SAVE :: &
+    REAL :: &
          & LTIME, &
-         & ITHETA,ITIERR,STEDER,&
-         & R0,D0,&
-         & ALFST2,SPRESS,&
-                                ! Phase momentum equations...
-         & BETA(MXNPHA),&
-         & TEMINI(MXNPHA),DENINI(MXNPHA),&
-         & BSOUX(MXNPHA),BSOUY(MXNPHA),BSOUZ(MXNPHA),&
-         & GAMDE2(MXNPHA),GAMDE3(MXNPHA),&
-                                ! Field equation...
-         & TTHETA(MXNTSO),TBETA(MXNTSO)
+         & ITIERR,STEDER
 
-    ! THE FOLLOWING ARE USED IN REDSCA*********************
-    INTEGER, SAVE :: NONODS,XNONOD,TOTELE,FREDOP,&
-         &  NOBCU(MXNPHA),NOBCV(MXNPHA),NOBCW(MXNPHA),  &
-         &  NOBCT(MXNTSO),NNODP,&
-         &  NNODPP, NDPSET,&
-         &  NNODRO, STOTEL
-
-    !local memory for old style boundary conditions for NTSOL tracers
-    type(real_vector), pointer, dimension(:), save :: bct1_mem => null()
-    type(integer_vector), pointer, dimension(:), save :: bct2_mem => null()
-    !local memory for old style boundary conditions for velocities
-    type(real_vector), pointer, dimension(:), save :: bcu1_mem => null()
-    type(real_vector), pointer, dimension(:), save :: bcv1_mem => null()
-    type(real_vector), pointer, dimension(:), save :: bcw1_mem => null()
-    type(integer_vector), pointer, dimension(:), save :: bcu2_mem => null()
-    type(integer_vector), pointer, dimension(:), save :: bcv2_mem => null()
-    type(integer_vector), pointer, dimension(:), save :: bcw2_mem => null()
-
+    INTEGER :: NONODS
+    
     ! THE REMAINING VARIABLES DEFINED IN THIS SUB***********
-    INTEGER, SAVE :: PROCNO
+    INTEGER :: PROCNO
 
     logical :: flat_earth
 
@@ -199,40 +127,34 @@ contains
     ! ***********************************
 
     !     System state wrapper.
-    type(state_type), dimension(:), pointer, save :: state => null()
+    type(state_type), dimension(:), pointer :: state => null()
     type(tensor_field) :: metric_tensor
     !     Dump index
-    integer, save :: dump_no = 0
+    integer :: dump_no = 0
     !     Temporary buffer for any string options which may be required.
     character(len=666) :: option_buffer
     !     Status variable for option retrieval.
     integer :: option_stat
 
-    REAL, SAVE :: CHANGE,CHAOLD
+    REAL :: CHANGE,CHAOLD
 
+    LOGICAL :: REMESH
 
-    LOGICAL, SAVE :: REMESH
-
-    INTEGER, SAVE :: IT,ITP,ITS
-    INTEGER, SAVE :: I
-
-    ! FOR SOURCES...
-    INTEGER, SAVE :: NSOUPT
-    INTEGER, PARAMETER :: MXNSOU=3000
-    INTEGER, SAVE :: FIESOU(MXNSOU)
+    INTEGER :: IT,ITP,ITS
+    INTEGER :: I
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
 
     !     Ale mesh movement - Julian 05-02-07
-    LOGICAL, save:: USE_ALE
-    INTEGER, save:: fs
+    LOGICAL:: USE_ALE
+    INTEGER:: fs
 
     !     Solid-fluid coupling - Julian 18-09-06
     !New options
-    INTEGER, save :: ss,ph
-    LOGICAL, SAVE :: have_solids
+    INTEGER :: ss,ph
+    LOGICAL :: have_solids
 
     ! Pointers for scalars and velocity fields
     type(vector_field) :: Velocity
@@ -250,25 +172,25 @@ contains
 
     !     These options are set in "solidity_options.inp"
     !                                 (see GET_SOLIDTY_OPTIONS in Solidity.F90)
-    INTEGER, save :: SOLIDS            !Solid or fluid rheology
+    INTEGER :: SOLIDS            !Solid or fluid rheology
 
     !     crgw - compressible schemes
-    INTEGER, save :: MKCOMP
+    INTEGER :: MKCOMP
     !     mkcomp <= 0... incompressible
     !     mkcomp = 3... compressible scheme using modified gradient operator
 
-    INTEGER, SAVE :: adapt_count
+    INTEGER :: adapt_count
 
-    logical, dimension(MXNPHA), save :: phase_uses_new_code_path=.false.
+    logical, dimension(MXNPHA) :: phase_uses_new_code_path=.false.
     ! whether any of the phases use the old code path (i.e. phase_uses_new_code_path==.false.)
     ! *or* any of the scalar fields use advdif
     logical :: uses_old_code_path=.false.
 
     ! Current simulation timestep
-    integer, save :: timestep
+    integer :: timestep
 
     ! a counter for the total number of global non linear iterations including repeated timesteps 
-    integer, save :: total_its_count
+    integer :: total_its_count
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -294,9 +216,6 @@ contains
 
     DT=0.0
     REMESH=.FALSE.
-
-    NPRESS=1
-    NPROPT=1
 
     PROCNO = GetProcNo()
 
@@ -353,8 +272,6 @@ contains
 
     call compute_uses_old_code_path(uses_old_code_path)
     if(uses_old_code_path) FLExit("The old code path is dead.")
-    
-9977 CONTINUE
 
     call run_diagnostics(state)
 
@@ -858,7 +775,7 @@ contains
 
              ! Let's go adapt the mesh
              remesh = .true.
-             goto 9977
+             goto 99771
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(acctim)) then
