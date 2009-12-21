@@ -45,15 +45,7 @@ module global_parameters
   use fldebug_parameters
   
   implicit none
-    
-  !------------------------------------------------------------------------
-  ! As yet unidentified parameters.
-  !------------------------------------------------------------------------
-  
-  !! Scaling factors?
-  ! This is still used by fluids, so we'd better make sure it's initialised
-  real, save :: SCFACTH0 = 1.0
-    
+        
   !------------------------------------------------------------------------
   ! Global flag for whether we are running off the new xml options file.
   ! Legacy variable - to be removed in the future
@@ -109,47 +101,6 @@ module global_parameters
   
   !! Accumulated system time.
   real, save, target :: ACCTIM
-
-  !! The implicitness of the Crank-Nicolson scheme for the momentum
-  !! equation.
-  real, save, target :: THETA(MXNPHA)
-
-  !! The discretisation of the momentum equaition is controlled through
-  !! DISOPT(DISCRETIZATION OPTION).
-  !!
-  !! All methods use a balancing diffusion term and THETA time stepping. 
-  !! The following are absolute values of DISOPT...
-  !!  * DISOPT=1 - balancing diffusion based on (x,y) space.
-  !!  * DISOPT=2 - Laxwendrof balancing diffusion.
-  !!  * DISOPT=3 - (x,y,t) -balancing diffusion. 
-  !!  * DISOPT=4 - No balancing diffusion.
-  !!  * DISOPT=5 - nonlinear streamline and cross stream diffusion.
-  !!  * DISOPT=6 - nonlinear upwind in steapest direction.
-  !!  * DISOPT=7 - nonlinear streamline+ cross stream diffusion(but restricted)
-  !!  * DISOPT=42- LES option using constant length scale.
-  !!  * DISOPT=43- LES option using isotropic length scale.
-  !!  * DISOPT=44- LES option which uses no balancing diffusion.
-  !!  * DISOPT=45- LES option which uses no balancing diffusion.
-  !!  * DISOPT=46- same as 45 but with 4th order dissipation.
-  !!  * 70<=DISOPT<=85 - Discontinuous Galerkin schemes.
-  !!  * DISOPT=125 - NO balancing diffusion(DISOPT=4)and take out non-linear terms.
-  integer, save, target :: DISOPT(MXNPHA)
-
-  !! Disopn is the discretisation option for nonlinear term.
-  !!
-  !! If NDISOP.ne.0 then set advection to zero and treat advection 
-  !! using the high res method.
-  integer, save, target :: ndisop(MXNPHA)
-  !! NSUBVLOC is the no. of basis for sub-element modelling for vels.
-  !! NSUBNVLOC is the no. of basis for sub-element modelling of advection.
-  integer, save, target :: NSUBVLOC(MXNPHA)
-  integer, save, target :: NSUBNVLOC(MXNPHA)
-
-  !! If lump then lump the mass matrix in the momentum equation.
-  logical, save, target :: LUMP(MXNPHA)  
-
-  !! If abslum then lump the absorbtion.
-  logical, save, target :: ABSLUM(MXNPHA)
 
   real, parameter:: pi = 3.1415926535897931
 
