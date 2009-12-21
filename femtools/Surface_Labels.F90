@@ -291,8 +291,6 @@ contains
     integer current_id, sngi, stotel
     integer j, k, sele, pos, ele
     
-    type(vector_field) :: dummy
-    
     if (.not. has_faces(mesh)) then
        call add_faces(mesh)
     end if
@@ -381,8 +379,6 @@ contains
     deallocate(normals)
     
     call merge_surface_ids(mesh, coplanar_ids, max_id = current_id - 1)
-    dummy = positions
-    call vtk_write_coplanar_ids("coplanar_ids", dummy, coplanar_ids)
 
   end subroutine get_coplanar_ids
   
