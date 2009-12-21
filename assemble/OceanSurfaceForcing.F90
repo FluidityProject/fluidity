@@ -41,7 +41,6 @@ module OceanSurfaceForcing
   use spud
   use allsorts
   use coordinates
-  use position_in_matrix
   
   implicit none
 

@@ -40,7 +40,6 @@ module gradient_matrix_cg
   use global_parameters, only: OPTION_PATH_LEN
   use transform_elements
   use fldebug
-  use position_in_matrix
   use field_options, only: complete_field_path
 
   implicit none

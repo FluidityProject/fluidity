@@ -43,7 +43,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = AllSorts.o sml.o tr2d.o detnlxr.o Position_In_Matrix.o EletemFeinte.o \
+OBJS = AllSorts.o sml.o tr2d.o detnlxr.o EletemFeinte.o \
    synthetic_bc.o Rotated_Boundary_Conditions_Legacy.o lagrot.o Legacy_Field_Lists.o \
    rgptwe.o Legacy_Tensor_Fields.o
    
