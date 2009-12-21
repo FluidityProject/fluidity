@@ -653,8 +653,8 @@ contains
              call adapt_state(state, metric_tensor)
              call update_state_post_adapt(state, metric_tensor, dt)
              
-             call run_diagnostics(state)
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
+             call run_diagnostics(state)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(acctim)) then
@@ -665,8 +665,8 @@ contains
              call adapt_state_prescribed(state, acctim)
              call update_state_post_adapt(state, metric_tensor, dt)
              
-             call run_diagnostics(state)
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
+             call run_diagnostics(state)
           end if
        end if
 
@@ -765,6 +765,12 @@ contains
     ! This is mostly to ensure that the photosynthetic radiation
     ! has a non-zero value before the next adapt. 
     if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))
+    
+    ! Timestep adapt
+    if(have_option("/timestepping/adaptive_timestep")) then
+      call calc_cflnumber_field_based_dt(state, dt)
+      call set_option("/timestepping/timestep", dt)
+    end if
    
     ! Free surface movement
     do i=1, size(state)
@@ -775,12 +781,6 @@ contains
          call move_free_surface_nodes(state(i))
       end if
     end do
-    
-    ! Timestep adapt
-    if(have_option("/timestepping/adaptive_timestep")) then
-      call calc_cflnumber_field_based_dt(state, dt)
-      call set_option("/timestepping/timestep", dt)
-    end if
            
   end subroutine update_state_post_adapt
   

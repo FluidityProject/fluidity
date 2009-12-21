@@ -531,6 +531,8 @@ contains
       allocate(receive_buffer(i)%ptr(halo_receive_count(sele_halo, i)))
     end do
     call get_universal_numbering_inverse(ele_halo, gens)
+    allocate(requests(nprocs * 2))
+    allocate(statuses(MPI_STATUS_SIZE * size(requests)))
     comm = 0
     comm_loop: do
       ! We loop until all new surface IDs match the incoming old surface IDs.
@@ -558,7 +560,6 @@ contains
           
       ! Communicate the old surface IDs
                     
-      allocate(requests(nprocs * 2))
       requests = MPI_REQUEST_NULL
       call mpi_barrier(communicator, ierr)
       assert(ierr == MPI_SUCCESS)
@@ -577,11 +578,8 @@ contains
       end do  
           
       ! Wait for all non-blocking communications to complete
-      allocate(statuses(MPI_STATUS_SIZE * size(requests)))
       call mpi_waitall(size(requests), requests, statuses, ierr)
       assert(ierr == MPI_SUCCESS)
-      deallocate(statuses)
-      deallocate(requests)
       
       ! Generate a map "id_map", mapping surface IDs to their new (merged)
       ! values. The new surface ID chosen is the lowest ID received overlaying
@@ -646,6 +644,8 @@ contains
     deallocate(send_buffer) 
     deallocate(receive_buffer) 
     call deallocate(gens)
+    deallocate(statuses)
+    deallocate(requests)
     
     ewrite(1, *) "Exiting merge_surface_ids"
 #endif
