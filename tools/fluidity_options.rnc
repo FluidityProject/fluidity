@@ -5859,7 +5859,7 @@ scalar_field_choice =
             attribute replaces { "IDENT = -2003" },
             (
                element prognostic {
-                  ## The GeostrophicPressure mesh
+                  ## The GeostrophicPressure mesh. Must be continuous.
                   ## 
                   ## <b>WARNING: It is usual for this to be a higher degree
                   ## mesh than the velocity mesh</b>
@@ -7515,7 +7515,6 @@ vector_field_choice =
          element ___Prognostic_fields_below___ {
             empty
          }|
-
 #
 # -- List of fields that are primarily prescribed,
 #    but can be aliased. An example is Maximum bed shear stress.
@@ -9721,6 +9720,9 @@ interpolation_algorithm_scalar =
     
 interpolation_algorithm_scalar_full = interpolation_algorithm_scalar
 interpolation_algorithm_scalar_full |= interpolation_algorithm_disabled
+    
+interpolation_algorithm_vector_full = interpolation_algorithm_vector
+interpolation_algorithm_vector_full |= interpolation_algorithm_disabled
     
 interpolation_algorithm_vector =
     (

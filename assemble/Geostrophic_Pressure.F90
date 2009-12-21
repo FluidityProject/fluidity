@@ -160,28 +160,6 @@ contains
     
   end function do_assemble_matrix
   
-  subroutine subtract_geostrophic_pressure_gradient(mom_rhs, state)
-    !!< Add the geostrophic pressure gradient to the momentum equation RHS.
-    !!< Based on David's Geostrophic_Pressure, and some parts of Assnav /
-    !!< geoeli1p.
-    !!< Replaces geobal = -20 and -21.
-    
-    type(vector_field), intent(inout) :: mom_rhs
-    type(state_type), intent(inout) :: state
-    
-    type(scalar_field), pointer :: gp
-    
-    ewrite(1, *) "In subtract_geostrophic_pressure_gradient"
-            
-    gp => extract_scalar_field(state, gp_name)
-            
-    ! Apply to momentum equation
-    call subtract_given_geostrophic_pressure_gradient(gp, mom_rhs, state)
-    
-    ewrite(1, *) "Exiting subtract_geostrophic_pressure_gradient"
-  
-  end subroutine subtract_geostrophic_pressure_gradient
-  
   subroutine calculate_geostrophic_pressure(state, gp, &
     & velocity_name, assemble_matrix, include_buoyancy, include_coriolis, reference_node)
     !!< Calculate the GeostrophicPressure field. The field is inserted into
@@ -557,7 +535,7 @@ contains
     if(include_coriolis) then
       ! RHS Coriolis term
       ! /
-      ! | grad N_A dot (rho f k x u)
+      ! | grad N_A dot (rho f k x u) dV
       ! /
       
       ! coriolis only works in 2 (horizontal) or 3 dimensions
@@ -668,18 +646,25 @@ contains
     val = dot_product(ele_val(s_field, ele), n)
       
   end function eval_field_scalar
-
-  subroutine subtract_given_geostrophic_pressure_gradient(gp, mom_rhs, state)
-    !!< Subtract the gradient of the GeostrophicPressure from the momentum
-    !!< equation RHS
+  
+  subroutine subtract_geostrophic_pressure_gradient(mom_rhs, state)
+    !!< Subtract the GeostrophicPressure gradient from the momentum equation
+    !!< RHS. Based on David's Geostrophic_Pressure, and some parts of Assnav /
+    !!< geoeli1p.
+    !!< Replaces geobal = -20 and -21.
     
-    type(scalar_field), intent(inout) :: gp
     type(vector_field), intent(inout) :: mom_rhs
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     
     integer :: i
     type(vector_field), pointer :: positions
+    type(scalar_field), pointer :: gp
+    
+    ewrite(1, *) "In subtract_geostrophic_pressure_gradient"
             
+    gp => extract_scalar_field(state, gp_name)
+            
+    ! Apply to momentum equation
     assert(ele_count(gp) == ele_count(mom_rhs))
     
     positions => extract_vector_field(state, "Coordinate")
@@ -698,7 +683,9 @@ contains
       ewrite_minmax(mom_rhs%val(i)%ptr)
     end do
     
-  end subroutine subtract_given_geostrophic_pressure_gradient
+    ewrite(1, *) "Exiting subtract_geostrophic_pressure_gradient"
+  
+  end subroutine subtract_geostrophic_pressure_gradient
   
   subroutine subtract_given_geostrophic_pressure_gradient_element(ele, positions, gp, mom_rhs)
     !!< Subtract the element-wise contribution of the GeostrophicPressure

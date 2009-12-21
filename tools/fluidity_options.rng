@@ -7597,7 +7597,7 @@ mesh for the geopressure solver.</a:documentation>
         </attribute>
         <element name="prognostic">
           <element name="mesh">
-            <a:documentation>The GeostrophicPressure mesh
+            <a:documentation>The GeostrophicPressure mesh. Must be continuous.
 
 &lt;b&gt;WARNING: It is usual for this to be a higher degree
 mesh than the velocity mesh&lt;/b&gt;</a:documentation>
@@ -12289,6 +12289,12 @@ the L2 norm of the residual</a:documentation>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="interpolation_algorithm_scalar_full" combine="choice">
+    <ref name="interpolation_algorithm_disabled"/>
+  </define>
+  <define name="interpolation_algorithm_vector_full">
+    <ref name="interpolation_algorithm_vector"/>
+  </define>
+  <define name="interpolation_algorithm_vector_full" combine="choice">
     <ref name="interpolation_algorithm_disabled"/>
   </define>
   <define name="interpolation_algorithm_vector">

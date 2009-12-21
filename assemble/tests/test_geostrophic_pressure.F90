@@ -65,7 +65,6 @@ subroutine test_geostrophic_pressure
   
   call allocate(bp, mesh, "BalancePressure")
   call zero(bp)
-  bp%option_path = "/dummy"
   call set_solver_options(bp, ksptype = "cg", pctype = "mg", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .false.)
   assert(stat == SPUD_NEW_KEY_WARNING)
   call insert(state, bp, bp%name)
@@ -88,7 +87,7 @@ subroutine test_geostrophic_pressure
   call calculate_geostrophic_pressure(state, gp = gp, &
     & assemble_matrix = .true., include_buoyancy = .true., include_coriolis = .false., reference_node = 1)
     
-  assert(ele_count(gp) > 1)
+  assert(ele_count(gp) > 0)
   gp_shape => ele_shape(gp, 1)
   call report_test("[Degree 2 mesh]", gp_shape%degree /= 2, .false., "Incorrect degree mesh")
   call report_test("[Degree 2 mesh]", node_count(gp) <= node_count(positions), .false., "Incorrect degree mesh")
