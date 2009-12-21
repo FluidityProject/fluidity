@@ -81,7 +81,7 @@ module fluids_module
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
-  use legacy_field_lists
+  use field_priority_lists
   use boundary_conditions
   use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential

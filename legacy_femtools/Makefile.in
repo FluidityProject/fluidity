@@ -43,7 +43,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = AllSorts.o synthetic_bc.o Legacy_Field_Lists.o
+OBJS = AllSorts.o synthetic_bc.o
 
 .SUFFIXES: .f90 .F90 .c .o .a
 

@@ -50,7 +50,7 @@ LINKER  = @LINKER@ @LDFLAGS@ @CPPFLAGS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
-OBJS = Populate_State.o Reserve_State.o\
+OBJS = Populate_State.o Reserve_State.o Field_Priority_Lists.o\
        VTK_Cache.o Initialise_Fields.o Boundary_Conditions_From_Options.o
 
 .SUFFIXES: .f90 .F90 .cpp .c .o .a
@@ -77,7 +77,7 @@ default: $(OBJS)
 	cp *.mod ../include/
 
 Populate_State.o: Reserve_State.o VTK_Cache.o Initialise_Fields.o \
-   Boundary_Conditions_From_Options.o
+   Boundary_Conditions_From_Options.o Field_Priority_Lists.o
 Boundary_Conditions_From_Options.o: Initialise_Fields.o
 Initialise_Fields.o: VTK_Cache.o
 

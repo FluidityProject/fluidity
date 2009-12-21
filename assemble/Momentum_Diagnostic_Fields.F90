@@ -33,7 +33,7 @@ module momentum_diagnostic_fields
   use state_module
   use spud
   use state_module
-  use legacy_field_lists
+  use field_priority_lists
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use multimaterial_module
   use diagnostic_fields_wrapper_new

@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
 
-module legacy_field_lists
+module field_priority_lists
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, ident_name,&
        phase2state_index, state2phase_index
   use fields
@@ -342,4 +342,4 @@ contains
 
 
 
-end module legacy_field_lists
+end module field_priority_lists
