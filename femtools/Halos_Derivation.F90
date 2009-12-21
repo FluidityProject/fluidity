@@ -323,8 +323,8 @@ contains
     type(mesh_type), intent(inout) :: mesh
     type(halo_type), intent(in) :: node_halo
     type(halo_type), intent(in) :: element_halo
-    !! By default the maximal element halo will have a HALO_ORDER_GENERAL
-    !! ordering scheme. Supply this to override.
+    !! By default the maximal surface element halo will have a
+    !! HALO_ORDER_GENERAL ordering scheme. Supply this to override.
     integer, optional, intent(in) :: ordering_scheme
     !! If present and .false., do not create halo caches
     logical, optional, intent(in) :: create_caches
@@ -829,9 +829,9 @@ contains
     call get_universal_numbering_inverse(element_halo, gnns)
     do i = 1, nprocs
       do j = 1, halo_send_count(selement_halo, i)
-        ele = sends_uenlist(i)%ptr((j - 1) * 2 + 1)
+        ele = fetch(gnns, sends_uenlist(i)%ptr((j - 1) * 2 + 1))
         lface = sends_uenlist(i)%ptr((j - 1) * 2 + 2)
-        faces => ele_faces(mesh, fetch(gnns, ele))
+        faces => ele_faces(mesh, ele)
         face = faces(lface)
         assert(face > 0)
         call set_halo_send(selement_halo, i, j, face)

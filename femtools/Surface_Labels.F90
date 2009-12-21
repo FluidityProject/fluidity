@@ -278,7 +278,7 @@ contains
   !!< The calculated coplanar_ids are caches inside the mesh, so that if
   !!< this routine is called again they are exactly the same.
   type(mesh_type), intent(inout):: mesh
-  type(vector_field), target, intent(in):: positions
+  type(vector_field), intent(in):: positions
   integer, dimension(:), pointer:: coplanar_ids
     type(mesh_type), pointer:: surface_mesh
     type(csr_sparsity), pointer :: eelist
