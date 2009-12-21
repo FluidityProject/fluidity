@@ -40,8 +40,8 @@ module traffic
   use fields
   use elements
   use parallel_tools
-  use spaerr_module
   use qmesh_module, only: do_adapt_mesh
+  use vector_tools
 
   implicit none
   
@@ -407,13 +407,12 @@ contains
        m21,m22,m23,m31,m32,m33,    &
        vrot,drot)
     implicit none
-
+    
     real   :: m11,m12,m13,m21,m22,m23,m31,m32,m33
-    real   :: vrot(3,3),drot(3)
-
-    real   :: a(3,3),awork(3,3)
+    real   :: vrot(3,3),drot(3),a(3,3)
+    
     integer,parameter::ndim=3
-
+    
     ! vrot is the rotation matrix and drot the e-values
 
     a(1,1) = m11
@@ -426,8 +425,8 @@ contains
     a(3,2) = m32
     a(3,3) = m33
 
-    call jacdia(a,vrot,drot,ndim,awork)
-
+    call eigendecomposition_symmetric(a, vrot, drot)
+    
     return
   end subroutine rect_eig
 
