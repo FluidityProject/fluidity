@@ -50,9 +50,8 @@ LINKER  = @LINKER@ @LDFLAGS@ @CPPFLAGS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
-OBJS = Populate_State.o Redfil.o Comsca.o \
-  Legacy_Boundary_Conditions.o Reserve_State.o\
-  redsca.o VTK_Cache.o Initialise_Fields.o Boundary_Conditions_From_Options.o
+OBJS = Populate_State.o Reserve_State.o\
+       VTK_Cache.o Initialise_Fields.o Boundary_Conditions_From_Options.o
 
 .SUFFIXES: .f90 .F90 .cpp .c .o .a
 
@@ -77,8 +76,6 @@ default: $(OBJS)
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS) >/dev/null 2>&1
 	cp *.mod ../include/
 
-Redfil.o: Legacy_Boundary_Conditions.o Comsca.o redsca.o
-Comsca.o: Legacy_Boundary_Conditions.o Populate_State.o
 Populate_State.o: Reserve_State.o VTK_Cache.o Initialise_Fields.o \
    Boundary_Conditions_From_Options.o
 Boundary_Conditions_From_Options.o: Initialise_Fields.o
