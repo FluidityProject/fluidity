@@ -42,7 +42,7 @@ using namespace std;
 
 extern "C"{
 #define checkmesh F77_FUNC(checkmesh, CHECKMESH)
-  void checkmesh(const char* filename, const int* filename_len);
+  void checkmesh(const char* basename, const int* basename_len);
 }
 
 void Usage(){
@@ -67,8 +67,8 @@ int main(int argc, char** argv){
   int verbosity = 2;
   set_global_debug_level_fc(&verbosity);
 
-  int filename_len = strlen(argv[1]);
-  checkmesh(argv[1], &filename_len);
+  int basename_len = strlen(argv[1]);
+  checkmesh(argv[1], &basename_len);
 
 #ifdef HAVE_MPI
   MPI::Finalize();
