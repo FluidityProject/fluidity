@@ -264,13 +264,16 @@ contains
     
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: ele
-    
+   
     logical :: assemble
     
-    select case(mesh%continuity)
+    integer, dimension(:), pointer :: element_nodes
+
+    select case(continuity(mesh))
       case(0)
         if(associated(mesh%halos)) then
-          assemble = any(nodes_owned(mesh%halos(1), ele_nodes(mesh, ele)))
+          element_nodes => ele_nodes(mesh, ele)
+          assemble = any(nodes_owned(mesh%halos(1), element_nodes))
         else
           assemble = .true.
         end if
