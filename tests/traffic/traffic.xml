@@ -42,7 +42,7 @@ import vtktools
 from numpy import zeros, ones, array, concatenate
 
 colx = array([[11.8],[2.0]])
-coly = ones((2,1))*2.6
+coly = ones((2,1))*2.0
 colz = ones((2,1))*0.5
 
 coordinates = concatenate((colx,coly,colz),1)
