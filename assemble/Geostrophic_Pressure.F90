@@ -74,7 +74,7 @@ module geostrophic_pressure
   logical, save :: include_buoyancy = .true.
   logical, save :: include_coriolis = .true.
   integer, save :: reference_node = 0
-  
+ 
   interface eval_field
     module procedure eval_field_scalar
   end interface eval_field
@@ -376,7 +376,9 @@ contains
     real :: gravity_magnitude
     logical :: have_density
     type(scalar_field), pointer :: buoyancy, density
+    type(scalar_field), target :: dummy_scalar
     type(vector_field), pointer :: gravity, positions, velocity
+    type(vector_field), target :: dummy_vector
     
     ewrite(1, *) "In assemble_geostrophic_pressure_cg"
     
@@ -406,7 +408,7 @@ contains
       
       ewrite_minmax(density%val)
     else
-      density => null()
+      density => dummy_scalar
     
       ewrite(2, *) "No density"
     end if
@@ -426,8 +428,8 @@ contains
         include_buoyancy = .false. ! can't if there's no gravity
         
         gravity_magnitude = 0.0
-        gravity => null()
-        buoyancy => null()
+        gravity => dummy_vector
+        buoyancy => dummy_scalar
       end if
       
     end if
@@ -441,7 +443,7 @@ contains
         ewrite_minmax(velocity%val(i)%ptr)
       end do
     else
-      velocity => null()
+      velocity => dummy_vector
     end if
         
     if(assemble_matrix) then
@@ -517,7 +519,7 @@ contains
       assert(ele_ngi(gravity, ele) == ele_ngi(gp_rhs, ele))
     end if
 #endif
-   
+  
     dim = mesh_dim(gp_rhs)
     gp_element_nodes => ele_nodes(gp_rhs, ele)
 

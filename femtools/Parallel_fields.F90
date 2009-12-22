@@ -267,13 +267,10 @@ contains
    
     logical :: assemble
     
-    integer, dimension(:), pointer :: element_nodes
-
     select case(continuity(mesh))
       case(0)
         if(associated(mesh%halos)) then
-          element_nodes => ele_nodes(mesh, ele)
-          assemble = any(nodes_owned(mesh%halos(1), element_nodes))
+          assemble = any(nodes_owned(mesh%halos(1), ele_nodes(mesh, ele)))
         else
           assemble = .true.
         end if
