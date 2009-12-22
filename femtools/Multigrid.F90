@@ -1159,7 +1159,6 @@ Vec, intent(out):: eigvec
   eigval=rho_kp1
   eigvec=x_kp1
   
-  call VecDestroy(x_kp1, ierr)  
   call VecDestroy(x_k, ierr)  
   
 end subroutine PowerMethod
