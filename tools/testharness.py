@@ -162,8 +162,8 @@ class TestHarness:
                 flucmd = debugBinary
 
             if self.valgrind is True:
-              if not flucmd != debugBinary:
-                print "Warning: you really should compile with debugging for use with valgrind!"
+              if flucmd != debugBinary:
+                print "Error: you really should compile with debugging for use with valgrind!"
                 sys.exit(1)
                 
             return flucmd
