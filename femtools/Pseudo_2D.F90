@@ -28,7 +28,7 @@
 subroutine set_pseudo2d_domain(val)
   !!< Set the pseudo-2D coordinate
 
-  use node_boundary
+  use node_boundary, only: pseudo2d_coord
   
   implicit none
   
