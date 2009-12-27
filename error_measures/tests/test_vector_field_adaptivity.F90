@@ -2,7 +2,8 @@
 
 subroutine test_vector_field_adaptivity
 
-  use global_parameters, only: current_debug_level, pseudo2d_coord
+  use global_parameters, only: current_debug_level
+  use node_boundary, only: pseudo2d_coord
   use unittest_tools
   use metric_assemble
   use edge_length_module
