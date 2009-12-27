@@ -5,7 +5,7 @@ subroutine test_cylinder_hessian
   use state_module
   use vtk_interfaces
   use unittest_tools
-  use global_parameters, only: pseudo2d_coord
+  use node_boundary, only: pseudo2d_coord
   implicit none
 
   type(state_type) :: state
