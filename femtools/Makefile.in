@@ -138,7 +138,7 @@ $(F90LIB): $(F90LIB_OBJS)
 clean:
 	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB).a
 
-Pseudo_2D.o: Global_Parameters.o
+Pseudo_2D.o: Node_boundary.o
 Timers.o: Global_Parameters.o
 tictoc.o: Timers.o
 Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
