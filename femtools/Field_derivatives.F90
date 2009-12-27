@@ -15,7 +15,6 @@ module field_derivatives
     use eventcounter
     use transform_elements
     use vector_tools
-    use global_parameters, only: pseudo2d_coord, domain_is_2d_x, domain_is_2d_y, domain_is_2d_z, domain_is_2d
     use vector_set
     use node_boundary
     use surfacelabels

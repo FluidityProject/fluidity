@@ -33,7 +33,7 @@ use FLDebug
 use generic_interface
 use spud
 use state_module
-use global_parameters, only: dt, acctim, option_path_len
+use global_parameters, only: dt, option_path_len
 use fields
 use elements
 use parallel_tools

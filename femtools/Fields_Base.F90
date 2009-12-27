@@ -33,7 +33,7 @@ module fields_base
   use tensors
   use fields_data_types
   use reference_counting
-  use global_parameters, only:FIELD_NAME_LEN, current_debug_level, ACCTIM
+  use global_parameters, only: FIELD_NAME_LEN, current_debug_level, current_time
   use elements
   use element_numbering
   use embed_python
@@ -284,8 +284,6 @@ module fields_base
   interface tetvol
     module procedure tetvol_old
   end interface tetvol
-    
-  private ACCTIM
     
 contains
 
@@ -1758,7 +1756,8 @@ contains
           pos(i, :) = field%py_positions%val(i)%ptr(ele_nodes(field%py_positions%mesh, ele_number))
         end do
       end if
-      call set_from_python_function(ele_val_out, trim(field%py_func), pos, time=ACCTIM)
+      call set_from_python_function(ele_val_out, trim(field%py_func), pos, &
+        time=current_time)
 
     end subroutine val_python
 
@@ -2342,7 +2341,8 @@ contains
         end do
       end if
 
-      call set_from_python_function(tmp_val, trim(field%py_func), pos, time=ACCTIM)
+      call set_from_python_function(tmp_val, trim(field%py_func), pos, &
+        time=current_time)
       val = tmp_val(1)
 
     end subroutine val_python

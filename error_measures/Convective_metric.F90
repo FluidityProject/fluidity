@@ -13,7 +13,6 @@ module convective_metric
   use parallel_fields
   !use ieee_arithmetic
   use state_module
-  use Global_parameters, only: gravty, dengam
   use vtk_interfaces, only: vtk_write_fields
   implicit none
 
@@ -72,8 +71,14 @@ module convective_metric
 #endif
     real :: Ray_Crit = 1400.0, Ray
     real :: convection_metric
+    
+    ! these need to be fixed to new options: !!!!!
+    real:: gravty
+    real, dimension(1):: dengam
 
     ewrite(1,*) 'Subroutine form_convective_metric'
+    
+    FLExit("Convective metric needs to be fixed to use with new options.")
 
     temp_field => extract_scalar_field(state,'Temperature')
     positions => extract_vector_field(state,'Coordinate')

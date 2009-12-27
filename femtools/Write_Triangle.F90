@@ -86,7 +86,13 @@ contains
     ! that there be no early return
     
     if(getprocno() <= nparts) then
-       call write_triangle_node_file(filename, positions)
+       
+       ! write .node file with columns if present
+       if (associated(positions%mesh%columns)) then
+         call write_triangle_node_file_with_columns(filename, positions)
+       else
+         call write_triangle_node_file(filename, positions)
+       end if
        
        call write_triangle_ele_file(filename, positions%mesh)
     end if
@@ -139,6 +145,42 @@ contains
 43  FLAbort("Failed to close .node file for writing.")
     
   end subroutine write_triangle_node_file
+  
+  subroutine write_triangle_node_file_with_columns(filename, field)
+    !!< Writes out .node-file for the given position field
+    !!< Write field%mesh%columns as node attribute
+    character(len=*), intent(in):: filename
+    type(vector_field), intent(in):: field
+    
+    character(len = 12 + int2str_len(huge(0)) + real_format_len(padding = 1)) :: format_buffer
+    integer unit, nodes, dim, i
+    
+    unit=free_unit()
+    
+    nodes=node_count(field)
+    dim=mesh_dim(field)
+    
+    open(unit=unit, file=trim(filename)//'.node', action='write', err=41)
+    
+    ! header line: nodes, dim, no attributes (=1 for columns), no boundary markers
+    write(unit, *, err=42) nodes, dim, 1, 0
+    
+    format_buffer = "(i0,a," // int2str(dim) // real_format(padding = 1) // ",a,i0)"
+    do i=1, nodes
+       write(unit, trim(format_buffer), err=42) i, " ", node_val(field, i), " ", field%mesh%columns(i)
+    end do
+    
+    close(unit=unit, err=43)
+    ! succesful return
+    return
+    
+41  FLAbort("Failed to open .node file for writing.")
+    
+42  FLAbort("Error while writing .node file.")
+    
+43  FLAbort("Failed to close .node file for writing.")
+    
+  end subroutine write_triangle_node_file_with_columns
   
   subroutine write_triangle_ele_file(filename, mesh)
     !!< Writes out .ele-file for the given mesh

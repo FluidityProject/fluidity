@@ -34,7 +34,8 @@ module multimaterial_module
   use fields
   use spud
   use fefields, only: compute_lumped_mass
-  use global_parameters, only: state2phase_index, OPTION_PATH_LEN
+  use global_parameters, only: OPTION_PATH_LEN
+  use field_priority_lists
   use field_options
   use diagnostic_fields_matrices
   use cv_upwind_values

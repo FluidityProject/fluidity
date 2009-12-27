@@ -10,7 +10,7 @@ module solidconfiguration
   use state_module
   use transform_elements
   use boundary_conditions
-  use global_parameters, only: OPTION_PATH_LEN,dt,acctim
+  use global_parameters, only: OPTION_PATH_LEN, dt, current_time
   use write_triangle
   use parallel_tools
   use vector_tools, only: det
@@ -310,7 +310,7 @@ contains
              call get_option(trim(solid_path)//"/radius_script",python_radius)
              !reading particle radius.                      
              call set_particle_sfield_from_python(python_radius,len(python_radius),&
-                  nparticles,acctim,radii, stat) 
+                  nparticles, current_time, radii, stat) 
              do ipart=1,nparticles
                 ewrite(0,*)'Finihed reading radii: ',radii(ipart)
              end do
@@ -319,11 +319,11 @@ contains
           !external meshed particles start without any rotation       
           !read in particle translational velocities and angular velocities.
           call set_particle_vfield_from_python(python_position,len(python_position), &
-               nparticles, acctim,centerpx, centerpy, centerpz,stat)
+               nparticles, current_time, centerpx, centerpy, centerpz,stat)
           call set_particle_vfield_from_python(python_velocity,len(python_velocity), &
-               nparticles, acctim,pvelx, pvely, pvelz, stat)          
+               nparticles, current_time, pvelx, pvely, pvelz, stat)          
           call set_particle_vfield_from_python(python_angular_velocity,len(python_angular_velocity), &
-               nparticles, acctim,pavelx, pavely, pavelz, stat)  
+               nparticles, current_time, pavelx, pavely, pavelz, stat)  
           do ipart=1,nparticles
              ewrite(0,*)'Finihed reading pos: ',centerpx(ipart),centerpy(ipart),centerpz(ipart)
              ewrite(0,*)'Finihed reading pos: ',pvelx(ipart),pvely(ipart),pvelz(ipart)
@@ -346,17 +346,17 @@ contains
              call get_option(trim(solid_path)//"/radius_script",python_radius)
              !reading particle radius.                      
              call set_particle_sfield_from_python(python_radius,len(python_radius),&
-                  nparticles,acctim,radii, stat) 
+                  nparticles, current_time, radii, stat) 
           end if
           !note: initial angular positions have not been implemented
           !external meshed particles start without any rotation       
           !read in particle translational velocities and angular velocities.
           call set_particle_vfield_from_python(python_position,len(python_position), &
-               nparticles, acctim,centerpx, centerpy, centerpz,stat)
+               nparticles, current_time, centerpx, centerpy, centerpz,stat)
           call set_particle_vfield_from_python(python_velocity,len(python_velocity), &
-               nparticles, acctim,pvelx, pvely, pvelz, stat)          
+               nparticles, current_time, pvelx, pvely, pvelz, stat)          
           call set_particle_vfield_from_python(python_angular_velocity,len(python_angular_velocity), &
-               nparticles, acctim,pavelx, pavely, pavelz, stat)
+               nparticles, current_time, pavelx, pavely, pavelz, stat)
           if (trim(solid_type)=='external_3D_mesh'.or.trim(solid_type)=='external_2D_mesh') then
              !position each particle... 
              do ipart=1,nparticles
@@ -455,9 +455,9 @@ contains
     !If particle motion is ruled by a python script, then recalculate its velocity
     if (trim(dynamic_type)=='python_script'.and.start/=1) then
        call set_particle_vfield_from_python(python_velocity,len(python_velocity), &
-            nparticles, acctim,pvelx, pvely, pvelz, stat)          
+            nparticles, current_time, pvelx, pvely, pvelz, stat)          
        call set_particle_vfield_from_python(python_angular_velocity,len(python_angular_velocity), &
-            nparticles, acctim,pavelx, pavely, pavelz, stat)
+            nparticles, current_time, pavelx, pavely, pavelz, stat)
     end if
 
     !If particle object is a 3D mesh, and not using 3Dfemdem, then new particle velocities

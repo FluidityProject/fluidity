@@ -41,7 +41,7 @@ module Coordinates
   real, parameter:: deg_to_rad = pi/180.0
   
   public:: &
-       LongitudeLatitude, rotation_to_vertical, &
+       LongitudeLatitude,  &
        cart2spher, spher2cart, ll2r3_rotate, rotate2ll
        
   interface LongitudeLatitude
@@ -160,39 +160,4 @@ contains
     endif
 
   end subroutine cart2spher
-
-
-  function rotation_to_vertical(pos) result (R)
-    !!< Form the rotation matrix which rotates the local vertical 
-    !!< to (0,0,1). Useful for assembly on the sphere.
-    use global_parameters, only: isphere
-    !! Point at which calculation is to occur.
-    real, dimension(3), intent(in) :: pos
-    real, dimension(3,3) :: R
-    
-    if (isphere==0) then
-       ! Flat Earth version.
-       R = reshape((/ 1.0, 0.0, 0.0, &
-            &         0.0, 1.0, 0.0, &
-            &         0.0, 0.0, 1.0 /), (/3,3/))
-    else
-       ! Spherical earth version. Up points in the direction of pos vector.
-       R(3,:)=pos/norm2(pos)
-       
-       ! Find the axis along which pos is shortest.
-       R(1,:)=0.0
-       R(1,minloc(abs(R(3,:))))=1.0
-       
-       ! Having had a guess at a normal direction, make it actually normal
-       ! using Gramm-Schmidt orthogonalisation.
-       R(1,:)=R(1,:)-dot_product(R(3,:),R(1,:))*R(3,:)
-       R(1,:)=R(1,:)/norm2(R(1,:))
-
-       ! Generate the final direction orthogonal to the previous 2.
-       R(2,:)=cross_product(R(3,:), R(1,:))
-       
-    end if
-    
-  end function rotation_to_vertical
-
 end module Coordinates

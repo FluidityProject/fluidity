@@ -12,7 +12,7 @@ module ale_module
   use state_module
   use transform_elements
   use boundary_conditions
-  use global_parameters, only: OPTION_PATH_LEN,dt,acctim
+  use global_parameters, only: OPTION_PATH_LEN, dt
   use form_metric_field
   use metric_assemble
   use edge_length_module

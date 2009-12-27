@@ -31,7 +31,7 @@ module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
   use quadrature
   use elements
-  use global_parameters, only:FIELD_NAME_LEN,ACCTIM, OPTION_PATH_LEN, &
+  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
     & PYTHON_FUNC_LEN, halo_tag, halo_tag_p, int_16, integer_size, real_size
   use fields
   use field_derivatives
@@ -836,6 +836,7 @@ contains
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     real, allocatable, dimension(:,:) :: coords
+    real:: current_time
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
     logical :: detectors_checkpoint_done=.false., detectors_from_file_initially=.false.
 
@@ -872,7 +873,8 @@ contains
     vfield=>extract_vector_field(state(1), "Coordinate")
     shape=>ele_shape(vfield,1)
     call get_option("/geometry/dimension",dim)
-
+    call get_option("/timestepping/current_time", current_time)
+    
     ! Retrieve the position of each detector. If the option
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
     ! after checkpointing and the reading of the detector positions must be
@@ -961,7 +963,7 @@ contains
 
               call get_option(trim(buffer)//"/python", func)
               allocate(coords(dim,ndete))
-              call set_detector_coords_from_python(coords, ndete, func, acctim)
+              call set_detector_coords_from_python(coords, ndete, func, current_time)
        
               do j=1,ndete
 

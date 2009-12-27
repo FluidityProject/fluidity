@@ -8,12 +8,12 @@ module node_boundary
   use fields
   use linked_lists
   use eventcounter
-  use global_parameters, only: domain_is_2d, pseudo2d_coord
   implicit none
 
   integer, dimension(:), pointer, save :: boundcount
   integer, save :: expected_boundcount
   logical, save :: boundcount_initialised = .false.
+  integer, save :: pseudo2d_coord = 0
 
   interface node_boundary_count
     module procedure node_boundary_count_full, node_boundary_count_slim
@@ -222,4 +222,31 @@ module node_boundary
     lexpected_boundcount = expected_boundcount
   end function
 
+  function domain_is_2d() result(bool)
+    !!< Is the domain pseudo2d or not?
+    logical :: bool
+
+    bool = .false.
+    if (pseudo2d_coord > 0 .and. pseudo2d_coord < 4) bool = .true.
+  end function domain_is_2d
+
+  function domain_is_2d_x() result(bool)
+    !!< Is the domain pseudo2d in the x direction?
+    logical :: bool
+    bool = (pseudo2d_coord == 1)
+  end function domain_is_2d_x
+
+  function domain_is_2d_y() result(bool)
+    !!< Is the domain pseudo2d in the y direction?
+    logical :: bool
+    bool = (pseudo2d_coord == 2)
+  end function domain_is_2d_y
+  
+  function domain_is_2d_z() result(bool)
+    !!< Is the domain pseudo2d in the z direction?
+    logical :: bool
+    bool = (pseudo2d_coord == 3)
+    
+  end function domain_is_2d_z
+  
 end module node_boundary

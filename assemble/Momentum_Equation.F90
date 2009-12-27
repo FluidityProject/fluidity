@@ -38,7 +38,7 @@
     use divergence_matrix_cg
     use momentum_dg
     use assemble_cmc
-    use global_parameters, only: state2phase_index
+    use field_priority_lists
     use momentum_diagnostic_fields, only: calculate_momentum_diagnostics
     use field_options
     use compressible_projection
@@ -65,7 +65,6 @@
 
     private
     public :: momentum_loop, impose_reference_pressure_node, &
-      compute_phase_uses_new_code_path, &
       momentum_equation_check_options
 
   contains
@@ -852,44 +851,6 @@
       end if
 
     end subroutine impose_reference_pressure_node
-
-    subroutine compute_phase_uses_new_code_path(state, phase_uses_new_code_path)
-      !!< Decides which of the phases go into the new code path
-      !!< This repeats the logic of momentum_loop() above.
-      type(state_type), dimension(:), intent(in) :: state
-      logical, dimension(:), intent(out) :: phase_uses_new_code_path
-
-      type(vector_field), pointer :: u
-
-      integer :: istate, stat
-
-      phase_uses_new_code_path = .true.
-
-      ! this loop is just about the limit of multiphase support in this
-      ! version the momentum solve so far!
-      state_loop: do istate = 1, size(state)
-
-        ! get the velocity
-        u=>extract_vector_field(state(istate), "Velocity", stat)
-        ! if there's no velocity then cycle
-        if(stat/=0) cycle  
-        ! if this is an aliased velocity then cycle
-        if(aliased(u)) cycle
-        ! if the velocity isn't prognostic then cycle
-        if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-
-        if((.not. have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                              &/continuous_galerkin")) .and.&
-           (.not. have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                              &/discontinuous_galerkin")) ) then
-
-          phase_uses_new_code_path(state2phase_index(istate)) = .false.
-            
-        end if
-
-      end do state_loop
-
-    end subroutine compute_phase_uses_new_code_path
       
     subroutine momentum_equation_check_options
 

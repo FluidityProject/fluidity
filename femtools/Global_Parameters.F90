@@ -80,19 +80,11 @@ module global_parameters
                      & real_16 = selected_real_kind(16)
 
   !------------------------------------------------------------------------
-  ! Parameters specifying scope bounds for fluidity.
-  !------------------------------------------------------------------------    
-  !! Maximum number of phases supported by fluidity. 
-  integer, parameter :: MXNPHA=4
-
-  !------------------------------------------------------------------------
   ! Parameters controlling the scheme used in the flow core.
   !------------------------------------------------------------------------
   
-  !! The timestep.
-  real, save, target ::  dt
   
-  !! The simulation start time
+  !! The simulation start time (model time)
   real, save :: simulation_start_time
   !! The simulation start CPU time
   real, save :: simulation_start_cpu_time
@@ -100,35 +92,12 @@ module global_parameters
   real, save :: simulation_start_wall_time
   
   !! Accumulated system time.
-  real, save, target :: ACCTIM
+  real, save, target :: current_time
+  !! The timestep.
+  real, save, target ::  dt
 
   real, parameter:: pi = 3.1415926535897931
 
-  !------------------------------------------------------------------------
-  ! Parameters specifying the coordinate system.
-  !------------------------------------------------------------------------
-
-  !! Flag for 3 dimensions.
-  logical, save :: D3
-  !! Flag for cylindrical coordinates. 
-  logical, save :: DCYL  
-
-  !! Flag for pseudo2d domains.
-  integer, save :: pseudo2d_coord = 0
-
-  !! Flag for a cartesian sphere. 0 is a flat earth, other values are the
-  !! different sphere options.
-  integer, save :: isphere=0
-
-  !------------------------------------------------------------------------
-  ! Parameters controlling geophysical flow.
-  !------------------------------------------------------------------------
-  
-  !! Parameter controlling the geostrophic balance pressure.
-  integer, save :: GEOBAL
-  real, save :: GRAVTY !gravity magnitude
-  real, dimension(MXNPHA), save :: dengam
-  
   !------------------------------------------------------------------------
   ! Parameters for parallel
   !------------------------------------------------------------------------
@@ -176,35 +145,4 @@ module global_parameters
   integer, parameter :: PYTHON_FUNC_LEN=8192
   character(len=PYTHON_FUNC_LEN) :: empty_python_func=""
 
-  !! indexes between states and phases
-  integer, save, dimension(:), allocatable :: phase2state_index, state2phase_index
-
-contains
-  
-
-  function domain_is_2d() result(bool)
-    !!< Is the domain pseudo2d or not?
-    logical :: bool
-
-    bool = .false.
-    if (pseudo2d_coord > 0 .and. pseudo2d_coord < 4) bool = .true.
-  end function domain_is_2d
-
-  function domain_is_2d_x() result(bool)
-    !!< Is the domain pseudo2d in the x direction?
-    logical :: bool
-    bool = (pseudo2d_coord == 1)
-  end function domain_is_2d_x
-
-  function domain_is_2d_y() result(bool)
-    !!< Is the domain pseudo2d in the y direction?
-    logical :: bool
-    bool = (pseudo2d_coord == 2)
-  end function domain_is_2d_y
-  
-  function domain_is_2d_z() result(bool)
-    !!< Is the domain pseudo2d in the z direction?
-    logical :: bool
-    bool = (pseudo2d_coord == 3)
-  end function domain_is_2d_z
 end module global_parameters

@@ -31,7 +31,7 @@ module coriolis_module
 
   use embed_python 
   use fldebug
-  use global_parameters, only : current_time => acctim, PYTHON_FUNC_LEN
+  use global_parameters, only : current_time, PYTHON_FUNC_LEN
   use spud
   
   implicit none

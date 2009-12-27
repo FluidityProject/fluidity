@@ -30,7 +30,7 @@
 module diagnostic_fields
   !!< A module to calculate diagnostic fields.
 
-  use global_parameters, only:FIELD_NAME_LEN,ACCTIM, new_options, OPTION_PATH_LEN
+  use global_parameters, only:FIELD_NAME_LEN, current_time, new_options, OPTION_PATH_LEN
   use fields
   use halos
   use field_derivatives
@@ -197,7 +197,7 @@ contains
         call calculate_stream_function_2d(state, d_field, stat)
         
       case("Time")
-        call set(d_field, acctim)
+        call set(d_field, current_time)
         
       case("VelocityDivergence")
         call calculate_velocity_divergence(state, d_field, stat)

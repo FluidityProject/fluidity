@@ -30,7 +30,7 @@
 module mixing_statistics
 
   use elements
-  use global_parameters, only:FIELD_NAME_LEN,ACCTIM, OPTION_PATH_LEN, halo_tag, halo_tag_p
+  use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, halo_tag, halo_tag_p
   use fields
   use field_derivatives
   use field_options

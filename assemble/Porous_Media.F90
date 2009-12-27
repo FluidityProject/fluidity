@@ -50,9 +50,8 @@ module porous_media
 
   contains
   
-  subroutine porous_media_advection(state, nonods)
+  subroutine porous_media_advection(state)
     ! specify interface variables
-    integer, intent(in) :: nonods
     type(state_type), dimension(:), intent(inout) :: state
 
     ! specify local variables
@@ -68,9 +67,8 @@ module porous_media
     end do
   end subroutine porous_media_advection
 
-  subroutine porous_media_momentum(state, nonods)
+  subroutine porous_media_momentum(state)
     ! declare interface variables
-    integer, intent(in) :: nonods
     type(state_type), dimension(:), intent(inout) :: state
     ! declare local variables
     integer :: nstates, stat, i, j

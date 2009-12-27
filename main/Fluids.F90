@@ -85,6 +85,7 @@ module fluids_module
   use gls
   use halos
   use memory_diagnostics
+  use global_parameters, only: current_time, dt, OPTION_PATH_LEN
   
   implicit none
 
@@ -104,16 +105,14 @@ contains
     
     INTEGER :: &
          & NPHASE,NTSOL,  &
-         & ITINOI
-
-    LOGICAL :: MVMESH
+         & nonlinear_iterations
 
     REAL :: &
-         & LTIME, &
-         & ITIERR,STEDER
+         & finish_time, &
+         & steady_state_tolerance
+         
+    real:: nonlinear_iteration_tolerance
 
-    INTEGER :: NONODS
-    
     logical :: flat_earth
 
     !     System state wrapper.
@@ -154,11 +153,6 @@ contains
 
     INTEGER :: adapt_count
 
-    logical, dimension(MXNPHA) :: phase_uses_new_code_path=.false.
-    ! whether any of the phases use the old code path (i.e. phase_uses_new_code_path==.false.)
-    ! *or* any of the scalar fields use advdif
-    logical :: uses_old_code_path=.false.
-
     ! Current simulation timestep
     integer :: timestep
 
@@ -184,8 +178,6 @@ contains
 
     adapt_count = 0
 
-    DT=0.0
-
     ! Read state from .flml file
     call populate_state(state)
     
@@ -193,7 +185,7 @@ contains
     call check_diagnostic_dependencies(state)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
-       if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
+       if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)
 
        call adapt_state_first_timestep(state)
    
@@ -202,28 +194,13 @@ contains
        ! discrete properties.
        call allocate_and_insert_auxilliary_fields(state)
        
-       if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
+       if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
     else
        call enforce_discrete_properties(state)
        ! Auxilliary fields. Note that these must be generated *after* enforcing
        ! discrete properties.
        call allocate_and_insert_auxilliary_fields(state)
     end if
-    
-    call get_option("/timestepping/timestep", dt)
-    if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
-       call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-       call set_option("/timestepping/timestep", dt)
-    end if
-
-    call get_option('/timestepping/nonlinear_iterations',ITINOI,&
-         & default=1)
-     MVMESH=have_option("/mesh_adaptivity/mesh_movement")
-     call get_option("/timestepping/current_time", ACCTIM)
-     call get_option("/timestepping/finish_time", LTIME)
-
-     call get_option("/timestepping/steady_state/tolerance", &
-          STEDER, default = -666.01)
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
@@ -233,9 +210,27 @@ contains
     call initialise_field_lists_from_options(state, ntsol)
     call initialise_state_phase_lists_from_options()
 
-    call compute_uses_old_code_path(uses_old_code_path)
-    if(uses_old_code_path) FLExit("The old code path is dead.")
+    call check_old_code_path()
 
+    ! set all timestepping options, needs to be before any diagnostics are calculated
+    
+    call get_option("/timestepping/timestep", dt)
+    if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
+       call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
+       call set_option("/timestepping/timestep", dt)
+    end if
+
+    call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
+         & default=1)
+    call get_option("/timestepping/nonlinear_iterations/tolerance", &
+         & nonlinear_iteration_tolerance, default=0.0)
+    call get_option("/timestepping/current_time", current_time)
+    call get_option("/timestepping/finish_time", finish_time)
+
+    call get_option("/timestepping/steady_state/tolerance", &
+         & steady_state_tolerance, default = -666.01)
+
+    
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -283,9 +278,6 @@ contains
        call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
     end if
 
-    call compute_phase_uses_new_code_path(state, phase_uses_new_code_path)
-    if (any(.not.phase_uses_new_code_path)) FLExit("The old code path is dead")
-
     !     Determine the output format.
     call get_option('/io/dump_format', option_buffer)
     if(trim(option_buffer) /= "vtk") then
@@ -322,7 +314,7 @@ contains
     if( &
            ! if this is not a zero timestep simulation (otherwise, there would
            ! be two identical dump files)
-         & acctim < ltime &
+         & current_time < finish_time &
            ! unless explicitly disabled
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
@@ -332,7 +324,7 @@ contains
     call initialise_diagnostics(filename, state)
     call initialise_convergence(filename, state)
     call initialise_advection_convergence(state)
-    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, acctim, dt)
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt)
     
     do i=1, size(state)
        velocity => extract_vector_field(state(i), "Velocity")
@@ -352,7 +344,7 @@ contains
        ewrite(1, *) "********************"
        ewrite(1, *) "*** NEW TIMESTEP ***"
        ewrite(1, *) "********************"
-       ewrite(1, *) "Current simulation time (acctim): ", acctim
+       ewrite(1, *) "Current simulation time: ", current_time
        ewrite(1, *) "Timestep number: ", timestep
        ewrite(1, *) "Timestep size (dt): ", dt
        if(.not. allfequals(dt)) then
@@ -360,21 +352,21 @@ contains
           FLAbort("The timestep is not global across all processes!")
        end if
 
-       IF(MVMESH) THEN
+       if(have_option("/mesh_adaptivity/mesh_movement")) then
           ! Make oldcoordinate a copy of coordinate.
           call set_vector_field_in_state(state(1), "OldCoordinate", &
                "Coordinate")
-       ENDIF
+       end if
 
-       if(simulation_completed(acctim, timestep)) exit timestep_loop
+       if(simulation_completed(current_time, timestep)) exit timestep_loop
 
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
-            & acctim > simulation_start_time &
+            & current_time > simulation_start_time &
                                 ! Do not dump at the end of the simulation (this is handled by later write_state call)
-            & .and. acctim < ltime &
+            & .and. current_time < finish_time &
                                 ! Test write_state conditions
-            & .and. do_write_state(acctim, timestep) &
+            & .and. do_write_state(current_time, timestep) &
             & ) then
 
           !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -386,11 +378,11 @@ contains
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
           call write_state(dump_no, state)
-       ENDIF
+       end if
 
-       ewrite(2,*)'STEDER,ITINOI:',STEDER,ITINOI
+       ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
-       IF((STEDER.GT.0).OR.(ITINOI.GT.1)) THEN
+       IF((steady_state_tolerance.GT.0).OR.(nonlinear_iterations.GT.1)) THEN
           call copy_to_stored_values(state,"Old")
        ENDIF
 
@@ -398,15 +390,15 @@ contains
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
 
-       ! ITINOI=maximum no of iterations within a time step
+       ! nonlinear_iterations=maximum no of iterations within a time step
        ! NB TEMPT is T from previous iteration.
-       nonlinear_iteration_loop: do  ITS=1,ITINOI
+       nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
 
           ewrite(1,*)'###################'
-          ewrite(1,*)'Start of another nonlinear iteration; ITS,ITINOI=',ITS,ITINOI
+          ewrite(1,*)'Start of another nonlinear iteration; ITS,nonlinear_iterations=',ITS,nonlinear_iterations
           ewrite(1,*)'###################'
 
-          IF(ITINOI.GT.1) THEN
+          IF(nonlinear_iterations.GT.1) THEN
              call copy_to_stored_values(state, "Iterated")
              call relax_to_nonlinear(state)
           ENDIF
@@ -424,12 +416,12 @@ contains
           end if
 
           !     Addition for reading solids in - jem  02-04-2008
-          if(have_solids) call solid_configuration(state(ss:ss),its,itinoi)
+          if(have_solids) call solid_configuration(state(ss:ss),its,nonlinear_iterations)
 
           !Explicit ALE ------------   jem 21/07/08         
           if (use_ale) then 
              EWRITE(0,'(A)') '----------------------------------------------'
-             EWRITE(0,'(A26,E12.6)') 'Using explicit_ale. time: ',ACCTIM       
+             EWRITE(0,'(A26,E12.6)') 'Using explicit_ale. time: ',current_time       
              call explicit_ale(state,fs)
           end if
           !end explicit ale ------------  jem 21/07/08
@@ -438,7 +430,7 @@ contains
           ! Call to porous_media module (leading to multiphase flow in porous media)
           ! jhs - 16/01/09
           if (have_option("/porous_media")) then
-             call porous_media_advection(state, nonods)
+             call porous_media_advection(state)
              ! compute spontaneous electrical potentials (myg - 28/10/09)
              do i=1,size(state)
                 option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/coupling_coefficients/'
@@ -555,7 +547,7 @@ contains
           ! jhs - 16/01/09
           ! moved to here 04/02/09
           if (have_option("/porous_media")) then
-             call porous_media_momentum(state,nonods)
+             call porous_media_momentum(state)
           end if
           
           if (have_option("/traffic_model")) then
@@ -568,17 +560,17 @@ contains
           ! hence this lives outside the phase_loop
           call momentum_loop(state, at_first_timestep=((timestep==1).and.(its==1)))
                        
-          if(itinoi > 1) then
+          if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
-             call test_and_write_convergence(state, acctim + dt, dt, its, change)
+             call test_and_write_convergence(state, current_time + dt, dt, its, change)
              if(its == 1) chaold = change             
 
              if (have_option("/timestepping/nonlinear_iterations/&
                               &tolerance")) then
                ewrite(2, *) "Nonlinear iteration change = ", change
-               ewrite(2, *) "Nonlinear iteration tolerance = ", itierr
+               ewrite(2, *) "Nonlinear iteration tolerance = ", nonlinear_iteration_tolerance
 
-               if(change < abs(itierr)) then
+               if(change < abs(nonlinear_iteration_tolerance)) then
                   ewrite(1, *) "Nonlinear iteration tolerance has been reached"
                   ewrite(1, "(a,i0,a)") "Exiting nonlinear iteration loop after ", its, " iterations"
                   exit nonlinear_iteration_loop
@@ -589,7 +581,7 @@ contains
        end do nonlinear_iteration_loop
 
        if(have_option("/timestepping/nonlinear_iterations/terminate_if_not_converged")) then
-          if(its >= itinoi .and. change >= abs(itierr)) then
+          if(its >= nonlinear_iterations .and. change >= abs(nonlinear_iteration_tolerance)) then
              ewrite(0, *) "Nonlinear iteration tolerance not reached - termininating"
              exit timestep_loop
           end if
@@ -601,20 +593,20 @@ contains
           call movemeshy(state(1))
        endif
 
-       ACCTIM=ACCTIM+DT
+       current_time=current_time+DT
 
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
        ! Call the modern and significantly less satanic version of study
-       call write_diagnostics(state, acctim, dt)
+       call write_diagnostics(state, current_time, dt)
 
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
 
        ! Update the options dictionary for the new timestep and current_time.
        call set_option("/timestepping/timestep", dt)
-       call set_option("/timestepping/current_time", acctim)
+       call set_option("/timestepping/current_time", current_time)
 
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true.)
@@ -628,40 +620,40 @@ contains
        if(have_option("/timestepping/steady_state")) then
 
           call test_steady_state(state, change)
-          if(change<steder) then
+          if(change<steady_state_tolerance) then
              ewrite(0,*)  "* Steady state has been attained, exiting the timestep loop"
              exit timestep_loop
           end if
 
        end if
 
-       if(simulation_completed(acctim)) exit timestep_loop
+       if(simulation_completed(current_time)) exit timestep_loop
        
        ! ******************
        ! *** Mesh adapt ***
        ! ******************
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
-          if(do_adapt_mesh(acctim, timestep)) then               
+          if(do_adapt_mesh(current_time, timestep)) then               
              call qmesh(state, metric_tensor)
 
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)
              call run_diagnostics(state)
              
              call adapt_state(state, metric_tensor)
              call update_state_post_adapt(state, metric_tensor, dt)
              
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
              call run_diagnostics(state)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-          if(do_adapt_state_prescribed(acctim)) then          
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, acctim, dt)             
+          if(do_adapt_state_prescribed(current_time)) then          
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)             
              call run_diagnostics(state)
              
-             call adapt_state_prescribed(state, acctim)
+             call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt)
              
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, acctim, dt)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
              call run_diagnostics(state)
           end if
        end if
@@ -802,11 +794,8 @@ contains
 
   end subroutine fluids_module_check_options
     
-  subroutine compute_uses_old_code_path(uses_old_code_path)
-  !!< computes whether any of the phases use the old code path (i.e. phase_uses_new_code_path==.false.)
-  !!< *or* any of the scalar fields use advdif
-    logical, intent(out) :: uses_old_code_path
-    
+  subroutine check_old_code_path()
+  !!< checks whether any of the phases use the old code path
     character(len=OPTION_PATH_LEN):: option_path
     character(len=FIELD_NAME_LEN):: tmpstring
     logical:: use_advdif
@@ -822,32 +811,11 @@ contains
                                 &/legacy_discretisation") &
         ) then
     
-        uses_old_code_path=.true.
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "** DANGER! LEGACY FUNCTIONALITY WILL BE REMOVED **"
-        ewrite(0,*) "** -------------------------------------------- **"
-        ewrite(0,*) "** If there is a reason why you need this       **" 
-        ewrite(0,*) "** functionality, you MUST email                **"
-        ewrite(0,*) "** amcg-users@imperial.ac.uk NOW!!!!!!!!!!!!!!  **"
-        ewrite(0,*) "**                                              **"
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "WARNING: You seem to be using legacy_continuous_galerkin or "
+        ewrite(0,*) "ERROR: You seem to be using legacy_continuous_galerkin or "
         ewrite(0,*) "legacy_discretisation for spatial_discretisation of Velocity."
-        ewrite(0,*) "This uses the old code path (navsto) that is going to be deleted"
-        ewrite(0,*) "in the near future. You should switch to continuous_galerkin."
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        ewrite(0,*) "**************************************************" 
-        return
+        ewrite(0,*) "This uses the old code path (navsto) which has been deleted."
+        ewrite(0,*) "You should switch to continuous_galerkin."
+        FLExit("The old code path is dead.")
       end if
     end do
     
@@ -879,44 +847,18 @@ contains
             & "/prognostic/spatial_discretisation/legacy_discretisation") &
           )) then
             
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "** DANGER! LEGACY FUNCTIONALITY WILL BE REMOVED **"
-          ewrite(0,*) "** -------------------------------------------- **"
-          ewrite(0,*) "** If there is a reason why you need this       **" 
-          ewrite(0,*) "** functionality, you MUST email                **"
-          ewrite(0,*) "** amcg-users@imperial.ac.uk NOW!!!!!!!!!!!!!!  **"
-          ewrite(0,*) "**                                              **"
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "WARNING: You seem to be using legacy_continuous_galerkin,"
+          ewrite(0,*) "Error: You seem to be using legacy_continuous_galerkin,"
           ewrite(0,*) "legacy_mixed_cv_cg or legacy_discretisation for the"
           ewrite(0,*) "spatial discretisation of one of your scalar fields."
-          ewrite(0,*) "This uses the old code path (advdif) that is going to be deleted"
-          ewrite(0,*) "in the near future. You should switch to any of the other options."
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          ewrite(0,*) "**************************************************" 
-          
-          uses_old_code_path=.true.
-          return
-          
+          ewrite(0,*) "This uses the old code path (advdif) that has been deleted"
+          ewrite(0,*) "You should switch to any of the other options."
+          FLExit("The old code path is dead.")
         end if
          
       end do
     end do
-      
-    ! Hurray!!
-    uses_old_code_path=.false.
     
-  end subroutine compute_uses_old_code_path
+  end subroutine check_old_code_path
   
   end module fluids_module
 

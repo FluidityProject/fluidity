@@ -33,7 +33,7 @@ module traffic
   use FLDebug
   use parallel_tools
   use spud
-  use global_parameters, only: option_path_len, acctim, dt, halo_tag
+  use global_parameters, only: option_path_len, current_time, dt, halo_tag
   use state_module
   use boundary_conditions
   use generic_interface
@@ -108,7 +108,7 @@ contains
                intert0sou,intertwidso,                 &
                state,timestep)
 
-          if ( abs(intert0sou-acctim) <= 1.e-10 ) then
+          if ( abs(intert0sou-current_time) <= 1.e-10 ) then
 
              call source_distribution(                    &
                   interxsoue,interysoue,interzsoue,       &
@@ -207,7 +207,7 @@ contains
             intert0sou,intertwidso,                 &
             state,timestep)
 
-       if ( abs(intert0sou-acctim) <= 1.e-10 ) then
+       if ( abs(intert0sou-current_time) <= 1.e-10 ) then
           
           call source_distribution(                   &
                interxsou,interysou,interzsou,         &
@@ -314,7 +314,7 @@ contains
          interintsou1,interintsou2,interintsou3,&
          interintsou4,interintsou5,interintsou6,&
          nonods,nnodp,x,y,z,                    &
-         acctim,intert0sou,intertwidso,         &
+         current_time,intert0sou,intertwidso,         &
          source1,source2,source3,source4,source5)
     
     deallocate(mlad)
@@ -330,7 +330,7 @@ contains
        intsou1,intsou2,intsou3,   &
        intsou4,intsou5,intsou6,   &
        nonods,nnodp,x,y,z,        &
-       acctim,t0sou,twidso,       &
+       current_time,t0sou,twidso,       &
        source1,source2,source3,   &
        source4,source5)
     implicit none
@@ -347,7 +347,7 @@ contains
     real   :: zxsou,zysou,zzsou
     real   :: intsou1,intsou2,intsou3
     real   :: intsou4,intsou5,intsou6
-    real   :: acctim,t0sou,twidso
+    real   :: current_time,t0sou,twidso
 
     real   :: vrot(3,3),drot(3)
     real   :: accsou,s1,s2,s3,s4,s5,f
@@ -366,7 +366,7 @@ contains
     accsou=0.
     do nod=1,nnodp
        accsou=accsou+ml(nod)*                    &
-            funsoup(x(nod),y(nod),z(nod),acctim, &
+            funsoup(x(nod),y(nod),z(nod),current_time, &
             xsou,ysou,zsou,t0sou,twidso,vrot,drot)
     enddo
     call allsum(accsou)
@@ -375,7 +375,7 @@ contains
        ! working out source term for each node
        do nod=1,nonods
 
-          f = funsoup(x(nod),y(nod),z(nod),acctim, &
+          f = funsoup(x(nod),y(nod),z(nod),current_time, &
                xsou,ysou,zsou,t0sou,twidso,vrot,drot)
 
           s1=0.;s2=0.;s3=0.;s4=0.;s5=0.
@@ -793,7 +793,7 @@ contains
       endif
       
       if (slfr) then   
-         if (do_adapt_mesh(acctim,timestep)) then
+         if (do_adapt_mesh(current_time,timestep)) then
             call get_floor(state,roadbc,cax,cay,ef,caz)
          endif
       else
@@ -821,7 +821,7 @@ contains
 
       carr = .false.
       do i=1,icount-2
-         if ( acctim >= cat(line(i)) .and. acctim < cat(line(i+1)) ) then
+         if ( current_time >= cat(line(i)) .and. current_time < cat(line(i+1)) ) then
             lnn=i
             carr=.true.
          endif
@@ -829,7 +829,7 @@ contains
 
       if (carr) then
 
-         relax = (acctim-cat(line(lnn)))/(cat(line(lnn+1))-cat(line(lnn)))
+         relax = (current_time-cat(line(lnn)))/(cat(line(lnn+1))-cat(line(lnn)))
 
          ! current location
          crx = (1-relax) * cax(line(lnn))  + relax * cax(line(lnn+1))
@@ -1196,7 +1196,7 @@ contains
          interzzsou = rot2(3,3)
 
          intertwidso = 10000.
-         intert0sou  = acctim
+         intert0sou  = current_time
 
          ! exhaust diameter - fixed for all vehicles...
          exd = exs/model_scale
