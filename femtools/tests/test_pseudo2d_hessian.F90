@@ -4,7 +4,7 @@ subroutine test_pseudo2d_hessian
   use field_derivatives
   use unittest_tools
   use state_module
-  use global_parameters, only: pseudo2d_coord
+  use node_boundary, only: pseudo2d_coord
   implicit none
   
   type(state_type) :: state
