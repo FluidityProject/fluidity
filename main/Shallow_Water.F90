@@ -44,14 +44,14 @@
     use diagnostic_variables
     use diagnostic_fields_wrapper
     use assemble_cmc
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, current_time, dt
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
 #endif
 
     type(state_type), dimension(:), pointer :: state
-    real :: current_time, dt, f0, D0, g, theta, itheta
+    real :: f0, D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
     real, dimension(:), allocatable :: beta
     integer :: timestep, nonlinear_iterations
