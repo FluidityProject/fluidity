@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, halo_tag, halo_tag_p
+  use global_parameters, only: real_size
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -1187,7 +1187,6 @@ module zoltan_integration
                     nreceives = nreceives, &
                     name = halo_name(zz_halo), &
                     communicator = halo_communicator(zz_halo), &
-                    tag = legacy_halo_tag(zz_halo), &
                     nowned_nodes = key_count(new_nodes) - num_import, &
                     data_type = halo_data_type(zz_halo))
 
@@ -1233,12 +1232,6 @@ module zoltan_integration
       do i=1,size(sends)
         call deallocate(sends(i))
       end do
-
-      call unregister_halo(halo_tag, stat = stat)
-      call unregister_halo(halo_tag_p, stat = stat)
-      call set_halo_tag(new_positions%mesh%halos(2), halo_tag_p)
-      call register_halo(new_positions%mesh%halos(1))
-      call register_halo(new_positions%mesh%halos(2))
 
       ewrite(1,*) "Exiting reconstruct_halo"
 

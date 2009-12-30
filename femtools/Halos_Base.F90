@@ -41,8 +41,7 @@ module halos_base
  
   public :: zero, halo_name, set_halo_name, halo_data_type, &
     & set_halo_data_type, halo_ordering_scheme, set_halo_ordering_scheme, &
-    & legacy_halo_tag, set_halo_tag, has_nowned_nodes, &
-    & halo_nowned_nodes, set_halo_nowned_nodes, halo_communicator, &
+    & has_nowned_nodes, halo_nowned_nodes, set_halo_nowned_nodes, halo_communicator, &
     & set_halo_communicator, halo_proc_count, halo_send_count, &
     & halo_receive_count, halo_unique_receive_count, halo_send, halo_receive, &
     & set_halo_send, set_halo_receive, halo_send_counts, halo_receive_counts, &
@@ -159,27 +158,6 @@ contains
     halo%ordering_scheme = ordering_scheme
 
   end subroutine set_halo_ordering_scheme
-  
-  pure function legacy_halo_tag(halo)
-    !!< Retrieve the halo tag for the supplied halo
-    
-    type(halo_type), intent(in) :: halo
-    
-    integer :: legacy_halo_tag
-        
-    legacy_halo_tag = halo%tag
- 
-  end function legacy_halo_tag
-  
-  subroutine set_halo_tag(halo, tag)
-    !!< Set the halo tag for the supplied halo
-    
-    type(halo_type), intent(inout) :: halo
-    integer, intent(in) :: tag
-    
-    halo%tag = tag
-    
-  end subroutine set_halo_tag
   
   pure function has_nowned_nodes(halo)
     !!< Return whether the supplied halo has a number of owned nodes set

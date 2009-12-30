@@ -15,8 +15,6 @@ module mba2d_integration
   use mba_adapt_module
   use node_locking
   use halos
-  use halos_legacy
-  use global_parameters, only: halo_tag, halo_tag_p
   use quicksort
   use surface_id_interleaving
   use data_structures
@@ -384,7 +382,7 @@ module mba2d_integration
       allocate(receives_starts(halo_proc_count(old_halo) + 1))
       allocate(old_sends(halo_all_sends_count(old_halo)))
       allocate(old_receives(halo_all_receives_count(old_halo)))
-      call extract_legacy_halo_data(old_halo, old_sends, sends_starts, old_receives, receives_starts)
+      call extract_raw_halo_data(old_halo, old_sends, sends_starts, old_receives, receives_starts)
 
       ! Sorry about this. Blame James and Patrick ...
       ! Transfer the halo nodes by interpolating their flattened indices
@@ -436,8 +434,8 @@ module mba2d_integration
 
       ! Allocate and set the new halo
       allocate(output_positions%mesh%halos(nhalos))
-      call form_halo_from_legacy_data(output_positions%mesh%halos(nhalos), new_sends, &
-        & sends_starts, new_receives, receives_starts, npnodes = nonods - size(new_receives), &
+      call form_halo_from_raw_data(output_positions%mesh%halos(nhalos), size(sends_starts) - 1, new_sends, &
+        & sends_starts, new_receives, receives_starts, nowned_nodes = nonods - size(new_receives), &
         & ordering_scheme = HALO_ORDER_GENERAL, create_caches = (nhalos == 1))
 
       deallocate(sends_starts)
@@ -489,20 +487,6 @@ module mba2d_integration
       ! Adaptivity is not guaranteed to return halo elements in the same
       ! order in which they went in. We therefore need to fix this order.
       call reorder_element_numbering(output_positions)
-
-      ! Keep FLComms happy
-      if(nhalos == 2) then
-        call unregister_halo(halo_tag, stat = stat)
-        call unregister_halo(halo_tag_p, stat = stat)
-        call set_halo_tag(output_positions%mesh%halos(1), halo_tag)
-        call set_halo_tag(output_positions%mesh%halos(2), halo_tag_p)
-        call register_halo(output_positions%mesh%halos(1))
-        call register_halo(output_positions%mesh%halos(2))
-      else
-        call unregister_halo(halo_tag, stat = stat)
-        call set_halo_tag(output_positions%mesh%halos(1), halo_tag)
-        call register_halo(output_positions%mesh%halos(1))
-      end if
 
 #ifdef DDEBUG
       do i = 1, nhalos

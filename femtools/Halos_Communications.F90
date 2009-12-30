@@ -35,7 +35,6 @@ module halos_communications
   use fields_manipulation
   use fldebug
   use futils
-  use global_parameters, only : tag => halo_tag, tag_p => halo_tag_p
   use halo_data_types
   use halos_allocates
   use halos_base

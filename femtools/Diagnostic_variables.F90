@@ -32,7 +32,7 @@ module diagnostic_variables
   use quadrature
   use elements
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN, &
-    & PYTHON_FUNC_LEN, halo_tag, halo_tag_p, int_16, integer_size, real_size
+    & PYTHON_FUNC_LEN, int_16, integer_size, real_size
   use fields
   use field_derivatives
   use field_options

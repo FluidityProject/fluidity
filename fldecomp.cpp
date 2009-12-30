@@ -51,7 +51,7 @@
 #include <vector>
 
 #include "vtk.h"
-#include "FLComms_IO.h"
+#include "Halos_IO.h"
 #include "Fldecomp_Wrappers.h"
 #include "fmangle.h"
 #include "partition.h"
@@ -314,8 +314,7 @@ int main(int argc, char **argv){
   }
 
   if(file_format=="triangle"){
-    // Halo tags for first and second halo
-    const int halo1_tag = 1, halo2_tag = 2;
+    const int halo1_level = 1, halo2_level = 2;
     
     // Read in the mesh
     if(verbose)
@@ -622,44 +621,44 @@ int main(int argc, char **argv){
       map<int, vector< vector<int> > > send, recv;
       map<int, int> npnodes_handle;
 
-      recv[halo1_tag].resize(nparts);
-      send[halo1_tag].resize(nparts);
+      recv[halo1_level].resize(nparts);
+      send[halo1_level].resize(nparts);
 
-      recv[halo2_tag].resize(nparts);
-      send[halo2_tag].resize(nparts);
+      recv[halo2_level].resize(nparts);
+      send[halo2_level].resize(nparts);
 
       for(int j=0;j<nparts;j++){
         for(set<int>::const_iterator it=halo1[i][j].begin();it!=halo1[i][j].end();++it){
           assert(renumber.find(*it)!=renumber.end());
           assert(renumber[*it]>npnodes[i]);
-          recv[halo1_tag][j].push_back(renumber[*it]);
+          recv[halo1_level][j].push_back(renumber[*it]);
         }
         for(set<int>::const_iterator it=halo1[j][i].begin();it!=halo1[j][i].end();++it){
           assert(renumber.find(*it)!=renumber.end());
           assert(renumber[*it]<=npnodes[i]);
-          send[halo1_tag][j].push_back(renumber[*it]);
+          send[halo1_level][j].push_back(renumber[*it]);
         }
 
         for(set<int>::const_iterator it=halo2[i][j].begin();it!=halo2[i][j].end();++it){
           assert(renumber.find(*it)!=renumber.end());
           assert(renumber[*it]>npnodes[i]);
-          recv[halo2_tag][j].push_back(renumber[*it]);
+          recv[halo2_level][j].push_back(renumber[*it]);
         }
         for(set<int>::const_iterator it=halo2[j][i].begin();it!=halo2[j][i].end();++it){
           assert(renumber.find(*it)!=renumber.end());
           assert(renumber[*it]<=npnodes[i]);
-          send[halo2_tag][j].push_back(renumber[*it]);
+          send[halo2_level][j].push_back(renumber[*it]);
         }
       }
 
-      npnodes_handle[halo1_tag]=npnodes[i];
-      npnodes_handle[halo2_tag]=npnodes[i];
+      npnodes_handle[halo1_level]=npnodes[i];
+      npnodes_handle[halo2_level]=npnodes[i];
 
       buffer<<filename<<"_"<<i<<".halo";
       if(verbose)
         cout<<"Writing out halos for partition "<<i<<" to file "<<buffer.str()<<"\n";
 
-      if(WriteHalo(buffer.str(), i, nparts, npnodes_handle, send, recv)){
+      if(WriteHalos(buffer.str(), i, nparts, npnodes_handle, send, recv)){
         cerr<<"ERROR: failed to write halos to file "<<buffer.str()<<endl;
         exit(-1);
       }

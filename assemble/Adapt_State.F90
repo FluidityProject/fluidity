@@ -44,7 +44,6 @@ module adapt_state_module
   use edge_length_module
   use eventcounter
   use field_options
-  use flcomms_io
   use global_parameters, only : OPTION_PATH_LEN
   use hadapt_extrude
   use hadapt_metric_based_extrude
@@ -179,9 +178,6 @@ contains
       
       ! Recalculate diagnostics, as error metric formulations may need them
       call allocate_and_insert_auxilliary_fields(states)
-      call copy_to_stored_values(states,"Old")
-      call copy_to_stored_values(states, "Iterated")
-      call relax_to_nonlinear(states)
       
       call calculate_diagnostic_variables(states)
     
@@ -207,7 +203,7 @@ contains
       output_positions => extract_vector_field(states(1), "Coordinate")
       if(isparallel()) then
         call write_triangle_files(parallel_filename("first_timestep_adapted_mesh"), output_positions)
-        call write_halos("first_timestep_adapted_mesh")
+        call write_halos("first_timestep_adapted_mesh", output_positions%mesh)
       else
         call write_triangle_files("first_timestep_adapted_mesh", output_positions)
       end if
@@ -656,7 +652,7 @@ contains
       if(isparallel()) then
         file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration, &
                                                 add_parallel = .false.)  ! parallel extension is added by write_halos
-        call write_halos(file_name)
+        call write_halos(file_name, positions%mesh)
       end if
       call deallocate(positions)
       

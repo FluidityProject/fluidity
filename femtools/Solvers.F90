@@ -135,12 +135,14 @@ subroutine solcg(xk,f,nonods,fredop,nnodp,zero,  &
   idimm = fredop / nonods
 
   if (IsParallel()) then
-    lhalo_tag=halo_tag
+    ! Halos are stored on meshes / sparsities. We don't have sufficient
+    ! information for a parallel solve.
+    FLAbort("Cannot solve using solcg in parallel")
   else
     lhalo_tag=0
   end if
-  
-  call import_halo(lhalo_tag, halo,stat)
+  !call import_halo(lhalo_tag, halo,stat)
+  stat = -1
 
   if (stat==0) then
      sparsity=wrap(fina, colm=cola, name='TemporarySparsity_solcg', &
@@ -187,12 +189,14 @@ subroutine gmres(x,b,nonods,fredop,nnodp,zero, &
   idimm = fredop / nonods
 
   if (IsParallel()) then
-    lhalo_tag=halo_tag
+    ! Halos are stored on meshes / sparsities. We don't have sufficient
+    ! information for a parallel solve.
+    FLAbort("Cannot solve using gmres in parallel")
   else
     lhalo_tag=0
   end if
-      
-  call import_halo(lhalo_tag, halo, stat)
+  !call import_halo(lhalo_tag, halo, stat)
+  stat = -1
   
   if (stat==0) then
      sparsity=wrap(fina, colm=cola, &

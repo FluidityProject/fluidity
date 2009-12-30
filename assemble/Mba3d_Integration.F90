@@ -32,7 +32,7 @@ module mba3d_integration
   use quadrature
   use elements
   use fields
-  use global_parameters, only : tag => halo_tag, tag_p => halo_tag_p, real_8
+  use global_parameters, only : real_8
   use halos
   use limit_metric_module
   use node_locking

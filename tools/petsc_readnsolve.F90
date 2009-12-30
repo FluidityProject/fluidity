@@ -38,10 +38,9 @@ use Petsc_Tools
 use solvers
 use sparse_tools_petsc
 use petsc_solve_state_module
-use Global_Parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, halo_tag, halo_tag_p
+use Global_Parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
 use spud
 use populate_state_module
-use flcomms_module
 use field_options
 use halos_registration
 implicit none
@@ -313,9 +312,9 @@ contains
     character(len=OPTION_PATH_LEN):: option_path
     character(len=FIELD_NAME_LEN):: field_name, mesh_name
     logical read_state, fail
-    integer i, n, istate, my_halo_tag, stat
+    integer i, n, istate, stat
     type(halo_type), pointer :: my_halo
-    integer nstates, owned_nodes, universal_nodes, components
+    integer nstates, universal_nodes, components
 
     ewrite(1,*) "Opening flml file ", trim(flml)
     call load_options(flml)
@@ -382,30 +381,12 @@ contains
           
       ! now work out the number of nodes according to the mesh
       if (IsParallel()) then
-        
-        ! work out halo_tag and owned nodes
-        if (mesh_dim(mesh)==3 .and. mesh%shape%degree==1 .and. mesh%continuity==0) then
-          my_halo_tag=halo_tag_p
-          owned_nodes=get_nowned_nodes(my_halo_tag)
-        else if (mesh_dim(mesh)==3 .and. mesh%shape%degree==2 .and. mesh%continuity==0) then
-          my_halo_tag=free_halo_tag()
-          call find_linear_parent_mesh(states(istate), mesh, linear_mesh)
-          call register_t10_halo(halo_tag_p, node_count(linear_mesh), &
-            linear_mesh%ndglno, my_halo_tag, mesh%ndglno, &
-            ele_count(linear_mesh), owned_nodes)
-        else
-          ewrite(-1,*) "As far as petsc_readnsolve knows, parallel fluidity only"
-          ewrite(-1,*) "works with continuous P1 or P2 tet meshes."
-          FLAbort("I'm confused.")
-        end if
       
-        allocate(my_halo)
-        call import_halo(my_halo_tag, my_halo)
-
+        assert(halo_count(mesh) > 0)
+        my_halo => mesh%halos(halo_count(mesh))
         call allocate(petsc_numbering, node_count(mesh), 1, my_halo)
       else
       
-        owned_nodes=node_count(mesh)
         call allocate(petsc_numbering, node_count(mesh), 1)
 
       end if

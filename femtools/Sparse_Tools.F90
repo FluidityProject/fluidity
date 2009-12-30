@@ -62,10 +62,6 @@ module sparse_tools
 !!$     integer :: private_rows
 !!$     !!   Number of private columns, i.e. excluding the halo nodes:
 !!$     integer :: private_columns
-!!$     !!   The halo_tag used to create 'universal'(=global) numbering
-!!$     !!    this is the halo_tag associated with the column numbering
-!!$     !!    as the halo rows are ignored anyway:
-!!$     integer :: halo_tag = 0
      !! The halos associated with the rows and columns of the matrix.
      type(halo_type), pointer :: row_halo => null(), column_halo => null()
      !! Reference counting
@@ -695,13 +691,13 @@ END SUBROUTINE POSINMC_legacy
   !!     v
   !!
   SUBROUTINE posinm(sparsity, TOTELE, NNodes1, NLoc1, NDGLNO1,&
-       NNodes2, NLoc2, NDGLNO2, diag, halo_tag, nnodp, name)
+       NNodes2, NLoc2, NDGLNO2, diag, nnodp, name)
     type(csr_sparsity), intent(out) :: sparsity
     INTEGER, INTENT(IN)::NNodes1, NNodes2, TOTELE, NLoc1, NLoc2
     INTEGER, INTENT(IN)::NDGLNO1(TOTELE*NLoc1), NDGLNO2(TOTELE*NLoc2)
     logical, intent(in), optional ::  diag
     ! Optional arguments needed in parallel:
-    integer, optional, intent(in):: halo_tag, nnodp
+    integer, optional, intent(in):: nnodp
     character(len=*), intent(in):: name
 
     INTEGER ELE,GLOBI,GLOBJ,LOCI,LOCJ,I

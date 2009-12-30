@@ -1399,7 +1399,7 @@ fi
 AC_OUTPUT(Makefile
           debug/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
-          parallel/Makefile parallel/tests/Makefile
+          parallel/Makefile
           interpolation/Makefile 
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile

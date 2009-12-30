@@ -30,9 +30,6 @@
 subroutine test_strip_level_2_halo
 
   use fields
-  use flcomms_io
-  use flcomms_module
-  use global_parameters, only : halo_tag, halo_tag_p
   use halos
   use parallel_tools
   use read_triangle
@@ -78,7 +75,7 @@ subroutine test_strip_level_2_halo
 
   integer :: dim, i, j, new_nsurfaceelems, stat
   integer, dimension(:), allocatable :: new_scatter, new_surfaceenlist, new_surfaceids, nreceives
-  type(halo_type) :: halo
+  type(halo_type), pointer :: halo
   type(mesh_type), pointer :: mesh
   type(state_type) :: state, state_array(1)
   type(vector_field), target :: mesh_field
@@ -96,9 +93,9 @@ subroutine test_strip_level_2_halo
   integer :: nscatter
 
   mesh_field = read_triangle_files("data/cube-parallel_0", quad_degree = 1) 
-
-  call read_halos("data/cube-parallel")
-  call import_halo(halo_tag, halo)
+  call read_halos("data/cube-parallel", mesh_field%mesh)
+  assert(halo_count(mesh_field) > 0)
+  halo => mesh_field%mesh%halos(1)
 
   mesh => mesh_field%mesh
 
@@ -180,10 +177,6 @@ subroutine test_strip_level_2_halo
   call report_test("[snloc unchanged]", snloc /= face_loc(mesh, 1), .false., "flstriph2 has changed snloc")
   call report_test("[nscatter unchanged]", nscatter /= halo_all_receives_count(halo), .false., "flstriph2 has changed nscatter")
 
-  allocate(mesh%halos(2))
-  call import_halo(halo_tag, mesh%halos(1))
-  call import_halo(halo_tag_p, mesh%halos(2))
-
   call insert(state, mesh, "CoordinateMesh")
   call insert(state, mesh_field, "Coordinate")
 
@@ -194,7 +187,6 @@ subroutine test_strip_level_2_halo
   assert(stat == SPUD_NEW_KEY_WARNING)
 
   call deallocate(mesh_field)
-  call deallocate(halo)
 
   state_array(1) = state
   call create_reserve_state(state_array)

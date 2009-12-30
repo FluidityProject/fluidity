@@ -35,9 +35,8 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   
   use fefields
   use fields
-  use flcomms_io
   use halos
-  use global_parameters, only : current_debug_level, halo_tag, halo_tag_p
+  use global_parameters, only : current_debug_level
   use parallel_tools
   use read_triangle
   use solvers
@@ -80,14 +79,8 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   call vtk_read_state(parallel_filename(vtuname, ".vtu"), dg_state, quad_degree = quad_degree)
   
   cg_coordinate = read_triangle_files(trianglename, quad_degree = quad_degree)
-  call read_halos(trianglename)
   cg_mesh => cg_coordinate%mesh
-  allocate(cg_mesh%halos(2))
-  call import_halo(halo_tag, cg_mesh%halos(1))
-  call import_halo(halo_tag_p, cg_mesh%halos(2))
-  allocate(cg_mesh%element_halos(2))
-  call derive_element_halo_from_node_halo(cg_mesh, &
-    & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
+  call read_halos(trianglename, cg_mesh)
 
   do i = 1, scalar_field_count(dg_state)
     dg_s_field => extract_scalar_field(dg_state, i)

@@ -33,7 +33,7 @@ module traffic
   use FLDebug
   use parallel_tools
   use spud
-  use global_parameters, only: option_path_len, current_time, dt, halo_tag
+  use global_parameters, only: option_path_len, current_time, dt
   use state_module
   use boundary_conditions
   use generic_interface

@@ -68,7 +68,7 @@ contains
 
 #include "Reference_count_halo_type.F90"
 
-  subroutine allocate_halo(halo, nsends, nreceives, name, communicator, nprocs, tag, nowned_nodes, data_type, ordering_scheme)
+  subroutine allocate_halo(halo, nsends, nreceives, name, communicator, nprocs, nowned_nodes, data_type, ordering_scheme)
     !!< Allocate a halo
     
     type(halo_type), intent(out) :: halo
@@ -79,7 +79,6 @@ contains
     character(len = *), optional, intent(in) :: name
     integer, optional, intent(in) :: communicator
     integer, optional, intent(in) :: nprocs
-    integer, optional, intent(in) :: tag
     integer, optional, intent(in) :: nowned_nodes
     integer, optional, intent(in) :: data_type
     integer, optional, intent(in) :: ordering_scheme
@@ -147,11 +146,6 @@ contains
       call set_halo_ordering_scheme(halo, HALO_ORDER_TRAILING_RECEIVES)
     end if
     
-    if(present(tag)) then
-      ! Set the tag
-      call set_halo_tag(halo, tag)
-    end if
-    
     if(present(nowned_nodes)) then
       ! Set the number of owned nodes
       call set_halo_nowned_nodes(halo, nowned_nodes)
@@ -181,7 +175,6 @@ contains
       & nreceives = nreceives, &
       & name = halo_name(base_halo), &
       & communicator = halo_communicator(base_halo), &
-      & tag = legacy_halo_tag(base_halo), &
       & nowned_nodes = halo_nowned_nodes(base_halo), &
       & data_type = halo_data_type(base_halo), &
       & ordering_scheme = halo_ordering_scheme(base_halo))

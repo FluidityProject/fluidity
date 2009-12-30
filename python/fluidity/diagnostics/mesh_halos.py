@@ -328,9 +328,9 @@ class Halos:
       
     return
     
-  def TagHaloDict(self):
+  def LevelHaloDict(self):
     """
-    Return a tag-halo dictionary, similar to FLComms halo storage
+    Return a level-halo dictionary, similar to FLComms halo storage
     """
     
     halos = {}
@@ -357,7 +357,12 @@ def ReadHalos(filename):
   halosEle = halosRootEle.getElementsByTagName("halo")
   halos = Halos(process = haloProcess, nProcesses = nprocs)
   for haloEle in halosEle:
-    tag = int(haloEle.attributes["tag"].nodeValue)
+    try:
+      level = int(haloEle.attributes["level"].nodeValue)
+    except KeyError:
+      # Backwards compatibility
+      level = int(haloEle.attributes["tag"].nodeValue)
+      
     n_private_nodes = int(haloEle.attributes["n_private_nodes"].nodeValue)
     
     halo = Halo(process = haloProcess, nProcesses = nprocs, nOwnedNodes = n_private_nodes)
@@ -380,7 +385,7 @@ def ReadHalos(filename):
           sends = map(int, child.nodeValue.split())
           break
       if not sends is None:
-        if tag > 0:
+        if level > 0:
           halo.SetSends(utils.OffsetList(sends, -1), process = process)
         else:
           halo.SetSends(sends, process = process)
@@ -395,17 +400,17 @@ def ReadHalos(filename):
           receives = map(int, child.nodeValue.split())
           break
       if not receives is None:
-        if tag > 0:
+        if level > 0:
           halo.SetReceives(utils.OffsetList(receives, -1), process = process)
         else:
           halo.SetReceives(receives, process = process)
     
-    if tag > 0:
-      assert(not halos.HasNodeHalo(tag))
-      halos.SetNodeHalo(tag, halo)
+    if level > 0:
+      assert(not halos.HasNodeHalo(level))
+      halos.SetNodeHalo(level, halo)
     else:
-      assert(not halos.HasElementHalo(-tag))
-      halos.SetElementHalo(-tag, halo)
+      assert(not halos.HasElementHalo(-level))
+      halos.SetElementHalo(-level, halo)
     
   return halos
   
@@ -421,12 +426,12 @@ def WriteHalos(halos, filename):
   halosRootEle.setAttribute("nprocs", str(halos.GetNProcesses()))
   xmlfile.appendChild(halosRootEle)
   
-  halos = halos.TagHaloDict()
-  for tag in halos.keys():
-    halo = halos[tag]
+  halos = halos.LevelHaloDict()
+  for level in halos.keys():
+    halo = halos[level]
   
     haloEle = xmlfile.createElement("halo")
-    haloEle.setAttribute("tag", str(tag))
+    haloEle.setAttribute("level", str(level))
     haloEle.setAttribute("n_private_nodes", str(halo.GetNOwnedNodes()))
     halosRootEle.appendChild(haloEle)
     
@@ -438,7 +443,7 @@ def WriteHalos(halos, filename):
       sendEle = xmlfile.createElement("send")
       haloDataEle.appendChild(sendEle)
       
-      if tag > 0:
+      if level > 0:
         sendText = xmlfile.createTextNode(utils.FormLine(utils.OffsetList(utils.ExpandList(halo.GetSends(process = i)), 1), delimiter = " ", newline = False))
       else:
         sendText = xmlfile.createTextNode(utils.FormLine(utils.ExpandList(halo.GetSends(process = i)), delimiter = " ", newline = False))
@@ -447,7 +452,7 @@ def WriteHalos(halos, filename):
       receiveEle = xmlfile.createElement("receive")
       haloDataEle.appendChild(receiveEle)
       
-      if tag > 0:
+      if level > 0:
         receiveText = xmlfile.createTextNode(utils.FormLine(utils.OffsetList(utils.ExpandList(halo.GetReceives(process = i)), 1), delimiter = " ", newline = False))
       else:
         receiveText = xmlfile.createTextNode(utils.FormLine(utils.ExpandList(halo.GetReceives(process = i)), delimiter = " ", newline = False))

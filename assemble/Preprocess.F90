@@ -33,7 +33,6 @@ module preprocess_module
   use fields
   use state_module
   use fldebug
-  use global_parameters, only : halo_tag, halo_tag_p
   use sparsity_patterns_meshes
   implicit none
 
@@ -58,28 +57,13 @@ contains
     ! First order for CG but second order for DG due to viscosity.
     if (U_mesh%continuity>=0) then
        U_sparsity=make_sparsity(U_mesh, U_mesh, "VelocitySparsity")
-!!$       if(isparallel()) then
-!!$         U_sparsity%halo_tag = halo_tag
-!!$         U_sparsity%private_columns = get_nowned_nodes(halo_tag)
-!!$         U_sparsity%private_rows = U_sparsity%private_columns
-!!$       end if
     else
        U_sparsity=make_sparsity_transpose(U_mesh, U_mesh, "VelocitySparsity")
-!!$       if(isparallel()) then
-!!$         U_sparsity%halo_tag = halo_tag_p
-!!$         U_sparsity%private_columns = get_nowned_nodes(halo_tag_p)
-!!$         U_sparsity%private_rows = U_sparsity%private_columns
-!!$       end if
     end if
 
     ! Sparsity of CMC in fluidity notation. This takes into account the
     ! second order pressure operator.
     CMC_sparsity=make_sparsity_transpose(P_mesh, U_mesh, "PressurePoissonSparsity")
-!!$    if(isparallel()) then
-!!$      CMC_sparsity%halo_tag = halo_tag_p
-!!$      CMC_sparsity%private_columns = get_nowned_nodes(halo_tag_p)
-!!$      CMC_sparsity%private_rows = CMC_sparsity%private_columns
-!!$    end if
 
     ! Sparsity of C^T - the transpose of the pressure gradient operator.
     CT_sparsity=make_sparsity(P_mesh, U_mesh, "PressureGradientSparsity")

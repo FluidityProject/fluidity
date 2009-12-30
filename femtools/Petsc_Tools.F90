@@ -1338,7 +1338,7 @@ contains
     else
       ! in parallel no halo rows or columns  are included, so
       ! in both the serial and the parallel case we allocate a matrix with
-      ! nprivate_nodes==nnodes and halo_tag==0:
+      ! nprivate_nodes==nnodes:
       call allocate(sparsity, rows, columns, entries, diag=.false., &
         name="petsc2csrSparsity")
     end if

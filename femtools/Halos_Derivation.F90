@@ -32,14 +32,12 @@ module halos_derivation
   use fields_allocates
   use fields_base
   use fldebug
-  use global_parameters, only : halo_tag, halo_tag_p, halo_tag_dg1, halo_tag_dg2
   use halo_data_types
   use halos_allocates
   use halos_base
   use halos_debug
   use halos_numbering
   use halos_ownership
-  use halos_registration
   use halos_repair
   use mpi_interfaces
   use parallel_tools
@@ -171,7 +169,6 @@ contains
       & nreceives = key_count(receives), &
       & name = trim(mesh%name) // "Level1Halo", &
       & communicator = halo_communicator(l2_halo), &
-      & tag = halo_tag, &
       & nowned_nodes = halo_nowned_nodes(l2_halo), &
       & data_type = HALO_TYPE_CG_NODE, &
       & ordering_scheme = lordering_scheme)
@@ -287,7 +284,6 @@ contains
       & nreceives = key_count(receives), &
       & name = trim(mesh%name) // "MaximalElementHalo", &
       & communicator = communicator, &
-      & tag = halo_tag_dg2, &
       & nowned_nodes = nowned_eles, &
       & data_type = HALO_TYPE_ELEMENT, &
       & ordering_scheme = lordering_scheme)
@@ -553,7 +549,6 @@ contains
       & nreceives = key_count(l1_receives), &
       & name = trim(mesh%name) // "Level1ElementHalo", &
       & communicator = communicator, &
-      & tag = halo_tag_dg1, &
       & nowned_nodes = nowned_eles, &
       & data_type = HALO_TYPE_ELEMENT, &
       & ordering_scheme = lordering_scheme)
@@ -563,7 +558,6 @@ contains
       & nreceives = key_count(l2_receives), &
       & name = trim(mesh%name) // "Level2ElementHalo", &
       & communicator = communicator, &
-      & tag = halo_tag_dg2, &
       & nowned_nodes = nowned_eles, &
       & data_type = HALO_TYPE_ELEMENT, &
       & ordering_scheme = lordering_scheme)

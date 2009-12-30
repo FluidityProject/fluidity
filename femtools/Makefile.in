@@ -82,7 +82,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Supermesh.o Supermesh_Assembly.o Conservative_interpolation.o \
   Interpolation.o Pseudo_2D.o DG_interpolation.o \
   Halo_Data_Types.o Halos.o Halos_Allocates.o Halos_Base.o \
-  Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Legacy.o \
+  Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
   tet_predicate.o Lagrangian_Remap.o Vertical_integration.o Weak_BCs.o \
@@ -146,7 +146,7 @@ Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 	@sed 's/REFCOUNT_TYPE/$*/' Refcount_interface_templates.F90 > Reference_count_interface_$*.F90
 
 Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
-  Field_Options.o Write_Triangle.o
+  Field_Options.o Halos.o Write_Triangle.o
 Vertical_integration.o: Fields.o Solvers.o
 Weak_BCs.o: State.o Generic_interface.o
 
@@ -264,16 +264,16 @@ Halos_Communications.o: Fields_Data_Types.o Futils.o Halos_Allocates.o Halos_Bas
   Halos_Registration.o Fields_Manipulation.o
 Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
 Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
-  Global_Parameters.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
-  Halos_Debug.o Halos_Numbering.o Halos_Ownership.o Halos_Registration.o \
-  Halos_Repair.o Sparse_Tools.o Data_structures.o
-Halos_Legacy.o: Futils.o Halos.o
+  Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
+  Halos_Numbering.o Halos_Ownership.o Halos_Repair.o Sparse_Tools.o \
+  Data_structures.o
+Halos_IO.o: ../include/Halos_IO.h
 Halos_Ownership.o: Futils.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o Halos_Numbering.o
 Halos_Numbering.o: Data_structures.o Futils.o Halo_Data_Types.o \
   Halos_Allocates.o Halos_Base.o Halos_Debug.o qsortd.o
 Halos_Registration.o: Fields_Data_Types.o Fields_Base.o Futils.o \
-  Halo_Data_Types.o Halos_Base.o Halos_Debug.o Halos_Ownership.o \
-  Halos_Numbering.o
+  Halo_Data_Types.o Halos_Base.o Halos_Debug.o Halos_Derivation.o \
+  Halos_Ownership.o Halos_Numbering.o
 Halos_Repair.o: Halo_Data_Types.o Halos_Base.o Halos_Debug.o \
   Halos_Numbering.o Halos_Ownership.o qsortd.o Fields_Base.o
 Halos_Diagnostics.o: VTK_interfaces.o Fields_Base.o Fields_Data_Types.o \
@@ -394,7 +394,7 @@ Merge_tensors.o: Metric_tools.o Fields.o
 Metric_tools.o: Unittest_tools.o Fields_Data_Types.o Vector_Tools.o Fields_Manipulation.o
 
 Surface_Labels.o: Merge_tensors.o Vector_Tools.o Fields.o Elements.o \
-   VTK_interfaces.o Global_Parameters.o Data_structures.o Halos.o
+   VTK_interfaces.o Data_structures.o Halos.o
 
 Write_State.o: State.o Fields.o Timers.o VTK_interfaces.o \
   Global_Parameters.o Field_Options.o Halos.o

@@ -312,10 +312,10 @@ contains
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
     ! Dump at start  
     if( &
-           ! if this is not a zero timestep simulation (otherwise, there would
-           ! be two identical dump files)
+         ! if this is not a zero timestep simulation (otherwise, there would
+         ! be two identical dump files)
          & current_time < finish_time &
-           ! unless explicitly disabled
+         ! unless explicitly disabled
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)

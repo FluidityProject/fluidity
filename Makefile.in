@@ -299,8 +299,6 @@ clean-light:
 	@cd debug; $(MAKE) clean
 	@echo "    CLEAN parallel"
 	@cd parallel; $(MAKE) clean
-	@echo "    CLEAN parallel/tests"
-	@cd parallel/tests; $(MAKE) clean
 	@echo "    CLEAN interpolation"
 	@cd interpolation;  $(MAKE) clean
 	@echo "    CLEAN femtools"
@@ -407,8 +405,6 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd horizontal_adaptivity/tests; $(MAKE) unittest
 	@echo "    UNITTEST femtools"
 	@cd femtools/tests; $(MAKE) unittest
-	@echo "    UNITTEST parallel"
-	@cd parallel/tests; $(MAKE) unittest
 	@echo "    UNITTEST parameterisation"
 	@cd parameterisation/tests; $(MAKE) unittest
 	@echo "    UNITTEST assemble"

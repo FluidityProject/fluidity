@@ -35,9 +35,8 @@ module sam_integration
   use field_options
   use state_module
   use surfacelabels
-  use global_parameters, only : tag => halo_tag, tag_p => halo_tag_p, OPTION_PATH_LEN, FIELD_NAME_LEN
+  use global_parameters, only : OPTION_PATH_LEN, FIELD_NAME_LEN
   use halos
-  use halos_legacy
   use spud
   use metric_tools
   use mpi_interfaces
@@ -271,7 +270,6 @@ module sam_integration
        do i = 1, size(states)
          call deallocate(states(i))
        end do
-       call reset_halo_manager()
        
        ! Find the nodes to keep
        allocate(keep(node_count(old_positions)))
@@ -339,7 +337,6 @@ module sam_integration
          assert(halo_verifies(level_1_halo, extract_vector_field(states(1), linear_coordinate_field_name)))
        end if
 #endif
-       call register_halo(level_1_halo)
        call deallocate(level_1_halo)
        
        if(present(metric)) then
@@ -894,8 +891,6 @@ module sam_integration
          ! Deallocate the metric
          call deallocate(metric)
        end if
-       ! Reset the halo manager
-       call reset_halo_manager()
        
        ! At this point, the only thing that should still exist is linear_shape
 
@@ -961,7 +956,7 @@ module sam_integration
        ewrite(1, *) "Exited sam_export_halo"
        assert(nonods == node_count(linear_mesh))
        ! Form a halo from the primitive data structures
-       call form_halo_from_legacy_data(linear_mesh%halos(1), colgat, atosen, scater, atorec, tag = tag, npnodes = nnodp)
+       call form_halo_from_raw_data(linear_mesh%halos(1), getnprocs(), colgat, atosen, scater, atorec, nowned_nodes = nnodp)
        ! Deallocate the primitive data structures
        deallocate(colgat)
        deallocate(atosen)
@@ -975,7 +970,6 @@ module sam_integration
          assert(halo_verifies(linear_mesh%halos(1), new_positions))
        end if
 #endif
-       call register_halo(linear_mesh%halos(1))
       
        if(pncolga >= 0) then
          ! In "mixed formulation" export the level 2 halo
@@ -990,7 +984,7 @@ module sam_integration
          assert(nnodp == halo_nowned_nodes(linear_mesh%halos(1)))
          assert(nonods == node_count(linear_mesh))
          ! Form a halo from the primitive data structures
-         call form_halo_from_legacy_data(linear_mesh%halos(2), colgat, atosen, scater, atorec, tag = tag_p, npnodes = nnodp)
+         call form_halo_from_raw_data(linear_mesh%halos(2), getnprocs(), colgat, atosen, scater, atorec, nowned_nodes = nnodp)
          ! Deallocate the primitive data structures
          deallocate(colgat)
          deallocate(atosen)
@@ -1000,9 +994,6 @@ module sam_integration
          assert(trailing_receives_consistent(linear_mesh%halos(2)))
          assert(halo_valid_for_communication(linear_mesh%halos(2)))
          assert(halo_verifies(linear_mesh%halos(2), new_positions))
-
-         ! Register the new halo
-         call register_halo(linear_mesh%halos(2))
 
          ! Derive the elements halo
          allocate(linear_mesh%element_halos(2))
@@ -1272,7 +1263,7 @@ module sam_integration
          nscate = halo_all_receives_count(halo)
          allocate(scater(nscate))
          allocate(atorec(halo_proc_count(halo) + 1))
-         call extract_legacy_halo_data(halo, gather, atosen, scater, atorec)
+         call extract_raw_halo_data(halo, gather, atosen, scater, atorec)
        else
          if(isparallel()) then
            ewrite(-1, *) "Warning: sam_init called in parallel with no level one halo"

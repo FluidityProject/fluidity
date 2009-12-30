@@ -38,7 +38,7 @@ subroutine test_halo_allocation
   
   integer :: i
   integer, dimension(:), allocatable :: nreceives, nsends
-  integer, parameter :: nowned_nodes = 42, nprocs = 1, tag = 44
+  integer, parameter :: nowned_nodes = 42, nprocs = 1
   logical :: fail
   type(halo_type) :: halo
   
@@ -51,7 +51,7 @@ subroutine test_halo_allocation
   end do
   
   ! Allocate a halo
-  call allocate(halo,  nsends, nreceives, nprocs = nprocs, name = "TestHalo", tag = tag, nowned_nodes = nowned_nodes)
+  call allocate(halo,  nsends, nreceives, nprocs = nprocs, name = "TestHalo", nowned_nodes = nowned_nodes)
   call report_test("[Has references]", .not. has_references(halo), .false., "Halo does not have references")
   call report_test("[References]", .not. associated(refcount_list%next), .false., "Have no references")
   
@@ -59,9 +59,6 @@ subroutine test_halo_allocation
   call report_test("[Correct nprocs]", halo_proc_count(halo) /= nprocs, .false., "Incorrect nprocs")
   
   call report_test("[Correct name]", trim(halo%name) /= "TestHalo", .false., "Incorrect name")
-  
-  call report_test("[Correct tag]", halo%tag /= tag, .false., "Incorrect tag")
-  call report_test("[Correct tag]", legacy_halo_tag(halo) /= tag, .false., "Incorrect tag")
   
   call report_test("[Correct nowned_nodes]", halo%nowned_nodes /= nowned_nodes, .false., "Incorrect nowned_nodes")
   call report_test("[Correct nowned_nodes]", halo_nowned_nodes(halo) /= nowned_nodes, .false., "Incorrect nowned_nodes")

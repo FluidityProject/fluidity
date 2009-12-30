@@ -95,10 +95,6 @@ module halo_data_types
     !! Map from global to universal node numbers for all items. 
     !! This is required for halos which are not ordered by ownership.
     integer, dimension(:), pointer :: gnn_to_unn => null()
-    
-    ! For FLComms compatibility only
-    !! The halo tag
-    integer :: tag = 0
   end type halo_type
   
   type halo_pointer

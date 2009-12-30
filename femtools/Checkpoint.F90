@@ -33,10 +33,10 @@ module checkpoint
   use fields
   use fields_data_types
   use field_options
-  use flcomms_io
   use fldebug
   use futils
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, simulation_start_time
+  use halos
   use parallel_tools
   use spud
   use state_module
@@ -409,7 +409,7 @@ contains
           call write_triangle_files(parallel_filename(mesh_filename), state(1), mesh)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
-          call write_halos(mesh_filename)
+          call write_halos(mesh_filename, mesh)
         else
           ! Write out the mesh
           call write_triangle_files(mesh_filename, state(1), mesh)

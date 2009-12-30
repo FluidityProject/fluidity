@@ -42,7 +42,6 @@ module SurfaceLabels
   use elements
   use vtk_interfaces
   use adjacency_lists
-  use global_parameters, only : halo_tag_p
   use data_structures
   use halos
   use mpi_interfaces
@@ -410,68 +409,7 @@ contains
     end if
     
   end subroutine vtk_write_coplanar_ids
-  
-  subroutine merge_surface_ids_flcomms(mesh, surface_ids, max_id)
-    !!< Given a local set of surface IDs on a mesh, merge the surface IDs
-    !!< across all processes (using FLComms)
-  
-    type(mesh_type), intent(in) :: mesh
-    integer, dimension(surface_element_count(mesh)), intent(inout) :: surface_ids
-    integer, optional, intent(in) :: max_id
-  
-#ifdef HAVE_MPI
-    integer :: ierr, lmax_id, offset, snloc, stotel
-    integer, dimension(:), allocatable :: sndgln, surface_ids_copy
-    
-    interface
-      subroutine flcomms_merge_surface_patches(tag, nselements, nlocal, senlist, ids)
-        implicit none
-        integer, intent(in) :: tag
-        integer, intent(in) :: nselements
-        integer, intent(in) :: nlocal
-        integer, dimension(nselements * nlocal), intent(in) :: senlist
-        integer, dimension(nselements), intent(inout) :: ids
-      end subroutine flcomms_merge_surface_patches
-    end interface
-    
-    if(IsParallel()) then
-       if(present(max_id)) then
-         lmax_id = max_id
-       else
-         lmax_id = maxval(surface_ids)
-       end if
-    
-       stotel = surface_element_count(mesh)
-       if(stotel == 0) then
-         snloc = 0
-       else
-         snloc = face_loc(mesh, 1)
-       end if
-    
-       ! First, ensure that each process is using a different set of
-       ! numbers for numbering.
-       offset = 0
-       call MPI_Scan(lmax_id, offset, 1, getpinteger(), MPI_SUM, MPI_COMM_WORLD, ierr)
-       assert(ierr == MPI_SUCCESS)
-       
-       offset = offset - lmax_id
-       
-       surface_ids=surface_ids + offset
-
-       ! Ensure that co-planar patches between domains have the same surface id
-       allocate(sndgln(1:stotel*snloc))
-       call getsndgln(mesh, sndgln)
-       ! make a copy as we can't pass a fortran pointer directly to C
-       allocate(surface_ids_copy(1:stotel))
-       surface_ids_copy=surface_ids
-       call flcomms_merge_surface_patches(halo_tag_p, stotel, snloc, sndgln, surface_ids_copy)
-       surface_ids=surface_ids_copy
-       deallocate(sndgln, surface_ids_copy)
-    end if
-#endif
-
-  end subroutine merge_surface_ids_flcomms
-  
+ 
   subroutine merge_surface_ids(mesh, surface_ids, max_id)
     !!< Given a local set of surface IDs on a mesh, merge the surface IDs
     !!< across all processes

@@ -31,14 +31,13 @@ subroutine test_halos_legacy
   !!< Test halo_type derived type legacy interoperability
   
   use halos
-  use halos_legacy
   use unittest_tools
   
   implicit none
 
-  integer :: i, index, j, npnodes, tag
+  integer :: i, index, j, npnodes
   integer, dimension(:), allocatable :: atorec, atosen, colgat, nreceives, nsends, scater
-  integer, parameter :: nowned_nodes = 42, nprocs = 1, input_tag = 44
+  integer, parameter :: nowned_nodes = 42, nprocs = 1
   logical :: fail
   type(halo_type) :: input_halo, output_halo
 
@@ -51,7 +50,7 @@ subroutine test_halos_legacy
   end do
   
   ! Allocate a halo
-  call allocate(input_halo, nsends, nreceives, nprocs = nprocs, name = "TestHalo", tag = input_tag, nowned_nodes = nowned_nodes)
+  call allocate(input_halo, nsends, nreceives, nprocs = nprocs, name = "TestHalo", nowned_nodes = nowned_nodes)
 
   ! Set the halo nodes
   call zero(input_halo)
@@ -77,15 +76,12 @@ subroutine test_halos_legacy
   allocate(atorec(halo_proc_count(input_halo) + 1))
   
   ! Extract the legacy data
-  call extract_legacy_halo_data(input_halo, colgat, atosen, scater, atorec, tag = tag, npnodes = npnodes)
+  call extract_raw_halo_data(input_halo, colgat, atosen, scater, atorec, nowned_nodes = npnodes)
   
   ! Form a new halo from the legacy data
-  call form_halo_from_legacy_data(output_halo, colgat, atosen, scater, atorec, tag = tag, npnodes = npnodes)
+  call form_halo_from_raw_data(output_halo, nprocs, colgat, atosen, scater, atorec, nowned_nodes = npnodes)
   
   ! Note: Test output halo against input halo and against raw data
-  
-  call report_test("[Correct tag]", legacy_halo_tag(output_halo) /= tag, .false., "Incorrect tag")
-  call report_test("[Correct tag]", legacy_halo_tag(output_halo) /= legacy_halo_tag(input_halo), .false., "Incorrect tag")
   
   call report_test("[Correct nowned_nodes]", halo_nowned_nodes(output_halo) /= nowned_nodes, .false., "Incorrect nowned_nodes")
   call report_test("[Correct nowned_nodes]", halo_nowned_nodes(output_halo) /= halo_nowned_nodes(input_halo), .false., "Incorrect nowned_nodes")

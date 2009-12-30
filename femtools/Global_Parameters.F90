@@ -102,14 +102,6 @@ module global_parameters
   ! Parameters for parallel
   !------------------------------------------------------------------------
   
-  !! Halo tags of the first and second halo
-  integer, parameter :: halo_tag = 1, halo_tag_p = 2
-  !! Halo tag for the quadratic tetrahedral meshes
-  integer, parameter :: halo_tag_t10 = 3
-  !! Halo tag for level 1 and 2 dg (ie face adjacency) halos
-  !! Note that the -1 halo is currently broken.
-  integer, parameter :: halo_tag_dg1 = -2, halo_tag_dg2 = -2
-  
   !! When upscaling a problem (e.g. from 16 to 32 processors),
   !! we want to run sam on 32 processors to do the domain decomposition.
   !! But only 16 processors will have data on disk. However,

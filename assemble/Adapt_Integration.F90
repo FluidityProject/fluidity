@@ -33,9 +33,7 @@ module adapt_integration
   use elements
   use fldebug
   use fields
-  use global_parameters, only : halo_tag, halo_tag_p
   use halos
-  use halos_legacy
   use limit_metric_module
   use meshdiagnostics
   use node_locking
@@ -424,7 +422,7 @@ contains
       nhalo = halo_all_receives_count(old_halo)
       allocate(scater(nhalo))
       allocate(atorec(nproc + 1))
-      call extract_legacy_halo_data(old_halo, gather, atosen, scater, atorec, npnodes = pnod)
+      call extract_raw_halo_data(old_halo, gather, atosen, scater, atorec, nowned_nodes = pnod)
     else
       nproc = 1
       ngath = 0
@@ -546,8 +544,8 @@ contains
       ewrite(2, *) "Constructing output halos"
       
       allocate(output_mesh%halos(nhalos)) 
-      call form_halo_from_legacy_data(output_mesh%halos(nhalos), gather, atosen, scater, atorec,&
-           & npnodes = nwnnod - nhalo, create_caches = .true.) 
+      call form_halo_from_raw_data(output_mesh%halos(nhalos), nproc, gather, atosen, scater, atorec,&
+           & nowned_nodes = nwnnod - nhalo, create_caches = .true.) 
 
       if(nhalos == 2) then
         ! Derive remaining halos        
@@ -567,21 +565,7 @@ contains
       ! Adaptivity is not guaranteed to return halo elements in the same
       ! order in which they went in. We therefore need to fix this order.
       call reorder_element_numbering(output_positions)
-        
-      ! Keep FLComms happy
-      if(nhalos == 2) then
-        call unregister_halo(halo_tag, stat = stat)
-        call unregister_halo(halo_tag_p, stat = stat)
-        call set_halo_tag(output_mesh%halos(1), halo_tag)
-        call set_halo_tag(output_mesh%halos(2), halo_tag_p)
-        call register_halo(output_mesh%halos(1))
-        call register_halo(output_mesh%halos(2))
-      else
-        call unregister_halo(halo_tag, stat = stat)
-        call set_halo_tag(output_mesh%halos(1), halo_tag)
-        call register_halo(output_mesh%halos(1))
-      end if
-      
+              
 #ifdef DDEBUG
       do i = 1, nhalos
         assert(trailing_receives_consistent(output_mesh%halos(i)))

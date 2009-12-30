@@ -45,7 +45,7 @@ module field_equations_cv
   use boundary_conditions
   use boundary_conditions_from_options
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
-  use global_parameters, only: halo_tag, halo_tag_p, OPTION_PATH_LEN
+  use global_parameters, only: OPTION_PATH_LEN
   use fefields, only: compute_lumped_mass
   use solvers, only: petsc_solve
   use transform_elements, only: transform_cvsurf_to_physical, &

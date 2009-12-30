@@ -36,7 +36,7 @@ module parallel_tools
   
   private
 
-  public :: fixboundaryconditions, halgetnb, halgetnb_simple
+  public :: halgetnb, halgetnb_simple
   public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals, &
     & get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
     & isparallel, parallel_filename, parallel_filename_len, &
@@ -263,50 +263,6 @@ contains
 #endif
 
   end function usingmpi
-
-  ! This is now just a debugging check - will soon be deleted
-  subroutine FixBoundaryConditions(halo, NNodes, NBConditions, BCondition, BPtr)
-    integer, intent(in)::halo, NNodes, NBConditions, BPtr(NBConditions)
-    real, intent(inout)::BCondition(NBConditions)
-    real, ALLOCATABLE, DIMENSION(:)::vector, ref
-    logical, ALLOCATABLE, DIMENSION(:)::flags
-
-    integer I
-#ifndef NDEBUG
-    allocate(vector(NNodes))
-    vector = 0.0
-
-    allocate(flags(NNodes))
-    flags = .false.
-
-    do I=1, NBConditions
-       if((BPtr(I).LT.1).OR.(BPtr(I).GT.NNodes)) then
-          FLAbort('Boundary conditions are foobar')
-       end if
-       if(flags(BPtr(I))) then
-          ewrite(2, *) "Duplicated boundary condition."
-       end if
-       vector(BPtr(I)) = BCondition(I)
-       flags(BPtr(I)) = .true.       
-    end do
-
-    if(IsParallel()) then
-       allocate(ref(NNodes))
-       ref(1:NNodes) = vector(1:NNodes)
-       call flcomms_update(halo, vector, 1, 1, 0)
-       do I=1, NNodes
-          if(ref(I).NE.vector(I)) then
-             ewrite(0,*) "WARNING: found boundary condition mismatch.",ref(I),vector(I), &
-                  "is halo: ",flags(I)
-          end if
-       end do
-       deallocate(ref)
-    end if
-   
-    deallocate(flags)
-    deallocate(vector)
-#endif
-  end subroutine FixBoundaryConditions
 
   ! Array - points to the begining of the real array that stores the field values
   ! blockLen - the number of field values continiously stored per node

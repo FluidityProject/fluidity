@@ -46,8 +46,6 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 # These are all the objects that are supposed to go into the makefile
 OBJS = \
-  FLComms.o FLComms_Fortran.o FLComms_IO.o FLComms_IO_Fortran.o \
-  Ilink_Legacy.o \
   MPI_Interfaces.o \
   Parallel_Tools.o
 
@@ -74,8 +72,6 @@ libparallel.a: $(OBJS)
 	$(AR) $(ARFLAGS) libparallel.a $(OBJS)
 
 FLComms.o: ../include/FLComms.h
-
-FLComms_IO.o: ../include/FLComms_IO.h
 
 FLComms_Fortran.o: Parallel_Tools.o
 
