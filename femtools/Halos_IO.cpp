@@ -297,6 +297,12 @@ extern "C"{
     if(ret == HALO_READ_FILE_NOT_FOUND){
       if(*process == 0){
         errorCount++;
+      }else{
+        readHaloData->process = *process;
+        readHaloData->nprocs = *nprocs;
+        readHaloData->npnodes.clear();
+        readHaloData->send.clear();
+        readHaloData->recv.clear();
       }
     }else if(ret != HALO_READ_SUCCESS){
       errorCount++;
