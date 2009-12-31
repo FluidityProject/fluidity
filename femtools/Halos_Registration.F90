@@ -161,8 +161,12 @@ contains
       deallocate(sends)
       deallocate(receives)
 
-      assert(halo_valid_for_communication(mesh%halos(i)))
-      assert(trailing_receives_consistent(mesh%halos(i)))
+#ifdef DDEBUG
+      if(.not. serial_storage_halo(mesh%halos(i))) then
+        assert(halo_valid_for_communication(mesh%halos(i)))
+        assert(trailing_receives_consistent(mesh%halos(i)))
+      end if
+#endif
       
       if(.not. serial_storage_halo(mesh%halos(i))) then
         call create_global_to_universal_numbering(mesh%halos(i))
