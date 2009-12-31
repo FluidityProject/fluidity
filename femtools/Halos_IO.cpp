@@ -267,8 +267,8 @@ int Fluidity::WriteHalos(const string& filename, const unsigned int& process, co
   return doc.SaveFile(filename) ? 0 : -1;
 }
 
-HaloData* readHaloData;
-HaloData* writeHaloData;
+HaloData* readHaloData = NULL;
+HaloData* writeHaloData = NULL;
   
 extern "C"{
   void cHaloReaderReset(){

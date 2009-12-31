@@ -121,7 +121,9 @@ contains
     
     integer :: error_count, i, lcommunicator, nowned_nodes, nprocs, procno
     integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
-    
+   
+    ewrite(1, *) "In read_halos"
+
     assert(continuity(mesh) == 0)
     assert(.not. associated(mesh%halos))
     assert(.not. associated(mesh%element_halos))
@@ -158,6 +160,9 @@ contains
       call set_all_halo_receives(mesh%halos(i), receives)
       deallocate(sends)
       deallocate(receives)
+
+      assert(halo_valid_for_communication(mesh%halos(i)))
+      assert(trailing_receives_consistent(mesh%halos(i)))
       
       if(.not. serial_storage_halo(mesh%halos(i))) then
         call create_global_to_universal_numbering(mesh%halos(i))
@@ -176,6 +181,8 @@ contains
       call derive_element_halo_from_node_halo(mesh, &
         & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
     end if
+
+    ewrite(1, *) "Exiting read_halos"
     
   end subroutine read_halos
   
@@ -186,6 +193,8 @@ contains
     integer :: communicator, error_count, i, nhalos, procno, nparts, nprocs
     integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
     
+    ewrite(1, *) "In write_halos"
+
     nhalos = halo_count(mesh)
     if(nhalos == 0) return
     
@@ -223,6 +232,8 @@ contains
     if(error_count > 0) then
       FLAbort("Unable to write halos with name " // trim(filename))
     end if
+
+    ewrite(1, *) "Exiting write_halos"
     
   end subroutine write_halos
   
