@@ -160,15 +160,10 @@ contains
       call set_all_halo_receives(mesh%halos(i), receives)
       deallocate(sends)
       deallocate(receives)
-
-#ifdef DDEBUG
-      if(.not. serial_storage_halo(mesh%halos(i))) then
-        assert(halo_valid_for_communication(mesh%halos(i)))
-        assert(trailing_receives_consistent(mesh%halos(i)))
-      end if
-#endif
+      assert(trailing_receives_consistent(mesh%halos(i)))
       
       if(.not. serial_storage_halo(mesh%halos(i))) then
+        assert(halo_valid_for_communication(mesh%halos(i)))
         call create_global_to_universal_numbering(mesh%halos(i))
         call create_ownership(mesh%halos(i))
       end if

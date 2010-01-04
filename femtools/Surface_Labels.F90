@@ -424,7 +424,7 @@ contains
     integer, dimension(:), allocatable :: requests, statuses
     integer, parameter :: max_comm_count = 100
     logical :: complete
-    type(integer_hash_table) :: gens, id_map
+    type(integer_hash_table) :: id_map
     type(integer_vector), dimension(:), allocatable :: receive_buffer, &
       & send_buffer
     type(halo_type) :: sele_halo
@@ -468,7 +468,6 @@ contains
       allocate(send_buffer(i)%ptr(halo_send_count(sele_halo, i)))
       allocate(receive_buffer(i)%ptr(halo_receive_count(sele_halo, i)))
     end do
-    call get_universal_numbering_inverse(ele_halo, gens)
     allocate(requests(nprocs * 2))
     allocate(statuses(MPI_STATUS_SIZE * size(requests)))
     comm = 0
@@ -581,7 +580,6 @@ contains
     end do
     deallocate(send_buffer) 
     deallocate(receive_buffer) 
-    call deallocate(gens)
     deallocate(statuses)
     deallocate(requests)
     
