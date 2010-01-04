@@ -98,7 +98,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
 
 
 # objects to be included in libfemtools:
-F90LIB_OBJS := ../debug/*.o ../tinyxml/*.o ../parallel/*.o ../interpolation/*.o ../libwm/*.o  \
+F90LIB_OBJS := ../debug/*.o ../parallel/*.o ../interpolation/*.o ../libwm/*.o  \
   $(OBJS)
 ifeq (@ALGENCAN@,yes)
 F90LIB_OBJS := $(F90LIB_OBJS) ../libalgencan/*.o

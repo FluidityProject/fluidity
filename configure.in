@@ -1426,7 +1426,6 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
       	  libalgencan/Makefile
           libwm/Makefile
-          tinyxml/Makefile
           gallopede/Makefile libvtkfortran/Makefile 
           qg_strat/Makefile qg_strat/unittests/Makefile
           tests/lauwerier/Makefile)

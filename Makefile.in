@@ -124,8 +124,6 @@ libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
 	@echo '    MAKE debug'
 	@cd debug; $(MAKE)
-	@echo '    MAKE tinyxml'
-	@cd tinyxml; $(MAKE)
 	@echo '    MAKE parallel'
 	@cd parallel; $(MAKE)
 	@echo '    MAKE interpolation'
@@ -206,8 +204,6 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@rm -f lib/lib@FLUIDITY@.a 
 	@echo "    MAKE debug"
 	@cd debug; 	$(MAKE)
-	@echo '    MAKE tinyxml'
-	@cd tinyxml;  $(MAKE)
 	@echo "    MAKE parallel"
 	@cd parallel; 	$(MAKE)
 	@echo "    MAKE interpolation"
@@ -361,8 +357,6 @@ clean: clean-light python_clean
 	@cd libmba3d; $(MAKE) clean
 	@echo "    CLEAN libalgencan"
 	@cd libalgencan; $(MAKE) clean
-	@echo "    CLEAN tinyxml"
-	@cd tinyxml; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
 	@CLEAN_LIBADAPT@
