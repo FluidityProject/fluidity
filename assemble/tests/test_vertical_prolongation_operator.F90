@@ -78,8 +78,7 @@ real, intent(out):: l2error
   call allocate(to_positions, DIM, quad_mesh, name="ToPositions")
   call remap_field(positions, to_positions)
   
-  prolongator=VerticalProlongationOperator(to_positions, .true., &
-     bc_positions)
+  prolongator=VerticalProlongationOperator(to_positions, bc_positions)
   call mult(to_field%val, prolongator, from_field%val)
     
   call allocate(error_field, quad_mesh, name="ErrorField")
