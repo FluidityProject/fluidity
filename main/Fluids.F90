@@ -113,8 +113,6 @@ contains
          
     real:: nonlinear_iteration_tolerance
 
-    logical :: flat_earth
-
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(tensor_field) :: metric_tensor
@@ -290,11 +288,7 @@ contains
        if (.not. have_option('/geometry/ocean_boundaries')) then
           FLAbort("There are no top and bottom boundary markers.")
        end if
-       flat_earth=.not.(have_option("/physical_parameters/gravity/&
-          &vector_field::GravityDirection/prescribed/value/python")&
-          &.or. option_count("/physical_parameters/&
-          &gravity/vector_field::GravityDirection/value") > 1)
-       call CalculateTopBottomDistance(state(1), flat_earth)
+       call CalculateTopBottomDistance(state(1))
     end if
 
     ! initialise the multimaterial fields
@@ -723,7 +717,6 @@ contains
     real, intent(inout) :: dt
     
     integer :: i
-    logical :: flat_earth
     type(vector_field), pointer :: velocity
     
     ! The adaptivity metric
@@ -746,11 +739,7 @@ contains
       if (.not. have_option('/geometry/ocean_boundaries')) then
          FLAbort("There are no top and bottom boundary markers.")
       end if
-      flat_earth=.not.(have_option("/physical_parameters/gravity/&
-         &vector_field::GravityDirection/prescribed/value/python")&
-         &.or. option_count("/physical_parameters/&
-         &gravity/vector_field::GravityDirection/value") > 1)
-      call CalculateTopBottomDistance(state(1), flat_earth)
+      call CalculateTopBottomDistance(state(1))
     end if
         
     ! Diagnostic fields

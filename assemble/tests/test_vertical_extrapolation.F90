@@ -75,7 +75,7 @@ real, intent(out):: l2error
   call set_from_python_function(from_field, python_function, bc_positions, &
       time=0.0)
       
-  call VerticalExtrapolation(from_field, to_field, positions, .true., &
+  call VerticalExtrapolation(from_field, to_field, positions, &
     surface_element_list)
     
   call allocate(error_field, dg_quad_mesh, name="ErrorField")

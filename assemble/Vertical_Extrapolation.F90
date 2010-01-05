@@ -45,9 +45,6 @@ use spud
 use dynamic_bin_sort_module
 implicit none
 
-integer, parameter:: TOP_BOUNDARY_ID=1
-integer, parameter:: BOTTOM_BOUNDARY_ID=2
-
 interface VerticalExtrapolation
   module procedure VerticalExtrapolationScalar, &
     VerticalExtrapolationMultiple, VerticalExtrapolationVector
@@ -85,177 +82,43 @@ real, parameter:: VERTICAL_INTEGRATION_EPS=1.0e-8
   
 private
 
-public InitialiseBoundaryIDs, CalculateTopBottomDistance
-public CalculateNewVerticalCoordinate
-public TOP_BOUNDARY_ID, BOTTOM_BOUNDARY_ID !!, checksalphe
-!!public check_boundary_ids
-public LegacyTopBottomDistanceFields
+public CalculateTopBottomDistance
 public VerticalExtrapolation, vertical_integration
 public vertical_element_ordering
 public VerticalProlongationOperator
 
 contains
 
-  subroutine verticalshellmapper_find_sp(x, y, z, nnodes, &
+subroutine verticalshellmapper_find_sp(x, y, z, nnodes, &
+  & senlist, ntri, fortran_zero_index, &
+  & flat_earth, tri_ids, shape_fxn)
+  integer, intent(in) :: nnodes
+  integer, intent(in) :: ntri
+  real(kind = real_4), dimension(nnodes), intent(in) :: x
+  real(kind = real_4), dimension(nnodes), intent(in) :: y
+  real(kind = real_4), dimension(nnodes), intent(in) :: z
+  integer, dimension(ntri), intent(in) :: senlist
+  integer, intent(in) :: fortran_zero_index
+  integer, intent(in) :: flat_earth
+  integer, dimension(nnodes), intent(out) :: tri_ids
+  real(kind = real_4), dimension(:), intent(out) :: shape_fxn
+  
+  real(kind = real_8), dimension(size(shape_fxn)) :: lshape_fxn
+  
+  call verticalshellmapper_find(real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), nnodes, &
     & senlist, ntri, fortran_zero_index, &
-    & flat_earth, tri_ids, shape_fxn)
-    integer, intent(in) :: nnodes
-    integer, intent(in) :: ntri
-    real(kind = real_4), dimension(nnodes), intent(in) :: x
-    real(kind = real_4), dimension(nnodes), intent(in) :: y
-    real(kind = real_4), dimension(nnodes), intent(in) :: z
-    integer, dimension(ntri), intent(in) :: senlist
-    integer, intent(in) :: fortran_zero_index
-    integer, intent(in) :: flat_earth
-    integer, dimension(nnodes), intent(out) :: tri_ids
-    real(kind = real_4), dimension(:), intent(out) :: shape_fxn
-    
-    real(kind = real_8), dimension(size(shape_fxn)) :: lshape_fxn
-    
-    call verticalshellmapper_find(real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), nnodes, &
-      & senlist, ntri, fortran_zero_index, &
-      & flat_earth, tri_ids, lshape_fxn)
-    shape_fxn = lshape_fxn
-    
-  end subroutine verticalshellmapper_find_sp
-
-  real function this_way_up(&
-       x0, y0, z0, &
-       x1, y1, z1, &
-       x2, y2, z2, flat_earth)
-    real, intent(in)::x0, y0, z0, x1, y1, z1, x2, y2, z2
-    logical, intent(in)::flat_earth
-    real x(2), y(2), z(2), enorm(3), rnorm(3), r
-
-    x(1) = x1 - x0
-    x(2) = x2 - x0
-    
-    y(1) = y1 - y0
-    y(2) = y2 - y0
-    
-    z(1) = z1 - z0
-    z(2) = z2 - z0
-    
-    if(flat_earth) then
-       rnorm(3) = 1.0
-       
-       enorm(1) =  (y(1)*z(2)-y(2)*z(1))
-       enorm(2) = -(x(1)*z(2)-x(2)*z(1))
-       enorm(3) =  (x(1)*y(2)-x(2)*y(1))
-       
-       r = sqrt(enorm(1)*enorm(1)+enorm(2)*enorm(2)+enorm(3)*enorm(3))
-       enorm(3) = enorm(3)/r
-       
-       this_way_up = rnorm(3)*enorm(3)
-    else       
-       rnorm(1) = (x0+x1+x2)/3.0
-       rnorm(2) = (y0+y1+y2)/3.0
-       rnorm(3) = (z0+z1+z2)/3.0
-       
-       r = sqrt(rnorm(1)*rnorm(1)+rnorm(2)*rnorm(2)+rnorm(3)*rnorm(3))
-       rnorm(1) = rnorm(1)/r
-       rnorm(2) = rnorm(2)/r
-       rnorm(3) = rnorm(3)/r
-       
-       enorm(1) =  (y(1)*z(2)-y(2)*z(1))
-       enorm(2) = -(x(1)*z(2)-x(2)*z(1))
-       enorm(3) =  (x(1)*y(2)-x(2)*y(1))
-       
-       r = sqrt(enorm(1)*enorm(1)+enorm(2)*enorm(2)+enorm(3)*enorm(3))
-       enorm(1) = enorm(1)/r
-       enorm(2) = enorm(2)/r
-       enorm(3) = enorm(3)/r
-       
-       this_way_up = rnorm(1)*enorm(1)+rnorm(2)*enorm(2)+rnorm(3)*enorm(3)
-    end if
-    
-  end function this_way_up
-
-  subroutine InitialiseBoundaryIDs(sndgln, x, y, z, flat_earth, boundary_ids)
-    ! Given a surface mesh in sndgln, the top and bottom elements are
-    ! identified by the dot product of the surface normal and the
-    ! "vertical" unit vector (radial direction for flat_earth==false
-    ! and positive z for flat_earth==true).
-
-    integer, dimension(:), intent(in)::sndgln
-    real, dimension(:), intent(in)::x, y, z
-    logical, intent(in)::flat_earth
-    integer, dimension(:), intent(inout):: boundary_ids
-
-    integer snloc, sele, inod, stotel, n(3)
-    real direction
-    logical, save::initialised=.false.
-
-    if(initialised) then
-       return
-    end if
-    
-    stotel=size(boundary_ids)
-    snloc=size(sndgln)/stotel
-    do sele=1, stotel
-       do inod=1, snloc
-          n(inod)=sndgln((sele-1)*snloc+inod)
-       end do
-       
-       direction = this_way_up(    &
-            x(n(1)), y(n(1)), z(n(1)), &
-            x(n(2)), y(n(2)), z(n(2)), &
-            x(n(3)), y(n(3)), z(n(3)), flat_earth)
-       
-       ! +/-0.8 are actually quite tight and looser values would
-       ! do. But it's robust.
-       if (direction>0.8) then
-          boundary_ids(sele)=TOP_BOUNDARY_ID
-       else if (direction<-0.8) then
-          boundary_ids(sele)=BOTTOM_BOUNDARY_ID
-       end if
-    end do
-   
-  end subroutine InitialiseBoundaryIDs
-
+    & flat_earth, tri_ids, lshape_fxn)
+  shape_fxn = lshape_fxn
   
-subroutine LegacyTopBottomDistanceFields(state)
-! sets up the 'boundary conditions' of DistanceToTop/Bottom fields
-! that mark the top and bottom of the domain
-type(state_type), intent(inout):: state
+end subroutine verticalshellmapper_find_sp
   
-  type(mesh_type), pointer:: xmesh
-  type(scalar_field) botdis_field, topdis_field
-  
-  ! with new options this is done already in Populate_state
-  if (new_options) return
-  
-  ! if the fields are already there, presume they've been set up
-  if (has_scalar_field(state, "DistanceToTop")) return
-  
-  xmesh => extract_mesh(state, "CoordinateMesh")
-  
-  call allocate(botdis_field, xmesh, "DistanceToBottom")
-  call allocate(topdis_field, xmesh, "DistanceToTop")
-  
-  ! add b.c. assiociated with the fixed legacy boundary ids
-  call add_boundary_condition(topdis_field, "top", "surface", &
-    (/ TOP_BOUNDARY_ID /) )
-  call add_boundary_condition(botdis_field, "bottom", "surface", &
-    (/ BOTTOM_BOUNDARY_ID /) )
-    
-  call insert(state, botdis_field, "DistanceToBottom")
-  call insert(state, topdis_field, "DistanceToTop")
-  
-  ! deallocate our references
-  call deallocate(botdis_field)
-  call deallocate(topdis_field)
-    
-end subroutine LegacyTopBottomDistanceFields
-
-subroutine UpdateDistanceField(state, name, flat_earth)
+subroutine UpdateDistanceField(state, name)
   ! This sub calculates the vertical distance to the free surface
   ! and bottom of the ocean to all nodes. The results are stored
   ! in the 'DistanceToBottom/FreeSurface' fields from state.
   type(state_type), intent(inout):: state
   character(len=*), intent(in):: name
   ! used to determine the various coordinate 
-  logical, intent(in)::flat_earth
   integer::flat_earth_int
 
   ! Local variables
@@ -264,7 +127,6 @@ subroutine UpdateDistanceField(state, name, flat_earth)
   type(scalar_field), pointer:: distance
   real, dimension(:), pointer:: x, y, z, dist
   
-  logical periodic
   integer i, j, nid, ntri, xnonod, snloc, sele
   integer, allocatable, dimension(:):: senlist, tri_ids
   integer, pointer, dimension(:):: surface_element_list
@@ -272,10 +134,10 @@ subroutine UpdateDistanceField(state, name, flat_earth)
   real, allocatable, dimension(:)::shape_fxn
   real xx, yy, zz
 
-  if(flat_earth) then
-     flat_earth_int = 1
-  else
+  if(have_option('/geometry/spherical_earth')) then
      flat_earth_int = 0
+  else
+     flat_earth_int = 1
   end if
   
   xmesh => extract_mesh(state, "CoordinateMesh")
@@ -293,9 +155,7 @@ subroutine UpdateDistanceField(state, name, flat_earth)
   ntri = size(surface_element_list)
   snloc = face_loc(xmesh, 1)
   
-  periodic=have_option(trim(distance%mesh%option_path)//'/from_mesh&
-        &/periodic_boundary_conditions')
-  if (periodic) then
+  if (distance%mesh%periodic) then
      allocate(dist(1:xnonod))
   else
      dist => distance%val
@@ -318,7 +178,7 @@ subroutine UpdateDistanceField(state, name, flat_earth)
   call VerticalShellMapper_find(x, y, z, xnonod, senlist, ntri, &
        1, flat_earth_int, tri_ids, shape_fxn)
   
-  if(flat_earth) then
+  if(flat_earth_int==1) then
      do i=1, xnonod
         zz = 0.0
         do j=1, snloc
@@ -333,8 +193,8 @@ subroutine UpdateDistanceField(state, name, flat_earth)
         yy = 0.0
         zz = 0.0
         if(tri_ids(i)==0) then
-            write(0, *)  "Free surface is possibly blowing up"
-            write(0, *) "Check the coordinate: ", x(i), y(i), z(i)
+            ewrite(0, *)  "Free surface is possibly blowing up"
+            ewrite(0, *) "Check the coordinate: ", x(i), y(i), z(i)
             FLAbort("Node not located.")
          endif
         do j=1, snloc
@@ -348,7 +208,7 @@ subroutine UpdateDistanceField(state, name, flat_earth)
      end do
   endif
   
-  if (periodic) then
+  if (distance%mesh%periodic) then
      ! copy from temporary non-periodic dist array
      ! to periodic distance field
      do i=1, element_count(distance)
@@ -365,21 +225,19 @@ subroutine UpdateDistanceField(state, name, flat_earth)
   
 end subroutine UpdateDistanceField
   
-subroutine CalculateTopBottomDistance(state, flat_earth)
+subroutine CalculateTopBottomDistance(state)
   !! This sub calculates the vertical distance to the free surface
   !! and bottom of the ocean to all nodes. The results are stored
   !! in the 'DistanceToBottom/FreeSurface' fields from state.
   type(state_type), intent(inout):: state
-  ! used to determine the various coordinate 
-  logical, intent(in)::flat_earth
   
-  call UpdateDistanceField(state, "DistanceToTop", flat_earth)
-  call UpdateDistanceField(state, "DistanceToBottom", flat_earth)
+  call UpdateDistanceField(state, "DistanceToTop")
+  call UpdateDistanceField(state, "DistanceToBottom")
 
 end subroutine CalculateTopBottomDistance
 
 subroutine VerticalExtrapolationScalar(from_field, to_field, &
-  positions, flat_earth, surface_element_list)
+  positions, surface_element_list)
   !!< This sub extrapolates the values on a horizontal 2D surface
   !!< in the vertical direction to a 3D field
   !! The from_field may be a 3D field of which only the values on the
@@ -391,18 +249,16 @@ subroutine VerticalExtrapolationScalar(from_field, to_field, &
   type(scalar_field), intent(in):: to_field
   !! Needed for extrapolation (not necessarily same degree as to_field)
   type(vector_field), target, intent(inout):: positions
-  !! flat_earth or sphere:
-  logical, intent(in):: flat_earth
   !! the surface elements (faces numbers) that make up the surface
   integer, dimension(:), intent(in):: surface_element_list
   
   call VerticalExtrapolationMultiple( (/ from_field /) , (/ to_field /), &
-      positions, flat_earth, surface_element_list)
+      positions, surface_element_list)
   
 end subroutine VerticalExtrapolationScalar
 
 subroutine VerticalExtrapolationVector(from_field, to_field, &
-  positions, flat_earth, surface_element_list)
+  positions, surface_element_list)
   !!< This sub extrapolates the values on a horizontal 2D surface
   !!< in the vertical direction to a 3D field
   !! The from_field may be a 3D field of which only the values on the
@@ -414,8 +270,6 @@ subroutine VerticalExtrapolationVector(from_field, to_field, &
   type(vector_field), intent(in):: to_field
   !! Needed for extrapolation (not necessarily same degree as to_field)
   type(vector_field), target, intent(inout):: positions
-  !! flat_earth or sphere:
-  logical, intent(in):: flat_earth
   !! the surface elements (faces numbers) that make up the surface
   integer, dimension(:), intent(in):: surface_element_list
   
@@ -430,12 +284,12 @@ subroutine VerticalExtrapolationVector(from_field, to_field, &
   end do
     
   call VerticalExtrapolationMultiple( from_field_components, to_field_components, &
-        positions, flat_earth, surface_element_list)
+        positions, surface_element_list)
   
 end subroutine VerticalExtrapolationVector
 
 subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
-  positions, flat_earth, surface_element_list)
+  positions, surface_element_list)
   !!< This sub extrapolates the values on a horizontal 2D surface
   !!< in the vertical direction to 3D fields
   !! The from_fields may be 3D fields of which only the values on the
@@ -451,8 +305,6 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   type(scalar_field), dimension(:), intent(in):: to_fields
   !! Needed for extrapolation (not necessarily same degree as to_field)
   type(vector_field), target, intent(inout):: positions
-  !! flat_earth or sphere:
-  logical, intent(in):: flat_earth
   integer::flat_earth_int
 
   !! the surface elements (faces numbers) that make up the surface
@@ -472,12 +324,11 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   real, dimension(:), allocatable:: shape_fxn
   integer xnonod, from_vertices, from_loc
   integer i, j, sele, nod
-  logical periodic
 
-  if(flat_earth) then
-     flat_earth_int = 1
-  else
+  if(have_option('/geometry/spherical_earth')) then
      flat_earth_int = 0
+  else
+     flat_earth_int = 1
   end if
 
   assert(size(from_fields)==size(to_fields))
@@ -486,10 +337,8 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
      assert(from_fields(1)%mesh==from_fields(i)%mesh)
   end do
   
-  periodic=have_option(trim(to_fields(1)%mesh%option_path)//'/from_mesh&
-        &/periodic_boundary_conditions')
   x_mesh => positions%mesh
-  if (periodic) then
+  if (to_fields(1)%mesh%periodic) then
      ! we first extrapolate to a non-periodic field
      to_shape => ele_shape(to_fields(1), 1)
      if (to_shape%degree==x_mesh%shape%degree) then
@@ -597,7 +446,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
     end do
   end do
     
-  if (periodic) then
+  if (to_fields(1)%mesh%periodic) then
      ewrite(1,*) 'Mapping from non-periodic to periodic in VerticalExtrapolation'
      do i=1, size(to_fields)
         ! this is a bit of a hack: we want to_fields to be intent(in)
@@ -616,7 +465,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   
 end subroutine VerticalExtrapolationMultiple
 
-function VerticalProlongationOperator(positions, flat_earth, &
+function VerticalProlongationOperator(positions, &
   surface_positions, reduce_columns, owned_nodes)
   !! creates a prolongation operator that prolongates values on
   !! a surface mesh to a full mesh below using interpolation
@@ -627,8 +476,6 @@ function VerticalProlongationOperator(positions, flat_earth, &
   !! the locations of the nodes to which to prolongate, this can be
   !! on any mesh, the nodes are only used a set of loose points
   type(vector_field), target, intent(inout):: positions
-  !! flat_earth or sphere:
-  logical, intent(in):: flat_earth
   integer::flat_earth_int
   !! positions of the surface mesh - its surface node numbering will 
   !! be used as the numbering of the columns, i.e. of the 
@@ -669,10 +516,10 @@ function VerticalProlongationOperator(positions, flat_earth, &
   ! coefficient have to be at least this otherwise they're negligable in an interpolation
   real, parameter :: COEF_EPS=1d-10
   
-  if(flat_earth) then
-     flat_earth_int = 1
-  else
+  if(have_option('/geometry/spherical_earth')) then
      flat_earth_int = 0
+  else
+     flat_earth_int = 1
   end if
 
   assert(size(local_vertices(ele_shape(surface_positions,1)))==surface_vertices)
@@ -826,247 +673,6 @@ function VerticalProlongationOperator(positions, flat_earth, &
   deallocate( tri_ids, shape_fxn )
   
 end function VerticalProlongationOperator
-
-subroutine CalculateNewVerticalCoordinate(state, &
-       original_positions, frees_field, &
-       flat_earth, minimum_depth)
-    ! This sub calculates the new coords (X,Y,Z) after moving the free
-    ! surface.  It applies this to the position field in state, and
-    ! recalculates the DistanceToTop/Bottom fields. When
-    ! wetting&drying is enabled the free-surface height is also
-    ! modified to that it does not drop the minimum depths
-    type(state_type), intent(inout):: state
-    type(vector_field), intent(in):: original_positions
-    type(scalar_field), intent(inout):: frees_field
-    logical, intent(in):: flat_earth
-    real, intent(in), optional :: minimum_depth
-    
-    type(mesh_type), pointer:: top_surface_mesh
-    type(scalar_field), pointer:: topdis_field, botdis_field
-    type(scalar_field) linear_frees, top_linear_frees
-    type(vector_field), pointer:: positions
-        
-    integer, dimension(:), pointer:: top_surface_element_list, top_surface_node_list
-    real, dimension(:), pointer:: x, y, z, xorig, yorig, zorig
-    real nodfrees, rad, frac, min_val, fact, botdis, topdis
-    integer i, nod, xnonod
-        
-    ! get the distance to top and bottom fields from state
-    botdis_field => extract_scalar_field(state, "DistanceToBottom")
-    topdis_field => extract_scalar_field(state, "DistanceToTop")
-    ! get the list of surface elements making up the free surface
-    ! and a list of nodes lying on the free surface
-    call get_boundary_condition(topdis_field, 1, &
-      surface_element_list=top_surface_element_list, &
-      surface_node_list=top_surface_node_list)
-    
-    ! get the coordinates from state
-    positions => extract_vector_field(state, "Coordinate")
-    x => positions%val(1)%ptr
-    y => positions%val(2)%ptr
-    z => positions%val(3)%ptr
-    xnonod=size(x)
-    ! and the original coordinates
-    xorig => original_positions%val(1)%ptr
-    yorig => original_positions%val(2)%ptr
-    zorig => original_positions%val(3)%ptr
-        
-    ! linear_frees on linear position mesh
-    call allocate(linear_frees, positions%mesh, &
-      name='LinearFreeSurface_CalculateNewVerticalCoordinate')
-    ! map frees field to linear field
-    call remap_field(frees_field, linear_frees)
-
-    if(present(minimum_depth)) then
-       ! Enforce a minimum depth 
-       
-       ! linear surface field containing free surface height 
-       ! with wetting and drying correction
-       call allocate(top_linear_frees, top_surface_mesh, &
-         name='TopLinearFreeSurface_CalculateNewVerticalCoordinate')
-       
-       call remap_field_to_surface(frees_field, top_linear_frees, top_surface_element_list)
-       
-       ! calculate the new wetting&drying free surface
-       do i=1, size(top_surface_node_list)
-          ! node number within top_surface_mesh
-          nod = top_surface_node_list(i)
-          ! value of frees in this node:
-          nodfrees = node_val(top_linear_frees, nod)
-          ! nodfrees+botdis should be smaller than dd00
-          ! therefore minimum value for nodfrees is:
-          min_val = minimum_depth - node_val(botdis_field, nod)
-          if(nodfrees<min_val) then
-             call set(top_linear_frees, nod, min_val)
-          end if
-       end do
-         
-       ! map back to linear_frees field
-       call VerticalExtrapolation(top_linear_frees, linear_frees, positions, &
-          flat_earth, top_surface_element_list)
-          
-       ! map to (possibly higher order) frees_field field
-       call remap_field(linear_frees, frees_field)
-       
-       call deallocate(top_linear_frees)
-       
-    end if
-    
-
-    if (flat_earth) then
-       do nod=1,xnonod
-          botdis=node_val(botdis_field, nod)
-          topdis=node_val(topdis_field, nod)
-          nodfrees=node_val(linear_frees, nod)
-          frac=botdis/(botdis+topdis)
-          z(nod)=zorig(nod)+nodfrees*frac
-       end do
-    else
-       do nod=1,xnonod
-          botdis=node_val(botdis_field, nod)
-          topdis=node_val(topdis_field, nod)
-          nodfrees=node_val(linear_frees, nod)
-          rad=sqrt(xorig(nod)**2+yorig(nod)**2+zorig(nod)**2)
-          frac=botdis/(botdis+topdis)
-          fact=1.0+frac*nodfrees/rad
-          x(nod)=xorig(nod)*fact
-          y(nod)=yorig(nod)*fact
-          z(nod)=zorig(nod)*fact
-       end do
-    end if
-    
-    call CalculateTopBottomDistance(state, flat_earth)
-
-    call deallocate(linear_frees)
-    
-  end subroutine CalculateNewVerticalCoordinate
-
-           
-!!$subroutine CheckSalphe(sndgln,tsndgl,salphe,state)
-!!$  ! Given a surface mesh in sndgln
-!!$  ! and salphe a field on this 
-!!$  ! mesh, integrates the area of top and bottom boundary
-!!$  type(state_type), intent(in) :: state
-!!$  integer, dimension(:), intent(in), target :: tsndgl,sndgln
-!!$  real, dimension(:), intent(in):: salphe
-!!$
-!!$  integer snloc, frees_count, bottom_count, sele, snod, inod, stotel
-!!$
-!!$  type(mesh_type), pointer :: X_mesh
-!!$  type(vector_field), pointer :: X
-!!$  integer, dimension(:), pointer :: x_ele
-!!$  real, dimension(:,:), allocatable :: sele_X !coordinates for triangle vertices
-!!$  real, dimension(:), allocatable :: detwei
-!!$
-!!$  real :: top_area=0, bottom_area=0
-!!$  integer :: i
-!!$
-!!$  top_area = 0
-!!$  bottom_area = 0
-!!$
-!!$  X_mesh => extract_mesh(state,'CoordinateMesh')
-!!$  X => extract_vector_field(state,'Coordinate')
-!!$
-!!$  allocate( sele_X(2,face_loc(X_mesh,1)) )
-!!$  allocate( detwei(face_ngi(X_mesh,1)) )
-!!$
-!!$  stotel=size(salphe)
-!!$  snloc=size(sndgln)/stotel
-!!$  do sele=1, stotel
-!!$     
-!!$     !this is a bad hack that wont work for high-order, dg etc.
-!!$     x_ele => SNDGLN((SELE-1)*SNLOC+1:sele*snloc)
-!!$     do i = 1, 2
-!!$        sele_x(i,:) = X%val(i)%ptr(x_ele)
-!!$     end do
-!!$
-!!$     frees_count=0
-!!$     bottom_count=0
-!!$     do inod=1, snloc
-!!$        snod=tsndgl( (sele-1)*snloc+inod )
-!!$        if (salphe(snod)>0.1) frees_count=frees_count+1
-!!$        if (salphe(snod)<-0.1) bottom_count=bottom_count+1
-!!$     end do
-!!$     if (frees_count==snloc) then
-!!$        ! surface element is on the free surface
-!!$        call transform_to_physical(sele_X,X_mesh%faces%shape,detwei)   
-!!$        top_area = top_area + sum(detwei)
-!!$        
-!!$     else if (bottom_count==snloc) then
-!!$        call transform_to_physical(sele_X,X_mesh%faces%shape,detwei)
-!!$        bottom_area = bottom_area + sum(detwei)
-!!$     end if
-!!$     
-!!$  end do
-!!$  
-!!$  ! summation for parallel:
-!!$  call allsum(top_area)
-!!$  call allsum(bottom_area)
-!!$
-!!$  ewrite(2,*) 'top area, bottom area:',top_area,bottom_area
-!!$
-!!$end subroutine CheckSalphe
-
-!!$subroutine Check_boundary_ids(sndgln,boundary_ids,state)
-!!$  ! Given a surface mesh in sndgln
-!!$  ! and salphe a field on this 
-!!$  ! mesh, integrates the area of top and bottom boundary
-!!$  type(state_type), intent(in) :: state
-!!$  integer, dimension(:), intent(in), target :: sndgln
-!!$  integer, dimension(:), intent(in):: boundary_ids
-!!$
-!!$  integer snloc, frees_count, bottom_count, sele, stotel
-!!$
-!!$  type(mesh_type), pointer :: X_mesh
-!!$  type(vector_field), pointer :: X
-!!$  integer, dimension(:), pointer :: x_ele
-!!$  real, dimension(:,:), allocatable :: sele_X !coordinates for triangle vertices
-!!$  real, dimension(:), allocatable :: detwei
-!!$
-!!$  real :: top_area, bottom_area
-!!$  integer :: i
-!!$
-!!$  top_area = 0 
-!!$  bottom_area = 0
-!!$
-!!$  X_mesh => extract_mesh(state,'CoordinateMesh')
-!!$  X => extract_vector_field(state,'Coordinate')
-!!$
-!!$  allocate( sele_X(2,face_loc(X_mesh,1)) )
-!!$  allocate( detwei(face_ngi(X_mesh,1)) )
-!!$
-!!$  stotel=size(boundary_ids)
-!!$  snloc=size(sndgln)/stotel
-!!$  do sele=1, stotel
-!!$     
-!!$     !this is a bad hack that wont work for high-order, dg etc.
-!!$     x_ele => SNDGLN((SELE-1)*SNLOC+1:sele*snloc)
-!!$     do i = 1, 2
-!!$        sele_x(i,:) = X%val(i)%ptr(x_ele)
-!!$     end do
-!!$
-!!$     frees_count=0
-!!$     bottom_count=0
-!!$
-!!$     if (boundary_ids(sele)==TOP_BOUNDARY_ID) then
-!!$        ! surface element is on the free surface
-!!$        call transform_to_physical(sele_X,X_mesh%faces%shape,detwei)
-!!$        top_area = top_area + sum(detwei)
-!!$        
-!!$     else if (boundary_ids(sele)==BOTTOM_BOUNDARY_ID) then
-!!$        call transform_to_physical(sele_X,X_mesh%faces%shape,detwei)
-!!$        bottom_area = bottom_area + sum(detwei)
-!!$     end if
-!!$     
-!!$  end do
-!!$  
-!!$  ! summation for parallel:
-!!$  call allsum(top_area)
-!!$  call allsum(bottom_area)
-!!$  
-!!$  ewrite(2,*) 'top area, bottom area:',top_area,bottom_area
-!!$
-!!$end subroutine Check_boundary_ids
   
 subroutine vertical_element_ordering(ordered_elements, face_normal_gravity, optimal_ordering)
 !!< Calculates an element ordering such that each element is

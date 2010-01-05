@@ -422,7 +422,7 @@ contains
     if (IsParallel()) then
       assert( associated(mesh%halos) )
       vertical_prolongator=VerticalProlongationOperator( &
-         mesh_positions, .true., surface_positions, reduce_columns=.true., &
+         mesh_positions, surface_positions, reduce_columns=.true., &
          owned_nodes=halo_nowned_nodes(mesh%halos(1)) )
       ! note that in surface_positions the non-owned free surface nodes may be inbetween
       ! the reduce_columns option should have removed those however
@@ -448,7 +448,7 @@ contains
 #endif
     else
       vertical_prolongator=VerticalProlongationOperator( &
-         mesh_positions, .true., surface_positions, reduce_columns=.true.)
+         mesh_positions, surface_positions, reduce_columns=.true.)
     end if
 
     if (.not. (positions%mesh==mesh)) then
@@ -507,7 +507,6 @@ contains
      type(vector_field), pointer:: x, u
      type(scalar_field), pointer:: p, topdis
      character(len=FIELD_NAME_LEN):: bctype
-     logical:: on_sphere
      real:: g, rho0
      integer:: i, j, sele, stat
      
@@ -530,12 +529,9 @@ contains
        call get_boundary_condition(topdis, 1, &
          surface_element_list=surface_element_list)     
      
-       ! this may even work on the sphere?
-       on_sphere=have_option('/geometry/spherical_earth')
-     
        ! vertically extrapolate pressure values at the free surface downwards
        call VerticalExtrapolation(p, free_surface, x, &
-         flat_earth=.not. on_sphere, surface_element_list=surface_element_list)
+         surface_element_list=surface_element_list)
          
        ! divide by rho0 g
        call scale(free_surface, 1/g/rho0)
