@@ -27,7 +27,7 @@
 
 #include "fdebug.h" 
 
-subroutine test_make_mesh_tet
+subroutine test_make_mesh_tri
 
   use fields
   use fldebug
@@ -37,7 +37,7 @@ subroutine test_make_mesh_tet
   implicit none
   
   integer :: degree, ele, node
-  integer, parameter :: min_degree = 1, max_degree = 3
+  integer, parameter :: min_degree = 1, max_degree = 20
   logical :: fail
   real, dimension(:, :), allocatable :: l_coords, otn_l_coords
   type(element_type) :: derived_shape
@@ -47,19 +47,19 @@ subroutine test_make_mesh_tet
   type(vector_field) :: positions_remap
   type(vector_field), target :: positions
   
-  positions = read_triangle_files("data/cube.3", quad_degree = 1)
+  positions = read_triangle_files("data/laplacian_grid.2", quad_degree = 1)
   base_mesh => positions%mesh
   base_shape => ele_shape(base_mesh, 1)
-  call report_test("[Linear tet input mesh]", &
-    & ele_numbering_family(base_shape) /= FAMILY_SIMPLEX .or. base_shape%degree /= 1 .or. base_shape%dim /= 3, .false., &
-    & "Input mesh not composed of linear tets")
+  call report_test("[Linear triangle input mesh]", &
+    & ele_numbering_family(base_shape) /= FAMILY_SIMPLEX .or. base_shape%degree /= 1 .or. base_shape%dim /= 2, .false., &
+    & "Input mesh not composed of linear triangles")
   
   do degree = min_degree, max_degree
     print "(a,i0)", "Degree = ", degree
     
     derived_shape = make_element_shape(base_shape, degree = degree)
     call report_test("[Derived loc]", &
-      & derived_shape%loc /= te(degree + 1), .false., &
+      & derived_shape%loc /= tr(degree + 1), .false., &
       & "Incorrect local node count")
       
     derived_mesh = make_mesh(base_mesh, derived_shape)    
@@ -70,7 +70,7 @@ subroutine test_make_mesh_tet
     call allocate(positions_remap, positions%dim, derived_mesh, name = positions%name)
     call remap_field(positions, positions_remap)
     allocate(otn_l_coords(base_shape%loc, derived_shape%loc))
-    otn_l_coords = tet_otn_local_coords(degree)
+    otn_l_coords = tri_otn_local_coords(degree)
     allocate(l_coords(base_shape%loc, derived_shape%loc))
     fail = .false.
     ele_loop: do ele = 1, ele_count(derived_mesh)      
@@ -102,29 +102,26 @@ subroutine test_make_mesh_tet
   
 contains
 
-  function tet_otn_local_coords(degree) result(l_coords)
+  function tri_otn_local_coords(degree) result(l_coords)
     !!< Return the node local coords according to the One True Element Numbering
   
     integer, intent(in) :: degree
     
-    integer :: i, index, j, k
-    real, dimension(4, te(degree + 1)) :: l_coords
+    integer :: i, index, j
+    real, dimension(3, tr(degree + 1)) :: l_coords
         
     index = 1
     do i = 0, degree
       do j = 0, degree - i
-        do k = 0, degree - (i + j)
-          assert(index <= size(l_coords, 2))
-          l_coords(2, index) = float(k) / float(degree)
-          l_coords(3, index) = float(j) / float(degree)
-          l_coords(4, index) = float(i) / float(degree)
-          l_coords(1, index) = 1.0 - sum(l_coords(2:4, index))
-          index = index + 1
-        end do
+        assert(index <= size(l_coords, 2))
+        l_coords(2, index) = float(j) / float(degree)
+        l_coords(3, index) = float(i) / float(degree)
+        l_coords(1, index) = 1.0 - sum(l_coords(2:3, index))
+        index = index + 1
       end do
     end do
     assert(index == size(l_coords, 2) + 1)
     
-  end function tet_otn_local_coords
+  end function tri_otn_local_coords
 
-end subroutine test_make_mesh_tet
+end subroutine test_make_mesh_tri
