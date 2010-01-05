@@ -302,23 +302,23 @@ module tetrahedron_intersection_module
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp) = tet
         tet_array_tmp(tet_cnt_tmp)%V(:, pos_idx(1)) = tet_tmp%V(:, 1)
-        tet_array_tmp(tet_cnt_tmp)%colours(2) = 0
+        tet_array_tmp(tet_cnt_tmp)%colours(neg_idx(1)) = 0
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet_tmp%V(:, 1)
+        tet_array_tmp(tet_cnt_tmp)%colours(1) = tet%colours(neg_idx(1))
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet%V(:, neg_idx(2))
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet%V(:, neg_idx(3))
+        tet_array_tmp(tet_cnt_tmp)%colours(3) = tet%colours(neg_idx(3))
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 2)
-        tet_array_tmp(tet_cnt_tmp)%colours(3) = tet%colours(4)
-        tet_array_tmp(tet_cnt_tmp)%colours(2) = tet%colours(2)
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet%V(:, neg_idx(3))
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet_tmp%V(:, 2)
+        tet_array_tmp(tet_cnt_tmp)%colours(2) = tet%colours(neg_idx(2))
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet_tmp%V(:, 3)
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 1)
-        tet_array_tmp(tet_cnt_tmp)%colours(1) = tet%colours(3)
-        tet_array_tmp(tet_cnt_tmp)%colours(4) = tet%colours(2)
+        tet_array_tmp(tet_cnt_tmp)%colours(4) = tet%colours(neg_idx(1))
       case(2)
         ! +--0
         do i=1,neg_cnt
