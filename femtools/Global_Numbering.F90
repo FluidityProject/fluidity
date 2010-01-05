@@ -248,7 +248,7 @@ contains
     type(csr_sparsity) :: NEList, NNList, EEList
 
     logical :: D3
-    integer :: nloc, faces, owned_nodes
+    integer :: nloc, snloc, faces, owned_nodes
 
     ! Number of nodes associated with each object.
     integer :: face_len, edge_len, element_len
@@ -267,8 +267,7 @@ contains
     integer, dimension(:), allocatable :: node_owner, receive_halo_level, &
          & new_receive_halo_level
     integer, dimension(:,:), allocatable :: new_node_owner
-    integer :: this_node_owner, this_send_halo_level, &
-         this_receive_halo_level, this_node_winner
+    integer :: this_node_owner, this_receive_halo_level, this_node_winner
 
     ! Cache for positions in ndglno which are currently being worked on and
     ! new values to go in them
@@ -306,6 +305,8 @@ contains
     
     ! Vertices per element.
     nloc=element%numbering%vertices
+    ! Vertices per surface element
+    snloc = nloc - 1
 
     call MakeLists_Dynamic(Nonods, Totele, Nloc, ndglno, D3, NEList,&
        & NNList, EEList)
@@ -556,7 +557,7 @@ contains
        if(isparallel()) then
          FLAbort("This is broken - blame dham")
        end if
-       allocate(face_nodes(face_len), ndglno_pos(face_len))
+       allocate(face_nodes(snloc), ndglno_pos(face_len))
        do ele=1,size(EEList,1)
           do j=EEList%findrm(ele),EEList%findrm(ele+1)-1
              ele2=EEList%colm(j)
@@ -583,7 +584,7 @@ contains
                   NDGLNO(nloc*(ele-1)+1:nloc*ele), &
                   element%numbering, interior=.true.)
 
-             new_receive_halo_level(ndglno_pos)=this_receive_halo_level
+!             new_receive_halo_level(ndglno_pos)=this_receive_halo_level
 !             new_node_owner(ndglno_pos)=this_node_owner
              
              new_ndglno(ndglno_pos) &
@@ -597,13 +598,12 @@ contains
                   NDGLNO(nloc*(ele2-1)+1:nloc*ele2), &
                   element%numbering, interior=.true.)
 
-             new_receive_halo_level(ndglno_pos)=this_receive_halo_level
+!             new_receive_halo_level(ndglno_pos)=this_receive_halo_level
 !             new_node_owner(ndglno_pos)=this_node_owner
 
              new_ndglno(ndglno_pos) &
                   = sequence(n(this_receive_halo_level)+1, face_len)
-
-             n(this_receive_halo_level)=n(this_receive_halo_level)+face_len
+             n(this_receive_halo_level)=n(this_receive_halo_level)+1
 
           end do
        end do
@@ -785,16 +785,11 @@ contains
       ! node is broadcast at each halo level. It is nonods x halos
       type(ilist), dimension(:,:), intent(in) :: send_targets
 
-      integer :: processors, this_proc, halo, ele, n, o, proc, this_owner
+      integer :: processors, this_proc, halo, n, proc
       
       type(ilist), dimension(:), allocatable :: sends, receives
-      type(ilist) :: owners
-      integer, dimension(:), pointer :: ele_nodes, ele_owners,&
-           & ele_send_halo_level, ele_receive_halo_level
+      integer, dimension(:), pointer :: ele_nodes, ele_owners
       type(inode), pointer :: list_node => null()
-
-      integer :: i
-      integer, dimension(:), allocatable :: paint
 
       processors=getnprocs()
       this_proc=getprocno()
