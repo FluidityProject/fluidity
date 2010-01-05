@@ -248,7 +248,7 @@ contains
     type(csr_sparsity) :: NEList, NNList, EEList
 
     logical :: D3
-    integer :: nloc, snloc, faces, owned_nodes
+    integer :: dim, nloc, snloc, faces, owned_nodes
 
     ! Number of nodes associated with each object.
     integer :: face_len, edge_len, element_len
@@ -301,7 +301,8 @@ contains
     end if
 
     ! Dimensionality flag.
-    D3=element%numbering%dimension==3
+    dim = element%numbering%dimension
+    D3=dim==3
     
     ! Vertices per element.
     nloc=element%numbering%vertices
@@ -329,7 +330,8 @@ contains
     edge_len=max(element%numbering%degree-1,0)
     new_nonods=new_nonods+0.5*size(NNList%colm)*edge_len
     
-    if (D3) then
+    select case(dim)
+      case(3)
        ! Interior faces
        faces=count(EEList%colm/=0)
        
@@ -342,13 +344,20 @@ contains
        ! Interior nodes
        element_len=max(te(element%numbering%degree-3),0)
        new_nonods=new_nonods+totele*element_len
-    else
+      case(2)
        faces=0
         
        ! Interior nodes
        element_len=max(tr(element%numbering%degree-2),0)
        new_nonods=new_nonods+totele*element_len
-    end if
+      case(1)
+       faces=0
+       
+       ! Interior nodes
+       element_len=0
+     case default
+       FLAbort("Invalid dimension")
+   end select
 
     ! Total nodes per element
     element_tot_len=element%numbering%nodes
