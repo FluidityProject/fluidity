@@ -336,10 +336,10 @@ module tetrahedron_intersection_module
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet_tmp%V(:, 2)
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet%V(:, zer_idx(1))
+        tet_array_tmp(tet_cnt_tmp)%colours(2) = tet%colours(zer_idx(1))
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet%V(:, neg_idx(2))
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 1)
-        tet_array_tmp(tet_cnt_tmp)%colours(pos_idx(1)) = tet%colours(zer_idx(1))
-        tet_array_tmp(tet_cnt_tmp)%colours(zer_idx(1)) = tet%colours(neg_idx(1))
+        tet_array_tmp(tet_cnt_tmp)%colours(4) = tet%colours(neg_idx(1))
       case(1)
         ! +-00
         invdiff = 1.0 / ( dists(pos_idx(1)) - dists(neg_idx(1)) )
@@ -349,6 +349,7 @@ module tetrahedron_intersection_module
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp) = tet
         tet_array_tmp(tet_cnt_tmp)%V(:, pos_idx(1)) = w0 * tet%V(:, pos_idx(1)) + w1 * tet%V(:, neg_idx(1))
+        tet_array_tmp(tet_cnt_tmp)%colours(neg_idx(1)) = 0
       end select
     end select
 
