@@ -33,7 +33,7 @@
 
 extern "C" {
 #define derive_mesh_fc F77_FUNC(derive_mesh, DERIVE_MESH)
-  void derive_mesh_fc(const char*, int*, const char*, int*, int*, int*);
+  void derive_mesh_fc(const char*, int*, const char*, int*, int*, int*, int*);
   void set_global_debug_level_fc(int* val);
 }
 
@@ -54,9 +54,11 @@ extern "C" {
 using namespace std; 
 
 void usage(char *binary){
-  cerr<<"Usage: "<<binary<<" [OPTIONS] input_trianglename output_trianglename\n"
+  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename output_filename\n"
+      <<"Derive a mesh from a supplied triangle mesh file\n"
       <<"\t-h\t\tPrints out this message\n"
       <<"\t-d\t\tDerive a discontinuous mesh\n"
+      <<"\t-k\t\tOutput to vtu rather than a triangle file\n"
       <<"\t-p DEGREE\tDerive a mesh of degree DEGREE\n"
       <<"\t-v\t\tVerbose mode\n";
 }
@@ -75,7 +77,7 @@ int main(int argc, char **argv){
   optarg = NULL;  
   char c;
   map<char, string> args;
-  while((c = getopt(argc, argv, "dhp:v")) != -1){
+  while((c = getopt(argc, argv, "dhkp:v")) != -1){
     if (c != '?'){
       if (optarg == NULL){
         args[c] = "true";
@@ -119,18 +121,23 @@ int main(int argc, char **argv){
     exit(-1);
   }
   
+  int vtu = 0;
+  if(args.count('k') > 0){
+    vtu = 1;
+  }
+  
   int continuity = 0;
   if(args.count('d') == 1){
     continuity = 1;
   }
 
-  string input_trianglefile = argv[optind];
-  int input_trianglelen = input_trianglefile.length();  
+  string input_filename = argv[optind];
+  int input_filename_len = input_filename.length();  
   
-  string output_trianglefile = argv[optind + 1];
-  int output_trianglelen = output_trianglefile.length();  
+  string output_filename = argv[optind + 1];
+  int output_filename_len = output_filename.length();  
 
-  derive_mesh_fc(input_trianglefile.c_str(), &input_trianglelen, output_trianglefile.c_str(), &output_trianglelen, &degree, &continuity);
+  derive_mesh_fc(input_filename.c_str(), &input_filename_len, output_filename.c_str(), &output_filename_len, &degree, &continuity, &vtu);
   
 #ifdef HAVE_MPI
   MPI::Finalize();

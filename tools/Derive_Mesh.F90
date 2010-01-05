@@ -27,23 +27,25 @@
 
 #include "fdebug.h"
 
-subroutine derive_mesh(input_trianglefile, input_trianglelen, output_trianglefile, output_trianglelen, degree, continuity)
+subroutine derive_mesh(input_filename, input_filename_len, output_filename, output_filename_len, degree, continuity, vtu)
   
   use fields
   use fldebug
   use halos
   use parallel_tools
   use read_triangle
+  use vtk_interfaces
   use write_triangle
   
   implicit none
   
-  integer, intent(in) :: input_trianglelen
-  integer, intent(in) :: output_trianglelen
-  character(len = input_trianglelen), intent(in) :: input_trianglefile
-  character(len = output_trianglelen), intent(in) :: output_trianglefile
+  integer, intent(in) :: input_filename_len
+  integer, intent(in) :: output_filename_len
+  character(len = input_filename_len), intent(in) :: input_filename
+  character(len = output_filename_len), intent(in) :: output_filename
   integer, intent(in) :: degree
   integer, intent(in) :: continuity
+  integer, intent(in) :: vtu
   
   type(element_type) :: derived_shape
   type(element_type), pointer :: base_shape
@@ -54,14 +56,14 @@ subroutine derive_mesh(input_trianglefile, input_trianglelen, output_trianglefil
   
   ewrite(1, *) "In derive_mesh"
   
-  ewrite(2, *) "Input file: " // trim(input_trianglefile)
-  ewrite(2, *) "Output file: " // trim(output_trianglefile)
+  ewrite(2, *) "Input file: " // trim(input_filename)
+  ewrite(2, *) "Output file: " // trim(output_filename)
   ewrite(2, *) "Mesh degree: ", degree
   ewrite(2, *) "Mesh is continuous? ", continuity == 0
   
-  base_positions = read_triangle_files(trim(input_trianglefile), quad_degree = 1)
+  base_positions = read_triangle_files(trim(input_filename), quad_degree = 1)
   base_mesh => base_positions%mesh
-  if(isparallel()) call read_halos(trim(input_trianglefile), base_mesh)
+  if(isparallel()) call read_halos(trim(input_filename), base_mesh)
   
   base_shape => ele_shape(base_mesh, 1)
   derived_shape = make_element_shape(base_shape, degree = degree)
@@ -73,7 +75,11 @@ subroutine derive_mesh(input_trianglefile, input_trianglelen, output_trianglefil
   call deallocate(derived_mesh)
   call deallocate(base_positions)
   
-  call write_triangle_files(trim(output_trianglefile), derived_positions)
+  if(vtu == 0) then
+    call write_triangle_files(parallel_filename(output_filename), derived_positions)
+  else
+    call vtk_write_fields(trim(output_filename) // ".pvtu", position = derived_positions, model = derived_positions%mesh)
+  end if
   call deallocate(derived_positions)
   
   call print_references(0)
