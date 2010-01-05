@@ -112,129 +112,90 @@ subroutine verticalshellmapper_find_sp(x, y, z, nnodes, &
   
 end subroutine verticalshellmapper_find_sp
   
-subroutine UpdateDistanceField(state, name)
+subroutine UpdateDistanceField(state, name, vertical_coordinate)
   ! This sub calculates the vertical distance to the free surface
   ! and bottom of the ocean to all nodes. The results are stored
   ! in the 'DistanceToBottom/FreeSurface' fields from state.
   type(state_type), intent(inout):: state
   character(len=*), intent(in):: name
-  ! used to determine the various coordinate 
-  integer::flat_earth_int
+  type(scalar_field), intent(in):: vertical_coordinate
 
   ! Local variables
-  type(mesh_type), pointer:: xmesh
   type(vector_field), pointer:: positions
   type(scalar_field), pointer:: distance
-  real, dimension(:), pointer:: x, y, z, dist
   
-  integer i, j, nid, ntri, xnonod, snloc, sele
-  integer, allocatable, dimension(:):: senlist, tri_ids
   integer, pointer, dimension(:):: surface_element_list
-  integer, pointer, dimension(:):: periodic_nodes, non_periodic_nodes
-  real, allocatable, dimension(:)::shape_fxn
-  real xx, yy, zz
 
-  if(have_option('/geometry/spherical_earth')) then
-     flat_earth_int = 0
-  else
-     flat_earth_int = 1
-  end if
-  
-  xmesh => extract_mesh(state, "CoordinateMesh")
+  ! the distance field to compute:
   distance => extract_scalar_field(state, name)
+  ! its first boundary condition is on the related top or bottom mesh
   call get_boundary_condition(distance, 1, &
     surface_element_list=surface_element_list)
-  
-  ! Get the coordinates
   positions => extract_vector_field(state, "Coordinate")
-  x => positions%val(1)%ptr
-  y => positions%val(2)%ptr
-  z => positions%val(3)%ptr
-  xnonod=size(x)
   
-  ntri = size(surface_element_list)
-  snloc = face_loc(xmesh, 1)
-  
-  if (distance%mesh%periodic) then
-     allocate(dist(1:xnonod))
-  else
-     dist => distance%val
-  end if
+  ! in each node of the mesh, set "distance" to the vertical coordinate 
+  ! of this node projected to the above/below surface mesh
+  call VerticalExtrapolation(vertical_coordinate, distance, positions, &
+    surface_element_list)
     
-  allocate( senlist(ntri*snloc) )
+  ! the distance is then calculated by subtracting its own vertical coordinate
+  call addto(distance, vertical_coordinate, scale=-1.0)
   
-  do i=1, ntri
-    ! get the surface element number:
-    sele=surface_element_list(i)
-    ! get its global node numbers:
-    senlist((i-1)*snloc+1:i*snloc) = face_global_nodes(xmesh, sele)
-  end do
-
-  ! Allocate some tempory space. This could be cached.
-  allocate(tri_ids(xnonod))
-  allocate(shape_fxn(xnonod*snloc))
-  
-  ! Perform spatial search for top surface
-  call VerticalShellMapper_find(x, y, z, xnonod, senlist, ntri, &
-       1, flat_earth_int, tri_ids, shape_fxn)
-  
-  if(flat_earth_int==1) then
-     do i=1, xnonod
-        zz = 0.0
-        do j=1, snloc
-           nid = senlist((tri_ids(i)-1)*snloc+j)
-           zz = zz + z(nid)*shape_fxn((i-1)*snloc+j)
-        end do
-        dist(i) = abs(zz - z(i))
-     end do
-  else
-     do i=1, xnonod
-        xx = 0.0
-        yy = 0.0
-        zz = 0.0
-        if(tri_ids(i)==0) then
-            ewrite(0, *)  "Free surface is possibly blowing up"
-            ewrite(0, *) "Check the coordinate: ", x(i), y(i), z(i)
-            FLAbort("Node not located.")
-         endif
-        do j=1, snloc
-           nid = senlist((tri_ids(i)-1)*snloc+j)
-           xx = xx + x(nid)*shape_fxn((i-1)*snloc+j)
-           yy = yy + y(nid)*shape_fxn((i-1)*snloc+j)
-           zz = zz + z(nid)*shape_fxn((i-1)*snloc+j)
-        end do
-        dist(i) = abs(sqrt(xx*xx+yy*yy+zz*zz) - &
-             sqrt(x(i)*x(i)+y(i)*y(i)+z(i)*z(i)))
-     end do
-  endif
-  
-  if (distance%mesh%periodic) then
-     ! copy from temporary non-periodic dist array
-     ! to periodic distance field
-     do i=1, element_count(distance)
-        periodic_nodes => ele_nodes(distance, i)
-        non_periodic_nodes => ele_nodes(xmesh, i)
-        do j=1, size(periodic_nodes)
-           call set(distance, periodic_nodes(j), dist(non_periodic_nodes(j)) )
-        end do
-     end do
-     deallocate(dist)
+  if (name=="DistanceToBottom") then
+    ! make distance to bottom positive
+    call scale(distance, -1.0)
   end if
-
-  deallocate(tri_ids, shape_fxn, senlist)
   
 end subroutine UpdateDistanceField
   
 subroutine CalculateTopBottomDistance(state)
   !! This sub calculates the vertical distance to the free surface
   !! and bottom of the ocean to all nodes. The results are stored
-  !! in the 'DistanceToBottom/FreeSurface' fields from state.
+  !! in the 'DistanceToBottom/Top' fields from state.
   type(state_type), intent(inout):: state
+    
+  type(mesh_type), pointer:: xmesh
+  type(scalar_field):: vertical_coordinate
   
-  call UpdateDistanceField(state, "DistanceToTop")
-  call UpdateDistanceField(state, "DistanceToBottom")
+  xmesh => extract_mesh(state, "CoordinateMesh")
+  call allocate(vertical_coordinate, xmesh, "VerticalCoordinate")
+  call calculate_vertical_coordinate(state, vertical_coordinate)
+  call UpdateDistanceField(state, "DistanceToTop", vertical_coordinate)
+  call UpdateDistanceField(state, "DistanceToBottom", vertical_coordinate)
+  call deallocate(vertical_coordinate)
 
 end subroutine CalculateTopBottomDistance
+  
+subroutine calculate_vertical_coordinate(state, vertical_coordinate)
+  !! Computes a vertical coordinate, i.e. a scalar field such that
+  !! for each 2 nodes above each other, the difference of the field
+  !! in these nodes gives the distance between them.
+  type(state_type), intent(inout):: state
+  type(scalar_field), intent(inout):: vertical_coordinate
+    
+  type(vector_field), pointer:: positions, gravity_normal
+  type(scalar_field):: positions_magnitude
+  
+  positions => extract_vector_field(state, "Coordinate")
+  if(have_option('/geometry/spherical_earth')) then
+    ! use the radius as vertical coordinate
+    ! that is, the l2-norm of the coordinate field
+    positions_magnitude=magnitude(positions)
+    call set(vertical_coordinate, positions_magnitude)
+    call deallocate(positions_magnitude)
+  else
+    gravity_normal => extract_vector_field(state, "GravityDirection")
+    assert(gravity_normal%field_type==FIELD_TYPE_CONSTANT)
+    ! at the moment only 3d and n_g=(0,0,-1) works
+    assert(gravity_normal%val(1)%ptr(1)==0.0)
+    assert(gravity_normal%val(2)%ptr(1)==0.0)
+    assert(gravity_normal%val(3)%ptr(1)==-1.0)
+    call inner_product(vertical_coordinate, gravity_normal, positions)
+    ! gravity points down, we want a vertical coordinate that increases upward
+    call scale(vertical_coordinate, -1.0)
+  end if
+  
+end subroutine calculate_vertical_coordinate
 
 subroutine VerticalExtrapolationScalar(from_field, to_field, &
   positions, surface_element_list)
