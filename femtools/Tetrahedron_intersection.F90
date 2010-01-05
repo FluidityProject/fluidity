@@ -61,7 +61,7 @@ module tetrahedron_intersection_module
     real :: vol
     real, dimension(3) :: vec_tmp
     integer, dimension(3) :: idx_tmp
-    integer :: surface_eles
+    integer :: surface_eles, colour_tmp
     type(mesh_type) :: surface_mesh, pwc_surface_mesh
 
     if (present(surface_colours) .or. present(surface_positions) .or. present(surface_shape)) then
@@ -98,8 +98,11 @@ module tetrahedron_intersection_module
           vol = tet_volume(tet_array_tmp(j))
           if (vol < 0.0) then
             vec_tmp = tet_array_tmp(j)%V(:, 1)
+            colour_tmp = tet_array_tmp(j)%colours(1)
             tet_array_tmp(j)%V(:, 1) = tet_array_tmp(j)%V(:, 2)
+            tet_array_tmp(j)%colours(1) = tet_array_tmp(j)%colours(2)
             tet_array_tmp(j)%V(:, 2) = vec_tmp
+            tet_array_tmp(j)%colours(2) = colour_tmp
             vol = -vol
           end if
 
@@ -120,6 +123,7 @@ module tetrahedron_intersection_module
     intersection_mesh%nodes = tet_cnt*4
     intersection_mesh%elements = tet_cnt
     call allocate(output, 3, intersection_mesh, "IntersectionCoordinates")
+
 
     do ele=1,tet_cnt
       call set(output, ele_nodes(output, ele), tet_array(ele)%V)
@@ -254,8 +258,6 @@ module tetrahedron_intersection_module
         tet_array_tmp(tet_cnt_tmp)%V(:, pos_idx(2)) = tet_tmp%V(:, 2)
         tet_array_tmp(tet_cnt_tmp)%colours(neg_idx(1)) = 0
         tet_array_tmp(tet_cnt_tmp)%colours(neg_idx(2)) = 0
-        tet_array_tmp(tet_cnt_tmp)%colours(pos_idx(1)) = tet%colours(pos_idx(2))
-        tet_array_tmp(tet_cnt_tmp)%colours(pos_idx(2)) = tet%colours(pos_idx(1))
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet%V(:, neg_idx(2))
