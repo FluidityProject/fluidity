@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">gls-StationPapa-3D</string_value>
@@ -244,6 +244,9 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">100</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSGenericSecondQuantity" rank="0">
@@ -348,6 +351,9 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">99</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSLengthScale" rank="0">

@@ -24,7 +24,7 @@ class TestProblem:
         self.warn_status = []
         self.filename = filename.split('/')[-1]
         # add dir to import path
-        sys.path.insert(0, os.path.join(os.getcwd(), filename.split('/')[-1]))
+        sys.path.insert(0, os.path.join(os.getcwd(), filename.split('/')[0]))
 
         dom = xml.dom.minidom.parse(filename)
     

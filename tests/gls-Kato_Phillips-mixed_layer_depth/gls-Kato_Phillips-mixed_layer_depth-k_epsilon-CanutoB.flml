@@ -9,7 +9,7 @@ Surface BCs for second gls quantity on top surface can be set to
 0.01^3/(0.4*0.5) = 4.0e-6</comment>
   </simulation_name>
   <problem_type>
-    <string_value lines="1">fluids</string_value>
+    <string_value lines="1">oceans</string_value>
   </problem_type>
   <geometry>
     <dimension replaces="NDIM">
@@ -129,9 +129,17 @@ Surface BCs for second gls quantity on top surface can be set to
               <real_value rank="0">0.0</real_value>
             </reference_temperature>
             <thermal_expansion_coefficient replaces="DENGAM">
-              <real_value rank="0">2.0e-4</real_value>
+              <real_value rank="0">1.0e-4</real_value>
             </thermal_expansion_coefficient>
           </temperature_dependency>
+          <salinity_dependency replaces="BOUSIN, EQNSTA=1">
+            <reference_salinity replaces="S0 if from .dat file?, GAMDE3(1) if from gem">
+              <real_value rank="0">0</real_value>
+            </reference_salinity>
+            <saline_contraction_coefficient replaces="DENGAM_SAL if from .dat file?, GAMDE2(1) if from gem">
+              <real_value rank="0">1e-4</real_value>
+            </saline_contraction_coefficient>
+          </salinity_dependency>
           <subtract_out_hydrostatic_level replaces="BHOUT"/>
         </linear>
       </fluids>
@@ -730,24 +738,26 @@ Surface BCs for second gls quantity on top surface can be set to
       </prognostic>
     </scalar_field>
     <scalar_field name="Density" rank="0">
-      <prescribed>
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
         <output/>
         <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <detectors>
-          <exclude_from_detectors/>
+          <include_in_detectors/>
         </detectors>
-      </prescribed>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="LinearMomentum"/>
+        <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>

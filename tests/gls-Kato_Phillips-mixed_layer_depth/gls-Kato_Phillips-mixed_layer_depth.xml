@@ -31,7 +31,6 @@ import fluidity_tools
 FinalTimeGL78 = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.stat")['ElapsedTime']['value'][-1]
     </variable>
 
-
     <variable name="CanutoA_MLD" language="python">
 import mld_calc
 import glob
