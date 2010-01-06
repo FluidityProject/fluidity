@@ -1063,7 +1063,7 @@ are switched on, as well as PerturbationDensity.</a:documentation>
                     <element name="string_value">
                       <choice>
                         <value>KanthaClayson-94</value>
-                        <value>Galperin-88</value>
+                        <value>GibsonLaunder-78</value>
                         <value>Canuto-01-A</value>
                         <value>Canuto-01-B</value>
                       </choice>
@@ -1079,6 +1079,11 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                           <value>dirichlet</value>
                         </choice>
                       </element>
+                      <optional>
+                        <element name="fix_surface_values">
+                          <empty/>
+                        </element>
+                      </optional>
                     </element>
                   </optional>
                   <element name="scalar_field">
@@ -1093,6 +1098,9 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                       <element name="prognostic">
                         <ref name="velocity_mesh_choice"/>
                         <ref name="prognostic_scalar_field"/>
+                        <element name="priority">
+                          <ref name="integer"/>
+                        </element>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
@@ -1111,6 +1119,9 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                       <element name="prognostic">
                         <ref name="velocity_mesh_choice"/>
                         <ref name="prognostic_scalar_field"/>
+                        <element name="priority">
+                          <ref name="integer"/>
+                        </element>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
@@ -1329,7 +1340,7 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                   </optional>
                   <optional>
                     <element name="scalar_field">
-                      <a:documentation>Source1</a:documentation>
+                      <a:documentation>Source1 - TKE source term</a:documentation>
                       <attribute name="rank">
                         <value>0</value>
                       </attribute>
@@ -1350,12 +1361,54 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                   </optional>
                   <optional>
                     <element name="scalar_field">
-                      <a:documentation>Source2</a:documentation>
+                      <a:documentation>Source2 - Second Quantity source term</a:documentation>
                       <attribute name="rank">
                         <value>0</value>
                       </attribute>
                       <attribute name="name">
                         <value>GLSSource2</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Absorption1 - TKE absorption term</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>GLSAbsorption1</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Absorption2 - Second Quantity absorption term</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>GLSAbsorption2</value>
                       </attribute>
                       <choice>
                         <element name="diagnostic">

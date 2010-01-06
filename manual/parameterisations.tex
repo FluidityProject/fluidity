@@ -10,8 +10,8 @@
 
 Four GLS models have been implemented in Fluidity, based on the description given in \citet{warner2005}.
 Briefly, they rely on a local, temporally varying, kinematic eddy viscosity $K_M$ that parametrises 
-turbulence (local Reynolds stresses) in terms of mean-flow quantities (vertical shear) as, along with a buoyancy term that 
-parameterises the kinematic eddy diffusivity, $K_H$:
+turbulence (local Reynolds stresses) in terms of mean-flow quantities (vertical shear) as, along 
+with a buoyancy term that parameterises the kinematic eddy diffusivity, $K_H$:
 
 \begin{equation}
 \overline{u'w'} = -K_M\frac{\partial u}{\partial z},\;\;\;
@@ -30,7 +30,8 @@ of the turbulent fluctuations about mean velocity. $\nu_H^0$ is the background d
 is the background viscosity, $S_M$ and $S_H$ are stability functions, 
 $k$ is the turbulent kinetic energy, and $l$ is a general length-scale.
 
-The generic length scale turbulence closure model \citep{umlauf2003} is based in two equations, for the transport of turbulent kinetic energy and a generic second quantity, $\Psi$. The TKE equation is:
+The generic length scale turbulence closure model \citep{umlauf2003} is based in two equations, 
+for the transport of turbulent kinetic energy (TKE, $k$) and a generic second quantity, $\Psi$. The TKE equation is:
 \begin{equation}
 \frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k}\frac{\partial k}{\partial z}\right) + P + B - \epsilon 
 \label{tke_one}
@@ -68,7 +69,10 @@ l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1}
 
 The equation for $l$ can be derived from previous equations.
 
-Choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$, $c_1$, $c_2$, $c_3$, $c_\mu^0$, and $F_{\mathrm{wall}}$ one can recover the exact formulation of three standard GLS models, $k-\epsilon$, $k-kl$, $k-\omega$, and an additional model based on \citet{umlauf2003}, the \emph{gen} model (see Table \ref{tab:glsparams} for values).
+Choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$, $c_1$, $c_2$, $c_3$, $c_\mu^0$,
+and $F_{\mathrm{wall}}$ one can recover the exact formulation of three standard GLS models,
+$k-\epsilon$, $k-kl$, $k-\omega$, and an additional model based on \citet{umlauf2003}, 
+the \emph{gen} model (see Table \ref{tab:glsparams} for values).
 
 \begin{table}[b]
 \begin{center} 
@@ -168,7 +172,8 @@ and
 S_H(\alpha_M,\alpha_N) = \frac{n_{b0}+n_{b1}\alpha_N+n_{b2}\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}
 \end{equation*}
 
-The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on the model parameters chosen
+The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on
+the model parameters chosen
 and can be related to traditional stability functions \citep{umlauf2005}.
 
 However, using the equilibrium condition for the turbulent kinetic energy as $\frac{P+B}{\epsilon}=1$, one can write
@@ -179,7 +184,7 @@ S_M(\alpha_M,\alpha_N)\alpha_M - S_N(\alpha_M,\alpha_N)\alpha_N=1
 
 A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative. 
 
-The GLS model included in \fluidity\ contains three choices of stability functions, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}.
+The GLS model included in \fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}.
 
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}

@@ -833,7 +833,7 @@ start =
                   ## 4. Canuto-01-B which corresponds to choice B from Canuto et al 2001
                   element stability_function {
                      element string_value {
-                     "KanthaClayson-94"|"Galperin-88"|"Canuto-01-A"|"Canuto-01-B"
+                     "KanthaClayson-94"|"GibsonLaunder-78"|"Canuto-01-A"|"Canuto-01-B"
                      }
                   },
                   ## Do you want the boundary conditions to be set automatically?
@@ -841,7 +841,10 @@ start =
                   element calculate_boundaries {
                      element string_value {
                      "neumann"|"dirichlet"
-                     }
+                     },
+                     element fix_surface_values {
+                        empty
+                     }?
                   }?,
                   ## Turbulent kinetic energy
                   element scalar_field {
@@ -850,7 +853,10 @@ start =
                      (
                         element prognostic {
                            velocity_mesh_choice,
-                           prognostic_scalar_field
+                           prognostic_scalar_field,
+                           element priority {
+                              integer
+                           }
                         }|
                         element aliased {
                            generic_aliased_field
@@ -864,7 +870,10 @@ start =
                      (
                         element prognostic {
                            velocity_mesh_choice,
-                           prognostic_scalar_field
+                           prognostic_scalar_field,
+                           element priority {
+                              integer
+                           }
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1021,7 +1030,7 @@ start =
                         }
                      )
                   }?,
-                  ## Source1
+                  ## Source1 - TKE source term
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "GLSSource1" },
@@ -1036,10 +1045,40 @@ start =
                         }
                      )
                   }?,
-                  ## Source2
+                  ## Source2 - Second Quantity source term
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "GLSSource2" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  }?,
+                  ## Absorption1 - TKE absorption term
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "GLSAbsorption1" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  }?,
+                  ## Absorption2 - Second Quantity absorption term
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "GLSAbsorption2" },
                      (
                         element diagnostic {
                            internal_algorithm,

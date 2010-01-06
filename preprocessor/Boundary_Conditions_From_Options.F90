@@ -2089,7 +2089,8 @@ contains
     type(scalar_field), pointer :: tke, psi
     type(mesh_type) :: ocean_mesh, input_mesh
     type(mesh_type), pointer :: surface_mesh
-    character(len=FIELD_NAME_LEN) input_mesh_name
+    character(len=FIELD_NAME_LEN) :: input_mesh_name
+    character(len=FIELD_NAME_LEN) :: bc_type
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(2) :: shape_option
     integer :: stat
@@ -2115,13 +2116,15 @@ contains
     allocate(surface_ids(1:shape_option(1)))
     call get_option("geometry/ocean_boundaries/top_surface_ids", surface_ids)
 
-    call add_boundary_condition(tke, 'tke_top_boundary', 'neumann', surface_ids)
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/", bc_type)
+    
+    call add_boundary_condition(tke, 'tke_top_boundary', bc_type, surface_ids)
     call get_boundary_condition(tke, 'tke_top_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(tke, 'tke_top_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
 
-    call add_boundary_condition(psi, 'psi_top_boundary', 'neumann', surface_ids)
+    call add_boundary_condition(psi, 'psi_top_boundary', bc_type, surface_ids)
     call get_boundary_condition(psi, 'psi_top_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_top_boundary', scalar_surface_field)
@@ -2138,13 +2141,13 @@ contains
     allocate(surface_ids(1:shape_option(1)))
     call get_option("geometry/ocean_boundaries/bottom_surface_ids", surface_ids)
 
-    call add_boundary_condition(tke, 'tke_bottom_boundary', 'neumann', surface_ids)
+    call add_boundary_condition(tke, 'tke_bottom_boundary', bc_type, surface_ids)
     call get_boundary_condition(tke, 'tke_bottom_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(tke, 'tke_bottom_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
 
-    call add_boundary_condition(psi, 'psi_bottom_boundary', 'neumann', surface_ids)
+    call add_boundary_condition(psi, 'psi_bottom_boundary', bc_type, surface_ids)
     call get_boundary_condition(psi, 'psi_bottom_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_bottom_boundary', scalar_surface_field)

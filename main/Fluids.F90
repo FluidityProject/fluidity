@@ -329,6 +329,11 @@ contains
        end if
     end do
 
+    ! Initialise GLS
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
+        call gls_init(state(1))
+    end if
+
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -447,13 +452,16 @@ contains
 
              ITP=STATE2PHASE_INDEX(FIELD_STATE_LIST(IT))
 
-             ! do we have the generic length scale vertical turbulence model - search in first material_phase only at the moment
+             ! do we have the generic length scale vertical turbulence model?
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
                 if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
-                   !               if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy").or.(trim(field_name_list(it))=="GLSGenericSecondQuantity")) then
-                   call gls_vertical_turbulence_model(state(1))            
+                    call gls_tke(state(1))
+                end if
+                if( (trim(field_name_list(it))=="GLSGenericSecondQuantity") ) then
+                   call gls_psi(state(1))
                 endif
-             end if
+              end if
+
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
@@ -524,6 +532,13 @@ contains
 
                 ! ENDOF IF((TELEDI(IT).EQ.1).AND.D3) THEN ELSE...
              ENDIF
+
+             ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
+             if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
+                if( (trim(field_name_list(it))=="GLSGenericSecondQuantity") ) then
+                   call gls_diffusivity(state(1))
+                endif
+             end if
 
              ewrite(1, *) "Finished field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
           end do field_loop
@@ -627,7 +642,10 @@ contains
        ! *** Mesh adapt ***
        ! ******************
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
-          if(do_adapt_mesh(current_time, timestep)) then               
+          if(do_adapt_mesh(current_time, timestep)) then  
+
+             call pre_adapt_tasks()
+
              call qmesh(state, metric_tensor)
 
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)
@@ -640,7 +658,10 @@ contains
              call run_diagnostics(state)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-          if(do_adapt_state_prescribed(current_time)) then          
+          if(do_adapt_state_prescribed(current_time)) then    
+              
+              call pre_adapt_tasks()
+      
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)             
              call run_diagnostics(state)
              
@@ -664,6 +685,11 @@ contains
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
        call write_state(dump_no, state)
+    end if
+
+    ! cleanup GLS
+    if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/')) then
+        call gls_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files
@@ -710,7 +736,17 @@ contains
     end subroutine set_simulation_start_times
 
   end subroutine fluids
-  
+ 
+  subroutine pre_adapt_tasks()
+
+    ! GLS - we need to deallocate all module-level fields or the memory
+    ! management system complains
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
+        call gls_cleanup() ! deallocate everything
+    end if
+
+  end subroutine pre_adapt_tasks
+ 
   subroutine update_state_post_adapt(state, metric_tensor, dt)
     type(state_type), dimension(:), intent(inout) :: state
     type(tensor_field), intent(out) :: metric_tensor
@@ -758,6 +794,11 @@ contains
          call move_free_surface_nodes(state(i))
       end if
     end do
+
+    ! GLS
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
+        call gls_adapt_mesh(state(1))
+    end if
            
   end subroutine update_state_post_adapt
   

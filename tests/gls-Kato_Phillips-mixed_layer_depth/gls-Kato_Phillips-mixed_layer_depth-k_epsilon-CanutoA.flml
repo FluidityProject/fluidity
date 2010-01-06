@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA</string_value>
@@ -87,7 +87,7 @@ Surface BCs for second gls quantity on top surface can be set to
       <real_value rank="0">60</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">108000</real_value>
+      <real_value rank="0">36000</real_value>
       <comment>30 hours</comment>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
@@ -199,7 +199,7 @@ Surface BCs for second gls quantity on top surface can be set to
               </surface_ids>
               <type name="neumann">
                 <constant>
-                  <real_value rank="0">0.0</real_value>
+                  <real_value rank="0">0</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -254,6 +254,9 @@ Surface BCs for second gls quantity on top surface can be set to
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">100</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSGenericSecondQuantity" rank="0">
@@ -311,7 +314,7 @@ Surface BCs for second gls quantity on top surface can be set to
               </surface_ids>
               <type name="neumann">
                 <constant>
-                  <real_value rank="0">0.0</real_value>
+                  <real_value rank="0">0</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -366,6 +369,9 @@ Surface BCs for second gls quantity on top surface can be set to
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">99</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSLengthScale" rank="0">
@@ -552,6 +558,40 @@ Surface BCs for second gls quantity on top surface can be set to
             </steady_state>
           </diagnostic>
         </scalar_field>
+        <scalar_field name="GLSAbsorption1" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSAbsorption2" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
         <scalar_field name="GLSGH" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -610,6 +650,40 @@ Surface BCs for second gls quantity on top surface can be set to
             </value>
           </prescribed>
         </tensor_field>
+        <scalar_field name="GLSVerticalViscosity" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSVerticalDiffusivity" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
       </GLS>
     </subgridscale_parameterisations>
     <scalar_field name="Pressure" rank="0">
@@ -932,63 +1006,19 @@ Surface BCs for second gls quantity on top surface can be set to
       </prognostic>
     </scalar_field>
     <scalar_field replaces="IDENT = 42" name="Salinity" rank="0">
-      <prognostic>
+      <prescribed>
         <mesh name="VelocityMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
-            <real_value rank="0">0.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
+        <value name="WholeMesh">
           <constant>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">20</real_value>
           </constant>
-        </initial_condition>
-        <subgridscale_parameterisation name="GLS"/>
+        </value>
         <output/>
         <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
+      </prescribed>
     </scalar_field>
   </material_phase>
 </fluidity_options>

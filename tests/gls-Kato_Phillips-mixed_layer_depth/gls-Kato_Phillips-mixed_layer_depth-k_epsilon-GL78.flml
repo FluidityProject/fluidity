@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94</string_value>
+    <string_value lines="1">gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78</string_value>
     <comment>Surface BCs for TKE on top surface (ID=11) can be set to 
 u*^2/(c_mu^0)^2 = 0.01^2/0.5544^2 = 3.2535206e-4
 
@@ -142,7 +142,7 @@ Surface BCs for second gls quantity on top surface can be set to
           <string_value>k-epsilon</string_value>
         </option>
         <stability_function>
-          <string_value>KanthaClayson-94</string_value>
+          <string_value>GibsonLaunder-78</string_value>
         </stability_function>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
           <prognostic>

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <comment>This model is a full run of GLS, biology and focring for one year at Station Papa. 
 
@@ -182,7 +182,7 @@
           <string_value>k-epsilon</string_value>
         </option>
         <stability_function>
-          <string_value>KanthaClayson-94</string_value>
+          <string_value>Canuto-01-A</string_value>
         </stability_function>
         <calculate_boundaries>
           <string_value>neumann</string_value>
@@ -289,6 +289,9 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">100</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSGenericSecondQuantity" rank="0">
@@ -393,6 +396,9 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">100</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSLengthScale" rank="0">

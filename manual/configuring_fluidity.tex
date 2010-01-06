@@ -996,13 +996,22 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 
 \subsection{GLS}
 
-This option enables the model described in section [ADD CROSSREF]. There are a few different sub-options to configure. First, you must choose which GLS method to use from $k-\epsilon$, $k-kl$, $k-\omega$ and $gen$. Next, the stability functions
+This option enables the model described in section \ref{Sec:GLS}. There are a few different 
+sub-options to configure. First, you must choose which GLS method to use 
+from $k-\epsilon$, $k-kl$, $k-\omega$ and $gen$. Next, the stability functions
 can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model, then switching on the 
 \option{\ldots/calculate\_boundaries} is recommended. You must also enable 
 \option{/geometry/ocean\_boundaries}. Finally, you can enable a number of optional diagnostic fields.
 
-For each field that will be effected by the subgrid scale parameterisations, you must enable the correct diffusivity. This
-is done by specifying \option{\ldots/subgridscale\_parameterisation} in the field to \option{GLS}. Normally, this would
+The GLSTurbulentKineticEnergy field must be solved before the GLSGenericSecondQuantity field for correct
+calculation of the diffusivity and viscosity. In order for that to happen, the priority of the TKE field
+must be higher than that of the second field. It is advised that setting to 100 for GLSTurbulentKineticEnergy and
+99 for GLSGenericSecondQuantity. If this the priority is not set or incorrectly set, an user error will occur.
+
+For each field that will be effected by the subgrid scale parameterisations, 
+you must enable the correct diffusivity. This
+is done by specifying \option{\ldots/subgridscale\_parameterisation} in the
+field to \option{GLS}. Normally, this would
 be the temperature, salinity and any biology fields active.
 
 \section{Boundary conditions}\label{Sect:BCs_configure}

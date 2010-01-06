@@ -3,108 +3,100 @@
 
 <testproblem>
   <name>gls-Kato_Phillips-mixed_layer_depth-k_epsilon</name>
-  <owner userid="piggott"/>
-  <tags>flml</tags>
+  <owner userid="jhill1"/>
+  <tags>flml gls</tags>
     <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.flml &gt; /dev/null 2&gt;&amp;1;</command_line>
+    <command_line>dfluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.flml &gt; /dev/null 2&gt;&amp;1;
+                  dfluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB.flml &gt; /dev/null 2&gt;&amp;1;
+                  dfluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94.flml &gt; /dev/null 2&gt;&amp;1;
+                  dfluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.flml &gt; /dev/null 2&gt;&amp;1;
+    </command_line>
   </problem_definition>  
   <variables>  
 
-    <variable name="FinalTime" language="python">
+    <variable name="FinalTimeCA" language="python">
 import fluidity_tools
-FinalTime = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.stat")['ElapsedTime']['value'][-1]
+FinalTimeCA = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.stat")['ElapsedTime']['value'][-1]
+    </variable>    
+    <variable name="FinalTimeCB" language="python">
+import fluidity_tools
+FinalTimeCB = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTimeKC94" language="python">
+import fluidity_tools
+FinalTimeKC94 = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTimeGL78" language="python">
+import fluidity_tools
+FinalTimeGL78 = fluidity_tools.stat_parser("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.stat")['ElapsedTime']['value'][-1]
     </variable>
 
 
-  <variable name="CanutoA_MLD" language="python">
-
-from numpy import arange,concatenate,array,argsort
+    <variable name="CanutoA_MLD" language="python">
+import mld_calc
 import glob
-import os
-import sys
-import vtktools
-import math
-import re 
-from math import sqrt
-
-
-#### taken from http://www.codinghorror.com/blog/archives/001018.html  #######
-def sort_nicely( l ): 
-  """ Sort the given list in the way that humans expect. 
-  """ 
-  convert = lambda text: int(text) if text.isdigit() else text 
-  alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
-  l.sort( key=alphanum_key ) 
-##############################################################################
-
-
-# compute the mixed layer depth over time
-def MLD(filelist):
-  x0 = 500.0
-  
-  tke0 = 1.0e-5
-  
-  times = []
-  depths = []
-  Dm = []
-  for file in filelist:
-     print file
-     try:
-       os.stat(file)
-     except:
-       print "No such file: %s" % file
-       sys.exit(1)
-     
-     num = int(file.split(".vtu")[0].split('_')[-1])
-     if (num &lt; 1):
-       continue
-     
-     u=vtktools.vtu(file)
-     time = u.GetScalarField('Time')
-     tt = time[0]
-     kk = u.GetScalarField('GLSTurbulentKineticEnergy')
-     pos = u.GetLocations()
-     
-     xyzkk = []
-     for i in range(0,len(kk)):
-        if( abs(pos[i,0] - x0) &lt; 0.1 ):
-           xyzkk.append((pos[i,0],-pos[i,1],pos[i,2],(kk[i])))
-     
-     xyzkkarr = vtktools.arr(xyzkk)
-     III = argsort(xyzkkarr[:,1])
-     xyzkkarrsort = xyzkkarr[III,:]
-     ggg = ((xyzkkarrsort[:,3]) &gt; tke0).nonzero()
-     LL = 0
-     while(ggg[-1][LL]==LL) and (LL+1&lt;len(ggg[-1])):
-       LL = LL + 1
-     zz = -xyzkkarrsort[:,1]
-     zza = zz[LL+1]
-     zzb = zz[LL]
-     kea = xyzkkarrsort[LL+1,3]
-     keb = xyzkkarrsort[LL,3]
-     print tt/3600,(zza-(zza-zzb)*(((keb)-tke0)/((keb)-(kea))))
-     times.append(tt/3600)
-     depths.append(-1.0*(zza-(zza-zzb)*(((keb)-tke0)/((keb)-(kea)))))
-     Dm.append(1.05*1.0e-2*(1.0/sqrt(0.01))*sqrt(tt))
-     
-  return times, depths, Dm
-  
 filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA_*.vtu")
-sort_nicely(filelist)
-CanutoA_MLD = MLD(filelist)
+mld_calc.sort_nicely(filelist)
+CanutoA_MLD = mld_calc.MLD(filelist)
     </variable>
-
+    <variable name="CanutoB_MLD" language="python">
+import mld_calc
+import glob
+filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB_*.vtu")
+mld_calc.sort_nicely(filelist)
+CanutoB_MLD = mld_calc.MLD(filelist)
+    </variable>
+    <variable name="KC94_MLD" language="python">
+import mld_calc
+import glob
+filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94_*.vtu")
+mld_calc.sort_nicely(filelist)
+KC94_MLD = mld_calc.MLD(filelist)
+    </variable>    
+    <variable name="GL78_MLD" language="python">
+import mld_calc
+import glob
+filelist = glob.glob("gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78_*.vtu")
+mld_calc.sort_nicely(filelist)
+GL78_MLD = mld_calc.MLD(filelist)
+    </variable>
 
   </variables>    
 
   <pass_tests> 
-    <test name="Final time greater than 1.0e5" language="python">
-assert FinalTime &gt; 1.0e5
+    <test name="Final time equals 10 hours for CA" language="python">
+assert FinalTimeCA &gt; 35900
     </test>
-    <test name ="Check mixed layed depth at times from 1 hr to 30 hrs is within 5.5 metres of experimentally fitted values. K-epsilon with Canuto (version A) 2001 stability functions." language="python">
+    <test name="Final time equals 10 hours for CB" language="python">
+assert FinalTimeCB &gt; 35900
+    </test>
+    <test name="Final time equals 10 hours for KC94" language="python">
+assert FinalTimeKC94 &gt; 35900
+    </test>
+    <test name="Final time equals 10 hours for GL78" language="python">
+assert FinalTimeGL78 &gt; 35900
+    </test>
+
+    <test name ="MLD for CA vs analytical" language="python">
 from numpy import array, all
 print ( array(CanutoA_MLD[1]) - array(CanutoA_MLD[2]) )
-assert (all( abs(array(CanutoA_MLD[1]) - array(CanutoA_MLD[2]) ) &lt; 5.5))
+assert (all( abs(array(CanutoA_MLD[1]) - array(CanutoA_MLD[2]) ) &lt; 4))
+    </test>   
+    <test name ="MLD for CB vs analytical" language="python">
+from numpy import array, all
+print ( array(CanutoB_MLD[1]) - array(CanutoB_MLD[2]) )
+assert (all( abs(array(CanutoB_MLD[1]) - array(CanutoB_MLD[2]) ) &lt; 4))
     </test>
+    <test name ="MLD for KC94 vs analytical" language="python">
+from numpy import array, all
+print ( array(KC94_MLD[1]) - array(KC94_MLD[2]) )
+assert (all( abs(array(KC94_MLD[1]) - array(KC94_MLD[2]) ) &lt; 4))
+    </test>
+    <test name ="MLD for GL78 vs analytical" language="python">
+from numpy import array, all
+print ( array(GL78_MLD[1]) - array(GL78_MLD[2]) )
+assert (all( abs(array(GL78_MLD[1]) - array(GL78_MLD[2]) ) &lt; 4))
+    </test>
+
   </pass_tests>
 </testproblem>

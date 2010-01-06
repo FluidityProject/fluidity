@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">column-forcing</string_value>
@@ -168,6 +168,9 @@
         <stability_function>
           <string_value>Canuto-01-A</string_value>
         </stability_function>
+        <calculate_boundaries>
+          <string_value>neumann</string_value>
+        </calculate_boundaries>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
@@ -270,6 +273,9 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">100</integer_value>
+            </priority>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSGenericSecondQuantity" rank="0">
@@ -374,24 +380,10 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
+            <priority>
+              <integer_value rank="0">99</integer_value>
+            </priority>
           </prognostic>
-        </scalar_field>
-        <scalar_field name="GLSLengthScale" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
         </scalar_field>
         <tensor_field name="GLSEddyViscosityKM" rank="2">
           <diagnostic>
@@ -407,193 +399,6 @@
             <output/>
           </diagnostic>
         </tensor_field>
-        <scalar_field name="GLSBuoyancyFrequency" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSVelocityShear" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSShearProduction" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSBuoyancyProduction" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSDissipationEpsilon" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSStabilityFunctionSM" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSStabilityFunctionSH" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSSource1" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSSource2" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSGH" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="GLSWallFunction" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
         <tensor_field name="GLSBackgroundViscosity" rank="2">
           <prescribed>
             <mesh name="VelocityMesh"/>
