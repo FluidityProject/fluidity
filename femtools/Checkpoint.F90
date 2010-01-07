@@ -146,6 +146,7 @@ contains
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
 
+    type(detector_type), pointer :: node
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, path
     character(len = PREFIX_LEN) :: lpostfix
     integer :: det_unit, i, j 
@@ -211,9 +212,17 @@ contains
 #else
       FLAbort("No stream I/O support")
 #endif
-      do i = 1, size(detector_list)
-        write(det_unit) detector_list(i)%position
+!      do i = 1, size(detector_list)
+!        write(det_unit) detector_list(i)%position
+!      end do
+
+      node => detector_list%firstnode
+
+      do i = 1, detector_list%length
+        write(det_unit) node%position
+        node => node%next      
       end do
+
       close(det_unit)
       
     end if

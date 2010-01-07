@@ -243,36 +243,66 @@ contains
     deallocate(lpositions)
 
   end subroutine picker_inquire_nodes
-    
+  
   subroutine search_for_detectors(detectors, positions)
     !!< This subroutine establishes on which processor, in which element and at
     !!< which local coordinates each detector is to be found. A negative element
     !!< value indicates that no element could be found for that node.
     
-    type(detector_type), dimension(:), intent(inout) :: detectors
+!   type(detector_type), dimension(:), intent(inout) :: detectors
     type(vector_field), intent(inout) :: positions
     
+    type(detector_linked_list), intent(inout) :: detectors
+    type(detector_type), pointer :: node
+
     integer :: i
     real, dimension(:, :), allocatable :: coords, l_coords
+!    integer, dimension(:, :), allocatable :: elem
+    integer, dimension(:), allocatable :: elem
        
     call initialise_picker(positions)
         
-    allocate(coords(positions%dim, size(detectors)))
-    allocate(l_coords(ele_loc(positions, 1), size(detectors)))
+!   allocate(coords(positions%dim, size(detectors)))
+!   allocate(l_coords(ele_loc(positions, 1), size(detectors)))
+
+    allocate(coords(positions%dim, detectors%length))
+    allocate(l_coords(ele_loc(positions, 1), detectors%length))
+
+!    allocate(elem(detectors%length, 1))
+
+    allocate(elem(detectors%length))
         
-    do i = 1, size(detectors)
-      coords(:, i) = detectors(i)%position
+!   do i = 1, size(detectors)
+!     coords(:, i) = detectors(i)%position
+!   end do
+
+    node => detectors%firstnode
+
+    do i = 1, detectors%length
+      coords(:, i) = node%position
+      node => node%next
     end do
         
-    call picker_inquire(positions, coords, detectors%element, local_coords = l_coords, global = .true.)
+!    call picker_inquire(positions, coords, detectors%element, local_coords = l_coords, global = .true.)
+    call picker_inquire(positions, coords, elem, local_coords = l_coords, global = .true.)
     
-    do i = 1, size(detectors)
-      assert(size(detectors(i)%local_coords) == size(l_coords,1))
-      detectors(i)%local_coords = l_coords(:, i)
+!   do i = 1, size(detectors)
+!     assert(size(detectors(i)%local_coords) == size(l_coords,1))
+!     detectors(i)%local_coords = l_coords(:, i)
+!   end do
+
+    node => detectors%firstnode
+
+    do i = 1, detectors%length
+      assert(size(node%local_coords) == size(l_coords,1))
+      node%local_coords = l_coords(:, i)
+      node%element = elem(i)
+      node => node%next
     end do
     
     deallocate(coords)
     deallocate(l_coords)
+    deallocate(elem)
     
   end subroutine search_for_detectors
 

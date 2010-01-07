@@ -91,6 +91,9 @@ module diagnostic_variables
      module procedure detector_value_scalar, detector_value_vector
   end interface
 
+  interface insert
+     module procedure detector_list_insert
+  end interface
 
   !! Output unit for diagnostics file.
   !! (assumed non-opened as long these are 0)
@@ -122,7 +125,9 @@ module diagnostic_variables
   character(len = FIELD_NAME_LEN), dimension(:), allocatable, save :: name_of_detector_groups_in_read_order
   integer, dimension(:), allocatable, save :: number_det_in_each_group
 
-  type(detector_type), dimension(:), allocatable, target, save :: detector_list
+! type(detector_type), dimension(:), allocatable, target, save :: detector_list
+
+  type(detector_linked_list), target, save :: detector_list
 
   !! Recording wall time since the system start
   integer, save :: current_count, count_rate, count_max
@@ -840,6 +845,8 @@ contains
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, detector_file_filename
     logical :: detectors_checkpoint_done=.false., detectors_from_file_initially=.false.
 
+    type(detector_type), pointer :: node
+
     type(element_type), pointer :: shape
 
     ! Idempotency check
@@ -861,14 +868,16 @@ contains
    
     total_dete=static_dete+lagrangian_dete+python_dete
 
-    allocate(detector_list(total_dete))
+!    allocate(detector_list(total_dete))
     
     total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
  
     allocate(name_of_detector_groups_in_read_order(total_dete_groups))
     allocate(number_det_in_each_group(total_dete_groups))
     
-    if (size(detector_list)==0) return
+!   if (size(detector_list)==0) return
+
+    if (total_dete==0) return
 
     vfield=>extract_vector_field(state(1), "Coordinate")
     shape=>ele_shape(vfield,1)
@@ -893,13 +902,18 @@ contains
        do i=1,static_dete
           write(buffer, "(a,i0,a)")  &
             "/io/detectors/static_detector[",i-1,"]"
-          call get_option(trim(buffer)//"/name", detector_list(i)%name)
-          shape_option=option_shape(trim(buffer)//"/location")
-          allocate(detector_list(i)%position(shape_option(1)))
-          call get_option(trim(buffer)//"/location", detector_list(i)%position)
-       
-          detector_list(i)%type = STATIC_DETECTOR
+      
+          allocate(node)
+          call insert(detector_list,node) 
 
+          call get_option(trim(buffer)//"/name", node%name)
+          shape_option=option_shape(trim(buffer)//"/location")
+          allocate(node%position(shape_option(1)))
+          call get_option(trim(buffer)//"/location", node%position)       
+
+          node%type = STATIC_DETECTOR
+          node%id_number = i
+          
     ! The arrays below contain information about the order in which detector
     ! groups are read and how many detectors there are in each group. This is
     ! used when checkpointing detectors. In particular, when continuing a
@@ -909,26 +923,33 @@ contains
     ! detector data (position, value of variables at those positions, etc.) 
     ! will have the information in the same order.
 
-          name_of_detector_groups_in_read_order(i)=detector_list(i)%name
+          name_of_detector_groups_in_read_order(i)=node%name
           number_det_in_each_group(i)=1.0
 
-          allocate(detector_list(i)%local_coords(local_coord_count(shape)))
+          allocate(node%local_coords(local_coord_count(shape)))
+
        end do
 
        do i=1,lagrangian_dete
           write(buffer, "(a,i0,a)")  &
             "/io/detectors/lagrangian_detector[",i-1,"]"
-          call get_option(trim(buffer)//"/name", detector_list(i+static_dete)%name)
-          shape_option=option_shape(trim(buffer)//"/location")
-          allocate(detector_list(i+static_dete)%position(shape_option(1)))
-          call get_option(trim(buffer)//"/location", detector_list(i+static_dete)%position)
-       
-          detector_list(i+static_dete)%type = LAGRANGIAN_DETECTOR
 
-          name_of_detector_groups_in_read_order(i+static_dete)=detector_list(i+static_dete)%name
+          allocate(node)
+          call insert(detector_list,node) 
+
+          call get_option(trim(buffer)//"/name", node%name)
+          shape_option=option_shape(trim(buffer)//"/location")
+          allocate(node%position(shape_option(1)))
+          call get_option(trim(buffer)//"/location", node%position)
+       
+          node%type = LAGRANGIAN_DETECTOR
+          node%id_number = i+static_dete
+          
+          name_of_detector_groups_in_read_order(i+static_dete)=node%name
           number_det_in_each_group(i+static_dete)=1.0
 
-          allocate(detector_list(i+static_dete)%local_coords(local_coord_count(shape)))
+          allocate(node%local_coords(local_coord_count(shape)))
+
        end do
 
        k=static_dete+lagrangian_dete+1
@@ -967,13 +988,20 @@ contains
        
               do j=1,ndete
 
-                  write(detector_list(k)%name, fmt) trim(funcnam)//"_", j
+                  allocate(node)
+                  call insert(detector_list,node)
 
-                  allocate(detector_list(k)%position(dim))
-                  detector_list(k)%position=coords(:,j)
-                  detector_list(k)%type=type_det
+                  write(node%name, fmt) trim(funcnam)//"_", j
 
-                  allocate(detector_list(k)%local_coords(local_coord_count(shape)))
+                  allocate(node%position(dim))
+
+                  node%position=coords(:,j)
+                  node%type=type_det
+
+                  node%id_number = k
+
+                  allocate(node%local_coords(local_coord_count(shape)))
+
                   k=k+1
         
               end do
@@ -996,12 +1024,17 @@ contains
 #endif
               do j=1,ndete
 
-                  write(detector_list(k)%name, fmt) trim(funcnam)//"_", j
-                  allocate(detector_list(k)%position(dim))
-                  read(detector_file_unit) detector_list(k)%position
-                  detector_list(k)%type=type_det
+                  allocate(node)
+                  call insert(detector_list,node)
 
-                  allocate(detector_list(k)%local_coords(local_coord_count(shape)))
+                  write(node%name, fmt) trim(funcnam)//"_", j
+
+                  allocate(node%position(dim))
+                  read(detector_file_unit) node%position
+                  node%type=type_det
+                  node%id_number = k
+
+                  allocate(node%local_coords(local_coord_count(shape)))
                   k=k+1
         
               end do
@@ -1055,11 +1088,17 @@ contains
               call get_option(trim(buffer)//"/name", temp_name)
        
               if (name_of_detector_groups_in_read_order(j)==temp_name) then
-                  detector_list(j)%name=temp_name
-                  allocate(detector_list(j)%position(dim))
-                  read(detector_checkpoint_unit) detector_list(j)%position
-                  detector_list(j)%type = STATIC_DETECTOR
-                  allocate(detector_list(j)%local_coords(local_coord_count(shape)))   
+
+                  allocate(node)
+                  call insert(detector_list,node)
+                  node%name=temp_name
+                  allocate(node%position(dim))
+                  read(detector_checkpoint_unit) node%position
+                  node%type = STATIC_DETECTOR
+                  allocate(node%local_coords(local_coord_count(shape)))   
+    
+                  node%id_number = i
+               
               else
                   cycle
               end if
@@ -1075,11 +1114,18 @@ contains
               call get_option(trim(buffer)//"/name", temp_name)
 
               if (name_of_detector_groups_in_read_order(j)==temp_name) then
-                  detector_list(j)%name=temp_name
-                  allocate(detector_list(j)%position(dim))
-                  read(detector_checkpoint_unit) detector_list(j)%position
-                  detector_list(j)%type = LAGRANGIAN_DETECTOR
-                  allocate(detector_list(j)%local_coords(local_coord_count(shape)))   
+
+                  allocate(node)
+                  call insert(detector_list,node)
+                  node%name=temp_name
+                  allocate(node%position(dim))
+                  read(detector_checkpoint_unit) node%position
+                  node%type = LAGRANGIAN_DETECTOR
+
+                  allocate(node%local_coords(local_coord_count(shape))) 
+
+                  node%id_number = i+static_dete
+ 
               else
                   cycle
               end if
@@ -1111,12 +1157,18 @@ contains
 
                  do m=1,number_det_in_each_group(j)
 
-                   write(detector_list(k)%name, fmt) trim(temp_name)//"_", m
-                   allocate(detector_list(k)%position(dim))
-                   read(detector_checkpoint_unit) detector_list(k)%position
-                   detector_list(k)%type=type_det
+                   allocate(node)
+                   call insert(detector_list,node)
 
-                   allocate(detector_list(k)%local_coords(local_coord_count(shape)))
+                   write(node%name, fmt) trim(temp_name)//"_", m
+                   allocate(node%position(dim))
+                   read(detector_checkpoint_unit) node%position
+                   node%type=type_det
+
+                   node%id_number = k
+
+                   allocate(node%local_coords(local_coord_count(shape)))
+
                    k=k+1
         
                  end do
@@ -1172,19 +1224,27 @@ contains
     write(detector_unit, '(a)') trim(buffer)
 
     ! Next columns contain the positions of all the detectors.
-    positionloop: do i=1, size(detector_list)
 
-         buffer=field_tag(name=detector_list(i)%name, column=column+1,&
+
+    node => detector_list%firstnode
+
+    positionloop: do i=1, detector_list%length
+
+
+         buffer=field_tag(name=node%name, column=column+1,&
             statistic="position", &
-            components=size(detector_list(i)%position))
+            components=size(node%position))
          write(detector_unit, '(a)') trim(buffer)
-         column=column+size(detector_list(i)%position)
+         column=column+size(node%position)
+
+         node => node%next
 
     end do positionloop
 
+    
     phaseloop: do phase=1,size(state)
 
-        material_phase_name=trim(state(phase)%name)
+            material_phase_name=trim(state(phase)%name)
 
         do i=1, size(detector_sfield_list(phase)%ptr)
           ! Headers for detectors for each scalar field.
@@ -1195,13 +1255,17 @@ contains
                  cycle
             end if
 
-          do j=1, size(detector_list)
+          node => detector_list%firstnode
+
+          do j=1, detector_list%length
 
             column=column+1
             buffer=field_tag(name=sfield%name, column=column, &
-                  statistic=detector_list(j)%name, &
+                  statistic=node%name, &
                   material_phase_name=material_phase_name)
             write(detector_unit, '(a)') trim(buffer)
+
+            node => node%next
 
           end do
 
@@ -1216,14 +1280,18 @@ contains
              cycle
           end if
 
-          do j=1, size(detector_list)
+          node => detector_list%firstnode
+
+          do j=1, detector_list%length
 
              buffer=field_tag(name=vfield%name, column=column+1, &
-                  statistic=detector_list(j)%name, &
+                  statistic=node%name, &
                   material_phase_name=material_phase_name, &
                   components=vfield%dim)
              write(detector_unit, '(a)') trim(buffer)
-             column=column+size(detector_list(j)%position)
+             column=column+size(node%position)
+
+             node => node%next
 
           end do
         end do
@@ -1246,6 +1314,29 @@ contains
     end if
 
   end subroutine initialise_detectors
+
+
+  subroutine detector_list_insert(detector_list,node)
+
+  type(detector_linked_list), intent(inout) :: detector_list
+  type(detector_type), pointer :: node
+
+  if (detector_list%length == 0) then
+
+    detector_list%firstnode => node 
+    detector_list%lastnode => node 
+    detector_list%length = 1
+
+  else
+  
+    node%previous => detector_list%lastnode
+    detector_list%lastnode%next => node
+    detector_list%lastnode => node
+    detector_list%length = detector_list%length+1
+    
+  end if 
+
+  end subroutine detector_list_insert
 
   function field_tag(name, column, statistic, material_phase_name, components)
     !!< Create a field tag for the given entries.
@@ -1608,7 +1699,6 @@ contains
                end if
            end if
          end do
-
        end do
 
     end do phaseloop
@@ -1731,11 +1821,17 @@ contains
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield, xfield
+!    character(len=254), dimension(:), allocatable :: types_det
+    integer, dimension(:), allocatable :: types_det
+    logical :: any_lagrangian
+
+    type(detector_type), pointer :: node
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
     ! Don't actually do this if there are no detectors!
-    if(size(detector_list)==0) then
+!    if(size(detector_list)==0) then
+    if(detector_list%length==0) then
        return
     end if
 
@@ -1746,7 +1842,60 @@ contains
 
     call search_for_detectors(detector_list, xfield)
 
-    if (any(detector_list%type==LAGRANGIAN_DETECTOR)) then
+    node => detector_list%firstnode
+
+    do i = 1, detector_list%length
+      
+      ewrite(1,*) "DETECTOR number:", node%id_number
+
+      ewrite(1,*) "name this detector is:", node%name
+      ewrite(1,*) "position this detector is:", node%position
+
+      ewrite(1,*) "DETECTOR element:", node%element
+
+      if (node%element<0) then
+
+         node%type = STATIC_DETECTOR
+     
+      end if 
+
+      node => node%next
+
+    end do
+
+!   if (any(detector_list%type==LAGRANGIAN_DETECTOR)) then
+
+    node => detector_list%firstnode
+    allocate(types_det(detector_list%length))
+
+    ewrite(1,*) "WE ARE INSIDE WRITE_DETECTORS AND THE LENGHT OF DETECTOR_LIST IS", detector_list%length
+
+    do i = 1, detector_list%length
+      types_det(i) = node%type
+!      if (types_det(i)==LAGRANGIAN_DETECTOR)  then
+      if (types_det(i)==2)  then
+         any_lagrangian=.true. 
+      end if
+
+      ewrite(1,*) "DETECTOR number:", node%id_number
+
+      ewrite(1,*) "DETECTOR type:", types_det(i)
+
+      ewrite(1,*) "DETECTOR type FROM node%type:", node%type
+   
+      ewrite(1,*) "variable any_lagrangian is:", any_lagrangian
+
+      ewrite(1,*) "name this detector is:", node%name
+
+      ewrite(1,*) "position this detector is:", node%position
+
+      node => node%next
+      
+    end do
+
+    if (any_lagrangian) then
+
+       ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
 
        call move_detectors_bisection_method(state, dt) 
 
@@ -1777,17 +1926,22 @@ contains
     end if
 
        ! Next columns contain the positions of all the detectors.
-       positionloop: do i=1, size(detector_list)
+      
+       node => detector_list%firstnode
+
+       positionloop: do i=1, detector_list%length
 
        if(getprocno() == 1) then
           if(binary_detector_output) then
-            write(detector_unit) detector_list(i)%position
+            write(detector_unit) node%position
           else
-            format_buffer=reals_format(size(detector_list(i)%position))
+            format_buffer=reals_format(size(node%position))
             write(detector_unit, format_buffer, advance="no") &
-                  detector_list(i)%position
+                  node%position
           end if
        end if
+
+       node => node%next
 
        end do positionloop
 
@@ -1802,9 +1956,11 @@ contains
                 cycle
               end if
           
-              do j=1, size(detector_list)
-                 value =  detector_value(sfield, detector_list(j))
-             
+              node => detector_list%firstnode
+
+              do j=1, detector_list%length
+                value =  detector_value(sfield, node)
+
                 if(getprocno() == 1) then
                 
                     if(binary_detector_output) then
@@ -1815,6 +1971,8 @@ contains
                     end if
                 
                  end if
+
+                 node => node%next
 
               end do
            end do
@@ -1835,9 +1993,12 @@ contains
                  deallocate(vvalue)
                  allocate(vvalue(vfield%dim))
               end if
- 
-            do j=1, size(detector_list)
-                 vvalue =  detector_value(vfield, detector_list(j))
+
+              node => detector_list%firstnode
+
+              do j=1, detector_list%length
+            
+                 vvalue =  detector_value(vfield, node)
              
                  ! Only the first process should write statistics information
              
@@ -1852,7 +2013,9 @@ contains
 
               end if
 
-            end do            
+              node => node%next
+
+              end do            
         
            end do
 
@@ -1893,7 +2056,7 @@ contains
     !Each smaller value is such that the detector is moved from its previous position to the boundary face between    
     !the element where it belonged to and the neighbouring element in the direction of the flow, through the minimum local 
     !coordinate. Sometimes going through the minimum coordinate is not right (does not follow the flow direction) and in 
-    !that case the detector has been placed back into the previous position and element and care has been taken for the 
+    !that case the detector has been placed back into the previous position and previous element and care has been taken for the 
     !detector to follow the flow until the next boundary face
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: dt
@@ -1903,8 +2066,10 @@ contains
     type(vector_field), pointer :: vfield, xfield, old_vfield
     type(detector_type), pointer :: this_det
     integer, dimension(:), pointer :: ele_number_ptr
-    real :: dt_var, dt_temp, dt_var_temp, dt_temp_temp, dt_var_value
-    integer :: old_index_minloc, cont_aaa, cont_bbb, cont_ccc, cont_ddd, cont_eee, cont_fff, cont_ggg, index_next_face, current_element, previous_element, cont_repeated_situation, cont_times_same_element
+    real :: dt_temp, dt_var_temp, dt_temp_temp, dt_var_value
+    integer :: old_index_minloc, cont_aaa, cont_bbb, cont_ccc, cont_ddd, cont_eee, cont_fff, & 
+               cont_ggg, index_next_face, current_element, previous_element, cont_repeated_situation, cont_times_same_element
+!   integer, dimension(1:100000) :: element_next_to_boundary
     integer, dimension(:), allocatable :: element_next_to_boundary
 
     ewrite(1,*) "Inside move_detectors_bisection_method subroutine"
@@ -1920,37 +2085,100 @@ contains
     allocate(old_pos(old_vfield%dim))
 
     !do_for_each_detector: 
-    do j=1, size(detector_list)
 
-       this_det => detector_list(j) 
+    this_det => detector_list%firstnode
+
+    do j=1, detector_list%length
+
+       ewrite(1,*) "JUST BEFORE DECIDING TO CYCLE"
+
+       ewrite(1,*) "this_det%type IS:", this_det%type
           
-       if (this_det%type /= LAGRANGIAN_DETECTOR) cycle
+       if (this_det%type /= LAGRANGIAN_DETECTOR) then
+         
+          this_det => this_det%next
+
+          cycle
+
+       end if
        
+       ewrite(1,*) "SHOULD BE MOVING 1ST LAG. DETECTOR"
+
        dt_temp=0.0
-       dt_var=dt          
+!      dt_var=dt
+       this_det%dt=dt          
 
        previous_element = this_det%element
 
        cont_repeated_situation=0.0
-       element_next_to_boundary=0.0
+!       element_next_to_boundary=0.0
 
        !do_until_whole_dt_is_reached: 
        do  
       
-          if (dt_var<1.0e-3*dt) exit
+          if (this_det%dt<1.0e-3*dt) exit
           
           vel =  detector_value(vfield, this_det)
           old_vel = detector_value(old_vfield, this_det)
           old_pos = this_det%position
           current_element = this_det%element
 
-          call move_detectors_subtime_step(state, this_det, xfield, dt, dt_var, dt_temp, old_pos, vel, old_vel, vfield, old_vfield,previous_element,index_next_face)
+!         call move_detectors_subtime_step(state, this_det, xfield, dt, dt_var, dt_temp, old_pos, vel, old_vel, vfield, old_vfield,previous_element,index_next_face)
+
+          call move_detectors_subtime_step(state, this_det, xfield, dt, dt_temp, old_pos, vel, old_vel, vfield, old_vfield,previous_element,index_next_face)
+
+!From the previous subroutine, the detector is moved until the boundary between two elements is found or this_det%dt reached dt. If the detector leaves the domain or we lose track of it, then it will be converted into a static one
 
           if (this_det%type==STATIC_DETECTOR) exit
 
           ele_number_ptr=>ele_neigh(xfield,this_det%element)
           previous_element=this_det%element
           this_det%element=ele_number_ptr(index_next_face) 
+
+          call check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation)
+  
+          if (this_det%type==STATIC_DETECTOR) exit
+
+          this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+               
+          dt_temp=dt_temp+this_det%dt
+          this_det%dt=dt-dt_temp;
+
+       end do 
+       !do_until_dt_reached
+
+!    deallocate(element_next_to_boundary)
+
+    this_det => this_det%next
+
+    end do 
+!do_for_each_detector
+
+    deallocate(vel)
+    deallocate(old_vel)
+    deallocate(old_pos)
+
+  end subroutine move_detectors_bisection_method  
+
+  subroutine check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation)
+
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det
+    type(vector_field), intent(inout) :: xfield
+    real, intent(in) :: dt
+    real, intent(inout) :: dt_temp
+    real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+    type(vector_field), pointer :: vfield, old_vfield
+    integer, intent(inout) :: index_next_face, current_element, cont_repeated_situation
+
+    integer :: k,h
+    real :: dt_var_temp, dt_temp_temp, dt_var_value
+    integer :: old_index_minloc, cont_aaa, cont_bbb, cont_ccc, cont_ddd, cont_eee, cont_fff, & 
+               cont_ggg, cont_times_same_element
+    integer, dimension(:), allocatable :: element_next_to_boundary
 
           cont_aaa=0.0
           cont_bbb=0.0
@@ -1963,7 +2191,7 @@ contains
           cont_times_same_element=0.0
 
           if (this_det%element<0.0) then
-  
+ 
              cont_aaa=cont_aaa+1
 
              cont_repeated_situation=cont_repeated_situation+1
@@ -1971,21 +2199,26 @@ contains
                 cont_repeated_situation=1
              end if
              
+             allocate(element_next_to_boundary(cont_repeated_situation))
+
              element_next_to_boundary(cont_repeated_situation)=current_element
 
              this_det%element=current_element
-             dt_var_value=dt_var
-             dt_var=dt_var*0.6
+!            dt_var_value=dt_var
+!            dt_var=dt_var*0.6
 
-             call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
+             dt_var_value=this_det%dt
+             this_det%dt=this_det%dt*0.6
+
+             call update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
               
              do
                   
                 if ((all(this_det%local_coords>=0.0)).and.(this_det%local_coords(index_next_face)>1.0e-5)) exit
 
-                dt_var=dt_var/2
+                this_det%dt=this_det%dt/2
                 
-                call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
+                call update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
 
                 cont_bbb=cont_bbb+1
 
@@ -1995,11 +2228,11 @@ contains
                 !the code does not get stuck.
                 !The Lagrangian detector would be converted into a static one.
 
-                if ((cont_bbb>1.0e6).or.(dt_var<1.0e-5*dt_var_value))  exit
+                if ((cont_bbb>1.0e6).or.(this_det%dt<1.0e-5*dt_var_value))  exit
 
              end do        
 
-             if ((cont_bbb>1.0e6).or.(dt_var<1.0e-5*dt_var_value)) then
+             if ((cont_bbb>1.0e6).or.(this_det%dt<1.0e-5*dt_var_value)) then
 
                 cont_fff=cont_fff+1
 
@@ -2037,20 +2270,27 @@ contains
 
              end if
 
-             if (this_det%type==STATIC_DETECTOR) exit
+             if (this_det%type==STATIC_DETECTOR) return
 
              vel =  detector_value(vfield, this_det)
              old_vel = detector_value(old_vfield, this_det)
              old_pos = this_det%position
-             
-             dt_temp_temp=dt_temp+dt_var
+
+!Next we start moving a bit the detector after placing it back into the previous element and check that this time it does not go through the same boundary and hence, ends outside the domain. If that is the case, then we make the detector static already now.             
+
+             dt_temp_temp=dt_temp+this_det%dt
              dt_var_temp=dt-dt_temp_temp;
+
+!As part of the RK second order algorithm, we move first the particle or detector using half of the current time step (dt_var_temp)
 
              this_det%position=(vel+old_vel)/2*dt_var_temp/2+old_pos
 
              this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
              old_index_minloc=index_next_face
+
+!Next we check if the detector ends up having again negative local coord. through the face it came out of the domain before.
+!If so, we check then if another of the local coords. is also negative and in that case it has gone out through the element via another face or boundary, but if no other local coord is also negative, then the detector is ending in the same place as before, that was outside the domain and if this is the case we make it static.
 
              if (this_det%local_coords(index_next_face)<0.) then
 
@@ -2090,30 +2330,13 @@ contains
              this_det%position=old_pos
              this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
+             deallocate(element_next_to_boundary)
+
           end if
 
-          if (this_det%type==STATIC_DETECTOR) exit
+  end subroutine check_if_det_gone_through_domain_boundary
 
-          this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-               
-          dt_temp=dt_temp+dt_var
-          dt_var=dt-dt_temp;
-
-       end do 
-       !do_until_dt_reached
-
-    end do 
-!do_for_each_detector
-
-    deallocate(vel)
-    deallocate(old_vel)
-    deallocate(old_pos)
-    
-    deallocate(element_next_to_boundary)
-
-  end subroutine move_detectors_bisection_method  
-
-  subroutine move_detectors_subtime_step(state, this_det, xfield, dt, dt_var, dt_temp, old_pos, &
+  subroutine move_detectors_subtime_step(state, this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, vfield, old_vfield, previous_element,index_next_face)
   !!< Subroutine that makes sure the Lagrangian detector ends up on one of its boundary faces (within tolerance of
   !+/-10.0e-8) up to where it has reached using one of the smaller time steps (sutime step). 
@@ -2127,7 +2350,7 @@ contains
     type(detector_type), pointer :: this_det
     type(vector_field), intent(inout) :: xfield
     real, intent(in) :: dt
-    real, intent(inout) :: dt_var, dt_temp
+    real, intent(inout) :: dt_temp
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
     type(vector_field), pointer :: vfield, old_vfield
     integer, intent(in) :: previous_element
@@ -2135,12 +2358,12 @@ contains
     real,  dimension(1:size(this_det%local_coords)) :: local_coords_temp, aaa, bbb
 
     real :: dt_var_check, dt_temp_check, dt_a, dt_b, &
-            keep_value_dt_var, keep_value_dt_var_a, minvalue, maxvalue
+            keep_value_this_det_dt, keep_value_this_det_dt_a, minvalue, maxvalue
     integer :: i, j, k, cont, cont_a, cont_b, cont_c, cont_d, cont_p, cont_r, &
                cont_check, cont_apq, index_minloc_current, cont_ready_out, index_minvalue_loc, &
                cont_ready_out_a, index_temp, cont_apqrt, cont_ready, cont_check_a, &
                index_temp_maxvalue, cont_loop, node, current_element_number, number_of_elem, &
-               cont_elem_neg, cont_static_det, det_inside_an_ele
+               cont_elem_neg, cont_static_det, det_inside_an_ele, bound_elem_iteration
 
     integer, dimension(:), pointer :: nodes, elements
     type(csr_sparsity), pointer :: nelist
@@ -2159,12 +2382,12 @@ contains
 
     do
    
-       dt_var=dt_var/2
-       this_det%position=(vel+old_vel)/2*dt_var+old_pos
+       this_det%dt=this_det%dt/2
+       this_det%position=(vel+old_vel)/2*this_det%dt+old_pos
 
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
-       keep_value_dt_var=dt_var
+       keep_value_this_det_dt=this_det%dt
 
        cont=0.0
 
@@ -2172,24 +2395,23 @@ contains
    
           if (all(this_det%local_coords>-10.0e-8)) exit
 
-          dt_var=dt_var/2
+          this_det%dt=this_det%dt/2
        
-          call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
+          call update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
 
           cont=cont+1
 
           bbb=this_det%local_coords
 
-          !If no matter how much dt_var is reduced, still the detector is not inside the new element when start moving it 
+          !If no matter how much this_det%dt is reduced, still the detector is not inside the new element when start moving it 
           !in the direction of the flow, it is most likely because the detector left the previous element through the wrong 
           !face. The condition of leaving the element is normally through the face with respect to which the local coordinate 
           !has the minimum value. This can lead sometimes to the detector leaving the element through a face that does not intersect 
-          !the direction of the flow. In the next lines, the detector is returned to the previous element and it is checked that 
-          !moving it from there in the direction of the flow, the detector stays in the element for a specific value of dt_var 
-          !(smaller time step).
+          !the direction of the flow. In the next lines, the detector is returned to the previous element and previous position and 
+          !it is checked that moving it from there in the direction of the flow, the detector stays in the element at least for a specific 
+          !value of this_det%dt (smaller time step).
       
-          if ((cont>1.0e6).or.(dt_var<1.0e-5*keep_value_dt_var)) then
-
+          if ((cont>1.0e6).or.(this_det%dt<1.0e-5*keep_value_this_det_dt)) then
 
              this_det%element=previous_element
 
@@ -2203,11 +2425,10 @@ contains
              index_minloc_current=minloc(this_det%local_coords, dim=1)
 
              cont_check=cont_check+1
-
                  
-             dt_var=keep_value_dt_var
+             this_det%dt=keep_value_this_det_dt
 
-             this_det%position=(vel+old_vel)/2*dt_var+old_pos
+             this_det%position=(vel+old_vel)/2*this_det%dt+old_pos
 
              this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
@@ -2219,13 +2440,13 @@ contains
 
                 if (all(this_det%local_coords>-10.0e-8)) exit
 
-                dt_var=dt_var/2
+                this_det%dt=this_det%dt/2
          
-                call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
+                call update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
 
                 cont_r=cont_r+1
 
-                if ((cont_r>=1.0e6).or.(dt_var<1.0e-5*keep_value_dt_var)) then
+                if ((cont_r>=1.0e6).or.(this_det%dt<1.0e-5*keep_value_this_det_dt)) then
 
                      cont_check_a=cont_check_a+1
 
@@ -2243,17 +2464,17 @@ contains
 
        vel = detector_value(vfield, this_det)
        old_vel = detector_value(old_vfield, this_det)
-       dt_var=dt_var*2
-       this_det%position=(vel+old_vel)/2*dt_var+old_pos
+       this_det%dt=this_det%dt*2
+       this_det%position=(vel+old_vel)/2*this_det%dt+old_pos
 
-       keep_value_dt_var_a=dt_var
+       keep_value_this_det_dt_a=this_det%dt
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
        if (all(this_det%local_coords>-10.0e-8)) exit
 
        cont_d=cont_d+1
 
-       dt_var=dt_var/2
+       this_det%dt=this_det%dt/2
        this_det%position=old_pos
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
        vel = detector_value(vfield, this_det)
@@ -2268,6 +2489,81 @@ contains
     !it is going through a vortex. In this case, in order to find the next element to which the detector belongs when moving 
     !in the direction of the flow, all the elements that share a node are checked. The node chosen is the one opposite to the 
     !face with respect to which the local coordinate is the maximum.
+
+    call scenario_det_gone_through_element_vortex(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
+
+    !In the next if, since the detector seems to have gone through the wrong face and when returning it to its   
+    !previous element and moving it with the flow, the detector stays in the element for a specific value of dt_var,
+    !now the detector is moved towards the appropriate face of the element.
+
+    call scenario_det_gone_through_wrong_face(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
+ 
+    !In the next if, the most straight forward scenario is dealed with, i.e., the detector previously on the boundary of an element, made to move 
+    !in the direction of the flow towards the next element across that boundary, belongs to the next element for a particular value of dt_var 
+    !(next smaller time step).
+
+    call scenario_det_gone_through_right_face(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face,cont_check,bound_elem_iteration)
+ 
+    if (bound_elem_iteration>=33554432) then 
+
+       this_det%type=STATIC_DETECTOR
+              
+    end if     
+
+    cont_static_det=0.0
+    
+    if (this_det%type==STATIC_DETECTOR) then
+
+       cont_static_det=cont_static_det+1
+          
+       this_det%position=old_pos
+       this_det%element=previous_element
+       this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+
+    end if
+
+    if (this_det%type==STATIC_DETECTOR) return
+
+  end subroutine move_detectors_subtime_step
+
+  subroutine scenario_det_gone_through_element_vortex(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
+
+!  subroutine move_detectors_subtime_step(state, this_det, xfield, dt, dt_temp, old_pos, &
+!                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face)
+  !!< Subroutine that makes sure the Lagrangian detector ends up on one of its boundary faces (within tolerance of
+  !+/-10.0e-8) up to where it has reached using one of the smaller time steps (sutime step). 
+  !Once the detector is on the boundary (within tolerance of +/-10.0e-8), in the subroutine that calls this one, the   
+  !detector is asigned to the neighbouring element through that face and again calling this subroutine, the detector is 
+  !moved using another smaller time step until the boundary of this new element, always following the direction of the flow. 
+  !These steps are repeated until the sum of all the smaller time steps used to go from elemenet to element is equal to the 
+  !total time step.
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det
+    type(vector_field), intent(inout) :: xfield
+    real, intent(in) :: dt
+    real, intent(inout) :: dt_temp
+    real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+    type(vector_field), pointer :: vfield, old_vfield
+    integer, intent(in) :: previous_element, cont_check, cont_check_a
+    integer, intent(inout) :: index_next_face, bound_elem_iteration
+    
+    real,  dimension(1:size(this_det%local_coords)) :: local_coords_temp, aaa, bbb
+
+    real :: dt_var_check, dt_temp_check, dt_a, dt_b, &
+            keep_value_this_det_dt, keep_value_this_det_dt_a, minvalue, maxvalue
+    integer :: i, j, k, cont, cont_a, cont_b, cont_c, cont_d, cont_p, cont_r, &
+               cont_apq, index_minloc_current, cont_ready_out, index_minvalue_loc, &
+               cont_ready_out_a, index_temp, cont_apqrt, cont_ready, &
+               index_temp_maxvalue, cont_loop, node, current_element_number, number_of_elem, &
+               cont_elem_neg, cont_static_det, det_inside_an_ele
+
+    integer, dimension(:), pointer :: nodes, elements
+    type(csr_sparsity), pointer :: nelist
 
     if ((cont_check /= 0.0).and.(cont_check_a /= 0.0)) then
 
@@ -2327,15 +2623,15 @@ contains
 
           this_det%element=elements(i)
 
-          dt_var=keep_value_dt_var
+          this_det%dt=keep_value_this_det_dt
 
           cont_d=0.0
 
           do
   
-             dt_var=dt_var/2
+             this_det%dt=this_det%dt/2
 
-             this_det%position=(vel+old_vel)/2*dt_var+old_pos
+             this_det%position=(vel+old_vel)/2*this_det%dt+old_pos
 
              this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
@@ -2345,22 +2641,22 @@ contains
 
                 if (all(this_det%local_coords>-10.0e-8)) exit
 
-                dt_var=dt_var/2
+                this_det%dt=this_det%dt/2
        
-                call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
+                call update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
 
                 cont_loop=cont_loop+1
 
-                if ((cont_loop>1.0e6).or.(dt_var<1.0e-5*keep_value_dt_var)) exit
+                if ((cont_loop>1.0e6).or.(this_det%dt<1.0e-5*keep_value_this_det_dt)) exit
 
              end do
 
-             if ((cont_loop>1.0e6).or.(dt_var<1.0e-5*keep_value_dt_var)) exit
+             if ((cont_loop>1.0e6).or.(this_det%dt<1.0e-5*keep_value_this_det_dt)) exit
 
              vel =  detector_value(vfield, this_det)
              old_vel = detector_value(old_vfield, this_det)
-             dt_var=dt_var*2
-             this_det%position=(vel+old_vel)/2*dt_var+old_pos
+             this_det%dt=this_det%dt*2
+             this_det%position=(vel+old_vel)/2*this_det%dt+old_pos
 
              this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
@@ -2368,7 +2664,7 @@ contains
 
              cont_d=cont_d+1
 
-             dt_var=dt_var/2
+             this_det%dt=this_det%dt/2
              this_det%position=old_pos
              this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
              vel =  detector_value(vfield, this_det)
@@ -2414,11 +2710,38 @@ contains
 
        if (this_det%type==STATIC_DETECTOR) return
 
+       call placing_det_in_boundary_between_elem(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, bound_elem_iteration)
+  
+    end if
+
+  end subroutine scenario_det_gone_through_element_vortex
+
+  subroutine placing_det_in_boundary_between_elem(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, bound_elem_iteration)
+
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det
+    type(vector_field), intent(inout) :: xfield
+    real, intent(in) :: dt
+    real, intent(inout) :: dt_temp
+    real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+    type(vector_field), pointer :: vfield, old_vfield
+    integer, intent(inout) :: index_next_face, bound_elem_iteration
+!    integer, intent(out) :: bound_elem_iteration
+    
+    real :: dt_var_check, dt_temp_check, dt_a, dt_b
+            
+    integer :: j, k, cont_a, cont_b, cont_c, cont_p, cont_ready_out, cont_apqrt
+
+       bound_elem_iteration=0.0
+
        do
 
        !dt_a is the value of the bisected dt with which the detector falls inside the element for first time
 
-          dt_temp_check=dt_temp+dt_var
+          dt_temp_check=dt_temp+this_det%dt
           dt_var_check=dt-dt_temp_check
 
           index_next_face=minloc(this_det%local_coords, dim=1)
@@ -2426,18 +2749,13 @@ contains
           cont_apqrt=0.0        
 
           cont_ready_out=0.0
-          cont_ready_out_a=0.0 
+
+          cont_p=0.0
 
           !Next it is checked if the detector is on one of the element faces (within tolerance +/-10.0e-8). 
 
           !If not, it needs to be moved further in the direction of the flow until it hits the element face.  
   
-          !If yes, the detector is moved backwards a bit, to check that the ratio of the local coordinates associated 
-          !to the min local coordinate before moving backwards the detector, is not equal to 1.
- 
-          !If it is equal to 1 the detector is moving parallel to the face, so even if very close to that face (inside tolerance) 
-          !it should not stop in this face, but in a face that crosses the flow direction (hence the trayectory of the detector).
-
           !Other conditions where placed before regarding if the ratio between the other local coordinates after and before moving 
           !the detector backwards was less than 1, i.e., the other local coords are generally increasing as we aproach the right 
           !face (with respect to which the local coord is minimum).
@@ -2449,34 +2767,8 @@ contains
 
           if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8)) then
 
-             dt_var=dt_var*0.5
-
-             local_coords_temp=this_det%local_coords
-
-             index_minvalue_loc=minloc(this_det%local_coords, dim=1)
-   
-             cont_apqrt=cont_apqrt+1
-
-             call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)     
-
-             do j=1, size(this_det%local_coords)
-
-                aaa(j)=abs(this_det%local_coords(j)/local_coords_temp(j))
-
-             end do
-
-             cont_ready_out=0.0
-
-             if ((aaa(index_minvalue_loc)>1).or.(aaa(index_minvalue_loc)<1)) then
-
                 cont_ready_out=cont_ready_out+1
-
-             end if
-
-             dt_var=dt_var/0.5
-
-             call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)  
-
+           
           end if 
 
 
@@ -2489,9 +2781,9 @@ contains
 
           if (dt_var_check<1.0e-3*dt) exit 
 
-          if (i>=33554432) exit
+          if (bound_elem_iteration>=33554432) exit
 
-          dt_a=dt_var
+          dt_a=this_det%dt
           dt_b=2*dt_a
 
           !If not yet on one of the faces of the element (within tolerance), it needs to be moved further 
@@ -2507,31 +2799,7 @@ contains
          
              if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8)) then
 
-                dt_var=dt_var*0.5
-
-                local_coords_temp=this_det%local_coords
-
-                index_minvalue_loc=minloc(this_det%local_coords, dim=1)
-   
-                call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)     
-
-                do j=1, size(this_det%local_coords)
-
-                   aaa(j)=abs(this_det%local_coords(j)/local_coords_temp(j))
-
-                end do
-
-                cont_ready_out=0.0
-
-                if ((aaa(index_minvalue_loc)>1).or.(aaa(index_minvalue_loc)<1)) then
-
-                   cont_ready_out=cont_ready_out+1
-
-                end if
-
-                dt_var=dt_var/0.5
-
-                call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)  
+                 cont_ready_out=cont_ready_out+1 
 
              end if 
 
@@ -2541,111 +2809,132 @@ contains
 
              if (dt_b-dt_a<1.0e-8) exit
 
-             if (i>=33554432) exit
+             if (bound_elem_iteration>=33554432) exit
 
-             dt_var=dt_a+((dt_b-dt_a)/2)
-
-             i=2
-
-             cont_a=cont_a+1
-  
-             do 
-              
-                call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
-
-                if (all(this_det%local_coords>-10.0e-8)) exit 
-
-                i=i*2
-
-                dt_var=dt_a+((dt_b-dt_a)/i)
-
-                cont_b=cont_b+1
-
-                !if i becomes too big is because no matter how much dt_var is reduced the detector is not found inside the element
-
-                if (i>=33554432) exit
-
-             end do
-
-             dt_b=dt_a+((dt_b-dt_a)/(i/2))
-             dt_a=dt_var
-
-             cont_c=cont_c+1 
+             call iterating_for_det_in_bound_elem(state, this_det, xfield, old_pos, vel, old_vel, dt_a, dt_b, bound_elem_iteration)
 
           end do
 
           cont_p=cont_p+1 
 
        end do
-  
-    end if
 
-    !In the next if, since the detector seems to have gone through the wrong face and when returning it to its   
-    !previous element and moving it with the flow, the detector stays in the element for a specific value of dt_var,
-    !now the detector is moved towards the appropriate face of the element.
- 
+  end subroutine placing_det_in_boundary_between_elem
+
+  subroutine iterating_for_det_in_bound_elem(state, this_det, xfield, old_pos, vel, old_vel, dt_a, dt_b, bound_elem_iteration)
+
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det
+    type(vector_field), intent(inout) :: xfield
+    real, intent(inout) :: dt_a, dt_b
+    real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+    type(vector_field), pointer :: vfield, old_vfield
+    integer, intent(inout) :: bound_elem_iteration
+    
+            
+    integer :: j, k, cont_a, cont_b, cont_c
+
+
+       cont_a=0.0
+       cont_b=0.0
+       cont_c=0.0
+
+       this_det%dt=dt_a+((dt_b-dt_a)/2)
+
+!      i=2
+
+       bound_elem_iteration=2
+
+       cont_a=cont_a+1
+  
+       do 
+              
+          call update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
+
+          if (all(this_det%local_coords>-10.0e-8)) exit 
+
+          bound_elem_iteration=bound_elem_iteration*2
+
+          this_det%dt=dt_a+((dt_b-dt_a)/bound_elem_iteration)
+
+          cont_b=cont_b+1
+
+          !if i becomes too big is because no matter how much dt_var is reduced the detector is not found inside the element
+
+          if (bound_elem_iteration>=33554432) exit
+
+       end do
+
+       dt_b=dt_a+((dt_b-dt_a)/(bound_elem_iteration/2))
+       dt_a=this_det%dt
+
+       cont_c=cont_c+1  
+
+  end subroutine iterating_for_det_in_bound_elem
+
+  subroutine scenario_det_gone_through_wrong_face(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
+
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det
+    type(vector_field), intent(inout) :: xfield
+    real, intent(in) :: dt
+    real, intent(inout) :: dt_temp
+    real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+    type(vector_field), pointer :: vfield, old_vfield
+    integer, intent(in) :: previous_element, cont_check, cont_check_a
+    integer, intent(inout) :: index_next_face, bound_elem_iteration
+    
+    real,  dimension(1:size(this_det%local_coords)) :: local_coords_temp, aaa, bbb
+
+    real :: dt_var_check, dt_temp_check, dt_a, dt_b, &
+            keep_value_this_det_dt, keep_value_this_det_dt_a, minvalue, maxvalue
+    integer :: j, k, cont, cont_a, cont_b, cont_c, cont_d, cont_p, cont_r, &
+               cont_apq, index_minloc_current, cont_ready_out, index_minvalue_loc, &
+               cont_ready_out_a, index_temp, cont_apqrt, cont_ready, &
+               index_temp_maxvalue, cont_loop, node, current_element_number, number_of_elem, &
+               cont_elem_neg, cont_static_det, det_inside_an_ele
+
+!    integer, dimension(:), pointer :: nodes, elements
+!    type(csr_sparsity), pointer :: nelist
+
     if ((cont_check /= 0.0).and.(cont_check_a==0.0)) then
+
+       bound_elem_iteration=0.0
+
+       cont_ready=0.0
 
        do
 
-          dt_temp_check=dt_temp+dt_var
+          dt_temp_check=dt_temp+this_det%dt
           dt_var_check=dt-dt_temp_check
-          index_next_face=minloc(this_det%local_coords, dim=1)
-
-          cont_apq=0.0
-
-          cont_ready=0.0
-
+    
           !This loop terminates when the detector is on one of the element faces (within tolerance +/-10.0e-8) and the min local
           !coordinate occurs with respect to a different face than before when the detector left through the wrong face. 
 
-          if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8).and.(minloc(this_det%local_coords, dim=1)/=index_minloc_current)) exit 
+          !if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8).and.(minloc(this_det%local_coords, dim=1)/=index_minloc_current)) exit 
 
           !In the next if, if the min local coords still occurs in the same index as before, then it is checked if 
           !there is another local coord that is also within tolerance and the face associated with it is the new face through 
           !which the detector will leave the element.
 
-          if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8).and.(minloc(this_det%local_coords, dim=1)==index_minloc_current)) then
 
-             minvalue=1000.0
+           if (cont_ready /= 0.0) exit
 
-             do k=1, size(this_det%local_coords)
+           if (dt_var_check<1.0e-3*dt) exit 
 
-                 if (k /= index_minloc_current) then
+          !The check below means we have lost the detector at some point. We dont know what has happened so we exit the loop and at the end of 
+          !the subroutine we convert the detector into a static one.
 
-                    if (this_det%local_coords(k)<minvalue) then
+          if (bound_elem_iteration>=33554432) exit
 
-                        minvalue=this_det%local_coords(k)
+          index_next_face=minloc(this_det%local_coords, dim=1)
 
-                        index_temp=k
+          cont_apq=0.0
 
-                    end if
-
-                 end if
-
-             end do  
-
-             cont_apq=cont_apq+1
-
-             cont_ready=0.0
-
-             if ((this_det%local_coords(index_temp)<10.0e-8).and.(this_det%local_coords(index_temp)>-10.0e-8))  then
-
-                 cont_ready=cont_ready+1
-
-                 index_next_face=index_temp
-              
-             end if
-
-          end if
-
-          if (cont_ready /= 0.0) exit
-
-          if (dt_var_check<1.0e-3*dt) exit 
-
-          if (i>=33554432) exit
-
-          dt_a=dt_var
+          dt_a=this_det%dt
           dt_b=2*dt_a
 
           !If the detector is not on one of the element faces (within tolerance +/-10.0e-8), then it needs to keep moving in the
@@ -2660,7 +2949,15 @@ contains
              cont_ready=0.0
 
 
+          !This loop terminates when the detector is on one of the element faces (within tolerance +/-10.0e-8) and the min local
+          !coordinate occurs with respect to a different face than before when the detector left through the wrong face. 
+
              if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8).and.(minloc(this_det%local_coords, dim=1)/=index_minloc_current)) exit 
+
+
+          !In the next if, if the min local coords still occurs in the same index as before, then it is checked if 
+          !there is another local coord that is also within tolerance and the face associated with it is the new face through 
+          !which the detector will leave the element.
 
              if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8).and.(minloc(this_det%local_coords, dim=1)==index_minloc_current)) then
 
@@ -2700,7 +2997,7 @@ contains
              if (cont_ready /= 0.0) exit
 
           
-             dt_temp_check=dt_temp+dt_var
+             dt_temp_check=dt_temp+this_det%dt
              dt_var_check=dt-dt_temp_check
                
 
@@ -2708,34 +3005,9 @@ contains
 
              if (dt_b-dt_a<1.0e-8) exit
 
-             if (i>=33554432) exit
+             if (bound_elem_iteration>=33554432) exit
 
-             dt_var=dt_a+((dt_b-dt_a)/2)
-
-             i=2
-
-             cont_a=cont_a+1
-  
-             do 
-              
-                 call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
-
-                 if (all(this_det%local_coords>-10.0e-8)) exit 
-
-                 i=i*2
-
-                 dt_var=dt_a+((dt_b-dt_a)/i)
- 
-                 cont_b=cont_b+1
-
-                 if (i>=33554432) exit
-
-             end do
-
-             dt_b=dt_a+((dt_b-dt_a)/(i/2))
-             dt_a=dt_var
-
-             cont_c=cont_c+1 
+             call iterating_for_det_in_bound_elem(state, this_det, xfield, old_pos, vel, old_vel, dt_a, dt_b, bound_elem_iteration)
 
           end do
 
@@ -2744,180 +3016,43 @@ contains
        end do
 
     end if
+  
+  end subroutine scenario_det_gone_through_wrong_face
 
-    !In the next if, the most straight forward scenario is dealed with, i.e., the detector previously on the boundary of an element, made to move 
-    !in the direction of the flow towards the next element across that boundary, belongs to the next element for a partoculat value of dt_var 
-    !(next smaller time step).
- 
+  subroutine scenario_det_gone_through_right_face(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, cont_check,bound_elem_iteration)
+
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det
+    type(vector_field), intent(inout) :: xfield
+    real, intent(in) :: dt
+    real, intent(inout) :: dt_temp
+    real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+    type(vector_field), pointer :: vfield, old_vfield
+    integer, intent(in) :: cont_check
+    integer, intent(inout) :: index_next_face, bound_elem_iteration
+    
     if (cont_check == 0.0) then
 
-       do
-
-          dt_temp_check=dt_temp+dt_var
-          dt_var_check=dt-dt_temp_check
-
-          index_next_face=minloc(this_det%local_coords, dim=1)
-
-          cont_apqrt=0.0        
-
-          cont_ready_out=0.0
-
-          if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8)) then
-
-             dt_var=dt_var*0.5
-
-             local_coords_temp=this_det%local_coords
-
-             index_minvalue_loc=minloc(this_det%local_coords, dim=1)
-   
-             cont_apqrt=cont_apqrt+1
-
-             call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)     
-
-             do j=1, size(this_det%local_coords)
-
-                 aaa(j)=abs(this_det%local_coords(j)/local_coords_temp(j))
-
-             end do
-
-             cont_ready_out=0.0
-     
-             if ((aaa(index_minvalue_loc)>1).or.(aaa(index_minvalue_loc)<1)) then
-
-                 cont_ready_out=cont_ready_out+1
-    
-             end if
-
-             dt_var=dt_var/0.5
-
-             call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)  
-
-          end if 
-
-
-          if (cont_ready_out /= 0.0)  index_next_face=minloc(this_det%local_coords, dim=1)
-
-
-          if (cont_ready_out /= 0.0)  exit   
-
-       
-          if (dt_var_check<1.0e-3*dt) exit 
-
-          if (i>=33554432) exit
-
-          dt_a=dt_var
-          dt_b=2*dt_a
-
-          do
-             
-             if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8)) then
-
-                 dt_var=dt_var*0.5
-
-                 local_coords_temp=this_det%local_coords
-
-                 index_minvalue_loc=minloc(this_det%local_coords, dim=1)
-   
-                 call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)     
-
-                 do j=1, size(this_det%local_coords)
-
-                    aaa(j)=abs(this_det%local_coords(j)/local_coords_temp(j))
-
-                 end do
-
-                 cont_ready_out=0.0
-                 cont_ready_out_a=0.0
-
-                 if ((aaa(index_minvalue_loc)>1).or.(aaa(index_minvalue_loc)<1)) then
-
-                    cont_ready_out=cont_ready_out+1
-  
-                 end if
-
-                 dt_var=dt_var/0.5
-
-                 call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)  
-
-             end if 
-
-
-             if (cont_ready_out /= 0.0)  exit   
-
-             if (dt_var_check<1.0e-3*dt) exit 
-
-             if (dt_b-dt_a<1.0e-8) exit
-
-             if (i>=33554432) exit
-
-             dt_var=dt_a+((dt_b-dt_a)/2)
-
-             i=2
-
-             cont_a=cont_a+1
-  
-             do 
-              
-                 call update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
-
-                 if (all(this_det%local_coords>-10.0e-8)) exit 
-
-                 i=i*2
-
-                 dt_var=dt_a+((dt_b-dt_a)/i)
-
-                 cont_b=cont_b+1
-
-                 if (i>=33554432) exit
-
-             end do
-
-             dt_b=dt_a+((dt_b-dt_a)/(i/2))
-             dt_a=dt_var
-
-             cont_c=cont_c+1 
-
-          end do
-
-          cont_p=cont_p+1 
-
-       end do
-
+       call placing_det_in_boundary_between_elem(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, bound_elem_iteration)
+      
     end if 
 
-    if (i>=33554432) then 
+  end subroutine scenario_det_gone_through_right_face
 
-       this_det%type=STATIC_DETECTOR
-              
-    end if     
-
-    cont_static_det=0.0
-    
-    if (this_det%type==STATIC_DETECTOR) then
-
-       cont_static_det=cont_static_det+1
-          
-       this_det%position=old_pos
-       this_det%element=previous_element
-       this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-
-    end if
-
-    if (this_det%type==STATIC_DETECTOR) return
-
-  end subroutine move_detectors_subtime_step
-
-  subroutine update_detector_position_bisect(state, this_det, xfield, dt_var, old_pos, vel, old_vel)
+  subroutine update_detector_position_bisect(state, this_det, xfield, old_pos, vel, old_vel)
     !!< Moves the detector in the direction of the flow from an initial position (old_pos) during a small time step equal to dt_var 
     !(a bisection of the total time step) and updates the local coordinates 
     type(state_type), dimension(:), intent(in) :: state
 
     type(detector_type), pointer :: this_det
     type(vector_field), intent(inout) :: xfield
-    real, intent(in) :: dt_var
+!   real, intent(in) :: dt_var
     real,  dimension(:), intent(in) :: old_pos, vel, old_vel
 
-       this_det%position=(vel+old_vel)/2*dt_var+old_pos
+       this_det%position=(vel+old_vel)/2*this_det%dt+old_pos
 
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 

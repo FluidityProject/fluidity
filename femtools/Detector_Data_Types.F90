@@ -36,7 +36,7 @@ module detector_data_types
   
   private
   
-  public :: detector_type, STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+  public :: detector_type, detector_linked_list, STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
 
@@ -54,6 +54,20 @@ module detector_data_types
      real, dimension(:), allocatable :: local_coords
      !! Whether the detector is static or Lagrangian.
      integer :: type = STATIC_DETECTOR
+     !! Bisected time step used when moving the Lagrangian detectors
+     real :: dt
+     !! Identification number indicating the order in which the detectors are read
+     integer :: id_number
+     !! Processor that owns initially the detector (for parallel)
+     integer :: initial_owner= -1
+     TYPE (detector_type), POINTER :: next=> null()
+     TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
   
+  type detector_linked_list
+     integer :: length=0
+     TYPE (detector_type), POINTER :: firstnode => null()
+     TYPE (detector_type), POINTER :: lastnode => null()
+  end type detector_linked_list
+
 end module detector_data_types
