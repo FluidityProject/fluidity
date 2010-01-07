@@ -116,6 +116,7 @@ contains
   !! path to options for this b.c. in the options tree
   character(len=*), optional, intent(in) :: option_path
   
+    logical, dimension(1:size(boundary_ids)):: boundary_id_used
     
     type(scalar_boundary_condition), pointer:: tmp_boundary_condition(:)
     integer, dimension(:), allocatable:: surface_element_list
@@ -142,12 +143,23 @@ contains
     
     ! generate list of surface elements where this b.c. is applied
     ele_count=0
+    boundary_id_used=.false.
     do i=1, surface_element_count(field)
       if (any(boundary_ids==surface_element_id(field, i))) then
         ele_count=ele_count+1
         surface_element_list(ele_count)=i
+        where (boundary_ids==surface_element_id(field, i))
+          boundary_id_used=.true.
+        end where
       end if
     end do
+      
+    if (.not. IsParallel() .and. .not. all(boundary_id_used)) then
+      ewrite(0,*) "WARNING: for boundary condition: ", trim(name)
+      ewrite(0,*) "added to field: ", trim(field%name)
+      ewrite(0,*) "The following boundary ids were specified, but they don't appear in the surface mesh:"
+      ewrite(0,*) pack(boundary_ids, mask=.not. boundary_id_used)
+    end if
         
     call allocate(field%boundary_condition(nobcs), field%mesh, &
       surface_element_list=surface_element_list(1:ele_count), &
@@ -184,6 +196,8 @@ contains
   !! path to options for this b.c. in the options tree
   character(len=*), optional, intent(in) :: option_path
     
+    logical, dimension(1:size(boundary_ids)):: boundary_id_used
+    
     type(vector_boundary_condition), pointer:: tmp_boundary_condition(:)
     integer, dimension(:), allocatable:: surface_element_list
     integer nobcs, i, node_count, ele_count
@@ -209,13 +223,24 @@ contains
     
     ! generate list of surface elements where this b.c. is applied
     ele_count=0
+    boundary_id_used=.false.
     do i=1, surface_element_count(field)
       if (any(boundary_ids==surface_element_id(field, i))) then
         ele_count=ele_count+1
         surface_element_list(ele_count)=i
+        where (boundary_ids==surface_element_id(field, i))
+          boundary_id_used=.true.
+        end where
       end if
     end do
         
+    if (.not. IsParallel() .and. .not. all(boundary_id_used)) then
+      ewrite(0,*) "WARNING: for boundary condition: ", trim(name)
+      ewrite(0,*) "added to field: ", trim(field%name)
+      ewrite(0,*) "The following boundary ids were specified, but they don't appear in the surface mesh:"
+      ewrite(0,*) pack(boundary_ids, mask=.not. boundary_id_used)
+    end if
+    
     call allocate(field%boundary_condition(nobcs), field%mesh, &
       surface_element_list=surface_element_list(1:ele_count), &
       name=name, type=type, applies=applies)
