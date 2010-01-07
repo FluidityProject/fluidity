@@ -854,8 +854,9 @@ contains
         end do
         
       end if
+    end if
       
-    else
+    if ((.not.have_absorption) .or. (.not.pressure_corrected_absorption)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
         inverse_mass_mat=inverse(rho_mat)
