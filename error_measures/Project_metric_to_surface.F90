@@ -148,7 +148,7 @@ module project_metric_to_surface_module
     
     ! ph = identity -pv
     ph=-pv
-    forall(i=1:3) ph(i,i)=ph(i,i)+1.0
+    forall(i=1:size(down)) ph(i,i)=ph(i,i)+1.0
     
     projected_metric=matmul( ph, matmul(metric, ph)) + matmul( pv, matmul(metric, pv))
     

@@ -74,6 +74,9 @@ module hadapt_metric_based_extrude
       call deallocate(back_sizing(column))
     end do
     
+    out_mesh%mesh%option_path = back_mesh%mesh%option_path
+    out_mesh%option_path = ""
+    
     if (has_faces(h_mesh%mesh)) then
       ! if the horizontal mesh has a surface mesh
       ! give one to the extruded mesh as well
