@@ -1870,6 +1870,8 @@ contains
 
     ewrite(1,*) "WE ARE INSIDE WRITE_DETECTORS AND THE LENGHT OF DETECTOR_LIST IS", detector_list%length
 
+    any_lagrangian=.false.
+
     do i = 1, detector_list%length
       types_det(i) = node%type
 !      if (types_det(i)==LAGRANGIAN_DETECTOR)  then
