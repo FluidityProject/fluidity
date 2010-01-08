@@ -4072,6 +4072,7 @@ prognostic_geostrophic_pressure_field =
       )*,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
+      scalar_convergence_options,
       prognostic_detector_options,
       scalar_steady_state_options,
       adaptivity_options_prognostic_scalar_field,

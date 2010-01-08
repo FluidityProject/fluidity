@@ -5404,6 +5404,7 @@ requires a distinct name for the options dictionary.</a:documentation>
     </zeroOrMore>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
     <ref name="prognostic_detector_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
