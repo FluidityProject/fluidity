@@ -38,7 +38,7 @@ module fields_base
   use element_numbering
   use embed_python
   use sparse_tools
-  use vector_tools, only: solve, invert
+  use vector_tools, only: solve, invert, norm2, cross_product
   implicit none
 
   interface ele_nodes
@@ -3209,10 +3209,16 @@ contains
     real :: xA, xB, yA, yB, xC, yC
 
     pos = ele_val(positions, ele)
-
-    xA = pos(1, 1); xB = pos(1, 2); xC = pos(1, 3)
-    yA = pos(2, 1); yB = pos(2, 2); yC = pos(2, 3)
-    t = abs((xB*yA-xA*yB)+(xC*yB-xB*yC)+(xA*yC-xC*yA))/2
+    if (positions%dim == 2) then
+      xA = pos(1, 1); xB = pos(1, 2); xC = pos(1, 3)
+      yA = pos(2, 1); yB = pos(2, 2); yC = pos(2, 3)
+      t = abs((xB*yA-xA*yB)+(xC*yB-xB*yC)+(xA*yC-xC*yA))/2
+    elseif (positions%dim == 3) then
+      ! http://mathworld.wolfram.com/TriangleArea.html, (19)
+      t = 0.5 * norm2(cross_product(pos(:, 2) - pos(:, 1), pos(:, 1) - pos(:, 3)))
+    else
+      FLAbort("Only 2 or 3 dimensions supported, sorry")
+    end if
   end function triarea
 
   function tetvol_1d(positions, ele) result(t)
@@ -3237,7 +3243,7 @@ contains
     integer, intent(in) :: ele
     real :: t
 
-    select case(positions%dim)
+    select case(mesh_dim(positions))
       case(3)
         t = tetvol_new(positions, ele)
       case(2)
