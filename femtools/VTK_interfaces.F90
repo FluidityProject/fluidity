@@ -1330,7 +1330,7 @@ contains
     mesh%ndglno=vtk_mesh2fluidity_numbering(ndglno, shape)
     call deallocate(shape)
     ! heuristic check for discontinous meshes
-    if (nloc*elements==nodes) then
+    if (nloc*elements==nodes .and. elements > 1) then
       mesh%continuity=-1
     end if
     call insert(state, mesh, "Mesh")
