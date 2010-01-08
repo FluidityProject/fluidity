@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">mmat-balancepressure-p0p1cv-rhop0-gpp2</string_value>
@@ -394,6 +394,9 @@
         </solver>
         <output/>
         <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <detectors>
           <include_in_detectors/>
         </detectors>
