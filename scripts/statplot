@@ -83,7 +83,7 @@ class StatplotWindow(gtk.Window):
     self._xData = None
     self._yData = None
     self._plotWidget = None
-    self._plotType = plotting.ScatterPlot
+    self._plotType = plotting.LinePlot
     
     # The combos
     self._xCombo = gui.ComboBoxFromEntries(self._stat.Paths())
@@ -122,12 +122,28 @@ class StatplotWindow(gtk.Window):
     
     return
 
-  def _RefreshPlot(self, bounds = None):
+  def _RefreshPlot(self, bounds = None, xscale = None, yscale = None):
     if not self._xData is None and not self._yData is None:
       assert(len(self._xData) == len(self._yData))
       if not self._plotWidget is None:
         self._vBox.remove(self._plotWidget)
+      
+        axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
+        if xscale is None:
+          xscale = axis.get_xscale()
+        if yscale is None:
+          yscale = axis.get_yscale()
+      else:
+        if xscale is None:
+          xscale = "linear"
+        if yscale is None:
+          yscale = "linear"
+        
       self._plotWidget = self._plotType(x = self._xData, y = self._yData, xLabel = self._xField, yLabel = self._yField, bounds=bounds).Widget()
+      axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
+      axis.set_xscale(xscale)
+      axis.set_yscale(yscale)
+      
       self._vBox.pack_start(self._plotWidget)
       self._plotWidget.show_all()
     
@@ -174,6 +190,18 @@ class StatplotWindow(gtk.Window):
     elif char == "l":
       self._plotType = plotting.LinePlot
       self._RefreshData(keepBounds = True)
+    elif char == "x":
+      scale = self._plotWidget.get_children()[0].figure.get_axes()[0].get_xscale()
+      if scale == "linear":
+        self._RefreshPlot(xscale = "log")
+      else:
+        self._RefreshPlot(xscale = "linear")
+    elif char == "y":
+      scale = self._plotWidget.get_children()[0].figure.get_axes()[0].get_yscale()
+      if scale == "linear":
+        self._RefreshPlot(yscale = "log")
+      else:
+        self._RefreshPlot(yscale = "linear")
     elif char == "q":
       self.destroy()
     elif char == "r":
