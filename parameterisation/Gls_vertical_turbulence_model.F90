@@ -449,6 +449,9 @@ subroutine gls_psi(state)
     if (calc_fwall) then
         ewrite(1,*) "Calculating the wall function for GLS"
         call calc_wall_function(state)
+    else
+        ! this is only needed such that Fwall is not NAN after an adapt
+        call set( Fwall, 1.0 )
     end if
     ! compute RHS
     do i=1,nNodes
@@ -473,7 +476,6 @@ subroutine gls_psi(state)
             call set(source,i, prod)
             call set(absorption,i, (diss-buoyan)/node_val(psi,i))
         end if
-
     end do
 
     ! Set diffusivity for Psi
@@ -1002,7 +1004,6 @@ subroutine gls_stability_function(state)
             dCm  = d0  +  d1*an +  d2*as + d3*an*as + d4*an*an + d5*as*as
             nCm  = n0  +  n1*an +  n2*as
             nCmp = nt0 + nt1*an + nt2*as
-
             call set(S_M,i, cm3_inv*nCm /dCm)
             call set(S_H,i, cm3_inv*nCmp/dCm)
 
@@ -1027,7 +1028,6 @@ subroutine gls_stability_function(state)
             dCm  = d0  +  d1*an +  d2*as + d3*an*as + d4*an*an + d5*as*as
             nCm  = n0  +  n1*an +  n2*as
             nCmp = nt0 + nt1*an + nt2*as
-
             call set(S_M,i, cm3_inv*nCm /dCm)
             call set(S_H,i, cm3_inv*nCmp/dCm)
 
