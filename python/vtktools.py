@@ -157,7 +157,7 @@ class vtu:
 
   def AddScalarField(self, name, array):
     """Adds a scalar field with the specified name using the values from the array."""
-    data = vtk.vtkFloatArray()
+    data = vtk.vtkDoubleArray()
     data.SetNumberOfValues(len(array))
     data.SetName(name)
     for i in range(len(array)):
@@ -170,7 +170,7 @@ class vtu:
   def AddVectorField(self, name, array):
     """Adds a vector field with the specified name using the values from the array."""
     n=array.size
-    data = vtk.vtkFloatArray()
+    data = vtk.vtkDoubleArray()
     data.SetNumberOfComponents(array.shape[1])
     data.SetNumberOfValues(n)
     data.SetName(name)
@@ -185,7 +185,7 @@ class vtu:
     """Adds a field with arbitrary number of components under the specified name using."""
     n=array.size
     sh=arr(array.shape)
-    data = vtk.vtkFloatArray()
+    data = vtk.vtkDoubleArray()
     # number of tuples is sh[0]
     # number of components is the product of the rest of sh
     data.SetNumberOfComponents(sh[1:].prod())
