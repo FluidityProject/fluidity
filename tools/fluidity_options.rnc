@@ -9868,6 +9868,10 @@ interpolation_algorithm_vector =
            },
            comment
         },
+        ## Enforce a solenoidal velocity field following the interpolation
+        element enforce_solenoidal {
+           comment
+        }?,
         comment
       }
     )

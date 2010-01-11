@@ -12475,6 +12475,12 @@ the L2 norm of the residual</a:documentation>
           </element>
           <ref name="comment"/>
         </element>
+        <optional>
+          <element name="enforce_solenoidal">
+            <a:documentation>Enforce a solenoidal velocity field following the interpolation</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
         <ref name="comment"/>
       </element>
     </choice>

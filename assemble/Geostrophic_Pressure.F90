@@ -136,8 +136,6 @@ contains
     call calculate_geostrophic_pressure(state, gp = lgp, &
       & velocity_name = "NonlinearVelocity", assemble_matrix = assemble_matrix, include_buoyancy = include_buoyancy, include_coriolis = include_coriolis, &
       & reference_node = reference_node)
-    !call calculate_geostrophic_pressure_projection(state, gp = lgp, &
-    !  & include_buoyancy = include_buoyancy, include_coriolis = include_coriolis)
 
     ! Enforce zero point coordinate (if selected)
     allocate(zero_coord(mesh_dim(lgp)))
@@ -1255,6 +1253,11 @@ contains
     ! Recover the vertical velocity from the third dimension of the residual
     ! component
     if(new_velocity%dim == 3) call set(new_velocity, W_, new_res%val(W_)%ptr)
+    
+    if(have_option(trim(base_path) // "/enforce_solenoidal")) then
+      call projection_decomposition(new_state, new_velocity, new_p, res = new_res)
+      call set(new_velocity, new_res)
+    end if
     
     call deallocate(new_p)
     call deallocate(new_res)    
