@@ -124,7 +124,6 @@ module tetrahedron_intersection_module
     intersection_mesh%elements = tet_cnt
     call allocate(output, 3, intersection_mesh, "IntersectionCoordinates")
 
-
     do ele=1,tet_cnt
       call set(output, ele_nodes(output, ele), tet_array(ele)%V)
     end do
@@ -261,7 +260,9 @@ module tetrahedron_intersection_module
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet%V(:, neg_idx(2))
+        tet_array_tmp(tet_cnt_tmp)%colours(1) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet_tmp%V(:, 4)
+        tet_array_tmp(tet_cnt_tmp)%colours(2) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet_tmp%V(:, 3)
         tet_array_tmp(tet_cnt_tmp)%colours(3) = tet%colours(pos_idx(1))
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 2)
@@ -269,7 +270,9 @@ module tetrahedron_intersection_module
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet%V(:, neg_idx(1))
+        tet_array_tmp(tet_cnt_tmp)%colours(1) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet_tmp%V(:, 1)
+        tet_array_tmp(tet_cnt_tmp)%colours(2) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet_tmp%V(:, 2)
         tet_array_tmp(tet_cnt_tmp)%colours(3) = tet%colours(pos_idx(2))
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 3)
@@ -308,15 +311,19 @@ module tetrahedron_intersection_module
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet_tmp%V(:, 1)
         tet_array_tmp(tet_cnt_tmp)%colours(1) = tet%colours(neg_idx(1))
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet%V(:, neg_idx(2))
+        tet_array_tmp(tet_cnt_tmp)%colours(2) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet%V(:, neg_idx(3))
         tet_array_tmp(tet_cnt_tmp)%colours(3) = tet%colours(neg_idx(3))
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 2)
+        tet_array_tmp(tet_cnt_tmp)%colours(4) = 0
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet%V(:, neg_idx(3))
+        tet_array_tmp(tet_cnt_tmp)%colours(1) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet_tmp%V(:, 2)
         tet_array_tmp(tet_cnt_tmp)%colours(2) = tet%colours(neg_idx(2))
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet_tmp%V(:, 3)
+        tet_array_tmp(tet_cnt_tmp)%colours(3) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 1)
         tet_array_tmp(tet_cnt_tmp)%colours(4) = tet%colours(neg_idx(1))
       case(2)
@@ -335,9 +342,11 @@ module tetrahedron_intersection_module
 
         tet_cnt_tmp = tet_cnt_tmp + 1
         tet_array_tmp(tet_cnt_tmp)%V(:, 1) = tet_tmp%V(:, 2)
+        tet_array_tmp(tet_cnt_tmp)%colours(1) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 2) = tet%V(:, zer_idx(1))
         tet_array_tmp(tet_cnt_tmp)%colours(2) = tet%colours(zer_idx(1))
         tet_array_tmp(tet_cnt_tmp)%V(:, 3) = tet%V(:, neg_idx(2))
+        tet_array_tmp(tet_cnt_tmp)%colours(3) = 0
         tet_array_tmp(tet_cnt_tmp)%V(:, 4) = tet_tmp%V(:, 1)
         tet_array_tmp(tet_cnt_tmp)%colours(4) = tet%colours(neg_idx(1))
       case(1)
@@ -402,7 +411,9 @@ module tetrahedron_intersection_module
     ! more information about how we number faces and such on a hex
 
     assert(positions%mesh%shape%numbering%family == FAMILY_CUBE)
+    assert(positions%mesh%faces%shape%numbering%family == FAMILY_CUBE)
     assert(positions%mesh%shape%degree == 1)
+    assert(has_faces(positions%mesh))
 
     faces => ele_faces(positions, ele)
     assert(size(faces) == 6)
