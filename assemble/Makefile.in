@@ -144,7 +144,8 @@ Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
 State_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o
 Vorticity_Diagnostics.o: Coriolis.o
-Geostrophic_Pressure.o: Momentum_DG.o Petsc_Solve_State.o
+Geostrophic_Pressure.o: Petsc_Solve_State.o \
+  Assemble_CMC.o Divergence_Matrix_CG.o Momentum_CG.o Momentum_DG.o
 Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
    Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
    Drag.o Geostrophic_Pressure.o OceanSurfaceForcing.o \

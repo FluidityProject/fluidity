@@ -47,6 +47,17 @@ module geostrophic_pressure
   use sparsity_patterns_meshes
   use spud
   use state_module
+  
+  use assemble_cmc
+  use boundary_conditions_from_options 
+  use conservative_interpolation_module
+  use dgtools
+  use divergence_matrix_cg
+  use field_derivatives
+  use momentum_cg
+  use momentum_dg
+  use unittest_tools
+  use vtk_interfaces
 
   implicit none
   
@@ -55,6 +66,10 @@ module geostrophic_pressure
   public :: subtract_geostrophic_pressure_gradient, &
     & calculate_geostrophic_pressure_options, calculate_geostrophic_pressure, &
     & geostrophic_pressure_check_options
+    
+  public :: projection_decomposition, geostrophic_velocity, &
+    & geostrophic_interpolation
+    
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
   character(len = *), parameter, public :: gp_name = "GeostrophicPressure"
@@ -121,6 +136,8 @@ contains
     call calculate_geostrophic_pressure(state, gp = lgp, &
       & velocity_name = "NonlinearVelocity", assemble_matrix = assemble_matrix, include_buoyancy = include_buoyancy, include_coriolis = include_coriolis, &
       & reference_node = reference_node)
+    !call calculate_geostrophic_pressure_projection(state, gp = lgp, &
+    !  & include_buoyancy = include_buoyancy, include_coriolis = include_coriolis)
 
     ! Enforce zero point coordinate (if selected)
     allocate(zero_coord(mesh_dim(lgp)))
@@ -727,6 +744,592 @@ contains
     call remap_field(gp, bp)
     
   end subroutine set_balance_pressure_from_geostrophic_pressure
+    
+  subroutine calculate_geostrophic_pressure_projection(state, gp, &
+    & include_buoyancy, include_coriolis)
+    use vtk_interfaces
+    type(state_type), intent(inout) :: state
+    type(scalar_field), optional, intent(out) :: gp
+    logical, optional, intent(in) :: include_buoyancy
+    logical, optional, intent(in) :: include_coriolis
+    
+    type(scalar_field), pointer :: lgp
+    type(vector_field) :: dfield
+    
+    lgp => extract_scalar_field(state, gp_name)
+    
+    call allocate(dfield, mesh_dim(lgp), lgp%mesh, "DecompositionField")
+    call compute_decomposition_field(state, dfield, &
+      & include_buoyancy = include_buoyancy, include_coriolis = include_coriolis)
+    call projection_decomposition(state, dfield, lgp)
+    call deallocate(dfield)
+    
+    if(present(gp)) then
+      gp = lgp
+      call incref(gp)
+    end if
+    
+  end subroutine calculate_geostrophic_pressure_projection
+   
+  subroutine compute_decomposition_field(state, dfield, include_buoyancy, include_coriolis)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: dfield
+    logical, optional, intent(in) :: include_buoyancy
+    logical, optional, intent(in) :: include_coriolis
+    
+    integer :: stat
+    real :: gravity_magnitude
+    type(scalar_field), pointer :: buoyancy
+    type(vector_field), pointer :: gravity
+    
+    call zero(dfield)
+    
+    if(.not. present_and_false(include_coriolis)) then
+      FLAbort("Coriolis support not yet added to GeostrophicPressure projection method")
+    end if
+    
+    if(.not. present_and_false(include_buoyancy)) then
+      call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
+          stat = stat)
+      if(stat==0) then
+        buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
+        assert(ele_count(buoyancy) == ele_count(dfield))
+        ewrite_minmax(buoyancy%val)
+        
+        gravity => extract_vector_field(state, "GravityDirection")
+        assert(gravity%dim == dfield%dim)
+        assert(ele_count(gravity) == ele_count(dfield))
+        
+        call addto(dfield, gravity)
+        call scale(dfield, gravity_magnitude)
+        call scale(dfield, buoyancy)
+      end if
+    end if
+      
+  end subroutine compute_decomposition_field
+      
+  subroutine projection_decomposition(state, field, p, conserv, res, option_path) 
+  
+    !!< Perform a Helmholz decomposition of the supplied vector field. Basically
+    !!< a pressure projection solve.
+  
+    type(state_type), intent(inout) :: state
+    type(vector_field), target, intent(inout) :: field
+    type(scalar_field), target, intent(inout) :: p
+    type(vector_field), optional, intent(inout) :: conserv
+    type(vector_field), optional, intent(inout) :: res
+    character(len = *), optional, intent(in) :: option_path
+    
+    character(len = OPTION_PATH_LEN) :: loption_path
+    integer :: dim, i, stat
+    logical :: apply_kmk, integrate_by_parts, lump_mass
+    type(block_csr_matrix) :: inverse_mass_b
+    type(block_csr_matrix), target :: ct_m
+    type(block_csr_matrix), pointer :: ctp_m
+    type(csr_matrix) :: cmc_m, inverse_mass
+    type(csr_sparsity) :: mass_sparsity
+    type(csr_sparsity), pointer :: cmc_sparsity, ct_sparsity
+    type(element_type), pointer :: p_shape, u_shape
+    type(mesh_type), pointer :: u_mesh, p_mesh
+    !type(scalar_field) :: ct_rhs
+    type(scalar_field) :: cmc_rhs, inverse_masslump
+    type(state_type) :: lstate
+    type(vector_field) :: inverse_masslump_v
+    type(vector_field), pointer :: positions
+        
+    ewrite(1, *) "In projection_decomposition"
+        
+    if(present(option_path)) then
+      loption_path = option_path
+    else
+      loption_path = complete_field_path(p%option_path, stat = stat)
+    end if
+    ewrite(2, *) "Option path: " // trim(loption_path)
+        
+    dim = field%dim
+    u_mesh => field%mesh
+    p_mesh => p%mesh    
+    u_shape => ele_shape(u_mesh, 1)
+    p_shape => ele_shape(p_mesh, 1)
+    assert(continuity(p_mesh) == 0)
+    
+    ewrite(2, *) "Decomposed field: ", trim(field%name)
+    ewrite(2, *) "On mesh: ", trim(u_mesh%name)
+    ewrite(2, *) "Scalar potential mesh: ", trim(p_mesh%name)
+    
+    positions => extract_vector_field(state, "Coordinate")
+    call insert(lstate, positions, name = positions%name)
+    
+    cmc_sparsity => get_csr_sparsity_secondorder(state, p_mesh, u_mesh)
+    ct_sparsity => get_csr_sparsity_firstorder(state, p_mesh, u_mesh)
+    call allocate(cmc_m, cmc_sparsity, name = "CMC")
+    call allocate(ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
+    ctp_m => ct_m
+    call allocate(cmc_rhs, p_mesh, "CMCRHS")
+    !call allocate(ct_rhs, p_mesh, "CTRHS")
+        
+    ! Options
+    lump_mass = have_option(trim(loption_path) // &
+           & "/spatial_discretisation/mass/lump_mass")
+    integrate_by_parts = have_option(trim(loption_path) // &
+           & "/spatial_discretisation/continuous_galerkin/integrate_divergence_by_parts")
+    apply_kmk = continuity(p_mesh) == 0 .and. p_shape%degree == 1 .and. ele_numbering_family(p_shape) == FAMILY_SIMPLEX &
+        & .and. continuity(u_mesh) == 0 .and. u_shape%degree == 1 .and. ele_numbering_family(u_shape) == FAMILY_SIMPLEX &
+        & .and. .not. have_option(trim(loption_path) // &
+           & "/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")
+    
+    ewrite(2, *) "Lump mass? ", lump_mass
+    ewrite(2, *) "Integrate divergence by parts? ", integrate_by_parts
+    ewrite(2, *) "KMK stabilisation? ", apply_kmk
+    if(continuity(u_mesh) == 0 .and. .not. lump_mass) then
+      ewrite(-1, *) "Decomposed field: ", trim(field%name)
+      ewrite(-1, *) "On mesh: ", trim(u_mesh%name)
+      FLExit("Must lump mass with continuous decomposed field")
+    end if
+    
+    ! The tiresome task of assembling the projection equation follows...
+     
+    ! Assemble the matrices
+     
+!    if(lump_mass) then
+!      call allocate(inverse_masslump, u_mesh, "InverseLumpedMass")    
+!      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
+!                                         test_mesh = p_mesh, field = field, &
+!                                         grad_mass_lumped = inverse_masslump)
+!      
+!      call invert(inverse_masslump)
+!      call allocate(inverse_masslump_v, dim, inverse_masslump%mesh, "InverseLumpedMass")
+!      do i = 1, dim
+!        call set(inverse_masslump_v, i, inverse_masslump)
+!      end do
+!      call deallocate(inverse_masslump)
+!      
+!      !call apply_dirichlet_conditions_inverse_mass(inverse_masslump_v, field)
+!      
+!      call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump_v, ct_m)
+!    else
+!      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
+!                                         test_mesh = p_mesh, field = field)
+!      
+!      call construct_inverse_mass_matrix_dg(inverse_mass, field, positions)
+!      
+!      call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass)
+!    end if
+
+    call zero(ct_m)
+    if(lump_mass) then
+      call allocate(inverse_masslump_v, dim, u_mesh, "InverseLumpedMass")
+      assert(dim > 0)
+      inverse_masslump = extract_scalar_field(inverse_masslump_v, 1)
+      
+      call zero(inverse_masslump)
+      do i = 1, ele_count(field)
+        call assemble_cmc_ele(i, u_mesh, p_mesh, ct_m, positions, field, masslump = inverse_masslump)
+      end do
+      if(integrate_by_parts) then
+        do i = 1, surface_element_count(field)
+          call assemble_cmc_face(i, u_mesh, p_mesh, ct_m, positions)
+        end do
+      end if
+      call invert(inverse_masslump)
+
+!      ! All neumann bcs
+!      do i = 1, surface_element_count(field)
+!        call set(inverse_masslump, face_global_nodes(field, i), spread(0.0, 1, face_loc(field, i)))
+!      end do
+      do i = 2, dim
+        call set(inverse_masslump_v, i, inverse_masslump)
+      end do
+      call apply_dirichlet_conditions_inverse_mass(inverse_masslump_v, field)     
+
+      call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump_v, ct_m)
+    else  
+      mass_sparsity = make_sparsity_dg_mass(u_mesh)
+      call allocate(inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
+      call deallocate(mass_sparsity)
+      assert(dim > 0)
+      inverse_mass = block(inverse_mass_b, 1, 1)
+      
+      do i = 1, ele_count(field)
+        call assemble_cmc_ele(i, u_mesh, p_mesh, ct_m, positions, field, inverse_mass = inverse_mass)
+      end do
+      if(integrate_by_parts) then
+        do i = 1, surface_element_count(field)
+          call assemble_cmc_face(i, u_mesh, p_mesh, ct_m, positions)
+        end do
+      end if
+
+!      ! All neumann bcs
+!      do i = 1, surface_element_count(field)
+!        call set(inverse_mass, face_global_nodes(field, i), face_global_nodes(field, i), &
+!          & spread(spread(0.0, 1, face_loc(field, i)), 1, face_loc(field, i)))
+!      end do
+      do i = 2, dim
+        inverse_mass_b%val(i, i)%ptr = inverse_mass%val
+      end do
+      call apply_dirichlet_conditions_inverse_mass(inverse_mass_b, field)
+
+      call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass_b)
+    end if
+    
+    if(apply_kmk) then      
+      call insert(lstate, u_mesh, name = "PressureMesh")
+      call insert(lstate, p_mesh, name = "VelocityMesh")
+      
+      call assemble_kmk_matrix(lstate, u_mesh, positions, theta_pg = 1.0)    
+      call add_kmk_matrix(lstate, cmc_m)  
+    end if
+    
+    ! Assemble the RHS
+    
+    call mult(cmc_rhs, ct_m, field)
+    call scale(cmc_rhs, -1.0)
+       
+!    call mult(cmc_rhs, ct_m, field)    
+!    call scale(cmc_rhs, -1.0)
+!    call addto(cmc_rhs, ct_rhs)
+!    call deallocate(ct_rhs)
+    
+    call impose_reference_pressure_node(cmc_m, cmc_rhs, option_path = loption_path)
+    
+    ! Solve      
+    
+    call petsc_solve(p, cmc_m, cmc_rhs, option_path = loption_path)
+    call deallocate(cmc_m)       
+    call deallocate(cmc_rhs)
+    
+    ! Optional conservative component calculation
+    if(present(conserv)) then
+      call grad(p, positions, conserv)
+    end if
+    
+    ! Optional residual calculation
+    if(present(res)) then
+      assert(res%mesh == field%mesh)
+      
+      call set(res, field)
+      if(lump_mass) then
+        call correct_masslumped_velocity(res, inverse_masslump_v, ct_m, p)
+      else
+        call correct_velocity_dg(res, inverse_mass_b, ct_m, p)
+      end if
+    end if    
+    if(lump_mass) then
+      call deallocate(inverse_masslump_v)
+    else
+      call deallocate(inverse_mass_b)
+    end if
+    call deallocate(ct_m)
+    
+    call deallocate(lstate)
+       
+    ewrite(1, *) "Exiting projection_decomposition"
+  
+  contains
+  
+    subroutine assemble_cmc_ele(ele, u_mesh, p_mesh, ct_m, positions, field, inverse_mass, masslump)
+      integer, intent(in) :: ele
+      type(mesh_type), intent(in) :: u_mesh
+      type(mesh_type), intent(in) :: p_mesh
+      type(block_csr_matrix), intent(inout) :: ct_m
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: field
+      type(csr_matrix), optional, intent(inout) :: inverse_mass
+      type(scalar_field), optional, intent(inout) :: masslump 
+      
+      integer, dimension(:), pointer :: p_nodes, u_nodes
+      real, dimension(ele_loc(u_mesh, ele), ele_loc(u_mesh, ele)) :: little_mass
+      real, dimension(ele_loc(p_mesh, ele), ele_ngi(p_mesh, ele), mesh_dim(p_mesh)) :: dp_shape
+      real, dimension(ele_loc(u_mesh, ele), ele_ngi(u_mesh, ele), mesh_dim(p_mesh)) :: du_shape
+      real, dimension(ele_ngi(p_mesh, ele)) :: detwei
+      type(element_type), pointer :: p_shape, u_shape
+      
+      u_shape => ele_shape(u_mesh, ele)
+      p_shape => ele_shape(p_mesh, ele)
+      
+      if(integrate_by_parts) then
+        call transform_to_physical(positions, ele, p_shape, &
+          & dshape = dp_shape, detwei = detwei)
+      else
+        call transform_to_physical(positions, ele, u_shape, &
+          & dshape = du_shape, detwei = detwei)
+      end if
+      
+      little_mass = shape_shape(u_shape, u_shape, detwei)
+
+      u_nodes => ele_nodes(u_mesh, ele)
+      p_nodes => ele_nodes(p_mesh, ele)
+        
+      if(integrate_by_parts) then
+        call addto(ct_m, p_nodes, u_nodes, spread(-dshape_shape(dp_shape, u_shape, detwei), 1, 1))
+      else
+        call addto(ct_m, p_nodes, u_nodes, spread(shape_dshape(p_shape, du_shape, detwei), 1, 1))
+      end if
+      if(present(masslump)) then
+        call addto(masslump, u_nodes, sum(little_mass, 2))
+      end if
+      if(present(inverse_mass)) then
+        assert(continuity(field) == -1)
+        assert(.not. any(is_nan(little_mass)))
+        call invert(little_mass)
+        assert(.not. any(is_nan(little_mass)))
+        call set(inverse_mass, u_nodes, u_nodes, little_mass)
+      end if
+      
+    end subroutine assemble_cmc_ele
+    
+    subroutine assemble_cmc_face(face, u_mesh, p_mesh, ct_m, positions)
+      integer, intent(in) :: face
+      type(mesh_type), intent(in) :: u_mesh
+      type(mesh_type), intent(in) :: p_mesh
+      type(block_csr_matrix), intent(inout) :: ct_m
+      type(vector_field), intent(in) :: positions
+      
+      integer, dimension(face_loc(p_mesh, face)) :: p_nodes
+      integer, dimension(face_loc(u_mesh, face)) :: u_nodes
+      real, dimension(face_ngi(p_mesh, face)) :: detwei
+      real, dimension(mesh_dim(p_mesh), face_ngi(p_mesh, face)) :: normal
+      type(element_type), pointer :: p_shape, u_shape
+      
+      assert(integrate_by_parts)
+      
+      u_shape => face_shape(u_mesh, face)
+      p_shape => face_shape(p_mesh, face)
+      
+      call transform_facet_to_physical(positions, face, &
+        & normal = normal, detwei_f = detwei)
+        
+      p_nodes = face_global_nodes(p_mesh, face)
+      u_nodes = face_global_nodes(u_mesh, face)
+      
+      call addto(ct_m, p_nodes, u_nodes, spread(shape_shape_vector(p_shape, u_shape, detwei, normal), 1, 1))
+      
+    end subroutine assemble_cmc_face
+    
+  end subroutine projection_decomposition
+  
+  function coriolis_val(coord, velocity)
+    real, dimension(:), intent(in) :: coord
+    real, dimension(size(coord)), intent(in) :: velocity
+    
+    real, dimension(size(coord)) :: coriolis_val
+    
+    real :: two_omega
+    
+    two_omega = sum(coriolis(spread(coord, 2, 1)))
+    assert(any(size(velocity) == (/2, 3/)))
+    coriolis_val(U_) = velocity(V_) * two_omega
+    coriolis_val(V_) = -velocity(U_) * two_omega
+    if(size(velocity) == 3) coriolis_val(W_) = 0.0
+        
+  end function coriolis_val
+  
+  function velocity_from_coriolis(coord, coriolis_val) result(velocity)
+    real, dimension(:), intent(in) :: coord
+    real, dimension(size(coord)) :: coriolis_val
+    
+    real, dimension(size(coord)) :: velocity
+    
+    real :: two_omega
+    
+    two_omega = sum(coriolis(spread(coord, 2, 1)))
+    assert(any(size(coriolis_val) == (/2, 3/)))
+    velocity(U_) = -coriolis_val(V_) / two_omega
+    velocity(V_) = coriolis_val(U_) / two_omega
+    if(size(velocity) == 3) velocity(W_) = 0.0
+    
+  end function velocity_from_coriolis
+
+  subroutine geostrophic_velocity(state, velocity, p)  
+    type(state_type), intent(inout) :: state
+    type(vector_field), target, intent(inout) :: velocity
+    type(scalar_field), intent(in) :: p
+    
+    integer :: i
+    type(mesh_type), pointer :: u_mesh
+    type(vector_field) :: coriolis, positions_remap
+    type(vector_field), pointer :: positions
+    
+    u_mesh => velocity%mesh
+    
+    positions => extract_vector_field(state, "Coordinate")
+    if(positions%mesh == velocity%mesh) then
+      positions_remap = positions
+      call incref(positions_remap)
+    else
+      call allocate(positions_remap, positions%dim, u_mesh, positions%name)
+      call remap_field(positions, positions_remap)
+    end if
+    
+    call allocate(coriolis, velocity%dim, velocity%mesh, "Coriolis")
+    call grad(p, positions, coriolis)
+    do i = 1, node_count(velocity)
+      call set(velocity, i, &
+        & velocity_from_coriolis(node_val(positions_remap, i), node_val(coriolis, i)))
+    end do
+    call deallocate(coriolis)
+    
+    call deallocate(positions_remap)
+    
+  end subroutine geostrophic_velocity
+
+  subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
+    !!< Perform a Helmholz decomposed projection of the Coriolis force, and
+    !!< invert for the new velocity
+    
+    type(state_type), intent(inout) :: old_state
+    type(vector_field), target, intent(inout) :: old_velocity
+    type(state_type), intent(inout) :: new_state
+    type(vector_field), target, intent(inout) :: new_velocity
+    type(ilist), dimension(:), optional, intent(in) :: map_BA
+    
+    character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
+    integer :: i, stat
+    type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
+    type(scalar_field) :: new_p, old_p
+    type(state_type), dimension(2) :: new_proj_state, old_proj_state
+    type(vector_field) :: coriolis, new_res, new_res_s, old_positions_remap, &
+      & old_res, new_positions_remap
+    type(vector_field), pointer :: new_positions, old_positions
+#ifdef DDEBUG
+    integer, save :: vtu_index = 0
+    type(vector_field) :: conserv
+#endif
+        
+    base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
+    ewrite(2, *) "Option path: " // trim(base_path)
+    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name, default = old_velocity%mesh%name)
+    old_u_mesh => old_velocity%mesh
+    old_p_mesh => extract_mesh(old_state, p_mesh_name)
+    new_u_mesh => new_velocity%mesh
+    new_p_mesh => extract_mesh(new_state, p_mesh_name)
+    
+    old_positions => extract_vector_field(old_state, "Coordinate")
+    new_positions => extract_vector_field(new_state, "Coordinate")
+    if(old_positions%mesh == old_velocity%mesh) then
+      old_positions_remap = old_positions
+      call incref(old_positions_remap)
+    else
+      call allocate(old_positions_remap, old_positions%dim, old_u_mesh, old_positions%name)
+      call remap_field(old_positions, old_positions_remap)
+    end if
+    if(new_positions%mesh == new_velocity%mesh) then
+      new_positions_remap = new_positions
+      call incref(new_positions_remap)
+    else
+      call allocate(new_positions_remap, new_positions%dim, new_u_mesh, new_positions%name)
+      call remap_field(new_positions, new_positions_remap)
+    end if
+    
+    ! Step 1: Perform a Helmholz decomposition of the old Coriolis
+    
+    ! A more general Coriolis mesh could be used (necessary for beta-plane), but
+    ! using the Velocity mesh is much simpler for now
+    call allocate(coriolis, old_velocity%dim, old_u_mesh, "Coriolis")
+    coriolis%option_path = old_velocity%option_path
+    do i = 1, node_count(coriolis)
+      call set(coriolis, i, coriolis_val(node_val(old_positions_remap, i), node_val(old_velocity, i)))
+    end do
+    do i = 1, coriolis%dim
+      ewrite_minmax(coriolis%val(i)%ptr)
+    end do
+    call allocate(old_p, old_p_mesh, "CoriolisConservativePotential")
+    old_p%option_path = trim(base_path) // "/conservative_potential"
+    call zero(old_p)
+    call allocate(old_res, old_velocity%dim, old_u_mesh, "CoriolisNonConservativeResidual")
+    old_res%option_path = trim(base_path) // "/residual"
+    
+#ifdef DDEBUG
+    call allocate(conserv, coriolis%dim, old_u_mesh, "CoriolisConservative")
+#endif
+    call projection_decomposition(old_state, coriolis, old_p, &
+#ifdef DDEBUG
+      & conserv = conserv, &
+#endif
+      & res = old_res) 
+#ifdef DDEBUG
+    call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
+      & sfields = (/old_p/), vfields = (/old_velocity, coriolis, conserv, old_res/))
+    call deallocate(conserv)
+#endif
+    
+    call deallocate(coriolis)
+    
+    ! Add the vertical velocity onto the (unused) third dimension of the
+    ! residual component
+    if(old_velocity%dim == 3) call addto(old_res, W_, old_velocity%val(W_)%ptr)
+    
+    ! Step 2: Galerkin project the decomposition
+    
+    call allocate(new_p, new_p_mesh, old_p%name)
+    new_p%option_path = old_p%option_path
+    call allocate(new_res, new_velocity%dim, new_u_mesh, old_res%name)
+    new_res%option_path = old_res%option_path
+    
+    call insert(old_proj_state, old_positions, old_positions%name)
+    call insert(old_proj_state, old_positions%mesh, old_positions%mesh%name)
+    call insert(old_proj_state(1), old_u_mesh, old_u_mesh%name)
+    call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
+    call insert(old_proj_state(1), old_p, old_p%name)
+    call insert(old_proj_state(2), old_res, old_res%name)
+    call insert(new_proj_state, new_positions, new_positions%name)
+    call insert(new_proj_state, new_positions%mesh, new_positions%mesh%name)
+    call insert(new_proj_state(1), new_u_mesh, new_u_mesh%name)
+    call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
+    call insert(new_proj_state(1), new_p, new_p%name)
+    call insert(new_proj_state(2), new_res, new_res%name)
+    
+    call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
+    
+    call deallocate(old_proj_state(1))
+    call deallocate(new_proj_state(1))
+    call deallocate(old_proj_state(2))
+    call deallocate(new_proj_state(2))
+    call deallocate(old_p)
+    call deallocate(old_res)
+    call deallocate(old_positions_remap)
+    
+    ! Step 3: Form the new Coriolis from the decomposition and invert for
+    ! Velocity
+    
+    call allocate(coriolis, new_velocity%dim, new_u_mesh, "Coriolis")
+    ! Add the conservative component. We're taking the gradient of a scalar, so
+    ! it's guaranteed to be pure conservative.
+    call grad(new_p, new_positions, coriolis)
+    
+    ! Add the solenoidal component. Project the interpolated residual to
+    ! guarantee divergence free.
+    call allocate(new_res_s, new_res%dim, new_res%mesh, trim(new_res%name) // "Solenoidal")
+    new_res_s%option_path = new_res%option_path
+    call zero(new_p)
+    call projection_decomposition(new_state, new_res, new_p, res = new_res_s)    
+    call addto(coriolis, new_res_s)    
+#ifdef DDEBUG
+    call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
+      & vfields = (/new_velocity, coriolis, new_res, new_res_s/))
+#endif
+    call deallocate(new_res_s)
+    
+    do i = 1, node_count(new_velocity)
+      call set(new_velocity, i, &
+        & velocity_from_coriolis(node_val(new_positions_remap, i), node_val(coriolis, i)))
+    end do
+    
+    call deallocate(coriolis)
+    
+    ! Recover the vertical velocity from the third dimension of the residual
+    ! component
+    if(new_velocity%dim == 3) call set(new_velocity, W_, new_res%val(W_)%ptr)
+    
+    call deallocate(new_p)
+    call deallocate(new_res)    
+    call deallocate(new_positions_remap)
+    
+#ifdef DDEBUG
+    vtu_index = vtu_index + 1
+#endif
+    
+  end subroutine geostrophic_interpolation
   
   subroutine compute_balanced_velocity_diagnostics(state, u_imbal, u_bal_out)
     type(state_type), intent(inout) :: state

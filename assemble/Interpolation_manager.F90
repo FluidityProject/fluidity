@@ -42,6 +42,7 @@ module interpolation_manager
   use linked_lists
   use boundary_conditions_from_options
   use tictoc
+  use geostrophic_pressure
   
   implicit none
   
@@ -71,13 +72,14 @@ contains
     character(len=FIELD_NAME_LEN) :: mesh_name
 
     type(scalar_field), pointer :: field_s
-    type(vector_field), pointer :: field_v
+    type(vector_field), pointer :: field_v, field_v_2
     type(tensor_field), pointer :: field_t
     integer :: field
 
-    character(len=255), dimension(2), parameter :: algorithms = (/&
-                       & "consistent_interpolation", &
-                       & "interpolation_galerkin  " /)
+    character(len=255), dimension(3), parameter :: algorithms = (/&
+                       & "consistent_interpolation ", &
+                       & "interpolation_galerkin   ", &
+                       & "geostrophic_interpolation" /)
     integer :: alg_cnt, alg
 
     type(mesh_type), pointer :: old_mesh, new_mesh
@@ -329,6 +331,18 @@ contains
             call deallocate(alg_old(mesh))
             call deallocate(alg_new(mesh))
           end do
+        case("geostrophic_interpolation")
+          do state = 1, state_cnt
+            do field = 1, vector_field_count(states_old(state))
+              field_v_2 => extract_vector_field(states_old(state), field)
+              if(.not. interpolate_field_geostrophic(field_v_2%option_path)) cycle
+              if(field_v_2%name == "Coordinate") cycle
+              field_v => extract_vector_field(states_new(state), field_v_2%name)
+              call geostrophic_interpolation(states_old(state), field_v_2, &
+                & states_new(state), field_v, &
+                & map_BA = map_BA)
+            end do
+          end do
         case("no_interpolation")
           ! nothing to be done obviously
         case default
@@ -392,6 +406,22 @@ contains
       & .and. .not. have_option(trim(base_path) // "/galerkin_projection/supermesh_free")
     
   end function interpolate_field_galerkin_projection
+  
+  function interpolate_field_geostrophic(option_path) result(interpolate)
+    character(len = *), intent(in) :: option_path
+
+    logical :: interpolate
+    
+    character(len = OPTION_PATH_LEN) :: base_path
+   
+    interpolate = .false.
+    if(len_trim(option_path) == 0) return
+
+    base_path = trim(complete_field_path(option_path))
+    
+    interpolate = have_option(trim(base_path) // "/geostrophic_interpolation")
+    
+  end function interpolate_field_geostrophic
   
   function interpolate_field_galerkin_projection_cg_supermesh_free(option_path) result(interpolate)
     character(len = *), intent(in) :: option_path

@@ -9778,6 +9778,97 @@ interpolation_algorithm_vector =
       ## the L2 norm of the residual
       element galerkin_projection {
         galerkin_projection_vector
+      }|
+      ## Helmholtz decomposed projection of the Coriolis force. Suitable only
+      ## for Velocity fields.
+      ## <b>FOR TESTING ONLY - NOT FOR PRODUCTION USE</b>
+      element geostrophic_interpolation {
+        ## Options relating to the conservative potential of the Helmholtz
+        ## decomposition
+        element conservative_potential {
+           (
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { "PressureMesh" }
+              }|
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { "VelocityMesh" }
+              }|
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { "CoordinateMesh" }
+              }|
+              ## The mesh used for the conservative potential. Note that this is
+              ## computed using the same method as the pressure projection, and
+              ## hence LBB constraints apply.
+              element mesh {
+                 attribute name { string }
+              }
+           ),
+           ## Spatial discretisation options
+           element spatial_discretisation {
+              ## Options relating to the mass matrix
+              element mass {
+                 ## Lump the mass matrix. Required for continuous fields.
+                 element lump_mass {
+                    comment
+                 }?
+              },
+              ## Use a continuous Galerkin discretisation
+              element continuous_galerkin {     
+                 ## Integrate the divergence operator by parts
+                 element integrate_divergence_by_parts {
+                    comment
+                 }?,    
+                 ## Remove the stabilisation term from the projection operator.
+                 ##
+                 ## Automatic when not using P1P1.
+                 element remove_stabilisation_term {
+                    comment
+                 }?,
+                 comment
+              },
+              comment
+           },
+           ## Reference node, at which the solution value is pinned to zero
+           element reference_node {
+             integer
+           }?,
+           ## Solver options for the conservative potential calculation
+           element solver {
+              linear_solver_options_sym
+           },
+           ## Galerkin projection. By default, conservative, non-dissipative and
+           ## non-bounded. The most accurate choice, in the sense of minimising
+           ## the L2 norm of the residual
+           element galerkin_projection {
+             continuous_projection,
+             supermesh_conservation?,
+             comment
+           },
+           comment
+        },
+        ## Options relating to the non-conservative residual component of the
+        ## Helmholz decomposition
+        element residual {
+           ## Galerkin projection. By default, conservative, non-dissipative and
+           ## non-bounded. The most accurate choice, in the sense of minimising
+           ## the L2 norm of the residual
+           element galerkin_projection {
+             continuous_discontinuous_projection,
+             supermesh_conservation?,
+             comment
+           },
+           comment
+        },
+        comment
       }
     )
     
@@ -9795,8 +9886,8 @@ galerkin_projection_scalar =
       supermesh_conservation?
     )
 
-continuous_discontinuous_projection =
-    (
+continuous_projection =
+   (
       ## Continuous field Galerkin projection.
       ## If the field you are interpolating is continuous, then
       ## a linear solver is required to invert the mass matrix.
@@ -9957,7 +10048,12 @@ continuous_discontinuous_projection =
             empty
           }
         )
-      }|
+      }
+   )
+
+continuous_discontinuous_projection =
+    (
+      continuous_projection|
       ## Discontinuous field Galerkin projection
       ## In this case, no linear solver is required to invert the mass matrix.
       element discontinuous {

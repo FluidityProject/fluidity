@@ -573,7 +573,7 @@ module conservative_interpolation_module
               call halo_update(new_fields(mesh,field))
             else
               call petsc_solve(new_fields(mesh, field), M_B(mesh), rhs(mesh, field), &
-              & option_path=trim(complete_field_path(new_fields(mesh,field)%option_path)) &
+              & option_path=trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) &
               & // "/galerkin_projection/continuous")
             end if
           end do

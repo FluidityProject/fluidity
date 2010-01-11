@@ -58,7 +58,6 @@ subroutine test_make_mesh_1d
     print "(a,i0)", "Degree = ", degree
     
     derived_shape = make_element_shape(base_shape, degree = degree)
-    print *, derived_shape%loc
     call report_test("[Derived loc]", &
       & derived_shape%loc /= degree + 1, .false., &
       & "Incorrect local node count")
