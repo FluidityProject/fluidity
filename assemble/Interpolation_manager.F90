@@ -76,10 +76,11 @@ contains
     type(tensor_field), pointer :: field_t
     integer :: field
 
-    character(len=255), dimension(3), parameter :: algorithms = (/&
+    character(len=255), dimension(4), parameter :: algorithms = (/&
                        & "consistent_interpolation ", &
                        & "interpolation_galerkin   ", &
-                       & "geostrophic_interpolation" /)
+                       & "geostrophic_interpolation", &
+                       & "grandy_interpolation     " /)
     integer :: alg_cnt, alg
 
     type(mesh_type), pointer :: old_mesh, new_mesh
@@ -343,6 +344,34 @@ contains
                 & map_BA = map_BA)
             end do
           end do
+        case("grandy_interpolation")
+          do mesh = 1, mesh_cnt
+            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
+            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
+            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            
+            call insert(alg_old(mesh), old_mesh, "Mesh")
+            call insert(alg_new(mesh), new_mesh, "Mesh")
+            call insert(alg_old(mesh), old_pos, "Coordinate")
+            call insert(alg_new(mesh), new_pos, "Coordinate")
+          end do
+          
+          call collect_fields_to_interpolate(interpolate_field_grandy_interpolation, meshes_new, meshes_old, alg_new, alg_old)
+        
+          no_fields = 0
+          do mesh = 1, mesh_cnt
+            no_fields = no_fields + field_count(alg_old(mesh))
+          end do
+          if(no_fields > mesh_cnt) then ! there will always be a Coordinate per mesh
+            assert(allocated(map_BA))
+            call grandy_projection(alg_old, alg_new, map_BA = map_BA)
+          end if
+        
+          do mesh=1,mesh_cnt
+            call deallocate(alg_old(mesh))
+            call deallocate(alg_new(mesh))
+          end do
+          
         case("no_interpolation")
           ! nothing to be done obviously
         case default
@@ -406,6 +435,21 @@ contains
       & .and. .not. have_option(trim(base_path) // "/galerkin_projection/supermesh_free")
     
   end function interpolate_field_galerkin_projection
+
+  function interpolate_field_grandy_interpolation(option_path) result(interpolate)
+    character(len = *), intent(in) :: option_path
+
+    logical :: interpolate
+    
+    character(len = OPTION_PATH_LEN) :: base_path
+   
+    interpolate = .false.
+    if(len_trim(option_path) == 0) return
+
+    base_path = trim(complete_field_path(option_path))
+    
+    interpolate = have_option(trim(base_path) // "/grandy_interpolation")
+  end function interpolate_field_grandy_interpolation
   
   function interpolate_field_geostrophic(option_path) result(interpolate)
     character(len = *), intent(in) :: option_path

@@ -9755,6 +9755,11 @@ interpolation_algorithm_scalar =
       ## the L2 norm of the residual
       element galerkin_projection {
         galerkin_projection_scalar
+      }|
+      ## Grandy interpolation. Conservative, but highly diffusive.
+      ## See doi:10.1006/jcph.1998.6125 .
+      element grandy_interpolation {
+        empty
       }
     )
     
@@ -9778,6 +9783,11 @@ interpolation_algorithm_vector =
       ## the L2 norm of the residual
       element galerkin_projection {
         galerkin_projection_vector
+      }|
+      ## Grandy interpolation. Conservative, but highly diffusive.
+      ## See doi:10.1006/jcph.1998.6125 .
+      element grandy_interpolation {
+        empty
       }|
       ## Helmholtz decomposed projection of the Coriolis force. Suitable only
       ## for Velocity fields.

@@ -12337,6 +12337,11 @@ non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
         <ref name="galerkin_projection_scalar"/>
       </element>
+      <element name="grandy_interpolation">
+        <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+        <empty/>
+      </element>
     </choice>
   </define>
   <define name="interpolation_algorithm_scalar_full">
@@ -12365,6 +12370,11 @@ All other algorithms require construction of a supermesh.</a:documentation>
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
         <ref name="galerkin_projection_vector"/>
+      </element>
+      <element name="grandy_interpolation">
+        <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+        <empty/>
       </element>
       <element name="geostrophic_interpolation">
         <a:documentation>Helmholtz decomposed projection of the Coriolis force. Suitable only

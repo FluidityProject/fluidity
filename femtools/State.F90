@@ -138,7 +138,7 @@ module state_module
   end interface halo_count
   
   interface collapse_state
-      module procedure collapse_single_state
+      module procedure collapse_single_state, collapse_multiple_states
   end interface
   
   interface collapse_fields_in_state
@@ -2596,6 +2596,63 @@ contains
       end do
     end do
   end subroutine collapse_single_state
+  
+  subroutine collapse_multiple_states(states, fields)
+  !!< Sometimes it is useful to treat everything in state
+  !!< as a big bunch of scalar fields -- adapting and
+  !!< interpolating spring to mind. Collapse all the fields
+  !!< in state down to an array of scalar fields.
+    type(state_type), dimension(:), intent(in) :: states
+    type(scalar_field), dimension(:), pointer :: fields
+    integer :: field, i, j, k, field_count
+    type(vector_field), pointer :: field_v
+    type(tensor_field), pointer :: field_t
+    integer :: state
+
+    do state=1,size(states)
+      field_count = scalar_field_count(states(state))
+      do field=1,vector_field_count(states(state))
+        field_v => extract_vector_field(states(state), field)
+        if(trim(field_v%name)=="Coordinate") cycle ! skip Coordinate
+        field_count = field_count + field_v%dim
+      end do
+
+      do field=1,tensor_field_count(states(state))
+        field_t => extract_tensor_field(states(state), field)
+        field_count = field_count + field_t%dim**2
+      end do
+    end do
+
+    allocate(fields(field_count))
+
+    i = 1
+    do state=1,size(states)
+      do field=1,scalar_field_count(states(state))
+        fields(i) = extract_scalar_field(states(state), field)
+        i = i + 1
+      end do
+
+      do field=1,vector_field_count(states(state))
+        field_v => extract_vector_field(states(state), field)
+        if (trim(field_v%name) /= "Coordinate") then
+          do j=1,field_v%dim
+            fields(i) = extract_scalar_field(field_v, j)
+            i = i + 1
+          end do
+        end if
+      end do
+
+      do field=1,tensor_field_count(states(state))
+        field_t => extract_tensor_field(states(state), field)
+        do j=1,mesh_dim(field_t)
+          do k=1,mesh_dim(field_t)
+            fields(i) = extract_scalar_field(field_t, j, k)
+            i = i + 1
+          end do
+        end do
+      end do
+    end do
+  end subroutine collapse_multiple_states
   
   subroutine collapse_fields_in_multiple_states(input_states, output_states)
   !!< Sometimes it is useful to treat everything in state

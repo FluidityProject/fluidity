@@ -39,6 +39,11 @@ module conservative_interpolation_module
                      interpolation_galerkin_multiple_states
   end interface
 
+  interface grandy_projection
+    module procedure grandy_projection_scalars, grandy_projection_multiple_states
+  end interface
+
+
   public :: interpolation_galerkin, grandy_projection
   
   private
@@ -850,11 +855,44 @@ module conservative_interpolation_module
       call deallocate(new_fields_state(i))
     end do
 
-    ewrite(1, *) "Exiting interpolation_galekin_multiple_states"
+    ewrite(1, *) "Exiting interpolation_galerkin_multiple_states"
 
   end subroutine interpolation_galerkin_multiple_states
 
-  subroutine grandy_projection(old_fields, old_position, new_fields, new_position)
+  subroutine grandy_projection_multiple_states(old_states, new_states, map_BA)
+    type(state_type), dimension(:), intent(inout) :: old_states, new_states
+    type(ilist), dimension(:), intent(in), optional :: map_BA
+
+    type(state_type), dimension(size(old_states)) :: old_fields_state, new_fields_state
+    type(scalar_field), dimension(:), pointer :: old_fields, new_fields
+    type(vector_field), pointer :: old_position, new_position
+    integer :: i
+
+    ewrite(1, *) "In grandy_projection_multiple_states"
+
+    call collapse_fields_in_state(old_states, old_fields_state)
+    call collapse_fields_in_state(new_states, new_fields_state)
+    call collapse_state(old_fields_state, old_fields)
+    call collapse_state(new_fields_state, new_fields)
+
+    old_position => extract_vector_field(old_states(1), "Coordinate")
+    new_position => extract_vector_field(new_states(1), "Coordinate")
+
+    call grandy_projection_scalars(old_fields, old_position, new_fields, new_position, map_BA=map_BA)
+
+    do i = 1, size(old_fields_state)
+      call deallocate(old_fields_state(i))
+      call deallocate(new_fields_state(i))
+    end do
+
+    deallocate(old_fields)
+    deallocate(new_fields)
+
+    ewrite(1, *) "Exiting grandy_projection_multiple_states"
+
+  end subroutine grandy_projection_multiple_states
+
+  subroutine grandy_projection_scalars(old_fields, old_position, new_fields, new_position, map_BA)
     !!< Grandy, 1999.
     !!< 10.1006/jcph.1998.6125
     type(scalar_field), dimension(:), intent(in) :: old_fields
@@ -865,7 +903,8 @@ module conservative_interpolation_module
     real :: vol_A, vol_B, vol_C
     integer :: dim
 
-    type(ilist), dimension(ele_count(new_position)) :: map_BA
+    type(ilist), dimension(:), intent(in), optional, target :: map_BA
+    type(ilist), dimension(:), pointer :: lmap_BA
     type(inode), pointer :: llnode
 
     type(vector_field) :: intersection
@@ -900,10 +939,15 @@ module conservative_interpolation_module
     assert(continuity(new_position) >= 0)
 
     call intersector_set_dimension(dim)
-    map_BA = intersection_finder(new_position, old_position)
+    if (present(map_BA)) then
+      lmap_BA => map_BA
+    else
+      allocate(lmap_BA(ele_count(new_position)))
+      lmap_BA = intersection_finder(new_position, old_position)
+    end if
 
     do ele_B=1,ele_count(new_position)
-      llnode => map_BA(ele_B)%firstnode
+      llnode => lmap_BA(ele_B)%firstnode
       integral_B = 0.0
       vol_B = simplex_volume(new_position, ele_B)
       pos_B = ele_val(new_position, ele_B)
@@ -935,16 +979,12 @@ module conservative_interpolation_module
 
         llnode => llnode%next
       end do
-
-      call deallocate(map_BA(ele_B))
     end do
 
     call deallocate(supermesh_shape)
     call deallocate(supermesh_quad)
 
     ! Now call the Galerkin projection routines to translate from P0 to Pn.
-
-    call vtk_write_fields("grandy_projection", 0, new_position, pwc_B(1)%mesh, sfields=pwc_B)
 
     do field=1,field_cnt
       call insert(projection_state, pwc_B(field), trim(new_fields(field)%name))
@@ -963,6 +1003,13 @@ module conservative_interpolation_module
       call deallocate(pwc_B(field))
     end do
     
-  end subroutine grandy_projection
+    if (.not. present(map_BA)) then
+      do ele_B=1,ele_count(new_position)
+        call deallocate(lmap_BA(ele_B))
+      end do
+      deallocate(lmap_BA)
+    end if
+
+  end subroutine grandy_projection_scalars
 
 end module conservative_interpolation_module
