@@ -896,7 +896,8 @@ module conservative_interpolation_module
     !!< Grandy, 1999.
     !!< 10.1006/jcph.1998.6125
     type(scalar_field), dimension(:), intent(in) :: old_fields
-    type(vector_field), intent(in) :: old_position, new_position
+    type(vector_field), intent(in) :: old_position
+    type(vector_field), intent(in) :: new_position
     type(scalar_field), dimension(:), intent(inout) :: new_fields
 
     integer :: ele_A, ele_B, ele_C
@@ -925,18 +926,18 @@ module conservative_interpolation_module
     field_cnt = size(old_fields)
     dim = mesh_dim(new_position)
 
-    do field=1,field_cnt
-      pwc_B(field) = piecewise_constant_field(old_fields(field)%mesh, trim(old_fields(field)%name) // "PWC")
-      call zero(pwc_B(field))
-    end do
-
-    supermesh_quad = make_quadrature(vertices=ele_loc(new_position, 1), dim=dim, degree=1)
-    supermesh_shape = make_element_shape(vertices=ele_loc(new_position, 1), dim=dim, degree=1, quad=supermesh_quad)
 
     ! Linear positions -- definitely linear positions.
     assert(old_position%mesh%shape%degree == 1)
     assert(continuity(old_position) >= 0)
     assert(continuity(new_position) >= 0)
+    do field=1,field_cnt
+      pwc_B(field) = piecewise_constant_field(new_position%mesh, trim(old_fields(field)%name) // "PWC")
+      call zero(pwc_B(field))
+    end do
+
+    supermesh_quad = make_quadrature(vertices=ele_loc(new_position, 1), dim=dim, degree=1)
+    supermesh_shape = make_element_shape(vertices=ele_loc(new_position, 1), dim=dim, degree=1, quad=supermesh_quad)
 
     call intersector_set_dimension(dim)
     if (present(map_BA)) then
