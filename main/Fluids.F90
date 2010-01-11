@@ -756,7 +756,9 @@ contains
     type(vector_field), pointer :: velocity
     
     ! The adaptivity metric
-    call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
+    if(have_option("/mesh_adaptivity/hr_adaptivity")) then
+      call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
+    end if
     
     ! Discrete properties
     call enforce_discrete_properties(state)
