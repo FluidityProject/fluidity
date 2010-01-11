@@ -30,12 +30,30 @@
 #define NODE_OWNERSHIP_H
 
 #include <map>
+#include <vector>
 
 #include "Element_Intersection.h"
 #include "MeshDataStream.h"
 
 namespace Fluidity {
 
+  // Class to store 1d elements, used in NodeOwnerFinder below
+  class Element1D
+  {
+    public:
+      Element1D(const int id, const double StartPoint, const double EndPoint);
+    
+      int operator<(const Element1D &rhs) const;
+      // element to the left of point
+      int operator<(const double &rhs) const;
+      // element to the right of point
+      int operator>(const double &rhs) const;
+    
+      double StartPoint, EndPoint;
+      int id;
+    
+  };
+  
   // Interface to spatialindex to calculate node ownership lists using bulk
   // storage
   // Uses code from gispatialindex.{cc,h} in Rtree 0.4.1
@@ -62,8 +80,10 @@ namespace Fluidity {
       ElementListVisitor visitor;
 
       int predicateCount;
+    
+      std::vector<Element1D> mesh1d;
   };
-
+  
 }
 
 extern std::map<int, Fluidity::NodeOwnerFinder*> nodeOwnerFinder;
