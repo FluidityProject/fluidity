@@ -666,7 +666,7 @@ contains
     x_shape=>ele_shape(X, ele)
 
     ! Optimisation checks. Optimisations apply to linear elements.
-    x_nonlinear= .not.(x_shape%degree==1 .and. x_shape%numbering%type==FAMILY_SIMPLEX)
+    x_nonlinear= .not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)
     
     dim=X%dim ! dimension of space (n/o real coordinates)
     ldim=size(x_shape%dn,3) ! dimension of element (n/o local coordinates)
@@ -800,7 +800,7 @@ contains
       assert(size(detJ)==x_shape%ngi)
     end if
 
-    if (.not.(x_shape%degree==1 .and. x_shape%numbering%type==FAMILY_SIMPLEX)) then
+    if (.not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
       compute_ngi=x_shape%ngi
     else
@@ -910,7 +910,7 @@ contains
       assert(size(detJ)==x_shape%ngi)
     end if
 
-    if (.not.(x_shape%degree==1 .and. x_shape%numbering%type==FAMILY_SIMPLEX)) then
+    if (.not.(x_shape%degree==1 .and. x_shape%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
       compute_ngi=x_shape%ngi
     else
@@ -1024,7 +1024,7 @@ contains
     end if
 #endif
     
-    if (.not.(x_shape_f%degree==1 .and. x_shape_f%numbering%type==FAMILY_SIMPLEX)) then
+    if (.not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
       compute_ngi=x_shape_f%ngi
       cache_valid=.false.
