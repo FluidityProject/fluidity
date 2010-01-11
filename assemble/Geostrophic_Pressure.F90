@@ -744,70 +744,7 @@ contains
     call remap_field(gp, bp)
     
   end subroutine set_balance_pressure_from_geostrophic_pressure
-    
-  subroutine calculate_geostrophic_pressure_projection(state, gp, &
-    & include_buoyancy, include_coriolis)
-    use vtk_interfaces
-    type(state_type), intent(inout) :: state
-    type(scalar_field), optional, intent(out) :: gp
-    logical, optional, intent(in) :: include_buoyancy
-    logical, optional, intent(in) :: include_coriolis
-    
-    type(scalar_field), pointer :: lgp
-    type(vector_field) :: dfield
-    
-    lgp => extract_scalar_field(state, gp_name)
-    
-    call allocate(dfield, mesh_dim(lgp), lgp%mesh, "DecompositionField")
-    call compute_decomposition_field(state, dfield, &
-      & include_buoyancy = include_buoyancy, include_coriolis = include_coriolis)
-    call projection_decomposition(state, dfield, lgp)
-    call deallocate(dfield)
-    
-    if(present(gp)) then
-      gp = lgp
-      call incref(gp)
-    end if
-    
-  end subroutine calculate_geostrophic_pressure_projection
-   
-  subroutine compute_decomposition_field(state, dfield, include_buoyancy, include_coriolis)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: dfield
-    logical, optional, intent(in) :: include_buoyancy
-    logical, optional, intent(in) :: include_coriolis
-    
-    integer :: stat
-    real :: gravity_magnitude
-    type(scalar_field), pointer :: buoyancy
-    type(vector_field), pointer :: gravity
-    
-    call zero(dfield)
-    
-    if(.not. present_and_false(include_coriolis)) then
-      FLAbort("Coriolis support not yet added to GeostrophicPressure projection method")
-    end if
-    
-    if(.not. present_and_false(include_buoyancy)) then
-      call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
-          stat = stat)
-      if(stat==0) then
-        buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
-        assert(ele_count(buoyancy) == ele_count(dfield))
-        ewrite_minmax(buoyancy%val)
-        
-        gravity => extract_vector_field(state, "GravityDirection")
-        assert(gravity%dim == dfield%dim)
-        assert(ele_count(gravity) == ele_count(dfield))
-        
-        call addto(dfield, gravity)
-        call scale(dfield, gravity_magnitude)
-        call scale(dfield, buoyancy)
-      end if
-    end if
-      
-  end subroutine compute_decomposition_field
-      
+          
   subroutine projection_decomposition(state, field, p, conserv, res, option_path) 
   
     !!< Perform a Helmholz decomposition of the supplied vector field. Basically
@@ -886,8 +823,6 @@ contains
       ewrite(-1, *) "On mesh: ", trim(u_mesh%name)
       FLExit("Must lump mass with continuous decomposed field")
     end if
-    
-    ! The tiresome task of assembling the projection equation follows...
      
     ! Assemble the matrices
      
