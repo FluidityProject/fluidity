@@ -55,7 +55,6 @@
     use state_matrices_module
     use sparsity_patterns_meshes
     use fefields
-    use geostrophic_pressure, only : gp_name
     use rotated_boundary_conditions
     implicit none
 
@@ -292,7 +291,7 @@
          end if
       end if
       
-      have_geostrophic_pressure = has_scalar_field(state, gp_name)
+      have_geostrophic_pressure = has_scalar_field(state, "GeostrophicPressure")
       if(have_geostrophic_pressure) then
         gp => extract_scalar_field(state, "GeostrophicPressure")
         

@@ -64,8 +64,7 @@
     implicit none
 
     private
-    public :: momentum_loop, impose_reference_pressure_node, &
-      momentum_equation_check_options
+    public :: momentum_loop, momentum_equation_check_options
 
   contains
 
@@ -828,29 +827,6 @@
       call deallocate(big_m)
 
     end subroutine solve_momentum
-
-    subroutine impose_reference_pressure_node(cmc_m, rhs, option_path)
-      !!< If there are only Neumann boundaries on P, it is necessary to pin
-      !!< the value of the pressure at one point. As the rhs of the equation
-      !!< needs to be zeroed for this node, you will have to call this for
-      !!< both of the pressure equations.
-      type(csr_matrix), intent(inout) :: cmc_m
-      type(scalar_field), intent(inout):: rhs
-      character(len=*), intent(in) :: option_path
-
-      integer :: reference_node, stat, stat2
-
-      call get_option(trim(complete_field_path(option_path, stat2))//&
-          &"/reference_node", reference_node, &
-          & stat=stat)
-      if (stat==0) then
-         ! all processors now have to call this routine, although only
-         ! process 1 sets it
-         ewrite(1,*) 'Imposing_reference_pressure_node'    
-         call set_reference_node(cmc_m, reference_node, rhs)
-      end if
-
-    end subroutine impose_reference_pressure_node
       
     subroutine momentum_equation_check_options
 

@@ -19,7 +19,6 @@ module solenoidal_interpolation_module
   use spud
   use assemble_cmc
   use sparse_matrices_fields
-  use momentum_equation, only: impose_reference_pressure_node
   use boundary_conditions
   use boundary_conditions_from_options
   use momentum_cg, only: correct_masslumped_velocity, add_kmk_matrix, add_kmk_rhs, assemble_kmk_matrix

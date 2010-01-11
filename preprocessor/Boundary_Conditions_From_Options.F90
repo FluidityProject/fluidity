@@ -31,6 +31,7 @@ use fldebug
 use quadrature
 use elements
 use fields
+use field_options
 use state_module
 use sparse_tools_petsc
 use boundary_conditions
@@ -49,7 +50,7 @@ implicit none
   private
   public populate_boundary_conditions, set_boundary_conditions_values, &
        set_dirichlet_consistent, apply_dirichlet_conditions, &
-       apply_dirichlet_conditions_inverse_mass
+       apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node
 
   interface apply_dirichlet_conditions
      module procedure apply_dirichlet_conditions_scalar, &
@@ -2157,5 +2158,27 @@ contains
     
   end subroutine populate_gls_boundary_conditions
   
+  subroutine impose_reference_pressure_node(cmc_m, rhs, option_path)
+    !!< If there are only Neumann boundaries on P, it is necessary to pin
+    !!< the value of the pressure at one point. As the rhs of the equation
+    !!< needs to be zeroed for this node, you will have to call this for
+    !!< both of the pressure equations.
+    type(csr_matrix), intent(inout) :: cmc_m
+    type(scalar_field), intent(inout):: rhs
+    character(len=*), intent(in) :: option_path
+
+    integer :: reference_node, stat, stat2
+
+    call get_option(trim(complete_field_path(option_path, stat2))//&
+        &"/reference_node", reference_node, &
+        & stat=stat)
+    if (stat==0) then
+       ! all processors now have to call this routine, although only
+       ! process 1 sets it
+       ewrite(1,*) 'Imposing_reference_pressure_node'    
+       call set_reference_node(cmc_m, reference_node, rhs)
+    end if
+
+  end subroutine impose_reference_pressure_node
 
 end module boundary_conditions_from_options
