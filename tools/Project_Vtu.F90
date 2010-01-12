@@ -73,9 +73,11 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
       
   call vtk_read_state(trim(input_filename), input_state, quad_degree = quad_degree)
   
-  donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
+  donor_positions = extract_vector_field(input_state, "Coordinate")
   target_positions = read_triangle_files(trim(target_basename), quad_degree = quad_degree)
-  output_mesh = make_mesh(target_positions%mesh, ele_shape(donor_positions, 1), continuity = continuity(extract_vector_field(input_state, "Coordinate")))
+  output_mesh = make_mesh(target_positions%mesh, ele_shape(donor_positions, 1), continuity = continuity(donor_positions))
+  
+  donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
   
   allocate(map_BA(ele_count(target_positions)))
   map_BA = rtree_intersection_finder(target_positions, donor_positions)
