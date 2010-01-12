@@ -31,6 +31,7 @@ module geostrophic_pressure
 
   use boundary_conditions
   use coriolis_module
+  use data_structures
   use eventcounter
   use field_options
   use quadrature
@@ -1072,6 +1073,45 @@ contains
     if(size(velocity) == 3) velocity(W_) = 0.0
     
   end function velocity_from_coriolis
+  
+  subroutine add_coriolis_bcs(coriolis, velocity)
+    type(vector_field), intent(inout) :: coriolis
+    type(vector_field), intent(in) :: velocity
+    
+    character(len = FIELD_NAME_LEN) :: bcname, bctype
+    integer :: dim, i, j
+    integer, dimension(:), pointer:: surface_element_list
+    logical :: swap
+    logical, dimension(velocity%dim):: applies
+    type(integer_set) :: boundary_ids
+    
+    dim = velocity%dim
+    
+    do i = 1, get_boundary_condition_count(velocity)
+      call get_boundary_condition(velocity, i, name = bcname, type = bctype, &
+        & surface_element_list = surface_element_list, applies = applies)
+      select case(bctype)
+        case("dirichlet")
+          swap = applies(1)
+          applies(1) = applies(2)
+          applies(2) = swap
+          
+          call allocate(boundary_ids)
+          do j = 1, size(surface_element_list)
+            call insert(boundary_ids, surface_element_id(velocity, surface_element_list(j)))
+          end do
+          
+          call add_boundary_condition(coriolis, bcname, bctype,&
+            & set2vector(boundary_ids), applies = applies)
+            
+          call deallocate(boundary_ids)
+        case default
+          ewrite(-1, *) "For boundary condition: " // trim(bcname)
+          FLAbort("Boundary condition type " // trim(bctype) // " not supported")
+      end select          
+    end do
+    
+  end subroutine add_coriolis_bcs
 
   subroutine geostrophic_velocity(state, velocity, p)  
     type(state_type), intent(inout) :: state
@@ -1119,15 +1159,13 @@ contains
     character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
     integer :: i, stat
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
-    type(scalar_field) :: new_p, old_p
+    type(scalar_field) :: new_p, old_w, old_p, new_w
     type(state_type), dimension(2) :: new_proj_state, old_proj_state
     type(vector_field) :: coriolis, new_res, new_res_s, old_positions_remap, &
       & old_res, new_positions_remap
     type(vector_field), pointer :: new_positions, old_positions
-#ifdef DDEBUG
     integer, save :: vtu_index = 0
     type(vector_field) :: conserv
-#endif
         
     base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
     ewrite(2, *) "Option path: " // trim(base_path)
@@ -1160,6 +1198,7 @@ contains
     ! using the Velocity mesh is much simpler for now
     call allocate(coriolis, old_velocity%dim, old_u_mesh, "Coriolis")
     coriolis%option_path = old_velocity%option_path
+    call add_coriolis_bcs(coriolis, old_velocity)
     do i = 1, node_count(coriolis)
       call set(coriolis, i, coriolis_val(node_val(old_positions_remap, i), node_val(old_velocity, i)))
     end do
@@ -1172,25 +1211,19 @@ contains
     call allocate(old_res, old_velocity%dim, old_u_mesh, "CoriolisNonConservativeResidual")
     old_res%option_path = trim(base_path) // "/residual"
     
-#ifdef DDEBUG
     call allocate(conserv, coriolis%dim, old_u_mesh, "CoriolisConservative")
-#endif
     call projection_decomposition(old_state, coriolis, old_p, &
-#ifdef DDEBUG
       & conserv = conserv, &
-#endif
       & res = old_res) 
-#ifdef DDEBUG
-    call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-      & sfields = (/old_p/), vfields = (/old_velocity, coriolis, conserv, old_res/))
-    call deallocate(conserv)
-#endif
-    
-    call deallocate(coriolis)
     
     ! Add the vertical velocity onto the (unused) third dimension of the
     ! residual component
     if(old_velocity%dim == 3) call addto(old_res, W_, old_velocity%val(W_)%ptr)
+      
+    call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
+      & sfields = (/old_p/), vfields = (/old_velocity, coriolis, conserv, old_res/))
+    call deallocate(conserv)
+    call deallocate(coriolis)
     
     ! Step 2: Galerkin project the decomposition
     
@@ -1203,14 +1236,29 @@ contains
     call insert(old_proj_state, old_positions%mesh, old_positions%mesh%name)
     call insert(old_proj_state(1), old_u_mesh, old_u_mesh%name)
     call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
-    call insert(old_proj_state(1), old_p, old_p%name)
-    call insert(old_proj_state(2), old_res, old_res%name)
+    call insert(old_proj_state(2), old_p, old_p%name)
+    call insert(old_proj_state(1), old_res, old_res%name)
     call insert(new_proj_state, new_positions, new_positions%name)
     call insert(new_proj_state, new_positions%mesh, new_positions%mesh%name)
     call insert(new_proj_state(1), new_u_mesh, new_u_mesh%name)
     call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
-    call insert(new_proj_state(1), new_p, new_p%name)
-    call insert(new_proj_state(2), new_res, new_res%name)
+    call insert(new_proj_state(2), new_p, new_p%name)
+    call insert(new_proj_state(1), new_res, new_res%name)
+    
+    if(old_velocity%dim == 3) then
+      ! Insert the vertical velocity
+      call allocate(old_w, old_u_mesh, "VerticalVelocity")
+      old_w%option_path = old_res%option_path
+      call set(old_w, old_velocity, W_)
+      call insert(old_proj_state(1), old_w, old_w%name)
+      ewrite_minmax(old_w%val)
+      call deallocate(old_w)
+      
+      call allocate(new_w, new_u_mesh, "VerticalVelocity")
+      new_w%option_path = new_res%option_path
+      call zero(new_w)
+      call insert(new_proj_state(1), new_w, new_w%name)
+    end if
     
     call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
     
@@ -1218,6 +1266,7 @@ contains
     call deallocate(new_proj_state(1))
     call deallocate(old_proj_state(2))
     call deallocate(new_proj_state(2))
+    
     call deallocate(old_p)
     call deallocate(old_res)
     call deallocate(old_positions_remap)
@@ -1226,6 +1275,7 @@ contains
     ! Velocity
     
     call allocate(coriolis, new_velocity%dim, new_u_mesh, "Coriolis")
+    call add_coriolis_bcs(coriolis, new_velocity)
     ! Add the conservative component. We're taking the gradient of a scalar, so
     ! it's guaranteed to be pure conservative.
     call grad(new_p, new_positions, coriolis)
@@ -1236,23 +1286,25 @@ contains
     new_res_s%option_path = new_res%option_path
     call zero(new_p)
     call projection_decomposition(new_state, new_res, new_p, res = new_res_s)    
-    call addto(coriolis, new_res_s)    
-#ifdef DDEBUG
-    call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-      & vfields = (/new_velocity, coriolis, new_res, new_res_s/))
-#endif
-    call deallocate(new_res_s)
+    call addto(coriolis, new_res_s)  
     
     do i = 1, node_count(new_velocity)
       call set(new_velocity, i, &
         & velocity_from_coriolis(node_val(new_positions_remap, i), node_val(coriolis, i)))
     end do
-    
+      
+    if(new_velocity%dim == 3) then
+      ! Recover the vertical velocity
+      ewrite_minmax(new_w%val)
+      call set(new_velocity, W_, new_w)
+      ewrite_minmax(new_velocity%val(W_)%ptr)
+      call deallocate(new_w)
+    end if
+      
+    call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
+      & vfields = (/new_velocity, coriolis, new_res, new_res_s/))
+    call deallocate(new_res_s)
     call deallocate(coriolis)
-    
-    ! Recover the vertical velocity from the third dimension of the residual
-    ! component
-    if(new_velocity%dim == 3) call set(new_velocity, W_, new_res%val(W_)%ptr)
     
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
       call projection_decomposition(new_state, new_velocity, new_p, res = new_res)
@@ -1263,9 +1315,7 @@ contains
     call deallocate(new_res)    
     call deallocate(new_positions_remap)
     
-#ifdef DDEBUG
     vtu_index = vtu_index + 1
-#endif
     
   end subroutine geostrophic_interpolation
   
