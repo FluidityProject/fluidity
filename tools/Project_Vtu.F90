@@ -56,8 +56,10 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
   character(len = *), parameter :: fields_path = "/dummy"
   integer :: i
   integer, parameter :: quad_degree = 4
+  type(element_type), pointer :: shape
   type(ilist), dimension(:), allocatable :: map_BA
   type(mesh_type) :: output_mesh
+  type(mesh_type), pointer :: input_mesh
   type(state_type) :: input_state, output_state
   type(scalar_field) :: output_s_field
   type(scalar_field), pointer :: input_s_field
@@ -74,8 +76,10 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
   call vtk_read_state(trim(input_filename), input_state, quad_degree = quad_degree)
   
   donor_positions = extract_vector_field(input_state, "Coordinate")
+  input_mesh => extract_mesh(input_state, "Mesh")
   target_positions = read_triangle_files(trim(target_basename), quad_degree = quad_degree)
-  output_mesh = make_mesh(target_positions%mesh, ele_shape(donor_positions, 1), continuity = continuity(donor_positions))
+  shape => ele_shape(donor_positions, 1)
+  output_mesh = make_mesh(target_positions%mesh, shape, continuity = continuity(donor_positions))
   
   donor_positions = read_triangle_files(trim(donor_basename), quad_degree = quad_degree)
   
@@ -93,26 +97,31 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
       cycle
     end if
     call allocate(output_s_field, output_mesh, input_s_field%name)
+    call zero(output_s_field)
     output_s_field%option_path = fields_path
     call insert(output_state, output_s_field, output_s_field%name)
+    call deallocate(output_s_field)
   end do
   do i = 1, vector_field_count(input_state)
     input_v_field => extract_vector_field(input_state, i)
     if(input_v_field%name == "Coordinate") cycle
     call allocate(output_v_field, input_v_field%dim, output_mesh, input_v_field%name)
+    call zero(output_v_field)
     output_v_field%option_path = fields_path
     call insert(output_state, output_v_field, output_v_field%name)
+    call deallocate(output_v_field)
   end do
   do i = 1, tensor_field_count(input_state)
     input_t_field => extract_tensor_field(input_state, i)
     call allocate(output_t_field, output_mesh, input_t_field%name)
+    call zero(output_t_field)
     output_t_field%option_path = fields_path
     call insert(output_state, output_t_field, output_t_field%name)
+    call deallocate(output_t_field)
   end do
   
   call deallocate(donor_positions)
   call deallocate(target_positions)
-  call deallocate(output_mesh)
   
   if(current_debug_level >= 2) then
     ewrite(2, *) "Options tree:"
@@ -128,8 +137,9 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
   deallocate(map_BA)
   call deallocate(input_state)
   
-  call vtk_write_state(trim(output_filename), state = (/output_state/))
+  call vtk_write_state(trim(output_filename), model = "Mesh", state = (/output_state/))
   call deallocate(output_state)
+  call deallocate(output_mesh)
   
   call print_references(0)
   

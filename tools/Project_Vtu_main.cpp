@@ -26,6 +26,7 @@
     USA
 */
 #include "fmangle.h"
+#include "Usage.h"
 
 #ifdef HAVE_MPI
 #include <mpi.h>
@@ -34,7 +35,6 @@
 extern "C" {
 #define project_vtu_fc F77_FUNC(project_vtu, PROJECT_VTU)
   void project_vtu_fc(const char*, int*, const char*, int*, const char*, int*, const char*, int*);
-  void set_global_debug_level_fc(int* val);
 }
 
 #ifdef _AIX
@@ -53,7 +53,7 @@ extern "C" {
 
 using namespace std; 
 
-void usage(char *binary){
+void project_vtu_usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename donor_basename target_basename output_filename\n"
       <<"Project an input vtu onto a triangle mesh\n"
       <<"\t-h\t\tPrints out this message\n"
@@ -68,6 +68,9 @@ int main(int argc, char **argv){
   // Undo some MPI init shenanigans
   chdir(getenv("PWD"));
 #endif
+  
+  // Initialise PETSc (this also parses PETSc command line arguments)
+  PetscInit(argc, argv);
  
   // Get any command line arguments
   // reset optarg so we can detect changes
@@ -87,20 +90,20 @@ int main(int argc, char **argv){
       }else{
         cerr << "Unknown option " << hex << optopt << endl;
       }
-      usage(argv[0]);
+      project_vtu_usage(argv[0]);
       exit(-1);
     }
   }
   
   if (optind != argc - 4){
     cerr << "Need exactly four non-option arguments" << endl;
-    usage(argv[0]);
+    project_vtu_usage(argv[0]);
     exit(-1);
   }
 
   // Help?
   if(args.count('h')){
-    usage(argv[0]);
+    project_vtu_usage(argv[0]);
     exit(-1);
   }
 
@@ -123,7 +126,11 @@ int main(int argc, char **argv){
   int output_filename_len = output_filename.length();  
 
   project_vtu_fc(input_filename.c_str(), &input_filename_len, donor_basename.c_str(), &donor_basename_len, target_basename.c_str(), &target_basename_len, output_filename.c_str(), &output_filename_len);
-  
+    
+#ifdef HAVE_PETSC
+  PetscFinalize();
+#endif
+
 #ifdef HAVE_MPI
   MPI::Finalize();
 #endif
