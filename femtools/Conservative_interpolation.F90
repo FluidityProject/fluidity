@@ -170,7 +170,7 @@ module conservative_interpolation_module
           end forall
         end forall
 #else
-        pos_at_quad_B = matmul(inversion_matrix_B, pos_at_quad_B)
+        pos_at_quad_B = matmul(inversion_matrix_B, tmp_pos_at_quad_B)
 #endif
 
         ! Compute the local coordinates in ele_A of the quadrature points of ele_C:
@@ -184,7 +184,7 @@ module conservative_interpolation_module
           end forall
         end forall
 #else
-        pos_at_quad_A = matmul(inversion_matrices_A(:, :, ele_A), pos_at_quad_A)
+        pos_at_quad_A = matmul(inversion_matrices_A(:, :, ele_A), tmp_pos_at_quad_A)
 #endif
 
         call transform_to_physical(intersection, ele_C, detwei_C)
