@@ -428,20 +428,18 @@ contains
     type(integer_vector), dimension(:), allocatable :: receive_buffer, &
       & send_buffer
     type(halo_type) :: sele_halo
-    type(halo_type), pointer :: ele_halo, node_halo
+    type(halo_type), pointer :: ele_halo
     
     ewrite(1, *) "In merge_surface_ids"
     
-    nhalos = halo_count(mesh)
-    if(nhalos == 0) return
-    node_halo => mesh%halos(nhalos)
-    if(serial_storage_halo(node_halo)) return
+    nhalos = element_halo_count(mesh)
+    ele_halo => mesh%element_halos(nhalos)
+    if(serial_storage_halo(ele_halo)) return
     
     assert(element_halo_count(mesh) > 0)
-    ele_halo => mesh%element_halos(element_halo_count(mesh))
     
-    communicator = halo_communicator(node_halo)
-    nprocs = halo_proc_count(node_halo)
+    communicator = halo_communicator(ele_halo)
+    nprocs = halo_proc_count(ele_halo)
     procno = getprocno(communicator = communicator)
     nsele = surface_element_count(mesh)
     
@@ -459,7 +457,7 @@ contains
         
     ! Derive the maximal surface element halo
     
-    sele_halo = derive_maximal_surface_element_halo(mesh, node_halo, ele_halo, &
+    sele_halo = derive_maximal_surface_element_halo(mesh, ele_halo, &
       & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
         
     allocate(send_buffer(nprocs))

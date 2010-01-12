@@ -305,18 +305,18 @@ contains
 
     if(.not. present_and_false(create_caches)) then
       call create_global_to_universal_numbering(element_halo)
+      call create_ownership(element_halo)
     end if
     
     ewrite(1, *) "Exiting derive_maximal_element_halo"
 
   end function derive_maximal_element_halo
   
-  function derive_maximal_surface_element_halo(mesh, node_halo, element_halo, ordering_scheme, create_caches) result(selement_halo)
+  function derive_maximal_surface_element_halo(mesh, element_halo, ordering_scheme, create_caches) result(selement_halo)
     !!< Given an element halo for the supplied mesh, derive the maximal surface
     !!< element halo
   
     type(mesh_type), intent(inout) :: mesh
-    type(halo_type), intent(in) :: node_halo
     type(halo_type), intent(in) :: element_halo
     !! By default the maximal surface element halo will have a
     !! HALO_ORDER_GENERAL ordering scheme. Supply this to override.
@@ -351,7 +351,7 @@ contains
     allocate(receives(nprocs))
     call allocate(receives)
     do i = 1, surface_element_count(mesh)
-      owner = ele_owner(face_ele(mesh, i), mesh, node_halo)
+      owner = halo_node_owner(element_halo, face_ele(mesh, i))
       if(owner /= procno) call insert(receives(owner), i)
     end do
     ewrite(2, *) "Maximal receive elements: ", sum(key_count(receives))
@@ -387,6 +387,7 @@ contains
 
     if(.not. present_and_false(create_caches)) then
       call create_global_to_universal_numbering(selement_halo)
+      call create_ownership(selement_halo)
     end if
     
     ewrite(1, *) "Exiting derive_maximal_surface_element_halo"
@@ -590,6 +591,8 @@ contains
       ! Create caches
       call create_global_to_universal_numbering(element_halos(1))
       call create_global_to_universal_numbering(element_halos(2))
+      call create_ownership(element_halos(1))
+      call create_ownership(element_halos(2))
     end if
     
     ewrite(1, *) "Exiting derive_element_halos_from_l2_halo_halo"

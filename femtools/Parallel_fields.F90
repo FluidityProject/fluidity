@@ -213,7 +213,7 @@ contains
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: element_number
 
-    integer :: nhalos, relative_number
+    integer :: nhalos
     logical :: owned
 
     assert(element_number > 0)
@@ -221,11 +221,7 @@ contains
 
     nhalos = element_halo_count(mesh)
     if(nhalos > 0) then
-       relative_number=halo_universal_number(mesh%element_halos(nhalos),&
-            & element_number)-mesh%element_halos(nhalos)%my_owned_nodes_unn_base
-       
-       owned=(relative_number>0 .and. &
-            & relative_number<=mesh%element_halos(nhalos)%nowned_nodes)
+      owned = node_owned(mesh%element_halos(nhalos), element_number)
     else
        owned = .true.
     end if

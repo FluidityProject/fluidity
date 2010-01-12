@@ -37,8 +37,6 @@ contains
     type(halo_type), intent(inout) :: halo
     
     if(has_ownership(halo)) return
-
-    assert(any(halo_data_type(halo) == (/HALO_TYPE_CG_NODE,HALO_TYPE_DG_NODE/)))
     
     select case(halo_ordering_scheme(halo))
       case(HALO_ORDER_GENERAL)
