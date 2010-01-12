@@ -78,7 +78,11 @@ subroutine derive_mesh(input_filename, input_filename_len, output_filename, outp
   if(vtu == 0) then
     call write_triangle_files(parallel_filename(output_filename), derived_positions)
   else
-    call vtk_write_fields(trim(output_filename) // ".pvtu", position = derived_positions, model = derived_positions%mesh)
+    if(isparallel()) then
+      call vtk_write_fields(trim(output_filename) // ".pvtu", position = derived_positions, model = derived_positions%mesh)
+    else
+      call vtk_write_fields(trim(output_filename) // ".vtu", position = derived_positions, model = derived_positions%mesh)
+    end if
   end if
   call deallocate(derived_positions)
   
