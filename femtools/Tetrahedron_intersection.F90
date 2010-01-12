@@ -1,4 +1,4 @@
-#define BUF_SIZE 100
+#define BUF_SIZE 150
 #include "fdebug.h"
 
 module tetrahedron_intersection_module
