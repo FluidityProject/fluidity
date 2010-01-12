@@ -433,6 +433,7 @@ contains
     ewrite(1, *) "In merge_surface_ids"
     
     nhalos = element_halo_count(mesh)
+    if(nhalos == 0) return
     ele_halo => mesh%element_halos(nhalos)
     if(serial_storage_halo(ele_halo)) return
     
