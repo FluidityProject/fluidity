@@ -830,7 +830,7 @@ contains
       
       real, dimension(ele_ngi(v, ele)) :: detwei
       real, dimension(ele_loc(v, ele), ele_loc(v, ele)) :: little_mass
-      real, dimension(v%dim, ele_loc(v, ele)) :: little_rhs
+      real, dimension(ele_loc(v, ele), v%dim) :: little_rhs
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), mesh_dim(v)) :: dshape
       type(element_type), pointer :: shape
       
@@ -840,11 +840,11 @@ contains
         & dshape = dshape, detwei = detwei)
         
       little_mass = shape_shape(shape, shape, detwei)
-      little_rhs = shape_vector_rhs(shape, transpose(ele_grad_at_quad(p, ele, dshape)), detwei)
+      little_rhs = transpose(shape_vector_rhs(shape, transpose(ele_grad_at_quad(p, ele, dshape)), detwei))
       
       call solve(little_mass, little_rhs)
       
-      call set(v, ele_nodes(v, ele), little_rhs)
+      call set(v, ele_nodes(v, ele), transpose(little_rhs))
     
     end subroutine solve_grad_ele
   
@@ -1604,7 +1604,7 @@ contains
     call grad(new_p, new_positions, coriolis)
     
     if(geopressure) then
-      ! Add the conservative component component from the GeostrophicPressure
+      ! Add the conservative component from the GeostrophicPressure
       call allocate(grad_gp, coriolis%dim, coriolis%mesh, "GeostrophicPressureGradient")
       call grad(new_gp, new_positions, grad_gp)
       call addto(coriolis, grad_gp)
