@@ -70,7 +70,7 @@ module state_module
   end type state_type
 
   interface deallocate
-     module procedure deallocate_state
+     module procedure deallocate_state, deallocate_state_vector
   end interface
 
   interface nullify
@@ -280,6 +280,17 @@ contains
     end if
 
   end subroutine deallocate_state
+  
+  subroutine deallocate_state_vector(state)
+    type(state_type), dimension(:), intent(inout) :: state
+    
+    integer :: i
+    
+    do i = 1, size(state)
+      call deallocate(state(i))
+    end do
+  
+  end subroutine deallocate_state_vector
 
   elemental subroutine nullify_state(state)
     !!< Nullify all the pointers in state. This should not be necessary but
@@ -2609,8 +2620,9 @@ contains
     type(tensor_field), pointer :: field_t
     integer :: state
 
+    field_count = 0
     do state=1,size(states)
-      field_count = scalar_field_count(states(state))
+      field_count = field_count + scalar_field_count(states(state))
       do field=1,vector_field_count(states(state))
         field_v => extract_vector_field(states(state), field)
         if(trim(field_v%name)=="Coordinate") cycle ! skip Coordinate
