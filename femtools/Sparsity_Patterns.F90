@@ -137,6 +137,68 @@ contains
     deallocate(list_matrix, list_matrix_out)
 
   end function make_sparsity_transpose
+  
+  function make_sparsity_mult(mesh1, mesh2, mesh3, name) result (sparsity)
+    ! Produce the sparsity of a second degree operator formed by the
+    ! operation A B, where A is mesh1 x mesh2 and B is mesh2 x mesh3
+    type(csr_sparsity) :: sparsity
+    type(mesh_type), intent(in) :: mesh1, mesh2, mesh3
+    character(len=*), intent(in) :: name
+    
+    type(ilist), dimension(:), pointer :: list_matrix_1, list_matrix_3, list_matrix_out
+    integer :: count_1, count_2, count_3, i, j, k
+    integer, dimension(:), allocatable :: row_1, row_3
+
+    count_1=node_count(mesh1)
+    count_2=node_count(mesh3)
+    count_3=node_count(mesh3)
+
+    allocate(list_matrix_1(count_2))
+    allocate(list_matrix_3(count_2))
+    allocate(list_matrix_out(count_1))
+    
+    list_matrix_1=make_sparsity_lists(mesh2, mesh3)
+    list_matrix_3=make_sparsity_lists(mesh2, mesh1)
+
+    ! Generate the sparsity of A B
+    do i=1,count_2
+       allocate(row_1(list_matrix_1(i)%length))
+       allocate(row_3(list_matrix_3(i)%length))
+
+       row_1=list2vector(list_matrix_1(i))
+       row_3=list2vector(list_matrix_3(i))
+
+       do j=1,size(row_1)
+          do k=1,size(row_3)
+             call insert_ascending(list_matrix_out(row_3(k)),row_1(j))
+          end do
+       end do
+
+       deallocate(row_1)
+       deallocate(row_3)
+    end do
+
+    sparsity=lists2csr_sparsity(list_matrix_out, name)
+    sparsity%columns=count_3
+    sparsity%sorted_rows=.true.
+
+    ! Second order operater so halo(2)
+    if (associated(mesh1%halos)) then
+       assert(associated(mesh3%halos))
+       allocate(sparsity%row_halo)
+       sparsity%row_halo=mesh1%halos(2)
+       call incref(sparsity%row_halo)
+       allocate(sparsity%column_halo)
+       sparsity%column_halo=mesh3%halos(2)
+       call incref(sparsity%column_halo)
+    end if
+
+    call deallocate(list_matrix_1)
+    call deallocate(list_matrix_3)
+    call deallocate(list_matrix_out)    
+    deallocate(list_matrix_1, list_matrix_3, list_matrix_out)
+
+  end function make_sparsity_mult
 
   function make_sparsity_dg_mass(mesh) result (sparsity)
     !!< Produce the sparsity pattern of a DG mass matrix. These matrices
