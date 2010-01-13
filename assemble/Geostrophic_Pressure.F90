@@ -93,6 +93,17 @@ module geostrophic_pressure
   interface eval_field
     module procedure eval_field_scalar
   end interface eval_field
+  
+  type cmc_matrices
+    logical :: lump_mass
+    type(block_csr_matrix) :: ct_m
+    type(block_csr_matrix) :: inverse_mass_b
+    type(vector_field) :: inverse_masslump_v
+  end type cmc_matrices
+  
+  interface deallocate
+    module procedure deallocate_cmc_matrices
+  end interface deallocate
     
 contains
   
@@ -859,7 +870,8 @@ contains
   
   end subroutine grad
           
-  subroutine projection_decomposition(state, field, p, conserv, res, gp, option_path) 
+  subroutine projection_decomposition(state, field, p, res, gp, option_path, &
+    & matrices) 
   
     !!< Perform a Helmholz decomposition of the supplied vector field. Basically
     !!< a pressure projection solve.
@@ -867,10 +879,10 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: field
     type(scalar_field), target, intent(inout) :: p
-    type(vector_field), optional, intent(inout) :: conserv
     type(vector_field), optional, intent(inout) :: res
     type(scalar_field), optional, intent(in) :: gp
     character(len = *), optional, intent(in) :: option_path
+    type(cmc_matrices), optional, intent(out) :: matrices
     
     character(len = OPTION_PATH_LEN) :: loption_path
     integer :: dim, i, stat
@@ -1059,12 +1071,7 @@ contains
     call petsc_solve(p, cmc_m, cmc_rhs, option_path = loption_path)
     call deallocate(cmc_m)       
     call deallocate(cmc_rhs)
-    
-    ! Optional conservative component calculation
-    if(present(conserv)) then
-      call grad(p, positions, conserv)
-    end if
-    
+        
     ! Optional residual calculation
     if(present(res)) then
       assert(res%mesh == field%mesh)
@@ -1078,12 +1085,23 @@ contains
         if(present(gp)) call correct_velocity_dg(res, inverse_mass_b, ct_gp_m, gp)
       end if
     end if    
-    if(lump_mass) then
-      call deallocate(inverse_masslump_v)
+    
+    if(present(matrices)) then
+      matrices%lump_mass = lump_mass
+      if(lump_mass) then
+        matrices%inverse_masslump_v = inverse_masslump_v
+      else
+        matrices%inverse_mass_b = inverse_mass_b
+      end if
+      matrices%ct_m = ct_m
     else
-      call deallocate(inverse_mass_b)
+      if(lump_mass) then
+        call deallocate(inverse_masslump_v)
+      else
+        call deallocate(inverse_mass_b)
+      end if
+      call deallocate(ct_m)
     end if
-    call deallocate(ct_m)
     if(present(gp)) call deallocate(ct_gp_m)
     
     call deallocate(lstate)
@@ -1183,27 +1201,19 @@ contains
       type(vector_field), optional, intent(in) :: inverse_masslump_v
       type(block_csr_matrix), optional, intent(out) :: ct_gp_m
       
-      integer :: dim, i
       type(csr_matrix) :: cmc_gp_m
       type(csr_sparsity) :: cmc_gp_sparsity
-      type(csr_sparsity), pointer :: ct_gp_sparsity
       type(block_csr_matrix) :: lct_gp_m
       type(mesh_type), pointer :: gp_mesh
       type(scalar_field) :: cmc_rhs_addto
       
-      dim = mesh_dim(cmc_rhs)
       gp_mesh => gp%mesh
       
       cmc_gp_sparsity = make_sparsity_mult(p_mesh, u_mesh, gp_mesh, name = "CMC_gpSparsity")
-      ct_gp_sparsity => get_csr_sparsity_firstorder(state, gp_mesh, u_mesh)
       call allocate(cmc_gp_m, cmc_gp_sparsity, name = "CMC_gp")
-      call allocate(lct_gp_m, ct_gp_sparsity, blocks = (/1, dim/), name = "CT_gp")
       call deallocate(cmc_gp_sparsity)
       
-      call zero(lct_gp_m)
-      do i = 1, ele_count(u_mesh)
-        call assemble_geopressure_divergence(i, u_mesh, gp_mesh, lct_gp_m, positions)
-      end do
+      lct_gp_m = geopressure_divergence(state, u_mesh, gp_mesh, positions)
       
       if(present(inverse_mass_b)) then
         call assemble_cmc_dg(cmc_gp_m, ctp_m, lct_gp_m, inverse_mass_b)
@@ -1228,6 +1238,29 @@ contains
               
     end subroutine geopressure_precondition
     
+  end subroutine projection_decomposition
+  
+  function geopressure_divergence(state, u_mesh, gp_mesh, positions) result(ct_gp_m)
+    type(state_type), intent(inout) :: state
+    type(mesh_type), intent(inout) :: u_mesh
+    type(mesh_type), intent(inout) :: gp_mesh
+    type(vector_field), intent(in) :: positions
+    
+    type(block_csr_matrix) :: ct_gp_m
+    
+    integer :: i
+    type(csr_sparsity), pointer :: ct_gp_sparsity
+    
+    ct_gp_sparsity => get_csr_sparsity_firstorder(state, gp_mesh, u_mesh)
+    call allocate(ct_gp_m, ct_gp_sparsity, blocks = (/1, positions%dim/), name = "CT_gp")
+      
+    call zero(ct_gp_m)
+    do i = 1, ele_count(u_mesh)
+      call assemble_geopressure_divergence(i, u_mesh, gp_mesh, ct_gp_m, positions)
+    end do
+    
+  contains
+    
     subroutine assemble_geopressure_divergence(ele, u_mesh, gp_mesh, ct_gp_m, positions)
       integer, intent(in) :: ele
       type(mesh_type), intent(in) :: u_mesh
@@ -1248,7 +1281,7 @@ contains
       
     end subroutine assemble_geopressure_divergence
     
-  end subroutine projection_decomposition
+  end function geopressure_divergence
   
   subroutine geopressure_decomposition(state, field, p, option_path)
     type(state_type), intent(inout) :: state
@@ -1326,6 +1359,59 @@ contains
     end subroutine assemble_geopressure_ele
     
   end subroutine geopressure_decomposition
+  
+  subroutine deallocate_cmc_matrices(matrices)
+    type(cmc_matrices), intent(inout) :: matrices
+    
+    if(matrices%lump_mass) then
+      call deallocate(matrices%inverse_masslump_v)
+    else
+      call deallocate(matrices%inverse_mass_b)
+    end if
+    call deallocate(matrices%ct_m)
+    
+  end subroutine deallocate_cmc_matrices
+  
+  subroutine correct_velocity(velocity, p, matrices)
+    type(vector_field), intent(inout) :: velocity
+    type(scalar_field), intent(in) :: p
+    type(cmc_matrices), intent(inout) :: matrices
+    
+    if(matrices%lump_mass) then
+      call correct_masslumped_velocity(velocity, matrices%inverse_masslump_v, matrices%ct_m, p)
+    else
+      call correct_velocity_dg(velocity, matrices%inverse_mass_b, matrices%ct_m, p)
+    end if
+    
+  end subroutine correct_velocity
+  
+  subroutine compute_conservative(conserv, matrices, p)
+    type(vector_field), intent(inout) :: conserv
+    type(cmc_matrices), intent(in) :: matrices
+    type(scalar_field), intent(in) :: p
+    
+    integer :: i
+    type(scalar_field) :: conserv_comp, ct_m_p
+    
+    if(matrices%lump_mass) then
+      do i = 1, conserv%dim
+        conserv_comp = extract_scalar_field(conserv, i)
+        call mult_t(conserv_comp, block(matrices%ct_m, 1, i), p)
+        call scale(conserv_comp, extract_scalar_field(matrices%inverse_masslump_v, i))
+      end do
+    else
+      call allocate(ct_m_p, conserv%mesh, "CTxp")
+      do i = 1, conserv%dim
+        conserv_comp = extract_scalar_field(conserv, i)
+        call mult_t(ct_m_p, block(matrices%ct_m, 1, i), p)
+        call mult(conserv_comp, block(matrices%inverse_mass_b, i, i), ct_m_p)
+      end do
+      call deallocate(ct_m_p)
+    end if
+    call scale(conserv, -1.0)
+    call halo_update(conserv)
+    
+  end subroutine compute_conservative
   
   function coriolis_val(coord, velocity)
     real, dimension(:), intent(in) :: coord
@@ -1443,21 +1529,20 @@ contains
     
     character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
     integer :: i, stat
+    type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
     type(state_type), dimension(3) :: new_proj_state, old_proj_state
-    type(vector_field) :: coriolis, new_res, new_res_s, old_positions_remap, &
-      & old_res, new_positions_remap
+    type(vector_field) :: coriolis, coriolis_addto, new_res, new_res_s, &
+      & old_positions_remap, old_res, new_positions_remap
     type(vector_field), pointer :: new_positions, old_positions
     
     logical :: geopressure
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
     type(scalar_field) :: new_gp, old_gp
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
-    type(vector_field) :: grad_gp
     
     integer, save :: vtu_index = 0
-    type(vector_field) :: conserv
         
     ewrite(1, *) "In geostrophic_interpolation"
         
@@ -1519,15 +1604,12 @@ contains
     call allocate(old_res, old_velocity%dim, old_u_mesh, "CoriolisNonConservativeResidual")
     old_res%option_path = trim(base_path) // "/residual"
     
-    call allocate(conserv, coriolis%dim, old_u_mesh, "CoriolisConservative")
     if(geopressure) then
       call projection_decomposition(old_state, coriolis, old_p, &
-        & conserv = conserv, &
         & res = old_res, &
         & gp = old_gp) 
     else
       call projection_decomposition(old_state, coriolis, old_p, &
-        & conserv = conserv, &
         & res = old_res) 
     end if
     
@@ -1537,12 +1619,11 @@ contains
       
     if(geopressure) then
       call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_gp, old_p/), vfields = (/old_velocity, coriolis, conserv, old_res/))
+        & sfields = (/old_gp, old_p/), vfields = (/old_velocity, coriolis, old_res/))
     else
       call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_p/), vfields = (/old_velocity, coriolis, conserv, old_res/))
+        & sfields = (/old_p/), vfields = (/old_velocity, coriolis, old_res/))
     end if
-    call deallocate(conserv)
     call deallocate(coriolis)
     
     ! Step 2: Galerkin project the decomposition
@@ -1607,18 +1688,7 @@ contains
     
     call allocate(coriolis, new_velocity%dim, new_u_mesh, "Coriolis")
     call add_coriolis_bcs(coriolis, new_velocity)
-    
-    ! Add the conservative component. We're taking the gradient of a scalar, so
-    ! it's guaranteed to be pure conservative.
-    call grad(new_p, new_positions, coriolis)
-    
-    if(geopressure) then
-      ! Add the conservative component from the GeostrophicPressure
-      call allocate(grad_gp, coriolis%dim, coriolis%mesh, "GeostrophicPressureGradient")
-      call grad(new_gp, new_positions, grad_gp)
-      call addto(coriolis, grad_gp)
-      call deallocate(grad_gp)
-    end if
+    call zero(coriolis)
     
     ! Add the solenoidal component. Project the interpolated residual to
     ! guarantee divergence free.
@@ -1627,9 +1697,22 @@ contains
     call allocate(res_p, new_p%mesh, trim(new_res%name) // "ConservativePotential")
     res_p%option_path = new_p%option_path
     call zero(res_p)
-    call projection_decomposition(new_state, new_res, res_p, res = new_res_s)    
+    call projection_decomposition(new_state, new_res, res_p, res = coriolis, matrices = matrices)    
     call deallocate(res_p)
-    call addto(coriolis, new_res_s)  
+    
+    call allocate(coriolis_addto, coriolis%dim, coriolis%mesh, name = "CoriolisAddto")
+    call compute_conservative(coriolis_addto, matrices, new_p)
+    call addto(coriolis, coriolis_addto)
+    
+    if(geopressure) then
+      call deallocate(matrices%ct_m)
+      matrices%ct_m = geopressure_divergence(new_state, new_u_mesh, new_gp_mesh, new_positions)
+      call compute_conservative(coriolis_addto, matrices, new_gp)
+      call addto(coriolis, coriolis_addto)
+    end if
+      
+    call deallocate(coriolis_addto)
+    call deallocate(matrices)
     
     do i = 1, node_count(new_velocity)
       call set(new_velocity, i, &
