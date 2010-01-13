@@ -150,15 +150,15 @@ contains
     integer, dimension(:), allocatable :: row_1, row_3
 
     count_1=node_count(mesh1)
-    count_2=node_count(mesh3)
+    count_2=node_count(mesh2)
     count_3=node_count(mesh3)
 
     allocate(list_matrix_1(count_2))
     allocate(list_matrix_3(count_2))
     allocate(list_matrix_out(count_1))
     
-    list_matrix_1=make_sparsity_lists(mesh2, mesh3)
-    list_matrix_3=make_sparsity_lists(mesh2, mesh1)
+    list_matrix_1=make_sparsity_lists(mesh2, mesh1)
+    list_matrix_3=make_sparsity_lists(mesh2, mesh3)
 
     ! Generate the sparsity of A B
     do i=1,count_2
@@ -168,9 +168,9 @@ contains
        row_1=list2vector(list_matrix_1(i))
        row_3=list2vector(list_matrix_3(i))
 
-       do j=1,size(row_1)
-          do k=1,size(row_3)
-             call insert_ascending(list_matrix_out(row_3(k)),row_1(j))
+       do j=1,size(row_3)
+          do k=1,size(row_1)
+             call insert_ascending(list_matrix_out(row_1(k)),row_3(j))
           end do
        end do
 
