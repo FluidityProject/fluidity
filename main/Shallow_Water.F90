@@ -45,6 +45,7 @@
     use diagnostic_fields_wrapper
     use assemble_cmc
     use global_parameters, only: option_path_len, current_time, dt
+    use adapt_state_prescribed_module
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -139,6 +140,23 @@
        end if
 
        call write_diagnostics(state,timestep*dt,dt)
+       
+       if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
+         if(do_adapt_state_prescribed(current_time)) then              
+            call adapt_state_prescribed(state, current_time)
+
+            call deallocate(h_mass_mat)
+            call deallocate(u_mass_mat)
+            call deallocate(coriolis_mat)
+            call deallocate(div_mat)
+            call deallocate(wave_mat)
+            call deallocate(big_mat)
+
+            call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
+                 h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
+                 dt,theta,D0,g,f0,beta)
+         end if
+       end if
 
     end do timestep_loop
 

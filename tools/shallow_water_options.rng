@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <include href="spud_base.rng"/>
+  <include href="adaptivity_options.rng"/>
   <include href="diagnostic_algorithms.rng"/>
-  <include href="prescribed_adaptivity.rng"/>
   <include href="stabilisation.rng"/>
   <start>
     <element name="shallow_water_options">
@@ -471,6 +471,13 @@ Adapting to this field is not recommended</a:documentation>
           tensor_field_choice*
         -->
       </element>
+      <optional>
+        <element name="mesh_adaptivity">
+          <optional>
+            <ref name="prescribed_adaptivity"/>
+          </optional>
+        </element>
+      </optional>
     </element>
   </start>
   <!-- Choice of input method, e.g. for boundary conditions -->
@@ -1023,6 +1030,7 @@ Will be replaced by a field in due course</a:documentation>
     </element>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
+    <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="prognostic_scalar_field">
     <element name="solver">
@@ -8126,291 +8134,6 @@ either after being prescribed or interpolated</a:documentation>
       </optional>
     </element>
   </define>
-  <define name="interpolation_algorithm_disabled">
-    <element name="no_interpolation">
-      <a:documentation>Disable interpolation</a:documentation>
-      <ref name="comment"/>
-    </element>
-  </define>
-  <define name="interpolation_algorithm_scalar">
-    <choice>
-      <element name="consistent_interpolation">
-        <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-        <empty/>
-      </element>
-      <element name="galerkin_projection">
-        <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
-non-bounded. The most accurate choice, in the sense of minimising
-the L2 norm of the residual</a:documentation>
-        <ref name="galerkin_projection_scalar"/>
-      </element>
-    </choice>
-  </define>
-  <define name="interpolation_algorithm_scalar_full">
-    <ref name="interpolation_algorithm_scalar"/>
-  </define>
-  <define name="interpolation_algorithm_scalar_full" combine="choice">
-    <ref name="interpolation_algorithm_disabled"/>
-  </define>
-  <define name="interpolation_algorithm_vector">
-    <choice>
-      <element name="consistent_interpolation">
-        <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-        <ref name="consistent_interpolation_vector"/>
-      </element>
-      <element name="galerkin_projection">
-        <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
-non-bounded. The most accurate choice, in the sense of minimising
-the L2 norm of the residual</a:documentation>
-        <ref name="galerkin_projection_vector"/>
-      </element>
-    </choice>
-  </define>
-  <define name="consistent_interpolation_vector">
-    <optional>
-      <ref name="balanced_interpolation"/>
-    </optional>
-  </define>
-  <define name="galerkin_projection_vector">
-    <ref name="continuous_discontinuous_projection"/>
-    <optional>
-      <ref name="balanced_interpolation"/>
-    </optional>
-    <optional>
-      <ref name="supermesh_free"/>
-    </optional>
-    <optional>
-      <ref name="supermesh_conservation"/>
-    </optional>
-  </define>
-  <define name="galerkin_projection_scalar">
-    <ref name="continuous_discontinuous_projection"/>
-    <optional>
-      <ref name="supermesh_free"/>
-    </optional>
-    <optional>
-      <ref name="supermesh_conservation"/>
-    </optional>
-  </define>
-  <define name="continuous_discontinuous_projection">
-    <choice>
-      <element name="continuous">
-        <a:documentation>Continuous field Galerkin projection.
-If the field you are interpolating is continuous, then
-a linear solver is required to invert the mass matrix.</a:documentation>
-        <optional>
-          <choice>
-            <element name="bounded">
-              <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
-limit, and minimally dissipative. This algorithm starts with the
-Galerkin projection and dissipates it until it achieves
-boundedness.
-If it does not converge, it may not be exactly bounded.
-Note well: this only works for linear fields.</a:documentation>
-              <attribute name="name">
-                <value>Diffuse</value>
-              </attribute>
-              <element name="boundedness_iterations">
-                <a:documentation>The number of dissipation iterations attempted to bound the
-Galerkin projection.</a:documentation>
-                <ref name="integer"/>
-                <optional>
-                  <element name="tolerance">
-                    <a:documentation>Specify the tolerance to which boundedness is to be tested.
-Defaults to computer precision if unspecified.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <optional>
-                <element name="bounds">
-                  <a:documentation>If the bounds on this field are known then they can be set here.
-These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
-don't accumulate with succesive interpolations) or if apply_globally
-is set they are just made to be bounded within the bounds globally
-(i.e. anything between those bounds is not smoothed).</a:documentation>
-                  <optional>
-                    <element name="upper_bound">
-                      <ref name="real"/>
-                      <optional>
-                        <element name="apply_globally">
-                          <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="coupled">
-                          <a:documentation>This field is to be considered as being coupled to another field
-such that the sum of the two fields is constrained to be less than
-the upper_bound specified above.
-
-The relationships between fields are worked out according to their
-priority ordering.
-
-This method is akin to the coupled_cv advection method.</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="lower_bound">
-                      <ref name="real"/>
-                      <optional>
-                        <element name="apply_globally">
-                          <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-              <optional>
-                <element name="repair_deviations">
-                  <a:documentation>If, after performing all the boundedness_iterations, the field
-is still not bounded then perform surgery to redistribute the
-deviations to nodes that have less than their bounds.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="bounded">
-              <a:documentation>Use a bounded Galerkin projection. Conservative, bounded in the
-limit, and hopefully minimally dissipative. This algorithm starts with the
-Galerkin projection and uses the optimisation library Algencan to bound
-it by minimising a functional within constraints on boundedness and conservation.
-Note well: this only works for linear fields.</a:documentation>
-              <attribute name="name">
-                <value>Algencan</value>
-              </attribute>
-              <choice>
-                <element name="functional">
-                  <attribute name="name">
-                    <value>L2</value>
-                  </attribute>
-                  <optional>
-                    <element name="weight">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="functional">
-                  <attribute name="name">
-                    <value>LumpedMassL2</value>
-                  </attribute>
-                  <optional>
-                    <element name="weight">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="functional">
-                  <attribute name="name">
-                    <value>IntegralL2</value>
-                  </attribute>
-                  <optional>
-                    <element name="weight">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="functional">
-                  <attribute name="name">
-                    <data type="string" datatypeLibrary=""/>
-                  </attribute>
-                  <optional>
-                    <element name="weight">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-              </choice>
-              <optional>
-                <element name="bounds">
-                  <a:documentation>If the bounds on this field are known then they can be set here.
-These can either further constrain the limits worked out by the
-lumped version of the projection (i.e. to make sure that errors 
-don't accumulate with succesive interpolations) or if apply_globally
-is set they are just made to be bounded within the bounds globally
-(i.e. anything between those bounds is not smoothed).</a:documentation>
-                  <optional>
-                    <element name="upper_bound">
-                      <ref name="real"/>
-                      <optional>
-                        <element name="apply_globally">
-                          <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="coupled">
-                          <a:documentation>This field is to be considered as being coupled to another field
-such that the sum of the two fields is constrained to be less than
-the upper_bound specified above.
-
-The relationships between fields are worked out according to their
-priority ordering.
-
-This method is akin to the coupled_cv advection method.</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="lower_bound">
-                      <ref name="real"/>
-                      <optional>
-                        <element name="apply_globally">
-                          <a:documentation>If this is set the upper_bound is used everywhere.
-If left unset the upper_bound is only used to constrain
-the smoothed bounds calculated by the code</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-            </element>
-          </choice>
-        </optional>
-        <choice>
-          <element name="solver">
-            <a:documentation>Solver options for the linear solve.
-This method requires the inversion of a mass matrix. Note that
-conservation properties are affected by the tolerance of the
-linear solve.</a:documentation>
-            <ref name="linear_solver_options_sym"/>
-          </element>
-          <element name="lump_mass_matrix">
-            <a:documentation>Lump the mass matrix on the left hand side of the galerkin projection.
-Hence solver options aren't necessary.</a:documentation>
-            <empty/>
-          </element>
-        </choice>
-      </element>
-      <element name="discontinuous">
-        <a:documentation>Discontinuous field Galerkin projection
-In this case, no linear solver is required to invert the mass matrix.</a:documentation>
-        <empty/>
-      </element>
-    </choice>
-  </define>
   <define name="solenoidal_options">
     <element name="solenoidal">
       <a:documentation>Constrained divergence-free projection.
@@ -8527,73 +8250,12 @@ This method requires the inversion of a projection matrix.</a:documentation>
       </element>
     </element>
   </define>
-  <define name="balanced_interpolation">
-    <element name="balanced_interpolation">
-      <a:documentation>Geostrophically-balanced interpolation.
-During the interpolation, the velocity is split into
-balanced and imbalanced parts. The imbalanced part is
-interpolated whereas the balanced part is recovered
-on the other side of the interpolation from the pressure.
-This means that if your velocity field is balanced before
-interpolation, it will be balanced afterwards also.
-
-Note well: this only makes sense for velocity.</a:documentation>
-      <element name="solver">
-        <a:documentation>The solver options for computing the balanced velocity to subtract.</a:documentation>
-        <ref name="linear_solver_options_sym"/>
-      </element>
-    </element>
-  </define>
-  <define name="supermesh_free">
-    <element name="supermesh_free">
-      <a:documentation>Enables a supermesh free Galerkin projection. Uses incomplete
-quadrature, and hence is not conservative.</a:documentation>
-      <empty/>
-    </element>
-  </define>
   <define name="represcribe_before_interpolation">
     <element name="represcribe_before_interpolation">
       <a:documentation>Represcribe the field before interpolation.
 
 This means the interpolation will not be conservative from the previous mesh so be careful what you're trying to achieve!</a:documentation>
       <empty/>
-    </element>
-  </define>
-  <define name="supermesh_conservation">
-    <element name="supermesh_conservation">
-      <a:documentation>Options for checking the supermesh conservation properties</a:documentation>
-      <optional>
-        <element name="tolerance">
-          <a:documentation>Specify the fraction of the original elemental area/volume
-to be used to check the conservation of the supermesh.
-
-Since all fields are supermeshed together the minimum tolerance
-specified over all fields will be used.
-
-Defaults to 0.001 if unspecified.
-i.e. 0.1% of the area/volume of an element in the new mesh may
-be lost without warning or attempts to fix (if compiled with cgal)
-during the construction of the supermesh between the old
-and new meshes.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="print_field_integral">
-          <a:documentation>Compute the field integral after the interpolation and print the relative
-mass loss to the logfile (level 2 verbosity).
-
-Note this is a post interpolation step and offers no chance of
-fixing the conservation error (unlike the tolerance above if compiled
-with cgal)</a:documentation>
-          <element name="tolerance">
-            <a:documentation>Relative tolerance with which to test the conservation of the field
-integral.  If the conservation fails this tolerance a warning is issued
-(level 0 verbosity) and vtus containing the field are output.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </element>
-      </optional>
     </element>
   </define>
 </grammar>

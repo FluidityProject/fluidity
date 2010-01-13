@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
     <string_value lines="1">balanced</string_value>
@@ -198,6 +198,7 @@
         </mean_layer_thickness>
         <output/>
         <stat/>
+        <consistent_interpolation/>
       </prognostic>
     </scalar_field>
   </material_phase>

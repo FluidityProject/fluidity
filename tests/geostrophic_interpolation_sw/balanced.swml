@@ -1,11 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">kelvin_wave</string_value>
+    <string_value lines="1">balanced</string_value>
   </simulation_name>
-  <debug>
-    <check_inverse_coriolis_matrix/>
-  </debug>
+  <debug/>
   <geometry>
     <dimension replaces="NDIM">
       <integer_value rank="0">2</integer_value>
@@ -44,6 +42,28 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="InitialMesh">
+      <from_file file_name="basin">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_file>
+      <exclude_from_mesh_adaptivity/>
+    </mesh>
+    <mesh name="AdaptedMesh">
+      <from_file file_name="first_timestep_adapted_mesh">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_file>
+      <exclude_from_mesh_adaptivity/>
+    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">4</integer_value>
@@ -57,7 +77,7 @@
     <dump_period_in_timesteps>
       <integer_value rank="0">1</integer_value>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="PressureMesh"/>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
@@ -67,11 +87,14 @@
       <real_value rank="0">100.0</real_value>
     </timestep>
     <nonlinear_iterations replaces="ITINOI">
-      <integer_value rank="0">5</integer_value>
+      <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time replaces="LTIME">
-      <real_value rank="0">10000</real_value>
+      <real_value rank="0">1.0e6</real_value>
     </finish_time>
+    <final_timestep>
+      <integer_value rank="0">100</integer_value>
+    </final_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -83,7 +106,6 @@
       <f_plane replaces="OPTOME = 0">
         <f replaces="OMEGA">
           <real_value rank="0">1.0313e-04</real_value>
-          <comment>1.0313e-04</comment>
         </f>
       </f_plane>
     </coriolis>
@@ -108,10 +130,10 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-100</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </relative_error>
           <absolute_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -122,20 +144,7 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-   from math import sqrt, exp
-   LR = 68000.
-   u = [0.0,0.0]
-   g = 10.
-   H = 5.
-   r0 = 250000.
-   r = ((X[0])**2 + (X[1]**2))**0.5
-   if(r&gt;0.0001):
-      u[0] =-0.05*sqrt(g/H)*exp((r-r0)/LR)*X[0]/r*X[1]/r
-      u[1] =0.05*sqrt(g/H)*exp((r-r0)/LR)*X[0]/r*X[0]/r
-   return u</string_value>
-          </python>
+          <balanced/>
         </initial_condition>
         <output/>
         <stat>
@@ -156,7 +165,60 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <geostrophic_interpolation>
+          <conservative_potential>
+            <mesh name="PressureMesh"/>
+            <spatial_discretisation>
+              <mass/>
+              <continuous_galerkin>
+                <integrate_divergence_by_parts/>
+              </continuous_galerkin>
+            </spatial_discretisation>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.0e-16</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1.0e-16</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <galerkin_projection>
+              <continuous>
+                <solver>
+                  <iterative_method name="cg"/>
+                  <preconditioner name="sor"/>
+                  <relative_error>
+                    <real_value rank="0">1.0e-16</real_value>
+                  </relative_error>
+                  <absolute_error>
+                    <real_value rank="0">1.0e-16</real_value>
+                  </absolute_error>
+                  <max_iterations>
+                    <integer_value rank="0">1000</integer_value>
+                  </max_iterations>
+                  <never_ignore_solver_failures/>
+                  <diagnostics>
+                    <monitors/>
+                  </diagnostics>
+                </solver>
+              </continuous>
+            </galerkin_projection>
+          </conservative_potential>
+          <residual>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
+          </residual>
+        </geostrophic_interpolation>
       </prognostic>
     </vector_field>
     <scalar_field name="LayerThickness" rank="0">
@@ -185,8 +247,11 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-12</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-16</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
@@ -199,16 +264,15 @@
           <python>
             <string_value lines="20" type="python">def val(X,t):
    from math import exp
-   LR = 68000.
+   LR = 40000.
    u = [0.0,0.0]
-   g = 10.
-   H = 5.
    r0 = 250000.
    r = ((X[0])**2 + (X[1]**2))**0.5
-   if(r&gt;0.0001):
-      return 0.05*exp((r-r0)/LR)*X[0]/r
+   return 0.05*exp(-r/LR)
+   if(r&lt;-1.0e-5+r0):
+      return 0.05*exp(-r/LR)
    else:
-      return 0.0</string_value>
+      return 0.</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -216,8 +280,56 @@
         </mean_layer_thickness>
         <output/>
         <stat/>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.0e-16</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1.0e-16</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
       </prognostic>
     </scalar_field>
   </material_phase>
+  <mesh_adaptivity>
+    <prescribed_adaptivity>
+      <adapt_interval>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+	if "timestep_count" in persistent:
+		persistent["timestep_count"] += 1
+	else:
+		persistent["timestep_count"] = 1
+	return persistent["timestep_count"] %5 == 0</string_value>
+        </python>
+      </adapt_interval>
+      <mesh>
+        <name>
+          <python>
+            <string_value lines="20" type="python">def val(t):
+	meshes = ["InitialMesh", "AdaptedMesh"]
+	if "mesh_count" in persistent:
+		persistent["mesh_count"] +=1 
+		persistent["mesh_count"] %= 2
+	else:
+		persistent["mesh_count"] = 1
+	return meshes[persistent["mesh_count"]]</string_value>
+          </python>
+        </name>
+      </mesh>
+    </prescribed_adaptivity>
+  </mesh_adaptivity>
 </shallow_water_options>

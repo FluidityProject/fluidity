@@ -630,6 +630,9 @@ contains
   end subroutine set_zero_point
   
   function eval_field_scalar(ele, s_field, positions, local_coord) result(val)
+    !!< Evaluate the scalar field s_field at element local coordinate
+    !!< local_coord of element ele. This assumes linear positions.
+  
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: s_field
     type(vector_field), intent(in) :: positions
@@ -640,6 +643,12 @@ contains
     integer :: i
     real, dimension(ele_loc(s_field, ele)) :: n
     type(element_type), pointer :: shape
+#ifdef DDEBUG
+    type(element_type), pointer :: positions_shape
+    
+    positions_shape => ele_shape(positions, ele)
+    assert(positions_shape%degree == 1)
+#endif
     
     shape => ele_shape(s_field, ele)
     
