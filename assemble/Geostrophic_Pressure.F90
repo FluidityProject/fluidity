@@ -1564,10 +1564,6 @@ contains
       call projection_decomposition(old_state, coriolis, old_p, &
         & res = old_res) 
     end if
-    
-    ! Add the vertical velocity onto the (unused) third dimension of the
-    ! residual component
-    if(old_velocity%dim == 3) call addto(old_res, W_, old_velocity%val(W_)%ptr)
       
     if(geopressure) then
       call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
