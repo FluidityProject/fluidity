@@ -895,8 +895,7 @@ contains
     type(csr_sparsity), pointer :: cmc_sparsity, ct_sparsity
     type(element_type), pointer :: p_shape, u_shape
     type(mesh_type), pointer :: u_mesh, p_mesh
-    !type(scalar_field) :: ct_rhs
-    type(scalar_field) :: cmc_rhs, inverse_masslump
+    type(scalar_field) :: cmc_rhs, ct_rhs, inverse_masslump
     type(state_type) :: lstate
     type(vector_field) :: inverse_masslump_v
     type(vector_field), pointer :: positions
@@ -934,7 +933,7 @@ contains
     call allocate(ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
     ctp_m => ct_m
     call allocate(cmc_rhs, p_mesh, "CMCRHS")
-    !call allocate(ct_rhs, p_mesh, "CTRHS")
+    call allocate(ct_rhs, p_mesh, "CTRHS")
         
     ! Options
     lump_mass = have_option(trim(loption_path) // &
@@ -957,84 +956,40 @@ contains
      
     ! Assemble the matrices
      
-!    if(lump_mass) then
-!      call allocate(inverse_masslump, u_mesh, "InverseLumpedMass")    
-!      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
-!                                         test_mesh = p_mesh, field = field, &
-!                                         grad_mass_lumped = inverse_masslump)
-!      
-!      call invert(inverse_masslump)
-!      call allocate(inverse_masslump_v, dim, inverse_masslump%mesh, "InverseLumpedMass")
-!      do i = 1, dim
-!        call set(inverse_masslump_v, i, inverse_masslump)
-!      end do
-!      call deallocate(inverse_masslump)
-!      
-!      !call apply_dirichlet_conditions_inverse_mass(inverse_masslump_v, field)
-!      
-!      call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump_v, ct_m)
-!    else
-!      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
-!                                         test_mesh = p_mesh, field = field)
-!      
-!      call construct_inverse_mass_matrix_dg(inverse_mass, field, positions)
-!      
-!      call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass)
-!    end if
-
-    call zero(ct_m)
     if(lump_mass) then
-      call allocate(inverse_masslump_v, dim, u_mesh, "InverseLumpedMass")
-      assert(dim > 0)
-      inverse_masslump = extract_scalar_field(inverse_masslump_v, 1)
+      call allocate(inverse_masslump, u_mesh, "InverseLumpedMass")    
+      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
+                                         test_mesh = p_mesh, field = field, &
+                                         grad_mass_lumped = inverse_masslump, option_path = loption_path)
       
-      call zero(inverse_masslump)
-      do i = 1, ele_count(field)
-        call assemble_cmc_ele(i, u_mesh, p_mesh, ct_m, positions, field, masslump = inverse_masslump)
-      end do
-      if(integrate_by_parts) then
-        do i = 1, surface_element_count(field)
-          call assemble_cmc_face(i, u_mesh, p_mesh, ct_m, positions)
-        end do
-      end if
       call invert(inverse_masslump)
-
-!      ! All neumann bcs
-!      do i = 1, surface_element_count(field)
-!        call set(inverse_masslump, face_global_nodes(field, i), spread(0.0, 1, face_loc(field, i)))
-!      end do
-      do i = 2, dim
+      call allocate(inverse_masslump_v, dim, inverse_masslump%mesh, "InverseLumpedMass")
+      do i = 1, dim
         call set(inverse_masslump_v, i, inverse_masslump)
       end do
-      call apply_dirichlet_conditions_inverse_mass(inverse_masslump_v, field)     
-
+      call deallocate(inverse_masslump)
+      
+      call apply_dirichlet_conditions_inverse_mass(inverse_masslump_v, field)
+      
       call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump_v, ct_m)
-    else  
-      mass_sparsity = make_sparsity_dg_mass(u_mesh)
+    else
+      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
+                                         test_mesh = p_mesh, field = field, &
+                                         option_path = loption_path)
+
+      mass_sparsity = make_sparsity_dg_mass(u_mesh)  
       call allocate(inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
       call deallocate(mass_sparsity)
       assert(dim > 0)
       inverse_mass = block(inverse_mass_b, 1, 1)
-      
       do i = 1, ele_count(field)
-        call assemble_cmc_ele(i, u_mesh, p_mesh, ct_m, positions, field, inverse_mass = inverse_mass)
+        call assemble_mass_ele(i, u_mesh, positions, inverse_mass = inverse_mass)
       end do
-      if(integrate_by_parts) then
-        do i = 1, surface_element_count(field)
-          call assemble_cmc_face(i, u_mesh, p_mesh, ct_m, positions)
-        end do
-      end if
-
-!      ! All neumann bcs
-!      do i = 1, surface_element_count(field)
-!        call set(inverse_mass, face_global_nodes(field, i), face_global_nodes(field, i), &
-!          & spread(spread(0.0, 1, face_loc(field, i)), 1, face_loc(field, i)))
-!      end do
       do i = 2, dim
         inverse_mass_b%val(i, i)%ptr = inverse_mass%val
       end do
       call apply_dirichlet_conditions_inverse_mass(inverse_mass_b, field)
-
+      
       call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass_b)
     end if
     
@@ -1058,11 +1013,8 @@ contains
         call geopressure_precondition(state, u_mesh, p_mesh, gp, ctp_m, cmc_rhs, positions, inverse_mass_b = inverse_mass_b, ct_gp_m = ct_gp_m)
       end if
     end if
-       
-!    call mult(cmc_rhs, ct_m, field)    
-!    call scale(cmc_rhs, -1.0)
-!    call addto(cmc_rhs, ct_rhs)
-!    call deallocate(ct_rhs)
+    call addto(cmc_rhs, ct_rhs)
+    call deallocate(ct_rhs)
     
     call impose_reference_pressure_node(cmc_m, cmc_rhs, option_path = loption_path)
     
@@ -1110,84 +1062,38 @@ contains
   
   contains
   
-    subroutine assemble_cmc_ele(ele, u_mesh, p_mesh, ct_m, positions, field, inverse_mass, masslump)
+    subroutine assemble_mass_ele(ele, mesh, positions, inverse_mass, masslump)
       integer, intent(in) :: ele
-      type(mesh_type), intent(in) :: u_mesh
-      type(mesh_type), intent(in) :: p_mesh
-      type(block_csr_matrix), intent(inout) :: ct_m
+      type(mesh_type), intent(in) :: mesh
       type(vector_field), intent(in) :: positions
-      type(vector_field), intent(in) :: field
       type(csr_matrix), optional, intent(inout) :: inverse_mass
       type(scalar_field), optional, intent(inout) :: masslump 
       
-      integer, dimension(:), pointer :: p_nodes, u_nodes
-      real, dimension(ele_loc(u_mesh, ele), ele_loc(u_mesh, ele)) :: little_mass
-      real, dimension(ele_loc(p_mesh, ele), ele_ngi(p_mesh, ele), mesh_dim(p_mesh)) :: dp_shape
-      real, dimension(ele_loc(u_mesh, ele), ele_ngi(u_mesh, ele), mesh_dim(p_mesh)) :: du_shape
-      real, dimension(ele_ngi(p_mesh, ele)) :: detwei
-      type(element_type), pointer :: p_shape, u_shape
+      integer, dimension(:), pointer :: nodes
+      real, dimension(ele_loc(mesh, ele), ele_loc(mesh, ele)) :: little_mass
+      real, dimension(ele_ngi(mesh, ele)) :: detwei
+      type(element_type), pointer :: shape
       
-      u_shape => ele_shape(u_mesh, ele)
-      p_shape => ele_shape(p_mesh, ele)
+      shape => ele_shape(mesh, ele)
       
-      if(integrate_by_parts) then
-        call transform_to_physical(positions, ele, p_shape, &
-          & dshape = dp_shape, detwei = detwei)
-      else
-        call transform_to_physical(positions, ele, u_shape, &
-          & dshape = du_shape, detwei = detwei)
-      end if
+      call transform_to_physical(positions, ele, &
+        & detwei = detwei)
       
-      little_mass = shape_shape(u_shape, u_shape, detwei)
+      little_mass = shape_shape(shape, shape, detwei)
 
-      u_nodes => ele_nodes(u_mesh, ele)
-      p_nodes => ele_nodes(p_mesh, ele)
-        
-      if(integrate_by_parts) then
-        call addto(ct_m, p_nodes, u_nodes, spread(-dshape_shape(dp_shape, u_shape, detwei), 1, 1))
-      else
-        call addto(ct_m, p_nodes, u_nodes, spread(shape_dshape(p_shape, du_shape, detwei), 1, 1))
-      end if
+      nodes => ele_nodes(mesh, ele)
       if(present(masslump)) then
-        call addto(masslump, u_nodes, sum(little_mass, 2))
+        call addto(masslump, nodes, sum(little_mass, 2))
       end if
       if(present(inverse_mass)) then
         assert(continuity(field) == -1)
         assert(.not. any(is_nan(little_mass)))
         call invert(little_mass)
         assert(.not. any(is_nan(little_mass)))
-        call set(inverse_mass, u_nodes, u_nodes, little_mass)
+        call set(inverse_mass, nodes, nodes, little_mass)
       end if
       
-    end subroutine assemble_cmc_ele
-    
-    subroutine assemble_cmc_face(face, u_mesh, p_mesh, ct_m, positions)
-      integer, intent(in) :: face
-      type(mesh_type), intent(in) :: u_mesh
-      type(mesh_type), intent(in) :: p_mesh
-      type(block_csr_matrix), intent(inout) :: ct_m
-      type(vector_field), intent(in) :: positions
-      
-      integer, dimension(face_loc(p_mesh, face)) :: p_nodes
-      integer, dimension(face_loc(u_mesh, face)) :: u_nodes
-      real, dimension(face_ngi(p_mesh, face)) :: detwei
-      real, dimension(mesh_dim(p_mesh), face_ngi(p_mesh, face)) :: normal
-      type(element_type), pointer :: p_shape, u_shape
-      
-      assert(integrate_by_parts)
-      
-      u_shape => face_shape(u_mesh, face)
-      p_shape => face_shape(p_mesh, face)
-      
-      call transform_facet_to_physical(positions, face, &
-        & normal = normal, detwei_f = detwei)
-        
-      p_nodes = face_global_nodes(p_mesh, face)
-      u_nodes = face_global_nodes(u_mesh, face)
-      
-      call addto(ct_m, p_nodes, u_nodes, spread(shape_shape_vector(p_shape, u_shape, detwei, normal), 1, 1))
-      
-    end subroutine assemble_cmc_face
+    end subroutine assemble_mass_ele
     
     subroutine geopressure_precondition(state, u_mesh, p_mesh, gp, ctp_m, cmc_rhs, positions, inverse_mass_b, inverse_masslump_v, ct_gp_m)
       type(state_type), intent(inout) :: state
@@ -1477,8 +1383,8 @@ contains
             
           call deallocate(boundary_ids)
         case default
-          ewrite(-1, *) "For boundary condition: " // trim(bcname)
-          FLAbort("Boundary condition type " // trim(bctype) // " not supported")
+          ewrite(0, *) "For boundary condition: " // trim(bcname)
+          ewrite(0, *) "Boundary condition type " // trim(bctype) // " not supported"
       end select          
     end do
     
@@ -1533,7 +1439,7 @@ contains
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
     type(state_type), dimension(3) :: new_proj_state, old_proj_state
-    type(vector_field) :: coriolis, coriolis_addto, new_res, new_res_s, &
+    type(vector_field) :: coriolis, coriolis_addto, new_res, &
       & old_positions_remap, old_res, new_positions_remap
     type(vector_field), pointer :: new_positions, old_positions
     
@@ -1589,6 +1495,7 @@ contains
     if(geopressure) then
       ! We're preconditioning with a GeostrophicPressure solve
       call get_option(trim(base_path) // "/geopressure_preconditioner/mesh/name", gp_mesh_name)
+      ewrite(2, *) "Computing GeostrophicPressure of mesh: ", trim(gp_mesh_name)
       old_gp_mesh => extract_mesh(old_state, gp_mesh_name)
       new_gp_mesh => extract_mesh(new_state, gp_mesh_name)
       
@@ -1692,8 +1599,6 @@ contains
     
     ! Add the solenoidal component. Project the interpolated residual to
     ! guarantee divergence free.
-    call allocate(new_res_s, new_res%dim, new_res%mesh, trim(new_res%name) // "Solenoidal")
-    new_res_s%option_path = new_res%option_path
     call allocate(res_p, new_p%mesh, trim(new_res%name) // "ConservativePotential")
     res_p%option_path = new_p%option_path
     call zero(res_p)
@@ -1729,12 +1634,11 @@ contains
       
     if(geopressure) then
       call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_gp, new_p/), vfields = (/new_velocity, coriolis, new_res, new_res_s/))
+        & sfields = (/new_gp, new_p/), vfields = (/new_velocity, coriolis, new_res/))
     else
       call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p/), vfields = (/new_velocity, coriolis, new_res, new_res_s/))
+        & sfields = (/new_p/), vfields = (/new_velocity, coriolis, new_res/))
     end if
-    call deallocate(new_res_s)
     call deallocate(coriolis)
     
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
