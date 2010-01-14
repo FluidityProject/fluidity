@@ -68,8 +68,8 @@ module geostrophic_pressure
     & calculate_geostrophic_pressure_options, calculate_geostrophic_pressure, &
     & geostrophic_pressure_check_options
     
-  public :: projection_decomposition, geostrophic_velocity, &
-    & geostrophic_interpolation, cmc_matrices
+  public :: projection_decomposition, geopressure_decomposition, &
+    & geostrophic_velocity, geostrophic_interpolation, cmc_matrices
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
@@ -1340,6 +1340,9 @@ contains
     integer :: i
     type(scalar_field) :: conserv_comp, ct_m_p
     
+    assert(conserv%mesh == matrices%u_mesh)
+    assert(p%mesh == matrices%p_mesh)
+    
     if(matrices%lump_mass) then
       do i = 1, conserv%dim
         conserv_comp = extract_scalar_field(conserv, i)
@@ -1487,6 +1490,7 @@ contains
     
     logical :: geopressure
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
+    type(cmc_matrices) :: gp_matrices
     type(scalar_field) :: new_gp, old_gp
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
@@ -1655,9 +1659,10 @@ contains
     call addto(coriolis, coriolis_addto)
     
     if(geopressure) then
-      call deallocate(matrices%ct_m)
-      matrices%ct_m = geopressure_divergence(new_state, new_u_mesh, new_gp_mesh, new_positions)
-      call compute_conservative(coriolis_addto, matrices, new_gp)
+      gp_matrices = matrices
+      gp_matrices%ct_m = geopressure_divergence(new_state, new_u_mesh, new_gp_mesh, new_positions)
+      call compute_conservative(coriolis_addto, gp_matrices, new_gp)
+      call deallocate(gp_matrices%ct_m)
       call addto(coriolis, coriolis_addto)
     end if
       
@@ -1693,8 +1698,8 @@ contains
     if(have_option(trim(base_path) // "/enforce_conservative")) then
       call get_option(trim(base_path) // "/enforce_conservative/name", corr_p_name)
       corr_p => extract_scalar_field(new_state, corr_p_name)
-      ewrite(2, *) "Enforcing conservative pressure field: ", trim(corr_p%name)
-      call correct_p(corr_p,matrices)
+      ewrite(2, *) "Enforcing conservative gradient for pressure field: ", trim(corr_p%name)
+      call correct_p(corr_p, matrices)
     end if
     
     if(geopressure) call deallocate(new_gp)

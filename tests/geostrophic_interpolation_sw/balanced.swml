@@ -87,7 +87,7 @@
       <real_value rank="0">100.0</real_value>
     </timestep>
     <nonlinear_iterations replaces="ITINOI">
-      <integer_value rank="0">0</integer_value>
+      <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time replaces="LTIME">
       <real_value rank="0">1.0e6</real_value>
@@ -180,7 +180,6 @@
                 <integrate_divergence_by_parts/>
               </continuous_galerkin>
             </spatial_discretisation>
-            <decomposed_field name="LayerThickness"/>
             <solver>
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
