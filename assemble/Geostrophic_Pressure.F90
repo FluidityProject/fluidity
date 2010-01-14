@@ -68,7 +68,7 @@ module geostrophic_pressure
     & geostrophic_pressure_check_options
     
   public :: projection_decomposition, geostrophic_velocity, &
-    & geostrophic_interpolation
+    & geostrophic_interpolation, cmc_matrices
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
@@ -1351,44 +1351,45 @@ contains
     
   end function velocity_from_coriolis
   
-  subroutine add_coriolis_bcs(coriolis, velocity)
-    type(vector_field), intent(inout) :: coriolis
-    type(vector_field), intent(in) :: velocity
+  function bc_ids(mesh, surface_element_list)
+    type(mesh_type), intent(in) :: mesh
+    integer, dimension(:), intent(in) :: surface_element_list
     
-    character(len = FIELD_NAME_LEN) :: bcname, bctype
-    integer :: dim, i, j
-    integer, dimension(:), pointer:: surface_element_list
-    logical :: swap
-    logical, dimension(velocity%dim):: applies
-    type(integer_set) :: boundary_ids
+    integer :: i
+    type(integer_set) :: bc_ids
     
-    dim = velocity%dim
-    
-    do i = 1, get_boundary_condition_count(velocity)
-      call get_boundary_condition(velocity, i, name = bcname, type = bctype, &
-        & surface_element_list = surface_element_list, applies = applies)
-      select case(bctype)
-        case("dirichlet")
-          swap = applies(1)
-          applies(1) = applies(2)
-          applies(2) = swap
-          
-          call allocate(boundary_ids)
-          do j = 1, size(surface_element_list)
-            call insert(boundary_ids, surface_element_id(velocity, surface_element_list(j)))
-          end do
-          
-          call add_boundary_condition(coriolis, bcname, bctype,&
-            & set2vector(boundary_ids), applies = applies)
-            
-          call deallocate(boundary_ids)
-        case default
-          ewrite(0, *) "For boundary condition: " // trim(bcname)
-          ewrite(0, *) "Boundary condition type " // trim(bctype) // " not supported"
-      end select          
+    call allocate(bc_ids)
+    do i = 1, size(surface_element_list)
+      call insert(bc_ids, surface_element_id(mesh, surface_element_list(i)))
     end do
     
-  end subroutine add_coriolis_bcs
+  end function bc_ids
+  
+  subroutine copy_bcs(donor, target, bcname)
+    type(vector_field), intent(in) :: donor
+    type(vector_field), intent(inout) :: target
+    character(len = *), optional, intent(in) :: bcname
+    
+    character(len = FIELD_NAME_LEN) :: lbcname, bctype
+    integer :: i
+    integer, dimension(:), pointer:: surface_element_list
+    logical, dimension(donor%dim):: applies
+    type(integer_set) :: boundary_ids
+    
+    do i = 1, get_boundary_condition_count(donor)
+      call get_boundary_condition(donor, i, name = lbcname, type = bctype, &
+        & surface_element_list = surface_element_list, applies = applies)
+      if(present(bcname)) then
+        if(.not. lbcname == bcname) cycle
+      end if
+      
+      boundary_ids = bc_ids(donor%mesh, surface_element_list)          
+      call add_boundary_condition(target, lbcname, bctype,&
+        & set2vector(boundary_ids), applies = applies)            
+      call deallocate(boundary_ids)
+    end do
+  
+  end subroutine copy_bcs
 
   subroutine geostrophic_velocity(state, velocity, p)  
     type(state_type), intent(inout) :: state
@@ -1483,7 +1484,6 @@ contains
     ! using the Velocity mesh is much simpler for now
     call allocate(coriolis, old_velocity%dim, old_u_mesh, "Coriolis")
     coriolis%option_path = old_velocity%option_path
-    call add_coriolis_bcs(coriolis, old_velocity)
     do i = 1, node_count(coriolis)
       call set(coriolis, i, coriolis_val(node_val(old_positions_remap, i), node_val(old_velocity, i)))
     end do
@@ -1511,6 +1511,7 @@ contains
     call allocate(old_res, old_velocity%dim, old_u_mesh, "CoriolisNonConservativeResidual")
     old_res%option_path = trim(base_path) // "/residual"
     
+    call copy_bcs(coriolis, old_velocity)
     if(geopressure) then
       call projection_decomposition(old_state, coriolis, old_p, &
         & res = old_res, &
@@ -1594,7 +1595,6 @@ contains
     ! Velocity
     
     call allocate(coriolis, new_velocity%dim, new_u_mesh, "Coriolis")
-    call add_coriolis_bcs(coriolis, new_velocity)
     call zero(coriolis)
     
     ! Add the solenoidal component. Project the interpolated residual to
@@ -1602,7 +1602,8 @@ contains
     call allocate(res_p, new_p%mesh, trim(new_res%name) // "ConservativePotential")
     res_p%option_path = new_p%option_path
     call zero(res_p)
-    call projection_decomposition(new_state, new_res, res_p, res = coriolis, matrices = matrices)    
+    call copy_bcs(new_velocity, new_res)
+    call projection_decomposition(new_state, new_res, res_p, res = coriolis, matrices = matrices)
     call deallocate(res_p)
     
     call allocate(coriolis_addto, coriolis%dim, coriolis%mesh, name = "CoriolisAddto")
