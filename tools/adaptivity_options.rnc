@@ -711,6 +711,12 @@ interpolation_algorithm_vector =
               },
               comment
            },
+           ## Perform a decomposed projection of a pressure field by subtracting
+           ## this conservative potential.
+           element decomposed_field {
+             attribute name { xsd:string },
+             comment
+           }?,
            ## Reference node, at which the solution value is pinned to zero
            element reference_node {
              integer
@@ -762,6 +768,11 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
+           comment
+        }?,
+        ## Enforce a conservative Pressure field following the interpolation
+        element enforce_conservative {
+           attribute name { xsd:string },
            comment
         }?,
         ## Enforce a solenoidal velocity field following the interpolation

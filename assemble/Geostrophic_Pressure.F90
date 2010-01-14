@@ -56,6 +56,7 @@ module geostrophic_pressure
   use divergence_matrix_cg
   use momentum_cg
   use momentum_dg
+  use supermesh_assembly
   use unittest_tools
   use vtk_interfaces
 
@@ -95,10 +96,14 @@ module geostrophic_pressure
   end interface eval_field
   
   type cmc_matrices
+    type(mesh_type) :: u_mesh
+    type(mesh_type) :: p_mesh
     logical :: lump_mass
     type(block_csr_matrix) :: ct_m
+    type(scalar_field) :: ct_rhs
     type(block_csr_matrix) :: inverse_mass_b
     type(vector_field) :: inverse_masslump_v
+    type(csr_matrix) :: cmc_m
   end type cmc_matrices
   
   interface deallocate
@@ -1014,15 +1019,12 @@ contains
       end if
     end if
     call addto(cmc_rhs, ct_rhs)
-    call deallocate(ct_rhs)
     
     call impose_reference_pressure_node(cmc_m, cmc_rhs, option_path = loption_path)
     
     ! Solve      
     
     call petsc_solve(p, cmc_m, cmc_rhs, option_path = loption_path)
-    call deallocate(cmc_m)       
-    call deallocate(cmc_rhs)
         
     ! Optional residual calculation
     if(present(res)) then
@@ -1039,6 +1041,10 @@ contains
     end if    
     
     if(present(matrices)) then
+      matrices%u_mesh = u_mesh
+      call incref(matrices%u_mesh)
+      matrices%p_mesh = p_mesh
+      call incref(matrices%p_mesh)
       matrices%lump_mass = lump_mass
       if(lump_mass) then
         matrices%inverse_masslump_v = inverse_masslump_v
@@ -1046,6 +1052,8 @@ contains
         matrices%inverse_mass_b = inverse_mass_b
       end if
       matrices%ct_m = ct_m
+      matrices%ct_rhs = ct_rhs
+      matrices%cmc_m = cmc_m
     else
       if(lump_mass) then
         call deallocate(inverse_masslump_v)
@@ -1053,7 +1061,10 @@ contains
         call deallocate(inverse_mass_b)
       end if
       call deallocate(ct_m)
-    end if
+      call deallocate(ct_rhs)
+      call deallocate(cmc_m)      
+    end if 
+    call deallocate(cmc_rhs)
     if(present(gp)) call deallocate(ct_gp_m)
     
     call deallocate(lstate)
@@ -1269,12 +1280,16 @@ contains
   subroutine deallocate_cmc_matrices(matrices)
     type(cmc_matrices), intent(inout) :: matrices
     
+    call deallocate(matrices%u_mesh)
+    call deallocate(matrices%p_mesh)
     if(matrices%lump_mass) then
       call deallocate(matrices%inverse_masslump_v)
     else
       call deallocate(matrices%inverse_mass_b)
     end if
     call deallocate(matrices%ct_m)
+    call deallocate(matrices%ct_rhs)
+    call deallocate(matrices%cmc_m)
     
   end subroutine deallocate_cmc_matrices
   
@@ -1283,6 +1298,9 @@ contains
     type(scalar_field), intent(in) :: p
     type(cmc_matrices), intent(inout) :: matrices
     
+    assert(velocity%mesh == matrices%u_mesh)
+    assert(p%mesh == matrices%p_mesh)
+    
     if(matrices%lump_mass) then
       call correct_masslumped_velocity(velocity, matrices%inverse_masslump_v, matrices%ct_m, p)
     else
@@ -1290,6 +1308,29 @@ contains
     end if
     
   end subroutine correct_velocity
+  
+  subroutine correct_p(p, matrices)
+    type(scalar_field), intent(inout) :: p
+    type(cmc_matrices), intent(in) :: matrices
+    
+    type(vector_field) :: grad_p
+    type(scalar_field) :: cmc_rhs
+    
+    assert(p%mesh == matrices%p_mesh)
+    
+    call allocate(grad_p, mesh_dim(matrices%u_mesh), matrices%u_mesh, trim(p%name) // "Gradient")
+    call compute_conservative(grad_p, matrices, p)
+    
+    call allocate(cmc_rhs, p%mesh, "CMCRHS")
+    call mult(cmc_rhs, matrices%ct_m, grad_p)
+    call scale(cmc_rhs, -1.0)
+    call addto(cmc_rhs, matrices%ct_rhs)
+    call deallocate(grad_p)
+    
+    call petsc_solve(p, matrices%cmc_m, cmc_rhs)
+    call deallocate(cmc_rhs)
+    
+  end subroutine correct_p
   
   subroutine compute_conservative(conserv, matrices, p)
     type(vector_field), intent(inout) :: conserv
@@ -1449,6 +1490,9 @@ contains
     type(scalar_field) :: new_gp, old_gp
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
+    character(len = OPTION_PATH_LEN) :: corr_p_name
+    type(scalar_field), pointer :: corr_p
+    
     integer, save :: vtu_index = 0
         
     ewrite(1, *) "In geostrophic_interpolation"
@@ -1598,16 +1642,20 @@ contains
     call zero(coriolis)
     
     ! Add the solenoidal component. Project the interpolated residual to
-    ! guarantee divergence free.
-    call allocate(res_p, new_p%mesh, trim(new_res%name) // "ConservativePotential")
+    ! guarantee solenoidal.
+    call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
     res_p%option_path = new_p%option_path
     call zero(res_p)
     call copy_bcs(new_velocity, new_res)
     call projection_decomposition(new_state, new_res, res_p, res = coriolis, matrices = matrices)
     call deallocate(res_p)
     
+    ! Add the conservative component. Project the gradient of the interpolated
+    ! potential to guarantee irrotational.
     call allocate(coriolis_addto, coriolis%dim, coriolis%mesh, name = "CoriolisAddto")
+    call correct_p(new_p, matrices)
     call compute_conservative(coriolis_addto, matrices, new_p)
+    
     call addto(coriolis, coriolis_addto)
     
     if(geopressure) then
@@ -1618,7 +1666,6 @@ contains
     end if
       
     call deallocate(coriolis_addto)
-    call deallocate(matrices)
     
     do i = 1, node_count(new_velocity)
       call set(new_velocity, i, &
@@ -1643,14 +1690,22 @@ contains
     call deallocate(coriolis)
     
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
-      call projection_decomposition(new_state, new_velocity, new_p, res = new_res)
-      call set(new_velocity, new_res)
+      ewrite(2, *) "Enforcing solenoidal velocity"
+      call correct_velocity(new_velocity, new_p, matrices)
+    end if
+    
+    if(have_option(trim(base_path) // "/enforce_conservative")) then
+      call get_option(trim(base_path) // "/enforce_conservative/name", corr_p_name)
+      corr_p => extract_scalar_field(new_state, corr_p_name)
+      ewrite(2, *) "Enforcing conservative pressure field: ", trim(corr_p%name)
+      call correct_p(corr_p,matrices)
     end if
     
     if(geopressure) call deallocate(new_gp)
     call deallocate(new_p)
     call deallocate(new_res)    
     call deallocate(new_positions_remap)
+    call deallocate(matrices)
     
     vtu_index = vtu_index + 1
     
