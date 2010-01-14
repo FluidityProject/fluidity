@@ -845,16 +845,6 @@ Automatic when not using P1P1.</a:documentation>
             <ref name="comment"/>
           </element>
           <optional>
-            <element name="decomposed_field">
-              <a:documentation>Perform a decomposed projection of a pressure field by subtracting
-this conservative potential.</a:documentation>
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-              <ref name="comment"/>
-            </element>
-          </optional>
-          <optional>
             <element name="reference_node">
               <a:documentation>Reference node, at which the solution value is pinned to zero</a:documentation>
               <ref name="integer"/>
