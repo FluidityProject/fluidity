@@ -776,10 +776,6 @@ interpolation_algorithm_vector =
            comment
         }?,
         ## Enforce a solenoidal Velocity following the interpolation
-        element enforce_conservative {
-           attribute name { xsd:string },
-           comment
-        }?,
         element enforce_solenoidal {
            comment
         }?,

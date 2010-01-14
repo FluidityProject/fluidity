@@ -929,16 +929,8 @@ the L2 norm of the residual</a:documentation>
           </element>
         </optional>
         <optional>
-          <element name="enforce_conservative">
-            <a:documentation>Enforce a solenoidal Velocity following the interpolation</a:documentation>
-            <attribute name="name">
-              <data type="string"/>
-            </attribute>
-            <ref name="comment"/>
-          </element>
-        </optional>
-        <optional>
           <element name="enforce_solenoidal">
+            <a:documentation>Enforce a solenoidal Velocity following the interpolation</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>
