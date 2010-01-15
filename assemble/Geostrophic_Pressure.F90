@@ -1678,11 +1678,11 @@ contains
     end if
       
     if(geopressure) then
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_p_mesh, &
+      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
         & sfields = (/new_gp, new_p/), vfields = (/lnew_velocity, coriolis, new_res/))
     else
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_p_mesh, &
-        & sfields = (/new_p/))
+      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
+        & sfields = (/new_p/), vfields = (/lnew_velocity, coriolis, new_res/))
     end if
     call deallocate(coriolis)
     

@@ -51,6 +51,7 @@ implicit none
   public populate_boundary_conditions, set_boundary_conditions_values, &
        set_dirichlet_consistent, apply_dirichlet_conditions, &
        apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node
+  public :: populate_vector_boundary_conditions
 
   interface apply_dirichlet_conditions
      module procedure apply_dirichlet_conditions_scalar, &
