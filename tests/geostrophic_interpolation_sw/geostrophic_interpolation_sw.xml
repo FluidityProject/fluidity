@@ -20,6 +20,7 @@ for i in range(1, 20):
   start_v = vtktools.vtu("balanced_" + str(5 * i + 1) + ".vtu")
   end_v = vtktools.vtu("balanced_" + str(5 * (i + 1)) + ".vtu")
   DeltaDs[i] = max(start_v.GetScalarField("LayerThickness")-end_v.GetScalarField("LayerThickness"))
+  print abs(DeltaDs[i])
     </variable>
     <variable name="DeltaD" language="python">
 import vtktools
@@ -31,7 +32,7 @@ DeltaD = max(start_v.GetScalarField("LayerThickness")-end_v.GetScalarField("Laye
   <pass_tests>
     <test name="DeltaDs" language="python">
 print max(abs(DeltaDs)), abs(DeltaD)
-assert max(abs(DeltaDs)) &lt; 7.0e-7
+assert max(abs(DeltaDs)) &lt; 2.5e-6
 assert abs(DeltaD) &lt; 2.5e-5
     </test>
   </pass_tests>

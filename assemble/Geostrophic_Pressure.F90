@@ -1097,7 +1097,7 @@ contains
         call addto(masslump, nodes, sum(little_mass, 2))
       end if
       if(present(inverse_mass)) then
-        assert(continuity(field) == -1)
+        assert(continuity(mesh) == -1)
         assert(.not. any(is_nan(little_mass)))
         call invert(little_mass)
         assert(.not. any(is_nan(little_mass)))
@@ -1356,7 +1356,7 @@ contains
         
   end function coriolis_val
   
-  function velocity_from_coriolis(coord, coriolis_val) result(velocity)
+  function velocity_from_coriolis_val(coord, coriolis_val) result(velocity)
     real, dimension(:), intent(in) :: coord
     real, dimension(size(coord)) :: coriolis_val
     
@@ -1370,7 +1370,7 @@ contains
     velocity(V_) = coriolis_val(U_) / two_omega
     if(size(velocity) == 3) velocity(W_) = 0.0
     
-  end function velocity_from_coriolis
+  end function velocity_from_coriolis_val
   
   function bc_ids(mesh, surface_element_list)
     type(mesh_type), intent(in) :: mesh
@@ -1397,6 +1397,7 @@ contains
     logical, dimension(donor%dim):: applies
     type(integer_set) :: boundary_ids
     
+    ewrite(2, *) "Bc count for field " // trim(donor%name), get_boundary_condition_count(donor)
     do i = 1, get_boundary_condition_count(donor)
       call get_boundary_condition(donor, i, name = lbcname, type = bctype, &
         & surface_element_list = surface_element_list, applies = applies)
@@ -1404,7 +1405,8 @@ contains
         if(.not. lbcname == bcname) cycle
       end if
       
-      boundary_ids = bc_ids(donor%mesh, surface_element_list)          
+      boundary_ids = bc_ids(donor%mesh, surface_element_list)       
+      ewrite(2, *), "Copying bc " // trim(lbcname) // " to IDs ", set2vector(boundary_ids)   
       call add_boundary_condition(target, lbcname, bctype,&
         & set2vector(boundary_ids), applies = applies)            
       call deallocate(boundary_ids)
@@ -1412,19 +1414,38 @@ contains
   
   end subroutine copy_bcs
 
-  subroutine geostrophic_velocity(state, velocity, p)  
-    type(state_type), intent(inout) :: state
+  subroutine geostrophic_velocity(positions, velocity, p, matrices)  
+    type(vector_field), intent(in) :: positions
     type(vector_field), target, intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
+    type(cmc_matrices), optional, intent(in) :: matrices
     
+    type(vector_field) :: coriolis
+            
+    call allocate(coriolis, velocity%dim, velocity%mesh, "Coriolis")
+    if(present(matrices)) then
+      call compute_conservative(coriolis, matrices, p)
+    else
+      call grad(p, positions, coriolis)
+    end if
+    
+    call velocity_from_coriolis(positions, coriolis, velocity)
+    call deallocate(coriolis)
+    
+  end subroutine geostrophic_velocity
+  
+  subroutine velocity_from_coriolis(positions, coriolis, velocity)
+    type(vector_field), intent(in) :: positions
+    type(vector_field), intent(in) :: coriolis
+    type(vector_field), target, intent(inout) :: velocity
+  
     integer :: i
     type(mesh_type), pointer :: u_mesh
-    type(vector_field) :: coriolis, positions_remap
-    type(vector_field), pointer :: positions
+    type(vector_field) :: positions_remap
+  
+    assert(coriolis%mesh == velocity%mesh)
     
     u_mesh => velocity%mesh
-    
-    positions => extract_vector_field(state, "Coordinate")
     if(positions%mesh == velocity%mesh) then
       positions_remap = positions
       call incref(positions_remap)
@@ -1433,17 +1454,14 @@ contains
       call remap_field(positions, positions_remap)
     end if
     
-    call allocate(coriolis, velocity%dim, velocity%mesh, "Coriolis")
-    call grad(p, positions, coriolis)
     do i = 1, node_count(velocity)
       call set(velocity, i, &
-        & velocity_from_coriolis(node_val(positions_remap, i), node_val(coriolis, i)))
+        & velocity_from_coriolis_val(node_val(positions_remap, i), node_val(coriolis, i)))
     end do
-    call deallocate(coriolis)
     
     call deallocate(positions_remap)
     
-  end subroutine geostrophic_velocity
+  end subroutine velocity_from_coriolis
 
   subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
     !!< Perform a Helmholz decomposed projection of the Coriolis force, and
@@ -1463,7 +1481,8 @@ contains
     type(state_type), dimension(3) :: new_proj_state, old_proj_state
     type(vector_field) :: coriolis, coriolis_addto, new_res, &
       & old_positions_remap, old_res, new_positions_remap
-    type(vector_field), pointer :: new_positions, old_positions
+    type(vector_field), pointer :: lnew_velocity_ptr, new_positions, old_positions
+    type(vector_field), target :: lnew_velocity
     
     logical :: geopressure
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
@@ -1499,6 +1518,15 @@ contains
       call allocate(new_positions_remap, new_positions%dim, new_u_mesh, new_positions%name)
       call remap_field(new_positions, new_positions_remap)
     end if
+        
+    ! At interpolation stage the input velocity won't have boundary conditions,
+    ! so let's add them to a copy
+    call allocate(lnew_velocity, new_velocity%dim, new_velocity%mesh, new_velocity%name)
+    lnew_velocity%option_path = new_velocity%option_path
+    lnew_velocity_ptr => lnew_velocity
+    call populate_vector_boundary_conditions(lnew_velocity_ptr, &
+      & trim(complete_field_path(lnew_velocity%option_path)) // "/boundary_conditions" , &
+      & new_positions)
     
     ! Step 1: Perform a Helmholz decomposition of the old Coriolis
     
@@ -1533,7 +1561,7 @@ contains
     call allocate(old_res, old_velocity%dim, old_u_mesh, "CoriolisNonConservativeResidual")
     old_res%option_path = trim(base_path) // "/residual"
     
-    call copy_bcs(coriolis, old_velocity)
+    call copy_bcs(old_velocity, coriolis)
     if(geopressure) then
       call projection_decomposition(old_state, coriolis, old_p, &
         & res = old_res, &
@@ -1556,7 +1584,7 @@ contains
     
     call allocate(new_p, new_p_mesh, old_p%name)
     new_p%option_path = old_p%option_path
-    call allocate(new_res, new_velocity%dim, new_u_mesh, old_res%name)
+    call allocate(new_res, lnew_velocity%dim, new_u_mesh, old_res%name)
     new_res%option_path = old_res%option_path
     
     call insert(old_proj_state, old_positions, old_positions%name)
@@ -1612,7 +1640,7 @@ contains
     ! Step 3: Form the new Coriolis from the decomposition and invert for
     ! Velocity
     
-    call allocate(coriolis, new_velocity%dim, new_u_mesh, "Coriolis")
+    call allocate(coriolis, lnew_velocity%dim, new_u_mesh, "Coriolis")
     call zero(coriolis)
     
     ! Add the solenoidal component. Project the interpolated residual to
@@ -1620,7 +1648,7 @@ contains
     call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
     res_p%option_path = new_p%option_path
     call zero(res_p)
-    call copy_bcs(new_velocity, new_res)
+    call copy_bcs(lnew_velocity, new_res)
     call projection_decomposition(new_state, new_res, res_p, res = coriolis, matrices = matrices)
     call deallocate(res_p)
     
@@ -1640,32 +1668,31 @@ contains
       
     call deallocate(coriolis_addto)
     
-    do i = 1, node_count(new_velocity)
-      call set(new_velocity, i, &
-        & velocity_from_coriolis(node_val(new_positions_remap, i), node_val(coriolis, i)))
-    end do
-      
-    if(new_velocity%dim == 3) then
+    call velocity_from_coriolis(new_positions, coriolis, lnew_velocity)    
+    if(lnew_velocity%dim == 3) then
       ! Recover the vertical velocity
-      ewrite_minmax(new_velocity%val(W_)%ptr)
-      call set(new_velocity, W_, new_w)
-      ewrite_minmax(new_velocity%val(W_)%ptr)
+      ewrite_minmax(lnew_velocity%val(W_)%ptr)
+      call set(lnew_velocity, W_, new_w)
+      ewrite_minmax(lnew_velocity%val(W_)%ptr)
       call deallocate(new_w)
     end if
       
     if(geopressure) then
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_gp, new_p/), vfields = (/new_velocity, coriolis, new_res/))
+      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_p_mesh, &
+        & sfields = (/new_gp, new_p/), vfields = (/lnew_velocity, coriolis, new_res/))
     else
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p/), vfields = (/new_velocity, coriolis, new_res/))
+      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_p_mesh, &
+        & sfields = (/new_p/))
     end if
     call deallocate(coriolis)
     
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
       ewrite(2, *) "Enforcing solenoidal velocity"
-      call correct_velocity(new_velocity, new_p, matrices)
+      call correct_velocity(lnew_velocity, new_p, matrices)
     end if
+    
+    call set(new_velocity, lnew_velocity)
+    call deallocate(lnew_velocity)
     
     if(geopressure) call deallocate(new_gp)
     call deallocate(new_p)
