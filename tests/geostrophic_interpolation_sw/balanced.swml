@@ -224,7 +224,6 @@
               <discontinuous/>
             </galerkin_projection>
           </residual>
-          <enforce_conservative name="LayerThickness"/>
         </geostrophic_interpolation>
       </prognostic>
     </vector_field>

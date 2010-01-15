@@ -1309,29 +1309,6 @@ contains
     
   end subroutine correct_velocity
   
-  subroutine correct_p(p, matrices)
-    type(scalar_field), intent(inout) :: p
-    type(cmc_matrices), intent(in) :: matrices
-    
-    type(vector_field) :: grad_p
-    type(scalar_field) :: cmc_rhs
-    
-    assert(p%mesh == matrices%p_mesh)
-    
-    call allocate(grad_p, mesh_dim(matrices%u_mesh), matrices%u_mesh, trim(p%name) // "Gradient")
-    call compute_conservative(grad_p, matrices, p)
-    
-    call allocate(cmc_rhs, p%mesh, "CMCRHS")
-    call mult(cmc_rhs, matrices%ct_m, grad_p)
-    call scale(cmc_rhs, -1.0)
-    call addto(cmc_rhs, matrices%ct_rhs)
-    call deallocate(grad_p)
-    
-    call petsc_solve(p, matrices%cmc_m, cmc_rhs)
-    call deallocate(cmc_rhs)
-    
-  end subroutine correct_p
-  
   subroutine compute_conservative(conserv, matrices, p)
     type(vector_field), intent(inout) :: conserv
     type(cmc_matrices), intent(in) :: matrices
@@ -1494,9 +1471,6 @@ contains
     type(scalar_field) :: new_gp, old_gp
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
-    character(len = OPTION_PATH_LEN) :: corr_p_name
-    type(scalar_field), pointer :: corr_p
-    
     integer, save :: vtu_index = 0
         
     ewrite(1, *) "In geostrophic_interpolation"
@@ -1650,10 +1624,8 @@ contains
     call projection_decomposition(new_state, new_res, res_p, res = coriolis, matrices = matrices)
     call deallocate(res_p)
     
-    ! Add the conservative component. Project the gradient of the interpolated
-    ! potential to guarantee irrotational.
+    ! Add the conservative component
     call allocate(coriolis_addto, coriolis%dim, coriolis%mesh, name = "CoriolisAddto")
-    call correct_p(new_p, matrices)
     call compute_conservative(coriolis_addto, matrices, new_p)
     
     call addto(coriolis, coriolis_addto)
@@ -1693,13 +1665,6 @@ contains
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
       ewrite(2, *) "Enforcing solenoidal velocity"
       call correct_velocity(new_velocity, new_p, matrices)
-    end if
-    
-    if(have_option(trim(base_path) // "/enforce_conservative")) then
-      call get_option(trim(base_path) // "/enforce_conservative/name", corr_p_name)
-      corr_p => extract_scalar_field(new_state, corr_p_name)
-      ewrite(2, *) "Enforcing conservative gradient for pressure field: ", trim(corr_p%name)
-      call correct_p(corr_p, matrices)
     end if
     
     if(geopressure) call deallocate(new_gp)

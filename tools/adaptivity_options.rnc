@@ -764,11 +764,6 @@ interpolation_algorithm_vector =
            },
            comment
         }?,
-        ## Enforce a conservative Pressure gradient following the interpolation
-        element enforce_conservative {
-           attribute name { xsd:string },
-           comment
-        }?,
         ## Enforce a solenoidal Velocity following the interpolation
         element enforce_solenoidal {
            comment
