@@ -1464,6 +1464,57 @@ contains
     
   end subroutine velocity_from_coriolis
   
+  function boundary_mean(field, positions) result(mean)
+    type(scalar_field), intent(in) :: field
+    type(vector_field), intent(in) :: positions
+    
+    real :: mean
+    
+    integer :: i
+    real :: area
+    
+    mean = 0.0
+    area = 0.0
+    do i = 1, surface_element_count(field)
+      call addto_mean(i, positions, field, mean, area)
+    end do
+    mean = mean / area
+    
+  contains
+  
+    subroutine addto_mean(ele, positions, field, mean, area)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(scalar_field), intent(in) :: field
+      real, intent(inout) :: mean
+      real, intent(inout) :: area
+      
+      real, dimension(face_ngi(field, ele)) :: detwei
+      type(element_type), pointer :: shape
+      
+      shape => face_shape(field, ele)
+      
+      call transform_facet_to_physical(positions, ele, detwei_f = detwei)
+      
+      mean = mean + dot_product(matmul(face_val(field, ele), shape%n), detwei)
+      area = area + abs(sum(detwei))
+      
+    end subroutine addto_mean
+    
+  end function boundary_mean
+  
+  subroutine override_boundary_values(field, val)
+    type(scalar_field), intent(inout) :: field
+    real, intent(in) :: val
+    
+    integer :: i
+    
+    do i = 1, surface_element_count(field)
+      call set(field, face_global_nodes(field, i), spread(val, 1, face_loc(field, i)))
+    end do
+    
+  end subroutine override_boundary_values
+  
   subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
     !!< Perform a Helmholz decomposed projection of the Coriolis force, and
     !!< invert for the new velocity
@@ -1491,6 +1542,10 @@ contains
     type(cmc_matrices) :: gp_matrices
     type(scalar_field) :: new_gp, old_gp
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
+    
+    character(len = OPTION_PATH_LEN) :: aux_p_name
+    real :: mean
+    type(scalar_field), pointer :: aux_p
     
     integer, save :: vtu_index = 0
     
@@ -1632,6 +1687,19 @@ contains
       call deallocate(old_proj_state(i))
       call deallocate(new_proj_state(i))
     end do
+        
+    if(have_option(trim(new_p%option_path) // "/enforce_constant_on_boundary")) then
+      ! Correct the boundary values
+      mean = boundary_mean(old_p, old_positions)
+      call override_boundary_values(new_p, mean)
+      if(have_option(trim(new_p%option_path) // "/enforce_constant_on_boundary/apply_to_pressure")) then
+        call get_option(trim(new_p%option_path) // "/enforce_constant_on_boundary/apply_to_pressure/name", aux_p_name)
+        aux_p => extract_scalar_field(old_state, aux_p_name)
+        mean = boundary_mean(aux_p, old_positions)
+        aux_p => extract_scalar_field(new_state, aux_p_name)
+        call override_boundary_values(aux_p, mean)
+      end if
+    end if
     
     call deallocate(coriolis)
     call deallocate(old_p)
@@ -1697,7 +1765,7 @@ contains
     call deallocate(coriolis)
     call deallocate(matrices)
     call deallocate(new_p)
-    call deallocate(new_res)    
+    call deallocate(new_res)   
     
     vtu_index = vtu_index + 1
     
