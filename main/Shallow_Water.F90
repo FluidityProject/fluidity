@@ -46,6 +46,8 @@
     use assemble_cmc
     use global_parameters, only: option_path_len, current_time, dt
     use adapt_state_prescribed_module
+    use memory_diagnostics
+    use reserve_state_module
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -162,6 +164,23 @@
 
     ! One last dump
     call output_state(state)
+
+    call deallocate(h_mass_mat)
+    call deallocate(u_mass_mat)
+    call deallocate(coriolis_mat)
+    call deallocate(div_mat)
+    call deallocate(wave_mat)
+    call deallocate(big_mat)
+    
+    call deallocate(state)
+    call deallocate_transform_cache()
+    call deallocate_reserve_state()    
+    call close_diagnostic_files()
+    
+    call print_references(0)
+#ifdef HAVE_MEMORY_STATS
+    call print_current_memory_stats(0)
+#endif
 
 #ifdef HAVE_MPI
     call mpi_finalize(ierr)
