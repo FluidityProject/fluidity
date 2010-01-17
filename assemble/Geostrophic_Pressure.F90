@@ -1464,9 +1464,10 @@ contains
     
   end subroutine velocity_from_coriolis
   
-  function boundary_mean(field, positions) result(mean)
+  function boundary_mean(field, positions, surface_ids) result(mean)
     type(scalar_field), intent(in) :: field
     type(vector_field), intent(in) :: positions
+    integer, dimension(:), optional, intent(in) :: surface_ids
     
     real :: mean
     
@@ -1476,6 +1477,9 @@ contains
     mean = 0.0
     area = 0.0
     do i = 1, surface_element_count(field)
+      if(present(surface_ids)) then
+        if(.not. any(surface_ids == surface_element_id(field, i))) cycle
+      end if
       call addto_mean(i, positions, field, mean, area)
     end do
     mean = mean / area
@@ -1503,17 +1507,53 @@ contains
     
   end function boundary_mean
   
-  subroutine override_boundary_values(field, val)
+  subroutine override_boundary_values(field, val, surface_ids)
     type(scalar_field), intent(inout) :: field
     real, intent(in) :: val
+    integer, dimension(:), optional, intent(in) :: surface_ids
     
     integer :: i
     
     do i = 1, surface_element_count(field)
+      if(present(surface_ids)) then
+        if(.not. any(surface_ids == surface_element_id(field, i))) cycle
+      end if
       call set(field, face_global_nodes(field, i), spread(val, 1, face_loc(field, i)))
     end do
     
   end subroutine override_boundary_values
+  
+  subroutine correct_p_dirichlet(base_p, base_velocity, base_positions, p)
+    type(scalar_field), intent(in) :: base_p
+    type(vector_field), intent(in) :: base_velocity
+    type(vector_field), intent(in) :: base_positions
+    type(scalar_field), intent(inout) :: p
+    
+    character(len = FIELD_NAME_LEN) :: bcname, bctype
+    integer :: i
+    integer, dimension(:), allocatable :: boundary_ids_vec
+    integer, dimension(:), pointer:: surface_element_list
+    type(integer_set) :: boundary_ids
+    
+    ewrite(2, *) "Bc count for field " // trim(base_velocity%name), get_boundary_condition_count(base_velocity)
+    do i = 1, get_boundary_condition_count(base_velocity)
+      call get_boundary_condition(base_velocity, i, name = bcname, type = bctype, &
+        & surface_element_list = surface_element_list)
+      
+      if(any(bctype == (/"no_normal_flow", &
+                        & "periodic      ", &
+                        & "free_surface  "/))) then
+        boundary_ids = bc_ids(base_p%mesh, surface_element_list)       
+        allocate(boundary_ids_vec(key_count(boundary_ids)))
+        boundary_ids_vec = set2vector(boundary_ids)
+        call deallocate(boundary_ids)
+        ewrite(2, *), "Correcting bc " // trim(bcname) // " with IDs ", boundary_ids_vec
+        call override_boundary_values(p, boundary_mean(base_p, base_positions, surface_ids = boundary_ids_vec), surface_ids = boundary_ids_vec)
+        deallocate(boundary_ids_vec)
+      end if
+    end do
+  
+  end subroutine correct_p_dirichlet
   
   subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
     !!< Perform a Helmholz decomposed projection of the Coriolis force, and
@@ -1544,8 +1584,7 @@ contains
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
     character(len = OPTION_PATH_LEN) :: aux_p_name
-    real :: mean
-    type(scalar_field), pointer :: aux_p
+    type(scalar_field), pointer :: new_aux_p, old_aux_p
     
     integer, save :: vtu_index = 0
     
@@ -1678,7 +1717,6 @@ contains
       call insert(old_proj_state(3), old_gp, old_gp%name)
       call insert(new_proj_state(3), new_gp_mesh, new_gp_mesh%name)
       call insert(new_proj_state(3), new_gp, new_gp%name)
-      call deallocate(old_gp)
     end if
     
     call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
@@ -1688,22 +1726,24 @@ contains
       call deallocate(new_proj_state(i))
     end do
         
-    if(have_option(trim(new_p%option_path) // "/enforce_constant_on_boundary")) then
+    if(have_option(trim(new_p%option_path) // "/correct_dirichlet")) then
       ! Correct the boundary values
-      mean = boundary_mean(old_p, old_positions)
-      call override_boundary_values(new_p, mean)
-      if(have_option(trim(new_p%option_path) // "/enforce_constant_on_boundary/apply_to_pressure")) then
-        call get_option(trim(new_p%option_path) // "/enforce_constant_on_boundary/apply_to_pressure/name", aux_p_name)
-        aux_p => extract_scalar_field(old_state, aux_p_name)
-        mean = boundary_mean(aux_p, old_positions)
-        aux_p => extract_scalar_field(new_state, aux_p_name)
-        call override_boundary_values(aux_p, mean)
+      call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
+      if(have_option(trim(new_p%option_path) // "/correct_dirichlet/apply_to_pressure")) then
+        call get_option(trim(new_p%option_path) // "/correct_dirichlet/apply_to_pressure/name", aux_p_name)
+        old_aux_p => extract_scalar_field(old_state, aux_p_name)
+        new_aux_p => extract_scalar_field(new_state, aux_p_name)
+        call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
       end if
+    end if
+    if(have_option(trim(new_gp%option_path) // "/correct_dirichlet")) then
+      call override_boundary_values(new_gp, boundary_mean(old_gp, old_positions))
     end if
     
     call deallocate(coriolis)
     call deallocate(old_p)
     call deallocate(old_res)
+    if(geopressure) call deallocate(old_gp)
     call deallocate(old_positions_remap)
     
     ! Step 3: Form the new Coriolis from the decomposition and invert for

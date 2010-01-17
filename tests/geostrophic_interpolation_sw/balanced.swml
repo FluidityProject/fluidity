@@ -218,9 +218,9 @@
                 </solver>
               </continuous>
             </galerkin_projection>
-            <enforce_constant_on_boundary>
+            <correct_dirichlet>
               <apply_to_pressure name="LayerThickness"/>
-            </enforce_constant_on_boundary>
+            </correct_dirichlet>
           </conservative_potential>
           <residual>
             <galerkin_projection>
