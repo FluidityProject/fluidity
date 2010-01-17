@@ -865,17 +865,19 @@ the L2 norm of the residual</a:documentation>
             <ref name="comment"/>
           </element>
           <optional>
-            <element name="enforce_constant_on_boundary">
-              <a:documentation>Set the boundary values for the projected conservative potential
-equal to their mean value prior to projection. This effectively
-imposes a Dirichlet condition on all boundaries for the
+            <element name="correct_dirichlet">
+              <a:documentation>On conservative potential Dirichlet boundaries, set the 
+values for the projected conservative potential equal to their
+mean value on that boundary prior to projection. This effectively
+imposes a Dirichlet condition on the boundaries for the
 conservative potential as a post projection correction.</a:documentation>
               <optional>
                 <element name="apply_to_pressure">
-                  <a:documentation>Set the boundary values for the projected Pressure
-equal to their mean value prior to projection. This effectively
-imposes a Dirichlet condition on all boundaries for the
-Pressure as a post projection correction.</a:documentation>
+                  <a:documentation>On Pressure Dirichlet boundaries, set the 
+values for the projected conservative potential equal to their
+mean value on that boundary prior to projection. This effectively
+imposes a Dirichlet condition on the boundaries for Pressure
+as a post projection correction.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
                   </attribute>
@@ -927,6 +929,13 @@ the L2 norm of the residual</a:documentation>
               </optional>
               <ref name="comment"/>
             </element>
+            <optional>
+              <element name="correct_dirichlet">
+                <a:documentation>Apply a post projection correction to the GeostrophicPressure
+boundary values.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
             <ref name="comment"/>
           </element>
         </optional>

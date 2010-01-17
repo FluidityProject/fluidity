@@ -727,15 +727,17 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
-           ## Set the boundary values for the projected conservative potential
-           ## equal to their mean value prior to projection. This effectively
-           ## imposes a Dirichlet condition on all boundaries for the
+           ## On conservative potential Dirichlet boundaries, set the 
+           ## values for the projected conservative potential equal to their
+           ## mean value on that boundary prior to projection. This effectively
+           ## imposes a Dirichlet condition on the boundaries for the
            ## conservative potential as a post projection correction.
-           element enforce_constant_on_boundary {
-              ## Set the boundary values for the projected Pressure
-              ## equal to their mean value prior to projection. This effectively
-              ## imposes a Dirichlet condition on all boundaries for the
-              ## Pressure as a post projection correction.
+           element correct_dirichlet {
+              ## On Pressure Dirichlet boundaries, set the 
+              ## values for the projected conservative potential equal to their
+              ## mean value on that boundary prior to projection. This effectively
+              ## imposes a Dirichlet condition on the boundaries for Pressure
+              ## as a post projection correction.
               element apply_to_pressure {
                  attribute name { xsd:string },
                  comment
@@ -777,6 +779,11 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
+           ## Apply a post projection correction to the GeostrophicPressure
+           ## boundary values.
+           element correct_dirichlet {
+              comment
+           }?,
            comment
         }?,
         ## Enforce a solenoidal Velocity following the interpolation
