@@ -1736,9 +1736,6 @@ contains
         call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
       end if
     end if
-    if(have_option(trim(new_gp%option_path) // "/correct_dirichlet")) then
-      call override_boundary_values(new_gp, boundary_mean(old_gp, old_positions))
-    end if
     
     call deallocate(coriolis)
     call deallocate(old_p)

@@ -929,13 +929,6 @@ the L2 norm of the residual</a:documentation>
               </optional>
               <ref name="comment"/>
             </element>
-            <optional>
-              <element name="correct_dirichlet">
-                <a:documentation>Apply a post projection correction to the GeostrophicPressure
-boundary values.</a:documentation>
-                <ref name="comment"/>
-              </element>
-            </optional>
             <ref name="comment"/>
           </element>
         </optional>

@@ -779,11 +779,6 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
-           ## Apply a post projection correction to the GeostrophicPressure
-           ## boundary values.
-           element correct_dirichlet {
-              comment
-           }?,
            comment
         }?,
         ## Enforce a solenoidal Velocity following the interpolation
