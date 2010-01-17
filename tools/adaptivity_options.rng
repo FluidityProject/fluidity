@@ -868,15 +868,15 @@ the L2 norm of the residual</a:documentation>
             <element name="enforce_constant_on_boundary">
               <a:documentation>Set the boundary values for the projected conservative potential
 equal to their mean value prior to projection. This effectively
-imposes a Dirichlet condition on the conservative component as a
-post projection correction.</a:documentation>
+imposes a Dirichlet condition on all boundaries for the
+conservative potential as a post projection correction.</a:documentation>
               <optional>
                 <element name="apply_to_pressure">
-                  <attribute name="name">
-                    <a:documentation>Set the boundary values for the projected Pressure
+                  <a:documentation>Set the boundary values for the projected Pressure
 equal to their mean value prior to projection. This effectively
-imposes a Dirichlet condition on the Pressure as a
-post projection correction.</a:documentation>
+imposes a Dirichlet condition on all boundaries for the
+Pressure as a post projection correction.</a:documentation>
+                  <attribute name="name">
                     <data type="string"/>
                   </attribute>
                   <ref name="comment"/>

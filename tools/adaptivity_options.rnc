@@ -729,14 +729,14 @@ interpolation_algorithm_vector =
            },
            ## Set the boundary values for the projected conservative potential
            ## equal to their mean value prior to projection. This effectively
-           ## imposes a Dirichlet condition on the conservative component as a
-           ## post projection correction.
+           ## imposes a Dirichlet condition on all boundaries for the
+           ## conservative potential as a post projection correction.
            element enforce_constant_on_boundary {
+              ## Set the boundary values for the projected Pressure
+              ## equal to their mean value prior to projection. This effectively
+              ## imposes a Dirichlet condition on all boundaries for the
+              ## Pressure as a post projection correction.
               element apply_to_pressure {
-                 ## Set the boundary values for the projected Pressure
-                 ## equal to their mean value prior to projection. This effectively
-                 ## imposes a Dirichlet condition on the Pressure as a
-                 ## post projection correction.
                  attribute name { xsd:string },
                  comment
               }?,
