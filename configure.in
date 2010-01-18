@@ -1140,13 +1140,21 @@ if test -d libspud ; then
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
+    if echo $(hostname) | grep -q "^nid[[0-9]][[0-9]][[0-9]][[0-9]][[0-9]]$"; then
+      # Assume we are on hector
+      AC_MSG_NOTICE([Building on hector; disabling shared libraries])
+      SHFLAG=--disable-shared
+    else
+      SHFLAG=--enable-shared
+    fi
+
     cd libspud
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
     # worked out, because they contain all sorts of fluidity-specific junk,
     # so we let libadapt's configure work out everything for itself
     # * EXCEPT * for the compiler, which we MUST make sure is the same as
     # fluidity's (except for MPI)
-    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" ./configure --prefix=${PWD}/..
+    FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" ./configure --prefix=${PWD}/.. ${SHFLAG}
     cd ..
     
 cat >> confdefs.h << EOF
