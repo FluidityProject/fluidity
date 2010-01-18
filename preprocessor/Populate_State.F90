@@ -613,7 +613,7 @@ contains
     ! direction of gravity
     if (have_option('/physical_parameters/gravity/vector_field::GravityDirection')) then
        call allocate_and_insert_vector_field('/physical_parameters/gravity/vector_field::GravityDirection', &
-            states(1), parent_mesh='VelocityMesh', backward_compatibility=.false., &
+            states(1), parent_mesh='CoordinateMesh', backward_compatibility=.false., &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 

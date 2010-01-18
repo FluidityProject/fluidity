@@ -283,8 +283,9 @@ contains
     sinking_velocity => extract_scalar_field(state, trim(t%name) // "SinkingVelocity", stat = stat)
     if(stat == 0) then
       ewrite_minmax(sinking_velocity%val)
-    
+      
       gravity_direction => extract_vector_field(state, "GravityDirection")
+      ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
       call addto(velocity, gravity_direction, scale = sinking_velocity)
     else
       ewrite(2, *) "No sinking velocity"

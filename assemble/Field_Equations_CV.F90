@@ -245,6 +245,7 @@ contains
            &, stat=stat)
       if(stat==0) then
         gravity=>extract_vector_field(state(1), "GravityDirection")
+        ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
         call addto(advu, gravity, scale=sink)
       end if
       

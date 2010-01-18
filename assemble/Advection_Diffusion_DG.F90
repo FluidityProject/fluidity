@@ -684,6 +684,7 @@ contains
     if (stat==0) then
        Gravity=extract_vector_field(state, "GravityDirection")
 
+       ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
        call addto(U_nl, Gravity, scale=Sink)
        ! Gravitational sinking only makes sense if you include advection
        ! terms.
