@@ -32,6 +32,8 @@ module conservative_interpolation_module
   use halos
   use diagnostic_fields
   use tetrahedron_intersection_module
+  use boundary_conditions
+  use data_structures
   implicit none
 
   interface interpolation_galerkin
@@ -295,7 +297,7 @@ module conservative_interpolation_module
     ! So we'll need to assemble and invert that matrix (the global-to-local inversion matrix):
     real, dimension(ele_loc(new_position, 1), ele_loc(new_position, 1), ele_count(old_position)) :: inversion_matrices_A
     real, dimension(:,:,:), allocatable :: little_mass_matrix
-    real, dimension(:,:,:), allocatable :: little_inverse_mass_matrix
+    real, dimension(:,:,:), allocatable :: little_inverse_mass_matrix, little_inverse_mass_matrix_copy
 
     integer :: dim
     type(ilist), dimension(:), pointer :: lmap_BA
@@ -334,6 +336,11 @@ module conservative_interpolation_module
     integer :: j
 
     logical :: new_positions_simplicial
+    type(integer_set), dimension(:,:), allocatable :: bc_nodes
+    character(len=FIELD_NAME_LEN) :: bctype
+    integer, dimension(:), pointer :: surface_node_list
+    logical, dimension(:, :), allocatable :: force_bc
+    integer :: bc
 
     ewrite(1, *) "In interpolation_galerkin_scalars"
 
@@ -362,6 +369,8 @@ module conservative_interpolation_module
     lumped = .false.
     allocate(old_fields(mesh_count, max_field_count))
     allocate(new_fields(mesh_count, max_field_count))
+    allocate(force_bc(mesh_count, max_field_count))
+    allocate(bc_nodes(mesh_count, max_field_count))
     
     shape_B => ele_shape(new_position, 1)
     new_positions_simplicial = (shape_B%numbering%family == FAMILY_SIMPLEX)
@@ -388,6 +397,25 @@ module conservative_interpolation_module
                                                 "/galerkin_projection/supermesh_conservation/tolerance", tmp_tol, default = 0.001)
           ! Let's check for a relative area/volume loss of 0.1% if none is specified
           conservation_tolerance = min(conservation_tolerance, tmp_tol)
+
+          force_bc(mesh, field) = have_option(trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) &
+            & // "/galerkin_projection/honour_strong_boundary_conditions")
+          if (force_bc(mesh, field)) then
+
+            if (.not. has_boundary_condition(new_fields(mesh, field), "dirichlet")) then
+              ewrite(0,*) "Warning: asked to honour strong boundary conditions through the Galerkin projection without any such BCs"
+            end if
+
+            call set_dirichlet_consistent(new_fields(mesh, field))
+
+            call allocate(bc_nodes(mesh, field))
+            do bc=1, get_boundary_condition_count(new_fields(mesh, field))
+              call get_boundary_condition(new_fields(mesh, field), bc, type=bctype, surface_node_list=surface_node_list)
+              if (trim(bctype) == "dirichlet") then
+                call insert(bc_nodes(mesh, field), surface_node_list)
+              end if
+            end do
+          end if
         end do
         
         dg(mesh) = (continuity(new_fields(mesh,1)) < 0)
@@ -516,6 +544,21 @@ module conservative_interpolation_module
             
             if (new_positions_simplicial) then
               do field=1,field_counts(mesh)
+                if (force_bc(mesh,field)) then
+                  little_inverse_mass_matrix_copy=little_inverse_mass_matrix
+                  if (any(has_value(bc_nodes(mesh,field), ele_nodes_B))) then
+                    local_rhs(mesh, field, :nloc)=local_rhs(mesh, field, :nloc)-matmul( little_mass_matrix(mesh,:nloc,:nloc)*abs(detJ(1)), ele_val(new_fields(mesh,field), ele_B) )
+                    do j=1, nloc
+                      if (has_value(bc_nodes(mesh,field), ele_nodes_B(j))) then
+                        little_inverse_mass_matrix(mesh, j,:)=0.0
+                        little_inverse_mass_matrix(mesh, :,j)=0.0
+                        little_inverse_mass_matrix(mesh, j,j)=1.0
+                        local_rhs(mesh, field, j)=node_val(new_fields(mesh,field), ele_nodes_B(j))
+                      end if
+                    end do
+                  end if
+                end if
+                
 #ifdef INLINE_MATMUL
                 forall (j=1:nloc)
                   little_rhs(j, field) = sum(little_inverse_mass_matrix(mesh, j, :nloc) * local_rhs(mesh, field, :nloc))
@@ -529,6 +572,10 @@ module conservative_interpolation_module
               call solve(little_mass_matrix(mesh,:nloc,:nloc), little_rhs(:nloc,:field_counts(mesh)))
             end if
             
+            if (force_bc(mesh,field)) then
+              little_inverse_mass_matrix=little_inverse_mass_matrix_copy
+            end if
+
             do field = 1, field_counts(mesh)
               call set(new_fields(mesh,field), ele_nodes_B, little_rhs(:nloc, field))
             end do
@@ -577,9 +624,16 @@ module conservative_interpolation_module
               call scale(new_fields(mesh,field), inverse_M_B_L)
               call halo_update(new_fields(mesh,field))
             else
+              if (force_bc(mesh, field))  then
+                  call apply_dirichlet_conditions(M_B(mesh), rhs(mesh, field), new_fields(mesh, field))
+              end if
               call petsc_solve(new_fields(mesh, field), M_B(mesh), rhs(mesh, field), &
-              & option_path=trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) &
-              & // "/galerkin_projection/continuous")
+                & option_path=trim(complete_field_path(new_fields(mesh,field)%option_path, statp)) &
+                & // "/galerkin_projection/continuous")
+              if (force_bc(mesh, field))  then
+                ! clean up the rows made inactive for the strong bcs
+                call reset_inactive(M_B(mesh))
+              end if
             end if
           end do
 
@@ -795,6 +849,7 @@ module conservative_interpolation_module
           end if
           do field = 1, field_counts(mesh)
             call deallocate(rhs(mesh,field))
+            call deallocate(bc_nodes(mesh, field))
           end do
         end if
       end if
@@ -809,6 +864,9 @@ module conservative_interpolation_module
     deallocate(new_fields)
     deallocate(local_rhs)
     deallocate(little_mass_matrix)
+    deallocate(little_mass_matrix_copy)
+    deallocate(force_bc)
+    deallocate(bc_nodes)
     if(any(dg).and.new_positions_simplicial) deallocate(little_inverse_mass_matrix)
     deallocate(little_rhs)
 

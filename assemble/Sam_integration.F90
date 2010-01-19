@@ -42,6 +42,7 @@ module sam_integration
   use mpi_interfaces
   use node_boundary
   use parallel_tools
+  use boundary_conditions
   use boundary_conditions_from_options
   use populate_state_module
   use reserve_state_module

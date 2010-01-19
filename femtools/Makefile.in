@@ -369,7 +369,7 @@ Node_boundary.o: Surface_Labels.o
 
 Matrix_Norms.o: Fields.o Vector_Tools.o Node_boundary.o
 
-Boundary_Conditions.o: Fields_Data_Types.o Fields.o
+Boundary_Conditions.o: Fields_Data_Types.o Fields.o State.o  Global_Parameters.o Sparse_Tools.o Sparse_Tools_Petsc.o
 
 Read_Triangle.o: Fields.o State.o Futils.o Elements.o
 

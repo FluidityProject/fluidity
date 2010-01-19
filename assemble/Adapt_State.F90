@@ -55,6 +55,7 @@ module adapt_state_module
   use mba3d_integration
   use metric_assemble
   use parallel_tools
+  use boundary_conditions
   use boundary_conditions_from_options
   use populate_state_module
   use project_metric_to_surface_module

@@ -35,6 +35,7 @@ module adapt_state_prescribed_module
   use global_parameters, only : OPTION_PATH_LEN
   use interpolation_manager
   use node_boundary
+  use boundary_conditions
   use boundary_conditions_from_options
   use populate_state_module
   use read_triangle

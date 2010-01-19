@@ -378,6 +378,10 @@ module sparse_tools
      module procedure csr_initialise_inactive
   end interface
 
+  interface reset_inactive
+     module procedure csr_reset_inactive
+  end interface
+  
 #include "Reference_count_interface_csr_sparsity.F90"
 #include "Reference_count_interface_csr_matrix.F90"
 #include "Reference_count_interface_block_csr_matrix.F90"
@@ -396,7 +400,8 @@ module sparse_tools
        & row_m_ptr, row_val_ptr, row_ival_ptr, diag_val_ptr, row_length, zero, zero_row, addto,&
        & addto_diag, set, val, ival, dense, dense_i, wrap, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
-       & sparsity_merge, scale, set_inactive, get_inactive_mask
+       & sparsity_merge, scale, set_inactive, get_inactive_mask, &
+       & reset_inactive
        
   public :: posinm, posinm_legacy, posinmc_legacy
 
@@ -2566,6 +2571,17 @@ END SUBROUTINE POSINM_COLOUR
     end if
     
   end subroutine csr_initialise_inactive
+  
+  subroutine csr_reset_inactive(matrix)
+    !!< Makes all rows "active" again
+    type(csr_matrix), intent(inout):: matrix
+    
+    if(has_inactive(matrix)) then
+      deallocate( matrix%inactive%ptr )
+    end if
+    
+  end subroutine csr_reset_inactive
+  
   
   subroutine csr_set_inactive_row(matrix, row)
     !!< Registers a single row to be "inactive" this can be used for

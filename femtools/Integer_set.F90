@@ -49,7 +49,7 @@ module integer_set_module
   end interface
 
   interface insert
-    module procedure integer_set_insert
+    module procedure integer_set_insert, integer_set_insert_multiple
   end interface
 
   interface deallocate
@@ -57,7 +57,7 @@ module integer_set_module
   end interface
 
   interface has_value
-    module procedure integer_set_has_value
+    module procedure integer_set_has_value, integer_set_has_value_multiple
   end interface
 
   interface key_count
@@ -124,6 +124,16 @@ module integer_set_module
     end if
   end subroutine integer_set_insert
 
+  subroutine integer_set_insert_multiple(iset, values)
+    type(integer_set), intent(inout) :: iset
+    integer, dimension(:), intent(in) :: values
+    integer :: i
+
+    do i=1,size(values)
+      call insert(iset, values(i))
+    end do
+  end subroutine integer_set_insert_multiple
+
   pure function integer_set_length_single(iset) result(len)
     type(integer_set), intent(in) :: iset
     integer :: len
@@ -162,6 +172,18 @@ module integer_set_module
     bool = (lbool == 1)
   end function integer_set_has_value
 
+  function integer_set_has_value_multiple(iset, val) result(bool)
+    type(integer_set), intent(in) :: iset
+    integer, dimension(:), intent(in) :: val
+    logical, dimension(size(val)) :: bool
+    
+    integer:: i
+    
+    do i=1, size(val)
+      bool(i)=integer_set_has_value(iset, val(i))
+    end do
+  end function integer_set_has_value_multiple
+  
   subroutine set_complement(complement, universe, current)
     ! complement = universe \ current
     type(integer_set), intent(out) :: complement

@@ -39,6 +39,7 @@ module spontaneous_potentials
   use spud
   use field_options
   use solvers
+  use boundary_conditions
   use boundary_conditions_from_options
   use sparsity_patterns_meshes
   use porous_media, only: brine_salinity, normalised_saturation

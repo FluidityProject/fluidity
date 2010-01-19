@@ -960,6 +960,13 @@ the L2 norm of the residual</a:documentation>
     <optional>
       <ref name="supermesh_conservation"/>
     </optional>
+    <optional>
+      <element name="honour_strong_boundary_conditions">
+        <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
+applied to this field.</a:documentation>
+        <empty/>
+      </element>
+    </optional>
   </define>
   <define name="continuous_projection">
     <element name="continuous">

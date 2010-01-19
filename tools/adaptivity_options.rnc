@@ -799,7 +799,12 @@ galerkin_projection_scalar =
     (
       continuous_discontinuous_projection,
       supermesh_free?,
-      supermesh_conservation?
+      supermesh_conservation?,
+      ## If set, the Galerkin projection will honour strong Dirichlet boundary conditions
+      ## applied to this field.
+      element honour_strong_boundary_conditions {
+        empty
+      }?
     )
 
 continuous_projection =
