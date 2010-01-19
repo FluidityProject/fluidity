@@ -744,6 +744,12 @@ interpolation_algorithm_vector =
               }?,
               comment
            }?,
+#           ## Additionally project the Pressure field using a supermesh
+#           ## assembled Helmholtz decomposition
+#           element project_pressure {
+#              attribute name { xsd:string },
+#              comment
+#           }?,
            comment
         },
         ## Options relating to the non-conservative residual component of the
