@@ -727,29 +727,18 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
-           ## On conservative potential Dirichlet boundaries, set the 
-           ## values for the projected conservative potential equal to their
-           ## mean value on that boundary prior to projection. This effectively
-           ## imposes a Dirichlet condition on the boundaries for the
-           ## conservative potential as a post projection correction.
-           element correct_dirichlet {
-              ## On Pressure Dirichlet boundaries, set the 
-              ## values for the projected conservative potential equal to their
-              ## mean value on that boundary prior to projection. This effectively
-              ## imposes a Dirichlet condition on the boundaries for Pressure
-              ## as a post projection correction.
-              element apply_to_pressure {
-                 attribute name { xsd:string },
-                 comment
-              }?,
+           ## Project the conservative potential gradient rather than the
+           ## conservative potential. This involves one more CMC solve (two if
+           ## additionally projecting Pressure), but is equivalent to a
+           ## supermesh assembled decomposition.
+           element project_gradient {
               comment
            }?,
-#           ## Additionally project the Pressure field using a supermesh
-#           ## assembled Helmholtz decomposition
-#           element project_pressure {
-#              attribute name { xsd:string },
-#              comment
-#           }?,
+           ## Additionally project the Pressure field
+           element project_pressure {
+              attribute name { xsd:string },
+              comment
+           }?,
            comment
         },
         ## Options relating to the non-conservative residual component of the

@@ -865,36 +865,23 @@ the L2 norm of the residual</a:documentation>
             <ref name="comment"/>
           </element>
           <optional>
-            <element name="correct_dirichlet">
-              <a:documentation>On conservative potential Dirichlet boundaries, set the 
-values for the projected conservative potential equal to their
-mean value on that boundary prior to projection. This effectively
-imposes a Dirichlet condition on the boundaries for the
-conservative potential as a post projection correction.</a:documentation>
-              <optional>
-                <element name="apply_to_pressure">
-                  <a:documentation>On Pressure Dirichlet boundaries, set the 
-values for the projected conservative potential equal to their
-mean value on that boundary prior to projection. This effectively
-imposes a Dirichlet condition on the boundaries for Pressure
-as a post projection correction.</a:documentation>
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                  <ref name="comment"/>
-                </element>
-              </optional>
+            <element name="project_gradient">
+              <a:documentation>Project the conservative potential gradient rather than the
+conservative potential. This involves one more CMC solve (two if
+additionally projecting Pressure), but is equivalent to a
+supermesh assembled decomposition.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
-          <!--
-                      ## Additionally project the Pressure field using a supermesh
-                      ## assembled Helmholtz decomposition
-                      element project_pressure {
-                         attribute name { xsd:string },
-                         comment
-                      }?,
-          -->
+          <optional>
+            <element name="project_pressure">
+              <a:documentation>Additionally project the Pressure field</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <ref name="comment"/>
+            </element>
+          </optional>
           <ref name="comment"/>
         </element>
         <element name="residual">

@@ -68,8 +68,7 @@ module geostrophic_pressure
     & geostrophic_pressure_check_options
     
   public :: projection_decomposition, geopressure_decomposition, &
-    & geostrophic_velocity, geostrophic_interpolation, &
-    & geostrophic_interpolation_sa, cmc_matrices
+    & geostrophic_velocity, geostrophic_interpolation, cmc_matrices
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
@@ -1712,6 +1711,10 @@ contains
       & old_positions
     type(vector_field), target :: lnew_velocity
     
+    logical :: proj_grad_p
+    type(scalar_field) :: cmc_rhs
+    type(vector_field) :: new_grad_p, old_grad_p
+    
     logical :: geopressure
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
     type(cmc_matrices) :: gp_matrices
@@ -1719,7 +1722,9 @@ contains
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
     character(len = OPTION_PATH_LEN) :: aux_p_name
+    logical :: aux_p
     type(scalar_field), pointer :: new_aux_p, old_aux_p
+    type(vector_field) :: new_grad_aux_p, old_grad_aux_p
     
     integer, save :: vtu_index = 0
     
@@ -1837,11 +1842,62 @@ contains
       call deallocate(old_w)
     end if
     
-    ! Insert the Pressure
-    call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
-    call insert(old_proj_state(2), old_p, old_p%name)
-    call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
-    call insert(new_proj_state(2), new_p, new_p%name)
+    proj_grad_p = have_option(trim(base_path) // "/conservative_potential/project_gradient")
+    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")
+    if(aux_p) then
+      call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
+      old_aux_p => extract_scalar_field(old_state, aux_p_name)
+      new_aux_p => extract_scalar_field(new_state, aux_p_name)
+    end if
+    if(.not. proj_grad_p) then
+      ! Insert the conservative potential
+      call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
+      call insert(old_proj_state(2), old_p, old_p%name)
+      call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
+      call insert(new_proj_state(2), new_p, new_p%name)
+      
+      if(aux_p) then
+        ! Insert the Pressure
+        call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
+        call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
+      end if
+    else
+      ! Note: We insert the conservative potential as well to give a good
+      ! initial guess for the subsequent solve
+    
+      ! Insert the conservative potential
+      call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
+      call insert(old_proj_state(2), old_p, old_p%name)
+      call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
+      call insert(new_proj_state(2), new_p, new_p%name)
+      
+      ! Insert the conservative potential gradient
+      call allocate(old_grad_p, dim, old_u_mesh, trim(old_p%name) // "Gradient")
+      call allocate(new_grad_p, dim, new_u_mesh, trim(new_p%name) // "Gradient")
+      ! We could compute this when computing old_res_p, but adding this here
+      ! for now as this routine is complicated enough
+      call compute_conservative(old_grad_p, matrices, old_p)
+      
+      call insert(old_proj_state(1), old_grad_p, old_grad_p%name)
+      call insert(new_proj_state(1), new_grad_p, new_grad_p%name)
+      call deallocate(old_grad_p)
+      
+      if(aux_p) then
+        ! Insert the Pressure
+        call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
+        call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
+        
+        ! Insert the Pressure gradient        
+        call allocate(old_grad_aux_p, dim, old_u_mesh, trim(old_aux_p%name) // "Gradient")
+        call compute_conservative(old_grad_aux_p, matrices, old_aux_p)
+        call insert(old_proj_state(1), old_grad_aux_p, old_grad_aux_p%name)
+        
+        call allocate(new_grad_aux_p, dim, new_u_mesh, trim(new_aux_p%name) // "Gradient")
+        call zero(new_grad_aux_p)
+        call insert(new_proj_state(1), new_grad_aux_p, new_grad_aux_p%name)
+        call deallocate(old_grad_aux_p)
+      end if
+    end if
         
     if(geopressure) then
       ! Insert the GeostrophicPressure
@@ -1859,21 +1915,9 @@ contains
       call deallocate(old_proj_state(i))
       call deallocate(new_proj_state(i))
     end do
-        
-    if(have_option(trim(new_p%option_path) // "/correct_dirichlet")) then
-      ! Correct the boundary values
-      call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
-      if(have_option(trim(new_p%option_path) // "/correct_dirichlet/apply_to_pressure")) then
-        call get_option(trim(new_p%option_path) // "/correct_dirichlet/apply_to_pressure/name", aux_p_name)
-        old_aux_p => extract_scalar_field(old_state, aux_p_name)
-        new_aux_p => extract_scalar_field(new_state, aux_p_name)
-        call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
-      end if
-    end if
     
     call deallocate(coriolis)
     call deallocate(matrices)
-    call deallocate(old_p)
     call deallocate(old_res)
     if(geopressure) call deallocate(old_gp)
     call deallocate(old_positions_remap)
@@ -1896,6 +1940,41 @@ contains
     call deallocate(res_p)
     
     ! Add the conservative component  
+    
+    if(.not. proj_grad_p) then
+      ! Correct the boundary values
+      call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
+      if(aux_p) then
+        old_aux_p => extract_scalar_field(old_state, aux_p_name)
+        new_aux_p => extract_scalar_field(new_state, aux_p_name)
+        call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
+      end if
+    else
+      ! Decompose the projected potential gradient for the new conservative
+      ! potential
+      
+      call allocate(cmc_rhs, new_p_mesh, "CMCRHS")
+      call assemble_cmc_rhs(new_grad_p, matrices, cmc_rhs)
+      call deallocate(new_grad_p)
+      call derive_p_dirichlet(old_p, old_positions, lnew_velocity, new_p)
+      call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
+      call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
+      call petsc_solve(new_p, matrices%cmc_m, cmc_rhs)
+      
+      if(aux_p) then
+        ! Invert the Pressure gradient for the Pressure
+        call assemble_cmc_rhs(new_grad_aux_p, matrices, cmc_rhs)
+        call deallocate(new_grad_aux_p)
+        ! No need to clear cmc_m inactive, as the bcs are still taken from
+        ! lnew_velocity
+        call derive_p_dirichlet(old_aux_p, old_positions, lnew_velocity, new_p)
+        call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
+        call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
+        call petsc_solve(new_aux_p, matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
+      end if
+      
+      call deallocate(cmc_rhs) 
+    end if
     
     call allocate(coriolis_addto, dim, new_u_mesh, name = "CoriolisAddto")
     call compute_conservative(coriolis_addto, matrices, new_p)    
@@ -1931,296 +2010,7 @@ contains
     
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
       ewrite(2, *) "Enforcing solenoidal velocity"
-      call correct_velocity(lnew_velocity, new_p, matrices)
-    end if
-    
-    call set(new_velocity, lnew_velocity)
-    call deallocate(lnew_velocity)
-    
-    call deallocate(coriolis)
-    call deallocate(matrices)
-    call deallocate(new_p)
-    call deallocate(new_res)   
-    
-    vtu_index = vtu_index + 1
-    
-    ewrite(1, *) "Exiting geostrophic_interpolation"
-    
-  end subroutine geostrophic_interpolation
-  
-  subroutine geostrophic_interpolation_sa(old_state, old_velocity, new_state, new_velocity, map_BA)
-    !!< Perform a Helmholz decomposed projection of the Coriolis force, and
-    !!< invert for the new velocity
-    
-    type(state_type), intent(inout) :: old_state
-    type(vector_field), target, intent(inout) :: old_velocity
-    type(state_type), intent(inout) :: new_state
-    type(vector_field), target, intent(inout) :: new_velocity
-    type(ilist), dimension(:), optional, intent(in) :: map_BA
-    
-    character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
-    integer :: dim, i, stat
-    type(cmc_matrices) :: matrices
-    type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
-    type(scalar_field) :: cmc_rhs, new_p, old_w, old_p, new_w, res_p
-    type(state_type), dimension(2) :: new_proj_state, old_proj_state
-    type(vector_field) :: coriolis, coriolis_addto, new_grad_p, new_res, &
-      & old_grad_p, old_positions_remap, old_res
-    type(vector_field), pointer :: lnew_velocity_ptr, new_positions, &
-      & old_positions
-    type(vector_field), target :: lnew_velocity
-    
-    logical :: geopressure
-    character(len = OPTION_PATH_LEN) :: gp_mesh_name
-    type(cmc_matrices) :: gp_matrices
-    type(scalar_field) :: new_gp, old_gp
-    type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
-    
-    character(len = OPTION_PATH_LEN) :: aux_p_name
-    logical :: aux_p
-    type(scalar_field), pointer :: new_aux_p, old_aux_p
-    type(vector_field) :: new_grad_aux_p, old_grad_aux_p
-    
-    integer, save :: vtu_index = 0
-    
-    ewrite(1, *) "In geostrophic_interpolation_sa"
-
-    base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
-    ewrite(2, *) "Option path: " // trim(base_path)
-    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
-    old_u_mesh => old_velocity%mesh
-    old_p_mesh => extract_mesh(old_state, p_mesh_name)
-    new_u_mesh => new_velocity%mesh
-    new_p_mesh => extract_mesh(new_state, p_mesh_name)
-    
-    old_positions => extract_vector_field(old_state, "Coordinate")
-    new_positions => extract_vector_field(new_state, "Coordinate")
-    dim = old_positions%dim
-    assert(any(dim == (/2, 3/)))
-
-    if(old_positions%mesh == old_velocity%mesh) then
-      old_positions_remap = old_positions
-      call incref(old_positions_remap)
-    else
-      call allocate(old_positions_remap, dim, old_u_mesh, old_positions%name)
-      call remap_field(old_positions, old_positions_remap)
-    end if
-        
-    ! At interpolation stage the input velocity won't have boundary conditions,
-    ! so let's add them to a copy
-    call allocate(lnew_velocity, dim, new_u_mesh, new_velocity%name)
-    lnew_velocity%option_path = new_velocity%option_path
-    lnew_velocity_ptr => lnew_velocity
-    call populate_vector_boundary_conditions(lnew_velocity_ptr, &
-      & trim(complete_field_path(lnew_velocity%option_path)) // "/boundary_conditions" , &
-      & new_positions)
-    
-    ! Step 1: Perform a Helmholz decomposition of the old Coriolis
-    
-    ! More generally this should be a Galerkin projection for Coriolis
-    call allocate(coriolis, dim, old_u_mesh, "Coriolis")
-    coriolis%option_path = old_velocity%option_path
-    do i = 1, node_count(coriolis)
-      call set(coriolis, i, coriolis_val(node_val(old_positions_remap, i), node_val(old_velocity, i)))
-    end do
-    do i = 1, dim
-      ewrite_minmax(coriolis%val(i)%ptr)
-    end do
-    
-    geopressure = have_option(trim(base_path) // "/geopressure_preconditioner")
-    if(geopressure) then
-      ! We're preconditioning with a GeostrophicPressure solve
-      call get_option(trim(base_path) // "/geopressure_preconditioner/mesh/name", gp_mesh_name)
-      ewrite(2, *) "Computing GeostrophicPressure of mesh: ", trim(gp_mesh_name)
-      old_gp_mesh => extract_mesh(old_state, gp_mesh_name)
-      new_gp_mesh => extract_mesh(new_state, gp_mesh_name)
-      
-      call allocate(old_gp, old_gp_mesh, gp_name)
-      old_gp%option_path = trim(base_path) // "/geopressure_preconditioner"
-      call zero(old_gp)
-      call geopressure_decomposition(old_state, coriolis, old_gp)
-    end if    
-    
-    call allocate(old_p, old_p_mesh, "CoriolisConservativePotential")
-    old_p%option_path = trim(base_path) // "/conservative_potential"
-    call zero(old_p)
-    call allocate(old_res, dim, old_u_mesh, "CoriolisNonConservativeResidual")
-    old_res%option_path = trim(base_path) // "/residual"
-    call allocate(old_grad_p, dim, old_u_mesh, trim(old_p%name) // "Gradient")
-    old_grad_p%option_path = old_p%option_path
-    
-    call copy_bcs(old_velocity, coriolis)
-    if(geopressure) then
-      call projection_decomposition(old_state, coriolis, old_p, &
-        & gp = old_gp, matrices = matrices) 
-    else
-      call projection_decomposition(old_state, coriolis, old_p, &
-        & matrices = matrices) 
-    end if
-    call set(old_res, coriolis)
-    call correct_velocity(old_res, old_p, matrices, conserv = old_grad_p)
-    
-    if(geopressure) then
-      call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_gp, old_p/), vfields = (/old_velocity, coriolis, old_grad_p, old_res/))
-    else
-      call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_p/), vfields = (/old_velocity, coriolis, old_grad_p, old_res/))
-    end if
-    
-    ! Step 2: Galerkin project the decomposition
-    
-    call allocate(new_p, new_p_mesh, old_p%name)
-    new_p%option_path = old_p%option_path
-    call allocate(new_res, dim, new_u_mesh, old_res%name)
-    new_res%option_path = old_res%option_path
-    call allocate(new_grad_p, dim, new_u_mesh, trim(new_p%name) // "Gradient")
-    new_grad_p%option_path = new_p%option_path
-    
-    call insert(old_proj_state, old_positions, old_positions%name)
-    call insert(old_proj_state, old_positions%mesh, old_positions%mesh%name)
-    call insert(new_proj_state, new_positions, new_positions%name)
-    call insert(new_proj_state, new_positions%mesh, new_positions%mesh%name)
-    
-    ! Insert the horizontal Velocity
-    call insert(old_proj_state(1), old_u_mesh, old_u_mesh%name)
-    call insert(old_proj_state(1), old_res, old_res%name)
-    call insert(new_proj_state(1), new_u_mesh, new_u_mesh%name)
-    call insert(new_proj_state(1), new_res, new_res%name)
-    if(dim == 3) then
-      ! Insert the vertical Velocity
-      call allocate(old_w, old_u_mesh, "VerticalVelocity")
-      old_w%option_path = old_res%option_path
-      call set(old_w, old_velocity, W_)
-      call insert(old_proj_state(1), old_w, old_w%name)
-      ewrite_minmax(old_w%val)
-      
-      call allocate(new_w, new_u_mesh, old_w%name)
-      new_w%option_path = new_res%option_path
-      call zero(new_w)
-      call insert(new_proj_state(1), new_w, new_w%name)
-      call deallocate(old_w)
-    end if
-    
-    ! Insert the conservative potential gradient
-    call insert(old_proj_state(1), old_grad_p, old_grad_p%name)
-    call insert(new_proj_state(1), new_grad_p, old_grad_p%name)
-    
-    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")
-    if(aux_p) then
-      ! Insert the Pressure gradient
-      call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
-      old_aux_p => extract_scalar_field(old_state, aux_p_name)
-      new_aux_p => extract_scalar_field(new_state, aux_p_name)
-      
-      call allocate(old_grad_aux_p, dim, old_u_mesh, trim(old_aux_p%name) // "Gradient")
-      call compute_conservative(old_grad_aux_p, matrices, old_aux_p)
-      call insert(old_proj_state(1), old_grad_aux_p, old_grad_aux_p%name)
-      
-      call allocate(new_grad_aux_p, dim, new_u_mesh, trim(new_aux_p%name) // "Gradient")
-      call zero(new_grad_aux_p)
-      call insert(new_proj_state(1), new_grad_aux_p, new_grad_aux_p%name)
-      call deallocate(old_grad_aux_p)
-    end if
-        
-    if(geopressure) then
-      ! Insert the GeostrophicPressure
-      call allocate(new_gp, new_gp_mesh, gp_name)
-      new_gp%option_path = old_gp%option_path
-      call insert(old_proj_state(2), old_gp_mesh, old_gp_mesh%name)
-      call insert(old_proj_state(2), old_gp, old_gp%name)
-      call insert(new_proj_state(2), new_gp_mesh, new_gp_mesh%name)
-      call insert(new_proj_state(2), new_gp, new_gp%name)
-    end if
-    
-    call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
-    
-    do i = 1, size(old_proj_state)
-      call deallocate(old_proj_state(i))
-      call deallocate(new_proj_state(i))
-    end do
-    
-    call deallocate(coriolis)
-    call deallocate(matrices)
-    call deallocate(old_res)
-    call deallocate(old_grad_p)
-    if(geopressure) call deallocate(old_gp)
-    call deallocate(old_positions_remap)
-    
-    ! Step 3: Form the new Coriolis from the decomposition and invert for
-    ! Velocity
-    
-    call allocate(coriolis, dim, new_u_mesh, "Coriolis")
-    
-    ! Add the solenoidal component. Project the interpolated residual to
-    ! guarantee solenoidal.
-    
-    call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
-    res_p%option_path = new_p%option_path
-    call zero(res_p)
-    call copy_bcs(lnew_velocity, new_res)
-    call projection_decomposition(new_state, new_res, res_p, matrices = matrices)
-    call set(coriolis, new_res)
-    call correct_velocity(coriolis, res_p, matrices)
-    call deallocate(res_p)
-    
-    ! Decompose the projected potential gradient for the new conservative
-    ! potential, and add it
-    
-    call allocate(cmc_rhs, new_p_mesh, "CMCRHS")
-    call assemble_cmc_rhs(new_grad_p, matrices, cmc_rhs)
-    call derive_p_dirichlet(old_p, old_positions, lnew_velocity, new_p)
-    call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
-    call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
-    call zero(new_p)
-    call petsc_solve(new_p, matrices%cmc_m, cmc_rhs)
-    
-    if(aux_p) then
-      ! Invert the Pressure gradient for the Pressure
-      call assemble_cmc_rhs(new_grad_aux_p, matrices, cmc_rhs)
-      call deallocate(new_grad_aux_p)
-      call derive_p_dirichlet(old_aux_p, old_positions, lnew_velocity, new_p)
-      call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
-      call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
-      call petsc_solve(new_aux_p, matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
-    end if
-    
-    call deallocate(cmc_rhs)   
-
-    call allocate(coriolis_addto, dim, new_u_mesh, name = "CoriolisAddto")
-    call compute_conservative(coriolis_addto, matrices, new_p)    
-    call addto(coriolis, coriolis_addto)
-    
-    if(geopressure) then
-      ! Add the GeostrophicPressure gradient
-      call add_geopressure_matrices(new_state, new_u_mesh, new_gp_mesh, new_positions, matrices)
-      call compute_conservative(coriolis_addto, gp_matrices, new_gp, geopressure = .true.)
-      call addto(coriolis, coriolis_addto)
-    end if
-      
-    call deallocate(coriolis_addto)
-    
-    ! Invert for the new Velocity
-    
-    call velocity_from_coriolis(new_positions, coriolis, lnew_velocity)    
-    if(dim == 3) then
-      ! Recover the vertical velocity
-      ewrite_minmax(lnew_velocity%val(W_)%ptr)
-      call set(lnew_velocity, W_, new_w)
-      ewrite_minmax(lnew_velocity%val(W_)%ptr)
-      call deallocate(new_w)
-    end if
-    
-    if(geopressure) then
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_gp, new_p/), vfields = (/lnew_velocity, coriolis, new_grad_p, new_res/))
-    else
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p/), vfields = (/lnew_velocity, coriolis, new_grad_p, new_res/))
-    end if
-    
-    if(have_option(trim(base_path) // "/enforce_solenoidal")) then
-      ewrite(2, *) "Enforcing solenoidal velocity"
+      ! Should probably update the Pressure as well
       call correct_velocity(lnew_velocity, new_p, matrices)
     end if
     
@@ -2232,14 +2022,12 @@ contains
     call deallocate(matrices)
     call deallocate(new_p)
     call deallocate(new_res)   
-    call deallocate(new_grad_p)
-    if(geopressure) call deallocate(new_gp)
     
     vtu_index = vtu_index + 1
     
-    ewrite(1, *) "Exiting geostrophic_interpolation_sa"
+    ewrite(1, *) "Exiting geostrophic_interpolation"
     
-  end subroutine geostrophic_interpolation_sa
+  end subroutine geostrophic_interpolation
   
   subroutine compute_balanced_velocity_diagnostics(state, u_imbal, u_bal_out)
     type(state_type), intent(inout) :: state
