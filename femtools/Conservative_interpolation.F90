@@ -864,7 +864,6 @@ module conservative_interpolation_module
     deallocate(new_fields)
     deallocate(local_rhs)
     deallocate(little_mass_matrix)
-    deallocate(little_mass_matrix_copy)
     deallocate(force_bc)
     deallocate(bc_nodes)
     if(any(dg).and.new_positions_simplicial) deallocate(little_inverse_mass_matrix)
