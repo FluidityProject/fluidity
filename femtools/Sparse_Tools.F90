@@ -185,7 +185,7 @@ module sparse_tools
        & mult,mult_T, zero_column, addref, incref, decref, has_references, &
        & csr_matrix_pointer, block_csr_matrix_pointer, &
        & csr_sparsity, csr_sparsity_pointer, logical_array_ptr,&
-       & initialise_inactive
+       & initialise_inactive, has_inactive
 
   TYPE node
      !!< A node in a linked list
