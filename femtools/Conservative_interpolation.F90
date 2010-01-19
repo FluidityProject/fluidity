@@ -849,7 +849,9 @@ module conservative_interpolation_module
           end if
           do field = 1, field_counts(mesh)
             call deallocate(rhs(mesh,field))
-            call deallocate(bc_nodes(mesh, field))
+            if (force_bc(mesh, field)) then
+              call deallocate(bc_nodes(mesh, field))
+            end if
           end do
         end if
       end if
