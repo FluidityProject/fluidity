@@ -113,7 +113,9 @@ contains
     !Construct wave mat
     call assemble_cmc_dg(wave_mat, div_mat, div_mat, big_mat)
 
-    call check_wave_mat(wave_mat,div_mat,big_mat,u,d)
+    if(have_option("/debug/check_wave_matrix")) then
+      call check_wave_mat(wave_mat,div_mat,big_mat,u,d)
+    end if
 
     call scale(wave_mat,dt*dt*theta*theta*g*D0)
     call addto(wave_mat,h_mass_mat)

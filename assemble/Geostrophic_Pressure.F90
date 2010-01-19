@@ -1722,7 +1722,8 @@ contains
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
     character(len = OPTION_PATH_LEN) :: aux_p_name
-    logical :: aux_p
+    logical :: aux_p, decomp_aux_p
+    real :: aux_p_scale
     type(scalar_field), pointer :: new_aux_p, old_aux_p
     type(vector_field) :: new_grad_aux_p, old_grad_aux_p
     
@@ -1788,9 +1789,18 @@ contains
     
     call allocate(old_p, old_p_mesh, "CoriolisConservativePotential")
     old_p%option_path = trim(base_path) // "/conservative_potential"
-    call zero(old_p)
     call allocate(old_res, dim, old_u_mesh, "CoriolisNonConservativeResidual")
     old_res%option_path = trim(base_path) // "/residual"
+    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")
+    if(aux_p) then
+      call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
+      old_aux_p => extract_scalar_field(old_state, aux_p_name)
+      new_aux_p => extract_scalar_field(new_state, aux_p_name)
+      ! Use the Pressure field as an initial guess
+      call remap_field(old_aux_p, old_p)
+    else
+      call zero(old_p)
+    end if
     
     call copy_bcs(old_velocity, coriolis)
     if(geopressure) then
@@ -1822,7 +1832,7 @@ contains
     call insert(new_proj_state, new_positions, new_positions%name)
     call insert(new_proj_state, new_positions%mesh, new_positions%mesh%name)
     
-    ! Insert the horizontal Velocity
+    ! Insert the horizontal Velocity residual
     call insert(old_proj_state(1), old_u_mesh, old_u_mesh%name)
     call insert(old_proj_state(1), old_res, old_res%name)
     call insert(new_proj_state(1), new_u_mesh, new_u_mesh%name)
@@ -1843,12 +1853,6 @@ contains
     end if
     
     proj_grad_p = have_option(trim(base_path) // "/conservative_potential/project_gradient")
-    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")
-    if(aux_p) then
-      call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
-      old_aux_p => extract_scalar_field(old_state, aux_p_name)
-      new_aux_p => extract_scalar_field(new_state, aux_p_name)
-    end if
     if(.not. proj_grad_p) then
       ! Insert the conservative potential
       call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
@@ -1858,6 +1862,12 @@ contains
       
       if(aux_p) then
         ! Insert the Pressure
+        decomp_aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure/decompose")
+        if(decomp_aux_p) then
+          call get_option(trim(base_path) // "/conservative_potential/project_pressure/decompose/scale_factor", aux_p_scale, default = -1.0)
+          call addto(old_aux_p, old_p, scale = -aux_p_scale)
+          ewrite_minmax(old_aux_p%val)
+        end if
         call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
         call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
       end if
@@ -1874,7 +1884,7 @@ contains
       ! Insert the conservative potential gradient
       call allocate(old_grad_p, dim, old_u_mesh, trim(old_p%name) // "Gradient")
       call allocate(new_grad_p, dim, new_u_mesh, trim(new_p%name) // "Gradient")
-      ! We could compute this when computing old_res_p, but adding this here
+      ! We could compute this when computing old_res, but adding this here
       ! for now as this routine is complicated enough
       call compute_conservative(old_grad_p, matrices, old_p)
       
@@ -1884,6 +1894,12 @@ contains
       
       if(aux_p) then
         ! Insert the Pressure
+        decomp_aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure/decompose")
+        if(decomp_aux_p) then
+          call get_option(trim(base_path) // "/conservative_potential/project_pressure/decompose/scale_factor", aux_p_scale, default = -1.0)
+          call addto(old_aux_p, old_p, scale = -aux_p_scale)
+          ewrite_minmax(old_aux_p%val)
+        end if
         call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
         call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
         
@@ -1945,9 +1961,9 @@ contains
       ! Correct the boundary values
       call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
       if(aux_p) then
-        old_aux_p => extract_scalar_field(old_state, aux_p_name)
-        new_aux_p => extract_scalar_field(new_state, aux_p_name)
-        call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
+        if(decomp_aux_p) then
+          call addto(new_aux_p, new_p, scale = aux_p_scale)
+        end if
       end if
     else
       ! Decompose the projected potential gradient for the new conservative
@@ -1960,17 +1976,17 @@ contains
       call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
       call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
       call petsc_solve(new_p, matrices%cmc_m, cmc_rhs)
+      matrices%cmc_m%inactive%ptr = .false.
       
       if(aux_p) then
         ! Invert the Pressure gradient for the Pressure
         call assemble_cmc_rhs(new_grad_aux_p, matrices, cmc_rhs)
         call deallocate(new_grad_aux_p)
-        ! No need to clear cmc_m inactive, as the bcs are still taken from
-        ! lnew_velocity
-        call derive_p_dirichlet(old_aux_p, old_positions, lnew_velocity, new_p)
-        call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
         call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
         call petsc_solve(new_aux_p, matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
+        if(decomp_aux_p) then
+          call addto(new_aux_p, new_p, scale = aux_p_scale)
+        end if
       end if
       
       call deallocate(cmc_rhs) 

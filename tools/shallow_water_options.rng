@@ -21,6 +21,11 @@ characters in the simulation name should be avoided.</a:documentation>
             <empty/>
           </element>
         </optional>
+        <optional>
+          <element name="check_wave_matrix">
+            <empty/>
+          </element>
+        </optional>
       </element>
       <element name="geometry">
         <a:documentation>Options dealing with the specification of geometry</a:documentation>

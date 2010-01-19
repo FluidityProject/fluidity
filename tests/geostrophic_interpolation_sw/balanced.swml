@@ -218,7 +218,13 @@
                 </solver>
               </continuous>
             </galerkin_projection>
-            <project_pressure name="LayerThickness"/>
+            <project_pressure name="LayerThickness">
+              <decompose>
+                <scale_factor>
+                  <real_value rank="0">0.1</real_value>
+                </scale_factor>
+              </decompose>
+            </project_pressure>
           </conservative_potential>
           <residual>
             <galerkin_projection>

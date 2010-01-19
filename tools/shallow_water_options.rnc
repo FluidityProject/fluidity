@@ -19,6 +19,9 @@ start =
          element debug {
             element check_inverse_coriolis_matrix {
                empty
+            }?,
+            element check_wave_matrix {
+               empty
             }?
          },
          ## Options dealing with the specification of geometry
