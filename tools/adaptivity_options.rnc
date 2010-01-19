@@ -739,6 +739,10 @@ interpolation_algorithm_vector =
               attribute name { xsd:string },
               comment
            }?,
+           ## Apply strong Dirichlet bcs to the Pressure projection
+           element apply_dirichlet {
+              comment
+           }?,
            comment
         },
         ## Options relating to the non-conservative residual component of the

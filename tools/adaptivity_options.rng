@@ -882,6 +882,12 @@ supermesh assembled decomposition.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
+          <optional>
+            <element name="apply_dirichlet">
+              <a:documentation>Apply strong Dirichlet bcs to the Pressure projection</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
           <ref name="comment"/>
         </element>
         <element name="residual">

@@ -1701,6 +1701,7 @@ contains
     
     character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
     integer :: dim, i, stat
+    logical :: apply_dirichlet
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
@@ -1722,8 +1723,7 @@ contains
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
     
     character(len = OPTION_PATH_LEN) :: aux_p_name
-    logical :: aux_p, decomp_aux_p
-    real :: aux_p_scale
+    logical :: aux_p
     type(scalar_field), pointer :: new_aux_p, old_aux_p
     type(vector_field) :: new_grad_aux_p, old_grad_aux_p
     
@@ -1862,12 +1862,6 @@ contains
       
       if(aux_p) then
         ! Insert the Pressure
-        decomp_aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure/decompose")
-        if(decomp_aux_p) then
-          call get_option(trim(base_path) // "/conservative_potential/project_pressure/decompose/scale_factor", aux_p_scale, default = -1.0)
-          call addto(old_aux_p, old_p, scale = -aux_p_scale)
-          ewrite_minmax(old_aux_p%val)
-        end if
         call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
         call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
       end if
@@ -1894,12 +1888,6 @@ contains
       
       if(aux_p) then
         ! Insert the Pressure
-        decomp_aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure/decompose")
-        if(decomp_aux_p) then
-          call get_option(trim(base_path) // "/conservative_potential/project_pressure/decompose/scale_factor", aux_p_scale, default = -1.0)
-          call addto(old_aux_p, old_p, scale = -aux_p_scale)
-          ewrite_minmax(old_aux_p%val)
-        end if
         call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
         call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
         
@@ -1957,13 +1945,12 @@ contains
     
     ! Add the conservative component  
     
+    apply_dirichlet = have_option(trim(base_path) // "/conservative_potential/apply_dirichlet")
     if(.not. proj_grad_p) then
-      ! Correct the boundary values
-      call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
-      if(aux_p) then
-        if(decomp_aux_p) then
-          call addto(new_aux_p, new_p, scale = aux_p_scale)
-        end if
+      if(apply_dirichlet) then
+        ! Correct the boundary values
+        call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
+        if(aux_p) call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
       end if
     else
       ! Decompose the projected potential gradient for the new conservative
@@ -1972,21 +1959,25 @@ contains
       call allocate(cmc_rhs, new_p_mesh, "CMCRHS")
       call assemble_cmc_rhs(new_grad_p, matrices, cmc_rhs)
       call deallocate(new_grad_p)
-      call derive_p_dirichlet(old_p, old_positions, lnew_velocity, new_p)
-      call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
+      if(apply_dirichlet) then
+        call derive_p_dirichlet(old_p, old_positions, lnew_velocity, new_p)
+        call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
+      end if
       call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
       call petsc_solve(new_p, matrices%cmc_m, cmc_rhs)
-      matrices%cmc_m%inactive%ptr = .false.
+      if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
       
       if(aux_p) then
         ! Invert the Pressure gradient for the Pressure
         call assemble_cmc_rhs(new_grad_aux_p, matrices, cmc_rhs)
         call deallocate(new_grad_aux_p)
+        if(apply_dirichlet) then
+          call derive_p_dirichlet(old_aux_p, old_positions, lnew_velocity, new_p)
+          call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
+        end if
         call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
         call petsc_solve(new_aux_p, matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
-        if(decomp_aux_p) then
-          call addto(new_aux_p, new_p, scale = aux_p_scale)
-        end if
+        if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
       end if
       
       call deallocate(cmc_rhs) 
