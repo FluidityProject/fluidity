@@ -51,16 +51,15 @@ contains
     
     type(vector_field), pointer:: velocity, positions, wind_surface_field
     type(scalar_field), pointer:: wind_drag_coefficient
-    type(element_type) faceshape
-    character(len=OPTION_PATH_LEN) bctype
-    real, dimension(:,:), allocatable:: llpos, llpos_at_quads, ll_wind_at_nodes, ll_wind_at_quads
-    real, dimension(:,:), allocatable:: Q, wind_at_quads, wind_at_nodes
+    type(element_type):: faceshape
+    character(len=OPTION_PATH_LEN):: bctype
+    real, dimension(:,:), allocatable:: llpos_at_quads, ll_wind_at_quads
+    real, dimension(:,:), allocatable:: wind_at_quads
     real, dimension(:), allocatable:: detwei, C_D, unorm
     real rho_air
     logical apply_wind_formula, on_sphere
-    integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
-    integer snloc, sngi, wdim, nobcs
+    integer sngi, wdim, nobcs
     integer i, j, k, sele
     logical:: parallel_dg
     
@@ -74,7 +73,6 @@ contains
     parallel_dg=continuity(velocity)<0 .and. IsParallel()
     on_sphere=have_option('/geometry/spherical_earth')
     faceshape=face_shape(velocity, 1)
-    snloc=face_loc(velocity, 1)
     sngi=face_ngi(velocity, 1)
     if (on_sphere) then
       wdim=3 ! dimension of the wind
@@ -83,12 +81,10 @@ contains
       wdim=velocity%dim-1 ! dimension of the wind
     end if
     
-    allocate(detwei(1:sngi), Q(1:snloc,1:snloc), &
-      face_nodes(1:snloc), C_D(1:sngi), unorm(1:sngi), &
-      wind_at_quads(1:wdim,1:sngi), wind_at_nodes(1:wdim,1:snloc))
+    allocate(detwei(1:sngi), C_D(1:sngi), unorm(1:sngi), &
+      wind_at_quads(1:wdim,1:sngi))
     if (on_sphere) then
-      allocate( llpos(1:2,1:snloc), llpos_at_quads(1:2,1:sngi), &
-        ll_wind_at_nodes(1:2,1:snloc), ll_wind_at_quads(1:2,1:sngi) )
+      allocate( llpos_at_quads(1:2,1:sngi), ll_wind_at_quads(1:2,1:sngi) )
     end if
     
     nobcs = get_boundary_condition_count(velocity)
@@ -115,70 +111,55 @@ contains
           
           ! compute integration weights detwei
           call transform_facet_to_physical(positions, sele, detwei)
-          
-          ! compute wind_at_nodes: specified wind stress or wind velocity
+                    
+          ! compute wind_at_quads: wind velocity at quadr. points
+          ! OR (if .not. apply_wind_formula): wind stress at quadr. points
           if (on_sphere) then
-            call LongitudeLatitude(face_val(positions,sele), &
-               llpos(1,:), llpos(2,:))
-            ll_wind_at_nodes=ele_val(wind_surface_field, j)
-            call ll2r3_rotate(llpos(1,:), llpos(2,:), &
-                ll_wind_at_nodes(1,:), ll_wind_at_nodes(2,:), &
-                wind_at_nodes(1,:), wind_at_nodes(2,:), wind_at_nodes(3,:))
+            call LongitudeLatitude(face_val_at_quad(positions,sele), &
+               llpos_at_quads(1,:), llpos_at_quads(2,:))
+            ll_wind_at_quads=ele_val_at_quad(wind_surface_field, j)
+            call ll2r3_rotate( &
+                llpos_at_quads(1,:), llpos_at_quads(2,:), &
+                ll_wind_at_quads(1,:), ll_wind_at_quads(2,:), &
+                wind_at_quads(1,:), wind_at_quads(2,:), wind_at_quads(3,:))
           else
-            wind_at_nodes=ele_val(wind_surface_field, j)
-          end if
           
+            wind_at_quads=ele_val_at_quad(wind_surface_field, j)
+          end if
+
+
           if (apply_wind_formula) then
-            ! make wind_at nodes relative wind velocity:
-            do k=1, wdim
-               wind_at_nodes(k,:)=wind_at_nodes(k,:)-face_val(velocity, k, sele)
-            end do
-
-            ! drag coefficient:
-            C_D=ele_val_at_quad(wind_drag_coefficient, j)
             
-            ! compute wind_at_quads: wind velocity at quadr. points
-            if (on_sphere) then
-              call LongitudeLatitude(face_val_at_quad(positions,sele), &
-                 llpos_at_quads(1,:), llpos_at_quads(2,:))
-              ll_wind_at_quads=ele_val_at_quad(wind_surface_field, j)
-              call ll2r3_rotate( &
-                  llpos_at_quads(1,:), llpos_at_quads(2,:), &
-                  ll_wind_at_quads(1,:), ll_wind_at_quads(2,:), &
-                  wind_at_quads(1,:), wind_at_quads(2,:), wind_at_quads(3,:))
-            else
+            ! wind_at_quads is actual wind velocity
             
-              wind_at_quads=ele_val_at_quad(wind_surface_field, j)
-            end if
-
             ! make wind_at_quads relative velocity (specified wind-sea surface velocity)
             ! at quadrature points
             do k=1, wdim
               wind_at_quads(k,:)=wind_at_quads(k,:)- &
                   face_val_at_quad(velocity, sele, dim=k)
             end do
-
+            ! drag coefficient:
+            C_D=ele_val_at_quad(wind_drag_coefficient, j)
+          
             ! compute its norm, sum over dim=1 is sum over components
             unorm=sqrt(sum(wind_at_quads**2, dim=1))
 
             ! multiply at each gauss point:
             detwei=detwei*C_D*unorm*rho_air
           end if
-          Q = shape_shape(faceshape, faceshape, detwei)
-            
-          ! add surface forcing in rhs of momentum equation:
-          face_nodes=face_global_nodes(velocity, sele)
+          
           do k=1, wdim
-            call addto(rhs, k, face_nodes, matmul(Q, wind_at_nodes(k, :)) )
+            ! add surface forcing in rhs of momentum equation:
+            call addto(rhs, k, face_global_nodes(velocity, sele), &
+              shape_rhs( faceshape, wind_at_quads(k,:)*detwei ))
           end do
         end do
       end if
     end do
       
-    deallocate(detwei, Q, face_nodes, C_D, unorm, &
-       wind_at_quads, wind_at_nodes)
+    deallocate(detwei, C_D, unorm, wind_at_quads)
     if (on_sphere) then
-      deallocate(llpos, llpos_at_quads, ll_wind_at_nodes, ll_wind_at_quads)
+      deallocate(llpos_at_quads, ll_wind_at_quads)
     end if
     
     ewrite_minmax(rhs%val(1)%ptr)
