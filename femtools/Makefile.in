@@ -147,7 +147,7 @@ Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 
 Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
   Field_Options.o Halos.o Write_Triangle.o
-Weak_BCs.o: State.o Generic_interface.o
+Weak_BCs.o: State.o Generic_interface.o Boundary_Conditions.o
 
 Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconvergence.o Supermesh.o Futils.o Transform_elements.o \
                               MeshDiagnostics.o Vector_Tools.o FETools.o Sparsity_Patterns.o Sparse_Tools.o \
