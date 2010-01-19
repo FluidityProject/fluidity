@@ -541,13 +541,17 @@ module conservative_interpolation_module
             do field=1,field_counts(mesh)
               little_rhs(:nloc, field) = local_rhs(mesh,field,:nloc)
             end do
+
+            if (any(force_bc(mesh,:))) then
+              little_inverse_mass_matrix_copy=little_inverse_mass_matrix
+            end if
             
             if (new_positions_simplicial) then
               do field=1,field_counts(mesh)
                 if (force_bc(mesh,field)) then
-                  little_inverse_mass_matrix_copy=little_inverse_mass_matrix
                   if (any(has_value(bc_nodes(mesh,field), ele_nodes_B))) then
                     local_rhs(mesh, field, :nloc)=local_rhs(mesh, field, :nloc)-matmul( little_mass_matrix(mesh,:nloc,:nloc)*abs(detJ(1)), ele_val(new_fields(mesh,field), ele_B) )
+                    little_inverse_mass_matrix = little_inverse_mass_matrix_copy
                     do j=1, nloc
                       if (has_value(bc_nodes(mesh,field), ele_nodes_B(j))) then
                         little_inverse_mass_matrix(mesh, j,:)=0.0
@@ -558,7 +562,6 @@ module conservative_interpolation_module
                     end do
                   end if
                 end if
-                
 #ifdef INLINE_MATMUL
                 forall (j=1:nloc)
                   little_rhs(j, field) = sum(little_inverse_mass_matrix(mesh, j, :nloc) * local_rhs(mesh, field, :nloc))
@@ -572,7 +575,7 @@ module conservative_interpolation_module
               call solve(little_mass_matrix(mesh,:nloc,:nloc), little_rhs(:nloc,:field_counts(mesh)))
             end if
             
-            if (force_bc(mesh,field)) then
+            if (any(force_bc(mesh,:))) then
               little_inverse_mass_matrix=little_inverse_mass_matrix_copy
             end if
 
