@@ -85,7 +85,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
-  tet_predicate.o Lagrangian_Remap.o Vertical_integration.o Weak_BCs.o \
+  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
   Detector_Data_Types.o Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
   Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
@@ -147,7 +147,6 @@ Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 
 Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
   Field_Options.o Halos.o Write_Triangle.o
-Vertical_integration.o: Fields.o Solvers.o
 Weak_BCs.o: State.o Generic_interface.o
 
 Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconvergence.o Supermesh.o Futils.o Transform_elements.o \
