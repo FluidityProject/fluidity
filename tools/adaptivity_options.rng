@@ -858,6 +858,13 @@ Automatic when not using P1P1.</a:documentation>
             <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
+            <optional>
+              <element name="honour_strong_boundary_conditions">
+                <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
+applied to this field.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
             <ref name="continuous_projection"/>
             <optional>
               <ref name="supermesh_conservation"/>
@@ -883,8 +890,13 @@ supermesh assembled decomposition.</a:documentation>
             </element>
           </optional>
           <optional>
-            <element name="apply_dirichlet">
-              <a:documentation>Apply strong Dirichlet bcs to the Pressure projection</a:documentation>
+            <element name="interpolate_boundary">
+              <a:documentation>Interpolate the boundary values using consistent interpolation and
+use these as a strong Dirichlet boundary condition on the
+conservative potential.
+
+If interpolating Pressure, a similar boundary condition is applied
+to the Pressure projection.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>

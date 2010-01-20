@@ -723,6 +723,11 @@ interpolation_algorithm_vector =
            ## non-bounded. The most accurate choice, in the sense of minimising
            ## the L2 norm of the residual
            element galerkin_projection {
+             ## If set, the Galerkin projection will honour strong Dirichlet boundary conditions
+             ## applied to this field.
+             element honour_strong_boundary_conditions {
+                comment
+             }?,
              continuous_projection,
              supermesh_conservation?,
              comment
@@ -739,8 +744,13 @@ interpolation_algorithm_vector =
               attribute name { xsd:string },
               comment
            }?,
-           ## Apply strong Dirichlet bcs to the Pressure projection
-           element apply_dirichlet {
+           ## Interpolate the boundary values using consistent interpolation and
+           ## use these as a strong Dirichlet boundary condition on the
+           ## conservative potential.
+           ## 
+           ## If interpolating Pressure, a similar boundary condition is applied
+           ## to the Pressure projection.
+           element interpolate_boundary {
               comment
            }?,
            comment
