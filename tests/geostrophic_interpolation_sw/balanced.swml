@@ -198,6 +198,7 @@
               </diagnostics>
             </solver>
             <galerkin_projection>
+              <honour_strong_boundary_conditions/>
               <continuous>
                 <solver>
                   <iterative_method name="cg"/>
@@ -219,7 +220,7 @@
               </continuous>
             </galerkin_projection>
             <project_pressure name="LayerThickness"/>
-            <apply_dirichlet/>
+            <interpolate_boundary/>
           </conservative_potential>
           <residual>
             <galerkin_projection>
@@ -276,11 +277,9 @@
    u = [0.0,0.0]
    r0 = 250000.
    r = ((X[0])**2 + (X[1]**2))**0.5
-   return 0.05*exp(-r/LR)
-   if(r&lt;-1.0e-5+r0):
-      return 0.05*exp(-r/LR)
-   else:
-      return 0.</string_value>
+   if r &gt; r0 - 100.0:
+      r = r0
+   return 0.05*exp(-r/LR)</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -288,27 +287,7 @@
         </mean_layer_thickness>
         <output/>
         <stat/>
-        <galerkin_projection>
-          <continuous>
-            <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="sor"/>
-              <relative_error>
-                <real_value rank="0">1.0e-16</real_value>
-              </relative_error>
-              <absolute_error>
-                <real_value rank="0">1.0e-16</real_value>
-              </absolute_error>
-              <max_iterations>
-                <integer_value rank="0">3000</integer_value>
-              </max_iterations>
-              <never_ignore_solver_failures/>
-              <diagnostics>
-                <monitors/>
-              </diagnostics>
-            </solver>
-          </continuous>
-        </galerkin_projection>
+        <consistent_interpolation/>
       </prognostic>
     </scalar_field>
   </material_phase>

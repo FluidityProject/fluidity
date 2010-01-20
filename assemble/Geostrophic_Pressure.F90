@@ -56,8 +56,12 @@ module geostrophic_pressure
   use divergence_matrix_cg
   use momentum_cg
   use momentum_dg
+  use state_fields_module
   use unittest_tools
   use vtk_interfaces
+  
+  use quicksort
+  use surfacelabels
 
   implicit none
   
@@ -91,7 +95,7 @@ module geostrophic_pressure
   integer, save :: reference_node = 0
  
   interface eval_field
-    module procedure eval_field_scalar
+    module procedure eval_field_scalar, eval_field_vector
   end interface eval_field
   
   type cmc_matrices
@@ -112,6 +116,11 @@ module geostrophic_pressure
   interface deallocate
     module procedure deallocate_cmc_matrices
   end interface deallocate
+  
+  interface derive_p_dirichlet
+    module procedure derive_p_dirichlet_single, derive_p_dirichlet_double, &
+      & derive_p_dirichlet_multiple
+  end interface derive_p_dirichlet
     
 contains
   
@@ -691,6 +700,52 @@ contains
     val = dot_product(ele_val(s_field, ele), n)
       
   end function eval_field_scalar
+  
+  function eval_field_vector(ele, v_field, positions, local_coord) result(val)
+    !!< Evaluate the vector field v_field at element local coordinate
+    !!< local_coord of element ele. This assumes linear positions.
+  
+    integer, intent(in) :: ele
+    type(vector_field), intent(inout) :: v_field
+    type(vector_field), intent(in) :: positions
+    real, dimension(ele_loc(positions, ele)), intent(in) :: local_coord
+    
+    real, dimension(positions%dim) :: val
+    
+    integer :: i
+    real, dimension(ele_loc(v_field, ele)) :: n
+    type(element_type), pointer :: shape
+#ifdef DDEBUG
+    type(element_type), pointer :: positions_shape
+    
+    positions_shape => ele_shape(positions, ele)
+    assert(positions_shape%degree == 1)
+#endif
+    
+    shape => ele_shape(v_field, ele)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    do i = 1, size(val)
+      val(i) = dot_product(ele_val(v_field, i, ele), n)
+    end do
+      
+  end function eval_field_vector
   
   subroutine subtract_geostrophic_pressure_gradient(mom_rhs, state)
     !!< Subtract the GeostrophicPressure gradient from the momentum equation
@@ -1381,6 +1436,21 @@ contains
     
   end subroutine compute_conservative
   
+  subroutine compute_divergence(field, ct_m, mass, div)
+    type(vector_field), intent(in) :: field
+    type(block_csr_matrix), intent(in) :: ct_m
+    type(csr_matrix), intent(in) :: mass
+    type(scalar_field), intent(inout) :: div
+    
+    type(scalar_field) :: rhs
+    
+    call allocate(rhs, div%mesh, "RHS")
+    call mult(rhs, ct_m, field)    
+    call petsc_solve(div, mass, rhs)
+    call deallocate(rhs)
+  
+  end subroutine compute_divergence
+  
   subroutine assemble_cmc_rhs(field, matrices, cmc_rhs, gp)
     type(vector_field), intent(in) :: field
     type(cmc_matrices), intent(inout) :: matrices
@@ -1531,163 +1601,155 @@ contains
     
   end subroutine velocity_from_coriolis
   
-  function boundary_mean(field, positions, surface_ids) result(mean)
-    type(scalar_field), intent(in) :: field
-    type(vector_field), intent(in) :: positions
-    integer, dimension(:), optional, intent(in) :: surface_ids
+  subroutine interpolate_boundary_values(fields_a, positions_a, fields_b, positions_b, b_mesh, surface_element_list, b_fields)  
+    !!< Consistently interpolation the values on the surface of fields_a onto the
+    !!< surface of fields_b. All of fields_a and fields_b must have the same 
+    !!< continuous mesh.
+  
+    type(scalar_field), dimension(:), intent(inout) :: fields_a
+    type(vector_field), intent(inout) :: positions_a
+    type(scalar_field), dimension(size(fields_a)), target, intent(inout) :: fields_b
+    type(vector_field), intent(inout) :: positions_b
+    type(mesh_type), intent(inout) :: b_mesh
+    integer, dimension(:), intent(in) :: surface_element_list
+    type(scalar_field), dimension(size(fields_a)), intent(out) :: b_fields
     
-    real :: mean
+    integer :: i, j, k
+    integer, dimension(:), allocatable :: eles
+    integer, dimension(:), pointer :: nodes
+    real, dimension(:, :), allocatable :: l_coords
+    type(vector_field) :: b_positions
     
-    integer :: i
-    real :: area
-    
-    mean = 0.0
-    area = 0.0
-    do i = 1, surface_element_count(field)
-      if(present(surface_ids)) then
-        if(.not. any(surface_ids == surface_element_id(field, i))) cycle
-      end if
-      call addto_mean(i, positions, field, mean, area)
+#ifdef DDEBUG
+    assert(size(fields_a) > 0)
+    do i = 2, size(fields_a)
+      assert(fields_a(i)%mesh == fields_a(1)%mesh)
+      assert(fields_b(i)%mesh == fields_b(1)%mesh)
     end do
-    mean = mean / area
-    
-  contains
-  
-    subroutine addto_mean(ele, positions, field, mean, area)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: positions
-      type(scalar_field), intent(in) :: field
-      real, intent(inout) :: mean
-      real, intent(inout) :: area
-      
-      real, dimension(face_ngi(field, ele)) :: detwei
-      type(element_type), pointer :: shape
-      
-      shape => face_shape(field, ele)
-      
-      call transform_facet_to_physical(positions, ele, detwei_f = detwei)
-      
-      mean = mean + dot_product(matmul(face_val(field, ele), shape%n), detwei)
-      area = area + abs(sum(detwei))
-      
-    end subroutine addto_mean
-    
-  end function boundary_mean
-  
-  subroutine override_boundary_values(field, val, surface_ids)
-    type(scalar_field), intent(inout) :: field
-    real, intent(in) :: val
-    integer, dimension(:), optional, intent(in) :: surface_ids
-    
-    integer :: i
-#ifdef DDEBUG
-    real :: maxchange
 #endif
+    assert(continuity(fields_b(1)) == 0)
     
+    do i = 1, size(b_fields)
+      call allocate(b_fields(i), b_mesh, name = fields_b(i)%name)
 #ifdef DDEBUG
-    maxchange = 0.0
+      call set(b_fields(i), huge(0.0))
 #endif
-    do i = 1, surface_element_count(field)
-      if(present(surface_ids)) then
-        if(.not. any(surface_ids == surface_element_id(field, i))) cycle
-      end if
-#ifdef DDEBUG
-      maxchange = max(maxchange, maxval(node_val(field, face_global_nodes(field, i)) - val))
-#endif
-      call set(field, face_global_nodes(field, i), spread(val, 1, face_loc(field, i)))
     end do
-#ifdef DDEBUG
-    ewrite(2, *) "Max bc value change: ", maxchange
-#endif
     
-  end subroutine override_boundary_values
-  
-  subroutine correct_p_dirichlet(base_p, base_velocity, base_positions, p)
-    type(scalar_field), intent(in) :: base_p
-    type(vector_field), intent(in) :: base_velocity
-    type(vector_field), intent(in) :: base_positions
-    type(scalar_field), intent(inout) :: p
+    call allocate(b_positions, positions_b%dim, b_mesh, "SurfacePositions")
+    call remap_field_to_surface(positions_b, b_positions, surface_element_list)
     
-    character(len = FIELD_NAME_LEN) :: bcname, bctype
-    integer :: i
-    integer, dimension(:), allocatable :: boundary_ids_vec
-    integer, dimension(:), pointer:: surface_element_list
-    real :: mean
-    type(integer_set) :: boundary_ids
-    
-    ewrite(2, *) "Bc count for field " // trim(base_velocity%name), get_boundary_condition_count(base_velocity)
-    do i = 1, get_boundary_condition_count(base_velocity)
-      call get_boundary_condition(base_velocity, i, name = bcname, type = bctype, &
-        & surface_element_list = surface_element_list)
-      
-      if(any(bctype == (/"no_normal_flow", &
-                        & "periodic      ", &
-                        & "free_surface  "/))) then
-        boundary_ids = bc_ids(base_p%mesh, surface_element_list)       
-        allocate(boundary_ids_vec(key_count(boundary_ids)))
-        boundary_ids_vec = set2vector(boundary_ids)
-        call deallocate(boundary_ids)
-        ewrite(2, *), "Correcting bc " // trim(bcname) // " with IDs ", boundary_ids_vec
-        mean = boundary_mean(base_p, base_positions, surface_ids = boundary_ids_vec)
-        call override_boundary_values(p, mean, surface_ids = boundary_ids_vec)
-        deallocate(boundary_ids_vec)        
-      end if
+    allocate(eles(face_loc(fields_b(1), 1)))
+    allocate(l_coords(ele_loc(positions_a, 1), ele_loc(b_positions, 1)))
+    do i = 1, ele_count(b_positions)
+      call picker_inquire(positions_a, ele_val(b_positions, i), eles, local_coords = l_coords)
+      assert(all(eles > 0))
+      nodes => ele_nodes(b_mesh, i)
+      assert(size(nodes) == size(eles))
+      do j = 1, size(eles)
+        do k = 1, size(b_fields)
+          call set(b_fields(k), nodes(j), eval_field(eles(j), fields_a(k), positions_a, l_coords(:, j)))
+        end do
+      end do
     end do
+    deallocate(eles)
+    deallocate(l_coords)
+        
+    call deallocate(b_positions)
+    
+  end subroutine interpolate_boundary_values
   
-  end subroutine correct_p_dirichlet
-  
-  subroutine derive_p_dirichlet(base_p, base_positions, velocity, p)
+  subroutine derive_p_dirichlet_single(base_p, base_positions, p, positions)
     type(scalar_field), intent(in) :: base_p  
-    type(vector_field), intent(in) :: base_positions
-    type(vector_field), intent(in) :: velocity
+    type(vector_field), intent(inout) :: base_positions
     type(scalar_field), intent(inout) :: p  
+    type(vector_field), intent(inout) :: positions
     
-    character(len = FIELD_NAME_LEN) :: bcname, bctype
-    integer :: i, nbc
+    type(scalar_field), dimension(1) :: lbase_p, lp
+    
+    lbase_p = (/base_p/)
+    lp = (/p/)
+    call derive_p_dirichlet(lbase_p, base_positions, lp, positions)
+    p = lp(1)
+  
+  end subroutine derive_p_dirichlet_single
+  
+  subroutine derive_p_dirichlet_double(base_p_1, base_p_2, base_positions, p_1, p_2, positions)
+    type(scalar_field), intent(in) :: base_p_1  
+    type(scalar_field), intent(in) :: base_p_2
+    type(vector_field), intent(inout) :: base_positions
+    type(scalar_field), intent(inout) :: p_1
+    type(scalar_field), intent(inout) :: p_2
+    type(vector_field), intent(inout) :: positions
+    
+    type(scalar_field), dimension(2) :: lbase_p, lp
+    
+    lbase_p = (/base_p_1, base_p_2/)
+    lp = (/p_1, p_2/)
+    call derive_p_dirichlet(lbase_p, base_positions, lp, positions)
+    p_1 = lp(1)
+    p_2 = lp(2)
+  
+  end subroutine derive_p_dirichlet_double
+  
+  subroutine derive_p_dirichlet_multiple(base_ps, base_positions, ps, positions)
+    type(scalar_field), dimension(:), intent(inout) :: base_ps 
+    type(vector_field), intent(inout) :: base_positions
+    type(scalar_field), dimension(size(base_ps)), intent(inout) :: ps  
+    type(vector_field), intent(inout) :: positions
+    
+    integer :: i, j
     integer, dimension(:), allocatable :: boundary_ids_vec
-    integer, dimension(:), pointer:: surface_element_list
-    real :: mean
-    type(mesh_type), pointer :: surface_mesh
-    type(scalar_field) :: surface_field
-    type(integer_set) :: boundary_ids
+    integer, dimension(:), pointer :: surface_element_list
+    type(scalar_field), dimension(size(ps)) :: b_ps
+    type(integer_set) :: boundary_ids    
+    type(mesh_type), pointer :: b_mesh
     
-    ewrite(2, *) "Bc count for field " // trim(velocity%name), get_boundary_condition_count(velocity)
+#ifdef DDEBUG
+    assert(size(base_ps) > 0)
+    do i = 2, size(base_ps)
+      assert(base_ps(i)%mesh == base_ps(1)%mesh)
+      assert(ps(i)%mesh == ps(1)%mesh)
+    end do
+#endif
     
-    if(associated(p%boundary_condition)) then
-       do i = 1, size(p%boundary_condition)
-         call deallocate(p%boundary_condition(i))
-       end do
-      deallocate(p%boundary_condition)
-    end if
-    nbc = 0
-    do i = 1, get_boundary_condition_count(velocity)
-      call get_boundary_condition(velocity, i, name = bcname, type = bctype, &
-        & surface_element_list = surface_element_list, surface_mesh = surface_mesh)
-      
-      if(any(bctype == (/"no_normal_flow", &
-                        & "periodic      ", &
-                        & "free_surface  "/))) then
-        boundary_ids = bc_ids(base_p%mesh, surface_element_list)       
-        allocate(boundary_ids_vec(key_count(boundary_ids)))
-        boundary_ids_vec = set2vector(boundary_ids)
-        ewrite(2, *), "Adding strong Dirichlet p bc to IDs ", boundary_ids_vec  
-        call deallocate(boundary_ids)
-        mean = boundary_mean(base_p, base_positions, surface_ids = boundary_ids_vec)
-        ewrite(2, *) "With value ", mean
-        
-        call add_boundary_condition(p, bcname, "dirichlet", boundary_ids_vec)
-        nbc = nbc + 1
-        
-        call allocate(surface_field, surface_mesh, name = "value")
-        call set(surface_field, mean)
-        call insert_surface_field(p, nbc, surface_field)
-        call deallocate(surface_field)      
-         
-        deallocate(boundary_ids_vec)         
+    do i = 1, size(ps)
+      if(associated(ps(i)%boundary_condition)) then
+         do j = 1, size(ps(i)%boundary_condition)
+           call deallocate(ps(i)%boundary_condition(j))
+         end do
+        deallocate(ps(i)%boundary_condition)
       end if
-    end do  
+    end do
     
-  end subroutine derive_p_dirichlet
+    call allocate(boundary_ids)
+    do i = 1, surface_element_count(base_positions)
+      call insert(boundary_ids, surface_element_id(base_positions, i))
+    end do
+    allocate(boundary_ids_vec(key_count(boundary_ids)))
+    boundary_ids_vec = set2vector(boundary_ids)
+    call deallocate(boundary_ids)
+    
+    ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(1)%name) // " to IDs ", boundary_ids_vec 
+    call add_boundary_condition(ps(1), "InterpolatedBoundary", "dirichlet", boundary_ids_vec) 
+    call get_boundary_condition(ps(1), 1, surface_mesh = b_mesh, &
+      & surface_element_list = surface_element_list) 
+    call interpolate_boundary_values(base_ps, base_positions, ps, positions, b_mesh, surface_element_list, b_ps) 
+    b_ps%name = "value"
+    ewrite_minmax(b_ps(1)%val)
+    call insert_surface_field(ps(1), 1, b_ps(1))
+    call deallocate(b_ps(1))
+    do i = 2, size(ps)
+      ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i)%name) // " to IDs ", boundary_ids_vec 
+      call add_boundary_condition(ps(i), "InterpolatedBoundary", "dirichlet", boundary_ids_vec) 
+      ewrite_minmax(b_ps(i)%val)
+      call insert_surface_field(ps(i), 1, b_ps(i))
+      call deallocate(b_ps(i))
+    end do
+    
+    deallocate(boundary_ids_vec)
+    
+  end subroutine derive_p_dirichlet_multiple
   
   subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
     !!< Perform a Helmholz decomposed projection of the Coriolis force, and
@@ -1701,7 +1763,6 @@ contains
     
     character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
     integer :: dim, i, stat
-    logical :: apply_dirichlet
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
@@ -1724,10 +1785,12 @@ contains
     
     character(len = OPTION_PATH_LEN) :: aux_p_name
     logical :: aux_p
+    type(scalar_field) :: lold_aux_p, lnew_aux_p
     type(scalar_field), pointer :: new_aux_p, old_aux_p
     type(vector_field) :: new_grad_aux_p, old_grad_aux_p
     
     integer, save :: vtu_index = 0
+    type(scalar_field) :: div
     
     ewrite(1, *) "In geostrophic_interpolation"
 
@@ -1795,10 +1858,19 @@ contains
     if(aux_p) then
       call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
       old_aux_p => extract_scalar_field(old_state, aux_p_name)
+      call allocate(lold_aux_p, old_p_mesh, old_aux_p%name)
+      call set(lold_aux_p, old_aux_p)
+      lold_aux_p%option_path = old_p%option_path
       new_aux_p => extract_scalar_field(new_state, aux_p_name)
-      ! Use the Pressure field as an initial guess
-      call remap_field(old_aux_p, old_p)
+      call allocate(lnew_aux_p, new_p_mesh, new_aux_p%name)
+      call set(lnew_aux_p, new_aux_p)
+      lnew_aux_p%option_path = old_p%option_path
+      
+      ! Use the Pressure field as an initial guess for the conservative
+      ! potential
+      call remap_field(lold_aux_p, old_p)
     else
+      ! Use zero guess for the conservative potential
       call zero(old_p)
     end if
     
@@ -1812,13 +1884,18 @@ contains
     call set(old_res, coriolis)
     call correct_velocity(old_res, old_p, matrices)
     
+    call allocate(div, old_p_mesh, trim(old_velocity%name) // "Divergence")
+    div%option_path = trim(old_p%option_path) // "/galerkin_projection/continuous"
+    call zero(div)
+    call compute_divergence(old_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
     if(geopressure) then
       call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_gp, old_p/), vfields = (/old_velocity, coriolis, old_res/))
+        & sfields = (/old_gp, old_p, div/), vfields = (/old_velocity, coriolis, old_res/))
     else
       call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_p/), vfields = (/old_velocity, coriolis, old_res/))
+        & sfields = (/old_p, div/), vfields = (/old_velocity, coriolis, old_res/))
     end if
+    call deallocate(div)
     
     ! Step 2: Galerkin project the decomposition
     
@@ -1853,27 +1930,32 @@ contains
     end if
     
     proj_grad_p = have_option(trim(base_path) // "/conservative_potential/project_gradient")
-    if(.not. proj_grad_p) then
-      ! Insert the conservative potential
-      call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
-      call insert(old_proj_state(2), old_p, old_p%name)
-      call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
-      call insert(new_proj_state(2), new_p, new_p%name)
-      
-      if(aux_p) then
-        ! Insert the Pressure
-        call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
-        call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
-      end if
-    else
-      ! Note: We insert the conservative potential as well to give a good
-      ! initial guess for the subsequent solve
     
-      ! Insert the conservative potential
-      call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
-      call insert(old_proj_state(2), old_p, old_p%name)
-      call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
-      call insert(new_proj_state(2), new_p, new_p%name)
+    if(have_option(trim(base_path) // "/conservative_potential/interpolate_boundary")) then
+      ! Set-up the projection boundary conditions
+      ! If projecting the gradient, these are also applied to the Poisson solve
+      if(aux_p) then
+        call derive_p_dirichlet(old_p, lold_aux_p, old_positions, new_p, lnew_aux_p, new_positions)
+      else
+        call derive_p_dirichlet(old_p, old_positions, new_p, new_positions)
+      end if
+    end if
+      
+    ! Insert the conservative potential
+    call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
+    call insert(old_proj_state(2), old_p, old_p%name)
+    call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
+    call insert(new_proj_state(2), new_p, new_p%name)
+    
+    if(aux_p) then
+      ! Insert the Pressure
+      call insert(old_proj_state(2), lold_aux_p, lold_aux_p%name)
+      call insert(new_proj_state(2), lnew_aux_p, lnew_aux_p%name)
+    end if
+    
+    if(proj_grad_p) then
+      ! Note: We insert the conservative potential as well (above) to give a
+      ! good initial guess for the subsequent solve
       
       ! Insert the conservative potential gradient
       call allocate(old_grad_p, dim, old_u_mesh, trim(old_p%name) // "Gradient")
@@ -1886,17 +1968,13 @@ contains
       call insert(new_proj_state(1), new_grad_p, new_grad_p%name)
       call deallocate(old_grad_p)
       
-      if(aux_p) then
-        ! Insert the Pressure
-        call insert(old_proj_state(2), old_aux_p, old_aux_p%name)
-        call insert(new_proj_state(2), new_aux_p, new_aux_p%name)
-        
+      if(aux_p) then        
         ! Insert the Pressure gradient        
-        call allocate(old_grad_aux_p, dim, old_u_mesh, trim(old_aux_p%name) // "Gradient")
-        call compute_conservative(old_grad_aux_p, matrices, old_aux_p)
+        call allocate(old_grad_aux_p, dim, old_u_mesh, trim(lold_aux_p%name) // "Gradient")
+        call compute_conservative(old_grad_aux_p, matrices, lold_aux_p)
         call insert(old_proj_state(1), old_grad_aux_p, old_grad_aux_p%name)
         
-        call allocate(new_grad_aux_p, dim, new_u_mesh, trim(new_aux_p%name) // "Gradient")
+        call allocate(new_grad_aux_p, dim, new_u_mesh, trim(lnew_aux_p%name) // "Gradient")
         call zero(new_grad_aux_p)
         call insert(new_proj_state(1), new_grad_aux_p, new_grad_aux_p%name)
         call deallocate(old_grad_aux_p)
@@ -1945,38 +2023,26 @@ contains
     
     ! Add the conservative component  
     
-    apply_dirichlet = have_option(trim(base_path) // "/conservative_potential/apply_dirichlet")
-    if(.not. proj_grad_p) then
-      if(apply_dirichlet) then
-        ! Correct the boundary values
-        call correct_p_dirichlet(old_p, old_velocity, old_positions, new_p)
-        if(aux_p) call correct_p_dirichlet(old_aux_p, old_velocity, old_positions, new_aux_p)
-      end if
-    else
+    if(proj_grad_p) then
       ! Decompose the projected potential gradient for the new conservative
       ! potential
       
       call allocate(cmc_rhs, new_p_mesh, "CMCRHS")
       call assemble_cmc_rhs(new_grad_p, matrices, cmc_rhs)
       call deallocate(new_grad_p)
-      if(apply_dirichlet) then
-        call derive_p_dirichlet(old_p, old_positions, lnew_velocity, new_p)
-        call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
-      end if
+      call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
       call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
       call petsc_solve(new_p, matrices%cmc_m, cmc_rhs)
       if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
       
       if(aux_p) then
         ! Invert the Pressure gradient for the Pressure
+    
         call assemble_cmc_rhs(new_grad_aux_p, matrices, cmc_rhs)
         call deallocate(new_grad_aux_p)
-        if(apply_dirichlet) then
-          call derive_p_dirichlet(old_aux_p, old_positions, lnew_velocity, new_p)
-          call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
-        end if
-        call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
-        call petsc_solve(new_aux_p, matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
+        call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, lnew_aux_p)
+        call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = lnew_aux_p%option_path)
+        call petsc_solve(lnew_aux_p, matrices%cmc_m, cmc_rhs)
         if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
       end if
       
@@ -2007,13 +2073,18 @@ contains
       call deallocate(new_w)
     end if
     
+    call allocate(div, new_p_mesh, trim(lnew_velocity%name) // "Divergence")
+    div%option_path = trim(new_p%option_path) // "/galerkin_projection/continuous"
+    call zero(div)
+    call compute_divergence(lnew_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
     if(geopressure) then
       call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_gp, new_p/), vfields = (/lnew_velocity, coriolis, new_res/))
+        & sfields = (/new_gp, new_p, div/), vfields = (/lnew_velocity, coriolis, new_res/))
     else
       call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p/), vfields = (/lnew_velocity, coriolis, new_res/))
-    end if
+        & sfields = (/new_p, div/), vfields = (/lnew_velocity, coriolis, new_res/))
+    end if    
+    call deallocate(div)
     
     if(have_option(trim(base_path) // "/enforce_solenoidal")) then
       ewrite(2, *) "Enforcing solenoidal velocity"
@@ -2023,8 +2094,14 @@ contains
     
     call set(new_velocity, lnew_velocity)
     call deallocate(lnew_velocity)
+    if(aux_p) then
+      call deallocate(lold_aux_p)
+      call set(new_aux_p, lnew_aux_p)
+      call deallocate(lnew_aux_p)
+    end if
     
     call deallocate(old_p)
+    if(geopressure) call deallocate(new_gp)
     call deallocate(coriolis)
     call deallocate(matrices)
     call deallocate(new_p)
