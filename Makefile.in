@@ -137,16 +137,19 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-bin/@FLUIDITY@: main.o ADmain.o fluidity_library
+bin/@FLUIDITY@: main.o fluidity_library
 	@echo "BUILD fluidity"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 ifeq (@ADJOINT@,yes)
+	$(MAKE) adjoint_main
+endif
+
+adjoint_main: ADmain.o 
 	@echo "    LD $(ADJOINT)"
 	@$(EVAL) $(LINKER) -o $(ADJOINT) ADmain.o $(LIBS)
-endif
 
 bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@cd main; $(MAKE) Shallow_Water.o
