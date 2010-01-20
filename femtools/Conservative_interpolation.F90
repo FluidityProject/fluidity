@@ -435,6 +435,7 @@ module conservative_interpolation_module
 
     if (any(dg).and.new_positions_simplicial) then
       allocate(little_inverse_mass_matrix(mesh_count, max_loc, max_loc))
+      allocate(little_inverse_mass_matrix_copy(mesh_count, max_loc, max_loc))
       little_inverse_mass_matrix = 0.0
       do mesh=1,mesh_count
         if((field_counts(mesh)>0).and.dg(mesh)) then
@@ -542,7 +543,7 @@ module conservative_interpolation_module
               little_rhs(:nloc, field) = local_rhs(mesh,field,:nloc)
             end do
 
-            if (any(force_bc(mesh,:))) then
+            if (any(force_bc(mesh,1:field_counts(mesh)))) then
               little_inverse_mass_matrix_copy=little_inverse_mass_matrix
             end if
             
@@ -575,7 +576,7 @@ module conservative_interpolation_module
               call solve(little_mass_matrix(mesh,:nloc,:nloc), little_rhs(:nloc,:field_counts(mesh)))
             end if
             
-            if (any(force_bc(mesh,:))) then
+            if (any(force_bc(mesh,1:field_counts(mesh)))) then
               little_inverse_mass_matrix=little_inverse_mass_matrix_copy
             end if
 
@@ -871,7 +872,10 @@ module conservative_interpolation_module
     deallocate(little_mass_matrix)
     deallocate(force_bc)
     deallocate(bc_nodes)
-    if(any(dg).and.new_positions_simplicial) deallocate(little_inverse_mass_matrix)
+    if(any(dg).and.new_positions_simplicial) then
+      deallocate(little_inverse_mass_matrix)
+      deallocate(little_inverse_mass_matrix_copy)
+    end if
     deallocate(little_rhs)
 
     call finalise_tet_intersector
