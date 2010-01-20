@@ -32,7 +32,7 @@ DeltaD = max(start_v.GetScalarField("LayerThickness")-end_v.GetScalarField("Laye
   <pass_tests>
     <test name="DeltaDs" language="python">
 print max(DeltaDs), abs(DeltaD)
-assert max(DeltaDs) &lt; 2.0e-14
+assert max(DeltaDs) &lt; 2.5e-14
 assert abs(DeltaD) &lt; 2.5e-5
     </test>
   </pass_tests>
