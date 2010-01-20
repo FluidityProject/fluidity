@@ -439,6 +439,7 @@ for i in range(field.node_count):
             <integer_value shape="4" rank="1">8 9 10 7</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <python>
               <string_value lines="20" type="python">def val(X,t):
 	from math import sin, pi
