@@ -4743,7 +4743,9 @@ adaptivity and is automatically disabled for non-linear positions fields.</a:doc
               </attribute>
               <empty/>
             </element>
-            <element name="quadratic_superparametric_mapping">
+            <element name="superparametric_mapping">
+              <a:documentation>Enabling this option approximates the curvature of the Earth as an
+nth degree polynomial, where n is the polynomial degree of the coordinate mesh.</a:documentation>
               <attribute name="replaces">
                 <value>ISPHERE=2</value>
               </attribute>

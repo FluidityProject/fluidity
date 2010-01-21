@@ -3530,7 +3530,9 @@ geometry =
                   attribute replaces{ "ISPHERE=1" },
                   empty
                }|
-               element quadratic_superparametric_mapping {
+               ## Enabling this option approximates the curvature of the Earth as an
+               ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
+               element superparametric_mapping {
                   attribute replaces{ "ISPHERE=2" },
                   empty
                }

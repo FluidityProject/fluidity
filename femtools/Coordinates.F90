@@ -30,6 +30,7 @@
 module Coordinates
   use FLDebug
   use vector_tools
+  use fields
   use global_parameters
   implicit none
   
@@ -42,8 +43,8 @@ module Coordinates
   
   public:: &
        LongitudeLatitude,  &
-       cart2spher, spher2cart, ll2r3_rotate, rotate2ll,&
-       earth_radius
+       cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
+       earth_radius, higher_order_sphere_projection
        
   interface LongitudeLatitude
      module procedure LongitudeLatitude_single, LongitudeLatitude_multiple
@@ -161,4 +162,36 @@ contains
     endif
 
   end subroutine cart2spher
+  
+  subroutine higher_order_sphere_projection(positions, s_positions)
+    !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
+    !!< elements of the 's_positions' field onto the sphere
+    type(vector_field), intent(inout):: positions
+    type(vector_field), intent(inout):: s_positions
+    
+    real rold, rnew
+    integer i
+  
+    type(scalar_field):: radius, s_radius
+    real, dimension(positions%dim):: xyz
+
+    ewrite(1,*), 'In higher_order_sphere_projection'
+    
+    call allocate(s_radius, s_positions%mesh, "HigherOrderRadius")
+    radius=magnitude(positions)
+    call remap_field(radius, s_radius)
+    
+    ! then bend by adjusting to the linearly interpolated radius
+    do i=1, node_count(s_positions)
+       xyz=node_val(s_positions, i)
+       rold=sqrt(sum(xyz**2))
+       rnew=node_val(s_radius, i)
+       call set(s_positions, i, xyz*rnew/rold)
+    end do
+    
+    call deallocate(s_radius)
+    call deallocate(radius)    
+  
+  end subroutine higher_order_sphere_projection
+
 end module Coordinates

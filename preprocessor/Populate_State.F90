@@ -308,6 +308,7 @@ contains
     type(quadrature_type) :: quad
     type(mesh_type) :: mesh, model_mesh, from_mesh, periodic_mesh
     type(vector_field), pointer :: position, modelposition
+    type(vector_field), pointer :: from_mesh_positions, s_positions
     type(vector_field) :: coordinateposition, from_position, extrudedposition
     
     character(len=FIELD_NAME_LEN) :: mesh_name
@@ -542,6 +543,17 @@ contains
                 
              end if
              
+             if (trim(mesh_name)=="CoordinateMesh") then
+                if (have_option('/geometry/spherical_earth/superparametric_mapping/')) then 
+
+                   s_positions => extract_vector_field(states(1), "Coordinate")
+                   from_mesh_positions => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
+
+                   call higher_order_sphere_projection(from_mesh_positions,s_positions)
+
+                endif
+             endif
+
              ! Insert mesh into all states
              call insert(states, mesh, mesh%name)
              
