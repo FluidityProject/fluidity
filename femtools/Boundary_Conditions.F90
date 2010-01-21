@@ -40,6 +40,11 @@ implicit none
        add_vector_boundary_condition
   end interface add_boundary_condition
 
+  interface remove_boundary_condition
+     module procedure remove_scalar_boundary_condition, &
+       remove_vector_boundary_condition
+  end interface remove_boundary_condition
+
   interface add_boundary_condition_surface_elements
      module procedure add_scalar_boundary_condition_surface_elements, &
        add_vector_boundary_condition_surface_elements
@@ -123,7 +128,8 @@ implicit none
     extract_scalar_surface_field, get_entire_boundary_condition, &
     has_scalar_surface_field, get_boundary_condition_nodes, &
     get_dg_surface_mesh, has_boundary_condition, set_reference_node, &
-    get_periodic_boundary_condition, set_dirichlet_consistent, apply_dirichlet_conditions
+    get_periodic_boundary_condition, remove_boundary_condition, &
+    set_dirichlet_consistent, apply_dirichlet_conditions
 
 contains
 
@@ -314,6 +320,70 @@ contains
 
   end subroutine add_vector_boundary_condition_surface_elements
     
+  subroutine remove_scalar_boundary_condition(field, name)
+  !!< Removed boundary condition from scalar field
+  type(scalar_field), intent(inout):: field
+  character(len=*), intent(in):: name
+  
+    type(scalar_boundary_condition), pointer:: tmp_boundary_condition(:)
+    integer:: i, nobcs
+    
+    if (associated(field%bc%boundary_condition)) then
+      nobcs=size(field%bc%boundary_condition)
+      do i=1, nobcs
+        if (field%bc%boundary_condition(i)%name==name) then
+          call deallocate(field%bc%boundary_condition(i))
+          ! save existing b.c.'s
+          tmp_boundary_condition => field%bc%boundary_condition
+          ! allocate new array with 1 less entry
+          allocate(field%bc%boundary_condition(nobcs-1))
+          ! copy back existing ones, except the i-th
+          field%bc%boundary_condition(1:i-1)=tmp_boundary_condition(1:i-1)
+          field%bc%boundary_condition(i:)=tmp_boundary_condition(i+1:)
+          ! deallocate the old bcs array
+          deallocate( tmp_boundary_condition )
+          return
+        end if
+      end do
+    end if
+    ewrite(-1,*) 'In remove_scalar_boundary_condition'
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Sorry!")
+  
+  end subroutine remove_scalar_boundary_condition
+  
+  subroutine remove_vector_boundary_condition(field, name)
+  !!< Removed boundary condition from vector field
+  type(vector_field), intent(inout):: field
+  character(len=*), intent(in):: name
+  
+    type(vector_boundary_condition), pointer:: tmp_boundary_condition(:)
+    integer:: i, nobcs
+    
+    if (associated(field%bc%boundary_condition)) then
+      nobcs=size(field%bc%boundary_condition)
+      do i=1, nobcs
+        if (field%bc%boundary_condition(i)%name==name) then
+          call deallocate(field%bc%boundary_condition(i))
+          ! save existing b.c.'s
+          tmp_boundary_condition => field%bc%boundary_condition
+          ! allocate new array with 1 less entry
+          allocate(field%bc%boundary_condition(nobcs-1))
+          ! copy back existing ones, except the i-th
+          field%bc%boundary_condition(1:i-1)=tmp_boundary_condition(1:i-1)
+          field%bc%boundary_condition(i:)=tmp_boundary_condition(i+1:)
+          ! deallocate the old bcs array
+          deallocate( tmp_boundary_condition )
+          return
+        end if
+      end do
+    end if
+    ewrite(-1,*) 'In remove_vector_boundary_condition'
+    ewrite(-1,*) 'Unknown boundary condition: ', name
+    FLAbort("Sorry!")
+  
+  end subroutine remove_vector_boundary_condition
+  
   subroutine insert_scalar_surface_field(field, n, surface_field)
   !!< Adds a surface_field to a boundary condition: a field over the 
   !!< part of the surface mesh that this b.c. applies to. This can be used
@@ -513,7 +583,7 @@ contains
   integer, intent(in):: n
   character(len=*), intent(in):: name
   
-  type(scalar_boundary_condition), pointer:: bc
+    type(scalar_boundary_condition), pointer:: bc
     integer i
 
     assert(n>=1 .and. n<=size(field%bc%boundary_condition))

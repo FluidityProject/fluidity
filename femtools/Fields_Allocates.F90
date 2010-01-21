@@ -52,7 +52,7 @@ implicit none
     & wrap_vector_field, wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
     & extract_nelist, add_eelist, extract_eelist, remove_lists, remove_nnlist, &
-    & remove_nelist, remove_eelist, extract_elements
+    & remove_nelist, remove_eelist, extract_elements, remove_boundary_conditions
 
   interface allocate
      module procedure allocate_scalar_field, allocate_vector_field,&
@@ -131,6 +131,11 @@ implicit none
   interface remove_eelist
     module procedure remove_eelist_mesh
   end interface remove_eelist
+    
+  interface remove_boundary_conditions
+    module procedure remove_boundary_conditions_scalar, &
+      remove_boundary_conditions_vector
+  end interface remove_boundary_conditions
   
 #include "Reference_count_interface_mesh_type.F90"
 #include "Reference_count_interface_scalar_field.F90"
@@ -563,15 +568,25 @@ contains
 
     call deallocate(field%mesh)
     
-    if (associated(field%bc%boundary_condition)) then
-       do i=1, size(field%bc%boundary_condition)
-          call deallocate(field%bc%boundary_condition(i))
-       end do
-      deallocate(field%bc%boundary_condition)
-    end if
+    call remove_boundary_conditions(field)
     deallocate(field%bc)
     
   end subroutine deallocate_scalar_field
+    
+  subroutine remove_boundary_conditions_scalar(field)
+     !!< Removes and deallocates all boundary conditions from a field
+     type(scalar_field), intent(inout):: field
+     
+     integer:: i
+     
+     if (associated(field%bc%boundary_condition)) then
+        do i=1, size(field%bc%boundary_condition)
+           call deallocate(field%bc%boundary_condition(i))
+        end do
+       deallocate(field%bc%boundary_condition)
+     end if
+    
+  end subroutine remove_boundary_conditions_scalar
   
   recursive subroutine deallocate_vector_field(field)
     !!< Deallocate the storage associated with the field values. Deallocate
@@ -608,12 +623,7 @@ contains
 
     call deallocate(field%mesh)
 
-    if (associated(field%bc%boundary_condition)) then
-       do i=1, size(field%bc%boundary_condition)
-          call deallocate(field%bc%boundary_condition(i))
-       end do
-       deallocate(field%bc%boundary_condition)
-    end if
+    call remove_boundary_conditions(field)
     deallocate(field%bc)
     
     assert(associated(field%picker))
@@ -623,6 +633,21 @@ contains
     
   end subroutine deallocate_vector_field
  
+  subroutine remove_boundary_conditions_vector(field)
+     !!< Removes and deallocates all boundary conditions from a field
+     type(vector_field), intent(inout):: field
+     
+     integer:: i
+     
+     if (associated(field%bc%boundary_condition)) then
+        do i=1, size(field%bc%boundary_condition)
+           call deallocate(field%bc%boundary_condition(i))
+        end do
+       deallocate(field%bc%boundary_condition)
+     end if
+    
+  end subroutine remove_boundary_conditions_vector
+  
   subroutine deallocate_tensor_field(field)
     !!< Deallocate the storage associated with the field values. Deallocate
     !!< is called on the mesh which will delete one reference to it and
