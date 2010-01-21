@@ -37,36 +37,16 @@ module fields_data_types
   implicit none
 
   private
-  public field_options_scalar, field_options_vector, adjacency_cache, &
+  public adjacency_cache, &
      mesh_type, mesh_faces, scalar_field, vector_field, tensor_field, &
      mesh_pointer, scalar_field_pointer, vector_field_pointer, tensor_field_pointer, &
      scalar_boundary_condition, vector_boundary_condition, &
-     scalar_bc_pointer, vector_bc_pointer
+     scalar_boundary_conditions_ptr, vector_boundary_conditions_ptr
 
   !! Types of different halo associated with a field:
   integer, public, parameter :: HALO_TYPES=2
   !! Available sources of data for fields:
   integer, public, parameter :: FIELD_TYPE_NORMAL=0, FIELD_TYPE_CONSTANT=1, FIELD_TYPE_PYTHON=2, FIELD_TYPE_DEFERRED=3
-
-  !! Temporary options hack. This will eventually be replaced by options
-  !! dictionaries. 
-  type field_options_scalar
-     !! Whether to lump this field in the momentum equation.
-     logical :: lump
-     !! Implicitness for timestepping.
-     real :: theta
-     !! Maximum number of iterations in linear solve for this field.
-     integer :: max_its
-     !! Absolute error tolerance in linear solve for this field.
-     real :: abs_error     
-  end type field_options_scalar
-
-  type field_options_vector
-     !! Whether to lump this field in the momentum equation.
-     logical :: lump
-     !! Implicitness for timestepping.
-     real :: theta
-  end type field_options_vector
 
   type adjacency_cache
     type(csr_sparsity), pointer :: nnlist => null()
@@ -143,9 +123,8 @@ module fields_data_types
      logical :: wrapped=.true.
      !! The data source to be used
      integer :: field_type = FIELD_TYPE_NORMAL
-     !! New-style boundary conditions:
-     type(scalar_boundary_condition), dimension(:), pointer :: &
-          boundary_condition => null()
+     !! boundary conditions:
+     type(scalar_boundary_conditions_ptr), pointer :: bc => null()
      character(len=FIELD_NAME_LEN) :: name
      !! path to options in the options tree
 #ifdef DDEBUG
@@ -158,7 +137,6 @@ module fields_data_types
      type(refcount_type), pointer :: refcount=>null()
      !! Indicator for whether this is an alias to another field.
      logical :: aliased=.false.
-     type(field_options_scalar) ::  options
      !! Python-field implementation.
      real, dimension(:, :), pointer :: py_locweight => null()
      character(len=PYTHON_FUNC_LEN) :: py_func
@@ -175,8 +153,8 @@ module fields_data_types
      logical :: wrapped = .true.
      !! The data source to be used
      integer :: field_type = FIELD_TYPE_NORMAL
-     !! New-style boundary conditions:
-     type(vector_boundary_condition), dimension(:), pointer:: boundary_condition => null()
+     !! boundary conditions:
+     type(vector_boundary_conditions_ptr), pointer :: bc => null()
      character(len=FIELD_NAME_LEN) :: name
      integer :: dim
      !! path to options in the options tree
@@ -190,7 +168,6 @@ module fields_data_types
      type(refcount_type), pointer :: refcount=>null()
      !! Indicator for whether this is an alias to another field.
      logical :: aliased=.false.
-     type(field_options_vector) ::  options
      !! Picker used for spatial indexing (pointer to a pointer to ensure
      !! correct handling on assignment)
      type(picker_ptr), pointer :: picker => null()
@@ -257,8 +234,6 @@ module fields_data_types
 #else
      character(len=OPTION_PATH_LEN) :: option_path
 #endif
-     !! list of surface ids to which this boundary condition applies.
-     integer, dimension(:), pointer :: boundary_ids
   end type scalar_boundary_condition
 
   type vector_boundary_condition
@@ -284,18 +259,20 @@ module fields_data_types
 #else
      character(len=OPTION_PATH_LEN) :: option_path
 #endif
-     !! list of surface ids to which this boundary condition applies.
-     integer, dimension(:), pointer :: boundary_ids
   end type vector_boundary_condition
-
-  type scalar_bc_pointer
-     !!< Dummy type to allow for arrays of pointers to bcs.
-     type(scalar_boundary_condition), pointer :: ptr
-  end type scalar_bc_pointer
-
-  type vector_bc_pointer
-     !!< Dummy type to allow for arrays of pointers to bcs.
-     type(vector_boundary_condition), pointer :: ptr
-  end type vector_bc_pointer
-
+    
+  ! container for pointer to array of scalar bcs. This is put in a separate
+  ! container pointed at by the field so that we don't leak memory
+  ! if we change the bcs on one copy of the field when there are more copies around
+  type scalar_boundary_conditions_ptr
+     type(scalar_boundary_condition), dimension(:), pointer:: boundary_condition => null()
+  end type scalar_boundary_conditions_ptr
+  
+  ! container for pointer to array of vector bcs. This is put in a separate
+  ! container pointed at by the field so that we don't leak memory
+  ! if we change the bcs on one copy of the field when there are more copies around
+  type vector_boundary_conditions_ptr
+     type(vector_boundary_condition), dimension(:), pointer:: boundary_condition => null()
+  end type vector_boundary_conditions_ptr
+  
 end module fields_data_types

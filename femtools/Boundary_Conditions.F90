@@ -40,6 +40,11 @@ implicit none
        add_vector_boundary_condition
   end interface add_boundary_condition
 
+  interface add_boundary_condition_surface_elements
+     module procedure add_scalar_boundary_condition_surface_elements, &
+       add_vector_boundary_condition_surface_elements
+  end interface add_boundary_condition_surface_elements
+
   interface get_boundary_condition
      module procedure get_scalar_boundary_condition_by_number, &
        get_vector_boundary_condition_by_number, &
@@ -136,25 +141,8 @@ contains
   character(len=*), optional, intent(in) :: option_path
   
     logical, dimension(1:size(boundary_ids)):: boundary_id_used
-    
-    type(scalar_boundary_condition), pointer:: tmp_boundary_condition(:)
     integer, dimension(:), allocatable:: surface_element_list
-    integer nobcs, i, ele_count 
-    
-    if (.not. associated(field%boundary_condition)) then
-      allocate(field%boundary_condition(1))
-      nobcs=1
-    else
-      nobcs=size(field%boundary_condition)+1
-      ! save existing b.c.'s
-      tmp_boundary_condition => field%boundary_condition
-      ! allocate new array with 1 new entry
-      allocate(field%boundary_condition(nobcs))
-      ! copy back existing entries
-      field%boundary_condition(1:nobcs-1)=tmp_boundary_condition
-      ! deallocate old b.c. array
-      deallocate(tmp_boundary_condition)
-    end if
+    integer i, ele_count
     
     assert(associated(field%mesh%faces))
     
@@ -179,26 +167,56 @@ contains
       ewrite(0,*) "The following boundary ids were specified, but they don't appear in the surface mesh:"
       ewrite(0,*) pack(boundary_ids, mask=.not. boundary_id_used)
     end if
-        
-    call allocate(field%boundary_condition(nobcs), field%mesh, &
-      surface_element_list=surface_element_list(1:ele_count), &
-      name=name, type=type)
-        
+    
+    call add_scalar_boundary_condition_surface_elements(field, name, type, &
+      surface_element_list(1:ele_count), option_path=option_path)
+
     deallocate(surface_element_list)
     
-    if (present(option_path)) then
-      field%boundary_condition(nobcs)%option_path=option_path
-
-    end if
-
-    deallocate(field%boundary_condition(nobcs)%boundary_ids)
-    allocate(field%boundary_condition(nobcs)&
-         &%boundary_ids(size(boundary_ids)))
-    
-    field%boundary_condition(nobcs)%boundary_ids=boundary_ids
-
-    
   end subroutine add_scalar_boundary_condition
+  
+  subroutine add_scalar_boundary_condition_surface_elements(field, name, type, surface_element_list, &
+    option_path)
+  !!< Add boundary condition to scalar field
+  type(scalar_field), intent(inout):: field
+  !! all things should have a name
+  character(len=*), intent(in):: name
+  !! type can be any of: ...
+  character(len=*), intent(in):: type
+  !! list of surface elements where this b.c. is to be applied
+  integer, dimension(:), intent(in):: surface_element_list
+  !! path to options for this b.c. in the options tree
+  character(len=*), optional, intent(in) :: option_path
+    
+    type(scalar_boundary_condition), pointer:: tmp_boundary_condition(:)
+    integer nobcs
+    
+    assert(associated(field%mesh%faces))
+    
+    if (.not. associated(field%bc%boundary_condition)) then
+      allocate(field%bc%boundary_condition(1))
+      nobcs=1
+    else
+      nobcs=size(field%bc%boundary_condition)+1
+      ! save existing b.c.'s
+      tmp_boundary_condition => field%bc%boundary_condition
+      ! allocate new array with 1 new entry
+      allocate(field%bc%boundary_condition(nobcs))
+      ! copy back existing entries
+      field%bc%boundary_condition(1:nobcs-1)=tmp_boundary_condition
+      ! deallocate old b.c. array
+      deallocate(tmp_boundary_condition)
+    end if
+    
+    call allocate(field%bc%boundary_condition(nobcs), field%mesh, &
+      surface_element_list=surface_element_list, &
+      name=name, type=type)
+        
+    if (present(option_path)) then
+      field%bc%boundary_condition(nobcs)%option_path=option_path
+    end if
+    
+  end subroutine add_scalar_boundary_condition_surface_elements
     
   subroutine add_vector_boundary_condition(field, name, type, boundary_ids, &
       applies, option_path)
@@ -216,25 +234,8 @@ contains
   character(len=*), optional, intent(in) :: option_path
     
     logical, dimension(1:size(boundary_ids)):: boundary_id_used
-    
-    type(vector_boundary_condition), pointer:: tmp_boundary_condition(:)
     integer, dimension(:), allocatable:: surface_element_list
-    integer nobcs, i, node_count, ele_count
-    
-    if (.not. associated(field%boundary_condition)) then
-      allocate(field%boundary_condition(1))
-      nobcs=1
-    else
-      nobcs=size(field%boundary_condition)+1
-      ! save existing b.c.'s
-      tmp_boundary_condition => field%boundary_condition
-      ! allocate new array with 1 new entry
-      allocate(field%boundary_condition(nobcs))
-      ! copy back existing entries
-      field%boundary_condition(1:nobcs-1)=tmp_boundary_condition
-      ! deallocate old b.c. array
-      deallocate(tmp_boundary_condition)
-    end if
+    integer i, ele_count
     
     assert(associated(field%mesh%faces))
     
@@ -260,24 +261,58 @@ contains
       ewrite(0,*) pack(boundary_ids, mask=.not. boundary_id_used)
     end if
     
-    call allocate(field%boundary_condition(nobcs), field%mesh, &
-      surface_element_list=surface_element_list(1:ele_count), &
-      name=name, type=type, applies=applies)
+    call add_vector_boundary_condition_surface_elements(field, name, type, &
+      surface_element_list(1:ele_count), applies=applies, option_path=option_path)
         
     deallocate(surface_element_list)
     
+  end subroutine add_vector_boundary_condition
+    
+  subroutine add_vector_boundary_condition_surface_elements(field, name, type, surface_element_list, &
+      applies, option_path)
+      
+  !!< Add boundary condition to vector field
+  type(vector_field), intent(inout):: field
+  !! all things should have a name
+  character(len=*), intent(in):: name
+  !! type can be any of: ...
+  character(len=*), intent(in):: type
+  !! list of surface elements where this b.c. is to be applied
+  integer, dimension(:), intent(in):: surface_element_list
+  !! boundary condition only applies to component with applies==.true.
+  logical, dimension(:), intent(in), optional:: applies
+  !! path to options for this b.c. in the options tree
+  character(len=*), optional, intent(in) :: option_path
+  
+    type(vector_boundary_condition), pointer:: tmp_boundary_condition(:)
+    integer nobcs
+    
+    assert(associated(field%mesh%faces))
+    
+    if (.not. associated(field%bc%boundary_condition)) then
+      allocate(field%bc%boundary_condition(1))
+      nobcs=1
+    else
+      nobcs=size(field%bc%boundary_condition)+1
+      ! save existing b.c.'s
+      tmp_boundary_condition => field%bc%boundary_condition
+      ! allocate new array with 1 new entry
+      allocate(field%bc%boundary_condition(nobcs))
+      ! copy back existing entries
+      field%bc%boundary_condition(1:nobcs-1)=tmp_boundary_condition
+      ! deallocate old b.c. array
+      deallocate(tmp_boundary_condition)
+    end if
+    
+    call allocate(field%bc%boundary_condition(nobcs), field%mesh, &
+      surface_element_list=surface_element_list, &
+      name=name, type=type, applies=applies)
+    
     if (present(option_path)) then
-      field%boundary_condition(nobcs)%option_path=option_path
+      field%bc%boundary_condition(nobcs)%option_path=option_path
     end if
 
-    deallocate(field%boundary_condition(nobcs)%boundary_ids)
-    allocate(field%boundary_condition(nobcs)&
-         &%boundary_ids(size(boundary_ids)))
-    
-    field%boundary_condition(nobcs)%boundary_ids=boundary_ids
-
-    
-  end subroutine add_vector_boundary_condition
+  end subroutine add_vector_boundary_condition_surface_elements
     
   subroutine insert_scalar_surface_field(field, n, surface_field)
   !!< Adds a surface_field to a boundary condition: a field over the 
@@ -295,8 +330,8 @@ contains
     type(scalar_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (.not. associated(bc%surface_fields)) then
       allocate(bc%surface_fields(1))
@@ -336,8 +371,8 @@ contains
     type(vector_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (.not. associated(bc%surface_fields)) then
       allocate(bc%surface_fields(1))
@@ -377,8 +412,8 @@ contains
     type(vector_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (.not. associated(bc%scalar_surface_fields)) then
       allocate(bc%scalar_surface_fields(1))
@@ -414,8 +449,8 @@ contains
   type(scalar_field), intent(in):: surface_field
     
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
         call insert_scalar_surface_field(field, i, surface_field)
         return
       end if
@@ -437,8 +472,8 @@ contains
   type(vector_field), intent(in):: surface_field
     
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
         call insert_vector_surface_field(field, i, surface_field)
         return
       end if
@@ -460,8 +495,8 @@ contains
   type(scalar_field), intent(in):: surface_field
     
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
         call insert_vector_scalar_surface_field(field, i, surface_field)
         return
       end if
@@ -481,8 +516,8 @@ contains
   type(scalar_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
@@ -508,8 +543,8 @@ contains
     type(vector_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
@@ -535,8 +570,8 @@ contains
   type(vector_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (associated(bc%scalar_surface_fields)) then
       do i=1, size(bc%scalar_surface_fields)
@@ -559,8 +594,8 @@ contains
   character(len=*), intent(in):: bc_name, name
   
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==bc_name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==bc_name) then
         surface_field => extract_scalar_surface_field_by_number(field, i, name)
         return
       end if
@@ -577,8 +612,8 @@ contains
   character(len=*), intent(in):: bc_name, name
   
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==bc_name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==bc_name) then
         surface_field => extract_vector_surface_field_by_number(field, i, name)
         return
       end if
@@ -595,8 +630,8 @@ contains
   character(len=*), intent(in):: bc_name, name
   
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==bc_name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==bc_name) then
         surface_field => extract_vector_scalar_surface_field(field, i, name)
         return
       end if
@@ -616,8 +651,8 @@ contains
     type(scalar_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
@@ -642,8 +677,8 @@ contains
     type(vector_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
@@ -668,8 +703,8 @@ contains
     type(vector_boundary_condition), pointer:: bc
     integer i
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (associated(bc%scalar_surface_fields)) then
       do i=1, size(bc%scalar_surface_fields)
@@ -688,8 +723,8 @@ contains
   !!< Get number of boundary conditions of a scalar field
   type(scalar_field), intent(in):: field
     
-    if (associated(field%boundary_condition)) then
-      get_scalar_boundary_condition_count=size(field%boundary_condition)
+    if (associated(field%bc%boundary_condition)) then
+      get_scalar_boundary_condition_count=size(field%bc%boundary_condition)
     else
       get_scalar_boundary_condition_count=0
     end if
@@ -700,8 +735,8 @@ contains
   !!< Get number of boundary conditions of a scalar field
   type(vector_field), intent(in):: field
     
-    if (associated(field%boundary_condition)) then
-      get_vector_boundary_condition_count=size(field%boundary_condition)
+    if (associated(field%bc%boundary_condition)) then
+      get_vector_boundary_condition_count=size(field%bc%boundary_condition)
     else
       get_vector_boundary_condition_count=0
     end if
@@ -730,8 +765,8 @@ contains
   
     type(scalar_boundary_condition), pointer:: bc
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (present(name)) then
       name=bc%name
@@ -783,8 +818,8 @@ contains
   
     type(vector_boundary_condition), pointer:: bc
 
-    assert(n>=1 .and. n<=size(field%boundary_condition))
-    bc => field%boundary_condition(n)
+    assert(n>=1 .and. n<=size(field%bc%boundary_condition))
+    bc => field%bc%boundary_condition(n)
     
     if (present(name)) then
       name=bc%name
@@ -835,8 +870,8 @@ contains
   character(len=*), intent(out), optional:: option_path
   
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
         call get_scalar_boundary_condition_by_number(field, i, &
             type=type, surface_element_list=surface_element_list, &
               surface_node_list=surface_node_list, &
@@ -871,8 +906,8 @@ contains
   character(len=*), intent(out), optional:: option_path
   
     integer i
-    do i=1, size(field%boundary_condition)
-      if (field%boundary_condition(i)%name==name) then
+    do i=1, size(field%bc%boundary_condition)
+      if (field%bc%boundary_condition(i)%name==name) then
         call get_vector_boundary_condition_by_number(field, i, &
             type, surface_element_list=surface_element_list, &
               surface_node_list=surface_node_list, &
@@ -965,9 +1000,9 @@ contains
        end do
        if (j>size(types)) cycle
        
-       if (associated(field%boundary_condition(i)%surface_fields)) then
+       if (associated(field%bc%boundary_condition(i)%surface_fields)) then
           ! extract 1st surface field
-          surface_field => field%boundary_condition(i)%surface_fields(1)
+          surface_field => field%bc%boundary_condition(i)%surface_fields(1)
        else
           nullify(surface_field)
        end if       
@@ -1074,9 +1109,9 @@ contains
        end do
        if (j>size(types)) cycle
        
-       if (associated(field%boundary_condition(i)%surface_fields)) then
+       if (associated(field%bc%boundary_condition(i)%surface_fields)) then
           ! extract 1st surface field
-          surface_field => field%boundary_condition(i)%surface_fields(1)
+          surface_field => field%bc%boundary_condition(i)%surface_fields(1)
        else
           nullify(surface_field)
        end if       
@@ -1183,7 +1218,7 @@ contains
 
      do i=1, get_boundary_condition_count(field)
         do j=1, size(types)
-           if (types(j)==field%boundary_condition(i)%type) exit
+           if (types(j)==field%bc%boundary_condition(i)%type) exit
         end do
 
         if (j>size(types)) cycle
@@ -1249,7 +1284,7 @@ contains
 
      do i=1, get_boundary_condition_count(field)
         do j=1, size(types)
-           if (types(j)==field%boundary_condition(i)%type) exit
+           if (types(j)==field%bc%boundary_condition(i)%type) exit
         end do
 
         if (j>size(types)) cycle
@@ -1343,13 +1378,13 @@ contains
     type(scalar_boundary_condition), pointer :: this_bc
     integer i
     
-    if (.not.associated(field%boundary_condition)) then
+    if (.not.associated(field%bc%boundary_condition)) then
       has_boundary_condition_scalar=.false.
       return
     end if
     
-    bcloop: do i=1, size(field%boundary_condition)
-       this_bc=>field%boundary_condition(i)
+    bcloop: do i=1, size(field%bc%boundary_condition)
+       this_bc=>field%bc%boundary_condition(i)
 
        if (this_bc%type==type) then
          
@@ -1373,13 +1408,13 @@ contains
     type(vector_boundary_condition), pointer :: this_bc
     integer i
     
-    if (.not.associated(field%boundary_condition)) then
+    if (.not.associated(field%bc%boundary_condition)) then
       has_boundary_condition_vector=.false.
       return
     end if
     
-    bcloop: do i=1, size(field%boundary_condition)
-       this_bc=>field%boundary_condition(i)
+    bcloop: do i=1, size(field%bc%boundary_condition)
+       this_bc=>field%bc%boundary_condition(i)
 
        if (this_bc%type==type) then
          

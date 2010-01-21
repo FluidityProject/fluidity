@@ -33,6 +33,7 @@ module conservative_interpolation_module
   use diagnostic_fields
   use tetrahedron_intersection_module
   use boundary_conditions
+  use boundary_conditions_from_options
   use data_structures
   implicit none
 

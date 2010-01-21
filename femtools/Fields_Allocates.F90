@@ -271,7 +271,7 @@ contains
     field%wrapped=.false.
     field%aliased=.false.
     field%option_path=empty_path
-    nullify(field%boundary_condition)
+    allocate(field%bc)
     nullify(field%refcount) ! Hacks for gfortran component initialisation
     !                         bug.
     call addref(field)
@@ -352,7 +352,7 @@ contains
 
     field%wrapped = .false.
     field%aliased = .false.
-    nullify(field%boundary_condition)
+    allocate(field%bc)
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.    
     
@@ -563,12 +563,13 @@ contains
 
     call deallocate(field%mesh)
     
-    if (associated(field%boundary_condition)) then
-       do i=1, size(field%boundary_condition)
-          call deallocate(field%boundary_condition(i))
+    if (associated(field%bc%boundary_condition)) then
+       do i=1, size(field%bc%boundary_condition)
+          call deallocate(field%bc%boundary_condition(i))
        end do
-      deallocate(field%boundary_condition)
+      deallocate(field%bc%boundary_condition)
     end if
+    deallocate(field%bc)
     
   end subroutine deallocate_scalar_field
   
@@ -607,12 +608,13 @@ contains
 
     call deallocate(field%mesh)
 
-    if (associated(field%boundary_condition)) then
-       do i=1, size(field%boundary_condition)
-          call deallocate(field%boundary_condition(i))
+    if (associated(field%bc%boundary_condition)) then
+       do i=1, size(field%bc%boundary_condition)
+          call deallocate(field%bc%boundary_condition(i))
        end do
-       deallocate(field%boundary_condition)
+       deallocate(field%bc%boundary_condition)
     end if
+    deallocate(field%bc)
     
     assert(associated(field%picker))
     call remove_picker(field)
@@ -673,7 +675,6 @@ contains
     allocate(bc%surface_mesh)
     call create_surface_mesh(bc%surface_mesh, bc%surface_node_list, &
       mesh, bc%surface_element_list, name=trim(name)//'Mesh')
-    allocate(bc%boundary_ids(0))
 
   end subroutine allocate_scalar_boundary_condition
     
@@ -698,7 +699,6 @@ contains
     allocate(bc%surface_mesh)
     call create_surface_mesh(bc%surface_mesh, bc%surface_node_list, &
       mesh, bc%surface_element_list, name=trim(name)//'Mesh')
-    allocate(bc%boundary_ids(0))    
 
     if (present(applies)) then
       ! size(bc%applies) is always 3! also for dim<3
@@ -729,8 +729,6 @@ contains
     
     deallocate(bc%surface_element_list, bc%surface_node_list)
 
-    deallocate(bc%boundary_ids)
-
   end subroutine deallocate_scalar_boundary_condition
   
   subroutine deallocate_vector_boundary_condition(bc)
@@ -757,8 +755,6 @@ contains
     deallocate(bc%surface_mesh)
     
     deallocate(bc%surface_element_list, bc%surface_node_list)
-    deallocate(bc%boundary_ids)
-
   end subroutine deallocate_vector_boundary_condition
     
   !---------------------------------------------------------------------
@@ -811,7 +807,7 @@ contains
     
     field%wrapped = .true.
     call incref(mesh)
-    nullify(field%boundary_condition)
+    allocate(field%bc)
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(field)
@@ -850,6 +846,8 @@ contains
     
     allocate(field%picker)
     
+    allocate(field%bc)
+    
     call addref(field)
 
   end function wrap_vector_field_vdata
@@ -879,6 +877,8 @@ contains
     !                         bug.
     
     allocate(field%picker)
+    
+    allocate(field%bc)
     
     call addref(field)
 

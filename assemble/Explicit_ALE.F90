@@ -448,18 +448,20 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(inout),dimension(nonods,3):: b_condition
     type(vector_field) :: v
+    character(len=FIELD_NAME_LEN):: bctype
     integer :: sele,i,k,n,snodes(3)
     logical, dimension(3):: applies
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
     b_condition=1
     
     v=extract_vector_field(state(fs),"Velocity")
-    do i=1, size(v%boundary_condition)       
-       if (v%boundary_condition(i)%type=='dirichlet') then
-          call get_boundary_condition(v, i, &
-               surface_node_list=surface_node_list, &
-               surface_element_list=surface_element_list, &
-               applies=applies)
+    do i=1, get_boundary_condition_count(v)
+       call get_boundary_condition(v, i, &
+           type=bctype, &
+           surface_node_list=surface_node_list, &
+           surface_element_list=surface_element_list, &
+           applies=applies)
+       if (bctype=='dirichlet') then
           
           do k=1, size(surface_element_list)
              do n=1, v%dim     

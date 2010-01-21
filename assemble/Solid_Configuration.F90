@@ -2184,20 +2184,13 @@ contains
     deallocate(face_detwei)
 
     nsbc=get_boundary_condition_count(matvolfrac)
-    !    nsbc=size(matvolfrac%boundary_condition)
     nvbc=get_boundary_condition_count(velocity) 
-    ewrite(2,*) 'boundary conditions matvolfrac', size(matvolfrac%boundary_condition),&
+    ewrite(2,*) 'boundary conditions matvolfrac', get_boundary_condition_count(matvolfrac),&
          get_boundary_condition_count(matvolfrac)
-    ewrite(2,*) 'boundary conditions velocity', size(velocity%boundary_condition),&
+    ewrite(2,*) 'boundary conditions velocity', get_boundary_condition_count(velocity),&
          get_boundary_condition_count(velocity)
     if(nsbc.ne.0) then
        ewrite(2,*) 'matvolfrac boundary condition count is :',nsbc,'  --jem'       
-       do i=1,nsbc
-          do j=1, size(matvolfrac%boundary_condition(i)%surface_fields)
-             ewrite(2,*) matvolfrac%boundary_condition(i)%surface_fields(j)%name
-             ewrite(2,*) node_count(matvolfrac%boundary_condition(i)%surface_fields(j))
-          end do
-       end do
     else 
        ewrite(2,*) 'matvolfrac boundary condition count is zero  --jem'       
     end if
@@ -2205,12 +2198,6 @@ contains
 
     if(nvbc.ne.0) then      
        ewrite(2,*) 'velocity boundary condition count is :',nvbc,'  --jem'  
-       do i=1,nvbc
-          do j=1, size(velocity%boundary_condition(i)%surface_fields)
-             ewrite(2,*) velocity%boundary_condition(i)%surface_fields(j)%name
-             ewrite(2,*) node_count(velocity%boundary_condition(i)%surface_fields(j))
-          end do
-       end do
     else
        ewrite(2,*) 'velocity boundary condition count is :',nvbc,'  --jem'  
     end if

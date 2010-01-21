@@ -1733,11 +1733,11 @@ contains
 #endif
     
     do i = 1, size(ps)
-      if(associated(ps(i)%boundary_condition)) then
-         do j = 1, size(ps(i)%boundary_condition)
-           call deallocate(ps(i)%boundary_condition(j))
+      if(associated(ps(i)%bc%boundary_condition)) then
+         do j = 1, size(ps(i)%bc%boundary_condition)
+           call deallocate(ps(i)%bc%boundary_condition(j))
          end do
-        deallocate(ps(i)%boundary_condition)
+        deallocate(ps(i)%bc%boundary_condition)
       end if
     end do
     
