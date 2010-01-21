@@ -43,11 +43,6 @@ subroutine test_anisotropic_adaptivity_two
     ptr_field%val(i) = y * x**2  + y**3 + tanh(10.0 * (sin(5.0*y) - 2.0*x))
   end do
   ptr_field%val = ptr_field%val + 4.0
-  ptr_field%options%relative = .true.
-  ptr_field%options%error = 0.01
-  ptr_field%options%min_psi = 1e-10
-  ptr_field%options%square_eigs = .false.
-
   call allocate(metric, mesh, "Metric")
   call allocate(hessian, mesh, "Hessian")
 

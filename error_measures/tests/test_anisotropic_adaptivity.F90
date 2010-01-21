@@ -45,10 +45,6 @@ subroutine test_anisotropic_adaptivity
     field%val(i) = y * x**2  + y**3 + tanh(10.0 * (sin(5.0*y) - 2.0*x))
   end do
   field%val = field%val + 4.0
-  field%options%relative = .true.
-  field%options%error = 0.01
-  field%options%min_psi = 1e-10
-  field%options%square_eigs = .false.
 
   call grad(field, positions, gradient)
   call vtk_write_fields("data/anisotropic_adapt", 9, positions, mesh, &

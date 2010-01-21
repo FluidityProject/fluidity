@@ -54,12 +54,6 @@ subroutine compute_interpolation_error_adapt
   call insert(state, field, "Field")
   field_ptr => extract_scalar_field(state, "Field")
   
-
-  field_ptr%options%relative = .false.
-  field_ptr%options%error = ERROR
-  field_ptr%options%min_psi = 1e-10
-  field_ptr%options%square_eigs = .false.
-
   call allocate(metric, mesh, "Metric")
   call allocate(hessian, mesh, "Hessian")
 
@@ -98,10 +92,6 @@ subroutine compute_interpolation_error_adapt
     positions => extract_vector_field(state, "Coordinate")
     field_ptr => extract_scalar_field(state, "Field")
     call set_from_function(field_ptr, solution, positions)
-    field_ptr%options%relative = .false.
-    field_ptr%options%error = ERROR
-    field_ptr%options%min_psi = 1e-10
-    field_ptr%options%square_eigs = .false.
     call deallocate(metric); call allocate(metric, mesh, "Metric")
     call assemble_metric((/state/), metric, opts)
     call vtk_write_fields("data/interpolation_error_adapted", i, positions, mesh, &
@@ -119,7 +109,6 @@ subroutine compute_interpolation_error_adapt
   l2  = compute_interpolation_error_l2(solution, field_ptr, positions)
   h1  = compute_interpolation_error_h1(gradsoln, field_ptr, positions)
   call vtk_write_fields("data/interpolation_error_adapted", 4, positions,  mesh, sfields=(/field_ptr/)) 
-  write(0,*) "field%options%error == ", field%options%error
   write(0,*) "inf: (", mesh%nodes, ", ", inf, ")"
   write(0,*) "l2: (", mesh%nodes, ", ", l2, ")"
   write(0,*) "h1: (", mesh%nodes, ", ", h1, ")"

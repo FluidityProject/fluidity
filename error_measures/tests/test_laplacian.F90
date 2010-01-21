@@ -136,8 +136,6 @@ contains
     psi => extract_scalar_field(state, "ForwardSolution")
     rhs => extract_scalar_field(state, "RightHandSide")
 
-    psi%options%abs_error = 1.0e-8
-    psi%options%max_its = 10000
     call set_debug_level(3)
     call zero(psi)
     call set_solver_options(psi, ksptype='cg', pctype="sor", rtol=1e-7)

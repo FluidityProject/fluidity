@@ -43,10 +43,6 @@ subroutine test_boundary_layer_adaptivity_two
     z = positions%val(3)%ptr(i)
     field%val(i) = tanh(50 * (x-0.5))
   end do
-  field%options%relative = .false.
-  field%options%error = 0.01
-  field%options%min_psi = 1e-10
-  field%options%square_eigs = .false.
 
   call insert(state, field, "Field")
   call allocate(metric, mesh, "Metric")

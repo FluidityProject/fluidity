@@ -40,11 +40,6 @@ subroutine test_anisotropic_bounds_equivalence
     z = positions%val(3)%ptr(i)
     field%val(i) = (y-0.5)**3
   end do
-  field%options%relative = .false.
-  field%options%error = 0.01
-  field%options%min_psi = 1e-10
-  field%options%square_eigs = .false.
-
   call insert(state, field, "Field")
   call allocate(metric_iso, mesh, "Metric")
   call allocate(metric_aniso, mesh, "Metric")

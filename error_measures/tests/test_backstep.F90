@@ -35,10 +35,6 @@ subroutine test_backstep
   field => extract_scalar_field(state, "Temperature")
   call allocate(metric, mesh, "Metric")
 
-  field%options%error = 100.0
-  field%options%relative = .false.
-  field%options%min_psi = 0.1
-
   opts%min_edge_length = 0.01
   opts%max_edge_length = 1.0
   opts%use_anisotropic_edge_length = .true.

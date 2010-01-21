@@ -51,11 +51,6 @@ subroutine test_elementwise_error_adaptivity
     analytical_grad%val(3)%ptr(i) = 0.0
   end do
   field%val = field%val + 4.0
-  field%options%relative = .false.
-  field%options%error = 0.00001
-  field%options%min_psi = 3.0 * 1e-6
-  field%options%square_eigs = .false.
-  field%options%elementwise_error = .true.
 
   call grad(field, positions, postprocessed_grad)
   call vector_field_difference(analytical_grad, postprocessed_grad, difference_grad)

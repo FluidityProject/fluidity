@@ -40,9 +40,6 @@ subroutine test_anisotropically_bounded_metric
     z = position_field%val(3)%ptr(i)
     pressure_field%val(i) = 10.0 * x * x + 0.5 * y * y
   end do
-  pressure_field%options%relative = .false.
-  pressure_field%options%error = 1.0
-  pressure_field%options%min_psi = 1e-5
 
   call insert(state, pressure_field, "Pressure")
 

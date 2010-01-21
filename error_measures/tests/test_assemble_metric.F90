@@ -27,9 +27,6 @@ subroutine test_assemble_metric
   mesh => extract_mesh(state, "Mesh")
   position_field => extract_vector_field(state, "Coordinate")
   pressure_field => extract_scalar_field(state, "Pressure")
-  pressure_field%options%relative = .false.
-  pressure_field%options%error = 1.0
-  pressure_field%options%min_psi = 1e-5
 
   do i=1,mesh%nodes
     x = position_field%val(1)%ptr(i)
