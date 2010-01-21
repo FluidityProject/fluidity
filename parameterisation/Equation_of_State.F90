@@ -36,7 +36,7 @@ module equation_of_state
   implicit none
   
   private
-  public :: getden_temp_salt, calculate_perturbation_density, mcD_J_W_F2002
+  public :: calculate_perturbation_density, mcD_J_W_F2002
 
 contains
 
@@ -228,37 +228,6 @@ contains
     end if
     
   end subroutine calculate_perturbation_density
-
-  subroutine getden_temp_salt( &
-       salinity_option,denini,dengam,temini,dengam_sal,s0, &
-       density,temp,salt,distance_to_top) 
-    !!< This subroutine calculates the pointwise perturbation density
-    !!< (density)... 
-    use FLDebug
-    implicit none
-    INTEGER, intent(in) ::  salinity_option
-    REAL, intent(in) ::  denini,dengam,temini,dengam_sal,s0, &
-         temp,salt,distance_to_top
-    real, intent(out) :: density
-
-    if(salinity_option.eq.0) then
-       ! Linear equation of state excluding salinity.
-       density=-DENINI*DENGAM*(TEMP-TEMINI)
-    else if(salinity_option.eq.1) then
-       ! Linear equation of state with salinity
-       density=-DENINI*(DENGAM*(TEMP-TEMINI)-DENGAM_sal*(salt-S0))
-    else if(salinity_option.eq.2) then
-       call mcD_J_W_F2002(density,temp,salt,distance_to_top)
-    else if(salinity_option.eq.3) then
-       ! dont include depth below surface in EoS...
-       call mcD_J_W_F2002(density,temp,salt,0.0)
-    else
-       ewrite(-1,*) 'Your chosen salinity option', salinity_option, &
-            ' does not exist so stopping.'
-       FLAbort('Salinity option does not exist.')
-    end if
-    
-  end subroutine getden_temp_salt
 
   subroutine mcD_J_W_F2002(density,T,Salinity,distance_to_top)
     !!<  function to evaluate density from the 2002 McDougall, Jackett,
