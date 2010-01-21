@@ -42,7 +42,8 @@ module Coordinates
   
   public:: &
        LongitudeLatitude,  &
-       cart2spher, spher2cart, ll2r3_rotate, rotate2ll
+       cart2spher, spher2cart, ll2r3_rotate, rotate2ll,&
+       earth_radius
        
   interface LongitudeLatitude
      module procedure LongitudeLatitude_single, LongitudeLatitude_multiple

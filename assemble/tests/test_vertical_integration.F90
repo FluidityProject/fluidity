@@ -134,6 +134,7 @@ real, intent(out):: l2error
   !  positions, dg_quad_mesh, sfields=(/ to_field, error_field /))
 
   l2error=norm2(error_field, positions)
+  print *, l2error
   
   call deallocate(state)
   call deallocate(vertical_normal)

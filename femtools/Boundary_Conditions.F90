@@ -106,6 +106,11 @@ implicit none
        has_boundary_condition_vector
   end interface has_boundary_condition
 
+  interface has_boundary_condition_name
+     module procedure has_boundary_condition_name_scalar, &
+       has_boundary_condition_name_vector
+  end interface has_boundary_condition_name
+  
   interface set_dirichlet_consistent
     module procedure set_dirichlet_consistent, set_dirichlet_consistent_scalar, &
                      set_dirichlet_consistent_vector
@@ -122,12 +127,13 @@ implicit none
   end interface apply_dirichlet_conditions    
 
   private
-  public add_boundary_condition, get_boundary_condition, &
-    get_boundary_condition_count, insert_surface_field, &
-    extract_surface_field, has_surface_field, &
+  public add_boundary_condition, add_boundary_condition_surface_elements, &
+    get_boundary_condition, get_boundary_condition_count, &
+    insert_surface_field, extract_surface_field, has_surface_field, &
     extract_scalar_surface_field, get_entire_boundary_condition, &
     has_scalar_surface_field, get_boundary_condition_nodes, &
-    get_dg_surface_mesh, has_boundary_condition, set_reference_node, &
+    get_dg_surface_mesh, has_boundary_condition, has_boundary_condition_name, &
+    set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions
 
@@ -1499,6 +1505,66 @@ contains
       
   end function has_boundary_condition_vector
 
+  logical function has_boundary_condition_name_scalar(field, name)
+  !!< logical function that tells whether any of the bcs of a field
+  !!< has the name 'name'
+  type(scalar_field), intent(in):: field
+  character(len=*), intent(in):: name
+  
+    type(scalar_boundary_condition), pointer :: this_bc
+    integer i
+    
+    if (.not.associated(field%bc%boundary_condition)) then
+      has_boundary_condition_name_scalar=.false.
+      return
+    end if
+    
+    bcloop: do i=1, size(field%bc%boundary_condition)
+       this_bc=>field%bc%boundary_condition(i)
+
+       if (this_bc%name==name) then
+         
+         has_boundary_condition_name_scalar=.true.
+         return
+         
+       end if
+
+    end do bcloop
+      
+    has_boundary_condition_name_scalar=.false.
+      
+  end function has_boundary_condition_name_scalar
+
+  logical function has_boundary_condition_name_vector(field, name)
+  !!< logical function that tells whether any of the bcs of a field
+  !!< has the name 'name'
+  type(vector_field), intent(in):: field
+  character(len=*), intent(in):: name
+  
+    type(vector_boundary_condition), pointer :: this_bc
+    integer i
+    
+    if (.not.associated(field%bc%boundary_condition)) then
+      has_boundary_condition_name_vector=.false.
+      return
+    end if
+    
+    bcloop: do i=1, size(field%bc%boundary_condition)
+       this_bc=>field%bc%boundary_condition(i)
+
+       if (this_bc%name==name) then
+         
+         has_boundary_condition_name_vector=.true.
+         return
+         
+       end if
+
+    end do bcloop
+      
+    has_boundary_condition_name_vector=.false.
+      
+  end function has_boundary_condition_name_vector
+  
   subroutine set_dirichlet_consistent(states)
     !!< Once the fields and boundary conditions have been set, force the
     !!< boundary values of the fields to be consistent with any Dirichlet

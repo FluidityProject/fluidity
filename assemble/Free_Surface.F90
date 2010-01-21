@@ -504,7 +504,7 @@ contains
   type(scalar_field), intent(inout):: free_surface
     
      integer, dimension(:), pointer:: surface_element_list
-     type(vector_field), pointer:: x, u
+     type(vector_field), pointer:: x, u, vertical_normal
      type(scalar_field), pointer:: p, topdis
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0
@@ -527,11 +527,15 @@ contains
        ! note we're not using the actual free_surface bc here, as 
        ! that may be specified in parts, or not cover the whole area
        call get_boundary_condition(topdis, 1, &
-         surface_element_list=surface_element_list)     
+         surface_element_list=surface_element_list)
+         
+       vertical_normal => extract_vector_field(state, "GravityDirection")
      
        ! vertically extrapolate pressure values at the free surface downwards
+       ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
        call VerticalExtrapolation(p, free_surface, x, &
-         surface_element_list=surface_element_list)
+         vertical_normal, surface_element_list=surface_element_list, &
+         surface_name="DistanceToTop")
          
        ! divide by rho0 g
        call scale(free_surface, 1/g/rho0)

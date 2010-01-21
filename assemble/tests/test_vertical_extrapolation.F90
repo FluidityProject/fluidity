@@ -45,7 +45,7 @@ character(len=*), intent(in):: mesh_file
 character(len=*), intent(in):: python_function
 real, intent(out):: l2error
 
-  type(vector_field), target:: positions, bc_positions
+  type(vector_field), target:: positions, bc_positions, vertical_normal
   type(scalar_field) to_field, from_field, error_field
   type(mesh_type), pointer:: x_mesh, surface_mesh
   type(mesh_type) dg_quad_mesh
@@ -75,8 +75,12 @@ real, intent(out):: l2error
   call set_from_python_function(from_field, python_function, bc_positions, &
       time=0.0)
       
+  call allocate(vertical_normal, positions%dim, x_mesh, &
+    field_type=FIELD_TYPE_CONSTANT, name="VerticalNormal")
+  call set(vertical_normal, (/ 0., 0., -1. /) )
+      
   call VerticalExtrapolation(from_field, to_field, positions, &
-    surface_element_list)
+    vertical_normal, surface_element_list)
     
   call allocate(error_field, dg_quad_mesh, name="ErrorField")
   ! first set it to the reference solution using the same python function
@@ -95,6 +99,7 @@ real, intent(out):: l2error
   call deallocate(from_field)
   call deallocate(error_field)
   call deallocate(bc_positions)
+  call deallocate(vertical_normal)
       
 end subroutine test_vertical_extrapolation_from_file
   
