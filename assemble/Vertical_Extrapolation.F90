@@ -101,6 +101,7 @@ public CalculateTopBottomDistance
 public VerticalExtrapolation, vertical_integration
 public vertical_element_ordering
 public VerticalProlongationOperator
+public vertical_extrapolation_module_check_options
 
 contains
 
@@ -1261,5 +1262,17 @@ type(scalar_field), dimension(:), optional, intent(in):: rhs
   call deallocate(face_normal_gravity)
   
 end subroutine vertical_integration_multiple
+  
+subroutine vertical_extrapolation_module_check_options
+  
+  if (have_option("/geometry/ocean_boundaries")) then
+    if (.not. have_option("/physical_parameters/gravity")) then
+      ewrite(0,*) "If you select /geometry/ocean_boundaries, you also need to &
+        &set /physical_parameters/gravity"
+      FLAbort("Missing gravity!")
+    end if
+  end if
+  
+end subroutine vertical_extrapolation_module_check_options
 
 end module vertical_extrapolation_module
