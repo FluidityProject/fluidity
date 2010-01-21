@@ -337,7 +337,7 @@ Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
   Halo_Data_Types.o Halos_Base.o Reference_Counting.o Halos_Communications.o \
   Halos_Numbering.o
 
-Coordinates.o: Vector_Tools.o
+Coordinates.o: Vector_Tools.o Fields.o
 
 Superconvergence.o: Elements.o Vector_Tools.o
 
