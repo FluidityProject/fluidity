@@ -59,9 +59,6 @@ module geostrophic_pressure
   use state_fields_module
   use unittest_tools
   use vtk_interfaces
-  
-  use quicksort
-  use surfacelabels
 
   implicit none
   
@@ -101,7 +98,6 @@ module geostrophic_pressure
   type cmc_matrices
     logical :: lump_mass
     logical :: integrate_by_parts
-    logical :: geopressure
     type(mesh_type) :: u_mesh
     type(mesh_type) :: p_mesh
     type(block_csr_matrix) :: ct_m
@@ -109,6 +105,8 @@ module geostrophic_pressure
     type(block_csr_matrix) :: inverse_mass_b
     type(vector_field) :: inverse_masslump_v
     type(csr_matrix) :: cmc_m
+    
+    logical :: geopressure = .false.
     type(csr_matrix) :: cmc_gp_m
     type(block_csr_matrix) :: ct_gp_m
   end type cmc_matrices
@@ -646,7 +644,7 @@ contains
     call picker_inquire(positions, coord, ele, local_coord = local_coord)
     
     if(ele > 0) then
-      zp_val = eval_field(ele, s_field, positions, local_coord)
+      zp_val = eval_field(ele, s_field, local_coord)
     else
       zp_val = 0.0
     end if
@@ -657,26 +655,19 @@ contains
 
   end subroutine set_zero_point
   
-  function eval_field_scalar(ele, s_field, positions, local_coord) result(val)
+  function eval_field_scalar(ele, s_field, local_coord) result(val)
     !!< Evaluate the scalar field s_field at element local coordinate
     !!< local_coord of element ele. This assumes linear positions.
   
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: s_field
-    type(vector_field), intent(in) :: positions
-    real, dimension(ele_loc(positions, ele)), intent(in) :: local_coord
+    real, dimension(:), intent(in) :: local_coord
     
     real :: val
     
     integer :: i
     real, dimension(ele_loc(s_field, ele)) :: n
     type(element_type), pointer :: shape
-#ifdef DDEBUG
-    type(element_type), pointer :: positions_shape
-    
-    positions_shape => ele_shape(positions, ele)
-    assert(positions_shape%degree == 1)
-#endif
     
     shape => ele_shape(s_field, ele)
     
@@ -701,26 +692,19 @@ contains
       
   end function eval_field_scalar
   
-  function eval_field_vector(ele, v_field, positions, local_coord) result(val)
+  function eval_field_vector(ele, v_field, local_coord) result(val)
     !!< Evaluate the vector field v_field at element local coordinate
     !!< local_coord of element ele. This assumes linear positions.
   
     integer, intent(in) :: ele
     type(vector_field), intent(inout) :: v_field
-    type(vector_field), intent(in) :: positions
-    real, dimension(ele_loc(positions, ele)), intent(in) :: local_coord
+    real, dimension(:), intent(in) :: local_coord
     
-    real, dimension(positions%dim) :: val
+    real, dimension(v_field%dim) :: val
     
     integer :: i
     real, dimension(ele_loc(v_field, ele)) :: n
     type(element_type), pointer :: shape
-#ifdef DDEBUG
-    type(element_type), pointer :: positions_shape
-    
-    positions_shape => ele_shape(positions, ele)
-    assert(positions_shape%degree == 1)
-#endif
     
     shape => ele_shape(v_field, ele)
     
@@ -1212,6 +1196,8 @@ contains
     type(vector_field), intent(in) :: positions
     type(cmc_matrices), intent(inout) :: matrices
     
+    if(matrices%geopressure) return
+    
     matrices%geopressure = .true.
     matrices%ct_gp_m = geopressure_divergence(state, u_mesh, gp_mesh, positions)
     if(matrices%lump_mass) then
@@ -1601,8 +1587,41 @@ contains
     
   end subroutine velocity_from_coriolis
   
+  subroutine coriolis_from_velocity(positions, velocity, coriolis)
+    type(vector_field), intent(in) :: positions
+    type(vector_field), target, intent(in) :: velocity
+    type(vector_field), intent(inout) :: coriolis
+  
+    integer :: i
+    type(mesh_type), pointer :: u_mesh
+    type(vector_field) :: positions_remap
+    
+    assert(coriolis%mesh == velocity%mesh)
+    
+    ! More generally this should be a Galerkin projection for Coriolis
+    
+    u_mesh => velocity%mesh
+    if(positions%mesh == velocity%mesh) then
+      positions_remap = positions
+      call incref(positions_remap)
+    else
+      call allocate(positions_remap, positions%dim, u_mesh, positions%name)
+      call remap_field(positions, positions_remap)
+    end if
+  
+    do i = 1, node_count(coriolis)
+      call set(coriolis, i, coriolis_val(node_val(positions_remap, i), node_val(velocity, i)))
+    end do
+    call deallocate(positions_remap)
+    
+    do i = 1, coriolis%dim
+      ewrite_minmax(coriolis%val(i)%ptr)
+    end do
+    
+  end subroutine coriolis_from_velocity
+  
   subroutine interpolate_boundary_values(fields_a, positions_a, fields_b, positions_b, b_mesh, surface_element_list, b_fields)  
-    !!< Consistently interpolation the values on the surface of fields_a onto the
+    !!< Consistently interpolate the values on the surface of fields_a onto the
     !!< surface of fields_b. All of fields_a and fields_b must have the same 
     !!< continuous mesh.
   
@@ -1648,7 +1667,7 @@ contains
       assert(size(nodes) == size(eles))
       do j = 1, size(eles)
         do k = 1, size(b_fields)
-          call set(b_fields(k), nodes(j), eval_field(eles(j), fields_a(k), positions_a, l_coords(:, j)))
+          call set(b_fields(k), nodes(j), eval_field(eles(j), fields_a(k), l_coords(:, j)))
         end do
       end do
     end do
@@ -1767,8 +1786,7 @@ contains
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
     type(state_type), dimension(3) :: new_proj_state, old_proj_state
-    type(vector_field) :: coriolis, coriolis_addto, new_res, &
-      & old_positions_remap, old_res
+    type(vector_field) :: coriolis, coriolis_addto, new_res, old_res
     type(vector_field), pointer :: lnew_velocity_ptr, new_positions, &
       & old_positions
     type(vector_field), target :: lnew_velocity
@@ -1806,14 +1824,6 @@ contains
     new_positions => extract_vector_field(new_state, "Coordinate")
     dim = old_positions%dim
     assert(any(dim == (/2, 3/)))
-
-    if(old_positions%mesh == old_velocity%mesh) then
-      old_positions_remap = old_positions
-      call incref(old_positions_remap)
-    else
-      call allocate(old_positions_remap, dim, old_u_mesh, old_positions%name)
-      call remap_field(old_positions, old_positions_remap)
-    end if
         
     ! At interpolation stage the input velocity won't have boundary conditions,
     ! so let's add them to a copy
@@ -1826,15 +1836,9 @@ contains
     
     ! Step 1: Perform a Helmholz decomposition of the old Coriolis
     
-    ! More generally this should be a Galerkin projection for Coriolis
     call allocate(coriolis, dim, old_u_mesh, "Coriolis")
     coriolis%option_path = old_velocity%option_path
-    do i = 1, node_count(coriolis)
-      call set(coriolis, i, coriolis_val(node_val(old_positions_remap, i), node_val(old_velocity, i)))
-    end do
-    do i = 1, dim
-      ewrite_minmax(coriolis%val(i)%ptr)
-    end do
+    call coriolis_from_velocity(old_positions, old_velocity, coriolis)
     
     geopressure = have_option(trim(base_path) // "/geopressure_preconditioner")
     if(geopressure) then
@@ -2002,7 +2006,6 @@ contains
     call deallocate(matrices)
     call deallocate(old_res)
     if(geopressure) call deallocate(old_gp)
-    call deallocate(old_positions_remap)
     
     ! Step 3: Form the new Coriolis from the decomposition and invert for
     ! Velocity
