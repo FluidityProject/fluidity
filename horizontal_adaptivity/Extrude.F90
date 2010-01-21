@@ -184,8 +184,9 @@ module hadapt_extrude
     ! Have fun!
     call set(z_mesh, 1, (/0.0/))
     do node=2,elements
-      delta_h = get_delta_h(node_val(z_mesh, node-1), is_constant, constant_value, py_func)
-      call set(z_mesh, node, (/node_val(z_mesh, node-1) - delta_h/))
+      xyz(size(xy)+1:)=node_val(z_mesh, node-1)
+      delta_h = get_delta_h(xyz, is_constant, constant_value, py_func)
+      call set(z_mesh, node,  xyz(size(xy)+1) - delta_h)
     end do
     call set(z_mesh, elements+1, (/-depth/))
 
