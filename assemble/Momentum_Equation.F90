@@ -51,6 +51,7 @@
     use full_projection
     use petsc_solve_state_module
     use geostrophic_pressure
+    use vertical_extrapolation_module
     use oceansurfaceforcing
     use drag_module
     use parallel_tools
@@ -454,6 +455,10 @@
              state(istate), &
              assemble_ct_matrix=get_ct_m, &
              cg_pressure=cg_pressure)
+      end if
+      if(has_scalar_field(state(istate), hp_name)) then
+        call calculate_hydrostatic_pressure(state(istate))
+        call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
       end if
       
       if (has_boundary_condition(u, "wind_forcing")) then
