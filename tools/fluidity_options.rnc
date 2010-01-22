@@ -5915,10 +5915,10 @@ scalar_field_choice =
          }|
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "VerticalBalancePressure" },
+            attribute name { "HydrostaticPressure" },
             (
                element prognostic {
-                  ## This needs to be a quadratic DG mesh
+                  ## This needs to be a DG mesh
                   mesh_choice,
                   prognostic_vertical_balance_pressure_field
                }

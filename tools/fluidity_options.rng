@@ -7670,11 +7670,11 @@ mesh than the velocity mesh&lt;/b&gt;</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>VerticalBalancePressure</value>
+          <value>HydrostaticPressure</value>
         </attribute>
         <element name="prognostic">
           <ref name="mesh_choice">
-            <a:documentation>This needs to be a quadratic DG mesh</a:documentation>
+            <a:documentation>This needs to be a DG mesh</a:documentation>
           </ref>
           <ref name="prognostic_vertical_balance_pressure_field"/>
         </element>
