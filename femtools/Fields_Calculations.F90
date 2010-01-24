@@ -674,4 +674,38 @@ implicit none
     end do
 
   end function norm2_difference_multiple
+  
+  function merge_meshes(meshes, name)
+    !! merges a set of disjoint meshes, elements and nodes
+    !! are consecutively numbered following the order of the input meshes
+    type(mesh_type), dimension(:), intent(in):: meshes
+    character(len=*), intent(in), optional:: name
+    type(mesh_type):: merge_meshes
+    
+    integer:: nodes, elements, ndglno_count, i
+    
+    elements=0
+    do i=1, size(meshes)
+      elements=elements+element_count(meshes(i))
+    end do
+      
+    nodes=0
+    do i=1, size(meshes)
+      nodes=nodes+node_count(meshes(i))
+    end do
+
+    call allocate(merge_meshes, nodes, elements, meshes(1)%shape, &
+      name=name)
+    
+    nodes=0
+    ndglno_count=0
+    do i=1, size(meshes)
+      merge_meshes%ndglno(ndglno_count+1:ndglno_count+size(meshes(i)%ndglno)) = &
+        meshes(i)%ndglno+nodes
+      ndglno_count=ndglno_count+size(meshes(i)%ndglno)
+      nodes=nodes+node_count(meshes(i))
+    end do
+    
+  end function merge_meshes
+  
 end module fields_calculations

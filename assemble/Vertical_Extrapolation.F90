@@ -47,6 +47,7 @@ use dynamic_bin_sort_module
 use pickers
 use coordinates, only: earth_radius
 use boundary_conditions
+use integer_set_module
 implicit none
 
 interface VerticalExtrapolation
@@ -378,6 +379,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
       else
         horizontal_coordinate(:,i) = &
           map2horizontal_sphere( node_val(to_positions, i), -1.0)
+        horizontal_coordinate(1,i)=horizontal_coordinate(1,i)+HEMISPHERE_SHIFT
       end if
     end do
   else
@@ -505,6 +507,9 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
   horizontal_positions => extract_surface_field(positions, surface_name, &
     trim(surface_name)//"HorizontalCoordinate")
     
+  !call vtk_write_fields('horizontal_mesh', 0, horizontal_positions, &
+  !  horizontal_positions%mesh)    
+    
   call get_boundary_condition(positions, surface_name, &
     surface_element_list=horizontal_mesh_list)
   
@@ -570,32 +575,118 @@ subroutine create_horizontal_positions_sphere(positions, surface_element_list, s
   integer, dimension(:), intent(in):: surface_element_list
   character(len=*), intent(in):: surface_name
   
+  type(vector_field), pointer:: horizontal_positions_north, horizontal_positions_south
+  type(vector_field):: horizontal_positions
+  type(mesh_type), pointer:: surface_mesh_north, surface_mesh_south
+  type(mesh_type):: surface_mesh
+  integer, dimension(:), pointer:: surface_element_list_north, surface_element_list_south
+  integer, dimension(:), allocatable:: surface_element_list_combined
+  integer:: nodes_north, elements_south, elements_north
+  integer:: i
+  
+  ! first create 2 separate horizontal coordinate fields
+  ! for each hemisphere
+  
+  call create_horizontal_positions_hemisphere(positions, &
+    surface_element_list, trim(surface_name)//'North', +1.0)
+    
+  call create_horizontal_positions_hemisphere(positions, &
+    surface_element_list, trim(surface_name)//'South', -1.0)
+  
+  ! these are stored as bcs under the positions
+  ! retrieve this information  back:
+  
+  call get_boundary_condition(positions, name=trim(surface_name)//'North', &
+    surface_mesh=surface_mesh_north, &
+    surface_element_list=surface_element_list_north)
+  call get_boundary_condition(positions, name=trim(surface_name)//'South', &
+    surface_mesh=surface_mesh_south, &
+    surface_element_list=surface_element_list_south)    
+    
+  horizontal_positions_north => extract_surface_field(positions, &
+      trim(surface_name)//'North', trim(surface_name)//"NorthHorizontalCoordinate")
+  horizontal_positions_south => extract_surface_field(positions, &
+      trim(surface_name)//'South', trim(surface_name)//"SouthHorizontalCoordinate")    
+    
+  ! merge these 2 meshes
+  surface_mesh=merge_meshes( (/ surface_mesh_north, surface_mesh_south /) )
+  
+  ! and merge the positions field
+  call allocate( horizontal_positions, positions%dim-1, surface_mesh, &
+    trim(surface_name)//"HorizontalCoordinate" )
+    
+  nodes_north=node_count(surface_mesh_north)
+  do i=1, nodes_north
+    call set( horizontal_positions, i, &
+      node_val(horizontal_positions_north, i))
+  end do
+  ! but translate the projected southern hemisphere to the left
+  ! to not overlap it with the northern hemisphere
+  do i=1, node_count(surface_mesh_south)
+    call set( horizontal_positions, nodes_north+i, &
+      node_val(horizontal_positions_south, i)+(/ HEMISPHERE_SHIFT, 0.0 /) )
+  end do
+    
+  ! merge the surface element lists
+  ! (note that this is different than the incoming surface_element_list
+  ! as it will have some duplicate equatorial elements)
+  elements_north=size(surface_element_list_north)
+  elements_south=size(surface_element_list_south)
+  allocate(surface_element_list_combined(1:elements_north+elements_south))
+  surface_element_list_combined(1:elements_north)=surface_element_list_north
+  surface_element_list_combined(elements_north+1:)=surface_element_list_south
+  
+  ! finally the bc for the combined surface mesh:
+  ! (note that this creates a new surface mesh different than
+  ! the merged mesh, that we won't be using)
+  call add_boundary_condition_surface_elements( &
+    positions, name=surface_name, type="verticalextrapolation", &
+    surface_element_list=surface_element_list_combined)
+  
+  ! insert the horizontal positions under this bc
+  call insert_surface_field( positions, name=surface_name, &
+    surface_field=horizontal_positions)
+  
+  ! everything is safely stored, so we can deallocate our references
+  call deallocate(horizontal_positions)
+  call deallocate(surface_mesh)
+  deallocate(surface_element_list_combined)
+  
+  ! also we won't need the 2 hemisphere bcs anymore
+  call remove_boundary_condition( positions, trim(surface_name)//'North')
+  call remove_boundary_condition( positions, trim(surface_name)//'South')
+    
+end subroutine create_horizontal_positions_sphere
+
+subroutine create_horizontal_positions_hemisphere(positions, &
+  surface_element_list, surface_name, hemi_sign)
+  type(vector_field), intent(inout):: positions
+  integer, dimension(:), intent(in):: surface_element_list
+  character(len=*), intent(in):: surface_name
+  real, intent(in):: hemi_sign
+
   type(vector_field):: horizontal_positions
   type(mesh_type), pointer:: surface_mesh
   real, dimension(2):: xy
-  integer, dimension(:), allocatable:: projected_surface_elements
   integer, dimension(:), pointer:: nodes, surface_node_list
-  integer:: elements_south, elements_north
-  integer:: i, j, node
+  integer:: i, j, sele, node
   
-  ! map from the projected surface elements to face numbers of 'positions'
-  ! (faces may appear twice, so 2*size(..) should be big enough)
-  allocate( projected_surface_elements(1: 2*size(surface_element_list)) )
+  type(integer_set):: surface_element_set
   
-  call collect_surface_elements_hemisphere( &
-    projected_surface_elements, elements_north, &
-    positions, surface_element_list, +1.0)
+  call allocate(surface_element_set)
   
-  call collect_surface_elements_hemisphere( &
-    projected_surface_elements(elements_north+1:), elements_south, &
-    positions, surface_element_list, -1.0)
+  do i=1, size(surface_element_list)
+    sele=surface_element_list(i)
+    if (any(hemi_sign*face_val(positions, 3, sele)>-HEMISPHERE_OVERLAP)) then
+      call insert(surface_element_set, sele)
+    end if
+  end do
     
   call add_boundary_condition_surface_elements(positions, &
     name=surface_name, type="verticalextrapolation", &
-    surface_element_list=projected_surface_elements(1:elements_north+elements_south))
-    
-  ! now get back the created surface mesh (with duplicate near-equator elements)
-  ! and surface_node_list a mapping between node nos in the projected mesh and node nos in the original 'positions' mesh
+    surface_element_list=set2vector(surface_element_set))
+  call deallocate(surface_element_set)
+  
   call get_boundary_condition(positions, name=surface_name, &
     surface_mesh=surface_mesh, surface_node_list=surface_node_list)
     
@@ -604,58 +695,20 @@ subroutine create_horizontal_positions_sphere(positions, surface_element_list, s
     
   call insert_surface_field(positions, name=surface_name, &
     surface_field=horizontal_positions)
-  
-  do i=1, elements_north
+    
+  do i=1, element_count(horizontal_positions)
     nodes => ele_nodes(horizontal_positions, i)
     do j=1, size(nodes)
       node=surface_node_list( nodes(j) )
-      xy=map2horizontal_sphere(node_val(positions, node),+1.0)
-      assert(xy(1)<HEMISPHERE_SHIFT/2.0)
-      call set( horizontal_positions, nodes(j), xy)
-    end do
-  end do
-  
-  do i=1, elements_south
-    ! nodes in the projected mesh
-    nodes => ele_nodes(horizontal_positions, elements_north+i)
-    do j=1, size(nodes)
-      ! node in the 'positions' mesh
-      node=surface_node_list( nodes(j) )
-      xy=map2horizontal_sphere(node_val(positions, node),-1.0)
-      assert(xy(1)>-HEMISPHERE_SHIFT/2.0)
+      xy=map2horizontal_sphere(node_val(positions, node), hemi_sign)
+      assert(abs(xy(1))<HEMISPHERE_SHIFT/2.0)
       call set( horizontal_positions, nodes(j), xy)
     end do
   end do
     
-  call deallocate( horizontal_positions )
-  
-end subroutine create_horizontal_positions_sphere
-
-subroutine collect_surface_elements_hemisphere(surface_elements_out, &
-  elements, positions, surface_elements_in, hemi_sign)
-! collect all surface elements that are on one of the hemispheres
-integer, dimension(:), intent(out):: surface_elements_out
-! number of elements found
-integer, intent(out):: elements
-! the surface mesh to search is a surface mesh of "positions"
-type(vector_field), intent(in):: positions
-! list of faces of these
-integer, dimension(:), intent(in):: surface_elements_in
-! +1 for the northern and -1 for the southern hemisphere
-real, intent(in):: hemi_sign
-
-  integer:: i, sele
-  
-  elements=0
-  do i=1, size(surface_elements_in)
-    sele=surface_elements_in(i)
-    if (any(hemi_sign*face_val(positions, 3, sele)>-HEMISPHERE_OVERLAP)) then
-      elements=elements+1
-      surface_elements_out(elements)=sele
-    end if
-  end do
-  
-end subroutine collect_surface_elements_hemisphere
+  call deallocate(horizontal_positions)
+    
+end subroutine create_horizontal_positions_hemisphere
 
 function map2horizontal(xyz, normal_vector)
 real, dimension(:), intent(in):: xyz, normal_vector
@@ -688,7 +741,7 @@ real, dimension(2):: map2horizontal_sphere
   
   r=sqrt(sum(xyz**2))
   map2horizontal_sphere=xyz(1:2)/(r+hemi_sign*xyz(3))
-  
+    
 end function map2horizontal_sphere
 
 function VerticalProlongationOperator(positions, &
