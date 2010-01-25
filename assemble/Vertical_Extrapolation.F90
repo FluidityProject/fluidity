@@ -368,7 +368,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   to_nodes=node_count(to_positions)
     allocate( horizontal_coordinate(1:positions%dim-1, 1:to_nodes), &
         eles(to_nodes), &
-        loc_coords(1:face_loc(positions,1), 1:to_nodes) )
+        loc_coords(1:positions%dim, 1:to_nodes) ) ! local coordinates is one more than horizontal coordinate dim
   if (on_sphere) then
     assert(to_positions%dim==3)
     do i=1, node_count(to_positions)      

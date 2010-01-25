@@ -377,7 +377,7 @@ contains
     logical :: owned
     
     real :: lmiss
-    real, dimension(ele_loc(positions_a, ele_a)) :: l_coords
+    real, dimension(positions_a%dim+1) :: l_coords
    
     assert(ownership_tolerance >= 0.0)
 

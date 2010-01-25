@@ -61,7 +61,7 @@ contains
     real, optional, intent(in) :: coordz
     integer, intent(out) :: ele
     !! The local coordinates of the coordinate in the owning element
-    real, dimension(ele_loc(positions, 1)), optional, intent(out) :: local_coord
+    real, dimension(positions%dim+1), optional, intent(out) :: local_coord
     !! If present and .false., do not perform a global inquiry across all
     !! processes
     logical, optional, intent(in) :: global
@@ -95,7 +95,7 @@ contains
     real, dimension(positions%dim), intent(in) :: coord
     integer, intent(out) :: ele
     !! The local coordinates of the coordinate in the owning element
-    real, dimension(ele_loc(positions, 1)), optional, intent(out) :: local_coord
+    real, dimension(positions%dim+1), optional, intent(out) :: local_coord
     !! If present and .false., do not perform a global inquiry across all
     !! processes
     logical, optional, intent(in) :: global
@@ -124,7 +124,7 @@ contains
     real, dimension(size(coordsx)), optional, intent(in) :: coordsz
     integer, dimension(size(coordsx)), intent(out) :: eles
     !! The local coordinates of the coordinates in the owning elements
-    real, dimension(ele_loc(positions, 1), size(coordsx)), optional, intent(out) :: local_coords
+    real, dimension(positions%dim+1, size(coordsx)), optional, intent(out) :: local_coords
     !! If present and .false., do not perform a global inquiry across all
     !! processes
     logical, optional, intent(in) :: global
@@ -161,7 +161,7 @@ contains
     real, dimension(:, :), intent(in) :: coords
     integer, dimension(size(coords, 2)), intent(out) :: eles
     !! The local coordinates of the coordinates in the owning elements
-    real, dimension(ele_loc(positions, 1), size(coords, 2)), optional, intent(out) :: local_coords
+    real, dimension(positions%dim+1, size(coords, 2)), optional, intent(out) :: local_coords
     !! If present and .false., do not perform a global inquiry across all
     !! processes
     logical, optional, intent(in) :: global
@@ -197,7 +197,7 @@ contains
     integer, intent(out) :: ele_a
     integer, intent(in) :: node_b
     !! The local coordinates of the node in the owning element
-    real, dimension(ele_loc(positions_a, 1)), optional, intent(out) :: local_coord
+    real, dimension(positions_a%dim+1), optional, intent(out) :: local_coord
     !! If present and .false., do not perform a global inquiry across all
     !! processes
     logical, optional, intent(in) :: global
@@ -219,7 +219,7 @@ contains
     type(vector_field), intent(in) :: positions_b
     integer, dimension(node_count(positions_b)), intent(out) :: ele_as
     !! The local coordinates of the nodes in the owning elements
-    real, dimension(ele_loc(positions_a, 1), node_count(positions_b)), optional, intent(out) :: local_coords
+    real, dimension(positions_a%dim+1, node_count(positions_b)), optional, intent(out) :: local_coords
     !! If present and .false., do not perform a global inquiry across all
     !! processes
     logical, optional, intent(in) :: global
@@ -266,7 +266,7 @@ contains
 !   allocate(l_coords(ele_loc(positions, 1), size(detectors)))
 
     allocate(coords(positions%dim, detectors%length))
-    allocate(l_coords(ele_loc(positions, 1), detectors%length))
+    allocate(l_coords(positions%dim+1, detectors%length))
 
 !    allocate(elem(detectors%length, 1))
 

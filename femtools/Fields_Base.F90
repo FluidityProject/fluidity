@@ -2831,24 +2831,34 @@ contains
     !!< Given a position field, this returns the local coordinates of
     !!< position with respect to element "ele".
     !!<
-    !!< This assumes the position field is linear.   
+    !!< This assumes the position field is linear. For higher order
+    !!< only the coordinates of the vertices are considered
     type(vector_field), intent(in) :: position_field
     integer, intent(in) :: ele
     real, dimension(:), intent(in) :: position
     real, dimension(size(position) + 1) :: local_coords
-    real, dimension(mesh_dim(position_field) + 1, ele_loc(position_field, 1)) :: matrix
-    real, dimension(mesh_dim(position_field), ele_loc(position_field, 1)) :: tmp_matrix
+    real, dimension(mesh_dim(position_field) + 1, size(position) + 1) :: matrix
+    real, dimension(mesh_dim(position_field), size(position) + 1) :: tmp_matrix
+    integer, dimension(position_field%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(:), pointer:: nodes
     integer :: dim
 
     dim = size(position)
 
-    assert(position_field%mesh%shape%degree==1)
-    assert(dim == mesh_dim(position_field) .and. dim == ele_loc(position_field, 1) - 1)
+    assert(dim == mesh_dim(position_field))
+    assert(position_field%mesh%shape%numbering%family==FAMILY_SIMPLEX)
 
     local_coords(1:dim) = position
     local_coords(dim+1) = 1.0
 
-    tmp_matrix = ele_val(position_field, ele)
+    if (position_field%mesh%shape%degree==1) then
+      tmp_matrix = ele_val(position_field, ele)
+    else
+      nodes => ele_nodes(position_field, ele)
+      vertices=local_vertices(position_field%mesh%shape%numbering)
+      tmp_matrix = node_val(position_field, nodes(vertices) )
+    end if
+    
     matrix(1:dim, :) = tmp_matrix
     matrix(dim+1, :) = 1.0
 
@@ -2860,23 +2870,18 @@ contains
     !!< Given a position field, this returns the local coordinates of a number
     !!< of positions which respect to element "ele".
     !!<
-    !!< This assumes the positions field is linear.
+    !!< This assumes the positions field is linear. For higher order
+    !!< only the coordinates of the vertices are considered
     type(vector_field), intent(in) :: position_field
     integer, intent(in) :: ele
     real, dimension(:, :), intent(in) :: position
 
-    real, dimension(ele_loc(position_field, ele), size(position, 2)) :: local_coords
+    real, dimension(size(position,1)+1, size(position, 2)) :: local_coords
 
-#ifdef DDEBUG
-    type(element_type), pointer :: shape => null()
-#endif
-    real, dimension(ele_loc(position_field, ele), ele_loc(position_field, ele)) :: inversion_matrix
+    real, dimension(size(position,1)+1, size(position,1)+1) :: inversion_matrix
 
     assert(size(position, 1) == position_field%dim)
-#ifdef DDEBUG
-    shape => ele_shape(position_field, ele)
-    assert(shape%degree == 1)
-#endif
+    assert(position_field%mesh%shape%numbering%family==FAMILY_SIMPLEX)
 
     call local_coords_matrix(position_field, ele, inversion_matrix)
     local_coords(1:position_field%dim, :) = position
@@ -2888,12 +2893,25 @@ contains
   subroutine local_coords_matrix(positions, ele, mat)
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele
-    real, dimension(ele_loc(positions, ele), ele_loc(positions, ele)), intent(out) :: mat
+    real, dimension(:,:), intent(out) :: mat
 
-    mat(1:positions%dim, :) = ele_val(positions, ele)
-    mat(ele_loc(positions, ele), :) = 1.0
+    integer, dimension(positions%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(:), pointer:: nodes
+    
+    assert( size(mat,1)==mesh_dim(positions)+1 )
+    assert( size(mat,1)==size(mat,2) )
+    
+    if (positions%mesh%shape%degree==1) then
+      mat(1:positions%dim, :) = ele_val(positions, ele)
+    else
+      nodes => ele_nodes(positions, ele)
+      vertices=local_vertices(positions%mesh%shape%numbering)
+      mat(1:positions%dim, :) = node_val(positions, nodes(vertices) )
+    end if
+    mat(positions%dim + 1, :) = 1.0
 
     call invert(mat)
+    
   end subroutine local_coords_matrix
 
   function local_coords_scalar(field, ele, node, stat) result(local_coord)
