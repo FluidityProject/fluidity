@@ -1021,7 +1021,7 @@ module metric_tools
     real, dimension(2, 2) :: pos
     real, dimension(2, 2) :: m
     
-    real, parameter :: scale_factor = 12.0 * sqrt(3.0)
+    real :: scale_factor = 12.0 * sqrt(3.0)
         
     m = sum(ele_val(metric, ele), 3) / 3.0
     
@@ -1072,7 +1072,7 @@ module metric_tools
     real, dimension(3, 3) :: pos
     real, dimension(3, 3) :: m
     
-    real, parameter :: scale_factor = (6.0 ** 4) * sqrt(2.0)
+    real :: scale_factor = (6.0 ** 4) * sqrt(2.0)
         
     m = sum(ele_val(metric, ele), 3) / 4.0
     
