@@ -1346,6 +1346,7 @@ AC_SUBST(MODINC_FLAG)
 cat confdefs.h | grep DOUBLEP > libvtkfortran/confdefs.h
 cat confdefs.h | grep F77_FUNC >> libvtkfortran/confdefs.h
 cat confdefs.h | grep VTK >> libvtkfortran/confdefs.h
+cat confdefs.h | grep MPI >> libvtkfortran/confdefs.h
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" > include/confdefs.h
 
 if test "$enable_experimental_spatialindex" = "yes"
