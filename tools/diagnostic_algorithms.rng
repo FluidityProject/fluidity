@@ -87,6 +87,42 @@ this option to these these internal algorithms.</a:documentation>
       <ref name="source_field"/>
     </element>
   </define>
+  <define name="scalar_galerkin_projection_algorithm">
+    <element name="algorithm">
+      <a:documentation>Galerkin projects the source field.</a:documentation>
+      <attribute name="name">
+        <value>scalar_galerkin_projection</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+      <optional>
+        <element name="solver">
+          <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+          <ref name="linear_solver_options_sym"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="vector_galerkin_projection_algorithm">
+    <element name="algorithm">
+      <a:documentation>Galerkin projects the source field.</a:documentation>
+      <attribute name="name">
+        <value>vector_galerkin_projection</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+      <optional>
+        <element name="solver">
+          <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+          <ref name="linear_solver_options_sym"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <!-- Differential operator diagnostic algorithms -->
   <define name="div_algorithm">
     <element name="algorithm">
@@ -321,6 +357,9 @@ and 'tensor_fields';
     <ref name="scalar_copy_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_galerkin_projection_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="div_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -343,6 +382,9 @@ and 'tensor_fields';
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_copy_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_galerkin_projection_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="grad_algorithm"/>

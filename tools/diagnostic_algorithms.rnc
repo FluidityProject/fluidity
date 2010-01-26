@@ -38,33 +38,59 @@ internal_velocity_absorption_algorithm =
 # Simple equality algorithms
 scalar_copy_algorithm =
    (
-     ## Copies the source field. This is intended for testing purposes
-     ## <b>only</b>.
-     element algorithm {
-        attribute name { "scalar_copy" },
-        attribute material_phase_support { "single" },
-        source_field
-     }
+      ## Copies the source field. This is intended for testing purposes
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "scalar_copy" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
    )
 vector_copy_algorithm =
    (
-     ## Copies the source field. This is intended for testing purposes
-     ## <b>only</b>.
-     element algorithm {
-        attribute name { "vector_copy" },
-        attribute material_phase_support { "single" },
-        source_field
-     }
+      ## Copies the source field. This is intended for testing purposes
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "vector_copy" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
    )
 tensor_copy_algorithm =
    (
-     ## Copies the source field. This is intended for testing purposes
-     ## <b>only</b>.
-     element algorithm {
-        attribute name { "tensor_copy" },
-        attribute material_phase_support { "single" },
-        source_field
-     }
+      ## Copies the source field. This is intended for testing purposes
+      ## <b>only</b>.
+      element algorithm {
+         attribute name { "tensor_copy" },
+         attribute material_phase_support { "single" },
+         source_field
+      }
+   )
+scalar_galerkin_projection_algorithm =
+   (
+      ## Galerkin projects the source field.
+      element algorithm {
+         attribute name { "scalar_galerkin_projection" },
+         attribute material_phase_support { "single" },
+         source_field,
+         ## Solver options. Required if projecting onto a continuous mesh.
+         element solver {
+            linear_solver_options_sym
+         }?
+      }
+   )
+vector_galerkin_projection_algorithm =
+   (
+      ## Galerkin projects the source field.
+      element algorithm {
+         attribute name { "vector_galerkin_projection" },
+         attribute material_phase_support { "single" },
+         source_field,
+         ## Solver options. Required if projecting onto a continuous mesh.
+         element solver {
+            linear_solver_options_sym
+         }?
+      }
    )
 
 # Differential operator diagnostic algorithms
@@ -252,6 +278,7 @@ tensor_python_diagnostic_algorithm =
    
 scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
+scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
@@ -261,6 +288,7 @@ scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
    
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
+vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= grad_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
