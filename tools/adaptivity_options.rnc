@@ -727,7 +727,7 @@ interpolation_algorithm_vector =
              ## applied to this field.
              element honour_strong_boundary_conditions {
                 comment
-             }?,
+             },
              continuous_projection,
              supermesh_conservation?,
              comment

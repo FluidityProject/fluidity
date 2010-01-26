@@ -858,13 +858,11 @@ Automatic when not using P1P1.</a:documentation>
             <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
-            <optional>
-              <element name="honour_strong_boundary_conditions">
-                <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
+            <element name="honour_strong_boundary_conditions">
+              <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
 applied to this field.</a:documentation>
-                <ref name="comment"/>
-              </element>
-            </optional>
+              <ref name="comment"/>
+            </element>
             <ref name="continuous_projection"/>
             <optional>
               <ref name="supermesh_conservation"/>
