@@ -898,6 +898,13 @@ to the Pressure projection.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
+          <optional>
+            <element name="enforce_solenoidal">
+              <a:documentation>Enforce a solenoidal contribution to Velocity by the Coriolis
+derived from the conservative potential.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
           <ref name="comment"/>
         </element>
         <element name="residual">
@@ -940,12 +947,6 @@ the L2 norm of the residual</a:documentation>
               </optional>
               <ref name="comment"/>
             </element>
-            <ref name="comment"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="enforce_solenoidal">
-            <a:documentation>Enforce a solenoidal Velocity following the interpolation</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>

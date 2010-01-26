@@ -752,7 +752,7 @@ interpolation_algorithm_vector =
            ## to the Pressure projection.
            element interpolate_boundary {
               comment
-           }?,
+           }?
            comment
         },
         ## Options relating to the non-conservative residual component of the
@@ -788,10 +788,6 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
-           comment
-        }?,
-        ## Enforce a solenoidal Velocity following the interpolation
-        element enforce_solenoidal {
            comment
         }?,
         comment

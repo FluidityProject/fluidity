@@ -69,7 +69,10 @@ module geostrophic_pressure
     & geostrophic_pressure_check_options
     
   public :: projection_decomposition, geopressure_decomposition, &
-    & geostrophic_velocity, geostrophic_interpolation, cmc_matrices
+    & add_geopressure_matrices, cmc_matrices, deallocate, &
+    & coriolis_from_velocity, velocity_from_coriolis, &
+    & correct_velocity, compute_conservative, compute_divergence, &
+    & geostrophic_velocity, geostrophic_interpolation
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
@@ -657,7 +660,7 @@ contains
   
   function eval_field_scalar(ele, s_field, local_coord) result(val)
     !!< Evaluate the scalar field s_field at element local coordinate
-    !!< local_coord of element ele. This assumes linear positions.
+    !!< local_coord of element ele.
   
     integer, intent(in) :: ele
     type(scalar_field), intent(inout) :: s_field
@@ -694,7 +697,7 @@ contains
   
   function eval_field_vector(ele, v_field, local_coord) result(val)
     !!< Evaluate the vector field v_field at element local coordinate
-    !!< local_coord of element ele. This assumes linear positions.
+    !!< local_coord of element ele.
   
     integer, intent(in) :: ele
     type(vector_field), intent(inout) :: v_field
@@ -1040,8 +1043,8 @@ contains
     end if
     
     if(apply_kmk) then      
-      call insert(lstate, u_mesh, name = "PressureMesh")
-      call insert(lstate, p_mesh, name = "VelocityMesh")
+      call insert(lstate, u_mesh, name = "VelocityMesh")
+      call insert(lstate, p_mesh, name = "PressureMesh")
       
       call assemble_kmk_matrix(lstate, u_mesh, positions, theta_pg = 1.0)    
       call add_kmk_matrix(lstate, cmc_m)  
@@ -1085,6 +1088,7 @@ contains
       matrices%ct_m = ct_m
       matrices%ct_rhs = ct_rhs
       matrices%cmc_m = cmc_m
+      if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
       if(present(gp)) then
         matrices%cmc_gp_m = cmc_gp_m
         matrices%ct_gp_m = ct_gp_m
@@ -1645,8 +1649,8 @@ contains
       assert(fields_a(i)%mesh == fields_a(1)%mesh)
       assert(fields_b(i)%mesh == fields_b(1)%mesh)
     end do
-#endif
     assert(continuity(fields_b(1)) == 0)
+#endif
     
     do i = 1, size(b_fields)
       call allocate(b_fields(i), b_mesh, name = fields_b(i)%name)
@@ -2053,7 +2057,7 @@ contains
     end if
     
     call allocate(coriolis_addto, dim, new_u_mesh, name = "CoriolisAddto")
-    call compute_conservative(coriolis_addto, matrices, new_p)    
+    call compute_conservative(coriolis_addto, matrices, new_p)  
     call addto(coriolis, coriolis_addto)
     
     if(geopressure) then
@@ -2088,12 +2092,6 @@ contains
         & sfields = (/new_p, div/), vfields = (/lnew_velocity, coriolis, new_res/))
     end if    
     call deallocate(div)
-    
-    if(have_option(trim(base_path) // "/enforce_solenoidal")) then
-      ewrite(2, *) "Enforcing solenoidal velocity"
-      ! Should probably update the Pressure as well
-      call correct_velocity(lnew_velocity, new_p, matrices)
-    end if
     
     call set(new_velocity, lnew_velocity)
     call deallocate(lnew_velocity)
