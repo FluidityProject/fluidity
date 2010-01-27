@@ -1,5 +1,505 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="adaptivity_preprocessing">
+    <optional>
+      <element name="preprocessing">
+        <a:documentation>Occasionally, it is desirable to apply operations or filters
+to fields before using them for the purposes of adaptivity.</a:documentation>
+        <element name="helmholtz_smoother">
+          <a:documentation>Invert a helmholtz operator to smooth out the field
+before using it to adapt. This can help with noisy
+fields.</a:documentation>
+          <element name="smoothing_length_scale">
+            <ref name="real_dim_symmetric_tensor"/>
+          </element>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
+          </element>
+        </element>
+      </element>
+    </optional>
+  </define>
+  <define name="adaptivity_options_prognostic_scalar_field">
+    <optional>
+      <element name="adaptivity_options">
+        <choice>
+          <element name="absolute_measure">
+            <a:documentation>When specifying absolute measure
+one specifies the absolute interpolation 
+error in the units of the field that is 
+being adapted, e.g. you can specify
+the error to be 1.3 units </a:documentation>
+            <attribute name="replaces">
+              <value>ADOPTT = 0</value>
+            </attribute>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADWEIT</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_scalar_field_no_adapt"/>
+              </element>
+            </element>
+            <optional>
+              <element name="p_norm">
+                <a:documentation>By default the interpolation error controlled is the L_inf
+norm. Use this option to specify an alternative L_p norm. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+          <element name="relative_measure">
+            <a:documentation>When specifying relative measure
+one specifies the interpolation error
+relative to the field that is
+being adapted, e.g. you can specify
+the error to be 5% (i.e. 0.05)</a:documentation>
+            <attribute name="replaces">
+              <value>ADOPTT = 1</value>
+            </attribute>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADADOT</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_scalar_field_no_adapt"/>
+              </element>
+            </element>
+            <element name="tolerance">
+              <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and
+psi_min is the tolerance. The tolerance prevents
+division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+              <attribute name="replaces">
+                <value>ADATOT</value>
+              </attribute>
+              <ref name="real"/>
+            </element>
+          </element>
+          <element name="anisotropic_zienkiewicz_zhu">
+            <a:documentation>Adapt using the anisotropic strategy of 
+Formaggia, Perotto, Micheletti.
+Rather than taking two derivatives
+and deriving the anisotropic information,
+this approach computes an anisotropic Zienkiewicz-Zhu
+error estimator for each element. The approach then
+optimises the element orientation and length scales
+to equidistribute the estimated error.</a:documentation>
+            <element name="tau">
+              <a:documentation>Tau is an anisotropic estimate for the H1 seminorm of the
+error. This estimator is efficient and reliable, under the
+caveat that the initial mesh is sufficiently fine so as to
+prevent data oscillation. (Micheletti &amp; Perotto, 2006)
+Typically, tau will be ~= 6-8 * |e|_H1.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </element>
+        </choice>
+        <ref name="adaptivity_preprocessing"/>
+      </element>
+    </optional>
+  </define>
+  <define name="adaptivity_options_scalar_field.adaptivity_options">
+    <choice>
+      <element name="absolute_measure">
+        <a:documentation>When specifying absolute measure
+one specifies the absolute interpolation 
+error in the units of the field that is 
+being adapted, e.g. you can specify
+the error to be 1.3 units </a:documentation>
+        <attribute name="replaces">
+          <value>ADOPTT = 0</value>
+        </attribute>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>InterpolationErrorBound</value>
+          </attribute>
+          <attribute name="replaces">
+            <value>ADWEIT</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+        </element>
+        <optional>
+          <element name="p_norm">
+            <a:documentation>By default the interpolation error controlled is the L_inf
+norm. Use this option to specify an alternative L_p norm. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+            <ref name="integer"/>
+          </element>
+        </optional>
+      </element>
+      <element name="relative_measure">
+        <a:documentation>When specifying relative measure
+one specifies the interpolation error
+relative to the field that is
+being adapted, e.g. you can specify
+the error to be 5% (i.e. 0.05)</a:documentation>
+        <attribute name="replaces">
+          <value>ADOPTT = 1</value>
+        </attribute>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>InterpolationErrorBound</value>
+          </attribute>
+          <attribute name="replaces">
+            <value>ADADOT</value>
+          </attribute>
+          <element name="prescribed">
+            <ref name="prescribed_scalar_field_no_adapt"/>
+          </element>
+        </element>
+        <element name="tolerance">
+          <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and
+psi_min is the tolerance. The tolerance prevents
+division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+          <attribute name="replaces">
+            <value>ADATOT</value>
+          </attribute>
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="anisotropic_zienkiewicz_zhu">
+        <a:documentation>Adapt using the anisotropic strategy of 
+Formaggia, Perotto, Micheletti.
+Rather than taking two derivatives
+and deriving the anisotropic information,
+this approach computes an anisotropic Zienkiewicz-Zhu
+error estimator for each element. The approach then
+optimises the element orientation and length scales
+to equidistribute the estimated error.</a:documentation>
+        <element name="tau">
+          <a:documentation>Tau is an anisotropic estimate for the H1 seminorm of the
+error. This estimator is efficient and reliable, under the
+caveat that the initial mesh is sufficiently fine so as to
+prevent data oscillation. (Micheletti &amp; Perotto, 2006)
+Typically, tau will be ~= 6-8 * |e|_H1.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="adaptivity_options_scalar_field">
+    <optional>
+      <element name="adaptivity_options">
+        <ref name="adaptivity_options_scalar_field.adaptivity_options"/>
+        <ref name="adaptivity_preprocessing"/>
+      </element>
+    </optional>
+  </define>
+  <define name="adaptivity_options_prognostic_vector_field">
+    <optional>
+      <element name="adaptivity_options">
+        <a:documentation>Adaptivity weights</a:documentation>
+        <choice>
+          <element name="absolute_measure">
+            <a:documentation>When specifying absolute measure
+one specifies the absolute interpolation 
+error in the units of the field that is 
+being adapted, e.g. you can specify
+the error to be 1.3 units </a:documentation>
+            <element name="vector_field">
+              <attribute name="rank">
+                <value>1</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADWEIU ADWEIV ADWEIW</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_vector_field_no_adapt"/>
+              </element>
+            </element>
+            <optional>
+              <element name="p_norm">
+                <a:documentation>By default the interpolation error controlled is the L_inf
+norm. Use this option to specify an alternative L_p norm. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+          <element name="relative_measure">
+            <a:documentation>When specifying relative measure
+one specifies the interpolation error
+relative to the field that is
+being adapted, e.g. you can specify
+the error to be 5% (i.e. 0.05)</a:documentation>
+            <element name="vector_field">
+              <attribute name="rank">
+                <value>1</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADATOU ADATOV ADATOW</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_vector_field_no_adapt"/>
+              </element>
+            </element>
+            <element name="tolerance">
+              <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and
+psi_min is the tolerance. The tolerance prevents
+division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+              <ref name="real_dim_vector"/>
+            </element>
+          </element>
+        </choice>
+        <ref name="adaptivity_preprocessing"/>
+      </element>
+    </optional>
+  </define>
+  <define name="adaptivity_options_vector_field">
+    <optional>
+      <element name="adaptivity_options">
+        <a:documentation>Adaptivity weights</a:documentation>
+        <choice>
+          <element name="absolute_measure">
+            <a:documentation>When specifying absolute measure
+one specifies the absolute interpolation 
+error in the units of the field that is 
+being adapted, e.g. you can specify
+the error to be 1.3 units </a:documentation>
+            <element name="vector_field">
+              <attribute name="rank">
+                <value>1</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADWEIU ADWEIV ADWEIW</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_vector_field_no_adapt"/>
+              </element>
+            </element>
+            <optional>
+              <element name="p_norm">
+                <a:documentation>By default the interpolation error controlled is the L_inf
+norm. Use this option to specify an alternative L_p norm. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+          <element name="relative_measure">
+            <a:documentation>When specifying relative measure
+one specifies the interpolation error
+relative to the field that is
+being adapted, e.g. you can specify
+the error to be 5% (i.e. 0.05)</a:documentation>
+            <element name="vector_field">
+              <attribute name="rank">
+                <value>1</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <attribute name="replaces">
+                <value>ADATOU ADATOV ADATOW</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_vector_field_no_adapt"/>
+              </element>
+            </element>
+            <element name="tolerance">
+              <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and
+psi_min is the tolerance. The tolerance prevents
+division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+              <ref name="real_dim_vector"/>
+            </element>
+          </element>
+        </choice>
+        <ref name="adaptivity_preprocessing"/>
+      </element>
+    </optional>
+  </define>
+  <define name="adaptivity_options_prognostic_tensor_field">
+    <optional>
+      <element name="adaptivity_options">
+        <a:documentation>Adaptivity weights</a:documentation>
+        <choice>
+          <element name="absolute_measure">
+            <a:documentation>When specifying absolute measure
+one specifies the absolute interpolation 
+error in the units of the field that is 
+being adapted, e.g. you can specify
+the error to be 1.3 units </a:documentation>
+            <element name="tensor_field">
+              <attribute name="rank">
+                <value>2</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_values_tensor_field"/>
+              </element>
+            </element>
+            <optional>
+              <element name="p_norm">
+                <a:documentation>By default the interpolation error controlled is the L_inf
+norm. Use this option to specify an alternative L_p norm. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+          <element name="relative_measure">
+            <a:documentation>When specifying relative measure
+one specifies the interpolation error
+relative to the field that is
+being adapted, e.g. you can specify
+the error to be 5% (i.e. 0.05)</a:documentation>
+            <element name="tensor_field">
+              <attribute name="rank">
+                <value>2</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_values_tensor_field"/>
+              </element>
+            </element>
+            <element name="tolerance">
+              <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and
+psi_min is the tolerance. The tolerance prevents
+division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+              <ref name="real_dim_tensor"/>
+            </element>
+          </element>
+        </choice>
+        <ref name="adaptivity_preprocessing"/>
+      </element>
+    </optional>
+  </define>
+  <define name="adaptivity_options_tensor_field">
+    <optional>
+      <element name="adaptivity_options">
+        <a:documentation>Adaptivity weights</a:documentation>
+        <choice>
+          <element name="absolute_measure">
+            <a:documentation>When specifying absolute measure
+one specifies the absolute interpolation 
+error in the units of the field that is 
+being adapted, e.g. you can specify
+the error to be 1.3 units </a:documentation>
+            <element name="tensor_field">
+              <attribute name="rank">
+                <value>2</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_values_tensor_field"/>
+              </element>
+            </element>
+            <optional>
+              <element name="p_norm">
+                <a:documentation>By default the interpolation error controlled is the L_inf
+norm. Use this option to specify an alternative L_p norm. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+          <element name="relative_measure">
+            <a:documentation>When specifying relative measure
+one specifies the interpolation error
+relative to the field that is
+being adapted, e.g. you can specify
+the error to be 5% (i.e. 0.05)</a:documentation>
+            <element name="tensor_field">
+              <attribute name="rank">
+                <value>2</value>
+              </attribute>
+              <attribute name="name">
+                <value>InterpolationErrorBound</value>
+              </attribute>
+              <element name="prescribed">
+                <ref name="prescribed_values_tensor_field"/>
+              </element>
+            </element>
+            <element name="tolerance">
+              <a:documentation>The relative Hessian is calculated according to:
+
+  Q = H / max{ |psi|, psi_min}
+
+where H is the Hessian, psi is the field value and
+psi_min is the tolerance. The tolerance prevents
+division by zero errors.
+
+Source: Fluidity/ICOM manual draft version 1.2</a:documentation>
+              <ref name="real_dim_tensor"/>
+            </element>
+          </element>
+        </choice>
+        <ref name="adaptivity_preprocessing"/>
+      </element>
+    </optional>
+  </define>
   <define name="hr_adaptivity">
     <element name="hr_adaptivity">
       <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
