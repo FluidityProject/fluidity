@@ -1164,7 +1164,7 @@ interpolation_algorithm_vector =
            ## to the Pressure projection.
            element interpolate_boundary {
               comment
-           }?
+           }?,
            comment
         },
         ## Options relating to the non-conservative residual component of the

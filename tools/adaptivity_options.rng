@@ -1398,13 +1398,6 @@ to the Pressure projection.</a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
-          <optional>
-            <element name="enforce_solenoidal">
-              <a:documentation>Enforce a solenoidal contribution to Velocity by the Coriolis
-derived from the conservative potential.</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
           <ref name="comment"/>
         </element>
         <element name="residual">
