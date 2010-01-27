@@ -339,6 +339,12 @@ if __name__ == "__main__":
       versio = os.popen("%s -V" % testharness.decide_fluidity_command()).read()
       if len(versio) > 0:
         print versio
+      local_node_info = os.popen("uname -a").read()
+      if len(local_node_info) > 0:
+        print local_node_info
+      free_memory_info = os.popen("free").read()
+      if len(free_memory_info) > 0:
+        print free_memory_info
       print "-" * 80
 
       if options.valgrind is True:
