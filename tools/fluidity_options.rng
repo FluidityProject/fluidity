@@ -5500,6 +5500,10 @@ requires a distinct name for the options dictionary.</a:documentation>
       no Absorption scalar_field
       no adaptive time-stepping
     -->
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>

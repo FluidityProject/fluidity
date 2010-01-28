@@ -4149,6 +4149,10 @@ prognostic_vertical_balance_pressure_field =
       # no Source scalar_field
       # no Absorption scalar_field
       # no adaptive time-stepping
+      ## Disables checkpointing of this field
+      element exclude_from_checkpointing {
+        comment
+      },
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,
