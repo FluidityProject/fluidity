@@ -151,9 +151,10 @@ contains
     path = complete_field_path(gp_options_field%option_path)
     assemble_matrix = do_assemble_matrix(state)
     call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
-    include_buoyancy = geostrophic_pressure_option /= "exclude_buoyancy"
-    include_coriolis = have_option("/physical_parameters/coriolis") .and. .not. &
-      & geostrophic_pressure_option == "exclude_coriolis"
+    include_buoyancy = have_option("/physical_parameters/gravity") .and. &
+      & geostrophic_pressure_option /= "exclude_buoyancy"
+    include_coriolis = have_option("/physical_parameters/coriolis") .and. &
+      & geostrophic_pressure_option /= "exclude_coriolis"
     if(gp_options_field%name == gp_name) then
       ! If using GeostrophicPressure, default to no reference node
       call get_option(trim(path) // "/reference_node", reference_node, default = 0)
@@ -459,24 +460,19 @@ contains
     end if
     
     if(include_buoyancy) then
-      call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
-          stat = stat)
-      if(stat==0) then
-        buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
-        assert(ele_count(buoyancy) == ele_count(gp_rhs))
-        ewrite_minmax(buoyancy%val)
-        
-        gravity => extract_vector_field(state, "GravityDirection")
-        assert(gravity%dim == mesh_dim(gp_rhs))
-        assert(ele_count(gravity) == ele_count(gp_rhs))
-      else
-        include_buoyancy = .false. ! can't if there's no gravity
-        
-        gravity_magnitude = 0.0
-        gravity => dummy_vector
-        buoyancy => dummy_scalar
-      end if
+      call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
       
+      buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
+      assert(ele_count(buoyancy) == ele_count(gp_rhs))
+      ewrite_minmax(buoyancy%val)
+      
+      gravity => extract_vector_field(state, "GravityDirection")
+      assert(gravity%dim == mesh_dim(gp_rhs))
+      assert(ele_count(gravity) == ele_count(gp_rhs))
+    else      
+      gravity_magnitude = 0.0
+      gravity => dummy_vector
+      buoyancy => dummy_scalar
     end if
 
     if(include_coriolis) then
