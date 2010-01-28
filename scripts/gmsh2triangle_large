@@ -32,7 +32,7 @@ optionParser = optparse.OptionParser( \
   usage = "%prog INPUT", \
   add_help_option = True, \
   description = "Converts a gmsh .msh file and produces an output triangle mesh, using on-the-fly\n" + \
-                "I/O. Currently 3D only.")
+                "I/O.")
 optionParser.add_option("--2D", "--2d", "-2",
                   help="discard 3rd coordinate of node positions",
 		     action="store_const", const=2, dest="dim", default=3)

@@ -29,7 +29,7 @@ def Help():
         "\n" + \
         "-c        Do not output data labels\n" + \
         "-d DELIM The delimiter to use between output columns (default = \",\")\n" + \
-        "-o        Output file (default = project.csv)\n" + \
+        "-o        Output file\n" + \
         "-s        Output to stdout instead of output file"
   sys.stdout.flush()
   
@@ -97,10 +97,6 @@ for opt in opts:
     
 # Read the input .stat file    
 s = fluidity_tools.stat_parser(inputFile)
-
-# Read from parsed stat file and output to output file
-labels = []
-data = {}
 
 def ExtractData(input, labelPrefix = ""):  
   """

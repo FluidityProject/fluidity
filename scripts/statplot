@@ -86,14 +86,21 @@ class StatplotWindow(gtk.Window):
     self._plotType = plotting.LinePlot
     
     # The combos
-    self._xCombo = gui.ComboBoxFromEntries(self._stat.Paths())
+    paths = self._stat.Paths()
+    paths.sort()
+    if "ElapsedTime" in paths:
+      paths.remove("ElapsedTime")
+      paths.insert(0, "ElapsedTime")
+    self._xCombo = gui.ComboBoxFromEntries(paths)
     self._xCombo.connect("changed", self._XComboChanged)
     iter = self._xCombo.get_model().get_iter_first()
     if not iter is None:
       self._xCombo.set_active_iter(iter)
     self._hBox.pack_start(self._xCombo)
     
-    self._yCombo = gui.ComboBoxFromEntries(self._stat.Paths())
+    paths = self._stat.Paths()
+    paths.sort()
+    self._yCombo = gui.ComboBoxFromEntries(paths)
     self._yCombo.connect("changed", self._YComboChanged)
     iter = self._yCombo.get_model().get_iter_first()
     if not iter is None:
