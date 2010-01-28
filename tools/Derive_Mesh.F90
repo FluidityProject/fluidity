@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
 
-subroutine derive_mesh(input_filename, input_filename_len, output_filename, output_filename_len, degree, continuity, vtu)
+subroutine derive_mesh(input_filename, input_filename_len, output_filename, output_filename_len, degree, cont, vtu)
   
   use fields
   use fldebug
@@ -44,7 +44,7 @@ subroutine derive_mesh(input_filename, input_filename_len, output_filename, outp
   character(len = input_filename_len), intent(in) :: input_filename
   character(len = output_filename_len), intent(in) :: output_filename
   integer, intent(in) :: degree
-  integer, intent(in) :: continuity
+  integer, intent(in) :: cont
   integer, intent(in) :: vtu
   
   type(element_type) :: derived_shape
@@ -59,7 +59,7 @@ subroutine derive_mesh(input_filename, input_filename_len, output_filename, outp
   ewrite(2, *) "Input file: " // trim(input_filename)
   ewrite(2, *) "Output file: " // trim(output_filename)
   ewrite(2, *) "Mesh degree: ", degree
-  ewrite(2, *) "Mesh is continuous? ", continuity == 0
+  ewrite(2, *) "Mesh is continuous? ", cont == 0
   
   base_positions = read_triangle_files(trim(input_filename), quad_degree = 1)
   base_mesh => base_positions%mesh
@@ -67,7 +67,7 @@ subroutine derive_mesh(input_filename, input_filename_len, output_filename, outp
   
   base_shape => ele_shape(base_mesh, 1)
   derived_shape = make_element_shape(base_shape, degree = degree)
-  derived_mesh = make_mesh(base_mesh, derived_shape, continuity = continuity)
+  derived_mesh = make_mesh(base_mesh, derived_shape, continuity = cont)
   call deallocate(derived_shape)
   
   call allocate(derived_positions, base_positions%dim, derived_mesh, name = base_positions%name)
