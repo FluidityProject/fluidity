@@ -233,6 +233,8 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@cd assemble;   	$(MAKE)
 	@echo "    MAKE diagnostics"
 	@cd diagnostics;   	$(MAKE)
+	@echo "    MAKE reduced_modelling"
+	@cd reduced_modelling;   	$(MAKE)
 ifeq (@ADJOINT@,yes)
 	@echo "    MAKE adjoint"
 	@cd adjoint; $(MAKE)
@@ -337,6 +339,8 @@ clean-light:
 	@cd climatology;  $(MAKE) clean
 	@echo "    CLEAN climatology"
 	@cd adjoint; $(MAKE) clean
+	@echo "    CLEAN main"
+	@cd reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
 	@echo "    CLEAN qg_strat"
