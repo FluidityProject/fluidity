@@ -4012,13 +4012,15 @@ prognostic_pressure_field =
 prognostic_geostrophic_pressure_field =
    (
       element spatial_discretisation {
-         ## Select whether on not to include the buoyancy term "g" in the RHS:
+         ## Enables / disables RHS terms in the geopressure solver:
          ##
-         ##   f = - grad p_gp + g
+         ##   include_buoyancy - Include both the buoyancy and Coriolis terms on the RHS
+         ##   exclude_buoyancy - Include only the Coriolis term on the RHS
+         ##   exclude_coriolis - Include only the buoyancy term on the RHS
          element geostrophic_pressure_option {
             attribute replaces { "GEOBAL" },
             element string_value {
-               "include_buoyancy" | "exclude_buoyancy"
+               "include_buoyancy" | "exclude_buoyancy" | "exclude_coriolis"
             }
          }
       },

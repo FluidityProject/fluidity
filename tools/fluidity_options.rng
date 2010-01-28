@@ -5326,9 +5326,11 @@ want this.</a:documentation>
   <define name="prognostic_geostrophic_pressure_field">
     <element name="spatial_discretisation">
       <element name="geostrophic_pressure_option">
-        <a:documentation>Select whether on not to include the buoyancy term "g" in the RHS:
+        <a:documentation>Enables / disables RHS terms in the geopressure solver:
 
-  f = - grad p_gp + g</a:documentation>
+  include_buoyancy - Include both the buoyancy and Coriolis terms on the RHS
+  exclude_buoyancy - Include only the Coriolis term on the RHS
+  exclude_coriolis - Include only the buoyancy term on the RHS</a:documentation>
         <attribute name="replaces">
           <value>GEOBAL</value>
         </attribute>
@@ -5336,6 +5338,7 @@ want this.</a:documentation>
           <choice>
             <value>include_buoyancy</value>
             <value>exclude_buoyancy</value>
+            <value>exclude_coriolis</value>
           </choice>
         </element>
       </element>

@@ -151,8 +151,9 @@ contains
     path = complete_field_path(gp_options_field%option_path)
     assemble_matrix = do_assemble_matrix(state)
     call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
-    include_buoyancy = (trim(geostrophic_pressure_option) == "include_buoyancy")
-    include_coriolis = have_option("/physical_parameters/coriolis")
+    include_buoyancy = (geostrophic_pressure_option == "include_buoyancy")
+    include_coriolis = have_option("/physical_parameters/coriolis") .and. .not. &
+      & geostrophic_pressure_option == "exclude_coriolis"
     if(gp_options_field%name == gp_name) then
       ! If using GeostrophicPressure, default to no reference node
       call get_option(trim(path) // "/reference_node", reference_node, default = 0)
