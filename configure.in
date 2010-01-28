@@ -1437,4 +1437,5 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           gallopede/Makefile libvtkfortran/Makefile 
           qg_strat/Makefile qg_strat/unittests/Makefile
-          tests/lauwerier/Makefile)
+          tests/lauwerier/Makefile
+			 reduced_modelling/Makefile)
