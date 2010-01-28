@@ -2359,7 +2359,7 @@ contains
       do j = 0, option_count(trim(mat_phase_path) // "/scalar_field") - 1
         path = "/material_phase[" // int2str(i) // "]/scalar_field[" // int2str(j) // "]"
         call get_option(trim(path) // "/name", field_name)
-        path = complete_field_path(path)
+        path = complete_field_path(path, stat = stat)
         if(field_name == gp_name) then
           call get_option(trim(path) // "/reference_node", reference_node, stat = stat)
           if(stat /= 0) then
