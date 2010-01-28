@@ -2328,7 +2328,8 @@ contains
     !!< Check GeostrophicPressure specific options
     
     character(len = FIELD_NAME_LEN) :: field_name
-    character(len = OPTION_PATH_LEN) :: path
+    character(len = OPTION_PATH_LEN) :: mat_phase_path, path, &
+      & geostrophic_pressure_option
     integer :: i, j, reference_node, stat
     
     if(option_count("/material_phase/scalar_field::" // gp_name) + &
@@ -2354,12 +2355,12 @@ contains
     end if
     
     do i = 0, option_count("/material_phase") - 1
-      path = "/material_phase[" // int2str(i) // "]"      
-      do j = 0, option_count(trim(path) // "/scalar_field") - 1
+      mat_phase_path = "/material_phase[" // int2str(i) // "]"      
+      do j = 0, option_count(trim(mat_phase_path) // "/scalar_field") - 1
         path = "/material_phase[" // int2str(i) // "]/scalar_field[" // int2str(j) // "]"
         call get_option(trim(path) // "/name", field_name)
+        path = complete_field_path(path)
         if(field_name == gp_name) then
-          path = complete_field_path(path)
           call get_option(trim(path) // "/reference_node", reference_node, stat = stat)
           if(stat /= 0) then
             if(.not. have_option(trim(path) // "/solver/remove_null_space")) then
@@ -2367,6 +2368,13 @@ contains
             end if
           else if(reference_node <= 0) then
             FLExit("GeostrophicPressure reference node must be positive")
+          end if
+        end if
+        if(any(field_name == (/gp_name, "BalancePressure"/))) then
+          call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
+          if(geostrophic_pressure_option == "include_buoyancy" .and. &
+            & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressure") > 0) then
+            FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressure")
           end if
         end if
       end do
