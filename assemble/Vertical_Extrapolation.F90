@@ -1028,6 +1028,8 @@ logical, optional, intent(out):: optimal_ordering
     optimal_ordering=.not. warning
   end if
   
+  call deallocate(dbin)
+  
 end subroutine vertical_element_ordering
   
 subroutine compute_face_normal_gravity(face_normal_gravity, &
