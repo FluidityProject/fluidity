@@ -1136,6 +1136,43 @@ module field_derivatives
         
       end subroutine differentiate_field_ele
       
+!      subroutine differentiate_field_sele(sele)
+!        integer, intent(in):: sele
+      
+!        real, dimension(mesh_dim(mesh), face_loc(mesh, sele), face_loc(mesh, sele)) :: r
+!        real, dimension(face_ngi(mesh, sele)) :: detwei
+!        real, dimension(face_loc(mesh, sele), face_ngi(mesh, sele), mesh_dim(mesh)) :: dt_t
+!        real, dimension(face_loc(mesh, sele), face_loc(mesh, sele)) :: mass_matrix
+        
+!        integer i
+!        ele  = face_ele(mesh, sele)
+!        u_shape => ele_shape(u, ele)
+!        u_f_shape => face_shape(u, sele)
+!        augmented_shape = make_element_shape(x_shape%loc, &
+!              u_shape%dim, u_shape%degree, u_shape%quadrature, &
+!              quad_s=u_f_shape%quadrature )
+!        vol_dshape_face = eval_volume_dshape_at_face_quad( &
+!              augmented_shape, l_face_number, invJ_face )
+        ! Compute detwei.
+!        call transform_facet_to_physical(positions, sele, &
+!           face_shape(mesh, sele), detwei_f=detwei)
+
+!        r = shape_dshape(face_shape(mesh, sele), dt_t, detwei)
+!        do i=1, size(infields)
+          
+!          if (compute(i)) then
+!            call addto(gradient(i), face_nodes(mesh, sele), &
+!               tensormul(r, ele_val(infields(i), ele), 3) )
+!          end if
+
+!        end do
+        
+        ! Lump the mass matrix
+!        mass_matrix = shape_shape(ele_shape(mesh, ele), ele_shape(mesh, ele), detwei)
+!        call addto(lumped_mass_matrix, ele_nodes(mesh, ele), sum(mass_matrix, 2))
+        
+!      end subroutine differentiate_field_sele
+
     end subroutine differentiate_field_lumped_multiple
       
     subroutine differentiate_field_lumped_single(infield, positions, derivatives, pardiff)

@@ -94,7 +94,8 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Sparse_Tools_Petsc.o C_Interfaces.o C_Interfaces_Fortran.o Tetrahedron_intersection.o \
   Node_Owner_Finder.o Node_Owner_Finder_Fortran.o Node_Ownership.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
-  CGAL_Tools_C.o CGAL_Tools.o
+  CGAL_Tools_C.o CGAL_Tools.o \
+  Rotated_Boundary_Conditions.o
 
 
 # objects to be included in libfemtools:

@@ -82,7 +82,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Coriolis.o \
         Mba2d_Integration.o Slope_limiters_DG.o \
         Porous_Media.o Spontaneous_Potentials.o LES_viscosity.o \
-        Petsc_Solve_State.o Rotated_Boundary_Conditions.o Adaptivity_1D.o \
+        Petsc_Solve_State.o Adaptivity_1D.o \
 	Sediment_Diagnostics.o Linear_Shallow_Water.o Zoltan_integration.o \
         Diagnostic_Children.o
 
@@ -129,8 +129,7 @@ Advection_Diffusion_CG.o: Upwind_Stabilisation.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
 reduced_model.o: Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
-Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o \
-   Rotated_Boundary_Conditions.o
+Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o
 Assemble_CMC.o: Multimaterials.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
@@ -149,7 +148,7 @@ Geostrophic_Pressure.o: Petsc_Solve_State.o \
 Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
    Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
    Drag.o Geostrophic_Pressure.o Vertical_Extrapolation.o OceanSurfaceForcing.o \
-   Petsc_Solve_State.o State_Matrices.o Rotated_Boundary_Conditions.o
+   Petsc_Solve_State.o State_Matrices.o
 Compressible_Projection.o: Multimaterials.o
 Free_Surface.o: Vertical_Extrapolation.o
 Pseudo_supermesh.o: Adapt_State_Unittest.o
@@ -159,7 +158,7 @@ Solenoidal_interpolation.o: Assemble_CMC.o Divergence_Matrix_CG.o \
 
 Discrete_Properties.o: Solenoidal_interpolation.o
 Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o State_Matrices.o \
-   Rotated_Boundary_Conditions.o LES_viscosity.o
+   LES_viscosity.o
 Momentum_Diagnostic_Fields.o: Multimaterials.o
 Mba2d_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
 Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o

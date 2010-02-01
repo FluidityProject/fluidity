@@ -40,6 +40,7 @@ module k_epsilon
   use boundary_conditions
   use fields_manipulation
   use FLDebug
+!  use rotated_boundary_conditions
 
   implicit none
 
@@ -47,23 +48,19 @@ module k_epsilon
 
   ! These variables are the parameters requried by k-epsilon. 
   ! They are all private to prevent tampering
-  ! and save'd so that we don't need to call keps_init every time some GLS-y
-  ! happens.
+  ! and saved so that we don't need to call keps_init every time we need them.
 
-  real, save               :: sigma_eps, sigma_k, kappa
   integer, save            :: nNodes
-  ! Used in production terms
-  type(scalar_field), save :: TKE_old, ll
-  type(scalar_field), save :: eps, Fwall
-  type(scalar_field), save :: nut, P
-  ! eddy viscosity, production
+  ! turbulent kinetic energy, epsilon, lengthscale, eddy viscosity, production
+  type(scalar_field), save :: TKE_old, eps, ll, nut, P
+  ! deltas for subroutine calc_tke and calc_eps
   type(scalar_field), save :: delta_KK, delta_eps
   real, save               :: eps_min = 1.e-12, k_min
-  real, save               :: c_mu, c_eps_1, c_eps_2, theta
+  ! Experimental constants from Diamond
+  real, save               :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, theta
 
-  ! Grad tensors
+  ! Gradient tensor
   type(tensor_field), save             :: DU_DX
-
   ! these are the fields and variables for the surface values
   type(scalar_field), save             :: surface_values
   ! these are used to populate the bcs
@@ -72,9 +69,8 @@ module k_epsilon
   integer, save                        :: NNodes_sur
   integer, dimension(:), pointer, save :: surface_nodes
   integer, dimension(:), pointer, save :: surface_element_list
-  logical, save                        :: initialised, calculate_bcs, fix_surface_values
-  real, allocatable, dimension(:)      :: dzb
-  
+  logical, save                        :: initialised, calculate_bcs
+
   ! The following are the public subroutines
   public :: keps_init, keps_cleanup, calc_tke, eddyvisc, calc_eps, keps_init_surfaces
 
@@ -99,15 +95,10 @@ contains
 subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
-
-    type(scalar_field), pointer    :: scalarField
-    type(vector_field), pointer    :: vectorField
-    type(tensor_field), pointer    :: tensorField
-    real                           :: N
-    type(scalar_field), pointer    :: distanceToBottom, distanceToTop 
-    integer                        :: i, stat
-    character(len=FIELD_NAME_LEN)  :: option
-    type(scalar_field), pointer    :: s_cur,s_old
+    type(scalar_field), pointer     :: scalarField, s_cur,s_old, dtwo_kk
+    type(vector_field), pointer     :: vectorField
+    type(tensor_field), pointer     :: tensorField
+    integer                         :: stat
 
     ewrite(1,*)'Now in k_epsilon turbulence model - JB'
 
@@ -128,20 +119,26 @@ subroutine keps_init(state)
     if(stat/=0) FLAbort("Need source for TurbulentKineticEnergyAbsorption field")
     scalarField  => extract_scalar_field(state, "EpsilonAbsorption",stat)
     if(stat/=0) FLAbort("Need source for EpsilonAbsorption field")
-    scalarField  => extract_scalar_field(state, "Viscosity",stat)
-    if(stat/=0) FLAbort("Need source for Viscosity field")
     scalarField  => extract_scalar_field(state, "LengthScale",stat)
     if(stat/=0) FLAbort("Need source for LengthScale field")
     tensorField => extract_tensor_field(state, "Viscosity",stat)
-    if(stat/=0) FLAbort("Need viscosity")
+    if(stat/=0) FLAbort("Need Viscosity")
     tensorField  => extract_tensor_field(state, "EddyViscosity",stat)
     if(stat/=0) FLAbort("Need EddyViscosity")
     vectorField => extract_vector_field(state, "Velocity",stat)
-    if(stat/=0) FLAbort("Need velocity")
-   
+    if(stat/=0) FLAbort("Need Velocity")
+
+    ! Do we have BCs specified for both fields? Better be!
+    calculate_bcs = &
+    have_option("/material_phase[0]/subgridscale_parameterisations/k_epsilon/scalar_field::TurbulentKineticEnergy/prognostic/boundary_conditions[0]") &
+    .and. have_option("/material_phase[0]/subgridscale_parameterisations/k_epsilon/scalar_field::Epsilon/prognostic/boundary_conditions[0]")
+    if (calculate_bcs) then
+        FLAbort("Need to specify Dirichlet boundary conditions for TKE and Epsilon")
+    end if
+
     ! populate some useful variables including the 5 model constants
     nNodes = node_count(scalarField)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/TurbulentKineticEnergy/prognostic/temporal_discretisation/theta', theta, default = 1.0)
+    call get_option('/material_phase[0]/subgridscale_parameterisations/k_epsilon/scalar_field::TurbulentKineticEnergy/prognostic/temporal_discretisation/theta', theta, default = 1.0)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_mu', C_mu, default = 0.09)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_1', c_eps_1, default = 1.44)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_2', c_eps_2, default = 1.92)
@@ -154,15 +151,16 @@ subroutine keps_init(state)
     call allocate(P,          vectorField%mesh, "ShearProduction")
     call allocate(nut,        vectorField%mesh, "EddyViscosity")
     call allocate(eps,        vectorField%mesh, "TKE_Dissipation")
-    call allocate(Fwall,      vectorField%mesh, "WallFunction")
+!    call allocate(Fwall,      vectorField%mesh, "WallFunction")
     call allocate(DU_DX,      tensorField%mesh, "DUDX")
     call allocate(TKE_old,    vectorField%mesh, "Old_TKE")
     call allocate(delta_KK,   vectorField%mesh, "deltaKK")
+    call allocate(dtwo_kk,    vectorField%mesh, "dtwoKK")
     call allocate(delta_eps,  vectorField%mesh, "deltaeps")
 
+    ! Hard-coded by Jon Hill. Must be something small and nonzero.
     k_min = 7.6e-6
     eps_min = 1.e-12
-    call set( Fwall, 1.0 )
 
     ewrite(1,*) "Parameters"
     ewrite(1,*) "--------------------------------------------"
@@ -173,7 +171,7 @@ subroutine keps_init(state)
     ewrite(1,*) "sigma_eps: ",sigma_eps
     ewrite(1,*) "--------------------------------------------"
     
-    ! initialise 2 k-epsilon fields with minimum values
+    ! initialise 2 fields (k, epsilon) with minimum values
     s_cur => extract_scalar_field(state, "TurbulentKineticEnergy")
     s_old => extract_scalar_field(state, "OldTurbulentKineticEnergy")
     call set(s_cur,k_min)
@@ -183,57 +181,44 @@ subroutine keps_init(state)
     call set(s_cur,eps_min)
     call set(s_old,eps_min)
 
-    ! init other fields
+    ! initialise other fields
     call set(P, 0.0)
     s_cur => extract_scalar_field(state, "EddyViscosity")
     s_old => extract_scalar_field(state, "OldEddyViscosity")    
     call set(s_cur,1e-6)
     call set(s_old,1e-6)
-    s_cur => extract_scalar_field(state, "DissipationEpsilon")
-    s_old => extract_scalar_field(state, "OldDissipationEpsilon")    
-    call set(s_cur,eps_min)
-    call set(s_old,eps_min)
-    call set(eps,eps_min)    
     s_cur => extract_scalar_field(state, "LengthScale")
     s_old => extract_scalar_field(state, "OldLengthScale")    
     call set(s_cur,k_min**1.5/eps_min)
     call set(s_old,k_min**1.5/eps_min)
     call set(ll,k_min**1.5/eps_min)
 
-    ! intilise surface - only if we need to though
+    ! initialise surface
     if (calculate_bcs) then
         initialised = .false.
         call keps_init_surfaces(state)
-        call calculate_dz(state)
     end if
-
-
-    ! we're all done!
 end subroutine keps_init
+
 
 !----------
 ! Update TKE
 !----------
 subroutine calc_tke(state)
 
-    type(state_type), intent(inout)  :: state 
-    
-    type(scalar_field), pointer      :: source, absorption, kk, eps, s_Old, scalarField, s_current
-    type(tensor_field), pointer      :: kk_diff
-    real                             :: prod, diss
-    integer                          :: i, ii, j, stat
-    character(len=FIELD_NAME_LEN)    :: bc_type
-    type(scalar_field), pointer      :: scalar_surface, utemp
-    type(scalar_field), dimension(1)      :: grtemp
-    type(vector_field), pointer      :: positions, gradient
-!   Formerly variables in gls_buoyancy:
-    type(vector_field)               :: velocity
-    type(vector_field), pointer      :: v_Old, v_current
-    logical, allocatable, dimension(:) :: derivs
+    type(state_type), intent(inout)   :: state
+    type(scalar_field), pointer       :: source, absorption, kk, eps, s_Old, scalarField, s_current, &
+                                         & scalar_surface, utemp
+    type(vector_field), pointer       :: v_Old, v_current, positions
+    type(tensor_field), pointer       :: kk_diff
+    real                              :: diss
+    integer                           :: i, ii, j, stat
+    character(len=FIELD_NAME_LEN)     :: bc_type
+    type(scalar_field), dimension(1)  :: grtemp
+    type(vector_field)                :: velocity
+    logical, allocatable, dimension(:):: derivs
 
-    
 !    call gls_buoyancy(state)
-
 !subroutine gls_buoyancy(state)
   
     ! grab variables required from state - already checked in init, so no need to check here
@@ -242,7 +227,13 @@ subroutine calc_tke(state)
     v_current => extract_vector_field(state, "Velocity")
     source => extract_scalar_field(state, "TurbulentKineticEnergySource")
     absorption  => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
-    
+    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
+    kk_diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
+eps => extract_scalar_field(state, "Epsilon")
+    ! Temporary field for calculating gradient field:
+    utemp => extract_scalar_field(state, "Velocity")
+
+    ! Update the velocity field:
     call set(velocity, v_current)
     call scale(velocity, theta)
     call addto(velocity, v_Old, 1.0-theta)
@@ -252,13 +243,11 @@ subroutine calc_tke(state)
     derivs = .false.
 
     do i = 1, DU_DX%dim
-        utemp => extract_scalar_field(state, "Velocity")
         do j = 1, DU_DX%dim
             grtemp = extract_scalar_field_from_tensor_field(DU_DX, i, j)
             if (i==j) derivs(j) = .true.
             call differentiate_field(utemp, positions, derivs, grtemp )
             derivs = .false.
-            
         end do
     end do
 
@@ -267,10 +256,9 @@ subroutine calc_tke(state)
     do ii = 1, nNodes
         do i = 1, velocity%dim
             do j = 1, velocity%dim
-                ! tensor to be multiplied by eddy viscosity
+                ! Production term is sum of components of tensor
                 call addto(P, ii, node_val(nut, ii) * DU_DX%val(i,j,ii)+DU_DX%val(j,i,ii) &
                 * DU_DX%val(i,j,ii)  )
-                ! Sum components of tensor to calculate production term
             end do
         end do
         diss = node_val(eps, ii)
@@ -283,10 +271,6 @@ subroutine calc_tke(state)
 
 !end subroutine gls_buoyancy
 
-    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
-    kk_diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
-
-
     ! work out the deltas:
     !delta_KK = theta*kk + (1-theta)*OldKK
     s_Old => extract_scalar_field(state, "OldTurbulentKineticEnergy")
@@ -298,14 +282,8 @@ subroutine calc_tke(state)
     call set(nut, s_current)
     call scale(nut, theta)
     call addto(nut, s_Old, 1.0-theta)
-    s_Old => extract_scalar_field(state, "OldDissipationEpsilon")
-    s_current => extract_scalar_field(state, "DissipationEpsilon")
-    call set(eps, s_current)
-    call scale(eps, theta)
-    call addto(eps, s_Old, 1.0-theta)
 
-
-    ! set diffusivity for KK
+    ! set diffusivity for KK.
     call set(kk_diff,kk_diff%dim,kk_diff%dim,nut,scale=1./sigma_k)
     ! add in background (need to grab from Diamond, rather than hardcode)
     do ii=1,nNodes
@@ -314,14 +292,12 @@ subroutine calc_tke(state)
 
     ! boundary conditions
     if (calculate_bcs) then
-        call get_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/calculate_boundaries/", bc_type)
+        call get_option("/material_phase[0]/subgridscale_parameterisations/k_epsilon/scalar_field::TurbulentKineticEnergy/prognostic/boundary_conditions[0]/type", bc_type)
+        ! puts the BC boundary values in surface_values (module level variable):
         call tke_bc(state,bc_type)
-        ! above puts the BC boundary values in top_surface_values and bottom_surface_values module level variables
-        ! map these onto the actual BCs in kk
-!        scalar_surface => extract_surface_field(KK, 'tke_boundary', "value")
-!        call remap_field(bottom_surface_values, scalar_surface)
-!        scalar_surface => extract_surface_field(eps, 'td_boundary', "value")
-!        call remap_field(top_surface_values, scalar_surface)
+        ! map these onto the actual BC in kk
+        scalar_surface => extract_surface_field(KK, 'tke_boundary', "value")
+        call remap_field(surface_values, scalar_surface)
     end if
     
     ! finally, we need a copy of the old TKE for eps, so grab it before we solve
@@ -350,12 +326,11 @@ subroutine calc_eps(state)
 
     type(state_type), intent(inout)  :: state 
     
-    type(scalar_field), pointer      :: source, absorption, kk, kkOld, eps, s_Old, scalarField, s_current
+    type(scalar_field), pointer      :: source, absorption, kk, kkOld, eps, s_Old, scalarField, s_current, scalar_surface
     type(tensor_field), pointer      :: eps_visc, eps_diff
-    real                             :: prod,diss,EpsOverTke
+    real                             :: prod, diss, EpsOverTke
     character(len=FIELD_NAME_LEN)    :: bc_type
     integer                          :: i, stat
-    type(scalar_field), pointer      :: scalar_surface
 
     source => extract_scalar_field(state, "EpsilonSource")
     absorption  => extract_scalar_field(state, "EpsilonAbsorption")
@@ -363,7 +338,6 @@ subroutine calc_eps(state)
     kkOld => extract_scalar_field(state, "OldTurbulentKineticEnergy")
     eps => extract_scalar_field(state, "Epsilon")
     eps_diff => extract_tensor_field(state, "EpsilonDiffusivity")
-!    length => extract_scalar_field(state, "LengthScale")
 
     ! work out the delta_KK = theta*kk + (1-theta)*OldKK
     call set(delta_KK, kk)
@@ -374,24 +348,19 @@ subroutine calc_eps(state)
     call set(ll, s_current)
     call scale(ll, theta)
     call addto(ll, s_Old, 1.0-theta)
-    s_Old => extract_scalar_field(state, "OldDissipationEpsilon")
-    s_current => extract_scalar_field(state, "DissipationEpsilon")
-    call set(eps, s_current)
-    call scale(eps, theta)
-    call addto(eps, s_Old, 1.0-theta)
     s_Old => extract_scalar_field(state, "OldShearProduction")
     s_current => extract_scalar_field(state, "ShearProduction")
     call set(P, s_current)
     call scale(P, theta)
     call addto(P, s_Old, 1.0-theta)
-    s_Old => extract_scalar_field(state, "OldViscosity")
-    s_current => extract_scalar_field(state, "Viscosity")
+    s_Old => extract_scalar_field(state, "OldEddyViscosity")
+    s_current => extract_scalar_field(state, "EddyViscosity")
     call set(nut, s_current)
     call scale(nut, theta)
     call addto(nut, s_Old, 1.0-theta)
-    
 
-    if (fix_surface_values) then
+    !
+    if (calculate_bcs) then ! BC for epsilon is d^2k/dn^2
         call get_boundary_condition(kk, 'tke_boundary', type=bc_type)
      
         ! We need to just add a dirichlet BC to the TKE first, so we get the right value for the rest
@@ -425,7 +394,7 @@ subroutine calc_eps(state)
         call set(eps, i, (node_val(TKE_old,i))**1.5)
         call scale(eps, 1./ll%val(i))
     end do
-write(*,*) "In Eps"
+write(*,*) "In Epsilon calculation"
     ! compute RHS
     do i=1,nNodes
         ! compute production terms in eps-equation
@@ -439,7 +408,7 @@ write(*,*) "In Eps"
         call set(absorption, i, diss/node_val(eps,i))
     end do
 
-    ! Set eddy viscosity for Eps
+    ! Set eddy viscosity scaled by constant (sigma_eps) for Epsilon
     call set(eps_visc,eps_visc%dim,eps_visc%dim,nut,scale=1./sigma_eps)
     ! Add in background (need to grab from Diamond rather than hardcode)
     do i=1,nNodes
@@ -448,43 +417,41 @@ write(*,*) "In Eps"
 
     ! boundary conditions
     if (calculate_bcs) then
-        call get_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/calculate_boundaries/", bc_type)
+        call get_option( &
+        "/material_phase[0]/subgridscale_parameterisations/k_epsilon/scalar_field::TurbulentKineticEnergy/prognostic/boundary_conditions[0]/type",&
+        bc_type)
+        ! puts the BC boundary values in surface_values (module level variable):
         call eps_bc(state,bc_type)
-        ! above puts the BC boundary values in top_surface_values and bottom_surface_values module level variables
-        ! map these onto the actual BCs in eps
-!        scalar_surface => extract_surface_field(eps, 'eps_boundary', "value")
-!        call remap_field(surface_values, scalar_surface)
+        ! map these onto the actual BC in kk
+        scalar_surface => extract_surface_field(KK, 'eps_boundary', "value")
+        call remap_field(surface_values, scalar_surface)
     end if
 
-
-    ! Eps is now ready for solving (see Fluids.F90)
+    ! Epsilon is now ready for solving (see Fluids.F90)
     ewrite_minmax(source%val(:))
     ewrite_minmax(absorption%val(:))
     ! set source and absorption terms in optional output fields
     scalarField => extract_scalar_field(state, "Source2", stat)
     if(stat == 0) then
-       call set(scalarField,source)  
+        call set(scalarField,source)  
     end if
     scalarField => extract_scalar_field(state, "Absorption2", stat)
     if(stat == 0) then
-       call set(scalarField,absorption)  
+        call set(scalarField,absorption)  
     end if
 
 end subroutine calc_eps
 
 
 !----------
-! diffusivity fixes the top/bottom boundaries of Eps
-! then calulates the lengthscale, and then uses those to calculate the 
-! viscosity
+! eddyvisc calculates the lengthscale, and then the viscosity.
 ! These are placed in the GLS fields ready for other tracer fields to use
 ! Viscosity is placed in the velocity viscosity
 !----------
 subroutine eddyvisc(state)
 
-    type(state_type), intent(inout)  :: state 
-    
-    type(scalar_field), pointer      :: KK, eps, epsOld, kkOld, s_current, s_Old
+    type(state_type), intent(inout)  :: state
+    type(scalar_field), pointer      :: KK, eps, epsOld, kkOld
     type(tensor_field), pointer      :: eddy_visc, viscosity, background_visc
     real                             :: x
     character(len=FIELD_NAME_LEN)    :: bc_type
@@ -505,34 +472,26 @@ subroutine eddyvisc(state)
     call scale(delta_KK, theta)
     call addto(delta_KK, kkOld, 1.0-theta)
 
-
-    if (fix_surface_values) then
-        call get_boundary_condition(eps, 'eps_boundary', type=bc_type)
-    
-        ! We need to just add a dirichlet BC to the TKE first, so we get the right value for the rest
-        ! of this calculation on the surfaces
-        ! only do this if we're using a neumann BC on the solve.
-        if (bc_type == "neumann") then
-    
-            ! call the bc code, but specify we want dirichlet
-            call eps_bc(state, 'dirichlet')
-    
-            ! copy the values onto the mesh using the global node id
-            do i=1,NNodes_sur
-                call set(delta_eps,surface_nodes(i),node_val(surface_values,i))
-            end do   
-        end if
+    ! Hard-coded in the GLS option "fix_surface_values": I want to do this by default (I think).
+    call get_boundary_condition(eps, 'eps_boundary', type=bc_type)
+    ! We need to just add a dirichlet BC to the TKE first, so we get the right value for the rest
+    ! of this calculation on the surfaces
+    ! only do this if we're using a neumann BC on the solve.
+    if (bc_type == "neumann") then
+        ! call the bc code, but specify we want dirichlet
+        call eps_bc(state, bc_type)
+        ! copy the values onto the mesh using the global node id
+        do i=1,NNodes_sur
+            call set(delta_eps,surface_nodes(i),node_val(surface_values,i))
+        end do   
     end if
 
 write(*,*) "In diffusivity" 
     do i=1,nNodes
-
         tke = delta_KK%val(i)
         call set(eps, i, tke**1.5/node_val(ll,i))
-        
         ! clip at eps_min
         call set(eps, i, max(node_val(eps,i),eps_min))
-
         ! compute dissipative scale - MAY NEED CHANGING
         call set(ll, i, tke**1.5/node_val(eps,i))
     end do
@@ -540,10 +499,8 @@ write(*,*) "In diffusivity"
     ! calculate viscosity for next step and for use in other fields
     do i=1,nNodes
         call set( nut, i, C_mu * tke**2. / eps%val(i) )
-
-        !write(*,*) node_val(delta_KK,i),node_val(delta_eps,i),node_val(eps,i),node_val(ll,i), x, &
-        ! & node_val(nut,i)
-
+        write(*,*) node_val(delta_KK,i),node_val(delta_eps,i),node_val(eps,i),node_val(ll,i), x, &
+        node_val(nut,i)
     end do
 
     !set the eddy_diffusivity and viscosity tensors for use by other fields
@@ -555,7 +512,7 @@ write(*,*) "In diffusivity"
         call addto(eddy_visc,background_visc)    
     endif   
 
-    ! add the viscosity to the velocity viscosity
+    ! set the velocity viscosity to the computed eddy viscosity
     call set(viscosity,viscosity%dim,viscosity%dim,nut) 
     ! Add background
     !TODO: grab from Diamond rather than hardcode
@@ -571,7 +528,6 @@ write(*,*) "In diffusivity"
 end subroutine eddyvisc
 
 
-
 !----------
 ! cleanup does...have a guess...go on.
 !----------
@@ -582,7 +538,7 @@ subroutine keps_cleanup()
     call deallocate(P)
     call deallocate(nut)
     call deallocate(eps)
-    call deallocate(Fwall)
+!    call deallocate(Fwall)
     call deallocate(DU_DX)
     call deallocate(TKE_old)
     call deallocate(delta_KK)
@@ -590,7 +546,6 @@ subroutine keps_cleanup()
     if (calculate_bcs) then
         call deallocate(surface_values)
         call deallocate(surface_kk_values)
-        deallocate(dzb)
     end if
 
 end subroutine keps_cleanup
@@ -601,37 +556,30 @@ end subroutine keps_cleanup
 ! Called at startup and after an adapt
 !----------
 subroutine keps_init_surfaces(state)
-    type(state_type), intent(in)     :: state  
-
-    type(scalar_field), pointer      :: distanceToTop, distanceToBottom
+    type(state_type), intent(in)     :: state
     character(len=OPTION_PATH_LEN)   :: input_mesh_name
-    type(scalar_field), pointer      :: kk
-    type(mesh_type)                  :: input_mesh, ocean_mesh
-   
-    ! grab hold of some essential field
-    distanceToTop => extract_scalar_field(state, "DistanceToTop")
-    distanceToBottom => extract_scalar_field(state, "DistanceToBottom")
-    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
+    type(scalar_field), pointer      :: kk, bc_field
+    character(len=FIELD_NAME_LEN)    :: bc_type
+    type(mesh_type)                  :: input_mesh, boundary_mesh
 
+    ! grab hold of some essential fields
+    bc_field => extract_scalar_field(state, "BoundaryConditions")
+    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
 
     ! if we're already initialised, then deallocate surface fields to make space for new ones
     if (initialised) then
         call deallocate(surface_values)
-        deallocate(dzb)
     end if
 
-    ! create a surface mesh to place values onto. This is for the top surface
+    ! create a surface mesh to place values onto. ONLY ONE MESH/ONE CONDITION FOR NOW.
     call get_option(trim(kk%option_path)//'/prognostic/mesh/name', input_mesh_name)
     input_mesh = extract_mesh(state, input_mesh_name);
-!    call get_boundary_condition(distanceToTop, name='top', surface_element_list=surface_element_list)
-!    call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
-!    NNodes_sur = node_count(ocean_mesh)
-!    call allocate(surface_values, ocean_mesh, name="surface")
-!    call allocate(surface_kk_values,ocean_mesh, name="surface_tke")
-!    call deallocate(ocean_mesh)
-    ! bottom
-!    call get_boundary_condition(distanceToBottom, name='bottom', surface_element_list=bottom_surface_element_list)
-!    call create_surface_mesh(ocean_mesh, bottom_surface_nodes, input_mesh, bottom_surface_element_list, 'OceanBottom')
+    call get_boundary_condition(bc_field, name='BC', surface_element_list=surface_element_list)
+    call create_surface_mesh(boundary_mesh, surface_nodes, input_mesh, surface_element_list, 'SurfaceMesh')
+    NNodes_sur = node_count(boundary_mesh)
+    call allocate(surface_values, boundary_mesh, name="SurfaceValues")
+    call allocate(surface_kk_values,boundary_mesh, name="SurfaceValuesTKE")
+    call deallocate(boundary_mesh)
 
     initialised = .true.
 end subroutine keps_init_surfaces
@@ -648,55 +596,92 @@ end subroutine keps_init_surfaces
 
 
 
-
 !----------
 ! tke_bc calculates the boundary conditions on the TKE (kk) field
 ! Boundary can be either Dirichlet or Neumann.
 !----------
 subroutine tke_bc(state, bc_type)
 
-    type(state_type), intent(in)     :: state  
+    type(state_type), intent(in)     :: state
     character(len=*), intent(in)     :: bc_type
-
-    type(vector_field), pointer      :: positions 
-!    real                             :: gravity_magnitude
     integer                          :: i
-!    real, allocatable, dimension(:)  :: z0s, z0b, u_taus_squared, u_taub_squared
- 
-    ! grab hold of some essential field
 
-    positions => extract_vector_field(state, "Coordinate") 
-
-
+    select case(bc_type)
+    case("dirichlet")
+    do i=1,NNodes_sur
+        call set(surface_values,i,0.0)
+    end do
+    case default
+        FLAbort('Unknown surface BC for TKE')
+    end select
 
 end subroutine tke_bc
 
 !----------
 ! eps_bc calculates the boundary conditions on the eps (eps) field
-! Boundary can be either Dirichlet or Neumann.
+! Hard-coded to be eps = d^2k/dn^2 for now.
 !----------
 subroutine eps_bc(state, bc_type)
 
-    type(state_type), intent(in)     :: state  
-    character(len=*), intent(in)     :: bc_type
-
-    type(vector_field), pointer      :: positions 
+    type(state_type), intent(in)     :: state
+    type(vector_field), pointer:: normal
     integer                          :: i
-!    real, allocatable, dimension(:)  :: z0s, z0b, u_taus_squared, u_taub_squared
-    type(scalar_field), pointer      :: kk, kkOld
-    real                             :: value
- 
-    ! grab hold of some essential field
+    character(len=FIELD_NAME_LEN)    :: bc_type
+    type(scalar_field), pointer      :: kk, kkOld, dtwo_kk
+    type(vector_field), pointer      :: u
+    character(len=OPTION_PATH_LEN)   :: bc_option_path
 
-    positions => extract_vector_field(state, "Coordinate") 
-    kk => extract_scalar_field(state, "TurbulentKineticEnergy")    
-    kkOld => extract_scalar_field(state, "OldTurbulentKineticEnergy")
 
+
+    ! grab hold of some essential fields
+    kk      => extract_scalar_field(state, "TurbulentKineticEnergy")    
+    kkOld   => extract_scalar_field(state, "OldTurbulentKineticEnergy")
+    dtwo_kk => extract_scalar_field(state, "SecondDerivativeTKE")
+    u       => extract_vector_field(state, "Velocity")
     ! work out the delta_KK = theta*kk + (1-theta)*OldKK
     call set(delta_KK, kk)
     call scale(delta_KK, theta)
     call addto(delta_KK, kkOld, 1.0-theta)
+    
 
+    ! HOW DO I GET THE NORMAL TO THE BOUNDARY?
+    ! Procedure:
+        ! 1. Find boundary elements using something from Fields_Base.
+        ! 2. Looping over elements, call:
+        ! transform_facet_to_physical_full(X, face, detwei_f, normal) 
+        ! (this computes the normal to a given facet) from Module Transform_Elements.
+        ! N.B. I want the normals at NODES not elements.
+        ! 4. How do I input an arbitrary vector into the differentiate_field function?
+        ! 
+        ! call remap_field_to_surface(dtwo_kk, surface_kk_values, surface_element_list)
+        ! Take second derivative of surface_kk_values and set value equal to that
+        ! value = node_val(surface_kk_values,i)
+        ! call set(surface_values,i,value)
+        ! end do
+
+    ! OR may be able to adapt this routine from Rotated_BCs. Although this could be
+    ! overcomplicating things!
+    ! Rotated_BCs is not available for scalar fields. Can I do a hack to make it
+    ! available? 
+
+
+
+    do i=1, get_boundary_condition_count(u)
+       call get_boundary_condition(u, i, type=bc_type, &
+            surface_node_list=surface_nodes, &
+            option_path=bc_option_path)
+
+       if (bc_type=="dirichlet" .and. &
+            have_option(trim(bc_option_path)//"/type[0]/k_epsilon_boundary")) then
+            normal   => extract_surface_field(u, i, "normal")
+       end if
+    end do
+
+
+!    do i=1,NNodes_sur
+!        call set(surface_values, i, dtwo_kk%val(i) )
+!        call differentiate_field(delta_kk, i, normal, derivatives, dtwo_kk)
+!    end do
 
 
 end subroutine eps_bc
@@ -708,7 +693,6 @@ end subroutine eps_bc
 subroutine output_fields(state)
 
     type(state_type), intent(in)     :: state
-
     type(scalar_field), pointer      :: scalarField
     integer                          :: stat
 
@@ -727,19 +711,12 @@ subroutine output_fields(state)
         call set(scalarField,eps) 
     end if  
 
-    scalarField => extract_scalar_field(state, "WallFunction", stat)
-    if(stat == 0) then
-        call set(scalarField,FWall) 
-    end if           
-
     scalarField => extract_scalar_field(state, "Viscosity", stat)
     if(stat == 0) then
        call set(scalarField,nut)  
     end if
 
-
 end subroutine output_fields
-
 
 end module k_epsilon
 

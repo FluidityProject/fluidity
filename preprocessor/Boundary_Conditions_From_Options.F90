@@ -471,11 +471,44 @@ contains
             
              ! calculate the normal, tangent_1 and tangent_2 on every boundary node
              call initialise_rotated_bcs(surface_element_list, &
-                  position, normal, tangent_1, tangent_2, debugging_mode)
+                  position, debugging_mode, normal, tangent_1, tangent_2)
              call deallocate(normal)
              call deallocate(tangent_1)
              call deallocate(tangent_2)
              
+          end if
+          call deallocate(bc_position)
+
+       case ("k_epsilon_boundary")
+
+          bc_type_path=trim(bc_path_i)//"/type[0]/k_epsilon_boundary"
+
+          ! map the coordinate field onto this mesh
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
+               surface_element_list=surface_element_list)
+          call allocate(bc_position, position%dim, surface_mesh)
+          call remap_field_to_surface(position, bc_position, surface_element_list)
+
+          if (have_option(bc_type_path)) then
+
+             call allocate(normal, field%dim, surface_mesh, name="normal")
+             bc_component_path=trim(bc_type_path)//"/normal_direction"
+             if (have_option(bc_component_path)) then
+                call initialise_field(normal, bc_component_path, bc_position)
+             else
+                call zero(normal)
+             end if
+             call insert_surface_field(field, i+1, normal)
+
+             debugging_mode=.false.
+             if (have_option(trim(bc_type_path)//"/debugging_mode")) debugging_mode=.true.
+            
+             ! calculate the normal on every boundary node
+             
+             call initialise_rotated_bcs(surface_element_list, &
+                  position, debugging_mode, normal)
+             call deallocate(normal)
+            
           end if
           call deallocate(bc_position)
 
@@ -1461,11 +1494,12 @@ contains
 
 
   subroutine initialise_rotated_bcs(surface_element_list, x, & 
-    normal, tangent_1, tangent_2, debugging_mode)
+    debugging_mode, normal, tangent_1, tangent_2)
     
     integer, dimension(:),intent(in):: surface_element_list
     ! vector fields on the surface mesh
-    type(vector_field),intent(inout):: normal, tangent_1, tangent_2
+    type(vector_field),intent(inout):: normal
+    type(vector_field),intent(inout), optional::tangent_1, tangent_2
     ! positions on the entire mesh (may not be same order as surface mesh!!)
     type(vector_field),intent(in)   :: x
     logical, intent(in):: debugging_mode
@@ -1503,7 +1537,8 @@ contains
        n=n/sqrt(sum(n**2))
 
        call set(normal, i, n)
-
+       if (present(tangent_1)) then
+           
        n_max=maxloc( abs(n), dim=1 )
        
        t1_max=minloc( abs(n), dim=1 )
@@ -1518,29 +1553,29 @@ contains
 
        call set( tangent_1, i, t1 )
 
-       if (x%dim>2)then
+           if (x%dim>2)then
           
-          t2 = cross_product(n, t1)
+              t2 = cross_product(n, t1)
           
-          call set( tangent_2, i, t2 )
+              call set( tangent_2, i, t2 )
           
-          ! dump normals when debugging
-          if (debugging_mode) then
+              ! dump normals when debugging
+              if (debugging_mode) then
              
-             call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-             call remap_field_to_surface(x, bc_position, surface_element_list)
-             call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
-                  vfields=(/ normal, tangent_1, tangent_2/))
+                 call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
+                 call remap_field_to_surface(x, bc_position, surface_element_list)
+                 call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
+                     vfields=(/ normal, tangent_1, tangent_2/))
              
-             det = abs( &
-                   n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
-                  t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
-                  t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
-             if (  abs( det - 1.) > 1.e-5) then
-                ewrite(3,*) "rotation matrix determinant", det
-                FLExit("rotation matrix is messed up, rotated bcs have exploded...")
+                 det = abs( &
+                      n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
+                      t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
+                      t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
+                 if (  abs( det - 1.) > 1.e-5) then
+                    ewrite(3,*) "rotation matrix determinant", det
+                    FLExit("rotation matrix is messed up, rotated bcs have exploded...")
+                 end if
              end if
-             
           end if
        endif
     end do ! bcnod
