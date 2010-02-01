@@ -127,6 +127,8 @@ if test "$fcompiler" = "ifort" ; then
     if ifort -v 2>&1 |grep 11.1; then 
 	AC_MSG_ERROR(Intel 11.1 is bugged and cannot be used to compile Fluidity. Try a working version of the compiler such as 10.1.)
     fi
+    FFLAGS="$FFLAGS -vec-report=0"
+    FCFLAGS="$FCFLAGS -vec-report=0"
 fi
 
 
@@ -1437,5 +1439,4 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           gallopede/Makefile libvtkfortran/Makefile 
           qg_strat/Makefile qg_strat/unittests/Makefile
-          tests/lauwerier/Makefile
-			 reduced_modelling/Makefile)
+          tests/lauwerier/Makefile)
