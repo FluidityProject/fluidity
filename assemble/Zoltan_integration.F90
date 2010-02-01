@@ -24,6 +24,7 @@ module zoltan_integration
   use populate_state_module
   use reserve_state_module
   use boundary_conditions_from_options
+  use boundary_conditions
   use metric_tools
   use c_interfaces
   use surface_id_interleaving
@@ -1203,9 +1204,8 @@ module zoltan_integration
       assert(has_ownership(new_positions%mesh%halos(2)))
       assert(has_ownership(new_positions%mesh%halos(1)))
       allocate(new_positions%mesh%element_halos(2))
-      call derive_element_halo_from_l2_halo(new_positions%mesh)
+      call derive_element_halos_from_l2_halo(new_positions%mesh, create_caches = .false.)
       call renumber_positions_elements_trailing_receives(new_positions, permutation=renumber_permutation)
-      call update_element_halo(new_positions%mesh)
       assert(has_ownership(new_positions%mesh%halos(2)))
       assert(has_ownership(new_positions%mesh%halos(1)))
 
