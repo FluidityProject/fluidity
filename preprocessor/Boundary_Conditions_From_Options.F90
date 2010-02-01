@@ -426,7 +426,7 @@ contains
 
        ! now check for user-specified normal/tangent vectors (rotation matrix)
        select case (bc_type)
-       case ("dirichlet", "neumann", "robin", "weakdirichlet")
+       case ("dirichlet", "neumann", "robin", "weakdirichlet", "near_wall_treatment", "log_law_of_wall")
           ! this is the same for all 3 b.c. types
 
           bc_type_path=trim(bc_path_i)//"/type[0]/align_bc_with_surface"
@@ -437,7 +437,8 @@ contains
           call allocate(bc_position, position%dim, surface_mesh)
           call remap_field_to_surface(position, bc_position, surface_element_list)
 
-          if (have_option(bc_type_path)) then
+          if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
+              .or. bc_type=="log_law_of_wall") then
 
              call allocate(normal, field%dim, surface_mesh, name="normal")
              bc_component_path=trim(bc_type_path)//"/normal_direction"

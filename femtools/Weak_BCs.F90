@@ -60,19 +60,24 @@
       type(state_type), intent(in)         :: state
 
       type(vector_field), pointer:: velocity, old_velocity, nl_velocity
-      type(vector_field), pointer:: position, absorption
+      type(vector_field), pointer:: position, normal_nodes
       type(scalar_field), pointer:: density
       type(tensor_field), pointer:: viscosity
 
       integer                       :: nbcs, i, j, ele, sele, stat
-      integer, dimension(:), pointer:: surface_element_list
-      integer, dimension(:), allocatable:: out_ele
+      integer, dimension(:), pointer:: surface_element_list, surface_node_list
+      integer, dimension(:), allocatable:: out_ele !, u_nodes_bdy
       character(len=OPTION_PATH_LEN):: bc_type, bc_path_i
 
       real:: tolerance, Cb, Cf, theta
 
-      logical:: have_absorption, have_Cb
+      logical:: have_Cb
       logical:: rm_out=.false.
+
+      ! implements a penalty function for the near-wall region
+      ! for near_wall_treatment: see Bazilevs et al. (2007)
+      ! for log_law_of_wall    : it adds an absorption term on the wall based
+      !                          on the element size and wall roughness.                     
 
       ewrite(1,*) "Entering wall treatment"
 
@@ -83,13 +88,6 @@
       position     => extract_vector_field(state, "Coordinate")
       density      => extract_scalar_field(state, "Density")
       viscosity    => extract_tensor_field(state, "Viscosity")
-
-      absorption=> extract_vector_field(state, "VelocityAbsorption", stat)
-
-      have_absorption = stat == 0
-      if(.not. have_absorption) then
-         FLExit("you neeed to turn on the VelocityAbsorption...")
-      end if
 
       call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", &
            theta)
@@ -117,7 +115,8 @@
       end do
       do i = 1, nbcs
          call get_boundary_condition(velocity, i, type=bc_type, &
-              surface_element_list=surface_element_list)
+              surface_element_list=surface_element_list, &
+              surface_node_list=surface_node_list)
 
          bc_path_i = &
               trim(velocity%option_path)//"/prognostic/boundary_conditions"//"["//int2str(i-1)//"]"
@@ -135,11 +134,15 @@
 
             have_Cb = stat == 0
 
+            normal_nodes => extract_surface_field(velocity, i, "normal")
+
          else if (bc_type=="log_law_of_wall") then
 
             call get_option( &
                  trim(bc_path_i)//"/type::"//trim(bc_type)//"/surface_roughness", &
                  Cf)
+
+            normal_nodes => extract_surface_field(velocity, i, "normal")
 
          end if
 
@@ -162,7 +165,8 @@
                end if
 
                call wall_treatment(ele, sele, position, old_velocity, nl_velocity, density, &
-                    absorption, viscosity, rhs, bigm, bc_type, tolerance, Cb, Cf, theta, have_Cb)
+                    viscosity, rhs, bigm, bc_type, tolerance, Cb, Cf, theta, have_Cb, &
+                    normal_nodes, surface_node_list)
 
             end do
          end if
@@ -175,61 +179,66 @@
     
     !----------------------------------------------------------------------
     
-    subroutine wall_treatment(ele, sele, x, u, nu, density, absorption, &
-         viscosity, rhs, bigm, bc_type, tolerance, Cb, Cf, theta, have_Cb)
+    subroutine wall_treatment(ele, sele, x, u, nu, density, &
+         viscosity, rhs, bigm, bc_type, tolerance, Cb, Cf, theta, have_Cb, &
+         normal_nodes, surface_node_list)
 
       integer, intent(in)                       :: ele, sele
       character(len=OPTION_PATH_LEN), intent(in):: bc_type
-      type(vector_field), intent(inout)         :: rhs, absorption
+      type(vector_field), intent(inout)         :: rhs
       type(petsc_csr_matrix), intent(inout)     :: bigm
-      type(vector_field), intent(in)            :: x, u, nu
+      type(vector_field), intent(in)            :: x, u, nu, normal_nodes
       type(scalar_field), intent(in)            :: density
       type(tensor_field), intent(in)            :: viscosity
       real, dimension(face_ngi(u, sele))        :: detwei_bdy
       real, dimension(x%dim, face_ngi(u, sele)) :: normal_bdy
       real, intent(in)                          :: tolerance, Cf, theta
       logical, intent(in)                       :: have_Cb
+      integer, dimension(:), intent(in)         :: surface_node_list
 
       ! local variables
 
       integer                              :: ndim, snloc, loc
       type(element_type), pointer          :: u_shape, u_f_shape, x_shape
-      integer, dimension(face_loc(u, sele)):: u_nodes_bdy
+      integer, dimension(face_loc(u, sele)):: u_nodes_bdy, sfield_nodes
+      integer, dimension(:), pointer       :: ele_nodes_u, ele_faces_u
 
       real, dimension(x%dim, x%dim, ele_ngi(u, sele))        :: invJ
       real, dimension(x%dim, x%dim, face_ngi(u, sele))       :: invJ_face
       type(element_type)                                     :: augmented_shape
-      real,dimension(ele_loc(u, ele),face_ngi(u, sele),x%dim):: vol_dshape_face
+      real, dimension(ele_loc(u, ele), face_ngi(u, sele),x %dim):: vol_dshape_face
+      real, dimension(x%dim, x%dim, face_ngi(u, sele))       :: viscosity_gi
+      real, dimension(ele_loc(u, ele))                       :: u_dot_n_e
+      real, dimension(face_loc(u, sele))                     :: u_dot_n, T
+      logical, dimension(ele_loc(u, ele))                    :: msk
+      real, dimension(face_ngi(u, sele))                     :: T_at_quad
 
-      !real, dimension(ele_loc(u, ele))                :: u_ele_val
-      !real, dimension(x%dim, x%dim, face_ngi(u, sele)):: grad_u_at_quad
-      !real, dimension(x%dim, face_ngi(u, sele))       :: grad_u_dot_n_at_quad
-      integer, dimension(:), pointer                  :: ele_nodes_u
-
-      !real, dimension(x%dim, face_loc(u, sele))            :: a1
-      real, dimension(ele_loc(u, ele),face_loc(u, sele))   :: a2
-
-      real, dimension(face_loc(u, sele), ele_loc(u, ele))  :: a11
+      real, dimension(x%dim, face_loc(u, sele), ele_loc(u, ele)):: mat1
+      real, dimension(ele_loc(u, ele), face_loc(u, sele))       :: mat2
+      real, dimension(face_loc(u, sele), face_loc(u, sele))     :: mat3
 
       real, dimension(x%dim,x%dim)  :: G
       real, dimension(x%dim,1)      :: n
+      real, dimension(x%dim)        :: normal, n_face
       real, dimension(1,1)          :: hb
 
       real                          :: h, tau, r, drdt, dtau, Id, Cb
-      real                          :: v, uh, u_p, y_p, q, tmp_val
-      integer                       :: i, j, dim, its
+      real                          :: v, uh, u_p, y_p, q
+      integer                       :: i, j, dim, its, inode
       integer                       :: l_face_number, node
-
-      !real, dimension(ele_loc(u, ele))  :: dshape_dot_normal
-      !real, dimension(face_loc(u, sele)):: shp
-      !real                              :: dshape_dot_normal_l2, shp_l2
-
-      ! implements a penalty function for the near-wall region
 
       ndim        = x%dim
       snloc       = face_loc(u, sele)
       u_nodes_bdy = face_global_nodes(u, sele)
       ele_nodes_u =>ele_nodes(u, ele)
+      u_f_shape   =>face_shape(u, sele)
+
+      ! find element node inside the domain
+      ele_faces_u => ele_faces(u, ele)
+      do i = 1, size(ele_faces_u)
+         if (ele_faces_u(i)==sele) exit
+      end do
+      inode = ele_nodes_u(i)
 
       call compute_inverse_jacobian( ele_val(x, ele), &
            ele_shape(x, ele), invJ )
@@ -240,40 +249,23 @@
       G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
       n(:,1) = normal_bdy(:,1)
       hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
-      h  = hb(1,1)
+      h  = hb(1, 1)
 
       if (bc_type=="near_wall_treatment") then ! Hughes' approach
 
-         ! double the element size
-         h = 2. * h
+         ! find element nodes in surface_node_list
+         do i = 1, snloc
+            do j = 1, size(surface_node_list)
+               if (u_nodes_bdy(i)==surface_node_list(j)) then
+                  sfield_nodes(i)=j
+                  exit
+               end if
+            end do
+         end do
 
-         ! calculate Cb
-         l_face_number = local_face_number(u, sele)
-         invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
-
-         x_shape => ele_shape(x, ele)
-         u_shape => ele_shape(u, ele)
-         u_f_shape => face_shape(u, sele)
-
-         augmented_shape = make_element_shape(x_shape%loc, &
-              u_shape%dim, u_shape%degree, u_shape%quadrature, &
-              quad_s=u_f_shape%quadrature )
-
-         ! nloc x sngi x dim
-         vol_dshape_face = eval_volume_dshape_at_face_quad( &
-              augmented_shape, l_face_number, invJ_face )
-
+         ! set Cb if not specified in the flml
          if (.not.have_Cb) then 
-            !dshape_dot_normal = dshape_dot_vector_rhs(vol_dshape_face, normal_bdy, detwei_bdy)
-            !shp = shape_rhs(u_f_shape, detwei_bdy)
-            !dshape_dot_normal_l2=0.; shp_l2 =0.
-            !do i=1,snloc
-            !  dshape_dot_normal_l2 = dshape_dot_normal_l2 + dshape_dot_normal(i)**2
-            !  shp_l2 = shp_l2 + shp(i)**2
-            !end do
-            !dshape_dot_normal_l2 = sqrt(dshape_dot_normal_l2)
-            !shp_l2 = sqrt(shp_l2)
-            Cb = 8. * h !* dshape_dot_normal_l2 / shp_l2
+            Cb = 1.
          end if
 
          do loc = 1, snloc
@@ -281,18 +273,20 @@
             ! global node number
             node = u_nodes_bdy(loc)
 
+            ! node normal
+            normal = node_val(normal_nodes, sfield_nodes(loc))
+
             ! velocity parallel to the wall
             uh=0.
             do i = 1, ndim
                do j = 1, ndim
-                  if (i==j) then
-                     Id = 1. 
-                  else
-                     Id = 0.
-                  end if
+
+                  Id = 0.
+                  if (i==j) Id = 1.
+
                   uh = uh + &
-                       (- normal_bdy(i,1) * normal_bdy(j,1) + Id) &
-                       * node_val(nu, i, node)**2
+                       (- normal(i) * normal(j) + Id) &
+                       * node_val(nu, i, inode)**2
                end do
             end do
             uh = sqrt( max(uh, 0.) )
@@ -300,10 +294,10 @@
             ! assume isotropic viscosity
             v   = node_val(viscosity, 1, 1, node) /node_val(density, node)
 
-            ! initialise tau
+            ! initialise tau (this is \tau_B in the paper)
             tau = Cb * (v / h)
 
-            y_p = tau**(-1./2.) * uh**(1./2.)
+            y_p = tau**(-0.5) * uh**(0.5)
             u_p = y_p
 
             ! initialise residual
@@ -325,123 +319,145 @@
                   exit
                end if
 
-               y_p  = (h/(v*Cb)) * tau**(1./2.) * uh**(1./2.)
-               u_p  = tau**(-1./2.) * uh**(1./2.)
+               y_p  = (h/(v*Cb)) * tau**(0.5) * uh**(0.5)
+               u_p  = tau**(-0.5) * uh**(0.5)
 
                ! update residual
                r    = y_p - log_law(u_p)
 
-               ! checking convergence of the iterative method
-               if (r>=25. .and. its>50) FLExit("near wall treatment: diverged")
-               if (its>=100)            FLExit("near wall treatment: its")
-
+               ! check the iterative method
+               if (its>50) then
+                  tau = Cb * (v / h)
+                  ewrite(3,*) 'WARNING: the wall treatment failed to converge', tau
+                  exit
+               end if
                its = its + 1
             end do
 
             ! generally u_p shouldn't go over 10.
-            if (u_p>=25.) then
-               ewrite(3,*) "WARNING: you are making the wall treatment unhappy",u_p
+            if (u_p>=25. .and. Cb>0. .and. abs(tau-Cb*(v/h))>1.e-10 .and. its>0) then
+               ewrite(3,*) "WARNING: you are making the wall treatment unhappy",u_p, 'its', its
             end if
 
-            ! add absorption term...
-            do dim = 1, ndim
-               tmp_val = node_val(absorption, dim, node)
-               absorption%val(dim)%ptr(node) = tmp_val + max(tau, 0.)
-            end do
+            T(loc) = max(tau, 0.)
 
          end do ! snloc
 
-!         ! Calculate grad u at the surface element quadrature points
-!         do dim = 1, ndim
-!            u_ele_val = ele_val(u, dim, ele)
-!            forall(i = 1:ndim, j = 1:face_ngi(u, sele))
-!               grad_u_at_quad(dim, i, j) = dot_product( &
-!                    u_ele_val, vol_dshape_face(:, j, i) )
-!            end forall
-!         end do
-!
-!         ! Calculate grad u dot n at the surface element quadrature points
-!         do dim = 1, ndim
-!            do i = 1, face_ngi(u, sele)
-!               grad_u_dot_n_at_quad(dim, i) = dot_product( &
-!                    grad_u_at_quad(:, dim, i), normal_bdy(:, i) )
-!            end do
-!         end do
-!
-!         !  dim x snloc
-!         a1 = shape_vector_rhs( &
-!              u_f_shape,grad_u_dot_n_at_quad, &
-!              detwei_bdy*v*face_val_at_quad(density, sele)*2 )
-!
-!         do dim = 1, ndim
-!            call addto( rhs, dim, u_nodes_bdy, -a1(dim, :) )
-!
-!            call addto_diag( bigm, dim, dim, u_nodes_bdy, &
-!                 dt*theta*a1(dim,:) )
-!         end do
+          ! get absorption factor at quad
+          T_at_quad = matmul(T, u_f_shape%n)
 
-         ! snloc x nloc
-         a11 = shape_vector_dot_dshape( &
-               u_f_shape, normal_bdy, vol_dshape_face, &
-               detwei_bdy*v*face_val_at_quad(density, sele)*2 )
+          ! snloc x snloc
+          mat3 = shape_shape( u_f_shape, u_f_shape, &
+                 detwei_bdy * T_at_quad )
+
+          do dim = 1, ndim
+            call addto( rhs, dim, u_nodes_bdy, &
+                 -sum(mat3, 2) * face_val(u, dim, sele) )
+            call addto_diag( bigm, dim, dim, u_nodes_bdy, &
+                 dt * theta * sum(mat3, 2) )
+          end do
+
+         l_face_number = local_face_number(u, sele)
+         invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+
+         x_shape  => ele_shape(x, ele)
+         u_shape  => ele_shape(u, ele)
+
+         augmented_shape = make_element_shape(x_shape%loc, &
+              u_shape%dim, u_shape%degree, u_shape%quadrature, &
+              quad_s=u_f_shape%quadrature )
+
+         ! nloc x sngi x dim
+         vol_dshape_face = eval_volume_dshape_at_face_quad( &
+              augmented_shape, l_face_number, invJ_face )
+
+         do loc = 1, face_loc(u, sele)
+            n_face = node_val(normal_nodes, sfield_nodes(loc))
+            u_dot_n(loc) = dot_product( &
+                node_val(u, loc), n_face )
+         end do
+
+         do i = 1, ele_loc(u, ele)
+            do j = 1, snloc
+               if (ele_nodes_u(i)==u_nodes_bdy(j)) then
+                  u_dot_n_e(i)=u_dot_n(j)
+               else
+                  u_dot_n_e(i)=0.
+               end if
+            end do
+         end do
+
+         viscosity_gi = face_val_at_quad(viscosity, sele)
+
+         ! dim x snloc x nloc
+         mat1 = shape_dshape( u_f_shape, vol_dshape_face, &
+              detwei_bdy * viscosity_gi(1, 1, :) * &
+              face_val_at_quad(density, sele) )
+
+         msk=.false.
+         do i = 1, ele_loc(u, ele)
+            if(any(u_nodes_bdy(:)==ele_nodes_u(i))) msk(i)=.true.
+         end do
+
+         do i = 1, ele_loc(u, ele)
+            if (.not. msk(i)) mat1(:, :, i) = 0.
+         end do
 
          do dim = 1, ndim
             call addto( rhs, dim, ele_nodes_u, &
-                 -sum(a11, 2)*face_val(u, dim, sele) )
-
-            call addto_diag( bigm, dim, dim, u_nodes_bdy, &
-                 dt*theta*sum(a11, 2) )
+                 mat1(dim, 1, :) * u_dot_n_e )
+            call addto_diag( bigm, dim, dim, ele_nodes_u, &
+                 dt * theta * mat1(dim, 1, :) )
          end do
 
          ! nloc x snloc
-         a2 = dshape_dot_vector_shape( &
+         mat2 = dshape_dot_vector_shape( &
               vol_dshape_face, normal_bdy, u_f_shape, &
-              detwei_bdy*v*face_val_at_quad(density, sele)*2 )
+              detwei_bdy * viscosity_gi(1, 1, :) * &
+              face_val_at_quad(density, sele) )
 
-         do dim = 1, ndim  
+         do dim = 1, ndim
             call addto( rhs, dim, ele_nodes_u, &
-                 -sum(a2, 2)*ele_val(u, dim, ele) )
-
+                 mat2(:, 1) * ele_val(u, dim, ele) )
             call addto_diag( bigm, dim, dim, ele_nodes_u, &
-                 dt*theta*sum(a2, 2) )
+                 dt * theta * mat2(:, 1) )
          end do
 
          call deallocate(augmented_shape)
 
       else if (bc_type=="log_law_of_wall") then ! log law of the wall
 
-         q = ( chi / (log ( (h / 2) * Cf ) - 1) )**2
+         q = ( chi / (log ( (h / 2.) * Cf ) - 1.) )**2
 
-         do loc = 1, snloc
 
-            ! global node number
-            node = u_nodes_bdy(loc)
-
-            ! velocity parallel to the wall
-            uh=0.
-            do i = 1, ndim
-               do j = 1, ndim
-                  if (i==j) then
-                     Id = 1. 
-                  else
-                     Id = 0.
-                  end if
-                  uh = uh + &
-                       (- normal_bdy(i,1) * normal_bdy(j,1) + Id) &
-                       * node_val(nu, i, node)**2
-               end do
+         ! velocity parallel to the wall
+         uh=0.
+         do i = 1, ndim
+            do j = 1, ndim
+               if (i==j) then
+                  Id = 1. 
+               else
+                  Id = 0.
+               end if
+               uh = uh + &
+                    (- normal_bdy(i, 1) * normal_bdy(j, 1) + Id) &
+                    * node_val(nu, i, inode)**2
             end do
-            uh = sqrt( max(uh, 0.) )
+         end do
+         uh = sqrt( max(uh, 0.) )
 
-         end do ! snloc
+         ! snloc x snloc
+         mat3 = shape_shape( u_f_shape, u_f_shape, &
+                detwei_bdy * q * uh / dt)
 
-         ! add absorption term...
          do dim = 1, ndim
-            tmp_val = node_val(absorption, dim, node)
-            absorption%val(dim)%ptr(node) = tmp_val + max(q*uh, 0.)
+           call addto( rhs, dim, u_nodes_bdy, &
+                -sum(mat3, 2) * face_val(u, dim, sele) )
+           call addto_diag( bigm, dim, dim, u_nodes_bdy, &
+                dt * theta * sum(mat3, 2) )
          end do
 
-      end if
+      end if ! bc_type
 
     end subroutine wall_treatment
 
@@ -451,8 +467,8 @@
 
       real, intent(in):: u
 
-      log_law = u + e**(-chi*beta) * ( e**(chi*u) - 1   &
-           - chi*u - ((chi*u)**2)/2 - ((chi*u)**3)/6)
+      log_law = u + e**(-chi*beta) * ( e**(chi*u) - 1. &
+           - chi*u - ((chi*u)**2)/2. - ((chi*u)**3)/6.)
 
     end function log_law
 
@@ -462,10 +478,10 @@
 
       real, intent(in):: u, uh, v, tau, h, Cb
 
-      jac = (h/(2*v*Cb)) * tau**(-1./2.) * uh**(1./2.)  &
-           + (  1 + chi*e**(-chi*beta) *                &
-           ( e**(chi*u) -1 - chi*u - ((chi*u)**2)/2))   &
-           * ((tau**(-3./2.))/2) * uh**(1./2.)
+      jac = (h/(2.*v*Cb)) * tau**(-0.5) * uh**(0.5) &
+           + (  1. + chi*e**(-chi*beta) * &
+           ( e**(chi*u) - 1. - chi*u - ((chi*u)**2)/2.)) &
+           * ((tau**(-1.5))/2.) * uh**(0.5)
 
     end function jac
 
