@@ -89,8 +89,6 @@ contains
   subroutine nullify_real_vector(vector)
     type(real_vector), intent(inout) :: vector
     
-    integer :: i
-    
     vector%ptr => null()
     
   end subroutine nullify_real_vector
