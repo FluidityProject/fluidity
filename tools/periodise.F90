@@ -40,13 +40,14 @@ program periodise
   external_mesh => extract_mesh(states(1), trim(external_name))
   periodic_mesh => extract_mesh(states(1), trim(periodic_name))
   external_positions = get_coordinate_field(states(1), external_mesh)
-  periodic_positions = get_coordinate_field(states(1), periodic_mesh)
+  call allocate(periodic_positions, external_positions%dim, periodic_mesh, trim(periodic_name) // 'Coordinate')
+  call remap_field(external_positions, periodic_positions)
 
   call postprocess_periodic_mesh(external_mesh, external_positions, periodic_mesh, periodic_positions)
 
   ! Dump out the periodic mesh to disk:
   new_external_filename = trim(external_filename) // '_periodic'
-  call write_triangle_files(new_external_filename, states(1), periodic_mesh)
+  call write_triangle_files(new_external_filename, periodic_positions)
 
   ! OK! Now we need to do some setting of options.
   call manipulate_options(external_mesh, trim(external_mesh%option_path), periodic_mesh, trim(periodic_mesh%option_path), new_external_filename)
