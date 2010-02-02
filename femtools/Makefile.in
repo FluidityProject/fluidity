@@ -431,6 +431,9 @@ Unify_meshes.o: Fields_Base.o Fields_Data_Types.o Fields_Allocates.o Fields_Mani
 CGAL_Tools.o: Fields.o
 CGAL_Tools_C.o: ../include/CGAL_Tools_C.h
 
+Rotated_Boundary_Conditions.o: Fields.o Halos.o Boundary_Conditions.o Global_Parameters.o \
+	Sparse_Tools_Petsc.o State.o 
+
 Tetrahedron_intersection.o: Vector_Tools.o Elements.o Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
    Fields_Manipulation.o Transform_elements.o
 
