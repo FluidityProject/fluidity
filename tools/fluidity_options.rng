@@ -10286,6 +10286,16 @@ boundary node and returns the coordinate of a physical
 boundary node</a:documentation>
               <ref name="python_code"/>
             </element>
+            <optional>
+              <element name="remove_periodicity">
+                <a:documentation>&lt;b&gt;Don't turn this on by hand!&lt;/b&gt;
+This option gets set by the periodise tool, to indicate
+that this mesh should have the periodic boundary conditions
+&lt;b&gt;removed&lt;/b&gt;. See the discussion on the wiki about 
+parallel periodic boundary conditions.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
           </element>
         </zeroOrMore>
         <optional>

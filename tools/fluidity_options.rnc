@@ -8020,7 +8020,15 @@ mesh_info =
             ## boundary node
             element coordinate_map {
                python_code
-            }
+            },
+            ## <b>Don't turn this on by hand!</b>
+            ## This option gets set by the periodise tool, to indicate
+            ## that this mesh should have the periodic boundary conditions
+            ## <b>removed</b>. See the discussion on the wiki about 
+            ## parallel periodic boundary conditions.
+            element remove_periodicity {
+               empty
+            }?
          }*,
          ## Extrude a horizontal (1D or 2D) mesh in the vertical
          element extrude {
