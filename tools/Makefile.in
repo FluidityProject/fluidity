@@ -90,10 +90,11 @@ CV_DIFFUSION_MATRIX=../bin/cv_diffusion_matrix
 FV_DIFFUSION_MATRIX=../bin/fv_diffusion_matrix
 VTKPROJECTION=../bin/vtk_projection
 RUNZOLTAN=../bin/zoltan_load_balance
+PERIODISE=../bin/periodise
 BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC) \
   $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE) $(FLINTEGRATE) \
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH) $(DERIVE_MESH) $(PROJECT_VTU) $(TRIANGLE2VTU) \
-  $(PROJECT_TO_CONTINUOUS) $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION)
+  $(PROJECT_TO_CONTINUOUS) $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
@@ -223,6 +224,9 @@ $(VTKPROJECTION): vtkprojection.cpp lib/
 
 $(RUNZOLTAN): zoltan_load_balance.F90 lib/
 	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(RUNZOLTAN) zoltan_load_balance.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
+
+$(PERIODISE): periodise.F90 lib/
+	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(PERIODISE) periodise.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) fldiagnostics_module.o -l$(FLUIDITY) $(LIBS)
