@@ -10245,9 +10245,7 @@ or region IDs.</a:documentation>
         <ref name="comment"/>
       </element>
       <element name="from_mesh">
-        <a:documentation>Make mesh from existing mesh. The existing mesh cannot itself
-be made from an existing mesh (i.e. it must be read from a
-file).</a:documentation>
+        <a:documentation>Make mesh from existing mesh. </a:documentation>
         <ref name="mesh_choice"/>
         <optional>
           <element name="mesh_shape">

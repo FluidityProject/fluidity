@@ -7989,9 +7989,7 @@ mesh_info =
          from_file_mesh_stat_options,
          comment
       }|
-      ## Make mesh from existing mesh. The existing mesh cannot itself
-      ## be made from an existing mesh (i.e. it must be read from a
-      ## file).
+      ## Make mesh from existing mesh. 
       element from_mesh {
          mesh_choice,
          element mesh_shape {
