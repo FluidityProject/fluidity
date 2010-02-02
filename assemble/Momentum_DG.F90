@@ -116,6 +116,7 @@ module momentum_DG
   logical :: have_surfacetension
   logical :: have_coriolis
   logical :: have_advection
+  logical :: move_mesh
   
   real :: gravity_magnitude
 
@@ -167,7 +168,7 @@ contains
     logical, intent(in), optional :: acceleration_form
 
     !! Position, velocity and source fields.
-    type(vector_field), pointer :: U_mesh
+    type(vector_field), pointer :: U_mesh, X_old, X_new
     type(vector_field) :: U_nl
 
     !! Viscosity
@@ -215,7 +216,7 @@ contains
     else
       l_cg_pressure = .true.
     end if
-
+    
     ! These names are based on the CGNS SIDS.
     if (.not.have_option(trim(U%option_path)//"/prognostic&
          &/spatial_discretisation/discontinuous_galerkin&
@@ -230,7 +231,6 @@ contains
        call zero(U_nl)
        have_advection=.false.
     end if
-    U_mesh=>extract_vector_field(state, "GridVelocity")
 
     Source=extract_vector_field(state, "VelocitySource", stat)
     have_source = (stat==0)
@@ -343,6 +343,16 @@ contains
     call get_option(trim(U%option_path)//"/prognostic/spatial_discretisation/&
          &conservative_advection", beta)
 
+    ! mesh movement here only matters for the mass terms
+    ! other terms are evaluated using "Coordinate" which is evaluated at t+theta*dt
+    move_mesh = have_option("/mesh_adaptivity/mesh_movement") .and. &
+      have_mass
+    if (move_mesh) then
+      X_old => extract_vector_field(state, "OldCoordinate")
+      X_new => extract_vector_field(state, "IteratedCoordinate")
+      U_mesh => extract_vector_field(state, "GridVelocity")
+    end if
+    
     ! by default we assume we're integrating by parts twice and therefore we need to subtract
     ! an extra internal surface integral
     integration_factor = 1.0
@@ -416,7 +426,7 @@ contains
        ! Drop the extra reference to sparsity.
        call deallocate(mass_sparsity)
     end if
-
+    
     ! get bc type and values on entire surface mesh
     ! numbering of types, determined by ordering here, i.e.
     ! weakdirichlet=1, free_surface=2
@@ -435,8 +445,9 @@ contains
     element_loop: do ELE=1,element_count(U)
        
        call construct_momentum_element_dg(ele, big_m, rhs, &
-            & X, U, U_nl, U_mesh, Source, &
-            & Buoyancy, gravity, Abs, Viscosity, P, Rho, surfacetension, q_mesh, &
+            & X, U, U_nl, U_mesh, X_old, X_new, &
+            & Source, Buoyancy, gravity, Abs, Viscosity, &
+            & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
             & inverse_mass=inverse_mass, inverse_masslump=inverse_masslump, mass=mass)
@@ -475,7 +486,7 @@ contains
   end subroutine construct_momentum_dg
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
-       &X, U, U_nl, U_mesh, Source, Buoyancy, gravity, Abs, &
+       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, gravity, Abs, &
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
@@ -494,7 +505,8 @@ contains
 
     !! Position, velocity and source fields.
     type(scalar_field) :: buoyancy
-    type(vector_field) :: X, U, U_nl, U_mesh, Source, gravity, Abs
+    type(vector_field) :: X, U, U_nl, Source, gravity, Abs
+    type(vector_field), pointer :: U_mesh, X_old, X_new
     !! Viscosity
     type(tensor_field) :: Viscosity
     type(scalar_field) :: P, Rho
@@ -560,7 +572,7 @@ contains
     integer :: start, finish
     
     ! Variable transform times quadrature weights.
-    real, dimension(ele_ngi(U,ele)) :: detwei
+    real, dimension(ele_ngi(U,ele)) :: detwei, detwei_old, detwei_new
     ! Transformed gradient function for velocity.
     real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
     ! Transformed gradient function for auxiliary variable. 
@@ -570,7 +582,7 @@ contains
     ! Coriolis magnitude and sign at quadrature points.
     real, dimension(ele_ngi(U_nl, ele)) :: Coriolis_q
     ! Different velocities at quad points.
-    real, dimension(U%dim, ele_ngi(U_nl, ele)) :: u_nl_q, u_mesh_q
+    real, dimension(U%dim, ele_ngi(U_nl, ele)) :: u_nl_q
     real, dimension(ele_ngi(U_nl, ele)) :: u_nl_div_q
 
     ! surface tension terms
@@ -674,6 +686,13 @@ contains
           & detwei=detwei)
       du_t = 0.0
     end if
+    
+    if(move_mesh) then
+      call transform_to_physical(X_old, ele, &
+          & detwei=detwei_old)
+      call transform_to_physical(X_new, ele, &
+          & detwei=detwei_new)
+    end if
 
     if(have_viscosity.and.(.not.(q_mesh==u%mesh))) then
       ! Transform q derivatives into physical space.
@@ -691,8 +710,10 @@ contains
        ! Advecting velocity at quadrature points.
        U_nl_q=ele_val_at_quad(U_nl,ele)
        
-       ! Mesh velocity at quadrature points.
-       U_mesh_q=ele_val_at_quad(U_mesh,ele)
+       if (move_mesh) then
+         ! subtract mesh velocity at quadrature points.
+         U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
+       end if
     end if
 
     Rho_q=ele_val_at_quad(Rho, ele)
@@ -712,11 +733,19 @@ contains
     ! Element density matrix.
     ! (compute for first component only at first, others are copied
     !  when necessary)
-    rho_mat = shape_shape(u_shape, u_shape, detwei*Rho_q)
+    if (move_mesh) then
+      ! this rho_mat (and l_masslump) is only used in the actual mass term in big_m
+      ! (and its derivative inverse_mass or inverse_mass_lump)
+      ! so should be evaluated at t+dt
+      rho_mat = shape_shape(u_shape, u_shape, detwei_new*Rho_q)
+    else
+      rho_mat = shape_shape(u_shape, u_shape, detwei*Rho_q)
+    end if
     l_masslump= sum(rho_mat,2)
     
     if(present(mass)) then
        ! Return mass separately.
+       ! NOTE: this doesn't deal with mesh movement
        call addto(mass, u_ele, u_ele, Rho_mat)
     else
       if(have_mass.and.owned_element) then
@@ -729,6 +758,20 @@ contains
             big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + rho_mat
           end do
         end if
+      end if
+      if (move_mesh) then
+        ! In the unaccelerated form we solve:
+        !  /
+        !  |  N^{n+1} u^{n+1}/dt - N^{n} u^n/dt + ... = f
+        !  /
+        ! so in accelerated form:
+        !  /
+        !  |  N^{n+1} du + (N^{n+1}- N^{n}) u^n/dt + ... = f
+        !  /
+        ! where du=(u^{n+1}-u^{n})/dt is the acceleration.
+        ! Put the (N^{n+1}-N^{n}) u^n term on the rhs
+        rhs_addto(:,:loc)=rhs_addto(:,:loc) - shape_vector_rhs( &
+           u_shape, ele_val_at_quad(u, ele), (detwei_new-detwei_old)/dt)
       end if
     end if
     

@@ -79,13 +79,13 @@ contains
     !! only add in to the matrix if get_cmc==.true.
     logical, intent(in):: get_cmc
     
-      type(vector_field), pointer:: positions, u, gravity_normal
+      type(vector_field), pointer:: positions, u, gravity_normal, old_positions
       type(scalar_field), pointer:: p, prevp
       character(len=FIELD_NAME_LEN):: bctype
       real:: g, rho0
       integer, dimension(:), pointer:: surface_element_list
       integer:: i, j, grav_stat
-      logical:: include_normals
+      logical:: include_normals, move_mesh
       
       ewrite(1,*) 'Entering add_free_surface_to_cmc_projection'
       
@@ -100,10 +100,11 @@ contains
       prevp => extract_scalar_field(state, "OldPressure")
       u => extract_vector_field(state, "Velocity")
       
+      move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
       ! only include the inner product of gravity and surface normal
       ! if the free surface nodes are actually moved (not necessary
-      ! for large scale ocean simulations)
-      include_normals = have_option("/mesh_adaptivity/mesh_movement/free_surface")
+      ! for large scale ocean simulations) - otherwise the free surface is assumed flat
+      include_normals = move_mesh
       if (include_normals) then
         ewrite(2,*) 'Including inner product of normals in kinematic bc'
         gravity_normal => extract_vector_field(state, "GravityDirection")
@@ -113,7 +114,12 @@ contains
       ewrite_minmax(prevp)
       ewrite_minmax(rhs)
       
-      positions => extract_vector_field(state, "Coordinate")
+      if (move_mesh) then
+        positions => extract_vector_field(state, "IteratedCoordinate")
+        old_positions => extract_vector_field(state, "OldCoordinate")
+      else
+        positions => extract_vector_field(state, "Coordinate")
+      end if
       
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
@@ -136,7 +142,7 @@ contains
     integer, intent(in):: sele
       
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
-      real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele
+      real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_old
       real, dimension(face_ngi(p, sele)):: detwei
       real:: alpha
       integer:: ele
@@ -159,8 +165,21 @@ contains
          face_global_nodes(p, sele), face_global_nodes(p,sele), &
          alpha*mass_ele/(theta**2*dt) )
       end if
-      call addto(rhs, face_global_nodes(p, sele), &
-        -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
+      if (move_mesh) then
+        ! detwei and normals at the begin of the time step
+        call transform_facet_to_physical(old_positions, sele, detwei_f=detwei,&
+           & normal=normals)
+        ! at each gauss point multiply with inner product of gravity and surface normal
+        detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
+        mass_ele_old=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
+        call addto(rhs, face_global_nodes(p, sele), &
+          -(matmul(mass_ele, face_val(p, sele)) &
+          -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
+      else
+        ! no mesh movement - just use the same mass matrix as above
+        call addto(rhs, face_global_nodes(p, sele), &
+          -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
+      end if
       
     end subroutine add_free_surface_element
     
