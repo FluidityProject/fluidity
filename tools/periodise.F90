@@ -13,7 +13,7 @@ program periodise
   use write_triangle
   implicit none
 
-  character(len=4096) :: filename, external_filename
+  character(len=4096) :: filename, external_filename, new_filename
   integer :: status
   type(state_type), dimension(:), pointer :: states
   integer :: ierr
@@ -48,6 +48,10 @@ program periodise
   call write_triangle_files(trim(external_filename) // '_periodic', states(1), periodic_mesh)
 
   ! OK! Now we need to do some setting of options.
+  new_filename = external_filename(1:len_trim(external_filename) - 5) // '_periodised.flml'
+  call manipulate_options(external_mesh, trim(external_mesh%option_path), periodic_mesh, trim(periodic_mesh%option_path), new_filename)
+
+  call write_options(new_filename)
 
   call deallocate(states)
   call deallocate(external_positions)
@@ -133,5 +137,45 @@ program periodise
     end do
 
   end subroutine postprocess_periodic_mesh
+
+  subroutine manipulate_options(external_mesh, external_path, periodic_mesh, periodic_path, new_filename)
+    type(mesh_type), intent(in) :: external_mesh, periodic_mesh
+    character(len=*), intent(in) :: new_filename
+    character(len=*), intent(in) :: external_path, periodic_path
+    character(len=8192) :: coordinate_map
+    integer :: stat, periodic_bc
+    integer, dimension(2) :: shape_option
+    integer, dimension(:), allocatable :: boundary_ids
+
+    ! The periodic sub-branch of the options tree has useful information that
+    ! we don't want to lose just yet. So set the external mesh to be periodic
+    ! first, and then overwrite
+
+    call delete_option(external_path // '/from_file', stat=stat)
+    call set_option(external_path // '/from_mesh/mesh/name', trim(periodic_mesh%name), stat=stat)
+    do periodic_bc=0,option_count(periodic_path // '/from_mesh/periodic_boundary_conditions')-1
+      call add_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/remove_periodicity', stat=stat)
+
+      call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', coordinate_map)
+      call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', coordinate_map, stat=stat)
+
+      shape_option = option_shape(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids')
+      allocate(boundary_ids(shape_option(1)))
+      call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids', boundary_ids)
+      call set_option(external_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids', boundary_ids, stat=stat)
+      deallocate(boundary_ids)
+
+      shape_option = option_shape(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids')
+      allocate(boundary_ids(shape_option(1)))
+      call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids', boundary_ids)
+      call set_option(external_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids', boundary_ids, stat=stat)
+      deallocate(boundary_ids)
+    end do
+
+    call delete_option(periodic_path // '/from_mesh', stat=stat)
+    call set_option(periodic_path // '/from_file/file_name', new_filename, stat=stat)
+    call set_option(periodic_path // '/from_file/format/name', 'triangle', stat=stat)
+    call add_option(periodic_path // '/from_file/stat', stat=stat)
+  end subroutine manipulate_options
 
 end program periodise
