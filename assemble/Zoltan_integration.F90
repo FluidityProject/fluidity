@@ -28,6 +28,7 @@ module zoltan_integration
   use metric_tools
   use c_interfaces
   use surface_id_interleaving
+  use memory_diagnostics
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
@@ -1702,10 +1703,9 @@ module zoltan_integration
       integer, dimension(:), allocatable :: interleaved_surface_ids
 
       !call find_mesh_to_adapt(states(1), zz_mesh)
-      zz_mesh = extract_mesh(states(1), "CoordinateMesh")
+      zz_mesh = get_external_mesh(states)
       call incref(zz_mesh)
-      zz_positions = extract_vector_field(states(1), "Coordinate")
-      call incref(zz_positions)
+      zz_positions = get_coordinate_field(states(1), zz_mesh)
       zz_nelist => extract_nelist(zz_mesh)
 
       zz => Zoltan_Create(halo_communicator(zz_mesh))
