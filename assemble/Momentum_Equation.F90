@@ -715,12 +715,6 @@
           call deallocate(compress_projec_rhs)
         end if
 
-        if (has_boundary_condition(u, "free_surface")) then
-           if (have_option('/mesh_adaptivity/mesh_movement')) then
-              call move_free_surface_nodes(state(istate))
-           end if
-        end if
-
         ! apply strong dirichlet conditions
         ! we're solving for "delta_p"=theta_pg**2*dp*dt, where dp=p_final-p_current
         ! apply_dirichlet_condition however assumes we're solving for
@@ -785,6 +779,12 @@
           FLAbort("Don't know how to correct the velocity.")
         end if
         
+        if (has_boundary_condition(u, "free_surface")) then
+           if (have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
+              call move_free_surface_nodes(state(istate), theta=theta_pg)
+           end if
+        end if
+
         call deallocate(kmk_rhs)
         call deallocate(projec_rhs)
         call deallocate(delta_p)

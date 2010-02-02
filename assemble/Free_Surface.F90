@@ -103,7 +103,7 @@ contains
       ! only include the inner product of gravity and surface normal
       ! if the free surface nodes are actually moved (not necessary
       ! for large scale ocean simulations)
-      include_normals = have_option("/mesh_adaptivity/mesh_movement")
+      include_normals = have_option("/mesh_adaptivity/mesh_movement/free_surface")
       if (include_normals) then
         ewrite(2,*) 'Including inner product of normals in kinematic bc'
         gravity_normal => extract_vector_field(state, "GravityDirection")
@@ -196,7 +196,7 @@ contains
     ! only include the inner product of gravity and surface normal
     ! if the free surface nodes are actually moved (not necessary
     ! for large scale ocean simulations)
-    include_normals = have_option("/mesh_adaptivity/mesh_movement")
+    include_normals = have_option("/mesh_adaptivity/mesh_movement/free_surface")
     if (include_normals) then
       ewrite(2,*) 'Including inner product of normals in kinematic bc'
       gravity_normal => extract_vector_field(state, "GravityDirection")
@@ -276,19 +276,26 @@ contains
       
   end subroutine copy_poisson_solution_to_interior
       
-  subroutine move_free_surface_nodes(state)
+  subroutine move_free_surface_nodes(state, theta)
   type(state_type), intent(inout) :: state
+  real, intent(in), optional :: theta
     
     type(vector_field), pointer:: positions, u, original_positions
     type(vector_field), pointer:: gravity_normal, old_positions, grid_u
+    type(vector_field), pointer:: iterated_positions
     type(scalar_field), pointer:: p
-    type(vector_field), target:: linear_grid_u
+    type(vector_field) :: local_grid_u, old_grid_u, iterated_grid_u
     type(scalar_field), target:: linear_p
     character(len=FIELD_NAME_LEN):: bctype
     real g, dt, rho0
     integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
     integer i, j, k, node, sele
+
+    ! some fields for when moving the entire mesh
+    type(scalar_field), pointer :: topdis, bottomdis
+    type(scalar_field) :: fracdis
+    type(scalar_field) :: extrapolated_p
     
     ewrite(1,*) 'Entering move_free_surface_nodes'
     
@@ -305,6 +312,7 @@ contains
     
     positions => extract_vector_field(state, "Coordinate")
     original_positions => extract_vector_field(state, "OriginalCoordinate")
+    iterated_positions => extract_vector_field(state, "IteratedCoordinate")
     old_positions => extract_vector_field(state, "OldCoordinate")
     gravity_normal => extract_vector_field(state, "GravityDirection")
     
@@ -319,47 +327,99 @@ contains
     assert( face_loc(gravity_normal,1)==face_loc(positions,1) )
     u => extract_vector_field(state, "Velocity")
     grid_u => extract_vector_field(state, "GridVelocity")
-    if (.not. grid_u%mesh==positions%mesh) then
-       call allocate(linear_grid_u, grid_u%dim, positions%mesh)
-       grid_u => linear_grid_u
-    end if
-    call zero(grid_u)
+    ! allocate this on the grid_u mesh to save its values
+    call allocate(old_grid_u, grid_u%dim, grid_u%mesh, "TempOldGridVelocity")
+    call set(old_grid_u, grid_u)
+    ! allocate this on the grid_u mesh to remap to
+    call allocate(iterated_grid_u, grid_u%dim, grid_u%mesh, "TempIteratedGridVelocity")
     
-    ! we assume no p-refinement on the coordinate mesh
-    allocate( face_nodes(1:face_loc(positions,1)) )
+    ! allocate this on the positions mesh to calculate the values
+    call allocate(local_grid_u, grid_u%dim, positions%mesh, "LocalGridVelocity")
+    call zero(local_grid_u)
     
-    do i=1, get_boundary_condition_count(u)
-      call get_boundary_condition(u, i, type=bctype, &
-         surface_element_list=surface_element_list)
-      if (bctype=="free_surface") then
-        
-        face_loop: do j=1, size(surface_element_list)
-
-           sele=surface_element_list(j)
-           face_nodes=face_global_nodes(positions, sele)
-           
-           node_loop: do k=1, size(face_nodes)
-              node=face_nodes(k)
-              ! compute new surface node position:
-              call set(positions, node, &
-                 node_val(original_positions, node)- &
-                 node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
-              ! compute new surface node grid velocity:
-              call set(grid_u, node, &
-                 (node_val(positions, node)-node_val(old_positions,node))/dt)
-           end do node_loop
-           
-        end do face_loop
-          
-      end if
-    end do
+    if (have_option("/mesh_adaptivity/mesh_movement/free_surface/move_whole_mesh")) then
+    
+      topdis => extract_scalar_field(state, "DistanceToTop")
+      bottomdis => extract_scalar_field(state, "DistanceToBottom")
       
-    if (associated(grid_u, linear_grid_u)) then
-       ! extract the actual grid velocity
-       grid_u => extract_vector_field(state, "GridVelocity")
-       ! map the grid velocity computed on the coordinate mesh back to it
-       call remap_field(linear_grid_u, grid_u)
-       call deallocate(linear_grid_u)
+      ! first we need to extrapolate the pressure down from the surface
+      call allocate(extrapolated_p, p%mesh, "ExtrapolatedPressure")
+    
+      call get_boundary_condition(topdis, 1, &
+        surface_element_list=surface_element_list)
+        
+      ! Vertically extrapolate pressure values at the free surface downwards
+      ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
+      ! The use of Coordinate here (as opposed to IteratedCoordinate or OldCoordinate)
+      ! doesn't affect anything as nodes only move in the vertical.
+      call VerticalExtrapolation(p, extrapolated_p, positions, &
+        gravity_normal, surface_element_list=surface_element_list, &
+        surface_name="DistanceToTop")
+        
+      ! then we need to scale it by its fractional distance from the bottom
+      call allocate(fracdis, topdis%mesh, "FractionalDistance")
+      
+      call set(fracdis, topdis)
+      call addto(fracdis, bottomdis)
+      call invert(fracdis)
+      call scale(fracdis, bottomdis)
+      
+      call scale(extrapolated_p, fracdis)
+      
+      call deallocate(fracdis)
+    
+      do node=1, node_count(positions)
+        call set(iterated_positions, node, &
+                  node_val(original_positions, node)- &
+                  node_val(extrapolated_p, node)*node_val(gravity_normal, node)/g/rho0)
+                  
+        call set(local_grid_u, node, &
+                  (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
+      end do
+      
+      call deallocate(extrapolated_p)
+    
+    else
+      
+      ! we assume no p-refinement on the coordinate mesh
+      allocate( face_nodes(1:face_loc(positions,1)) )
+      
+      do i=1, get_boundary_condition_count(u)
+        call get_boundary_condition(u, i, type=bctype, &
+          surface_element_list=surface_element_list)
+        if (bctype=="free_surface") then
+          
+          face_loop: do j=1, size(surface_element_list)
+
+            sele=surface_element_list(j)
+            face_nodes=face_global_nodes(positions, sele)
+            
+            node_loop: do k=1, size(face_nodes)
+                node=face_nodes(k)
+                ! compute new surface node position:
+                call set(iterated_positions, node, &
+                  node_val(original_positions, node)- &
+                  node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
+                ! compute new surface node grid velocity:
+                call set(local_grid_u, node, &
+                  (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
+            end do node_loop
+            
+          end do face_loop
+            
+        end if
+      end do
+      
+    end if
+    
+    call remap_field(local_grid_u, iterated_grid_u)
+
+    if(present(theta)) then
+      call set(positions, iterated_positions, old_positions, theta)
+      call set(grid_u, iterated_grid_u, old_grid_u, theta)
+    else
+      call set(positions, iterated_positions)
+      call set(grid_u, iterated_grid_u)
     end if
     
     do i = 1, grid_u%dim
@@ -369,6 +429,9 @@ contains
     if (associated(p, linear_p)) then
        call deallocate(p)
     end if
+    call deallocate(local_grid_u)
+    call deallocate(iterated_grid_u)
+    call deallocate(old_grid_u)
           
   end subroutine move_free_surface_nodes
   

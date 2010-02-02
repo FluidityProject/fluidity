@@ -44,7 +44,7 @@ module timeloop_utilities
 contains
 
   subroutine copy_to_stored_values(state, prefix)
-    !!< For each field, copy its value to Oldfield if Oldfield is present.
+    !!< For each field, copy its value to prefixfield if prefixfield is present.
     type(state_type), dimension(:), intent(inout) :: state
     character(len=*), intent(in) :: prefix
 
@@ -65,7 +65,7 @@ contains
             old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
                 & stat=stat)
 
-            if (stat==0) then
+            if ((stat==0).and.(.not.aliased(old_sfield))) then
               ! In this case there is an old field to be set.
 
               call set(old_sfield, sfield)
@@ -82,10 +82,15 @@ contains
 
           if(.not.aliased(vfield)) then
 
+            ! Special case: do not copy to the coordinates
+            if ((vfield%name=="Coordinate")) then
+              cycle
+            end if
+
             old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
                 & stat=stat)
 
-            if (stat==0) then
+            if ((stat==0).and.(.not.aliased(old_vfield))) then
               ! In this case there is an old field to be set.
 
               call set(old_vfield, vfield)
@@ -105,7 +110,7 @@ contains
             old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
                 & stat=stat)
   
-            if (stat==0) then
+            if ((stat==0).and.(.not.aliased(old_tfield))) then
               ! In this case there is an old field to be set.
   
               call set(old_tfield, tfield)
@@ -121,7 +126,7 @@ contains
   end subroutine copy_to_stored_values
 
   subroutine copy_from_stored_values(state, prefix)
-    !!< For each field, copy its value from Oldfield if Oldfield is present.
+    !!< For each field, copy its value from prefixfield if prefixfield is present.
     type(state_type), dimension(:), intent(inout) :: state
     character(len=*), intent(in) :: prefix
 
@@ -147,7 +152,7 @@ contains
             old_sfield=extract_scalar_field(state(s), trim(prefix)//sfield%name,&
                 & stat=stat)
 
-            if (stat==0) then
+            if ((stat==0).and.(.not.aliased(old_sfield))) then
               ! In this case there is an old field to be set.
 
               call set(sfield, old_sfield)
@@ -164,10 +169,15 @@ contains
 
           if(.not.aliased(vfield)) then
 
+            ! Special case: do not copy back the coordinates
+            if ((vfield%name=="Coordinate")) then
+              cycle
+            end if
+
             old_vfield=extract_vector_field(state(s), trim(prefix)//vfield%name,&
                 & stat=stat)
 
-            if (stat==0) then
+            if ((stat==0).and.(.not.aliased(old_vfield))) then
               ! In this case there is an old field to be set.
 
               call set(vfield, old_vfield)
@@ -187,7 +197,7 @@ contains
             old_tfield=extract_tensor_field(state(s), trim(prefix)//tfield%name,&
                 & stat=stat)
 
-            if (stat==0) then
+            if ((stat==0).and.(.not.aliased(old_tfield))) then
               ! In this case there is an old field to be set.
 
               call set(tfield, old_tfield)

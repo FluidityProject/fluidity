@@ -1778,7 +1778,6 @@ contains
 
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
-    type(vector_field), pointer :: positions
 
     type(scalar_field) :: aux_sfield
     type(vector_field) :: aux_vfield
@@ -2121,32 +2120,61 @@ contains
     end do
       
     
-    ! for mesh movement we need a "OriginalCoordinate" and "OldCoordinate" field
+    ! for mesh movement we need a "OriginalCoordinate", 
+    ! "OldCoordinate" and "IteratedCoordinate" fields
     ! inserted in each state similar to "Coordinate"
     if (have_option('/mesh_adaptivity/mesh_movement')) then 
-       positions => extract_vector_field(states(1), name="Coordinate")
+       vfield => extract_vector_field(states(1), name="Coordinate")
        
-       ! first original coordinate field:
-       call allocate(aux_vfield, positions%dim, positions%mesh, &
-          name="OriginalCoordinate")
-       ! at the moment original_positions is repointed to (XORIG, YORIG, ZORIG)
-       ! after we've fixed that we need to copy it here:
-       call set(aux_vfield, positions)
-       aux_vfield%option_path=""
-       ! insert in all states
-       call insert(states, aux_vfield, name="OriginalCoordinate")
-       call deallocate(aux_vfield)
+      ! first original coordinate field:
+      call allocate(aux_vfield, vfield%dim, vfield%mesh, &
+        name="Original"//trim(vfield%name))
+      call set(aux_vfield, vfield)
+      aux_vfield%option_path=""
+      ! insert into states(1) and alias it to all other states.
+      call insert(states, aux_vfield, trim(aux_vfield%name))
+      call deallocate(aux_vfield)
        
-       ! exactly the same for old coordinate field:
-       call allocate(aux_vfield, positions%dim, positions%mesh, &
-          name="OldCoordinate")
-       ! at the moment OldPositions is repointed to (XOLD, YOLD, ZOLD)
-       ! after we've fixed that we need to copy it here:
-       call set(aux_vfield, positions)
-       aux_vfield%option_path=""
-       ! insert in all states
-       call insert(states, aux_vfield, name="OldCoordinate")
-       call deallocate(aux_vfield)
+      ! exactly the same for old coordinate field:
+      call allocate(aux_vfield, vfield%dim, vfield%mesh, &
+        name="Old"//trim(vfield%name))
+      call set(aux_vfield, vfield)
+      aux_vfield%option_path=""
+      ! insert into states(1) and alias it to all other states.
+      call insert(states, aux_vfield, trim(aux_vfield%name))
+      call deallocate(aux_vfield)
+        
+      ! and again for the iterated coordinate field (the most up to date one):
+      call allocate(aux_vfield, vfield%dim, vfield%mesh, &
+        name="Iterated"//trim(vfield%name))
+      call set(aux_vfield, vfield)
+      aux_vfield%option_path=""
+      ! insert into states(1) and alias it to all other states.
+      call insert(states, aux_vfield, trim(aux_vfield%name))
+      call deallocate(aux_vfield)
+       
+    else
+    
+      aux_vfield=extract_vector_field(states(1), name="Coordinate")
+      aux_vfield%name = "Original"//trim(aux_vfield%name)
+      aux_vfield%aliased = .true.
+      aux_vfield%option_path = ""
+      ! insert into states(1) and alias it to all other states.
+      call insert(states, aux_vfield, trim(aux_vfield%name))
+        
+      aux_vfield=extract_vector_field(states(1), name="Coordinate")
+      aux_vfield%name = "Old"//trim(aux_vfield%name)
+      aux_vfield%aliased = .true.
+      aux_vfield%option_path = ""
+      ! insert into states(1) and alias it to all other states.
+      call insert(states, aux_vfield, trim(aux_vfield%name))
+        
+      aux_vfield=extract_vector_field(states(1), name="Coordinate")
+      aux_vfield%name = "Iterated"//trim(aux_vfield%name)
+      aux_vfield%aliased = .true.
+      aux_vfield%option_path = ""
+      ! insert into states(1) and alias it to all other states.
+      call insert(states, aux_vfield, trim(aux_vfield%name))
         
     end if
 
@@ -2552,16 +2580,6 @@ contains
          .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/salinity_dependency") .or.&
                      have_option("/material_phase[0]/equation_of_state/fluids/ocean_pade_approximation")))) then
        ewrite(0,*) "WARNING: You have a salinity field but it will not affect the density of the fluid."
-    end if
-
-    ! Check that vertical mesh movement is enabled if a free surface is present
-    free_surface_path="/material_phase[0]/scalar_field::FreeSurface/prognostic"
-    if(have_option(free_surface_path)) then
-       if (.not. have_option("/mesh_adaptivity/mesh_movement")) then
-          ewrite(0,*) "With a free surface you need to allow the mesh to move vertically"
-          ewrite(0,*) "by adding the option /mesh_adaptivity/mesh_movement."
-          FLExit("Missing /mesh_adaptivity/mesh_movement element")
-       end if
     end if
 
     ! Check that the gravity field is not constant for spherical problems

@@ -329,6 +329,10 @@
     </vector_field>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE"/>
+    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+      <free_surface>
+        <move_surface_nodes/>
+      </free_surface>
+    </mesh_movement>
   </mesh_adaptivity>
 </fluidity_options>

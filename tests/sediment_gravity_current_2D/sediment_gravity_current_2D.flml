@@ -697,7 +697,11 @@
     </sediment>
   </material_phase>
   <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE"/>
+    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+      <free_surface>
+        <move_surface_nodes/>
+      </free_surface>
+    </mesh_movement>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
         <integer_value rank="0">10</integer_value>

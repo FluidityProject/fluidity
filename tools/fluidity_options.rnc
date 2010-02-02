@@ -1500,10 +1500,23 @@ start =
             element mesh_movement {
                attribute replaces { "MVMESH = TRUE, ZERQG, CMCHAN = TRUE" },
                (
-                  ## enable pure lagrangian movement of mesh
-                  element lagrangian {
-                     attribute replaces { "SOLIDS > 0 from solidity_options.inp" },
-                     empty
+                  ## enable movement of mesh with the free surface
+                  element free_surface {
+                     (
+                        ## Only move the nodes on the free surface using
+                        ## the surface height calculated at it.
+                        element move_surface_nodes {
+                          empty
+                        }|
+                        ## Move the whole mesh according to the free surface
+                        ## height, scaled linearly by the depth from the surface.
+                        ##
+                        ## Requires the specification of ocean_boundaries under
+                        ## geometry.
+                        element move_whole_mesh {
+                          empty
+                        }
+                     )
                   }|
                   ## enable full ale movement of mesh
                   element explicit_ale {
@@ -1561,7 +1574,7 @@ start =
                         element block_nodes_in_z {empty}?
                      )
                   }                  
-               )?
+               )
             }?,
             (
                hr_adaptivity |

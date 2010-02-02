@@ -323,7 +323,8 @@ contains
     do i=1, size(state)
        velocity => extract_vector_field(state(i), "Velocity")
        if (has_boundary_condition(velocity, "free_surface") .and. &
-            & have_option('/mesh_adaptivity/mesh_movement')) then
+            & have_option('/mesh_adaptivity/mesh_movement/free_surface') .and. &
+            & .not.aliased(velocity)) then
           ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates from initial condition"
           call move_free_surface_nodes(state(i))
        end if
@@ -351,12 +352,6 @@ contains
           FLAbort("The timestep is not global across all processes!")
        end if
 
-       if(have_option("/mesh_adaptivity/mesh_movement")) then
-          ! Make oldcoordinate a copy of coordinate.
-          call set_vector_field_in_state(state(1), "OldCoordinate", &
-               "Coordinate")
-       end if
-
        if(simulation_completed(current_time, timestep)) exit timestep_loop
 
        if( &
@@ -381,9 +376,14 @@ contains
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
-       IF((steady_state_tolerance.GT.0).OR.(nonlinear_iterations.GT.1)) THEN
-          call copy_to_stored_values(state,"Old")
-       ENDIF
+       call copy_to_stored_values(state,"Old")
+       ! Coordinate isn't handled by the standard timeloop utility calls so instead
+       ! we have to make sure the (Old)Coordinate field is updated with the current, most up
+       ! to date Coordinates, which actually lie in IteratedCoordinate (since if the mesh
+       ! is moving Coordinate is evaluated at time level n+theta).
+       ! Using state(1) should be safe as they are aliased across all states.
+       call set_vector_field_in_state(state(1), "OldCoordinate", "IteratedCoordinate")
+       call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
@@ -397,16 +397,16 @@ contains
           ewrite(1,*)'Start of another nonlinear iteration; ITS,nonlinear_iterations=',ITS,nonlinear_iterations
           ewrite(1,*)'###################'
 
-          IF(nonlinear_iterations.GT.1) THEN
-             call copy_to_stored_values(state, "Iterated")
-             call relax_to_nonlinear(state)
-          ENDIF
+          call copy_to_stored_values(state, "Iterated")
+          ! relax to nonlinear has to come before copy_from_stored_values
+          ! so that the up to date values don't get wiped from the field itself
+          ! (this could be fixed by replacing relax_to_nonlinear on the field
+          !  with a dependency on the iterated field but then copy_to_stored_values
+          !  would have to come before relax_to_nonlinear)
+          call relax_to_nonlinear(state)
+          call copy_from_stored_values(state, "Old")
 
           call compute_goals(state)
-
-          IF(ITS.GT.1) THEN   !---CHANGED 22/03/07 CRGW
-             call copy_from_stored_values(state, "Old")
-          ENDIF ! if(its.gt.1)
 
           !------------------------------------------------
           ! Addition for calculating drag force ------ jem 05-06-2008
@@ -791,8 +791,9 @@ contains
     do i=1, size(state)
       velocity => extract_vector_field(state(i), "Velocity")
       if (has_boundary_condition(velocity, "free_surface") .and. &
-           & have_option('/mesh_adaptivity/mesh_movement')) then
-         ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates from initial condition"
+           & have_option('/mesh_adaptivity/mesh_movement/free_surface') .and. &
+           & .not.aliased(velocity)) then
+         ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates after adapt"
          call move_free_surface_nodes(state(i))
       end if
     end do
