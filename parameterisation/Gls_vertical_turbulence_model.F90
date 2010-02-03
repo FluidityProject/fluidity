@@ -312,10 +312,9 @@ end subroutine gls_init
 !----------
 ! Update TKE
 !----------
-subroutine gls_tke(state,ITS)
+subroutine gls_tke(state)
 
     type(state_type), intent(inout)  :: state 
-    integer, intent(in)              :: ITS
     
     type(scalar_field), pointer      :: source, absorption, kk, scalarField
     type(tensor_field), pointer      :: kk_diff
@@ -327,20 +326,15 @@ subroutine gls_tke(state,ITS)
 
     ewrite(1,*) "In gls_tke"
 
-    if (ITS > 1) then
-        ewrite(1,*) "Non linear iterations > 1 - not updating GLS fields"
-        return
-    end if
-    
+    call gls_buoyancy(state)
+    ! calculate stability function
+    call gls_stability_function(state)
+
     source => extract_scalar_field(state, "GLSTurbulentKineticEnergySource")
     absorption  => extract_scalar_field(state, "GLSTurbulentKineticEnergyAbsorption")
     kk => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     kk_diff => extract_tensor_field(state, "GLSTurbulentKineticEnergyDiffusivity")
     positions => extract_vector_field(state, "Coordinate")
-
-    call gls_buoyancy(state)
-    ! calculate stability function
-    call gls_stability_function(state)
 
     do i=1,nNodes
         prod = node_val(K_M,i)*node_val(MM2,i) 
@@ -398,10 +392,9 @@ end subroutine gls_tke
 !----------
 ! Calculate the second quantity
 !----------
-subroutine gls_psi(state,ITS)
+subroutine gls_psi(state)
 
     type(state_type), intent(inout)  :: state
-    integer, intent(in)              :: ITS
     
     type(scalar_field), pointer      :: source, absorption, kk,  psi, scalarField
     type(tensor_field), pointer      :: psi_diff
@@ -412,16 +405,22 @@ subroutine gls_psi(state,ITS)
 
     ewrite(1,*) "In gls_psi"
 
-    if (ITS > 1) then
-        ewrite(1,*) "Non linear iterations > 1 - not updating GLS fields"
-        return
-    end if
-
     source => extract_scalar_field(state, "GLSGenericSecondQuantitySource")
     absorption  => extract_scalar_field(state, "GLSGenericSecondQuantityAbsorption")
     kk => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
-    psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity")  
+    psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity") 
+
+    ! clip at k_min
+    do i=1,nNodes
+        call set(KK,i, max(node_val(KK,i),k_min))
+        call set(psi,i,max(node_val(psi,i),psi_min))
+    end do
+
+    ! re-construct psi at "old" timestep
+    do i=1,nNodes
+        call set(psi,i, cm0**gls_p * node_val(tke_old,i)**gls_m * node_val(ll,i)**gls_n)
+    end do
 
     if (fix_surface_values) then
         call get_boundary_condition(kk, 'tke_top_boundary', type=bc_type)
@@ -444,17 +443,6 @@ subroutine gls_psi(state,ITS)
         end if
     end if
 
-    ! clip at k_min
-    do i=1,nNodes
-        call set(KK,i, max(node_val(KK,i),k_min))
-        call set(psi,i,max(node_val(psi,i),psi_min))
-    end do
-
-    ! re-construct psi at "old" timestep
-    do i=1,nNodes
-        call set(psi,i, cm0**gls_p * node_val(tke_old,i)**gls_m * node_val(ll,i)**gls_n)
-    end do
-
     ! calc fwall if kkl
     if (calc_fwall) then
         ewrite(1,*) "Calculating the wall function for GLS"
@@ -474,7 +462,6 @@ subroutine gls_psi(state,ITS)
         end if
 
         ! compute production terms in psi-equation
-        ! P, B,. etc have already had the correct non-linear iteration set
         PsiOverTke  = node_val(psi,i)/node_val(tke_old,i)
         prod        = cPsi1*PsiOverTke*node_val(P,i)
         buoyan      = cPsi3*PsiOverTke*node_val(B,i)
@@ -531,10 +518,9 @@ end subroutine gls_psi
 ! These are placed in the GLS fields ready for other tracer fields to use
 ! Viscosity is placed in the velocity viscosity
 !----------
-subroutine gls_diffusivity(state,ITS)
+subroutine gls_diffusivity(state)
 
     type(state_type), intent(inout)  :: state 
-    integer, intent(in)              :: ITS
     
     type(scalar_field), pointer      :: KK, psi
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
@@ -546,13 +532,6 @@ subroutine gls_diffusivity(state,ITS)
     logical                          :: limit_length = .true.
 
     ewrite(1,*) "In gls_diffusivity"
-
-    call gls_buoyancy(state)
-
-    if (ITS > 1) then
-        ewrite(1,*) "Non linear iterations > 1 - not updating GLS fields"
-        return
-    end if
 
     KK => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
@@ -570,7 +549,7 @@ subroutine gls_diffusivity(state,ITS)
     
             ! call the bc code, but specify we want dirichlet
             call gls_psi_bc(state, 'dirichlet')
-    
+  
             ! copy the values onto the mesh using the global node id
             do i=1,NNodes_sur
                 call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
@@ -637,11 +616,10 @@ subroutine gls_diffusivity(state,ITS)
     ewrite_minmax(kk)
     ewrite_minmax(psi)
 
-
     !set the eddy_diffusivity and viscosity tensors for use by other fields
     call zero(eddy_diff_KH) ! zero it first as we're using an addto below
     call zero(eddy_visc_KM)
-    
+
     call set(eddy_diff_KH,eddy_diff_KH%dim,eddy_diff_KH%dim,K_H)     
     call set(eddy_visc_KM,eddy_visc_KM%dim,eddy_visc_KM%dim,K_M) 
 
@@ -654,7 +632,7 @@ subroutine gls_diffusivity(state,ITS)
         call addto(eddy_visc_KM,background_visc)    
     endif   
 
-     
+    
     ! Add background
     if (stat == 0) then
         ! we have a background viscosity - see above
@@ -670,6 +648,7 @@ subroutine gls_diffusivity(state,ITS)
             call addto(viscosity,viscosity%dim,viscosity%dim,i,1.0e-6) 
         end do
     end if
+    
     ! Set output on optional fields - if the field exists, stick something in it
     ! We only need to do this to those fields that we haven't pulled from state, but
     ! allocated ourselves
@@ -727,10 +706,12 @@ subroutine gls_adapt_mesh(state)
     ! module, post adapt. We need the diffusivity for the first iteration to
     ! calculate the TKE src/abs terms, but for diffusivity, we need stability
     ! functions, for those we need epsilon, which is calculated in the
-    ! diffusivity subroutine, so, working backwards...
-    call gls_diffusivity(state,1) ! gets us epsilon, but K_H and K_M are wrong
+    ! diffusivity subroutine, but first we need the buoyancy freq.
+    ! So, working backwards...
+    call gls_buoyancy(state) ! buoyancy for epsilon calculation
+    call gls_diffusivity(state) ! gets us epsilon, but K_H and K_M are wrong
     call gls_stability_function(state) ! requires espilon, but sets S_H and S_M
-    call gls_diffusivity(state,1) ! sets K_H, K_M to correct values
+    call gls_diffusivity(state) ! sets K_H, K_M to correct values
 
 end subroutine gls_adapt_mesh
 
@@ -1417,42 +1398,6 @@ subroutine gls_calculate_dz(state)
 
     call deallocate(sur_mesh)
     
-
-contains
-    function gls_get_normal_element_size(ele, sele, x, u) &
-                   result (h)
-
-        integer              :: ele, sele
-        type(vector_field)   :: x, u
-
-        real, dimension(1,1)                            :: hb
-        integer                                         :: ndim, snloc
-        integer, dimension(face_loc(u, sele))           :: u_nodes_bdy
-        real, dimension(x%dim,x%dim)                    :: G
-        real, dimension(x%dim,1)                        :: n
-        real                                            :: h
-        real, dimension(x%dim, x%dim, ele_ngi(u, sele)) :: invJ
-        real, dimension(x%dim, face_ngi(u, sele))       :: normal_bdy
-        real, dimension(face_ngi(u, sele))              :: detwei_bdy
-        integer, dimension(:), pointer                  :: ele_nodes_u
-
-        ndim        = x%dim
-        snloc       = face_loc(u, sele)
-        u_nodes_bdy = face_global_nodes(u, sele)
-        ele_nodes_u => ele_nodes(u, ele)
-
-        call compute_inverse_jacobian( ele_val(x, ele), &
-             ele_shape(x, ele), invJ )
-
-        call transform_facet_to_physical( x, sele, detwei_f=detwei_bdy, normal=normal_bdy )
-      
-        ! calculate wall-normal element mesh size
-        G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
-        n(:,1) = normal_bdy(:,1)
-        hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
-        h  = hb(1,1) 
-    end function gls_get_normal_element_size
-
 end subroutine gls_calculate_dz
 
 
@@ -1469,8 +1414,8 @@ subroutine gls_calc_wall_function(state)
     distanceToTop => extract_scalar_field(state, "DistanceToTop")
     distanceToBottom => extract_scalar_field(state, "DistanceToBottom")  
     do i=1,nNodes ! there are lots of alternative formulae for this wall function
-        LLL = 1./max(1.,node_val(distanceToTop,i)) + 1./max(1.,node_val(distanceToBottom,i))
-        LLL = min(1./(0.0001*(node_val(distanceToBottom,i) + node_val(distanceToTop,i))),LLL)
+        LLL = (node_val(distanceToTop,i) + node_val(distanceToBottom,i)) / &
+              (node_val(distanceToTop,i) * node_val(distanceToBottom,i)) 
         if( (node_val(distanceToBottom,i).lt.1.0) .or.  (node_val(distanceToTop,i).lt.1.0) ) then
             call set( Fwall, i, 1.0 + E2 ) ! hanert-ish       
         else
@@ -1507,6 +1452,40 @@ subroutine gls_allocate_temps(state)
     nNodes = node_count(vectorField)
 
 end subroutine gls_allocate_temps
+
+function gls_get_normal_element_size(ele, sele, x, u) &
+                result (h)
+
+    integer              :: ele, sele
+    type(vector_field)   :: x, u
+
+    real, dimension(1,1)                            :: hb
+    integer                                         :: ndim, snloc
+    integer, dimension(face_loc(u, sele))           :: u_nodes_bdy
+    real, dimension(x%dim,x%dim)                    :: G
+    real, dimension(x%dim,1)                        :: n
+    real                                            :: h
+    real, dimension(x%dim, x%dim, ele_ngi(u, sele)) :: invJ
+    real, dimension(x%dim, face_ngi(u, sele))       :: normal_bdy
+    real, dimension(face_ngi(u, sele))              :: detwei_bdy
+    integer, dimension(:), pointer                  :: ele_nodes_u
+
+    ndim        = x%dim
+    snloc       = face_loc(u, sele)
+    u_nodes_bdy = face_global_nodes(u, sele)
+    ele_nodes_u => ele_nodes(u, ele)
+
+    call compute_inverse_jacobian( ele_val(x, ele), &
+            ele_shape(x, ele), invJ )
+
+    call transform_facet_to_physical( x, sele, detwei_f=detwei_bdy, normal=normal_bdy )
+    
+    ! calculate wall-normal element mesh size
+    G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
+    n(:,1) = normal_bdy(:,1)
+    hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
+    h  = hb(1,1) 
+end function gls_get_normal_element_size
 
 end module gls
 

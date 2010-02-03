@@ -460,10 +460,9 @@ contains
              ! do we have the generic length scale vertical turbulence model?
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
                 if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
-                    call gls_tke(state(1),ITS)
-                end if
-                if( (trim(field_name_list(it))=="GLSGenericSecondQuantity") ) then
-                   call gls_psi(state(1),ITS)
+                    call gls_tke(state(1))
+                else if( (trim(field_name_list(it))=="GLSGenericSecondQuantity")) then
+                    call gls_psi(state(1))
                 endif
               end if
 
@@ -538,15 +537,17 @@ contains
                 ! ENDOF IF((TELEDI(IT).EQ.1).AND.D3) THEN ELSE...
              ENDIF
 
-             ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
-             if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
-                if( (trim(field_name_list(it))=="GLSGenericSecondQuantity") ) then
-                   call gls_diffusivity(state(1),ITS)
-                endif
-             end if
-
              ewrite(1, *) "Finished field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
           end do field_loop
+
+          ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
+          if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
+            ! Update the diffusivity, only at the end of the loop ready for
+            ! the next timestep. We do NOT want to be twiddling
+            ! diffusivity/viscosity half way through a non-linear iteration
+            call gls_diffusivity(state(1))
+          end if
+
 
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
