@@ -106,7 +106,8 @@ program periodise
   end subroutine check_valid_input
 
   subroutine postprocess_periodic_mesh(external_mesh, external_positions, periodic_mesh, periodic_positions)
-    type(mesh_type), intent(in) :: periodic_mesh, external_mesh
+    type(mesh_type), intent(inout) :: periodic_mesh
+    type(mesh_type), intent(in) :: external_mesh
     type(vector_field), intent(inout) :: periodic_positions
     type(vector_field), intent(in) :: external_positions
 
