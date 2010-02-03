@@ -303,7 +303,8 @@ contains
     type(vector_field), pointer:: gravity_normal, old_positions, grid_u
     type(vector_field), pointer:: iterated_positions
     type(scalar_field), pointer:: p
-    type(vector_field) :: local_grid_u, old_grid_u, iterated_grid_u
+    type(vector_field) :: local_grid_u
+    type(vector_field), pointer :: old_grid_u, iterated_grid_u
     type(scalar_field), target:: linear_p
     character(len=FIELD_NAME_LEN):: bctype
     real g, dt, rho0
@@ -346,11 +347,8 @@ contains
     assert( face_loc(gravity_normal,1)==face_loc(positions,1) )
     u => extract_vector_field(state, "Velocity")
     grid_u => extract_vector_field(state, "GridVelocity")
-    ! allocate this on the grid_u mesh to save its values
-    call allocate(old_grid_u, grid_u%dim, grid_u%mesh, "TempOldGridVelocity")
-    call set(old_grid_u, grid_u)
-    ! allocate this on the grid_u mesh to remap to
-    call allocate(iterated_grid_u, grid_u%dim, grid_u%mesh, "TempIteratedGridVelocity")
+    old_grid_u => extract_vector_field(state, "OldGridVelocity")
+    iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
     
     ! allocate this on the positions mesh to calculate the values
     call allocate(local_grid_u, grid_u%dim, positions%mesh, "LocalGridVelocity")
@@ -449,8 +447,6 @@ contains
        call deallocate(p)
     end if
     call deallocate(local_grid_u)
-    call deallocate(iterated_grid_u)
-    call deallocate(old_grid_u)
           
   end subroutine move_free_surface_nodes
   

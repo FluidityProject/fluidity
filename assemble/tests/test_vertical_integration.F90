@@ -97,6 +97,7 @@ real, intent(out):: l2error
   quad_shape=make_element_shape(NVERTICES, DIM, POLY_DEGREE, quad)
   dg_quad_mesh=make_mesh(x_mesh, shape=quad_shape, continuity=-1, &
     name="DGMesh")
+  call deallocate(quad_shape)
   call allocate(to_field, dg_quad_mesh, name="ToField")
   
   ! set the function on the top of the mesh:
@@ -145,6 +146,9 @@ real, intent(out):: l2error
   if (present(python_function_derivative)) then
     call deallocate(rhs)
   end if
+  
+  call deallocate(positions)
+  call deallocate(dg_quad_mesh)
       
 end subroutine test_vertical_integration_from_file
   

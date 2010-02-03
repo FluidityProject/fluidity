@@ -421,6 +421,12 @@ contains
       elseif (field_name=="IteratedCoordinate") then
         include_vector_field_in_vtu=.false.
         return
+      elseif (field_name=="OldGridVelocity") then
+        include_vector_field_in_vtu=.false.
+        return
+      elseif (field_name=="IteratedGridVelocity") then
+        include_vector_field_in_vtu=.false.
+        return
       elseif (starts_with(field_name, 'Old')) then
         is_old_field=.true.
         field => extract_vector_field(state(istate), field_name(4:))

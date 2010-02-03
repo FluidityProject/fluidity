@@ -82,8 +82,8 @@ contains
 
           if(.not.aliased(vfield)) then
 
-            ! Special case: do not copy to the coordinates
-            if ((vfield%name=="Coordinate")) then
+            ! Special case: do not copy to the coordinates or the gridvelocity
+            if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
               cycle
             end if
 
@@ -169,8 +169,8 @@ contains
 
           if(.not.aliased(vfield)) then
 
-            ! Special case: do not copy back the coordinates
-            if ((vfield%name=="Coordinate")) then
+            ! Special case: do not copy back the coordinates or the gridvelocity
+            if ((vfield%name=="Coordinate").or.(vfield%name=="GridVelocity")) then
               cycle
             end if
 

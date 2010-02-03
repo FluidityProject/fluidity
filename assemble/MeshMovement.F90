@@ -168,9 +168,9 @@ contains
 
 
 
-    positions= extract_vector_field(state, "Coordinate")
+    positions= extract_vector_field(state, "IteratedCoordinate")
     velocity=>extract_vector_field(state,"Velocity")
-    gridvelocity=>extract_vector_field(state,"GridVelocity")
+    gridvelocity=>extract_vector_field(state,"IteratedGridVelocity")
     if (.not. gridvelocity%mesh==positions%mesh) then
        ewrite(3,*) "Why is gridvelocity not on the CoordinateMesh?"
        call allocate(linear_gridvelocity, gridvelocity%dim,mesh)
@@ -875,7 +875,7 @@ contains
     ewrite(3,*) "##grid_vel at end of routine :mini, max,norm2",mini, maxi,l2norm2
     if (associated(gridvelocity, linear_gridvelocity)) then
        ! extract the actual grid velocity
-       gridvelocity => extract_vector_field(state, "GridVelocity")
+       gridvelocity => extract_vector_field(state, "IteratedGridVelocity")
        ! map the grid velocity computed on the coordinate mesh back to it
        call remap_field(linear_gridvelocity, gridvelocity)
        call deallocate(linear_gridvelocity)
@@ -883,7 +883,7 @@ contains
     if (associated(velocity, linear_velocity)) then
        call deallocate(linear_velocity)
     end if
-    call set_vector_field_in_state(state,"GridVelocity","GridVelocity")
+    call set_vector_field_in_state(state,"IteratedGridVelocity","IteratedGridVelocity")
     call deallocate(newgridvelocity)
 
     MeshCount=MeshCount+1

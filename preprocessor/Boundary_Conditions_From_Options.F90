@@ -665,7 +665,7 @@ contains
               time=time+dt
             else
               call get_option( trim(field%option_path)// &
-                "/prognostic/time_discretisation/theta", theta, default=0.5)
+                "/prognostic/temporal_discretisation/theta", theta, default=0.5)
               time=time+theta*dt
             end if
           end if
@@ -776,7 +776,7 @@ contains
            time=time+dt
          else
            call get_option( trim(field%option_path)// &
-             "/prognostic/time_discretisation/theta", theta, default=0.5)
+             "/prognostic/temporal_discretisation/theta", theta, default=0.5)
            time=time+theta*dt
          end if
        end if

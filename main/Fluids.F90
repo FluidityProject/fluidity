@@ -377,13 +377,18 @@ contains
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
        call copy_to_stored_values(state,"Old")
-       ! Coordinate isn't handled by the standard timeloop utility calls so instead
-       ! we have to make sure the (Old)Coordinate field is updated with the current, most up
-       ! to date Coordinates, which actually lie in IteratedCoordinate (since if the mesh
-       ! is moving Coordinate is evaluated at time level n+theta).
-       ! Using state(1) should be safe as they are aliased across all states.
-       call set_vector_field_in_state(state(1), "OldCoordinate", "IteratedCoordinate")
-       call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
+       if (have_option('/mesh_adaptivity/mesh_movement')) then 
+          ! Coordinate isn't handled by the standard timeloop utility calls so instead
+          ! we have to make sure the (Old)Coordinate field is updated with the current, most up
+          ! to date Coordinates, which actually lie in IteratedCoordinate (since if the mesh
+          ! is moving Coordinate is evaluated at time level n+theta).
+          ! Using state(1) should be safe as they are aliased across all states.
+          call set_vector_field_in_state(state(1), "OldCoordinate", "IteratedCoordinate")
+          call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
+          ! same for GridVelocity
+          call set_vector_field_in_state(state(1), "OldGridVelocity", "IteratedGridVelocity")
+          call set_vector_field_in_state(state(1), "GridVelocity", "IteratedGridVelocity")
+       end if
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
