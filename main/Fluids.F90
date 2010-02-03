@@ -455,10 +455,10 @@ contains
              ! do we have the generic length scale vertical turbulence model?
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
                 if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
-                    call gls_tke(state(1))
+                    call gls_tke(state(1),ITS)
                 end if
                 if( (trim(field_name_list(it))=="GLSGenericSecondQuantity") ) then
-                   call gls_psi(state(1))
+                   call gls_psi(state(1),ITS)
                 endif
               end if
 
@@ -536,7 +536,7 @@ contains
              ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
                 if( (trim(field_name_list(it))=="GLSGenericSecondQuantity") ) then
-                   call gls_diffusivity(state(1))
+                   call gls_diffusivity(state(1),ITS)
                 endif
              end if
 

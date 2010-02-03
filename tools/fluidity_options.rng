@@ -1101,6 +1101,11 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                         <element name="priority">
                           <ref name="integer"/>
                         </element>
+                        <element name="minimum_value">
+                          <a:documentation>Minimum value of TKE in m2s2
+A typical value will be around 1e-6</a:documentation>
+                          <ref name="real"/>
+                        </element>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>

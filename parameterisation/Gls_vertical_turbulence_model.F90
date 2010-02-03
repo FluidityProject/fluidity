@@ -111,7 +111,7 @@ subroutine gls_init(state)
     if(stat/=0) FLExit("Need viscosity")        
 
     ! Allocate the temporary, module-level variables
-    call allocate_temps(state)
+    call gls_allocate_temps(state)
    
     ! populate some useful variables
     kappa = 0.41
@@ -119,6 +119,8 @@ subroutine gls_init(state)
     fix_surface_values = have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                                       &calculate_boundaries/fix_surface_values")
     calc_fwall = .false.
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                    &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", k_min, stat)
     
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", gls_option)    
     ! Check the model used - we have four choices - then set the parameters appropriately
@@ -133,7 +135,6 @@ subroutine gls_init(state)
         cPsi2 = 0.5
         cPsi3_plus = 1.0 
         cPsi3_minus = 2.53
-        k_min = 5.e-6
         psi_min = 1.e-8
         calc_fwall = .true.
     case ("k-epsilon")
@@ -146,7 +147,6 @@ subroutine gls_init(state)
         cPsi2 = 1.92
         cPsi3_plus = 1.0 
         cPsi3_minus = -0.52
-        k_min = 7.6e-6
         psi_min = 1.e-12
         call set( Fwall, 1.0 )  
     case ("k-omega")
@@ -159,7 +159,6 @@ subroutine gls_init(state)
         cPsi2 = 0.833
         cPsi3_plus = 1.0 
         cPsi3_minus = -0.58
-        k_min = 7.6e-6
         psi_min = 1.e-12
         call set( Fwall, 1.0 ) 
     case ("gen")
@@ -172,7 +171,6 @@ subroutine gls_init(state)
         cPsi2 = 1.22
         cPsi3_plus = 1.0 
         cPsi3_minus = 0.1
-        k_min = 7.6e-6
         psi_min = 1.e-12
         call set( Fwall, 1.0 ) 
     case default
@@ -314,9 +312,10 @@ end subroutine gls_init
 !----------
 ! Update TKE
 !----------
-subroutine gls_tke(state)
+subroutine gls_tke(state,ITS)
 
     type(state_type), intent(inout)  :: state 
+    integer, intent(in)              :: ITS
     
     type(scalar_field), pointer      :: source, absorption, kk, scalarField
     type(tensor_field), pointer      :: kk_diff
@@ -327,6 +326,11 @@ subroutine gls_tke(state)
     type(vector_field), pointer      :: positions
 
     ewrite(1,*) "In gls_tke"
+
+    if (ITS > 1) then
+        ewrite(1,*) "Non linear iterations > 1 - not updating GLS fields"
+        return
+    end if
     
     source => extract_scalar_field(state, "GLSTurbulentKineticEnergySource")
     absorption  => extract_scalar_field(state, "GLSTurbulentKineticEnergyAbsorption")
@@ -394,9 +398,10 @@ end subroutine gls_tke
 !----------
 ! Calculate the second quantity
 !----------
-subroutine gls_psi(state)
+subroutine gls_psi(state,ITS)
 
-    type(state_type), intent(inout)  :: state 
+    type(state_type), intent(inout)  :: state
+    integer, intent(in)              :: ITS
     
     type(scalar_field), pointer      :: source, absorption, kk,  psi, scalarField
     type(tensor_field), pointer      :: psi_diff
@@ -406,6 +411,11 @@ subroutine gls_psi(state)
     type(scalar_field), pointer      :: scalar_surface
 
     ewrite(1,*) "In gls_psi"
+
+    if (ITS > 1) then
+        ewrite(1,*) "Non linear iterations > 1 - not updating GLS fields"
+        return
+    end if
 
     source => extract_scalar_field(state, "GLSGenericSecondQuantitySource")
     absorption  => extract_scalar_field(state, "GLSGenericSecondQuantityAbsorption")
@@ -448,7 +458,7 @@ subroutine gls_psi(state)
     ! calc fwall if kkl
     if (calc_fwall) then
         ewrite(1,*) "Calculating the wall function for GLS"
-        call calc_wall_function(state)
+        call gls_calc_wall_function(state)
     else
         ! this is only needed such that Fwall is not NAN after an adapt
         call set( Fwall, 1.0 )
@@ -521,9 +531,10 @@ end subroutine gls_psi
 ! These are placed in the GLS fields ready for other tracer fields to use
 ! Viscosity is placed in the velocity viscosity
 !----------
-subroutine gls_diffusivity(state)
+subroutine gls_diffusivity(state,ITS)
 
     type(state_type), intent(inout)  :: state 
+    integer, intent(in)              :: ITS
     
     type(scalar_field), pointer      :: KK, psi
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
@@ -537,6 +548,11 @@ subroutine gls_diffusivity(state)
     ewrite(1,*) "In gls_diffusivity"
 
     call gls_buoyancy(state)
+
+    if (ITS > 1) then
+        ewrite(1,*) "Non linear iterations > 1 - not updating GLS fields"
+        return
+    end if
 
     KK => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
@@ -610,7 +626,17 @@ subroutine gls_diffusivity(state)
         call set(K_M,i, node_val(S_M,i)*x)
         ! tracer
         call set(K_H,i, node_val(S_H,i)*x)
-   end do
+    end do
+
+    ewrite_minmax(K_H)
+    ewrite_minmax(K_M)
+    ewrite_minmax(S_H)
+    ewrite_minmax(S_M)
+    ewrite_minmax(ll)
+    ewrite_minmax(eps)
+    ewrite_minmax(kk)
+    ewrite_minmax(psi)
+
 
     !set the eddy_diffusivity and viscosity tensors for use by other fields
     call zero(eddy_diff_KH) ! zero it first as we're using an addto below
@@ -644,12 +670,11 @@ subroutine gls_diffusivity(state)
             call addto(viscosity,viscosity%dim,viscosity%dim,i,1.0e-6) 
         end do
     end if
-
     ! Set output on optional fields - if the field exists, stick something in it
     ! We only need to do this to those fields that we haven't pulled from state, but
     ! allocated ourselves
     call gls_output_fields(state)
-
+    
 end subroutine gls_diffusivity
 
 !----------
@@ -694,7 +719,7 @@ subroutine gls_adapt_mesh(state)
     type(state_type), intent(inout) :: state
 
     ewrite(1,*) "In gls_adapt_mesh"
-    call allocate_temps(state) ! reallocate everything
+    call gls_allocate_temps(state) ! reallocate everything
     if (calculate_bcs) then
         call gls_init_surfaces(state) ! re-do the boundaries
     end if
@@ -703,9 +728,9 @@ subroutine gls_adapt_mesh(state)
     ! calculate the TKE src/abs terms, but for diffusivity, we need stability
     ! functions, for those we need epsilon, which is calculated in the
     ! diffusivity subroutine, so, working backwards...
-    call gls_diffusivity(state) ! gets us epsilon, but K_H and K_M are wrong
+    call gls_diffusivity(state,1) ! gets us epsilon, but K_H and K_M are wrong
     call gls_stability_function(state) ! requires espilon, but sets S_H and S_M
-    call gls_diffusivity(state) ! sets K_H, K_M to correct values
+    call gls_diffusivity(state,1) ! sets K_H, K_M to correct values
 
 end subroutine gls_adapt_mesh
 
@@ -713,6 +738,7 @@ subroutine gls_check_options
     
     character(len=FIELD_NAME_LEN) :: buffer
     integer                       :: priority_tke, priority_gsq, stat
+    real                          :: min_tke
 
     ! Don't do GLS if it's not included in the model!
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) return
@@ -806,6 +832,15 @@ subroutine gls_check_options
         end if
     end if
 
+    ! check a minimum value of TKE has been set
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                    &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", min_tke, stat)
+    if (stat/=0) then
+       FLExit("You need to set a minimum TKE value - recommend a value of around 1e-6")
+    end if
+   
+
+
   end subroutine gls_check_options
 
 !------------------------------------------------------------------!
@@ -855,7 +890,7 @@ subroutine gls_init_surfaces(state)
     allocate(dzb(NNodes_bot))
     allocate(dzs(NNodes_sur))
 
-    call calculate_dz(state)
+    call gls_calculate_dz(state)
 
 end subroutine gls_init_surfaces
 
@@ -1302,11 +1337,7 @@ subroutine gls_output_fields(state)
     scalarField => extract_scalar_field(state, "GLSStabilityFunctionSM", stat)
     if(stat == 0) then
         call set(scalarField,S_M) 
-    end if         
-
-    !scalarField => extract_scalar_field(state, "GLSGH", stat)
-    !if(stat == 0) then
-    !end if      
+    end if           
     
     scalarField => extract_scalar_field(state, "GLSWallFunction", stat)
     if(stat == 0) then
@@ -1329,7 +1360,7 @@ end subroutine gls_output_fields
 !----------
 ! Calculates an approximation to "dz" in finite difference code
 !----------
-subroutine calculate_dz(state)
+subroutine gls_calculate_dz(state)
     
     type(state_type), intent(in)     :: state
 
@@ -1354,7 +1385,7 @@ subroutine calculate_dz(state)
         do j=1,nele
             sele = top_surface_element_list(current_patch%elements(j))
             ele = face_ele(positions, sele)
-            h = get_normal_element_size(ele, sele, positions, velocity)
+            h = gls_get_normal_element_size(ele, sele, positions, velocity)
             if (h < node_dz) then
                 node_dz = h
             end if
@@ -1375,7 +1406,7 @@ subroutine calculate_dz(state)
         do j=1,nele
             sele = bottom_surface_element_list(current_patch%elements(j))
             ele = face_ele(positions, sele)
-            h = get_normal_element_size(ele, sele, positions, velocity)
+            h = gls_get_normal_element_size(ele, sele, positions, velocity)
             if (h < node_dz) then
                 node_dz = h
             end if
@@ -1388,7 +1419,7 @@ subroutine calculate_dz(state)
     
 
 contains
-    function get_normal_element_size(ele, sele, x, u) &
+    function gls_get_normal_element_size(ele, sele, x, u) &
                    result (h)
 
         integer              :: ele, sele
@@ -1420,12 +1451,12 @@ contains
         n(:,1) = normal_bdy(:,1)
         hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
         h  = hb(1,1) 
-    end function get_normal_element_size
+    end function gls_get_normal_element_size
 
-end subroutine calculate_dz
+end subroutine gls_calculate_dz
 
 
-subroutine calc_wall_function(state)
+subroutine gls_calc_wall_function(state)
 
     type(state_type), intent(in)     :: state
 
@@ -1448,9 +1479,9 @@ subroutine calc_wall_function(state)
     end do
 
 
-end subroutine calc_wall_function
+end subroutine gls_calc_wall_function
 
-subroutine allocate_temps(state)
+subroutine gls_allocate_temps(state)
 
     type(state_type), intent(inout) :: state
     type(vector_field), pointer    :: vectorField
@@ -1475,7 +1506,7 @@ subroutine allocate_temps(state)
 
     nNodes = node_count(vectorField)
 
-end subroutine allocate_temps
+end subroutine gls_allocate_temps
 
 end module gls
 

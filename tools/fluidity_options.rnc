@@ -842,6 +842,9 @@ start =
                      element string_value {
                      "neumann"|"dirichlet"
                      },
+                     ## Force the surface values to be equal to that of the Dirichlet BC.
+                     ## This forms an ill-posed problem, but appears to stabilise some simulations.
+                     ## Manual suggests that this is OFF unless you're having difficulties.
                      element fix_surface_values {
                         empty
                      }?
@@ -856,6 +859,10 @@ start =
                            prognostic_scalar_field,
                            element priority {
                               integer
+                           },
+                           ## Minimum value of TKE in m2s2. A typical value will be around 1e-6
+                           element minimum_value {
+                              real
                            }
                         }|
                         element aliased {
@@ -1079,21 +1086,6 @@ start =
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "GLSAbsorption2" },
-                     (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }|
-                        element aliased {
-                           generic_aliased_field
-                        }
-                     )
-                  }?,
-                  ## GLS G_H
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "GLSGH" },
                      (
                         element diagnostic {
                            internal_algorithm,
