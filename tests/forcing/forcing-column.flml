@@ -276,6 +276,9 @@
             <priority>
               <integer_value rank="0">100</integer_value>
             </priority>
+            <minimum_value>
+              <real_value rank="0">7.6e-6</real_value>
+            </minimum_value>
           </prognostic>
         </scalar_field>
         <scalar_field name="GLSGenericSecondQuantity" rank="0">
