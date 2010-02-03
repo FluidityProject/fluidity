@@ -11,6 +11,7 @@ program periodise
   use spud
   use field_options
   use write_triangle
+  use integer_set_module
   implicit none
 
   character(len=4096) :: filename, external_filename, new_external_filename, new_filename
@@ -109,9 +110,10 @@ program periodise
     type(vector_field), intent(inout) :: periodic_positions
     type(vector_field), intent(in) :: external_positions
 
-    integer :: periodic_bc, aliased_id, j
+    type(integer_set):: physical_bc_nodes
+    integer :: periodic_bc, aliased_id, physical_id, j
     integer, dimension(2) :: shape_option
-    integer, dimension(:), allocatable :: aliased_boundary_ids
+    integer, dimension(:), allocatable :: aliased_boundary_ids, physical_boundary_ids
     integer :: face
 
     ! Retain the original surface IDs, as we still need them --
@@ -119,9 +121,32 @@ program periodise
     ! to have surface ID zero
     periodic_mesh%faces%boundary_ids = external_mesh%faces%boundary_ids
 
+
+    ! First we need to create a set of all nodes that are on physical periodic 
+    ! boundaries. If these nodes (in the non-periodic mesh) also appear on 
+    ! aliased boundaries (happens for double periodic), they should not be 
+    ! used to determine the position in the periodic coordinate field
+    
+    call allocate(physical_bc_nodes)
+    do periodic_bc=0,option_count(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions')-1
+      shape_option = option_shape(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids')
+      allocate(physical_boundary_ids(shape_option(1)))
+      call get_option(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/physical_boundary_ids', physical_boundary_ids)
+      do j=1, shape_option(1)
+        physical_id = physical_boundary_ids(j)
+        ! Now we can finally loop over faces with this id and set appropriately
+        do face=1, surface_element_count(external_mesh)
+          if (surface_element_id(external_mesh, face) == physical_id) then
+            call insert(physical_bc_nodes, face_global_nodes(external_mesh, face))
+          end if
+        end do
+      end do
+      deallocate(physical_boundary_ids)
+    end do
+
     ! We need to loop through all aliased faces and set the periodic positions to
     ! the aliased values, so that we can recover them by applying the map later
-
+    
     do periodic_bc=0,option_count(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions')-1
       shape_option = option_shape(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids') 
       allocate(aliased_boundary_ids(shape_option(1)))
@@ -130,16 +155,46 @@ program periodise
         aliased_id = aliased_boundary_ids(j)
         ! Now we can finally loop over faces with this id and set appropriately
         do face=1,surface_element_count(external_mesh)
-          if (surface_element_id(external_mesh, face) == aliased_id) then
-            call set(periodic_positions, face_global_nodes(periodic_positions, face), face_val(external_positions, face))
-          end if
+          call postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
         end do
       end do
       deallocate(aliased_boundary_ids)
+      
     end do
-
+      
+    call deallocate(physical_bc_nodes)
+    
   end subroutine postprocess_periodic_mesh
 
+  subroutine postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
+    ! Write the positions of the nodes on this aliased face
+    ! to the periodic_positions. The physical positions can later be
+    ! recovered by applying the coordinate map. Nodes that are on both
+    ! a physical and an aliased face (happens for double/triple periodic)
+    ! should not be written, as they have another copy, going back
+    ! applying the inverse of the coordinate map associated with the 
+    ! physical face - and its that position we want to write out.
+    type(vector_field), intent(inout):: periodic_positions
+    type(vector_field), intent(in):: external_positions
+    integer, intent(in):: face
+    type(integer_set), intent(in):: physical_bc_nodes
+  
+    integer, dimension(face_loc(external_positions, face)):: face_non_periodic_nodes, face_periodic_nodes
+    integer:: k, np_node, p_node
+    
+    face_non_periodic_nodes=face_global_nodes(external_positions, face)
+    face_periodic_nodes=face_global_nodes(periodic_positions, face)
+    
+    do k=1, size(face_non_periodic_nodes)
+      np_node=face_non_periodic_nodes(k)
+      p_node=face_periodic_nodes(k)
+      if (.not. has_value(physical_bc_nodes, np_node)) then
+        call set(periodic_positions, p_node, node_val(external_positions, np_node))
+      end if
+    end do
+  
+  end subroutine postprocess_periodic_mesh_face
+  
   subroutine manipulate_options(external_mesh, external_path, periodic_mesh, periodic_path, new_external_filename)
     type(mesh_type), intent(in) :: external_mesh, periodic_mesh
     character(len=*), intent(in) :: new_external_filename
