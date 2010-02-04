@@ -84,4 +84,8 @@ subroutine mainfl(filename, filename_len)
      
   end if
 
+  if(SIG_INT) then
+    FLExit("Interrupt signal received")
+  end if
+
 end subroutine mainfl
