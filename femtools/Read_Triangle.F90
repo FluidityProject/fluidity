@@ -179,7 +179,7 @@ contains
     real, allocatable, dimension(:) :: read_buffer
     integer, allocatable, dimension(:,:) :: edge_buffer
     integer, allocatable, dimension(:) :: sndglno
-    integer, allocatable, dimension(:) :: boundary_ids
+    integer, allocatable, dimension(:) :: boundary_ids, element_owner
     
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: i, j, nodes, dim, node_attributes, boundaries,&
@@ -328,6 +328,10 @@ contains
     sndglno=0
     allocate(boundary_ids(1:edges))
     boundary_ids=0
+    if (boundaries==2) then
+      allocate(element_owner(1:edges))
+      element_owner=0
+    end if
     edge_count=0
     
     if (boundaries==0) then
@@ -347,6 +351,9 @@ contains
             sndglno((edge_count-1)*sloc+1:edge_count*sloc)= &
               edge_buffer(2:sloc+1,i)
             boundary_ids(edge_count)=edge_buffer(sloc+2,i)
+            if (boundaries==2) then
+              element_owner(edge_count)=edge_buffer(sloc+3,i)
+            end if
           end if
         end do
         
@@ -355,19 +362,38 @@ contains
       end if
     end if
     
-    if(isparallel()) then
-      ! Set private_nodes to zero, so that we don't generate surface elements
-      ! on the partition external / globally external faces
-      call add_faces(field%mesh, &
-        &               sndgln=sndglno(1:edge_count*sloc), &
-        &               boundary_ids=boundary_ids(1:edge_count), &
-        &               private_nodes = 0)
+    if (boundaries<2) then
+      if(isparallel()) then
+        ! Set private_nodes to zero, so that we don't generate surface elements
+        ! on the partition external / globally external faces
+        call add_faces(field%mesh, &
+          &               sndgln=sndglno(1:edge_count*sloc), &
+          &               boundary_ids=boundary_ids(1:edge_count), &
+          &               private_nodes = 0)
+      else
+        ! In serial, can safely generate surface elements for all elements that
+        ! are on the surface
+        call add_faces(field%mesh, &
+          &               sndgln=sndglno(1:edge_count*sloc), &
+          &               boundary_ids=boundary_ids(1:edge_count))
+      end if
     else
-      ! In serial, can safely generate surface elements for all elements that
-      ! are on the surface
-      call add_faces(field%mesh, &
-        &               sndgln=sndglno(1:edge_count*sloc), &
-        &               boundary_ids=boundary_ids(1:edge_count))
+      if(isparallel()) then
+        ! Set private_nodes to zero, so that we don't generate surface elements
+        ! on the partition external / globally external faces
+        call add_faces(field%mesh, &
+          &               sndgln=sndglno(1:edge_count*sloc), &
+          &               boundary_ids=boundary_ids(1:edge_count), &
+          &               element_owner=element_owner, &
+          &               private_nodes = 0)
+      else
+        ! In serial, can safely generate surface elements for all elements that
+        ! are on the surface
+        call add_faces(field%mesh, &
+          &               sndgln=sndglno(1:edge_count*sloc), &
+          &               element_owner=element_owner, &
+          &               boundary_ids=boundary_ids(1:edge_count))
+      end if
     end if
 
     deallocate(edge_buffer)

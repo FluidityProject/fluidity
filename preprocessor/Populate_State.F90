@@ -247,6 +247,11 @@ contains
              ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
              FLAbort("Invalid format for mesh file")
           end if
+          
+          ! if there is a derived mesh which specifies periodic bcs 
+          ! to be *removed*, we assume the external mesh is periodic
+          mesh%periodic = option_count("/geometry/meshes/from_mesh/&
+             &periodic_boundary_conditions/remove_periodicity")>0
 
           ! Get mesh name. This must be done after the triangle file has
           ! been read otherwise the filename is automatically inserted
@@ -275,7 +280,10 @@ contains
           ! coplanar ids are create here already and stored on the mesh, 
           ! so its derived meshes get the same coplanar ids
           ! (must be done after halo registration)
-          call get_coplanar_ids(mesh, position, coplanar_ids)
+          if (mesh_periodic(mesh)) then 
+            ! for periodic meshes, we postpone till we've derived the non-periodic mesh
+            call get_coplanar_ids(mesh, position, coplanar_ids)
+          end if
           
           ! Insert mesh and position field into states(1) and
           ! alias it to all the others

@@ -39,6 +39,7 @@ use adjacency_lists
 use global_numbering, only: make_global_numbering, make_global_numbering_dg
 use memory_diagnostics
 use ieee_arithmetic
+use data_structures
 
 implicit none
 
@@ -525,8 +526,6 @@ contains
     !!< deallocate it if the count drops to zero.
     type(scalar_field), intent(inout) :: field
       
-    integer i
-    
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
@@ -1066,7 +1065,7 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    private_nodes, periodic_face_list)
+    private_nodes, periodic_face_list, element_owner)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1099,19 +1098,23 @@ contains
     !! By giving a value of 0 for this argument one can prevent any surface
     !! elements being added to the surface mesh sndgln
     integer, intent(in), optional :: private_nodes
-    !! if supplied the mesh is periodic and this list must contain
-    !! the pairs of faces, on the periodic boundary, that are now between
-    !! two elements. This needed to update the face_list
+    !! if supplied the mesh is periodic and the model non-periodic
+    !! this list must contain the pairs of faces, on the periodic boundary, 
+    !! that are now between two elements. This is needed to update the face_list
     integer, dimension(:,:), intent(in), optional :: periodic_face_list
+    !! This list gives the element owning each face in sndgln. This needs
+    !! to be provided when sndgln contains internal faces, as we need to
+    !! decide which of the two adjacent elements the face belongs to
+    !! (used in reading in periodic meshes which include the periodic faces in the surface mesh)
+    integer, dimension(:), intent(in), optional :: element_owner
 
-    type(csr_sparsity) face_list_sparsity
     type(mesh_type), pointer :: lmodel
     type(element_type), pointer :: element
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
          ele_boundary, ele_boundary2 ! these last two are actually smaller    
-    integer :: face_count, ele, i, j, snloc, m, n, p, face1, face2, ele1, ele2
+    integer :: face_count, ele, j, snloc, m, n, p, face2
 
     if (associated(mesh%faces)) then
       ! calling add_faces twice is dangerous as it may nuke information
@@ -1137,7 +1140,8 @@ contains
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
        call add_faces_face_list(mesh, sndgln=sndgln, &
-         boundary_ids=boundary_ids, private_nodes=private_nodes)
+         boundary_ids=boundary_ids, private_nodes=private_nodes, &
+         element_owner=element_owner)
          
        ! we don't calculate coplanar_ids here, as we need positions
        mesh%faces%coplanar_ids => null()
@@ -1158,46 +1162,11 @@ contains
       lmodel => model
       
       if (present(periodic_face_list)) then
-         ! for periodic meshes we need to fix the face_list
-         ! so we have to have a separate copy
-         call allocate(face_list_sparsity, element_count(model), &
-           element_count(model), entries(model%faces%face_list), &
-           name=trim(mesh%name)//"EEList")
-         face_list_sparsity%colm=model%faces%face_list%sparsity%colm
-         face_list_sparsity%findrm=model%faces%face_list%sparsity%findrm
 
-         call allocate(mesh%faces%face_list, face_list_sparsity, &
-           type=CSR_INTEGER, name=trim(mesh%name)//"FaceList")
-         mesh%faces%face_list%ival=model%faces%face_list%ival
-         call deallocate(face_list_sparsity)          
-        
-         ! now fix the face list
-         do i=1, size(periodic_face_list,1)
-            face1=periodic_face_list(i, 1)
-            face2=periodic_face_list(i, 2)
-            ele1=model%faces%face_element_list(face1)
-            ele2=model%faces%face_element_list(face2)
-            
-            ! register ele2 as a neighbour of ele1
-            faces => row_ival_ptr(mesh%faces%face_list, ele1)
-            neigh => row_m_ptr(mesh%faces%face_list, ele1)
-            do j=1, size(faces)
-              if (faces(j)==face1) then
-                 neigh(j)=ele2
-              end if
-            end do
-              
-            ! register ele1 as a neighbour of ele2
-            faces => row_ival_ptr(mesh%faces%face_list, ele2)
-            neigh => row_m_ptr(mesh%faces%face_list, ele2)
-            do j=1, size(faces)
-              if (faces(j)==face2) then
-                 neigh(j)=ele1
-              end if
-            end do
-            
-         end do
-
+         ! make face_list from the model but change periodic faces to become internal
+         call add_faces_face_list_periodic_from_non_periodic_model( &
+            mesh, model, periodic_face_list)
+         
          ! Having fixed the face list, we should now use the original mesh
          ! rather than the model so that all faces which are supposed to be
          ! adjacent actually are.
@@ -1234,7 +1203,7 @@ contains
          nullify(mesh%faces%coplanar_ids)
       end if
       
-    end if
+    end if ! if (.not. present(model)) then ... else ...
 
     ! at this point mesh%faces%face_list and mesh%faces%face_element_list are 
     ! ready (either newly computed or copied from model)
@@ -1266,9 +1235,7 @@ contains
 #endif
 
 
-    vertices=local_vertices(lmodel%shape%numbering)
-
-    
+    vertices=local_vertices(lmodel%shape%numbering)    
 
     ! now fill in face_lno
     eleloop: do ele=1, size(mesh%faces%face_list,1)
@@ -1335,7 +1302,8 @@ contains
 
   end subroutine add_faces
 
-  subroutine add_faces_face_list(mesh, sndgln, boundary_ids, private_nodes)
+  subroutine add_faces_face_list(mesh, sndgln, boundary_ids, private_nodes, &
+    element_owner)
     !!< Subroutine to calculate the face_list and face_element_list of the 
     !!< faces component of a 'model mesh'. This should be the linear continuous 
     !!< mesh that may serve as a 'model' for other meshes.
@@ -1346,12 +1314,14 @@ contains
     integer, dimension(:), target, intent(in), optional:: sndgln
     integer, dimension(:), target, intent(in), optional:: boundary_ids
     integer, intent(in), optional :: private_nodes
+    integer, dimension(:), intent(in), optional :: element_owner
 
     type(element_type), pointer :: mesh_shape
     type(element_type) :: face_shape
+    logical:: internal_face
     integer, dimension(:), pointer :: faces, neigh, snodes, ele_glnodes
     integer, dimension(:), allocatable :: face_glnodes
-    integer, dimension(1) :: common_elements
+    integer, dimension(2) :: common_elements
     integer :: nloc, snloc, stotel, lprivate_nodes
     integer :: bdry_count, ele, sele, j, no_found
     integer :: no_faces
@@ -1369,6 +1339,7 @@ contains
 
     call allocate(mesh%faces%face_list, sparsity, type=CSR_INTEGER, &
         name=trim(mesh%name)//"FaceList")
+    call zero(mesh%faces%face_list)
 
     no_faces=size(mesh%faces%face_list%sparsity%colm)
     allocate(mesh%faces%face_element_list(no_faces))
@@ -1395,12 +1366,23 @@ contains
         call FindCommonElements(common_elements, no_found, nelist, &
           nodes=snodes )
           
-        if (no_found/=1) then
+        if (no_found==1) then
+          ! we have found the adjacent element
+          ele=common_elements(1)
+          internal_face=.false.
+          if (present(element_owner)) then
+            assert(element_owner(sele)==ele)
+          end if
+        else if (no_found==2 .and. present(element_owner)) then
+          ele=element_owner(sele)
+          if (all(common_elements/=ele)) then
+            FLAbort("Face not adjacent to specified element_owner")
+          end if
+          internal_face=.true.
+        else
           FLAbort("Surface element in sndgln is not on the surface.")
         end if
         
-        ! we have found the adjacent element
-        ele=common_elements(1)
         mesh%faces%face_element_list(sele)=ele
         
         ! now we have to fill in face_list:
@@ -1409,7 +1391,7 @@ contains
 
         ! find the matching boundary of this element
         do j=1, mesh%shape%numbering%boundaries
-          if (neigh(j)<=0) then
+          if (neigh(j)<=0 .or. internal_face) then
             if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
                                   boundary_numbering(mesh%shape%numbering, j) &
                                             ))) exit
@@ -1420,7 +1402,7 @@ contains
           ! not found a matching boundary, something's wrong
           FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
           
-        else if (neigh(j)<0) then
+        else if (neigh(j)/=0 .and. .not. internal_face) then
           ! this surface element is already registered
           ! so apparently there's a duplicate element in the surface mesh
           ewrite(0,*) 'Surface element:', faces(j),' and ',sele
@@ -1430,7 +1412,12 @@ contains
         
         ! register the surface element in face_list
         faces(j)=sele
-        neigh(j)=-j ! negative number indicates exterior boundary
+        if (.not. internal_face) then
+          neigh(j)=-j ! negative number indicates exterior boundary
+        else
+          ! if all went well neigh(j) should have the right value:
+          assert( neigh(j)==minval(common_elements, mask=common_elements/=ele) )
+        end if
         
       end do
         
@@ -1494,7 +1481,7 @@ contains
        faces=>row_ival_ptr(mesh%faces%face_list, ele)
        
        do j=1,size(neigh)
-          if (neigh(j)>0) then
+          if (neigh(j)>0 .and. faces(j)==0) then
             bdry_count=bdry_count+1
             faces(j)=bdry_count
           else if (neigh(j)==0) then
@@ -1510,7 +1497,7 @@ contains
        ! (all faces should have an index now):
        mesh%faces%face_element_list(faces)=ele
        
-    end do
+    end do 
     
     ! Sanity checks that we have found all the faces.
     assert(bdry_count==size(mesh%faces%face_list%sparsity%colm))
@@ -1518,6 +1505,62 @@ contains
     assert(.not.any(mesh%faces%face_list%ival==0))
     
   end subroutine add_faces_face_list
+    
+  subroutine add_faces_face_list_periodic_from_non_periodic_model( &
+     mesh, model, periodic_face_list)
+     ! computes the face_list of a periodic mesh by copying it from
+     ! a non-periodic model mesh and changing the periodic faces
+     ! to internal
+     type(mesh_type), intent(inout):: mesh
+     type(mesh_type), intent(in):: model
+     integer, dimension(:,:), intent(in):: periodic_face_list
+
+     type(csr_sparsity):: face_list_sparsity
+     integer, dimension(:), pointer :: faces, neigh
+     integer:: face1, face2, ele1, ele2
+     integer:: i, j
+
+     ! for periodic meshes we need to fix the face_list
+     ! so we have to have a separate copy
+     call allocate(face_list_sparsity, element_count(model), &
+       element_count(model), entries(model%faces%face_list), &
+       name=trim(mesh%name)//"EEList")
+     face_list_sparsity%colm=model%faces%face_list%sparsity%colm
+     face_list_sparsity%findrm=model%faces%face_list%sparsity%findrm
+
+     call allocate(mesh%faces%face_list, face_list_sparsity, &
+       type=CSR_INTEGER, name=trim(mesh%name)//"FaceList")
+     mesh%faces%face_list%ival=model%faces%face_list%ival
+     call deallocate(face_list_sparsity)          
+    
+     ! now fix the face list
+     do i=1, size(periodic_face_list,1)
+        face1=periodic_face_list(i, 1)
+        face2=periodic_face_list(i, 2)
+        ele1=model%faces%face_element_list(face1)
+        ele2=model%faces%face_element_list(face2)
+        
+        ! register ele2 as a neighbour of ele1
+        faces => row_ival_ptr(mesh%faces%face_list, ele1)
+        neigh => row_m_ptr(mesh%faces%face_list, ele1)
+        do j=1, size(faces)
+          if (faces(j)==face1) then
+             neigh(j)=ele2
+          end if
+        end do
+          
+        ! register ele1 as a neighbour of ele2
+        faces => row_ival_ptr(mesh%faces%face_list, ele2)
+        neigh => row_m_ptr(mesh%faces%face_list, ele2)
+        do j=1, size(faces)
+          if (faces(j)==face2) then
+             neigh(j)=ele1
+          end if
+        end do
+        
+     end do
+
+  end subroutine add_faces_face_list_periodic_from_non_periodic_model
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
     mesh, surface_elements, name)
@@ -1880,7 +1923,102 @@ contains
 
   end function make_mesh_periodic
 
+  function make_mesh_unperiodic(model, physical_boundary_ids, aliased_boundary_ids, periodic_mapping_python, name) &
+       result (new_positions)
+    !!< Produce a mesh based on an old mesh but with periodic boundary conditions
+    type(vector_field) :: new_positions
 
+    type(vector_field), intent(in) :: model
+    integer, dimension(:), intent(in) :: physical_boundary_ids, aliased_boundary_ids
+    character(len=*), intent(in) :: periodic_mapping_python
+    character(len=*), intent(in):: name
+    
+    type(integer_hash_table):: aliased_to_new_node_number
+    type(mesh_type):: mesh
+    real, dimension(:,:), allocatable:: aliased_positions, physical_positions
+    integer, dimension(:), pointer:: nodes, new_nodes
+    integer:: mapped_node_count, aliased_node, physical_node
+    integer:: i, j, ele
+    
+    ! build a map from aliased node number to physical node number
+    ! thus also counting the number mapped nodes
+    call allocate( aliased_to_new_node_number )   
+    mapped_node_count = 0
+    do i = 1, surface_element_count(model)
+      if (any(aliased_boundary_ids==surface_element_id(model, i))) then
+        call copy_aliased_nodes_face(i)
+      end if
+    end do
+      
+    ! we now have info to allocate the new mesh
+    call allocate(mesh, node_count(model)+mapped_node_count, element_count(model), &
+      model%mesh%shape, name=name)
+    mesh%ndglno=model%mesh%ndglno
+
+    ! now for the new_positions, first copy all positions of the model (including aliased nodes)
+    call allocate(new_positions, model%dim, mesh, name=trim(name)//"Coordinate")
+    allocate( aliased_positions(1:model%dim, mapped_node_count), &
+      physical_positions(1:model%dim, mapped_node_count ) )
+    do j=1, model%dim
+       new_positions%val(j)%ptr=model%val(j)%ptr
+    end do
+    
+    ! copy aliased positions into an array
+    do i=1, mapped_node_count
+      call fetch_pair(aliased_to_new_node_number, i, aliased_node, physical_node)
+      aliased_positions(:, i)=node_val(model, aliased_node)
+    end do
+    
+    ! apply the python map
+    call set_from_python_function(physical_positions, &
+            periodic_mapping_python, aliased_positions, &
+            time=0.0)
+
+    ! copy the physical node positions
+    do i=1, mapped_node_count
+      call fetch_pair(aliased_to_new_node_number, i, aliased_node, physical_node)
+      do j=1, model%dim
+         new_positions%val(j)%ptr(physical_node)=physical_positions(j,i)
+      end do
+    end do
+      
+    ! now fix the elements 
+    do i = 1, surface_element_count(model)
+      if (any(physical_boundary_ids==surface_element_id(model, i))) then
+        ele=face_ele(model, i)
+        nodes => ele_nodes(model, ele)
+        new_nodes => ele_nodes(mesh, ele)
+        do j = 1, size(nodes)
+          if (has_key(aliased_to_new_node_number, nodes(j))) then
+            new_nodes(j)=fetch(aliased_to_new_node_number, nodes(j))
+          end if
+        end do
+      end if
+    end do
+      
+    call deallocate(mesh)
+    deallocate( aliased_positions, physical_positions )
+
+  contains
+  
+    subroutine copy_aliased_nodes_face(face)
+      integer, intent(in):: face
+      
+      integer, dimension(face_loc(model, face)):: aliased_nodes
+      integer:: j
+      
+      aliased_nodes = face_global_nodes(model, face)
+      do j = 1, size(aliased_nodes)
+        if (.not. has_key(aliased_to_new_node_number, aliased_nodes(j))) then
+          mapped_node_count = mapped_node_count + 1
+          call insert(aliased_to_new_node_number, aliased_nodes(j), node_count(model)+mapped_node_count)
+        end if
+      end do
+    
+    end subroutine copy_aliased_nodes_face
+    
+  end function make_mesh_unperiodic
+  
   function make_submesh (model, name) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but divided into piecewise linear.
