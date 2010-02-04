@@ -294,7 +294,9 @@ contains
     character(len=*), intent(in):: filename
     type(mesh_type), intent(in):: mesh
     
-    integer unit, dim, nofaces, i
+    integer :: unit, dim, nofaces, i
+    integer :: nolabels
+    logical :: periodic
     
     unit=free_unit()
     
@@ -312,14 +314,30 @@ contains
         ewrite(-1, "(a,i0)") "For dimension ", dim
         FLAbort("Invalid dimension")
     end select
+
+    if (mesh_periodic(mesh)) then
+      ! If the mesh is periodic, we want to write out the parent element of every face
+      periodic = .true.
+      nolabels = 2
+    else
+      periodic = .false.
+      nolabels = 1
+    end if
     
-    ! header line: nofaces, 1 boundary marker
-    write(unit, *, err=42) nofaces, 1
+    ! header line: nofaces, and number of boundary markers
+    write(unit, *, err=42) nofaces, nolabels
     
-    do i=1, nofaces
-       write(unit, *, err=42) i, face_global_nodes(mesh, i), &
-            surface_element_id(mesh, i)
-    end do
+    if (.not. periodic) then
+      do i=1, nofaces
+         write(unit, *, err=42) i, face_global_nodes(mesh, i), &
+              surface_element_id(mesh, i)
+      end do
+    else
+      do i=1, nofaces
+         write(unit, *, err=42) i, face_global_nodes(mesh, i), &
+              surface_element_id(mesh, i), face_ele(mesh, i)
+      end do
+    end if
     
     close(unit=unit, err=43)
     ! succesful return
