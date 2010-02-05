@@ -5,7 +5,7 @@
   <owner userid="maddison"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
-    <command_line>make clean-run; dfluidity -v2 -l balance-pressure.flml</command_line>
+    <command_line>make clean-run; fluidity -v2 -l balance-pressure.flml</command_line>
   </problem_definition>
   <variables>
     <variable name = "times" language = "python">

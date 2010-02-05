@@ -6,7 +6,7 @@
   <owner userid="yves"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity -v3 -l --xml Seiche_coarse.flml &gt; /dev/null 2&gt;&amp;1</command_line>
+    <command_line>fluidity -v3 -l --xml Seiche_coarse.flml &gt; /dev/null 2&gt;&amp;1</command_line>
   </problem_definition>
   <variables>
     <variable name="maxspeed" language="python">

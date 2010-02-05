@@ -6,7 +6,7 @@
   <owner userid="piggott"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity -v3 -l backward_facing_step_2d.flml</command_line>
+    <command_line>fluidity -v3 -l backward_facing_step_2d.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="FinalTime" language="python">

@@ -6,8 +6,8 @@
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run-debug;
-dfluidity -v2 sc_barotropic_fplane_balance_p1dgp2_0.flml > sc_barotropic_fplane_balance_p1dgp2_0.log;
-dfluidity -v2 sc_barotropic_fplane_balance_p1dgp2_1.flml > sc_barotropic_fplane_balance_p1dgp2_1.log</command_line>
+fluidity -v2 sc_barotropic_fplane_balance_p1dgp2_0.flml > sc_barotropic_fplane_balance_p1dgp2_0.log;
+fluidity -v2 sc_barotropic_fplane_balance_p1dgp2_1.flml > sc_barotropic_fplane_balance_p1dgp2_1.log</command_line>
   </problem_definition>
   <variables>
     <variable name = "p1dgp2_0_times" language = "python">

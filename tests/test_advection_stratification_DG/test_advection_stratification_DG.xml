@@ -6,7 +6,7 @@
   <owner userid="colin"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>dfluidity slice_unstructured_exponential.flml; dfluidity slice_unstructured_linear.flml</command_line>
+    <command_line>fluidity slice_unstructured_exponential.flml; fluidity slice_unstructured_linear.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="DeltaT_exp" language="python">

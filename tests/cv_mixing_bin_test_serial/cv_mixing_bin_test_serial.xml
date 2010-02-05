@@ -6,7 +6,7 @@
   <owner userid="hhiester"/>
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity -v3 -l cv_mixing_bin_test_serial.flml </command_line>
+    <command_line>fluidity -v3 -l cv_mixing_bin_test_serial.flml </command_line>
   </problem_definition>  
   <variables>  
     <variable name = "matvolume_base" language = "python">

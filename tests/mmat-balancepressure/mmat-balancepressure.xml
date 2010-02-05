@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity -v2 -l mmat-balancepressure-p0p1cv-gpp2.flml  </command_line>
+    <command_line>fluidity -v2 -l mmat-balancepressure-p0p1cv-gpp2.flml  </command_line>
   </problem_definition>  
   <variables>  
     <variable name="pressure" language="python">

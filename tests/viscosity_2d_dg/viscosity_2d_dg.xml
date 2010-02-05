@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity --xml viscosity.flml </command_line>
+    <command_line>fluidity --xml viscosity.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>

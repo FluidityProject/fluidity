@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity --xml cube.flml </command_line>
+    <command_line>fluidity --xml cube.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="maxspeed1" language="python">

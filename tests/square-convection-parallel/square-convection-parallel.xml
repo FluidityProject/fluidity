@@ -5,7 +5,7 @@
   <owner userid="pfarrell"/>
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
-    <command_line>mpiexec -n 2 ../../bin/dfluidity -v2 -l square-convection.flml</command_line>
+    <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l square-convection.flml</command_line>
   </problem_definition>
   <variables>
     <variable name = "time" language = "python">

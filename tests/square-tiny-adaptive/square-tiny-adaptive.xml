@@ -5,7 +5,7 @@
   <owner userid="maddison"/>
   <tags>flml</tags>
   <problem_definition length = "special" nprocs = "1">
-    <command_line>make clean-run-debug &amp;&amp; rm -f memory.log &amp;&amp; ../../scripts/memwrap -t 1 dfluidity -v2 -l square-tiny-adaptive.flml > memory.log</command_line>
+    <command_line>make clean-run-debug &amp;&amp; rm -f memory.log &amp;&amp; ../../scripts/memwrap -t 1 fluidity -v2 -l square-tiny-adaptive.flml > memory.log</command_line>
   </problem_definition>
   <variables>
     <variable name = "timesteps" language = "python">

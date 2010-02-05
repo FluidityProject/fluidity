@@ -6,7 +6,7 @@
   <owner userid="rdp07"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>export PYTHONPATH=$PWD/../../python:$PYTHONPATH;dfluidity --xml python.flml </command_line>
+    <command_line>export PYTHONPATH=$PWD/../../python:$PYTHONPATH; fluidity --xml python.flml </command_line>
     <!-- Set a diagnostic field using embedded python code.  -->
   </problem_definition>
   <variables>

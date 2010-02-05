@@ -6,7 +6,7 @@
   <owner userid="piggott"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="2">
-    <command_line>mpiexec ../../bin/dfluidity -v3 -l just-coarsen-parallel.flml</command_line>
+    <command_line>mpiexec ../../bin/fluidity -v3 -l just-coarsen-parallel.flml</command_line>
   </problem_definition>
   <variables>
 

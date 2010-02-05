@@ -84,12 +84,6 @@ FLUIDITY="fluidity"
 FLADJOINT="fladjoint"
 FLFEMDEM="femdem"
 
-if test "$enable_debugging" = "yes" ; then
-  FLUIDITY="$FLUIDITY-debug"
-  FLADJOINT="$FLADJOINT-debug"
-  FLFEMDEM="$FLFEMDEM-debug"	
-fi
-
 # Check system type
 AC_CANONICAL_HOST
 
@@ -888,9 +882,6 @@ else
     fi
   fi
   enable_dp="yes"
-
-  FLUIDITY="d$FLUIDITY"
-  FLADJOINT="d$FLADJOINT"
 
 cat >> confdefs.h << EOF
 #define DOUBLEP 1

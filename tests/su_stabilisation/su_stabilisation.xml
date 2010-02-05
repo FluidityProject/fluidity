@@ -5,7 +5,7 @@
   <owner userid="maddison"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
-    <command_line>make clean-run; rm -f su.log explicit_pe.log; dfluidity -v2 top_hat_cg_su.flml > su.log; dfluidity -v2 top_hat_cg_explicit_pe.flml > explicit_pe.log</command_line>
+    <command_line>make clean-run; rm -f su.log explicit_pe.log; fluidity -v2 top_hat_cg_su.flml > su.log; fluidity -v2 top_hat_cg_explicit_pe.flml > explicit_pe.log</command_line>
   </problem_definition>
   <variables>
     <variable name = "times" language = "python">

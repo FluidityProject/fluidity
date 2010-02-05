@@ -5,7 +5,7 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity -x MMS_A_cv.flml &gt; MMS_A.log; dfluidity -x MMS_B_cv.flml &gt; MMS_B.log; dfluidity -x MMS_C_cv.flml &gt; MMS_C.log; dfluidity -x MMS_D_cv.flml &gt; MMS_D.log</command_line>
+    <command_line>fluidity -x MMS_A_cv.flml &gt; MMS_A.log; fluidity -x MMS_B_cv.flml &gt; MMS_B.log; fluidity -x MMS_C_cv.flml &gt; MMS_C.log; fluidity -x MMS_D_cv.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_gal_stat" language="python">

@@ -5,7 +5,7 @@
   <owner userid="maddison"/>
   <tags>flml</tags>
   <problem_definition length = "short" nprocs = "1">
-    <command_line>make clean-run-debug; dfluidity -v2 -l prescribed_adaptivity.flml</command_line>
+    <command_line>make clean-run-debug; fluidity -v2 -l prescribed_adaptivity.flml</command_line>
   </problem_definition>
   <variables>
     <variable name = "timesteps" language = "python">

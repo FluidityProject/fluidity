@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml solidity</tags>
     <problem_definition length="medium" nprocs="1">
-    <command_line>mpiexec -np 2 ../../bin/dfluidity -v2 -l 5material-droplet.flml &amp;&amp; ../../scripts/pvtu2vtu 5material-droplet 0 20</command_line>
+    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l 5material-droplet.flml &amp;&amp; ../../scripts/pvtu2vtu 5material-droplet 0 20</command_line>
   </problem_definition>  
   <variables>  
     <variable name="endtime" language="python">

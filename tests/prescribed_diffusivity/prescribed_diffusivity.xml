@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>dfluidity --xml prescribed_diffusivity.flml </command_line>
+    <command_line>fluidity --xml prescribed_diffusivity.flml </command_line>
     <!-- Prescribe a tensor field as a python function. -->
   </problem_definition>
   <variables>

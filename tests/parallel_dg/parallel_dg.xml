@@ -5,7 +5,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length = "special" nprocs = "2">
-    <command_line>make clean-run-debug &amp;&amp; mpiexec dfluidity -v2 -l cube.flml</command_line>
+    <command_line>make clean-run-debug &amp;&amp; mpiexec fluidity -v2 -l cube.flml</command_line>
   </problem_definition>
   <variables>
     <variable name = "times" language = "python">

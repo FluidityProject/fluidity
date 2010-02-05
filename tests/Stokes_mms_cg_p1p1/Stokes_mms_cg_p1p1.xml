@@ -5,7 +5,7 @@
   <owner userid="rhodrid"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity -v2 -l MMS_A.flml &amp;&amp; dfluidity MMS_B.flml &amp;&amp; dfluidity MMS_C.flml &amp;&amp; dfluidity MMS_D.flml </command_line>
+    <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel" language="python">

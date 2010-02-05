@@ -7,7 +7,7 @@
   <tags>flml</tags>
 
   <problem_definition length="medium" nprocs="1">
-    <command_line>mpiexec -np 2 ../../bin/dfluidity -v2 -l Stokes-square-convection-1e4-p1p1-parallel.flml</command_line>
+    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l Stokes-square-convection-1e4-p1p1-parallel.flml</command_line>
   </problem_definition>
 
 <variables>  

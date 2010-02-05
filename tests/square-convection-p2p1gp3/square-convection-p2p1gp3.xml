@@ -5,7 +5,7 @@
   <owner userid="maddison"/>
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
-    <command_line>make clean-run-debug; dfluidity -v2 -l square-convection.flml</command_line>
+    <command_line>make clean-run-debug; fluidity -v2 -l square-convection.flml</command_line>
   </problem_definition>
   <variables>
     <variable name = "times" language = "python">

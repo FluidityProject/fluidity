@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml solidity</tags>
     <problem_definition length="special" nprocs="8">
-    <command_line>mpiexec ../../bin/dfluidity -v0 -l landslide.flml </command_line>
+    <command_line>mpiexec ../../bin/fluidity -v0 -l landslide.flml </command_line>
   </problem_definition>  
   <variables>  
     <variable name="endtime" language="python">

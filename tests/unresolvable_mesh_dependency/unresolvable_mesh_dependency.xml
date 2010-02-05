@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity mesh.flml -l || true</command_line>
+    <command_line>fluidity mesh.flml -l || true</command_line>
     <!-- Problem with a dependency loop in the meshes. -->
   </problem_definition>
   <variables>

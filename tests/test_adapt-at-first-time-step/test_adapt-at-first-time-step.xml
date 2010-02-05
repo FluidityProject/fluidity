@@ -6,7 +6,7 @@
   <owner userid="hhiester"/>
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/dfluidity -v3 -l test_adapt-at-first-time-step.flml </command_line>
+    <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l test_adapt-at-first-time-step.flml </command_line>
   </problem_definition>  
   <variables>  
      <variable name="filelist" language="python">

@@ -8,7 +8,7 @@
   <owner userid="piggott"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity -v3 Stommel_gyre_A.flml &gt; Stommel_gyre_A.log 2&gt;&amp;1; dfluidity -v3 Stommel_gyre_adapt_A.flml &gt; Stommel_gyre_adapt_A.log 2&gt;&amp;1;</command_line>
+    <command_line>fluidity -v3 Stommel_gyre_A.flml &gt; Stommel_gyre_A.log 2&gt;&amp;1; fluidity -v3 Stommel_gyre_adapt_A.flml &gt; Stommel_gyre_adapt_A.log 2&gt;&amp;1;</command_line>
   </problem_definition>
   <variables>
     <variable name="Fixed_error_norm" language="python">

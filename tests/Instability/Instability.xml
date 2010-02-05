@@ -6,7 +6,7 @@
   <owner userid="bricheno"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line> dfluidity -v2 -l Thin_No_Forcing_Adapt_25_checkpoint.flml</command_line>
+    <command_line> fluidity -v2 -l Thin_No_Forcing_Adapt_25_checkpoint.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="ref_ke" language="python">

@@ -6,7 +6,7 @@
   <owner userid="hhiester"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity grid_peclet_number.flml -v3 -l</command_line>
+    <command_line>fluidity grid_peclet_number.flml -v3 -l</command_line>
     <!-- One dimensional problem with a prescribed velocity field and an advected tracer field with diffusion -->
     <!-- primarily here should someone wish to see how the stability of the simulation changes with changes in -->
     <!-- diffusion and thus grid peclet number -->

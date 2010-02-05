@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity --xml cdisk.flml </command_line>
+    <command_line>fluidity --xml cdisk.flml </command_line>
     <!-- Trivial 2D test case of uniform flow through a square. -->
   </problem_definition>
   <variables>

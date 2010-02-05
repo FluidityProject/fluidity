@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>dfluidity --xml sinking_velocity.flml </command_line>
+    <command_line>fluidity --xml sinking_velocity.flml </command_line>
     <!-- Check that the sinking velocity term works. -->
   </problem_definition>
   <variables>

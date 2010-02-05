@@ -6,7 +6,7 @@
   <owner userid="jhill1" />
   <tags>flml gls</tags>
     <problem_definition length="special" nprocs="1">
-    <command_line>dfluidity gls-Bermuda-biology-forcing.flml -l -v2  </command_line>
+    <command_line>fluidity gls-Bermuda-biology-forcing.flml -l -v2  </command_line>
   </problem_definition>  
   <variables>  
     

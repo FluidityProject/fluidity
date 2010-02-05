@@ -6,7 +6,7 @@
   <owner userid="piggott"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="8">
-    <command_line>mpiexec ../../bin/dfluidity -v3 -l backward_facing_step_3d.flml</command_line>
+    <command_line>mpiexec ../../bin/fluidity -v3 -l backward_facing_step_3d.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="FinalTime" language="python">

@@ -5,10 +5,10 @@
   <owner userid="colin"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>dfluidity -x MMS_A.flml -v3 &gt; MMS_A.log; dfluidity -x MMS_B.flml -v3 &gt; MMS_B.log; dfluidity -x MMS_C.flml -v3 &gt; MMS_C.log;  dfluidity -x MMS_D.flml -v3 &gt; MMS_D.log;  
-<!-- dfluidity -x MMS_E.flml &gt; MMS_E.log -->
+    <command_line>fluidity -x MMS_A.flml -v3 &gt; MMS_A.log; fluidity -x MMS_B.flml -v3 &gt; MMS_B.log; fluidity -x MMS_C.flml -v3 &gt; MMS_C.log; fluidity -x MMS_D.flml -v3 &gt; MMS_D.log;  
+<!-- fluidity -x MMS_E.flml &gt; MMS_E.log -->
 </command_line>
-<!--    <command_line>mpiexec ../../bin/dfluidity -v1 MMS_A.flml &gt; MMS_A.log; mpiexec ../../bin/dfluidity -v1 MMS_B.flml &gt; MMS_B.log; mpiexec ../../bin/dfluidity -v1 MMS_C.flml &gt; MMS_C.log; mpiexec ../../bin/dfluidity -v1 MMS_D.flml &gt; MMS_D.log</command_line> -->
+<!--    <command_line>mpiexec ../../bin/fluidity -v1 MMS_A.flml &gt; MMS_A.log; mpiexec ../../bin/fluidity -v1 MMS_B.flml &gt; MMS_B.log; mpiexec ../../bin/fluidity -v1 MMS_C.flml &gt; MMS_C.log; mpiexec ../../bin/fluidity -v1 MMS_D.flml &gt; MMS_D.log</command_line> -->
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel" language="python">

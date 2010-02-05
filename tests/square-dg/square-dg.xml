@@ -5,7 +5,7 @@
   <name>Cube-1</name>
   <owner userid="dham"/>
   <problem_definition length="special" nprocs="1">
-    <command_line>dfluidity --xml square.xml </command_line>
+    <command_line>fluidity --xml square.xml </command_line>
     <!-- Trivial 2D test case of uniform flow through a square. -->
   </problem_definition>
   <variables>

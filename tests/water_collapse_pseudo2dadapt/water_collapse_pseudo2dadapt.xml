@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
     <problem_definition length="special" nprocs="1">
-    <command_line>mpiexec -np 2 ../../bin/dfluidity -v2 -l water_collapse.flml</command_line>
+    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>  
   <variables>  
     <variable name="error_present" language="python">

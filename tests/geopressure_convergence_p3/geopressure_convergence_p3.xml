@@ -6,10 +6,10 @@
   <tags>flml</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>make clean-run; rm -f 8.log 16.log 32.log 64.log;
-dfluidity -v2 geopressure_8.flml > 8.log;
-dfluidity -v2 geopressure_16.flml > 16.log;
-dfluidity -v2 geopressure_32.flml > 32.log;
-dfluidity -v2 geopressure_64.flml > 64.log;
+fluidity -v2 geopressure_8.flml > 8.log;
+fluidity -v2 geopressure_16.flml > 16.log;
+fluidity -v2 geopressure_32.flml > 32.log;
+fluidity -v2 geopressure_64.flml > 64.log;
     </command_line>
   </problem_definition>
   <variables>

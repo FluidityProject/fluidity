@@ -6,7 +6,7 @@
   <owner userid="jhill1" />
   <tags>flml gls</tags>
     <problem_definition length="special" nprocs="1">
-    <command_line>dfluidity gls-StationPapa-biology-forcing.flml -l -v2  </command_line>
+    <command_line>fluidity gls-StationPapa-biology-forcing.flml -l -v2  </command_line>
   </problem_definition>  
   <variables>  
     <variable name="FinalTime" language="python">
