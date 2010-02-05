@@ -237,6 +237,7 @@ class vtu:
 
     # Initialise probe
     points = vtk.vtkPoints()
+    points.SetDataTypeToDouble()
     ilen, jlen = coordinates.shape
     for i in range(ilen):
       points.InsertNextPoint(coordinates[i][0], coordinates[i][1], coordinates[i][2])

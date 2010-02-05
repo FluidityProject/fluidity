@@ -204,9 +204,16 @@ coriolis_algorithm =
             }|
             ## Galerkin project Coriolis onto this mesh
             element galerkin_projection {
-               element solver {
-                  linear_solver_options_sym
-               },
+               (
+                  ## Consistent mass Galerkin projection. Requires solver options.
+                  element solver {
+                     linear_solver_options_sym
+                  }|
+                  ## Lumped mass Galerkin projection.
+                  element lump_mass {
+                     comment
+                  }
+               ),
                comment
             }
          )

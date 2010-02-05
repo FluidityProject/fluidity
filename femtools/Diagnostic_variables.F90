@@ -1914,7 +1914,7 @@ contains
 ! If we do not want to write the information from the detectors every time step we need to use something like the line below, and the rest of the lines in the subroutine (up to contains) would be inside the if. 
 !    if ((mod(time/dt,every_dt)>=0.0).and.(mod(time/dt,every_dt)<0.5)) then
          
-       ewrite(1,*) "In write detectors inside 1"
+       ewrite(1,*) "In write detectors"
 
     if(getprocno() == 1) then
        if(binary_detector_output) then

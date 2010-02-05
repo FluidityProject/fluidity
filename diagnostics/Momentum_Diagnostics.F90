@@ -106,7 +106,11 @@ contains
     if(have_option(trim(base_path) // "/consistent_interpolation")) then
       call compute_coriolis_ci(state, v_field)
     else if(have_option(trim(base_path) // "/galerkin_projection")) then
-      call compute_coriolis_gp(state, v_field, option_path = trim(base_path) // "/galerkin_projection")
+      if(have_option(trim(base_path) // "/galerkin_projection/lump_mass")) then
+        call compute_coriolis_gp_lumped(state, v_field)
+      else
+        call compute_coriolis_gp(state, v_field, option_path = trim(base_path) // "/galerkin_projection")
+      end if
     else
       FLAbort("Failed to determine interpolation method")
     end if  
@@ -175,6 +179,30 @@ contains
     call deallocate(rhs)
   
   end subroutine compute_coriolis_gp
+  
+  subroutine compute_coriolis_gp_lumped(state, coriolis)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: coriolis
+    
+    integer :: i
+    type(scalar_field), pointer :: masslump
+    type(vector_field), pointer :: positions, velocity
+    
+    positions => extract_vector_field(state, "Coordinate")
+    velocity => extract_vector_field(state, "Velocity")
+    
+    masslump => get_lumped_mass(state, coriolis%mesh)
+
+    call zero(coriolis)
+    do i = 1, ele_count(coriolis)
+      call assemble_coriolis_ele(i, positions, velocity, coriolis)
+    end do
+    
+    do i = 1, coriolis%dim
+      coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
+    end do
+    
+  end subroutine compute_coriolis_gp_lumped
     
   subroutine assemble_coriolis_ele(ele, positions, velocity, rhs)
     integer, intent(in) :: ele

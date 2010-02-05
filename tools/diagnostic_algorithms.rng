@@ -266,9 +266,16 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
         </element>
         <element name="galerkin_projection">
           <a:documentation>Galerkin project Coriolis onto this mesh</a:documentation>
-          <element name="solver">
-            <ref name="linear_solver_options_sym"/>
-          </element>
+          <choice>
+            <element name="solver">
+              <a:documentation>Consistent mass Galerkin projection. Requires solver options.</a:documentation>
+              <ref name="linear_solver_options_sym"/>
+            </element>
+            <element name="lump_mass">
+              <a:documentation>Lumped mass Galerkin projection.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </choice>
           <ref name="comment"/>
         </element>
       </choice>
