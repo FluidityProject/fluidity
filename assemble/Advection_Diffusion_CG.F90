@@ -625,11 +625,11 @@ contains
       case(STABILISATION_STREAMLINE_UPWIND)
         if(have_diffusivity) then
           advection_mat = advection_mat + &
-            & element_upwind_stabilisation(ele_shape(velocity, ele), dt_t, velocity_at_quad, j_mat, detwei, &
+            & element_upwind_stabilisation(t_shape, dt_t, velocity_at_quad, j_mat, detwei, &
             & diff_q = ele_val_at_quad(diffusivity, ele), nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
         else
           advection_mat = advection_mat + &
-            & element_upwind_stabilisation(ele_shape(velocity, ele), dt_t, velocity_at_quad, j_mat, detwei, &
+            & element_upwind_stabilisation(t_shape, dt_t, velocity_at_quad, j_mat, detwei, &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
         end if
       case default
