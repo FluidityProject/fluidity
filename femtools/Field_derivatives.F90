@@ -1033,10 +1033,10 @@ module field_derivatives
 
     subroutine differentiate_field_lumped_multiple(infields, positions, derivatives, pardiff)
     !!< This routine computes the first derivatives using a weak finite element formulation.
-      type(scalar_field), dimension(:), intent(in), target :: infields
+      type(scalar_field), dimension(:), intent(in) :: infields
       type(vector_field), intent(in) :: positions
       logical, dimension(:), intent(in) :: derivatives
-      type(scalar_field), dimension(:,:), intent(inout) :: pardiff
+      type(scalar_field), dimension(:,:), target, intent(inout) :: pardiff
 
       type(vector_field), dimension(size(infields)), target :: gradient
       type(mesh_type), pointer :: mesh
@@ -1046,7 +1046,7 @@ module field_derivatives
       integer :: i, j, k
       integer :: ele
 
-      mesh => infields(1)%mesh
+      mesh => pardiff(1, 1)%mesh
 
       do i=1, size(infields)
         ! don't compute if the field is constant
@@ -1109,16 +1109,16 @@ module field_derivatives
       subroutine differentiate_field_ele(ele)
         integer, intent(in):: ele
       
-        real, dimension(mesh_dim(mesh), ele_loc(mesh, ele), ele_loc(mesh, ele)) :: r
+        real, dimension(mesh_dim(mesh), ele_loc(mesh, ele), ele_loc(infields(1), ele)) :: r
         real, dimension(ele_ngi(mesh, ele)) :: detwei
-        real, dimension(ele_loc(mesh, ele), ele_ngi(mesh, ele), mesh_dim(mesh)) :: dt_t
+        real, dimension(ele_loc(infields(1), ele), ele_ngi(infields(1), ele), mesh_dim(infields(1))) :: dt_t
         real, dimension(ele_loc(mesh, ele), ele_loc(mesh, ele)) :: mass_matrix
         
         integer i
         
         ! Compute detwei.
         call transform_to_physical(positions, ele, &
-           ele_shape(mesh, ele), dshape=dt_t, detwei=detwei)
+           ele_shape(infields(1), ele), dshape=dt_t, detwei=detwei)
 
         r = shape_dshape(ele_shape(mesh, ele), dt_t, detwei)
         do i=1, size(infields)
