@@ -7750,6 +7750,18 @@ vector_field_choice =
                }
             )
          }|
+         ## Computes the buoyancy term
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "Buoyancy" },
+            (
+               element diagnostic {
+                  buoyancy_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_vector_field
+               }
+            )
+         }|
          ## Projects the Coriolis term onto the mesh of this diagnostic field.
          ## Note that multiple projection methods are available (under the
          ## algorithm option).

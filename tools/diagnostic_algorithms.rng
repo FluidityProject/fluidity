@@ -236,6 +236,17 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
     </element>
   </define>
   <!-- Momentum diagnostics -->
+  <define name="buoyancy_algorithm">
+    <element name="algorithm">
+      <a:documentation>Computes the buoyancy term. Must be on the VelocityBuoyancyDensity mesh.</a:documentation>
+      <attribute name="name">
+        <value>buoyancy</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="coriolis_algorithm">
     <element name="algorithm">
       <a:documentation>Interpolates the Coriolis term onto the mesh of this diagnostic field</a:documentation>

@@ -44,7 +44,7 @@ module momentum_diagnostics
   
   private
   
-  public :: calculate_bulk_viscosity, calculate_coriolis
+  public :: calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis
   
   interface coriolis_force
     module procedure coriolis_force_single, coriolis_force_multiple
@@ -60,6 +60,40 @@ contains
       & momentum_diagnostic = .true.)
   
   end subroutine calculate_bulk_viscosity
+  
+  subroutine calculate_buoyancy(state, v_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    integer :: i
+    real :: gravity_magnitude
+    type(scalar_field) :: buoyancy_density_remap
+    type(scalar_field), pointer :: buoyancy_density
+    type(vector_field), pointer :: gravity
+  
+    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+    buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity")
+    gravity => extract_vector_field(state, "GravityDirection")
+    
+    if(.not. v_field%mesh == buoyancy_density%mesh) then
+      FLExit("Buoyancy must be on the VelocityBuoyancyDensity mesh")
+    end if
+    
+    if(v_field%mesh == buoyancy_density%mesh) then
+      buoyancy_density_remap = buoyancy_density
+      call incref(buoyancy_density_remap)
+    else
+      call allocate(buoyancy_density_remap, v_field%mesh, buoyancy_density%name)
+      call remap_field(buoyancy_density, buoyancy_density_remap)
+    end if
+    
+    do i = 1, node_count(v_field)
+      call set(v_field, i, node_val(gravity, i) * node_val(buoyancy_density_remap, i) * gravity_magnitude)
+    end do
+    
+    call deallocate(buoyancy_density_remap)
+  
+  end subroutine calculate_buoyancy
   
   subroutine calculate_coriolis(state, v_field)
     type(state_type), intent(inout) :: state

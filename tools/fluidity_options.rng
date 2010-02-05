@@ -1081,6 +1081,9 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                       </element>
                       <optional>
                         <element name="fix_surface_values">
+                          <a:documentation>Force the surface values to be equal to that of the Dirichlet BC.
+This forms an ill-posed problem, but appears to stabilise some simulations.
+Manual suggests that this is OFF unless you're having difficulties.</a:documentation>
                           <empty/>
                         </element>
                       </optional>
@@ -1102,8 +1105,7 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                           <ref name="integer"/>
                         </element>
                         <element name="minimum_value">
-                          <a:documentation>Minimum value of TKE in m2s2
-A typical value will be around 1e-6</a:documentation>
+                          <a:documentation>Minimum value of TKE in m2s2. A typical value will be around 1e-6</a:documentation>
                           <ref name="real"/>
                         </element>
                       </element>
@@ -1414,27 +1416,6 @@ A typical value will be around 1e-6</a:documentation>
                       </attribute>
                       <attribute name="name">
                         <value>GLSAbsorption2</value>
-                      </attribute>
-                      <choice>
-                        <element name="diagnostic">
-                          <ref name="internal_algorithm"/>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                        <element name="aliased">
-                          <ref name="generic_aliased_field"/>
-                        </element>
-                      </choice>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>GLS G_H</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>GLSGH</value>
                       </attribute>
                       <choice>
                         <element name="diagnostic">
@@ -9973,6 +9954,20 @@ less accurate but faster and might give smoother result.                  </a:do
             <ref name="generic_aliased_field"/>
           </element>
         </choice>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Computes the buoyancy term</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>Buoyancy</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="buoyancy_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
       </element>
       <element name="vector_field">
         <a:documentation>Projects the Coriolis term onto the mesh of this diagnostic field.

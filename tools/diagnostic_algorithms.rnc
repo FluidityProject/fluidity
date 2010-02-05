@@ -182,6 +182,14 @@ grad_normal_algorithm =
    )
    
 # Momentum diagnostics
+buoyancy_algorithm =
+   (
+      ## Computes the buoyancy term. Must be on the VelocityBuoyancyDensity mesh.
+      element algorithm {
+         attribute name { "buoyancy" },
+         attribute material_phase_support { "single" }
+      }
+   )
 coriolis_algorithm =
    (
       ## Interpolates the Coriolis term onto the mesh of this diagnostic field

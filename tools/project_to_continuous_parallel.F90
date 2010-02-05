@@ -71,16 +71,16 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   type(vector_field), target :: cg_coordinate
   
   !current_debug_level = 2
-  
-  if(.not. isparallel()) then
-    FLExit("project_to_continuous_parallel should only be used in parallel")
-  end if
 
-  call vtk_read_state(parallel_filename(vtuname, ".vtu"), dg_state, quad_degree = quad_degree)
+  if(isparallel()) then
+    call vtk_read_state(parallel_filename(vtuname, ".vtu"), dg_state, quad_degree = quad_degree)
+  else
+    call vtk_read_state(trim(vtuname) //".vtu", dg_state, quad_degree = quad_degree)
+  end if
   
   cg_coordinate = read_triangle_files(trianglename, quad_degree = quad_degree)
   cg_mesh => cg_coordinate%mesh
-  call read_halos(trianglename, cg_mesh)
+  if(isparallel()) call read_halos(trianglename, cg_mesh)
 
   do i = 1, scalar_field_count(dg_state)
     dg_s_field => extract_scalar_field(dg_state, i)
@@ -139,7 +139,11 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   call insert(cg_state, cg_mesh, "CoordinateMesh")
   call deallocate(cg_coordinate)
   
-  call vtk_write_state(trim(vtuname) //"_continuous.pvtu", state = (/cg_state/))
+  if(isparallel()) then
+    call vtk_write_state(trim(vtuname) //"_continuous.pvtu", state = (/cg_state/))
+  else
+    call vtk_write_state(trim(vtuname) //"_continuous.vtu", state = (/cg_state/))
+  end if
   call deallocate(cg_state)
   
   call print_references(0)
