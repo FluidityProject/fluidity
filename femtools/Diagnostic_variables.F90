@@ -1846,12 +1846,12 @@ contains
 
     do i = 1, detector_list%length
       
-      ewrite(1,*) "DETECTOR number:", node%id_number
-
-      ewrite(1,*) "name this detector is:", node%name
-      ewrite(1,*) "position this detector is:", node%position
-
-      ewrite(1,*) "DETECTOR element:", node%element
+!      ewrite(1,*) "DETECTOR number:", node%id_number
+!
+!      ewrite(1,*) "name this detector is:", node%name
+!      ewrite(1,*) "position this detector is:", node%position
+!
+!      ewrite(1,*) "DETECTOR element:", node%element
 
       if (node%element<0) then
 
@@ -1868,7 +1868,7 @@ contains
     node => detector_list%firstnode
     allocate(types_det(detector_list%length))
 
-    ewrite(1,*) "WE ARE INSIDE WRITE_DETECTORS AND THE LENGHT OF DETECTOR_LIST IS", detector_list%length
+!    ewrite(1,*) "WE ARE INSIDE WRITE_DETECTORS AND THE LENGHT OF DETECTOR_LIST IS", detector_list%length
 
     any_lagrangian=.false.
 
@@ -1879,17 +1879,17 @@ contains
          any_lagrangian=.true. 
       end if
 
-      ewrite(1,*) "DETECTOR number:", node%id_number
-
-      ewrite(1,*) "DETECTOR type:", types_det(i)
-
-      ewrite(1,*) "DETECTOR type FROM node%type:", node%type
-   
-      ewrite(1,*) "variable any_lagrangian is:", any_lagrangian
-
-      ewrite(1,*) "name this detector is:", node%name
-
-      ewrite(1,*) "position this detector is:", node%position
+!      ewrite(1,*) "DETECTOR number:", node%id_number
+!
+!      ewrite(1,*) "DETECTOR type:", types_det(i)
+!
+!      ewrite(1,*) "DETECTOR type FROM node%type:", node%type
+!   
+!      ewrite(1,*) "variable any_lagrangian is:", any_lagrangian
+!
+!      ewrite(1,*) "name this detector is:", node%name
+!
+!      ewrite(1,*) "position this detector is:", node%position
 
       node => node%next
       
