@@ -2,11 +2,11 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>Standing free surface wave in channel.</name>
+  <name>Channel with wind-forcing and quadratic bottom drag.</name>
   <owner userid="skramer"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v3 -l -x channel.flml</command_line>
+    <command_line>fluidity -v3 -l -x channel_periodised.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="numerical_solution" language="python">

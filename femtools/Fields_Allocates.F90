@@ -48,7 +48,7 @@ implicit none
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
     & deallocate_faces
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
-    & create_surface_mesh
+    & create_surface_mesh, make_mesh_unperiodic
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
     & wrap_vector_field, wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
@@ -1171,6 +1171,14 @@ contains
          ! rather than the model so that all faces which are supposed to be
          ! adjacent actually are.
          lmodel=>mesh
+         ! works as long as we're not discontinuous
+         assert( mesh%continuity>=0 )
+         
+      else if (model%periodic .and. .not. mesh%periodic) then
+        
+         ! make face_list from the model but change periodic faces to normal external faces
+         call add_faces_face_list_non_periodic_from_periodic_model( &
+            mesh, model)
          
       else
          mesh%faces%face_list=model%faces%face_list
@@ -1520,6 +1528,8 @@ contains
      integer:: face1, face2, ele1, ele2
      integer:: i, j
 
+     ewrite(1,*) "In add_faces_face_list_periodic_from_non_periodic_model"
+     
      ! for periodic meshes we need to fix the face_list
      ! so we have to have a separate copy
      call allocate(face_list_sparsity, element_count(model), &
@@ -1531,7 +1541,7 @@ contains
      call allocate(mesh%faces%face_list, face_list_sparsity, &
        type=CSR_INTEGER, name=trim(mesh%name)//"FaceList")
      mesh%faces%face_list%ival=model%faces%face_list%ival
-     call deallocate(face_list_sparsity)          
+     call deallocate(face_list_sparsity)
     
      ! now fix the face list
      do i=1, size(periodic_face_list,1)
@@ -1561,6 +1571,66 @@ contains
      end do
 
   end subroutine add_faces_face_list_periodic_from_non_periodic_model
+    
+  subroutine add_faces_face_list_non_periodic_from_periodic_model( &
+     mesh, model)
+     ! computes the face_list of a non-periodic mesh by copying it from
+     ! a periodic model mesh and changing the periodic faces
+     ! to external
+     type(mesh_type), intent(inout):: mesh
+     type(mesh_type), intent(in):: model
+       
+     type(csr_sparsity):: face_list_sparsity
+     integer, dimension(:), pointer:: neigh, ele1_nodes, ele2_nodes
+     integer:: face, face2, ele1, ele2, lface1, lface2
+     
+     ewrite(1,*) "In add_faces_face_list_non_periodic_from_periodic_model"
+     
+     ! we need to fix the face_list so we have to have a separate copy
+     call allocate(face_list_sparsity, element_count(model), &
+       element_count(model), entries(model%faces%face_list), &
+       name=trim(mesh%name)//"EEList")
+     face_list_sparsity%colm=model%faces%face_list%sparsity%colm
+     face_list_sparsity%findrm=model%faces%face_list%sparsity%findrm
+     
+     call allocate(mesh%faces%face_list, face_list_sparsity, &
+       type=CSR_INTEGER, name=trim(mesh%name)//"FaceList")
+     mesh%faces%face_list%ival=model%faces%face_list%ival
+     call deallocate(face_list_sparsity)
+     
+     ! now fix the face list - by searching for internal faces in the
+     ! model mesh, these are the periodic faces that now need to be removed
+     do face = 1, surface_element_count(model)
+        ele1 = face_ele(model, face)
+        neigh => row_m_ptr(mesh%faces%face_list, ele1)
+        lface1 = local_face_number(model, face)
+        ele2 = neigh(lface1)
+        if (ele2>0) then
+          ! we've found an internal face in the surface mesh
+          
+          ! check that the connection has disappeared
+          face2 = ele_face(model, ele2, ele1)
+          lface2 = local_face_number(model, face2)
+          ele1_nodes => ele_nodes(mesh, ele1)
+          ele2_nodes => ele_nodes(mesh, ele2)
+          if (SetContains( &
+             ele1_nodes(boundary_numbering(ele_shape(mesh, ele1), lface1)), &
+             ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2)))) then
+             ! apparently these faces are still connected
+             ! (not currently supported)
+             FLAbort("Left-over internal faces in removing periodic bcs.")
+          end if
+          
+          ! we're cool
+          neigh(lface1)=-lface1
+          ! might as well fix the other side while we're at it
+          neigh => row_m_ptr(mesh%faces%face_list, ele2)
+          neigh(lface2)=-lface2
+        end if
+        
+     end do
+
+  end subroutine add_faces_face_list_non_periodic_from_periodic_model
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
     mesh, surface_elements, name)
@@ -1934,18 +2004,19 @@ contains
     character(len=*), intent(in):: name
     
     type(integer_hash_table):: aliased_to_new_node_number
+    type(integer_set):: physical_boundary_ids_set
     type(mesh_type):: mesh
     real, dimension(:,:), allocatable:: aliased_positions, physical_positions
-    integer, dimension(:), pointer:: nodes, new_nodes
     integer:: mapped_node_count, aliased_node, physical_node
-    integer:: i, j, ele
+    integer:: i, j, ele, sid
     
     ! build a map from aliased node number to physical node number
     ! thus also counting the number mapped nodes
     call allocate( aliased_to_new_node_number )   
     mapped_node_count = 0
     do i = 1, surface_element_count(model)
-      if (any(aliased_boundary_ids==surface_element_id(model, i))) then
+      sid = surface_element_id(model, i)
+      if (any(aliased_boundary_ids==sid)) then
         call copy_aliased_nodes_face(i)
       end if
     end do
@@ -1960,7 +2031,7 @@ contains
     allocate( aliased_positions(1:model%dim, mapped_node_count), &
       physical_positions(1:model%dim, mapped_node_count ) )
     do j=1, model%dim
-       new_positions%val(j)%ptr=model%val(j)%ptr
+       new_positions%val(j)%ptr(1:node_count(model))=model%val(j)%ptr
     end do
     
     ! copy aliased positions into an array
@@ -1982,21 +2053,21 @@ contains
       end do
     end do
       
-    ! now fix the elements 
+    ! now fix the elements
+    call allocate(physical_boundary_ids_set)
+    call insert(physical_boundary_ids_set, physical_boundary_ids)
     do i = 1, surface_element_count(model)
-      if (any(physical_boundary_ids==surface_element_id(model, i))) then
+      sid = surface_element_id(model, i)
+      if (has_value(physical_boundary_ids_set, sid)) then
         ele=face_ele(model, i)
-        nodes => ele_nodes(model, ele)
-        new_nodes => ele_nodes(mesh, ele)
-        do j = 1, size(nodes)
-          if (has_key(aliased_to_new_node_number, nodes(j))) then
-            new_nodes(j)=fetch(aliased_to_new_node_number, nodes(j))
-          end if
-        end do
+        call make_mesh_unperiodic_fix_ele(mesh, model%mesh, &
+           aliased_to_new_node_number, physical_boundary_ids_set, ele)
       end if
     end do
       
-    call deallocate(mesh)
+    call deallocate( aliased_to_new_node_number )
+    call deallocate( physical_boundary_ids_set )
+    call deallocate( mesh )
     deallocate( aliased_positions, physical_positions )
 
   contains
@@ -2018,6 +2089,62 @@ contains
     end subroutine copy_aliased_nodes_face
     
   end function make_mesh_unperiodic
+  
+  recursive subroutine make_mesh_unperiodic_fix_ele(mesh, model, &
+    aliased_to_new_node_number, physical_boundary_ids_set, ele)
+    ! For an element on the physical side of a periodic boundary,
+    ! change all nodes from aliased to physical. This is recursively 
+    ! called for all neighbouring elements. Neighbours are found using
+    ! the element-element list of the model, where we don't cross any
+    ! facets with a physical boundary id - thus staying on this side of
+    ! the boundary. Also as soon as an element without any aliased nodes 
+    ! is encountered the recursion stops
+    ! so that we don't propagate into the interior of the mesh and don't fix
+    ! elements twice. This assumes elements with aliased nodes and elements 
+    ! with physical nodes are not directly adjacent.
+    type(mesh_type), intent(inout):: mesh
+    type(mesh_type), intent(in):: model
+    type(integer_hash_table), intent(in):: aliased_to_new_node_number
+    type(integer_set), intent(in):: physical_boundary_ids_set
+    integer, intent(in):: ele
+    
+    integer, dimension(:), pointer:: nodes, neigh, faces
+    integer:: j, sid
+    logical:: changed
+    
+    changed=.false. ! have we changed this element
+    
+    nodes => ele_nodes(mesh, ele)
+    do j = 1, size(nodes)
+      if (has_key(aliased_to_new_node_number, nodes(j))) then
+        nodes(j)=fetch(aliased_to_new_node_number, nodes(j))
+        changed=.true.
+      end if
+    end do
+      
+    ! no aliased nodes found, we can stop the recursion
+    if (.not. changed) return
+    
+    ! recursively "fix" our neighbours
+    neigh => ele_neigh(model, ele)
+    faces => ele_faces(model, ele)
+    do j=1, size(neigh)      
+      if (neigh(j)>0) then
+        ! found a neighbour
+        
+        ! check if we're crossing a physical boundary
+        if (faces(j)<=surface_element_count(model)) then
+          sid = surface_element_id(model, faces(j))
+          if (has_value(physical_boundary_ids_set, sid)) cycle
+        end if
+        
+        ! otherwise go fix it
+        call make_mesh_unperiodic_fix_ele(mesh, model, &
+           aliased_to_new_node_number, physical_boundary_ids_set, neigh(j))
+      end if
+    end do
+    
+  end subroutine make_mesh_unperiodic_fix_ele
   
   function make_submesh (model, name) &
        result (mesh)
