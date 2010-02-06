@@ -55,7 +55,6 @@ extern "C" { // This is the glue between METIS and fluidity
 }
 
 namespace Fluidity{
-
   int FormGraph(const vector<int>& ENList, const int& dim, const int& nloc, const int& nnodes,
                 vector<set<int> >& graph){
     int num_elems = ENList.size()/nloc;
@@ -156,15 +155,18 @@ namespace Fluidity{
     
     return 0;
   }
-
-  int partition(const vector<int> &ENList, const int& dim, int nloc, int nnodes, int npartitions, int partition_method, vector<int> &decomp){  
-    // Build graph
-    vector< set<int> > graph;
-    int ret = FormGraph(ENList, dim, nloc, nnodes, graph);
-    if(ret != 0){
-      return ret;
+  
+  int gpartition(const vector< set<int> > &graph, int npartitions, int partition_method, vector<int> &decomp){  
+    // If no partitioning method is set, choose a default.
+    if(partition_method<0){
+      if(npartitions<=8)
+        partition_method = 0; // METIS PartGraphRecursive
+      else
+        partition_method = 1; // METIS PartGraphKway
     }
-    
+
+    int nnodes = graph.size();
+
     // Compress graph    
     vector<idxtype> xadj(nnodes+1), adjncy;
     int pos=0;
@@ -175,11 +177,7 @@ namespace Fluidity{
         pos++;
       }
       xadj[i+1] = pos+1;
-      
-      // Free memory as we go
-      graph[i].clear();
     }
-    graph.clear();
     
     // Partition graph
     decomp.resize(nnodes);
@@ -198,13 +196,67 @@ namespace Fluidity{
       decomp[i]--;
 
     return edgecut;
+  }
+
+  int hpartition(const vector< set<int> > &graph, vector<int>& npartitions, int partition_method, vector<int> &decomp){
+
+    vector<int> hdecomp;
+    int edgecut = gpartition(graph, npartitions[0], partition_method, hdecomp);
+
+    if(npartitions.size()==2){
+      decomp.resize(graph.size());
+      for(int i=0;i<npartitions[0];i++){
+        map<int, int> renumber;
+        int cnt=0;
+        for(size_t j=0;j<hdecomp.size();j++){
+          if(i==hdecomp[j]){
+            renumber[j]=cnt++;
+          }
+        }
+
+        vector< set<int> > pgraph(renumber.size());
+        for(map<int, int>::const_iterator it=renumber.begin();it!=renumber.end();++it){
+          for(set<int>::const_iterator jt=graph[it->first].begin();jt!=graph[it->first].end();++jt){
+            if(renumber.find((*jt)-1)!=renumber.end()){
+              pgraph[it->second].insert(renumber[(*jt)-1]+1);
+            }
+          }
+        }
+        
+        vector<int> pdecomp, ncores(npartitions[1], 0);
+        set<int> parts;
+        int sedgecut = gpartition(pgraph, npartitions[1], partition_method, pdecomp);
+        for(map<int, int>::const_iterator it=renumber.begin();it!=renumber.end();++it){
+          ncores[pdecomp[it->second]]++;
+          decomp[it->first] = hdecomp[it->first]*npartitions[1] + pdecomp[it->second];
+          parts.insert(decomp[it->first]);
+        }
+      }
+    }else{
+      decomp.swap(hdecomp);
+    }
+
+    return edgecut;
+  }
+
+  int partition(const vector<int> &ENList, const int& dim, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
+    // Build graph
+    vector< set<int> > graph;
+    int ret = FormGraph(ENList, dim, nloc, nnodes, graph);
+    if(ret != 0){
+      return ret;
+    }
+  
+    int edgecut = hpartition(graph, npartitions, partition_method, decomp);
+    
+    return edgecut;
   }  
   
-  int partition(const vector<int> &ENList, int nloc, int nnodes, int npartitions, int partition_method, vector<int> &decomp){
+  int partition(const vector<int> &ENList, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
     return partition(ENList, 3, nloc, nnodes, npartitions, partition_method, decomp);
   }
   
-  int partition(const vector<int> &ENList, const vector<int> &surface_nids, const int& dim, int nloc, int nnodes, int npartitions, int partition_method, vector<int> &decomp){
+  int partition(const vector<int> &ENList, const vector<int> &surface_nids, const int& dim, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
     int num_elems = ENList.size()/nloc;
     
     set<int> surface_nodes;
@@ -214,7 +266,6 @@ namespace Fluidity{
 
     // Build graph
     map<int, set<int> > graph;
-    // vector< set<int> > graph(nnodes);
     switch (dim){
     case 3:
       switch (nloc){
@@ -242,46 +293,25 @@ namespace Fluidity{
       return -1;
     }
 
-    int snnodes=surface_nodes.size(); 
-    
-    // Compress graph
-    vector<idxtype> xadj, adjncy;
-    int pos=0;
-    xadj.push_back(1);
-    for(int i=0;i<snnodes;i++){
-      assert(graph.find(i+1)!=graph.end());
-      for(set<int>::iterator jt=graph[i+1].begin();jt!=graph[i+1].end();jt++){
-        adjncy.push_back(*jt);
-        pos++;
+    int snnodes = graph.size();
+    vector< set<int> > cgraph(snnodes);
+    for(map<int, set<int> >::const_iterator it=graph.begin(); it!=graph.end(); ++it)
+      for(set<int>::const_iterator jt=it->second.begin(); jt!=it->second.end(); ++jt){
+        cgraph[surface_nids[it->first-1]-1].insert(surface_nids[*jt-1]);
       }
-      xadj.push_back(pos+1);
-    }
-    graph.clear();
-    assert(xadj.size()==(snnodes+1));
-    assert((*xadj.rbegin() - 1)==(adjncy.size()));
-
-    // Partition graph
     vector<int> sdecomp(snnodes);
-    int wgtflag=0, numflag=1, options[]={0}, edgecut=0;
-    idxtype *vwgt=NULL, *adjwgt=NULL;
-    if(partition_method){
-      METIS_PartGraphKway(&snnodes, &(xadj[0]), &(adjncy[0]), vwgt, adjwgt, &wgtflag,
-                          &numflag, &npartitions, options, &edgecut, &(sdecomp[0]));
-    }else{
-      METIS_PartGraphRecursive(&snnodes, &(xadj[0]), &(adjncy[0]), vwgt, adjwgt, &wgtflag,
-                               &numflag, &npartitions, options, &edgecut, &(sdecomp[0]));
-    }
+    int edgecut = hpartition(cgraph, npartitions, partition_method, sdecomp);
     
-    // -
+    // Map 2D decomposition onto 3D mesh.
     decomp.resize(nnodes);
     for(int i=0;i<nnodes;i++){
-      decomp[i] = sdecomp[surface_nids[i]-1]-1;
+      decomp[i] = sdecomp[surface_nids[i]-1];
     }
     
     return edgecut;
   }  
   
-  int partition(const vector<int> &ENList, const vector<int> &surface_nids, int nloc, int nnodes, int npartitions, int partition_method, vector<int> &decomp){
+  int partition(const vector<int> &ENList, const vector<int> &surface_nids, int nloc, int nnodes, vector<int>& npartitions, int partition_method, vector<int> &decomp){
                 
     return partition(ENList, surface_nids, 3, nloc, nnodes, npartitions, partition_method, decomp);
   }

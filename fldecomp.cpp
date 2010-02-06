@@ -70,6 +70,7 @@ extern "C" {
  
 void usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] -n nparts file\n"
+      <<"\t-c <number of cores per node>\t\tApplies hierarchical partitioning.\n"
       <<"\t-d\t\tPrint out partition diagnostics.\n"
       <<"\t-e <id>\t\tRecognise as extruded in the direction perpendicular "
       <<"to the surface with id.\n"
@@ -248,7 +249,7 @@ int main(int argc, char **argv){
   optarg = NULL;  
   char c;
   map<char, string> flArgs;
-  while((c = getopt(argc, argv, "de:f:hi:kn:rtv")) != -1){
+  while((c = getopt(argc, argv, "c:de:f:hi:kn:rtv")) != -1){
     if (c != '?'){
       if (optarg == NULL){
         flArgs[c] = "true";
@@ -275,13 +276,13 @@ int main(int argc, char **argv){
   // What to do with stdout?
   bool verbose=false;
   int val=3;
-  if(flArgs.count('v')==0)
-    val = 0;
-  else
+  if(flArgs.count('v'))
     verbose = true;
+  else
+    val = 0;
   set_global_debug_level_fc(&val);
   
-  if(flArgs.find('f')==flArgs.end()){
+  if(!flArgs.count('f')){
     if(argc>optind+1){
       flArgs['f'] = argv[optind+1];
     }else if(argc==optind+1){
@@ -292,13 +293,12 @@ int main(int argc, char **argv){
   string filename = flArgs['f'];
 
   string file_format;
-  if(flArgs.find('i')==flArgs.end()){
-     cerr<<"Warning: No mesh type specified - please supply a mesh type"<<endl;
-     if(filename.substr(filename.size()-4, 4)==string(".dat")){
-       file_format="gid_dat";
-     }else{
-       file_format="triangle";
-     }
+  if(!flArgs.count('i')){
+    if(filename.substr(filename.size()-4, 4)==string(".dat")){
+      file_format="gid_dat";
+    }else{
+      file_format="triangle";
+    }
   }else{
     file_format=flArgs['i'];
   }
@@ -311,6 +311,14 @@ int main(int argc, char **argv){
     cerr<<"ERROR: number of partitions requested is less than 2. Please check your usage and try again.\n";
     usage(argv[0]);
     exit(-1);
+  }
+  int ncores = 0;
+  if(flArgs.count('c')){
+    ncores = atoi(flArgs['c'].c_str());
+    if(nparts%ncores){
+      cerr<<"ERROR: The number of partitions must be some multiple of the number of cores\n";
+      exit(-1);
+    }
   }
 
   if(file_format=="triangle"){
@@ -335,9 +343,9 @@ int main(int argc, char **argv){
     int nnodes=x.size()/dim;
     vector<int> surface_nids;
     
-    if(flArgs.find('e')!=flArgs.end()){
+    if(flArgs.count('e')){
       // This triangle file has been extruded perpendicular for
-      // surface with the id flArgs.find('e'). The domain
+      // surface with the id specified with the -e option. The domain
       // decomposition goes along this surface.
       
       // Initialise surface_nids
@@ -422,7 +430,7 @@ int main(int argc, char **argv){
       }
       if(err)
         exit(-1);
-    }else if(flArgs.find('t')!=flArgs.end()){
+    }else if(flArgs.count('t')){
       // This triangle file came from Terreno and should have
       // attribure data indicating the surface node lieing above the
       // node in the extruded mesh.
@@ -455,21 +463,25 @@ int main(int argc, char **argv){
     }
     
     vector<int> decomp;
-    int partition_method;
-    if(nparts<=8)
-      partition_method = 0; // METIS PartGraphRecursive
-    else
-      partition_method = 1; // METIS PartGraphKway
+    int partition_method = -1;
 
-    if(flArgs.find('r')!=flArgs.end()){
+    if(flArgs.count('r')){
       partition_method = 0; // METIS PartGraphRecursive
       
-      if(flArgs.find('k')!=flArgs.end()){
+      if(flArgs.count('k')){
         cerr<<"WARNING: should not specify both -k and -r. Choosing -r.\n";
       }
     }
-    if(flArgs.find('k')!=flArgs.end()){
+    if(flArgs.count('k')){
       partition_method = 1; // METIS PartGraphKway
+    }
+
+    vector<int> npartitions;
+    if(ncores>1){
+      npartitions.push_back(nparts/ncores);
+      npartitions.push_back(ncores);
+    }else{
+      npartitions.push_back(nparts);
     }
 
     int edgecut=0;
@@ -481,7 +493,7 @@ int main(int argc, char **argv){
       // Partition the mesh. Generates a map "decomp" from node number
       // (numbered from zero) to partition number (numbered from
       // zero).
-      edgecut = partition(ENList, surface_nids, nloc, nnodes, nparts, partition_method, decomp);
+      edgecut = partition(ENList, surface_nids, nloc, nnodes, npartitions, partition_method, decomp);
     }else{
       // Partition the mesh
       if(verbose)
@@ -490,10 +502,10 @@ int main(int argc, char **argv){
       // Partition the mesh. Generates a map "decomp" from node number
       // (numbered from zero) to partition number (numbered from
       // zero).
-      edgecut = partition(ENList, dim, nloc, nnodes, nparts, partition_method, decomp);
+      edgecut = partition(ENList, dim, nloc, nnodes, npartitions, partition_method, decomp);
     }
 
-    if(flArgs.find('d')!=flArgs.end()){
+    if(flArgs.count('d')){
       cout<<"Edge-cut: "<<edgecut<<endl;
     }
 

@@ -37,17 +37,17 @@ namespace Fluidity{
   int FormGraph(const std::vector<int>& ENList, const int& dim, const int& nloc, const int& nnodes,
                 std::vector<std::set<int> >& graph);
 
-  int partition(const std::vector<int> &ENList, const int& dim, int nloc, int nnodes, int npartitions,
-                int partition_method, std::vector<int> &decomp);
+  int partition(const std::vector<int> &ENList, const int& dim, int nloc, int nnodes,
+                std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
                 
-  int partition(const std::vector<int> &ENList, int nloc, int nnodes, int npartitions,
-                int partition_method, std::vector<int> &decomp);
+  int partition(const std::vector<int> &ENList, int nloc, int nnodes,
+                std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
 
-  int partition(const std::vector<int> &ENList, const std::vector<int> &surface_nids, const int& dim, int nloc, int nnodes, int npartitions,
-                int partition_method, std::vector<int> &decomp);
+  int partition(const std::vector<int> &ENList, const std::vector<int> &surface_nids, const int& dim, int nloc,
+                int nnodes, std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
 
-  int partition(const std::vector<int> &ENList, const std::vector<int> &surface_nids, int nloc, int nnodes, int npartitions,
-                int partition_method, std::vector<int> &decomp);
+  int partition(const std::vector<int> &ENList, const std::vector<int> &surface_nids, int nloc, int nnodes,
+                std::vector<int>& npartitions, int partition_method, std::vector<int> &decomp);
 }
               
 #endif
