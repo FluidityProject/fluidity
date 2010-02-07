@@ -617,10 +617,10 @@ contains
          from_position=position
          call incref(from_position)
        else
-         call allocate(from_position, position%dim, from_mesh, "ModelPositions")
+         call allocate(from_position, position%dim, lfrom_mesh, "ModelPositions")
          call remap_field(position, from_position)
        end if
-       periodic_mesh=make_mesh_periodic(from_mesh,from_position,&
+       periodic_mesh=make_mesh_periodic(lfrom_mesh,from_position,&
           physical_boundary_ids,aliased_boundary_ids, &
           periodic_mapping_python)
        call deallocate(from_position)
