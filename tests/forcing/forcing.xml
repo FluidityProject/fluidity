@@ -44,7 +44,7 @@ assert FinalTime ==1440
 assert((FinalTemperatureIntegral - FirstTemperatureIntegral) &gt; 10)
     </test>
     <test name="Final velocity%magnitude max has increased" language="python">
-assert((FirstVelocityMagnitudeMax - FinalVelocityMagnitudeMax) &gt; 0.001)
+assert((FinalVelocityMagnitudeMax - FirstVelocityMagnitudeMax) &gt; 0.001)
     </test>
     <test name="Final Salinity min less than 35" language="python">
 assert FinalSalinityMin &lt; 35
