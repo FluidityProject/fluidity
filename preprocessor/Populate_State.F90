@@ -157,6 +157,7 @@ contains
     type(quadrature_type), pointer :: quad
     integer :: dim, loc
     integer :: quad_family
+    integer :: nprocs
     
     call tic(TICTOC_ID_IO_READ)
 
@@ -276,9 +277,23 @@ contains
                        
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
-             call read_halos(mesh_file_name, position%mesh)
-             call reorder_element_numbering(position)
-             mesh = position%mesh
+            if (no_active_processes == 1) then
+              nprocs = getnprocs()
+              allocate(position%mesh%halos(2))
+              do j=1,2
+                call allocate(position%mesh%halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
+                              data_type=HALO_TYPE_CG_NODE, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = node_count(position), &
+                              name="EmptyHalo")
+                assert(trailing_receives_consistent(position%mesh%halos(j)))
+                call create_global_to_universal_numbering(position%mesh%halos(j))
+                call create_ownership(position%mesh%halos(j))
+              end do
+              mesh = position%mesh
+            else
+              call read_halos(mesh_file_name, position%mesh)
+              call reorder_element_numbering(position)
+              mesh = position%mesh
+            end if
           end if
           
           ! coplanar ids are create here already and stored on the mesh, 
