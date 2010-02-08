@@ -215,8 +215,6 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     double heat_convert = ocean_density * ocean_heat_capacity;
     heat_convert = 1.0 / heat_convert;    
     double OneOverDensity = 1.0 / ocean_density;
-    double sal_convert = OneOverDensity*ref_salinity;
-    // this also converts to the "proper units"
     
     double E, Q_s, Q_l, Q_e, Q_h, Q_p, F;
     for (int i=0; i<NNodes; i++) {
@@ -234,12 +232,12 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         // it for the freshwater fluxes
         // Dividing by ocean density appears to give the right answer...
         E = E / ocean_density;
-
         F = ppt[i] + E + runoff[i];
 
         Q_solar[i] = (solar[i]);
         Q_as[i] = heat_convert * (Q_s + Q_l + Q_e + Q_h + Q_p);
-        F_as[i] = sal_convert * F;
+        F_as[i] = -1.0 * ref_salinity * F;
+        printf("%g\n",F_as[i]);
        
         
         // optional output
@@ -315,7 +313,7 @@ int main(int argc, char **argv){
 
     int NNodes = ug->GetNumberOfPoints();
     double time = 21601;  
-    vector<double> T(NNodes, 0.0), Vx(NNodes, 0.0), Vy(NNodes, 0.0), Vz(NNodes, 0.0),
+    vector<double> T(NNodes, 0.0), S(NNodes, 35.0), Vx(NNodes, 0.0), Vy(NNodes, 0.0), Vz(NNodes, 0.0),
     F_as(NNodes, 0.0), Q_as(NNodes, 0.0), tau_u(NNodes, 0.0), tau_v(NNodes, 0.0),
     X(NNodes, 0.0), Y(NNodes, 0.0), Z(NNodes, 0.0), Q_solar(NNodes, 0.0), e(NNodes,0.0),
     q_l(NNodes,0.0), q_h(NNodes,0.0), q_e(NNodes, 0.0), q_p(NNodes, 0.0), x(NNodes,0.0), 
@@ -336,8 +334,8 @@ int main(int argc, char **argv){
     // these are the data as simulated by ERA40
     FluxesReader FluxesReader_ERAdata;
     //FluxesReader_ERAdata.VerboseOn();
-    FluxesReader_ERAdata.RegisterDataFile("/home/jhill1/projects/filament/1970_stationPapa_output.nc");
-    FluxesReader_ERAdata.SetSimulationTimeUnits("seconds since 1970-01-01 00:00:0");
+    FluxesReader_ERAdata.RegisterDataFile("1990_bats_in.nc");
+    FluxesReader_ERAdata.SetSimulationTimeUnits("seconds since 1990-01-01 00:00:0");
     FluxesReader_ERAdata.SetTimeSeconds(time);
     FluxesReader_ERAdata.AddFieldOfInterest("sshf"); // 0 | surface sensible heat flux
     FluxesReader_ERAdata.AddFieldOfInterest("slhf"); // 1 | surface latent heat flux
@@ -348,9 +346,9 @@ int main(int argc, char **argv){
     FluxesReader_ERAdata.AddFieldOfInterest("e");    // 6 | evaporation
 
     // these data are the input to our fluxes routine
-    FluxesReader_global.RegisterDataFile("/home/jhill1/projects/filament/1970_stationPapa.nc");
+    FluxesReader_global.RegisterDataFile("1990_bats_out.nc");
     //FluxesReader_global.VerboseOn();
-    FluxesReader_global.SetSimulationTimeUnits("seconds since 1970-01-01 00:00:0.0");
+    FluxesReader_global.SetSimulationTimeUnits("seconds since 1990-01-01 00:00:0.0");
     FluxesReader_global.SetTimeSeconds(time);
     FluxesReader_global.AddFieldOfInterest("10u");  //  0   | 10 metre U wind component
     FluxesReader_global.AddFieldOfInterest("10v");  //  1   | 10 metre V wind component
@@ -423,12 +421,13 @@ int main(int argc, char **argv){
     int n = 1;
     // Ocean Station Papa
     // -3.35835e+06,-2.35154e+06,4.88594e+06
-    X[0] = -3.35835e+06;
-    Y[0] = -2.35154e+06;
-    Z[0] = 4.88594e+06;
-    //X[0]=-3070980.0;
-    //Y[0]=-2150320.0;
-    //Z[0]=5160020.0;
+    //X[0] = -3.35835e+06;
+    //Y[0] = -2.35154e+06;
+    //Z[0] = 4.88594e+06;
+    //Bermuda
+    X[0]=2775060;
+    Y[0]=-5731974;
+    Z[0]=352332;
     y[0] = Y[0] , x[0] = X[0] , z[0] = Z[0];
     ret = projections(n, &x[0], &y[0], &z[0], "cart", "spherical");
     if (ret != 0) {
@@ -457,7 +456,7 @@ int main(int argc, char **argv){
     Q_out = Q_out / (accumulated_correction*ocean_density*4000.0);
 
     // get fluxes for test location
-    get_era40_fluxes_fc(&time, &X[0], &Y[0], &Z[0], &T[0], &Vx[0], &Vy[0], &Vz[0], &F_as[0],
+    get_era40_fluxes_fc(&time, &X[0], &Y[0], &Z[0], &T[0], &S[0], &Vx[0], &Vy[0], &Vz[0], &F_as[0],
                         &Q_as[0], &tau_u[0], &tau_v[0], &Q_solar[0], &n, false, &q_l[0], &q_h[0], &e[0],
                         &q_e[0], &q_p[0]);
 
@@ -477,8 +476,7 @@ int main(int argc, char **argv){
     printf("Solar rad. (W/m2)    | %-18g | %-18g\n",values_out[2]/accumulated_correction,values_in[2]/accumulated_correction*(1-0.066));
     cout<<endl<<endl;
 
-    cout <<" Time (s)    |       ERA40 Q      |      Our Q   "<<endl;
-    cout <<"-------------+--------------------+---------------"<<endl;
+    cout <<" Time (s),ERA40,Our Q,PPT,E,ICOM E,e-p ICOM,e-p ERA40"<<endl;
     // let's print out heat flux over 28 days, every 6 hours to compare
     for (int t = 21600 ; t < 31536000; t += 86400) {
         FluxesReader_ERAdata.SetTimeSeconds(t);
@@ -501,20 +499,11 @@ int main(int argc, char **argv){
 
 
         double t2 = t;
-        get_era40_fluxes_fc(&t2, &X[0], &Y[0], &Z[0], &T[0], &Vx[0], &Vy[0], &Vz[0], &F_as[0],
+        get_era40_fluxes_fc(&t2, &X[0], &Y[0], &Z[0], &T[0], &S[0], &Vx[0], &Vy[0], &Vz[0], &F_as[0],
                         &Q_as[0], &tau_u[0], &tau_v[0], &Q_solar[0], &n, true, &q_l[0], &q_h[0], &e[0],
                         &q_e[0], &q_p[0]);
 
-        /**printf("   %-8d  | %-18g | %-18g\n",t,Q_out,Q_as[0]);
-        printf("             | %-18g | %-18g\n",values_out[0]/accumulated_correction,q_h[0]);
-        printf("             | %-18g | %-18g\n",values_out[1]/accumulated_correction,q_e[0]);
-        printf("             | %-18g | %-18g\n",values_out[6]/accumulated_correction,e[0]);
-        printf("             | %-18g | %-18g\n",values_out[3]/accumulated_correction,q_l[0]);
-        printf("             | %-18g | %-18g\n",Q_p/accumulated_correction,q_p[0]);
-        printf("             | %-18g | %-18g\n",values_out[2]/accumulated_correction,values_in[2]/accumulated_correction*(1-0.066));
-        printf("             | %-18g\n",T[0]-273.15);
-        cout <<"-------------+--------------------+---------------"<<endl;**/
-        printf("%d,%g,%g,%g,%g,%g,%g\n",t,Q_out,Q_as[0],Tau_u_out,tau_u[0],Tau_v_out,tau_v[0]);
+        printf("%d,%g,%g,%g,%g,%g,%g,%g\n",t,Q_out,Q_as[0],values_in[5]/accumulated_correction,values_out[6]/accumulated_correction,e[0],F_as[0],(values_in[5]/accumulated_correction+values_out[6]/accumulated_correction)*-35.);
 
     }
 
@@ -553,9 +542,9 @@ int main(int argc, char **argv){
     }
 
     // these data are the input to our fluxes routine
-    FluxesReader_global.RegisterDataFile("/home/jhill1/Data/fluidity_vanilla/tests/gls-StationPapa-forcing/test.nc");
+    FluxesReader_global.RegisterDataFile("1990_bats.nc");
     //FluxesReader_global.VerboseOn();
-    FluxesReader_global.SetSimulationTimeUnits("seconds since 1980-01-01 00:00:0.0");
+    FluxesReader_global.SetSimulationTimeUnits("seconds since 1990-01-01 00:00:0.0");
     FluxesReader_global.AddFieldOfInterest("tcc");  //  0   | Total Cloud Cover
     FluxesReader_global.AddFieldOfInterest("10u");  //  1   | 10 metre U wind component
     FluxesReader_global.AddFieldOfInterest("10v");  //  2   | 10 metre V wind component
@@ -572,7 +561,7 @@ int main(int argc, char **argv){
 
     // loop over time, grabbing fluxes, printing wind stress, every hour.
     for( double time=start; time<end; time=time+step) {
-        get_era40_fluxes_fc(&time, &X[0], &Y[0], &Z[0], &T[0], &Vx[0], &Vy[0], &Vz[0], &F_as[0],
+        get_era40_fluxes_fc(&time, &X[0], &Y[0], &Z[0], &T[0], &S[0], &Vx[0], &Vy[0], &Vz[0], &F_as[0],
                         &Q_as[0], &tau_u[0], &tau_v[0], &Q_solar[0], &NNodes, true, &q_l[0], &q_h[0],
                         &e[0]);
 
