@@ -464,7 +464,8 @@ if test -e "$PETSc_INCLUDES_PATH/petsc.mod"; then
   AC_MSG_NOTICE( [Using fortran modules found in $PETSc/include/] )
   HAVE_PETSC_MODULES=1
 # petsc fortran modules are sometimes stored in a different include/ directory
-elif test -e "$PETSc/$PETSC_ARCH/include/petsc.mod"; then
+elif test -e "$PETSc/$PETSC_ARCH/inc
+lude/petsc.mod"; then
   FCFLAGS="$FCFLAGS -I$PETSc/$PETSc_ARCH/include/"
   FFLAGS="$FFLAGS -I$PETSc/$PETSc_ARCH/include/"
   HAVE_PETSC_MODULES=1
@@ -920,10 +921,16 @@ AC_ARG_WITH(
 	[zoltan="$withval"],
     [])
 zoltan_LIBS_PATH="$zoltan/lib"
+zoltan_INCLUDES_PATH="$zoltan/include"
 
 # Check that the compiler uses the library we specified...
 if test -e $zoltan_LIBS_PATH/libzoltan.a; then
 	echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
+fi 
+
+# Check that the compiler uses the include path we specified...
+if test -e $zoltan_INCLUDES_PATH/libzoltan.a; then
+	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
 fi 
 
 # Ensure the comiler finds the library...
@@ -938,7 +945,7 @@ AC_CHECK_LIB(
 	[AC_DEFINE(HAVE_ZOLTAN,1,[Define if you have zoltan library.])],
 	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
 tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH -lzoltan -lparmetis"
-tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include"
+tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include -I/$zoltan_INCLUDES_PATH"
 # Save variables...
 AC_LANG_RESTORE
 LIBS=$tmpLIBS
