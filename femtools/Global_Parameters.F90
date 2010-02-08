@@ -110,6 +110,7 @@ module global_parameters
   !! deadlock. So we record whether the process is an "active" process,
   !! one that has data on disk.
   logical :: is_active_process = .true.
+  integer :: no_active_processes = -1
 
   !------------------------------------------------------------------------
   ! Field names and paths

@@ -95,11 +95,11 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Node_Owner_Finder.o Node_Owner_Finder_Fortran.o Node_Ownership.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
   CGAL_Tools_C.o CGAL_Tools.o \
-  Rotated_Boundary_Conditions.o
+  Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o
 
 
 # objects to be included in libfemtools:
-F90LIB_OBJS := ../debug/*.o ../parallel/*.o ../interpolation/*.o ../libwm/*.o  \
+F90LIB_OBJS := ../debug/*.o ../interpolation/*.o ../libwm/*.o  \
   $(OBJS)
 ifeq (@ALGENCAN@,yes)
 F90LIB_OBJS := $(F90LIB_OBJS) ../libalgencan/*.o
@@ -141,14 +141,14 @@ clean:
 
 Pseudo_2D.o: Node_boundary.o
 Timers.o: Global_Parameters.o
-tictoc.o: Timers.o
+tictoc.o: Timers.o Parallel_Tools.o 
 Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 	@sed 's/REFCOUNT_TYPE/$*/' $< > $@
 	@sed 's/REFCOUNT_TYPE/$*/' Refcount_interface_templates.F90 > Reference_count_interface_$*.F90
 
 Checkpoint.o: Detector_Data_Types.o Diagnostic_variables.o Fields.o \
-  Field_Options.o Halos.o Write_Triangle.o
-Weak_BCs.o: State.o Generic_interface.o Boundary_Conditions.o
+  Field_Options.o Halos.o Write_Triangle.o Parallel_Tools.o
+Weak_BCs.o: State.o Generic_interface.o Boundary_Conditions.o Parallel_Tools.o 
 
 Conservative_interpolation.o: Conservative_interpolation.F90 Fields.o Superconvergence.o Supermesh.o Futils.o Transform_elements.o \
                               MeshDiagnostics.o Vector_Tools.o FETools.o Sparsity_Patterns.o Sparse_Tools.o \
@@ -182,15 +182,15 @@ Sparsity_Patterns.o: Elements.o Fields.o Linked_Lists.o
 Sparsity_Patterns_Meshes.o: Sparsity_Patterns.o Fields.o Sparse_Tools.o State.o Global_Parameters.o
 
 vtk_read_files.o: ../include/Precision.h
-VTK_interfaces.o: State.o Fields.o Parallel_fields.o Global_Parameters.o
-MeshDiagnostics.o: Elements.o Fields_Base.o Parallel_fields.o
+VTK_interfaces.o: State.o Fields.o Parallel_fields.o Global_Parameters.o Parallel_Tools.o
+MeshDiagnostics.o: Elements.o Fields_Base.o Parallel_fields.o Parallel_Tools.o
 
 Diagnostic_variables.o: FETools.o Field_derivatives.o State.o  \
    Write_State.o Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
    Detector_Data_Types.o Embed_Python_Fortran.o MeshDiagnostics.o Pickers.o \
    State_Fields.o Mixing_Statistics.o C_Interfaces_Fortran.o \
-   Memory_Diagnostics.o
-Memory_Diagnostics.o: Global_Parameters.o
+   Memory_Diagnostics.o Parallel_Tools.o
+Memory_Diagnostics.o: Global_Parameters.o Parallel_Tools.o
 
 Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
    Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
@@ -199,14 +199,14 @@ Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
 Diagnostic_Fields.o: FETools.o Field_derivatives.o State.o\
    CV_Shape_Functions.o CV_Face_Values.o CV_Upwind_Values.o CV_Options.o \
    Write_State.o Field_Options.o Boundary_Conditions.o Unittest_tools.o \
-   Halos.o Interpolation.o
+   Halos.o Interpolation.o Parallel_Tools.o
 
 State.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o Global_Parameters.o \
    Halo_Data_Types.o Halos_Allocates.o Fields_Manipulation.o Linked_Lists.o \
    Sparse_Tools_Petsc.o Halos_Communications.o
 
 Bound_field.o: Fields.o Vector_Tools.o FETools.o Field_Options.o qsortd.o Sparse_Matrices_Fields.o \
-  Sparse_Tools.o Transform_elements.o Sparsity_Patterns.o Halos.o Global_Parameters.o
+  Sparse_Tools.o Transform_elements.o Sparsity_Patterns.o Halos.o Global_Parameters.o Parallel_Tools.o
 
 Shape_Functions.o: Polynomials.o Elements.o Element_Numbering.o Superconvergence.o 
 
@@ -243,10 +243,12 @@ Fields_Allocates.o: Data_structures.o Elements.o Fields_Data_Types.o \
 
 Fields_Manipulation.o: Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
   Element_set.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
-  Halos_Debug.o Halos_Ownership.o Halos_Numbering.o Halos_Repair.o qsortd.o
+  Halos_Debug.o Halos_Ownership.o Halos_Numbering.o Halos_Repair.o qsortd.o \
+	Parallel_Tools.o
 
 Fields_Calculations.o: Fields_Data_Types.o Fields_Base.o Fields_Manipulation.o \
-   FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o
+   FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o \
+	 Parallel_Tools.o
 Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
    Sparse_Tools_Petsc.o
 
@@ -258,7 +260,7 @@ Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o
 Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
   Halos_Debug.o Reference_Counting.o
-Halos_Base.o: Halo_Data_Types.o qsortd.o
+Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o
 Halos_Communications.o: Fields_Data_Types.o Futils.o Halos_Allocates.o Halos_Base.o \
   Halo_Data_Types.o Halos_Debug.o Halos_Ownership.o Halos_Numbering.o \
   Halos_Registration.o Fields_Manipulation.o
@@ -290,11 +292,11 @@ ieee_arithmetic_dummy.o
 
 Global_Numbering.o: Elements.o Adjacency_Lists.o Linked_Lists.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Numbering.o Halos_Base.o \
-  Halos_Debug.o Halos_Ownership.o
+  Halos_Debug.o Halos_Ownership.o Parallel_Tools.o
   
 Sparse_Tools_Petsc.o: Sparse_Tools.o Petsc_Tools.o Reference_Counting.o \
   Reference_count_petsc_csr_matrix.F90 Halos_Allocates.o \
-  Fields_Base.o Fields_Manipulation.o
+  Fields_Base.o Fields_Manipulation.o Parallel_Tools.o 
 
 Adjacency_Lists.o: Fields_Data_Types.o Futils.o
 
@@ -328,7 +330,7 @@ Wandzura_Quadrature.o: Global_Parameters.o
 
 Solvers.o: Petsc_Tools.o Signal_Vars.o Multigrid.o Fields.o \
   Sparse_Tools.o Global_Parameters.o Sparse_Tools_Petsc.o \
-  Sparse_Matrices_Fields.o Halos.o
+  Sparse_Matrices_Fields.o Halos.o Parallel_Tools.o 
 
 Full_Projection.o: Solvers.o Petsc_Tools.o Multigrid.o Fields_Base.o Sparse_Tools.o \
   Global_Parameters.o Sparse_Matrices_Fields.o Sparse_Tools_Petsc.o
@@ -336,7 +338,7 @@ Full_Projection.o: Solvers.o Petsc_Tools.o Multigrid.o Fields_Base.o Sparse_Tool
 Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
   Fields_Base.o Reference_count_petsc_numbering_type.F90 Fields_Manipulation.o \
   Halo_Data_Types.o Halos_Base.o Reference_Counting.o Halos_Communications.o \
-  Halos_Numbering.o
+  Halos_Numbering.o Parallel_Tools.o
 
 Coordinates.o: Vector_Tools.o Fields.o
 
@@ -354,7 +356,7 @@ Reference_Counting.o: Global_Parameters.o \
 Fields_Data_Types.o: Global_Parameters.o Picker_Data_Types.o \
   Shape_Functions.o Sparse_Tools.o Reference_Counting.o
 
-Multigrid.o: Sparse_Tools.o Petsc_Tools.o
+Multigrid.o: Sparse_Tools.o Petsc_Tools.o Parallel_Tools.o 
 
 Parallel_fields.o : Fields_Base.o Halos_Ownership.o Halos_Communications.o \
   Halos_Numbering.o 
@@ -375,7 +377,7 @@ Read_Triangle.o: Fields.o State.o Futils.o Elements.o
 
 Read_GiD_custom.o: Fields.o Futils.o Elements.o VTK_interfaces.o 
 
-Write_Triangle.o: Fields.o Futils.o Elements.o State.o Field_Options.o
+Write_Triangle.o: Fields.o Futils.o Elements.o State.o Field_Options.o Parallel_Tools.o
 
 CV_Faces.o: Shape_Functions.o
 
@@ -394,7 +396,7 @@ Merge_tensors.o: Metric_tools.o Fields.o
 Metric_tools.o: Unittest_tools.o Fields_Data_Types.o Vector_Tools.o Fields_Manipulation.o
 
 Surface_Labels.o: Merge_tensors.o Vector_Tools.o Fields.o Elements.o \
-   VTK_interfaces.o Data_structures.o Halos.o
+   VTK_interfaces.o Data_structures.o Halos.o Parallel_Tools.o
 
 Write_State.o: State.o Fields.o Timers.o VTK_interfaces.o \
   Global_Parameters.o Field_Options.o Halos.o
@@ -422,7 +424,7 @@ Data_structures.o: Integer_hash_table.o Integer_set.o
 
 Intersection_finder.o: Elements.o Fields_Data_Types.o Fields_Base.o Adjacency_Lists.o Linked_Lists.o \
   Supermesh.o Adjacency_Lists.o Fields_Allocates.o Transform_elements.o \
-  Parallel_fields.o
+  Parallel_fields.o Parallel_Tools.o
 
 State_Fields.o: Fields.o State.o FEFields.o Sparsity_Patterns_Meshes.o Dgtools.o
 
@@ -457,3 +459,5 @@ test_invert_dg_mass_matrix: test_invert_dg_mass_matrix.F90
 
 test_projections: projections.cpp
 	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
+
+Parallel_Tools.o: Global_Parameters.o MPI_Interfaces.o

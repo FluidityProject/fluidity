@@ -34,12 +34,13 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   use checkpoint
   use fldebug
-  use global_parameters, only: is_active_process
+  use global_parameters, only: is_active_process, no_active_processes
   use parallel_tools
   use populate_state_module
   use spud
   use sam_integration
   use state_module
+  implicit none
   
   interface
     subroutine check_options()
@@ -108,6 +109,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 #endif
 
   is_active_process = getprocno() <= input_nprocs
+  no_active_processes = input_nprocs
   call populate_state(state)
   is_active_process = .true.
   

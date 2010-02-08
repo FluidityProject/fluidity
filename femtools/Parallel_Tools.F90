@@ -31,6 +31,7 @@ module parallel_tools
 
   use fldebug
   use mpi_interfaces
+  use global_parameters, only: is_active_process, no_active_processes
 
   implicit none
   
@@ -894,8 +895,14 @@ contains
     character(len = *), intent(in) :: filename
     
     character(len = parallel_filename_len(filename)) :: pfilename
-    
-    write(pfilename, "(a, i0)") trim(filename) // "_", getrank()
+
+    integer :: ierr
+
+    if (is_active_process .and. no_active_processes == 1) then
+      write(pfilename, "(a)") trim(filename)
+    else
+      write(pfilename, "(a, i0)") trim(filename) // "_", getrank()
+    end if
       
   end function parallel_filename_no_extension
  

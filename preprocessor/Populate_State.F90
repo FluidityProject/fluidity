@@ -33,7 +33,7 @@ module populate_state_module
   use spud
   use read_triangle
   use vtk_cache_module
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi
+  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, no_active_processes
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -195,7 +195,11 @@ contains
 
             allocate(quad)
             allocate(shape)
-            call identify_triangle_file(trim(mesh_file_name) // "_0", dim, loc)
+            if (no_active_processes == 1) then
+              call identify_triangle_file(trim(mesh_file_name), dim, loc)
+            else
+              call identify_triangle_file(trim(mesh_file_name) // "_0", dim, loc)
+            end if
             quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
             shape=make_element_shape(loc, dim, 1, quad)
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
