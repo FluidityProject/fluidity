@@ -140,7 +140,7 @@ clean:
 	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB).a
 
 Pseudo_2D.o: Node_boundary.o
-Timers.o: Global_Parameters.o
+Timers.o: Global_Parameters.o MPI_Interfaces.o
 tictoc.o: Timers.o Parallel_Tools.o 
 Reference_count_%.F90: Refcount_templates.F90 Refcount_interface_templates.F90
 	@sed 's/REFCOUNT_TYPE/$*/' $< > $@
@@ -169,7 +169,7 @@ Element_Intersection.o: ../include/Element_Intersection.h
 ../include/Node_Owner_Finder.h: ../include/Element_Intersection.h \
   ../include/MeshDataStream.h ../include/Precision.h
 Node_Owner_Finder.o: ../include/Node_Owner_Finder.h
-Node_Owner_Finder_Fortran.o: Fields.o Global_Parameters.o
+Node_Owner_Finder_Fortran.o: Fields.o Global_Parameters.o MPI_Interfaces.o 
 Node_Ownership.o: Adjacency_Lists.o Fields.o Linked_Lists.o \
  Node_Owner_Finder_Fortran.o Pickers.o Sparse_Tools.o
 Interpolation.o: Fields.o Superconvergence.o Field_derivatives.o State.o \
@@ -254,13 +254,14 @@ Sparse_Matrices_Fields.o: Fields_Data_Types.o Fields.o Sparse_Tools.o \
 
 qsortd.o: Global_Parameters.o
 
-Halo_Data_Types.o: Futils.o Global_Parameters.o Reference_count_halo_type.F90 Reference_Counting.o
+Halo_Data_Types.o: Futils.o Global_Parameters.o Reference_count_halo_type.F90 Reference_Counting.o \
+	MPI_Interfaces.o 
 Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_Diagnostics.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o
 Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
   Halos_Debug.o Reference_Counting.o
-Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o
+Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o MPI_Interfaces.o
 Halos_Communications.o: Fields_Data_Types.o Futils.o Halos_Allocates.o Halos_Base.o \
   Halo_Data_Types.o Halos_Debug.o Halos_Ownership.o Halos_Numbering.o \
   Halos_Registration.o Fields_Manipulation.o
@@ -292,7 +293,7 @@ ieee_arithmetic_dummy.o
 
 Global_Numbering.o: Elements.o Adjacency_Lists.o Linked_Lists.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Numbering.o Halos_Base.o \
-  Halos_Debug.o Halos_Ownership.o Parallel_Tools.o
+  Halos_Debug.o Halos_Ownership.o Parallel_Tools.o MPI_Interfaces.o 
   
 Sparse_Tools_Petsc.o: Sparse_Tools.o Petsc_Tools.o Reference_Counting.o \
   Reference_count_petsc_csr_matrix.F90 Halos_Allocates.o \
