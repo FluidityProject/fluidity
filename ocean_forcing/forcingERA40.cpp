@@ -237,7 +237,6 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         Q_solar[i] = (solar[i]);
         Q_as[i] = heat_convert * (Q_s + Q_l + Q_e + Q_h + Q_p);
         F_as[i] = -1.0 * ref_salinity * F;
-        printf("%g\n",F_as[i]);
        
         
         // optional output
