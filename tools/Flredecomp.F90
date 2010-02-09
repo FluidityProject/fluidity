@@ -26,6 +26,7 @@
 !    USA
 
 #include "fdebug.h"
+#include "confdefs.h"
 
 subroutine flredecomp(input_basename, input_basename_len, output_basename, output_basename_len, &
   & input_nprocs, target_nprocs)
@@ -39,6 +40,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   use populate_state_module
   use spud
   use sam_integration
+#ifdef HAVE_ZOLTAN
+  use zoltan
+#endif
+  use zoltan_integration
   use state_module
   implicit none
   
@@ -63,6 +68,13 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
   integer :: i
+#ifdef HAVE_ZOLTAN
+  real(zoltan_float) :: ver
+  integer(zoltan_int) :: ierr
+
+  ierr = Zoltan_Initialize(ver)  
+  assert(ierr == ZOLTAN_OK)
+#endif
   
   ewrite(1, *) "In flredecomp"
 
@@ -113,8 +125,12 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   call populate_state(state)
   is_active_process = .true.
   
+#ifdef HAVE_ZOLTAN
+  call zoltan_drive(state, 1)
+#else
   call strip_level_2_halo(state)
   call sam_drive(state, sam_options(target_nprocs))
+#endif
   
   ! Output
   assert(associated(state))
