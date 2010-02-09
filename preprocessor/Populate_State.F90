@@ -280,13 +280,23 @@ contains
             if (no_active_processes == 1) then
               nprocs = getnprocs()
               allocate(position%mesh%halos(2))
+              allocate(position%mesh%element_halos(2))
               do j=1,2
+                ! Nodal halo
                 call allocate(position%mesh%halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
                               data_type=HALO_TYPE_CG_NODE, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = node_count(position), &
                               name="EmptyHalo")
                 assert(trailing_receives_consistent(position%mesh%halos(j)))
                 call create_global_to_universal_numbering(position%mesh%halos(j))
                 call create_ownership(position%mesh%halos(j))
+
+                ! Element halo
+                call allocate(position%mesh%element_halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
+                              data_type=HALO_TYPE_ELEMENT, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = ele_count(position), &
+                              name="EmptyHalo")
+                assert(trailing_receives_consistent(position%mesh%element_halos(j)))
+                call create_global_to_universal_numbering(position%mesh%element_halos(j))
+                call create_ownership(position%mesh%element_halos(j))
               end do
               mesh = position%mesh
             else
