@@ -145,7 +145,8 @@ contains
           if(.not.aliased(sfield)) then
 
             ! Special case: do not copy back these
-            if (any(sfield%name==(/"Pressure", "GeostrophicPressure"/)) then
+            if (any(sfield%name==(/"Pressure           ", &
+                                 & "GeostrophicPressure"/))) then
               cycle
             end if
 
