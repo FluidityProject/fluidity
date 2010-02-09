@@ -623,8 +623,9 @@ contains
     
     integer, dimension(size(knowns_sizes)) :: unknowns_sizes
     
+#ifdef HAVE_MPI
     integer :: ierr, lcommunicator
-    
+   
     if(present(communicator)) then
       lcommunicator = communicator
     else
@@ -634,6 +635,9 @@ contains
     
     call mpi_alltoall(knowns_sizes, 1, getpinteger(), unknowns_sizes, 1, getpinteger(), communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#else
+    FLAbort("invert_comms_sizes cannot be called without MPI support")
+#endif
     
   end function invert_comms_sizes
   
@@ -645,6 +649,7 @@ contains
     type(halo_type), intent(in) :: node_halo
     type(halo_type), intent(inout) :: element_halo
     
+#ifdef HAVE_MPI
     ! No mixed mesh support here
     integer :: loc
     integer :: communicator, ele, i, ierr, j, nprocs, rank
@@ -728,6 +733,9 @@ contains
     end do
     call deallocate(gnns)
     deallocate(sends_uenlist)
+#else
+    FLAbort("invert_element_halo_receives cannot be called without MPI support")
+#endif
         
   end subroutine invert_element_halo_receives
   
@@ -738,7 +746,8 @@ contains
     type(mesh_type), intent(in) :: mesh
     type(halo_type), intent(in) :: element_halo
     type(halo_type), intent(inout) :: selement_halo
-    
+   
+#ifdef HAVE_MPI
     integer :: communicator, ele, face, i, ierr, j, lface, nprocs, rank
     integer, dimension(:), allocatable :: nreceives, nsends, requests, statuses
     integer, dimension(:), pointer :: faces
@@ -822,6 +831,9 @@ contains
     end do
     call deallocate(gnns)
     deallocate(sends_uenlist)
+#else
+    FLAbort("invert_surface_element_halo_receives cannot be called without MPI support")
+#endif
         
   end subroutine invert_surface_element_halo_receives
   

@@ -118,7 +118,8 @@ contains
     character(len = *), intent(in) :: filename
     type(mesh_type), intent(inout) :: mesh
     integer, optional, intent(in) :: communicator
-    
+   
+#ifdef HAVE_MPI
     integer :: error_count, i, lcommunicator, nowned_nodes, nprocs, procno
     integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
    
@@ -182,6 +183,9 @@ contains
     end if
 
     ewrite(1, *) "Exiting read_halos"
+#else
+    FLAbort("read_halos cannot be called without MPI support")
+#endif
     
   end subroutine read_halos
   
