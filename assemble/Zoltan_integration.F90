@@ -1074,6 +1074,10 @@ module zoltan_integration
         call deallocate(interpolate_states(i))
       end do
 
+      if (mesh_periodic(zz_mesh)) then
+        new_positions%mesh%periodic = .true.
+      end if
+
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
 
