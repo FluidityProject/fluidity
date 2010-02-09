@@ -943,7 +943,7 @@ contains
     
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer :: i
+    integer :: i, input_nodes
 
     if (present(continuity)) then
        mesh%continuity=continuity
@@ -990,10 +990,12 @@ contains
             size(mesh%ndglno), name=name)
 #endif
 
-       if(model%shape%degree==1) then
+       if(model%shape%degree==1 .or. ele_count(model) == 0) then
           ndglno=model%ndglno
+          input_nodes = node_count(model)
        else
           ndglno=mesh_connectivity(model)
+          input_nodes = maxval(ndglno)
        end if
        
        if (associated(model%halos)) then
@@ -1001,7 +1003,7 @@ contains
           allocate(mesh%halos(size(model%halos)))
 
           call make_global_numbering &
-               (mesh%nodes, mesh%ndglno, maxval(ndglno), mesh%elements, &
+               (mesh%nodes, mesh%ndglno, input_nodes, mesh%elements, &
                ndglno, mesh%shape, model%halos, model%element_halos(1), &
                mesh%halos)
 
