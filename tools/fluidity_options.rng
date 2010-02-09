@@ -4642,26 +4642,17 @@ This determines the order in which scalar_fields are solved for:
         <ref name="mesh_info"/>
       </element>
       <zeroOrMore>
-        <choice>
-          <element name="mesh">
-            <attribute name="name">
-              <data type="string"/>
-            </attribute>
-            <ref name="mesh_info"/>
-            <optional>
-              <element name="exclude_from_mesh_adaptivity">
-                <empty/>
-              </element>
-            </optional>
-          </element>
-          <element name="mesh">
-            <a:documentation>The inner element mesh</a:documentation>
-            <attribute name="name">
-              <value>InnerElementMesh</value>
-            </attribute>
-            <ref name="mesh_info"/>
-          </element>
-        </choice>
+        <element name="mesh">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="mesh_info"/>
+          <optional>
+            <element name="exclude_from_mesh_adaptivity">
+              <empty/>
+            </element>
+          </optional>
+        </element>
       </zeroOrMore>
       <element name="quadrature">
         <a:documentation>Quadrature</a:documentation>
@@ -9450,145 +9441,6 @@ Field must be in this material_phase.</a:documentation>
             </attribute>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_cv_gradient_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Full velocity in an
-inner element SGS treatment of momentum
-
-Limitations:
- - Requires a geometry dimension of 3.
- - Requires inner element active for momentum</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>InnerElementFullVelocity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>InnerElementMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Vorticity of the full velocity in an
-inner element SGS treatment of momentum
-
-Limitations:
- - Requires a geometry dimension of 3.
- - Requires inner element active for momentum</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>InnerElementFullVorticity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>InnerElementMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Vorticity of the SGS velocity in an
-inner element SGS treatment of momentum
-
-Limitations:
- - Requires a geometry dimension of 3.
- - Requires inner element active for momentum</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>InnerElementVorticity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>InnerElementMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>The continuous solution mapped to a discontinuous mesh
-
-Limitations:
- - Requires a geometry dimension of 3.
- - Requires inner element active for momentum</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>DgMappedVelocity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>InnerElementMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Vorticity of the DG mapped Velocity
-Note vorticity is actually calculated over a DG field
-
-Limitations:
- - Requires a geometry dimension of 3.
- - Requires inner element active for momentum</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>DgMappedVorticity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>InnerElementMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_vector_field"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>

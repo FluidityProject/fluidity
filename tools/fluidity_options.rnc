@@ -3469,18 +3469,11 @@ geometry =
             attribute name { "PressureMesh" },
             mesh_info
          },
-         (
-            element mesh {
-               attribute name { xsd:string },
-               mesh_info,
-               element exclude_from_mesh_adaptivity{empty}?
-            }|
-            ## The inner element mesh
-            element mesh {
-               attribute name { "InnerElementMesh" },
-               mesh_info
-            }
-         )*,
+         element mesh {
+            attribute name { xsd:string },
+            mesh_info,
+            element exclude_from_mesh_adaptivity{empty}?
+         }*,
          ## Quadrature
          element quadrature {
             ## Quadrature degree
@@ -7345,115 +7338,6 @@ vector_field_choice =
                   attribute field_name { string },
                   velocity_mesh_choice,
                   diagnostic_cv_gradient_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Full velocity in an
-         ## inner element SGS treatment of momentum
-         ##
-         ## Limitations:
-         ##  - Requires a geometry dimension of 3.
-         ##  - Requires inner element active for momentum
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "InnerElementFullVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name {  "InnerElementMesh" }
-                  },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Vorticity of the full velocity in an
-         ## inner element SGS treatment of momentum
-         ##
-         ## Limitations:
-         ##  - Requires a geometry dimension of 3.
-         ##  - Requires inner element active for momentum
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "InnerElementFullVorticity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name {  "InnerElementMesh" }
-                  },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Vorticity of the SGS velocity in an
-         ## inner element SGS treatment of momentum
-         ##
-         ## Limitations:
-         ##  - Requires a geometry dimension of 3.
-         ##  - Requires inner element active for momentum
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "InnerElementVorticity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name {  "InnerElementMesh" }
-                  },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## The continuous solution mapped to a discontinuous mesh
-         ##
-         ## Limitations:
-         ##  - Requires a geometry dimension of 3.
-         ##  - Requires inner element active for momentum
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "DgMappedVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name {  "InnerElementMesh" }
-                  },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Vorticity of the DG mapped Velocity
-         ## Note vorticity is actually calculated over a DG field
-         ##
-         ## Limitations:
-         ##  - Requires a geometry dimension of 3.
-         ##  - Requires inner element active for momentum
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "DgMappedVorticity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name {  "InnerElementMesh" }
-                  },
-                  diagnostic_vector_field
                }|
                element aliased {
                   generic_aliased_field
