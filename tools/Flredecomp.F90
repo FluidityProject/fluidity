@@ -124,6 +124,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   no_active_processes = input_nprocs
   call populate_state(state)
   is_active_process = .true.
+  no_active_processes = target_nprocs
   
 #ifdef HAVE_ZOLTAN
   call zoltan_drive(state, 1)
