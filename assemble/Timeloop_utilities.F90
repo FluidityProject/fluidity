@@ -144,8 +144,8 @@ contains
 
           if(.not.aliased(sfield)) then
 
-            ! Special case: do not copy back pressure
-            if (sfield%name=="Pressure") then
+            ! Special case: do not copy back these
+            if (any(sfield%name==(/"Pressure", "GeostrophicPressure"/)) then
               cycle
             end if
 
