@@ -56,6 +56,7 @@ module zoltan_integration
 
   type(integer_set), dimension(:), allocatable :: old_snelist, new_snelist
   type(integer_hash_table) :: universal_surface_number_to_surface_id
+  type(integer_hash_table) :: universal_surface_number_to_element_owner
   type(integer_set), save :: new_surface_elements
 
   type(scalar_field), save :: element_quality, node_quality
@@ -176,9 +177,9 @@ module zoltan_integration
   end subroutine zoltan_cb_get_edge_list
 
   ! Here is how we pack nodal positions for phase one migration:
-  ! -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  ! | position | size of level-1 nnlist | level-1 nnlist | size of level-2 nnlist | level-2 nnlist | owners of level-2 nnlist | size of nelist | nelist | size of snelist | snelist | snelist ids |
-  ! -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ! ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ! | position | sz of lv-1 nnlist | lv-1 nnlist | sz of lv-2 nnlist | lv-2 nnlist | owners of level-2 nnlist | sz of nelist | nelist | sz of snelist | snelist | snelist ids | containing element of snelist |
+  ! ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   subroutine zoltan_cb_pack_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
     integer(zoltan_int), dimension(*), intent(in) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
@@ -195,7 +196,7 @@ module zoltan_integration
                  1 * integer_size + row_length(zz_sparsity_one, node) * integer_size + &
                  1 * integer_size + row_length(zz_sparsity_two, node) * integer_size * 2 + &
                  1 * integer_size + row_length(zz_nelist, node) * integer_size + &
-                 1 * integer_size + key_count(old_snelist(node)) * integer_size * 2
+                 1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
     end do
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_node_sizes
@@ -252,6 +253,8 @@ module zoltan_integration
       buf(head:head + key_count(old_snelist(node)) - 1) = set2vector(old_snelist(node))
       head = head + key_count(old_snelist(node))
       buf(head:head + key_count(old_snelist(node)) - 1) = fetch(universal_surface_number_to_surface_id, set2vector(old_snelist(node)))
+      head = head + key_count(old_snelist(node))
+      buf(head:head + key_count(old_snelist(node)) - 1) = fetch(universal_surface_number_to_element_owner, set2vector(old_snelist(node)))
       head = head + key_count(old_snelist(node))
 
       !assert(head == idx(i) + (sizes(i)/integer_size) - 1)
@@ -461,9 +464,10 @@ module zoltan_integration
       do j=1,sz
         call insert(new_snelist(new_local_number), buf(head + j))
         call insert(universal_surface_number_to_surface_id, buf(head + j), buf(head + j + sz))
+        call insert(universal_surface_number_to_element_owner, buf(head + j), buf(head + j + 2*sz))
         call insert(new_surface_elements, buf(head + j))
       end do
-      head = head + 2*sz + 1
+      head = head + 3*sz + 1
     end do
 
     ! At this point, there might still be nodes that we have not yet recorded but
@@ -521,9 +525,9 @@ module zoltan_integration
   end subroutine zoltan_cb_unpack_nodes
 
   ! Here is how we pack halo nodes for phase two migration:
-  ! --------------------------------------------------------------------------------------------
-  ! | position | new owner | size of nelist | nelist | size of snelist | snelist | surface ids |
-  ! --------------------------------------------------------------------------------------------
+  ! -----------------------------------------------------------------------------------------------------------------------------------------------------
+  ! | position | new owner | size of nelist | nelist | size of snelist | snelist | surface ids | the containing volume element for each surface element |
+  ! -----------------------------------------------------------------------------------------------------------------------------------------------------
   subroutine zoltan_cb_pack_halo_node_sizes(data, num_gid_entries,  num_lid_entries, num_ids, global_ids, local_ids, sizes, ierr) 
     integer(zoltan_int), dimension(*), intent(in) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_ids
@@ -538,7 +542,7 @@ module zoltan_integration
       node = fetch(universal_to_old_local_numbering, global_ids(i))
       sizes(i) = zz_positions%dim * real_size + &
                  2 * integer_size + row_length(zz_nelist, node) * integer_size + &
-                 1 * integer_size + key_count(old_snelist(node)) * 2 * integer_size
+                 1 * integer_size + key_count(old_snelist(node)) * 3 * integer_size
     end do
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_halo_node_sizes
@@ -591,6 +595,8 @@ module zoltan_integration
       current_buf(head:head+key_count(old_snelist(node))-1) = set2vector(old_snelist(node))
       head = head + key_count(old_snelist(node))
       current_buf(head:head+key_count(old_snelist(node))-1) = fetch(universal_surface_number_to_surface_id, set2vector(old_snelist(node)))
+      head = head + key_count(old_snelist(node))
+      current_buf(head:head+key_count(old_snelist(node))-1) = fetch(universal_surface_number_to_element_owner, set2vector(old_snelist(node)))
       head = head + key_count(old_snelist(node))
 
       !assert(head == (sizes(i)/integer_size)+1)
@@ -647,9 +653,10 @@ module zoltan_integration
       do j=1,sz
         call insert(new_snelist(new_local_number), buf(head + j))
         call insert(universal_surface_number_to_surface_id, buf(head + j), buf(head + j + sz))
+        call insert(universal_surface_number_to_element_owner, buf(head + j), buf(head + j + 2*sz))
         call insert(new_surface_elements, buf(head + j))
       end do
-      head = head + 2*sz + 1
+      head = head + 3*sz + 1
     end do
 
     ierr = ZOLTAN_OK
@@ -1417,7 +1424,7 @@ module zoltan_integration
       integer :: i, j, expected_loc, full_elements
       integer :: universal_number, new_local_number
       type(integer_hash_table) :: universal_surface_element_to_local_numbering
-      integer, dimension(:), allocatable, target :: sndgln, surface_ids
+      integer, dimension(:), allocatable, target :: sndgln, surface_ids, element_owners
       type(csr_sparsity), pointer :: nnlist
       integer, dimension(:), pointer :: neighbours
       integer :: k, l
@@ -1488,6 +1495,7 @@ module zoltan_integration
 
       allocate(sndgln(full_elements * expected_loc))
       allocate(surface_ids(full_elements))
+      allocate(element_owners(full_elements))
 
       j = 1
       do i=1,key_count(new_surface_elements)
@@ -1495,12 +1503,13 @@ module zoltan_integration
           universal_number = fetch(new_surface_elements, i)
           sndgln( (j-1)*expected_loc+1 : j*expected_loc ) = set2vector(senlists(i))
           surface_ids(j) = fetch(universal_surface_number_to_surface_id, universal_number)
+          element_owners(j) = fetch(uen_to_new_local_numbering, fetch(universal_surface_number_to_element_owner, universal_number))
           j = j + 1
         end if
       end do
       assert(j == full_elements + 1)
 
-      call add_faces(new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, private_nodes=0)
+      call add_faces(new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners, private_nodes=0)
 
       do i=1,size(senlists)
         call deallocate(senlists(i))
@@ -1509,11 +1518,13 @@ module zoltan_integration
       ! New elements is no longer valid, as we have lost the degenerate elements
       call deallocate(new_surface_elements)
       call deallocate(universal_surface_number_to_surface_id)
+      call deallocate(universal_surface_number_to_element_owner)
       call deallocate(new_snelist)
       deallocate(new_snelist)
 
       deallocate(sndgln)
       deallocate(surface_ids)
+      deallocate(element_owners)
 
       call deinterleave_surface_ids(new_positions%mesh, max_coplanar_id)
 
@@ -1743,6 +1754,7 @@ module zoltan_integration
       allocate(old_snelist(node_count(zz_positions)))
       call allocate(old_snelist)
       call allocate(universal_surface_number_to_surface_id)
+      call allocate(universal_surface_number_to_element_owner)
       allocate(interleaved_surface_ids(surface_element_count(zz_positions)))
       call interleave_surface_ids(zz_mesh, interleaved_surface_ids, max_coplanar_id)
 
@@ -1759,6 +1771,7 @@ module zoltan_integration
         universal_surface_element_number = (universal_element_number-1)*eloc + face_number
 
         call insert(universal_surface_number_to_surface_id, universal_surface_element_number, interleaved_surface_ids(i))
+        call insert(universal_surface_number_to_element_owner, universal_surface_element_number, universal_element_number)
 
         do j=(i-1)*floc+1,i*floc
           call insert(old_snelist(sndgln(j)), universal_surface_element_number)
@@ -1831,6 +1844,7 @@ module zoltan_integration
       call deallocate(element_quality)
       call deallocate(node_quality)
       call deallocate(universal_surface_number_to_surface_id)
+      call deallocate(universal_surface_number_to_element_owner)
       call deallocate(old_snelist)
       deallocate(old_snelist)
       call deallocate(receives)
