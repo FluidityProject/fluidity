@@ -140,7 +140,7 @@ contains
     logical :: assemble_matrix, include_buoyancy, include_coriolis
     real, dimension(:), allocatable :: zero_coord
     type(scalar_field) :: lgp
-    type(scalar_field), pointer :: gp_options_field, old_gp
+    type(scalar_field), pointer :: gp_options_field
     type(vector_field), pointer :: positions
     
     ewrite(1, *) "In calculate_geostrophic_pressure_options"
@@ -179,9 +179,6 @@ contains
         
     ! Set the BalancePressure field (if present)
     if(has_scalar_field(state, "BalancePressure")) call set_balance_pressure_from_geostrophic_pressure(lgp, state)
-    ! Over-write the OldGeostrophicPressure field
-    old_gp => extract_scalar_field(state, "Old" // gp_name, stat = stat)
-    if(stat == 0) call set(old_gp, lgp)
     
     if(present(gp)) then
       gp = lgp
@@ -374,9 +371,9 @@ contains
       call initialise_geostrophic_pressure_mesh(gp_mesh, state)
       
       call allocate(gp, gp_mesh, gp_name)
-      call set_geostrophic_pressure_initial_guess(gp, state)
       call insert(state, gp, gp_name)
     end if
+    call set_geostrophic_pressure_initial_guess(gp, state)
     
     ! LHS Matrix
     if(has_csr_matrix(state, gp_m_name)) then
@@ -407,10 +404,16 @@ contains
     type(scalar_field), intent(inout) :: gp
     type(state_type), intent(in) :: state
     
-    type(scalar_field), pointer :: bp
+    integer :: stat
+    type(scalar_field), pointer :: ref_gp
 
-    bp => extract_scalar_field(state, "BalancePressure")
-    call remap_field(bp, gp)
+    ref_gp => extract_scalar_field(state, "Iterated" // gp_name, stat = stat)
+    if(stat == 0) then
+      call set(gp, ref_gp)
+    else
+      ref_gp => extract_scalar_field(state, "BalancePressure")
+      call remap_field(ref_gp, gp)
+    end if
     
   end subroutine set_geostrophic_pressure_initial_guess
   
