@@ -160,6 +160,7 @@ contains
 
     if(isparallel()) then
        ! For ownership it doesn't matter if we use depth 1 or 2.
+       assert(associated(mesh%halos))
        owned = node_owned(mesh%halos(1), node_number)
     else
       owned = .true.
