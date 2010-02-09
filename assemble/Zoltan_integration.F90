@@ -1212,7 +1212,7 @@ module zoltan_integration
       assert(has_ownership(new_positions%mesh%halos(2)))
       assert(has_ownership(new_positions%mesh%halos(1)))
       allocate(new_positions%mesh%element_halos(2))
-      call derive_element_halos_from_l2_halo(new_positions%mesh, create_caches = .false.)
+      call derive_element_halo_from_node_halo(new_positions%mesh, create_caches = .false.)
       call renumber_positions_elements_trailing_receives(new_positions, permutation=renumber_permutation)
       assert(has_ownership(new_positions%mesh%halos(2)))
       assert(has_ownership(new_positions%mesh%halos(1)))

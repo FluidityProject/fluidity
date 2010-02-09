@@ -48,7 +48,7 @@ module halos_derivation
   private
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
-    & derive_element_halos_from_l2_halo, derive_maximal_surface_element_halo
+    & derive_maximal_surface_element_halo
   public :: ele_owner
   
   interface derive_l1_from_l2_halo
