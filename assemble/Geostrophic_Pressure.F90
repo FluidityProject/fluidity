@@ -140,7 +140,7 @@ contains
     logical :: assemble_matrix, include_buoyancy, include_coriolis
     real, dimension(:), allocatable :: zero_coord
     type(scalar_field) :: lgp
-    type(scalar_field), pointer :: gp_options_field
+    type(scalar_field), pointer :: gp_options_field, old_gp
     type(vector_field), pointer :: positions
     
     ewrite(1, *) "In calculate_geostrophic_pressure_options"
@@ -179,6 +179,9 @@ contains
         
     ! Set the BalancePressure field (if present)
     if(has_scalar_field(state, "BalancePressure")) call set_balance_pressure_from_geostrophic_pressure(lgp, state)
+    ! Over-write the OldGeostrophicPressure field
+    old_gp => extract_scalar_field(state, "Old" // gp_name, stat = stat)
+    if(stat == 0) call set(old_gp, lgp)
     
     if(present(gp)) then
       gp = lgp
