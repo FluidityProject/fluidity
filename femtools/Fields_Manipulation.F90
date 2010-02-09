@@ -3287,6 +3287,7 @@ implicit none
       end do
       
       ! Create caches
+      call create_ownership(output_halo)
       call create_global_to_universal_numbering(output_halo)
       assert(has_global_to_universal_numbering(output_halo))
     end do
