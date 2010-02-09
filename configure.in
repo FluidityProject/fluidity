@@ -340,7 +340,7 @@ old_FLAGS="$FFLAGS"
 extended_source_flag=none
 AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(,[[
-                    PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                     ]])],
     [
         AC_MSG_RESULT(no extra flags required)
@@ -352,7 +352,19 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-extend_source"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
+                            ]])],
+            [
+                extended_source_flag=$FFLAGS
+                AC_MSG_RESULT([$FFLAGS])
+                FFLAGS="$old_FLAGS $FFLAGS"
+            ])
+    fi
+    if test "$extended_source_flag" = none ; then
+        FFLAGS="-extend-source"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(,[[
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -364,7 +376,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-132"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -376,7 +388,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-ffree-line-length-none -ffixed-line-length-none"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -388,7 +400,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-ffixed-line-length-huge -ffree-line-length-huge"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -400,7 +412,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-ffixed-line-length-132 -ffree-line-length-huge"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[   
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -412,7 +424,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-ffixed-line-length-132"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -424,7 +436,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-Mextend"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -436,7 +448,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-qfixed=256"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
@@ -448,7 +460,7 @@ if test "$extended_source_flag" != happy ; then
         FFLAGS="-e"
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(,[[
-                            PRINT*, "hello world                                                                                      "
+      PRINT*, "hello world                                                                                 "
                             ]])],
             [
                 extended_source_flag=$FFLAGS
