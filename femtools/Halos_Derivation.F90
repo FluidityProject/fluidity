@@ -1068,7 +1068,13 @@ contains
     deallocate(receives)
 
     assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
-    call derive_l1_from_l2_halo_mesh(new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+
+    ! Ideally we would derive, but it fails if the mesh has nodes not associated with
+    ! any elements
+    !call derive_l1_from_l2_halo_mesh(new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+    new_positions%mesh%halos(1) = new_positions%mesh%halos(2)
+    call incref(new_positions%mesh%halos(1))
+
     assert(halo_valid_for_communication(new_positions%mesh%halos(1)))
     call renumber_positions_trailing_receives(new_positions)
     assert(halo_valid_for_communication(new_positions%mesh%halos(1)))

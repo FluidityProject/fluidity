@@ -53,7 +53,8 @@ contains
     type(mesh_type):: mesh
     real, dimension(:,:), allocatable:: aliased_positions, physical_positions
     integer:: mapped_node_count, aliased_node, physical_node
-    integer:: i, j, ele, sid
+    integer:: i, j, ele, sid, key, output
+    integer, dimension(node_count(model)) :: is_periodic
     
     ! build a map from aliased node number to physical node number
     ! thus also counting the number mapped nodes
@@ -65,6 +66,29 @@ contains
         call copy_aliased_nodes_face(i)
       end if
     end do
+
+    ! before we use it, we need to use the model halos
+    ! to ensure that everyone agrees on what is a periodic node
+    ! to be split and what isn't!
+    if (isparallel()) then
+      assert(associated(model%mesh%halos))
+      is_periodic = 0
+      do i=1,key_count(aliased_to_new_node_number)
+        call fetch_pair(aliased_to_new_node_number, i, key, output)
+        is_periodic(key) = 1
+      end do
+      call halo_update(model%mesh%halos(2), is_periodic)
+
+      do i=1,node_count(model)
+        if (is_periodic(i) == 1) then
+          if (.not. has_key(aliased_to_new_node_number, i)) then
+            ! we didn't know about this one and need to generate a new local node number for it
+            mapped_node_count = mapped_node_count + 1
+            call insert(aliased_to_new_node_number, i, node_count(model)+mapped_node_count)
+          end if
+        end if
+      end do
+    end if
       
     ! we now have info to allocate the new mesh
     call allocate(mesh, node_count(model)+mapped_node_count, element_count(model), &
