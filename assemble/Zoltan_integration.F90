@@ -1433,6 +1433,7 @@ module zoltan_integration
       integer, dimension(:), pointer :: neighbours
       integer :: k, l
       logical, dimension(key_count(new_surface_elements)) :: keep_surface_element
+      integer :: universal_element_number
 
       ewrite(1,*) "In reconstruct_senlist"
 
@@ -1472,18 +1473,12 @@ module zoltan_integration
         j = key_count(senlists(i))
         assert(j <= expected_loc)
         if (j == expected_loc) then
-          ! We also need to check if all the nodes are connected to each other in the new mesh --
+          ! We also need to check if we have the parent volume element --
           ! it's possible to get all the information for a face, without having the
           ! corresponding element!
-          keep_surface_element(i) = .true.
-          do k=1,expected_loc
-            neighbours => row_m_ptr(nnlist, fetch(senlists(i), k))
-            do l=k+1,expected_loc
-              if (.not. any(fetch(senlists(i), l) == neighbours)) then
-                keep_surface_element(i) = .false.
-              end if
-            end do
-          end do
+          universal_number = fetch(new_surface_elements, i)
+          universal_element_number = fetch(universal_surface_number_to_element_owner, universal_number)
+          keep_surface_element(i) = has_key(uen_to_new_local_numbering, universal_element_number)
           if (keep_surface_element(i)) full_elements = full_elements + 1
         else
           keep_surface_element(i) = .false.
@@ -1507,7 +1502,8 @@ module zoltan_integration
           universal_number = fetch(new_surface_elements, i)
           sndgln( (j-1)*expected_loc+1 : j*expected_loc ) = set2vector(senlists(i))
           surface_ids(j) = fetch(universal_surface_number_to_surface_id, universal_number)
-          element_owners(j) = fetch(uen_to_new_local_numbering, fetch(universal_surface_number_to_element_owner, universal_number))
+          universal_element_number = fetch(universal_surface_number_to_element_owner, universal_number)
+          element_owners(j) = fetch(uen_to_new_local_numbering, universal_element_number)
           j = j + 1
         end if
       end do
