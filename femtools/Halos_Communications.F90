@@ -41,7 +41,6 @@ module halos_communications
   use halos_debug
   use halos_numbering
   use halos_ownership
-  use halos_registration
   use mpi_interfaces
   use parallel_tools
   use linked_lists
