@@ -564,6 +564,7 @@ contains
       !        cube meshes!
       !        (not very important for projection as it only works on simplex meshes)
       nodes => row_m_ptr(upwind_values, i)
+      if (size(nodes) == 0) cycle
       ! find the neighbouring elements using the node to element list
       x_eles => node_neigh(x_field, i)
       if(mesh_periodic(field)) then
@@ -881,7 +882,9 @@ contains
         !        cube meshes!
         !        (not very important for projection as it only works on simplex meshes)
          nodes => row_m_ptr(upwind_values, i)
-        
+       
+         if (size(nodes) == 0) cycle
+
          if(mesh_periodic(field)) then
            x_eles=>node_neigh(x_field, i)
            local_coord = local_coords(x_field, x_eles(1), i)
