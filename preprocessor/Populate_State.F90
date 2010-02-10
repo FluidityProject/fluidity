@@ -705,7 +705,10 @@ contains
        nonperiodic_position=make_mesh_unperiodic(lfrom_position,&
           physical_boundary_ids,aliased_boundary_ids, &
           periodic_mapping_python, mesh_name, aliased_to_new_node_number)
-       call derive_nonperiodic_halos_from_periodic_halos(nonperiodic_position, lfrom_position, aliased_to_new_node_number)
+       if (associated(lfrom_position%mesh%halos)) then
+         assert(associated(lfrom_position%mesh%element_halos))
+         call derive_nonperiodic_halos_from_periodic_halos(nonperiodic_position, lfrom_position, aliased_to_new_node_number)
+       end if
        call deallocate(lfrom_position)
        call deallocate(aliased_to_new_node_number)
        lfrom_position=nonperiodic_position
