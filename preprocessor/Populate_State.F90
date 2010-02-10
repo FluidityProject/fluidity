@@ -52,6 +52,7 @@ module populate_state_module
   use boundary_conditions_from_options
   use nemo_states_module
   use data_structures
+  use fields_halos
 
   implicit none
 

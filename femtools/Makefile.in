@@ -95,7 +95,8 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Node_Owner_Finder.o Node_Owner_Finder_Fortran.o Node_Ownership.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
   CGAL_Tools_C.o CGAL_Tools.o \
-  Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o
+  Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o \
+  Fields_Halos.o
 
 
 # objects to be included in libfemtools:
@@ -462,3 +463,5 @@ test_projections: projections.cpp
 	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
 
 Parallel_Tools.o: Global_Parameters.o MPI_Interfaces.o
+
+Fields_Halos.o: Fields.o Halos.o Data_structures.o
