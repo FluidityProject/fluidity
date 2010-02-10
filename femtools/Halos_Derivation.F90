@@ -988,6 +988,11 @@ contains
     assert(associated(model%mesh%element_halos))
     assert(associated(model%mesh%halos))
 
+    assert(halo_valid_for_communication(model%mesh%element_halos(1)))
+    assert(halo_valid_for_communication(model%mesh%element_halos(2)))
+    assert(halo_valid_for_communication(model%mesh%halos(1)))
+    assert(halo_valid_for_communication(model%mesh%halos(2)))
+
     ! element halos are easy, just a copy, na ja?
     allocate(new_positions%mesh%element_halos(2))
     call allocate(new_positions%mesh%element_halos(1), model%mesh%element_halos(1))
@@ -1045,8 +1050,12 @@ contains
     deallocate(sends)
     deallocate(receives)
 
+    assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
     call derive_l1_from_l2_halo_mesh(new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+    assert(halo_valid_for_communication(new_positions%mesh%halos(1)))
     call renumber_positions_trailing_receives(new_positions)
+    assert(halo_valid_for_communication(new_positions%mesh%halos(1)))
+    assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
       
   end subroutine derive_nonperiodic_halos_from_periodic_halos
 
