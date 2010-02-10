@@ -985,6 +985,9 @@ contains
     type(integer_set), dimension(:), allocatable :: sends, receives
     integer :: proc, i, new_nowned_nodes
 
+    assert(associated(model%mesh%element_halos))
+    assert(associated(model%mesh%halos))
+
     ! element halos are easy, just a copy, na ja?
     allocate(new_positions%mesh%element_halos(2))
     call allocate(new_positions%mesh%element_halos(1), model%mesh%element_halos(1))
