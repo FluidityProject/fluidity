@@ -40,6 +40,7 @@ module halos_derivation
   use halos_numbering
   use halos_ownership
   use halos_repair
+  use halos_communications
   use mpi_interfaces
   use parallel_tools
   use sparse_tools
@@ -984,9 +985,23 @@ contains
     type(integer_hash_table), intent(in) :: aliased_to_new_node_number
     type(integer_set), dimension(:), allocatable :: sends, receives
     integer :: proc, i, new_nowned_nodes
+    logical :: changed
+#ifdef DDEBUG
+    integer, dimension(node_count(model)) :: map_verification
+    integer :: key, output
+#endif
 
     assert(associated(model%mesh%element_halos))
     assert(associated(model%mesh%halos))
+
+#ifdef DDEBUG
+    map_verification = 0
+    do i=1,key_count(aliased_to_new_node_number)
+      call fetch_pair(aliased_to_new_node_number, i, key, output)
+      map_verification(key) = 1
+    end do
+    assert(halo_verifies(model%mesh%halos(2), map_verification))
+#endif
 
     assert(halo_valid_for_communication(model%mesh%element_halos(1)))
     assert(halo_valid_for_communication(model%mesh%element_halos(2)))
@@ -995,8 +1010,8 @@ contains
 
     ! element halos are easy, just a copy, na ja?
     allocate(new_positions%mesh%element_halos(2))
-    call allocate(new_positions%mesh%element_halos(1), model%mesh%element_halos(1))
-    call allocate(new_positions%mesh%element_halos(2), model%mesh%element_halos(2))
+    new_positions%mesh%element_halos(1) = model%mesh%element_halos(1); call incref(new_positions%mesh%element_halos(1))
+    new_positions%mesh%element_halos(2) = model%mesh%element_halos(2); call incref(new_positions%mesh%element_halos(2))
 
     ! nodal halo: let's compute the l2 nodal halo, then derive the l1
     ! from it
@@ -1013,12 +1028,14 @@ contains
 
       do i=1,halo_send_count(model%mesh%halos(2), proc)
         if (has_key(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i))) then
-          call insert(sends(proc), fetch(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i)))
+          call insert(sends(proc), fetch(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i)), changed=changed)
+          assert(changed)
         end if
       end do
       do i=1,halo_receive_count(model%mesh%halos(2), proc)
         if (has_key(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i))) then
-          call insert(receives(proc), fetch(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i)))
+          call insert(receives(proc), fetch(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i)), changed=changed)
+          assert(changed)
         end if
       end do
     end do
