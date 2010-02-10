@@ -1995,7 +1995,7 @@ contains
 
   end function make_mesh_periodic
 
-  function make_mesh_unperiodic(model, physical_boundary_ids, aliased_boundary_ids, periodic_mapping_python, name) &
+  function make_mesh_unperiodic(model, physical_boundary_ids, aliased_boundary_ids, periodic_mapping_python, name, aliased_to_new_node_number) &
        result (new_positions)
     !!< Produce a mesh based on an old mesh but with periodic boundary conditions
     type(vector_field) :: new_positions
@@ -2005,7 +2005,7 @@ contains
     character(len=*), intent(in) :: periodic_mapping_python
     character(len=*), intent(in):: name
     
-    type(integer_hash_table):: aliased_to_new_node_number
+    type(integer_hash_table), intent(out) :: aliased_to_new_node_number
     type(integer_set):: physical_boundary_ids_set
     type(mesh_type):: mesh
     real, dimension(:,:), allocatable:: aliased_positions, physical_positions
@@ -2066,8 +2066,7 @@ contains
            aliased_to_new_node_number, physical_boundary_ids_set, ele)
       end if
     end do
-      
-    call deallocate( aliased_to_new_node_number )
+
     call deallocate( physical_boundary_ids_set )
     call deallocate( mesh )
     deallocate( aliased_positions, physical_positions )

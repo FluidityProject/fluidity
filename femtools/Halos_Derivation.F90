@@ -30,6 +30,7 @@ module halos_derivation
   use data_structures
   use fields_data_types
   use fields_allocates
+  use fields_manipulation
   use fields_base
   use fldebug
   use halo_data_types
@@ -48,7 +49,7 @@ module halos_derivation
   private
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
-    & derive_maximal_surface_element_halo
+    & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos
   public :: ele_owner
   
   interface derive_l1_from_l2_halo
@@ -976,5 +977,74 @@ contains
 #endif
 
   end function invert_comms
+
+  subroutine derive_nonperiodic_halos_from_periodic_halos(new_positions, model, aliased_to_new_node_number)
+    type(vector_field), intent(inout) :: new_positions
+    type(vector_field), intent(in) :: model
+    type(integer_hash_table), intent(in) :: aliased_to_new_node_number
+    type(integer_set), dimension(:), allocatable :: sends, receives
+    integer :: proc, i, new_nowned_nodes
+
+    ! element halos are easy, just a copy, na ja?
+    allocate(new_positions%mesh%element_halos(2))
+    call allocate(new_positions%mesh%element_halos(1), model%mesh%element_halos(1))
+    call allocate(new_positions%mesh%element_halos(2), model%mesh%element_halos(2))
+
+    ! nodal halo: let's compute the l2 nodal halo, then derive the l1
+    ! from it
+    allocate(new_positions%mesh%halos(2))
+
+    allocate(sends(halo_proc_count(model%mesh%halos(2))))
+    allocate(receives(halo_proc_count(model%mesh%halos(2))))
+    do proc=1,halo_proc_count(model%mesh%halos(2))
+      call allocate(sends(proc))
+      call allocate(receives(proc))
+
+      call insert(sends(proc), halo_sends(model%mesh%halos(2), proc))
+      call insert(receives(proc), halo_receives(model%mesh%halos(2), proc))
+
+      do i=1,halo_send_count(model%mesh%halos(2), proc)
+        if (has_key(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i))) then
+          call insert(sends(proc), fetch(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i)))
+        end if
+      end do
+      do i=1,halo_receive_count(model%mesh%halos(2), proc)
+        if (has_key(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i))) then
+          call insert(receives(proc), fetch(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i)))
+        end if
+      end do
+    end do
+
+    new_nowned_nodes = halo_nowned_nodes(model%mesh%halos(2))
+    do i=1,node_count(model)
+      if (.not. node_owned(model%mesh%halos(2), i)) cycle
+      if (has_key(aliased_to_new_node_number, i)) then
+        new_nowned_nodes = new_nowned_nodes + 1
+      end if
+    end do
+
+    call allocate(new_positions%mesh%halos(2), &
+                  nsends = key_count(sends), &
+                  nreceives = key_count(receives), &
+                  name = halo_name(model%mesh%halos(2)), &   ! Probably should change this
+                  communicator = halo_communicator(model%mesh%halos(2)), &
+                  nowned_nodes = new_nowned_nodes, &
+                  data_type = halo_data_type(model%mesh%halos(2)), &
+                  ordering_scheme = HALO_ORDER_GENERAL)
+
+    do proc=1,halo_proc_count(model%mesh%halos(2))
+      call set_halo_sends(new_positions%mesh%halos(2), proc, set2vector(sends(proc)))
+      call deallocate(sends(proc))
+      call set_halo_receives(new_positions%mesh%halos(2), proc, set2vector(receives(proc)))
+      call deallocate(receives(proc))
+    end do
+
+    deallocate(sends)
+    deallocate(receives)
+
+    call derive_l1_from_l2_halo_mesh(new_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+    call renumber_positions_trailing_receives(new_positions)
+      
+  end subroutine derive_nonperiodic_halos_from_periodic_halos
 
 end module halos_derivation

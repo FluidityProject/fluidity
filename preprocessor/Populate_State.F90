@@ -51,6 +51,7 @@ module populate_state_module
   use parallel_tools
   use boundary_conditions_from_options
   use nemo_states_module
+  use data_structures
 
   implicit none
 
@@ -675,6 +676,7 @@ contains
     integer, dimension(2) :: shape_option
     integer:: n_periodic_bcs
     integer:: j
+    type(integer_hash_table) :: aliased_to_new_node_number
     
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
@@ -702,8 +704,10 @@ contains
        
        nonperiodic_position=make_mesh_unperiodic(lfrom_position,&
           physical_boundary_ids,aliased_boundary_ids, &
-          periodic_mapping_python, mesh_name)
+          periodic_mapping_python, mesh_name, aliased_to_new_node_number)
+       call derive_nonperiodic_halos_from_periodic_halos(nonperiodic_position, lfrom_position, aliased_to_new_node_number)
        call deallocate(lfrom_position)
+       call deallocate(aliased_to_new_node_number)
        lfrom_position=nonperiodic_position
        
        deallocate( physical_boundary_ids, aliased_boundary_ids )
