@@ -3423,7 +3423,7 @@ implicit none
       integer, dimension(face_loc(mesh, 1) * surface_element_count(mesh)), intent(in) :: sndgln
       
       integer, dimension(surface_element_count(mesh)) :: boundary_ids
-      integer, dimension(:), allocatable :: coplanar_ids
+      integer, dimension(:), allocatable :: coplanar_ids, element_owners
       
       assert(has_faces(mesh))
       
@@ -3432,12 +3432,15 @@ implicit none
         allocate(coplanar_ids(surface_element_count(mesh)))
         coplanar_ids = mesh%faces%coplanar_ids
       end if
+
+      allocate(element_owners((surface_element_count(mesh))))
+      element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
       
       call deallocate_faces(mesh)
       if(isparallel()) then
-        call add_faces(mesh, sndgln = sndgln, private_nodes = 0)
+        call add_faces(mesh, sndgln = sndgln, private_nodes = 0, element_owner=element_owners)
       else
-        call add_faces(mesh, sndgln = sndgln)
+        call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
       end if
       mesh%faces%boundary_ids = boundary_ids
       if(allocated(coplanar_ids)) then
@@ -3445,6 +3448,7 @@ implicit none
         mesh%faces%coplanar_ids = coplanar_ids
         deallocate(coplanar_ids)
       end if
+      deallocate(element_owners)
         
     end subroutine update_faces
 
