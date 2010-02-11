@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">diagnostics</string_value>
@@ -84,14 +84,12 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <vector_field name="Choke" rank="1">
+    <scalar_field name="One" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_name="Choke" name="vector_copy"/>
+        <algorithm material_phase_support="single" name="scalar_copy" source_field_name="Three"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -102,6 +100,40 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </vector_field>
+    </scalar_field>
+    <scalar_field name="Two" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" name="scalar_copy" source_field_name="One"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Three" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" name="scalar_copy" source_field_name="Two"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
 </fluidity_options>

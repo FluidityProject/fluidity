@@ -117,6 +117,8 @@ contains
     end if
     
     do i = 1, size(lcheck_states)
+      ewrite(2, *) "Checking dependencies for diagnostic fields in state: " // trim(lcheck_states(i)%name)
+      
       do j = 1, scalar_field_count(lcheck_states(i))
         s_field => extract_scalar_field(lcheck_states(i), j)
         
@@ -126,6 +128,7 @@ contains
         if(has_scalar_field(ldep_states_mask(i), trim(s_field%name))) cycle
         
         ! We need to check this field for circular dependencies:
+        ewrite(2, *) "Checking dependencies for diagnostic scalar field: " // trim(s_field%name)
         
         ! Add it to the list of parents ...
         if(present(parent_states)) then
@@ -170,6 +173,7 @@ contains
         if(has_vector_field(ldep_states_mask(i), trim(v_field%name))) cycle
         
         ! We need to check this field for circular dependencies:
+        ewrite(2, *) "Checking dependencies for diagnostic vector field: " // trim(v_field%name)
         
         ! Add it to the list of parents ...
         if(present(parent_states)) then
@@ -214,6 +218,7 @@ contains
         if(has_tensor_field(ldep_states_mask(i), trim(t_field%name))) cycle
         
         ! We need to check this field for circular dependencies:
+        ewrite(2, *) "Checking dependencies for diagnostic tensor field: " // trim(t_field%name)
         
         ! Add it to the list of parents ...
         if(present(parent_states)) then
@@ -633,7 +638,7 @@ contains
           if(present(parent_states)) then
             ! We've been given a list of parent fields, so let's check for
             ! circular dependencies
-            if(has_scalar_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+            if(has_vector_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
               ewrite(-1, *) "For dependency " // trim(dependencies(j))
               FLAbort("Circular dependency")
             end if
@@ -655,7 +660,7 @@ contains
           if(present(parent_states)) then
             ! We've been given a list of parent fields, so let's check for
             ! circular dependencies
-            if(has_scalar_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+            if(has_tensor_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
               ewrite(-1, *) "For dependency " // trim(dependencies(j))
               FLAbort("Circular dependency")
             end if

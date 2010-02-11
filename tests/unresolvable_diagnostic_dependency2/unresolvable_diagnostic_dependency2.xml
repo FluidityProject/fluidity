@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Unresolvable diagnostic dependency</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>make clean-run-debug; fluidity -v2 -l diagnostics.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "error_present" language = "python">
+error_present = False
+for line in file("fluidity.err-0", "r"):
+   if line.startswith("Error message: Circular dependency"):
+      error_present = True
+      break
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Fluidity failed with the expected error" language = "python">
+assert(error_present)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

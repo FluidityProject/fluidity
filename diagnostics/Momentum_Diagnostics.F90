@@ -71,11 +71,19 @@ contains
     type(scalar_field), pointer :: buoyancy_density
     type(vector_field), pointer :: gravity
   
+    ewrite(1, *) "In calculate_buoyancy"
+  
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+    ewrite(2, *) "Gravity magnitude = ", gravity_magnitude
     buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity")
+    ewrite_minmax(buoyancy_density%val)
     gravity => extract_vector_field(state, "GravityDirection")
+    do i = 1, gravity%dim
+      ewrite_minmax(gravity%val(i)%ptr)
+    end do
     
     if(.not. v_field%mesh == buoyancy_density%mesh) then
+      ewrite(-1, *) "VelocityBuoyancyDensity mesh: " // trim(buoyancy_density%mesh%name)
       FLExit("Buoyancy must be on the VelocityBuoyancyDensity mesh")
     end if
     
@@ -92,6 +100,8 @@ contains
     end do
     
     call deallocate(buoyancy_density_remap)
+    
+    ewrite(1, *) "Exiting calculate_buoyancy"
   
   end subroutine calculate_buoyancy
   
