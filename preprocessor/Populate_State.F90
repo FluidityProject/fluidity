@@ -612,12 +612,13 @@ contains
   function make_mesh_periodic_from_options(from_mesh, position, mesh_path) result (mesh)
     ! make a periodic mesh as specified by options
     type(mesh_type):: mesh
-    type(mesh_type), intent(in):: from_mesh
+    type(mesh_type), intent(inout):: from_mesh
     type(vector_field), intent(in):: position
     character(len=*), intent(in):: mesh_path
 
     type(vector_field):: from_position
     type(mesh_type):: lfrom_mesh, periodic_mesh
+    type(integer_hash_table):: periodic_face_map
     character(len=FIELD_NAME_LEN):: bc_name
     character(len=OPTION_PATH_LEN) :: periodic_mapping_python
     integer, dimension(:), allocatable :: physical_boundary_ids, aliased_boundary_ids
@@ -626,6 +627,9 @@ contains
     integer:: j
     
     lfrom_mesh=from_mesh
+    
+    ! builds up a map from aliased to physical faces
+    call allocate(periodic_face_map)
     
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
@@ -653,7 +657,7 @@ contains
        end if
        periodic_mesh=make_mesh_periodic(lfrom_mesh,from_position,&
           physical_boundary_ids,aliased_boundary_ids, &
-          periodic_mapping_python)
+          periodic_mapping_python, periodic_face_map=periodic_face_map)
        call deallocate(from_position)
        lfrom_mesh=periodic_mesh
        
@@ -661,6 +665,12 @@ contains
     end do
                 
     mesh=periodic_mesh
+    
+    if (has_faces(from_mesh)) then
+      call add_faces(mesh, model=from_mesh, periodic_face_map=periodic_face_map)
+    end if
+    
+    call deallocate(periodic_face_map)
                 
   end function make_mesh_periodic_from_options
 
@@ -2516,6 +2526,7 @@ contains
     integer :: nfields ! number of fields
     integer :: nmeshes ! number of meshes
     integer :: n_external_meshes ! number of meshes from file
+    integer :: periodic_mesh_count ! number of meshes with periodic_boundary_conition options
     ! logicals to find out if we have certain options
     logical :: is_aliased
 
@@ -2539,7 +2550,7 @@ contains
        else if (.not. have_option(trim(path)//"/from_mesh")) then
 
           call get_option(trim(path)//"/name", mesh_name)
-          ewrite(0,*) "In options for /geometry/mesh ("//trim(mesh_name)//"):"
+          ewrite(-1,*) "In options for /geometry/mesh ("//trim(mesh_name)//"):"
           FLExit("Error: unknown way of specifying mesh source.")
 
        end if
@@ -2569,8 +2580,8 @@ contains
           call get_option(trim(path)//"/from_mesh/mesh[0]/name", from_mesh_name)
           if (.not. have_option("/geometry/mesh::"//trim(from_mesh_name))) then
 
-             ewrite(0,*) "Unknown mesh: ", trim(from_mesh_name)
-             ewrite(0,*) "Specified as source (from_mesh) for ", trim(mesh_name)
+             ewrite(-1,*) "Unknown mesh: ", trim(from_mesh_name)
+             ewrite(-1,*) "Specified as source (from_mesh) for ", trim(mesh_name)
              FLExit("Error in /geometry/mesh: unknown mesh.")
 
           end if
@@ -2582,10 +2593,10 @@ contains
              have_option(trim(path)//"/from_mesh/periodic_boundary_conditions") &
              ) ) then
              
-             ewrite(0,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
-             ewrite(0,*) "When extruding a mesh, you cannot at the same time"
-             ewrite(0,*) "change its shape, continuity or add periodic bcs."
-             ewrite(0,*) "Need to do this in seperate step (derivation)."
+             ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
+             ewrite(-1,*) "When extruding a mesh, you cannot at the same time"
+             ewrite(-1,*) "change its shape, continuity or add periodic bcs."
+             ewrite(-1,*) "Need to do this in seperate step (derivation)."
              FLExit("Error in /geometry/mesh with extrude option")
              
           end if
@@ -2600,10 +2611,10 @@ contains
                 have_option(trim(path)//"/from_mesh/extrude") &
              ) then
              
-                ewrite(0,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
-                ewrite(0,*) "When adding or removing periodicity to a mesh, you cannot at the same time"
-                ewrite(0,*) "change its shape, continuity or extrude a mesh."
-                ewrite(0,*) "Need to do this in seperate step (derivation)."
+                ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
+                ewrite(-1,*) "When adding or removing periodicity to a mesh, you cannot at the same time"
+                ewrite(-1,*) "change its shape, continuity or extrude a mesh."
+                ewrite(-1,*) "Need to do this in seperate step (derivation)."
                 FLExit("Error in /geometry/mesh with extrude option")
                 
              end if
@@ -2615,17 +2626,37 @@ contains
                 ! check that all periodic bcs have remove_periodicity
                 if (option_count(trim(path)//"/from_mesh/periodic_boundary_conditions")/= &
                         option_count(trim(path)//"/from_mesh/periodic_boundary_conditions/remove_periodicity")) then
-                   ewrite(0,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
+                   ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
                    FLExit("All or none of the periodic_boundary_conditions need to have the option remove_periodicity.")
                 end if
                 
              else
              
+                ! really periodic
+                
                 if (mesh_name=="CoordinateMesh") then
-                  ewrite(0,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
+                  ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
                   FLExit("CoordinateMesh may not be made periodic.")
                 end if
                 
+                periodic_mesh_count=periodic_mesh_count+1
+                
+                if (periodic_mesh_count>1) then
+                  ewrite(-1,*) "In the derivation of periodic meshes, all periodic boundary conditions"
+                  ewrite(-1,*) "have to be applied at once. Thus only one mesh may have periodic_boundary_conditions"
+                  ewrite(-1,*) "specified under /geometry/mesh::PeriodicMesh/from_mesh and all other periodic meshes"
+                  ewrite(-1,*) "should be derived from this mesh."
+                  FLExit("More than one mesh with periodic_boundary_conditions")
+                end if
+                
+                if (.not. have_option("/geometry/mesh::"//trim(from_mesh_name)// &
+                  "/from_file")) then
+                  ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
+                  ewrite(-1,*) "In the derivation of periodic meshes, the first periodic mesh,"
+                  ewrite(-1,*) "which has the periodic_boundary_conditions specified, must be derived"
+                  ewrite(-1,*) "directly from the external (from_file) mesh."
+                  FLExit("Periodic mesh not from from_file mesh")
+                end if
              end if
              
           end if
@@ -2663,9 +2694,9 @@ contains
 
              if (.not. have_option("/geometry/mesh::"//trim(mesh_name))) then
 
-                ewrite(0,*) "Unknown mesh: ", trim(mesh_name)
-                ewrite(0,*) "Specified as mesh for scalar_field ", trim(field_name)
-                ewrite(0,*) "In material_phase ", trim(phase_name)
+                ewrite(-1,*) "Unknown mesh: ", trim(mesh_name)
+                ewrite(-1,*) "Specified as mesh for scalar_field ", trim(field_name)
+                ewrite(-1,*) "In material_phase ", trim(phase_name)
                 FLExit("Error: unknown mesh.")
 
              end if
@@ -2696,9 +2727,9 @@ contains
 
              if (.not. have_option("/geometry/mesh::"//trim(mesh_name))) then
 
-                ewrite(0,*) "Unknown mesh: ", trim(mesh_name)
-                ewrite(0,*) "Specified as mesh for vector_field ", trim(field_name)
-                ewrite(0,*) "In material_phase ", trim(phase_name)
+                ewrite(-1,*) "Unknown mesh: ", trim(mesh_name)
+                ewrite(-1,*) "Specified as mesh for vector_field ", trim(field_name)
+                ewrite(-1,*) "In material_phase ", trim(phase_name)
                 FLExit("Error: unknown mesh.")
 
              end if
@@ -2727,9 +2758,9 @@ contains
 
              if (.not. have_option("/geometry/mesh::"//trim(mesh_name))) then
 
-                ewrite(0,*) "Unknown mesh: ", trim(mesh_name)
-                ewrite(0,*) "Specified as mesh for tensor_field ", trim(field_name)
-                ewrite(0,*) "In material_phase ", trim(phase_name)
+                ewrite(-1,*) "Unknown mesh: ", trim(mesh_name)
+                ewrite(-1,*) "Specified as mesh for tensor_field ", trim(field_name)
+                ewrite(-1,*) "In material_phase ", trim(phase_name)
                 FLExit("Error: unknown mesh.")
 
              end if

@@ -1067,7 +1067,7 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    private_nodes, periodic_face_list, element_owner)
+    private_nodes, periodic_face_map, element_owner)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1076,6 +1076,8 @@ contains
     !!< WARNING: after the model mesh is deallocated the faces component
     !!< of 'mesh' also becomes invalid!
     type(mesh_type), target :: mesh
+    !!< model is only changed when periodic_face_map is provided (see below)
+    !!< not using intent(inout) - which is allowed as we only change pointed to values
     type(mesh_type), optional, target, intent(in) :: model
     !! surface mesh (ndglno using the same node numbering as in 'mesh')
     !! if present the N elements in this mesh will correspond to the first
@@ -1103,7 +1105,9 @@ contains
     !! if supplied the mesh is periodic and the model non-periodic
     !! this list must contain the pairs of faces, on the periodic boundary, 
     !! that are now between two elements. This is needed to update the face_list
-    integer, dimension(:,:), intent(in), optional :: periodic_face_list
+    !! Additionaly the face local node numbering of the *model* mesh is updated
+    !! be consistent with that of the periodic face local node numbering.
+    type(integer_hash_table), intent(in), optional :: periodic_face_map
     !! This list gives the element owning each face in sndgln. This needs
     !! to be provided when sndgln contains internal faces, as we need to
     !! decide which of the two adjacent elements the face belongs to
@@ -1163,11 +1167,11 @@ contains
 
       lmodel => model
       
-      if (present(periodic_face_list)) then
+      if (present(periodic_face_map)) then
 
          ! make face_list from the model but change periodic faces to become internal
          call add_faces_face_list_periodic_from_non_periodic_model( &
-            mesh, model, periodic_face_list)
+            mesh, model, periodic_face_map)
          
          ! Having fixed the face list, we should now use the original mesh
          ! rather than the model so that all faces which are supposed to be
@@ -1244,7 +1248,6 @@ contains
          size(mesh%faces%face_lno), name=mesh%name)
 #endif
 
-
     vertices=local_vertices(lmodel%shape%numbering)    
 
     ! now fill in face_lno
@@ -1297,6 +1300,10 @@ contains
 
        end do faceloop
     end do eleloop
+      
+    if (present(periodic_face_map)) then
+      call fix_periodic_face_orientation(model, mesh, periodic_face_map)
+    end if
       
     ! this is a surface mesh consisting of all exterior faces
     !    which is often used and therefore created in advance
@@ -1517,13 +1524,13 @@ contains
   end subroutine add_faces_face_list
     
   subroutine add_faces_face_list_periodic_from_non_periodic_model( &
-     mesh, model, periodic_face_list)
+     mesh, model, periodic_face_map)
      ! computes the face_list of a periodic mesh by copying it from
      ! a non-periodic model mesh and changing the periodic faces
      ! to internal
      type(mesh_type), intent(inout):: mesh
      type(mesh_type), intent(in):: model
-     integer, dimension(:,:), intent(in):: periodic_face_list
+     type(integer_hash_table), intent(in):: periodic_face_map
 
      type(csr_sparsity):: face_list_sparsity
      integer, dimension(:), pointer :: faces, neigh
@@ -1546,9 +1553,8 @@ contains
      call deallocate(face_list_sparsity)
     
      ! now fix the face list
-     do i=1, size(periodic_face_list,1)
-        face1=periodic_face_list(i, 1)
-        face2=periodic_face_list(i, 2)
+     do i=1, key_count(periodic_face_map)
+        call fetch_pair(periodic_face_map, i, face1, face2)
         ele1=model%faces%face_element_list(face1)
         ele2=model%faces%face_element_list(face2)
         
@@ -1633,6 +1639,44 @@ contains
      end do
 
   end subroutine add_faces_face_list_non_periodic_from_periodic_model
+    
+  subroutine fix_periodic_face_orientation(model, mesh, periodic_face_map)
+    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic model
+    !!< in periodic faces to make it consistent with the periodic 'mesh'
+    !!< Assumes the shape functions of elements and faces in mesh and model are the same!!
+    type(mesh_type), intent(in):: model
+    type(mesh_type), intent(in):: mesh
+    type(integer_hash_table), intent(in):: periodic_face_map
+    
+    integer:: i, face1, face2
+    
+    if (.not. mesh%faces%shape==model%faces%shape) then
+      ewrite(-1,*) "When deriving the faces structure of a periodic mesh from a non-periodic mesh"
+      ewrite(-1,*) "Its shape functions have to be the same"
+      FLAbort("Different shape functions in non-periodic model mesh")
+    end if
+    
+    do i=1, key_count(periodic_face_map)
+       call fetch_pair(periodic_face_map, i, face1, face2)
+       call fix_periodic_face_orientation_face(face1)
+       call fix_periodic_face_orientation_face(face2)
+    end do
+      
+    contains
+    
+    subroutine fix_periodic_face_orientation_face(face)
+    integer, intent(in):: face
+    
+      integer, dimension(:), pointer:: mesh_face_local_nodes, model_face_local_nodes
+      
+      mesh_face_local_nodes => face_local_nodes(mesh, face)
+      model_face_local_nodes => face_local_nodes(model, face)
+      
+      model_face_local_nodes=mesh_face_local_nodes
+      
+    end subroutine fix_periodic_face_orientation_face
+    
+  end subroutine fix_periodic_face_orientation
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
     mesh, surface_elements, name)
@@ -1732,7 +1776,7 @@ contains
 
   end function SetContains
 
-  function make_mesh_periodic(model,positions,physical_boundary_ids,aliased_boundary_ids,periodic_mapping_python,name) &
+  function make_mesh_periodic(model,positions,physical_boundary_ids,aliased_boundary_ids,periodic_mapping_python,name, periodic_face_map) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but with periodic boundary conditions
     type(mesh_type) :: mesh
@@ -1742,11 +1786,14 @@ contains
     integer, dimension(:), intent(in) :: physical_boundary_ids, aliased_boundary_ids
     character(len=*), intent(in) :: periodic_mapping_python
     character(len=*), intent(in), optional :: name
+    !! builds up a map between aliased and physical faces, has to be allocated
+    !! before the call, and is not emptied, so this can be used to build up a
+    !! aliased to physical face map over multiple calls to make_mesh_periodic
+    type(integer_hash_table), optional, intent(inout):: periodic_face_map
     
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer, dimension(:,:), allocatable :: local_mapping_list,&
-         & periodic_face_list
+    integer, dimension(:,:), allocatable :: local_mapping_list
     integer, dimension(:), allocatable :: mapping_list, mapped
     integer :: i, j, id, nod, nod1, map_index, periodic_faces
     integer, dimension(:), allocatable :: face_nodes, face_nodes2
@@ -1841,9 +1888,6 @@ contains
     !are mapped to
     allocate( mapX(positions%dim,sum(mapped)) )
 
-    ! Pairs of faces which are now adjacent.
-    allocate(periodic_face_list(periodic_faces, 2))
-    
     !compute local_mapping_list(1,:) by
     !visiting each surface element
     !if id indicates it is aliased
@@ -1963,7 +2007,7 @@ contains
        end if
     end do
 
-    if (has_faces(model)) then
+    if (has_faces(model) .and. present(periodic_face_map)) then
 
        map_index=0
        face_loop_1: do i=1,surface_element_count(model)
@@ -1977,8 +2021,7 @@ contains
                    face_nodes2 = mapping_list(face_global_nodes(model,j))
                    
                    if (SetContains(face_nodes, face_nodes2)) then
-                      periodic_face_list(map_index,1)=i
-                      periodic_face_list(map_index,2)=j
+                      call insert( periodic_face_map, i, j)
 
                       cycle face_loop_1
                    end if
@@ -1990,7 +2033,6 @@ contains
           end if
        end do face_loop_1
 
-       call add_faces(mesh, model=model, periodic_face_list=periodic_face_list)
     end if
 
   end function make_mesh_periodic
