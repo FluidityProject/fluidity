@@ -150,6 +150,9 @@ class StatplotWindow(gtk.Window):
       axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
       axis.set_xscale(xscale)
       axis.set_yscale(yscale)
+      if not bounds is None:
+        axis.set_xbound(bounds[0])
+        axis.set_ybound(bounds[1])
       
       self._vBox.pack_start(self._plotWidget)
       self._plotWidget.show_all()
