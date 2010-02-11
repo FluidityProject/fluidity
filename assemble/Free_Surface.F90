@@ -92,8 +92,7 @@ contains
       ! gravity acceleration
       call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
       ! reference density
-      call get_option('/material_phase::'//trim(state%name)// &
-        '/equation_of_state/fluids/linear/reference_density', rho0)
+      call get_reference_density_from_options(state, rho0)
       
       ! get the pressure, and the pressure at the beginning of the time step
       p => extract_scalar_field(state, "Pressure")
@@ -204,8 +203,7 @@ contains
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
     ! reference density
-    call get_option('/material_phase::'//trim(state%name)// &
-        '/equation_of_state/fluids/linear/reference_density', rho0)
+    call get_reference_density_from_options(state, rho0)
       
     ! with a free surface the initial condition prescribed for pressure
     ! is used at the free surface nodes only
@@ -327,8 +325,7 @@ contains
     call get_option('/timestepping/timestep', dt)
     ! eos/fluids/linear/subtract_out_hydr.level is options checked below
     ! so the ref. density should be present
-    call get_option('/material_phase::'//trim(state%name)// &
-      '/equation_of_state/fluids/linear/reference_density', rho0)
+    call get_reference_density_from_options(state, rho0)
     
     positions => extract_vector_field(state, "Coordinate")
     original_positions => extract_vector_field(state, "OriginalCoordinate")
@@ -597,8 +594,7 @@ contains
      assert(free_surface%mesh==p%mesh)
 
      call get_option('/physical_parameters/gravity/magnitude', g)
-     call get_option('/material_phase::'//trim(state%name)// &
-      '/equation_of_state/fluids/linear/reference_density', rho0)
+     call get_reference_density_from_options(state, rho0)
           
      topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
      if (stat==0) then
@@ -649,6 +645,23 @@ contains
      end if
     
   end subroutine calculate_diagnostic_free_surface
+
+  subroutine get_reference_density_from_options(state, rho0)
+
+    type(state_type), intent(in) :: state
+    real, intent(out) :: rho0
+    
+    if (have_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/linear/')) then
+      call get_option('/material_phase::'//trim(state%name)// &
+       '/equation_of_state/fluids/linear/reference_density', rho0)
+    else if (have_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/ocean_pade_approximation/')) then
+      ! The reference density is hard-coded to be 1.0 for the Ocean Pade Approximation
+      rho0=1.0
+    else 
+      FLExit("Error retrieving reference density from options.")
+    endif
+
+  end subroutine get_reference_density_from_options
     
   subroutine free_surface_module_check_options
     
