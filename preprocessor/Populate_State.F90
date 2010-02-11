@@ -625,6 +625,7 @@ contains
     integer, dimension(2) :: shape_option
     integer:: n_periodic_bcs
     integer:: j
+    logical :: fiddled_with_faces
     
     lfrom_mesh=from_mesh
     
@@ -633,6 +634,7 @@ contains
     
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
+    call incref(lfrom_mesh)
     do j=0, n_periodic_bcs-1
        
        ! get some options
@@ -655,10 +657,19 @@ contains
          call allocate(from_position, position%dim, lfrom_mesh, "ModelPositions")
          call remap_field(position, from_position)
        end if
+       fiddled_with_faces = .false.
+       if (.not. has_faces(lfrom_mesh)) then
+         lfrom_mesh%faces => from_mesh%faces
+         fiddled_with_faces = .true.
+       end if
        periodic_mesh=make_mesh_periodic(lfrom_mesh,from_position,&
           physical_boundary_ids,aliased_boundary_ids, &
           periodic_mapping_python, periodic_face_map=periodic_face_map)
+       if (fiddled_with_faces) then
+         lfrom_mesh%faces => null()
+       end if
        call deallocate(from_position)
+       call deallocate(lfrom_mesh)
        lfrom_mesh=periodic_mesh
        
        deallocate( physical_boundary_ids, aliased_boundary_ids )
