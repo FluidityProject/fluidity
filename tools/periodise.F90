@@ -1,3 +1,5 @@
+#include "fdebug.h"
+
 program periodise
 
   !! Take in an flml with an external mesh and one periodic mesh derived from it.
@@ -116,6 +118,16 @@ program periodise
     integer, dimension(2) :: shape_option
     integer, dimension(:), allocatable :: aliased_boundary_ids, physical_boundary_ids
     integer :: face
+    integer :: ele
+    real, dimension(ele_ngi(periodic_positions, 1)) :: detwei
+    real :: vol
+
+    ! Check for degenerate elements
+    do ele=1,ele_count(periodic_positions)
+      call transform_to_physical(periodic_positions, ele, detwei=detwei)
+      vol = sum(detwei)
+      assert(vol > 0)
+    end do
 
     ! Retain the original surface IDs, as we still need them --
     ! the derivation process will have set the aliased surface elements
@@ -164,6 +176,13 @@ program periodise
     end do
       
     call deallocate(physical_bc_nodes)
+
+    ! Check for degenerate elements
+    do ele=1,ele_count(periodic_positions)
+      call transform_to_physical(periodic_positions, ele, detwei=detwei)
+      vol = sum(detwei)
+      assert(vol > 0)
+    end do
     
   end subroutine postprocess_periodic_mesh
 
