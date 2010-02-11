@@ -98,10 +98,12 @@ start =
                   attribute name { xsd:string }
                }
             ),
+            ## Options for convergence analysis.
             element convergence {
                ## Whether to enable the creation of a convergence
                ## file, giving details of the convergence of each
                ## field over the global nonlinear iteration loop.
+               ## The .convergence file is in the same format as the .stat file.
                element convergence_file {
                   comment
                }?,

@@ -136,11 +136,13 @@ interpolated for VTK output.</a:documentation>
         </choice>
         <optional>
           <element name="convergence">
+            <a:documentation>Options for convergence analysis.</a:documentation>
             <optional>
               <element name="convergence_file">
                 <a:documentation>Whether to enable the creation of a convergence
 file, giving details of the convergence of each
-field over the global nonlinear iteration loop.</a:documentation>
+field over the global nonlinear iteration loop.
+The .convergence file is in the same format as the .stat file.</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
