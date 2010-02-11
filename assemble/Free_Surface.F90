@@ -652,7 +652,7 @@ contains
     
   subroutine free_surface_module_check_options
     
-    character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path
+    character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path
     character(len=FIELD_NAME_LEN):: fs_meshname, p_meshname, bctype
     logical:: have_free_surface
     integer i, p
@@ -676,7 +676,7 @@ contains
       end if
       
       if (have_free_surface) then
-        ewrite(2,*) "You have a free surface, checking its options"
+        ewrite(2,*) "With the free surface you need to subtract out the hydrostatic level"
       end if
         
       ! first check we're using the new code path (cg_test or dg)
@@ -724,7 +724,8 @@ contains
       end if
       
       option_path=trim(phase_path)//'/equation_of_state/fluids/linear/subtract_out_hydrostatic_level'
-      if (have_free_surface .and. .not.(have_option(option_path))) then
+      pade_path=trim(phase_path)//'/equation_of_state/fluids/ocean_pade_approximation'
+      if (have_free_surface .and. .not.(have_option(option_path)) .and. .not.(have_option(pade_path))) then
         ewrite(-1,*) "Missing option: ", trim(option_path)
         FLExit("With the free surface you need to subtract out the hydrostatic level.")
       end if
