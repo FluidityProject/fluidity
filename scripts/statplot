@@ -88,12 +88,12 @@ class StatplotWindow(gtk.Window):
     # The combos
     paths = self._stat.Paths()
     paths.sort()
-    if "ElapsedTime" in paths:
-      paths.remove("ElapsedTime")
-      paths.insert(0, "ElapsedTime")
     self._xCombo = gui.ComboBoxFromEntries(paths)
     self._xCombo.connect("changed", self._XComboChanged)
-    iter = self._xCombo.get_model().get_iter_first()
+    if "ElapsedTime" in paths:
+      iter = self._xCombo.get_model().get_iter((paths.index("ElapsedTime"),))
+    else:
+      iter = self._xCombo.get_model().get_iter_first()
     if not iter is None:
       self._xCombo.set_active_iter(iter)
     self._hBox.pack_start(self._xCombo)
@@ -146,7 +146,7 @@ class StatplotWindow(gtk.Window):
         if yscale is None:
           yscale = "linear"
         
-      self._plotWidget = self._plotType(x = self._xData, y = self._yData, xLabel = self._xField, yLabel = self._yField, bounds=bounds).Widget()
+      self._plotWidget = self._plotType(x = self._xData, y = self._yData, xLabel = self._xField, yLabel = self._yField).Widget()
       axis = self._plotWidget.get_children()[0].figure.get_axes()[0]
       axis.set_xscale(xscale)
       axis.set_yscale(yscale)
@@ -190,10 +190,7 @@ class StatplotWindow(gtk.Window):
     if char == "R":
       try:
        self._stat = fluidity_tools.Stat(self._filename)
-      except TypeError:
-        # Tolerate a half written line in the .stat file
-        return
-      except ValueError:
+      except TypeError, ValueError:
         # Tolerate a half written line in the .stat file
         return
       self._RefreshData(keepBounds = True)
@@ -217,10 +214,7 @@ class StatplotWindow(gtk.Window):
     elif char == "r":
       try:
         self._stat = fluidity_tools.Stat(self._filename)
-      except TypeError:
-        # Tolerate a half written line in the .stat file
-        return
-      except ValueError:
+      except TypeError, ValueError:
         # Tolerate a half written line in the .stat file
         return
       self._RefreshData()
