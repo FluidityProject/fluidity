@@ -2568,6 +2568,7 @@ contains
     ! Check that dimension of mesh is the same as the dimension defined in the options file
     ! ...that's not so easy: let's just do this in insert_external_mesh() with a nice FLEXit
 
+    periodic_mesh_count = 0
     ! Check that the meshes required to make other meshes are present.
     mesh_loop2: do i=0, nmeshes-1
 
