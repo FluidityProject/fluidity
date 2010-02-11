@@ -1805,6 +1805,7 @@ contains
     logical :: found_node
 
     assert(model==positions%mesh)
+    assert(has_faces(model))
         
     !get pointers to coordinates
     x => positions%val(1)%ptr
