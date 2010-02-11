@@ -20,6 +20,7 @@ module field_derivatives
     use surfacelabels
     use vtk_interfaces
     use superconvergence
+    use state_module
     implicit none
 
     interface compute_hessian_real
@@ -44,7 +45,8 @@ module field_derivatives
 
     public :: differentiate_field, grad, compute_hessian, &
       domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
-      get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped
+      get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped, &
+      differentiate_field_sele
 
     public :: compute_hessian_qf, compute_hessian_eqf, compute_hessian_var
     
@@ -1135,46 +1137,64 @@ module field_derivatives
         call addto(lumped_mass_matrix, ele_nodes(mesh, ele), sum(mass_matrix, 2))
         
       end subroutine differentiate_field_ele
-      
-!      subroutine differentiate_field_sele(sele)
-!        integer, intent(in):: sele
-      
-!        real, dimension(mesh_dim(mesh), face_loc(mesh, sele), face_loc(mesh, sele)) :: r
-!        real, dimension(face_ngi(mesh, sele)) :: detwei
-!        real, dimension(face_loc(mesh, sele), face_ngi(mesh, sele), mesh_dim(mesh)) :: dt_t
-!        real, dimension(face_loc(mesh, sele), face_loc(mesh, sele)) :: mass_matrix
-        
-!        integer i
-!        ele  = face_ele(mesh, sele)
-!        u_shape => ele_shape(u, ele)
-!        u_f_shape => face_shape(u, sele)
-!        augmented_shape = make_element_shape(x_shape%loc, &
-!              u_shape%dim, u_shape%degree, u_shape%quadrature, &
-!              quad_s=u_f_shape%quadrature )
-!        vol_dshape_face = eval_volume_dshape_at_face_quad( &
-!              augmented_shape, l_face_number, invJ_face )
-        ! Compute detwei.
-!        call transform_facet_to_physical(positions, sele, &
-!           face_shape(mesh, sele), detwei_f=detwei)
-
-!        r = shape_dshape(face_shape(mesh, sele), dt_t, detwei)
-!        do i=1, size(infields)
-          
-!          if (compute(i)) then
-!            call addto(gradient(i), face_nodes(mesh, sele), &
-!               tensormul(r, ele_val(infields(i), ele), 3) )
-!          end if
-
-!        end do
-        
-        ! Lump the mass matrix
-!        mass_matrix = shape_shape(ele_shape(mesh, ele), ele_shape(mesh, ele), detwei)
-!        call addto(lumped_mass_matrix, ele_nodes(mesh, ele), sum(mass_matrix, 2))
-        
-!      end subroutine differentiate_field_sele
 
     end subroutine differentiate_field_lumped_multiple
       
+    subroutine differentiate_field_sele(infields, positions, sele, gradient, state)
+      ! Differentiates a field on surfaces of an element.
+      ! This subroutine was written for use in parameterisation/k_epsilon.F90.
+
+      ! May be more than one infield:
+      type(scalar_field), dimension(:), intent(in), pointer        :: infields
+      type(vector_field), intent(in)                               :: positions
+      type(vector_field), dimension(size(infields)), intent(inout) :: gradient
+      !type(scalar_field), dimension(gradient%dim) :: pardiff
+      type(element_type)                                           :: augmented_shape
+      type(element_type), pointer                                  :: u_shape, u_f_shape, x_shape
+      type(mesh_type), pointer                                     :: mesh
+      type(state_type), intent(in)                                 :: state
+      integer                                                      :: i, ele, sele, loc, l_face_number
+      logical, dimension( mesh_dim(infields(1)) )                  :: compute
+      real, dimension(face_ngi(positions, sele))                                                 :: detwei
+      real, dimension(positions%dim, positions%dim, ele_ngi(infields(1), sele))                  :: invJ
+      real, dimension(positions%dim, positions%dim, face_ngi(infields(1), sele))                 :: invJ_face
+      real, dimension(mesh_dim(positions), face_loc(positions, sele), face_loc(positions, sele)) :: r
+      real, dimension(face_loc(positions, sele), face_ngi(positions, sele), mesh_dim(positions)) :: vol_dshape_face
+
+      mesh      => infields(1)%mesh
+      ele       =  face_ele(positions, sele)
+      x_shape   => ele_shape(positions, ele)
+      u_shape   => ele_shape(infields(1), ele)
+      u_f_shape => face_shape(infields(1), sele)
+
+      ! don't compute if the field is constant
+      do i=1, size(infields)
+        compute(i)= (maxval(infields(i)%val) /= minval(infields(i)%val))
+      end do
+
+      call compute_inverse_jacobian( ele_val(positions, ele), ele_shape(positions, ele), invJ )
+      invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+      l_face_number = local_face_number(infields(1), sele)
+      augmented_shape = make_element_shape(x_shape%loc, u_shape%dim, &
+           u_shape%degree, u_shape%quadrature, quad_s=u_f_shape%quadrature )
+      vol_dshape_face = eval_volume_dshape_at_face_quad( augmented_shape, l_face_number, invJ_face )
+
+      ! Compute detwei
+      call transform_facet_to_physical(positions, sele, detwei_f=detwei)
+      r = shape_dshape(face_shape(positions, sele), vol_dshape_face, detwei)
+
+      ! Initialise gradient field, populate with values from gradient_sele
+      do i=1, size(infields)
+        if (compute(i)) then
+          call allocate(gradient(i), positions%dim, mesh, "Gradient")
+          call zero(gradient(i))
+          call addto(gradient(i), ele_nodes(infields(i), ele), &
+             tensormul(r, ele_val(infields(i), ele), 3) )
+        end if
+      end do
+
+    end subroutine differentiate_field_sele
+
     subroutine differentiate_field_lumped_single(infield, positions, derivatives, pardiff)
     !!< This routine computes the first derivatives using a weak finite element formulation.
       type(scalar_field), intent(in), target :: infield

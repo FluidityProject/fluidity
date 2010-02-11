@@ -363,7 +363,7 @@ Multigrid.o: Sparse_Tools.o Petsc_Tools.o Parallel_Tools.o
 Parallel_fields.o : Fields_Base.o Halos_Ownership.o Halos_Communications.o \
   Halos_Numbering.o 
 
-Field_derivatives.o: Vector_set.o Parallel_fields.o Node_boundary.o
+Field_derivatives.o: Vector_set.o Parallel_fields.o Node_boundary.o State.o
 
 Vector_set.o: vecset.o intvecset.o
 

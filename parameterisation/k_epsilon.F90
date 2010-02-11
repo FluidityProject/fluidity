@@ -68,7 +68,7 @@ module k_epsilon
   ! for the eps BC
   integer, save                        :: NNodes_sur
   integer, dimension(:), pointer, save :: surface_nodes
-  integer, dimension(:), pointer, save :: surface_element_list
+  integer, dimension(:), pointer, save :: surface_node_list, surface_element_list
   logical, save                        :: initialised, calculate_bcs
 
   ! The following are the public subroutines
@@ -95,7 +95,7 @@ contains
 subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
-    type(scalar_field), pointer     :: scalarField, s_cur,s_old, dtwo_kk
+    type(scalar_field), pointer     :: scalarField, s_cur, s_old, dtwo_kk
     type(vector_field), pointer     :: vectorField
     type(tensor_field), pointer     :: tensorField
     integer                         :: stat
@@ -627,17 +627,20 @@ subroutine eps_bc(state, bc_type)
     type(vector_field), pointer:: normal
     integer                          :: i
     character(len=FIELD_NAME_LEN)    :: bc_type
-    type(scalar_field), pointer      :: kk, kkOld, dtwo_kk
-    type(vector_field), pointer      :: u
+    type(scalar_field), pointer      :: kk, kkOld
+    type(vector_field), pointer      :: dkdn, ddkdnn
+    type(vector_field), pointer      :: u, positions
     character(len=OPTION_PATH_LEN)   :: bc_option_path
 
 
 
     ! grab hold of some essential fields
-    kk      => extract_scalar_field(state, "TurbulentKineticEnergy")    
-    kkOld   => extract_scalar_field(state, "OldTurbulentKineticEnergy")
-    dtwo_kk => extract_scalar_field(state, "SecondDerivativeTKE")
-    u       => extract_vector_field(state, "Velocity")
+    positions => extract_vector_field(state, "Coordinate")
+    kk        => extract_scalar_field(state, "TurbulentKineticEnergy")    
+    kkOld     => extract_scalar_field(state, "OldTurbulentKineticEnergy")
+    dkdn      => extract_vector_field(state, "FirstDerivativeTKE")
+    ddkdnn    => extract_vector_field(state, "SecondDerivativeTKE")
+    u         => extract_vector_field(state, "Velocity")
     ! work out the delta_KK = theta*kk + (1-theta)*OldKK
     call set(delta_KK, kk)
     call scale(delta_KK, theta)
@@ -668,7 +671,8 @@ subroutine eps_bc(state, bc_type)
 
     do i=1, get_boundary_condition_count(u)
        call get_boundary_condition(u, i, type=bc_type, &
-            surface_node_list=surface_nodes, &
+            !surface_node_list=surface_nodes, &
+            surface_element_list=surface_element_list, &
             option_path=bc_option_path)
 
        if (bc_type=="dirichlet" .and. &
@@ -678,10 +682,10 @@ subroutine eps_bc(state, bc_type)
     end do
 
 
-!    do i=1,NNodes_sur
-!        call set(surface_values, i, dtwo_kk%val(i) )
-!        call differentiate_field(delta_kk, i, normal, derivatives, dtwo_kk)
-!    end do
+    !do i=1, NNodes_sur
+    !    call differentiate_field_sele(kk, positions, i, dkdn, state)
+        
+    !end do
 
 
 end subroutine eps_bc
