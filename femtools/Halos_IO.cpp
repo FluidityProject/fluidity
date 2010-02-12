@@ -188,7 +188,7 @@ int Fluidity::WriteHalos(const string& filename, const unsigned int& process, co
   ostringstream buffer;
   
   // XML header
-  TiXmlDeclaration* header = new TiXmlDeclaration("1.0", "", "");
+  TiXmlDeclaration* header = new TiXmlDeclaration("1.0", "utf-8", "");
   doc.LinkEndChild(header);
 
   // Add root node
