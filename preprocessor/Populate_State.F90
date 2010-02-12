@@ -699,6 +699,7 @@ contains
     integer:: n_periodic_bcs
     integer:: j
     type(integer_hash_table) :: aliased_to_new_node_number
+    logical :: fiddled_with_faces
     
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
@@ -724,9 +725,20 @@ contains
        
        ewrite(2,*) 'Removing periodicity from mesh'
        
+       fiddled_with_faces = .false.
+       if (.not. has_faces(lfrom_position%mesh)) then
+         lfrom_position%mesh%faces => from_position%mesh%faces
+         fiddled_with_faces = .true.
+       end if
+
        nonperiodic_position=make_mesh_unperiodic(lfrom_position,&
           physical_boundary_ids,aliased_boundary_ids, &
           periodic_mapping_python, mesh_name, aliased_to_new_node_number)
+
+       if (fiddled_with_faces) then
+         lfrom_position%mesh%faces => null()
+       end if
+
        if (associated(lfrom_position%mesh%halos)) then
          assert(associated(lfrom_position%mesh%element_halos))
          call derive_nonperiodic_halos_from_periodic_halos(nonperiodic_position, lfrom_position, aliased_to_new_node_number)
