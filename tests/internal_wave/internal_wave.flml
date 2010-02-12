@@ -42,19 +42,7 @@
     </mesh>
     <mesh name="PressureMesh">
       <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <periodic_boundary_conditions name="periodic_bc">
-          <physical_boundary_ids>
-            <integer_value shape="1" rank="1">42</integer_value>
-          </physical_boundary_ids>
-          <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">43</integer_value>
-          </aliased_boundary_ids>
-          <coordinate_map>
-            <string_value lines="20" type="python">def val(x,t):
-    return (0.0,x[1],x[2])</string_value>
-          </coordinate_map>
-        </periodic_boundary_conditions>
+        <mesh name="VelocityMesh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -62,7 +50,7 @@
     </mesh>
     <mesh name="GeostrophicPressureMesh">
       <from_mesh>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <mesh_shape>
           <polynomial_degree>
             <integer_value rank="0">2</integer_value>
@@ -156,6 +144,9 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
+        <reference_node replaces="NDPSET">
+          <integer_value rank="0">100</integer_value>
+        </reference_node>
         <scheme>
           <poisson_pressure_solution replaces="POISON">
             <string_value lines="1">only first timestep</string_value>

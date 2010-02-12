@@ -13,11 +13,19 @@
 import fluidity_tools
 speednorm =fluidity_tools.stat_parser("InternalWave.stat")['StratifiedFluid']['Velocity%magnitude']['l2norm'][-1]
     </variable>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
   </variables>
   <pass_tests>
     <!-- l2norm should remain within 1% of a constant detemined analytically -->
     <test name="l2norm(speed) at last timestep" language="python">
 assert abs(speednorm - 0.0017479) &lt; 0.0000175
+    </test>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   <warn_tests>

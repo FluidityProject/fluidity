@@ -3,4 +3,4 @@ input:	clean
 	../../scripts/gmsh2triangle src/box.msh
 
 clean:
-	rm -f *.vtu *.stat *.s *.log* *.err* src/*.msh *.node *.ele *.edge *.face *checkpoint*
+	rm -f *.vtu *.stat *.s *.log* *.err* src/*.msh *.node *.ele *.edge *.face *checkpoint* matrixdump*
