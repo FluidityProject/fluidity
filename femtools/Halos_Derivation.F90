@@ -44,6 +44,7 @@ module halos_derivation
   use mpi_interfaces
   use parallel_tools
   use sparse_tools
+  use linked_lists
 
   implicit none
 
@@ -983,9 +984,8 @@ contains
     type(vector_field), intent(inout) :: new_positions
     type(vector_field), intent(in) :: model
     type(integer_hash_table), intent(in) :: aliased_to_new_node_number
-    type(integer_set), dimension(:), allocatable :: sends, receives
+    type(ilist), dimension(:), allocatable :: sends, receives
     integer :: proc, i, new_nowned_nodes
-    logical :: changed
 #ifdef DDEBUG
     integer, dimension(node_count(model)) :: map_verification
     integer :: key, output
@@ -1001,6 +1001,8 @@ contains
       map_verification(key) = 1
     end do
     assert(halo_verifies(model%mesh%halos(2), map_verification))
+
+    assert(halo_verifies(model%mesh%halos(2), model))
 #endif
 
     assert(halo_valid_for_communication(model%mesh%element_halos(1)))
@@ -1020,22 +1022,22 @@ contains
     allocate(sends(halo_proc_count(model%mesh%halos(2))))
     allocate(receives(halo_proc_count(model%mesh%halos(2))))
     do proc=1,halo_proc_count(model%mesh%halos(2))
-      call allocate(sends(proc))
-      call allocate(receives(proc))
 
-      call insert(sends(proc), halo_sends(model%mesh%halos(2), proc))
-      call insert(receives(proc), halo_receives(model%mesh%halos(2), proc))
+      do i=1,halo_send_count(model%mesh%halos(2), proc)
+        call insert(sends(proc), halo_send(model%mesh%halos(2), proc, i))
+      end do
+      do i=1,halo_receive_count(model%mesh%halos(2), proc)
+        call insert(receives(proc), halo_receive(model%mesh%halos(2), proc, i))
+      end do
 
       do i=1,halo_send_count(model%mesh%halos(2), proc)
         if (has_key(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i))) then
-          call insert(sends(proc), fetch(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i)), changed=changed)
-          assert(changed)
+          call insert(sends(proc), fetch(aliased_to_new_node_number, halo_send(model%mesh%halos(2), proc, i)))
         end if
       end do
       do i=1,halo_receive_count(model%mesh%halos(2), proc)
         if (has_key(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i))) then
-          call insert(receives(proc), fetch(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i)), changed=changed)
-          assert(changed)
+          call insert(receives(proc), fetch(aliased_to_new_node_number, halo_receive(model%mesh%halos(2), proc, i)))
         end if
       end do
     end do
@@ -1049,8 +1051,8 @@ contains
     end do
 
     call allocate(new_positions%mesh%halos(2), &
-                  nsends = key_count(sends), &
-                  nreceives = key_count(receives), &
+                  nsends = sends%length, &
+                  nreceives = receives%length, &
                   name = halo_name(model%mesh%halos(2)), &   ! Probably should change this
                   communicator = halo_communicator(model%mesh%halos(2)), &
                   nowned_nodes = new_nowned_nodes, &
@@ -1058,9 +1060,9 @@ contains
                   ordering_scheme = HALO_ORDER_GENERAL)
 
     do proc=1,halo_proc_count(model%mesh%halos(2))
-      call set_halo_sends(new_positions%mesh%halos(2), proc, set2vector(sends(proc)))
+      call set_halo_sends(new_positions%mesh%halos(2), proc, list2vector(sends(proc)))
       call deallocate(sends(proc))
-      call set_halo_receives(new_positions%mesh%halos(2), proc, set2vector(receives(proc)))
+      call set_halo_receives(new_positions%mesh%halos(2), proc, list2vector(receives(proc)))
       call deallocate(receives(proc))
     end do
 
@@ -1068,6 +1070,7 @@ contains
     deallocate(receives)
 
     assert(halo_valid_for_communication(new_positions%mesh%halos(2)))
+    assert(halo_verifies(new_positions%mesh%halos(2), new_positions))
 
     ! Ideally we would derive, but it fails if the mesh has nodes not associated with
     ! any elements
