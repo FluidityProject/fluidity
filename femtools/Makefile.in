@@ -270,7 +270,8 @@ Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
 Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Repair.o Sparse_Tools.o \
-  Data_structures.o Fields_Manipulation.o Halos_Communications.o
+  Data_structures.o Fields_Manipulation.o Halos_Communications.o \
+	Linked_Lists.o
 Halos_IO.o: ../include/Halos_IO.h
 Halos_Ownership.o: Futils.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o Halos_Numbering.o
 Halos_Numbering.o: Data_structures.o Futils.o Halo_Data_Types.o \
