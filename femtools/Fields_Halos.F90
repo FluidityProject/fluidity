@@ -86,8 +86,22 @@ contains
             mapped_node_count = mapped_node_count + 1
             call insert(aliased_to_new_node_number, i, node_count(model)+mapped_node_count)
           end if
+        else if (is_periodic(i) == 0) then
+          if (has_key(aliased_to_new_node_number, i)) then
+             write(0,*) halo_universal_number(model%mesh%halos(2),i)
+            FLAbort("I thought it was periodic, but the owner says otherwise ... ")
+          end if
         end if
       end do
+
+#ifdef DDEBUG
+      is_periodic = 0
+      do i=1,key_count(aliased_to_new_node_number)
+        call fetch_pair(aliased_to_new_node_number, i, key, output)
+        is_periodic(key) = 1
+      end do
+      assert(halo_verifies(model%mesh%halos(2), is_periodic))
+#endif
     end if
       
     ! we now have info to allocate the new mesh
