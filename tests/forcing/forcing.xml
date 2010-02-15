@@ -29,10 +29,6 @@ FinalSalinityMin = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['S
 import fluidity_tools
 FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['Velocity%magnitude']['max'][-1]
     </variable>
-  <variable name="FirstVelocityMagnitudeMax" language="python">
-import fluidity_tools
-FirstVelocityMagnitudeMax = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['Velocity%magnitude']['max'][0]
-    </variable>
   
   </variables>    
 
@@ -44,7 +40,7 @@ assert FinalTime ==1440
 assert((FinalTemperatureIntegral - FirstTemperatureIntegral) &gt; 10)
     </test>
     <test name="Final velocity%magnitude max has increased" language="python">
-assert((FinalVelocityMagnitudeMax - FirstVelocityMagnitudeMax) &gt; 0.001)
+assert(FinalVelocityMagnitudeMax &gt; 0.0)
     </test>
     <test name="Final Salinity min less than 35" language="python">
 assert FinalSalinityMin &lt; 35
