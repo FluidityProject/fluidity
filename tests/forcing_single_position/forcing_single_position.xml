@@ -31,13 +31,13 @@ FirstVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing_single_position.
     </variable>
     <variable name="HeatFluxOrigin" language="python">
 import heat_flux
-HeatFluxOrigin = heat_flux.flux("forcing_single_position_4.vtu",0.0,0.0)
+HeatFluxOrigin = heat_flux.flux("forcing_single_position_1.vtu",0.0,0.0)
 
     </variable>
     <variable name="HeatFluxFarCorner" language="python">
 import heat_flux
  
-HeatFluxFarCorner = heat_flux.flux("forcing_single_position_4.vtu",10000.0,10000.0)
+HeatFluxFarCorner = heat_flux.flux("forcing_single_position_1.vtu",10000.0,10000.0)
 if (HeatFluxFarCorner == -666):
   HeatFluxFarCorner = 666
     </variable>
