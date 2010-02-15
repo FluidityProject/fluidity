@@ -988,7 +988,8 @@ prescribed_adaptivity =
          },
          ## Options relating to the target meshes
          element mesh {
-            ## The target mesh. This must be a mesh specified under /geometry.
+            ## The target mesh. If not reading from file, this must be a mesh
+            ## specified under /geometry.
             element name {
                ## Python code defining the target mesh. Functions should be of
                ## the form:
@@ -1003,6 +1004,18 @@ prescribed_adaptivity =
                },
                comment
             },
+            ## Read the mesh from file, rather than extracting it from the
+            ## system state.
+            element from_file {
+               (
+                  ## Input mesh file format.
+                  element format {
+                     "triangle",
+                     comment
+                  }
+               ),
+               comment
+            }?,
             comment
          },
          comment

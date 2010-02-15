@@ -78,26 +78,54 @@ contains
     type(state_type), dimension(:), intent(inout) :: states
     real, intent(in) :: elapsed_time
     
-    character(len = OPTION_PATH_LEN) :: mesh_name, func
-    type(mesh_type), pointer :: new_mesh
     type(vector_field) :: new_positions
       
-    ewrite(1, *) "In adapt_state_prescribed"
-      
-    call get_option(base_path // "/mesh/name/python", func)
-    call string_from_python(func, elapsed_time, mesh_name)
-    ewrite(2, *) "New mesh name: " // trim(mesh_name)
+    ewrite(1, *) "In adapt_state_prescribed"     
     
-    new_mesh => extract_mesh(states(1), mesh_name)
-    new_positions = get_coordinate_field(states(1), new_mesh)
-    
-    call adapt_state_prescribed_internal(states, new_positions)
-    
+    new_positions = adapt_state_prescribed_target(states, elapsed_time)
+    call adapt_state_prescribed_internal(states, new_positions)    
     call deallocate(new_positions)
         
     ewrite(1, *) "Exiting adapt_state_prescribed"
         
   end subroutine adapt_state_prescribed
+  
+  function adapt_state_prescribed_target(states, elapsed_time) result(new_positions)
+    !!< Return the new positions field for the prescribed mesh adapt
+  
+    type(state_type), dimension(:), intent(inout) :: states
+    real, intent(in) :: elapsed_time
+    
+    type(vector_field) :: new_positions
+    
+    character(len = OPTION_PATH_LEN) :: format, func, mesh_name
+    integer :: quad_degree
+    type(mesh_type), pointer :: new_mesh
+    
+    call get_option(base_path // "/mesh/name/python", func)
+    call string_from_python(func, elapsed_time, mesh_name)
+    ewrite(2, *) "New mesh name: " // trim(mesh_name)
+    
+    if(have_option(base_path // "/mesh/from_file")) then
+      call get_option(base_path // "/mesh/from_file/format", format)
+      call get_option("/geometry/quadrature/degree", quad_degree)
+      select case(format)
+        case("triangle")
+          ewrite(2, *) "Reading new mesh from triangle"
+          
+          new_positions = read_triangle_files(mesh_name, quad_degree = quad_degree)
+        case default
+          ewrite(-1, *) "For mesh format " // trim(format)
+          FLAbort("Invalid mesh format")
+      end select
+    else
+      ewrite(2, *) "Extracting new mesh from state"
+    
+      new_mesh => extract_mesh(states(1), mesh_name)
+      new_positions = get_coordinate_field(states(1), new_mesh)
+    end if
+    
+  end function adapt_state_prescribed_target
 
   subroutine adapt_state_prescribed_internal(states, new_positions)
     !!< Adapt the supplied states to the supplied new coordinate field
@@ -107,6 +135,7 @@ contains
   
     integer :: i
     integer, dimension(:), allocatable :: sndgln
+    logical :: copy_mesh
     type(state_type), dimension(size(states)) :: interpolate_states
     type(mesh_type) :: lnew_positions_mesh
     type(mesh_type), pointer :: old_linear_mesh
@@ -125,9 +154,12 @@ contains
     old_positions = get_coordinate_field(states(1), old_linear_mesh)
     ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
     
-    ! It is required that the new mesh has the same name as the old mesh. If
-    ! this isn't the case, copy the new mesh and change its name.
-    if(trim(new_positions%mesh%name) /= trim(old_positions%mesh%name)) then
+    ! It is required that the new mesh has the same name and option path as the
+    ! old mesh. If either of these isn't the case, copy the new mesh and change
+    ! its name / option_path.
+    copy_mesh = trim(new_positions%mesh%name) /= trim(old_positions%mesh%name) &
+      & .or. trim(new_positions%mesh%option_path) /= trim(old_positions%mesh%option_path)
+    if(copy_mesh) then
       assert(ele_count(new_positions%mesh) > 0)
       call allocate(lnew_positions_mesh, node_count(new_positions%mesh), ele_count(new_positions%mesh), ele_shape(new_positions%mesh, 1), name = old_positions%mesh%name)
       do i = 1, ele_count(lnew_positions_mesh)
@@ -156,11 +188,11 @@ contains
       call incref(lnew_positions_mesh)
     end if
     
-    ! It is required that the new mesh field and its mesh each have the same
-    ! name as the old mesh field and its mesh. If either of these isn't the
-    ! case, create an appropriately named copy of the new mesh field.
+    ! It is required that the new mesh field have the same name as the old mesh
+    ! field and its mesh. If this is the case, or we copied the mesh above, copy
+    ! the new mesh field.
     if(trim(new_positions%name) /= trim(old_positions%name) &
-      & .or. trim(new_positions%mesh%name) /= trim(old_positions%mesh%name)) then
+      & .or. copy_mesh) then
       call allocate(lnew_positions, new_positions%dim, lnew_positions_mesh, old_positions%name)
       call set(lnew_positions, new_positions)
       lnew_positions%name = old_positions%name

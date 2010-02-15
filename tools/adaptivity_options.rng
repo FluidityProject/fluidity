@@ -1193,7 +1193,8 @@ The return value must be an integer.</a:documentation>
       <element name="mesh">
         <a:documentation>Options relating to the target meshes</a:documentation>
         <element name="name">
-          <a:documentation>The target mesh. This must be a mesh specified under /geometry.</a:documentation>
+          <a:documentation>The target mesh. If not reading from file, this must be a mesh
+specified under /geometry.</a:documentation>
           <element name="python">
             <a:documentation>Python code defining the target mesh. Functions should be of
 the form:
@@ -1207,6 +1208,20 @@ The return value must be a string.</a:documentation>
           </element>
           <ref name="comment"/>
         </element>
+        <optional>
+          <element name="from_file">
+            <a:documentation>Read the mesh from file, rather than extracting it from the
+system state.</a:documentation>
+            <element name="format">
+              <a:documentation>Triangle mesh format. 
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers. </a:documentation>
+              <value>triangle</value>
+              <ref name="comment"/>
+            </element>
+            <ref name="comment"/>
+          </element>
+        </optional>
         <ref name="comment"/>
       </element>
       <ref name="comment"/>
