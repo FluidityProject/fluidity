@@ -1329,8 +1329,8 @@ contains
     integer :: NNodes, i
     integer, dimension(:), pointer :: surface_element_list, surface_nodes
     real :: current_time
-    type(scalar_field), pointer :: scalar_source_field
-    type(vector_field), pointer :: vector_source_field
+    type(scalar_field), pointer :: scalar_source_field, sfield
+    type(vector_field), pointer :: vector_source_field, vfield
     type(scalar_field), pointer :: scalar_surface
     type(vector_field), pointer :: vector_surface
     character(len=FIELD_NAME_LEN) input_mesh_name
@@ -1484,7 +1484,7 @@ contains
         vector_surface => extract_surface_field(vector_source_field, 'ocean_forcing_boundary_stress',&
                                              "WindSurfaceField")
         call remap_field(stress_flux, vector_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics")) then
+        if (have_option("/ocean_forcing/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
             vector_source_field => extract_vector_field(state, 'MomentumFlux')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
@@ -1496,6 +1496,10 @@ contains
             do i=1,size(surface_nodes)
                 call set(vector_source_field,3,surface_nodes(i),0.0)
             end do
+            vfield => extract_vector_field(state, 'OldMomentumFlux',stat)
+           if (stat == 0) then
+                call set(vfield,vector_source_field)
+            end if
         end if
         call deallocate(stress_flux)                            
     end if
@@ -1507,12 +1511,16 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, 'ocean_forcing_boundary_heat',&
                                              "value")
         call remap_field(heat_flux, scalar_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics")) then
+        if (have_option("/ocean_forcing/output_fluxes_diagnostics/scalar_field::HeatFlux")) then
             scalar_source_field => extract_scalar_field(state, 'HeatFlux')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
                 call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
-            end do 
+            end do   
+            sfield => extract_scalar_field(state, 'OldHeatFlux',stat)
+            if (stat == 0) then
+                call set(sfield,scalar_source_field)
+            end if
         end if
         call deallocate(heat_flux)
     end if
@@ -1524,12 +1532,16 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, 'ocean_forcing_boundary_salinity',&
                                              "value")
         call remap_field(salinity_flux, scalar_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics")) then
+        if (have_option("/ocean_forcing/output_fluxes_diagnostics/scalar_field::SalinityFlux")) then
             scalar_source_field => extract_scalar_field(state, 'SalinityFlux')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
                 call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
             end do 
+            sfield => extract_scalar_field(state, 'OldSalinityFlux',stat)
+            if (stat == 0) then
+                call set(sfield,scalar_source_field)
+            end if
         end if
         call deallocate(salinity_flux)
     end if
@@ -1541,12 +1553,16 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, 'ocean_forcing_boundary_solar',&
                                              "value")
         call remap_field(solar_flux, scalar_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics")) then
+        if (have_option("/ocean_forcing/output_fluxes_diagnostics/scalar_field::PhotosyntheticRadiationDownward")) then
             scalar_source_field => extract_scalar_field(state, 'PhotosyntheticRadiationDownward')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
                 call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
             end do 
+            sfield => extract_scalar_field(state, 'OldPhotosyntheticRadiationDownward',stat)
+            if (stat == 0) then
+                call set(sfield,scalar_source_field)
+            end if
         end if
         call deallocate(solar_flux)
     end if
