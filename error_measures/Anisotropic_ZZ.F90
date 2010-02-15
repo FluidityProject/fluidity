@@ -121,7 +121,7 @@ module anisotropic_zz_module
 
     path = trim(complete_field_path(trim(field%option_path))) // "/adaptivity_options/anisotropic_zienkiewicz_zhu"
     call get_option(trim(path) // "/tau", tau)
-    ewrite(2,*) "Using tau = ", tau
+    ewrite(1,*) "Using tau = ", tau
     assert(tau > 0.0)
 
     call add_nelist(positions%mesh)
@@ -145,7 +145,7 @@ module anisotropic_zz_module
       eta_estimate = eta
     end if
 
-    ewrite(2,*) "Current mesh error estimate: ", eta
+    ewrite(1,*) "Current mesh error estimate: ", eta
 
     ! Project to P1 here
     call project_p0_metric_p1(positions, pwc_metric, metric)
