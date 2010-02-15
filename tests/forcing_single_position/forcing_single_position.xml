@@ -29,6 +29,19 @@ FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing_single_position.
 import fluidity_tools
 FirstVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing_single_position.stat")['Fluid']['Velocity%magnitude']['max'][0]
     </variable>
+    <variable name="HeatFluxOrigin" language="python">
+import heat_flux
+HeatFluxOrigin = heat_flux.flux("forcing_single_position_4.vtu",0.0,0.0)
+
+    </variable>
+    <variable name="HeatFluxFarCorner" language="python">
+import heat_flux
+ 
+HeatFluxFarCorner = heat_flux.flux("forcing_single_position_4.vtu",10000.0,10000.0)
+if (HeatFluxFarCorner == -666):
+  HeatFluxFarCorner = 666
+    </variable>
+
   
   </variables>    
 
@@ -44,6 +57,11 @@ assert((FinalVelocityMagnitudeMax - FirstVelocityMagnitudeMax) &gt; 0.001)
     </test>
     <test name="Final Salinity max greater than 34" language="python">
 assert FinalSalinityMax &gt; 34.0
+    </test>
+    <test name="Heat flux is same value at orgin and far corner" language="python">
+from numpy import finfo
+f = finfo(float)
+assert(abs(HeatFluxFarCorner - HeatFluxOrigin) &lt; f.eps)
     </test>
 
   </pass_tests>

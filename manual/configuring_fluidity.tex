@@ -1192,6 +1192,11 @@ co-ordinates, which are then added to the positions of the surface of the mesh. 
 and co-ordinates, whilst still specifying where the forcing data should originate. Moreover, the \option{single\_location}
 option forces \emph{all} surface nodes to receive the same forcing.
 
+Finally, it is possible to output the fluxes that are imposed on the ocean surface, by enabling the
+\option{output\_fluxes\_diagnostic} option. Here, the user can enable diagnostic fields for momentum, heat, salinity and
+photosynthetic radiation downwards. The fluxes will then be included in the output as normal scalars or vectors, but with values
+confied to the upper surface.
+
 \subsubsection{GLS subgridscale parameterisation}\label{Sect:BCs:special:gls}
 \index{generic length scale model!boundary conditions}
 

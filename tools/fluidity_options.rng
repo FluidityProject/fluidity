@@ -11471,6 +11471,91 @@ and in/out boundary conditions</a:documentation>
           </element>
         </element>
       </optional>
+      <optional>
+        <element name="output_fluxes_diagnostics">
+          <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes</a:documentation>
+          <optional>
+            <element name="vector_field">
+              <attribute name="rank">
+                <value>1</value>
+              </attribute>
+              <attribute name="name">
+                <value>MomentumFlux</value>
+              </attribute>
+              <choice>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+                <element name="aliased">
+                  <ref name="generic_aliased_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>HeatFlux</value>
+              </attribute>
+              <choice>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+                <element name="aliased">
+                  <ref name="generic_aliased_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>SalinityFlux</value>
+              </attribute>
+              <choice>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+                <element name="aliased">
+                  <ref name="generic_aliased_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>PhotosyntheticRadiationDownward</value>
+              </attribute>
+              <choice>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+                <element name="aliased">
+                  <ref name="generic_aliased_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="biology">

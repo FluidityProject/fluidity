@@ -1,9 +1,9 @@
 // Gmsh project created on Thu Mar  6 16:27:33 2008
 Point(1) = {0,0,0};
-Extrude {100.0,0,0} {
+Extrude {10000.0,0,0} {
   Point{1}; Layers{3};
 }
-Extrude {0,100.0,0.0} {
+Extrude {0,10000.0,0.0} {
   Line{1}; Layers{3}; 
 }
 Extrude {0.0,0.0,-100.0} {

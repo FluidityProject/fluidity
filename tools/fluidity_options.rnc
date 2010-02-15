@@ -9021,6 +9021,65 @@ forcing =
             element input_file {
                 attribute file_name {xsd:string} 
             }
+        }?,
+        ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+        element output_fluxes_diagnostics {
+            element vector_field {
+                attribute rank { "1" },
+                attribute name { "MomentumFlux" },
+                (
+                    element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                    }|
+                    element aliased {
+                        generic_aliased_field
+                    }
+                )
+            }?, 
+            element scalar_field {
+                attribute rank { "0" },
+                attribute name { "HeatFlux" },
+                (
+                    element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                    }|
+                    element aliased {
+                        generic_aliased_field
+                    }
+                )
+            }?,            
+            element scalar_field {
+                attribute rank { "0" },
+                attribute name { "SalinityFlux" },
+                (
+                    element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                    }|
+                    element aliased {
+                        generic_aliased_field
+                    }
+                )
+            }?,
+            element scalar_field {
+                attribute rank { "0" },
+                attribute name { "PhotosyntheticRadiationDownward" },
+                (
+                    element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                    }|
+                    element aliased {
+                        generic_aliased_field
+                    }
+                )
+            }?
         }?
     }
   )
