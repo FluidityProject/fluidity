@@ -1313,17 +1313,17 @@ contains
     type(scalar_field) :: salinity_flux, heat_flux, solar_flux
     type(vector_field) :: stress_flux
     ! the current state to be put on the ocean_mesh - input to the fluxes call
-    type(scalar_field) :: temperature
+    type(scalar_field) :: temperature, salinity
     type(vector_field) :: velocity, position
     ! these are pointers to the fields in the state
-    type(scalar_field), pointer :: p_temperature
+    type(scalar_field), pointer :: p_temperature, p_salinity
     type(vector_field), pointer :: p_velocity, p_position
 
     ! some temporary storage arrays
     ! some of this need hiding inside get_fluxes
-    real, dimension(3) :: temp_vector_3D
+    real, dimension(3) :: temp_vector_3D, transformation
     real, dimension(2) :: temp_vector_2D
-    real, dimension(:), allocatable :: temp, X, Y, Z, Vx, Vy, Vz
+    real, dimension(:), allocatable :: temp, sal, X, Y, Z, Vx, Vy, Vz
     real, dimension(:), allocatable :: F_as, Q_as, Q_s, Tau_u, Tau_v
     real, dimension(:), allocatable :: d1, d2, d3, d4, d5
     integer :: NNodes, i
@@ -1335,7 +1335,10 @@ contains
     type(vector_field), pointer :: vector_surface
     character(len=FIELD_NAME_LEN) input_mesh_name
     type(scalar_field), pointer :: distanceToTop
-    logical*1 :: on_sphere
+    logical*1 :: on_sphere  ! needs to be handed over to C, which has 1 bit booleans
+    real, dimension(:), allocatable:: lat_long
+    integer shape_option(2)
+    integer stat
 
     distanceToTop => extract_scalar_field(state, "DistanceToTop")
     call get_option('/ocean_forcing/mesh_choice/mesh/name', input_mesh_name)
@@ -1346,6 +1349,7 @@ contains
 
     ! temp arrays for fluxes
     allocate(temp(NNodes))
+    allocate(sal(NNodes))
     allocate(X(NNodes))
     allocate(Y(NNodes))
     allocate(Z(NNodes))
@@ -1382,13 +1386,14 @@ contains
     call allocate(temperature, ocean_mesh, name="temperature")
     call allocate(velocity, 3, ocean_mesh, name="velocity")
     call allocate(position, 3, ocean_mesh, name="position")
-
+    call allocate(salinity, ocean_mesh, name="salinity")
 
     ! grab current state, this needs doing regardless of which BCs
     ! are applied
     p_temperature => extract_scalar_field(state, "Temperature")
     p_velocity => extract_vector_field(state, "Velocity")
     p_position => extract_vector_field(state, "Coordinate")
+
     
     ! remap modelled params onto the appropriate field in ocean_mesh
     call remap_field_to_surface(p_temperature, temperature, &
@@ -1398,15 +1403,31 @@ contains
     call remap_field_to_surface(p_position, position, &
                                 surface_element_list)
 
+    ! check if we are transforming the coordinates to a specified lat/long
+    if (have_option('/ocean_forcing/position')) then
+        shape_option=option_shape('/ocean_forcing/position')
+        if (shape_option(1) .ne. 2) then
+            FLExit("Only specify a latitude and longitude under /ocean_forcing/positions, i.e. two numbers expected.")
+        end if
+        allocate(lat_long(1:shape_option(1)))
+        call get_option('/ocean_forcing/position', lat_long)
+        transformation(1) = lat_long(2) ! Longtitude
+        transformation(2) = lat_long(1) ! latitude
+        transformation(3) = 0.0
+        call projections_spherical_cartesian(1, transformation(1), transformation(2), transformation(3))
+    else
+        transformation = 0.0
+    end if
+
     ! we now have the modelled parameters, temperature, etc on the same
     ! mesh as the surface - we can now grab these, so...
     ! loop over surface mesh points, grabbing field values at each and
     ! shoving them unceremoniously into my temporary arrays
     do i=1,NNodes
       temp_vector_3D = node_val(position,i)
-      X(i) = temp_vector_3D(1) 
-      Y(i) = temp_vector_3D(2)
-      Z(i) = temp_vector_3D(3)
+      X(i) = temp_vector_3D(1)+transformation(1) 
+      Y(i) = temp_vector_3D(2)+transformation(2)
+      Z(i) = temp_vector_3D(3)+transformation(3)
       temp(i) = node_val(temperature,i)
       temp_vector_3D = node_val(velocity,i)
       Vx(i) = temp_vector_3D(1) 
@@ -1414,11 +1435,38 @@ contains
       Vz(i) = temp_vector_3D(3)
     end do
 
-    
+    ! finally, check if the single position option is on, if so, make all
+    ! positions the same
+    if (have_option('/ocean_forcing/position/single_location')) then
+        do i=1, NNodes
+            X(i) = transformation(1) 
+            Y(i) = transformation(2)
+            Z(i) = transformation(3)
+        end do
+    end if
+
+    if (have_option('/ocean_forcing/salinity_flux')) then
+        ! we only need to worry about salinity if the flux is on
+        p_salinity => extract_scalar_field(state, "Salinity", stat)
+        if (stat /= 0) then
+            FLExit("If you switch on a salinity flux, you'd better have a Salinity field...")
+        end if
+        call remap_field_to_surface(p_salinity, salinity, &
+                                surface_element_list)
+        do i=1,NNodes
+            sal(i) = node_val(salinity,i)
+        end do
+    else
+        ! use a decent estimate for the surface salinity
+        do i=1,NNodes
+            sal(i) = 35.0
+        end do
+    end if
+
     call get_option("/timestepping/current_time", current_time)
     on_sphere=have_option('/geometry/spherical_earth')
 
-    call get_era40_fluxes(current_time, X, Y, Z, temp, Vx, Vy, Vz, &
+    call get_era40_fluxes(current_time, X, Y, Z, temp, Vx, Vy, Vz, sal, &
                           F_as, Q_as, Tau_u, Tau_v, Q_s, &
                           NNodes,on_sphere,d1,d2,d3,d4,d5)
 
@@ -1470,10 +1518,12 @@ contains
     end if
     
     call deallocate(temperature)
+    call deallocate(salinity)
     call deallocate(velocity)
     call deallocate(position) 
     call deallocate(ocean_mesh)
     deallocate(temp)
+    deallocate(sal)
     deallocate(X)
     deallocate(Y)
     deallocate(Z)

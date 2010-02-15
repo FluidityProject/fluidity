@@ -1181,8 +1181,16 @@ duration of the simulated time:
 \end{itemize}
 
 These variables are surface variables on data defined on the ERA40 website. Note that some parameters are accumulated values
-and as such are automatically divided by the ERA40 temporal resolution. These parameters are used as input to the 
-bulk forcing formulae of \citet{large2004} included in \fluidity.
+and as such are required to be divided by the ERA40 temporal resolution - \fluidity assumes 6 hour temporal resolution. 
+These parameters are used as input to the bulk forcing formulae of \citet{large2004} included in \fluidity.
+
+Other options under ocean surface forcing include specifying a latitude and longitude, and using a single position for the
+forcing data. These options are only really useful when simulating pseudo-1D columns (see the gls-StationPapa test for an example
+of a pseudo-1D column). Enabling the \option{position} option allows the user to specify a latitude and longitude as
+a two real numbers (e.g. 50.0 -145.0 for 50$^\circ$ N and 145$^\circ$ W). These co-ordinates are translated into cartesian
+co-ordinates, which are then added to the positions of the surface of the mesh. This allows the use of simple mesh geometries
+and co-ordinates, whilst still specifying where the forcing data should originate. Moreover, the \option{single\_location}
+option forces \emph{all} surface nodes to receive the same forcing.
 
 \subsubsection{GLS subgridscale parameterisation}\label{Sect:BCs:special:gls}
 \index{generic length scale model!boundary conditions}

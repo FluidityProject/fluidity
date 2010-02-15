@@ -4727,6 +4727,7 @@ velocity_boundary_conditions =
             )
          }|
 
+
          ## Apply wind forcing specified by stress or wind velocity.
          ## Replaces windy.dat and windy.py
          element type {
@@ -8998,6 +8999,20 @@ forcing =
         }?,
         element solar_radiation {
             empty
+        }?,
+        ## Adding a latitude and longitude here (specified as two real numbers)
+        ## will obtain data from the forcing file at that location. The
+        ## mesh is not translated nor is the mesh put on the sphere, instead the
+        ## specified lat/long is translated into cartesian coordinates and this is simply
+        ## added to the surface mesh node coordinates when fluxes are calculated.
+        element position {
+            real_vector,
+            ## Turning on this option will cause all nodes on the surface mesh to
+            ## experience the same forcing, regardless of position. Only really
+            ## useful for psuedo-1D simulations.
+            element single_location {
+                empty
+            }?
         }?,
         ## Check this option to use an external data set for the t(0)
         ## and in/out boundary conditions

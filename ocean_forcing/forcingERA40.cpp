@@ -30,10 +30,7 @@
 
 using namespace std;
 
-//FluxesReader FluxesReader_global;
-
 extern int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord);
-
 
 extern "C" {
 #define ncar_ocean_fluxes_fc F77_FUNC(ncar_ocean_fluxes, NCAR_OCEAN_FLUXES)
@@ -46,16 +43,17 @@ extern "C" {
   extern void rotate_wind_fc(double *longitude, double *latitude, const double *r3u, const double *r3v, const double *r3w,
                             double *u, double *v);
 
+
 #define get_era40_fluxes_fc F77_FUNC(get_era40_fluxes, GET_ERA40_FLUXES)
     void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
-                     double *T, const double *Vx, const double *Vy, const double *Vz,
+                     double *T, const double *Vx, const double *Vy, const double *Vz, double *Sal,
                      double *F_as, double *Q_as, double *tau_u, double *tau_v, double *Q_solar,
                      const int *NNodes, bool rotate, double *q_l = NULL, double *q_h = NULL, double *e = NULL,
                      double *q_e = NULL, double *q_p = NULL);
 }
 
 void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
-                     double *T, const double *Vx, const double *Vy, const double *Vz,
+                     double *T, const double *Vx, const double *Vy, const double *Vz, double *Sal,
                      double *F_as, double *Q_as, double *tau_u, double *tau_v, double *Q_solar,
                      const int *n, bool rotate, double *q_l, double *q_h, double *e, double *q_e, double *q_p ){
 
@@ -70,8 +68,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
                q2 = -5107.4,
                ocean_density = 1027.0,
                ocean_heat_capacity = 4000.0,
-               ref_salinity = 35.0,
-               accumulated_correction = 6.0*60.0*60.0;
+               accumulated_correction = 6.0*60.0*60.0; // Assumes data every 6 hours.
 
     // problem constants
     const int nFields = 9;
@@ -236,7 +233,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
 
         Q_solar[i] = (solar[i]);
         Q_as[i] = heat_convert * (Q_s + Q_l + Q_e + Q_h + Q_p);
-        F_as[i] = -1.0 * ref_salinity * F;
+        F_as[i] = -1.0 * Sal[i] * F;
        
         
         // optional output

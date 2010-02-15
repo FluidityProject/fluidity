@@ -59,6 +59,17 @@ using namespace std;
 int stereographic2spherical(double x, double y, double& longitude, double& latitude);
 void tests();
 
+// fortran wrappers - we do *not* want to start messing with fortran chars to C++ strings, so wrap some of the functions
+// up
+extern "C" {
+#define projections_spherical_cartesian_fc F77_FUNC(projections_spherical_cartesian, PROJECTIONS_SPHERICAL_CARTESIAN)
+    int projections_spherical_cartesian_fc(int *nPoints, double *x, double *y, double *z);    
+
+#define projections_cartesian_spherical_fc F77_FUNC(projections_cartesian_spherical, PROJECTIONS_CARTESIAN_SPHERICAL)
+    int projections_cartesian_spherical_fc(int *nPoints, double *x, double *y, double *z);
+
+}
+
 enum ExitCodes{
   SUCCESS = 0,
   BAD_ARGUMENTS = -1,
@@ -157,7 +168,6 @@ int stereographic2spherical(double x, double y, double& longitude, double& latit
   return 0;
 }
 
-
 int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord){
 
        
@@ -199,6 +209,20 @@ int projections(int nPoints, double *x, double *y, double *z, string current_coo
 
     return 0;
 }
+
+/*
+ * Fortran wrappers
+ */
+int projections_spherical_cartesian_fc(int *nPoints, double *x, double *y, double *z) {
+    projections(*nPoints,x,y,z,"spherical","cart");
+    return 0;
+}
+
+int projections_cartesian_spherical_fc(int *nPoints, double *x, double *y, double *z) {
+    projections(*nPoints,x,y,z,"cart","sperical");
+    return 0;
+}
+
 
 #ifdef PROJECTIONS_UNIT_TEST
 #include <vtk.h>

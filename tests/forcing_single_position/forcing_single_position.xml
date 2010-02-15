@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+    <name>forcing</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l forcing_single_position.flml</command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="FinalTime" language="python">
+import fluidity_tools
+FinalTime = fluidity_tools.stat_parser("forcing_single_position.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureMin" language="python">
+import fluidity_tools
+FinalTemperatureMin = fluidity_tools.stat_parser("forcing_single_position.stat")['Fluid']['Temperature']['min'][-1]
+    </variable>
+    <variable name="FinalSalinityMax" language="python">
+import fluidity_tools
+FinalSalinityMax = fluidity_tools.stat_parser("forcing_single_position.stat")['Fluid']['Salinity']['max'][-1]
+    </variable>
+    <variable name="FinalVelocityMagnitudeMax" language="python">
+import fluidity_tools
+FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing_single_position.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+    </variable>
+  <variable name="FirstVelocityMagnitudeMax" language="python">
+import fluidity_tools
+FirstVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing_single_position.stat")['Fluid']['Velocity%magnitude']['max'][0]
+    </variable>
+  
+  </variables>    
+
+  <pass_tests> 
+    <test name="Final time is 1440 seconds" language="python">
+assert FinalTime ==1440 
+    </test>
+    <test name="Final min temperature has decreased" language="python">
+assert(FinalTemperatureMin &lt; 20)
+    </test>
+    <test name="Final velocity%magnitude max has increased" language="python">
+assert((FinalVelocityMagnitudeMax - FirstVelocityMagnitudeMax) &gt; 0.001)
+    </test>
+    <test name="Final Salinity max greater than 34" language="python">
+assert FinalSalinityMax &gt; 34.0
+    </test>
+
+  </pass_tests>
+</testproblem>
