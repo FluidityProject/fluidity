@@ -5,6 +5,7 @@
   <include href="diagnostic_algorithms.rng"/>
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
+  <include href="reduced_model.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -2518,6 +2519,9 @@ it will use a constant emissions factor</a:documentation>
       </optional>
       <optional>
         <ref name="forcing"/>
+      </optional>
+      <optional>
+        <ref name="reduced_model"/>
       </optional>
       <optional>
         <element name="porous_media">

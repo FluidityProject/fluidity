@@ -4,6 +4,7 @@ include "adaptivity_options.rnc"
 include "diagnostic_algorithms.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
+include "reduced_model.rnc"
 
 start =
    (
@@ -1748,7 +1749,7 @@ start =
          }?,
          biology?,
          forcing?,
-
+         reduced_model?,
          ## Porous Media
          element porous_media {
             ## Specify scalar field Porosity

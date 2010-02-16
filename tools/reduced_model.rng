@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <define name="reduced_model">
+    <element name="reduced_model">
+      <element name="pod_basis_formation">
+        <element name="dump_sampling_period">
+          <a:documentation>How frequently should the dumps be sampled to form the POD basis? 
+
+E.g. 1 for every dump, 10 for every tenth dump. </a:documentation>
+          <ref name="integer"/>
+        </element>
+      </element>
+    </element>
+  </define>
+</grammar>

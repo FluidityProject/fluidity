@@ -157,6 +157,15 @@ bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@echo "    LD shallow_water"
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
+bin/Form_Pod_Basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
+	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
+	@echo "BUILD Form_Pod_Basis"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD Form_Pod_Basis"
+	@$(EVAL) $(LINKER) -o bin/Form_Pod_Basis reduced_modelling/Form_Pod_Basis_Main.o $(LIBS)
+
+
 static: fluidity_library
 
 shared: lib/shared/$(SLIB_FLUIDITY).1

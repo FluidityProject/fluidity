@@ -123,7 +123,7 @@ $(VTU2TRIANGLE): vtu2triangle.o vtu2triangle_main.o lib/
 
 $(PROJECT_TO_CONTINUOUS): project_to_continuous.o project_to_continuous_main.o
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-	
+
 $(PROJECT_TO_CONTINUOUS_PARALLEL): project_to_continuous_parallel.o project_to_continuous_parallel_main.o
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
@@ -247,10 +247,10 @@ evmerge.o: evmerge.F90
 
 $(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-	
+
 $(DERIVE_MESH): Derive_Mesh.o Derive_Mesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-	
+
 $(PROJECT_VTU): Project_Vtu.o Project_Vtu_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
