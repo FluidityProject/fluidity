@@ -36,7 +36,25 @@ module sparse_tools
   use halos_allocates
   use memory_diagnostics
   use ieee_arithmetic
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
+  
   implicit none
+  
+#ifdef HAVE_PETSC
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petsckspdef.h"
+#else
+#include "finclude/petsc.h"
+#include "finclude/petscksp.h"
+#include "finclude/petscsys.h"
+#endif
+#else
+#define KSP integer
+#define PETSC_NULL_OBJECT 0
+#endif
+
 
   private
   
@@ -106,6 +124,10 @@ module sparse_tools
      !! As %inactive is directly allocated from the start the %inactive%ptr pointer and its
      !! association status are always the same for all references of the matrix.
      type(logical_array_ptr), pointer:: inactive
+     !! PETSc Krylov Subspace context, to cache solver setup
+     !! ( should always be allocated, to avoid different reference having
+     !!   of the same matrix having different KSPs )
+     KSP, pointer :: ksp => null()
      !! Reference counting
      type(refcount_type), pointer :: refcount => null()
      !! Name
@@ -150,6 +172,10 @@ module sparse_tools
      logical :: diagonal=.false.
      !! Whether all diagonal blocks point to the same bit of memory
      logical :: equal_diagonal_blocks=.false.
+     !! PETSc Krylov Subspace context, to cache solver setup
+     !! ( should always be allocated, to avoid different reference having
+     !!   of the same matrix having different KSPs )
+     KSP, pointer :: ksp => null()
   end type block_csr_matrix
 
   type block_csr_matrix_pointer
@@ -1369,6 +1395,9 @@ END SUBROUTINE POSINM_COLOUR
     ! all references of the matrix:
     allocate(matrix%inactive)
     nullify(matrix%inactive%ptr)
+    ! same story for ksp
+    allocate(matrix%ksp)
+    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
 
     select case (ltype)
     case (CSR_REAL)
@@ -1497,6 +1526,24 @@ END SUBROUTINE POSINM_COLOUR
       if (lstat/=0) goto 42      
     end if
     
+    if (.not. associated(matrix%ksp)) then
+      FLAbort("Deallocating non-allocated or damaged csr matrix")
+    end if
+#ifdef HAVE_PETSC
+    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+      call KSPDestroy(matrix%ksp, lstat)
+      if (lstat/=0) then
+        if (present(stat)) then
+          ewrite(0,*) "Error from KSPDestroy in deallocate_csr_matrix"
+          stat=lstat
+          return
+        end if
+        FLAbort("Error from KSPDestroy in deallocate_csr_matrix")
+      end if
+    end if
+#endif
+    deallocate(matrix%ksp)
+    
 42  if (present(stat)) then
        stat=lstat
     else
@@ -1504,6 +1551,7 @@ END SUBROUTINE POSINM_COLOUR
           FLAbort("Failed to deallocate matrix")
        end if
     end if
+    
 
   end subroutine deallocate_csr_matrix
 
@@ -1610,6 +1658,11 @@ END SUBROUTINE POSINM_COLOUR
       matrix%external_val=.false.
         
     end if
+    
+    ! always allocate to make sure all references see the same %ksp
+    allocate(matrix%ksp)
+    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+
 
 42  if (present(stat)) then
        stat=lstat
@@ -1680,6 +1733,24 @@ END SUBROUTINE POSINM_COLOUR
       deallocate(matrix%val, stat=lstat)
       if (lstat/=0) goto 42
     end if
+    
+    if (.not. associated(matrix%ksp)) then
+      FLAbort("Deallocating non-allocated or damaged csr matrix")
+    end if
+#ifdef HAVE_PETSC
+    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+      call KSPDestroy(matrix%ksp, lstat)
+      if (lstat/=0) then
+        if (present(stat)) then
+          ewrite(0,*) "Error from KSPDestroy in deallocate_csr_matrix"
+          stat=lstat
+          return
+        end if
+        FLAbort("Error from KSPDestroy in deallocate_csr_matrix")
+      end if
+    end if
+#endif
+    deallocate(matrix%ksp)
     
     if (associated(matrix%ival)) then
       if (.not. (matrix%clone .and. matrix%external_val)) then
@@ -1907,6 +1978,10 @@ END SUBROUTINE POSINM_COLOUR
     ! "Borrowed" matrices cannot have inactive nodes
     nullify(block_out%inactive)
     
+    ! always allocate to make sure all references see the same %ksp
+    allocate(block_out%ksp)
+    block_out%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    
   end function csr_block
 
   function dcsr_block(matrix, block_i, block_j) result (block_out)
@@ -1960,6 +2035,10 @@ END SUBROUTINE POSINM_COLOUR
        FLAbort("Either val or ival must be provided to wrap_matrix")
     end if
 
+    ! always allocate to make sure all references see the same %ksp
+    allocate(matrix%ksp)
+    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    
     ! Wrapped matrices can have inactive nodes
     allocate( matrix%inactive, stat=lstat )
     nullify( matrix%inactive%ptr )
@@ -2042,6 +2121,10 @@ END SUBROUTINE POSINM_COLOUR
        matrix%external_val=.true.
     end if
 
+    ! always allocate to make sure all references see the same %ksp
+    allocate(matrix%ksp)
+    matrix%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    
     if (present(stat)) then
        stat=lstat
     else
