@@ -69,8 +69,7 @@ module populate_state_module
 
   interface allocate_field_as_constant
     
-    module procedure allocate_field_as_constant_path, &
-          allocate_field_as_constant_scalar, allocate_field_as_constant_vector, &
+    module procedure allocate_field_as_constant_scalar, allocate_field_as_constant_vector, &
           allocate_field_as_constant_tensor
 
   end interface allocate_field_as_constant
@@ -1233,7 +1232,7 @@ contains
 
   end subroutine alias_diffusivity
 
-  function allocate_field_as_constant_path(option_path) result(is_constant)
+  function allocate_scalar_field_as_constant(option_path) result(is_constant)
     !!< Return whether the supplied option path signals a constant
     !!< field
 
@@ -1246,7 +1245,40 @@ contains
        is_constant = have_option(trim(option_path) // "/prescribed/value[0]/constant")
     end if
 
-  end function allocate_field_as_constant_path
+  end function allocate_scalar_field_as_constant
+  
+  function allocate_vector_field_as_constant(option_path) result(is_constant)
+    !!< Return whether the supplied option path signals a constant
+    !!< field
+
+    character(len = *), intent(in) :: option_path
+
+    logical :: is_constant
+
+    is_constant = .false.
+    if(option_count(trim(option_path) // "/prescribed/value") == 1) then
+       is_constant = have_option(trim(option_path) // "/prescribed/value[0]/constant")
+    end if
+
+  end function allocate_vector_field_as_constant
+  
+  function allocate_tensor_field_as_constant(option_path) result(is_constant)
+    !!< Return whether the supplied option path signals a constant
+    !!< field
+
+    character(len = *), intent(in) :: option_path
+
+    logical :: is_constant
+
+    if(option_count(trim(option_path) // "/prescribed/value") == 1) then
+      is_constant = have_option(trim(option_path) // "/prescribed/value/isotropic/constant") .or. &
+        & have_option(trim(option_path) // "/prescribed/value/anisotropic_symmetric/constant") .or. &
+        & have_option(trim(option_path) // "/prescribed/value/anisotropic_asymmetric/constant")
+    else
+      is_constant = .false.
+    end if
+
+  end function allocate_tensor_field_as_constant
 
   function allocate_field_as_constant_scalar(s_field) result(is_constant)
     !!< Return whether the options tree defines the supplied scalar field to
@@ -1256,7 +1288,7 @@ contains
 
     logical :: is_constant
 
-    is_constant = allocate_field_as_constant(s_field%option_path)
+    is_constant = allocate_scalar_field_as_constant(s_field%option_path)
 
   end function allocate_field_as_constant_scalar
 
@@ -1268,7 +1300,7 @@ contains
 
     logical :: is_constant
 
-    is_constant = allocate_field_as_constant(v_field%option_path)
+    is_constant = allocate_vector_field_as_constant(v_field%option_path)
 
   end function allocate_field_as_constant_vector
 
@@ -1285,7 +1317,7 @@ contains
     else if(trim(t_field%name) == "MaxMetricEigenbound") then
       is_constant = have_option("/mesh_adaptivity/hr_adaptivity/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant")
     else
-      is_constant = .false.
+      is_constant = allocate_tensor_field_as_constant(t_field%option_path)
     end if
 
   end function allocate_field_as_constant_tensor
@@ -1342,7 +1374,7 @@ contains
     is_prescribed=have_option(trim(path)//"/prescribed")
     is_diagnostic=have_option(trim(path)//"/diagnostic")
 
-    is_constant=allocate_field_as_constant(path)
+    is_constant=allocate_tensor_field_as_constant(path)
 
     ewrite(1,*) "Is field prognostic? ", is_prognostic
     ewrite(1,*) "Is field prescribed? ", is_prescribed
@@ -1472,7 +1504,7 @@ contains
     is_prescribed=have_option(trim(path)//"/prescribed")
     is_diagnostic=have_option(trim(path)//"/diagnostic")
 
-    is_constant=allocate_field_as_constant(path)
+    is_constant=allocate_vector_field_as_constant(path)
 
     ewrite(1,*) "Is field prognostic? ", is_prognostic
     ewrite(1,*) "Is field prescribed? ", is_prescribed
@@ -1562,7 +1594,7 @@ contains
     character(len=*), intent(in), optional :: parent_name
     logical, intent(in), optional :: dont_allocate_prognostic_value_spaces
 
-    logical :: is_prescribed, is_diagnostic, is_constant
+    logical :: backward_compatibility, is_prescribed, is_diagnostic, is_constant
     ! paths for options and child fields
     character(len=OPTION_PATH_LEN) :: path, adapt_path
     character(len=OPTION_PATH_LEN) :: field_name, mesh_name
@@ -1580,10 +1612,18 @@ contains
     end if
     ewrite(1,*) "In allocate_and_insert_tensor_field, field is: ", trim(field_name)
 
+    ! Do we need backward compatibility?
+    ! If we need backward compatibility, then no matter how the field
+    ! is described in XML, a value space will be allocated, for old-style
+    ! code to use.
+    ! If we do not need backward compatibility, we can make big savings
+    ! on constant fields.
+    backward_compatibility = parent_name == "ElectricalPotential"
+
     ! Find out what kind of field we have
     is_prescribed=have_option(trim(path)//"/prescribed")
     is_diagnostic=have_option(trim(path)//"/diagnostic")
-    is_constant=allocate_field_as_constant(path)
+    is_constant=allocate_tensor_field_as_constant(path)
 
     ewrite(1,*) "Is field prescribed? ", is_prescribed
     ewrite(1,*) "Is field diagnostic? ", is_diagnostic
@@ -1615,7 +1655,7 @@ contains
        call allocate(field, mesh, name=trim(field_name), &
           field_type=FIELD_TYPE_DEFERRED)
        
-    else if(is_constant) then
+    else if(is_constant .and. .not. backward_compatibility) then
          
        ! Allocate as constant field if possible (and we don't need backward compatibility)
        call allocate(field, mesh, name=trim(field_name), &

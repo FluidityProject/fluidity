@@ -25,6 +25,8 @@ class vtu:
       self.gridreader.SetFileName(filename)
       self.gridreader.Update()
       self.ugrid=self.gridreader.GetOutput()
+      if self.ugrid.GetNumberOfPoints() + self.ugrid.GetNumberOfCells() == 0:
+        raise Exception("ERROR: No points or cells found after loading vtu " + filename)
     self.filename=filename
 
   def GetScalarField(self, name):
