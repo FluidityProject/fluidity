@@ -283,7 +283,7 @@ contains
 
       if(isparallel()) then
         ! Update the fields to be interpolated, just in case
-        call halo_update(interpolate_states, level = 1)
+        call halo_update(interpolate_states)
       end if 
       
       ! Before we start allocating any new objects we tag all references to
@@ -313,6 +313,10 @@ contains
       call allocate_and_insert_fields(states)
       ! Insert fields from reserve states
       call restore_reserved_fields(states)
+      ! Add on the boundary conditions again
+      call populate_boundary_conditions(states)
+      ! Set their values
+      call set_boundary_conditions_values(states)
       
       if(i < max_adapt_iteration .or. isparallel()) then
         ! If there are remaining adapt iterations, or we will be calling
@@ -367,11 +371,6 @@ contains
         call set_prescribed_field_values(states, exclude_interpolated = .true.)
       end if
       
-      ! The following is the same as the tail of populate_state:
-      ! Add on the boundary conditions again
-      call populate_boundary_conditions(states)
-      ! Set their values
-      call set_boundary_conditions_values(states)
       ! If strong bc or weak that overwrite then enforce the bc on the fields
       call set_dirichlet_consistent(states)
       ! Insert aliased fields in state

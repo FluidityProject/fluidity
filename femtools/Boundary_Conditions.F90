@@ -135,7 +135,8 @@ implicit none
     get_dg_surface_mesh, has_boundary_condition, has_boundary_condition_name, &
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
-    set_dirichlet_consistent, apply_dirichlet_conditions
+    set_dirichlet_consistent, apply_dirichlet_conditions, &
+    derive_collapsed_bcs
 
 contains
 
@@ -2087,5 +2088,78 @@ contains
 
   end subroutine apply_dirichlet_conditions_vector_component_lumped
   
+  subroutine derive_collapsed_bcs(input_states, collapsed_states, bctype)
+    !!< For the collapsed state collapsed_states, containing the collapsed
+    !!< components of fields in input_states, copy across the component
+    !!< boundary conditions.
+  
+    type(state_type), dimension(:), intent(in) :: input_states
+    type(state_type), dimension(size(input_states)), intent(inout) :: collapsed_states
+    character(len = *), optional, intent(in) :: bctype
+  
+    character(len = FIELD_NAME_LEN) :: bcname, lbctype
+    character(len = OPTION_PATH_LEN) :: bcoption_path
+    integer :: i, j, k, l
+    integer, dimension(:), allocatable :: bccount
+    integer, dimension(:), pointer :: bcsurface_element_list
+    logical, dimension(:), allocatable :: bcapplies
+    type(mesh_type), pointer :: bcsurface_mesh
+    type(scalar_field) :: bcvalue_comp
+    type(scalar_field_pointer), dimension(:), allocatable :: v_field_comps
+    type(vector_field), pointer :: bcvalue, v_field
+  
+    ewrite(1, *) "In derive_collapsed_bcs"
+  
+    do i = 1, size(input_states)
+      v_field_loop: do j = 1, vector_field_count(input_states(i))
+        v_field => extract_vector_field(input_states(i), j)
+        if(trim(v_field%name) == "Coordinate") cycle
+        ewrite(2, *) "For vector field " // trim(v_field%name) // ", bc count = ", get_boundary_condition_count(v_field)
+        if(get_boundary_condition_count(v_field) == 0) cycle v_field_loop
+        allocate(v_field_comps(v_field%dim))
+        do k = 1, v_field%dim
+          v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), trim(input_states(i)%vector_names(j)) // "%" // int2str(k))
+          assert(get_boundary_condition_count(v_field_comps(k)%ptr) == 0)
+        end do
+        
+        allocate(bcapplies(v_field%dim))
+        allocate(bccount(v_field%dim))
+        bccount = 0
+        bc_loop: do k = 1, get_boundary_condition_count(v_field)
+     
+          call get_boundary_condition(v_field, k, name = bcname, type = lbctype, &
+            & surface_element_list = bcsurface_element_list, applies = bcapplies, &
+            & surface_mesh = bcsurface_mesh, option_path = bcoption_path)
+          if(present(bctype)) then
+            if(lbctype /= bctype) cycle bc_loop
+          end if
+          bcvalue => extract_surface_field(v_field, k, "value")
+          ewrite(2, *) "Collapsing vector bc " // trim(bcname) // " for field " // trim(v_field%name)
+          
+          bc_dim_loop: do l = 1, v_field%dim
+            ewrite_minmax(bcvalue%val(l)%ptr)
+            if(.not. bcapplies(l)) cycle bc_dim_loop
+            
+            call add_boundary_condition_surface_elements(v_field_comps(l)%ptr, bcname, bctype, &
+              & bcsurface_element_list, option_path = bcoption_path)
+              
+            call allocate(bcvalue_comp, bcsurface_mesh, name = "value")
+            call set(bcvalue_comp, extract_scalar_field(bcvalue, l))
+            bccount(l) = bccount(l) + 1
+            call insert_surface_field(v_field_comps(l)%ptr, bccount(l), bcvalue_comp)
+            call deallocate(bcvalue_comp)
+          end do bc_dim_loop
+        
+        end do bc_loop
+        deallocate(bcapplies)
+        deallocate(bccount)
+        
+        deallocate(v_field_comps)
+      end do v_field_loop
+    end do
+    
+    ewrite(1, *) "Exiting derive_collapsed_bcs"
+  
+  end subroutine derive_collapsed_bcs
   
 end module boundary_conditions

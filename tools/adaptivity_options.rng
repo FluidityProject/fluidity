@@ -1213,9 +1213,7 @@ The return value must be a string.</a:documentation>
             <a:documentation>Read the mesh from file, rather than extracting it from the
 system state.</a:documentation>
             <element name="format">
-              <a:documentation>Triangle mesh format. 
-Enter the base name without the .edge .ele, .face or
-.node extensions, and without process numbers. </a:documentation>
+              <a:documentation>Input mesh file format.</a:documentation>
               <value>triangle</value>
               <ref name="comment"/>
             </element>
@@ -1469,6 +1467,13 @@ the L2 norm of the residual</a:documentation>
     </optional>
     <optional>
       <ref name="supermesh_conservation"/>
+    </optional>
+    <optional>
+      <element name="honour_strong_boundary_conditions">
+        <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
+applied to this field.</a:documentation>
+        <empty/>
+      </element>
     </optional>
   </define>
   <define name="galerkin_projection_scalar">

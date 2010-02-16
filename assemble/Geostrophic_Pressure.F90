@@ -1791,9 +1791,8 @@ contains
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
     type(state_type), dimension(3) :: new_proj_state, old_proj_state
     type(vector_field) :: coriolis, coriolis_addto, new_res, old_res
-    type(vector_field), pointer :: lnew_velocity_ptr, new_positions, &
+    type(vector_field), pointer :: new_positions, &
       & old_positions
-    type(vector_field), target :: lnew_velocity
     
     logical :: proj_grad_p
     type(scalar_field) :: cmc_rhs
@@ -1828,16 +1827,7 @@ contains
     new_positions => extract_vector_field(new_state, "Coordinate")
     dim = old_positions%dim
     assert(any(dim == (/2, 3/)))
-        
-    ! At interpolation stage the input velocity won't have boundary conditions,
-    ! so let's add them to a copy
-    call allocate(lnew_velocity, dim, new_u_mesh, new_velocity%name)
-    lnew_velocity%option_path = new_velocity%option_path
-    lnew_velocity_ptr => lnew_velocity
-    call populate_vector_boundary_conditions(lnew_velocity_ptr, &
-      & trim(complete_field_path(lnew_velocity%option_path)) // "/boundary_conditions" , &
-      & new_positions)
-    
+            
     ! Step 1: Perform a Helmholz decomposition of the old Coriolis
     
     call allocate(coriolis, dim, old_u_mesh, "Coriolis")
@@ -2022,7 +2012,7 @@ contains
     call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
     res_p%option_path = new_p%option_path
     call zero(res_p)
-    call copy_bcs(lnew_velocity, new_res)
+    call copy_bcs(new_velocity, new_res)
     call projection_decomposition(new_state, new_res, res_p, matrices = matrices)
     call set(coriolis, new_res)
     call correct_velocity(coriolis, res_p, matrices)
@@ -2071,30 +2061,28 @@ contains
     
     ! Invert for the new Velocity
     
-    call velocity_from_coriolis(new_positions, coriolis, lnew_velocity)    
+    call velocity_from_coriolis(new_positions, coriolis, new_velocity)    
     if(dim == 3) then
       ! Recover the vertical velocity
-      ewrite_minmax(lnew_velocity%val(W_)%ptr)
-      call set(lnew_velocity, W_, new_w)
-      ewrite_minmax(lnew_velocity%val(W_)%ptr)
+      ewrite_minmax(new_velocity%val(W_)%ptr)
+      call set(new_velocity, W_, new_w)
+      ewrite_minmax(new_velocity%val(W_)%ptr)
       call deallocate(new_w)
     end if
     
-    call allocate(div, new_p_mesh, trim(lnew_velocity%name) // "Divergence")
+    call allocate(div, new_p_mesh, trim(new_velocity%name) // "Divergence")
     div%option_path = trim(new_p%option_path) // "/galerkin_projection/continuous"
     call zero(div)
-    call compute_divergence(lnew_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
+    call compute_divergence(new_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
     if(geopressure) then
       call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_gp, new_p, div/), vfields = (/lnew_velocity, coriolis, new_res/))
+        & sfields = (/new_gp, new_p, div/), vfields = (/new_velocity, coriolis, new_res/))
     else
       call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p, div/), vfields = (/lnew_velocity, coriolis, new_res/))
+        & sfields = (/new_p, div/), vfields = (/new_velocity, coriolis, new_res/))
     end if    
     call deallocate(div)
     
-    call set(new_velocity, lnew_velocity)
-    call deallocate(lnew_velocity)
     if(aux_p) then
       call deallocate(lold_aux_p)
       call set(new_aux_p, lnew_aux_p)

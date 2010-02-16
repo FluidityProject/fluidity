@@ -910,6 +910,7 @@ module conservative_interpolation_module
 
     call collapse_fields_in_state(old_states, old_fields_state)
     call collapse_fields_in_state(new_states, new_fields_state)
+    call derive_collapsed_bcs(new_states, new_fields_state, bctype = "dirichlet")
 
     old_position => extract_vector_field(old_states(1), "Coordinate")
     new_position => extract_vector_field(new_states(1), "Coordinate")

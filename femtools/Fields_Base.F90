@@ -2621,6 +2621,8 @@ contains
     sfield%py_dim = mesh_dim(vfield%mesh)
     sfield%py_positions_shape => vfield%mesh%shape
 
+    allocate(sfield%bc)
+    
     sfield%refcount => vfield%refcount
 
   end function extract_scalar_field_from_vector_field

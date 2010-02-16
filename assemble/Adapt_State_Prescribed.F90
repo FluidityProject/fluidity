@@ -181,7 +181,6 @@ contains
         allocate(lnew_positions_mesh%region_ids(ele_count(new_positions%mesh)))
         lnew_positions_mesh%region_ids = new_positions%mesh%region_ids
       end if
-      lnew_positions_mesh%name = old_positions%mesh%name
       lnew_positions_mesh%option_path = old_positions%mesh%option_path
     else
       lnew_positions_mesh = new_positions%mesh
@@ -189,8 +188,8 @@ contains
     end if
     
     ! It is required that the new mesh field have the same name as the old mesh
-    ! field and its mesh. If this is the case, or we copied the mesh above, copy
-    ! the new mesh field.
+    ! field. If this isn't the case, or we copied the mesh above, copy the new
+    ! mesh field.
     if(trim(new_positions%name) /= trim(old_positions%name) &
       & .or. copy_mesh) then
       call allocate(lnew_positions, new_positions%dim, lnew_positions_mesh, old_positions%name)
@@ -229,6 +228,10 @@ contains
     call allocate_and_insert_fields(states)
     ! Insert fields from reserve states
     call restore_reserved_fields(states)
+    ! Add on the boundary conditions again
+    call populate_boundary_conditions(states)
+    ! Set their values
+    call set_boundary_conditions_values(states)
     
     ! Interpolate fields
     call interpolate(interpolate_states, states)
@@ -242,12 +245,6 @@ contains
     ! Prescribed fields are recalculated (except those with interpolation 
     ! options)
     call set_prescribed_field_values(states, exclude_interpolated = .true.)
-    
-    ! The following is the same as the tail of populate_state:
-    ! Add on the boundary conditions again
-    call populate_boundary_conditions(states)
-    ! Set their values
-    call set_boundary_conditions_values(states)
     ! If strong bc or weak that overwrite then enforce the bc on the fields
     call set_dirichlet_consistent(states)
     ! Insert aliased fields in state
