@@ -219,6 +219,41 @@ coriolis_algorithm =
          )
       }
    )
+scalar_potential_algorithm =
+   (
+      ## Compute the scalar potential phi where:
+      ##   F = nabla phi + nabla x A + H
+      ## with a Neumann boundary condition of nabla phi dot n = F dot n on
+      ## all boundaries.
+      element algorithm {
+         attribute name { "scalar_potential" },
+         attribute material_phase_support { "single" },
+         source_field,
+         ## Solver reference node
+         element reference_node {
+            integer
+         }?,
+         ## Linear solver options.
+         element solver {
+           linear_solver_options_sym
+        }
+      }
+   )
+vector_potential_algorithm =
+   (
+      ## Computes the vector potential A where:
+      ##   F = nabla phi + nabla x A + H
+      ## with a strong Dirichlet boundary condition of zero on all boundaries.
+      element algorithm {
+         attribute name { "vector_potential" },
+         attribute material_phase_support { "single" },
+         source_field,
+         ## Linear solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
 bulk_viscosity_algorithm =
    (
        ## The average (or bulk) viscosity formed from the MaterialViscosity for
@@ -297,6 +332,7 @@ scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
+scalar_diagnostic_algorithms |= scalar_potential_algorithm
 scalar_diagnostic_algorithms |= grad_normal_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
@@ -308,6 +344,7 @@ vector_diagnostic_algorithms |= grad_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
+vector_diagnostic_algorithms |= vector_potential_algorithm
 
 tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm

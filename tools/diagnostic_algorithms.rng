@@ -281,6 +281,49 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
       </choice>
     </element>
   </define>
+  <define name="scalar_potential_algorithm">
+    <element name="algorithm">
+      <a:documentation>Compute the scalar potential phi where:
+  F = nabla phi + nabla x A + H
+with a Neumann boundary condition of nabla phi dot n = F dot n on
+all boundaries.</a:documentation>
+      <attribute name="name">
+        <value>scalar_potential</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+      <optional>
+        <element name="reference_node">
+          <a:documentation>Solver reference node</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
+  <define name="vector_potential_algorithm">
+    <element name="algorithm">
+      <a:documentation>Computes the vector potential A where:
+  F = nabla phi + nabla x A + H
+with a strong Dirichlet boundary condition of zero on all boundaries.</a:documentation>
+      <attribute name="name">
+        <value>vector_potential</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
   <define name="bulk_viscosity_algorithm">
     <element name="algorithm">
       <a:documentation>The average (or bulk) viscosity formed from the MaterialViscosity for
@@ -387,6 +430,9 @@ and 'tensor_fields';
     <ref name="scalar_laplacian_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_potential_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="grad_normal_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -415,6 +461,9 @@ and 'tensor_fields';
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_laplacian_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_potential_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms">
     <ref name="tensor_python_diagnostic_algorithm"/>

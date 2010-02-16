@@ -94,9 +94,10 @@ contains
     !! not supplied. Should only be supplied when recursing.
     type(state_type), dimension(size(states)), optional, intent(in) :: check_states
     !! Contains the fields which depend upon the current considered diagnostic
-    !! field
+    !! field. Should only be supplied when recursing.
     type(state_type), dimension(size(states)), target, optional, intent(inout) :: parent_states
-    !! Contains fields which have already been checked
+    !! Contains fields which have already been checked. Should only be supplied
+    !! when recursing.
     type(state_type), dimension(size(states)), optional, intent(inout) :: dep_states_mask
         
     integer :: i, j, k
@@ -140,7 +141,7 @@ contains
         end if    
         call insert(lparent_states(i), s_field, s_field%name)
         
-        ! ... get its dependencies ...
+        ! ... get and check its dependencies ...
         call get_dependencies(s_field, states, i, dep_states, parent_states = lparent_states, dep_states_mask = ldep_states_mask)
         ! ... and check the dependencies of the dependencies (recursion)
         call check_diagnostic_dependencies(states, check_states = dep_states, parent_states = lparent_states, dep_states_mask = ldep_states_mask)
@@ -185,7 +186,7 @@ contains
         end if    
         call insert(lparent_states(i), v_field, v_field%name)
         
-        ! ... get its dependencies ...
+        ! ... get and check its dependencies ...
         call get_dependencies(v_field, states, i, dep_states, parent_states = lparent_states, dep_states_mask = ldep_states_mask)
         ! ... and check the dependencies of the dependencies (recursion)
         call check_diagnostic_dependencies(states, check_states = dep_states, parent_states = lparent_states, dep_states_mask = ldep_states_mask)
@@ -230,7 +231,7 @@ contains
         end if    
         call insert(lparent_states(i), t_field, t_field%name)
         
-        ! ... get its dependencies ...
+        ! ... get and check its dependencies ...
         call get_dependencies(t_field, states, i, dep_states, parent_states = lparent_states, dep_states_mask = ldep_states_mask)
         ! ... and check the dependencies of the dependencies (recursion)
         call check_diagnostic_dependencies(states, check_states = dep_states, parent_states = lparent_states, dep_states_mask = ldep_states_mask)
@@ -622,8 +623,8 @@ contains
             end if
           end if
           if(present(dep_states_mask)) then
-            ! We've already found this dependency
             if(has_scalar_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
+              ! We've already found this dependency
               deallocate(split_dependency)
               cycle
             end if
@@ -644,8 +645,8 @@ contains
             end if
           end if
           if(present(dep_states_mask)) then
-            ! We've already found this dependency
             if(has_vector_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
+              ! We've already found this dependency
               deallocate(split_dependency)
               cycle
             end if
@@ -666,8 +667,8 @@ contains
             end if
           end if
           if(present(dep_states_mask)) then
-            ! We've already found this dependency
-            if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then     
+            if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then   
+              ! We've already found this dependency  
               deallocate(split_dependency)
               cycle
             end if
