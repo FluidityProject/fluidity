@@ -46,8 +46,6 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 OBJS = Fluids.o Usage.o mainfl.o 
 
-REDUCED_OBJS = Reduced_Fluids.o 
-
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
 .f90.o:
@@ -71,7 +69,6 @@ default: $(OBJS)
 %.o: %.mod
 
 Usage.o: ../include/Usage.h
-Reduced_Fluids.o: Fluids.o
 mainfl.o: Fluids.o 
 
 clean:
