@@ -742,6 +742,16 @@ contains
         ewrite(-1,*) "Missing option: ", trim(option_path)
         FLExit("With the free surface you need to subtract out the hydrostatic level.")
       end if
+      
+      option_path=trim(phase_path)//'/scalar_field::Pressure/prognostic/reference_node'
+      if (have_free_surface .and. have_option(option_path)) then
+        FLExit("With the free surface you shouldn't set a reference node for Pressure")
+      end if
+      
+      option_path=trim(phase_path)//'/scalar_field::Pressure/prognostic/solver/remove_null_space'
+      if (have_free_surface .and. have_option(option_path)) then
+        FLExit("With the free surface you shouldn't set remove the null space ")
+      end if
     end do
     
   end subroutine free_surface_module_check_options
