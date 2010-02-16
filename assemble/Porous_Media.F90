@@ -218,7 +218,7 @@ module porous_media
       s_permeability = extract_scalar_field(state(1), "Permeability", stat)
       do j=1,absorption%dim
         do k=1,node_count(absorption)
-          call set(absorption, j, k, s_viscosity%val(k)/s_permeability%val(k))
+          call set(absorption, j, k, node_val(s_viscosity, k)/node_val(s_permeability, k))
         end do
       end do
     elseif (have_option("/porous_media/vector_field::Permeability")) then
@@ -227,7 +227,7 @@ module porous_media
       do j=1,absorption%dim
         s_permeability = extract_scalar_field_from_vector_field(v_permeability, j)
         do k=1,node_count(absorption)
-          call set(absorption, j, k, s_viscosity%val(k)/s_permeability%val(k))
+          call set(absorption, j, k, node_val(s_viscosity, k)/node_val(s_permeability, k))
         end do
       end do
     elseif (have_option("/porous_media/tensor_field::Permeability")) then
