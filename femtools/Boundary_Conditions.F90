@@ -2119,7 +2119,11 @@ contains
         allocate(v_field_comps(v_field%dim))
         do k = 1, v_field%dim
           v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), trim(input_states(i)%vector_names(j)) // "%" // int2str(k))
-          assert(get_boundary_condition_count(v_field_comps(k)%ptr) == 0)
+         
+          assert(.not. associated(v_field_comps(k)%ptr%bc))
+          allocate(v_field_comps(k)%ptr%bc)  ! extract_scalar_field fields do
+                                             ! not get an allocate bc field,
+                                             ! but we need one here
         end do
         
         allocate(bcapplies(v_field%dim))
@@ -2137,7 +2141,7 @@ contains
           ewrite(2, *) "Collapsing vector bc " // trim(bcname) // " for field " // trim(v_field%name)
           
           bc_dim_loop: do l = 1, v_field%dim
-            ewrite_minmax(bcvalue%val(l)%ptr)
+            ewrite_minmax(bcvalue%val(l)%ptr)  
             if(.not. bcapplies(l)) cycle bc_dim_loop
             
             call add_boundary_condition_surface_elements(v_field_comps(l)%ptr, bcname, bctype, &

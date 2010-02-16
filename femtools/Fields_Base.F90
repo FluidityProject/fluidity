@@ -2620,8 +2620,6 @@ contains
     ! FIXME: make these the same as the vector field
     sfield%py_dim = mesh_dim(vfield%mesh)
     sfield%py_positions_shape => vfield%mesh%shape
-
-    allocate(sfield%bc)
     
     sfield%refcount => vfield%refcount
 
