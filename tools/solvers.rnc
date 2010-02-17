@@ -418,6 +418,17 @@ generic_solver_options =
             empty
          }
       ),
+      ## Retain the data created during the setup phase of the solve.
+      ## This may give some speedup, in particular in combination with
+      ## a multigrid preconditioner, as the data doesn't have to be
+      ## recreated every solve, but at the cost of increased memory usage.
+      ## This option is only useful for solves where the matrix doesn't
+      ## change between time steps, e.g. the pressure solve (only for 
+      ## incompressible flow and without mesh movement) or solving
+      ## balance pressure.
+      element cache_solver_context {
+         empty
+      }?,
       (
          ## Use Reverse Cuthill-McKee reordering to improve cache performance
          element reordering {

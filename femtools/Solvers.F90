@@ -1082,14 +1082,15 @@ type(scalar_field), optional, intent(in) :: exact
   
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
-  Mat pmat
+  Mat:: pmat
+  MatStructure:: matrix_structure
   ! one of the PETSc supplied orderings see
   ! http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
   MatOrderingType:: ordering_type
   logical:: use_reordering
   real time1, time2
   integer ierr
-  logical parallel, timing
+  logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
   integer i, j
 
@@ -1116,6 +1117,32 @@ type(scalar_field), optional, intent(in) :: exact
     ewrite(2,*) 'Note: startfromzero hard-coded to .true.'
     ewrite(2,*) 'Ignoring setting from solver option.'
     startfromzero=.true.
+  end if
+  
+  if (present(matrix)) then
+    ksp=matrix%ksp
+  else if (present(block_matrix)) then
+    ksp=block_matrix%ksp
+  else
+    ! shouldn't happen
+    ksp=PETSC_NULL_OBJECT
+  end if
+  
+  if (ksp/=PETSC_NULL_OBJECT) then
+    ! oh goody, we've been left something useful!
+    call KSPGetOperators(ksp, A, Pmat, matrix_structure, ierr)
+    have_cache=.true.
+    
+    if (have_option(trim(solver_option_path)// &
+      '/preconditioner::mg/vertical_lumping/internal_smoother')) then
+       ! this option is unsafe with caching, as it needs
+       ! DestroyMultigrid to be called on top of PCDestroy to destroy
+       ! all its associated objects
+       FLExit("Sorry, can't combine internal_smoother with cache_solver_context")
+    end if
+  else
+    ! no cache - we just have to do it all over again
+    have_cache=.false.
   end if
   
   ewrite(1, *) 'Assembling matrix.'
@@ -1159,8 +1186,10 @@ type(scalar_field), optional, intent(in) :: exact
         call reorder(petsc_numbering, matrix%sparsity, ordering_type)
      end if
      
-     ! create PETSc Mat using this numbering:
-     A=csr2petsc(matrix, petsc_numbering, petsc_numbering)
+     if (.not. have_cache) then
+       ! create PETSc Mat using this numbering:
+       A=csr2petsc(matrix, petsc_numbering, petsc_numbering)
+     end if
       
      halo=>matrix%sparsity%column_halo
             
@@ -1181,8 +1210,10 @@ type(scalar_field), optional, intent(in) :: exact
         call reorder(petsc_numbering, block_matrix%sparsity, ordering_type)
       end if
      
-      ! create PETSc Mat using this numbering:
-      A=block_csr2petsc(block_matrix, petsc_numbering, petsc_numbering)
+      if (.not. have_cache) then
+        ! create PETSc Mat using this numbering:
+        A=block_csr2petsc(block_matrix, petsc_numbering, petsc_numbering)
+      end if
       
       halo=>block_matrix%sparsity%column_halo
       
@@ -1202,20 +1233,51 @@ type(scalar_field), optional, intent(in) :: exact
     parallel=.false.
   end if
   
-  ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
-  if (present(preconditioner_matrix)) then
+  if (have_cache) then
+    ! write the cached solver options to log:
+    call ewrite_ksp_options(ksp)
+  else if (present(preconditioner_matrix)) then
+    ewrite(2,*)  'Using provided preconditioner matrix'
     pmat=csr2petsc(preconditioner_matrix, petsc_numbering)
+    
+    ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &
       startfromzero_in=startfromzero_in, &
       prolongator=prolongator,surface_node_list=surface_node_list, &
       matrix_csr=matrix,exact=exact, &
       internal_smoothing_option=internal_smoothing_option)
   else
+    ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call SetupKSP(ksp, A, A, solver_option_path, parallel, &
       startfromzero_in=startfromzero_in, &
       prolongator=prolongator,surface_node_list=surface_node_list, &
       matrix_csr=matrix,exact=exact, &
       internal_smoothing_option=internal_smoothing_option)
+  end if
+  
+  if (.not. have_cache .and. have_option(trim(solver_option_path)// &
+    &'/cache_solver_context')) then
+    
+    ! save the ksp solver context for future generations
+    if (present(matrix)) then
+      matrix%ksp = ksp
+    else if (present(block_matrix)) then
+      block_matrix%ksp = ksp
+    end if
+    
+    ! make sure we don't destroy it, the %ksp becomes a separate reference
+    call PetscObjectReference(ksp, ierr)
+    
+  else if (have_cache) then
+  
+    ! ksp is a copy of matrix%ksp, make it a separate reference, 
+    ! so we can KSPDestroy it without destroying matrix%ksp
+    call PetscObjectReference(ksp, ierr)
+    
+    ! same for the matrix, kspgetoperators returns the matrix reference
+    ! owned by the ksp - make it a separate reference
+    call PetscObjectReference(A, ierr)
+    
   end if
   
   b=PetscNumberingCreateVec(petsc_numbering)
@@ -1995,6 +2057,35 @@ end subroutine ConvergenceCheck
     end if
     
   end subroutine setup_pc_from_options
+    
+  subroutine ewrite_ksp_options(ksp)
+    KSP, intent(in):: ksp
+    
+    PC:: pc
+    KSPType:: ksptype
+    PCType:: pctype
+    PetscReal:: rtol, atol, dtol
+    PetscInt:: maxits
+    PetscTruth:: flag
+    PetscErrorCode:: ierr
+    
+    ewrite(2, *) 'Using solver options from cache:'
+    
+    call KSPGetType(ksp, ksptype, ierr)
+    ewrite(2, *) 'ksp_type: ', trim(ksptype)
+    
+    call KSPGetPC(ksp, pc, ierr)
+    call PCGetType(pc, pctype, ierr)
+    ewrite(2, *) 'pc_type: ', trim(pctype)
+    
+    call KSPGetTolerances(ksp, rtol, atol, dtol, maxits, ierr)
+    ewrite(2, *) 'ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol: ', &
+      maxits, atol, rtol, dtol
+    
+    call KSPGetInitialGuessNonzero(ksp, flag, ierr)
+    ewrite(2, *) 'startfromzero:', .not. flag
+    
+  end subroutine ewrite_ksp_options
 #endif
 
 subroutine set_solver_options_with_path(field_option_path, &
@@ -2230,13 +2321,16 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
   PetscScalar :: rnorm
   PetscLogDouble :: flops
+  Vec:: dummy_vec
 
   ! Stop warnings.
   ierr = dummy  
 
   !  Build the solution vector  
   call VecZeroEntries(petsc_monitor_x,ierr)
-  call KSPBuildSolution(ksp,petsc_monitor_x,PETSC_NULL_OBJECT,ierr)
+  ! don't pass PETSC_NULL_OBJECT instead of dummy_vec, as petsc
+  ! will clobber it (bug in fortran interface)
+  call KSPBuildSolution(ksp,petsc_monitor_x, dummy_vec, ierr)
 
   ! Compare with exact solution
   call VecAXPY(petsc_monitor_x, real(-1.0, kind = PetscScalar_kind), petsc_monitor_exact, ierr)

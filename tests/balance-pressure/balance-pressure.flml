@@ -134,6 +134,7 @@
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
+          <cache_solver_context/>
           <diagnostics>
             <monitors/>
           </diagnostics>
@@ -373,6 +374,7 @@
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
+          <cache_solver_context/>
           <diagnostics>
             <monitors/>
           </diagnostics>

@@ -407,6 +407,10 @@ module sparse_tools
   interface reset_inactive
      module procedure csr_reset_inactive
   end interface
+    
+  interface destroy_solver_cache
+     module procedure csr_destroy_solver_cache, block_csr_destroy_solver_cache
+  end interface
   
 #include "Reference_count_interface_csr_sparsity.F90"
 #include "Reference_count_interface_csr_matrix.F90"
@@ -427,7 +431,7 @@ module sparse_tools
        & addto_diag, set, val, ival, dense, dense_i, wrap, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
-       & reset_inactive
+       & reset_inactive, destroy_solver_cache
        
   public :: posinm, posinm_legacy, posinmc_legacy
 
@@ -2732,6 +2736,32 @@ END SUBROUTINE POSINM_COLOUR
   
   end function has_inactive
   
+  subroutine csr_destroy_solver_cache(matrix)
+    type(csr_matrix), intent(inout) :: matrix
+      
+    integer:: ierr
+    
+    assert( associated(matrix%ksp) )
+    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+      call KSPDestroy(matrix%ksp, ierr)
+    end if
+    matrix%ksp=PETSC_NULL_OBJECT
+    
+  end subroutine csr_destroy_solver_cache
+  
+  subroutine block_csr_destroy_solver_cache(matrix)
+    type(block_csr_matrix), intent(inout) :: matrix
+      
+    integer:: ierr
+    
+    assert( associated(matrix%ksp) )
+    if (matrix%ksp/=PETSC_NULL_OBJECT) then
+      call KSPDestroy(matrix%ksp, ierr)
+    end if
+    matrix%ksp=PETSC_NULL_OBJECT
+    
+  end subroutine block_csr_destroy_solver_cache
+    
   subroutine csr_zero(matrix)
     !!< Zero the entries of a csr matrix.
     type(csr_matrix), intent(inout) :: matrix
@@ -2746,6 +2776,9 @@ END SUBROUTINE POSINM_COLOUR
        deallocate(matrix%inactive%ptr)
        nullify(matrix%inactive%ptr)
     end if
+    
+    ! this invalidates the solver context
+    call destroy_solver_cache(matrix)
 
   end subroutine csr_zero
 
@@ -2786,6 +2819,9 @@ END SUBROUTINE POSINM_COLOUR
        end if
     end if
 
+    ! this invalidates the solver context
+    call destroy_solver_cache(matrix)
+    
   end subroutine block_csr_zero
 
   subroutine dcsr_zero(matrix)

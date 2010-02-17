@@ -436,6 +436,19 @@ that should only be used in exceptional cases.</a:documentation>
       </element>
     </choice>
     <optional>
+      <element name="cache_solver_context">
+        <a:documentation>Retain the data created during the setup phase of the solve.
+This may give some speedup, in particular in combination with
+a multigrid preconditioner, as the data doesn't have to be
+recreated every solve, but at the cost of increased memory usage.
+This option is only useful for solves where the matrix doesn't
+change between time steps, e.g. the pressure solve (only for 
+incompressible flow and without mesh movement) or solving
+balance pressure.</a:documentation>
+        <empty/>
+      </element>
+    </optional>
+    <optional>
       <choice>
         <element name="reordering">
           <a:documentation>Use Reverse Cuthill-McKee reordering to improve cache performance</a:documentation>
