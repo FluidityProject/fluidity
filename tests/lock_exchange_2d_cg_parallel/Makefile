@@ -4,4 +4,4 @@ input: clean
 	../../bin/fldecomp -i triangle -n 2 -f channel_2d
 
 clean: 
-	rm -f  ./src/*.msh *.ele *.edge *.node *.face *.poly *vtu *.s  *.stat *.log-0 *.err-0 matrixdump*
+	rm -f  ./src/*.msh *.ele *.edge *.node *.face *.poly *vtu *.s  *.stat *.log-* *.err-* matrixdump*
