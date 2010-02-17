@@ -1064,8 +1064,8 @@ logical, intent(out):: startfromzero
 !! Stuff that goes in:
 !! 
 !! provide either a matrix or block_matrix to be solved
-type(csr_matrix), optional, intent(in):: matrix
-type(block_csr_matrix), optional, intent(in):: block_matrix
+type(csr_matrix), target, optional, intent(in):: matrix
+type(block_csr_matrix), target, optional, intent(in):: block_matrix
 !! for new options 
 character(len=*), optional, intent(in):: option_path
 !! whether to start with zero initial guess (as passed in)
@@ -1093,6 +1093,7 @@ type(scalar_field), optional, intent(in) :: exact
   logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
   integer i, j
+  KSP, pointer:: ksp_pointer
 
   if (.not. present(option_path)) then
     FLAbort("No option_path provided to solver call.")
@@ -1259,11 +1260,14 @@ type(scalar_field), optional, intent(in) :: exact
     &'/cache_solver_context')) then
     
     ! save the ksp solver context for future generations
+    ! (hack with pointer to convince intel compiler that it's
+    !  really just the pointed-to value I'm changing)
     if (present(matrix)) then
-      matrix%ksp = ksp
+      ksp_pointer => matrix%ksp
     else if (present(block_matrix)) then
-      block_matrix%ksp = ksp
+      ksp_pointer => block_matrix%ksp
     end if
+    ksp_pointer = ksp
     
     ! make sure we don't destroy it, the %ksp becomes a separate reference
     call PetscObjectReference(ksp, ierr)
