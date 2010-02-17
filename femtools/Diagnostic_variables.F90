@@ -911,6 +911,7 @@ contains
           allocate(node%position(shape_option(1)))
           call get_option(trim(buffer)//"/location", node%position)       
 
+          node%local = .not. isparallel()
           node%type = STATIC_DETECTOR
           node%id_number = i
           
@@ -943,6 +944,7 @@ contains
           call get_option(trim(buffer)//"/location", node%position)
        
           node%type = LAGRANGIAN_DETECTOR
+          node%local = .true.
           node%id_number = i+static_dete
           
           name_of_detector_groups_in_read_order(i+static_dete)=node%name
@@ -996,6 +998,7 @@ contains
                   allocate(node%position(dim))
 
                   node%position=coords(:,j)
+                  node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                   node%type=type_det
 
                   node%id_number = k
@@ -1031,6 +1034,7 @@ contains
 
                   allocate(node%position(dim))
                   read(detector_file_unit) node%position
+                  node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                   node%type=type_det
                   node%id_number = k
 
@@ -1094,6 +1098,7 @@ contains
                   node%name=temp_name
                   allocate(node%position(dim))
                   read(detector_checkpoint_unit) node%position
+                  node%local = .not. isparallel()
                   node%type = STATIC_DETECTOR
                   allocate(node%local_coords(local_coord_count(shape)))   
     
@@ -1120,6 +1125,7 @@ contains
                   node%name=temp_name
                   allocate(node%position(dim))
                   read(detector_checkpoint_unit) node%position
+                  node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                   node%type = LAGRANGIAN_DETECTOR
 
                   allocate(node%local_coords(local_coord_count(shape))) 
@@ -1163,6 +1169,7 @@ contains
                    write(node%name, fmt) trim(temp_name)//"_", m
                    allocate(node%position(dim))
                    read(detector_checkpoint_unit) node%position
+                   node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
                    node%type=type_det
 
                    node%id_number = k
@@ -3083,7 +3090,7 @@ contains
        end if
     end if
 
-    call allsum(value)
+    if(.not. detector%local) call allsum(value)
 
   end function detector_value_scalar
 
@@ -3110,7 +3117,7 @@ contains
       end if
     end if
 
-    call allsum(value)
+    if(.not. detector%local) call allsum(value)
 
   end function detector_value_vector
 
