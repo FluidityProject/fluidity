@@ -90,8 +90,7 @@ PetscReal, dimension(:), pointer, save :: surface_values => null()
 !=====================================
 
 private
-public SetupSmoothedAggregation, DestroySmoothedAggregationObjects, &
-  SetupMultigrid, DestroyMultigrid
+public SetupSmoothedAggregation, SetupMultigrid, DestroyMultigrid
   
   ! see at the bottom of Petsc_Tools.F90
   ! For some reason "use"ing the interface from the petsc_tools module
@@ -205,16 +204,11 @@ subroutine DestroyInternalSmoother()
   implicit none
   !
   integer :: ierr
-  PCType :: pctype
   !
   deallocate( surface_node_list )
   surface_node_list => null()
   deallocate( surface_values )
   surface_values => null()
-  call PCGetType(internal_smoother_pc, pctype, ierr)
-  if (pctype==PCMG) then
-     call DestroySmoothedAggregationObjects(internal_smoother_pc)
-  end if
   call PCDestroy(internal_smoother_pc,ierr)
   call MatDestroy(internal_smoother_mat,ierr)
 
@@ -343,12 +337,9 @@ PC, intent(inout):: prec
   if (pctype==PCCOMPOSITE) then
     ! destroy the real mg
     call PCCompositeGetPC(prec, 0, subprec, ierr)
-    call DestroySmoothedAggregationObjects(subprec)
     ! destroy the internal mg
     call PCCompositeGetPC(prec, 1, subprec, ierr)
     call DestroyInternalSmoother()
-  else if (pctype==PCMG) then
-    call DestroySmoothedAggregationObjects(prec)
   end if
   
 end subroutine DestroyMultigrid
@@ -588,6 +579,11 @@ logical, intent(in), optional :: no_top_smoothing
       call PCSetType(prec_smoother, PCLU, ierr)
       call KSPSetTolerances(ksp_smoother, 1.0e-100_PetscReal_kind, 1e-8_PetscReal_kind, 1e10_PetscReal_kind, 300, ierr)
     end if
+    
+    ! destroy our references of the operators at levels 2 (==one but finest) up to coarsest
+    do i=2, nolevels
+      call MatDestroy(matrices(ri), ierr)
+    end do
     
     deallocate(matrices, prolongators, contexts)
 
@@ -1075,41 +1071,6 @@ integer, dimension(:), intent(in):: findN, N
   end do
 
 end subroutine Prolongator_step3
-
-subroutine DestroySmoothedAggregationObjects(prec)
-!!< This subroutine destroys the objects in use by the smoothed aggregation
-!!< preconditioner. It should be called before the call to KSP/PCDestroy
- PC, intent(inout):: prec
-
-  PetscErrorCode ierr
-  PetscInt levels
-  MatStructure structure
-  KSP krylov
-  PC prec_sm
-  Mat matrix, pmatrix
-  
-  integer i
-  
-  ! only need to destroy the operators at the various levels
-  ! as the rest (vectors and ksps) is dealt with in PCDestroy()
-  
-  call PCMGGetLevels(prec, levels, ierr)
-  ! destroy the operators at levels 1 (==one but coarsest) up to level-2 
-  ! (==one but finest)
-  do i=1, levels-2
-    call PCMGGetSmootherDown(prec, i, krylov, ierr)
-    call KSPGetPc(krylov, prec_sm, ierr)
-    call PCGetOperators(prec_sm, matrix, pmatrix, structure, ierr)
-    call MatDestroy(matrix, ierr)
-  end do
-  
-  ! destroy the coarsest level operator
-  call PCMGGetCoarseSolve(prec,  krylov, ierr)
-  call KSPGetPc(krylov, prec_sm, ierr)
-  call PCGetOperators(prec_sm, matrix, pmatrix, structure, ierr)
-  call MatDestroy(matrix, ierr)
-
-end subroutine DestroySmoothedAggregationObjects
   
 subroutine PowerMethod(matrix, eigval, eigvec)
 Mat, intent(in):: matrix
