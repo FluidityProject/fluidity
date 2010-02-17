@@ -187,6 +187,7 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <remove_stabilisation_term replaces="NOFILT"/>
+            <integrate_continuity_by_parts replaces="PREOPT"/>
           </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
@@ -197,9 +198,7 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="mg">
-            <vertical_lumping/>
-          </preconditioner>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
