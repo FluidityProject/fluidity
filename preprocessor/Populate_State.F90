@@ -1621,7 +1621,7 @@ contains
     backward_compatibility = any(field_name == (/"ElectricalPotentialDiffusivity      ", &
                                                & "GLSTurbulentKineticEnergyDiffusivity", &
                                                & "GLSGenericSecondQuantityDiffusivity "/)) .or. &
-                             field_name == "Viscosity" .and. have_option("/material_phase::" // trim(state%name) // "/subgridscale_parameterisations/GLS")
+                             (field_name == "Viscosity" .and. have_option("/material_phase::" // trim(state%name) // "/subgridscale_parameterisations/GLS"))
 
     ! Find out what kind of field we have
     is_prescribed=have_option(trim(path)//"/prescribed")
