@@ -85,7 +85,7 @@ module fluids_module
   use gls
   use halos
   use memory_diagnostics
-  use global_parameters, only: current_time, dt, OPTION_PATH_LEN
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN
   
   implicit none
 
@@ -150,9 +150,6 @@ contains
     logical::use_electrical_potential_solver=.false.  !jhs 05/05/2009
 
     INTEGER :: adapt_count
-
-    ! Current simulation timestep
-    integer :: timestep
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options

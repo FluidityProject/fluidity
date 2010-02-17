@@ -93,6 +93,29 @@ vector_galerkin_projection_algorithm =
       }
    )
 
+# Time aggregated diagnostics
+
+# Temporal maximum diagnostic algorithm. 
+temporalmax_algorithm =
+   (
+      ## temporalmax (source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!
+      element algorithm {
+        attribute name { "temporalmax" },
+        attribute material_phase_support { "single" },
+        source_field
+      }
+   )
+# Temporal minimum diagnostic algorithm
+temporalmin_algorithm =
+   (
+      ## temporalmin (source field). Calculates the nodewise minimum over time. Note: Does not work with adaptive meshes!
+      element algorithm {
+        attribute name { "temporalmin" },
+        attribute material_phase_support { "single" },
+        source_field
+      }
+   )
+
 # Differential operator diagnostic algorithms
 div_algorithm =
    (
@@ -325,10 +348,25 @@ tensor_python_diagnostic_algorithm =
          python_code
       }
    )
+
+# Misc
+
+# l2norm diagnostic algorithm
+l2norm_algorithm =
+   (
+      ## l2norm (source field). Calculates the nodewise l2norm of a vector field.
+      element algorithm {
+        attribute name { "l2norm" },
+        attribute material_phase_support { "single" },
+        source_field
+      }
+   )
    
 scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
+scalar_diagnostic_algorithms |= temporalmax_algorithm
+scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
@@ -336,7 +374,8 @@ scalar_diagnostic_algorithms |= scalar_potential_algorithm
 scalar_diagnostic_algorithms |= grad_normal_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
-   
+scalar_diagnostic_algorithms |= l2norm_algorithm
+
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm

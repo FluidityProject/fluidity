@@ -123,6 +123,33 @@ this option to these these internal algorithms.</a:documentation>
       </optional>
     </element>
   </define>
+  <!-- Time aggregated diagnostics -->
+  <!-- Temporal maximum diagnostic algorithm. -->
+  <define name="temporalmax_algorithm">
+    <element name="algorithm">
+      <a:documentation>temporalmax (source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!</a:documentation>
+      <attribute name="name">
+        <value>temporalmax</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
+  <!-- Temporal minimum diagnostic algorithm -->
+  <define name="temporalmin_algorithm">
+    <element name="algorithm">
+      <a:documentation>temporalmin (source field). Calculates the nodewise minimum over time. Note: Does not work with adaptive meshes!</a:documentation>
+      <attribute name="name">
+        <value>temporalmin</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
   <!-- Differential operator diagnostic algorithms -->
   <define name="div_algorithm">
     <element name="algorithm">
@@ -411,6 +438,20 @@ and 'tensor_fields';
       <ref name="python_code"/>
     </element>
   </define>
+  <!-- Misc -->
+  <!-- l2norm diagnostic algorithm -->
+  <define name="l2norm_algorithm">
+    <element name="algorithm">
+      <a:documentation>l2norm (source field). Calculates the nodewise l2norm of a vector field.</a:documentation>
+      <attribute name="name">
+        <value>l2norm</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="scalar_python_diagnostic_algorithm"/>
   </define>
@@ -419,6 +460,12 @@ and 'tensor_fields';
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="temporalmax_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="temporalmin_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="div_algorithm"/>
@@ -440,6 +487,9 @@ and 'tensor_fields';
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="element_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="l2norm_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_python_diagnostic_algorithm"/>
