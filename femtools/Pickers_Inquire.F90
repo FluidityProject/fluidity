@@ -279,7 +279,7 @@ contains
         nlocal_dets = nlocal_dets + 1
         local_coords(:, nlocal_dets) = node%position
       else
-        nglobal_dets = nlocal_dets + 1
+        nglobal_dets = nglobal_dets + 1
         global_coords(:, nglobal_dets) = node%position
       end if
       node => node%next
