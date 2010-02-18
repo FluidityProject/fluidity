@@ -1533,6 +1533,7 @@ END SUBROUTINE POSINM_COLOUR
     if (.not. associated(matrix%ksp)) then
       FLAbort("Deallocating non-allocated or damaged csr matrix")
     end if
+    
 #ifdef HAVE_PETSC
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, lstat)
@@ -1956,6 +1957,8 @@ END SUBROUTINE POSINM_COLOUR
         
   function csr_block(matrix, block_i, block_j) result (block_out)
     !!< Extract block block_i, block_j from matrix.
+    !!< This is the only case where the returned matrix
+    !!< is not to be deallocated!!!
     type(csr_matrix) :: block_out
     type(block_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: block_i, block_j
@@ -1982,9 +1985,8 @@ END SUBROUTINE POSINM_COLOUR
     ! "Borrowed" matrices cannot have inactive nodes
     nullify(block_out%inactive)
     
-    ! always allocate to make sure all references see the same %ksp
-    allocate(block_out%ksp)
-    block_out%ksp=PETSC_NULL_OBJECT ! to indicate no ksp cache available
+    ! we can't unfortunately, as csr_blocks aren't always deallocated
+    nullify(block_out%ksp)
     
   end function csr_block
 
@@ -2000,6 +2002,7 @@ END SUBROUTINE POSINM_COLOUR
 
   function wrap_csr_matrix(sparsity, val, ival, name, stat) result (matrix)
     !!< Create a matrix using sparsity and the val or ival provided.
+    !!< The wrapping matrix must be deallocated after use!!!
     type(csr_matrix) :: matrix
     type(csr_sparsity), intent(in) :: sparsity
     real, dimension(size(sparsity%colm)), intent(in), target, optional :: val
@@ -2062,6 +2065,7 @@ END SUBROUTINE POSINM_COLOUR
     !!< Return a matrix with the same structure but different data space to
     !!< matrix. If val is present then it is used as the data space.
     !!< Otherwise, a new space is allocated.
+    !!< The wrapping matrix must be deallocated after use!!!
     type(block_csr_matrix) :: matrix
     type(csr_sparsity), intent(in) :: sparsity
     integer, dimension(2), intent(in)::blocks
@@ -2741,7 +2745,8 @@ END SUBROUTINE POSINM_COLOUR
       
     integer:: ierr
     
-    assert( associated(matrix%ksp) )
+    if (.not. associated(matrix%ksp)) return
+    
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, ierr)
     end if
@@ -2754,7 +2759,8 @@ END SUBROUTINE POSINM_COLOUR
       
     integer:: ierr
     
-    assert( associated(matrix%ksp) )
+    if (.not. associated(matrix%ksp)) return
+    
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, ierr)
     end if

@@ -1120,13 +1120,15 @@ type(scalar_field), optional, intent(in) :: exact
     startfromzero=.true.
   end if
   
+  ksp=PETSC_NULL_OBJECT
   if (present(matrix)) then
-    ksp=matrix%ksp
+    if (associated(matrix%ksp)) then
+      ksp=matrix%ksp
+    end if
   else if (present(block_matrix)) then
-    ksp=block_matrix%ksp
-  else
-    ! shouldn't happen
-    ksp=PETSC_NULL_OBJECT
+    if (associated(matrix%ksp)) then
+      ksp=block_matrix%ksp
+    end if
   end if
   
   if (ksp/=PETSC_NULL_OBJECT) then
@@ -1267,10 +1269,15 @@ type(scalar_field), optional, intent(in) :: exact
     else if (present(block_matrix)) then
       ksp_pointer => block_matrix%ksp
     end if
-    ksp_pointer = ksp
-    
-    ! make sure we don't destroy it, the %ksp becomes a separate reference
-    call PetscObjectReference(ksp, ierr)
+    if (associated(ksp_pointer)) then
+      ksp_pointer = ksp
+      
+      ! make sure we don't destroy it, the %ksp becomes a separate reference
+      call PetscObjectReference(ksp, ierr)
+    else
+      ! matrices coming from block() can't cache
+      FLAbort("User wants to cache solver context, but no proper matrix is provided.")
+    end if
     
   else if (have_cache) then
   
