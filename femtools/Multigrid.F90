@@ -582,7 +582,7 @@ logical, intent(in), optional :: no_top_smoothing
     
     ! destroy our references of the operators at levels 2 (==one but finest) up to coarsest
     do i=2, nolevels
-      call MatDestroy(matrices(ri), ierr)
+      call MatDestroy(matrices(i), ierr)
     end do
     
     deallocate(matrices, prolongators, contexts)
