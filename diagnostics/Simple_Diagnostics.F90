@@ -31,9 +31,10 @@ module simple_diagnostics
   use diagnostic_source_fields
   use field_options
   use fields_manipulation
+  use initialise_fields_module
   use fields
   use fldebug
-  use global_parameters, only : OPTION_PATH_LEN, timestep
+  use global_parameters, only : timestep, OPTION_PATH_LEN
   use spud
   use state_fields_module
   use state_module
@@ -49,36 +50,54 @@ contains
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
     type(scalar_field), pointer :: source_field
-      integer :: i
-      real :: val
+    type(vector_field), pointer :: position
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i
+    real :: val
     source_field => scalar_source_field(state, s_field)
-      assert(node_count(s_field) == node_count(source_field))
-      if(timestep==0)then
-       call set(s_field,source_field)
+    assert(node_count(s_field) == node_count(source_field))
+    position => extract_vector_field(state, "Coordinate")
+
+    if(timestep==0) then
+       path=trim(complete_field_path(s_field%option_path)) // "/algorithm/initial_condition"
+       if (have_option(trim(path))) then
+          call initialise_field_over_regions(s_field, path, position)
+       else
+          call set(s_field,source_field)
+       end if
        return
-      end if
-      do i=1,node_count(s_field)
+    end if
+    do i=1,node_count(s_field)
        val = max(node_val(s_field,i),node_val(source_field,i))
        call set(s_field,i,val)
-      end do
+    end do
   end subroutine calculate_temporalmax
 
   subroutine calculate_temporalmin(state, s_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
     type(scalar_field), pointer :: source_field
-      integer :: i
-      real :: val
+    type(vector_field), pointer :: position
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i
+    real :: val
     source_field => scalar_source_field(state, s_field)
-      assert(node_count_scalar(s_field) == node_count_scalar(source_field))
-      if(timestep==0)then
-       call set(s_field,source_field)
+    assert(node_count(s_field) == node_count(source_field))
+    position => extract_vector_field(state, "Coordinate")
+
+    if(timestep==0) then
+       path=trim(complete_field_path(s_field%option_path)) // "/algorithm/initial_condition"
+       if (have_option(trim(path))) then
+          call initialise_field_over_regions(s_field, path, position)
+       else
+          call set(s_field,source_field)
+       end if
        return
-      end if
-      do i=1,node_count_scalar(s_field)
+    end if
+    do i=1,node_count(s_field)
        val = min(node_val(s_field,i),node_val(source_field,i))
        call set(s_field,i,val)
-      end do
+    end do
   end subroutine calculate_temporalmin
 
    ! Calculates nodewise l2norm of a vector field source
@@ -86,9 +105,9 @@ contains
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
     type(vector_field), pointer :: source_field
-      integer :: i,j
-      real, dimension(:), allocatable :: val
-      real :: res
+    integer :: i,j
+    real, dimension(:), allocatable :: val
+    real :: res
     source_field => vector_source_field(state, s_field)
     allocate(val(source_field%dim))
       assert(node_count(s_field) == node_count(source_field))

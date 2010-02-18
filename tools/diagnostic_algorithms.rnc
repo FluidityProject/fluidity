@@ -102,7 +102,13 @@ temporalmax_algorithm =
       element algorithm {
         attribute name { "temporalmax" },
         attribute material_phase_support { "single" },
-        source_field
+        attribute persistent { "true" },
+        source_field,
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }?
       }
    )
 # Temporal minimum diagnostic algorithm
@@ -112,7 +118,13 @@ temporalmin_algorithm =
       element algorithm {
         attribute name { "temporalmin" },
         attribute material_phase_support { "single" },
-        source_field
+        attribute persistent { "true" },
+        source_field,
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }?
       }
    )
 

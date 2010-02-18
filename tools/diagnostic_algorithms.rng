@@ -134,7 +134,19 @@ this option to these these internal algorithms.</a:documentation>
       <attribute name="material_phase_support">
         <value>single</value>
       </attribute>
+      <attribute name="persistent">
+        <value>true</value>
+      </attribute>
       <ref name="source_field"/>
+      <optional>
+        <element name="initial_condition">
+          <a:documentation>Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. </a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </optional>
     </element>
   </define>
   <!-- Temporal minimum diagnostic algorithm -->
@@ -147,7 +159,19 @@ this option to these these internal algorithms.</a:documentation>
       <attribute name="material_phase_support">
         <value>single</value>
       </attribute>
+      <attribute name="persistent">
+        <value>true</value>
+      </attribute>
       <ref name="source_field"/>
+      <optional>
+        <element name="initial_condition">
+          <a:documentation>Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. </a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_real"/>
+        </element>
+      </optional>
     </element>
   </define>
   <!-- Differential operator diagnostic algorithms -->
