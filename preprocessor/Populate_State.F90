@@ -328,12 +328,7 @@ contains
           ! this is the mesh used by adaptivity for error measures and such
           ! (it may gets replaced if adding periodicity or extrusion)
           topology_mesh_name = mesh%name
-          
-          ! same for positions
-          position%name = "TopologyMeshCoordinate"
-          position%aliased = .true.
-          call insert(states, position, position%name)
-          
+                    
           call surface_id_stats(mesh, position)
 
           call deallocate(position)
