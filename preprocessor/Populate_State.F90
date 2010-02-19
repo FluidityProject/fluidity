@@ -829,7 +829,7 @@ contains
     ! direction of gravity
     if (have_option('/physical_parameters/gravity/vector_field::GravityDirection')) then
        call allocate_and_insert_vector_field('/physical_parameters/gravity/vector_field::GravityDirection', &
-            states(1), parent_mesh='CoordinateMesh', backward_compatibility=.false., &
+            states(1), parent_mesh='CoordinateMesh',&
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -840,7 +840,7 @@ contains
        do i=1, ncars
           field_name='TrafficTracer'//int2str(i)
           call allocate_and_insert_scalar_field('/traffic_model/scalar_field::TrafficTracerTemplate', &
-            states(1), parent_mesh='VelocityMesh', backward_compatibility=.true., &
+            states(1), parent_mesh='VelocityMesh', &
             field_name=field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
        end do
@@ -1340,14 +1340,13 @@ contains
   end function allocate_field_as_constant_tensor
 
   recursive subroutine allocate_and_insert_scalar_field(option_path, state, &
-    parent_mesh, parent_name, backward_compatibility, field_name, &
+    parent_mesh, parent_name, field_name, &
     dont_allocate_prognostic_value_spaces)
 
     character(len=*), intent(in) :: option_path
     type(state_type), intent(inout) :: state
     character(len=*), intent(in), optional :: parent_mesh
     character(len=*), intent(in), optional :: parent_name
-    logical, intent(in), optional :: backward_compatibility
     character(len=*), optional, intent(in):: field_name
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
@@ -1358,7 +1357,7 @@ contains
     character(len=OPTION_PATH_LEN) :: lfield_name, mesh_name
     type(scalar_field) :: field
     type(mesh_type), pointer :: mesh
-    logical :: lbackward_compatibility, is_constant
+    logical :: backward_compatibility, is_constant
 
     ! Save option_path
     path=trim(option_path)
@@ -1380,11 +1379,10 @@ contains
     ! code to use.
     ! If we do not need backward compatibility, we can make big savings
     ! on constant fields.
-    if (present(backward_compatibility)) then
-       lbackward_compatibility = backward_compatibility
-    else
-       lbackward_compatibility = .true.
-    end if
+    ! Any fields that require backward compatibility are badly behaved, as they
+    ! modify constant fields. *Do not add to this list!* Construct an
+    ! appropriate diagnostic algorithm instead (possibly an internal).
+    backward_compatibility = .false.
 
     ! Find out what kind of field we have
     is_prognostic=have_option(trim(path)//"/prognostic")
@@ -1426,7 +1424,7 @@ contains
        ! If we want to defer allocation (for sam), don't allocate the value space yet
        call allocate(field, mesh, name=trim(lfield_name), &
           field_type=FIELD_TYPE_DEFERRED)
-    else if(is_constant .and. .not. lbackward_compatibility) then
+    else if(is_constant .and. .not. backward_compatibility) then
          
        ! Allocate as constant field if possible (and we don't need backward compatibility)
        call allocate(field, mesh, name=trim(lfield_name), &
@@ -1465,24 +1463,23 @@ contains
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/scalar_field::InterpolationErrorBound"
        call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
-          parent_name=lfield_name, backward_compatibility=.false., &
+          parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/scalar_field::InterpolationErrorBound"
        call allocate_and_insert_scalar_field(adapt_path, state, parent_mesh=mesh_name, &
-          parent_name=lfield_name, backward_compatibility=.false., &
+          parent_name=lfield_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
   end subroutine allocate_and_insert_scalar_field
 
-  recursive subroutine allocate_and_insert_vector_field(option_path, state, parent_mesh, parent_name, backward_compatibility, dont_allocate_prognostic_value_spaces)
+  recursive subroutine allocate_and_insert_vector_field(option_path, state, parent_mesh, parent_name, dont_allocate_prognostic_value_spaces)
 
     character(len=*), intent(in) :: option_path
     type(state_type), intent(inout) :: state
     character(len=*), intent(in), optional :: parent_mesh
     character(len=*), intent(in), optional :: parent_name
-    logical, intent(in), optional :: backward_compatibility
     logical, intent(in), optional :: dont_allocate_prognostic_value_spaces
     
     integer :: dim
@@ -1493,7 +1490,7 @@ contains
     character(len=OPTION_PATH_LEN) :: field_name, mesh_name
     type(mesh_type), pointer :: mesh
     type(vector_field) :: field
-    logical :: lbackward_compatibility, is_constant
+    logical :: backward_compatibility, is_constant
 
     ! Save option_path
     path=trim(option_path)
@@ -1510,11 +1507,10 @@ contains
     ! code to use.
     ! If we do not need backward compatibility, we can make big savings
     ! on constant fields.
-    if (present(backward_compatibility)) then
-       lbackward_compatibility = backward_compatibility
-    else
-       lbackward_compatibility = .true.
-    end if
+    ! Any fields that require backward compatibility are badly behaved, as they
+    ! modify constant fields. *Do not add to this list!* Construct an
+    ! appropriate diagnostic algorithm instead (possibly an internal).
+    backward_compatibility = .false.
 
     ! Find out what kind of field we have
     is_prognostic=have_option(trim(path)//"/prognostic")
@@ -1553,7 +1549,7 @@ contains
        ! If we want to defer allocation (for sam), don't allocate the value space yet
        call allocate(field, dim, mesh, name=trim(field_name), &
           field_type=FIELD_TYPE_DEFERRED)
-    else if(is_constant .and. .not. lbackward_compatibility) then
+    else if(is_constant .and. .not. backward_compatibility) then
          
        ! Allocate as constant field if possible (and we don't need backward compatibility)
        call allocate(field, dim, mesh, name=trim(field_name), &
@@ -1589,11 +1585,11 @@ contains
     adapt_path=trim(path)//"/adaptivity_options"
     if(have_option(trim(adapt_path)//"/absolute_measure")) then
        adapt_path=trim(adapt_path)//"/absolute_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, field_name, backward_compatibility=.false., &
+       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, field_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     else if(have_option(trim(adapt_path)//"/relative_measure")) then
        adapt_path=trim(adapt_path)//"/relative_measure/vector_field::InterpolationErrorBound"
-       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, field_name, backward_compatibility=.false., &
+       call allocate_and_insert_vector_field(adapt_path, state, mesh_name, field_name, &
           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
@@ -1635,6 +1631,9 @@ contains
     ! code to use.
     ! If we do not need backward compatibility, we can make big savings
     ! on constant fields.
+    ! Any fields that require backward compatibility are badly behaved, as they
+    ! modify constant fields. *Do not add to this list!* Construct an
+    ! appropriate diagnostic algorithm instead (possibly an internal).
     backward_compatibility = any(field_name == (/"ElectricalPotentialDiffusivity      ", &
                                                & "GLSTurbulentKineticEnergyDiffusivity", &
                                                & "GLSGenericSecondQuantityDiffusivity "/)) .or. &
