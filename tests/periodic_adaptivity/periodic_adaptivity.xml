@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Periodic adaptivity</name>
+  <owner userid="pfarrell"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l periodic_adaptivity.flml </command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+    <test name="dummy" language="python">
+assert 1 == 1
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
