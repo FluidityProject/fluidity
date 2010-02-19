@@ -33,7 +33,8 @@ module populate_state_module
   use spud
   use read_triangle
   use vtk_cache_module
-  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, no_active_processes
+  use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
+    no_active_processes, topology_mesh_name
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -323,6 +324,16 @@ contains
          
           mesh%option_path=mesh_path
           
+          ! We register this as the topology mesh
+          ! this is the mesh used by adaptivity for error measures and such
+          ! (it may gets replaced if adding periodicity or extrusion)
+          topology_mesh_name = mesh%name
+          
+          ! same for positions
+          position%name = "TopologyMeshCoordinate"
+          position%aliased = .true.
+          call insert(states, position, position%name)
+          
           call surface_id_stats(mesh, position)
 
           call deallocate(position)
@@ -531,6 +542,12 @@ contains
 
              ! Insert mesh into all states
              call insert(states, mesh, mesh%name)
+             
+             if (extrusion .or. (periodic .and. .not. remove_periodicity)) then
+               ! this is the new topology mesh name to be used by adaptivity
+               topology_mesh_name=mesh%name
+             end if
+
              
              call deallocate(mesh)
              

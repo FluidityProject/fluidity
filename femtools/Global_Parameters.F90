@@ -139,5 +139,9 @@ module global_parameters
   !! Maximum length of a python string representing a function
   integer, parameter :: PYTHON_FUNC_LEN=8192
   character(len=PYTHON_FUNC_LEN) :: empty_python_func=""
+  
+  !! Name of the topology mesh in state - this mesh is used by adaptivity
+  !! for the error metric etc.
+  character(len=FIELD_NAME_LEN):: topology_mesh_name=""
 
 end module global_parameters

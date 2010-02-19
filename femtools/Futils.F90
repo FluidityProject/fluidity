@@ -69,8 +69,6 @@ contains
   subroutine nullify_integer_vector(vector)
     type(integer_vector), intent(inout) :: vector
     
-    integer :: i
-    
     vector%ptr => null()
     
   end subroutine nullify_integer_vector
