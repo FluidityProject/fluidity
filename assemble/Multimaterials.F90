@@ -39,6 +39,7 @@ module multimaterial_module
   use field_options
   use diagnostic_fields_matrices
   use cv_upwind_values
+  use equation_of_state, only: compressible_material_eos
   implicit none
 
   interface calculate_bulk_property
@@ -51,7 +52,7 @@ module multimaterial_module
 
   private
   public :: initialise_diagnostic_material_properties, &
-            calculate_material_eos, extract_prognostic_pressure, &
+            extract_prognostic_pressure, &
             extract_prognostic_velocity, calculate_material_mass, calculate_bulk_material_pressure, &
             calculate_sum_material_volume_fractions, calculate_material_volume, &
             calculate_bulk_property, add_scaled_material_property, calculate_surfacetension, &
@@ -207,123 +208,13 @@ contains
       if(stat==0) then
         prognostic=(have_option(trim(sfield%option_path)//'/prognostic'))
         if((.not.aliased(sfield)).and. prognostic) then
-          call calculate_material_eos(state(i),materialdensity=sfield)
+          call compressible_material_eos(state(i),materialdensity=sfield)
         end if
       end if
 
     end do
 
   end subroutine initialise_diagnostic_material_properties
-
-  subroutine calculate_material_eos(state,materialdensity,&
-                                    materialpressure,materialdrhodp)
-
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout), optional :: materialdensity, &
-                                             materialpressure, materialdrhodp
-
-    !locals
-    integer :: stat, gstat, cstat
-    type(scalar_field), pointer :: pressure, materialenergy, materialdensity_local
-    character(len=4000) :: thismaterial_phase, eos_path
-    real :: reference_density, ratio_specific_heats
-    real :: bulk_sound_speed_squared, atmospheric_pressure
-    type(scalar_field) :: drhodp
-
-    ewrite(1,*) 'Entering calculate_material_eos'
-
-    if (present(materialdensity)) then
-      call allocate(drhodp, materialdensity%mesh, 'Gradient of density wrt pressure')
-    else if (present(materialpressure)) then
-      call allocate(drhodp, materialpressure%mesh, 'Gradient of density wrt pressure')
-    else if (present(materialdrhodp)) then
-      call allocate(drhodp, materialdrhodp%mesh, 'Gradient of density wrt pressure')
-    else
-      FLAbort("No point in being in here if you don't want anything out.")
-    end if
-
-    thismaterial_phase = '/material_phase::'//trim(state%name)
-    eos_path = trim(thismaterial_phase)//'/equation_of_state'
-
-    if(have_option(trim(eos_path)//'/multimaterial')) then
-
-      if(have_option(trim(eos_path)//'/multimaterial/miegrunneisen')) then
-        call get_option(trim(eos_path)//'/multimaterial/miegrunneisen/reference_density', &
-                        reference_density, default=0.0)
-        call get_option(trim(eos_path)//'/multimaterial/miegrunneisen/ratio_specific_heats', &
-                        ratio_specific_heats, stat=gstat)
-        if(gstat/=0) then
-          ratio_specific_heats=1.0
-        end if
-        call get_option(trim(eos_path)//'/multimaterial/miegrunneisen/bulk_sound_speed_squared', &
-                        bulk_sound_speed_squared, stat = cstat)
-        if(cstat/=0) then
-          bulk_sound_speed_squared=0.0
-        end if
-        if((gstat/=0).and.(cstat/=0)) then
-          FLExit("Must set either a bulk_sound_speed_squared or a ratio_specific_heats.")
-        end if
-        materialenergy=>extract_scalar_field(state,'MaterialInternalEnergy',stat=stat)
-        if(stat==0) then   ! we have an internal energy field
-          drhodp%val = 1.0/( bulk_sound_speed_squared + (ratio_specific_heats - 1.0)*materialenergy%val )
-        else               ! we don't have an internal energy field
-          call set(drhodp, 1.0/bulk_sound_speed_squared)
-        end if
-
-        if(present(materialdensity)) then
-          ! calculate the materialdensity
-          ! materialdensity can equal materialdensity in state depending on how this
-          ! subroutine is called
-          pressure=>extract_scalar_field(state,'Pressure',stat=stat)
-          if (stat==0) then
-            call get_option(trim(pressure%option_path)//'/prognostic/atmospheric_pressure', &
-                            atmospheric_pressure, default=0.0)
-            materialdensity%val = drhodp%val*(pressure%val + atmospheric_pressure &
-                                   + bulk_sound_speed_squared*reference_density)
-          else
-            FLExit('No Pressure in material_phase::'//trim(state%name))
-          end if
-        end if
-
-        if(present(materialpressure)) then
-          ! calculate the materialpressure using the eos and the calculated (probably prognostic)
-          ! materialdensity
-          ! materialpressure /= bulk pressure
-          materialdensity_local=>extract_scalar_field(state,'MaterialDensity',stat=stat)
-          if (stat==0) then
-            materialpressure%val = materialdensity_local%val/drhodp%val &
-                                  - bulk_sound_speed_squared*reference_density
-          else
-            FLExit('No MaterialDensity in material_phase::'//trim(state%name))
-          end if
-        end if
-
-!       else
-!       ! place other multimaterial eos here
-
-      end if
-
-!     else
-!     ! an incompressible option?
-
-    end if      
-
-    if(present(materialdensity)) then
-      ewrite_minmax(materialdensity%val)
-    end if
-
-    if(present(materialpressure)) then
-      ewrite_minmax(materialpressure%val)
-    end if
-
-    if(present(materialdrhodp)) then
-      materialdrhodp%val=drhodp%val
-      ewrite_minmax(materialdrhodp%val)
-    end if
-
-    call deallocate(drhodp)
-
-  end subroutine calculate_material_eos
   
   subroutine calculate_diagnostic_volume_fraction(state)
 
@@ -388,8 +279,10 @@ contains
     do i = 1, size(state)
   
       sfield => extract_scalar_field(state(i), trim(materialname), stat)
-      call add_scaled_material_property(state(i), bulkfield, sfield, &
-                                        momentum_diagnostic=momentum_diagnostic)
+      if(stat==0) then
+        call add_scaled_material_property(state(i), bulkfield, sfield, &
+                                          momentum_diagnostic=momentum_diagnostic)
+      end if
 
     end do
     
@@ -411,8 +304,10 @@ contains
     do i = 1, size(state)
   
       vfield => extract_vector_field(state(i), trim(materialname), stat)
-      call add_scaled_material_property(state(i), bulkfield, vfield, &
-                                        momentum_diagnostic=momentum_diagnostic)
+      if(stat==0) then
+        call add_scaled_material_property(state(i), bulkfield, vfield, &
+                                          momentum_diagnostic=momentum_diagnostic)
+      end if
 
     end do
     
@@ -434,8 +329,10 @@ contains
     do i = 1, size(state)
   
       tfield => extract_tensor_field(state(i), trim(materialname), stat)
-      call add_scaled_material_property(state(i), bulkfield, tfield, &
-                                        momentum_diagnostic=momentum_diagnostic)
+      if(stat==0) then
+        call add_scaled_material_property(state(i), bulkfield, tfield, &
+                                          momentum_diagnostic=momentum_diagnostic)
+      end if
     
     end do
     
@@ -453,7 +350,7 @@ contains
     type(scalar_field) :: l_bulkfield
     
     type(vector_field), pointer :: velocity
-    real :: itheta
+    real :: theta
     integer :: stat
 
 
@@ -469,16 +366,16 @@ contains
     if(present_and_true(momentum_diagnostic)) then
       velocity => extract_vector_field(state, 'Velocity', stat=stat)
       if(stat==0) then
-        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/relaxation', &
-                        itheta, stat)
+        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/theta', &
+                        theta, stat)
         if(stat==0) then
           call allocate(remapvfrac, field%mesh, "RemppedMaterialVolumeFraction")
           
           oldvolumefraction => extract_scalar_field(state, 'OldMaterialVolumeFraction')
           call remap_field(oldvolumefraction, remapvfrac)
           
-          call scale(scaledvfrac, itheta)
-          call addto(scaledvfrac, remapvfrac, (1.-itheta))
+          call scale(scaledvfrac, theta)
+          call addto(scaledvfrac, remapvfrac, (1.-theta))
           
           call deallocate(remapvfrac)
         end if
@@ -527,7 +424,7 @@ contains
     type(vector_field) :: l_bulkfield, tempfield
 
     type(vector_field), pointer :: velocity
-    real :: itheta
+    real :: theta
     integer :: stat
 
     logical :: cap
@@ -543,16 +440,16 @@ contains
     if(present_and_true(momentum_diagnostic)) then
       velocity => extract_vector_field(state, 'Velocity', stat=stat)
       if(stat==0) then
-        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/relaxation', &
-                        itheta, stat)
+        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/theta', &
+                        theta, stat)
         if(stat==0) then
           call allocate(remapvfrac, field%mesh, "RemppedMaterialVolumeFraction")
           
           oldvolumefraction => extract_scalar_field(state, 'OldMaterialVolumeFraction')
           call remap_field(oldvolumefraction, remapvfrac)
           
-          call scale(scaledvfrac, itheta)
-          call addto(scaledvfrac, remapvfrac, (1.-itheta))
+          call scale(scaledvfrac, theta)
+          call addto(scaledvfrac, remapvfrac, (1.-theta))
           
           call deallocate(remapvfrac)
         end if
@@ -603,7 +500,7 @@ contains
     type(tensor_field) :: l_bulkfield, tempfield
 
     type(vector_field), pointer :: velocity
-    real :: itheta
+    real :: theta
     integer :: stat
 
     logical :: cap
@@ -619,16 +516,16 @@ contains
     if(present_and_true(momentum_diagnostic)) then
       velocity => extract_vector_field(state, 'Velocity', stat=stat)
       if(stat==0) then
-        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/relaxation', &
-                        itheta, stat)
+        call get_option(trim(velocity%option_path)//'/prognostic/temporal_discretisation/theta', &
+                        theta, stat)
         if(stat==0) then
           call allocate(remapvfrac, field%mesh, "RemppedMaterialVolumeFraction")
           
           oldvolumefraction => extract_scalar_field(state, 'OldMaterialVolumeFraction')
           call remap_field(oldvolumefraction, remapvfrac)
           
-          call scale(scaledvfrac, itheta)
-          call addto(scaledvfrac, remapvfrac, (1.-itheta))
+          call scale(scaledvfrac, theta)
+          call addto(scaledvfrac, remapvfrac, (1.-theta))
           
           call deallocate(remapvfrac)
         end if
@@ -821,7 +718,7 @@ contains
 
       if (stat==0) then
 
-         call calculate_material_eos(state(i), materialpressure=materialpressure)
+         call compressible_material_eos(state(i), materialpressure=materialpressure)
 
          bulkmaterialpressure%val=bulkmaterialpressure%val+volumefraction%val*materialpressure%val
 

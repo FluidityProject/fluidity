@@ -220,12 +220,6 @@ will get cut off by final_timestep</comment>
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="let_nothing_leave">
-          <surface_ids>
-            <integer_value shape="6" rank="1">8 9 10 11 12 13</integer_value>
-          </surface_ids>
-          <type name="zero_flux"/>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -436,12 +430,6 @@ will get cut off by final_timestep</comment>
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="let_nothing_leave">
-          <surface_ids>
-            <integer_value shape="6" rank="1">8 9 10 11 12 13</integer_value>
-          </surface_ids>
-          <type name="zero_flux"/>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>

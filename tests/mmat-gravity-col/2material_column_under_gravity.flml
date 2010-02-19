@@ -210,7 +210,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="whole_mesh">
           <constant>
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
@@ -292,7 +291,7 @@
                 <bound_projected_value_locally/>
                 <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
               </project_upwind_value_from_point>
-              <courant_number name="FiniteDifferenceCFLNumber"/>
+              <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>

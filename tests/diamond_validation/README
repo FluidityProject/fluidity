@@ -11,6 +11,6 @@ is invalid for your current schema.
 You can easily find out what the error is by loading the flml file yourself
 into diamond (having opened the relevant schema where necessary). It is advised
 that you make this part of your workflow before submitting updated or new flml
-files for buildbot tests, and check the alexander-gcc4 buildtest which runs
+files for buildbot tests, and check the x86_64-gcc4 buildtest which runs
 diamond_validation in the medium-test suite to verify that your flml is in fact
 valid.

@@ -692,7 +692,7 @@ contains
                                            tfield_ele, oldtfield_ele, &
                                            tfield_upwind, oldtfield_upwind, &
                                            inflow, cfl_ele, &
-                                           .false., x_ele, udotn, dt, &
+                                           udotn, &
                                            tfield_options)
 
                     ! perform the time discretisation

@@ -304,6 +304,25 @@ bulk_viscosity_algorithm =
           attribute material_phase_support { "multiple "}
        }
    )
+imposed_material_velocity_source_algorithm =
+   (
+       element algorithm {
+          attribute name { "imposed_material_velocity_source" },
+          attribute material_phase_support { "multiple "},
+          attribute depends { "VelocityAbsorption" }
+       }
+   )
+imposed_material_velocity_absorption_algorithm =
+   (
+       element algorithm {
+          attribute name { "imposed_material_velocity_absorption" },
+          attribute material_phase_support { "multiple "},
+          ## Time relaxation factor, defaults to 1 if not selected.
+          element relaxation_factor {
+            real_dim_vector
+          }?
+       }
+   )
    
 # Parallel diagnostics
 node_halo_diagnostic_algorithm =

@@ -189,7 +189,7 @@ contains
     type(vector_field), dimension(:), allocatable :: lvfields
     type(tensor_field), dimension(:), allocatable :: ltfields
     character(len = FIELD_NAME_LEN) :: field_name, mesh_name
-    integer :: i, f, counter, stat
+    integer :: i, f, counter
     logical :: multi_state
     
     ewrite(1, *) "In vtk_write_state_new_options"
@@ -304,8 +304,7 @@ contains
          model_mesh,  &
          sfields=lsfields, &
          vfields=lvfields, &
-         tfields=ltfields, &
-         stat=stat)
+         tfields=ltfields)
          
     ewrite(1, *) "Exiting vtk_write_state_new_options"
     
@@ -324,8 +323,9 @@ contains
     logical is_old_field, is_nonlinear_field, is_iterated_field
     
     if (field_name=='Time') then
-      ! Time is special, always included
-      include_scalar_field_in_vtu=.true.
+      field => extract_scalar_field(state(istate), field_name)
+      ! Time is special, always included (unless it's aliased)
+      include_scalar_field_in_vtu=.not.aliased(field)
       return
     end if
       

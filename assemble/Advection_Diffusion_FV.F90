@@ -47,6 +47,7 @@ module advection_diffusion_fv
   use upwind_stabilisation
   use sparsity_patterns, only: make_sparsity, make_sparsity_transpose
   use sparse_matrices_fields
+  use field_options
 
   implicit none
 
@@ -365,7 +366,6 @@ contains
     integer, dimension(:), pointer :: row_indices
 
     logical :: isotropic
-    integer :: isotropic_count, value_count
 
     type(scalar_field) :: MT_old
 
@@ -381,10 +381,7 @@ contains
     call zero(temprhs)
 
     ! an optimisation that reduces the number of matrix multiplies if we're isotropic
-    isotropic=.false.
-    isotropic_count = option_count(trim(diffusivity%option_path)//"/prescribed/value/isotropic")
-    value_count = option_count(trim(diffusivity%option_path)//"/prescribed/value")
-    if((value_count>0).and.(isotropic_count==value_count)) isotropic = .true.
+    isotropic = isotropic_field(diffusivity)
 
     do dim1 = 1, diffusivity%dim
       do dim2 = 1, diffusivity%dim

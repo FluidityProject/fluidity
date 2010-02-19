@@ -532,9 +532,126 @@ contains
 
   end function dshape_outer_dshape
 
+  function dshape_diagtensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
+    !!<
+    !!< Evaluate: (Grad N1)' diag(T) (Grad N2) For shape N and tensor T.
+    !!<          
+    real, dimension(:,:,:), intent(in) :: dshape1, dshape2
+    real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
+    real, dimension(size(dshape1,2)) :: detwei
+
+    real, dimension(size(dshape1,1),size(dshape2,1)) :: R
+    
+    real, dimension(size(dshape1,3),size(dshape1,2)) :: diag_tensor
+    integer :: iloc,jloc, gi
+    integer :: loc1, loc2, ngi, dim
+    
+    loc1=size(dshape1,1)
+    loc2=size(dshape2,1)
+    ngi=size(dshape1,2)
+    dim=size(dshape1,3)
+    
+    assert(loc1==loc2)
+    
+    R=0.0
+    
+    select case(dim)
+      case(3)
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                & + ( &
+                  & (dshape1(iloc,gi,1) * tensor(1,1,gi) * dshape2(jloc,gi,1)) &
+                  & + (dshape1(iloc,gi,2) * tensor(2,2,gi) * dshape2(jloc,gi,2)) &
+                  & + (dshape1(iloc,gi,3) * tensor(3,3,gi) * dshape2(jloc,gi,3)) &
+                & ) * detwei(gi)
+           end forall
+        end do
+      case(2)
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                & + ( &
+                  & (dshape1(iloc,gi,1) * tensor(1,1,gi) * dshape2(jloc,gi,1)) &
+                  & + (dshape1(iloc,gi,2) * tensor(2,2,gi) * dshape2(jloc,gi,2)) &
+                & ) * detwei(gi)
+           end forall
+        end do
+      case default
+        diag_tensor = 0.0
+        forall(iloc=1:dim)
+          diag_tensor(iloc,:) = tensor(iloc,iloc,:)
+        end forall
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                   +dot_product(dshape1(iloc,gi,:)*diag_tensor(:,gi),dshape2(jloc,gi,:))&
+                   *detwei(gi)
+           end forall
+        end do
+    end select
+
+  end function dshape_diagtensor_dshape
+
+  function dshape_vector_dshape(dshape1, vector, dshape2, detwei) result (R)
+    !!<
+    !!< Evaluate: (Grad N1)' V (Grad N2) For shape N and vector V.
+    !!<          
+    real, dimension(:,:,:), intent(in) :: dshape1, dshape2
+    real, dimension(size(dshape1,3),size(dshape1,2)), intent(in) :: vector
+    real, dimension(size(dshape1,2)) :: detwei
+
+    real, dimension(size(dshape1,1),size(dshape2,1)) :: R
+    
+    integer :: iloc,jloc, gi
+    integer :: loc1, loc2, ngi, dim
+    
+    loc1=size(dshape1,1)
+    loc2=size(dshape2,1)
+    ngi=size(dshape1,2)
+    dim=size(dshape1,3)
+    
+    assert(loc1==loc2)
+    
+    R=0.0
+    
+    select case(dim)
+      case(3)
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                & + ( &
+                  & (dshape1(iloc,gi,1) * vector(1,gi) * dshape2(jloc,gi,1)) &
+                  & + (dshape1(iloc,gi,2) * vector(2,gi) * dshape2(jloc,gi,2)) &
+                  & + (dshape1(iloc,gi,3) * vector(3,gi) * dshape2(jloc,gi,3)) &
+                & ) * detwei(gi)
+           end forall
+        end do
+      case(2)
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                & + ( &
+                  & (dshape1(iloc,gi,1) * vector(1,gi) * dshape2(jloc,gi,1)) &
+                  & + (dshape1(iloc,gi,2) * vector(2,gi) * dshape2(jloc,gi,2)) &
+                & ) * detwei(gi)
+           end forall
+        end do
+      case default
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                   +dot_product(dshape1(iloc,gi,:)*vector(:,gi),dshape2(jloc,gi,:))&
+                   *detwei(gi)
+           end forall
+        end do
+    end select
+
+  end function dshape_vector_dshape
+
   function dshape_tensor_dshape(dshape1, tensor, dshape2, detwei) result (R)
     !!<
-    !!< Evaluate: (Grad N1)' tau (Grad N2) For shape N and tensor T.
+    !!< Evaluate: (Grad N1)' T (Grad N2) For shape N and tensor T.
     !!<          
     real, dimension(:,:,:), intent(in) :: dshape1, dshape2
     real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
@@ -553,7 +670,7 @@ contains
     assert(loc1==loc2)
     
     R=0.0
-
+    
     do gi=1,ngi
        forall(iloc=1:loc1,jloc=1:loc2)
           r(iloc,jloc)=r(iloc,jloc) &

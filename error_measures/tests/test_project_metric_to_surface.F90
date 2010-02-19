@@ -20,7 +20,7 @@ subroutine test_project_metric_to_surface
   real, dimension(1, 1) :: value
 
   call set_option("/geometry/quadrature/degree", 4, stat=stat)
-  call set_option("/geometry/mesh::CoordinateMesh/from_mesh/extrude/bottom_depth", 1.0, stat=stat)
+  call set_option("/geometry/mesh::CoordinateMesh/from_mesh/extrude/bottom_depth/constant", 1.0, stat=stat)
   call set_option("/geometry/mesh::CoordinateMesh/from_mesh/extrude/sizing_function/constant", 0.5, stat=stat)
 
   call compute_z_nodes(h_mesh, 1.0, (/0.0, 0.0/), sizing=0.5)

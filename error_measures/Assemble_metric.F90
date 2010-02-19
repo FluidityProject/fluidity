@@ -46,7 +46,7 @@ module metric_assemble
 
     integer :: i, stat
 
-    type(vector_field), pointer :: positions, velocity
+    type(vector_field), pointer :: positions
     integer, save :: adaptcnt = 0
     character(len=20) :: buf
     logical :: debug_metric, vertically_structured_adaptivity
@@ -66,8 +66,6 @@ module metric_assemble
       positions => extract_vector_field(state(i), "Coordinate", stat=stat)
       if (stat == 0) exit
     end do
-
-    velocity => extract_vector_field(state(1), "Velocity", stat=stat)
 
     max_tensor => extract_tensor_field(state(1), "MinMetricEigenbound")
 

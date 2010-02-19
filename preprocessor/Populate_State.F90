@@ -638,6 +638,7 @@ contains
     integer:: n_periodic_bcs
     integer:: j
     logical :: fiddled_with_faces
+    integer :: stat
     
     lfrom_mesh=from_mesh
     
@@ -667,8 +668,15 @@ contains
          call incref(from_position)
        else
          call allocate(from_position, position%dim, lfrom_mesh, "ModelPositions")
-         call remap_field(position, from_position)
+         call remap_field(position, from_position, stat=stat)
+         if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+           FLAbort("Just remapped from a discontinuous to a continuous field!")
+         else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+           FLAbort("Just remapped from a higher order to a lower order continuous field!")
+         end if
+         ! we've allowed it to remap from periodic to unperiodic
        end if
+
        fiddled_with_faces = .false.
        if (.not. has_faces(lfrom_mesh)) then
          lfrom_mesh%faces => from_mesh%faces
@@ -1159,6 +1167,23 @@ contains
     end do state_loop
 
     ! special case fields outside material_phases:
+    ! distance to top and bottom
+    if (have_option('/geometry/ocean_boundaries')) then
+    
+       sfield = extract_scalar_field(states(1), 'DistanceToTop')
+       sfield%aliased = .true.
+       do i = 1,nstates-1
+          call insert(states(i+1), sfield, 'DistanceToTop')
+       end do
+       
+       sfield = extract_scalar_field(states(1), 'DistanceToBottom')
+       sfield%aliased = .true.
+       do i = 1,nstates-1
+          call insert(states(i+1), sfield, 'DistanceToBottom')
+       end do
+
+    end if
+
     ! direction of gravity
     if (have_option('/physical_parameters/gravity/vector_field::GravityDirection')) then
        vfield=extract_vector_field(states(1), 'GravityDirection')
@@ -1614,7 +1639,7 @@ contains
 
     call get_option(trim(path)//"/name", field_name)
     if(present(parent_name)) then
-       if(trim(field_name)/="Viscosity".and.trim(field_name)/="Elasticity") then
+       if(trim(field_name)/="Viscosity") then
           field_name=trim(parent_name)//trim(field_name)
        end if
     end if
@@ -1800,7 +1825,7 @@ contains
   end function defer_allocation
   
   subroutine set_prescribed_field_values(states, &
-    exclude_interpolated, exclude_nonreprescribed, initial_mesh)
+    exclude_interpolated, exclude_nonreprescribed, initial_mesh, time)
 
     type(state_type), dimension(:), intent(in):: states
     !! don't prescribe the fields with interpolation options
@@ -1811,6 +1836,8 @@ contains
     !! the fields with needs_initial_mesh(field) are left untouched, they have to
     !! be interpolated (somewhere else)
     logical, intent(in), optional:: initial_mesh
+    !! current time if not using that in the options tree
+    real, intent(in), optional :: time
 
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
@@ -1847,7 +1874,7 @@ contains
              call zero(sfield)
              call initialise_field_over_regions(sfield, &
                 trim(sfield%option_path)//'/prescribed/value', &
-                position)
+                position, time=time)
           end if
        end do
 
@@ -1868,7 +1895,7 @@ contains
              call zero(vfield)
              call initialise_field_over_regions(vfield, &
                 trim(vfield%option_path)//'/prescribed/value', &
-                position)
+                position, time=time)
           end if
        end do
          
@@ -1889,7 +1916,7 @@ contains
              call zero(tfield)
              call initialise_field_over_regions(tfield, &
                 trim(tfield%option_path)//'/prescribed/value', &
-                position)
+                position, time=time)
           end if
        end do
        
@@ -2547,8 +2574,6 @@ contains
     case ("fluids")
     case ("oceans")
        call check_ocean_options
-    case ("solids")
-       call check_solid_options
     case ("multimaterial")
        call check_multimaterial_options
     case ("porous_media")
@@ -2932,9 +2957,8 @@ contains
     integer :: neos, nmat, i
     logical :: have_vfrac, have_dens
     
-    integer :: cohesion_count, diagnosticvolumefraction_count, density_count, &
-               frictionangle_count, viscosity_count, surfacetension_count, &
-               elasticity_count
+    integer :: diagnosticvolumefraction_count, density_count, &
+               viscosity_count, surfacetension_count
 
     neos = option_count("/material_phase/equation_of_state/multimaterial")
     nmat = option_count("/material_phase")
@@ -2972,22 +2996,6 @@ contains
       FLExit("Only 1 diagnostic bulk Density is allowed")
     end if
 
-    frictionangle_count = option_count('/material_phase/&
-                &vector_field::Velocity/prognostic&
-                &/scalar_field::FrictionAngle/diagnostic')
-    if(frictionangle_count>1) then
-      ewrite(-1,*) frictionangle_count, 'diagnostic bulk FrictionAngles.'
-      FLExit("Only 1 diagnostic bulk FrictionAngle is allowed")
-    end if
-
-    cohesion_count = option_count('/material_phase/&
-                &vector_field::Velocity/prognostic&
-                &/scalar_field::Cohesion/diagnostic')
-    if(cohesion_count>1) then
-      ewrite(-1,*) cohesion_count, 'diagnostic bulk Cohesions.'
-      FLExit("Only 1 diagnostic bulk Cohesion is allowed")
-    end if
-
     viscosity_count = option_count('/material_phase/&
                 &vector_field::Velocity/prognostic/&
                 &tensor_field::Viscosity/diagnostic')
@@ -2996,14 +3004,6 @@ contains
       FLExit("Only 1 diagnostic bulk Viscosity is allowed")
     end if
 
-    elasticity_count = option_count('/material_phase/&
-                &vector_field::Velocity/prognostic&
-                &/tensor_field::Elasticity/diagnostic')
-    if(elasticity_count>1) then
-      ewrite(-1,*) elasticity_count, 'diagnostic bulk Elasticities.'
-      FLExit("Only 1 diagnostic bulk Elasticity is allowed")
-    end if
-    
     surfacetension_count = option_count('/material_phase/&
                 &vector_field::Velocity/prognostic&
                 &/tensor_field::SurfaceTension/diagnostic')
@@ -3013,46 +3013,6 @@ contains
     end if
 
   end subroutine check_multimaterial_options
-
-  subroutine check_solid_options()
-
-    integer :: nmat, i, counter
-
-    nmat = option_count("/material_phase")
-
-    do i = 0, nmat-1
-       if(have_option("/material_phase["//int2str(i)//&
-            "]/vector_field::Velocity/prognostic")) then
-          if(.not.have_option("/material_phase["//int2str(i)//&
-            "]/vector_field::Displacement")) then
-            FLExit("Displacement field required for solid problems.")
-          end if
-          if(.not.have_option("/material_phase["//int2str(i)//&
-            "]/vector_field::Velocity/prognostic/tensor_field::Elasticity")) then
-            FLExit("Elasticity field required for solid problems.")
-          end if
-          if(have_option("/material_phase["//int2str(i)//&
-            "]/vector_field::Velocity/prognostic/tensor_field::Elasticity")) then
-            counter = option_count("/material_phase["//int2str(i)//&
-                       "/vector_field::Velocity/prognostic/tensor_field::Elasticity/prescribed/value/isotropic")
-            if(counter/=option_count("/material_phase["//int2str(i)//&
-                       "/vector_field::Velocity/prognostic/tensor_field::Elasticity/prescribed/value")) then
-              FLExit("Elasticity must be isotropic for solid problems.")
-            end if
-          end if
-          if(have_option("/material_phase["//int2str(i)//&
-            "]/vector_field::Velocity/prognostic/tensor_field::Viscosity")) then
-            counter = option_count("/material_phase["//int2str(i)//&
-                       "/vector_field::Velocity/prognostic/tensor_field::Viscosity/prescribed/value/isotropic")
-            if(counter/=option_count("/material_phase["//int2str(i)//&
-                       "/vector_field::Velocity/prognostic/tensor_field::Viscosity/prescribed/value")) then
-              FLExit("Viscosity must be isotropic for solid problems.")
-            end if
-          end if
-       end if
-    end do
-
-  end subroutine check_solid_options
 
   subroutine check_porous_media_options
 

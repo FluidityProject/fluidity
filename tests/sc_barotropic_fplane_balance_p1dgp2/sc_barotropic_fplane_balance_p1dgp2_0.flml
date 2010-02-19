@@ -179,7 +179,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="Stagnant">
           <region_ids>
             <integer_value shape="1" rank="1">1</integer_value>

@@ -104,7 +104,7 @@ contains
     character(len = *), intent(in) :: filename
     
     INTEGER :: &
-         & NPHASE,NTSOL,  &
+         & NTSOL,  &
          & nonlinear_iterations
 
     REAL :: &
@@ -120,12 +120,10 @@ contains
     integer :: dump_no = 0
     !     Temporary buffer for any string options which may be required.
     character(len=OPTION_PATH_LEN) :: option_buffer
-    !     Status variable for option retrieval.
-    integer :: option_stat
 
     REAL :: CHANGE,CHAOLD
 
-    integer :: i, it, itp, its
+    integer :: i, it, its
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -147,7 +145,6 @@ contains
 
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
-    logical::use_electrical_potential_solver=.false.  !jhs 05/05/2009
 
     INTEGER :: adapt_count
 
@@ -184,26 +181,29 @@ contains
 
        call adapt_state_first_timestep(state)
    
-       call enforce_discrete_properties(state)
-       ! Auxilliary fields. Note that these must be generated *after* enforcing
-       ! discrete properties.
+       ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
+       call copy_to_stored_values(state,"Old")
+       call copy_to_stored_values(state,"Iterated")
+       call relax_to_nonlinear(state)
        
+       call enforce_discrete_properties(state)
        if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
     else
-       call enforce_discrete_properties(state)
-       ! Auxilliary fields. Note that these must be generated *after* enforcing
-       ! discrete properties.
+       ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
+       call copy_to_stored_values(state,"Old")
+       call copy_to_stored_values(state,"Iterated")
+       call relax_to_nonlinear(state)
+
+       call enforce_discrete_properties(state)
     end if
 
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
     call get_ntsol(ntsol)
-    call get_nphase(nphase)
 
     call initialise_field_lists_from_options(state, ntsol)
-    call initialise_state_phase_lists_from_options()
 
     call check_old_code_path()
 
@@ -390,6 +390,13 @@ contains
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
+       
+       ! evaluate prescribed fields at time = current_time+dt
+       call set_prescribed_field_values(state, exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=current_time+dt)
+       call enforce_discrete_properties(state, only_prescribed=.true., &
+            exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true.)
 
        ! nonlinear_iterations=maximum no of iterations within a time step
        ! NB TEMPT is T from previous iteration.
@@ -452,8 +459,6 @@ contains
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
 
-             ITP=STATE2PHASE_INDEX(FIELD_STATE_LIST(IT))
-
              ! do we have the generic length scale vertical turbulence model?
              if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
                 if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
@@ -466,27 +471,18 @@ contains
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
-                  option_buffer, stat=option_stat)
-             if (option_stat==0) then
-                select case(trim(option_buffer))
-                case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy" )
-                   use_advdif=.true.
-                case ( "ElectricalPotential" )
-                   use_advdif=.false.
-                   use_electrical_potential_solver=.true.
-                case default
-                   use_advdif=.false.
-                end select
-             else
+                  option_buffer, default="UnknownEquationType")
+             select case(trim(option_buffer))
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy" )
+                use_advdif=.true.
+             case default
                 use_advdif=.false.
-             end if
+             end select
 
-             IF(((ITP.GE.1).OR.(NPHASE.LE.1)).AND.(use_advdif))THEN
+             IF(use_advdif)THEN
 
-                ITP=MAX(1,ITP)
-
-                if(have_option("/traffic_model/scalar_field::TrafficTracerTemplate"))then
-                   call traffic_tracer(it,state(1),timestep)
+                if(starts_with(trim(field_name_list(it)), "TrafficTracer")) then
+                   call traffic_tracer(trim(field_name_list(it)),state(field_state_list(it)),timestep)
                 endif
                 
                 sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))
@@ -504,14 +500,14 @@ contains
 
                    ! Solve the DG form of the equations.
                    call solve_advection_diffusion_dg(field_name=field_name_list(it), &
-                        & state=state(state2phase_index(field_state_list(it))))
+                        & state=state(field_state_list(it)))
 
                 ELSEIF(have_option(trim(field_optionpath_list(it))//&
                      & "/prognostic/spatial_discretisation/finite_volume")) then
 
                    ! Solve the FV form of the equations.
                    call solve_advection_diffusion_fv(field_name=field_name_list(it), &
-                        & state=state(state2phase_index(field_state_list(it))))
+                        & state=state(field_state_list(it)))
 
                 ELSEIF(have_option(trim(field_optionpath_list(it))//&
                      & "/prognostic/spatial_discretisation/control_volumes")) then
@@ -524,7 +520,7 @@ contains
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
-                   call solve_field_equation_cg(field_name_list(it), state(state2phase_index(field_state_list(it))), dt)
+                   call solve_field_equation_cg(field_name_list(it), state(field_state_list(it)), dt)
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."
@@ -620,11 +616,6 @@ contains
        call set_option("/timestepping/timestep", dt)
        call set_option("/timestepping/current_time", current_time)
 
-       call set_prescribed_field_values(state, exclude_interpolated=.true., &
-            exclude_nonreprescribed=.true.)
-       call enforce_discrete_properties(state, only_prescribed=.true., &
-            exclude_interpolated=.true., &
-            exclude_nonreprescribed=.true.)
        ! if strong bc or weak that overwrite then enforce the bc on the fields
        ! (should only do something for weak bcs with that options switched on)
        call set_dirichlet_consistent(state)
@@ -763,11 +754,14 @@ contains
       call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
     end if
     
+    ! Auxilliary fields.
+    call allocate_and_insert_auxilliary_fields(state)
+    call copy_to_stored_values(state,"Old")
+    call copy_to_stored_values(state,"Iterated")
+    call relax_to_nonlinear(state)
+
     ! Discrete properties
     call enforce_discrete_properties(state)
-    ! Auxilliary fields. Note that these must be generated *after* enforcing
-    ! discrete properties.
-    call allocate_and_insert_auxilliary_fields(state)
 
     ! Timestep adapt
     if(have_option("/timestepping/adaptive_timestep")) then

@@ -393,6 +393,35 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="imposed_material_velocity_source_algorithm">
+    <element name="algorithm">
+      <attribute name="name">
+        <value>imposed_material_velocity_source</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple </value>
+      </attribute>
+      <attribute name="depends">
+        <value>VelocityAbsorption</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="imposed_material_velocity_absorption_algorithm">
+    <element name="algorithm">
+      <attribute name="name">
+        <value>imposed_material_velocity_absorption</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple </value>
+      </attribute>
+      <optional>
+        <element name="relaxation_factor">
+          <a:documentation>Time relaxation factor, defaults to 1 if not selected.</a:documentation>
+          <ref name="real_dim_vector"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <!-- Parallel diagnostics -->
   <define name="node_halo_diagnostic_algorithm">
     <element name="algorithm">

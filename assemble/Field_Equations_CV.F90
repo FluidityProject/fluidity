@@ -37,6 +37,7 @@ module field_equations_cv
   use cv_shape_functions
   use cv_faces
   use cvtools
+  use cv_fields
   use cv_upwind_values
   use cv_face_values
   use diagnostic_fields, only: calculate_diagnostic_variable
@@ -52,13 +53,13 @@ module field_equations_cv
                                 transform_cvsurf_facet_to_physical
   use parallel_tools, only: getprocno
   use halos
-  use field_options, only: get_coordinate_field, convergence_norm_integer
+  use field_options
   use state_fields_module
 
   implicit none
 
   private
-  public :: advection_diffusion_eqn_cv, solve_field_eqn_cv, field_equations_cv_check_options, &
+  public :: solve_field_eqn_cv, field_equations_cv_check_options, &
             initialise_advection_convergence, calculate_auxiliary_gradient, coupled_cv_field_eqn, &
             assemble_advectiondiffusion_m_cv
 
@@ -139,7 +140,8 @@ contains
       ! t_cvshape_full contains the derivatives with respect to the parent
       ! elements canonical coordinates evaluated at the control volume faces
       ! t_cvbdyshape_full is the same but on the boundary
-      type(element_type) :: t_cvshape, t_cvshape_full, t_cvbdyshape_full
+      type(element_type) :: t_cvshape, t_cvshape_full, diff_cvshape_full, &
+                                       t_cvbdyshape_full, diff_cvbdyshape_full
 
       ! options wrappers for tfield and tdensity
       type(cv_options_type) :: tfield_options, tdensity_options
@@ -154,8 +156,6 @@ contains
       integer :: stat, i
       ! the courant number field
       type(scalar_field) :: cfl_no
-      ! finite different cfl no?
-      logical :: fdcflno
       ! nonlinear and grid velocities
       type(vector_field), pointer :: nu, ug
       ! advection velocity
@@ -192,6 +192,8 @@ contains
       it_tfield=>extract_scalar_field(state(1), "Iterated"//trim(field_name))
       ! and set tfield to them:
       call set(tfield, it_tfield)
+      ewrite_minmax(tfield%val)
+      ewrite_minmax(oldtfield%val)
 
       ! allocate dummy density in case density field isn't needed (this can be a constant field!)
       allocate(dummydensity)
@@ -200,25 +202,25 @@ contains
       dummydensity%option_path = " "
 
       ! find out equation type and hence if density is needed or not
-      call get_option(trim(option_path)//'/prognostic/equation[0]/name', &
-                      tmpstring)
-      equation_type=cv_equation_integer(tmpstring)
+      equation_type=equation_type_index(trim(option_path))
       select case(equation_type)
-      case(CV_EQUATION_ADVECTIONDIFFUSION)
+      case(FIELD_EQUATION_ADVECTIONDIFFUSION)
         ! density not needed so use a constant field for assembly
         tdensity=>dummydensity
         oldtdensity=>dummydensity
-      case(CV_EQUATION_CONSERVATIONOFMASS, CV_EQUATION_REDUCEDCONSERVATIONOFMASS, &
-           CV_EQUATION_INTERNALENERGY )
+      case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, &
+           FIELD_EQUATION_INTERNALENERGY )
         call get_option(trim(option_path)//'/prognostic/equation[0]/density[0]/name', &
                         tmpstring)
         ! density needed so extract the type specified in the input
         ! ?? are there circumstances where this should be "Iterated"... need to be
         ! careful with priority ordering
         tdensity=>extract_scalar_field(state(1), trim(tmpstring))
+        ewrite_minmax(tdensity%val)
         ! halo exchange? - not currently necessary when suboptimal halo exchange if density
         ! is solved for with this subroutine and the correct priority ordering.
         oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
+        ewrite_minmax(oldtdensity%val)
       end select
 
       ! now we can get the options for these fields
@@ -267,9 +269,17 @@ contains
       dummyscalar%option_path = " "
 
       source=>extract_scalar_field(state(1), trim(field_name)//"Source", stat=stat)
-      if(stat/=0) source=>dummyscalar
+      if(stat/=0) then
+        source=>dummyscalar
+      else
+        ewrite_minmax(source%val)
+      end if
       absorption=>extract_scalar_field(state(1), trim(field_name)//"Absorption", stat=stat)
-      if(stat/=0) absorption=>dummyscalar
+      if(stat/=0) then
+        absorption=>dummyscalar
+      else
+        ewrite_minmax(absorption%val)
+      end if
 
       ! create control volume shape functions
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
@@ -290,21 +300,29 @@ contains
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
         t_cvshape_full=make_cv_element_shape(cvfaces, tfield%mesh%shape%degree, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
+        diff_cvshape_full=make_cv_element_shape(cvfaces, diffusivity%mesh%shape%degree, &
+                                        type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
 
         x_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
         t_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, tfield%mesh%shape%degree, &
                                         type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
+        diff_cvbdyshape_full=make_cvbdy_element_shape(cvfaces, diffusivity%mesh%shape%degree, &
+                                        type=ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
       else
         x_cvshape_full=x_cvshape
         t_cvshape_full=t_cvshape
+        diff_cvshape_full=t_cvshape
         x_cvbdyshape_full=x_cvbdyshape
         t_cvbdyshape_full=x_cvbdyshape
+        diff_cvbdyshape_full=x_cvbdyshape
 
         call incref(x_cvshape_full)
         call incref(t_cvshape_full)
+        call incref(diff_cvshape_full)
         call incref(x_cvbdyshape_full)
         call incref(t_cvbdyshape_full)
+        call incref(diff_cvbdyshape_full)
       end if
 
       ! is this explicit?
@@ -316,8 +334,9 @@ contains
       ! allocate and retrieve the cfl no. if necessary
       option_path_array(1) = trim(option_path)  ! temporary hack for
       density_option_path_array(1) = trim(tdensity%option_path) ! compiler failure
-      call get_cfl_no(option_path_array, density_option_path_array, &
-                      state(1), tfield%mesh, cfl_no, fdcflno)
+      call cv_disc_get_cfl_no(option_path_array, &
+                      state(1), tfield%mesh, cfl_no, &
+                      density_option_path_array)
 
       ! get the mesh sparsity for the matrices
       if(diffusion.and.(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY)) then
@@ -485,14 +504,15 @@ contains
                                       tdensity, oldtdensity, tdensity_options, &
                                       cvfaces, x_cvshape, x_cvbdyshape, &
                                       u_cvshape, u_cvbdyshape, t_cvshape, &
-                                      state, advu, x, x_tfield, cfl_no, fdcflno, &
+                                      state, advu, x, x_tfield, cfl_no, &
                                       getadvmat, sub_dt, &
                                       mesh_sparsity_x, &
                                       diffusion=diffusion, getdiffmat=getdiffmat, &
                                       diffusivity=diffusivity, q_lumpedmass=q_lumpedmass, &
                                       D_m=D_m, diff_rhs=diff_rhs, grad_m_t_sparsity=grad_m_t_sparsity, &
                                       x_cvshape_full=x_cvshape_full, x_cvbdyshape_full=x_cvbdyshape_full, &
-                                      t_cvshape_full=t_cvshape_full, t_cvbdyshape_full=t_cvbdyshape_full)
+                                      t_cvshape_full=t_cvshape_full, diff_cvshape_full=diff_cvshape_full, &
+                                      t_cvbdyshape_full=t_cvbdyshape_full, diff_cvbdyshape_full=diff_cvbdyshape_full)
 
           ! assemble it all into a coherent equation
           call assemble_field_eqn_cv(M, A_m, lumpedmass, rhs, &
@@ -554,7 +574,9 @@ contains
       call deallocate(u_cvshape)
       call deallocate(t_cvshape)
       call deallocate(t_cvshape_full)
+      call deallocate(diff_cvshape_full)
       call deallocate(t_cvbdyshape_full)
+      call deallocate(diff_cvbdyshape_full)
       call deallocate(cvfaces)
       call deallocate(advu)
       call deallocate(dummydensity)
@@ -724,8 +746,6 @@ contains
       integer, dimension(nfields) :: cfl_sub_stat
       ! the courant number field
       type(scalar_field) :: cfl_no
-      ! finite different cfl no?
-      logical :: fdcflno
       ! nonlinear and grid velocities
       type(vector_field), pointer :: nu, ug
       ! advection velocity
@@ -799,16 +819,14 @@ contains
         call set(tfield(f)%ptr, it_tfield)
         
         ! find out equation type and hence if density is needed or not
-        call get_option(trim(option_path(f))//'/prognostic/equation[0]/name', &
-                        tmpstring)
-        equation_type=cv_equation_integer(tmpstring)
+        equation_type=equation_type_index(trim(option_path(f)))
         select case(equation_type)
-        case(CV_EQUATION_ADVECTIONDIFFUSION)
+        case(FIELD_EQUATION_ADVECTIONDIFFUSION)
           ! density not needed so use a constant field for assembly
           tdensity(f)%ptr=>dummydensity
           oldtdensity(f)%ptr=>dummydensity
-        case(CV_EQUATION_CONSERVATIONOFMASS, CV_EQUATION_REDUCEDCONSERVATIONOFMASS, &
-            CV_EQUATION_INTERNALENERGY )
+        case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, &
+            FIELD_EQUATION_INTERNALENERGY )
           call get_option(trim(option_path(f))//'/prognostic/equation[0]/density[0]/name', &
                           tmpstring)
           ! density needed so extract the type specified in the input
@@ -877,8 +895,9 @@ contains
       call get_option("/timestepping/current_time", time) ! so it can be output in the convergence file
 
       ! allocate and retrieve the cfl no. if necessary
-      call get_cfl_no(option_path, tdensity_option_path, &
-                      state(state_indices(1)), tfield(1)%ptr%mesh, cfl_no, fdcflno)
+      call cv_disc_get_cfl_no(option_path, &
+                      state(state_indices(1)), tfield(1)%ptr%mesh, cfl_no, &
+                      tdensity_option_path)
 
       ! get the mesh sparsity for the matrices
       mesh_sparsity => get_csr_sparsity_firstorder(state, tfield(1)%ptr%mesh, tfield(1)%ptr%mesh)
@@ -1030,7 +1049,7 @@ contains
                                       tdensity, oldtdensity, tdensity_options, &
                                       cvfaces, x_cvshape, x_cvbdyshape, &
                                       u_cvshape, u_cvbdyshape, t_cvshape, &
-                                      state, advu, x, x_tfield, cfl_no, fdcflno, &
+                                      state, advu, x, x_tfield, cfl_no, &
                                       getmat, sub_dt, &
                                       mesh_sparsity_x)
 
@@ -1213,14 +1232,12 @@ contains
       call scale(massabsorption, absorption)
 
       ! find out equation type and hence if density is needed or not
-      call get_option(trim(tfield%option_path)//'/prognostic/equation[0]/name', &
-                      tmpstring)
-      equation_type=cv_equation_integer(tmpstring)
+      equation_type=equation_type_index(trim(tfield%option_path))
       ! now we need to incorporate A_m into M and turn the equation into
       ! rate of change form (as well as adding in any extra terms for InternalEnergy
       ! for instance)
       select case(equation_type)
-      case (CV_EQUATION_ADVECTIONDIFFUSION)
+      case (FIELD_EQUATION_ADVECTIONDIFFUSION)
 
         ! [M + A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
 
@@ -1252,7 +1269,7 @@ contains
           end if
         end if
 
-      case (CV_EQUATION_CONSERVATIONOFMASS)
+      case (FIELD_EQUATION_CONSERVATIONOFMASS)
 
         ! [\rho^{n+1}M + dt*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n} - M*(\rho^{n+1}-\rho^{n})*T^{n}/dt
 
@@ -1290,7 +1307,7 @@ contains
         call scale(massabsorption, oldtfield)
         call addto(rhs, massabsorption, -1.0)
 
-      case (CV_EQUATION_REDUCEDCONSERVATIONOFMASS)
+      case (FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS)
 
         ! [\rho^{n}M + dt*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
 
@@ -1318,14 +1335,15 @@ contains
         call scale(massabsorption, oldtfield)
         call addto(rhs, massabsorption, -1.0)
 
-      case (CV_EQUATION_INTERNALENERGY)
+      case (FIELD_EQUATION_INTERNALENERGY)
 
         ! [\rho^{n+1}M + dt*A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n} - (p+atm_p)*CT_m*u
 
         ! construct rhs
         p=>extract_scalar_field(state(1), "Pressure")
+        ewrite_minmax(p%val)
         assert(p%mesh==tfield%mesh)
-        ! halo exchange? not currently necessary as it is done straight after solve in ctyexa.F90
+        ! halo exchange not necessary as it is done straight after solve
         call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', &
                               atmospheric_pressure, default=0.0)
         gradient_sparsity => get_csr_sparsity_firstorder(state, p%mesh, advu%mesh)
@@ -1372,224 +1390,6 @@ contains
       call deallocate(MT_old)
 
     end subroutine assemble_field_eqn_cv
-
-    subroutine advection_diffusion_eqn_cv(M, A_m, rhs, &
-                                    tfield, state, &
-                                    getmat, dt, &
-                                    reference_field)
-
-      ! This subroutine is a backwards compatibility link to
-      ! advdif.
-
-      ! This subroutine assembles the equation
-      ! M(T^{n+1}-T^{n})/\Delta T = rhs
-      ! for control volumes.
-      ! By the time you get here M should already contain the mass
-      ! components and diffusional components of the equation.
-
-      ! inputs/outputs:
-      ! lhs matrix
-      type(csr_matrix), intent(inout) :: M
-      ! matrix containing advective terms - to be incorporated
-      ! into M during this subroutine
-      type(csr_matrix), intent(inout) :: A_m
-      ! rhs of equation
-      type(scalar_field), intent(inout) :: rhs
-      ! the field we are solving for
-      type(scalar_field), intent(inout), target :: tfield
-      ! bucket full of fields
-      type(state_type), dimension(:), intent(inout) :: state
-      ! do we need to assemble A_m or is it present from a previous
-      ! iteration
-      logical, intent(in) :: getmat
-      ! the timestep
-      real, intent(in) :: dt
-      ! an optional reference field in case tfield has no options
-      ! path or bcs (this is for back compatibility as advdif uses locally
-      ! wrapped fields to iterate around)
-      type(scalar_field), pointer, optional :: reference_field
-
-      ! local memory:
-      ! some other fields we'll need to get from state
-      type(scalar_field), pointer :: oldtfield, tdensity, oldtdensity
-      ! the options for the fields (handily wrapped in a type)
-      type(cv_options_type) :: tfield_options, tdensity_options
-      ! the nonlinear velocity, grid velocity and coordinates
-      type(vector_field), pointer :: nu, ug, x
-      type(vector_field) :: x_tfield
-      ! advection velocity
-      type(vector_field) :: advu
-      ! product of A_m and oldtfield
-      type(scalar_field) :: A_mT_old
-
-      ! a dummydensity field so assembly is the same for all equation types
-      type(scalar_field), pointer :: dummydensity
-
-      ! self explanatory strings
-      character(len=FIELD_NAME_LEN) :: field_name, tmpstring
-      integer :: equation_type
-
-      ! courant number stuff
-      logical :: fdcflno
-      ! courant number
-      type(scalar_field) :: cfl_no
-
-      ! some control volume shape function stuff:
-      integer :: quaddegree ! degree of quadrature on each control volume face
-      type(cv_faces_type) :: cvfaces
-      type(element_type) :: x_cvshape, x_cvbdyshape
-      type(element_type) :: u_cvshape, u_cvbdyshape
-      type(element_type) :: t_cvshape
-
-      type(csr_sparsity), pointer :: mesh_sparsity, mesh_sparsity_x
-      
-      ! for back compatibility:
-      ! a local option path (may be from the reference field or the actual field, tfield
-      character(len=OPTION_PATH_LEN) :: l_option_path
-      ! a local reference field (may be the reference field or the actualy field, tfield
-      type(scalar_field), pointer :: l_reference_field
-
-      !! Gravitational sinking term
-      type(scalar_field), pointer :: sink
-      !! Direction of gravity
-      type(vector_field), pointer :: gravity
-
-      !! Success indicator
-      integer :: stat
-
-      ! temporary hack to get around compiler failure to construct arrays of characters
-      character(len=OPTION_PATH_LEN), dimension(1) :: option_path_array
-      character(len=OPTION_PATH_LEN), dimension(1) :: density_option_path_array
-
-      ! deal with optional arguments
-      if(present(reference_field)) then
-        l_reference_field=>reference_field
-        l_option_path = trim(reference_field%option_path)
-      else
-        l_reference_field=>tfield
-        l_option_path = trim(tfield%option_path)
-      end if
-
-      mesh_sparsity => get_csr_sparsity_firstorder(state, tfield%mesh, tfield%mesh)
-
-      call get_option(trim(l_option_path)//"/name", field_name)
-      ! extract some fields that we may need:
-      ! the previous time level
-      oldtfield=>extract_scalar_field(state(1), "Old"//trim(field_name))
-
-      ! allocate dummy density in case density field isn't needed (this can be a constant field!)
-      allocate(dummydensity)
-      call allocate(dummydensity, tfield%mesh, name="DummyDensity", field_type=FIELD_TYPE_CONSTANT)
-      call set(dummydensity, 1.0)
-      dummydensity%option_path=" "
-
-      ! find out equation type and hence if density is needed or not
-      call get_option(trim(l_option_path)//'/prognostic/equation[0]/name', &
-                      tmpstring)
-      equation_type=cv_equation_integer(tmpstring)
-      select case(equation_type)
-      case(CV_EQUATION_ADVECTIONDIFFUSION)
-        ! density not needed so use a constant field for assembly
-        tdensity=>dummydensity
-        oldtdensity=>dummydensity
-      case default
-        ewrite(-1,*) "advection_diffusion_eqn_cv is intended as a back compatibility link"
-        FLAbort("the selected equation type is not compatible with this legacy code path")
-      end select
-
-      ! now we can get the options for these fields
-      tfield_options=get_cv_options(l_option_path, l_reference_field%mesh%shape%numbering%family)
-      tdensity_options=get_cv_options(tdensity%option_path, tdensity%mesh%shape%numbering%family)
-
-      ! extract fields from state
-      nu=>extract_vector_field(state(1), "NonlinearVelocity")
-      ug=>extract_vector_field(state(1), "GridVelocity")
-      x=>extract_vector_field(state(1), "Coordinate")
-      x_tfield=get_coordinate_field(state(1), tfield%mesh)
-
-      if(mesh_periodic(tfield)) then
-        if((tfield_options%upwind_scheme==CV_UPWINDVALUE_PROJECT_POINT).or.&
-          (tfield_options%upwind_scheme==CV_UPWINDVALUE_PROJECT_GRAD)) then
-          mesh_sparsity_x => get_csr_sparsity_firstorder(state, x_tfield%mesh, x_tfield%mesh)
-        else
-          mesh_sparsity_x => mesh_sparsity
-        end if
-      else
-        mesh_sparsity_x => mesh_sparsity
-      end if
-
-      ! find relative velocity
-      call allocate(advu, nu%dim, nu%mesh, "RelativeVelocity")
-      call set(advu, nu)
-      call addto(advu, ug, -1.0)
-
-      ! add in sinking velocity
-      sink=>extract_scalar_field(state(1), trim(field_name)//"SinkingVelocity"&
-           &, stat=stat)
-      if(stat==0) then
-        gravity=>extract_vector_field(state(1), "GravityDirection")
-        call addto(advu, gravity, scale=sink)
-      end if
-
-      ! create control volume shape functions
-      call get_option("/geometry/quadrature/controlvolume_surface_degree", &
-                     quaddegree, default=1)
-      cvfaces=find_cv_faces(vertices=ele_vertices(l_reference_field, 1), &
-                            dimension=l_reference_field%mesh%shape%dim, &
-                            polydegree=l_reference_field%mesh%shape%degree, &
-                            quaddegree=quaddegree)
-
-      x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape%degree)
-      u_cvshape=make_cv_element_shape(cvfaces, nu%mesh%shape%degree)
-      t_cvshape=make_cv_element_shape(cvfaces, tfield%mesh%shape%degree)
-      x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-      u_cvbdyshape=make_cvbdy_element_shape(cvfaces, nu%mesh%faces%shape%degree)
-
-      ! allocate and retrieve the cfl no. if necessary
-      option_path_array(1) = trim(l_option_path)  ! temporary hack for
-      density_option_path_array(1) = trim(tdensity%option_path) ! compiler failure
-      call get_cfl_no(option_path_array, density_option_path_array, &
-                      state(1), reference_field%mesh, cfl_no, fdcflno)
-
-      ! assemble A_m and rhs
-      call assemble_advectiondiffusion_m_cv(A_m, rhs, &
-                                   tfield, oldtfield, tfield_options, &
-                                   tdensity, oldtdensity, tdensity_options, &
-                                   cvfaces, x_cvshape, x_cvbdyshape, &
-                                   u_cvshape, u_cvbdyshape, t_cvshape, &
-                                   state, advu, x, x_tfield, cfl_no, fdcflno, getmat, dt, &
-                                   mesh_sparsity_x, &
-                                   reference_field=l_reference_field)
-
-
-      ! allocate some memory for assembly
-      call allocate(A_mT_old, rhs%mesh, name="A_mT_oldProduct" )
-
-      ! now we need to incorporate A_m into M and turn the equation into
-      ! rate of change form 
-      ! [M + A_m](T^{n+1}-T^{n})/dt = rhs - A_m*T^{n}
-
-      ! construct rhs
-      call mult(A_mT_old, A_m, oldtfield)
-      call addto(rhs, A_mT_old, -1.0)
-
-      ! construct M
-      call addto(M, A_m, dt)
-
-      call deallocate(A_mT_old)
-      call deallocate(dummydensity)
-      deallocate(dummydensity)
-      call deallocate(advu)
-      call deallocate(cfl_no)
-      call deallocate(x_cvbdyshape)
-      call deallocate(u_cvbdyshape)
-      call deallocate(x_cvshape)
-      call deallocate(u_cvshape)
-      call deallocate(t_cvshape)
-      call deallocate(cvfaces)
-      call deallocate(x_tfield)
-
-    end subroutine advection_diffusion_eqn_cv
     ! end of equation wrapping subroutines
     !************************************************************************
     !************************************************************************
@@ -1599,13 +1399,14 @@ contains
                                        tdensity, oldtdensity, tdensity_options, &
                                        cvfaces, x_cvshape, x_cvbdyshape, &
                                        u_cvshape, u_cvbdyshape, t_cvshape, &
-                                       state, advu, x, x_tfield, cfl_no, fdcflno, &
+                                       state, advu, x, x_tfield, cfl_no, &
                                        getadvmat, dt, &
                                        mesh_sparsity, &
                                        diffusion, getdiffmat, diffusivity, q_lumpedmass, &
                                        D_m, diff_rhs, grad_m_t_sparsity, &
                                        x_cvshape_full, x_cvbdyshape_full, &
-                                       t_cvshape_full, t_cvbdyshape_full, &
+                                       t_cvshape_full, diff_cvshape_full, &
+                                       t_cvbdyshape_full, diff_cvbdyshape_full, &
                                        reference_field)
 
       ! This subroutine assembles the advection matrix and rhs for
@@ -1645,8 +1446,6 @@ contains
       type(vector_field), intent(inout) :: x, x_tfield
       ! the cfl number
       type(scalar_field), intent(in) :: cfl_no
-      ! use a finite difference cfl no.  - back compatibility
-      logical, intent(in) :: fdcflno
       ! logical indicating if the advection matrix should be constructed
       ! or if it exists already from a previous iteration
       logical, intent(in) :: getadvmat
@@ -1673,7 +1472,8 @@ contains
       type(csr_sparsity), intent(inout), optional :: grad_m_t_sparsity
       ! shape functions with full body derivatives
       type(element_type), intent(inout), optional :: x_cvshape_full, x_cvbdyshape_full
-      type(element_type), intent(inout), optional :: t_cvshape_full, t_cvbdyshape_full
+      type(element_type), intent(inout), optional :: t_cvshape_full, diff_cvshape_full
+      type(element_type), intent(inout), optional :: t_cvbdyshape_full, diff_cvbdyshape_full
 
       ! for back compatibility a reference field with an option path
       ! and appropriate bcs
@@ -1783,7 +1583,8 @@ contains
           if(.not.present(D_m).or..not.present(diff_rhs).or.&
             .not.present(diffusivity).or..not.present(x_cvshape_full).or.&
             .not.present(x_cvbdyshape_full).or..not.present(t_cvshape_full).or.&
-            .not.present(t_cvbdyshape_full)) then
+            .not.present(diff_cvshape_full).or..not.present(t_cvbdyshape_full).or.&
+            .not.present(diff_cvbdyshape_full)) then
             ewrite(-1,*) 'A diffusion matrix and rhs as well as'
             ewrite(-1,*) 'the diffusivity and full cv element types must'
             ewrite(-1,*) 'be supplied to use ElementGradient diffusion!'
@@ -1909,7 +1710,7 @@ contains
            (tfield_options%diffusionscheme==CV_DIFFUSION_ELEMENTGRADIENT)) then
           call transform_to_physical(X, ele, x_shape=x_cvshape_full, &
                                     shape=t_cvshape_full, dshape=dt_t)
-          diffusivity_gi = ele_val_at_quad(diffusivity, ele, t_cvshape_full)
+          diffusivity_gi = ele_val_at_quad(diffusivity, ele, diff_cvshape_full)
         else
           dt_t = 0.0
           diffusivity_gi = 0.0
@@ -1974,7 +1775,7 @@ contains
                                          tfield_ele, oldtfield_ele, &
                                          tfield_upwind, oldtfield_upwind, &
                                          inflow, cfl_ele, &
-                                         fdcflno, x_ele, udotn, dt, &
+                                         udotn, &
                                          tfield_options)
 
                   ! do the same for the density but save some effort if it's just a dummy
@@ -1992,7 +1793,7 @@ contains
                                              tdensity_ele, oldtdensity_ele, &
                                              tdensity_upwind, oldtdensity_upwind, &
                                              inflow, cfl_ele, &
-                                             fdcflno, x_ele, udotn, dt, &
+                                             udotn, &
                                              tdensity_options)
 
                   end select
@@ -2147,7 +1948,8 @@ contains
       call get_entire_boundary_condition(l_reference_field, (/ &
         "weakdirichlet", &
         "neumann      ", &
-        "periodic     "/), tfield_bc, tfield_bc_type)
+        "periodic     ", &
+        "zero_flux    "/), tfield_bc, tfield_bc_type)
       call get_entire_boundary_condition(tdensity, (/"weakdirichlet"/), tdensity_bc, tdensity_bc_type)
 
       ! loop over the surface elements
@@ -2188,7 +1990,7 @@ contains
           dt_ft = 0.0 ! at the moment its not possible to get the full gradient
                       ! so until this is fixed we're just going to have to assume 
                       ! zero neumann on outflow boundaries
-          diffusivity_gi_f = face_val_at_quad(diffusivity, sele, t_cvbdyshape_full)
+          diffusivity_gi_f = face_val_at_quad(diffusivity, sele, diff_cvbdyshape_full)
         else
           dt_ft = 0.0
           diffusivity_gi_f = 0.0
@@ -2268,7 +2070,7 @@ contains
                   income=1.0 ! flow entering the domain
                 end if
 
-                ! as we're on the boundary it's not possible to use high order methods so just
+                ! as we're on the boundary it's not possible to use "high order" methods so just
                 ! default to the pivotted solution method (first order upwinding)
                 ! if the flow is incoming then use the bc ghost values
                 ! if the flow is outgoing then use the surface nodes value
@@ -2459,7 +2261,7 @@ contains
                                        tdensity, oldtdensity, tdensity_options, &
                                        cvfaces, x_cvshape, x_cvbdyshape, &
                                        u_cvshape, u_cvbdyshape, t_cvshape, &
-                                       state, advu, x, x_tfield, cfl_no, fdcflno, getmat, dt, &
+                                       state, advu, x, x_tfield, cfl_no, getmat, dt, &
                                        mesh_sparsity)
 
       !!< This subroutine assembles the advection matrix and rhs for
@@ -2500,8 +2302,6 @@ contains
       type(vector_field), intent(inout) :: x, x_tfield
       ! the cfl number
       type(scalar_field), intent(in) :: cfl_no
-      ! use a finite difference cfl no.  - back compatibility
-      logical, intent(in) :: fdcflno
       ! logical indicating if the matrix should be constructed
       ! or if it exists already from a previous iteration
       logical, dimension(:), intent(in) :: getmat
@@ -2726,7 +2526,7 @@ contains
                                               tdensity_ele(f,:), oldtdensity_ele(f,:), &
                                               tdensity_upwind(f), oldtdensity_upwind(f), &
                                               inflow, cfl_ele, &
-                                              fdcflno, x_ele, udotn, dt, &
+                                              udotn, &
                                               tdensity_options(f), save_pos = upwind_pos)
 
                     end select
@@ -2737,7 +2537,7 @@ contains
                                           tfield_ele(f,:), oldtfield_ele(f,:), &
                                           tfield_upwind(f), oldtfield_upwind(f), &
                                           inflow, cfl_ele, &
-                                          fdcflno, x_ele, udotn, dt, &
+                                          udotn, &
                                           tfield_options(f), save_pos=upwind_pos)
                     
                     if(f>1) then
@@ -2824,7 +2624,8 @@ contains
         ! get the fields over the surface containing the bcs
         call get_entire_boundary_condition(tfield(f)%ptr, (/ &
           "weakdirichlet", &
-          "periodic     "/), tfield_bc(f), tfield_bc_type(f,:))
+          "periodic     ", &
+          "zero_flux    "/), tfield_bc(f), tfield_bc_type(f,:))
         call get_entire_boundary_condition(tdensity(f)%ptr, (/"weakdirichlet"/), tdensity_bc(f), tdensity_bc_type(f,:))
       end do
       
@@ -2990,15 +2791,11 @@ contains
       type(scalar_field), intent(in) :: q_lumpedmass
 
       logical :: isotropic
-      integer :: isotropic_count, value_count
 
       ewrite(1,*) 'in assemble_bassirebay_diffusion_m_cv'
 
       ! an optimisation that reduces the number of matrix multiplies if we're isotropic
-      isotropic=.false.
-      isotropic_count = option_count(trim(diffusivity%option_path)//"/prescribed/value/isotropic")
-      value_count = option_count(trim(diffusivity%option_path)//"/prescribed/value")
-      if((value_count>0).and.(isotropic_count==value_count)) isotropic = .true.
+      isotropic=isotropic_field(diffusivity)
 
       call mult_div_tensorinvscalar_div_T(D_m, div_m, diffusivity, q_lumpedmass, div_m, &
                                           isotropic)
@@ -3288,139 +3085,6 @@ contains
 
     end subroutine calculate_auxiliary_gradient
     !************************************************************************
-    subroutine get_cfl_no(field_option_path, density_option_path, state, mesh, cfl_no, fdcflno)
-      !!< This subroutine returns the cfl number (if needed) 
-      !!< based on the option path provided.
-      !!< If it is not required it returns a constant field.
-      !!< this subroutine allocates a field... please deallocate after!
-  
-      !! option paths used to determine if a cfl no is needed
-      character(len=*), dimension(:), intent(in) :: field_option_path, density_option_path
-      ! bucket full of fields
-      type(state_type), intent(inout) :: state
-      ! mesh to allocate the cfl_no on
-      type(mesh_type), intent(inout) :: mesh
-      !! a scalar field for the cfl no.... still to be allocated
-      type(scalar_field), intent(inout) :: cfl_no
-      !! do we want to use the backwards compatible FiniteDifferenceCFLNumber
-      !! (this doesn't require a field to be allocated)
-      logical, intent(inout) :: fdcflno
-  
-      character(len=FIELD_NAME_LEN) :: cfl_type
-      integer :: f, cfl_stat, stat
-      ! somewhere to put strings temporarily
-      character(len=FIELD_NAME_LEN) :: tmpstring
-      integer :: nfields
-  
-      nfields = size(field_option_path) 
-      ! this allows multiple grouped fields to be evaluated at once 
-      ! (mostly used for coupled_cv)
-      assert(nfields==size(density_option_path))
-  
-      ! hmmm, do we need a cfl no.?
-      ! there are three reasons we might...
-      ! the field or density discretisation might need it
-      ! or we might need it to subcycle
-      ! at the moment these all have to use the same definition
-      ! of the courant number
-      fdcflno = .false.
-      cfl_type="start"
-      cfl_stat=1
-  
-      do f = 1, nfields
-        ! check to see if the field discretisation requires a courant number
-        call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
-                              "/face_value[0]/courant_number[0]/name", &
-                              tmpstring, stat)
-        if(stat==0) then
-          if(trim(cfl_type)=="start") then
-            cfl_type=tmpstring
-            cfl_stat=stat
-          elseif(trim(cfl_type)/=trim(tmpstring)) then
-            ewrite(-1,*) "Attempting to discretised two fields using different courant numbers."
-            FLAbort("This is not currently supported.")
-          end if
-        end if
-  
-        ! check to see if the density discretisation requires a courant number
-        call get_option(trim(complete_cv_field_path(density_option_path(f)))//&
-                              "/face_value[0]/courant_number[0]/name", &
-                              tmpstring, stat)
-        if(stat==0) then
-          if(trim(cfl_type)=="start") then
-            cfl_type=tmpstring
-            cfl_stat=stat
-          elseif(trim(cfl_type)/=trim(tmpstring)) then
-            ewrite(-1,*) "Attempting to discretised two fields using different courant numbers."
-            FLAbort("This is not currently supported.")
-          end if
-        end if
-  
-        ! check to see if we need the courant number to subcycle with
-        call get_option(trim(field_option_path(f))//&
-                              "/prognostic/temporal_discretisation&
-                              &/control_volumes/maximum_courant_number_per_subcycle&
-                              &/courant_number[0]/name", &
-                              tmpstring, stat)
-        if(stat==0) then
-          if(trim(cfl_type)=="start") then
-            cfl_type=tmpstring
-            cfl_stat=stat
-            select case(trim(cfl_type))
-            case("FiniteDifferenceCFLNumber")
-              FLAbort("Can't use the FiniteDifferenceCFLNumber to subcycle with.")
-            end select
-          elseif(trim(cfl_type)/=trim(tmpstring)) then
-            ewrite(-1,*) "Attempting to discretised face values "//&
-                        "using a "//trim(cfl_type)//" courant number"
-            ewrite(-1,*) "and to subcycle "//&
-                        "using a "//trim(tmpstring)//" courant number."
-            FLAbort("This is not currently supported.")
-          end if
-        end if
-  
-        ! check to see if we need the courant number for the limiter
-        call get_option(trim(complete_cv_field_path(field_option_path(f)))//&
-                              "/face_value[0]/limit_face_value/limiter[0]&
-                              &/courant_number[0]/name", &
-                              tmpstring, stat)
-        if(stat==0) then
-          if(trim(cfl_type)=="start") then
-            cfl_type=tmpstring
-            cfl_stat=stat
-            select case(trim(cfl_type))
-            case("FiniteDifferenceCFLNumber")
-              FLAbort("Can't use the FiniteDifferenceCFLNumber to limit with.")
-            end select
-          elseif(trim(cfl_type)/=trim(tmpstring)) then
-            ewrite(-1,*) "Attempting to discretised face values or subcycle"//&
-                        "using a "//trim(cfl_type)//" courant number"
-            ewrite(-1,*) "and to limit "//&
-                        "using a "//trim(tmpstring)//" courant number."
-            FLAbort("This is not currently supported.")
-          end if
-        end if
-      end do
-  
-      if (cfl_stat==0) then
-        select case(trim(cfl_type))
-        case("FiniteDifferenceCFLNumber")
-            call allocate(cfl_no, mesh, "CourantNumber", field_type=FIELD_TYPE_CONSTANT)
-            fdcflno = .true.  ! back compatibility - we want to use a finite different cfl number
-                              ! - only allowed for face discretisation back compatibility
-        case default
-            ! otherwise we want to calculate a node centred field of the cfl number
-            call allocate(cfl_no, mesh, "CourantNumber")
-            call calculate_diagnostic_variable(state, trim(cfl_type), cfl_no)
-        end select
-      else
-        ! if we don't need a cfl number then just set it all to 1
-        call allocate(cfl_no, mesh, "CourantNumber", field_type=FIELD_TYPE_CONSTANT)
-        call set(cfl_no, 1.0)
-      end if
-  
-    end subroutine get_cfl_no
-    !************************************************************************
     ! subroutines dealing with the writing of the advection_convergence files
     subroutine initialise_advection_convergence(state)
 
@@ -3581,9 +3245,9 @@ contains
     ! control volume options checking
     subroutine field_equations_cv_check_options
       integer :: nmat, nfield, m, f, stat
-      character(len=OPTION_PATH_LEN) :: equation_type, mat_name, field_name, diff_scheme
-      integer :: equation_integer, weakdirichlet_count
-      logical :: cv_disc, mmat_cv_disc, mixed_disc, diff, conv_file, subcycle, cv_temp_disc, tolerance, explicit
+      character(len=OPTION_PATH_LEN) :: mat_name, field_name, diff_scheme
+      integer :: equation_type, weakdirichlet_count
+      logical :: cv_disc, mmat_cv_disc, diff, conv_file, subcycle, cv_temp_disc, tolerance, explicit
       real :: theta, p_theta
 
       nmat = option_count("/material_phase")
@@ -3598,8 +3262,6 @@ contains
                             "]/prognostic/spatial_discretisation/control_volumes")
             mmat_cv_disc=have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/spatial_discretisation/coupled_cv")
-            mixed_disc=have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
-                            "]/prognostic/spatial_discretisation/legacy_mixed_cv_cg")
             diff=have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/tensor_field::Diffusivity")
             call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
@@ -3622,61 +3284,29 @@ contains
             weakdirichlet_count=option_count("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
                             "]/prognostic/boundary_conditions/type[0]/apply_weakly")
 
-            call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
-                            "]/prognostic/equation[0]/name", equation_type, stat=stat)
-            if((stat==0).and.(cv_disc.or.mmat_cv_disc.or.mixed_disc)) then
-              equation_integer=cv_equation_integer(equation_type)
-              select case(equation_integer)
-              case(CV_EQUATION_CONSERVATIONOFMASS, CV_EQUATION_REDUCEDCONSERVATIONOFMASS, CV_EQUATION_INTERNALENERGY)
-                if(.not.cv_disc) then
-                  ewrite(-1,*) "Options checking field "//&
-                                trim(field_name)//" in material_phase "//&
-                                trim(mat_name)//"."
-                  FLExit("Selected equation type only compatible with pure control volume spatial_discretisation")
-                else
-                  if(diff) then
-                    ewrite(-1,*) "Options checking field "//&
-                                  trim(field_name)//" in material_phase "//&
-                                  trim(mat_name)//"."
-                    FLExit("Selected equation type not compatible with diffusion")
-                  end if
-                end if
-              end select
-            end if
+            equation_type=equation_type_index(trim("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//"]"))
+            select case(equation_type)
+            case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, FIELD_EQUATION_INTERNALENERGY)
+              if(cv_disc.and.diff) then
+                ewrite(-1,*) "Options checking field "//&
+                              trim(field_name)//" in material_phase "//&
+                              trim(mat_name)//"."
+                FLExit("Selected equation type not compatible with diffusion")
+              end if
+            end select
 
-
-            if(mixed_disc) then
-              if(tolerance) then
-                ewrite(-1,*) "Options checking field "//&
-                              trim(field_name)//" in material_phase "//&
-                              trim(mat_name)//"."
-                FLExit("Only pure control volume and coupled_cv discretisations can use an advective tolerance")
-              end if
-              if(subcycle) then
-                ewrite(-1,*) "Options checking field "//&
-                              trim(field_name)//" in material_phase "//&
-                              trim(mat_name)//"."
-                FLExit("Only pure control volume and coupled_cv discretisations can subcycle")
-              end if
-              if(conv_file) then
-                ewrite(-1,*) "Options checking field "//&
-                              trim(field_name)//" in material_phase "//&
-                              trim(mat_name)//"."
-                FLExit("Only pure control volumes and coupled_cv discretisations can output a convergence file")
-              end if
-              if(explicit) then
-                ewrite(-1,*) "Options checking field "//&
-                              trim(field_name)//" in material_phase "//&
-                              trim(mat_name)//"."
-                FLExit("Only pure control volume and coupled_cv discretisations can solve explicitly")
-              end if
-            elseif(mmat_cv_disc) then
+            if(mmat_cv_disc) then
               if(diff) then
                 ewrite(-1,*) "Options checking field "//&
                               trim(field_name)//" in material_phase "//&
                               trim(mat_name)//"."
-                ewrite(-1,*) "Use control volume or mixed control volume - continuous galerkin discretisation if you want diffusion."
+                ewrite(-1,*) "Use control volume discretisation if you want diffusion."
                 FLExit("Multiple coupled control volume discretisation not yet compatible with Diffusivity")
+              end if
+              
+              if(.not.have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
+                            "]/prognostic/priority")) then
+                FLExit("Coupled control volume discretisation requires a priority option.")
               end if
               
               if(explicit) then
@@ -3747,7 +3377,7 @@ contains
                 ewrite(-1,*) "Options checking field "//&
                               trim(field_name)//" in material_phase "//&
                               trim(mat_name)//"."
-                FLExit("Only control volume, coupled_cv or mixed control volume - continuous galerkin discretisations can use control_volume temporal discretisations")
+                FLExit("Only control volume or coupled_cv discretisations can use control_volume temporal discretisations")
               end if
               if(explicit) then
                 ewrite(-1,*) "Options checking field "//&

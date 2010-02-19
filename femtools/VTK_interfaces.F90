@@ -663,6 +663,7 @@ contains
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
     integer, allocatable, dimension(:)::ghost_levels
     real, allocatable, dimension(:,:) :: tempval
+    integer :: lstat
     
     if (present(stat)) stat = 0
     
@@ -835,7 +836,21 @@ contains
     !----------------------------------------------------------------------
 
     ! Remap the position coordinates.
-    call remap_field(from_field=position, to_field=v_model(position%dim))
+    call remap_field(from_field=position, to_field=v_model(position%dim), stat=lstat)
+    if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      if(present(stat)) then
+        stat = lstat
+      else
+        FLAbort("Just remapped from a discontinuous to a continuous field!")
+      end if
+    else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+      if(present(stat)) then
+        stat = lstat
+      else
+        FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+      end if
+    end if
+    ! we've just allowed remapping from a higher order to a lower order continuous field
 
     ! Write the mesh coordinates.
     k=3-position%dim
@@ -852,7 +867,22 @@ contains
           
           if (sfields(i)%mesh%shape%degree /= 0) then
 
-            call remap_field(from_field=sfields(i), to_field=l_model)
+            call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
+            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Just remapped from a discontinuous to a continuous field!")
+              end if
+            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+              end if
+            end if
+            ! we've just allowed remapping from a higher order to a lower order continuous field
+            
             call vtkwritesn(l_model%val, trim(sfields(i)%name))
 
           else
@@ -914,7 +944,21 @@ contains
 
           if(vfields(i)%mesh%shape%degree /= 0) then
 
-            call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim))
+            call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), stat=lstat)
+            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Just remapped from a discontinuous to a continuous field!")
+              end if
+            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+              end if
+            end if
+            ! we've just allowed remapping from a higher order to a lower order continuous field
           
             k=3-vfields(i)%dim
             call vtkwritevn(&
@@ -969,7 +1013,22 @@ contains
           
           if(tfields(i)%mesh%shape%degree /= 0) then
 
-            call remap_field(from_field=tfields(i), to_field=t_model)
+            call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
+            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Just remapped from a discontinuous to a continuous field!")
+              end if
+            else if(lstat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+              end if
+            end if
+            ! we've just allowed remapping from a higher order to a lower order continuous field
+            
             allocate(tensor_values(node_count(t_model), 3, 3))
             tensor_values=0.0
             do j=1,dim

@@ -2246,8 +2246,6 @@ contains
       character(len=FIELD_NAME_LEN) :: cfl_type
       ! the courant number field
       type(scalar_field) :: cfl_no
-      ! finite different cfl no?
-      logical :: fdcflno
       type(csr_sparsity) :: mesh_sparsity
       type(csr_matrix) :: matdens_upwind, oldmatdens_upwind
       real, dimension(:), allocatable :: matdens_ele, oldmatdens_ele, &
@@ -2286,7 +2284,6 @@ contains
       ! the density discretisation might need it
       ! clearly this can't use a CVMaterialDensityCFLNumber as that's what we're
       ! currently trying to find out!
-      fdcflno = .false.
       cfl_type=""
       call allocate(cfl_no, matdens%mesh, "CourantNumber")
 
@@ -2295,8 +2292,6 @@ contains
                             cfl_type, stat)
       if(stat==0) then
          select case(trim(cfl_type))
-         case("FiniteDifferenceCFLNumber")
-            fdcflno = .true.  ! back compatibility - we want to use a finite different cfl number
          case("CVMaterialDenstiyCFLNumber")
             FLAbort("You can't use the field you're in the process of creating!")
          case default
@@ -2419,7 +2414,7 @@ contains
                                              matdens_ele, oldmatdens_ele, &
                                              matdens_upwind, oldmatdens_upwind, &
                                              inflow, cfl_ele, &
-                                             fdcflno, x_ele, udotn, l_dt, &
+                                             udotn, &
                                              matdens_options)
 
                   end select

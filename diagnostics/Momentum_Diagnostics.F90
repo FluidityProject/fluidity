@@ -48,7 +48,9 @@ module momentum_diagnostics
   private
   
   public :: calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
-    & calculate_scalar_potential, calculate_vector_potential
+            calculate_imposed_material_velocity_source, &
+            calculate_imposed_material_velocity_absorption, &
+            calculate_scalar_potential, calculate_vector_potential
   
   interface coriolis_force
     module procedure coriolis_force_single, coriolis_force_multiple
@@ -65,6 +67,109 @@ contains
   
   end subroutine calculate_bulk_viscosity
   
+  subroutine calculate_imposed_material_velocity_source(states, state_index, v_field)
+    type(state_type), dimension(:), intent(inout) :: states
+    integer, intent(in) :: state_index
+    type(vector_field), intent(inout) :: v_field
+    
+    logical :: prescribed
+    integer :: i, stat
+    type(vector_field), pointer :: absorption, mat_vel
+  
+    call zero(v_field)
+    
+    do i = 1, size(states)
+  
+      mat_vel => extract_vector_field(states(i), "MaterialVelocity", stat)
+      
+      if(stat==0) then
+      
+        call add_scaled_material_property(states(i), v_field, mat_vel, &
+                                          momentum_diagnostic=.true.)
+                                          
+      else
+        ! alternatively use the Velocity field from the state
+        
+        mat_vel => extract_vector_field(states(i), "Velocity", stat)
+        
+        if(stat==0) then
+          prescribed = have_option(trim(mat_vel%option_path)//"/prescribed")
+          
+          if(prescribed.and.(.not.aliased(mat_vel))) then
+            ! but make sure it's prescribed and not aliased
+          
+            call add_scaled_material_property(states(i), v_field, mat_vel, &
+                                              momentum_diagnostic=.true.)
+                                              
+          end if
+        
+        end if
+        
+      end if
+
+    end do
+
+    absorption => extract_vector_field(states(state_index), "VelocityAbsorption")
+    call scale(v_field, absorption)
+  
+  end subroutine calculate_imposed_material_velocity_source
+
+  subroutine calculate_imposed_material_velocity_absorption(states, v_field)
+    type(state_type), dimension(:), intent(inout) :: states
+    type(vector_field), intent(inout) :: v_field
+    
+    logical :: prescribed
+    integer :: i, stat
+    real :: dt
+    real, dimension(v_field%dim) :: factor
+    type(vector_field) :: temp_abs
+    type(vector_field), pointer :: mat_vel
+    
+    call get_option("/timestepping/timestep", dt)
+    call get_option(trim(complete_field_path(trim(v_field%option_path))) // &
+                    "/algorithm[0]/relaxation_factor", factor, default=spread(1.0, 1, v_field%dim))
+    
+    call allocate(temp_abs, v_field%dim, v_field%mesh, "TemporaryAbsorption", &
+                  field_type=FIELD_TYPE_CONSTANT)
+    call set(temp_abs, factor/dt)
+        
+    call zero(v_field)
+    
+    do i = 1, size(states)
+  
+      mat_vel => extract_vector_field(states(i), "MaterialVelocity", stat)
+      
+      if(stat==0) then
+      
+        call add_scaled_material_property(states(i), v_field, temp_abs, &
+                                          momentum_diagnostic=.true.)
+
+      else
+        ! alternatively use the Velocity field from the state
+        
+        mat_vel => extract_vector_field(states(i), "Velocity", stat)
+        
+        if(stat==0) then
+          prescribed = have_option(trim(mat_vel%option_path)//"/prescribed")
+          
+          if(prescribed.and.(.not.aliased(mat_vel))) then
+            ! but make sure it's prescribed and not aliased
+          
+            call add_scaled_material_property(states(i), v_field, temp_abs, &
+                                              momentum_diagnostic=.true.)
+            
+          end if
+        
+        end if
+        
+      end if
+
+    end do
+    
+    call deallocate(temp_abs)
+    
+  end subroutine calculate_imposed_material_velocity_absorption
+
   subroutine calculate_buoyancy(state, v_field)
     type(state_type), intent(in) :: state
     type(vector_field), intent(inout) :: v_field

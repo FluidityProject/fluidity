@@ -36,17 +36,13 @@ module cv_options
 
   implicit none
 
-  integer, parameter, public :: CV_EQUATION_ADVECTIONDIFFUSION=1, &
-                                CV_EQUATION_CONSERVATIONOFMASS=2, &
-                                CV_EQUATION_REDUCEDCONSERVATIONOFMASS=3, &
-                                CV_EQUATION_INTERNALENERGY=4
-
   integer, parameter, public :: CV_FACEVALUE_FIRSTORDERUPWIND=1, &
                                 CV_FACEVALUE_TRAPEZOIDAL=2, &
                                 CV_FACEVALUE_FINITEELEMENT=3, &
                                 CV_FACEVALUE_HYPERC=4, &
                                 CV_FACEVALUE_ULTRAC=5, &
-                                CV_FACEVALUE_POTENTIALULTRAC=6
+                                CV_FACEVALUE_POTENTIALULTRAC=6, &
+                                CV_FACEVALUE_FIRSTORDERDOWNWIND=7
 
   integer, parameter, public :: CV_DIFFUSION_BASSIREBAY=1, &
                                 CV_DIFFUSION_ELEMENTGRADIENT=2
@@ -94,7 +90,7 @@ module cv_options
 
   private
   public :: cv_options_type, get_cv_options, &
-            cv_projection_node, cv_equation_integer, cv_facevalue_integer
+            cv_projection_node, cv_facevalue_integer
 
 contains
 
@@ -121,7 +117,7 @@ contains
 
     call get_option(trim(complete_cv_field_path(option_path))//&
                         "/diffusion_scheme[0]/name", &
-                        tmpstring, default="BassiRebay")
+                        tmpstring, default="ElementGradient")
     cv_options%diffusionscheme = cv_diffusionscheme_integer(tmpstring)
 
     cv_options%limit_facevalue = have_option(trim(complete_cv_field_path(option_path))//&
@@ -177,25 +173,6 @@ contains
 
   end function get_cv_options
 
-  integer function cv_equation_integer(equation_type)
-
-    character(len=*) :: equation_type
-
-    select case(trim(equation_type))
-    case ("AdvectionDiffusion")
-      cv_equation_integer = CV_EQUATION_ADVECTIONDIFFUSION
-    case ("ConservationOfMass")
-      cv_equation_integer= CV_EQUATION_CONSERVATIONOFMASS
-    case ("ReducedConservationOfMass")
-      cv_equation_integer = CV_EQUATION_REDUCEDCONSERVATIONOFMASS
-    case ( "InternalEnergy" )
-      cv_equation_integer = CV_EQUATION_INTERNALENERGY
-    case default
-      FLAbort("Unknown control volume equation type.")
-    end select
-
-  end function cv_equation_integer
-
   integer function cv_facevalue_integer(face_discretisation)
 
     character(len=*) :: face_discretisation
@@ -213,6 +190,8 @@ contains
       cv_facevalue_integer = CV_FACEVALUE_ULTRAC
     case ( "PotentialUltraC" )
       cv_facevalue_integer = CV_FACEVALUE_POTENTIALULTRAC
+    case ("FirstOrderDownwind")
+      cv_facevalue_integer = CV_FACEVALUE_FIRSTORDERDOWNWIND
     case default
       FLAbort("Unknown control volume face value scheme.")
     end select
@@ -343,5 +322,5 @@ contains
     end if
 
   end function cv_upwind_scheme
-
+  
 end module cv_options

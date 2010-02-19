@@ -779,7 +779,6 @@ Surface BCs for second gls quantity on top surface can be set to
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>

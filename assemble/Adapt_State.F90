@@ -179,6 +179,9 @@ contains
       
       ! Recalculate diagnostics, as error metric formulations may need them
       call allocate_and_insert_auxilliary_fields(states)
+      call copy_to_stored_values(states,"Old")
+      call copy_to_stored_values(states,"Iterated")
+      call relax_to_nonlinear(states)
       
       call calculate_diagnostic_variables(states)
     
@@ -249,7 +252,7 @@ contains
     if(isparallel()) then
       ! In parallel, strip off the level 2 halo (expected by libsam). The level
       ! 2 halo is restored on the final adapt iteration by libsam.
-      call strip_level_2_halo(states, metric)
+      call strip_level_2_halo(states, metric, initialise_fields=initialise_fields)
     end if
 #endif
 

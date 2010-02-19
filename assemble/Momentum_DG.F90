@@ -839,7 +839,7 @@ contains
 
     if(have_source.and.acceleration.and.owned_element) then
       ! Momentum source matrix.
-      Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei)
+      Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
         source_lump = sum(source_mat, 2)
         do dim = 1, u%dim
@@ -876,8 +876,13 @@ contains
           end if
           if (present(inverse_masslump) .and. pressure_corrected_absorption) then
             assert(lump_mass)
-            call set( inverse_masslump, dim, u_ele, &
-               1.0/(l_masslump+dt*theta*abs_lump(dim,:)) )
+            if(have_mass) then
+              call set( inverse_masslump, dim, u_ele, &
+                1.0/(l_masslump+dt*theta*abs_lump(dim,:)) )
+            else
+              call set( inverse_masslump, dim, u_ele, &
+                1.0/(dt*theta*abs_lump(dim,:)) )            
+            end if
           end if          
         end do
 
@@ -891,15 +896,20 @@ contains
           end if
           if (present(inverse_mass) .and. pressure_corrected_absorption) then
             assert(.not. lump_mass)
-            call set(inverse_mass, dim, dim, u_ele, u_ele, &
-               inverse(rho_mat + dt*theta*Abs_mat(dim,:,:)))
+            if(have_mass) then
+              call set(inverse_mass, dim, dim, u_ele, u_ele, &
+                inverse(rho_mat + dt*theta*Abs_mat(dim,:,:)))
+            else
+              call set(inverse_mass, dim, dim, u_ele, u_ele, &
+                inverse(dt*theta*Abs_mat(dim,:,:)))            
+            end if
           end if
         end do
         
       end if
     end if
       
-    if ((.not.have_absorption) .or. (.not.pressure_corrected_absorption)) then
+    if (((.not.have_absorption) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
         inverse_mass_mat=inverse(rho_mat)

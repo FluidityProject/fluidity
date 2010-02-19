@@ -61,6 +61,19 @@ module field_options
                      & needs_initial_mesh_tensor, interpolate_options
    end interface
    
+   interface constant_field
+      module procedure constant_field_scalar, constant_field_vector, &
+                     & constant_field_tensor
+   end interface
+   
+   interface isotropic_field
+      module procedure isotropic_field_tensor
+   end interface
+   
+   interface diagonal_field
+      module procedure diagonal_field_tensor
+   end interface
+   
    private
     
    public :: complete_mesh_path, complete_field_path, &
@@ -70,7 +83,16 @@ module field_options
      & adaptivity_bounds, find_linear_parent_mesh, &
      & interpolate_field, convergence_norm_integer, &
      & do_not_recalculate, needs_initial_mesh, &
-     & get_external_coordinate_field, collect_fields_by_mesh
+     & get_external_coordinate_field, collect_fields_by_mesh, &
+     & equation_type_index, field_options_check_options, &
+     & constant_field, isotropic_field, diagonal_field
+
+  integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
+                                FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
+                                FIELD_EQUATION_CONSERVATIONOFMASS        = 2, &
+                                FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS = 3, &
+                                FIELD_EQUATION_INTERNALENERGY            = 4, &
+                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 5
 
 contains
 
@@ -677,6 +699,33 @@ contains
   
   end function convergence_norm_integer
 
+  integer function equation_type_index(option_path)
+
+    character(len=*) :: option_path
+    
+    character(len=FIELD_NAME_LEN) :: equation_type
+    
+    ! find out equation type
+    call get_option(trim(option_path)//'/prognostic/equation[0]/name', &
+                    equation_type, default="Unknown")
+
+    select case(trim(equation_type))
+    case ("AdvectionDiffusion")
+      equation_type_index = FIELD_EQUATION_ADVECTIONDIFFUSION
+    case ("ConservationOfMass")
+      equation_type_index = FIELD_EQUATION_CONSERVATIONOFMASS
+    case ("ReducedConservationOfMass")
+      equation_type_index = FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS
+    case ( "InternalEnergy" )
+      equation_type_index = FIELD_EQUATION_INTERNALENERGY
+    case ( "ElectricalPotential" )
+      equation_type_index = FIELD_EQUATION_ELECTRICALPOTENTIAL
+    case default
+      equation_type_index = FIELD_EQUATION_UNKNOWN
+    end select
+
+  end function equation_type_index
+
   subroutine collect_fields_by_mesh(states, mesh_states)
     type(state_type), dimension(:), intent(in) :: states
     type(state_type), dimension(mesh_count(states(1))), intent(out) :: mesh_states
@@ -724,5 +773,127 @@ contains
     call deallocate(refcount_to_meshno)
   end subroutine collect_fields_by_mesh
 
+  function constant_field_scalar(field) result (constant)
+    type(scalar_field), intent(in) :: field
+    
+    logical :: constant
+    
+    integer :: value_count, constant_count
+    
+    value_count = option_count(trim(field%option_path)//"/prescribed/value")
+    constant_count = option_count(trim(field%option_path)//"/prescribed/value/constant")
+    
+    constant = (value_count==constant_count).and.(constant_count>0)
+      
+  end function constant_field_scalar
+
+  function constant_field_vector(field) result (constant)
+    type(vector_field), intent(in) :: field
+    
+    logical :: constant
+    
+    integer :: value_count, constant_count
+    
+    value_count = option_count(trim(field%option_path)//"/prescribed/value")
+    constant_count = option_count(trim(field%option_path)//"/prescribed/value/constant")
+    
+    constant = (value_count==constant_count).and.(constant_count>0)
+      
+  end function constant_field_vector
+
+  function constant_field_tensor(field) result (constant)
+    type(tensor_field), intent(in) :: field
+    
+    logical :: constant
+    
+    integer :: value_count, constant_count
+    
+    value_count = option_count(trim(field%option_path)//"/prescribed/value")
+    constant_count = option_count(trim(field%option_path)//"/prescribed/value/isotropic/constant")+&
+                     option_count(trim(field%option_path)//"/prescribed/value/diagonal/constant")+&
+                     option_count(trim(field%option_path)//"/prescribed/value/anistropic_symmetric/constant")+&
+                     option_count(trim(field%option_path)//"/prescribed/value/anistropic_asymmetric/constant")
+    
+    constant = (value_count==constant_count).and.(constant_count>0)
+      
+  end function constant_field_tensor
+
+  function isotropic_field_tensor(field) result (isotropic)
+    type(tensor_field), intent(in) :: field
+    
+    logical :: isotropic
+    
+    integer :: value_count, isotropic_count
+    
+    isotropic_count = option_count(trim(field%option_path)//"/prescribed/value/isotropic")
+    value_count = option_count(trim(field%option_path)//"/prescribed/value")
+    
+    isotropic = (value_count==isotropic_count).and.(value_count>0)
+
+  end function isotropic_field_tensor
+
+  function diagonal_field_tensor(field) result (diagonal)
+    type(tensor_field), intent(in) :: field
+    
+    logical :: diagonal
+    
+    integer :: value_count, diagonal_count
+    
+    diagonal_count = option_count(trim(field%option_path)//"/prescribed/value/diagonal")
+    value_count = option_count(trim(field%option_path)//"/prescribed/value")
+    
+    diagonal = (value_count==diagonal_count).and.(value_count>0)
+
+  end function diagonal_field_tensor
+
+  subroutine field_options_check_options
+    integer :: nmat, nfield, m, f
+    character(len=OPTION_PATH_LEN) :: mat_name, field_name
+    integer :: equation_type
+    logical :: cv_disc, cg_disc
+
+    nmat = option_count("/material_phase")
+
+    do m = 0, nmat-1
+      call get_option("/material_phase["//int2str(m)//"]/name", mat_name)
+      nfield = option_count("/material_phase["//int2str(m)//"]/scalar_field")
+      do f = 0, nfield-1
+        call get_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
+                        "]/name", field_name)
+        
+        cv_disc=have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
+                        "]/prognostic/spatial_discretisation/control_volumes")
+        cg_disc=have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
+                        "]/prognostic/spatial_discretisation/continuous_galerkin")
+        
+        equation_type=equation_type_index(trim("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//"]"))
+        select case(equation_type)
+        case(FIELD_EQUATION_CONSERVATIONOFMASS)
+          if(.not.cv_disc) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type only compatible with control volume spatial_discretisation")
+          end if
+        case(FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS)
+          if(.not.cv_disc) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type only compatible with control volume spatial_discretisation")
+          end if
+        case(FIELD_EQUATION_INTERNALENERGY)
+          if(.not.(cv_disc.or.cg_disc)) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type only compatible with control volume or continuous galerkin spatial_discretisation")
+          end if
+        end select
+
+      end do
+    end do
+
+  end subroutine field_options_check_options
 
 end module field_options

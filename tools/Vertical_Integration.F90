@@ -96,7 +96,7 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   base_path = trim(mesh_path) // "/from_mesh/extrude"
   call set_option("/geometry/quadrature/degree", quad_degree, stat)
   assert(stat == SPUD_NEW_KEY_WARNING)
-  call set_option(trim(base_path) // "/bottom_depth", top - bottom, stat)
+  call set_option(trim(base_path) // "/bottom_depth/constant", top - bottom, stat)
   assert(stat == SPUD_NEW_KEY_WARNING)
   call set_option(trim(base_path) // "/sizing_function/constant", sizing, stat)
   assert(stat == SPUD_NEW_KEY_WARNING)

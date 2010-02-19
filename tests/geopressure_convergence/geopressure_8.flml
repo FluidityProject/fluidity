@@ -141,7 +141,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(x, t):

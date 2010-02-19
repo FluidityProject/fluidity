@@ -5,4 +5,4 @@ input: clean
 	../../scripts/gmsh2triangle -2 src/basin.msh
 
 clean:
-	rm -f *.ele *.edge *.face *.node *.vtu *.s *.stat *.log *.msh
+	rm -f *.ele *.edge *.face *.node *.vtu *.s *.stat *.log src/*.msh

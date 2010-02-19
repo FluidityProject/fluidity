@@ -92,29 +92,6 @@ contains
                                 momentum_diagnostic=.true.)
     end if
     
-    sfield => extract_scalar_field(state(istate),'Cohesion',stat)
-    if (stat==0) then
-      diagnostic = have_option(trim(sfield%option_path)//'/diagnostic')
-      if(diagnostic) then
-        call calculate_diagnostic_cohesion(state, sfield)
-      end if
-    end if
-      
-    sfield => extract_scalar_field(state(istate),'FrictionAngle',stat)
-    if (stat==0) then
-      diagnostic = have_option(trim(sfield%option_path)//'/diagnostic')
-      if(diagnostic) then
-        call calculate_diagnostic_frictionangle(state,sfield)
-      end if
-    end if
-    
-    vfield => extract_vector_field(state(istate), "VelocitySource", stat = stat)
-    if(stat == 0) then
-      if(have_option(trim(vfield%option_path) // "/diagnostic")) then
-        call calculate_diagnostic_variable(state, istate, vfield)
-      end if
-    end if
-    
     vfield => extract_vector_field(state(istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
@@ -122,6 +99,13 @@ contains
       end if
     end if
 
+    vfield => extract_vector_field(state(istate), "VelocitySource", stat = stat)
+    if(stat == 0) then
+      if(have_option(trim(vfield%option_path) // "/diagnostic")) then
+        call calculate_diagnostic_variable(state, istate, vfield)
+      end if
+    end if
+    
     tfield => extract_tensor_field(state(istate),'Viscosity',stat)
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
@@ -130,14 +114,6 @@ contains
       end if
     end if
 
-    tfield => extract_tensor_field(state(istate),'Elasticity',stat)
-    if (stat==0) then
-      diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
-      if(diagnostic) then
-        call calculate_diagnostic_elasticity(state,tfield)
-      end if
-    end if
-    
     tfield => extract_tensor_field(state(istate), 'VelocitySurfaceTension', stat)
     if(stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
@@ -147,72 +123,6 @@ contains
     end if
     
   end subroutine calculate_momentum_diagnostics
-
-  subroutine calculate_diagnostic_cohesion(state, field)
-  
-    type(state_type), dimension(:), intent(inout) :: state
-    type(scalar_field), intent(inout) :: field
-    
-    type(scalar_field), pointer :: tmpfield
-    integer :: stat
-    
-    if(size(state)>1) then
-      call calculate_bulk_property(state, field ,"MaterialCohesion", &
-                                   momentum_diagnostic=.true.)
-    else
-      tmpfield => extract_scalar_field(state(1), "MaterialCohesion", stat=stat)
-      if(stat==0) then
-        call remap_field(tmpfield, field)
-      else
-        FLAbort("Don't know what to do with diagnostic Cohesion")
-      end if
-    end if
-  
-  end subroutine calculate_diagnostic_cohesion
-  
-  subroutine calculate_diagnostic_frictionangle(state, field)
-  
-    type(state_type), dimension(:), intent(inout) :: state
-    type(scalar_field), intent(inout) :: field
-    
-    type(scalar_field), pointer :: tmpfield
-    integer :: stat
-    
-    if(size(state)>1) then
-      call calculate_bulk_property(state, field ,"MaterialFrictionAngle", &
-                                   momentum_diagnostic=.true.)
-    else
-      tmpfield => extract_scalar_field(state(1), "MaterialFrictionAngle", stat=stat)
-      if(stat==0) then
-        call remap_field(tmpfield, field)
-      else
-        FLAbort("Don't know what to do with diagnostic FrictionAngle")
-      end if
-    end if
-  
-  end subroutine calculate_diagnostic_frictionangle
-
-  subroutine calculate_diagnostic_elasticity(state, field)
-  
-    type(state_type), dimension(:), intent(inout) :: state
-    type(tensor_field), intent(inout) :: field
-    
-    type(tensor_field), pointer :: tmpfield
-    integer :: stat
-    
-    if(size(state)>1) then
-      call calculate_bulk_property(state, field ,"MaterialElasticity", &
-                                   momentum_diagnostic=.true.)
-    else
-      tmpfield => extract_tensor_field(state(1), "MaterialElasticity", stat=stat)
-      if(stat==0) then
-        call remap_field(tmpfield, field)
-      else
-        FLAbort("Don't know what to do with diagnostic Elasticity")
-      end if
-    end if
-  
-  end subroutine calculate_diagnostic_elasticity
 
   subroutine calculate_densities_single_state(state, buoyancy_density, bulk_density, &
                                               momentum_diagnostic)
@@ -239,14 +149,18 @@ contains
     type(scalar_field), intent(inout), optional, target :: bulk_density
     logical, intent(in), optional ::momentum_diagnostic
     
-    type(scalar_field) :: pertdensity
+    type(scalar_field) :: eosdensity
     type(scalar_field), pointer :: tmpdensity
     type(mesh_type), pointer :: mesh
     logical :: subtract_out_hydrostatic, multimaterial
     character(len=OPTION_PATH_LEN) :: option_path
     integer :: subtract_count, materialvolumefraction_count
-    real :: global_reference_density, reference_density
+    real :: hydrostatic_rho0, reference_density
     integer :: i, stat
+    
+    logical :: boussinesq
+    type(vector_field), pointer :: velocity
+    real :: boussinesq_rho0
     
     if(.not.present(buoyancy_density).and..not.present(bulk_density)) then
       FLAbort("No point calling me if I don't have anything to do.")
@@ -270,11 +184,11 @@ contains
           materialvolumefraction_count = materialvolumefraction_count + 1
         end if
         
-        option_path='/material_phase::'//trim(state(i)%name)//'/equation_of_state/fluids'
+        option_path='/material_phase::'//trim(state(i)%name)//'/equation_of_state'
         
         subtract_count = subtract_count + &
-            option_count(trim(option_path)//'/linear/subtract_out_hydrostatic_level') + &
-            option_count(trim(option_path)//'/ocean_pade_approximation')
+            option_count(trim(option_path)//'/fluids/linear/subtract_out_hydrostatic_level') + &
+            option_count(trim(option_path)//'/fluids/ocean_pade_approximation')
         
       end do
       if(size(state)/=materialvolumefraction_count) then
@@ -290,26 +204,27 @@ contains
       call calculate_diagnostic_volume_fraction(state)
     end if
     
-    global_reference_density = 0.0
+    boussinesq = .false.
+    hydrostatic_rho0 = 0.0
     do i = 1, size(state)
   
-      option_path='/material_phase::'//trim(state(i)%name)//'/equation_of_state/fluids'
+      option_path='/material_phase::'//trim(state(i)%name)//'/equation_of_state'
       
-      if(have_option(trim(option_path))) then
+      if(have_option(trim(option_path)//'/fluids')) then
       ! we have a fluids eos
       
         subtract_out_hydrostatic = &
-          have_option(trim(option_path)//'/linear/subtract_out_hydrostatic_level') .or. &
-          have_option(trim(option_path)//'/ocean_pade_approximation')
+          have_option(trim(option_path)//'/fluids/linear/subtract_out_hydrostatic_level') .or. &
+          have_option(trim(option_path)//'/fluids/ocean_pade_approximation')
         
-        call allocate(pertdensity, mesh, "LocalPerturbationDensity")
+        call allocate(eosdensity, mesh, "LocalPerturbationDensity")
         
-        call calculate_perturbation_density(state(i), pertdensity, reference_density)
+        call calculate_perturbation_density(state(i), eosdensity, reference_density)
         
         if(multimaterial) then
           ! if multimaterial we have to subtract out a single reference density at the end
           ! rather than one per material so add it in always for now
-          call addto(pertdensity, reference_density)
+          call addto(eosdensity, reference_density)
         end if
         
         if(present(buoyancy_density)) then
@@ -317,31 +232,52 @@ contains
             if(subtract_out_hydrostatic) then
               ! if multimaterial we have to subtract out a single global value at the end
               ! so save it for now
-              global_reference_density = reference_density
+              hydrostatic_rho0 = reference_density
             end if
-            call add_scaled_material_property(state(i), buoyancy_density, pertdensity, &
+            call add_scaled_material_property(state(i), buoyancy_density, eosdensity, &
                                               momentum_diagnostic=momentum_diagnostic)
           else
-            call set(buoyancy_density, pertdensity)
+            call set(buoyancy_density, eosdensity)
             if(.not.subtract_out_hydrostatic) then
               call addto(buoyancy_density, reference_density)
             end if
           end if
+          
+          ! find out if the velocity in this state is *the* (i.e. not aliased)
+          ! prognostic one and if it's using a Boussinesq equation.
+          ! if it is record the rho0 and it will be used later to scale
+          ! the buoyancy density
+          velocity => extract_vector_field(state(i), "Velocity", stat)
+          if(stat==0) then
+            if(.not.aliased(velocity)) then
+              if (have_option(trim(velocity%option_path)//"/prognostic/equation::Boussinesq")) then
+                ! have we already found a state where the velocity was using Boussinesq?
+                if(boussinesq) then
+                  ! uh oh... looks like you're using multiphase... good luck with that...
+                  ! everything here at the moment assumes a single prognostic velocity
+                  FLAbort("Two nonaliased velocities using equation type Boussinesq.  Don't know what to do.")
+                end if
+                boussinesq=.true.
+                boussinesq_rho0 = reference_density
+              end if
+            end if
+          end if
+          
         end if
         
         if(present(bulk_density)) then
           if(multimaterial) then
             ! the perturbation density has already had the reference density added to it
             ! if you're multimaterial
-            call add_scaled_material_property(state(i), bulk_density, pertdensity, &
+            call add_scaled_material_property(state(i), bulk_density, eosdensity, &
                                               momentum_diagnostic=momentum_diagnostic)
           else
-            call set(bulk_density, pertdensity)
+            call set(bulk_density, eosdensity)
             call addto(bulk_density, reference_density)
           end if
         end if
         
-        call deallocate(pertdensity)
+        call deallocate(eosdensity)
         
       else
       ! we don't have a fluids eos
@@ -366,15 +302,39 @@ contains
             end if
           end if
         else
-          tmpdensity => extract_scalar_field(state(i), "Density")
           if(multimaterial) then
-            FLAbort("No multimaterial MaterialDensity of fluid eos provided.")
+            FLAbort("No multimaterial MaterialDensity or fluid eos provided")
           else
-            if(present(buoyancy_density)) then
-              call remap_field(tmpdensity, buoyancy_density)
-            end if
-            if(present(bulk_density)) then
-              call remap_field(tmpdensity, bulk_density)
+            if(have_option(trim(option_path)//'/compressible')) then
+              call allocate(eosdensity, mesh, "LocalCompressibleEOSDensity")
+            
+              call compressible_eos(state(i), density=eosdensity)
+              
+              if(present(bulk_density)) then
+                call set(bulk_density, eosdensity)
+              end if
+              if(present(buoyancy_density)) then
+                call set(buoyancy_density, eosdensity)
+              end if
+            
+              call deallocate(eosdensity)
+            else
+              tmpdensity => extract_scalar_field(state(i), "Density", stat)
+              if(stat==0) then
+                if(present(buoyancy_density)) then
+                  call remap_field(tmpdensity, buoyancy_density)
+                end if
+                if(present(bulk_density)) then
+                  call remap_field(tmpdensity, bulk_density)
+                end if
+              else
+                if(present(buoyancy_density)) then
+                  FLAbort("Don't know how to set the buoyancy density.")
+                end if
+                if(present(bulk_density)) then
+                  FLAbort("How on Earth did you get here without a density?!")
+                end if
+              end if
             end if
           end if
         end if
@@ -384,7 +344,13 @@ contains
     end do
     
     if(present(buoyancy_density)) then
-      if(multimaterial) call addto(buoyancy_density, -global_reference_density)
+      if(multimaterial) call addto(buoyancy_density, -hydrostatic_rho0)
+      
+      if(boussinesq) then
+        ! the buoyancy density is being used in a Boussinesq eqn
+        ! therefore it needs to be scaled by rho0:
+        call scale(buoyancy_density, 1./boussinesq_rho0)
+      end if
     end if
   
   end subroutine calculate_densities_multiple_states

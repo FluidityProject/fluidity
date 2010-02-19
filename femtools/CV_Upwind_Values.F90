@@ -432,8 +432,7 @@ contains
       ! a completely new way... let's try pseudo-structured
       else if(structured) then
 
-        x=>extract_vector_field(state(1), "Coordinate")
-        call calculate_upwind_values_structured(x, x_field, field, upwind_values, &
+        call calculate_upwind_values_structured(x_field, field, upwind_values, &
                                            old_field, old_upwind_values)
 
       ! no, um, something's gone wrong here then!
@@ -611,9 +610,9 @@ contains
 
           select case(dim)
           case(2)
-            coords=calculate_area_coordinates(x_ele, xc)
+            coords=calculate_area_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
           case(3)
-            coords=calculate_volume_coordinates(x_ele, xc)
+            coords=calculate_volume_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
           end select
 
           if(sum(coords)<sum(l_coords)) then
@@ -792,9 +791,9 @@ contains
           
           select case(dim)
           case(2)
-              l_coords=calculate_area_coordinates(x_ele, xc)
+              l_coords=calculate_area_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
           case(3)
-              l_coords=calculate_volume_coordinates(x_ele, xc)
+              l_coords=calculate_volume_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
           end select
 
           do k = 1, size(l_coords)
@@ -1097,9 +1096,9 @@ contains
 
                select case(dim)
                case(2)
-                  coords=calculate_area_coordinates(x_ele, xc)
+                  coords=calculate_area_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
                case(3)
-                  coords=calculate_volume_coordinates(x_ele, xc)
+                  coords=calculate_volume_coordinates(x_ele, xc) ! only makes sense with linear coordinates in x_ele
                end select
 
                if(sum(coords)<sum(l_coords)) then
@@ -1372,11 +1371,11 @@ contains
       
    end subroutine calculate_upwind_values_local
 
-  subroutine calculate_upwind_values_structured(x, x_field, field, upwind_values, &
+  subroutine calculate_upwind_values_structured(x_field, field, upwind_values, &
                                            old_field, old_upwind_values)
       ! use the upwind value as close to the structured value as possible
 
-      type(vector_field), intent(in) :: x, x_field  ! coordinates
+      type(vector_field), intent(in) :: x_field  ! coordinates
       type(scalar_field), intent(in) :: field
       type(scalar_field), intent(in) :: old_field
       type(csr_matrix), intent(inout) :: upwind_values
@@ -1385,7 +1384,7 @@ contains
       integer :: i, j, k
       integer, dimension(:), pointer :: nodes
 
-      real, dimension(x%dim) :: vector1, vector2
+      real, dimension(x_field%dim) :: vector1, vector2
       real :: dp, l_dp
       integer :: l_upwind_node
 

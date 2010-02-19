@@ -204,13 +204,14 @@ module sam_integration
 
    contains
    
-     subroutine strip_level_2_halo(states, metric, external_mesh_name)
+     subroutine strip_level_2_halo(states, metric, external_mesh_name, initialise_fields)
        !!< Strip the level 2 halo from the supplied states and error metric.
        !!< Replaces flstriph2.
        
        type(state_type), dimension(:), intent(inout) :: states
        type(tensor_field), optional, intent(inout) :: metric
        character(len=FIELD_NAME_LEN), optional, intent(in) :: external_mesh_name
+       logical, optional, intent(in) :: initialise_fields
        
        character(len = FIELD_NAME_LEN) :: linear_coordinate_field_name
        integer :: i, j, stat
@@ -253,7 +254,7 @@ module sam_integration
        ! information in interpolate_states
        allocate(interpolate_states(size(states)))
        do i = 1, size(states)
-         call select_fields_to_interpolate(states(i), interpolate_states(i))
+         call select_fields_to_interpolate(states(i), interpolate_states(i), first_time_step=initialise_fields)
          ! If the old mesh field is referenced in interpolate_states(i), remove
          ! it (it will be dealt with seperately)
          call remove_vector_field(interpolate_states(i), old_positions%name, stat)

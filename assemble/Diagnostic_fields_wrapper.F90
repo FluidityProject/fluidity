@@ -40,7 +40,7 @@ module diagnostic_fields_wrapper
   use spud
   use parallel_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use multimaterial_module, only: calculate_material_mass, calculate_material_eos, &
+  use multimaterial_module, only: calculate_material_mass, &
                                   calculate_bulk_material_pressure, &
                                   calculate_sum_material_volume_fractions, &
                                   calculate_material_volume
@@ -461,14 +461,14 @@ contains
        s_field => extract_scalar_field(state(i), "MaterialEOSDensity", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
-           call calculate_material_eos(state(i), materialdensity=s_field)
+           call compressible_material_eos(state(i), materialdensity=s_field)
          end if
        end if
 
        s_field => extract_scalar_field(state(i), "MaterialPressure", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
-           call calculate_material_eos(state(i), materialpressure=s_field)
+           call compressible_material_eos(state(i), materialpressure=s_field)
          end if
        end if
 

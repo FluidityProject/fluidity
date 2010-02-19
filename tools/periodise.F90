@@ -23,6 +23,7 @@ program periodise
   character(len=FIELD_NAME_LEN) :: external_name, periodic_name
   type(mesh_type), pointer :: periodic_mesh, external_mesh
   type(vector_field) :: periodic_positions, external_positions
+  integer :: stat
 
   call set_debug_level(0)
   call mpi_init(ierr)
@@ -44,8 +45,14 @@ program periodise
   periodic_mesh => extract_mesh(states(1), trim(periodic_name))
   external_positions = get_coordinate_field(states(1), external_mesh)
   call allocate(periodic_positions, external_positions%dim, periodic_mesh, trim(periodic_name) // 'Coordinate')
-  call remap_field(external_positions, periodic_positions)
-
+  call remap_field(external_positions, periodic_positions, stat=stat)
+  if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+    FLAbort("Just remapped from a discontinuous to a continuous field!")
+  else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+    FLAbort("Just remapped from a higher order to a lower order continuous field!")
+  end if
+  ! we've allowed it to remap from periodic to unperiodic
+  
   call postprocess_periodic_mesh(external_mesh, external_positions, periodic_mesh, periodic_positions)
 
   ! Dump out the periodic mesh to disk:

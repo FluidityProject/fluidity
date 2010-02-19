@@ -205,9 +205,6 @@
       
       type(ilist), save :: stiff_nodes_list
       
-      integer :: value_count, constant_count
-      logical :: density_constant
-      
       ! increased each call to momentum equation, used as index for pressure debugging vtus
       integer,save :: pdv_count=-1
 
@@ -281,12 +278,7 @@
       select case(equation_type)
       case("LinearMomentum")
         density=>extract_scalar_field(state(istate), "Density")
-        
-        value_count = option_count(trim(density%option_path)//"/prescribed/value")
-        constant_count = option_count(trim(density%option_path)//"/prescribed/value/constant")
-        density_constant = (value_count==constant_count).and.(constant_count>0)
-        
-        get_cmc_m = get_cmc_m .or. (.not.density_constant)
+        get_cmc_m = get_cmc_m .or. (.not.constant_field(density))
       case("Boussinesq")
         density=>dummydensity
       case("Drainage")
@@ -305,7 +297,8 @@
       get_cmc_m = get_cmc_m .or. &
                   have_option(trim(p%option_path)//&
                   "/prognostic/scheme/update_discretised_equation") .or. &
-                  have_option("/mesh_adaptivity/mesh_movement")
+                  have_option("/mesh_adaptivity/mesh_movement") .or. &
+                  use_compressible_projection
       get_ct_m = get_ct_m .or. &
                   have_option(trim(p%option_path)//&
                   "/prognostic/scheme/update_discretised_equation") .or. &
@@ -344,7 +337,7 @@
          case("LumpedSchurComplement")
             get_diag_schur = .false.
          case("DiagonalSchurComplement")
-            get_cmc_m = .false.
+            if(.not.poisson_p) get_cmc_m = .false.
             get_diag_schur = .true.
          case("NoPreconditionerMatrix")
             if(.not.poisson_p) get_cmc_m = .false.
@@ -376,7 +369,7 @@
       
       call get_option("/timestepping/timestep", dt)
 
-      if (has_boundary_condition(u, "free_surface")) then
+      if (has_boundary_condition(u, "free_surface").or.use_compressible_projection) then
          ! with free surface pressures are at integer time levels
          ! and we apply a theta weighting to the pressure gradient term
          call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
@@ -395,6 +388,7 @@
         
         ! p_theta = theta*p + (1-theta)*old_p
         call set(p_theta, p, old_p, theta_pg)
+        p_theta%option_path=p%option_path ! use p's solver options
         old_u => extract_vector_field(state(istate), "OldVelocity")
         if (old_u%aliased) then
           ! in the case of one non-linear iteration, there is no OldVelocity,
@@ -497,23 +491,21 @@
       do i = 1, ct_m%blocks(2)
         ewrite_minmax(ct_m%val(1,i)%ptr(:))
       end do
-      ewrite_minmax(ct_rhs%val)
 
       ! do we want to solve for pressure?
       if(have_option(trim(p%option_path)//"/prognostic")) then
         if(use_compressible_projection) then
+          allocate(ctp_m)
+          call allocate(ctp_m, ct_m%sparsity, (/1, u%dim/), name="CTP_m")
           if(cv_pressure) then
-            allocate(ctp_m)
-            call allocate(ctp_m, ct_m%sparsity, (/1, u%dim/), name="CTP_m")
-            call assemble_compressible_divergence_matrix_cv(ctp_m, state)
-            if (have_rotated_bcs(u)) then
-              call rotate_ct_m(ctp_m, u)
-            end if
+            call assemble_compressible_divergence_matrix_cv(ctp_m, state, ct_rhs)
+          else if(cg_pressure) then
+            call assemble_compressible_divergence_matrix_cg(ctp_m, state, ct_rhs)
           else
-            ewrite(-1,*) "The compressible projection method is"
-            ewrite(-1,*) "only compatible with a control volume"
-            ewrite(-1,*) "pressure spatial_discretisation."
-            FLAbort("Sorry!")
+            FLAbort("Unknown pressure discretisation for compressible projection.")
+          end if
+          if (have_rotated_bcs(u)) then
+            call rotate_ct_m(ctp_m, u)
           end if
         else
           ctp_m=>ct_m
@@ -521,6 +513,7 @@
         do i = 1, ctp_m%blocks(2)
           ewrite_minmax(ctp_m%val(1,i)%ptr(:))
         end do
+        ewrite_minmax(ct_rhs%val)
 
         ! Allocate the RHS
         call allocate(projec_rhs, p%mesh, "ProjectionRHS")
@@ -548,7 +541,7 @@
         end if
 
         ! assemble the C_{P}^{T} M^{-1} C matrix
-        if(get_cmc_m.or.use_compressible_projection) then
+        if(get_cmc_m) then
           call zero(cmc_m)
 
           if(dg.and.(.not.lump_mass)) then
@@ -592,7 +585,6 @@
           
           if (has_boundary_condition(u, "free_surface")) then
             call add_free_surface_to_poisson_rhs(poisson_rhs, state(istate), dt, theta_pg)
-            p_theta%option_path=p%option_path ! use p's solver options
           end if
           
           ! apply strong dirichlet conditions
@@ -707,9 +699,20 @@
          
          if(use_compressible_projection) then
           call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
-
-          call assemble_compressible_projection(state, cmc_m, compress_projec_rhs, dt, &
-                                                (get_cmc_m.or.use_compressible_projection))
+          
+          if(cv_pressure) then
+            call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
+                                                     get_cmc_m)
+          else if(cg_pressure) then
+            call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
+                                                     get_cmc_m)
+          else
+            FLAbort("Unknown pressure discretisation for compressible projection.")
+          end if
+          
+          ewrite_minmax(compress_projec_rhs%val)
+          ewrite_minmax(cmc_m%val)
+          
           call addto(projec_rhs, compress_projec_rhs)
 
           call deallocate(compress_projec_rhs)
@@ -767,6 +770,10 @@
         ! (if .not. use_theta_pg then theta_pg is 1.0)
         call addto(p, delta_p, scale=1.0/(theta_pg*dt))
         ewrite_minmax(p%val)
+        
+        if(use_compressible_projection) then
+          call update_compressible_density(state)
+        end if
 
         ! correct velocity according to new delta_p
         if(full_schur) then
@@ -892,6 +899,28 @@
 
         if(have_option("/material_phase["//int2str(i)//&
                             "]/vector_field::Velocity/prognostic&
+                            &/tensor_field::Viscosity/prescribed/value&
+                            &/isotropic").or. &
+           have_option("/material_phase["//int2str(i)//&
+                            "]/vector_field::Velocity/prognostic&
+                            &/tensor_field::Viscosity/prescribed/value&
+                            &/diagonal")) then
+
+          if(have_option("/material_phase["//int2str(i)//&
+                            "]/vector_field::Velocity/prognostic&
+                            &/spatial_discretisation/continuous_galerkin/stress_terms/stress_form")) then
+            ewrite(-1,*) "You have selected stress form viscosity but have entered an isotropic or"
+            ewrite(-1,*) "diagonal Viscosity tensor."
+            ewrite(-1,*) "Zero off diagonal entries in the Viscosity tensor do not make physical"
+            ewrite(-1,*) "sense when using stress form viscosity."
+            ewrite(-1,*) "Use an tensor_form or anisotropic_symmetric Viscosity instead."
+            FLExit("Use tensor_form or anisotropic_symmetric Viscosity.")
+          end if
+
+        end if
+
+        if(have_option("/material_phase["//int2str(i)//&
+                            "]/vector_field::Velocity/prognostic&
                             &/spatial_discretisation/discontinuous_galerkin")) then
 
           if(have_option("/material_phase["//int2str(i)//&
@@ -912,10 +941,6 @@
               end select
               
             end if
-          else if(have_option("/material_phase["//int2str(i)//&
-                            "]/scalar_field::Pressure/prognostic&
-                            &/scheme/use_compressible_projection_method")) then
-            FLExit("Compressible projection doesn't work with dg.")
           end if
 
         end if

@@ -35,10 +35,13 @@ module hadapt_extrude
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field), dimension(node_count(h_mesh)) :: z_meshes
-    character(len=PYTHON_FUNC_LEN) :: sizing_function
-    logical:: sizing_is_constant
+    character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
+    logical:: sizing_is_constant, depth_is_constant
     real:: constant_sizing, depth
     integer:: stat, h_dim, column, quadrature_degree
+    
+    real, dimension(1) :: tmp_depth
+    real, dimension(mesh_dim(h_mesh), 1) :: tmp_pos
 
     !! We assume that for the extrusion operation,
     !! the layer configuration is independent of x and y.
@@ -51,8 +54,19 @@ module hadapt_extrude
     call add_nelist(h_mesh%mesh)
 
     ! get the extrusion options
-    call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth', &
-       depth)
+    call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/constant', &
+       depth, stat=stat)
+    if (stat==0) then
+       depth_is_constant = .true.
+    else
+       depth_is_constant = .false.
+       call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python', &
+          depth_function, stat=stat)
+       if (stat /= 0) then
+         FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
+       end if
+    end if
+    
     call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/constant', &
        constant_sizing, stat=stat)
     if (stat==0) then
@@ -68,6 +82,13 @@ module hadapt_extrude
        
     ! create a 1d vertical mesh under each surface node
     do column=1, size(z_meshes)
+      
+      if(.not.depth_is_constant) then
+        tmp_pos(:,1) = node_val(h_mesh, column)
+        call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+        depth = tmp_depth(1)
+      end if
+      
       if (sizing_is_constant) then
         call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
           sizing=constant_sizing)
@@ -147,7 +168,7 @@ module hadapt_extrude
       py_func = " "
     else if (present(sizing_function)) then
       is_constant=.false.
-      constant_value=-1
+      constant_value=-1.0
       py_func = sizing_function
     else
       FLAbort("Need to supply either sizing or sizing_function")
@@ -210,7 +231,7 @@ module hadapt_extrude
         real :: delta_h
         real, dimension(1) :: delta_h_tmp
         real, dimension(size(pos), 1) :: pos_tmp
-
+        
         if (is_constant) then
           delta_h = constant_value
         else

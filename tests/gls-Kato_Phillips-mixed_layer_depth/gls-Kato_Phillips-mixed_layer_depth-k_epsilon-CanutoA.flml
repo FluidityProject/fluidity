@@ -779,7 +779,6 @@ Surface BCs for second gls quantity on top surface can be set to
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
@@ -815,11 +814,11 @@ Surface BCs for second gls quantity on top surface can be set to
         <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <anisotropic_symmetric>
+              <diagonal>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">10.0 0.0 0.0 0.0</real_value>
+                  <real_value shape="2" dim1="dim" rank="1">10.0 0.0</real_value>
                 </constant>
-              </anisotropic_symmetric>
+              </diagonal>
             </value>
           </prescribed>
         </tensor_field>

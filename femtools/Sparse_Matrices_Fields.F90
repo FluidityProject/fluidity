@@ -46,7 +46,7 @@ implicit none
 
   interface addto_diag
      module procedure csr_diag_addto_scalar, block_csr_diag_addto_scalar, &
-       petsc_csr_diag_addto_scalar
+       petsc_csr_diag_addto_scalar, petsc_csr_diag_addto_vector
   end interface
 
   interface extract_diagonal
@@ -258,6 +258,46 @@ contains
     end do
 
   end subroutine petsc_csr_diag_addto_scalar
+
+  subroutine petsc_csr_diag_addto_vector(A, b, scale)
+    !!< Calculate X_{i,i}=A_{i,i}*b_{i}
+    !!<           X_{i,j}=A_{i,j}, i/=j
+    type(petsc_csr_matrix), intent(inout) :: A
+    type(vector_field), intent(in) :: b
+    real, optional, intent(in) :: scale
+    real, dimension(:), allocatable :: tmp
+    integer :: i, j
+    real :: l_scale
+
+    if(present(scale)) then
+      l_scale = scale
+    else
+      l_scale = 1.0
+    end if
+
+    assert( blocks(A,1)==blocks(A,2) )
+    assert( block_size(A,1)==node_count(b) )
+    assert( block_size(A,2)==node_count(b) )
+
+    do j = 1, blocks(A,1)
+
+      select case(b%field_type)
+      case(FIELD_TYPE_NORMAL)
+        do i = 1, block_size(A,1)
+          call addto(A, j, j, i, i, b%val(j)%ptr(i)*l_scale)
+        end do
+      case(FIELD_TYPE_CONSTANT)
+        allocate(tmp(node_count(b)))
+        tmp=b%val(j)%ptr
+        do i = 1, block_size(A,1)
+          call addto(A, j, j, i, i, tmp(i)*l_scale)
+        end do
+        deallocate(tmp)
+      end select
+
+    end do
+
+  end subroutine petsc_csr_diag_addto_vector
   
   subroutine block_csr_extract_diagonal(A,diagonal)
     !!< Extracts diagonal components of a block_csr matrix.

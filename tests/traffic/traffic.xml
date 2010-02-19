@@ -69,6 +69,12 @@ s = stat_parser("traffic.stat")
 maxtr = s["Air"]["TrafficTracer1"]["max"][-1]
     </variable>
 
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+
   </variables>
 
   <pass_tests>
@@ -83,7 +89,7 @@ assert maxc &lt; 1.2
 assert minvel &gt; -0.01
  </test> 
   <test name="Add source, max" language="python">
-assert maxvel &lt; 4.5
+assert maxvel &lt; 5.5
  </test>
  
    <test name="Spatial Vol Frac, min" language="python">
@@ -103,6 +109,9 @@ assert maxtrs &gt; 0.175
 assert maxtr &gt; 1.E-4
  </test>
 
+   <test name="Solvers converged" language="python">
+assert solvers_converged
+  </test>
   </pass_tests>
 
   <warn_tests>

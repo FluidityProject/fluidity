@@ -224,7 +224,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="WholeMesh">
           <from_file file_name="Thin_No_Forcing_Adapt_VelocityMesh_25_checkpoint.vtu">
             <format>

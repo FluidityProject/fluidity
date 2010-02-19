@@ -58,7 +58,7 @@ contains
                       field_ele, old_field_ele, &
                       upwind_values, old_upwind_values, &
                       inflow, cfl_ele, &
-                      fdcflno, x_ele, udotn, dt, &
+                      udotn, &
                       cv_options, save_pos)
 
     ! given a discretisation type calculate the face value for a field
@@ -74,9 +74,7 @@ contains
     type(csr_matrix), intent(in) :: upwind_values, old_upwind_values
     logical, intent(in) :: inflow
     real, dimension(:), intent(in) :: cfl_ele
-    logical, intent(in) :: fdcflno ! a finite difference cfl number
-    real, dimension(:,:), intent(in) :: x_ele
-    real, intent(in) :: udotn, dt
+    real, intent(in) :: udotn
     type(cv_options_type), intent(in) :: cv_options ! a wrapper type to pass in all the options for control volumes
     integer, intent(inout), optional :: save_pos
 
@@ -120,12 +118,7 @@ contains
 
       income = merge(1.0,0.0,inflow)
 
-      if(fdcflno) then
-         hdc = sqrt(sum((x_ele(:,iloc)-x_ele(:,oloc))**2))
-         cfl_donor = 1.7*dt*abs(udotn)/hdc
-      else
-         cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
-      end if
+      cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
       
       downwind_val = income*field_ele(iloc) + (1.-income)*field_ele(oloc)
       donor_val = income*field_ele(oloc) + (1.-income)*field_ele(iloc)
@@ -154,12 +147,7 @@ contains
 
       income = merge(1.0,0.0,inflow)
 
-      if(fdcflno) then
-         hdc = sqrt(sum((x_ele(:,iloc)-x_ele(:,oloc))**2))
-         cfl_donor = 1.7*dt*abs(udotn)/hdc
-      else
-         cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
-      end if
+      cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
 
       downwind_val = income*field_ele(iloc) + (1.-income)*field_ele(oloc)
       donor_val = income*field_ele(oloc) + (1.-income)*field_ele(iloc)
@@ -203,12 +191,7 @@ contains
 
       income = merge(1.0,0.0,inflow)
 
-      if(fdcflno) then
-         hdc = sqrt(sum((x_ele(:,iloc)-x_ele(:,oloc))**2))
-         cfl_donor = 1.7*dt*abs(udotn)/hdc
-      else
-         cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
-      end if
+      cfl_donor = income*cfl_ele(oloc) + (1.-income)*cfl_ele(iloc)
 
       downwind_val = income*field_ele(iloc) + (1.-income)*field_ele(oloc)
       donor_val = income*field_ele(oloc) + (1.-income)*field_ele(iloc)
@@ -286,6 +269,16 @@ contains
 
       old_face_val = hyperc_val(upwind_val=old_target_upwind, donor_val=old_donor_val, &
                                 downwind_val=old_target_downwind, cfl_donor=cfl_donor)
+
+    case (CV_FACEVALUE_FIRSTORDERDOWNWIND)
+
+      income = merge(1.0,0.0,inflow)
+
+      donor_val = (1.-income)*field_ele(oloc) + income*field_ele(iloc)
+      old_donor_val = (1.-income)*old_field_ele(oloc) + income*old_field_ele(iloc)
+
+      face_val = donor_val
+      old_face_val = old_donor_val
 
     end select
 

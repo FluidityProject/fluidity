@@ -89,7 +89,7 @@ program cv_diffusion_matrix
 
   integer :: quaddegree
 
-  logical :: diffusion, fdcflno, getmat
+  logical :: diffusion, getmat
 
 #ifdef HAVE_MPI
   call MPI_Init(ierr)
@@ -172,7 +172,6 @@ program cv_diffusion_matrix
   call allocate(cfl_no, tfield%mesh, name="DummyCFLNumber", &
                 field_type=FIELD_TYPE_CONSTANT)
   call zero(cfl_no)
-  fdcflno = .false.
 
   ! get the mesh sparsity for the matrices
   if(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY) then
@@ -246,7 +245,7 @@ program cv_diffusion_matrix
                               tdensity, old_tdensity, tdensity_options, &
                               cvfaces, x_cvshape, x_cvbdyshape, &
                               u_cvshape, u_cvbdyshape, t_cvshape, &
-                              states, advu, x, cfl_no, fdcflno, &
+                              states, advu, x, cfl_no, &
                               getmat, dt, &
                               mesh_sparsity_1, &
                               diffusion=diffusion, diffusivity=diffusivity, q_lumpedmass=q_lumpedmass, &

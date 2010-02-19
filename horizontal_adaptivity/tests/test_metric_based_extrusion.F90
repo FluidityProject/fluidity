@@ -25,7 +25,7 @@ subroutine test_metric_based_extrusion
   end interface
 
   call set_option("/geometry/quadrature/degree", 4, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/bottom_depth", 1.0, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/bottom_depth/constant", 1.0, stat=stat)
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/sizing_function/constant", 1.0, stat=stat)
 
   call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), sizing=1.0)

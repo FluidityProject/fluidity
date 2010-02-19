@@ -23,7 +23,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "solids" | "multimaterial" | "porous_media" | "stokes" )
+               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" )
             },
             comment
          },
@@ -657,13 +657,6 @@ start =
                               element subtract_out_hydrostatic_level {
                                  attribute replaces {"BHOUT"},
                                  empty
-                              }?,
-                              ## Changes the density for the
-                              ## Boussinesq approx.
-                              ## Manual suggests false
-                              element legacy_bousinesq_change_density {
-                                 attribute replaces {"CHADEN"},
-                                 empty
                               }?
                            }|
                            ## 2002 McDougall, Jackett, Wright and
@@ -678,11 +671,11 @@ start =
                            }
                         )
                      }|
-                     ## Equations of state for multi-material (solid/fluid) applications
-                     element multimaterial {
+                     ## Equations of state for compressible applications
+                     element compressible {
                         ## Mie-Grunneisen EoS
                         ##
-                        ## Used with multimaterial compressible simulations
+                        ## Used with compressible simulations
                         element miegrunneisen {
                            attribute replace { "MKCOMP from solidity_inputs.inp" },
                            ## reference uncompressed density
@@ -1369,6 +1362,10 @@ start =
                   element prescribed {
                      velocity_mesh_choice,
                      prescribed_scalar_field
+                  }|
+                  element prognostic {
+                     pressure_mesh_choice,
+                     prognostic_density_field
                   }|
                   element aliased {
                      attribute material_phase_name { xsd:string },
@@ -2281,25 +2278,26 @@ prognostic_velocity_field =
                ## Discretisation options for the stress terms in the velocity equation.
                element stress_terms {
                   (
-                     ## Use tensor form of the stress terms.
+                     ## Use tensor form of the stress terms:
+                     ##
+                     ## mu u_{i,jj}
                      ##
                      ## This is only valid for incompressible
                      ## simulations as it is basically a simplication
                      ## of full stress form when divergent elements can
                      ## be cancelled out.
                      ##
-                     ## ONLY DIAGONAL COMPONENTS OF VISCOSITY CAN BE
-                     ## SET (i.e. either isotropic or
-                     ## anistropic_symmetric with zero off diagonals
-                     ## tensors).
+                     ## Only diaonal components of viscosity
+                     ## (i.e. either isotropic or
+                     ## diagonal) are physical for isotropic materials.
                      ##
-                     ## If diagonal components differ from each other
+                     ## If components differ from each other
                      ## this must be for numerical reasons (i.e. not
                      ## physical variations in viscosity otherwise
                      ## simplification is not valid).
                      ##
                      ## If activated, the dim x dim (in this example
-                     ## 3d) stress matrix takes the form:
+                     ## 3d) discrete stress matrix takes the form:
                      ##
                      ##  /  mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z
                      ##  |   0                                             ...
@@ -2325,9 +2323,12 @@ prognostic_velocity_field =
                     element tensor_form {
                       empty
                     }|
-                     ## Use full stress form of the stress tensor.
+                     ## Use full stress form of the stress tensor:
                      ##
-                     ## This is required if performing a compressible simulation.
+                     ## 2*mu (u_{(i,j)} - 1/3*\delta_{ij}u_{k,k})
+                     ##
+                     ## This couples the velocity components together.
+                     ## It is required if performing a compressible simulation.
                      ##
                      ## If using a viscosity ALL COMPONENTS OF
                      ## VISCOSITY MUST BE SET (i.e. either
@@ -2336,22 +2337,22 @@ prognostic_velocity_field =
                      ##
                      ## If components differ form each other this must
                      ## be for numerical reasons (i.e. not physical
-                     ## variations in viscosity).
+                     ## variations in viscosity as the material is isotropic).
                      ##
                      ## If activated, the dim x dim (in this example
-                     ## 3d) stress matrix takes the form:
+                     ## 3d) discrete stress matrix takes the form:
                      ##
-                     ##  /   2*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz - 2/3*N_a,x*N_b,x*mu_xx
-                     ##  |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx                                             ...
+                     ##  /   4/3*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_xy + N_a,z*N_b,z*mu_xz
+                     ##  |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx                       ...
                      ##  \   N_a,x*N_b,z*mu_xz - 2/3*N_a,z*N_b,x*mu_zx
                      ##
                      ##      N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xy
-                     ##  ... N_a,x*N_b,x*mu_xx + 2*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz - 2/3*N_a,y*N_b,y*mu_yy   ...
+                     ##  ... N_a,x*N_b,x*mu_xy + 4/3*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_yz   ...
                      ##      N_a,y*N_b,z*mu_yz - 2/3*N_a,z*N_b,y*mu_zy
                      ##
-                     ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz                                             \
-                     ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz                                             |
-                     ##      N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + 2*N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz   /
+                     ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz                       \
+                     ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz                       |
+                     ##      N_a,x*N_b,x*mu_xz + N_a,y*N_b,y*mu_yz + 4/3*N_a,z*N_b,z*mu_zz   /
                      ##
                      ## which is derived from b_a^T c b_b, where:
                      ##
@@ -2366,20 +2367,23 @@ prognostic_velocity_field =
                      element stress_form {
                         ## Use the legacy form of the stress tensor.
                         ##
+                        ## This differs from the standard method in how the components 
+                        ## of the viscosity tensor are distributed.
+                        ##
                         ## If activated, the dim x dim (in this case
                         ## 3d) stress matrix takes the form:
                         ##
-                        ##  /   2*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz - 2/3*N_a,x*N_b,x*mu_xx
-                        ##  |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy                                             ...
+                        ##  /   4/3*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz
+                        ##  |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy                     ...
                         ##  \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
                         ##
                         ##      N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
-                        ##  ... N_a,x*N_b,x*mu_xx + 2*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz - 2/3*N_a,y*N_b,y*mu_yy   ...
+                        ##  ... N_a,x*N_b,x*mu_xx + 4/3*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz ...
                         ##      N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
                         ##
-                        ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                                             \
-                        ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                                             |
-                        ##      N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + 2*N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz   /
+                        ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                     \
+                        ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                     |
+                        ##      N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + 4/3*N_a,z*N_b,z*mu_zz /
                         ##
                         ## where N_a and N_b are shape functions of
                         ## the ath and bth node respectively and mu
@@ -2630,7 +2634,6 @@ prognostic_velocity_field =
       element solver {
          linear_solver_options_asym
       },
-      constitutive_laws,
       (
          ## Initial condition for WholeMesh
          ##
@@ -2698,6 +2701,7 @@ prognostic_velocity_field =
             element diagnostic {
                (
                   vector_python_diagnostic_algorithm |
+                  imposed_material_velocity_source_algorithm |
                   internal_velocity_source_algorithm
                ),
                diagnostic_vector_field
@@ -2720,6 +2724,7 @@ prognostic_velocity_field =
             element diagnostic { 
                (
                   vector_python_diagnostic_algorithm |
+                  imposed_material_velocity_absorption_algorithm |
                   internal_velocity_absorption_algorithm
                ),
                diagnostic_vector_field
@@ -2735,7 +2740,12 @@ prognostic_velocity_field =
            ## Lump the inclusion of absorbtion terms.
            element lump_absorption {
               attribute replaces {"ABSLUM"},
-              empty
+              ## Lump on the submesh.
+              ## This only works for simplex meshes and is only
+              ## strictly valid on 2d meshes.
+              element use_submesh {
+                empty
+              }?
            }|
            ## Includes the pressure correction to the velocity in the
            ## absorption term (for theta>0). This makes the absorption
@@ -2744,30 +2754,6 @@ prognostic_velocity_field =
            element include_pressure_correction {
               empty
            }
-         )
-      }?,
-      ## Elastic parameters for elastic and visco-elastic materials
-      ## For a linearly elastic solid
-      ## In legacy elastic solids were run with SOLIDS = 2 from solidity_options.inp.
-      ## In gem ONEMU and CONMU = .TRUE.
-      ## and RMUPZZ taken as the isotropic Young`s modulus
-      ## UNDER DEVELOPMENT
-      ##  - currently only works for lagrangian meshes
-      ##  - only single materials tested so far
-      ##  - momentum equations assembled in solid3d so not all
-      ##    discretisation options above are valid
-      element tensor_field {
-         attribute replaces { "SOLIDS = 1 from solidity_options.inp" },
-         attribute name { "Elasticity" },
-         attribute rank { "2" },
-         (
-            element prescribed {
-               prescribed_values_tensor_field
-            }|
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_tensor_field
-            }
          )
       }?,
       ## SurfaceTension
@@ -2794,46 +2780,6 @@ prognostic_velocity_field =
             }
          )
       }?,
-      ## Cohesion for plastic materials
-      ## UNDER DEVELOPMENT
-      ##  - currently only works for lagrangian meshes
-      ##  - only single materials tested so far
-      ##  - momentum equations assembled in solid3d so not all
-      ##    discretisation options above are valid
-      element scalar_field {
-         attribute name { "Cohesion" },
-         attribute rank { "0" },
-         attribute replaces { "COHESI from solidity_options.inp" },
-         (
-            element prescribed {
-               prescribed_scalar_field_no_adapt
-            }|
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_scalar_field
-            }
-         )
-      }?,
-      ## Friction Angle for plastic materials
-      ## UNDER DEVELOPMENT
-      ##  - currently only works for lagrangian meshes
-      ##  - only single materials tested so far
-      ##  - momentum equations assembled in solid3d so not all
-      ##    discretisation options above are valid
-      element scalar_field {
-         attribute name { "FrictionAngle" },
-         attribute rank { "0" },
-         attribute replaces { "FRCANG from solidity_options.inp" },
-         (
-            element prescribed {
-               prescribed_scalar_field_no_adapt
-            }|
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_scalar_field
-            }
-         )
-      }?,
       prognostic_vector_output_options,
       prognostic_vector_stat_options,
       vector_convergence_options,
@@ -2855,7 +2801,8 @@ prognostic_scalar_field =
                advection_stabilisation_options,
                ## Discretisation options for the advection terms.
                element advection_terms {
-                  ## Integrate the advection terms by parts.
+                  ## Integrate the advection terms of the advection equation by
+                  ## parts.
                   element integrate_advection_by_parts {
                      comment
                   }?,
@@ -3444,6 +3391,161 @@ prognostic_scalar_field =
       }?
    )
 
+prognostic_density_field =
+   (
+      scalar_equation_choice?,
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         (
+            ## Continuous Galerkin formulation.
+            element continuous_galerkin {
+               advection_stabilisation_options,
+               ## Discretisation options for the advection terms.
+               element advection_terms {
+                  ## Integrate the advection terms of the momentum equation by
+                  ## parts.
+                  element integrate_advection_by_parts {
+                     comment
+                  }?
+               },
+               ## Discretisation options for the mass terms.
+               element mass_terms {
+                  ## Lump the mass matrix
+                  element lump_mass_matrix {
+                     empty
+                  }?
+               },
+               comment
+            }|
+            ## Use a control volume discretisation.
+            element control_volumes {
+              spatial_control_volume_options
+            }
+         )
+      },
+      element temporal_discretisation {
+         ## Implicit/explicit control (TTHETA)
+         ##  =0.  -- explicit
+         ##  =0.5 -- Crank-Nicholson
+         ##  =1.  -- implicit
+         element theta {
+            attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
+            real
+         },
+         temporal_control_volume_options?
+      },
+      (
+         ## Solver
+         element solver {
+            linear_solver_options_asym
+         }|
+         ## Assume this field is being solved explicitly and skip the solver.
+         ##
+         ## ONLY AVAILABLE FOR PURE CONTROL VOLUME SPATIAL DISCRETISATIONS.
+         ##
+         ## Assumes lhs matrix only has diagonal lumped mass (times
+         ## density if appropriate for equation)
+         ## and divides the rhs by this.
+         element explicit {
+            empty
+         }
+      )?,
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_real
+         }
+      )+,
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## Type
+         (
+            element type {
+               attribute name { "dirichlet" },
+               ## Apply the dirichlet bc weakly.  Available
+               ## automatically with discontinuous_galerkin,
+               ## and control_volume spatial_discretisations.
+               ## If not selected boundary conditions are applied strongly.
+               element apply_weakly {
+                  ## If the initial condition and boundary conditions
+                  ## differ, setting this option will cause the initial
+                  ## condition on the boundary to be overwritten with
+                  ## the boundary condition. Since you are applying the
+                  ## boundary condition weakly, you probably do *not*
+                  ## want this.
+                  element boundary_overwrites_initial_condition {
+                     empty
+                  }?
+               }?,
+               input_choice_real
+            }
+         )
+      }*,
+      ## source term
+      element scalar_field {
+         attribute name { "Source" },
+         attribute rank { "0" },
+         attribute replaces { "ZSOT" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt,
+               recalculation_options?
+            }|
+            ## This only works for traffic modelling
+            element diagnostic {
+              internal_algorithm,
+              diagnostic_scalar_field_no_adapt
+            } 
+         )
+      }?,
+      ## Absorption term
+      element scalar_field {
+         attribute name { "Absorption" },
+         attribute rank { "0" },
+         attribute replaces { "TABSZE TABS TABSCO TABSOR" },
+         element prescribed {
+            prescribed_scalar_field_no_adapt
+         }
+      }?,
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      scalar_convergence_options,
+      prognostic_detector_options,
+      scalar_steady_state_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar,
+      discrete_properties_algorithm_scalar?,
+      ## Set the priority of this field
+      ## This determines the order in which scalar_fields are solved for:
+      ##  - higher numbers have the highest priority
+      ##  - lower numbers (including negative) have the lowest priority
+      ##  - default if not set is 0
+      element priority {
+         integer
+      }?
+   )
+
 geometry = 
    (
       ## Options dealing with the specification of geometry
@@ -3941,8 +4043,7 @@ prognostic_pressure_field =
             }
          ),
          ## rediscretise the equations at every timestep and iteration
-         ## (for instance if using a compressible formulation
-         ## or if density varies a lot or if not using a Boussinesque approximation)
+         ## (this is useful as a debugging tool but shouldn't be necessary for any application runs)
          element update_discretised_equation {
             attribute replaces {"CMCHAN"},
             empty
@@ -5615,6 +5716,24 @@ scalar_field_choice =
                }
             )
          }|
+         ## InternalEnergy field:
+         ##
+         ## Field for the internal energy of a single material.
+         ## Required in compressible simulations
+         ## with full miegrunneisen (perfect gas) eos.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InternalEnergy" },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
          ## SumMaterialVolumeFractions field:
          ##
          ## Sums the prognostic MaterialVolumeFraction fields.
@@ -5790,42 +5909,6 @@ scalar_field_choice =
             attribute rank { "0" },
             attribute name { "DistanceToSideBoundaries" },
             attribute replaces { "IDENT = -144" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## MaterialFrictionAngle for multimaterial
-         ## plasticity problems
-         ##
-         ## Requires a diagnostic bulk FrictionAngle field
-         ## - not tested yet
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MaterialFrictionAngle" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## MaterialCohesion for multimaterial
-         ## plasticity problems
-         ##
-         ## Requires a diagnostic bulk Cohesion field
-         ## - not tested yet
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MaterialCohesion" },
             (
                element prescribed {
                   velocity_mesh_choice,
@@ -7157,12 +7240,30 @@ vector_field_choice =
          }|
 #
 # -- List of fields that are primarily prescribed,
-#    but can be aliased. An example is Maximum bed shear stress.
+#    but can be aliased.
 # -- The list is in order of most frequently used.
 #
          ## Prescribed vector fields below this
          element ___Prescribed_fields_below___ {
             empty
+         }|
+
+         ## MaterialVelocity field.  Used to impose a velocity on a material
+         ## in combination with the imposed_material_velocity_absorption_algorithm
+         ## for VelocityAbsorption and imposed_material_velocity_source_algorithm 
+         ## for VelocitySource.
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "MaterialVelocity" },
+            (
+               element prescribed {
+                  mesh_choice,
+                  prescribed_vector_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
          }|
 #
 # Insert new prescribed vector fields here using the template:
@@ -7782,20 +7883,6 @@ tensor_field_choice =
             )
          }|
 
-         element tensor_field {
-            attribute rank { "2" },
-            attribute name { "MaterialElasticity" },
-            (
-               element prescribed {
-                  mesh_choice,
-                  prescribed_tensor_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-
 #
 # Insert new prescribed tensor fields here using the template:
 #        element tensor_field {
@@ -7939,7 +8026,7 @@ mesh_info =
             ## top will be at z=0
             ## bottom will be at z=-bottom_depth
             element bottom_depth {
-               real
+               input_choice_real
             },
             ## Constant or function to specify the depth of the
             ## layers. The function is a function of all coordinates
@@ -8010,6 +8097,12 @@ input_choice_tensor_field =
          element isotropic {
             input_choice_real
          }|
+         ## A diagonal tensor, i.e.
+         ## one with only diagonal nonzero entries.
+         ## Can be represented as a vector real.
+         element diagonal {
+            input_choice_real_dim_vector
+         }|
          ## A symmetric tensor, i.e.
          ## A^T = A
          element anisotropic_symmetric {
@@ -8022,20 +8115,6 @@ input_choice_tensor_field =
       )
    )
 
-constitutive_laws =
-   (
-      (
-         ## Constitutive laws for fluids
-         element constitutive_law {
-            attribute name { "fluid" }
-         }|
-         ## Constitutive laws for solids
-         element constitutive_law {
-            attribute name { "solid" }
-         }
-      )
-   )
-   
 region_ids = 
    ( 
       ## Optional region ids to associate different values
@@ -8050,7 +8129,7 @@ region_ids =
 
 temporal_control_volume_options =
    (
-      ## Temporal discretisation options that are only relevant if a control volume or mixed control volume - continuous galerkin spatial discretisation is selected for this field.
+      ## Temporal discretisation options that are only relevant if a control volume or coupled_cv spatial discretisation is selected for this field.
       element control_volumes {
          ## Number of iterations within an advection solve.
          ## This increases the accuracy of the face values and ensures that
@@ -8101,16 +8180,14 @@ temporal_control_volume_options =
                integer
             }
          )?,
-         ## Only works if a control volume or mixed control volume -
-         ## continuous galerkin spatial discretisation is selected.
+         ## Only works if a control volume or coupled_cv spatial discretisation is selected.
          ## If not active then the theta specified above will be used.
          ## Otherwise use variable limited theta on individual faces.
          element limit_theta {
             attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
             empty
          }?,
-         ## Only works if a control volume or mixed control volume -
-         ## continuous galerkin spatial discretisation is selected.
+         ## Only works if a control volume or coupled_cv spatial discretisation is selected.
          ## Time discretisation of upwind discretisation off which the
          ## higher order solution is pivotted.
          ##  - pivot_theta = 1 - implicit pivot (default if not set and 
@@ -8236,6 +8313,17 @@ standard_control_volume_options =
         attribute name { "FiniteElement" },
         attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
         limiter_options
+      }|
+      ## First Order Downwind face value discretisation
+      ##  face_value = downwind_value, 
+      ## where
+      ##  donor_value = (1.-income)*val_1 + income*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order downwinding is unconditionally unstable
+      element face_value {
+        attribute name { "FirstOrderDownwind" },
+        empty
       }
    )
    
@@ -8490,7 +8578,7 @@ limiter_options =
 
 sweby_limiter = 
   ## See "High-Resolution Schemes Using Flux Limiters for
-  ## Hyperblic Conservation-Laws", P. K. Sweby, 1984, Siam
+  ## Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
   ## Journal on Numerical Analysis, 21, 995-1011
   element limiter {
     attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" },
@@ -8682,16 +8770,6 @@ field_based_cfl_number_options =
 cv_face_cfl_number_options =
    (
       (
-         ## Select the Courant Number definition to be used in the slope of
-         ## the NVD diagram upper bound.
-         ## This uses the finite difference definition of the CFL Number
-         ## consistent with the 1D version of HyperC (Leonard, 1981).
-         ## This is the default that reproduces old behaviour.
-         ## All others are under testing or construction.
-         element courant_number {
-            attribute name { "FiniteDifferenceCFLNumber" },
-            empty
-         }|
          ## Select the Courant Number definition to be used in the slope of
          ## the NVD diagram upper bound.
          ## This uses the control volume definition of the CFL Number.

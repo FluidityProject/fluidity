@@ -72,7 +72,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   external_function.o Generic_interface.o Reference_Counting.o \
   Tokenize.o Boundary_Conditions.o Write_Triangle.o \
   tictoc.o \
-  CVTools.o CV_Face_Values.o CV_Upwind_Values.o CV_Shape_Functions.o CV_Faces.o \
+  CVTools.o CV_Fields.o CV_Face_Values.o CV_Upwind_Values.o CV_Shape_Functions.o CV_Faces.o \
   CV_Options.o Metric_tools.o \
   Merge_tensors.o Write_State.o Field_Options.o \
   Fields_Base.o Fields_Allocates.o Fields_Calculations.o Fields_Manipulation.o \
@@ -245,7 +245,7 @@ Fields_Allocates.o: Data_structures.o Elements.o Fields_Data_Types.o \
 Fields_Manipulation.o: Fields_Data_Types.o Fields_Base.o Fields_Allocates.o \
   Element_set.o Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
   Halos_Debug.o Halos_Ownership.o Halos_Numbering.o Halos_Repair.o qsortd.o \
-	Parallel_Tools.o
+	Parallel_Tools.o Vector_Tools.o
 
 Fields_Calculations.o: Fields_Data_Types.o Fields_Base.o Fields_Manipulation.o \
    FETools.o Parallel_fields.o Supermesh.o Intersection_finder.o Linked_Lists.o \
@@ -389,6 +389,8 @@ CV_Shape_Functions.o : CV_Faces.o
 CVTools.o : State.o Vector_Tools.o Futils.o Field_Options.o
 
 CV_Options.o : CVTools.o Element_Numbering.o
+
+CV_Fields.o : CVTools.o State.o Diagnostic_Fields.o Fields.o
 
 CV_Upwind_Values.o : CV_Options.o Elements.o Quadrature.o Boundary_Conditions.o Field_derivatives.o
 

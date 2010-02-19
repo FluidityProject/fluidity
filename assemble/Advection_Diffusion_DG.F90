@@ -1009,7 +1009,7 @@ contains
        ! Add stabilisation to the advection term if requested by the user.
        if (stabilisation_scheme==UPWIND) then
           Advection_mat = Advection_mat + &
-               element_upwind_stabilisation(u_shape, dt_t, U_nl_q, J_mat,&
+               element_upwind_stabilisation(t_shape, dt_t, U_nl_q, J_mat,&
                & detwei)
        end if
 

@@ -235,7 +235,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
@@ -434,12 +433,6 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
-      <aliased material_phase_name="Water" field_name="Pressure"/>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <aliased material_phase_name="Water" field_name="Density"/>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>

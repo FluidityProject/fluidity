@@ -77,13 +77,13 @@
   <physical_parameters/>
   <material_phase name="Gas">
     <equation_of_state>
-      <multimaterial>
+      <compressible>
         <miegrunneisen replace="MKCOMP from solidity_inputs.inp">
           <ratio_specific_heats replaces="DENGAM for single materials, DEN GAM from solidity_inputs.inp -&gt; DENGAMMAT for multimaterials">
             <real_value rank="0">1.4</real_value>
           </ratio_specific_heats>
         </miegrunneisen>
-      </multimaterial>
+      </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
@@ -211,7 +211,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="whole_mesh">
           <constant>
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
@@ -484,11 +483,11 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="whole_mesh">
-          <isotropic>
+          <anisotropic_symmetric>
             <constant>
-              <real_value rank="0">1.0E-3</real_value>
+              <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0E-3 1.0E-3 1.0E-3 1.0E-3 1.0E-3 1.0E-3 1.0E-3 1.0E-3 1.0E-3</real_value>
             </constant>
-          </isotropic>
+          </anisotropic_symmetric>
         </value>
       </prescribed>
     </tensor_field>

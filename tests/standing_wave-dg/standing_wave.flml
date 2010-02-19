@@ -226,7 +226,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="whole_mesh">
           <constant>
             <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>

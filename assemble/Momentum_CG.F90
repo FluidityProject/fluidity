@@ -71,6 +71,8 @@
     logical :: pressure_corrected_absorption
     ! do we have isotropic viscosity?
     logical :: isotropic_viscosity
+    ! do we have diagonal viscosity?
+    logical :: diagonal_viscosity
     ! are we using the stress form of the viscosity terms?
     logical :: stress_form
     ! do we want to integrate the continuity matrix by parts?
@@ -84,7 +86,7 @@
     ! do we need the inverse lumped mass to assemble a lumped cmc preconditioner
     logical :: cmc_lump_mass
     ! use the sub mesh to lump the mass
-    logical :: vel_lump_on_submesh, cmc_lump_on_submesh
+    logical :: vel_lump_on_submesh, cmc_lump_on_submesh, abs_lump_on_submesh
     ! integrate the surface tension by parts
     logical :: integrate_surfacetension_by_parts
     
@@ -93,7 +95,6 @@
     logical :: have_gravity
     logical :: have_absorption
     logical :: have_viscosity
-    logical :: have_elasticity
     logical :: have_surfacetension
     logical :: have_coriolis
     logical :: have_geostrophic_pressure
@@ -164,7 +165,7 @@
       type(scalar_field), pointer :: gp
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
-      type(tensor_field), pointer :: viscosity, elasticity
+      type(tensor_field), pointer :: viscosity
       type(tensor_field), pointer :: surfacetension
 
       ! dummy fields in case state doesn't contain the above fields
@@ -185,7 +186,12 @@
       type(scalar_field) :: pressure_bc
       integer, dimension(:,:), allocatable :: velocity_bc_type
       integer, dimension(:), allocatable :: pressure_bc_type
-      
+
+      ! fields for the assembly of absorption when
+      ! lumping on the submesh
+      type(vector_field) :: abslump
+      type(scalar_field) :: absdensity, abslump_component, abs_component
+
       ! for 4th order les:
       type(tensor_field):: grad_u
 
@@ -258,10 +264,6 @@
             end do
          end do
       end if
-
-      elasticity=>extract_tensor_field(state, "Elasticity", stat)
-      have_elasticity = stat == 0
-      if(.not. have_elasticity) elasticity=>dummytensor
       
       surfacetension=>extract_tensor_field(state, "VelocitySurfaceTension", stat)
       have_surfacetension = stat == 0
@@ -312,6 +314,9 @@
       lump_absorption=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
           &/lump_absorption")
+      abs_lump_on_submesh = have_option(trim(u%option_path)//&
+          &"/prognostic/vector_field::Absorption&
+          &/lump_absorption/use_submesh")
       pressure_corrected_absorption=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
           &/include_pressure_correction")
@@ -323,14 +328,19 @@
       lump_source=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Source&
           &/lump_source")
-      isotropic_viscosity = have_viscosity .and. &
-        & option_count(trim(u%option_path) // &
-        & "/prognostic/tensor_field::Viscosity/prescribed/value") == &
-        & option_count(trim(u%option_path) // &
-        & "/prognostic/tensor_field::Viscosity/prescribed/value/isotropic")
-      stress_form=have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation/continuous_galerkin&
-          &/stress_terms/stress_form")
+      if(have_viscosity) then
+         isotropic_viscosity = have_viscosity .and. &
+           & isotropic_field(viscosity)
+         diagonal_viscosity = have_viscosity .and. &
+           & diagonal_field(viscosity)
+         stress_form=have_option(trim(u%option_path)//&
+             &"/prognostic/spatial_discretisation/continuous_galerkin&
+             &/stress_terms/stress_form")
+      else
+         isotropic_viscosity = .false.
+         diagonal_viscosity = .false.
+         stress_form = .false.
+      end if
       integrate_continuity_by_parts=have_option(trim(p%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin&
           &/integrate_continuity_by_parts")
@@ -350,6 +360,11 @@
           &"/prognostic/spatial_discretisation&
           &/continuous_galerkin/mass_terms&
           &/lump_mass_matrix/use_submesh")
+      if (pressure_corrected_absorption) then
+         ! as we add the absorption into the mass matrix
+         ! the meshes need to be the same
+         abs_lump_on_submesh = vel_lump_on_submesh
+      end if
       cmc_lump_mass = have_option(trim(p%option_path)//&
           &"/prognostic/scheme&
           &/use_projection_method/full_schur_complement&
@@ -399,7 +414,7 @@
               x, u, oldu, relu, &
               density, p, &
               source, absorption, buoyancy, gravity, &
-              viscosity, elasticity, grad_u, &
+              viscosity, grad_u, &
               gp, surfacetension, &
               assemble_ct_matrix, cg_pressure)
          
@@ -449,12 +464,37 @@
          deallocate(pressure_bc_type)
       end if
       
+      if(abs_lump_on_submesh) then
+        
+        call allocate(abslump, inverse_masslump%dim, inverse_masslump%mesh, "LumpedAbsorption")
+        call allocate(absdensity, absorption%mesh, "AbsorptionComponentTimesDensity")
+        
+        do dim = 1, inverse_masslump%dim
+          call remap_field(density, absdensity)
+          abs_component = extract_scalar_field(absorption, dim)
+          call scale(absdensity, abs_component)
+      
+          abslump_component = extract_scalar_field(abslump, dim)              
+          call compute_lumped_mass_on_submesh(state, abslump_component, density=absdensity)
+        end do
+        
+        call deallocate(absdensity)
+        
+        if(assemble_inverse_masslump.and.pressure_corrected_absorption) then
+          call addto(inverse_masslump, abslump, theta)
+        end if
+
+        call addto_diag(big_m, abslump, dt*theta)
+        
+        call scale(abslump, oldu)
+        call addto(rhs, abslump, -1.0)
+          
+        call deallocate(abslump)
+      end if
+
       if (assemble_inverse_masslump) then
         
         if(vel_lump_on_submesh .or. cmc_lump_on_submesh) then
-          if(pressure_corrected_absorption) then
-            FLAbort("Can't combine pressure_corrected_absorption with mass lumping on submesh")
-          end if
           ! we still have to make the lumped mass if this is true
           masslump_component=extract_scalar_field(inverse_masslump, 1)
 
@@ -469,7 +509,7 @@
             call addto_diag(big_m, masslump_component)
           end if
         end if
-      
+        
         ! thus far we have just assembled the lumped mass in inverse_masslump
         ! now invert it:
         call invert(inverse_masslump)
@@ -614,7 +654,7 @@
                                             x, u, oldu, relu, &
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
-                                            viscosity, elasticity, grad_u, &
+                                            viscosity, grad_u, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix, cg_pressure)
     !!< Assembles the local element matrix contributions and places them in big_m
@@ -633,7 +673,7 @@
       type(vector_field), intent(in) :: x, u, oldu, relu
       type(scalar_field), intent(in) :: density, p, buoyancy
       type(vector_field), intent(in) :: source, absorption, gravity
-      type(tensor_field), intent(in) :: viscosity, elasticity
+      type(tensor_field), intent(in) :: viscosity
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
       type(tensor_field), intent(in) :: grad_u
@@ -744,7 +784,7 @@
 
       ! Source terms
       if(have_source) then
-        call add_sources_element_cg(ele, test_function, u, source, detwei, rhs_addto)
+        call add_sources_element_cg(ele, test_function, u, density, source, detwei, rhs_addto)
       end if
       
       ! Buoyancy terms
@@ -768,11 +808,6 @@
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(ele, u, oldu_val, relu, x, viscosity, grad_u, &
            du_t, detwei, big_m_tensor_addto, rhs_addto)
-      end if
-      
-      ! Elasticity terms (unused)
-      if(have_elasticity) then
-        call add_elasticity_element_cg(ele, u, elasticity, du_t, detwei)
       end if
       
       ! Coriolis terms
@@ -942,24 +977,29 @@
       
     end subroutine add_advection_element_cg
     
-    subroutine add_sources_element_cg(ele, test_function, u, source, detwei, rhs_addto)
+    subroutine add_sources_element_cg(ele, test_function, u, density, source, detwei, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
+      type(scalar_field), intent(in) :: density
       type(vector_field), intent(in) :: source
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
       
       integer :: dim
+      real, dimension(ele_ngi(u, ele)) :: density_gi
       real, dimension(ele_loc(u, ele)) :: source_lump
-      real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: source_mat
+      real, dimension(ele_loc(u, ele), ele_loc(source, ele)) :: source_mat
       
+      density_gi=ele_val_at_quad(density, ele)
+
       ! element source matrix
       !  /
-      !  | N_A N_B dV
+      !  | N_A N_B rho dV
       !  /
-      source_mat = shape_shape(test_function, ele_shape(source, ele), detwei)
+      source_mat = shape_shape(test_function, ele_shape(source, ele), detwei*density_gi)
       if(lump_source) then
+        assert(ele_loc(source, ele)==ele_loc(u, ele))
         source_lump = sum(source_mat, 2)
         do dim = 1, u%dim
           ! lumped source
@@ -1042,11 +1082,13 @@
       !  /
       absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
       if(lump_absorption) then
-        absorption_lump = sum(absorption_mat, 3)
-        do dim = 1, u%dim
-          big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
-          rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
-        end do
+        if(.not.abs_lump_on_submesh) then
+          absorption_lump = sum(absorption_mat, 3)
+          do dim = 1, u%dim
+            big_m_diag_addto(dim, :) = big_m_diag_addto(dim, :) + dt*theta*absorption_lump(dim,:)
+            rhs_addto(dim, :) = rhs_addto(dim, :) - absorption_lump(dim,:)*oldu_val(dim,:)
+          end do
+        end if
       else
         do dim = 1, u%dim
           big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) + &
@@ -1056,7 +1098,7 @@
         absorption_lump = 0.0
       end if
       if (pressure_corrected_absorption) then
-        if (assemble_inverse_masslump) then
+        if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
           call addto(masslump, ele_nodes(u, ele), theta*absorption_lump)
         end if
         if (assemble_mass_matrix) then
@@ -1124,25 +1166,31 @@
       !  /
       ! only valid when incompressible and viscosity tensor is isotropic
       viscosity_mat = 0.0
-      if(isotropic_viscosity .and. .not. have_les) then
-        assert(u%dim > 0)
-        viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
-        do dim = 2, u%dim
-          viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
-        end do
-      else
-        do dim = 1, u%dim
-          viscosity_mat(dim, dim, :, :) = &
-                       dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
-        end do
-      end if
       if(stress_form) then
-        ! addin the stress form entries of the element viscosity matrix
+        ! add in the stress form entries of the element viscosity matrix
         !  /
         !  | B_A^T C B_B dV
         !  /
-        viscosity_mat = viscosity_mat &
-                      + stiffness_matrix(du_t, viscosity_gi, du_t, detwei, legacy_stress)
+        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei, legacy_stress)
+      else
+        if(isotropic_viscosity .and. .not. have_les) then
+          assert(u%dim > 0)
+          viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
+          do dim = 2, u%dim
+            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
+          end do
+        else if(diagonal_viscosity .and. .not. have_les) then
+          assert(u%dim > 0)
+          viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
+          do dim = 2, u%dim
+            viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
+          end do
+        else
+          do dim = 1, u%dim
+            viscosity_mat(dim, dim, :, :) = &
+                        dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
+          end do
+        end if
       end if
       
       big_m_tensor_addto = big_m_tensor_addto + dt*theta*viscosity_mat
@@ -1162,42 +1210,6 @@
       end do
       
     end subroutine add_viscosity_element_cg
-    
-    subroutine add_elasticity_element_cg(ele, u, elasticity, du_t, detwei)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: u
-      type(tensor_field), intent(in) :: elasticity
-      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
-      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
-    
-      integer :: dim
-      real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: elasticity_gi
-      real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: elasticity_mat
-      
-      elasticity_gi = ele_val_at_quad(elasticity, ele)
-      
-      ! element elasticity matrix - tensor form -- not used yet!
-      !  /
-      !  | gradN_A^T elasticity gradN_B dV
-      !  /
-      ! only valid when incompressible and elasticity tensor is isotropic
-      elasticity_mat = 0.0
-      do dim = 1, u%dim
-        elasticity_mat(dim, dim, :, :) = &
-                     dshape_tensor_dshape(du_t, elasticity_gi, du_t, detwei)
-      end do
-      if(stress_form) then
-        ! addin the stress form entries of the element elasticity matrix
-        !  /
-        !  | B_A^T K B_B dV
-        !  /
-        elasticity_mat = elasticity_mat &
-                       + stiffness_matrix(du_t, elasticity_gi, du_t, detwei)
-      end if
-      
-      ! Note: No contributions are actually added
-      
-    end subroutine add_elasticity_element_cg
     
     subroutine add_coriolis_element_cg(ele, test_function, x, u, oldu_val, density, detwei, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
@@ -1253,12 +1265,12 @@
     end subroutine add_geostrophic_pressure_element_cg
     
     function stiffness_matrix(dshape1, tensor, dshape2, detwei, legacy) result (matrix)
-      !!< Calculates the stiffness matrix with the istropic tensor form components excluded.
-      !!< (These are added in elsewhere.)
-      !!<          /                       /
-      !!< matrix = | b_a^T c b_b dV     - I| gradN_a^T diag(mu) gradN_b dV
-      !!<          /                       /
-      !!<           ^--- full stiffness     ^--- minus isotropic tensor form terms
+      !!< Calculates the stiffness matrix.
+      !!< 
+      !!<          /
+      !!< matrix = | b_a^T c b_b dV
+      !!<          /
+      !!<
       !!< where
       !!< b_a = / N_a,x   0     0   \   c = /  4/3*mu_xx  -2/3*mu_xy -2/3*mu_xz  0    0    0   \
       !!<       |  0    N_a,y   0   |       | -2/3*mu_yx   4/3*mu_yy -2/3*mu_yz  0    0    0   |
@@ -1268,17 +1280,18 @@
       !!<       \   0   N_a,z N_a,y /       \     0           0          0       0    0  mu_yz /
       !!< which results in:
       !!< b_a^T c b_b - I gradN_a^T diag(mu) gradN_b =
-      !!<               /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
+      !!<               /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_xy + N_a,z*N_b,z*mu_xz)
       !!<              |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx   ...
       !!<              \   N_a,x*N_b,z*mu_xz - 2/3*N_a,z*N_b,x*mu_zx
       !!<
       !!<                  N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xy
-      !!<              ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy   ...
+      !!<              ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy + (N_a,x*N_b,x*mu_xy + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_yz) ...
       !!<                  N_a,y*N_b,z*mu_yz - 2/3*N_a,z*N_b,y*mu_zy
       !!<
-      !!<                  N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz   \
-      !!<              ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz   |
-      !!<                  N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz  /
+      !!<                  N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz                                                               \
+      !!<              ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz                                                               |
+      !!<                  N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz + (N_a,x*N_b,x*mu_xz + N_a,y*N_b,y*mu_yz + N_a,z*N_b,z*mu_zz) /
+      !!< where the terms in brackets correspond to the tensor form entries I gradN_a^T row(symm(mu)) gradN_b (see below).
       !!<
       !!< The optional switch legacy controls whether the assembly follows the above multiplication
       !!< form or uses the legacy version from subroutine diff3d, which cannot be assembled from
@@ -1286,17 +1299,18 @@
       !!<
       !!< legacy implementation:
       !!< b_a^T c b_b - I gradN_a^T diag(mu) gradN_b =
-      !!<               /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
+      !!<               /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz)
       !!<              |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy   ...
       !!<              \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
       !!<
       !!<                  N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
-      !!<              ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy   ...
+      !!<              ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz) ...
       !!<                  N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
       !!<
-      !!<                  N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx   \
-      !!<         ...      N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy   |
-      !!<                  N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz  /
+      !!<                  N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                                                               \
+      !!<              ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                                                               |
+      !!<                  N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz + (N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz) /
+      !!< where the terms in brackets correspond to the tensor form entries I gradN_a^T diag(mu) gradN_b (see below).
 
       real, dimension(:,:,:), intent(in) :: dshape1, dshape2
       real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,2)), intent(in) :: tensor
@@ -1305,9 +1319,9 @@
 
       real, dimension(size(dshape1,3),size(dshape1,3),size(dshape1,1),size(dshape2,1)) :: matrix
 
-      real, dimension(size(dshape1,3),size(dshape1,2)) :: tensor_diag
+      real, dimension(size(dshape1,3),size(dshape1,2)) :: tensor_diag, tensor_entries
 
-      integer :: iloc,jloc, gi, i
+      integer :: iloc,jloc, gi, i, j
       integer :: loc1, loc2, ngi, dim
 
       logical :: l_legacy
@@ -1326,38 +1340,84 @@
       assert(loc1==loc2)
 
       tensor_diag = 0.0
+      tensor_entries = 0.0
 
       matrix=0.0
       if(l_legacy) then
 
+        !            /
+        ! matrix = I| gradN_a^T offdiag(mu) gradN_b dV
+        !           /
+        do i=1,dim
+          matrix(i,i,:,:) = dshape_diagtensor_dshape(dshape1, tensor, dshape2, detwei)
+        end do
+        
         forall(i=1:dim)
           tensor_diag(i,:) = tensor(i,i,:)
         end forall
 
+        ! matrix = matrix +  b_a^T c b_b - I gradN_a^T diag(mu) gradN_b =
+        !          matrix +  /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
+        !                    |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy   ...
+        !                    \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
+        !
+        !                        N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
+        !                    ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy   ...
+        !                        N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
+        !
+        !                        N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx   \
+        !                    ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy   |
+        !                        N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz  /
         do gi=1,ngi
           forall(iloc=1:loc1,jloc=1:loc2)
               matrix(:,:,iloc,jloc) = matrix(:,:,iloc,jloc) &
                                       +(spread(dshape1(iloc,gi,:), 1, dim) &
-                                      *spread(dshape2(jloc,gi,:), 2, dim) &
-                                      *tensor(:,:,gi) &
-                                      - spread(dshape1(iloc,gi,:), 2, dim) &
-                                      *spread(dshape2(jloc,gi,:), 1, dim) &
-                                      *(2./3.)*spread(tensor_diag(:,gi), 2, dim)) &
+                                       *spread(dshape2(jloc,gi,:), 2, dim) &
+                                       *tensor(:,:,gi) &
+                                       -spread(dshape1(iloc,gi,:), 2, dim) &
+                                       *spread(dshape2(jloc,gi,:), 1, dim) &
+                                       *(2./3.)*spread(tensor_diag(:,gi), 2, dim)) &
                                       *detwei(gi)
           end forall
         end do
 
       else
 
+        !            /
+        ! matrix = I| gradN_a^T row(symm(mu)) gradN_b dV
+        !           /
+        do i=1,dim
+          ! extract the relevent tensor entries into a vector
+          do j = 1, i-1
+            tensor_entries(j,:) = tensor(j,i,:)
+          end do
+          do j = i, dim
+            tensor_entries(j,:) = tensor(i,j,:)
+          end do
+          matrix(i,i,:,:) = dshape_vector_dshape(dshape1, tensor_entries, dshape2, detwei)
+        end do
+
+        ! matrix = matrix + b_a^T c b_b - I gradN_a^T row(symm(mu)) gradN_b =
+        !          matrix +  /  N_a,x*N_b,x*mu_xx - 2/3*N_a,x*N_b,x*mu_xx
+        !                    |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx   ...
+        !                    \   N_a,x*N_b,z*mu_xz - 2/3*N_a,z*N_b,x*mu_zx
+        !
+        !                        N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xy
+        !                    ... N_a,y*N_b,y*mu_yy - 2/3*N_a,y*N_b,y*mu_yy   ...
+        !                        N_a,y*N_b,z*mu_yz - 2/3*N_a,z*N_b,y*mu_zy
+        !
+        !                        N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz   \
+        !                    ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz   |
+        !                        N_a,z*N_b,z*mu_zz - 2/3*N_a,z*N_b,z*mu_zz  /
         do gi=1,ngi
           forall(iloc=1:loc1,jloc=1:loc2)
               matrix(:,:,iloc,jloc) = matrix(:,:,iloc,jloc) &
                                       +(spread(dshape1(iloc,gi,:), 1, dim) &
-                                      *spread(dshape2(jloc,gi,:), 2, dim) &
-                                      *tensor(:,:,gi) &
-                                      - spread(dshape1(iloc,gi,:), 2, dim) &
-                                      *spread(dshape2(jloc,gi,:), 1, dim) &
-                                      *(2./3.)*tensor(:,:,gi)) &
+                                       *spread(dshape2(jloc,gi,:), 2, dim) &
+                                       *tensor(:,:,gi) &
+                                       -spread(dshape1(iloc,gi,:), 2, dim) &
+                                       *spread(dshape2(jloc,gi,:), 1, dim) &
+                                       *(2./3.)*tensor(:,:,gi)) &
                                       *detwei(gi)
           end forall
         end do

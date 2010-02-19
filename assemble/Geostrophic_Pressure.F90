@@ -807,9 +807,16 @@ contains
     type(state_type), intent(in) :: state
     
     type(scalar_field), pointer :: bp
+    integer :: stat
     
     bp => extract_scalar_field(state, "BalancePressure")
-    call remap_field(gp, bp)
+    call remap_field(gp, bp, stat=stat)
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      FLAbort("Just remapped from a discontinuous to a continuous field!")
+    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
+      FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+    end if
+    ! we've allowed it to remap from from higher order to lower order continuous fields
     
   end subroutine set_balance_pressure_from_geostrophic_pressure
   

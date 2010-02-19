@@ -140,7 +140,7 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <stress_form/>
+              <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection replaces="BETA">
@@ -172,7 +172,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value shape="2" dim1="dim" rank="1">-1.0 0.0</real_value>

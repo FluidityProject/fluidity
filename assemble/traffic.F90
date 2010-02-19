@@ -33,7 +33,7 @@ module traffic
   use FLDebug
   use parallel_tools
   use spud
-  use global_parameters, only: option_path_len, current_time, dt
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, current_time, dt
   use state_module
   use boundary_conditions
   use generic_interface
@@ -53,11 +53,12 @@ contains
   !============================================================================
   !============================== TRAFFIC TRACER ==============================
   !============================================================================
-  subroutine traffic_tracer(it,state,timestep)
+  subroutine traffic_tracer(field_name,state,timestep)
     use FLDebug
     implicit none
     
-    integer,intent(in):: it, timestep
+    character(len=*), intent(in) :: field_name
+    integer,intent(in):: timestep
     logical,save:: lfiem_t
     type(state_type), intent(inout):: state
     type(scalar_field), pointer:: s_field
@@ -83,7 +84,7 @@ contains
 
     call get_option("/traffic_model/number_of_vehicles",cars)
 
-    name="TrafficTracer"//int2str(it-2)//"Source"
+    name=trim(field_name)//"Source"
     s_field=>extract_scalar_field(state,name)
 
     nloc=ele_loc(s_field,1)

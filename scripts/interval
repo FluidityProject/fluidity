@@ -42,6 +42,9 @@ parser.add_option("--region_ids", dest="region_ids",type="string",
                   help="""Name of a file containing a python function val(X)
 which defines the region_id at each point in the domain.""")
 
+parser.add_option("--reverse", action="store_true", dest="reverse",
+                  help="Reverse order of mesh.")
+
 (options, argv) = parser.parse_args()
 
 try:
@@ -53,6 +56,11 @@ except:
     parser.print_help()
     sys.exit(1)
 
+if(right<left):
+    print "Error: right should be greater than left"
+    parser.print_help()
+    sys.exist(1)
+
 if options.dx:
     dx=options.dx
 else:
@@ -62,6 +70,9 @@ else:
 right=right+0.01*dx
 
 nodes=arange(left, right, dx)
+
+if(options.reverse):
+  nodes = nodes[::-1]
 
 eles=[(i+1,i+2) for i in range(len(nodes)-1)]
 

@@ -344,7 +344,7 @@ contains
     logical :: detector_field_scalar
     type(scalar_field), target, intent(in) :: sfield
     
-    if (sfield%option_path=="") then
+    if (sfield%option_path=="".or.aliased(sfield)) then
        detector_field_scalar=.false.
     else
        detector_field_scalar = have_option(&
@@ -359,7 +359,7 @@ contains
     logical :: detector_field_vector
     type(vector_field), target, intent(in) :: vfield
 
-    if (vfield%option_path=="") then
+    if (vfield%option_path=="".or.aliased(vfield)) then
        detector_field_vector=.false.
     else
        detector_field_vector = have_option(&
@@ -1904,8 +1904,6 @@ contains
 
     if (any_lagrangian) then
 
-       ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
-
        call move_detectors_bisection_method(state, dt) 
 
      ! The positions have changed so we need to do this again.
@@ -1921,7 +1919,7 @@ contains
 ! If we do not want to write the information from the detectors every time step we need to use something like the line below, and the rest of the lines in the subroutine (up to contains) would be inside the if. 
 !    if ((mod(time/dt,every_dt)>=0.0).and.(mod(time/dt,every_dt)<0.5)) then
          
-       ewrite(1,*) "In write detectors"
+    ewrite(1,*) "In write detectors"
 
     if(getprocno() == 1) then
        if(binary_detector_output) then
@@ -2099,10 +2097,6 @@ contains
 
     do j=1, detector_list%length
 
-       ewrite(1,*) "JUST BEFORE DECIDING TO CYCLE"
-
-       ewrite(1,*) "this_det%type IS:", this_det%type
-          
        if (this_det%type /= LAGRANGIAN_DETECTOR) then
          
           this_det => this_det%next
@@ -2111,8 +2105,6 @@ contains
 
        end if
        
-       ewrite(1,*) "SHOULD BE MOVING 1ST LAG. DETECTOR"
-
        dt_temp=0.0
 !      dt_var=dt
        this_det%dt=dt          

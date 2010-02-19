@@ -82,23 +82,32 @@ contains
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
       type(scalar_field), pointer:: p, prevp
       character(len=FIELD_NAME_LEN):: bctype
-      real:: g, rho0
+      real:: g, rho0, alpha, coef
       integer, dimension(:), pointer:: surface_element_list
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
+      
+      real, save :: coef_old = 0.0
       
       ewrite(1,*) 'Entering add_free_surface_to_cmc_projection'
       
       ! gravity acceleration
       call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
-      ! reference density
-      call get_reference_density_from_options(state, rho0)
+        
+      ! if we've assembled cmc from scratch then this should be zeroed
+      ! so that the addition to the matrix isn't incremental
+      if(get_cmc) coef_old = 0.0
+      ! if we haven't assembled cmc from scratch then the addition involves
+      ! the change in the timestep (i.e. it increments from the previous timestep)
       
       ! get the pressure, and the pressure at the beginning of the time step
       p => extract_scalar_field(state, "Pressure")
       prevp => extract_scalar_field(state, "OldPressure")
       u => extract_vector_field(state, "Velocity")
       
+      ! reference density
+      call get_reference_density_from_options(state, u, rho0)
+
       move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
       ! only include the inner product of gravity and surface normal
       ! if the free surface nodes are actually moved (not necessary
@@ -120,6 +129,8 @@ contains
         positions => extract_vector_field(state, "Coordinate")
       end if
       
+      alpha=1.0/g/rho0/dt
+      coef = alpha/(theta**2*dt)
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
            surface_element_list=surface_element_list)
@@ -132,6 +143,9 @@ contains
           end do
         end if
       end do
+      
+      ! save the coefficient with the current timestep for the next time round
+      coef_old = coef
     
       ewrite_minmax(rhs)
       
@@ -143,26 +157,29 @@ contains
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_old
       real, dimension(face_ngi(p, sele)):: detwei
-      real:: alpha
       integer:: ele
       
       ele=face_ele(positions, sele)
-      call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
-           & normal=normals)
+      if(include_normals) then
+        call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
+            & normal=normals)
+      else
+        call transform_facet_to_physical(positions, sele, detwei_f=detwei)
+      end if
+      
       if (include_normals) then
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
       end if
       
       mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
-      alpha=1.0/g/rho0/dt
-      if (get_cmc) then
+      if (coef/=coef_old) then
         ! we consider the projection equation to solve for 
         ! phi=theta^2 dt dp, so that the f.s. integral
         ! alpha M_fs dp=alpha M_fs phi/(theta^2 dt)
         call addto(cmc, &
          face_global_nodes(p, sele), face_global_nodes(p,sele), &
-         alpha*mass_ele/(theta**2*dt) )
+         (coef-coef_old)*mass_ele)
       end if
       if (move_mesh) then
         ! detwei and normals at the begin of the time step
@@ -202,14 +219,15 @@ contains
 
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
-    ! reference density
-    call get_reference_density_from_options(state, rho0)
       
     ! with a free surface the initial condition prescribed for pressure
     ! is used at the free surface nodes only
     p => extract_scalar_field(state, "Pressure")
     u => extract_vector_field(state, "Velocity")
-    
+
+    ! reference density
+    call get_reference_density_from_options(state, u, rho0)
+
     ! only include the inner product of gravity and surface normal
     ! if the free surface nodes are actually moved (not necessary
     ! for large scale ocean simulations)
@@ -308,7 +326,7 @@ contains
     real g, dt, rho0
     integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, node, sele
+    integer i, j, k, node, sele, stat
 
     ! some fields for when moving the entire mesh
     type(scalar_field), pointer :: topdis, bottomdis
@@ -323,26 +341,31 @@ contains
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g)
     call get_option('/timestepping/timestep', dt)
-    ! eos/fluids/linear/subtract_out_hydr.level is options checked below
-    ! so the ref. density should be present
-    call get_reference_density_from_options(state, rho0)
     
     positions => extract_vector_field(state, "Coordinate")
     original_positions => extract_vector_field(state, "OriginalCoordinate")
     iterated_positions => extract_vector_field(state, "IteratedCoordinate")
     old_positions => extract_vector_field(state, "OldCoordinate")
     gravity_normal => extract_vector_field(state, "GravityDirection")
+
+    u => extract_vector_field(state, "Velocity")
     
-      
+    ! eos/fluids/linear/subtract_out_hydr.level is options checked below
+    ! so the ref. density should be present
+    call get_reference_density_from_options(state, u, rho0)
+    
     p => extract_scalar_field(state, "Pressure")
     if (.not. p%mesh==positions%mesh) then
       call allocate(linear_p, positions%mesh)
-      call remap_field(p, linear_p)
+      call remap_field(p, linear_p, stat=stat)
+      if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+        FLAbort("Just remapped from a discontinuous to a continuous field!")
+      end if
+      ! we've allowed it to remap from periodic to unperiodic and from higher order to lower order
       p => linear_p
     end if
     ! it's alright for gravity to be on a DG version of the CoordinateMesh:
     assert( face_loc(gravity_normal,1)==face_loc(positions,1) )
-    u => extract_vector_field(state, "Velocity")
     grid_u => extract_vector_field(state, "GridVelocity")
     old_grid_u => extract_vector_field(state, "OldGridVelocity")
     iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
@@ -594,7 +617,9 @@ contains
      assert(free_surface%mesh==p%mesh)
 
      call get_option('/physical_parameters/gravity/magnitude', g)
-     call get_reference_density_from_options(state, rho0)
+
+     u => extract_vector_field(state, "Velocity")
+     call get_reference_density_from_options(state, u, rho0)
           
      topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
      if (stat==0) then
@@ -622,7 +647,6 @@ contains
        ! make sure other nodes are zeroed
        call zero(free_surface)
        
-       u => extract_vector_field(state, "Velocity")
        do i=1, get_boundary_condition_count(u)
           call get_boundary_condition(u, i, type=bctype, &
              surface_element_list=surface_element_list)
@@ -646,14 +670,23 @@ contains
     
   end subroutine calculate_diagnostic_free_surface
 
-  subroutine get_reference_density_from_options(state, rho0)
+  subroutine get_reference_density_from_options(state, u, rho0)
 
     type(state_type), intent(in) :: state
+    type(vector_field), intent(in) :: u
     real, intent(out) :: rho0
-    
+
     if (have_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/linear/')) then
-      call get_option('/material_phase::'//trim(state%name)// &
-       '/equation_of_state/fluids/linear/reference_density', rho0)
+      if (have_option(trim(u%option_path)//"/prognostic/equation::Boussinesq")) then
+        ! for Boussinesq the pressure is actually p/rho0 already so we don't want to divide by
+        ! the reference density again
+        rho0 = 1.0
+      else
+        ! for other equation types the pressure is really the pressure so we do need to
+        ! divide by the real reference density
+        call get_option('/material_phase::'//trim(state%name)// &
+          '/equation_of_state/fluids/linear/reference_density', rho0)
+      end if
     else if (have_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/ocean_pade_approximation/')) then
       ! The reference density is hard-coded to be 1.0 for the Ocean Pade Approximation
       rho0=1.0

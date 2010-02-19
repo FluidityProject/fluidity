@@ -3657,11 +3657,12 @@ END SUBROUTINE POSINM_COLOUR
 
   end subroutine dcsr_set_col
 
-  subroutine csr_addto_diag(matrix, i, val, save_pos)
+  subroutine csr_addto_diag(matrix, i, val, scale, save_pos)
     !!< Add val to matrix(i,i)
     type(csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: i
     real, intent(in) :: val
+    real, intent(in), optional ::scale
     integer, intent(inout), optional :: save_pos
 
     integer :: mpos
@@ -3673,35 +3674,45 @@ END SUBROUTINE POSINM_COLOUR
     end if
     
     if (associated(matrix%val)) then
-       matrix%val(mpos)=matrix%val(mpos)+val
+       if(present(scale)) then
+         matrix%val(mpos)=matrix%val(mpos)+val*scale
+       else
+         matrix%val(mpos)=matrix%val(mpos)+val
+       end if
     else if (associated(matrix%ival)) then
-       matrix%ival(mpos)=matrix%ival(mpos)+val
+       if(present(scale)) then
+         matrix%ival(mpos)=matrix%ival(mpos)+val*scale
+       else
+         matrix%ival(mpos)=matrix%ival(mpos)+val
+       end if
     else
        FLAbort("Attempting to set value in a matrix with no value space")
     end if
 
   end subroutine csr_addto_diag
 
-  subroutine csr_vaddto_diag(matrix, i, val)
+  subroutine csr_vaddto_diag(matrix, i, val, scale)
     !!< Add val to matrix(i,i)
     type(csr_matrix), intent(inout) :: matrix
     integer, dimension(:), intent(in) :: i
     real, dimension(size(i)), intent(in) :: val
+    real, intent(in), optional :: scale
     
     integer :: iloc
     
     do iloc=1,size(i)
-          call addto_diag(matrix, i(iloc), val(iloc))
+          call addto_diag(matrix, i(iloc), val(iloc), scale=scale)
     end do
 
   end subroutine csr_vaddto_diag
 
-  subroutine block_csr_addto_diag(matrix, blocki, blockj, i, val, save_pos)
+  subroutine block_csr_addto_diag(matrix, blocki, blockj, i, val, scale, save_pos)
     !!< Add val to matrix(i,i)
     !!< Adding to the diagonal of a non-diagonal block is supported.
     type(block_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: blocki,blockj, i
     real, intent(in) :: val
+    real, intent(in), optional :: scale
     integer, intent(inout), optional :: save_pos
 
     integer :: mpos
@@ -3717,23 +3728,34 @@ END SUBROUTINE POSINM_COLOUR
     end if
 
     if (associated(matrix%val)) then
-       matrix%val(blocki,blockj)%ptr(mpos)&
-            =matrix%val(blocki, blockj)%ptr(mpos)+val
+       if(present(scale)) then
+          matrix%val(blocki,blockj)%ptr(mpos)&
+                =matrix%val(blocki, blockj)%ptr(mpos)+val*scale
+       else
+          matrix%val(blocki,blockj)%ptr(mpos)&
+                =matrix%val(blocki, blockj)%ptr(mpos)+val
+       end if
     else if (associated(matrix%ival)) then
-       matrix%ival(blocki, blockj)%ptr(mpos)&
-            =matrix%ival(blocki, blockj)%ptr(mpos)+val
+       if(present(scale)) then
+          matrix%ival(blocki, blockj)%ptr(mpos)&
+                =matrix%ival(blocki, blockj)%ptr(mpos)+val*scale
+       else
+          matrix%ival(blocki, blockj)%ptr(mpos)&
+                =matrix%ival(blocki, blockj)%ptr(mpos)+val
+       end if
     else
        FLAbort("Attempting to set value in a matrix with no value space")
     end if
 
   end subroutine block_csr_addto_diag
 
-  subroutine block_csr_vaddto_diag(matrix, blocki, blockj, i, val)
+  subroutine block_csr_vaddto_diag(matrix, blocki, blockj, i, val, scale)
     !!< Add val to matrix(i,i)
     type(block_csr_matrix), intent(inout) :: matrix
     integer, intent(in) :: blocki, blockj
     integer, dimension(:), intent(in) :: i
     real, dimension(size(i)), intent(in) :: val
+    real, intent(in), optional :: scale
     
     integer :: iloc
     
@@ -3742,7 +3764,7 @@ END SUBROUTINE POSINM_COLOUR
     end if
     
     do iloc=1,size(i)
-          call addto_diag(matrix, blocki, blockj, i(iloc), val(iloc))
+          call addto_diag(matrix, blocki, blockj, i(iloc), val(iloc), scale=scale)
     end do
 
   end subroutine block_csr_vaddto_diag
