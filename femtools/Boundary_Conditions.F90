@@ -2105,6 +2105,7 @@ contains
     logical, dimension(:), allocatable :: bcapplies
     type(mesh_type), pointer :: bcsurface_mesh
     type(scalar_field) :: bcvalue_comp
+    type(scalar_field), target :: v_field_comp_wrap
     type(scalar_field_pointer), dimension(:), allocatable :: v_field_comps
     type(vector_field), pointer :: bcvalue, v_field
   
@@ -2116,14 +2117,22 @@ contains
         if(trim(v_field%name) == "Coordinate") cycle
         ewrite(2, *) "For vector field " // trim(v_field%name) // ", bc count = ", get_boundary_condition_count(v_field)
         if(get_boundary_condition_count(v_field) == 0) cycle v_field_loop
+        
         allocate(v_field_comps(v_field%dim))
         do k = 1, v_field%dim
           v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), trim(input_states(i)%vector_names(j)) // "%" // int2str(k))
          
-          assert(.not. associated(v_field_comps(k)%ptr%bc))
-          allocate(v_field_comps(k)%ptr%bc)  ! extract_scalar_field fields do
-                                             ! not get an allocate bc field,
-                                             ! but we need one here
+          if(.not. associated(v_field_comps(k)%ptr%bc)) then
+            ! This scalar field has not bc field, (probably a borrowed
+            ! reference). Wrap it so that it isn't a borrowed reference.
+            ! Wrapping is cheaper than a copy here.
+            v_field_comp_wrap = wrap_scalar_field(v_field_comps(k)%ptr%mesh, v_field_comps(k)%ptr%val, v_field_comps(k)%ptr%name)
+            call insert(collapsed_states(i), v_field_comp_wrap, v_field_comp_wrap%name)
+            v_field_comps(k)%ptr => v_field_comp_wrap
+            call deallocate(v_field_comp_wrap)
+          end if
+          
+          assert(associated(v_field_comps(k)%ptr%bc))
         end do
         
         allocate(bcapplies(v_field%dim))
