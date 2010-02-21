@@ -33,7 +33,6 @@ module adjacency_lists
   use FLDebug
   use fields_base
   use fields_data_types
-  use elements
   use element_numbering
   use futils
   implicit none
@@ -796,8 +795,6 @@ END SUBROUTINE NODELE
   subroutine MakeEEList(EEList, mesh, NEList)
   !!< For a given mesh and Node-Element list calculate the 
   !!< Element-Element list. 
-  
-    use tictoc
   
     type(csr_sparsity), intent(out):: EEList
     type(mesh_type), intent(in):: mesh
