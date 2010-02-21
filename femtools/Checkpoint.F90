@@ -449,6 +449,8 @@ contains
     type(tensor_field), pointer :: t_field
     type(tensor_field), dimension(:), allocatable :: pt_fields_on_mesh
 
+    integer :: stat
+
     assert(len_trim(prefix) > 0)
 
     do i = 1, size(state)
@@ -569,7 +571,7 @@ contains
         if(n_ps_fields_on_mesh + n_pv_fields_on_mesh + n_pt_fields_on_mesh > 0) then
           call vtk_write_fields(vtu_filename, position = positions, model = mesh, &
             & sfields = ps_fields_on_mesh(:n_ps_fields_on_mesh), vfields = pv_fields_on_mesh(:n_pv_fields_on_mesh), &
-            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh))
+            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), stat=stat)
         end if
 
         deallocate(ps_fields_on_mesh)

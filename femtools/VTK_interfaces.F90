@@ -837,6 +837,9 @@ contains
 
     ! Remap the position coordinates.
     call remap_field(from_field=position, to_field=v_model(position%dim), stat=lstat)
+    ! if this is being called from something other than the main output routines
+    ! then these tests can be disabled by passing in the optional stat argument
+    ! to vtk_write_fields
     if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
       if(present(stat)) then
         stat = lstat
@@ -875,6 +878,9 @@ contains
           if (sfields(i)%mesh%shape%degree /= 0) then
 
             call remap_field(from_field=sfields(i), to_field=l_model, stat=lstat)
+            ! if this is being called from something other than the main output routines
+            ! then these tests can be disabled by passing in the optional stat argument
+            ! to vtk_write_fields
             if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
               if(present(stat)) then
                 stat = lstat
@@ -952,6 +958,9 @@ contains
           if(vfields(i)%mesh%shape%degree /= 0) then
 
             call remap_field(from_field=vfields(i), to_field=v_model(vfields(i)%dim), stat=lstat)
+            ! if this is being called from something other than the main output routines
+            ! then these tests can be disabled by passing in the optional stat argument
+            ! to vtk_write_fields
             if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
               if(present(stat)) then
                 stat = lstat
@@ -1021,6 +1030,9 @@ contains
           if(tfields(i)%mesh%shape%degree /= 0) then
 
             call remap_field(from_field=tfields(i), to_field=t_model, stat=lstat)
+            ! if this is being called from something other than the main output routines
+            ! then these tests can be disabled by passing in the optional stat argument
+            ! to vtk_write_fields
             if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
               if(present(stat)) then
                 stat = lstat
