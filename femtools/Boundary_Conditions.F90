@@ -2123,7 +2123,7 @@ contains
           v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), trim(input_states(i)%vector_names(j)) // "%" // int2str(k))
          
           if(.not. associated(v_field_comps(k)%ptr%bc)) then
-            ! This scalar field has not bc field, (probably a borrowed
+            ! This scalar field has no bc field (probably a borrowed
             ! reference). Wrap it so that it isn't a borrowed reference.
             ! Wrapping is cheaper than a copy here.
             v_field_comp_wrap = wrap_scalar_field(v_field_comps(k)%ptr%mesh, v_field_comps(k)%ptr%val, v_field_comps(k)%ptr%name)

@@ -1058,8 +1058,17 @@ contains
 
     nullify(mesh%refcount) ! Hack for gfortran component initialisation
     !                         bug.
-    if (has_faces(model)) then
-       call add_faces(mesh, model)
+    
+    ! Transfer the eelist from model to mesh
+    assert(associated(model%adj_lists))
+    if(associated(model%adj_lists%eelist)) then
+      allocate(mesh%adj_lists%eelist)
+      mesh%adj_lists%eelist = model%adj_lists%eelist
+      call incref(mesh%adj_lists%eelist)
+    end if
+    
+    if(has_faces(model)) then
+      call add_faces(mesh, model)
     end if
 
     call addref(mesh)
@@ -1187,6 +1196,7 @@ contains
             mesh, model)
          
       else
+         ! Transfer the faces from model to mesh
          mesh%faces%face_list=model%faces%face_list
          call incref(mesh%faces%face_list)
       end if

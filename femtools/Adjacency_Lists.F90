@@ -31,7 +31,9 @@ module adjacency_lists
   !! Module to construct mesh adjacency lists.
   use sparse_tools
   use FLDebug
+  use fields_base
   use fields_data_types
+  use elements
   use element_numbering
   use futils
   implicit none
@@ -794,15 +796,20 @@ END SUBROUTINE NODELE
   subroutine MakeEEList(EEList, mesh, NEList)
   !!< For a given mesh and Node-Element list calculate the 
   !!< Element-Element list. 
+  
+    use tictoc
+  
     type(csr_sparsity), intent(out):: EEList
     type(mesh_type), intent(in):: mesh
     type(csr_sparsity), intent(in):: NEList
 
-    integer, dimension(:), allocatable :: debug_common_elements
     integer, dimension(:), pointer:: cols
-    integer common_elements(2) ! we only need 2
-    integer ele, noboundaries, nloc, no_found, j
-
+    integer adj_ele, ele, noboundaries, nloc, j
+#ifdef DDEBUG
+    integer, dimension(:), allocatable :: debug_common_elements
+    integer :: no_found
+#endif
+    
     ! Number of element boundaries.
     noboundaries=mesh%shape%numbering%boundaries
     if (mesh%elements<=0) then 
@@ -821,29 +828,27 @@ END SUBROUTINE NODELE
        assert(size(cols) == noboundaries)
        do j=1, noboundaries
           ! fill in element on the other side of face j:
-          call FindCommonElements( common_elements, no_found, NEList, &
+          call find_adjacent_element(ele, adj_ele, NEList, &
                nodes=mesh%ndglno((ele-1)*nloc+ &
                boundary_numbering(mesh%shape%numbering, j) &
                )  )
-          if (no_found==1 .and. common_elements(1)==ele) then
-             ! one element border this face (the element ele itself)
-             ! it must be a (exterior) boundary:
-             cols(j)=0
-          else if (no_found==2) then
-             ! two elements adjacent to this face, one of them must be ele
-             ! itself, the other is what we're looking for:
-             if (common_elements(1)==ele) then
-                cols(j)=common_elements(2)
-             else if (common_elements(2)==ele) then
-                cols(j)=common_elements(1)
-             else
-                FLAbort("Something wrong with NEList!")
-             end if
-
+#ifdef DDEBUG
+          if(adj_ele >= 0) then
+#endif
+             ! Found an adjacent element, or no adjacent elements (a boundary)
+             cols(j) = adj_ele
+#ifdef DDEBUG
           else
+             ! Encountered an error
              ewrite(-1, *) "For element ", ele, " with boundary ", mesh%ndglno((ele - 1) * nloc + &
                & boundary_numbering(mesh%shape%numbering, j))
+             allocate(debug_common_elements(0))
+             call findcommonelements(debug_common_elements, no_found, nelist, &
+               & nodes = mesh%ndglno((ele - 1) * nloc + &
+               & boundary_numbering(mesh%shape%numbering, j) &
+               & ))
              ewrite(-1, *) "Number of common elements: ", no_found
+             deallocate(debug_common_elements)
              allocate(debug_common_elements(no_found))
              call findcommonelements(debug_common_elements, no_found, nelist, &
                & nodes = mesh%ndglno((ele - 1) * nloc + &
@@ -853,10 +858,74 @@ END SUBROUTINE NODELE
              deallocate(debug_common_elements)
              FLAbort("Invalid NEList! Something wrong with the mesh?")
           end if
-
+#endif
        end do
 
     end do
+
+  contains
+
+    subroutine find_adjacent_element(ele, adj_ele, nelist, nodes)
+      !!< Using nelist find an element adjacent to ele with boundary nodes
+      !!< nodes. Returns negative adj_ele on error. Error checking requires a
+      !!< debugging build.
+      
+      !! The element for which we are seeking a neighbour
+      integer, intent(in) :: ele
+      !! The neighbour found
+      integer, intent(out) :: adj_ele
+      !! Node-Element list
+      type(csr_sparsity), intent(in) :: nelist
+      !! Boundary nodes on element ele
+      integer, dimension(:), intent(in) :: nodes
+
+      integer, dimension(:), pointer :: elements1
+      integer :: i, j, candidate_ele
+      
+      ! Use an uninitialised integer_vector type, as the null initialisations
+      ! have a cost and are not required here
+      type uninit_integer_vector  
+        integer, dimension(:), pointer :: ptr
+      end type uninit_integer_vector
+      type(uninit_integer_vector), dimension(size(nodes) - 1) :: row_idx
+
+      ! All elements connected to node nodes(1). One of these will be ele, and
+      ! (if the boundary nodes are not on the domain boundary) one will be the
+      ! adjacent element.
+      elements1 => row_m_ptr(nelist, nodes(1))
+      ! Cache the elements connected to nodes(2:). ele and (if the boundary
+      ! nodes are not on the domain boundary) the adjacent element will appear
+      ! in all of these.
+      do i = 2, size(nodes)
+        row_idx(i - 1)%ptr => row_m_ptr(nelist, nodes(i))
+      end do
+
+      adj_ele = 0
+      ele_loop: do i = 1, size(elements1)
+         candidate_ele = elements1(i)
+         if(candidate_ele == ele) cycle ele_loop  ! Ignore the query element
+         ! See if this element borders all other nodes
+         do j = 2, size(nodes)
+           ! If candidate_ele is not in all row_idx, nodes are not boundary
+           ! nodes for candidate_ele, and it isn't the adjacent element.
+           if(.not. any(row_idx(j - 1)%ptr == candidate_ele)) cycle ele_loop
+         end do
+         
+#ifndef DDEBUG
+         if(adj_ele > 0) then
+           ! We've found more than one adjacent element. We're in trouble.
+           adj_ele = -1
+           return
+         end if
+#endif
+         adj_ele = candidate_ele
+#ifndef DDEBUG
+         ! We've found the adjacent element. We're done.
+         return
+#endif
+      end do ele_loop
+
+    end subroutine find_adjacent_element
 
   end subroutine MakeEEList
 
@@ -887,21 +956,18 @@ END SUBROUTINE NODELE
     end do
 
     n=0
-    do i=1, size(elements1)
+    ele_loop: do i=1, size(elements1)
        ele=elements1(i)
        ! see if this element borders all other nodes
        do j=2, size(nodes)
-          if (.not. any( row_idx(j-1)%ptr==ele )) exit
+          if (.not. any( row_idx(j-1)%ptr==ele )) cycle ele_loop
        end do
 
        ! if so we have found a common element
-       if (j>size(nodes)) then
-          n=n+1
-          if (n>size(elements)) return
-          elements(n)=ele
-       end if
+       n=n+1
+       if (n<=size(elements)) elements(n)=ele
 
-    end do
+    end do ele_loop
 
   end subroutine FindCommonElements
 
