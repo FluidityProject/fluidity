@@ -301,7 +301,7 @@ Sparse_Tools_Petsc.o: Sparse_Tools.o Petsc_Tools.o Reference_Counting.o \
   Reference_count_petsc_csr_matrix.F90 Halos_Allocates.o \
   Fields_Base.o Fields_Manipulation.o Parallel_Tools.o 
 
-Adjacency_Lists.o: Fields_Data_Types.o Futils.o
+Adjacency_Lists.o: Fields_Base.o Fields_Data_Types.o Futils.o
 
 Futils.o: Global_Parameters.o
 
