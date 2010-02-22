@@ -85,7 +85,12 @@ module fluids_module
   use gls
   use halos
   use memory_diagnostics
-  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, topology_mesh_name
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
+                               simulation_start_time, &
+                               simulation_start_cpu_time, &
+                               simulation_start_wall_time, &
+                               topology_mesh_name
+  use eventcounter
   
   implicit none
 
@@ -139,7 +144,6 @@ contains
     LOGICAL :: have_solids
 
     ! Pointers for scalars and velocity fields
-    type(vector_field), pointer :: Velocity
     type(scalar_field), pointer :: sfield
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -317,16 +321,6 @@ contains
     call initialise_advection_convergence(state)
     if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt)
     
-    do i=1, size(state)
-       velocity => extract_vector_field(state(i), "Velocity")
-       if (has_boundary_condition(velocity, "free_surface") .and. &
-            & have_option('/mesh_adaptivity/mesh_movement/free_surface') .and. &
-            & .not.aliased(velocity)) then
-          ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates from initial condition"
-          call move_free_surface_nodes(state(i))
-       end if
-    end do
-
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
         call gls_init(state(1))
@@ -382,6 +376,8 @@ contains
           ! Using state(1) should be safe as they are aliased across all states.
           call set_vector_field_in_state(state(1), "OldCoordinate", "IteratedCoordinate")
           call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
+          call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+          
           ! same for GridVelocity
           call set_vector_field_in_state(state(1), "OldGridVelocity", "IteratedGridVelocity")
           call set_vector_field_in_state(state(1), "GridVelocity", "IteratedGridVelocity")
@@ -414,6 +410,9 @@ contains
           !  would have to come before relax_to_nonlinear)
           call relax_to_nonlinear(state)
           call copy_from_stored_values(state, "Old")
+
+          call move_mesh_free_surface(state)
+          call move_mesh_imposed_velocity(state)
 
           call compute_goals(state)
 
@@ -600,7 +599,7 @@ contains
           !move the mesh and calculate the grid velocity
           call movemeshy(state(1))
        endif
-
+       
        current_time=current_time+DT
 
        ! calculate and write diagnostics before the timestep gets changed
@@ -746,9 +745,6 @@ contains
     type(tensor_field), intent(out) :: metric_tensor
     real, intent(inout) :: dt
     
-    integer :: i
-    type(vector_field), pointer :: velocity
-    
     ! The adaptivity metric
     if(have_option("/mesh_adaptivity/hr_adaptivity")) then
       call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
@@ -784,17 +780,6 @@ contains
     ! has a non-zero value before the next adapt. 
     if(have_option("/ocean_biology")) call calculate_biology_terms(state(1))
    
-    ! Free surface movement
-    do i=1, size(state)
-      velocity => extract_vector_field(state(i), "Velocity")
-      if (has_boundary_condition(velocity, "free_surface") .and. &
-           & have_option('/mesh_adaptivity/mesh_movement/free_surface') .and. &
-           & .not.aliased(velocity)) then
-         ewrite(1,*) "Going into move_free_surface_nodes to compute surface node coordinates after adapt"
-         call move_free_surface_nodes(state(i))
-      end if
-    end do
-
     ! GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         call gls_adapt_mesh(state(1))

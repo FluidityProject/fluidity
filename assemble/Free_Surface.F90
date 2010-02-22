@@ -41,7 +41,7 @@ implicit none
 
 private
 
-public add_free_surface_to_cmc_projection, &
+public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   move_free_surface_nodes, vertical_prolongator_from_free_surface, &
   free_surface_nodes, calculate_diagnostic_free_surface, &
   add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior
@@ -310,16 +310,60 @@ contains
     call set(old_p, p_theta)
       
   end subroutine copy_poisson_solution_to_interior
+  
+  subroutine move_mesh_free_surface(states, initialise)
+  type(state_type), dimension(:), intent(inout) :: states
+  logical, intent(in), optional :: initialise
+  
+    type(vector_field), pointer :: velocity
+    real :: itheta
+    integer :: i
+    
+    logical :: complete
+    
+    complete = .false.
+
+    do i=1, size(states)
+      velocity => extract_vector_field(states(i), "Velocity")
+      if (has_boundary_condition(velocity, "free_surface") .and. &
+            & have_option('/mesh_adaptivity/mesh_movement/free_surface') .and. &
+            & .not.aliased(velocity)) then
+          
+          if(complete) then
+            FLAbort("I've found two velocities with free surfaces!")
+          end if
+          
+          ewrite(1,*) "Going into move_free_surface_nodes to compute new node coordinates"
+          
+          call get_option( trim(velocity%option_path)//'/prognostic/temporal_discretisation/relaxation', &
+              itheta, default=0.5)
+          
+          call move_free_surface_nodes(states(i), theta = itheta, initialise = initialise)
+          
+          ! need to update ocean boundaries again if you've just moved the mesh
+          if (has_scalar_field(states(i), "DistanceToTop")) then
+            if (.not. have_option('/geometry/ocean_boundaries')) then
+                FLAbort("There are no top and bottom boundary markers.")
+            end if
+            call CalculateTopBottomDistance(states(i))
+          end if
+          
+          complete = .true.
+      end if
+    end do
+  
+  end subroutine move_mesh_free_surface
       
-  subroutine move_free_surface_nodes(state, theta)
+  subroutine move_free_surface_nodes(state, theta, initialise)
   type(state_type), intent(inout) :: state
   real, intent(in), optional :: theta
+  logical, intent(in), optional :: initialise
     
     type(vector_field), pointer:: positions, u, original_positions
     type(vector_field), pointer:: gravity_normal, old_positions, grid_u
     type(vector_field), pointer:: iterated_positions
     type(scalar_field), pointer:: p
-    type(vector_field) :: local_grid_u
+    type(vector_field), target :: local_grid_u
     type(vector_field), pointer :: old_grid_u, iterated_grid_u
     type(scalar_field), target:: linear_p
     character(len=FIELD_NAME_LEN):: bctype
@@ -333,10 +377,14 @@ contains
     type(scalar_field) :: fracdis
     type(scalar_field) :: extrapolated_p
     
+    logical :: l_initialise
+    
     ewrite(1,*) 'Entering move_free_surface_nodes'
     
     ! increase event counter, so position caching know the mesh has moved
     call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+    
+    l_initialise = present_and_true(initialise)
     
     ! gravity acceleration
     call get_option('/physical_parameters/gravity/magnitude', g)
@@ -346,7 +394,10 @@ contains
     original_positions => extract_vector_field(state, "OriginalCoordinate")
     iterated_positions => extract_vector_field(state, "IteratedCoordinate")
     old_positions => extract_vector_field(state, "OldCoordinate")
+
     gravity_normal => extract_vector_field(state, "GravityDirection")
+    ! it's alright for gravity to be on a DG version of the CoordinateMesh:
+    assert( face_loc(gravity_normal,1)==face_loc(positions,1) )
 
     u => extract_vector_field(state, "Velocity")
     
@@ -364,15 +415,22 @@ contains
       ! we've allowed it to remap from periodic to unperiodic and from higher order to lower order
       p => linear_p
     end if
-    ! it's alright for gravity to be on a DG version of the CoordinateMesh:
-    assert( face_loc(gravity_normal,1)==face_loc(positions,1) )
-    grid_u => extract_vector_field(state, "GridVelocity")
-    old_grid_u => extract_vector_field(state, "OldGridVelocity")
-    iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
     
-    ! allocate this on the positions mesh to calculate the values
-    call allocate(local_grid_u, grid_u%dim, positions%mesh, "LocalGridVelocity")
-    call zero(local_grid_u)
+    
+    
+    if(.not.l_initialise) then
+    ! if we're initialising then the grid velocity stays as zero
+      grid_u => extract_vector_field(state, "GridVelocity")
+      old_grid_u => extract_vector_field(state, "OldGridVelocity")
+      iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
+      
+      if(.not.iterated_grid_u%mesh==positions%mesh) then
+        ! allocate this on the positions mesh to calculate the values
+        call allocate(local_grid_u, grid_u%dim, positions%mesh, "LocalGridVelocity")
+        call zero(local_grid_u)
+        iterated_grid_u => local_grid_u
+      end if
+    end if
     
     if (have_option("/mesh_adaptivity/mesh_movement/free_surface/move_whole_mesh")) then
     
@@ -410,7 +468,7 @@ contains
                   node_val(original_positions, node)- &
                   node_val(extrapolated_p, node)*node_val(gravity_normal, node)/g/rho0)
                   
-        call set(local_grid_u, node, &
+        if(.not.l_initialise) call set(iterated_grid_u, node, &
                   (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
       end do
       
@@ -438,7 +496,7 @@ contains
                   node_val(original_positions, node)- &
                   node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
                 ! compute new surface node grid velocity:
-                call set(local_grid_u, node, &
+                if(.not.l_initialise) call set(iterated_grid_u, node, &
                   (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
             end do node_loop
             
@@ -449,24 +507,31 @@ contains
       
     end if
     
-    call remap_field(local_grid_u, iterated_grid_u)
+    if(.not.l_initialise) then
+      if(associated(iterated_grid_u, local_grid_u)) then
+        iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
+        call remap_field(local_grid_u, iterated_grid_u)
+        call deallocate(local_grid_u)
+      end if
+    end if
 
     if(present(theta)) then
       call set(positions, iterated_positions, old_positions, theta)
-      call set(grid_u, iterated_grid_u, old_grid_u, theta)
+      if(.not.l_initialise) call set(grid_u, iterated_grid_u, old_grid_u, theta)
     else
       call set(positions, iterated_positions)
-      call set(grid_u, iterated_grid_u)
+      if(.not.l_initialise) call set(grid_u, iterated_grid_u)
     end if
     
-    do i = 1, grid_u%dim
-      ewrite_minmax(grid_u%val(i)%ptr)
-    end do
+    if(.not.l_initialise) then
+      do i = 1, grid_u%dim
+        ewrite_minmax(grid_u%val(i)%ptr)
+      end do
+    end if
     
     if (associated(p, linear_p)) then
        call deallocate(p)
     end if
-    call deallocate(local_grid_u)
           
   end subroutine move_free_surface_nodes
   

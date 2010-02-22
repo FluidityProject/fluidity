@@ -852,10 +852,14 @@ contains
     ! direction of gravity
     if (have_option('/physical_parameters/gravity/vector_field::GravityDirection')) then
        call allocate_and_insert_vector_field('/physical_parameters/gravity/vector_field::GravityDirection', &
-            states(1), parent_mesh='CoordinateMesh',&
-            dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            states(1), dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
+    ! grid velocity
+    if (have_option('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity')) then
+       call allocate_and_insert_vector_field('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity', &
+            states(1), dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+    end if
 
     ! insert traffic tracer fields
     if (have_option('/traffic_model/scalar_field::TrafficTracerTemplate')) then
@@ -922,9 +926,6 @@ contains
 
        end do
     end if
-
-
-
 
     ! insert miscellaneous fields
     do i=1, size(field_locations)
@@ -1211,6 +1212,17 @@ contains
        do i = 1,nstates-1
 
           call insert(states(i+1), vfield, 'GravityDirection')
+
+       end do
+    end if
+
+    ! grid velocity
+    if (have_option('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity')) then
+       vfield=extract_vector_field(states(1), 'GridVelocity')
+       vfield%aliased = .true.
+       do i = 1,nstates-1
+
+          call insert(states(i+1), vfield, 'GridVelocity')
 
        end do
     end if
@@ -2080,7 +2092,7 @@ contains
     integer :: nsfields, nvfields, p, f, p2, stat
     real :: current_time
 
-    type(mesh_type), pointer :: u_mesh, x_mesh
+    type(mesh_type), pointer :: x_mesh
 
     ewrite(1,*) "In allocate_and_insert_auxilliary_fields"
 
@@ -2467,29 +2479,15 @@ contains
         
     end if
 
-    u_mesh => extract_mesh(states(1), "VelocityMesh")
-    ! note that GridVelocity is on the velocity mesh
-    ! rather than the coordinate mesh you might expect
-    ! this is because its primary use is to subtract it from Velocity
-    call allocate(aux_vfield, mesh_dim(u_mesh), u_mesh, "GridVelocity")
-    call zero(aux_vfield)
-    aux_vfield%option_path = ""
-    call insert(states, aux_vfield, trim(aux_vfield%name))
-    call deallocate(aux_vfield)
-    ! also need an OldGridVelocity and an IteratedGridVelocity if we're actually moving the mesh
-    if (have_option('/mesh_adaptivity/mesh_movement')) then
-      call allocate(aux_vfield, mesh_dim(u_mesh), u_mesh, "OldGridVelocity")
+    x_mesh => extract_mesh(states(1), "CoordinateMesh")
+    ! need a GridVelocity, OldGridVelocity and an IteratedGridVelocity even if we're not moving the mesh
+    if (.not.have_option('/mesh_adaptivity/mesh_movement')) then
+      call allocate(aux_vfield, mesh_dim(x_mesh), x_mesh, "GridVelocity", field_type = FIELD_TYPE_CONSTANT)
       call zero(aux_vfield)
       aux_vfield%option_path = ""
       call insert(states, aux_vfield, trim(aux_vfield%name))
-      call deallocate(aux_vfield)      
+      call deallocate(aux_vfield)
 
-      call allocate(aux_vfield, mesh_dim(u_mesh), u_mesh, "IteratedGridVelocity")
-      call zero(aux_vfield)
-      aux_vfield%option_path = ""
-      call insert(states, aux_vfield, trim(aux_vfield%name))
-      call deallocate(aux_vfield)      
-    else
       aux_vfield = extract_vector_field(states(1), name="GridVelocity")
       aux_vfield%name = "Old"//trim(aux_vfield%name)
       aux_vfield%aliased = .true.
@@ -2505,7 +2503,6 @@ contains
       call insert(states, aux_vfield, trim(aux_vfield%name))
     end if
 
-    x_mesh => extract_mesh(states(1), "CoordinateMesh")
     ! Disgusting and vomitous hack to ensure that time is output in
     ! vtu files.
     call allocate(aux_sfield, x_mesh, "Time", field_type=FIELD_TYPE_CONSTANT)

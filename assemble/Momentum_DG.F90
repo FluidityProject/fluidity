@@ -350,8 +350,8 @@ contains
     if (move_mesh) then
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
-      U_mesh => extract_vector_field(state, "GridVelocity")
     end if
+    U_mesh => extract_vector_field(state, "GridVelocity")
     
     ! by default we assume we're integrating by parts twice and therefore we need to subtract
     ! an extra internal surface integral
@@ -529,7 +529,7 @@ contains
     
     ! Bilinear forms.
     real, dimension(ele_loc(U,ele), ele_loc(U,ele)) :: &
-         Coriolis_mat, rho_mat, mass_mat
+         Coriolis_mat, rho_mat, rho_move_mat, mass_mat
     real, dimension(ele_loc(U,ele), ele_loc(U,ele)) :: &
          inverse_mass_mat
     real, dimension(mesh_dim(U), ele_loc(U,ele), &
@@ -555,7 +555,7 @@ contains
     real, dimension(u%dim, ele_loc(u,ele)) :: u_val
     
     ! Local assembly matrices.
-    real, dimension(ele_loc(U,ele)) :: l_MassLump
+    real, dimension(ele_loc(U,ele)) :: l_MassLump, l_move_masslump
 
     ! Local node number map for 2nd order element.
     integer, dimension(ele_and_faces_loc(U,ele)) :: local_glno
@@ -575,6 +575,8 @@ contains
     real, dimension(ele_ngi(U,ele)) :: detwei, detwei_old, detwei_new
     ! Transformed gradient function for velocity.
     real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
+    ! Transformed gradient function for grid velocity.
+    real, dimension(ele_loc(U_mesh, ele), ele_ngi(U_mesh, ele), mesh_dim(U_mesh)) :: dug_t
     ! Transformed gradient function for auxiliary variable. 
     real, dimension(ele_loc(q_mesh,ele), ele_ngi(q_mesh,ele), mesh_dim(U)) :: dq_t
     ! Density at quadrature points.
@@ -687,11 +689,15 @@ contains
       du_t = 0.0
     end if
     
-    if(move_mesh) then
+    if(move_mesh.and.owned_element) then
       call transform_to_physical(X_old, ele, &
           & detwei=detwei_old)
       call transform_to_physical(X_new, ele, &
           & detwei=detwei_new)
+      if(have_advection.and..not.integrate_conservation_term_by_parts) then
+        call transform_to_physical(X, ele, &
+            & ele_shape(U_mesh, ele), dshape = dug_t)
+      end if
     end if
 
     if(have_viscosity.and.(.not.(q_mesh==u%mesh))) then
@@ -706,13 +712,16 @@ contains
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
     
-    if (have_advection.and.owned_element) then
+    if (have_advection.and.(.not.p0).and.owned_element) then
        ! Advecting velocity at quadrature points.
        U_nl_q=ele_val_at_quad(U_nl,ele)
-       
+       ! Divergence of advecting velocity.
+       if(.not.integrate_conservation_term_by_parts) U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
+  
        if (move_mesh) then
          ! subtract mesh velocity at quadrature points.
          U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
+         if(.not.integrate_conservation_term_by_parts) U_nl_div_q = U_nl_div_q - ele_div_at_quad(U_mesh, ele, dug_t)
        end if
     end if
 
@@ -759,7 +768,7 @@ contains
           end do
         end if
       end if
-      if (move_mesh) then
+      if (move_mesh.and.owned_element) then
         ! In the unaccelerated form we solve:
         !  /
         !  |  N^{n+1} u^{n+1}/dt - N^{n} u^n/dt + ... = f
@@ -770,8 +779,17 @@ contains
         !  /
         ! where du=(u^{n+1}-u^{n})/dt is the acceleration.
         ! Put the (N^{n+1}-N^{n}) u^n term on the rhs
-        rhs_addto(:,:loc)=rhs_addto(:,:loc) - shape_vector_rhs( &
-           u_shape, ele_val_at_quad(u, ele), (detwei_new-detwei_old)/dt)
+        rho_move_mat = shape_shape(u_shape, u_shape, (detwei_new-detwei_old)*Rho_q)
+        if(lump_mass) then
+          l_move_masslump= sum(rho_move_mat,2)
+          do dim = 1, u%dim
+            rhs_addto(dim,:loc) = rhs_addto(dim,:loc) - l_move_masslump*u_val(dim,:)/dt
+          end do
+        else
+          do dim = 1, u%dim
+            rhs_addto(dim,:loc) = rhs_addto(dim,:loc) - matmul(rho_move_mat, u_val(dim,:))/dt
+          end do
+        end if
       end if
     end if
     
@@ -801,10 +819,7 @@ contains
             &*Rho_q)  &
             + (1.-beta) * shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei &
             &*Rho_q)
-      else
-        ! Divergence of advecting velocity.
-        U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
-        
+      else        
         if(integrate_by_parts_once) then
           ! Element advection matrix
           !    /                                          /
@@ -1068,7 +1083,7 @@ contains
            call construct_momentum_interface_dg(ele, face, face_2, ni,&
                 & big_m_tensor_addto, &
                 & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                & Rho, U, U_nl, P, q_mesh, surfacetension, &
+                & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                 & velocity_bc, velocity_bc_type, &
                 & pressure_bc, pressure_bc_type, &
                 & primal_fluxes_mat, ele2grad_mat,viscosity, &
@@ -1084,7 +1099,7 @@ contains
            call construct_momentum_interface_dg(ele, face, face_2, ni,&
                 & big_m_tensor_addto, &
                 & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                & Rho, U, U_nl, P, q_mesh, surfacetension, &
+                & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                 & velocity_bc, velocity_bc_type, &
                 & pressure_bc, pressure_bc_type)
 
@@ -1416,7 +1431,7 @@ contains
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
        & big_m_tensor_addto, rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
-       & U_nl, P, q_mesh, surfacetension, &
+       & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
        & primal_fluxes_mat, ele2grad_mat,viscosity, &
@@ -1430,7 +1445,7 @@ contains
     real, dimension(:,:) :: rhs_addto
     real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
-    type(vector_field), intent(in) :: X, U, U_nl
+    type(vector_field), intent(in) :: X, U, U_nl, U_mesh
     type(scalar_field), intent(in) :: Rho, P
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
@@ -1460,6 +1475,7 @@ contains
     real, dimension(U%dim, face_ngi(U_nl, face)) :: normal, u_nl_q,&
          & u_f_q, u_f2_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
+    real, dimension(face_ngi(U_nl, face)) :: u_nl_q_dotn, income
     ! Variable transform times quadrature weights.
     real, dimension(face_ngi(U,face)) :: detwei
 
@@ -1553,24 +1569,33 @@ contains
        U_nl_q=0.5*(u_f_q+u_f2_q)
       
       ! Mesh velocity at quadrature points.
+      if(move_mesh) then
+        ! here we assume that u_mesh at face is the same as u_mesh at face_2
+        ! if it isn't then you're in trouble because your mesh will tear
+        ! itself apart
+        u_nl_q=u_nl_q - face_val_at_quad(u_mesh, face)
+        ! the velocity on the internal face isn't used again so we can
+        ! modify it directly here...
+        u_f_q = u_f_q - face_val_at_quad(u_mesh, face)
+      end if
   
+      u_nl_q_dotn = sum(U_nl_q*normal,1)
+
       ! Inflow is true if the flow at this gauss point is directed
       ! into this element.
-       inflow= sum(U_nl_q*normal,1)<0.0
-
+      inflow= u_nl_q_dotn<0.0
+      income = merge(1.0,0.0,inflow)
 
       Rho_q=face_val_at_quad(Rho, face)
       ! Calculate outflow boundary integral.
       nnAdvection_out=shape_shape(U_shape, U_shape,  &
-          &                        (merge(1.0,0.0,.not.inflow) &
-          ! Jump condition interior term.
-          &                               -integration_factor) &
-          &                          *sum((U_nl_q)*normal,1) &
+          &                        ((1.-income)*u_nl_q_dotn &
+          &                         -integration_factor*sum(u_f_q*normal, 1)) &
           &                          *detwei*Rho_q) 
       
       nnAdvection_in=shape_shape(U_shape, U_shape_2, &
-          &                       merge(1.0,0.0,inflow) &
-          &                         *sum((U_nl_q)*normal,1) &
+          &                       income &
+          &                         *u_nl_q_dotn &
           &                         *detwei*Rho_q) 
           
       do dim = 1, u%dim

@@ -101,6 +101,8 @@
     logical :: have_les
     logical :: les_fourth_order
     
+    logical :: move_mesh
+    
     ! assemble mass or inverse lumped mass?
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
@@ -167,15 +169,13 @@
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
       type(tensor_field), pointer :: surfacetension
+      type(vector_field), pointer :: x_old, x_new
 
       ! dummy fields in case state doesn't contain the above fields
       type(scalar_field), pointer :: dummyscalar
       type(vector_field), pointer :: dummyvector
       type(tensor_field), pointer :: dummytensor
 
-      ! relative velocity
-      type(vector_field) :: relu
-        
       ! single component of lumped mass
       type(scalar_field) :: masslump_component        
       ! sparsity for mass matrices
@@ -204,11 +204,6 @@
       nu=>extract_vector_field(state, "NonlinearVelocity")
       oldu=>extract_vector_field(state, "OldVelocity")
       ug=>extract_vector_field(state, "GridVelocity")
-
-      call allocate(relu, dim=u%dim, mesh=u%mesh, name="RelativeVelocity")
-      do dim = 1, u%dim
-        relu%val(dim)%ptr(:) = nu%val(dim)%ptr(:)-ug%val(dim)%ptr(:)
-      end do
 
       allocate(dummyscalar)
       call allocate(dummyscalar, u%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
@@ -407,11 +402,20 @@
         call zero( mass )
       end if
       
+      move_mesh = (have_option("/mesh_adaptivity/mesh_movement").and.(.not.exclude_mass))
+      if(move_mesh) then
+        ewrite(2,*) 'Moving mesh'
+        x_old => extract_vector_field(state, "OldCoordinate")
+        x_new => extract_vector_field(state, "IteratedCoordinate")
+      else
+        ewrite(2,*) 'Not moving mesh'
+      end if
+      
       ! ----- Volume integrals over elements -------------
       
       element_loop: do ele=1, element_count(u)
          call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, &
-              x, u, oldu, relu, &
+              x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
@@ -440,7 +444,7 @@
               "dirichlet    " /), &
               pressure_bc, pressure_bc_type)
 
-              surface_element_loop: do sele=1, surface_element_count(u)
+         surface_element_loop: do sele=1, surface_element_count(u)
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
             ! but not if there's a pressure bc
@@ -451,7 +455,7 @@
             ele = face_ele(x, sele)
             
             call construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
-                 x, u, nu, relu, density, p, &
+                 x, u, nu, ug, density, p, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix, cg_pressure, viscosity, oldu)
@@ -495,6 +499,9 @@
       if (assemble_inverse_masslump) then
         
         if(vel_lump_on_submesh .or. cmc_lump_on_submesh) then
+          if(move_mesh) then
+            FLAbort("Can't move the mesh and lump on the submesh yet.")
+          end if
           ! we still have to make the lumped mass if this is true
           masslump_component=extract_scalar_field(inverse_masslump, 1)
 
@@ -539,12 +546,11 @@
       deallocate(dummyvector)
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
-      call deallocate(relu)
 
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
-                                                     x, u, nu, relu, density, p, &
+                                                     x, u, nu, ug, density, p, &
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix, cg_pressure, viscosity, &
@@ -559,7 +565,7 @@
       type(scalar_field), intent(inout) :: ct_rhs
 
       type(vector_field), intent(in) :: x, oldu
-      type(vector_field), intent(in) :: u, nu, relu
+      type(vector_field), intent(in) :: u, nu, ug
       type(scalar_field), intent(in) :: density, p
       type(tensor_field), intent(in) :: viscosity
 
@@ -583,6 +589,8 @@
       real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(face_loc(u, sele), face_loc(u, sele)) :: adv_mat_bdy
 
+      real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
+
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(p, sele)
 
@@ -597,10 +605,16 @@
       ! first the advection (dirichlet) bcs:
       
       ! if no no_normal_flow or free_surface
-      if (velocity_bc_type(1,sele)/=2 .and. velocity_bc_type(1,sele)/=4) then
+      if (velocity_bc_type(1,sele)/=2) then
          if(integrate_advection_by_parts.and.(.not.exclude_advection)) then
+            
+            relu_gi = face_val_at_quad(nu, sele)
+            if(move_mesh) then
+              relu_gi = relu_gi - face_val_at_quad(ug, sele)
+            end if
+            
             adv_mat_bdy = shape_shape(u_shape, u_shape, &
-                 detwei_bdy*sum((face_val_at_quad(relu, sele))*normal_bdy,1)*&
+                 detwei_bdy*sum(relu_gi*normal_bdy,1)*&
                  face_val_at_quad(density, sele))
             do dim = 1, u%dim
                
@@ -651,7 +665,7 @@
 
     subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, &
                                             mass, masslump, &
-                                            x, u, oldu, relu, &
+                                            x, x_old, x_new, u, oldu, nu, ug, &
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
@@ -670,7 +684,7 @@
       ! lumped mass matrix in it:
       type(vector_field), intent(inout) :: masslump
 
-      type(vector_field), intent(in) :: x, u, oldu, relu
+      type(vector_field), intent(in) :: x, x_old, x_new, u, oldu, nu, ug
       type(scalar_field), intent(in) :: density, p, buoyancy
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity
@@ -683,11 +697,13 @@
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
       type(element_type), pointer :: u_shape, p_shape
-      real, dimension(ele_ngi(u, ele)) :: detwei
+      real, dimension(ele_ngi(u, ele)) :: detwei, detwei_old, detwei_new
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
+      real, dimension(ele_loc(ug, ele), ele_ngi(ug, ele), ug%dim) :: dug_t
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
 
+      real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       real, dimension(u%dim, ele_loc(p, ele), ele_loc(u, ele)) :: grad_p_u_mat
       
       ! What we will be adding to the matrix and RHS - assemble these as we
@@ -740,15 +756,28 @@
       !  dp_t = 0.0
       end if
       
+      if(move_mesh) then
+        call transform_to_physical(x_old, ele, detwei=detwei_old)
+        call transform_to_physical(x_new, ele, detwei=detwei_new)
+        if(.not.exclude_advection) then
+          call transform_to_physical(x, ele, &
+                                    ele_shape(ug, ele), dshape=dug_t)
+        end if
+      end if
+      
       ! Step 2: Set up test function
     
       select case(stabilisation_scheme)
         case(STABILISATION_SUPG)
+          relu_gi = ele_val_at_quad(nu, ele)
+          if(move_mesh) then
+            relu_gi = relu_gi - ele_val_at_quad(ug, ele)
+          end if
           if(have_viscosity) then
-            test_function = make_supg_shape(u_shape, du_t, ele_val_at_quad(relu, ele), j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
+            test_function = make_supg_shape(u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
               & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           else
-            test_function = make_supg_shape(u_shape, du_t, ele_val_at_quad(relu, ele), j_mat, &
+            test_function = make_supg_shape(u_shape, du_t, relu_gi, j_mat, &
               & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           end if
         case default
@@ -774,12 +803,12 @@
       ! Mass terms
       if(assemble_inverse_masslump .or. assemble_mass_matrix .or. &
         (.not. exclude_mass)) then
-        call add_mass_element_cg(ele, test_function, u, density, detwei, big_m_diag_addto, big_m_tensor_addto, mass, masslump)
+        call add_mass_element_cg(ele, test_function, u, oldu_val, density, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
       end if
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, relu, density, viscosity, du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
@@ -806,7 +835,7 @@
       
       ! Viscous terms
       if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(ele, u, oldu_val, relu, x, viscosity, grad_u, &
+        call add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
            du_t, detwei, big_m_tensor_addto, rhs_addto)
       end if
       
@@ -851,14 +880,16 @@
              
     end subroutine construct_momentum_element_cg
     
-    subroutine add_mass_element_cg(ele, test_function, u, density, detwei, big_m_diag_addto, big_m_tensor_addto,mass, masslump)
+    subroutine add_mass_element_cg(ele, test_function, u, oldu_val, density, detwei, detwei_old, detwei_new, big_m_diag_addto, big_m_tensor_addto, rhs_addto, mass, masslump)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
+      real, dimension(:,:), intent(in) :: oldu_val
       type(scalar_field), intent(in) :: density
-      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
+      real, dimension(ele_ngi(u, ele)), intent(in) :: detwei, detwei_old, detwei_new
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: big_m_diag_addto
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
+      real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
       type(petsc_csr_matrix), intent(inout), optional :: mass
       type(vector_field), intent(inout) :: masslump
       
@@ -879,7 +910,11 @@
       !  /
       !  | N_A N_B rho dV
       !  /
-      mass_mat = shape_shape(test_function, u_shape, detwei*density_gi)
+      if(move_mesh) then
+        mass_mat = shape_shape(test_function, u_shape, detwei_new*density_gi)
+      else
+        mass_mat = shape_shape(test_function, u_shape, detwei*density_gi)
+      end if
       mass_lump = sum(mass_mat, 2)
       
       ! if we're lumping on the submesh, this is done later:
@@ -912,17 +947,44 @@
          end do
       end if
       
+      if(move_mesh) then
+        ! In the unaccelerated form we solve:
+        !  /
+        !  |  N^{n+1} u^{n+1}/dt - N^{n} u^n/dt + ... = f
+        !  /
+        ! so in accelerated form:
+        !  /
+        !  |  N^{n+1} du + (N^{n+1}- N^{n}) u^n/dt + ... = f
+        !  /
+        ! where du=(u^{n+1}-u^{n})/dt is the acceleration.
+        ! Put the (N^{n+1}-N^{n}) u^n term on the rhs
+        mass_mat = shape_shape(test_function, u_shape, (detwei_new-detwei_old)*density_gi)
+        if(lump_mass) then
+          if(compute_lumped_mass_here) then
+            mass_lump = sum(mass_mat, 2)
+            do dim = 1, u%dim
+              rhs_addto(dim,:) = rhs_addto(dim,:) - mass_lump*oldu_val(dim,:)/dt
+            end do
+          end if
+        else
+          do dim = 1, u%dim
+            rhs_addto(dim,:) = rhs_addto(dim,:) - matmul(mass_mat, oldu_val(dim,:))/dt
+          end do
+        end if
+      end if
+      
     end subroutine add_mass_element_cg
     
-    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, relu, density, viscosity, du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
       real, dimension(:,:), intent(in) :: oldu_val
-      type(vector_field), intent(in) :: relu
+      type(vector_field), intent(in) :: nu, ug
       type(scalar_field), intent(in) :: density
       type(tensor_field), intent(in) :: viscosity
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
+      real, dimension(ele_loc(ug, ele), ele_ngi(ug, ele), ug%dim), intent(in) :: dug_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
@@ -938,8 +1000,12 @@
       
             
       density_gi=ele_val_at_quad(density, ele)
-      relu_gi = ele_val_at_quad(relu, ele)
-      div_relu_gi = ele_div_at_quad(relu, ele, du_t)
+      relu_gi = ele_val_at_quad(nu, ele)
+      div_relu_gi = ele_div_at_quad(nu, ele, du_t)
+      if(move_mesh) then
+        relu_gi = relu_gi - ele_val_at_quad(ug, ele)
+        div_relu_gi = div_relu_gi - ele_div_at_quad(ug, ele, dug_t)
+      end if
             
       if(integrate_advection_by_parts) then
         ! element advection matrix
@@ -1111,10 +1177,10 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(ele, u, oldu_val, relu, x, viscosity, grad_u, &
+    subroutine add_viscosity_element_cg(ele, u, oldu_val, nu, x, viscosity, grad_u, &
          du_t, detwei, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
-      type(vector_field), intent(in) :: u, relu
+      type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
       type(tensor_field), intent(in) :: viscosity
@@ -1142,7 +1208,7 @@
       if (have_les) then
          ! add in LES viscosity
          les_tensor_gi=les_length_scale_tensor(du_t, ele_shape(u, ele))
-         les_coef_gi=les_viscosity_strength(du_t, ele_val(relu, ele))
+         les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
          do gi=1, size(les_coef_gi)
             les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
                  smagorinsky_coefficient**2

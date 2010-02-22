@@ -621,6 +621,11 @@ directly to the change in the field.</a:documentation>
                 <value>BSOUX BSOUY BSOUZ</value>
               </attribute>
               <element name="prescribed">
+                <element name="mesh">
+                  <attribute name="name">
+                    <value>CoordinateMesh</value>
+                  </attribute>
+                </element>
                 <ref name="prescribed_vector_field_no_adapt"/>
               </element>
             </element>
@@ -1989,9 +1994,7 @@ in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
               <a:documentation>Options involving mesh movement (Lagrangian, ALE methods)
  Allow a moving mesh.
  Assigns memory for grid velocities
- Amends previous timestep`s mass matrix
- If solid, enables lagrangian movement
- Manual suggests off.</a:documentation>
+ Amends previous timestep`s mass matrix</a:documentation>
               <attribute name="replaces">
                 <value>MVMESH = TRUE, ZERQG, CMCHAN = TRUE</value>
               </attribute>
@@ -2013,6 +2016,11 @@ geometry.</a:documentation>
                       <empty/>
                     </element>
                   </choice>
+                </element>
+                <element name="imposed_grid_velocity">
+                  <a:documentation>Enable movement of mesh by an imposed Grid Velocity.
+Requires a prescribed GridVelocity field (see below).</a:documentation>
+                  <empty/>
                 </element>
                 <element name="explicit_ale">
                   <a:documentation>enable full ale movement of mesh</a:documentation>
@@ -2143,6 +2151,34 @@ Please specify a scalar field</a:documentation>
                   </group>
                 </element>
               </choice>
+              <element name="vector_field">
+                <a:documentation>The velocity of the mesh.</a:documentation>
+                <attribute name="name">
+                  <value>GridVelocity</value>
+                </attribute>
+                <attribute name="rank">
+                  <value>1</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <element name="mesh">
+                      <attribute name="name">
+                        <value>CoordinateMesh</value>
+                      </attribute>
+                    </element>
+                    <ref name="diagnostic_vector_field"/>
+                  </element>
+                  <element name="prescribed">
+                    <element name="mesh">
+                      <attribute name="name">
+                        <value>CoordinateMesh</value>
+                      </attribute>
+                    </element>
+                    <ref name="prescribed_vector_field_no_adapt"/>
+                  </element>
+                </choice>
+              </element>
             </element>
           </optional>
           <optional>
@@ -3778,7 +3814,7 @@ only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
       </element>
     </optional>
     <ref name="prognostic_vector_output_options"/>
-    <ref name="prognostic_vector_stat_options"/>
+    <ref name="prognostic_velocity_stat_options"/>
     <ref name="vector_convergence_options"/>
     <ref name="prognostic_detector_options"/>
     <ref name="vector_steady_state_options"/>
@@ -6736,10 +6772,10 @@ iteration in the .stat file.</a:documentation>
     <ref name="include_stat"/>
   </define>
   <!-- Diagnostic statistics for prognostic vector fields -->
-  <define name="prognostic_vector_stat_options">
+  <define name="prognostic_velocity_stat_options">
     <element name="stat">
       <a:documentation>Specify what is added to .stat files</a:documentation>
-      <ref name="prognostic_vector_stat_options.stat"/>
+      <ref name="prognostic_velocity_stat_options.stat"/>
     </element>
   </define>
   <!-- Diagnostic statistics for all other vector fields -->
@@ -6756,10 +6792,10 @@ iteration in the .stat file.</a:documentation>
     <ref name="prognostic_vector_stat_no_old_or_nonlinear_options"/>
   </define>
   <!-- Combining of stat elements for vector fields -->
-  <define name="prognostic_vector_stat_options.stat">
+  <define name="prognostic_velocity_stat_options.stat">
     <ref name="prognostic_vector_stat_no_old_or_nonlinear_options.stat"/>
   </define>
-  <define name="prognostic_vector_stat_options.stat" combine="interleave">
+  <define name="prognostic_velocity_stat_options.stat" combine="interleave">
     <element name="previous_time_step">
       <a:documentation>Specify how the previous timestep value of this field is added to the .stat file.</a:documentation>
       <ref name="vector_field_stat_options_disabled_default"/>
@@ -6779,6 +6815,13 @@ as the total force)</a:documentation>
           </element>
         </optional>
         <ref name="integer_vector"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="calculate_momentum_conservation_error">
+        <a:documentation>Calculate the error in the conservation of momentum
+IN PROGRESS - Does not include all terms!</a:documentation>
+        <empty/>
       </element>
     </optional>
   </define>

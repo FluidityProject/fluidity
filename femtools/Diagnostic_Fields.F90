@@ -1968,7 +1968,6 @@ contains
       real, intent(in), optional :: dt
 
       type(vector_field), pointer :: u, ug, x
-      type(vector_field) :: relu
       real :: l_dt
       integer :: i, ele, iloc, oloc, gi, ggi, sele, face, ni, face_2
 
@@ -1976,9 +1975,10 @@ contains
       type(cv_faces_type) :: cvfaces
       type(element_type) :: x_cvshape, x_cvbdyshape
       type(element_type) :: u_cvshape, u_cvbdyshape
+      type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(scalar_field), pointer :: lumpedmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-      real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
+      real, dimension(:,:), allocatable :: x_f, u_f, ug_f, u_bdy_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
       real, dimension(:), allocatable :: detwei, detwei_bdy
       real, dimension(:), allocatable :: normgi
@@ -1992,18 +1992,19 @@ contains
       type(scalar_field) :: courant_bc
 
       type(vector_field) :: x_courant ! coordinates on courant mesh
+      
+      logical :: move_mesh
 
       ewrite(1,*) 'in calculate_courant_number_cv'
+      
+      move_mesh = have_option("/mesh_adaptivity/mesh_movement")
 
       udotn=0.0 ! to stop valgrind complaining about it being unitialised
 
       u=>extract_vector_field(state, "NonlinearVelocity")
-      ug=>extract_vector_field(state, "GridVelocity")
       x=>extract_vector_field(state, "Coordinate")
 
-      call allocate(relu, u%dim, u%mesh, "RelativeVelocity")
-      call set(relu, u)
-      call addto(relu, ug, scale = -1.0)
+      if(move_mesh) ug=>extract_vector_field(state, "GridVelocity")
 
       if(present(dt)) then
         l_dt = dt
@@ -2042,11 +2043,16 @@ contains
                 normgi(x%dim))
         allocate(notvisited(x_cvshape%ngi))
 
+        if(move_mesh) then
+          ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
+          allocate(ug_f(ug%dim, ug_cvshape%ngi))
+        end if
 
         do ele=1, element_count(courant)
           x_ele=ele_val(x, ele)
           x_f=ele_val_at_quad(x, ele, x_cvshape)
-          u_f=ele_val_at_quad(relu, ele, u_cvshape)
+          u_f=ele_val_at_quad(u, ele, u_cvshape)
+          if(move_mesh) ug_f = ele_val_at_quad(ug, ele, ug_cvshape)
           nodes=>ele_nodes(courant, ele)
           x_nodes=>ele_nodes(x_courant, ele)
 
@@ -2072,7 +2078,11 @@ contains
 
                     normgi=orientate_cvsurf_normgi(node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
-                    udotn=dot_product(u_f(:,ggi), normgi)
+                    if(move_mesh) then
+                      udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi)
+                    else
+                      udotn=dot_product(u_f(:,ggi), normgi)
+                    end if
 
                     if(udotn>0.0) then
                       income=0.0
@@ -2101,6 +2111,11 @@ contains
                 normal_bdy(x%dim, x_cvbdyshape%ngi))
         allocate(nodes_bdy(face_loc(courant, 1)))
         allocate(courant_bc_type(surface_element_count(courant)))
+        
+        if(move_mesh) then
+          ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+          allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
+        end if
 
         ! get the fields over the surface containing the bcs
         call get_entire_boundary_condition(courant, (/"periodic"/), courant_bc, courant_bc_type)
@@ -2117,7 +2132,8 @@ contains
           call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
                                 x_cvbdyshape, normal_bdy, detwei_bdy)
 
-          u_bdy_f=face_val_at_quad(relu, sele, u_cvbdyshape)
+          u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
+          if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
 
           do iloc = 1, courant%mesh%faces%shape%loc
 
@@ -2128,8 +2144,12 @@ contains
                 do gi = 1, cvfaces%shape%ngi
 
                   ggi = (face-1)*cvfaces%shape%ngi + gi
-
-                    udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                  
+                    if(move_mesh) then
+                      udotn=dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                    else
+                      udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                    end if
 
                     if(udotn>0.0) then
                       income=0.0
@@ -2159,11 +2179,17 @@ contains
         call deallocate(u_cvshape)
         call deallocate(cvfaces)
         call deallocate(courant_bc)
+        
+        if(move_mesh) then
+          call deallocate(ug_cvshape)
+          call deallocate(ug_cvbdyshape)
+          deallocate(ug_f, ug_bdy_f)
+        end if
 
       else
 
         allocate(detwei(face_ngi(courant, 1)), &
-                 u_f(u%dim, face_ngi(relu, 1)), &
+                 u_f(u%dim, face_ngi(u, 1)), &
                  normal(x%dim, face_ngi(courant, 1)))
 
         do ele = 1, element_count(courant)
@@ -2189,7 +2215,10 @@ contains
 
             ! if velocity is dg then use a trapezoidal rule (otherwise this will
             ! all cancel out to give the face value)
-            u_f = 0.5*(face_val_at_quad(relu, face) + face_val_at_quad(relu, face_2))
+            u_f = 0.5*(face_val_at_quad(u, face) + face_val_at_quad(u, face_2))
+            if(move_mesh) then
+              u_f = u_f - face_val_at_quad(ug, face)
+            end if
 
             call addto(courant, nodes(1), &
                  sum(sum(u_f*normal,1)*merge(1.0,0.0,.not.(sum(u_f*normal,1)<0.0))*detwei))
@@ -2203,7 +2232,6 @@ contains
 
       courant%val = courant%val*l_dt/lumpedmass%val
 
-      call deallocate(relu)
       call deallocate(x_courant)
 
       call halo_update(courant)
@@ -2219,18 +2247,18 @@ contains
       type(vector_field), pointer :: u, ug, x
       type(vector_field) :: x_courant
       type(scalar_field), pointer :: matdens, oldmatdens
-      type(vector_field) :: relu
       real :: l_dt
       integer :: i, ele, iloc, oloc, gi, ggi, sele, face, stat
 
       integer :: quaddegree
       type(cv_faces_type) :: cvfaces
       type(element_type) :: u_cvshape, u_cvbdyshape
+      type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(element_type) :: t_cvshape, t_cvbdyshape
       type(element_type) :: x_cvshape, x_cvbdyshape
       type(scalar_field) :: lumpedmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-      real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
+      real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f, ug_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
       real, dimension(:), allocatable :: detwei, detwei_bdy
       real, dimension(:), allocatable :: normgi
@@ -2258,19 +2286,18 @@ contains
 
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
+      
+      logical :: move_mesh
+      
+      move_mesh = have_option("/mesh_adaptivity/mesh_movement")
 
       udotn=0.0 ! to stop valgrind complaining about it being unitialised
 
       u=>extract_vector_field(state, "IteratedVelocity")
-      ug=>extract_vector_field(state, "GridVelocity")
       x=>extract_vector_field(state, "Coordinate")
       x_courant = get_coordinate_field(state, courant%mesh)
 
-      call allocate(relu, u%dim, u%mesh, "RelativeVelocity")
-
-      do i = 1,relu%dim
-         relu%val(i)%ptr(:) = u%val(i)%ptr(:)-ug%val(i)%ptr(:)
-      end do
+      if(move_mesh) ug=>extract_vector_field(state, "GridVelocity")
 
       ! extract the material density and get all the relevent options:
       matdens=>extract_scalar_field(state, "MaterialDensity")
@@ -2355,6 +2382,11 @@ contains
                matdens_ele(ele_loc(matdens, 1)), &
                oldmatdens_ele(ele_loc(matdens, 1)))
       allocate(notvisited(x_cvshape%ngi))
+      
+      if(move_mesh) then
+        ug_cvshape = make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
+        allocate(ug_f(ug%dim, ug_cvshape%ngi))
+      end if
 
       call allocate(lumpedmass, courant%mesh, "Lumped mass")
       call compute_lumped_mass(x, lumpedmass)
@@ -2363,7 +2395,8 @@ contains
       do ele=1, element_count(courant)
         x_ele=ele_val(x, ele)
         x_f=ele_val_at_quad(x, ele, x_cvshape)
-        u_f=ele_val_at_quad(relu, ele, u_cvshape)
+        u_f=ele_val_at_quad(u, ele, u_cvshape)
+        if(move_mesh) ug_f = ele_val_at_quad(ug, ele, ug_cvshape)
         nodes=>ele_nodes(courant, ele)
         x_nodes=>ele_nodes(x_courant, ele)
 
@@ -2394,7 +2427,11 @@ contains
 
                   normgi=orientate_cvsurf_normgi(node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
-                  udotn=dot_product(u_f(:,ggi), normgi)
+                  if(move_mesh) then
+                    udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi)
+                  else
+                    udotn=dot_product(u_f(:,ggi), normgi)
+                  end if
 
                   inflow = (udotn<=0.0)
 
@@ -2453,6 +2490,11 @@ contains
               ghost_oldmatdens_ele_bdy(face_loc(oldmatdens,1)))
       allocate(matdens_bc_type(surface_element_count(matdens)), &
                nodes_bdy(face_loc(courant,1)))
+               
+      if(move_mesh) then
+        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+        allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
+      end if
 
       ! get the fields over the surface containing the bcs
       call get_entire_boundary_condition(matdens, (/"weakdirichlet", "periodic     "/), matdens_bc, matdens_bc_type)
@@ -2469,7 +2511,8 @@ contains
         call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
                               x_cvbdyshape, normal_bdy, detwei_bdy)
 
-        u_bdy_f=face_val_at_quad(relu, sele, u_cvbdyshape)
+        u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
+        if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
 
         ! deal with bcs for tdensity
         if(matdens_bc_type(sele)==1) then
@@ -2497,7 +2540,11 @@ contains
 
                 ggi = (face-1)*cvfaces%shape%ngi + gi
 
-                  udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                  if(move_mesh) then
+                    udotn=dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                  else
+                    udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                  end if
 
                   if(udotn>0.0) then
                      income=0.0
@@ -2540,13 +2587,18 @@ contains
       call deallocate(x_cvshape)
       call deallocate(t_cvshape)
       call deallocate(cvfaces)
-      call deallocate(relu)
       call deallocate(lumpedmass)
       call deallocate(cfl_no)
       call deallocate(matdens_upwind)
       call deallocate(oldmatdens_upwind)
       call deallocate(matdens_bc)
       call deallocate(mesh_sparsity)
+      
+      if(move_mesh) then
+        call deallocate(ug_cvshape)
+        call deallocate(ug_cvbdyshape)
+        deallocate(ug_f, ug_bdy_f)
+      end if
 
    end subroutine calculate_matdens_courant_number_cv
 

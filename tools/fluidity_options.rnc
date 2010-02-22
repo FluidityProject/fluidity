@@ -479,6 +479,9 @@ start =
                   attribute rank { "1" },
                   attribute replaces { "BSOUX BSOUY BSOUZ" },
                   element prescribed {
+                     element mesh {
+                       attribute name {  "CoordinateMesh" }
+                     },
                      prescribed_vector_field_no_adapt
                   }
                }
@@ -1487,8 +1490,6 @@ start =
             ##  Allow a moving mesh.
             ##  Assigns memory for grid velocities
             ##  Amends previous timestep`s mass matrix
-            ##  If solid, enables lagrangian movement
-            ##  Manual suggests off.
             element mesh_movement {
                attribute replaces { "MVMESH = TRUE, ZERQG, CMCHAN = TRUE" },
                (
@@ -1509,6 +1510,11 @@ start =
                           empty
                         }
                      )
+                  }|
+                  ## Enable movement of mesh by an imposed Grid Velocity.
+                  ## Requires a prescribed GridVelocity field (see below).
+                  element imposed_grid_velocity {
+                     empty
                   }|
                   ## enable full ale movement of mesh
                   element explicit_ale {
@@ -1566,7 +1572,27 @@ start =
                         element block_nodes_in_z {empty}?
                      )
                   }                  
-               )
+               ),
+               ## The velocity of the mesh.
+               element vector_field {
+                  attribute name { "GridVelocity" },
+                  attribute rank { "1" },
+                  (
+                     element diagnostic {
+                       internal_algorithm,
+                       element mesh {
+                         attribute name {  "CoordinateMesh" }
+                       },
+                       diagnostic_vector_field
+                     }|
+                     element prescribed {
+                       element mesh {
+                         attribute name {  "CoordinateMesh" }
+                       },
+                       prescribed_vector_field_no_adapt
+                     }
+                  )
+               }               
             }?,
             (
                hr_adaptivity |
@@ -2787,7 +2813,7 @@ prognostic_velocity_field =
          )
       }?,
       prognostic_vector_output_options,
-      prognostic_vector_stat_options,
+      prognostic_velocity_stat_options,
       vector_convergence_options,
       prognostic_detector_options,
       vector_steady_state_options,
@@ -5144,12 +5170,12 @@ vector_field_stat_options_disabled_default |= exclude_components_from_stat
 vector_field_stat_options_disabled_default |= include_stat
 
 # Diagnostic statistics for prognostic vector fields
-prognostic_vector_stat_options =
+prognostic_velocity_stat_options =
    (
       ## Specify what is added to .stat files
       element stat {
          (
-            prognostic_vector_stat_options.stat
+            prognostic_velocity_stat_options.stat
          )
       }      
    )
@@ -5166,8 +5192,8 @@ diagnostic_vector_stat_options = prognostic_vector_stat_no_old_or_nonlinear_opti
 prescribed_vector_stat_options = prognostic_vector_stat_no_old_or_nonlinear_options
 
 # Combining of stat elements for vector fields
-prognostic_vector_stat_options.stat = prognostic_vector_stat_no_old_or_nonlinear_options.stat
-prognostic_vector_stat_options.stat &=
+prognostic_velocity_stat_options.stat = prognostic_vector_stat_no_old_or_nonlinear_options.stat
+prognostic_velocity_stat_options.stat &=
    (
       ## Specify how the previous timestep value of this field is added to the .stat file.
       element previous_time_step {
@@ -5185,6 +5211,11 @@ prognostic_vector_stat_options.stat &=
             comment
          }?,
          integer_vector
+      }?,
+      ## Calculate the error in the conservation of momentum
+      ## IN PROGRESS - Does not include all terms!
+      element calculate_momentum_conservation_error {
+         empty
       }?
    )
 prognostic_vector_stat_no_old_or_nonlinear_options.stat =

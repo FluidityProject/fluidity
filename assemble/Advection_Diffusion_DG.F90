@@ -96,6 +96,8 @@ module advection_diffusion_DG
   integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2
 
   logical :: include_mass
+  ! are we moving the mesh?
+  logical :: move_mesh
 
   ! Stabilisation schemes.
   integer :: stabilisation_scheme
@@ -558,6 +560,7 @@ contains
 
     !! Position, and velocity fields.
     type(vector_field) :: X, U, U_nl, U_mesh
+    type(vector_field), pointer :: X_new, X_old
     !! Tracer to be solved for.
     type(scalar_field) :: T
     !! Diffusivity
@@ -642,7 +645,6 @@ contains
     call set(U_nl, U_nl_backup)
 
     U_mesh=extract_vector_field(state, "GridVelocity")
-!    Abs=>extract_scalar_field(state, "Absorption")
 
     Diffusivity=extract_tensor_field(state, trim(field_name)//"Diffusivity"&
          &, stat=stat)
@@ -713,6 +715,16 @@ contains
 
     include_mass = .not. have_option(trim(T%option_path)//&
            "/prognostic/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms")
+           
+    move_mesh = (have_option("/mesh_adaptivity/mesh_movement").and.include_mass)
+    
+    if(move_mesh) then
+      ewrite(2,*) 'Moving mesh'
+      X_old => extract_vector_field(state, "OldCoordinate")
+      X_new => extract_vector_field(state, "IteratedCoordinate")
+    else
+      ewrite(2,*) 'Not moving mesh'
+    end if
     
     q_mesh=diffusivity%mesh
 
@@ -737,7 +749,7 @@ contains
     element_loop: do ELE=1,element_count(T)
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
-            & rhs_diff, X, T, U_nl, U_mesh, Source, &
+            & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass) 
        
     end do element_loop
@@ -754,7 +766,7 @@ contains
 
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
-       & X, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
+       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
        & q_mesh, mass)
     !!< Construct the advection_diffusion equation for discontinuous elements in
@@ -777,11 +789,12 @@ contains
     type(csr_matrix), intent(inout), optional :: mass
     
     !! Position and velocity.
-    type(vector_field) :: X, U_nl, U_mesh
+    type(vector_field), intent(in) :: X, U_nl, U_mesh
+    type(vector_field), intent(in) :: X_old, X_new
 
-    type(scalar_field) :: T, Source, Absorption
+    type(scalar_field), intent(in) :: T, Source, Absorption
     !! Diffusivity
-    type(tensor_field) :: Diffusivity
+    type(tensor_field), intent(in) :: Diffusivity
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -828,7 +841,7 @@ contains
     integer :: start, finish
     
     ! Variable transform times quadrature weights.
-    real, dimension(ele_ngi(T,ele)) :: detwei
+    real, dimension(ele_ngi(T,ele)) :: detwei, detwei_old, detwei_new
     ! Transform from local to physical coordinates.
     real, dimension(U_nl%dim, U_nl%dim, ele_ngi(T,ele)) :: J_mat 
     ! Transformed gradient function for tracer.
@@ -836,11 +849,14 @@ contains
     ! Transformed gradient function for velocity.
     real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) ::&
          & du_t 
+    ! Transformed gradient function for grid velocity.
+    real, dimension(ele_loc(U_mesh, ele), ele_ngi(U_mesh, ele), mesh_dim(T)) ::&
+         & dug_t 
     ! Transformed gradient function for auxiliary variable.
     real, dimension(ele_loc(q_mesh,ele), ele_ngi(q_mesh,ele), mesh_dim(T)) :: dq_t
     ! Different velocities at quad points.
-    real, dimension(U_nl%dim, ele_ngi(U_nl, ele)) :: u_nl_q, u_mesh_q
-    real, dimension(ele_ngi(U_nl, ele)) :: u_div_q, u_nl_div_q
+    real, dimension(U_nl%dim, ele_ngi(U_nl, ele)) :: u_nl_q
+    real, dimension(ele_ngi(U_nl, ele)) :: u_nl_div_q
 
     ! Node and shape pointers.
     integer, dimension(:), pointer :: t_ele
@@ -949,22 +965,37 @@ contains
        call transform_to_physical(X,ele,&
             & q_shape , dshape=dq_t)
     end if
+    
+    if(move_mesh) then
+      call transform_to_physical(X_old, ele, detwei=detwei_old)
+      call transform_to_physical(X_new, ele, detwei=detwei_new)
+      if(include_advection.and..not.integrate_conservation_term_by_parts) then
+        call transform_to_physical(X, ele, &
+            & ele_shape(U_mesh, ele), dshape=dug_t)
+      end if
+    end if
         
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
 
-    ! Introduce grid velocities in non-linear terms. 
-    ! Advecting velocity at quadrature points.
-    U_nl_q=ele_val_at_quad(U_nl,ele)
-    ! Divergence of advecting velocity.
-    U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
+    if(include_advection) then
+      ! Advecting velocity at quadrature points.
+      U_nl_q=ele_val_at_quad(U_nl,ele)
+      ! Introduce grid velocities in non-linear terms. 
+      if(move_mesh) then
+        U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
+      end if
+      ! Divergence of advecting velocity.
+      if(.not.integrate_conservation_term_by_parts) then
+        U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
+        ! Introduce grid velocities in non-linear terms. 
+        if(move_mesh) then
+          U_nl_div_q = U_nl_div_q - ele_div_at_quad(U_mesh, ele, dug_t)
+        end if
+      end if
+    end if
 
-    ! Mesh velocity at quadrature points.
-    U_mesh_q=ele_val_at_quad(U_mesh,ele)
-    ! Divergence of mesh movement.
-    U_div_q=ele_div_at_quad(U_mesh, ele, du_t)
-    
     Diffusivity_ele = ele_val(Diffusivity,ele)
 
     !----------------------------------------------------------------------
@@ -975,7 +1006,11 @@ contains
     !  /
     !  | T T  dV
     !  / 
-    mass_mat = shape_shape(T_shape, T_shape, detwei)
+    if(move_mesh) then
+      mass_mat = shape_shape(T_shape, T_shape, detwei_new)
+    else
+      mass_mat = shape_shape(T_shape, T_shape, detwei)
+    end if
 
     if (include_advection) then
 
@@ -1037,7 +1072,11 @@ contains
              !Compute a matrix which maps ele vals to ele grad vals
              !This works since the gradient of the shape function
              !lives in the original polynomial space -- cjc
-             inverse_mass_mat = mass_mat
+             if(move_mesh) then
+                inverse_mass_mat = shape_shape(T_shape, T_shape, detwei)
+             else
+                inverse_mass_mat = mass_mat
+             end if
              call invert(inverse_mass_mat)
              ele2grad_mat = shape_dshape(T_shape,dt_t,detwei)
              do i = 1, mesh_dim(T)
@@ -1105,7 +1144,11 @@ contains
     ! Source term
     l_T_rhs=l_T_rhs &
          + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
-
+         
+    if(move_mesh) then
+      l_T_rhs=l_T_rhs &
+         -shape_rhs(T_shape, ele_val_at_quad(t, ele)*(detwei_new-detwei_old)/dt)
+    end if
 
     ! Right hand side field.
     call addto(RHS, t_ele, l_T_rhs)
@@ -1118,6 +1161,7 @@ contains
 
     if (present(mass)) then
        ! Return mass separately.
+       ! NOTE: this doesn't deal with mesh movement
        call addto(mass, t_ele, t_ele, mass_mat)
     else
        if(include_mass) then
@@ -1714,8 +1758,9 @@ contains
     ! Note that both sides of the face can be assumed to have the same
     ! number of quadrature points.
     real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: normal, u_nl_q,&
-         & u_mesh_q, u_div_q, u_f_q, u_f2_q
+         & u_nl_i, u_f_q, u_f2_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
+    real, dimension(face_ngi(U_nl, face)) :: u_nl_q_dotn, income
     ! Variable transform times quadrature weights.
     real, dimension(face_ngi(T,face)) :: detwei
 
@@ -1781,54 +1826,43 @@ contains
 
     if (include_advection) then
 
-       U_nl_q=0.0
-       U_mesh_q=0.0
-       U_div_q=0.0
-       
-       ! Introduce grid velocities in non-linear terms. 
-       
        ! Advecting velocity at quadrature points.
        u_f_q = face_val_at_quad(U_nl, face)
        u_f2_q = face_val_at_quad(U_nl, face_2)
        U_nl_q=0.5*(u_f_q+u_f2_q)
+
+       ! Introduce grid velocities in non-linear terms. 
+       if(move_mesh) then
+         ! here we assume that u_mesh at face is the same as u_mesh at face_2
+         ! if it isn't then you're in trouble because your mesh will tear
+         ! itself apart
+         u_nl_q=u_nl_q - face_val_at_quad(u_mesh, face)
+         ! the velocity on the internal face isn't used again so we can
+         ! modify it directly here...
+         u_f_q = u_f_q - face_val_at_quad(u_mesh, face)
+       end if
        
-       ! Mesh velocity at quadrature points.
-       !U_mesh_q=face_val_at_quad(U_mesh, face)
-       ! Divergence of mesh movement.
-       !       U_div_q=ele_face_div_at_quad(U_mesh, ele, ni)
-       
+       u_nl_q_dotn = sum(U_nl_q*normal,1)
+              
        ! Inflow is true if the flow at this gauss point is directed
        ! into this element.
-       !inflow= sum((U_nl_q-U_mesh_q)*normal,1)<0.0
-       inflow= sum(U_nl_q*normal,1)<0.0
+       inflow = u_nl_q_dotn<0.0
+       income = merge(1.0,0.0,inflow)
        
-!        ! redefine the u_nl_q - we need to think more about this
-!        do i = 1, U_nl%dim
-!           u_nl_q(i,:) = merge(u_f2_q(i,:),u_f_q(i,:),inflow)
-!        end do
-
        !----------------------------------------------------------------------
        ! Construct bilinear forms.
        !----------------------------------------------------------------------
        
        ! Calculate outflow boundary integral.
        nnAdvection_out=shape_shape(T_shape, T_shape,  &
-            &                        (merge(1.0,0.0,.not.inflow) &
-            ! Jump condition interior term.
-            &                               -integration_factor) &
-            &                          *sum((U_nl_q)*normal,1) &
+            &                     ((1.-income)*u_nl_q_dotn &
+            &                     -integration_factor*sum(u_f_q*normal,1)) &
             &                          *detwei) 
-!!$         + shape_shape(n_f,n_f, merge(1.0,0.0,.not.inflow) &
-!!$         &                    *sum((UDG_f)*normal,1) &
-!!$         &                    *detwei_f*dengi_f)
        
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
-            &                       merge(1.0,0.0,inflow) &
-            &                         *sum((U_nl_q)*normal,1) &
+            &                       income &
+            &                         *u_nl_q_dotn &
             &                         *detwei) 
-!!$         +  shape_shape(n_f,n_f, merge(1.0,0.0,inflow) &
-!!$         &                       *sum((UDG_f)*normal,1) &
-!!$         &                       *detwei_f*dengi_f
        
     end if
     if (include_diffusion) then

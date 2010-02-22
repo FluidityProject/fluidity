@@ -894,9 +894,8 @@ contains
 
       call allocate(relu, u%dim, u%mesh, "RelativeVelocity")
 
-      do i = 1,relu%dim
-         relu%val(i)%ptr(:) = u%val(i)%ptr(:)-ug%val(i)%ptr(:)
-      end do
+      call set(relu, u)
+      call addto(relu, ug, scale=-1.0)
 
       mesh_sparsity=>get_csr_sparsity_firstorder(state, p%mesh, p%mesh)
 

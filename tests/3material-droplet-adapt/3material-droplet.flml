@@ -97,6 +97,7 @@
       </magnitude>
       <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
         <prescribed>
+          <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
               <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>

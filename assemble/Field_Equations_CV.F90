@@ -64,10 +64,13 @@ module field_equations_cv
             assemble_advectiondiffusion_m_cv
 
   integer, dimension(:), allocatable, save :: conv_unit
-
+  
   !! This allows a reference between the field and the file its meant to be
   !! writing to.
   character(len=OPTION_PATH_LEN), dimension(:), allocatable, save :: sfield_list
+
+  ! are we moving the mesh?
+  logical :: move_mesh
 
 contains
     !************************************************************************
@@ -87,8 +90,8 @@ contains
       type(scalar_field), pointer :: tfield, oldtfield, it_tfield
       ! Density fields associated with tfield's equation (i.e. if its not pure advection)
       type(scalar_field), pointer :: tdensity, oldtdensity
-      ! Coordinate field
-      type(vector_field), pointer :: x
+      ! Coordinate field(s)
+      type(vector_field), pointer :: x, x_old, x_new
       type(vector_field) :: x_tfield
 
       type(tensor_field), pointer :: diffusivity
@@ -111,6 +114,7 @@ contains
       ! locally iterated field (for advection iterations) 
       ! and local old field (for subcycling)
       type(scalar_field), pointer :: t_lumpedmass, q_lumpedmass
+      type(scalar_field) :: t_lumpedmass_old, t_lumpedmass_new
       type(scalar_field) :: rhs, lumpedmass, advit_tfield, l_old_tfield
       ! Diffusion contribution to rhs
       type(scalar_field) :: diff_rhs
@@ -133,6 +137,7 @@ contains
       type(cv_faces_type) :: cvfaces
       ! control volume shape function for volume and boundary
       type(element_type) :: u_cvshape, u_cvbdyshape
+      type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(element_type) :: x_cvshape, x_cvbdyshape, &
                             x_cvshape_full, x_cvbdyshape_full
       ! t_cvshape is the element with reduced numbers of derivatives
@@ -230,18 +235,16 @@ contains
 
       ! extract fields from state
       nu=>extract_vector_field(state(1), "NonlinearVelocity")
+      do i = 1, nu%dim
+        ewrite_minmax(nu%val(i)%ptr)
+      end do
 
-      ! halo exchange?  unecessary for velocity as it is currently done after a solve in ctyexa
-      ! this may need to be fixed if this changes or a different solution method is used
-      ug=>extract_vector_field(state(1), "GridVelocity")
       x=>extract_vector_field(state(1), "Coordinate")
       x_tfield=get_coordinate_field(state(1), tfield%mesh)
 
       ! find relative velocity
-      call allocate(advu, nu%dim, nu%mesh, "RelativeVelocity")
+      call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
       call set(advu, nu)
-      call addto(advu, ug, -1.0)
-
       ! add in sinking velocity
       sink=>extract_scalar_field(state(1), trim(field_name)//"SinkingVelocity"&
            &, stat=stat)
@@ -406,8 +409,36 @@ contains
       end if
       ewrite_minmax(t_lumpedmass%val)
 
+      move_mesh = have_option("/mesh_adaptivity/mesh_movement")
+      if(move_mesh) then
+        ewrite(2,*) "Moving mesh."
+        x_old=>extract_vector_field(state(1), "OldCoordinate")
+        x_new=>extract_vector_field(state(1), "IteratedCoordinate")
+        call allocate(t_lumpedmass_old, tfield%mesh, name=trim(field_name)//"OldLumpedMass")
+        call allocate(t_lumpedmass_new, tfield%mesh, name=trim(field_name)//"NewLumpedMass")
+        if(tfield%mesh%shape%degree>1) then
+          FLAbort("Lumping on submesh while moving the mesh not set up.")
+        else
+          call compute_lumped_mass(x_old, t_lumpedmass_old)
+          call compute_lumped_mass(x_new, t_lumpedmass_new)
+        end if
+        ewrite_minmax(t_lumpedmass_old%val)
+        ewrite_minmax(t_lumpedmass_new%val)
+        
+        ug=>extract_vector_field(state(1), "GridVelocity")
+        do i = 1, ug%dim
+          ewrite_minmax(ug%val(i)%ptr)
+        end do
+
+        ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape%degree)
+        ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape%degree)
+
+      else
+        ewrite(2,*) "Not moving mesh."
+      end if
+
       call allocate(lumpedmass, tfield%mesh, name=trim(field_name)//"LumpedMass")
-      call set(lumpedmass, t_lumpedmass) ! save it in case we're explicit
+      call set(lumpedmass, t_lumpedmass)
 
       if(diffusion.and.(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY)) then
         if(.not.(tfield%mesh==diffusivity%mesh)) then
@@ -489,11 +520,20 @@ contains
           ! record the value of tfield since the previous iteration
           call set(advit_tfield, tfield)
 
-          if(explicit) then
-            call set(lumpedmass, t_lumpedmass)
+          if(move_mesh) then
+            if(explicit) then
+              call set(lumpedmass, t_lumpedmass_new)
+            else
+              call zero(M)
+              call addto_diag(M, t_lumpedmass_new)
+            end if
           else
-            call zero(M)
-            call addto_diag(M, t_lumpedmass)
+            if(explicit) then
+              call set(lumpedmass, t_lumpedmass)
+            else
+              call zero(M)
+              call addto_diag(M, t_lumpedmass)
+            end if
           end if
           call zero(rhs) ! this has to happen here rather than in the assembly routine
                          ! for back compatibility reasons
@@ -504,7 +544,8 @@ contains
                                       tdensity, oldtdensity, tdensity_options, &
                                       cvfaces, x_cvshape, x_cvbdyshape, &
                                       u_cvshape, u_cvbdyshape, t_cvshape, &
-                                      state, advu, x, x_tfield, cfl_no, &
+                                      ug_cvshape, ug_cvbdyshape, &
+                                      state, advu, ug, x, x_tfield, cfl_no, &
                                       getadvmat, sub_dt, &
                                       mesh_sparsity_x, &
                                       diffusion=diffusion, getdiffmat=getdiffmat, &
@@ -520,7 +561,8 @@ contains
                                     tdensity, oldtdensity, &
                                     source, absorption, tfield_options%theta, &
                                     state, advu, sub_dt, explicit, &
-                                    diffusion, D_m, diff_rhs)
+                                    diffusion, D_m, diff_rhs, &
+                                    t_lumpedmass_old, t_lumpedmass_new)
 
 
           ! Solve for the change in tfield.
@@ -565,6 +607,7 @@ contains
       call deallocate(rhs)
       if(.not.explicit) call deallocate(A_m)
       if(.not.explicit) call deallocate(M)
+      call deallocate(lumpedmass)
       call deallocate(cfl_no)
       call deallocate(x_cvbdyshape)
       call deallocate(x_cvbdyshape_full)
@@ -580,7 +623,6 @@ contains
       call deallocate(cvfaces)
       call deallocate(advu)
       call deallocate(dummydensity)
-      call deallocate(lumpedmass)
       deallocate(dummydensity)
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
@@ -589,6 +631,12 @@ contains
         call deallocate(diff_rhs)
       end if
       call deallocate(x_tfield)
+      if(move_mesh) then
+        call deallocate(t_lumpedmass_new)
+        call deallocate(t_lumpedmass_old)
+        call deallocate(ug_cvshape)
+        call deallocate(ug_cvbdyshape)
+      end if
 
     end subroutine solve_field_eqn_cv
 
@@ -747,7 +795,7 @@ contains
       ! the courant number field
       type(scalar_field) :: cfl_no
       ! nonlinear and grid velocities
-      type(vector_field), pointer :: nu, ug
+      type(vector_field), pointer :: nu
       ! advection velocity
       type(vector_field) :: advu
       ! assume explicitness?
@@ -866,16 +914,12 @@ contains
       ! on the same coordinate field
       ! extract velocity and coordinate fields from state
       nu=>extract_vector_field(state(state_indices(1)), "NonlinearVelocity")
-      ! halo exchange?  unecessary for velocity as it is currently done after a solve in ctyexa
-      ! this may need to be fixed if this changes or a different solution method is used
-      ug=>extract_vector_field(state(state_indices(1)), "GridVelocity")
       x=>extract_vector_field(state(state_indices(1)), "Coordinate")
       x_tfield = get_coordinate_field(state(state_indices(1)), tfield(1)%ptr%mesh)
       
       ! find relative velocity
       call allocate(advu, nu%dim, nu%mesh, "RelativeVelocity")
       call set(advu, nu)
-      call addto(advu, ug, -1.0)
 
       ! create control volume shape functions
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
@@ -937,6 +981,11 @@ contains
         t_lumpedmass => get_lumped_mass(state, tfield(1)%ptr%mesh)
       end if
       ewrite_minmax(t_lumpedmass%val)
+
+      move_mesh = have_option("/mesh_adaptivity/mesh_movement")
+      if(move_mesh) then
+        FLAbort("Moving meshes not set up with coupled cv.")
+      end if
 
       do f = 1, nfields
         call allocate(lumpedmass(f), tfield(1)%ptr%mesh, name=trim(field_name)//"LocalLumpedMass")
@@ -1141,7 +1190,8 @@ contains
                                     tdensity, oldtdensity, &
                                     source, absorption, theta, &
                                     state, advu, dt, explicit, &
-                                    diffusion, D_m, diff_rhs)
+                                    diffusion, D_m, diff_rhs, &
+                                    lumpedmass_old, lumpedmass_new)
 
       ! This subroutine assembles the equation
       ! M(T^{n+1}-T^{n})/\Delta T = rhs
@@ -1176,12 +1226,14 @@ contains
       logical, intent(in), optional :: diffusion
       type(csr_matrix), intent(inout), optional :: D_m
       type(scalar_field), intent(inout), optional :: diff_rhs
+      type(scalar_field), intent(in), optional :: lumpedmass_old
+      type(scalar_field), intent(in), optional :: lumpedmass_new
 
       ! local memory:
       ! for all equation types:
       ! product of A_m or D_m and oldtfield
       type(scalar_field) :: MT_old
-      type(scalar_field) :: masssource, massabsorption
+      type(scalar_field) :: masssource, massabsorption, massconservation
 
       ! for InternalEnergy equations:
       ! sparsity for CT_m
@@ -1223,13 +1275,22 @@ contains
       ! allocate some memory for assembly
       call allocate(MT_old, rhs%mesh, name="MT_oldProduct" )
       call allocate(masssource, rhs%mesh, name="MassSourceProduct" )
-      call set(masssource, 1.0)
-      call scale(masssource, lumpedmass)
+      call set(masssource, lumpedmass)
       call scale(masssource, source)
       call allocate(massabsorption, rhs%mesh, name="MassAbsorptionProduct" )
-      call set(massabsorption, 1.0)
-      call scale(massabsorption, lumpedmass)
+      call set(massabsorption, lumpedmass)
       call scale(massabsorption, absorption)
+      
+      if(move_mesh) then
+        if((.not.present(lumpedmass_new)).or.(.not.present(lumpedmass_old))) then
+          FLAbort("I need a new and an old lumped mass to move the mesh.")
+        end if
+        call allocate(massconservation, rhs%mesh, name="MovingMeshMassConservation")
+        call set(massconservation, lumpedmass_old)
+        call addto(massconservation, lumpedmass_new, scale=-1.0)
+        call scale(massconservation, 1./dt)
+        call scale(massconservation, oldtfield)
+      end if
 
       ! find out equation type and hence if density is needed or not
       equation_type=equation_type_index(trim(tfield%option_path))
@@ -1267,6 +1328,10 @@ contains
           if(.not.explicit) then
             call addto(M, D_m, theta*dt)
           end if
+        end if
+        
+        if(move_mesh) then
+          call addto(rhs, massconservation)
         end if
 
       case (FIELD_EQUATION_CONSERVATIONOFMASS)
@@ -1306,6 +1371,10 @@ contains
         ! by the old field value to add it to the rhs
         call scale(massabsorption, oldtfield)
         call addto(rhs, massabsorption, -1.0)
+        
+        if(move_mesh) then
+          FLAbort("Moving mesh with this equation type not yet supported.")
+        end if
 
       case (FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS)
 
@@ -1334,6 +1403,10 @@ contains
         ! by the old field value to add it to the rhs
         call scale(massabsorption, oldtfield)
         call addto(rhs, massabsorption, -1.0)
+
+        if(move_mesh) then
+          FLAbort("Moving mesh with this equation type not yet supported.")
+        end if
 
       case (FIELD_EQUATION_INTERNALENERGY)
 
@@ -1383,11 +1456,18 @@ contains
         call scale(massabsorption, oldtfield)
         call addto(rhs, massabsorption, -1.0)
 
+        if(move_mesh) then
+          FLAbort("Moving mesh with this equation type not yet supported.")
+        end if
+
       end select
 
       call deallocate(masssource)
       call deallocate(massabsorption)
       call deallocate(MT_old)
+      if(move_mesh) then
+        call deallocate(massconservation)
+      end if
 
     end subroutine assemble_field_eqn_cv
     ! end of equation wrapping subroutines
@@ -1399,7 +1479,8 @@ contains
                                        tdensity, oldtdensity, tdensity_options, &
                                        cvfaces, x_cvshape, x_cvbdyshape, &
                                        u_cvshape, u_cvbdyshape, t_cvshape, &
-                                       state, advu, x, x_tfield, cfl_no, &
+                                       ug_cvshape, ug_cvbdyshape, &
+                                       state, advu, ug, x, x_tfield, cfl_no, &
                                        getadvmat, dt, &
                                        mesh_sparsity, &
                                        diffusion, getdiffmat, diffusivity, q_lumpedmass, &
@@ -1437,11 +1518,12 @@ contains
       ! shape functions for region and surface
       type(element_type), intent(in) :: x_cvshape, x_cvbdyshape
       type(element_type), intent(in) :: u_cvshape, u_cvbdyshape
+      type(element_type), intent(in) :: ug_cvshape, ug_cvbdyshape
       type(element_type), intent(in) :: t_cvshape
       ! bucket full of fields
       type(state_type), dimension(:), intent(inout) :: state
       ! the relative velocity
-      type(vector_field), intent(in) :: advu
+      type(vector_field), intent(in) :: advu, ug
       ! the coordinates
       type(vector_field), intent(inout) :: x, x_tfield
       ! the cfl number
@@ -1484,7 +1566,7 @@ contains
       ! allocatable memory for coordinates, velocity, normals, determinants, nodes
       ! and the cfl number at the gauss pts and nodes
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-      real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f
+      real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f, ug_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
       real, dimension(:), allocatable :: detwei, detwei_bdy
       real, dimension(:), allocatable :: normgi
@@ -1635,6 +1717,9 @@ contains
                dt_t(tfield%mesh%shape%loc, x_cvshape%ngi, mesh_dim(tfield)), &
                diffusivity_gi(mesh_dim(tfield), mesh_dim(tfield), x_cvshape%ngi), &
                diffusivity_lglno(ele_loc(tfield,1)))
+      if(move_mesh) then
+        allocate(ug_f(ug%dim, ug_cvshape%ngi))
+      end if
 
       ! Clear memory of arrays being designed
       if(getadvmat) call zero(A_m)
@@ -1676,6 +1761,7 @@ contains
         x_ele=ele_val(x, ele)
         x_f=ele_val_at_quad(x, ele, x_cvshape)
         u_f=ele_val_at_quad(advu, ele, u_cvshape)
+        if(move_mesh) ug_f=ele_val_at_quad(ug, ele, ug_cvshape)
         nodes=>ele_nodes(tfield, ele)
         x_nodes=>ele_nodes(x_tfield, ele)
         if((tfield_options%upwind_scheme==CV_UPWINDVALUE_PROJECT_POINT).or.&
@@ -1755,12 +1841,14 @@ contains
                   normgi=orientate_cvsurf_normgi(node_val(x_tfield, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   ! calculate u.n
-                  udotn=dot_product(u_f(:,ggi), normgi(:))
-
+                  if(move_mesh) then
+                    udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi(:))
+                  else
+                    udotn=dot_product(u_f(:,ggi), normgi(:))
+                  end if
                   inflow = (udotn<=0.0)
-
                   income = merge(1.0,0.0,inflow)
-
+                  
                   ! calculate the iterated pivot value (so far only does first order upwind)
                   ! which will be subtracted out from the rhs such that with an increasing number
                   ! of iterations the true implicit lhs pivot is cancelled out (if it converges!)
@@ -1943,6 +2031,9 @@ contains
       else
         allocate(diffusivity_nodes_bdy(face_loc(tfield,1)))
       end if
+      if(move_mesh) then
+        allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
+      end if
 
       ! get the fields over the surface containing the bcs
       call get_entire_boundary_condition(l_reference_field, (/ &
@@ -1997,6 +2088,7 @@ contains
         end if
 
         u_bdy_f=face_val_at_quad(advu, sele, u_cvbdyshape)
+        if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
 
         ! deal with bcs for tfield
         if(tfield_bc_type(sele)==1) then
@@ -2055,7 +2147,11 @@ contains
                 ggi = (face-1)*cvfaces%shape%ngi + gi
 
                 ! u.n
-                udotn_bdy = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                if(move_mesh) then
+                  udotn_bdy = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                else
+                  udotn_bdy = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                end if
                 
                 if((tfield_bc_type(sele)==4)) then
                   ! zero_flux
@@ -2230,6 +2326,7 @@ contains
       end if
 
       deallocate(x_ele_bdy, detwei_bdy, normal_bdy, u_bdy_f)
+      if(move_mesh) deallocate(ug_bdy_f)
       deallocate(nodes_bdy)
       deallocate(tdensity_ele_bdy, oldtdensity_ele_bdy, tfield_ele_bdy, oldtfield_ele_bdy)
       deallocate(ghost_tdensity_ele_bdy, ghost_oldtdensity_ele_bdy, &

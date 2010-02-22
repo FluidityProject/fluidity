@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Tracer conservation when moving the mesh</name>
+  <owner userid="piggott"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l sloshing_tank_tracer.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="area_cons_error" language="python">from fluidity_tools import stat_parser as stat
+area_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Density"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Density"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Density"]["integral"][0]</variable>
+    <variable name="tracercg_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracercg_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerCG"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerCG"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerCG"]["integral"][0]</variable>
+    <variable name="tracercgl_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracercgl_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerCGlumped"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerCGlumped"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerCGlumped"]["integral"][0]</variable>
+    <variable name="tracercgibp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracercgibp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerCGibp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerCGibp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerCGibp"]["integral"][0]</variable>
+    <variable name="tracerdgibp1_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracerdgibp1_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1"]["integral"][0]</variable>
+    <variable name="tracerdgibp2_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracerdgibp2_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2"]["integral"][0]</variable>
+    <variable name="tracerdgibpicbp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracerdgibpicbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibpicbp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibpicbp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibpicbp"]["integral"][0]</variable>
+    <variable name="tracercv_cons_error" language="python">
+from fluidity_tools import stat_parser as stat
+tracercv_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerCV"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerCV"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerCV"]["integral"][0]</variable>
+    <variable name="momucg_cons_error" language="python">
+from fluidity_tools import stat_parser as stat
+statf = stat("sloshing_tank_tracer.stat")["water"]
+initial = statf["Velocity%1"]["integral"][0] - statf["Pressure"]["surface_integral%LeftSide"][0] + statf["Pressure"]["surface_integral%RightSide"][0]
+all = statf["Velocity%1"]["integral"] - statf["Pressure"]["surface_integral%LeftSide"] + statf["Pressure"]["surface_integral%RightSide"]
+momucg_cons_error = max(abs(all-initial))*100/initial</variable>
+    <variable name="momvcg_cons_error" language="python">
+from fluidity_tools import stat_parser as stat
+statf = stat("sloshing_tank_tracer.stat")["water"]
+initial = statf["Velocity%2"]["integral"][0] - statf["Pressure"]["surface_integral%Bottom"][0]
+all = statf["Velocity%2"]["integral"] - statf["Pressure"]["surface_integral%Bottom"] 
+momvcg_cons_error = max(abs(all-initial))*100/initial</variable>
+  </variables>
+  <pass_tests>
+    <test name="area conservation error" language="python">
+assert(area_cons_error &lt; 1.E-7)</test>
+    <test name="cg conservation error" language="python">
+assert(tracercg_cons_error &lt; 1.E-5)</test>
+    <test name="cgl conservation error" language="python">
+assert(tracercgl_cons_error &lt; 1.E-7)</test>
+    <test name="cg ibp conservation error" language="python">
+assert(tracercgibp_cons_error &lt; 1.E-5)</test>
+    <test name="dg ibp1 conservation error" language="python">
+assert(tracerdgibp1_cons_error &lt; 1.E-9)</test>
+    <test name="dg ibp2 conservation error" language="python">
+assert(tracerdgibp2_cons_error &lt; 1.E-9)</test>
+    <test name="dg ibpicbp conservation error" language="python">
+assert(tracerdgibpicbp_cons_error &lt; 1.E-9)</test>
+    <test name="cv conservation error" language="python">
+assert(tracercv_cons_error &lt; 1.E-6)</test>
+<!--    <test name="momu cg conservation error" language="python">
+assert(abs(momucg_cons_error) &lt; 1.E-6)</test>
+    <test name="momv cg conservation error" language="python">
+assert(abs(momvcg_cons_error) &lt; 1.E-6)</test>-->
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

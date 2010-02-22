@@ -35,6 +35,7 @@ module state_matrices_module
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
   use divergence_matrix_cg, only: assemble_divergence_matrix_cg
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
+  use eventcounter
   implicit none
 
   interface get_divergence_matrix_cv
@@ -93,6 +94,8 @@ contains
     type(block_csr_matrix) :: temp_div
     type(csr_sparsity), pointer :: temp_div_sparsity
     
+    integer, save :: last_mesh_movement = -1
+    
     if(present_and_true(exclude_boundaries)) then
       name = trim(test_mesh%name)//trim(field%mesh%name)//"CVDivergenceMatrixNoBoundaries"
     else
@@ -116,12 +119,24 @@ contains
       call deallocate(temp_div)
       
       div => extract_block_csr_matrix(states, trim(name))
+      
+      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+    else if (eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement) then
+      ! we found the matrix in state but the mesh has moved so we need to reassemble it
+      call assemble_divergence_matrix_cv(div, states(1), ct_rhs=div_rhs, &
+                                         test_mesh=test_mesh, field=field, &
+                                         exclude_boundaries=exclude_boundaries)
+
+      ! and record the mesh movement index during which we've just reassembled the matrix
+      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
     else if (present(div_rhs)) then
       ! found the div matrix but div_rhs always needs to be updated so call the assembly
       ! but tell it not to reassemble the div matrix.
       call assemble_divergence_matrix_cv(div, states(1), ct_rhs=div_rhs, &
                                          test_mesh=test_mesh, field=field, &
                                          get_ct=.false., exclude_boundaries=exclude_boundaries)
+      
+      ! not updating the matrix so no need to increment the mesh movement index
     end if
   
   end function get_divergence_matrix_cv_multiple_states
@@ -153,6 +168,8 @@ contains
     type(csr_sparsity), pointer :: cmc_sparsity
     type(csr_matrix) :: temp_cmc_m
     
+    integer, save :: last_mesh_movement = -1
+    
     
     if(present(get_cmc)) get_cmc = .false.
     cmc_m => extract_csr_matrix(states, "PressurePoissonMatrix", stat)
@@ -170,8 +187,15 @@ contains
       call deallocate(temp_cmc_m)
       
       cmc_m => extract_csr_matrix(states, "PressurePoissonMatrix")
-      
+    else
+      ! We found it in state so the only thing that will affect if we need to assemble it
+      ! is whether the mesh has moved since we last called this subroutine.
+      ! The actual assembly doesn't take place here though so we don't need to do anything
+      ! else yet.
+      if(present(get_cmc)) get_cmc = (eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)
     end if
+    
+    last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
   
   end function get_pressure_poisson_matrix_multiple_states
   
@@ -198,7 +222,6 @@ contains
     type(csr_sparsity), pointer :: cmc_sparsity
     type(csr_matrix) :: temp_cmc_m
     
-    
     kmk_m => extract_csr_matrix(states, "PressureStabilisationMatrix", stat)
     
     if(stat/=0) then
@@ -212,7 +235,6 @@ contains
       call deallocate(temp_cmc_m)
       
       kmk_m => extract_csr_matrix(states, "PressureStabilisationMatrix")
-      
     end if
   
   end function get_pressure_stabilisation_matrix_multiple_states
@@ -245,6 +267,8 @@ contains
     type(csr_sparsity), pointer :: ct_sparsity
     type(block_csr_matrix) :: temp_ct_m
     
+    integer, save :: last_mesh_movement = -1
+    
     
     if(present(get_ct)) get_ct = .false.
     ct_m => extract_block_csr_matrix(states, "VelocityDivergenceMatrix", stat)
@@ -266,8 +290,13 @@ contains
       call deallocate(temp_ct_m)
       
       ct_m => extract_block_csr_matrix(states, "VelocityDivergenceMatrix")
-      
+    else
+      ! just check if we need to reassemble the matrix anyway
+      if(present(get_ct)) get_ct = (eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)
     end if
+    
+    ! record the last time this subroutine was called relative to movements of the mesh
+    last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
   
   end function get_velocity_divergence_matrix_multiple_states
 

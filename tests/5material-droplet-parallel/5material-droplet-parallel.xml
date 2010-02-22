@@ -215,22 +215,22 @@ assert abs(mnvfracsum) &lt; 1e-10
 assert abs(mxvfracsum-1.0) &lt; 1e-10
     </test>
     <test name="check error to serial in middle" language="python">
-assert serial_error_10[0] &lt; 5.E-9
+assert serial_error_10[0] &lt; 1.E-6
     </test>
     <test name="check error to serial at end" language="python">
-assert serial_error_20[0] &lt; 5.E-9
+assert serial_error_20[0] &lt; 1.E-6
     </test>
     <test name="check pressure error to serial in middle" language="python">
-assert serial_error_10[1] &lt; 5.E-5
+assert serial_error_10[1] &lt; 1.E-3
     </test>
     <test name="check pressure error to serial at end" language="python">
-assert serial_error_20[1] &lt; 7.E-5
+assert serial_error_20[1] &lt; 1.E-2
     </test>
     <test name="check density error to serial in middle" language="python">
-assert serial_error_10[2] &lt; 5.E-6
+assert serial_error_10[2] &lt; 1.E-3
     </test>
     <test name="check density error to serial at end" language="python">
-assert serial_error_20[2] &lt; 5.E-6
+assert serial_error_20[2] &lt; 1.E-3
     </test>
   </pass_tests>
   <warn_tests>

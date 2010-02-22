@@ -646,6 +646,18 @@ contains
              end if
             end if
            end if
+           
+           ! momentum conservation error calculation
+           if(stat_field(vfield, state(phase))) then
+            if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
+             do j = 1, mesh_dim(vfield%mesh)
+               column = column + 1
+               buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
+               // int2str(j), material_phase_name=material_phase_name)
+               write(diag_unit, '(a)') trim(buffer)
+             end do
+            end if
+           end if
 
          end do
 
@@ -1549,6 +1561,13 @@ contains
           end if
          end if
          
+         ! momentum conservation error calculation
+         if(stat_field(vfield, state(phase))) then
+          if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
+            call write_momentum_conservation_error(state(phase), vfield)
+          end if
+         end if
+         
        end do vector_field_loop
 
     end do phaseloop
@@ -1598,7 +1617,92 @@ contains
       end if 
       
     end subroutine write_body_forces
+    
+    subroutine write_momentum_conservation_error(state, v_field)
+      type(state_type), intent(in) :: state
+      type(vector_field), intent(inout) :: v_field
+      
+      type(vector_field), pointer :: velocity, old_velocity
+      type(vector_field), pointer :: new_positions, nl_positions, old_positions
+      type(scalar_field), pointer :: old_pressure, new_pressure
+      type(scalar_field) :: nl_pressure, vel_comp
+      real :: theta, dt
+      integer :: sele, dim
+      
+      real, dimension(v_field%dim) :: momentum_cons, velocity_int, old_velocity_int, pressure_surface_int
+      
+      velocity => extract_vector_field(state, "Velocity")
+      old_velocity => extract_vector_field(state, "OldVelocity")
+      
+      new_positions => extract_vector_field(state, "IteratedCoordinate")
+      nl_positions => extract_vector_field(state, "Coordinate")
+      old_positions => extract_vector_field(state, "OldCoordinate")
+      
+      new_pressure => extract_scalar_field(state, "Pressure")
+      old_pressure => extract_scalar_field(state, "OldPressure")
+      
+      call get_option("/timestepping/timestep", dt)
+      call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", theta)
+      
+      call allocate(nl_pressure, new_pressure%mesh, "NonlinearPressure")
+      call set(nl_pressure, new_pressure, old_pressure, theta)
+      
+      do dim = 1, velocity%dim
+        vel_comp = extract_scalar_field(velocity, dim)
+        call field_stats(vel_comp, new_positions, velocity_int(dim))
 
+        vel_comp = extract_scalar_field(old_velocity, dim)
+        call field_stats(vel_comp, old_positions, old_velocity_int(dim))
+      end do
+      
+      ! pressure surface integral
+      pressure_surface_int = 0.0
+      do sele = 1, surface_element_count(v_field)
+      
+        pressure_surface_int = pressure_surface_int + pressure_surface_integral_face(sele, nl_pressure, nl_positions)
+        
+      end do
+      
+      ewrite(2,*) 'velocity_int = ', velocity_int
+      ewrite(2,*) 'old_velocity_int = ', old_velocity_int
+      ewrite(2,*) '(velocity_int-old_velocity_int)/dt = ', (velocity_int-old_velocity_int)/dt
+      ewrite(2,*) 'pressure_surface_int = ', pressure_surface_int
+      
+      momentum_cons = (velocity_int-old_velocity_int)/dt - pressure_surface_int
+      
+      if(getprocno() == 1) then
+        do dim=1, velocity%dim
+          write(diag_unit, trim(format), advance="no") momentum_cons(dim)
+        end do
+      end if
+
+      call deallocate(nl_pressure)
+     
+    end subroutine write_momentum_conservation_error
+
+    function pressure_surface_integral_face(sele, nl_pressure, nl_positions) result(pn)
+    
+      integer :: sele
+      type(scalar_field) :: nl_pressure
+      type(vector_field) :: nl_positions
+      real, dimension(mesh_dim(nl_pressure)) :: pn
+      
+      real, dimension(mesh_dim(nl_pressure), face_ngi(nl_pressure, sele)) :: normal
+      real, dimension(face_ngi(nl_pressure, sele)) :: detwei
+      
+      integer :: dim
+    
+      call transform_facet_to_physical( &
+        nl_positions, sele, detwei_f = detwei, normal = normal)
+        
+      do dim = 1, size(normal, 1)
+      
+        pn(dim) = dot_product(face_val_at_quad(nl_pressure, sele), detwei*normal(dim, :))
+
+      end do
+      
+    end function pressure_surface_integral_face
+    
   end subroutine write_diagnostics
 
   subroutine test_and_write_convergence(state, time, dt, it, maxerror)

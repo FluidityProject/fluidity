@@ -249,9 +249,9 @@ contains
        velocity=>extract_vector_field(state(s), "Velocity", stat)
        if(stat==0) then
          call get_option(trim(velocity%option_path)//"/prognostic&
-                        &/temporal_discretisation/relaxation", itheta, default=1.0)
+                        &/temporal_discretisation/relaxation", itheta, default=0.5)
        else
-         itheta = 1.0
+         itheta = 0.5
        end if
 
        do f=1,scalar_field_count(state(s))

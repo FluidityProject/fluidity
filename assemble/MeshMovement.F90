@@ -26,6 +26,10 @@ module meshmovement
 
   implicit none
   integer,save :: MeshCount=0
+  
+  private
+  
+  public :: move_mesh_imposed_velocity, movemeshy
 
 contains
   subroutine movemeshy(state,move_option,TimeStep)
@@ -1153,6 +1157,53 @@ contains
        endif
     endif
   end subroutine apply_lagrangian_multiplier
+
+  subroutine move_mesh_imposed_velocity(states)
+  type(state_type), dimension(:), intent(inout) :: states
+  
+    type(vector_field), pointer :: coordinate, old_coordinate, new_coordinate
+    type(vector_field), pointer :: velocity
+    type(vector_field), pointer :: grid_velocity
+    
+    integer :: i, stat
+    real :: itheta, dt
+    logical :: found_velocity
+    
+    if(.not.have_option("/mesh_adaptivity/mesh_movement/imposed_grid_velocity")) return
+    call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+    
+    ewrite(1,*) 'Entering move_mesh_imposed_velocity'
+    
+    grid_velocity => extract_vector_field(states(1), "GridVelocity")
+    
+    coordinate => extract_vector_field(states(1), "Coordinate")
+    old_coordinate => extract_vector_field(states(1), "OldCoordinate")
+    new_coordinate => extract_vector_field(states(1), "IteratedCoordinate")
+    
+    call get_option("/timestepping/timestep", dt)
+    
+    found_velocity = .false.
+    do i = 1, size(states)
+      velocity => extract_vector_field(states(i), "Velocity", stat)
+      if(stat==0) then
+        call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
+        if(found_velocity.and.(stat==0)) then
+          FLAbort("Found two velocity fields with relaxation parameters.")
+        else
+          found_velocity = (stat==0)
+        end if
+      end if
+    end do
+    if(.not.found_velocity) then
+      itheta = 0.5
+    end if
+    
+    call set(new_coordinate, old_coordinate)
+    call addto(new_coordinate, grid_velocity, scale=dt)
+    
+    call set(coordinate, new_coordinate, old_coordinate, itheta)
+  
+  end subroutine move_mesh_imposed_velocity
 
 
 end module meshmovement

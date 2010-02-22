@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Control volume, multi-material flow test</name>
+  <owner userid="cwilson"/>
+  <tags>flml solidity</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l channel_flow_input.flml </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="mxvfrac0" language="python"> 
+import fluidity_tools
+mxvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['max'][0]
+    </variable>    
+     <variable name="mnvfrac0" language="python"> 
+import fluidity_tools
+mnvfrac0 = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['min'][0]
+    </variable>    
+    <variable name="mxvfrac" language="python">
+import fluidity_tools
+mxvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['max'][-1]
+    </variable>
+     <variable name="mnvfrac" language="python">
+import fluidity_tools
+mnvfrac = fluidity_tools.stat_parser("channel_flow.stat")['Water']['TracerHyperC']['min'][-1]
+    </variable>
+    <variable name="tracerdifferencecv" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerCV")
+fieldfinal = vtufinal.GetField("TracerCV")
+tracerdifferencecv = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencecg" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerCG")
+fieldfinal = vtufinal.GetField("TracerCG")
+tracerdifferencecg = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencecgibp" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerCGibp")
+fieldfinal = vtufinal.GetField("TracerCGibp")
+tracerdifferencecgibp = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencecglumped" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerCGlumped")
+fieldfinal = vtufinal.GetField("TracerCGlumped")
+tracerdifferencecglumped = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencedgibp1" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerDGibp1")
+fieldfinal = vtufinal.GetField("TracerDGibp1")
+tracerdifferencedgibp1 = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencedgibp2" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerDGibp2")
+fieldfinal = vtufinal.GetField("TracerDGibp2")
+tracerdifferencedgibp2 = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencedgibpicbp" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerDGibpicbp")
+fieldfinal = vtufinal.GetField("TracerDGibpicbp")
+tracerdifferencedgibpicbp = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencehyperc" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerHyperC")
+fieldfinal = vtufinal.GetField("TracerHyperC")
+tracerdifferencehyperc = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="mxgridvelocity" language="python">
+import fluidity_tools
+mxgridvelocity = max(fluidity_tools.stat_parser("channel_flow.stat")['Water']['GridVelocity%magnitude']['max'])
+    </variable>    
+    <variable name="mxvelocity" language="python">
+import fluidity_tools
+mxvelocity = max(fluidity_tools.stat_parser("channel_flow.stat")['Water']['Velocity%magnitude']['max'])
+    </variable>    
+    <variable name="mxcfl" language="python">
+import fluidity_tools
+mxcfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['max'][-1]
+    </variable>    
+    <variable name="mncfl" language="python">
+import fluidity_tools
+mncfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeCFLNumber']['min'][-1]
+    </variable>    
+  </variables>
+    <pass_tests>  
+    <test name="check minimum volume fraction is 0.0" language="python">
+   assert abs(mnvfrac) &lt; 1e-6
+    </test>
+    <test name="check maximum volume fraction is 1.0" language="python">
+   assert abs(mxvfrac-1.0) &lt; 1e-6
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencecg) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencecgibp) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencecglumped) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencedgibp1) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencedgibp2) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencedgibpicbp) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencecv) &lt; 1e-10
+    </test>
+    <test name="check difference in volume fraction is 0.0" language="python">
+   assert abs(tracerdifferencehyperc) &lt; 1e-10
+    </test>
+    <test name="check initial minimum volume fraction is 0.0" language="python">
+   assert abs(mnvfrac0) &lt; 1e-6
+    </test>
+    <test name="check initial maximum volume fraction is 1.0" language="python">
+   assert abs(mxvfrac0-1.0) &lt; 1e-6
+    </test>
+    <test name="check maximum grid speed is 1.0" language="python">
+	assert abs(mxgridvelocity-1.0) &lt; 1e-10
+    </test>    
+    <test name="check maximum speed is 1.0" language="python">
+	assert abs(mxvelocity-1.0) &lt; 1e-10
+    </test>    
+    <test name="check maximum cv cfl" language="python">
+      assert abs(mxcfl) &lt; 1e-10
+    </test>    
+    <test name="check minimum cv cfl" language="python">
+      assert abs(mncfl) &lt; 1e-10
+    </test>    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

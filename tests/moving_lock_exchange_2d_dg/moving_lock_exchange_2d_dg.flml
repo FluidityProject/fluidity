@@ -80,6 +80,7 @@
       </magnitude>
       <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
         <prescribed>
+          <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
               <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
@@ -481,6 +482,25 @@
           </spring_term>
         </mesh_quality_terms>
       </vertical_ale>
+      <vector_field name="GridVelocity" rank="1">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </vector_field>
     </mesh_movement>
   </mesh_adaptivity>
 </fluidity_options>

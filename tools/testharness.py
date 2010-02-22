@@ -161,10 +161,11 @@ class TestHarness:
             else:
                 flucmd = debugBinary
 
-            if self.valgrind is True:
-              if flucmd != debugBinary:
-                print "Error: you really should compile with debugging for use with valgrind!"
-                sys.exit(1)
+            # no longer valid since debugging doesn't change the name - any suitable alternative tests?
+            # if self.valgrind is True:
+            #  if flucmd != debugBinary:
+            #     print "Error: you really should compile with debugging for use with valgrind!"
+            #     sys.exit(1)
                 
             return flucmd
       

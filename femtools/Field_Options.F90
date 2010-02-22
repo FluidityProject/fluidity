@@ -346,6 +346,11 @@ contains
     
     if (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
        positions=>extract_vector_field(state, trim(mesh%name)//"Coordinate")
+    elseif (has_vector_field(state, "IteratedCoordinate")) then
+       ! if the mesh is moving it's necessary to evaluate diagnostics on the most
+       ! up to date coordinate.
+       ! if the mesh is not moving this is just aliased to Coordinate anyway.
+       positions=>extract_vector_field(state, "IteratedCoordinate")
     else
        positions=>extract_vector_field(state, "Coordinate")
     end if

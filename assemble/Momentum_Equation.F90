@@ -297,12 +297,10 @@
       get_cmc_m = get_cmc_m .or. &
                   have_option(trim(p%option_path)//&
                   "/prognostic/scheme/update_discretised_equation") .or. &
-                  have_option("/mesh_adaptivity/mesh_movement") .or. &
                   use_compressible_projection
       get_ct_m = get_ct_m .or. &
                   have_option(trim(p%option_path)//&
-                  "/prognostic/scheme/update_discretised_equation") .or. &
-                  have_option("/mesh_adaptivity/mesh_movement")
+                  "/prognostic/scheme/update_discretised_equation")
                   
       pressure_debugging_vtus = have_option(trim(p%option_path)// &
                    "/prognostic/output/debugging_vtus")
@@ -786,12 +784,6 @@
           FLAbort("Don't know how to correct the velocity.")
         end if
         
-        if (has_boundary_condition(u, "free_surface")) then
-           if (have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
-              call move_free_surface_nodes(state(istate), theta=theta_pg)
-           end if
-        end if
-
         call deallocate(kmk_rhs)
         call deallocate(projec_rhs)
         call deallocate(delta_p)
