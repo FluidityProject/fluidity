@@ -175,8 +175,8 @@ class TestHarness:
       flucmd = self.decide_fluidity_command()
 
       def f(s):
-        if flucmd != "dfluidity":
-          s = s.replace('dfluidity', flucmd)
+        if flucmd != "fluidity":
+          s = s.replace('fluidity ', flucmd + ' ')
 
         if self.valgrind:
           s = "valgrind --tool=memcheck --leak-check=full -v" + \
