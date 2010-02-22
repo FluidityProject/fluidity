@@ -44,7 +44,7 @@ module adapt_state_module
   use edge_length_module
   use eventcounter
   use field_options
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name
   use hadapt_extrude
   use hadapt_metric_based_extrude
   use halos
@@ -64,6 +64,7 @@ module adapt_state_module
   use tictoc  
   use timeloop_utilities
   use write_triangle
+  use fields_halos
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
@@ -83,7 +84,8 @@ module adapt_state_module
 contains
   
   subroutine adapt_mesh(old_positions, metric, new_positions, node_ownership, force_preserve_regions)
-    !!< A simple wrapper to select the appropriate adapt_mesh routine
+    !!< A wrapper to select the appropriate adapt_mesh routine.
+    !!< If the input is periodic, then apply the algorithm for adapting periodic meshes.
     
     type(vector_field), intent(in) :: old_positions
     type(tensor_field), intent(inout) :: metric
@@ -91,31 +93,131 @@ contains
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
 
+    ! Periodic adaptivity variables
+    integer :: no_bcs, bc, j
+    type(integer_set) :: lock_faces, surface_ids
+    type(vector_field) :: old_unwrapped_positions, new_unwrapped_positions, intermediate_positions
+    type(mesh_type) :: intermediate_mesh
+    integer, dimension(2) :: shape_option
+    integer, dimension(:), allocatable :: surface_id
+    type(tensor_field) :: tmp_metric
+    integer :: stat
+
 #ifdef DDEBUG
     if(present(node_ownership)) then
       assert(.not. associated(node_ownership))
     end if
 #endif
-    
-    select case(old_positions%dim)
-      case(1)
-        call adapt_mesh_1d(old_positions, metric, new_positions, &
-          & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
-      case(2)
-        call adapt_mesh_mba2d(old_positions, metric, new_positions, &
-          & force_preserve_regions=force_preserve_regions)
-      case(3)
-        if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
-          call adapt_mesh_mba3d(old_positions, metric, new_positions, &
-                             force_preserve_regions=force_preserve_regions)
-        else
-          call adapt_mesh_3d(old_positions, metric, new_positions, node_ownership = node_ownership, &
-                             force_preserve_regions=force_preserve_regions)
-        end if
-      case default
-        FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
-    end select
-    
+
+    ! Periodic case
+    if (mesh_periodic(old_positions)) then
+      if (old_positions%dim /= 2) then
+        FLAbort("Sorry, not implemented yet, but if 2D periodic adaptivity is working it shouldn't be that hard")
+      end if
+
+
+      assert(mesh_periodic(metric))
+
+      no_bcs = option_count(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions')
+
+      intermediate_positions = old_positions
+      call incref(intermediate_positions)
+
+      ! As written, this is quadratic in the number of boundary conditions. I'm not too stressed
+      ! about that
+
+      do bc=0,no_bcs-1
+
+        ! Step a). Unwrap the periodic input.
+        old_unwrapped_positions = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path))
+        ! We don't need the periodic mesh anymore
+        call deallocate(intermediate_positions)
+
+        ! Step b). Collect all the faces that need to be locked through the adapt
+        call allocate(lock_faces)
+        call allocate(surface_ids)
+
+        ! Collect all the relevant surface labels
+        do j=0,no_bcs-1
+          ! Physical ...
+          shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids')
+          allocate(surface_id(shape_option(1)))
+          call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids', surface_id)
+          call insert(surface_ids, surface_id)
+          deallocate(surface_id)
+
+          ! and aliased
+          shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids')
+          allocate(surface_id(shape_option(1)))
+          call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids', surface_id)
+          call insert(surface_ids, surface_id)
+          deallocate(surface_id)
+        end do
+
+        ! With the relevant surface labels, loop through the mesh and fetch the information from them
+        do j=1,surface_element_count(old_unwrapped_positions)
+          if (has_value(surface_ids, surface_element_id(old_unwrapped_positions, j))) then
+            call insert(lock_faces, j)
+          end if
+        end do
+        call deallocate(surface_ids)
+
+        ! Step c). Adapt the mesh, locking appropriately, and interpolate the metric
+        call allocate(tmp_metric, old_unwrapped_positions%mesh, "TmpUnperiodicMetric")
+        call remap_field(metric, tmp_metric)
+        call adapt_mesh_mba2d(old_unwrapped_positions, tmp_metric, new_unwrapped_positions, & 
+                  & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
+        call deallocate(lock_faces)
+        call deallocate(old_unwrapped_positions)
+        call vtk_write_fields("new_unwrapped_positions", position=new_unwrapped_positions, model=new_unwrapped_positions%mesh)
+        stop
+
+        ! Step d). Reperiodise
+        intermediate_mesh = make_mesh_periodic_from_options(new_unwrapped_positions%mesh, new_unwrapped_positions, periodic_boundary_option_path)
+        call allocate(intermediate_positions, new_unwrapped_positions%dim, intermediate_mesh, trim(old_positions%name))
+        call deallocate(intermediate_mesh)
+        call remap_field(new_unwrapped_positions, intermediate_positions, stat=stat)
+        assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
+        assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
+        call postprocess_periodic_mesh(new_unwrapped_positions%mesh, new_unwrapped_positions, intermediate_positions%mesh, intermediate_positions)
+
+        ! Step e). Advance a front in the new mesh using the unwrapped eelist from the physical boundaries and the
+        ! aliased boundaries until they meet; this forms the new cut
+
+        ! Step f). Colour those faces on either side of the new cut
+
+        ! Step g). Unwrap again
+
+        ! Step h). Adapt, this time locking only the faces and vertices from other BCs
+
+        do j=0,no_bcs-1
+          if (j == bc) cycle
+        end do
+
+        ! Step i). Reperiodise for the next go around!
+      end do
+
+    ! Nonperiodic case
+    else
+      select case(old_positions%dim)
+        case(1)
+          call adapt_mesh_1d(old_positions, metric, new_positions, &
+            & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
+        case(2)
+          call adapt_mesh_mba2d(old_positions, metric, new_positions, &
+            & force_preserve_regions=force_preserve_regions)
+        case(3)
+          if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
+            call adapt_mesh_mba3d(old_positions, metric, new_positions, &
+                               force_preserve_regions=force_preserve_regions)
+          else
+            call adapt_mesh_3d(old_positions, metric, new_positions, node_ownership = node_ownership, &
+                               force_preserve_regions=force_preserve_regions)
+          end if
+        case default
+          FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
+      end select
+    end if
   end subroutine adapt_mesh
 
   subroutine adapt_state_single(state, metric, initialise_fields)
@@ -236,6 +338,8 @@ contains
     type(state_type), dimension(size(states)) :: interpolate_states
     type(mesh_type), pointer :: old_linear_mesh
     type(vector_field) :: old_positions, new_positions
+    type(vector_field), pointer :: coordinate
+    integer :: stat
 
     ! Vertically structured adaptivity stuff
     type(vector_field) :: extruded_positions
@@ -265,8 +369,15 @@ contains
       ! For vertically_structured_adaptivity, this is the horizontal mesh!
       call find_mesh_to_adapt(states(1), old_linear_mesh)
       ewrite(2, *) "External mesh to be adapted: " // trim(old_linear_mesh%name)
-      ! Extract the mesh field to be adapted (takes a reference)
-      old_positions = get_coordinate_field(states(1), old_linear_mesh)
+      if (mesh_periodic(old_linear_mesh)) then
+        coordinate => extract_vector_field(states(1), "Coordinate")
+        call allocate(old_positions, coordinate%dim, old_linear_mesh, trim(old_linear_mesh%name) // "Coordinate")
+        call remap_field(coordinate, old_positions, stat=stat)
+        call postprocess_periodic_mesh(coordinate%mesh, coordinate, old_positions%mesh, old_positions)
+      else
+        ! Extract the mesh field to be adapted (takes a reference)
+        old_positions = get_coordinate_field(states(1), old_linear_mesh)
+      end if
       ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
       
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, extruded_positions, old_positions)
