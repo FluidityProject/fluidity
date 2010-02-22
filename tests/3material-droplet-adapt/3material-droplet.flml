@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">3material-droplet</string_value>
@@ -274,6 +274,7 @@
                 </constant>
               </isotropic>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>

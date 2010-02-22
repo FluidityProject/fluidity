@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <comment>Rotating annulus  model
 James Maddison
@@ -360,6 +360,7 @@ D0				1.0			0.0			Not in new system
                 </constant>
               </isotropic>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>

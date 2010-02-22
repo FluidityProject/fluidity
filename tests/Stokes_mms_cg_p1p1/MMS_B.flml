@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">MMS_B</string_value>
@@ -261,6 +261,7 @@
                 </constant>
               </isotropic>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <vector_field replaces="CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" name="Source" rank="1">

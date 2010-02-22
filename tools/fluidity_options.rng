@@ -1621,7 +1621,7 @@ Manual suggests that this is OFF unless you're having difficulties.</a:documenta
                     </attribute>
                     <element name="prescribed">
                       <ref name="mesh_choice"/>
-                      <ref name="prescribed_tensor_field"/>
+                      <ref name="prescribed_tensor_field_no_adapt"/>
                     </element>
                   </element>
                 </element>
@@ -2668,7 +2668,7 @@ domain boundary.</a:documentation>
                   <optional>
                     <ref name="mesh_choice"/>
                   </optional>
-                  <ref name="prescribed_values_tensor_field"/>
+                  <ref name="prescribed_tensor_field_no_adapt"/>
                 </element>
                 <element name="diagnostic">
                   <ref name="tensor_python_diagnostic_algorithm"/>
@@ -3629,7 +3629,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
             <optional>
               <ref name="mesh_choice"/>
             </optional>
-            <ref name="prescribed_values_tensor_field"/>
+            <ref name="prescribed_tensor_field_no_adapt"/>
           </element>
           <element name="diagnostic">
             <optional>
@@ -4413,7 +4413,7 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
             <optional>
               <ref name="mesh_choice"/>
             </optional>
-            <ref name="prescribed_values_tensor_field"/>
+            <ref name="prescribed_tensor_field_no_adapt"/>
           </element>
           <element name="diagnostic">
             <a:documentation>For electrical modelling only - holds electrical conductivity</a:documentation>
@@ -5097,13 +5097,23 @@ In this case each value requires a distinct name for the options dictionary.</a:
     <ref name="adaptivity_options_tensor_field"/>
   </define>
   <!--
-    Default child of prescribed vector field
+    Default child of prescribed tensor field
     This is a choice of ways of inputing the prescribed tensor field
     If the field is constant then a symmetric, or asymmetric tensor may be entered
   -->
   <define name="prescribed_tensor_field">
     <ref name="prescribed_values_tensor_field"/>
+    <ref name="prescribed_output_options"/>
     <ref name="adaptivity_options_tensor_field"/>
+  </define>
+  <!--
+    Default child of prescribed tensor field
+    This is a choice of ways of inputing the prescribed tensor field
+    If the field is constant then a symmetric, or asymmetric tensor may be entered
+  -->
+  <define name="prescribed_tensor_field_no_adapt">
+    <ref name="prescribed_values_tensor_field"/>
+    <ref name="prescribed_output_options"/>
   </define>
   <define name="prescribed_values_tensor_field">
     <oneOrMore>
@@ -6496,11 +6506,10 @@ When activated wall treatment is not applied on the wall-outflow edge.</a:docume
   <!-- Output options for prognostic fields -->
   <define name="prognostic_scalar_output_options">
     <element name="output">
-      <a:documentation>Specify what is written to vtu dump files</a:documentation>
+      <a:documentation>Specify what is written to vtu dump files.</a:documentation>
       <optional>
         <element name="exclude_from_vtu">
-          <a:documentation>By default each field in the options file is written to vtu.
-Select this option to exclude this field.</a:documentation>
+          <a:documentation>Exclude this field from dump files.</a:documentation>
           <empty/>
         </element>
       </optional>
@@ -6534,11 +6543,10 @@ ONLY WORKS FOR PURE CONTROL VOLUME DISCRETISATIONS.</a:documentation>
   <!-- Output options for pressure (can't have a convergence file) -->
   <define name="pressure_output_options">
     <element name="output">
-      <a:documentation>Specify what is written to vtu dump files</a:documentation>
+      <a:documentation>Specify what is written to vtu dump files.</a:documentation>
       <optional>
         <element name="exclude_from_vtu">
-          <a:documentation>By default each field in the options file is written to vtu.
-Select this option to exclude this field.</a:documentation>
+          <a:documentation>Exclude this field from dump files.</a:documentation>
           <empty/>
         </element>
       </optional>
@@ -6572,11 +6580,10 @@ multiple files are written per nonlinear iteration.</a:documentation>
   <!-- Output options for prognostic fields -->
   <define name="prognostic_vector_output_options">
     <element name="output">
-      <a:documentation>Specify what is written to vtu dump files</a:documentation>
+      <a:documentation>Specify what is written to dump files.</a:documentation>
       <optional>
         <element name="exclude_from_vtu">
-          <a:documentation>By default each field in the options file is written to vtu.
-Select this option to exclude this field.</a:documentation>
+          <a:documentation>Exclude this field from dump files.</a:documentation>
           <empty/>
         </element>
       </optional>
@@ -6598,17 +6605,31 @@ used in the nonlinear iteration.
       </optional>
     </element>
   </define>
-  <!-- Output options for all other fields -->
+  <!-- Field output options for all other fields -->
   <define name="field_output_options">
     <element name="output">
-      <a:documentation>Specify what is written to vtu dump files</a:documentation>
+      <a:documentation>Specify what is written to dump files.</a:documentation>
       <optional>
         <element name="exclude_from_vtu">
-          <a:documentation>By default each field in the options file is written to vtu.
-Select this option to exclude this field.</a:documentation>
-          <empty/>
+          <a:documentation>Exclude this field from dump files.</a:documentation>
+          <ref name="comment"/>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="field_output_options_disabled">
+    <element name="output">
+      <a:documentation>Specify what is written to vtu dump files.</a:documentation>
+      <choice>
+        <element name="exclude_from_vtu">
+          <a:documentation>Exclude this field from dump files.</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="include_in_vtu">
+          <a:documentation>Include this field in dump files.</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="diagnostic_output_options">

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <comment>not adaptive mesh</comment>
   <simulation_name>
@@ -236,6 +236,7 @@
                 </constant>
               </isotropic>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>

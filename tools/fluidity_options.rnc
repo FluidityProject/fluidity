@@ -1232,7 +1232,7 @@ start =
                      attribute name { "PrescribedDiffusivity" },
                      element prescribed {
                         mesh_choice,
-                        prescribed_tensor_field
+                        prescribed_tensor_field_no_adapt
                      }
                   }
                }?,
@@ -1856,7 +1856,7 @@ sediment =
                (
                   element prescribed {
                      mesh_choice?,
-                     prescribed_values_tensor_field
+                     prescribed_tensor_field_no_adapt
                   }|
                   element diagnostic {
                     tensor_python_diagnostic_algorithm,
@@ -2676,7 +2676,7 @@ prognostic_velocity_field =
          (
             element prescribed {
                mesh_choice?,
-               prescribed_values_tensor_field
+               prescribed_tensor_field_no_adapt
             }|
             element diagnostic {
                mesh_choice?,
@@ -3304,7 +3304,7 @@ prognostic_scalar_field =
          (
             element prescribed {
                 mesh_choice?,
-                prescribed_values_tensor_field
+                prescribed_tensor_field_no_adapt
             }|
             ## For electrical modelling only - holds electrical conductivity
             element diagnostic {
@@ -3847,13 +3847,23 @@ diagnostic_tensor_field =
       adaptivity_options_tensor_field
    )
 
-# Default child of prescribed vector field
+# Default child of prescribed tensor field
 # This is a choice of ways of inputing the prescribed tensor field
 # If the field is constant then a symmetric, or asymmetric tensor may be entered
 prescribed_tensor_field =
    (
       prescribed_values_tensor_field,
+      prescribed_output_options,
       adaptivity_options_tensor_field
+   )
+   
+# Default child of prescribed tensor field
+# This is a choice of ways of inputing the prescribed tensor field
+# If the field is constant then a symmetric, or asymmetric tensor may be entered
+prescribed_tensor_field_no_adapt =
+   (
+      prescribed_values_tensor_field,
+      prescribed_output_options
    )
 
 prescribed_values_tensor_field =
@@ -4934,10 +4944,9 @@ velocity_boundary_conditions =
 # Output options for prognostic fields
 prognostic_scalar_output_options =
    (
-      ## Specify what is written to vtu dump files
+      ## Specify what is written to vtu dump files.
       element output {
-         ## By default each field in the options file is written to vtu.
-         ## Select this option to exclude this field.
+         ## Exclude this field from dump files.
          element exclude_from_vtu {
             empty
          }?,
@@ -4966,10 +4975,9 @@ prognostic_scalar_output_options =
 # Output options for pressure (can't have a convergence file)
 pressure_output_options =
    (
-      ## Specify what is written to vtu dump files
+      ## Specify what is written to vtu dump files.
       element output {
-         ## By default each field in the options file is written to vtu.
-         ## Select this option to exclude this field.
+         ## Exclude this field from dump files.
          element exclude_from_vtu {
             empty
          }?,
@@ -4998,10 +5006,9 @@ pressure_output_options =
 # Output options for prognostic fields
 prognostic_vector_output_options =
    (
-      ## Specify what is written to vtu dump files
+      ## Specify what is written to dump files.
       element output {
-         ## By default each field in the options file is written to vtu.
-         ## Select this option to exclude this field.
+         ## Exclude this field from dump files.
          element exclude_from_vtu {
             empty
          }?,
@@ -5020,16 +5027,31 @@ prognostic_vector_output_options =
       }
    )
    
-# Output options for all other fields
+# Field output options for all other fields
 field_output_options =
    (
-      ## Specify what is written to vtu dump files
+      ## Specify what is written to dump files.
       element output {
-         ## By default each field in the options file is written to vtu.
-         ## Select this option to exclude this field.
+         ## Exclude this field from dump files.
          element exclude_from_vtu {
-            empty
+            comment
          }?
+      }
+   )
+field_output_options_disabled =
+   (
+      ## Specify what is written to vtu dump files.
+      element output {
+         (
+            ## Exclude this field from dump files.
+            element exclude_from_vtu {
+               comment
+            }|
+            ## Include this field in dump files.
+            element include_in_vtu {
+               comment
+            }
+         )
       }
    )
    

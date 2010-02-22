@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">baroclinic_IP</string_value>
@@ -435,6 +435,7 @@
                 </constant>
               </diagonal>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <vector_field replaces="XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" name="Absorption" rank="1">
@@ -558,6 +559,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">gls-StationPapa-3D</string_value>
@@ -202,6 +202,7 @@
                     </constant>
                   </anisotropic_symmetric>
                 </value>
+                <output/>
               </prescribed>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
@@ -312,6 +313,7 @@
                     </constant>
                   </anisotropic_symmetric>
                 </value>
+                <output/>
               </prescribed>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
@@ -570,6 +572,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <tensor_field name="GLSBackgroundDiffusivity" rank="2">
@@ -582,6 +585,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
       </GLS>
@@ -739,6 +743,7 @@ def val(X,t):
                 </constant>
               </diagonal>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <vector_field replaces="XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" name="Absorption" rank="1">
@@ -981,6 +986,7 @@ def val(X,t):
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>

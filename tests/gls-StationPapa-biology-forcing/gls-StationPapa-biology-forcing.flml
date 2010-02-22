@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <comment>This model is a full run of GLS, biology and focring for one year at Station Papa. 
 
@@ -247,6 +247,7 @@
                     </constant>
                   </anisotropic_symmetric>
                 </value>
+                <output/>
               </prescribed>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
@@ -357,6 +358,7 @@
                     </constant>
                   </anisotropic_symmetric>
                 </value>
+                <output/>
               </prescribed>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
@@ -615,6 +617,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <tensor_field name="GLSBackgroundDiffusivity" rank="2">
@@ -627,6 +630,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <scalar_field name="GLSVerticalViscosity" rank="0">
@@ -818,6 +822,7 @@
                 </constant>
               </diagonal>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <vector_field replaces="XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" name="Absorption" rank="1">

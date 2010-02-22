@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA</string_value>
@@ -212,6 +212,7 @@ Surface BCs for second gls quantity on top surface can be set to
                     </constant>
                   </anisotropic_symmetric>
                 </value>
+                <output/>
               </prescribed>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
@@ -330,6 +331,7 @@ Surface BCs for second gls quantity on top surface can be set to
                     </constant>
                   </anisotropic_symmetric>
                 </value>
+                <output/>
               </prescribed>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
@@ -622,6 +624,7 @@ Surface BCs for second gls quantity on top surface can be set to
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <tensor_field name="GLSBackgroundDiffusivity" rank="2">
@@ -634,6 +637,7 @@ Surface BCs for second gls quantity on top surface can be set to
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <scalar_field name="GLSVerticalViscosity" rank="0">
@@ -820,6 +824,7 @@ Surface BCs for second gls quantity on top surface can be set to
                 </constant>
               </diagonal>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>
@@ -903,6 +908,7 @@ Surface BCs for second gls quantity on top surface can be set to
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>

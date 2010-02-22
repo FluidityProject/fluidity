@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">grid_peclet_number</string_value>
@@ -153,6 +153,7 @@
                 </constant>
               </isotropic>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <scalar_field replaces="ZSOT" name="Source" rank="0">

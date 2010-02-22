@@ -78,6 +78,22 @@ for filename in filenames:
   else:
     print filename + " : Fail"
     optionErrors[filename] = (lost_eles, added_eles)
+    
+filenames = glob.glob(os.path.join(testDir, "*", "*.swml"))
+filenames += glob.glob(os.path.join(testDir, "*", "*", "*.swml"))
+
+schemafile = os.path.join(rootDir, "tools", "shallow_water_options.rng")
+sch = schema.Schema(schemafile)
+
+for filename in filenames: 
+  optionsTree = sch.read(filename)
+  lost_eles, added_eles = sch.read_errors()
+  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+    print filename + " : Pass"
+    passes += 1
+  else:
+    print filename + " : Fail"
+    optionErrors[filename] = (lost_eles, added_eles)
 
 print "Summary of options files with failures:"
 for filename in optionErrors.keys():

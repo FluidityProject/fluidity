@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">sediment_gravity_current_2D</string_value>
@@ -296,6 +296,7 @@
                 </constant>
               </diagonal>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>
@@ -408,6 +409,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <scalar_field name="SinkingVelocity" rank="0">
@@ -673,6 +675,7 @@
                 </constant>
               </anisotropic_symmetric>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <scalar_field name="SinkingVelocity" rank="0">
