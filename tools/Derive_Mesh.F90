@@ -28,12 +28,13 @@
 #include "fdebug.h"
 
 subroutine derive_mesh(input_filename, input_filename_len, output_filename, output_filename_len, degree, cont, vtu)
-  
+
   use fields
   use fldebug
   use halos
   use parallel_tools
   use read_triangle
+  use shape_functions
   use vtk_interfaces
   use write_triangle
   
