@@ -1120,22 +1120,19 @@ interpolation_algorithm_vector =
                     comment
                  }?
               },
-              ## Options relating to the divergence operator
-              element divergence {
-                ## Use a continuous Galerkin discretisation
-                element continuous_galerkin {     
-                   ## Integrate the divergence operator by parts
-                   element integrate_divergence_by_parts {
-                      comment
-                   }?,    
-                   ## Remove the stabilisation term from the projection operator.
-                   ##
-                   ## Automatic when not using P1P1.
-                   element remove_stabilisation_term {
-                      comment
-                   }?,
-                   comment
-                }
+              ## Use a continuous Galerkin discretisation
+              element continuous_galerkin {     
+                 ## Integrate the divergence operator by parts
+                 element integrate_divergence_by_parts {
+                    comment
+                 }?,    
+                 ## Remove the stabilisation term from the projection operator.
+                 ##
+                 ## Automatic when not using P1P1.
+                 element remove_stabilisation_term {
+                    comment
+                 }?,
+                 comment
               },
               comment
            },
