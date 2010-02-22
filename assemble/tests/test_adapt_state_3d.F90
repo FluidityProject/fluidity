@@ -38,6 +38,7 @@ subroutine test_adapt_state_3d
   use state_module
   use unittest_tools
   use vtk_interfaces
+  use global_parameters
   
   implicit none
 
@@ -62,6 +63,8 @@ subroutine test_adapt_state_3d
 
   call insert(state, mesh, "CoordinateMesh")
   call insert(state, mesh_field, "Coordinate")
+
+  adaptivity_mesh_name = "CoordinateMesh"
 
   call deallocate(state_read)
 
