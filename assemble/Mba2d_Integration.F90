@@ -79,6 +79,7 @@ module mba2d_integration
     ! Fields we use to find the new halo numbering
     type(scalar_field) :: old_halo_field, new_halo_field
     type(integer_hash_table) :: old_to_new
+    type(integer_hash_table) :: input_face_numbering_to_mba2d_numbering
 
 !#define DUMP_HALO_INTERPOLATION
 #ifdef DUMP_HALO_INTERPOLATION
@@ -135,15 +136,7 @@ module mba2d_integration
     partition_surface_id = maxval(surface_ids) + 1
     stotel = 0
 
-    if (.not. present(lock_faces)) then
-      nfv = 0
-      allocate(ifv(nfv))
-    else
-      nfv = key_count(lock_faces)
-      allocate(ifv(nfv))
-      ifv = set2vector(lock_faces)
-    end if
-
+    call allocate(input_face_numbering_to_mba2d_numbering)
     do i=1,totele
       neighbours => ele_neigh(xmesh, i)
       faces => ele_faces(xmesh, i)
@@ -151,6 +144,7 @@ module mba2d_integration
         if (neighbours(j) <= 0) then
           face = faces(j)
           stotel = stotel + 1
+          call insert(input_face_numbering_to_mba2d_numbering, face, stotel)
           ipf(1:2, stotel) = face_global_nodes(xmesh, face)
           ipf(3, stotel) = 0
           if (face <= orig_stotel) then ! if face is genuinely external, i.e. on the domain exterior
@@ -161,6 +155,17 @@ module mba2d_integration
         end if
       end do
     end do
+
+    if (.not. present(lock_faces)) then
+      nfv = 0
+      allocate(ifv(nfv))
+    else
+      nfv = key_count(lock_faces)
+      allocate(ifv(nfv))
+      ifv = fetch(input_face_numbering_to_mba2d_numbering, set2vector(lock_faces))
+    end if
+
+    call deallocate(input_face_numbering_to_mba2d_numbering)
     
     deallocate(surface_ids)
 
