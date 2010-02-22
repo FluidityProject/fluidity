@@ -143,5 +143,11 @@ module global_parameters
   !! Name of the topology mesh in state - this mesh is used by adaptivity
   !! for the error metric etc.
   character(len=FIELD_NAME_LEN):: topology_mesh_name=""
+  
+  !! Name of mesh to be handled by adapt_state()
+  character(len=FIELD_NAME_LEN):: adaptivity_mesh_name=""
+  
+  !! optionpath where the periodic boundary conditions are defined
+  character(len=OPTION_PATH_LEN) :: periodic_boundary_option_path=""
 
 end module global_parameters

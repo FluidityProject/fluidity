@@ -34,7 +34,8 @@ module populate_state_module
   use read_triangle
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
-    no_active_processes, topology_mesh_name
+    no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
+    periodic_boundary_option_path
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -324,10 +325,15 @@ contains
          
           mesh%option_path=mesh_path
           
-          ! We register this as the topology mesh
-          ! this is the mesh used by adaptivity for error measures and such
-          ! (it may gets replaced if adding periodicity or extrusion)
-          topology_mesh_name = mesh%name
+          if (.not. have_option(trim(mesh_path)//'/exclude_from_mesh_adaptivity')) then
+            ! We register this as the topology mesh
+            ! this is the mesh used by adaptivity for error measures and such
+            ! (it may gets replaced if adding periodicity or extrusion)
+            topology_mesh_name = mesh%name
+            ! same for the mesh to be handled by adapt_state()
+            ! (this gets replaced in case adding periodicity but not by extrusion)
+            adaptivity_mesh_name = mesh%name
+          end if
                     
           call surface_id_stats(mesh, position)
 
@@ -538,11 +544,23 @@ contains
              ! Insert mesh into all states
              call insert(states, mesh, mesh%name)
              
-             if (extrusion .or. (periodic .and. .not. remove_periodicity)) then
-               ! this is the new topology mesh name to be used by adaptivity
-               topology_mesh_name=mesh%name
-             end if
+             if (.not. have_option(trim(mesh_path)//'/exclude_from_mesh_adaptivity')) then
+               ! update info for adaptivity/error metric code:
+               
+               if (extrusion .or. (periodic .and. .not. remove_periodicity)) then
+                 ! this is the new topology mesh name to be used by adaptivity
+                 topology_mesh_name=mesh%name
+               end if
+               
+               if (periodic .and. .not. remove_periodicity) then
+                 ! this is the new topology mesh name to be used by adaptivity
+                 adaptivity_mesh_name=mesh%name
+               end if
 
+               if (periodic) then
+                 periodic_boundary_option_path = trim(mesh_path)             
+               end if
+             end if
              
              call deallocate(mesh)
              

@@ -39,11 +39,12 @@ module field_options
    use fields_allocates
    use fields_manipulation
    use fields_calculations
-   use Global_Parameters, only: new_options, OPTION_PATH_LEN
+   use Global_Parameters, only: new_options, OPTION_PATH_LEN, adaptivity_mesh_name
    use state_module
    use futils
    use metric_tools
    use data_structures
+   use state_module
 
    implicit none
 
@@ -647,35 +648,12 @@ contains
 
   subroutine find_mesh_to_adapt(state, mesh)
   !!< Finds the external mesh used as basis for adaptivity
-  !!< This has to be a continous linear mesh. It has to be the
+  !!< This has to be a continuous linear mesh. It has to be the
   !!< external mesh as all other meshes will be derived from it.
   type(state_type), intent(in):: state  
   type(mesh_type), pointer:: mesh
     
-    type(mesh_type), pointer:: meshi
-    logical found
-    integer i
-    
-    found=.false.
-    mesh_loop: do i=1, mesh_count(state)
-       meshi => extract_mesh(state, i)
-       if (have_option(trim(meshi%option_path)//'/from_file') .and. &
-           .not. have_option(trim(meshi%option_path)//'/exclude_from_mesh_adaptivity')) then
-          
-          mesh => meshi
-          if (found) then
-             ewrite(0,*) "More than one external mesh found without ", &
-                         "exclude_from_mesh_adaptivity option."
-             FLAbort("Adaptivity only allows one external mesh")
-          end if
-          found=.true.
-          
-       end if
-    end do mesh_loop
-      
-    if (.not. found) then
-      FLAbort("No external mesh found without the option exclude_from_mesh_adaptivity")
-    end if
+    mesh => extract_mesh(state, adaptivity_mesh_name)
     
     if (mesh%shape%degree/=1 .or. mesh%continuity<0) then
       FLAbort("For adaptivity external mesh needs to be linear and continuous.")
