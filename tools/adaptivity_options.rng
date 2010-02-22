@@ -1337,23 +1337,26 @@ hence LBB constraints apply.</a:documentation>
                 </element>
               </optional>
             </element>
-            <element name="continuous_galerkin">
-              <a:documentation>Use a continuous Galerkin discretisation</a:documentation>
-              <optional>
-                <element name="integrate_divergence_by_parts">
-                  <a:documentation>Integrate the divergence operator by parts</a:documentation>
-                  <ref name="comment"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="remove_stabilisation_term">
-                  <a:documentation>Remove the stabilisation term from the projection operator.
+            <element name="divergence">
+              <a:documentation>Options relating to the divergence operator</a:documentation>
+              <element name="continuous_galerkin">
+                <a:documentation>Use a continuous Galerkin discretisation</a:documentation>
+                <optional>
+                  <element name="integrate_divergence_by_parts">
+                    <a:documentation>Integrate the divergence operator by parts</a:documentation>
+                    <ref name="comment"/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="remove_stabilisation_term">
+                    <a:documentation>Remove the stabilisation term from the projection operator.
 
 Automatic when not using P1P1.</a:documentation>
-                  <ref name="comment"/>
-                </element>
-              </optional>
-              <ref name="comment"/>
+                    <ref name="comment"/>
+                  </element>
+                </optional>
+                <ref name="comment"/>
+              </element>
             </element>
             <ref name="comment"/>
           </element>

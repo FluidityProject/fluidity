@@ -2,6 +2,7 @@ include "spud_base.rnc"
 
 include "adaptivity_options.rnc"
 include "diagnostic_algorithms.rnc"
+include "input_output.rnc"
 include "stabilisation.rnc"
 
 start =
@@ -385,12 +386,7 @@ input_choice_real_plus_file =
       ## THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
       element from_file {
          attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "vtu"
-            }
-         },
+         vtu_input_format,
          comment
       }
    )
@@ -446,14 +442,10 @@ input_choice_initial_condition_real =
       ## set to "input.vtu", process 0 reads from "input-0.vtu".
       element from_file {
          attribute file_name { xsd:string },
-         ## The format of the input file containing field
-         ## data. Supported formats include: NetCDF CF 1.4
-         ## (http://cf-pcmdi.llnl.gov/)
-         element format {
-            element string_value {
-               "vtu"|"NetCDF - CF 1.x"
-            }
-         },
+         (
+            vtu_input_format|
+            netcdf_input_format
+         ),
          comment
       }
    )
@@ -473,12 +465,7 @@ input_choice_real_dim_vector_plus_file =
       ## THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
       element from_file {
          attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "vtu"
-            }
-         },
+         vtu_input_format,
          comment
       }
    )
@@ -559,12 +546,7 @@ input_choice_initial_condition_vector =
       ## Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
       element from_file {
          attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-               "vtu"
-            }
-         },
+         vtu_input_format,
          comment
       }|
       ## Set balanced velocity from height field
@@ -4457,10 +4439,6 @@ mesh_info =
             ## .node extensions, and without process numbers.
             element format {
               attribute name { "triangle" },
-              # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
-              element string_value {
-                 "triangle"
-              },
               comment
             }|
             ## Read the mesh from a vtu. Note that the mesh will have no surface
@@ -4472,10 +4450,6 @@ mesh_info =
             ## CGNS mesh format (not yet implemented)
             element format {
                attribute name { "cgns" },
-               # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
-               element string_value {
-                  "cgns"
-               },
                comment
             }
          ),

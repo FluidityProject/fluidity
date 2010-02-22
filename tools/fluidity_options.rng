@@ -3,6 +3,7 @@
   <include href="spud_base.rng"/>
   <include href="adaptivity_options.rng"/>
   <include href="diagnostic_algorithms.rng"/>
+  <include href="input_output.rng"/>
   <include href="solvers.rng"/>
   <include href="stabilisation.rng"/>
   <include href="reduced_model.rng"/>
@@ -2904,13 +2905,7 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
         </attribute>
         <choice>
           <ref name="vtu_input_format"/>
-          <element name="format">
-            <a:documentation>NetCDF CF 1.4 (http://cf-pcmdi.llnl.gov/)</a:documentation>
-            <attribute name="name">
-              <value>NetCDF - CF 1.x</value>
-            </attribute>
-            <ref name="comment"/>
-          </element>
+          <ref name="netcdf_input_format"/>
         </choice>
         <ref name="comment"/>
       </element>
@@ -3006,23 +3001,6 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <ref name="python_code"/>
       </element>
     </choice>
-  </define>
-  <define name="vtu_input_format">
-    <element name="format">
-      <a:documentation>vtu input file format.</a:documentation>
-      <attribute name="name">
-        <value>vtu</value>
-      </attribute>
-      <optional>
-        <element name="field_name">
-          <a:documentation>The field to read from the vtu file. If not supplied, the name of
-the initialised field is used.</a:documentation>
-          <ref name="anystring"/>
-          <ref name="comment"/>
-        </element>
-      </optional>
-      <ref name="comment"/>
-    </element>
   </define>
   <define name="input_choice_netcdf">
     <a:documentation>Import data from NetCDF CF-1.x file.</a:documentation>

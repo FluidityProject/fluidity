@@ -1,0 +1,23 @@
+vtu_input_format =
+   (
+      ## vtu input file format.
+      element format {
+         attribute name { "vtu" },
+         ## The field to read from the vtu file. If not supplied, the name of
+         ## the initialised field is used.
+         element field_name {
+            anystring,
+            comment
+         }?,
+         comment
+      }
+   )
+    
+netcdf_input_format =
+   (
+      ## NetCDF CF 1.4 (http://cf-pcmdi.llnl.gov/)
+      element format {
+         attribute name { "NetCDF - CF 1.x" },
+         comment
+      }
+   )

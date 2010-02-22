@@ -2,6 +2,7 @@ include "spud_base.rnc"
 
 include "adaptivity_options.rnc"
 include "diagnostic_algorithms.rnc"
+include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
 include "reduced_model.rnc"
@@ -2039,11 +2040,7 @@ input_choice_initial_condition_real =
          attribute file_name { xsd:string },
          (
             vtu_input_format|
-            ## NetCDF CF 1.4 (http://cf-pcmdi.llnl.gov/)
-            element format {
-               attribute name { "NetCDF - CF 1.x" },
-               comment
-            }
+            netcdf_input_format
          ),
          comment
       }|
@@ -2129,21 +2126,6 @@ input_choice_real_dim_minus_one_vector =
       ## where X and the return value are tuples of length geometry dimension.
       element python {
          python_code
-      }
-   )
-
-vtu_input_format =
-   (
-      ## vtu input file format.
-      element format {
-         attribute name { "vtu" },
-         ## The field to read from the vtu file. If not supplied, the name of
-         ## the initialised field is used.
-         element field_name {
-            anystring,
-            comment
-         }?,
-         comment
       }
    )
 

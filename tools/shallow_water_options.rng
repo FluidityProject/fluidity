@@ -3,6 +3,7 @@
   <include href="spud_base.rng"/>
   <include href="adaptivity_options.rng"/>
   <include href="diagnostic_algorithms.rng"/>
+  <include href="input_output.rng"/>
   <include href="stabilisation.rng"/>
   <start>
     <element name="shallow_water_options">
@@ -538,12 +539,7 @@ THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
+        <ref name="vtu_input_format"/>
         <ref name="comment"/>
       </element>
     </choice>
@@ -605,17 +601,10 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field
-data. Supported formats include: NetCDF CF 1.4
-(http://cf-pcmdi.llnl.gov/)</a:documentation>
-          <element name="string_value">
-            <choice>
-              <value>vtu</value>
-              <value>NetCDF - CF 1.x</value>
-            </choice>
-          </element>
-        </element>
+        <choice>
+          <ref name="vtu_input_format"/>
+          <ref name="netcdf_input_format"/>
+        </choice>
         <ref name="comment"/>
       </element>
     </choice>
@@ -635,12 +624,7 @@ THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
+        <ref name="vtu_input_format"/>
         <ref name="comment"/>
       </element>
     </choice>
@@ -733,12 +717,7 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
+        <ref name="vtu_input_format"/>
         <ref name="comment"/>
       </element>
       <element name="balanced">
@@ -5433,10 +5412,6 @@ Enter the base name without the .edge .ele, .face or
             <attribute name="name">
               <value>triangle</value>
             </attribute>
-            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
-            <element name="string_value">
-              <value>triangle</value>
-            </element>
             <ref name="comment"/>
           </element>
           <element name="format">
@@ -5452,10 +5427,6 @@ or region IDs.</a:documentation>
             <attribute name="name">
               <value>cgns</value>
             </attribute>
-            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
-            <element name="string_value">
-              <value>cgns</value>
-            </element>
             <ref name="comment"/>
           </element>
         </choice>
