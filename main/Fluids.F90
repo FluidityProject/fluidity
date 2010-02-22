@@ -85,7 +85,7 @@ module fluids_module
   use gls
   use halos
   use memory_diagnostics
-  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN
+  use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, topology_mesh_name
   
   implicit none
 
@@ -270,7 +270,7 @@ contains
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     if (have_option("/mesh_adaptivity/hr_adaptivity")) then
-       call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
+       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
     end if
 
     !     Determine the output format.
