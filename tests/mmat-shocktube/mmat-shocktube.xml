@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity -v2 -l 1material_shocktube.flml</command_line>
+    <command_line>fluidity -v2 -l 1material_shocktube.flml</command_line>
   </problem_definition>  
   <variables>  
     <variable name="pressureerror" language="python">
