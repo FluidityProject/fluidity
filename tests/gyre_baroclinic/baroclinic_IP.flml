@@ -63,9 +63,7 @@
     </mesh>
     <mesh name="HorizontalMesh">
       <from_file file_name="Finer_unit_gyre">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>

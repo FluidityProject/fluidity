@@ -109,6 +109,17 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="InitialMesh">
+      <from_file file_name="square">
+        <format name="triangle">
+          <string_value>triangle</string_value>
+        </format>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_file>
+      <exclude_from_mesh_adaptivity/>
+    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">4</integer_value>
@@ -374,6 +385,7 @@
         <name>
           <python>
             <string_value lines="20" type="python">def val(t):
+	return "InitialMesh"
 	meshes = ["Adapt1", "Adapt2"]
 	if "mesh_count" in persistent:
 		persistent["mesh_count"] +=1 

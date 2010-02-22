@@ -12,9 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="sloshing_tank_mesh1">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>

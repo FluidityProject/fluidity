@@ -12,9 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="square-tiny">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <exclude_from_stat/>
         </stat>

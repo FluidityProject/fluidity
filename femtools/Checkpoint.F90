@@ -130,9 +130,10 @@ contains
     if(have_option("/io/detectors")) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
-    if(.not. isparallel() .or. getrank() == 0) then
+    if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel
-      call checkpoint_options(lprefix, postfix = lpostfix, cp_no = cp_no, protect_simulation_name = .not. present_and_false(protect_simulation_name))
+      call checkpoint_options(lprefix, postfix = lpostfix, cp_no = cp_no, &
+        & protect_simulation_name = .not. present_and_false(protect_simulation_name))
     end if
     
   end subroutine checkpoint_simulation
@@ -378,7 +379,7 @@ contains
 
     character(len = FIELD_NAME_LEN) :: mesh_name
     character(len = OPTION_PATH_LEN) :: mesh_path, mesh_filename
-    integer :: i, n_meshes, stat
+    integer :: i, n_meshes
     type(mesh_type), pointer :: mesh
     
     assert(len_trim(prefix) > 0)
@@ -400,20 +401,10 @@ contains
         if(present_and_nonempty(postfix)) mesh_filename = trim(mesh_filename) // "_" // trim(postfix)
 
         ! Update the options tree (required for options tree checkpointing)
-        ! Can remove stat test when data backwards compatibility is removed
-        call set_option_attribute(trim(mesh_path) // "/from_file/format/name", "triangle", stat)
-        if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-          FLAbort("Failed to set mesh format name when checkpointing mesh with option path " // trim(mesh_path))
-        end if
-        ! Can remove following when mesh format data backwards compatibility is removed
-        call set_option(trim(mesh_path) // "/from_file/format", "triangle")
-        ! Can remove stat test when mesh format data backwards compatibility is removed
-        call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename), stat)
-        if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-          FLAbort("Failed to set mesh filename when checkpointing mesh with option path " // trim(mesh_path))
-        end if
+        call set_option_attribute(trim(mesh_path) // "/from_file/format/name", "triangle")
+        call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
 
-        if(get_active_nparts(ele_count(mesh))>1) then
+        if(get_active_nparts(ele_count(mesh)) > 1) then
           ! Write out the mesh
           call write_triangle_files(parallel_filename(mesh_filename), state(1), mesh)
           ! Write out the halos
@@ -600,7 +591,7 @@ contains
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
         FLAbort("Failed to set initial condition filename when checkpointing field with option path " // trim(path))
       end if
-      call set_option(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/format/__value", trim(format), stat)
+      call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/format/name", trim(format), stat)
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
         FLAbort("Failed to set initial condition format when checkpointing field with option path " // trim(path))
       end if
@@ -625,7 +616,7 @@ contains
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
         FLAbort("Failed to set value filename when checkpointing field with option path " // trim(path))
       end if
-      call set_option(trim(path) // "/prescribed/value::WholeMesh/from_file/format/__value", trim(format), stat)
+      call set_option_attribute(trim(path) // "/prescribed/value::WholeMesh/from_file/format/name", trim(format), stat)
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
         FLAbort("Failed to set value format when checkpointing field with option path " // trim(path))
       end if

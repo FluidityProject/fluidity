@@ -46,9 +46,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="MMS_A">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>

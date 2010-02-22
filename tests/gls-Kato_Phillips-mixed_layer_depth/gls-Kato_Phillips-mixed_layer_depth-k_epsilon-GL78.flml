@@ -17,9 +17,7 @@ Surface BCs for second gls quantity on top surface can be set to
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="gls-KatoPhillips-2D-periodic">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>

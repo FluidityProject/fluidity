@@ -3,9 +3,7 @@
   <simulation_name>
     <string_value lines="1">kelvin_wave</string_value>
   </simulation_name>
-  <debug>
-    <check_inverse_coriolis_matrix/>
-  </debug>
+  <debug/>
   <geometry>
     <dimension replaces="NDIM">
       <integer_value rank="0">2</integer_value>
@@ -108,10 +106,10 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-100</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </relative_error>
           <absolute_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -137,6 +135,12 @@
    return u</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="FreeSlip">
+          <surface_ids>
+            <integer_value shape="1" rank="1">3</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
         <output/>
         <stat>
           <include_in_stat/>
@@ -185,8 +189,11 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-12</real_value>
+            <real_value rank="0">1.0e-16</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-16</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>

@@ -76,7 +76,7 @@ contains
 
     type(scalar_field), pointer:: read_field
     real :: const
-    character(len=OPTION_PATH_LEN) :: format, filename
+    character(len=OPTION_PATH_LEN) :: format, field_name, filename
     character(len=PYTHON_FUNC_LEN) :: func
     real :: current_time
     
@@ -109,7 +109,7 @@ contains
        
          call tic(TICTOC_ID_IO_READ)
          
-         call get_option(trim(path) // "/from_file/format", format)
+         call get_option(trim(path) // "/from_file/format/name", format)
          call get_option(trim(path) // "/from_file/file_name", filename)
          if(isparallel()) then
            filename = parallel_filename(trim_file_extension(filename), ".vtu")
@@ -118,8 +118,8 @@ contains
          
          select case (format)
          case ("vtu")
-            
-            read_field => vtk_cache_read_scalar_field(filename, field%name)
+            call get_option(trim(path) // "/from_file/format::vtu/field_name", field_name, default = field%name)
+            read_field => vtk_cache_read_scalar_field(filename, field_name)
             
             if (mesh_compatible(read_field%mesh, field%mesh)) then
               call set(field, read_field)
@@ -182,7 +182,7 @@ contains
 
     type(vector_field), pointer:: read_field
     real, dimension(1:field%dim) :: const
-    character(len=OPTION_PATH_LEN) :: format, filename, varname1, varname2
+    character(len=OPTION_PATH_LEN) :: format, field_name, filename, varname1, varname2
     character(len=PYTHON_FUNC_LEN) :: func
     real :: current_time
     integer :: i
@@ -215,7 +215,7 @@ contains
       
          call tic(TICTOC_ID_IO_READ)
          
-         call get_option(trim(path) // "/from_file/format", format)
+         call get_option(trim(path) // "/from_file/format/name", format)
          call get_option(trim(path) // "/from_file/file_name", filename)
          if(isparallel()) then
            filename = parallel_filename(trim_file_extension(filename), ".vtu")
@@ -224,8 +224,8 @@ contains
          
          select case (format)
          case ("vtu")
-            
-            read_field => vtk_cache_read_vector_field(filename, field%name)
+            call get_option(trim(path) // "/from_file/format::vtu/field_name", field_name, default = field%name)            
+            read_field => vtk_cache_read_vector_field(filename, field_name)
             
             if (mesh_compatible(read_field%mesh, field%mesh)) then
               call set(field, read_field)

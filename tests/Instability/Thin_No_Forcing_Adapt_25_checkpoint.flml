@@ -12,9 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="Thin_No_Forcing_Adapt_CoordinateMesh_25_checkpoint">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -141,9 +139,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="Thin_No_Forcing_Adapt_PressureMesh_25_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <output/>
@@ -226,9 +222,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="Thin_No_Forcing_Adapt_VelocityMesh_25_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="LeftRight">
@@ -421,9 +415,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="Thin_No_Forcing_Adapt_VelocityMesh_25_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">

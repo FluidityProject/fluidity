@@ -12,9 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="test1_CoordinateMesh_180_checkpoint">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -242,9 +240,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="test1_VelocityMesh_180_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="NoSeagulls">
@@ -350,9 +346,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="test1_VelocityMesh_180_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>
@@ -468,9 +462,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="test1_VelocityMesh_180_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>
@@ -584,9 +576,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <from_file file_name="test1_VelocityMesh_180_checkpoint.vtu">
-            <format>
-              <string_value>vtu</string_value>
-            </format>
+            <format name="vtu"/>
           </from_file>
         </initial_condition>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>

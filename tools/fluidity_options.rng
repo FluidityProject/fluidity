@@ -2763,12 +2763,7 @@ THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
+        <ref name="vtu_input_format"/>
         <ref name="comment"/>
       </element>
       <element name="NEMO_data">
@@ -2871,17 +2866,16 @@ set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field
-data. Supported formats include: NetCDF CF 1.4
-(http://cf-pcmdi.llnl.gov/)</a:documentation>
-          <element name="string_value">
-            <choice>
-              <value>vtu</value>
+        <choice>
+          <ref name="vtu_input_format"/>
+          <element name="format">
+            <a:documentation>NetCDF CF 1.4 (http://cf-pcmdi.llnl.gov/)</a:documentation>
+            <attribute name="name">
               <value>NetCDF - CF 1.x</value>
-            </choice>
+            </attribute>
+            <ref name="comment"/>
           </element>
-        </element>
+        </choice>
         <ref name="comment"/>
       </element>
       <element name="NEMO_data">
@@ -2915,12 +2909,7 @@ THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
+        <ref name="vtu_input_format"/>
         <ref name="comment"/>
       </element>
       <element name="NEMO_data">
@@ -2982,6 +2971,23 @@ where X and the return value are tuples of length geometry dimension.</a:documen
       </element>
     </choice>
   </define>
+  <define name="vtu_input_format">
+    <element name="format">
+      <a:documentation>vtu input file format.</a:documentation>
+      <attribute name="name">
+        <value>vtu</value>
+      </attribute>
+      <optional>
+        <element name="field_name">
+          <a:documentation>The field to read from the vtu file. If not supplied, the name of
+the initialised field is used.</a:documentation>
+          <ref name="anystring"/>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <ref name="comment"/>
+    </element>
+  </define>
   <define name="input_choice_netcdf">
     <a:documentation>Import data from NetCDF CF-1.x file.</a:documentation>
     <element name="from_file">
@@ -3024,12 +3030,7 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
+        <ref name="vtu_input_format"/>
         <ref name="comment"/>
       </element>
       <element name="NEMO_data">
@@ -10206,10 +10207,6 @@ Enter the base name without the .edge .ele, .face or
             <attribute name="name">
               <value>triangle</value>
             </attribute>
-            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
-            <element name="string_value">
-              <value>triangle</value>
-            </element>
             <ref name="comment"/>
           </element>
           <element name="format">
@@ -10225,10 +10222,6 @@ or region IDs.</a:documentation>
             <attribute name="name">
               <value>cgns</value>
             </attribute>
-            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
-            <element name="string_value">
-              <value>cgns</value>
-            </element>
             <ref name="comment"/>
           </element>
         </choice>

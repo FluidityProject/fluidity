@@ -181,9 +181,7 @@ D0				1.0			0.0			Not in new system
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="annulus-structured-tanh-23x64">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
