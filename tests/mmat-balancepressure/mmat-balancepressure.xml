@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>dfluidity -v2 mmat-balancepressure-p0p1cv-gpp2.flml &gt;&amp; mmat-balancepressure-p0p1cv-gpp2.log &amp;&amp; dfluidity -v2 mmat-balancepressure-p0p1cv-hpp2dg.flml &gt;&amp; mmat-balancepressure-p0p1cv-hpp2dg.log &amp;&amp; dfluidity -v2 mmat-balancepressure-p0p1-rhop0-vfracp0.flml &gt;&amp; mmat-balancepressure-p0p1-rhop0-vfracp0.log &amp;&amp; dfluidity -v2 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.flml &gt;&amp; mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.log</command_line>
+    <command_line>fluidity -v2 mmat-balancepressure-p0p1cv-gpp2.flml &gt;&amp; mmat-balancepressure-p0p1cv-gpp2.log &amp;&amp; fluidity -v2 mmat-balancepressure-p0p1cv-hpp2dg.flml &gt;&amp; mmat-balancepressure-p0p1cv-hpp2dg.log &amp;&amp; fluidity -v2 mmat-balancepressure-p0p1-rhop0-vfracp0.flml &gt;&amp; mmat-balancepressure-p0p1-rhop0-vfracp0.log &amp;&amp; fluidity -v2 mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.flml &gt;&amp; mmat-balancepressure-p1dgp2-rhop1dg-vfracp1cv.log</command_line>
   </problem_definition>  
   <variables>  
     <variable name="pressure_p0p1cv_gpp2" language="python">
