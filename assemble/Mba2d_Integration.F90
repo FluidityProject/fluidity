@@ -25,11 +25,12 @@ module mba2d_integration
 
   contains
 
-  subroutine adapt_mesh_mba2d(input_positions, metric, output_positions, force_preserve_regions)
+  subroutine adapt_mesh_mba2d(input_positions, metric, output_positions, force_preserve_regions, lock_faces)
     type(vector_field), intent(in), target :: input_positions
     type(tensor_field), intent(in) :: metric
     type(vector_field), intent(out) :: output_positions
     logical, intent(in), optional :: force_preserve_regions
+    type(integer_set), intent(in), optional :: lock_faces
 
 #ifdef HAVE_MBA_2D
 
@@ -41,6 +42,7 @@ module mba2d_integration
     integer, dimension(:, :), allocatable :: ipe
     real, dimension(:, :), allocatable :: parcrv
     integer, dimension(:), allocatable :: ipv
+    integer, dimension(:), allocatable :: ifv
     integer, dimension(:), allocatable :: iFnc
     integer, dimension(:), allocatable :: lbE
     real, dimension(:, :), allocatable :: tmp_metric
@@ -60,7 +62,6 @@ module mba2d_integration
     integer, dimension(:), pointer :: neighbours, faces
     type(halo_type), pointer :: old_halo
     
-    integer :: stat
     ! Surface ID interleaving
     integer :: max_coplanar_id
     integer, dimension(:), allocatable :: boundary_ids, coplanar_ids, surface_ids, mba_boundary_ids
@@ -68,6 +69,7 @@ module mba2d_integration
     ! Element locking
     integer :: nfe
     integer, dimension(:), allocatable :: ife
+    integer :: nfv
     logical, dimension(:), allocatable :: is_locked_ele
     integer, dimension(:), pointer :: node_eles
     type(csr_sparsity), pointer :: nelist
@@ -132,6 +134,15 @@ module mba2d_integration
     ipf = 0
     partition_surface_id = maxval(surface_ids) + 1
     stotel = 0
+
+    if (.not. present(lock_faces)) then
+      nfv = 0
+      allocate(ifv(nfv))
+    else
+      nfv = key_count(lock_faces)
+      allocate(ifv(nfv))
+      ifv = set2vector(lock_faces)
+    end if
 
     do i=1,totele
       neighbours => ele_neigh(xmesh, i)
@@ -285,7 +296,7 @@ module mba2d_integration
          pos, ipf, ipe, ipv, &
          CrvFunction_ani, parcrv, iFnc, &
          xpctel, &
-         0, nfe, ipv, ife, lbE, &
+         nfv, nfe, ifv, ife, lbE, &
          .true., status, &
          100, iterations, &
          tmp_metric, quality, rQuality, &
