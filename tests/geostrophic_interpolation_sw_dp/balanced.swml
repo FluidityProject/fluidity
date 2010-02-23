@@ -218,9 +218,9 @@
             <mesh name="PressureMesh"/>
             <spatial_discretisation>
               <mass/>
-              <divergence>
-                <continuous_galerkin/>
-              </divergence>
+              <continuous_galerkin>
+                <integrate_divergence_by_parts/>
+              </continuous_galerkin>
             </spatial_discretisation>
             <solver>
               <iterative_method name="cg"/>
