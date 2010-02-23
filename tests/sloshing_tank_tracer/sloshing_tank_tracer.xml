@@ -47,11 +47,11 @@ assert(tracercgl_cons_error &lt; 1.E-7)</test>
     <test name="cg ibp conservation error" language="python">
 assert(tracercgibp_cons_error &lt; 1.E-5)</test>
     <test name="dg ibp1 conservation error" language="python">
-assert(tracerdgibp1_cons_error &lt; 1.E-9)</test>
+assert(tracerdgibp1_cons_error &lt; 1.E-8)</test>
     <test name="dg ibp2 conservation error" language="python">
-assert(tracerdgibp2_cons_error &lt; 1.E-9)</test>
+assert(tracerdgibp2_cons_error &lt; 1.E-8)</test>
     <test name="dg ibpicbp conservation error" language="python">
-assert(tracerdgibpicbp_cons_error &lt; 1.E-9)</test>
+assert(tracerdgibpicbp_cons_error &lt; 1.E-8)</test>
     <test name="cv conservation error" language="python">
 assert(tracercv_cons_error &lt; 1.E-6)</test>
 <!--    <test name="momu cg conservation error" language="python">

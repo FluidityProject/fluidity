@@ -184,7 +184,7 @@ assert abs(minvfrac) &lt; 1.E-10
 assert mid_contour_bounds[1] &lt; -0.11
     </test>
     <test name="check water column has travelled min x" language="python">
-assert mid_contour_bounds[1] &gt; -0.125
+assert mid_contour_bounds[1] &gt; -0.135
     </test>
     <test name="check water column has travelled max y" language="python">
 assert mid_contour_bounds[3] &lt; 0.0
