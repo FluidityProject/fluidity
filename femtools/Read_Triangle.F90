@@ -96,6 +96,9 @@ contains
       open(unit = element_unit, file = trim(filename) // ".ele", err = 43, action = "read")
       read (element_unit, *) lelements, lloc, ele_attributes
       close(element_unit)
+    else if (present(loc) .or. present(elements)) then
+      ewrite(-1, *) "For triangle file with base name " // trim(filename)
+      FLAbort(".ele file not found")
     end if
 
     ! Read the surface element file header
