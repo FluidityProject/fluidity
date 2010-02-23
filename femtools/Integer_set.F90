@@ -70,7 +70,7 @@ module integer_set_module
 
   private
   public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
-          & set_complement, set2vector, set_intersection
+          & set_complement, set2vector, set_intersection, set_minus
 
   contains 
 
@@ -213,6 +213,21 @@ module integer_set_module
       end if
     end do
   end subroutine set_intersection
+
+  subroutine set_minus(minus, A, B)
+  ! minus = A \ B
+    type(integer_set), intent(out) :: minus
+    type(integer_set), intent(in) :: A, B
+    integer :: i, val
+
+    call allocate(minus)
+    do i=1,key_count(A)
+      val = fetch(A, i)
+      if (.not. has_value(B, val)) then
+        call insert(minus, val)
+      end if
+    end do
+  end subroutine set_minus
 
   function set2vector(iset) result(vec)
     type(integer_set), intent(in) :: iset
