@@ -1523,7 +1523,8 @@ contains
       ! bucket full of fields
       type(state_type), dimension(:), intent(inout) :: state
       ! the relative velocity
-      type(vector_field), intent(in) :: advu, ug
+      type(vector_field), intent(in) :: advu
+      type(vector_field), pointer :: ug
       ! the coordinates
       type(vector_field), intent(inout) :: x, x_tfield
       ! the cfl number
