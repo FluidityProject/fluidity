@@ -152,7 +152,11 @@ class vtu:
       filename=self.filename
     if filename is None:
       raise Exception("No file supplied")
-    gridwriter=vtk.vtkXMLUnstructuredGridWriter()
+    if filename.endswith('pvtu'):
+      gridwriter=vtk.vtkXMLPUnstructuredGridWriter()
+    else:
+      gridwriter=vtk.vtkXMLUnstructuredGridWriter()
+
     gridwriter.SetFileName(filename)
     gridwriter.SetInput(self.ugrid)
     gridwriter.Write()
