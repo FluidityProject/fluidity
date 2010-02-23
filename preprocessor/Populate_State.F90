@@ -725,11 +725,13 @@ contains
                 
   end function make_mesh_periodic_from_options
 
-  function make_mesh_unperiodic_from_options(from_position, mesh_path) result (position)
+  function make_mesh_unperiodic_from_options(from_position, mesh_path, aliased_to_new_node_number, stat) result (position)
     ! make a periodic mesh as specified by options
     type(vector_field):: position
     type(vector_field), intent(in):: from_position
     character(len=*), intent(in):: mesh_path
+    integer, intent(out), optional :: stat
+    type(integer_hash_table), optional, intent(out) :: aliased_to_new_node_number
 
     type(vector_field):: lfrom_position, nonperiodic_position
     character(len=FIELD_NAME_LEN):: bc_name, mesh_name
@@ -738,8 +740,12 @@ contains
     integer, dimension(2) :: shape_option
     integer:: n_periodic_bcs
     integer:: j
-    type(integer_hash_table) :: aliased_to_new_node_number
+    type(integer_hash_table) :: laliased_to_new_node_number
     logical :: fiddled_with_faces
+
+    if (present(stat)) then
+      stat = 0
+    end if
     
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
@@ -773,7 +779,7 @@ contains
 
        nonperiodic_position=make_mesh_unperiodic(lfrom_position,&
           physical_boundary_ids,aliased_boundary_ids, &
-          periodic_mapping_python, mesh_name, aliased_to_new_node_number)
+          periodic_mapping_python, mesh_name, laliased_to_new_node_number)
 
        if (fiddled_with_faces) then
          lfrom_position%mesh%faces => null()
@@ -781,10 +787,14 @@ contains
 
        if (associated(lfrom_position%mesh%halos)) then
          assert(associated(lfrom_position%mesh%element_halos))
-         call derive_nonperiodic_halos_from_periodic_halos(nonperiodic_position, lfrom_position, aliased_to_new_node_number)
+         call derive_nonperiodic_halos_from_periodic_halos(nonperiodic_position, lfrom_position, laliased_to_new_node_number)
        end if
        call deallocate(lfrom_position)
-       call deallocate(aliased_to_new_node_number)
+       if (present(aliased_to_new_node_number)) then
+         aliased_to_new_node_number = laliased_to_new_node_number
+       else
+         call deallocate(laliased_to_new_node_number)
+       end if
        lfrom_position=nonperiodic_position
        
        deallocate( physical_boundary_ids, aliased_boundary_ids )
@@ -796,7 +806,7 @@ contains
     nonperiodic_position%mesh%periodic=.false.
     
     if (has_faces(from_position%mesh)) then
-      call add_faces(nonperiodic_position%mesh, model=from_position%mesh)
+      call add_faces(nonperiodic_position%mesh, model=from_position%mesh, stat=stat)
     end if
     
     position=nonperiodic_position

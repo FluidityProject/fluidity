@@ -1076,7 +1076,7 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    private_nodes, periodic_face_map, element_owner)
+    private_nodes, periodic_face_map, element_owner, stat)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1122,6 +1122,7 @@ contains
     !! decide which of the two adjacent elements the face belongs to
     !! (used in reading in periodic meshes which include the periodic faces in the surface mesh)
     integer, dimension(:), intent(in), optional :: element_owner
+    integer, intent(out), optional :: stat
 
     type(mesh_type), pointer :: lmodel
     type(element_type), pointer :: element
@@ -1131,12 +1132,21 @@ contains
          ele_boundary, ele_boundary2 ! these last two are actually smaller    
     integer :: face_count, ele, j, snloc, m, n, p, face2
 
+    if (present(stat)) then
+      stat = 0
+    end if
+
     if (associated(mesh%faces)) then
       ! calling add_faces twice is dangerous as it may nuke information
       ! supplied in the first call (such as sndgln, boundary_ids)
-      ewrite(0,*) "add_faces is already called for this mesh"
-      ewrite(0,*) "call deallocate_faces() first if you want to recompute"
-      FLAbort("The end.")
+      if (present(stat)) then
+        stat = 1
+        return
+      else
+        ewrite(0,*) "add_faces is already called for this mesh"
+        ewrite(0,*) "call deallocate_faces() first if you want to recompute"
+        FLAbort("The end.")
+      end if
     end if
 
     allocate(mesh%faces)
@@ -1193,7 +1203,7 @@ contains
         
          ! make face_list from the model but change periodic faces to normal external faces
          call add_faces_face_list_non_periodic_from_periodic_model( &
-            mesh, model)
+            mesh, model, stat=stat)
          
       else
          ! Transfer the faces from model to mesh
@@ -1591,18 +1601,23 @@ contains
   end subroutine add_faces_face_list_periodic_from_non_periodic_model
     
   subroutine add_faces_face_list_non_periodic_from_periodic_model( &
-     mesh, model)
+     mesh, model, stat)
      ! computes the face_list of a non-periodic mesh by copying it from
      ! a periodic model mesh and changing the periodic faces
      ! to external
      type(mesh_type), intent(inout):: mesh
      type(mesh_type), intent(in):: model
+     integer, intent(out), optional :: stat
        
      type(csr_sparsity):: face_list_sparsity
      integer, dimension(:), pointer:: neigh, ele1_nodes, ele2_nodes
      integer:: face, face2, ele1, ele2, lface1, lface2
      
      ewrite(1,*) "In add_faces_face_list_non_periodic_from_periodic_model"
+
+     if (present(stat)) then
+       stat = 0
+     end if
      
      ! we need to fix the face_list so we have to have a separate copy
      call allocate(face_list_sparsity, element_count(model), &
@@ -1636,7 +1651,11 @@ contains
              ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2)))) then
              ! apparently these faces are still connected
              ! (not currently supported)
-             FLAbort("Left-over internal faces in removing periodic bcs.")
+             if (present(stat)) then
+               stat = 1
+             else
+               FLAbort("Left-over internal faces in removing periodic bcs.")
+             end if
           end if
           
           ! we're cool
