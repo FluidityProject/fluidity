@@ -288,11 +288,12 @@ contains
         if(.not. recalculate_diagnostic_variable(s_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
         ! and whether this field has already been calculated (as a dependency)
         if(has_scalar_field(calculated_states(i), trim(s_field%name))) cycle
-        
+       
         ! Calculate dependencies
         call calculate_dependencies(states, i, s_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
+        ewrite(2, *) "Calculating diagnostic field: " // trim(s_field%name)
         call calculate_diagnostic_variable(states, i, s_field)
         ! Mark the field as calculated
         call insert(calculated_states(i), s_field, s_field%name)
@@ -312,6 +313,7 @@ contains
         call calculate_dependencies(states, i, v_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
+        ewrite(2, *) "Calculating diagnostic field: " // trim(v_field%name)
         call calculate_diagnostic_variable(states, i, v_field)
         ! Mark the field as calculated
         call insert(calculated_states(i), v_field, v_field%name)
@@ -331,6 +333,7 @@ contains
         call calculate_dependencies(states, i, t_field, &
           & dep_states_mask = calculated_states, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
+        ewrite(2, *) "Calculating diagnostic field: " // trim(t_field%name)
         call calculate_diagnostic_variable(states, i, t_field)
         ! Mark the field as calculated
         call insert(calculated_states(i), t_field, t_field%name)
@@ -472,6 +475,7 @@ contains
         call calculate_dependencies(states, state_index, dep_s_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
+        ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_s_field%name)
         call calculate_diagnostic_variable(states, state_index, dep_s_field)
       end do
       
@@ -487,6 +491,7 @@ contains
         call calculate_dependencies(states, state_index, dep_v_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
+        ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_v_field%name)
         call calculate_diagnostic_variable(states, state_index, dep_v_field)
       end do
       
@@ -497,11 +502,12 @@ contains
         if(.not. recalculate_diagnostic_variable(dep_t_field, exclude_nonrecalculated = exclude_nonrecalculated)) cycle
         ! Check whether this field has already been calculated (as a dependency)
         if(has_tensor_field(dep_states_mask(i), dep_t_field%name)) cycle
-        
+
         ! Calculate dependencies
         call calculate_dependencies(states, state_index, dep_t_field, &
           & dep_states_mask = dep_states_mask, exclude_nonrecalculated = exclude_nonrecalculated)
         ! Calculate the diagnostic
+        ewrite(2, *) "Calculating diagnostic field dependency: " // trim(dep_t_field%name)
         call calculate_diagnostic_variable(states, state_index, dep_t_field)
       end do
     end do
