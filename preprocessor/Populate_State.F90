@@ -3244,7 +3244,9 @@ contains
         aliased_id = aliased_boundary_ids(j)
         ! Now we can finally loop over faces with this id and set appropriately
         do face=1,surface_element_count(external_mesh)
-          call postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
+          if (surface_element_id(external_mesh, face) == aliased_id) then
+            call postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
+          end if
         end do
       end do
       deallocate(aliased_boundary_ids)
@@ -3259,7 +3261,7 @@ contains
       vol = sum(detwei)
       assert(vol > 0)
     end do
-    
+
   end subroutine postprocess_periodic_mesh
 
   subroutine postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
