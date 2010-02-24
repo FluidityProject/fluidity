@@ -747,7 +747,7 @@ contains
     
     ! The adaptivity metric
     if(have_option("/mesh_adaptivity/hr_adaptivity")) then
-      call allocate(metric_tensor, extract_mesh(state(1), "CoordinateMesh"), "ErrorMetric")
+      call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
     end if
     
     ! Auxilliary fields.
