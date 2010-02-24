@@ -77,8 +77,11 @@ if VtkSupport():
   VTK_EMPTY_CELL = vtk.vtkEmptyCell().GetCellType()
   VTK_VERTEX = vtk.vtkVertex().GetCellType()
   VTK_LINE = vtk.vtkLine().GetCellType()
+  VTK_QUADRATIC_LINE = vtk.vtkQuadraticEdge().GetCellType()
   VTK_TRIANGLE = vtk.vtkTriangle().GetCellType()
+  VTK_QUADRATIC_TRIANGLE = vtk.vtkQuadraticTriangle().GetCellType()
   VTK_TETRAHEDRON = vtk.vtkTetra().GetCellType()
+  VTK_QUADRATIC_TETRAHEDRON = vtk.vtkQuadraticTetra().GetCellType()
   VTK_QUAD = vtk.vtkQuad().GetCellType()
   VTK_HEXAHEDRON = vtk.vtkHexahedron().GetCellType()
    
@@ -86,9 +89,9 @@ if VtkSupport():
       VTK_UNKNOWN, \
       VTK_EMPTY_CELL, \
       VTK_VERTEX, \
-      VTK_LINE, \
-      VTK_TRIANGLE, VTK_QUAD, \
-      VTK_TETRAHEDRON, VTK_HEXAHEDRON \
+      VTK_LINE, VTK_QUADRATIC_LINE, \
+      VTK_TRIANGLE, VTK_QUADRATIC_TRIANGLE, VTK_QUAD, \
+      VTK_TETRAHEDRON, VTK_QUADRATIC_TETRAHEDRON, VTK_HEXAHEDRON \
     )
    
   class VtkType(elements.ElementType):
@@ -100,9 +103,9 @@ if VtkSupport():
         VTK_UNKNOWN:elements.ELEMENT_UNKNOWN, \
         VTK_EMPTY_CELL:elements.ELEMENT_EMPTY, \
         VTK_VERTEX:elements.ELEMENT_VERTEX, \
-        VTK_LINE:elements.ELEMENT_LINE, \
-        VTK_TRIANGLE:elements.ELEMENT_TRIANGLE, VTK_QUAD:elements.ELEMENT_QUAD, \
-        VTK_TETRAHEDRON:elements.ELEMENT_TETRAHEDRON, VTK_HEXAHEDRON:elements.ELEMENT_HEXAHEDRON \
+        VTK_LINE:elements.ELEMENT_LINE, VTK_QUADRATIC_LINE:elements.ELEMENT_QUADRATIC_LINE, \
+        VTK_TRIANGLE:elements.ELEMENT_TRIANGLE, VTK_QUADRATIC_TRIANGLE:elements.ELEMENT_QUADRATIC_TRIANGLE, VTK_QUAD:elements.ELEMENT_QUAD, \
+        VTK_TETRAHEDRON:elements.ELEMENT_TETRAHEDRON, VTK_QUADRATIC_TETRAHEDRON:elements.ELEMENT_QUADRATIC_TETRAHEDRON, VTK_HEXAHEDRON:elements.ELEMENT_HEXAHEDRON \
       }
     _elementTypeIdToVtkTypeId = utils.DictInverse(_vtkTypeIdToElementTypeId)
     
@@ -165,7 +168,7 @@ def PrintVtu(vtu, debugLevel = 0):
   
   return
      
-def VtuFromPvtu(pvtu):
+def PvtuToVtu(pvtu):
   """
   Convert a parallel vtu to a serial vtu. Does nothing (except generate a copy)
   if the supplied vtu is already a serial vtu.
@@ -178,9 +181,10 @@ def VtuFromPvtu(pvtu):
   if ghostLevel is None:
     # We have a serial vtu
     debug.deprint("Warning: VtuFromPvtu passed a serial vtu")
-    return CopyVtu(pvtu)
-  ghostLevel = [ghostLevel.GetValue(i) for i in range(ghostLevel.GetNumberOfComponents() * ghostLevel.GetNumberOfTuples())]
-  # We have a parallel vtu
+    ghostLevel = [0 for i in range(vtu.ugrid.GetNumberOfCells())]
+  else:
+    # We have a parallel vtu
+    ghostLevel = [ghostLevel.GetValue(i) for i in range(ghostLevel.GetNumberOfComponents() * ghostLevel.GetNumberOfTuples())]
   
   # Step 2: Collect the non-ghost cell IDs
   
@@ -216,72 +220,101 @@ def VtuFromPvtu(pvtu):
     cellNodeIds = [cellNodeIds.GetId(i) for i in range(cellNodeIds.GetNumberOfIds())]
     for nodeId in cellNodeIds:
       keepNode[nodeId] = True
-  
-  # Generate a list of current non-ghost node IDs, for use in duplicate node
-  # detection
-  for i, keep in enumerate(keepNode):
-    if keep:
-      nodeIds.append(i)
-  
-  debug.dprint("Non-ghost nodes (pass 1): " + str(len(nodeIds)))
+      
+  debug.dprint("Non-ghost nodes (pass 1): " + str(keepNode.count(True)))
       
   # Detect duplicate nodes
-  lbound, ubound = VtuBoundingBox(pvtu).GetBounds()
-  tol = calc.L2Norm([ubound[i] - lbound[i] for i in range(len(lbound))]) / 1.0e6
-  debug.dprint("Duplicate node tolerance: " + str(tol))
-  # Generate a sorted list of locations, with their node IDs
-  locations = pvtu.GetLocations()
     
   # Jumping through Python 2.3 hoops for cx1 - in >= 2.4, can just pass a cmp
   # argument to list.sort
   class LocationSorter(utils.Sorter):
+    def __init__(self, x, y, order = [0, 1, 2]):
+      utils.Sorter.__init__(self, x, y)
+      self._order = order
+    
+      return
+  
     def __cmp__(self, val):
-      def cmp(x, y):
-        #if calc.L2Norm(x - y) < tol:
-        #  return 0
-        #el
-        if x[0] > y[0]:
+      def cmp(x, y, order, depth = 0):
+        comp = order[depth]
+      
+        if x[comp] > y[comp]:
           return 1
-        elif x[0] < y[0]:
+        elif x[comp] < y[comp]:
           return -1
-        elif len(x) == 1:
+        elif depth == len(order) - 1:
           return 0
         else:
-          return cmp(x[1:], y[1:])
+          return cmp(x, y, order, depth + 1)
         
-      return cmp(self._key, val.GetKey())
-  sortPack = [LocationSorter(location, i) for i, location in enumerate(locations)]
-  sortPack.sort()
-  locations = [pack.GetKey() for pack in sortPack]
-  permutedNodeIds = [pack.GetValue() for pack in sortPack]
+      return cmp(self._key, val.GetKey(), self._order)
   
-  # This rather horrible construction maps all except the first node in each set
-  # of duplicate nodes to the first node in the set of duplicate nodes, for the
-  # sorted current non-ghost locations
+  def Dup(x, y, tol):
+    if abs(x[0] - y[0]) < tol:
+      if len(x) == 1:
+        return True
+      else:
+        return Dup(x[1:], y[1:], tol)
+    else:
+      return False
+      
+  locations = pvtu.GetLocations()
+  lbound, ubound = VtuBoundingBox(pvtu).GetBounds()
+  tol = calc.L2Norm([ubound[i] - lbound[i] for i in range(len(lbound))]) / 1.0e12
+  debug.dprint("Duplicate node tolerance: " + str(tol))
+  
   duplicateNodeMap = [None for i in range(pvtu.ugrid.GetNumberOfPoints())]
-  i = 0
-  while i < len(locations) - 1:
-    if calc.L2Norm(locations[i] - locations[i + 1]) < tol:
-      if keepNode[permutedNodeIds[i + 1]]:
-        keepNode[permutedNodeIds[i + 1]] = False 
-        # Traps a nasty corner case, where the duplicate node was attached to a
-        # non-ghost node, but the node to which it is being mapped wasn't!
-        keepNode[permutedNodeIds[i]] = True
-        duplicateNodeMap[permutedNodeIds[i + 1]] = permutedNodeIds[i]
-      j = i + 1
-      while j < len(locations) - 1:
-        if calc.L2Norm(locations[j] - locations[j + 1]) < tol:
+  duplicateNodeMapInverse = [[] for i in range(len(duplicateNodeMap))]
+  # We need to sort the locations using all possible combinations of component
+  # order, to take account of all possible floating point errors.
+  orders = [[0], [[0, 1], [1, 0]], [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]][VtuDim(pvtu) - 1]
+  for order in orders:  
+    debug.dprint("Processing component order: " + str(order))
+    
+    # Generate a sorted list of locations, with their node IDs
+    sortPack = [LocationSorter(location.tolist(), i, order) for i, location in enumerate(locations)]
+    sortPack.sort()
+    permutedLocations = [pack.GetKey() for pack in sortPack]
+    permutedNodeIds = [pack.GetValue() for pack in sortPack]
+    
+    # This rather horrible construction maps all except the first node in each set
+    # of duplicate nodes to the first node in the set of duplicate nodes, for the
+    # sorted current non-ghost locations
+    i = 0
+    while i < len(permutedLocations) - 1:
+      j = i
+      while j < len(permutedLocations) - 1:
+        if Dup(permutedLocations[i], permutedLocations[j + 1], tol):
           if keepNode[permutedNodeIds[j + 1]]:
-            keepNode[permutedNodeIds[j + 1]] = False 
-            # Traps a nasty corner case, where the duplicate node was attached to a
-            # non-ghost node, but the node to which it is being mapped wasn't!
-            keepNode[permutedNodeIds[i]] = True
-            duplicateNodeMap[permutedNodeIds[j + 1]] = permutedNodeIds[i] 
+            oldNodeId = permutedNodeIds[j + 1]
+            newNodeId = permutedNodeIds[i]
+            while not duplicateNodeMap[newNodeId] is None:
+              newNodeId = duplicateNodeMap[newNodeId]
+              
+            if not oldNodeId == newNodeId:    
+              def MapInverses(oldNodeId, newNodeId):
+                for nodeId in duplicateNodeMapInverse[oldNodeId]:
+                   assert(not nodeId == newNodeId)
+                   keepNode[nodeId] = False
+                   duplicateNodeMap[nodeId] = newNodeId
+                   MapInverses(nodeId, newNodeId)
+                duplicateNodeMapInverse[oldNodeId] = []
+                 
+                return
+              # Map everything mapped to the old node ID to the new node ID
+              MapInverses(oldNodeId, newNodeId)
+                
+              keepNode[newNodeId] = True
+              keepNode[oldNodeId] = False 
+              duplicateNodeMap[oldNodeId] = newNodeId
+              duplicateNodeMapInverse[newNodeId].append(oldNodeId)
           j += 1
         else:
           break
       i = j
-    i += 1
+      i += 1
+    
+    debug.dprint("Non-ghost nodes: " + str(keepNode.count(True)))
       
   # Collect the final non-ghost node IDs and generate the node renumbering map
   nodeIds = []
@@ -292,7 +325,7 @@ def VtuFromPvtu(pvtu):
       oldNodeIdToNew[i] = index
       index += 1
   for i, nodeId in enumerate(duplicateNodeMap):
-    if not nodeId is None:
+    if not nodeId is None: 
       assert(oldNodeIdToNew[i] is None)
       assert(not oldNodeIdToNew[nodeId] is None)
       oldNodeIdToNew[i] = oldNodeIdToNew[nodeId]
@@ -365,6 +398,8 @@ def VtuFromPvtu(pvtu):
     result.ugrid.GetCellData().AddArray(newData)
     
   return result
+  
+VtuFromPvtu = PvtuToVtu
      
 def XyToVtu(x, y):
   """
@@ -679,6 +714,25 @@ def CopyVtu(inputVtu):
   result.ugrid = ugrid
   
   return result
+  
+def BlankCopyVtu(inputVtu):
+  """
+  Return a vtu with the mesh of the supplied vtu
+  """
+  
+  ugrid = vtk.vtkUnstructuredGrid()
+    
+  # Add the points
+  ugrid.SetPoints(inputVtu.ugrid.GetPoints())
+  # Add the cells
+  ugrid.SetCells(inputVtu.ugrid.GetCellTypesArray(), inputVtu.ugrid.GetCellLocationsArray(), inputVtu.ugrid.GetCells())
+    
+  # Construct output  
+  result = vtu()
+  result.ugrid = ugrid
+  
+  return result
+  
     
 def RemappedVtu(inputVtu, targetVtu):
   """
@@ -1219,6 +1273,7 @@ def VtuIntegrateCell(vtu, cell, fieldName):
   linear simplices.
   """
     
+  dim = VtuDim(vtu)
   nc = VtuFieldComponents(vtu, fieldName)
   field = vtu.ugrid.GetPointData().GetArray(fieldName)
   
@@ -1226,10 +1281,42 @@ def VtuIntegrateCell(vtu, cell, fieldName):
   cellCoords = vtkCell.GetPoints()
   cellPoints = vtu.GetCellPoints(cell)
   
-  nodeCoords = [cellCoords.GetPoint(i) for i in range(cellCoords.GetNumberOfPoints())]
+  nodeCoords = [cellCoords.GetPoint(i)[:dim] for i in range(cellCoords.GetNumberOfPoints())]
   fieldVals = [numpy.array([field.GetValue(point * nc + i) for i in range(nc)]) for point in cellPoints]
   
   return simplices.SimplexIntegral(nodeCoords, fieldVals)
+
+def VtuIntegrateField(vtu, fieldName):
+  """
+  Integrate the supplied field over the whole mesh. This currently assumes
+  linear simplices.
+  """
+  
+  integral = 0.0
+  for cell in range(vtu.ugrid.GetNumberOfCells()):
+    integral += VtuIntegrateCell(vtu, cell, fieldName)
+  
+  return integral
+  
+def VtuVolume(vtu):
+  """
+  Return the volume of the supplied vtu. This currently assumes linear
+  simplices.
+  """
+  
+  dim = VtuDim(vtu)
+  
+  volume = 0.0
+  for cell in range(vtu.ugrid.GetNumberOfCells()):
+    vtkCell = vtu.ugrid.GetCell(cell)
+    cellCoords = vtkCell.GetPoints()
+    cellPoints = vtu.GetCellPoints(cell)
+  
+    nodeCoords = [cellCoords.GetPoint(i)[:dim] for i in range(cellCoords.GetNumberOfPoints())]
+    
+    volume += simplices.SimplexVolume(nodeCoords)
+    
+  return volume
 
 def VtuIntegrateBinnedCells(vtu, cellBins, fieldName):
   """
@@ -1244,6 +1331,33 @@ def VtuIntegrateBinnedCells(vtu, cellBins, fieldName):
       integral[i] += VtuIntegrateCell(vtu, cell, fieldName)
   
   return integral
+  
+def VtuMeshMerge(vtu, mesh, idsName = "IDs"):
+  """
+  Merge the surface mesh and ID information from the supplied mesh with the
+  supplied vtu
+  """
+  
+  assert(VtuDim(vtu) == mesh.GetDim())
+  assert(vtu.ugrid.GetNumberOfPoints() == mesh.NodeCoordsCount())
+  assert(vtu.ugrid.GetNumberOfCells() == mesh.VolumeElementCount())
+  # If we were really paranoid we could check the coords and element nodes as
+  # well
+
+  # Generate a new vtu from the mesh  
+  merge = mesh.ToVtu(idsName = idsName)
+  # Copy the nodal data
+  for fieldName in vtu.GetFieldNames():
+    merge.AddField(fieldName, vtu.GetField(fieldName))
+  # Copy the cell data
+  for fieldName in VtuGetCellFieldNames(vtu):
+    if fieldName == idsName:
+      continue
+    cellField = numpy.array([numpy.zeros(mesh.SurfaceElementCount()), VtuGetCellField(vtu, fieldName)])
+    cellField.shape = (mesh.SurfaceElementCount() + mesh.VolumeElementCount(),)
+    VtuAddCellField(merge, fieldName, VtuGetCellField(vtu, fieldName))
+  
+  return merge
     
 class vtutoolsUnittests(unittest.TestCase):
   def testVtkSupport(self):

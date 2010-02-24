@@ -67,7 +67,7 @@ class Mesh(events.Evented):
     return
     
   def __str__(self):
-    return "Mesh: " + str(self.NodeCount()) + " nodes, " + str(self.VolumeElementCount()) + " volume elements, " + str(self.SurfaceElementCount()) + " surface elements"
+    return "Mesh: " + str(self.GetDim()) + " dimensional, " + str(self.NodeCount()) + " nodes, " + str(self.VolumeElementCount()) + " volume elements, " + str(self.SurfaceElementCount()) + " surface elements"
     
   def GetDim(self):
     return self._dim
@@ -133,7 +133,15 @@ class Mesh(events.Evented):
     if optimise.DebuggingEnabled():
       for node in element.GetNodes():
         assert(self.ValidNode(node))
+        
+    element.SetDim(self.GetDim())
     self._volumeElements.append(element)
+    
+    return
+    
+  def AddVolumeElements(self, elements):
+    for element in elements:
+      self.AddVolumeElement(element)
     
     return
     
@@ -182,9 +190,17 @@ class Mesh(events.Evented):
     if optimise.DebuggingEnabled():
       for node in element.GetNodes():
         assert(self.ValidNode(node))
+        
+    element.SetDim(self.GetDim() - 1)
     self._surfaceElements.append(element)
     
     return  
+  
+  def AddSurfaceElements(self, elements):
+    for element in elements:
+      self.AddSurfaceElement(element)
+    
+    return
     
   def RemoveSurfaceElement(self, element):
     self._surfaceElements.remove(element)
@@ -301,6 +317,32 @@ class Mesh(events.Evented):
     vtu.ugrid = ugrid
     
     return vtu
+  
+  def NeList(self):
+    neList = [[] for i in range(self.NodeCoordsCount())]
+    for i, element in enumerate(self.GetVolumeElements()):
+      nodes = element.GetNodes()
+      for node in nodes:
+        neList[node].append(i)
+        
+    for eList in neList:
+      utils.StripListDuplicates(eList)
+      
+    return neList
+  
+  def EeList(self):
+    neList = self.NeList()
+  
+    eeList = [[] for i in range(self.VolumeElementCount())]
+    for i, element in enumerate(self.GetVolumeElements()):
+      nodes = element.GetNodes()
+      for node in nodes:
+        eeList[i] += neList[node]
+    
+    for eList in eeList:
+      utils.StripListDuplicates(eList)
+    
+    return eeList
    
 def VtuToMesh(vtu, idsName = "IDs"):
   """
@@ -359,7 +401,10 @@ def NodeUniversalNumbers(meshes, level = None):
   for halo in halos:
     assert(halo.TrailingReceivesOrdered())
     
-  unns = [range(halo.GetNOwnedNodes()) for halo in halos]
+  bases = [0]
+  for halo in halos[:-1]:
+    bases.append(bases[-1] + halo.GetNOwnedNodes())
+  unns = [range(bases[i], bases[i] + halo.GetNOwnedNodes()) for i, halo in enumerate(halos)]
   for i, mesh in enumerate(meshes):
     unns[i] += [None for i in range(mesh.NodeCount() - halos[i].GetNOwnedNodes())]
   

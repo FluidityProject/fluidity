@@ -39,75 +39,6 @@ import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.meshes as meshes
 import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.utils as utils
- 
-def IndexBinaryIncSearch(val, values):
-  """
-  Find the index into values such that values[index] <= val and (if
-  index < len(values) values[index + 1] > val. Requires values to be in
-  increasing order.
-  """
-
-  if optimise.DebuggingEnabled():
-    testValues = copy.deepcopy(values)
-    testValues.sort()
-    assert(values == testValues)
-
-  minLower = 0
-  maxLower = len(values)
-  lower = minLower
-  while maxLower - minLower > 0:
-    # Choose new bounds for lower
-    if values[lower] <= val:
-      minLower = lower
-    else:
-      maxLower = lower
-      
-    # Calculate a new guess for lower
-    oldLower = lower
-    lower = int(float(maxLower + minLower) / 2.0)
-    if oldLower == lower:
-      if maxLower - minLower <= 1:
-        break
-      else:
-        lower += 1
-
-  return lower
-
-def IndexBinaryDecSearch(val, values):
-  """
-  Find the index into values such that values[index] >= val and (if
-  index > 0) values[index + 1] < val. Requires values to be in decreasing
-  order.
-  """
-
-  if optimise.DebuggingEnabled():
-    testValues = copy.deepcopy(values)
-    testValues.sort()
-    testValues.reverse()
-    assert(values == testValues)
-
-  minUpper = 0
-  maxUpper = len(values) - 1
-  upper = maxUpper
-  while maxUpper - minUpper > 0:
-    # Choose new bounds for lower
-    if values[upper] < val:
-      maxUpper = upper
-    else:
-      minUpper = upper
-      
-    # Calculate a new guess for lower
-    oldUpper = upper
-    upper = int(float(maxUpper + minUpper) / 2.0)
-    if oldUpper == upper:
-      if maxUpper - minUpper <= 1:
-        break
-      else:
-        upper += 1
-
-  return upper
-
-IndexBinarySearch = IndexBinaryIncSearch
 
 class StructuredField2D:
   def __init__(self, xCoords, yCoords, type = None, shape = None, data = None, name = None):
@@ -226,10 +157,10 @@ class StructuredField2D:
     assert(y >= self.YCoord(0) and y < self.YCoord(-1))
     
     # Peform a binary search for the left index
-    left = IndexBinarySearch(x, self.XCoords())
+    left = calc.IndexBinaryLboundSearch(x, self.XCoords())
         
     # Perform  a binary search for the lower index
-    lower = IndexBinarySearch(y, self.YCoords())
+    lower = calc.IndexBinaryLboundSearch(y, self.YCoords())
     
     if self.XCoordsCount() > 1:
       right = left + 1
@@ -313,30 +244,6 @@ class StructuredField2D:
     return vtu
 
 class structured_fieldsUnittests(unittest.TestCase):
-  def testIndexBinaryIncSearch(self):
-    values = [0.0, 1.0, 2.0]
-    self.assertEquals(IndexBinaryIncSearch(-0.1, values), 0)
-    self.assertEquals(IndexBinaryIncSearch(0.1, values), 0)
-    self.assertEquals(IndexBinaryIncSearch(1.1, values), 1)
-    self.assertEquals(IndexBinaryIncSearch(2.1, values), 2)
-
-    values = [0, 1, 2]
-    self.assertEquals(IndexBinaryIncSearch(1, values), 1)
-
-    return
-
-  def testIndexBinaryDecSearch(self):
-    values = [2.0, 1.0, 0.0]
-    self.assertEquals(IndexBinaryDecSearch(-0.1, values), 2)
-    self.assertEquals(IndexBinaryDecSearch(0.1, values), 1)
-    self.assertEquals(IndexBinaryDecSearch(1.1, values), 0)
-    self.assertEquals(IndexBinaryDecSearch(2.1, values), 0)
-
-    values = [2, 1, 0]
-    self.assertEquals(IndexBinaryDecSearch(1, values), 1)
-
-    return
-
   def testStructuredField2D(self):
     field = StructuredField2D(annulus_mesh.SliceCoordsConstant(0.0, 1.0, 3), \
       annulus_mesh.SliceCoordsConstant(2.0, 3.0, 4), \

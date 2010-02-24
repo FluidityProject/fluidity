@@ -214,6 +214,18 @@ def WritePoly(mesh, filename, holeMesh = None):
   
   return
   
+def TriangulateMesh(mesh, holeMesh = None, commandLineSwitches = []):
+  """
+  Triangulate the given mesh file using Triangle
+  """
+    
+  tempDir = tempfile.mkdtemp()
+  polyFilename = os.path.join(tempDir, "temp.poly")
+  WritePoly(mesh, polyFilename, holeMesh = holeMesh)
+  mesh = TriangulatePoly(polyFilename, commandLineSwitches = commandLineSwitches)
+  filehandling.Rmdir(tempDir, force = True)
+  
+  return mesh
     
 def TriangulatePoly(polyFilename, commandLineSwitches = []):
   """
@@ -243,6 +255,19 @@ def TriangulatePoly(polyFilename, commandLineSwitches = []):
   
   mesh = triangletools.ReadTriangle(tempFile[:-5] + ".1")
   
+  filehandling.Rmdir(tempDir, force = True)
+  
+  return mesh
+  
+def TetrahedralizeMesh(mesh, holeMesh = None, commandLineSwitches = []):
+  """
+  Tetrahedralise the given mesh using TetGen
+  """
+    
+  tempDir = tempfile.mkdtemp()
+  polyFilename = os.path.join(tempDir, "temp.poly")
+  WritePoly(mesh, polyFilename, holeMesh = holeMesh)
+  mesh = TetrahedralizePoly(polyFilename, commandLineSwitches = commandLineSwitches)
   filehandling.Rmdir(tempDir, force = True)
   
   return mesh

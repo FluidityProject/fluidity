@@ -15,33 +15,50 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
-Finite element element classes.
+Finite element element classes
 """
 
 import copy
 import unittest
 
 import fluidity.diagnostics.debug as debug
+
+try:
+  import numpy
+except ImportError:
+  debug.deprint("Warning: Failed to import numpy module")
+try:
+  import scipy
+except ImportError:
+  debug.deprint("Warning: Failed to import scipy module")
+try:
+  import scipy.interpolate
+except ImportError:
+  debug.deprint("Warning: Failed to import scipy.interpolate module")
+
 import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.events as events
 import fluidity.diagnostics.optimise as optimise
 import fluidity.diagnostics.utils as utils
 
+def NumpySupport():
+  return "numpy" in globals()
+
 ELEMENT_UNKNOWN, \
 ELEMENT_EMPTY, \
 ELEMENT_VERTEX, \
-ELEMENT_LINE, \
-ELEMENT_TRIANGLE, ELEMENT_QUAD, \
-ELEMENT_TETRAHEDRON, ELEMENT_HEXAHEDRON, \
-  = range(8)
+ELEMENT_LINE, ELEMENT_QUADRATIC_LINE, \
+ELEMENT_TRIANGLE, ELEMENT_QUADRATIC_TRIANGLE, ELEMENT_QUAD, \
+ELEMENT_TETRAHEDRON, ELEMENT_QUADRATIC_TETRAHEDRON, ELEMENT_HEXAHEDRON, \
+  = range(11)
     
 elementTypeIds = ( \
     ELEMENT_UNKNOWN, \
     ELEMENT_EMPTY, \
     ELEMENT_VERTEX, \
-    ELEMENT_LINE, \
-    ELEMENT_TRIANGLE, ELEMENT_QUAD, \
-    ELEMENT_TETRAHEDRON, ELEMENT_HEXAHEDRON \
+    ELEMENT_LINE, ELEMENT_QUADRATIC_LINE, \
+    ELEMENT_TRIANGLE, ELEMENT_QUADRATIC_TRIANGLE, ELEMENT_QUAD, \
+    ELEMENT_TETRAHEDRON, ELEMENT_QUADRATIC_TETRAHEDRON, ELEMENT_HEXAHEDRON \
   )
   
 ELEMENT_FAMILY_UNKNOWN, \
@@ -63,26 +80,26 @@ class ElementType(events.Evented):
   _elementTypeIdsMap = {
       (0, 0):ELEMENT_EMPTY, \
       (0, 1):ELEMENT_VERTEX, \
-      (1, 2):ELEMENT_LINE, \
-      (2, 3):ELEMENT_TRIANGLE, (2, 4):ELEMENT_QUAD, \
-      (3, 4):ELEMENT_TETRAHEDRON, (3, 8):ELEMENT_HEXAHEDRON \
+      (1, 2):ELEMENT_LINE, (1, 3):ELEMENT_QUADRATIC_LINE, \
+      (2, 3):ELEMENT_TRIANGLE, (2, 6):ELEMENT_QUADRATIC_TRIANGLE, (2, 4):ELEMENT_QUAD, \
+      (3, 4):ELEMENT_TETRAHEDRON, (3, 10):ELEMENT_QUADRATIC_TETRAHEDRON, (3, 8):ELEMENT_HEXAHEDRON \
     }
   _elementTypeIdsMapInverse = utils.DictInverse(_elementTypeIdsMap)
 
   _elementDegreeMap = {
       ELEMENT_EMPTY:0, \
       ELEMENT_VERTEX:0, \
-      ELEMENT_LINE:1, \
-      ELEMENT_TRIANGLE:1, ELEMENT_QUAD:1, \
-      ELEMENT_TETRAHEDRON:1, ELEMENT_HEXAHEDRON:1 \
+      ELEMENT_LINE:1, ELEMENT_QUADRATIC_LINE:2, \
+      ELEMENT_TRIANGLE:1, ELEMENT_QUADRATIC_TRIANGLE:2, ELEMENT_QUAD:1, \
+      ELEMENT_TETRAHEDRON:1, ELEMENT_QUADRATIC_TETRAHEDRON:2, ELEMENT_HEXAHEDRON:1 \
     }
 
   _elementFamilyIdMap = {
       ELEMENT_EMPTY:ELEMENT_FAMILY_UNKNOWN, \
       ELEMENT_VERTEX:ELEMENT_FAMILY_SIMPLEX, \
-      ELEMENT_LINE:ELEMENT_FAMILY_SIMPLEX, \
-      ELEMENT_TRIANGLE:ELEMENT_FAMILY_SIMPLEX, ELEMENT_QUAD:ELEMENT_FAMILY_CUBIC, \
-      ELEMENT_TETRAHEDRON:ELEMENT_FAMILY_SIMPLEX, ELEMENT_HEXAHEDRON:ELEMENT_FAMILY_CUBIC \
+      ELEMENT_LINE:ELEMENT_FAMILY_SIMPLEX, ELEMENT_QUADRATIC_LINE:ELEMENT_FAMILY_SIMPLEX, \
+      ELEMENT_TRIANGLE:ELEMENT_FAMILY_SIMPLEX, ELEMENT_QUADRATIC_TRIANGLE:ELEMENT_FAMILY_SIMPLEX, ELEMENT_QUAD:ELEMENT_FAMILY_CUBIC, \
+      ELEMENT_TETRAHEDRON:ELEMENT_FAMILY_SIMPLEX, ELEMENT_QUADRATIC_TETRAHEDRON:ELEMENT_FAMILY_SIMPLEX, ELEMENT_HEXAHEDRON:ELEMENT_FAMILY_CUBIC \
     }
     
   def __init__(self, dim = None, nodeCount = None, elementTypeId = None):
@@ -152,15 +169,13 @@ class ElementType(events.Evented):
     
   def GetElementFamilyId(self):
     return self._elementFamilyIdMap[self.GetElementTypeId()]
-
+    
 class Element(events.Evented):
   """
   A single element in a mesh
   """
 
-  def __init__(self, nodes = [], ids = None, dim = None):
-    events.Evented.__init__(self, ["dimChange"])
-  
+  def __init__(self, nodes = [], ids = None, dim = None):  
     self._nodes = []
     for node in nodes:
       self.AddNode(node)
@@ -172,18 +187,33 @@ class Element(events.Evented):
     return
     
   def __str__(self):
-    return "Element: Nodes = " + str(self.GetNodes()) + ", Ids = " + str(self.GetIds())
+    
+    if self.HasDim():
+      dimension = str(self.GetDim())
+    else:
+      dimension = "unknown"
+
+    return "Element: Dimension = " + dimension + ", Nodes = " + str(self.GetNodes()) + ", Ids = " + str(self.GetIds())
+   
+  def HasDim(self):
+    return hasattr(self, "_dim")
    
   def GetDim(self):
-    assert(not self._dim is None)
+    assert(self.HasDim())
     
     return self._dim
   
   def SetDim(self, dim):
+    """
+    Set the element dimension. This can only be called once. This is a public
+    accessor method in order to allow deferred dimension setting - it's more
+    convenient to allow the Mesh object to set the element dimension that to
+    be forced to do it manually when adding volume / surface elements.
+    """
+  
     assert(dim >= 0)
+    assert(not self.HasDim() or dim == self.GetDim())
     self._dim = dim
-    
-    self._RaiseEvent("dimChange")
     
     return
    
@@ -240,11 +270,8 @@ class Element(events.Evented):
   def GetLoc(self):
     return len(self._nodes)
     
-  def GetType(self, dim = None):
-    if dim is None:
-      dim = self.GetDim()
-      
-    return ElementType(dim = dim, nodeCount = self.GetLoc())
+  def GetType(self):      
+    return ElementType(dim = self.GetDim(), nodeCount = self.GetLoc())
     
 class elementsUnittests(unittest.TestCase):
   def testElementType(self):

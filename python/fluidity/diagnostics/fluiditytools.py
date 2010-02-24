@@ -24,7 +24,13 @@ import subprocess
 import tempfile
 import unittest
 
+try:
+  import numpy
+except ImportError:
+  debug.deprint("Warning: Failed to import numpy module")
+
 import fluidity.diagnostics.debug as debug
+import fluidity.diagnostics.utils as utils
 
 try:
   from fluidity_tools import *
@@ -34,7 +40,7 @@ except:
 import fluidity.diagnostics.filehandling as filehandling
 import fluidity.diagnostics.utils as utils
   
-def FluidityBinary(binaries = ["dfluidity-debug", "dfluidity"]):
+def FluidityBinary(binaries = ["dfluidity-debug", "dfluidity", "fluidity-debug", "fluidity"]):
   """
   Return the command used to call Fluidity
   """
@@ -46,6 +52,7 @@ def FluidityBinary(binaries = ["dfluidity-debug", "dfluidity"]):
     process.wait()
     if process.returncode == 0:
       binary = possibleBinary
+      debug.dprint("Fluidity binary: " + str(process.stdout.readlines()[0]), newline = False)
       break
   
   if binary is None:
@@ -59,11 +66,11 @@ class Stat:
   stat_parser, but with some annoying features fixed.
   """
 
-  def __init__(self, filename = None, delimiter = "%"):
+  def __init__(self, filename = None, delimiter = "%", includeMc = False, subsample = 1):
     self.SetDelimiter(delimiter)
     self._s = {}
     if not filename is None:
-      self.Read(filename)
+      self.Read(filename, includeMc = includeMc, subsample = subsample)
       
     return
     
@@ -212,7 +219,7 @@ class Stat:
   def SplitPath(self, path):
     return path.split(self._delimiter)
     
-  def Read(self, filename):
+  def Read(self, filename, includeMc = False, subsample = 1):
     """
     Read a .stat file
     """
@@ -223,7 +230,7 @@ class Stat:
         assert(not key1 in ["val", "value"])
         if isinstance(s[key1], dict):
           if len(s[key1].keys()) == 1 and s[key1].keys()[0] in ["val", "value"]:
-            newS[str(key1)] = [float(val) for val in s[key1][s[key1].keys()[0]]]
+            newS[str(key1)] = s[key1][s[key1].keys()[0]]
           else:
             subS = ParseRawS(s[key1], delimiter)
             newS[str(key1)] = {}
@@ -233,13 +240,20 @@ class Stat:
           rank = len(s[key1].shape)
           if rank > 1:
             assert(rank == 2)
+            if includeMc:
+              # Add in this vector
+              
+              # stat_parser gives this in an inconvenient matrix order. Take the
+              # transpose here to make life easier.
+              newS[str(key1)] = s[key1].transpose()
+              
+            # Add in the vector field components
             for i in range(len(s[key1])):
-              # I'm not very happy with this hack - this should be fixed
-              # properly at some point
               newS[str(key1) + delimiter + str(i + 1)] = [val for val in s[key1][i]]
           else:
             try:
-              newS[str(key1)] = [float(val) for val in s[key1]]
+              # Add in this scalar
+              newS[str(key1)] = s[key1]
             except TypeError:
               debug.deprint("Type error for data " + str(s[key1]), 0)
               raise Exception("ParseRawS failure")
@@ -248,174 +262,152 @@ class Stat:
               raise Exception("ParseRawS failure")
           
       return newS
-      
-    self._s = ParseRawS(stat_parser(filename), self._delimiter)
-    
-    return
-    
-  def Write(self, filename):
-    """
-    Write to a .stat file
-    """
-    
-    def FieldTag(column, name, statistic, materialPhase = None, components = None):
-      tagList = []
-      tagList.append("<field")
-      tagList.append("column=\"" + str(column) + "\"")
-      tagList.append("name=\"" + name + "\"")
-      tagList.append("statistic=\"" + statistic + "\"")
-      if not materialPhase is None:
-        tagList.append("material_phase=\"" + materialPhase + "\"")
-      if not components is None or components == 1:
-        tagList.append("components=" + str(components) + "\"")
-      tagList.append("/>")
-      
-      return utils.FormLine(tagList)
-      
-    def EntryComponents(path):
-      try:
-        components = len(self[path])
-      except TypeError:
-        components = 1
-      
-      return
-    
-    materialPhaseTags = []
-    materialPhaseData = []
-    otherTags = []
-    otherData = []
-    for path in self.Paths():
-      pathSplit = self._PathSplit(path)
-      
-      if len(pathSplit) == 1:
-        otherTags.append(pathSplit + [EntryComponents(path)])
-        otherData.append(self[path])
-      elif len(pathSplit) == 2:
-        otherTags.append(pathSplit + [EntryComponents(path)])
-        otherData.append(self[path])
-      elif len(pathSplit) == 3:
-        materialPhaseTags.append(pathSplit + [EntryComponents(path)])
-        materialPhaseData.append(self[path])
-      else:
-        assert(len(pathSplit) > 0)
-        otherTags.append(pathSplit[:2] + [utils.FormLine(pathSplit[2:], delimiter = self._delimiter, newline = False)] + [EntryComponents(path)])
-        otherData.append(self[path])
         
-    statHandle = open(filename, "w")
-    statHandle.write("<header>\n")
-     
-    column = 1
-    for tag in otherTags:
-      assert(len(tag) == 2)
-      statHandle.write(FieldTag(column, tag[0], tag[1], components = tag[2]))
-      column += 1
-    for tag in materialPhaseTags:
-      assert(len(tag) == 3)
-      statHandle.write(FieldTag(column, tag[1], tag[2], materialPhase = tag[0], components = tag[3]))
-      column += 1
-     
-    statHandle.write("</header>\n")
+    debug.dprint("Reading .stat file: " + filename)
+    if subsample == 1:
+      # Handle this case separately, as its convenient to be backwards
+      # compatible
+      statParser = stat_parser(filename)
+    else:
+      statParser = stat_parser(filename, subsample = subsample)
+
+    self._s = ParseRawS(statParser, self._delimiter)
     
-    entries = 0
-    if len(materialPhaseData) > 0:
-      entries = len(materialPhaseData[0])
-    elif len(otherData) > 0:
-      entries = len(otherData[0])
-      
-    for i in range(entries):
-      for data in otherData:
-        statHandle.write(str(data[i]) + " ")
-      for data in materialPhaseData:
-        statHandle.write(str(data[i]) + " ")
-      statHandle.write("\n")
-     
-    statHandle.flush()
-    statHandle.close()
-      
     return
-    
+                
 def DetectorArrays(stat):
   """
   Return a dictionary of detector array lists contained in the supplied stat
   """
   
-  arrayNames = []
-  arrayIndices = []
-  notArrayNames = []
+  # Detector array data is divided in the stat into one path per array entry. We
+  # want to collapse this into a dictionary of one path per array. This involves
+  # lots of horrible parsing of stat paths.
   
-  # First, find the names of the arrays
+  # Find all detector array names and the paths for each entry in the array
+  arrays = {}         # The arrays
+  notArrayNames = []  # List of candidate array names that are, in fact, not
+                      # detector array names
   for path in stat.PathLists():  
     if isinstance(stat[stat.FormPathFromList(path)], Stat):
       # This isn't a leaf node
       continue
       
-    finalKey = path[-1]
-    keySplit = finalKey.split("_")
-    if len(keySplit) == 0 or not len(stat.SplitPath(keySplit[-1])) in [1, 2] or not utils.IsIntString(stat.SplitPath(keySplit[-1])[0]):
-      # This definitely can't be an entry in a detector array
-      continue
+    # Look for an array marker in the path. This appears as:
+    #   [path]%arrayname_index[%component]
+    # and for coordinates as:
+    #   arrayname_index[%component]
     
-    arrayName = utils.FormLine(path[:-1] + [utils.FormLine(keySplit[:-1], delimiter = "_", newline = False)], delimiter = "%", newline = False)
-    if len(stat.SplitPath(keySplit[-1])) > 1:
-      arrayName = stat.FormPath(arrayName, stat.SplitPath(keySplit[-1])[1])
-      index = stat.SplitPath(keySplit[-1])[0]
-    else:
-      index = keySplit[-1]
+    if len(path) >= 2 and path[1] == "position":
+      # This might be a coordinate entry
+    
+      firstKey = path[0]
+      keySplit = firstKey.split("_")
+      # We have an entry in an array if:
+      #   1. We have more than one entry in the split
+      #   2. The final entry in the split contains one of zero (for scalars) or
+      #      two (for vector and tensors) array path delimiters
+      #   3. The first stat path split of the final entry is an integer (the
+      #      index)
+      if len(keySplit) <= 1 \
+        or not len(stat.SplitPath(keySplit[-1])) in [1, 2] \
+        or not utils.IsIntString(stat.SplitPath(keySplit[-1])[0]):
+        # This definitely can't be an entry in a detector array
+        continue
+        
+      # OK, we have something that looks a bit like an entry for a detector
+      # array
+      
+      # Find the array name and the index for this entry
+      arrayName = utils.FormLine([utils.FormLine(keySplit[:-1], delimiter = "_", newline = False)] + path[1:], delimiter = stat.GetDelimiter(), newline = False)
+      index = int(keySplit[-1])
+    else:    
+      # This might be a field entry
+    
+      finalKey = path[-1]   
+      keySplit = finalKey.split("_")
+      # We have an entry in an array if:
+      #   1. We have more than one entry in the split
+      #   2. The final entry in the split contains one of zero or one (for field
+      #      components) array path delimiters
+      #   3. The first stat path split of the final entry is an integer (the
+      #      index)
+      if len(keySplit) <= 1 \
+        or not len(stat.SplitPath(keySplit[-1])) in [1, 2] \
+        or not utils.IsIntString(stat.SplitPath(keySplit[-1])[0]):
+        # This definitely can't be an entry in a detector array
+        continue
+
+      # OK, we have something that looks a bit like an entry for a detector
+      # array
+      
+      # Find the array name and the index for this entry
+      arrayName = utils.FormLine(path[:-1] + [utils.FormLine(keySplit[:-1], delimiter = "_", newline = False)], delimiter = stat.GetDelimiter(), newline = False)
+      if len(stat.SplitPath(keySplit[-1])) > 1:
+        # This array name references a field component
+        
+        # We need to append the component to the array name. This needs to be
+        # added to the last but one part of the stat path (the final entry is the
+        # name of this detector array as configured in Fluidity).
+        splitName = stat.SplitPath(arrayName)
+        splitName[-2] = stat.FormPath(splitName[-2], stat.SplitPath(keySplit[-1])[1])
+        arrayName = stat.FormPathFromList(splitName)
+        index = int(stat.SplitPath(keySplit[-1])[0])
+      else:
+        # This array name references a field
+      
+        index = int(keySplit[-1])
       
     if arrayName in notArrayNames:
-      # We've already discovered that this isn't an entry in a detector array
+      # We've already discovered that this candidate array name isn't in fact a
+      # detector array
       continue
-          
-    if arrayName in arrayNames:
-      arrayIndex = arrayNames.index(arrayName)
-    
+              
     if index <= 0:
       # This isn't a valid index
+      
+      # This candidate array name isn't in fact a detector array
       notArrayNames.append(arrayName)
-      if arrayName in arrayNames:
-        arrayIndices.remove(arrayIndices[arrayIndex])
-        arrayNames.remove(arrayName)
+      if arrayName in arrays:
+        arrays.remove(arrayName)
       continue
-    if arrayName in arrayNames and index in arrayIndices[arrayIndex]:
-      # We've already seen this index
+    if arrayName in arrays and index in arrays[arrayName]:
+      # We've seen this index more than once for this array name
+    
+      # This candidate apparent array name isn't in fact a detector array
       notArrayNames.append(arrayName)
-      arrayIndices.remove(arrayIndices[arrayIndex])
-      arrayNames.remove(arrayName)
+      arrays.remove(arrayName)
       continue
         
-    if arrayName in arrayNames:
-      arrayIndices[arrayIndex].append(index)
+    if arrayName in arrays:
+      arrays[arrayName][index] = stat[stat.FormPathFromList(path)]
     else: 
-      arrayNames.append(arrayName)
-      arrayIndices.append([index])
-
-  assert(len(arrayNames) == len(arrayIndices))
-  for i, name in enumerate(arrayNames):
-    intIndices = [int(index) for index in arrayIndices[i]]
-    intIndices.sort()
-    for i, index in enumerate(intIndices):
+      # This is a new array name
+      arrays[arrayName] = {}
+      arrays[arrayName][index] = stat[stat.FormPathFromList(path)]
+  
+  # Convert the dictionaries of data to lists, and check for consecutive
+  # indices
+  for name in arrays:
+    array = arrays[name]
+    indices = array.keys()
+    data = [array[index] for index in indices]
+    indices, data = utils.KeyedSort(indices, data, returnSortedKeys = True)
+    arrays[name] = numpy.array(data)
+    
+    for i, index in enumerate(indices):
       if not i + 1 == index:
-        # The indices are not consecutive from one
-        arrayNames.remove(name)
-        arrayIndices.remove(arrayIndices[i])
+        # The indices are not consecutive from one. After all the hard work
+        # above, we still have an array name that isn't in fact a detector
+        # array.
+        arrays.remove(name)
         break
   
-  # OK, we have a list of valid detector array names. Let's form the dictionary
-  # of data.
-  
-  data = {}
-  for i, name in enumerate(arrayNames):
-    indices = utils.KeyedSort([int(index) for index in arrayIndices[i]], arrayIndices[i])
+  # Fantastic! We have our detetectors dictionary!
+  debug.dprint("Detector keys:")
+  debug.dprint(arrays.keys())
     
-    data[name] = []
-    for index in indices:
-      if stat.HasPath(name + "_" + index):
-        data[name].append(stat[name + "_" + index])
-      else:
-        nameSplit = stat.SplitPath(name)
-        data[name].append(stat[stat.FormPath(stat.FormPathFromList(nameSplit[:-1]) + "_" + index, nameSplit[-1])])
-    
-  return data
+  return arrays
   
 def VtuFilenames(project, firstId, lastId = None, extension = ".vtu"):
   """
@@ -538,16 +530,6 @@ class fluiditytoolsUnittests(unittest.TestCase):
     
     return
     
-  def testStatIO(self):
-    tempDir = tempfile.mkdtemp()
-    filename = os.path.join(tempDir, "temp.stat")
-    stat = Stat()
-    stat.Write(filename)
-    stat = Stat(filename)
-    filehandling.Rmdir(tempDir, force = True)
-    
-    return
-  
   def testFindVtuFilenames(self):
     tempDir = tempfile.mkdtemp()
     project = os.path.join(tempDir, "project")

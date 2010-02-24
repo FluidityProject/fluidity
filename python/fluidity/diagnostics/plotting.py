@@ -275,7 +275,7 @@ class ContourPlot(Plot):
     if levels is None:
       self._SetPlot(pylab.contourf(x, y, z))
     else:
-      self._SetPlot(pylab.contourf(x, y, z, N = levels))
+      self._SetPlot(pylab.contourf(x, y, z, levels))
     
     return
  

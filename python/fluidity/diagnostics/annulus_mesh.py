@@ -94,6 +94,40 @@ def SliceCoordsLinear(minVal, maxVal, minL, divisions, tolerance = calc.Epsilon(
     coords.insert(len(coords) - i - 1, coords[-i - 1] - (minL * (r ** i)))
     
   return coords
+  
+def GenerateAnnulusRZPhiToNode(nRCoords, nZCoords, phiPoints): 
+  """
+  Generate the map from r, z phi IDs to node IDs for a structured 3D linear
+  tet annulus mesh
+  """
+ 
+  rzphiToNode = []
+  index = 0
+  for i in range(nRCoords): 
+    rzphiToNode.append([])
+    for j in range(nZCoords):
+      rzphiToNode[i].append([])
+      for k in range(phiPoints):
+        rzphiToNode[i][j].append(index)
+        index += 1
+  
+  return rzphiToNode
+  
+def GenerateAnnulusNodeToRZPhi(nRCoords, nZCoords, phiPoints):
+  """
+  Generate the map from node IDs to r, z phi IDs for a structured 3D linear
+  tet annulus mesh
+  """
+  
+  nodeToRzphi = []
+  index = 0
+  index = 0
+  for i in range(nRCoords): 
+    for j in range(nZCoords):
+      for k in range(phiPoints):
+        nodeToRzphi.append((i, j, k))
+  
+  return nodeToRzphi
 
 def GenerateAnnulusMesh(rCoords, zCoords, phiCoords, innerWallId = 1, outerWallId = 2, topId = 3, bottomId = 4, leftWallId = 5, rightWallId = 6, volumeId = 0, connectEnds = True):
   """
@@ -133,15 +167,7 @@ def GenerateAnnulusMesh(rCoords, zCoords, phiCoords, innerWallId = 1, outerWallI
   nZCoords = len(zCoords)
   
   # Generate map from r, z, phi IDs to node IDs
-  rzphiToNode = []
-  index = 0
-  for i in range(nRCoords): 
-    rzphiToNode.append([])
-    for j in range(nZCoords):
-      rzphiToNode[i].append([])
-      for k in range(phiPoints):
-        rzphiToNode[i][j].append(index)
-        index += 1
+  rzphiToNode = GenerateAnnulusRZPhiToNode(nRCoords, nZCoords, phiPoints)
         
   mesh = meshes.Mesh(3)    
   
@@ -532,7 +558,7 @@ class SlopingAnnulusTopAndBottomRemapper(Remapper):
     else:
       localMinZ = self._minZ - distanceFromOuterWall * math.tan(self._thetaBottom)
     
-    newZ = localMinZ + ((distanceFromBottom - self._minZ) / (self._maxZ - self._minZ)) * (localMaxZ - localMinZ)
+    newZ = localMinZ + (distanceFromBottom / (self._maxZ - self._minZ)) * (localMaxZ - localMinZ)
 
     return [coord[0], coord[1], newZ]
 
@@ -611,8 +637,7 @@ class SlopingCuboidTopAndBottomRemapper(Remapper):
       localMinZ = self._minZ + distanceFromInnerWall * math.tan(self._thetaBottom)
     else:
       localMinZ = self._minZ - distanceFromOuterWall * math.tan(self._thetaBottom)
-    
-    newZ = localMinZ + ((distanceFromBottom - self._minZ) / (self._maxZ - self._minZ)) * (localMaxZ - localMinZ)
+    newZ = localMinZ + (distanceFromBottom / (self._maxZ - self._minZ)) * (localMaxZ - localMinZ)
 
     return [coord[0], coord[1], newZ]
     

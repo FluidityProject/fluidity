@@ -19,6 +19,7 @@ Some useful utility functions
 """
 
 import copy
+import time
 import unittest
 
 import fluidity.diagnostics.optimise as optimise
@@ -45,6 +46,31 @@ def CanLen(input):
     return True
   except TypeError:
     return False
+    
+def Prefix(string, pad, length):
+  """
+  Prefix the supplied string until it is the desired length, with the given
+  padding character
+  """
+
+  assert(len(string) <= length)
+  assert(len(pad) == 1)
+  
+  result = ""
+  while len(string) + len(result) < length:
+    result += pad
+  result += string
+  
+  return result
+
+def CurrentDateStamp():
+  """
+  Return a YYMMDD string
+  """
+
+  currentTime = time.localtime()
+
+  return Prefix(str(currentTime[0] % 100), "0", 2) + Prefix(str(currentTime[1]), "0", 2) + Prefix(str(currentTime[2]), "0", 2)
 
 def ExpandList(input):
   """
@@ -291,6 +317,22 @@ def StripListDuplicates(list):
   list.reverse()
   
   return
+  
+def TypeCodeToType(typeCode):
+  """
+  Convert a type code to the class it represents
+  """
+
+  if typeCode in ["b", "d", "f", "s"]:
+    return float
+  elif typeCode in ["i", "l"]:
+    return int
+  elif typeCode in ["c"]:
+    return str
+  else:
+    raise Exception("Unrecognised type code: " + typeCode)
+  
+  return
     
 class utilsUnittests(unittest.TestCase):
   def testIsIntString(self):
@@ -306,6 +348,14 @@ class utilsUnittests(unittest.TestCase):
     self.assertTrue(CanLen((1, 2)))
     self.assertTrue(CanLen([1, 2]))
     self.assertFalse(CanLen(1))
+    
+    return
+    
+  def testPrefix(self):
+    self.assertEquals(Prefix("1", "0", 2), "01")
+    self.assertEquals(Prefix("1", "0", 3), "001")
+    self.assertRaises(AssertionError, Prefix, "1", "0", 0)
+    self.assertRaises(AssertionError, Prefix, "1", "00", 2)
     
     return
   

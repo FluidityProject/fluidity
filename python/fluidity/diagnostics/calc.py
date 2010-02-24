@@ -33,6 +33,10 @@ try:
 except ImportError:
   debug.deprint("Warning: Failed to import scipy.linalg module")
 try:
+  import scipy.stats
+except ImportError:
+  debug.deprint("Warning: Failed to import scipy.stats module")
+try:
   import vtk
 except ImportError:
   debug.deprint("Warning: Failed to import vtk module")
@@ -59,6 +63,46 @@ def BilinearlyInterpolate(uLeft, uRight, bLeft, bRight, xRatio, yRatio):
   right = LinearlyInterpolate(bRight, uRight, yRatio)
   
   return LinearlyInterpolate(left, right, xRatio)
+  
+def LinearlyInterpolateField(v, xDonor, xTarget):
+  """
+  Linearly interpolate the given 1D field between the donor and target
+  coordinates (which are assumed sorted in increasing order)
+  """
+  
+  assert(len(v) == len(xDonor))
+  assert(len(v) > 1)
+  assert(len(xTarget) > 1)
+  assert(xTarget[0] >= xDonor[0])
+  assert(xTarget[-1] <= xDonor[-1])
+  
+  result = numpy.empty(len(xTarget))
+  upper = 1
+  for i, x in enumerate(xTarget):
+    while x > xDonor[upper]:
+      upper += 1
+    lower = upper - 1
+    ratio = (x - xDonor[lower]) / (xDonor[upper] - xDonor[lower])
+    result[i] = LinearlyInterpolate(v[lower], v[upper], ratio)
+    
+  return result
+  
+def Se(vals, returnMean = False):
+  """
+  Compute the standard error of the supplied array
+  """
+  
+  mean = MeanVal(vals)
+  se = 0.0
+  for val in vals:
+    se += math.pow(val - mean, 2)
+  se /= float(len(vals) - 1)
+  se = math.sqrt(se)
+  
+  if returnMean:
+    return mean, se
+  else:
+    return se
   
 def DeterminantCE(matrix):
   """
@@ -142,13 +186,12 @@ else:
 
 def Eigendecomposition(matrix, returnEigenvectors = False):
   """
-  Peform an eigendecomposition of the supplied square matrix
+  Peform an eigendecomposition of the supplied matrix
   """
 
   a = numpy.array(matrix)
-  M = len(matrix)
-  a.shape = (M, M)
-
+  a.shape = (a.shape[0], a.shape[0])
+  
   return scipy.linalg.eig(a, right = returnEigenvectors)
 
 def NormalisedFft(values, divisions = None, returnPhases = False):
@@ -163,12 +206,30 @@ def NormalisedFft(values, divisions = None, returnPhases = False):
   fft = numpy.fft.rfft(values, n = divisions) / divisions
   
   if returnPhases:
-    pow = [abs(val) for val in fft]
-    phases = [numpy.arctan2(val.imag, val.real) for val in fft]
+    amp = numpy.array([abs(val) for val in fft])
+    phases = numpy.array([numpy.arctan2(val.imag, val.real) for val in fft])
     
-    return pow, phases
+    return amp, phases
   else:
     return abs(fft)
+
+def UnwrappedPhases(phases, min = -math.pi):
+  """
+  Undo 2-pi wrap-around in a phase time series
+  """
+  
+  unwrappedPhases = numpy.empty(len(phases))
+  unwrappedPhases[0] = phases[0]
+  add = 0.0
+  for i in range(1, len(unwrappedPhases)):
+    if abs(phases[i] - math.pi - min) > 0.5 * math.pi:
+      if phases[i] > min + math.pi and phases[i - 1] < min + math.pi:
+        add -= 2.0 * math.pi
+      elif phases[i] < min + math.pi and phases[i - 1] > min + math.pi:
+        add += 2.0 * math.pi
+    unwrappedPhases[i] = phases[i] + add
+  
+  return unwrappedPhases
     
 class NormalisedLombScargle:
   """
@@ -219,7 +280,7 @@ class NormalisedLombScargle:
     self._variance = 0.0
     for x in self._x:
       self._variance += (x - self._mean) ** 2
-    self._variance /= (self.DataPointsCount() - 1)
+    self._variance /= float(self.DataPointsCount() - 1)
     
     debug.dprint("Mean = " + str(self._mean), 3)
     debug.dprint("Variance = " + str(self._variance), 3)
@@ -233,6 +294,15 @@ class NormalisedLombScargle:
   
     return len(self._x)
     
+  def Tau(self, omega):
+    numerator = 0.0
+    denomenator = 0.0
+    for t in self._t:
+      numerator += self._sin(2.0 * omega * t)
+      denomenator += self._cos(2.0 * omega * t)
+    
+    return self._atan2(denomenator, numerator) / (2.0 * omega)
+    
   def EvaluatePoint(self, omega):
     """
     Evalulate the Lomb-Scargle periodogram at the given angular frequency.
@@ -240,20 +310,11 @@ class NormalisedLombScargle:
     G B Rybicki, The Astrophysical Journal, 388:277-280, 1989 (see also (10) of
     J D Scargle, The Astrophysical Journal, 263:835-853, 1982).
     """
-    
-    def Tau(omega):
-      numerator = 0.0
-      denomenator = 0.0
-      for t in self._t:
-        numerator += self._sin(2.0 * omega * t)
-        denomenator += self._cos(2.0 * omega * t)
-      
-      return self._atan(numerator / denomenator) / (2.0 * omega)
   
     if AlmostEquals(omega, 0.0):
       return 0.0
   
-    tau = Tau(omega)
+    tau = self.Tau(omega)
     
     A = 0.0
     B = 0.0
@@ -276,7 +337,11 @@ class NormalisedLombScargle:
     A **= 2
     C **= 2
     
-    return ((A / B) + (C / D)) / (2.0 * self._variance)
+    # The power as defined in Press and Rybicki is:
+    #   P_N = ((A / B) + (C / D)) / (2.0 * self._variance)
+    # I prefer something more directly comparable with an equivalent Fourier
+    # amplitude, as follows
+    return math.sqrt(((A / B) + (C / D)) / (self.DataPointsCount())) / math.sqrt(2.0)
   
   def EvaluateDirect(self, omegas):
     """
@@ -284,7 +349,7 @@ class NormalisedLombScargle:
     using direct calculation. O len(omega) self.DataPointsCount().
     """
   
-    return [self.EvaluatePoint(omega) for omega in omegas]
+    return numpy.array([self.EvaluatePoint(omega) for omega in omegas])
   
   def EvaluateExtirpilating(self, omegas):
     """
@@ -303,6 +368,141 @@ class NormalisedLombScargle:
     
     return self.EvaluateDirect(omegas)
     
+def IndexBinaryLboundSearch(val, values, increasing = True):
+  """
+  Find the max (min) index into values such that values[index] <= val, where
+  if increasing is True (False), assumes the values are in increasing
+  (decreasing) order
+  """
+
+  if isinstance(values, numpy.ndarray):
+    values = values.tolist()
+
+  if not increasing:
+    lValues = copy.deepcopy(values)
+    values = lValues
+    values.reverse()
+
+  if optimise.DebuggingEnabled():
+    testValues = copy.deepcopy(values)
+    testValues.sort()
+    assert(values == testValues)
+
+  minLower = 0
+  maxLower = len(values)
+  lower = minLower
+  while maxLower - minLower > 0:
+    # Choose new bounds for lower
+    if values[lower] <= val:
+      minLower = lower
+    else:
+      maxLower = lower
+      
+    # Calculate a new guess for lower
+    oldLower = lower
+    lower = int(float(maxLower + minLower) / 2.0)
+    if oldLower == lower:
+      if maxLower - minLower <= 1:
+        break
+      else:
+        lower += 1
+
+  if increasing:
+    return lower
+  else:
+    return len(values) - lower - 1
+
+def IndexBinaryUboundSearch(val, values, increasing = True):
+  """
+  Find the min (max) index into values such that values[index] >= val, where
+  if increasing is True (False), assumes the values are in increasing
+  (decreasing) order
+  """
+
+  if isinstance(values, numpy.ndarray):
+    values = values.tolist()
+
+  if increasing:
+    lValues = copy.deepcopy(values)
+    values = lValues
+    values.reverse()
+
+  if optimise.DebuggingEnabled():
+    testValues = copy.deepcopy(values)
+    testValues.sort()
+    testValues.reverse()
+    assert(values == testValues)
+
+  minUpper = 0
+  maxUpper = len(values) - 1
+  upper = maxUpper
+  while maxUpper - minUpper > 0:
+    # Choose new bounds for lower
+    if values[upper] < val:
+      maxUpper = upper
+    else:
+      minUpper = upper
+      
+    # Calculate a new guess for lower
+    oldUpper = upper
+    upper = int(float(maxUpper + minUpper) / 2.0)
+    if oldUpper == upper:
+      if maxUpper - minUpper <= 1:
+        break
+      else:
+        upper -= 1
+
+  if not increasing:
+    return upper
+  else:
+    return len(values) - upper - 1
+    
+def SSA(v, n, J = 1):
+  """
+  Perform a singular systems analysis of the supplied array of data. See:
+    Inertia-Gravity Wave Generation by Baroclinic Instability, Tom Jacoby,
+    First year report, AOPP, September 2007
+  """
+  
+  N_T = len(v)
+  N = N_T - (n - 1) * J
+
+  shape = (n, N)
+  debug.dprint("Assembling matrix for SSA, shape = " + str(shape))
+  X = numpy.empty(shape)
+  for i in range(N):
+    for j in range(n):
+      X[j, i] = v[i + j * J]
+  theta = numpy.dot(X, X.transpose()) / float(N)
+  del(X)
+  
+  debug.dprint("Performing eigendecomposition")
+  return Eigendecomposition(theta, returnEigenvectors = True)
+  
+def InterpolatedSSA(v, t, dt, n, J = 1):
+  """
+  Perform a singular systems analysis of the supplied non-uniform data using
+  linear interpolation
+  """
+  
+  N_T = int((t[-1] - t[0]) / dt)
+  lt = [t[0] + i * dt for i in range(N_T)]
+  lv = LinearlyInterpolateField(v, t, lt)
+    
+  return SSA(lv, n, J = J)
+    
+def LinearRegression(x, y, returnR):
+  """
+  Linear regression for x-y data
+  """
+  
+  m, c, r, two_tailed, prob = scipy.stats.linregress(x, y)
+  
+  if returnR:
+    return (m, c), r
+  else:
+    return (m, c)
+  
 def Deg2Rad(degrees):
   """
   Convert the supplied number of degrees to radians
@@ -497,7 +697,7 @@ def AlmostEquals(x, y, tolerance = Epsilon()):
   tolerance
   """
   
-  if abs(x) < Epsilon():
+  if abs(x) < tolerance:
     return abs(x - y) < tolerance
   else:
     return abs(x - y) / abs(x) < tolerance
@@ -560,7 +760,7 @@ def CartesianVectorsToPolar(coordinates, data):
       assert(len(coord) == 2)
       assert(len(data[i]) == 2)
   
-  newData = []
+  newData = numpy.zeros((len(data), 2))
   for i, coord in enumerate(coordinates):
     datum = data[i]
   
@@ -568,7 +768,7 @@ def CartesianVectorsToPolar(coordinates, data):
     r = [coord[0] / rMag, coord[1] / rMag]
     theta = [-r[1], r[0]]
   
-    newData.append([datum[0] * r[0] + datum[1] * r[1], datum[0] * theta[0] + datum[1] * theta[1]])
+    newData[i] = [datum[0] * r[0] + datum[1] * r[1], datum[0] * theta[0] + datum[1] * theta[1]]
   
   return newData
   
@@ -584,7 +784,7 @@ def CartesianVectorsToCylindrical(coordinates, data):
       assert(len(coord) == 3)
       assert(len(data[i]) == 3)
   
-  newData = []
+  newData = numpy.zeros((len(data), 3))
   for i, coord in enumerate(coordinates):
     datum = data[i]
   
@@ -592,7 +792,7 @@ def CartesianVectorsToCylindrical(coordinates, data):
     r = [coord[0] / rMag, coord[1] / rMag]
     phi = [-r[1], r[0]]
   
-    newData.append([datum[0] * r[0] + datum[1] * r[1], datum[0] * phi[0] + datum[1] * phi[1], datum[2]])
+    newData[i, :] = [datum[0] * r[0] + datum[1] * r[1], datum[0] * phi[0] + datum[1] * phi[1], datum[2]]
   
   return newData
   
@@ -608,7 +808,7 @@ def CylindricalVectorsToCartesian(coordinates, data):
       assert(len(coord) == 3)
       assert(len(data[i]) == 3)
   
-  newData = []
+  newData = numpy.zeros((len(data), 3))
   for i, coord in enumerate(coordinates):
     datum = data[i]
   
@@ -616,7 +816,7 @@ def CylindricalVectorsToCartesian(coordinates, data):
     x = [coord[0] / rMag, -coord[1] / rMag]
     y = [-x[1], x[0]]
     
-    newData.append([datum[0] * x[0] + datum[1] * x[1], datum[0] * y[0] + datum[1] * y[1], datum[2]])
+    newData[i, :] = [datum[0] * x[0] + datum[1] * x[1], datum[0] * y[0] + datum[1] * y[1], datum[2]]
   
   return newData
 
@@ -719,7 +919,8 @@ class calcUnittests(unittest.TestCase):
     
   def testScipySupport(self):
     import scipy
-    import scipy.optimize
+    import scipy.linalg
+    import scipy.stats
     
     return
 
@@ -733,6 +934,12 @@ class calcUnittests(unittest.TestCase):
     
     return
 
+  def testSe(self):
+    vals = [0.0, 1.0]
+    self.assertAlmostEquals(Se(vals), 1.0 / math.sqrt(2.0))
+
+    return
+
   def testDeterminant(self):
     self.assertAlmostEquals(DeterminantCE([[1.0, 0.0], [0.0, 2.0]]), 2.0)
     self.assertAlmostEquals(DeterminantCE([[1.0, 2.0], [2.0, 4.0]]), 0.0)
@@ -744,12 +951,12 @@ class calcUnittests(unittest.TestCase):
     return
 
   def testEigendecomposition(self):
-    w = Eigendecomposition([[1.0, 0.0], [0.0, 1.0]], returnEigenvectors = False)
+    w = Eigendecomposition(numpy.array([[1.0, 0.0], [0.0, 1.0]]), returnEigenvectors = False)
     self.assertEquals(len(w), 2)
     self.assertAlmostEquals(w[0], 1.0)
     self.assertAlmostEquals(w[1], 1.0)
 
-    w = Eigendecomposition([[1.0, 0.0], [0.0, 0.0]], returnEigenvectors = False)
+    w = Eigendecomposition(numpy.array([[1.0, 0.0], [0.0, 0.0]]), returnEigenvectors = False)
     self.assertEquals(len(w), 2)
     self.assertTrue(AlmostEquals(w[0], 1.0) or AlmostEquals(w[1], 1.0))
     self.assertTrue(AlmostEquals(w[0], 0.0) or AlmostEquals(w[1], 0.0))
@@ -765,17 +972,153 @@ class calcUnittests(unittest.TestCase):
     self.assertEquals(utils.IndexOfMax(fft), 4)
     self.assertAlmostEquals(fft[4], 0.5)
 
-    pow, phases = NormalisedFft([i for i in range(16)], returnPhases = True)
-    self.assertAlmostEquals(pow[0], 7.5)
+    amp, phases = NormalisedFft([i for i in range(16)], returnPhases = True)
+    self.assertAlmostEquals(amp[0], 7.5)
     
-    pow, phases = NormalisedFft([math.cos(2.0 * math.pi * (i / 4.0)) for i in range(16)], returnPhases = True)
-    self.assertAlmostEquals(pow[0], 0.0)
-    self.assertEquals(utils.IndexOfMax(pow), 4)
+    amp, phases = NormalisedFft([math.cos(2.0 * math.pi * (i / 4.0)) for i in range(16)], returnPhases = True)
+    self.assertAlmostEquals(amp[0], 0.0)
+    self.assertEquals(utils.IndexOfMax(amp), 4)
     self.assertAlmostEquals(phases[4], 0.0)
-    self.assertAlmostEquals(pow[4], 0.5)
+    self.assertAlmostEquals(amp[4], 0.5)
+    
+    for phase in [math.pi / float(i) for i in range(2, 5)]:
+      amp, phases = NormalisedFft([math.cos(2.0 * math.pi * (i / 4.0) - phase) for i in range(16)], returnPhases = True)
+      self.assertAlmostEquals(amp[0], 0.0)
+      self.assertEquals(utils.IndexOfMax(amp), 4)
+      self.assertAlmostEquals(phases[4], -phase)
+      self.assertAlmostEquals(amp[4], 0.5)
     
     return
+   
+  def testUnwrappedPhases(self):
+    phases = UnwrappedPhases([0.0, (3.0 / 4.0) * math.pi, (-3.0 / 4.0) * math.pi])
+    self.assertEquals(len(phases), 3)
+    self.assertAlmostEquals(phases[0], 0.0)
+    self.assertAlmostEquals(phases[1], (3.0 / 4.0) * math.pi)
+    self.assertAlmostEquals(phases[2], (5.0 / 4.0) * math.pi)
+
+    phases = UnwrappedPhases([0.0, -(3.0 / 4.0) * math.pi, (3.0 / 4.0) * math.pi])
+    self.assertEquals(len(phases), 3)
+    self.assertAlmostEquals(phases[0], 0.0)
+    self.assertAlmostEquals(phases[1], -(3.0 / 4.0) * math.pi)
+    self.assertAlmostEquals(phases[2], -(5.0 / 4.0) * math.pi)
+
+    phases = UnwrappedPhases([math.pi, (7.0 / 4.0) * math.pi, (1.0 / 4.0) * math.pi], min = 0.0)
+    self.assertEquals(len(phases), 3)
+    self.assertAlmostEquals(phases[0], math.pi)
+    self.assertAlmostEquals(phases[1], (7.0 / 4.0) * math.pi)
+    self.assertAlmostEquals(phases[2], (9.0 / 4.0) * math.pi)
+
+    phases = UnwrappedPhases([math.pi, (1.0 / 4.0) * math.pi, (7.0 / 4.0) * math.pi], min = 0.0)
+    self.assertEquals(len(phases), 3)
+    self.assertAlmostEquals(phases[0], math.pi)
+    self.assertAlmostEquals(phases[1], (1.0 / 4.0) * math.pi)
+    self.assertAlmostEquals(phases[2], (-1.0 / 4.0) * math.pi)
+
+    return
+
+  def testNormalisedLombScargle(self):    
+    times = [i / float(20) * 2.0 * math.pi for i in range(20)]
+    vals = [math.sin(time) + 0.3 * math.sin(3.0 * time) + 0.7 * math.cos(5.0 * time) for time in times]
+    ls = NormalisedLombScargle(vals, times)
+    omegas = [float(i) for i in range(11)]
+    nfft = ls.Evaluate(omegas)
+    self.assertEquals(utils.IndexOfMax(nfft), 1)
+      
+    times = [i / float(20) * 2.0 * math.pi for i in range(30)]
+    vals = [math.sin(time) + 0.3 * math.sin(3.0 * time) + 0.7 * math.cos(5.0 * time) for time in times]
+    ls = NormalisedLombScargle(vals, times)
+    omegas = [float(i) for i in range(11)]
+    nfft = ls.Evaluate(omegas)
+    self.assertEquals(utils.IndexOfMax(nfft), 1)
+      
+    times = [i / float(20) * 2.0 * math.pi for i in range(20)]
+    times += [0.1, 1.0, 2.0]
+    times.sort()
+    vals = [math.sin(time) + 0.3 * math.sin(3.0 * time) + 0.7 * math.cos(5.0 * time) for time in times]
+    ls = NormalisedLombScargle(vals, times)
+    omegas = [float(i) for i in range(11)]
+    nfft = ls.Evaluate(omegas)
+    self.assertEquals(utils.IndexOfMax(nfft), 1)
     
+    vals = [math.cos(2.0 * math.pi * (i / 4.0)) for i in range(16)]
+    times = [2.0 * math.pi * i / float(len(vals)) for i in range(len(vals))]
+    ls = NormalisedLombScargle(vals, times)
+    omegas = [float(i) for i in range(11)]
+    nfft = ls.Evaluate(omegas)
+    self.assertAlmostEquals(nfft[0], 0.0)
+    self.assertAlmostEquals(nfft[4], 0.5)
+  
+    return
+    
+  def testIndexBinaryLboundSearch(self):
+    values = [0.0, 1.0, 2.0]
+    self.assertEquals(IndexBinaryLboundSearch(-0.1, values, increasing = True), 0)
+    self.assertEquals(IndexBinaryLboundSearch(0.1, values, increasing = True), 0)
+    self.assertEquals(IndexBinaryLboundSearch(1.1, values, increasing = True), 1)
+    self.assertEquals(IndexBinaryLboundSearch(2.1, values, increasing = True), 2)
+
+    values = [0, 1, 2]
+    self.assertEquals(IndexBinaryLboundSearch(1, values, increasing = True), 1)
+    
+    values = [0.0, 1.0, 2.0]
+    self.assertEquals(IndexBinaryLboundSearch(-0.1, values), 0)
+    self.assertEquals(IndexBinaryLboundSearch(0.1, values), 0)
+    self.assertEquals(IndexBinaryLboundSearch(1.1, values), 1)
+    self.assertEquals(IndexBinaryLboundSearch(2.1, values), 2)
+
+    values = [0, 1, 2]
+    self.assertEquals(IndexBinaryLboundSearch(1, values), 1)
+    
+    values = [2.0, 1.0, 0.0]
+    self.assertEquals(IndexBinaryLboundSearch(-0.1, values, increasing = False), 2)
+    self.assertEquals(IndexBinaryLboundSearch(0.1, values, increasing = False), 2)
+    self.assertEquals(IndexBinaryLboundSearch(1.1, values, increasing = False), 1)
+    self.assertEquals(IndexBinaryLboundSearch(2.1, values, increasing = False), 0)
+
+    values = [2, 1, 0]
+    self.assertEquals(IndexBinaryLboundSearch(1, values, increasing = False), 1)
+
+    return
+
+  def testIndexBinaryUboundSearch(self):
+    values = [0.0, 1.0, 2.0]
+    self.assertEquals(IndexBinaryUboundSearch(-0.1, values, increasing = True), 0)
+    self.assertEquals(IndexBinaryUboundSearch(0.1, values, increasing = True), 1)
+    self.assertEquals(IndexBinaryUboundSearch(1.1, values, increasing = True), 2)
+    self.assertEquals(IndexBinaryUboundSearch(2.1, values, increasing = True), 2)
+
+    values = [0, 1, 2]
+    self.assertEquals(IndexBinaryUboundSearch(1, values, increasing = True), 1)
+    
+    values = [0.0, 1.0, 2.0]
+    self.assertEquals(IndexBinaryUboundSearch(-0.1, values), 0)
+    self.assertEquals(IndexBinaryUboundSearch(0.1, values), 1)
+    self.assertEquals(IndexBinaryUboundSearch(1.1, values), 2)
+    self.assertEquals(IndexBinaryUboundSearch(2.1, values), 2)
+
+    values = [0, 1, 2]
+    self.assertEquals(IndexBinaryUboundSearch(1, values), 1)
+    
+    values = [2.0, 1.0, 0.0]
+    self.assertEquals(IndexBinaryUboundSearch(-0.1, values, increasing = False), 2)
+    self.assertEquals(IndexBinaryUboundSearch(0.1, values, increasing = False), 1)
+    self.assertEquals(IndexBinaryUboundSearch(1.1, values, increasing = False), 0)
+    self.assertEquals(IndexBinaryUboundSearch(2.1, values, increasing = False), 0)
+
+    values = [2, 1, 0]
+    self.assertEquals(IndexBinaryUboundSearch(1, values, increasing = False), 1)
+
+    return
+    
+  def testLinearRegression(self):
+    eq, r = LinearRegression([0.0, 1.0, 2.0], [2.0, 3.0, 4.0], returnR = True)
+    self.assertAlmostEquals(eq[0], 1.0)
+    self.assertAlmostEquals(eq[1], 2.0)
+    self.assertAlmostEquals(r, 1.0)
+    
+    return
+
   def testDeg2Rad(self):
     self.assertAlmostEquals(Deg2Rad(90.0), math.pi / 2.0)
     
