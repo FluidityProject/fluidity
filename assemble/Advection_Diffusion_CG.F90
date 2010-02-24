@@ -382,18 +382,20 @@ contains
       do i = 1, new_positions%dim
         ewrite_minmax(new_positions%val(i)%ptr)
       end do
+      
+      ! Grid velocity
+      grid_velocity => extract_vector_field(state, "GridVelocity")
+      assert(grid_velocity%dim == mesh_dim(t))
+      assert(ele_count(grid_velocity) == ele_count(t))
+      
+      ewrite(2, *) "Grid velocity:"    
+      do i = 1, grid_velocity%dim
+        ewrite_minmax(grid_velocity%val(i)%ptr)
+      end do
     else
       ewrite(2,*) "Not moving the mesh"
     end if
-    ! Grid velocity
-    grid_velocity => extract_vector_field(state, "GridVelocity")
-    assert(grid_velocity%dim == mesh_dim(t))
-    assert(ele_count(grid_velocity) == ele_count(t))
 
-    ewrite(2, *) "Grid velocity:"    
-    do i = 1, grid_velocity%dim
-      ewrite_minmax(grid_velocity%val(i)%ptr)
-    end do
     
     call allocate(dummydensity, t%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
     call set(dummydensity, 1.0)
@@ -521,7 +523,8 @@ contains
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(vector_field), intent(in) :: positions, old_positions, new_positions
-    type(vector_field), intent(in) :: velocity, grid_velocity
+    type(vector_field), intent(in) :: velocity
+    type(vector_field), pointer :: grid_velocity
     type(scalar_field), intent(in) :: source
     type(scalar_field), intent(in) :: absorption
     type(tensor_field), intent(in) :: diffusivity
@@ -534,7 +537,7 @@ contains
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)) :: dt_t
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)) :: drho_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t 
-    real, dimension(ele_loc(grid_velocity, ele), ele_ngi(grid_velocity, ele), mesh_dim(t)) :: dug_t 
+    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t 
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)) :: j_mat 
     type(element_type) :: test_function
     type(element_type), pointer :: t_shape
@@ -555,6 +558,11 @@ contains
     end if
     if(have_absorption) then
       assert(ele_ngi(absorption, ele) == ele_ngi(t, ele))
+    end if
+    if(move_mesh) then
+      ! the following has been assumed in the declarations above
+      assert(ele_loc(grid_velocity, ele) == ele_loc(velocity, ele))
+      assert(ele_ngi(grid_velocity, ele) == ele_ngi(velocity, ele))
     end if
 #endif
 
@@ -727,12 +735,13 @@ contains
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
     type(scalar_field), intent(in) :: t
-    type(vector_field), intent(in) :: velocity, grid_velocity
+    type(vector_field), intent(in) :: velocity
+    type(vector_field), pointer :: grid_velocity
     type(tensor_field), intent(in) :: diffusivity
     type(scalar_field), intent(in) :: density, olddensity
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t
-    real, dimension(ele_loc(grid_velocity, ele), ele_ngi(grid_velocity, ele), mesh_dim(t)) :: dug_t
+    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)), intent(in) :: drho_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)), intent(in) :: j_mat 
@@ -939,7 +948,8 @@ contains
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(vector_field), intent(in) :: positions
-    type(vector_field), intent(in) :: velocity, grid_velocity
+    type(vector_field), intent(in) :: velocity
+    type(vector_field), pointer :: grid_velocity
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     
@@ -996,7 +1006,8 @@ contains
     integer, intent(in) :: bc_type
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(in) :: t_bc
-    type(vector_field), intent(in) :: velocity, grid_velocity
+    type(vector_field), intent(in) :: velocity
+    type(vector_field), pointer :: grid_velocity
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     real, dimension(face_ngi(t, face)), intent(in) :: detwei

@@ -350,8 +350,8 @@ contains
     if (move_mesh) then
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
+      U_mesh => extract_vector_field(state, "GridVelocity")
     end if
-    U_mesh => extract_vector_field(state, "GridVelocity")
     
     ! by default we assume we're integrating by parts twice and therefore we need to subtract
     ! an extra internal surface integral
@@ -576,7 +576,7 @@ contains
     ! Transformed gradient function for velocity.
     real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
     ! Transformed gradient function for grid velocity.
-    real, dimension(ele_loc(U_mesh, ele), ele_ngi(U_mesh, ele), mesh_dim(U_mesh)) :: dug_t
+    real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: dug_t
     ! Transformed gradient function for auxiliary variable. 
     real, dimension(ele_loc(q_mesh,ele), ele_ngi(q_mesh,ele), mesh_dim(U)) :: dq_t
     ! Density at quadrature points.
@@ -644,6 +644,14 @@ contains
     
     if(p0) then
       assert(dg)
+    end if
+    if(move_mesh) then
+      ! In the declarations above we've assumed these
+      ! so that U_mesh doesn't always have to be
+      ! present
+      assert(ele_loc(U_mesh, ele)==ele_loc(U, ele))
+      assert(ele_ngi(U_mesh, ele)==ele_ngi(U, ele))
+      assert(mesh_dim(U_mesh)==mesh_dim(U))
     end if
 
     big_m_diag_addto = 0.0
@@ -1445,7 +1453,8 @@ contains
     real, dimension(:,:) :: rhs_addto
     real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
-    type(vector_field), intent(in) :: X, U, U_nl, U_mesh
+    type(vector_field), intent(in) :: X, U, U_nl
+    type(vector_field), pointer :: U_mesh
     type(scalar_field), intent(in) :: Rho, P
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
@@ -1570,13 +1579,13 @@ contains
       
       ! Mesh velocity at quadrature points.
       if(move_mesh) then
-        ! here we assume that u_mesh at face is the same as u_mesh at face_2
+        ! here we assume that U_mesh at face is the same as U_mesh at face_2
         ! if it isn't then you're in trouble because your mesh will tear
         ! itself apart
-        u_nl_q=u_nl_q - face_val_at_quad(u_mesh, face)
+        u_nl_q=u_nl_q - face_val_at_quad(U_mesh, face)
         ! the velocity on the internal face isn't used again so we can
         ! modify it directly here...
-        u_f_q = u_f_q - face_val_at_quad(u_mesh, face)
+        u_f_q = u_f_q - face_val_at_quad(U_mesh, face)
       end if
   
       u_nl_q_dotn = sum(U_nl_q*normal,1)

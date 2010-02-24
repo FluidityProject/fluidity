@@ -203,7 +203,6 @@
 
       nu=>extract_vector_field(state, "NonlinearVelocity")
       oldu=>extract_vector_field(state, "OldVelocity")
-      ug=>extract_vector_field(state, "GridVelocity")
 
       allocate(dummyscalar)
       call allocate(dummyscalar, u%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
@@ -407,6 +406,7 @@
         ewrite(2,*) 'Moving mesh'
         x_old => extract_vector_field(state, "OldCoordinate")
         x_new => extract_vector_field(state, "IteratedCoordinate")
+        ug=>extract_vector_field(state, "GridVelocity")
       else
         ewrite(2,*) 'Not moving mesh'
       end if
@@ -565,7 +565,8 @@
       type(scalar_field), intent(inout) :: ct_rhs
 
       type(vector_field), intent(in) :: x, oldu
-      type(vector_field), intent(in) :: u, nu, ug
+      type(vector_field), intent(in) :: u, nu
+      type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density, p
       type(tensor_field), intent(in) :: viscosity
 
@@ -684,8 +685,8 @@
       ! lumped mass matrix in it:
       type(vector_field), intent(inout) :: masslump
 
-      type(vector_field), intent(in) :: x, u, oldu, nu, ug
-      type(vector_field), pointer :: x_old, x_new
+      type(vector_field), intent(in) :: x, u, oldu, nu 
+      type(vector_field), pointer :: x_old, x_new, ug
       type(scalar_field), intent(in) :: density, p, buoyancy
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity
@@ -701,7 +702,7 @@
       real, dimension(ele_ngi(u, ele)) :: detwei, detwei_old, detwei_new
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
-      real, dimension(ele_loc(ug, ele), ele_ngi(ug, ele), ug%dim) :: dug_t
+      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
 
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
@@ -714,6 +715,14 @@
       logical, dimension(u%dim, u%dim) :: block_mask ! control whether the off diagonal entries are used
       integer :: dim
       type(element_type) :: test_function
+
+      if(move_mesh) then
+        ! we've assumed the following in the declarations
+        ! above so we better make sure they're true!
+        assert(ele_loc(ug, ele)==ele_loc(u,ele))
+        assert(ele_ngi(ug, ele)==ele_ngi(u,ele))
+        assert(ug%dim==u%dim)
+      end if
       
       big_m_diag_addto = 0.0
       big_m_tensor_addto = 0.0
@@ -981,11 +990,12 @@
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
       real, dimension(:,:), intent(in) :: oldu_val
-      type(vector_field), intent(in) :: nu, ug
+      type(vector_field), intent(in) :: nu
+      type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density
       type(tensor_field), intent(in) :: viscosity
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
-      real, dimension(ele_loc(ug, ele), ele_ngi(ug, ele), ug%dim), intent(in) :: dug_t
+      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
