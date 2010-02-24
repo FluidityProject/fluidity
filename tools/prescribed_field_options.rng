@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="">
+  <define name="prescribed_values_scalar_field">
+    <oneOrMore>
+      <choice>
+        <element name="value">
+          <a:documentation>Value for WholeMesh
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_real_plus_file"/>
+        </element>
+        <element name="value">
+          <a:documentation>Multiple values are now allowed if using different value assignments
+in different regions of the mesh (specified by region_ids).
+In this case each value requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_real_plus_file"/>
+        </element>
+      </choice>
+    </oneOrMore>
+  </define>
+  <!--
+    Default child of prescribed tensor field
+    This is a choice of ways of inputing the prescribed tensor field
+    If the field is constant then a symmetric, or asymmetric tensor may be entered
+  -->
+  <define name="prescribed_tensor_field">
+    <ref name="prescribed_values_tensor_field"/>
+    <ref name="prescribed_output_options"/>
+    <ref name="adaptivity_options_tensor_field"/>
+  </define>
+  <!--
+    Default child of prescribed tensor field
+    This is a choice of ways of inputing the prescribed tensor field
+    If the field is constant then a symmetric, or asymmetric tensor may be entered
+  -->
+  <define name="prescribed_tensor_field_no_adapt">
+    <ref name="prescribed_values_tensor_field"/>
+    <ref name="prescribed_output_options"/>
+  </define>
+  <define name="prescribed_values_tensor_field">
+    <oneOrMore>
+      <choice>
+        <element name="value">
+          <a:documentation>Value for WholeMesh
+
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_tensor_field"/>
+        </element>
+        <element name="value">
+          <a:documentation>Multiple values are now allowed if using different value assignments
+in different regions of the mesh (specified by region_ids).
+In this case each value requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_tensor_field"/>
+        </element>
+      </choice>
+    </oneOrMore>
+  </define>
+  <define name="prescribed_values_dim_minus_one_tensor_field">
+    <oneOrMore>
+      <choice>
+        <element name="value">
+          <a:documentation>Value for WholeMesh
+
+Only specify one value if not using mesh regions.
+Otherwise select other value option, specify region_ids
+and distinct names.  Then add extra values for other regions.</a:documentation>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_dim_minus_one_tensor_field"/>
+        </element>
+        <element name="value">
+          <a:documentation>Multiple values are now allowed if using different value assignments
+in different regions of the mesh (specified by region_ids).
+In this case each value requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_dim_minus_one_tensor_field"/>
+        </element>
+      </choice>
+    </oneOrMore>
+  </define>
+</grammar>

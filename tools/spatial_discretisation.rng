@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <define name="spatial_discretisation_options">
+    <element name="spatial_discretisation">
+      <choice>
+        <element name="continuous_galerkin">
+          <a:documentation>Continuous Galerkin formulation</a:documentation>
+          <ref name="advection_stabilisation_options"/>
+          <element name="advection_terms">
+            <a:documentation>Discretisation options for the advection terms.</a:documentation>
+            <optional>
+              <element name="integrate_advection_by_parts">
+                <a:documentation>Integrate the advection terms of the advection equation by
+parts.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="exclude_advection_terms">
+                <a:documentation>Remove the advection terms from the equation.
+This overrides any other advection term options (including
+conservative_advection below).</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
+          <element name="mass_terms">
+            <a:documentation>Discretisation options for the mass terms.</a:documentation>
+            <optional>
+              <element name="lump_mass_matrix">
+                <a:documentation>Lump the mass matrix</a:documentation>
+                <attribute name="replaces">
+                  <value>TLUMP</value>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="exclude_mass_terms">
+                <a:documentation>Remove the mass terms from the equation. This requires an
+implicitness factor theta = 1.0 (under
+temporal_discretisation).</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="discontinuous_galerkin">
+          <a:documentation>Discontinuous galerkin formulation. You can also use this
+formulation with a continuous field in which case a simple
+galerkin formulation will result. </a:documentation>
+          <attribute name="replace">
+            <value>70 &lt;= DISOTT &lt;= 90</value>
+          </attribute>
+          <element name="advection_scheme">
+            <choice>
+              <element name="upwind">
+                <a:documentation>Straightforward upwinding of the nonlinear velocity.
+This uses SU stabilisation with optimal choice for the
+stabilisation parameter, and stabilisation parameter
+scale factor 0.5.</a:documentation>
+                <empty/>
+              </element>
+              <element name="none">
+                <a:documentation>Disable advection</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+            <element name="integrate_advection_by_parts">
+              <a:documentation>Integrate the advection terms of the
+advection-diffusion equation by parts.
+Integrating the advection term by parts is
+necessary for a discontinuous
+galerkin discretisation however it is possible to
+select how many times the
+integration by parts is performed.
+Twice is the norm.</a:documentation>
+              <choice>
+                <element name="twice">
+                  <a:documentation>If activated the element advection matrix takes the form:
+   /                                 /
+   | N_A (nu dot grad N_B) dV + beta | N_A ( div nu ) N_B dV
+   /                                 /
+     /                                         /
+ + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - 1] | N_A_i (nu dot n) N_B_i ds
+     /                                         /
+where beta is set in conservative_advection,
+N is a shape function (uppercase
+subscripts indicate nodes A or B while
+lowercase subscripts indicate inner or outer
+faces i and o respectively), nu is the
+nonlinear velocity and n is the outward
+pointing normal from the element.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="once">
+                  <a:documentation>If activated the element advection matrix takes the form:
+   /                                        /
+ - | (grad N_A dot nu) N_B dV - (1. - beta) | N_A ( div nu ) N_B dV
+   /                                        /
+     /                                   /
+ + I | N_A_i (nu dot n) N_B_o ds + (1-I) | N_A_i (nu dot n) N_B_i ds
+     /                                   /
+where beta is set in conservative_advection,
+N is a shape function (uppercase
+subscripts indicate nodes A or B while
+lowercase subscripts indicate inner or outer
+faces i and o respectively), nu is the
+nonlinear velocity and n is the outward
+pointing normal from the element.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+            <optional>
+              <element name="integrate_conservation_term_by_parts">
+                <a:documentation>If activated the conservation term:
+ /
+ | N_A ( div nu ) N_B dV
+ /
+is integrated_by_parts such that the element
+advection matrix becomes:
+        /                                        /
+ - beta | (grad N_A dot nu) N_B dV + (1. - beta) | N_A (nu dot grad N_B) dV
+        /                                        /
+     /                                                /
+ + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
+     /                                                /                  
+where beta is set in conservative_advection, N is
+a shape function (uppercase
+subscripts indicate nodes A or B while lowercase
+subscripts indicate inner or outer
+faces i and o respectively), nu is the nonlinear
+velocity and n is the outward pointing normal
+from the element.
+This is invariant regardless of whether the main
+advection term is integrated by parts once or
+twice.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="diffusion_scheme">
+            <choice>
+              <element name="bassi_rebay">
+                <a:documentation>Classical scheme from Bassi and Rebay 
+(JCP 131 267-179 1997)</a:documentation>
+                <empty/>
+              </element>
+              <element name="compact_discontinuous_galerkin">
+                <a:documentation>Compact discontinuous Galerkin scheme.
+(Peraire and Persson SIAM J. Sci. Comput. 30, p1806)</a:documentation>
+                <optional>
+                  <element name="penalty_parameter">
+                    <a:documentation>Penalty_parameter
+Add penalty term Int [u][v] dS on element boundaries
+scaled by C_0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="debug">
+                    <a:documentation>Switch on debugging output</a:documentation>
+                    <element name="gradient_test_bound">
+                      <a:documentation>Bound for testing element gradient matrix</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="remove_element_integral">
+                        <a:documentation>Remove the elemental integral:
+Int grad u.kappa.grad v dV</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="remove_primal_fluxes">
+                        <a:documentation>Remove the primal fluxes</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="remove_cdg_fluxes">
+                        <a:documentation>Remove the CDG fluxes</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="edge_length_power">
+                        <a:documentation>When present, the penalty term
+Int [u][v] dS on element boundaries is
+scaled by C = C_0 h**p This option
+specifies p.</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+              </element>
+              <element name="arbitrary_upwind">
+                <a:documentation>Scheme in which upwinding is applied in
+alternating directions. Devised by C.Pain.</a:documentation>
+                <empty/>
+              </element>
+              <element name="interior_penalty">
+                <a:documentation>Classical interior penalty scheme
+see, e.g., SIAM Journal on Numerical Analysis
+Vol. 39, No. 5 (2002), pp. 1749-1779 </a:documentation>
+                <element name="penalty_parameter">
+                  <a:documentation>Penalty_parameter
+The penalty term Int [u][v] dS on element boundaries
+is scaled by C = C_0 h**p
+This option specifies the C_0
+There is a theoretical lower bound for 
+stability and hence convergence</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="edge_length_power">
+                  <a:documentation>Penalty_parameter
+The penalty term Int [u][v] dS on element boundaries
+is scaled by C = C_0 h**p
+This option specifies p
+Theoretically p=-1 is required for linear elements</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="edge_length_option">
+                  <a:documentation>Option for how to compute the edge length h</a:documentation>
+                  <choice>
+                    <element name="use_face_integral">
+                      <a:documentation>Use face integral (take sqrt in 3D)</a:documentation>
+                      <empty/>
+                    </element>
+                    <element name="use_element_centres">
+                      <a:documentation>Use difference between element centre 
+and neighbour centre
+Use 2x distance to face centre on boundaries</a:documentation>
+                      <empty/>
+                    </element>
+                  </choice>
+                </element>
+                <optional>
+                  <element name="debug">
+                    <a:documentation>Switch on debugging output</a:documentation>
+                    <element name="gradient_test_bound">
+                      <a:documentation>Bound for testing element gradient matrix</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="remove_element_integral">
+                        <a:documentation>Remove the elemental integral:
+Int grad u.kappa.grad v dV</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="remove_primal_fluxes">
+                        <a:documentation>Remove the primal fluxes</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="remove_penalty_fluxes">
+                        <a:documentation>Remove the penalty fluxes</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+              </element>
+            </choice>
+          </element>
+          <optional>
+            <element name="upwind_stabilisation">
+              <a:documentation>This introduces a simple upwind diffusion based on eqn 2.52 in 
+Donea and Huerta (2003) "Finite elements for flow problems".</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <choice>
+              <element name="slope_limiter">
+                <attribute name="name">
+                  <value>Cockburn_Shu</value>
+                </attribute>
+                <element name="TVB_factor">
+                  <a:documentation>TVB tolerance parameter, below this value (scaled by
+dx**2) no limiting is done.
+Reduce to do more limiting, increase to do less
+Minimum value 0.0
+Suggested value 5.0</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <optional>
+                  <element name="tolerate_negative_weights">
+                    <a:documentation>Tolerate negative weights in the reconstruction
+Algorithm finds the "least bad" coordinates to use.
+May lead to overshoots on funky meshes.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+                <element name="limit_factor">
+                  <a:documentation>Limit factor
+This value is used to scale the reconstructed slope
+Minimum value 1.0
+Suggested value 1.1</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </element>
+              <element name="slope_limiter">
+                <a:documentation>Hermite-WENO limiter</a:documentation>
+                <attribute name="name">
+                  <value>Hermite_Weno</value>
+                </attribute>
+                <element name="power_coefficient">
+                  <a:documentation>Power coefficient in weights.
+This must be a positive number, possibly
+an integer. Larger power coefficient leads
+to greater penalisation of oscillations, on 
+the other hand causes numerical problems if it
+gets too big.
+Suggested value = 4.</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="tolerance_threshold_oscillations">
+                  <a:documentation>Relative/absolute tolerance threshold for 
+oscillation indicator. Values below this emphasise
+absolute rather than relative magnitudes of 
+tracer gradients. 
+Suggested value = 0.001*T
+where T is a typical value of the tracer which
+you might use in a scaling analysis.</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="tolerance_threshold_weights">
+                  <a:documentation>Relative/absolute tolerance threshold for 
+weights. Values below this emphasise
+absolute rather than relative magnitudes of 
+oscillations indicator. 
+Suggested value = 1.0e-3</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="discontinuity_tolerance">
+                  <a:documentation>Tolerance for discontinuity detector.
+Uses method of 
+http://www.gce.ucl.ac.be/~remacle/pdf/detect.pdf
+Detector values greater than this indicate
+discontinuities at the inflow boundary
+Suggested value = L^(-p-1)/2)
+where L is the horizontal lengthscale
+and p is the polynomial order</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="limit_tolerance">
+                  <a:documentation>Tolerance for limiter
+Doesn't apply limiter if max abs value of tracer
+over the element is below this tolerance
+Recommended value is something very small
+but not zero</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <choice>
+                  <element name="boundary_treatment">
+                    <a:documentation>At boundaries there are less polynomials to
+construct. With this option, the missing
+polynomials are simply ignored.</a:documentation>
+                    <attribute name="name">
+                      <value>ignore_missing_polys</value>
+                    </attribute>
+                  </element>
+                  <element name="boundary_treatment">
+                    <a:documentation>At boundaries there are less polynomials to
+construct. With this option, the missing
+polynomials are replaced with the polynomial
+in the current element.</a:documentation>
+                    <attribute name="name">
+                      <value>replace_missing_polys</value>
+                    </attribute>
+                  </element>
+                  <element name="boundary_treatment">
+                    <a:documentation>At boundaries there are less polynomials to
+construct. With this option, the reconstruction
+is applied at one order down.
+Since HWENO currently only works for P1,
+this amounts to L_2 projection to P0.</a:documentation>
+                    <attribute name="name">
+                      <value>lower_order</value>
+                    </attribute>
+                  </element>
+                </choice>
+                <optional>
+                  <element name="debugging">
+                    <a:documentation>Switch to chuck out lots of debugging output.
+Not for production runs.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="leave_out_hermite_polynomials">
+                    <a:documentation>Don't include Hermite polynomials.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <element name="slope_limiter">
+                <attribute name="name">
+                  <value>minimal</value>
+                </attribute>
+              </element>
+            </choice>
+          </optional>
+          <optional>
+            <element name="mass_terms">
+              <a:documentation>Discretisation options for the mass terms.</a:documentation>
+              <optional>
+                <element name="exclude_mass_terms">
+                  <a:documentation>Remove the mass terms from the equation.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+        </element>
+        <ref name="pure_cv_options"/>
+        <ref name="coupled_cv_options"/>
+        <element name="finite_volume">
+          <a:documentation>**DO NOT USE!**
+This is a temporary discretisation option to help Cian
+implement P0 advection-diffusion.</a:documentation>
+          <element name="diffusion_scheme">
+            <choice>
+              <element name="bassi_rebay">
+                <optional>
+                  <element name="penalty">
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
+              <element name="ldg">
+                <empty/>
+              </element>
+            </choice>
+          </element>
+        </element>
+      </choice>
+      <element name="conservative_advection">
+        <a:documentation>Conservative discretisation of field advection equation
+ TBETA=1. -- conservative (divergence form)
+ TBETA=0. -- non-conservative
+ 0. &lt; TBETA &lt; 1.</a:documentation>
+        <attribute name="replaces">
+          <value>TBETA, DEFALT (TBETA = 0.0)</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
+    </element>
+  </define>
+</grammar>

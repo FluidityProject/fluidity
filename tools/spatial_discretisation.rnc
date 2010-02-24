@@ -1,0 +1,387 @@
+spatial_discretisation_options =
+   element spatial_discretisation {
+      (
+         ## Continuous Galerkin formulation
+         element continuous_galerkin {
+            advection_stabilisation_options,
+            ## Discretisation options for the advection terms.
+            element advection_terms {
+               ## Integrate the advection terms of the advection equation by
+               ## parts.
+               element integrate_advection_by_parts {
+                  comment
+               }?,
+               ## Remove the advection terms from the equation.
+               ## This overrides any other advection term options (including
+               ## conservative_advection below).
+               element exclude_advection_terms {
+                  comment
+               }?
+            },
+            ## Discretisation options for the mass terms.
+            element mass_terms {
+               ## Lump the mass matrix
+               element lump_mass_matrix {
+                  attribute replaces { "TLUMP" },
+                  empty
+               }?,
+               ## Remove the mass terms from the equation. This requires an
+               ## implicitness factor theta = 1.0 (under
+               ## temporal_discretisation).
+               element exclude_mass_terms {
+                  empty
+               }?
+            },
+            comment
+         }|
+         ## Discontinuous galerkin formulation. You can also use this
+         ## formulation with a continuous field in which case a simple
+         ## galerkin formulation will result. 
+         element discontinuous_galerkin {
+            attribute replace { "70 <= DISOTT <= 90" },
+            element advection_scheme {
+               (
+                  ## Straightforward upwinding of the nonlinear velocity.
+                  ## This uses SU stabilisation with optimal choice for the
+                  ## stabilisation parameter, and stabilisation parameter
+                  ## scale factor 0.5.
+                  element upwind {
+                     empty
+                  }|
+                  ## Disable advection
+                  element none {
+                     empty
+                  }
+               ),
+               ## Integrate the advection terms of the
+               ## advection-diffusion equation by parts.
+               ## Integrating the advection term by parts is
+               ## necessary for a discontinuous
+               ## galerkin discretisation however it is possible to
+               ## select how many times the
+               ## integration by parts is performed.
+               ## Twice is the norm.
+               element integrate_advection_by_parts {
+                 (
+                   ## If activated the element advection matrix takes the form:
+                   ##    /                                 /
+                   ##    | N_A (nu dot grad N_B) dV + beta | N_A ( div nu ) N_B dV
+                   ##    /                                 /
+                   ##      /                                         /
+                   ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - 1] | N_A_i (nu dot n) N_B_i ds
+                   ##      /                                         /
+                   ## where beta is set in conservative_advection,
+                   ## N is a shape function (uppercase
+                   ## subscripts indicate nodes A or B while
+                   ## lowercase subscripts indicate inner or outer
+                   ## faces i and o respectively), nu is the
+                   ## nonlinear velocity and n is the outward
+                   ## pointing normal from the element.
+                   element twice {
+                     empty
+                   }|
+                   ## If activated the element advection matrix takes the form:
+                   ##    /                                        /
+                   ##  - | (grad N_A dot nu) N_B dV - (1. - beta) | N_A ( div nu ) N_B dV
+                   ##    /                                        /
+                   ##      /                                   /
+                   ##  + I | N_A_i (nu dot n) N_B_o ds + (1-I) | N_A_i (nu dot n) N_B_i ds
+                   ##      /                                   /
+                   ## where beta is set in conservative_advection,
+                   ## N is a shape function (uppercase
+                   ## subscripts indicate nodes A or B while
+                   ## lowercase subscripts indicate inner or outer
+                   ## faces i and o respectively), nu is the
+                   ## nonlinear velocity and n is the outward
+                   ## pointing normal from the element.
+                   element once {
+                     empty
+                   }
+                 )
+               },
+               ## If activated the conservation term:
+               ##  /
+               ##  | N_A ( div nu ) N_B dV
+               ##  /
+               ## is integrated_by_parts such that the element
+               ## advection matrix becomes:
+               ##         /                                        /
+               ##  - beta | (grad N_A dot nu) N_B dV + (1. - beta) | N_A (nu dot grad N_B) dV
+               ##         /                                        /
+               ##      /                                                /
+               ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
+               ##      /                                                /                  
+               ## where beta is set in conservative_advection, N is
+               ## a shape function (uppercase
+               ## subscripts indicate nodes A or B while lowercase
+               ## subscripts indicate inner or outer
+               ## faces i and o respectively), nu is the nonlinear
+               ## velocity and n is the outward pointing normal
+               ## from the element.
+               ## This is invariant regardless of whether the main
+               ## advection term is integrated by parts once or
+               ## twice.
+               element integrate_conservation_term_by_parts {
+                 empty
+               }?
+            },
+            element diffusion_scheme {
+               (
+                  ## Classical scheme from Bassi and Rebay 
+                  ## (JCP 131 267-179 1997)
+                  element bassi_rebay {
+                     empty
+                  }|
+                  ## Compact discontinuous Galerkin scheme.
+                  ## (Peraire and Persson SIAM J. Sci. Comput. 30, p1806)
+                  element compact_discontinuous_galerkin {
+                     ## Penalty_parameter
+                     ## Add penalty term Int [u][v] dS on element boundaries
+                     ## scaled by C_0
+                     element penalty_parameter {
+                        real
+                     }?,
+                     ## Switch on debugging output
+                     element debug {
+                        ## Bound for testing element gradient matrix
+                        element gradient_test_bound {
+                           real
+                        },
+                        ## Remove the elemental integral:
+                        ## Int grad u.kappa.grad v dV
+                        element remove_element_integral {
+                           empty
+                        }?,
+                        ## Remove the primal fluxes
+                        element remove_primal_fluxes {
+                           empty
+                        }?,
+                        ## Remove the CDG fluxes
+                        element remove_cdg_fluxes {
+                           empty
+                        }?,
+                        ## When present, the penalty term
+                        ## Int [u][v] dS on element boundaries is
+                        ## scaled by C = C_0 h**p This option
+                        ## specifies p.
+                        element edge_length_power {
+                           real
+                        }?
+                     }?
+                  }|
+                  ## Scheme in which upwinding is applied in
+                  ## alternating directions. Devised by C.Pain.
+                  element arbitrary_upwind {
+                     empty
+                  }|
+                  ## Classical interior penalty scheme
+                  ## see, e.g., SIAM Journal on Numerical Analysis
+                  ## Vol. 39, No. 5 (2002), pp. 1749-1779 
+                  element interior_penalty {
+                     ## Penalty_parameter
+                     ## The penalty term Int [u][v] dS on element boundaries
+                     ## is scaled by C = C_0 h**p
+                     ## This option specifies the C_0
+                     ## There is a theoretical lower bound for 
+                     ## stability and hence convergence
+                     element penalty_parameter {
+                        real
+                     },
+                     ## Penalty_parameter
+                     ## The penalty term Int [u][v] dS on element boundaries
+                     ## is scaled by C = C_0 h**p
+                     ## This option specifies p
+                     ## Theoretically p=-1 is required for linear elements
+                     element edge_length_power {
+                        real
+                     },
+                     ## Option for how to compute the edge length h
+                     element edge_length_option {
+                        ## Use face integral (take sqrt in 3D)
+                        element use_face_integral {
+                           empty
+                        }|
+                        ## Use difference between element centre 
+                        ## and neighbour centre
+                        ## Use 2x distance to face centre on boundaries
+                        element use_element_centres {
+                           empty
+                        }
+                     },
+                     ## Switch on debugging output
+                     element debug {
+                        ## Bound for testing element gradient matrix
+                        element gradient_test_bound {
+                           real
+                        },
+                        ## Remove the elemental integral:
+                        ## Int grad u.kappa.grad v dV
+                        element remove_element_integral {
+                           empty
+                        }?,
+                        ## Remove the primal fluxes
+                        element remove_primal_fluxes {
+                           empty
+                        }?,
+                        ## Remove the penalty fluxes
+                        element remove_penalty_fluxes {
+                           empty
+                        }?
+                     }?
+                  }
+               )
+            },
+            ## This introduces a simple upwind diffusion based on eqn 2.52 in 
+            ## Donea and Huerta (2003) "Finite elements for flow problems".
+            element upwind_stabilisation {
+               empty
+            }?,
+            (
+               element slope_limiter {
+                  attribute name { "Cockburn_Shu" },
+                  ## TVB tolerance parameter, below this value (scaled by
+                  ## dx**2) no limiting is done.
+                  ## Reduce to do more limiting, increase to do less
+                  ## Minimum value 0.0
+                  ## Suggested value 5.0
+                  element TVB_factor {
+                     real
+                  },
+                  ## Tolerate negative weights in the reconstruction
+                  ## Algorithm finds the "least bad" coordinates to use.
+                  ## May lead to overshoots on funky meshes.
+                  element tolerate_negative_weights {
+                     empty
+                  }?,
+                  ## Limit factor
+                  ## This value is used to scale the reconstructed slope
+                  ## Minimum value 1.0
+                  ## Suggested value 1.1
+                  element limit_factor {
+                     real
+                  }
+               }|
+               ## Hermite-WENO limiter
+               element slope_limiter {
+                  attribute name { "Hermite_Weno" },
+                  ##Power coefficient in weights.
+                  ##This must be a positive number, possibly
+                  ##an integer. Larger power coefficient leads
+                  ##to greater penalisation of oscillations, on 
+                  ##the other hand causes numerical problems if it
+                  ##gets too big.
+                  ##Suggested value = 4.
+                  element power_coefficient {
+                     real
+                  },
+                  ##Relative/absolute tolerance threshold for 
+                  ##oscillation indicator. Values below this emphasise
+                  ##absolute rather than relative magnitudes of 
+                  ##tracer gradients. 
+                  ##Suggested value = 0.001*T
+                  ##where T is a typical value of the tracer which
+                  ##you might use in a scaling analysis.
+                  element tolerance_threshold_oscillations {
+                     real
+                  },
+                  ##Relative/absolute tolerance threshold for 
+                  ##weights. Values below this emphasise
+                  ##absolute rather than relative magnitudes of 
+                  ##oscillations indicator. 
+                  ##Suggested value = 1.0e-3
+                  element tolerance_threshold_weights {
+                     real
+                  },
+                  ##Tolerance for discontinuity detector.
+                  ##Uses method of 
+                  ##http://www.gce.ucl.ac.be/~remacle/pdf/detect.pdf
+                  ##Detector values greater than this indicate
+                  ##discontinuities at the inflow boundary
+                  ##Suggested value = L^(-p-1)/2)
+                  ##where L is the horizontal lengthscale
+                  ##and p is the polynomial order
+                  element discontinuity_tolerance {
+                     real
+                  },
+                  ##Tolerance for limiter
+                  ##Doesn't apply limiter if max abs value of tracer
+                  ##over the element is below this tolerance
+                  ##Recommended value is something very small
+                  ##but not zero
+                  element limit_tolerance {
+                     real
+                  },
+                  (
+                     ##At boundaries there are less polynomials to
+                     ##construct. With this option, the missing
+                     ##polynomials are simply ignored.
+                     element boundary_treatment {
+                        attribute name { "ignore_missing_polys" }
+                     }|
+                     ##At boundaries there are less polynomials to
+                     ##construct. With this option, the missing
+                     ##polynomials are replaced with the polynomial
+                     ##in the current element.
+                     element boundary_treatment {
+                        attribute name { "replace_missing_polys" }
+                     }|
+                     ##At boundaries there are less polynomials to
+                     ##construct. With this option, the reconstruction
+                     ##is applied at one order down.
+                     ##Since HWENO currently only works for P1,
+                     ##this amounts to L_2 projection to P0.
+                     element boundary_treatment {
+                        attribute name { "lower_order" }
+                     }
+                  ),
+                  ##Switch to chuck out lots of debugging output.
+                  ##Not for production runs.
+                  element debugging {
+                     empty
+                  }?,
+                  ##Don't include Hermite polynomials.
+                  element leave_out_hermite_polynomials {
+                     empty
+                  }?
+               }|
+               element slope_limiter {
+                  attribute name { "minimal" }
+               }
+            )?,
+            ## Discretisation options for the mass terms.
+            element mass_terms {
+               ## Remove the mass terms from the equation.
+               element exclude_mass_terms {
+                  empty
+               }?
+            }?
+         }|
+         pure_cv_options|
+         coupled_cv_options|
+         ## **DO NOT USE!**
+         ## This is a temporary discretisation option to help Cian
+         ## implement P0 advection-diffusion.
+         element finite_volume {
+            element diffusion_scheme {
+               (
+                  element bassi_rebay {
+                     element penalty {
+                       real
+                     }?
+                  }|
+                  element ldg {
+                     empty
+                  }
+               )
+            }
+         }
+      ),
+      ## Conservative discretisation of field advection equation
+      ##  TBETA=1. -- conservative (divergence form)
+      ##  TBETA=0. -- non-conservative
+      ##  0. < TBETA < 1.
+      element conservative_advection {
+         attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
+         real
+      }
+   }

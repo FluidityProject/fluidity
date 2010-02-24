@@ -5,6 +5,8 @@
   <include href="adaptivity_options.rng"/>
   <include href="mesh_options.rng"/>
   <include href="input_output.rng"/>
+  <include href="prognostic_field_options.rng"/>
+  <include href="prescribed_field_options.rng"/>
   <start>
     <element name="qg_strat_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -174,29 +176,16 @@ Note that this is not necessarily a unit vector (unlike GravityDirection).</a:do
     <ref name="adaptivity_options_scalar_field"/>
   </define>
   <define name="prescribed_scalar_field_no_adapt">
-    <element name="value">
-      <a:documentation>Value for WholeMesh</a:documentation>
-      <attribute name="name">
-        <value>WholeMesh</value>
-      </attribute>
-      <ref name="input_choice_real"/>
-    </element>
+    <ref name="prescribed_values_scalar_field"/>
   </define>
-  <define name="prognostic_scalar_field">
-    <element name="temporal_discretisation">
-      <element name="theta">
-        <a:documentation>Implicit/explicit control (TTHETA)
-=0.  -- explicit
-=0.5 -- Crank-Nicholson
-=1.  -- implicit</a:documentation>
-        <ref name="real"/>
-      </element>
+  <define name="prognostic_PV_field">
+    <element name="equation">
+      <attribute name="name">
+        <value>AdvectionDiffusion</value>
+      </attribute>
     </element>
-    <element name="spatial_discretisation">
-      <element name="conservative_advection">
-        <ref name="real"/>
-      </element>
-    </element>
+    <ref name="spatial_discretisation_options"/>
+    <ref name="temporal_discretisation_options"/>
     <element name="initial_condition">
       <a:documentation>Initial condition for WholeMesh</a:documentation>
       <attribute name="name">
@@ -250,25 +239,16 @@ Note that this is not necessarily a unit vector (unlike GravityDirection).</a:do
         </element>
       </element>
     </optional>
-    <ref name="adaptivity_options_scalar_field">
-      <a:documentation>adaptivity options</a:documentation>
-    </ref>
+    <ref name="adaptivity_options_scalar_field"/>
   </define>
   <define name="prognostic_buoyancy_field">
-    <element name="temporal_discretisation">
-      <element name="theta">
-        <a:documentation>Implicit/explicit control (TTHETA)
-=0.  -- explicit
-=0.5 -- Crank-Nicholson
-=1.  -- implicit</a:documentation>
-        <ref name="real"/>
-      </element>
+    <element name="equation">
+      <attribute name="name">
+        <value>AdvectionDiffusion</value>
+      </attribute>
     </element>
-    <element name="spatial_discretisation">
-      <element name="conservative_advection">
-        <ref name="real"/>
-      </element>
-    </element>
+    <ref name="spatial_discretisation_options"/>
+    <ref name="temporal_discretisation_options"/>
     <element name="initial_condition">
       <a:documentation>Initial condition for WholeMesh</a:documentation>
       <attribute name="name">
@@ -334,45 +314,6 @@ For the top and bottom boundaries, we solve an advection-diffusion equation for 
         </choice>
       </element>
     </zeroOrMore>
-  </define>
-  <define name="prescribed_values_tensor_field">
-    <oneOrMore>
-      <choice>
-        <element name="value">
-          <a:documentation>Value for WholeMesh
-
-Only specify one value if not using mesh regions.
-Otherwise select other value option, specify region_ids
-and distinct names.  Then add extra values for other regions.</a:documentation>
-          <attribute name="name">
-            <value>WholeMesh</value>
-          </attribute>
-          <ref name="input_choice_tensor_field"/>
-        </element>
-        <element name="value">
-          <a:documentation>Multiple values are now allowed if using different value assignments
-in different regions of the mesh (specified by region_ids).
-In this case each value requires a distinct name for the options dictionary.</a:documentation>
-          <attribute name="name">
-            <data type="string" datatypeLibrary=""/>
-          </attribute>
-          <ref name="region_ids"/>
-          <ref name="input_choice_tensor_field"/>
-        </element>
-      </choice>
-    </oneOrMore>
-  </define>
-  <define name="prescribed_values_dim_minus_one_tensor_field">
-    <element name="value">
-      <a:documentation>Value for WholeMesh
-Only specify one value if not using mesh regions.
-Otherwise select other value option, specify region_ids
-and distinct names.  Then add extra values for other regions.</a:documentation>
-      <attribute name="name">
-        <value>WholeMesh</value>
-      </attribute>
-      <ref name="input_choice_dim_minus_one_tensor_field"/>
-    </element>
   </define>
   <define name="mesh_choice">
     <!-- Most common mesh choices -->

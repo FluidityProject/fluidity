@@ -3,6 +3,8 @@ include "../tools/solvers.rnc"
 include "../tools/adaptivity_options.rnc"
 include "../tools/mesh_options.rnc"
 include "../tools/input_output.rnc"
+include "../tools/prognostic_field_options.rnc"
+include "../tools/prescribed_field_options.rnc"
 
 start =
    (
@@ -152,31 +154,16 @@ prescribed_scalar_field =
      adaptivity_options_scalar_field
    )
 
-prescribed_scalar_field_no_adapt =
-   (
-      ## Value for WholeMesh
-      element value {
-         attribute name { "WholeMesh" },
-         input_choice_real
-      }
-   )
+prescribed_scalar_field_no_adapt = prescribed_values_scalar_field
 
-prognostic_scalar_field =
+
+prognostic_PV_field =
    (
-      element temporal_discretisation {
-      ## Implicit/explicit control (TTHETA)
-      ## =0.  -- explicit
-      ## =0.5 -- Crank-Nicholson
-      ## =1.  -- implicit
-         element theta {
-            real
-         }
+      element equation { 
+         attribute name { "AdvectionDiffusion" }
       },
-      element spatial_discretisation {
-         element conservative_advection {
-            real
-         }
-      },
+      spatial_discretisation_options,
+      temporal_discretisation_options,
       ## Initial condition for WholeMesh
       element initial_condition {
          attribute name { "WholeMesh" },
@@ -212,26 +199,16 @@ prognostic_scalar_field =
             prescribed_scalar_field_no_adapt
          }
       }?,
-      ## adaptivity options
       adaptivity_options_scalar_field
    )
 
 prognostic_buoyancy_field =
    (
-      element temporal_discretisation {
-      ## Implicit/explicit control (TTHETA)
-      ## =0.  -- explicit
-      ## =0.5 -- Crank-Nicholson
-      ## =1.  -- implicit
-         element theta {
-            real
-         }
+      element equation { 
+         attribute name { "AdvectionDiffusion" }
       },
-      element spatial_discretisation {
-         element conservative_advection {
-            real
-         }
-      },
+      spatial_discretisation_options,
+      temporal_discretisation_options,
       ## Initial condition for WholeMesh
       element initial_condition {
          attribute name { "WholeMesh" },
@@ -283,41 +260,6 @@ prognostic_streamfunction_field =
             }
          )
       }*
-   )
-
-prescribed_values_tensor_field =
-   (
-      (
-         ## Value for WholeMesh
-         ##
-         ## Only specify one value if not using mesh regions.
-         ## Otherwise select other value option, specify region_ids
-         ## and distinct names.  Then add extra values for other regions.
-         element value {
-            attribute name { "WholeMesh" },
-            input_choice_tensor_field
-         }|
-         ## Multiple values are now allowed if using different value assignments
-         ## in different regions of the mesh (specified by region_ids).
-         ## In this case each value requires a distinct name for the options dictionary.
-         element value {
-            attribute name { string },
-            region_ids,
-            input_choice_tensor_field
-         }
-      )+
-   )
-
-prescribed_values_dim_minus_one_tensor_field =
-   (
-      ## Value for WholeMesh
-      ## Only specify one value if not using mesh regions.
-      ## Otherwise select other value option, specify region_ids
-      ## and distinct names.  Then add extra values for other regions.
-      element value {
-         attribute name { "WholeMesh" },
-         input_choice_dim_minus_one_tensor_field
-      }
    )
 
 mesh_choice =
