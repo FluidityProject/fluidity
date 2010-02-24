@@ -1677,6 +1677,7 @@ contains
     type(mesh_type), intent(in):: mesh
     type(integer_hash_table), intent(in):: periodic_face_map
     
+    type(mesh_faces), pointer:: model_faces
     integer:: i, face1, face2
     
     if (.not. mesh%faces%shape==model%faces%shape) then
@@ -1690,6 +1691,16 @@ contains
        call fix_periodic_face_orientation_face(face1)
        call fix_periodic_face_orientation_face(face2)
     end do
+    
+    model_faces => model%faces
+    call deallocate(model_faces%surface_mesh)
+    deallocate(model_faces%surface_node_list)
+    call create_surface_mesh(model_faces%surface_mesh, &
+       model_faces%surface_node_list, model, name='Surface'//trim(model%name))
+#ifdef HAVE_MEMORY_STATS
+    call register_allocation("mesh_type", "integer", &
+         size(model_faces%surface_node_list), name='Surface'//trim(model%name))
+#endif
       
     contains
     
