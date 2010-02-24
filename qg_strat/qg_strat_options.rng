@@ -150,7 +150,7 @@ Note that this is not necessarily a unit vector (unlike GravityDirection).</a:do
           <element name="prognostic">
             <a:documentation>Field type</a:documentation>
             <ref name="mesh_choice"/>
-            <ref name="prognostic_scalar_field"/>
+            <ref name="prognostic_PV_field"/>
           </element>
         </element>
         <element name="scalar_field">

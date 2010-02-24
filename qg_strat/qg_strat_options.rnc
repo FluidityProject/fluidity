@@ -128,7 +128,7 @@ start =
                ## Field type
                element prognostic {
                   mesh_choice,
-                  prognostic_scalar_field
+                  prognostic_PV_field
                }
             },
             element scalar_field {
