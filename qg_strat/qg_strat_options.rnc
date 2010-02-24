@@ -1,4 +1,5 @@
 include "spud_base.rnc"
+include "../tools/solvers.rnc"
 
 start =
    (
@@ -535,7 +536,7 @@ prognostic_scalar_field =
       },
       ## Solver
       element solver {
-         linear_solver_options
+         linear_solver_options_asym
       },
       ## Diffusivity for field
       element tensor_field {
@@ -549,11 +550,11 @@ prognostic_scalar_field =
       element scalar_field {
          attribute name { "Source" },
          attribute rank { "0" },
-	 (
+         (
             element prescribed {
                prescribed_scalar_field_no_adapt
-	    }
-	 )
+            }
+         )
       }?,
       ## Absorption term
       element scalar_field {
@@ -590,7 +591,7 @@ prognostic_buoyancy_field =
       },
       ## Solver
       element solver {
-         linear_solver_options
+         linear_solver_options_asym
       },
       ## Diffusivity for field
       element tensor_field {
@@ -606,7 +607,7 @@ prognostic_streamfunction_field =
    (
       ## Solver
       element solver {
-         linear_solver_options
+         linear_solver_options_sym
       },
       ## Boundary conditions
       ## You must specify the surface ids for the side boundaries where we set the streamfunction to zero.
@@ -626,7 +627,7 @@ prognostic_streamfunction_field =
             }|
             element type {
                attribute name { "buoyancy" },
-	       element scalar_field {
+               element scalar_field {
                   element prognostic {
                      prognostic_buoyancy_field
                   }
@@ -833,7 +834,7 @@ mesh_info =
                python_code
             }
          }*,
-	 comment
+         comment
       }
     )
 
@@ -888,161 +889,4 @@ adaptivity_options_scalar_field =
             real
          }?
       }?
-   )
-
-linear_solver_options =
-   (
-      ## Iterative (Krylov) method to solve the linear discretised equation
-      ## Given are the most frequently used methods. The solution is done
-      ## by the PETSc library. Many more methods are provided.
-      ##
-      (
-         ## Conjugate gradient method
-         ## Only works for symmetric systems.
-         element iterative_method {
-            attribute name { "cg" }
-         }|
-         ## GMRES
-         ## Your safest bet for non-symmetric systems.
-         element iterative_method {
-            attribute name { "gmres" },
-            ## Restart value for gmres iteration
-            ## Higher values give better convergence but require more memory.
-            ## Suggested value: 30
-            element restart {
-               integer
-            }
-         }|
-         ## Direct method
-         ## This is for non-iterative methods
-         ## Only makes sense in combination with preconditioners that do a complete solve, e.g. lu.
-         element iterative_method {
-            attribute name { "preonly" }
-         }|
-         ## Richardson iteration
-         ## Only apply preconditioner each iteration, no krylov acceleration
-         element iterative_method {
-            attribute name { "richardson" }
-         }|
-         ## Other methods
-         ## Any method provided by the PETSc library
-         ## http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html
-         ## (available methods may depend on the PETSc library installed on your system)
-         element iterative_method {
-            attribute name { xsd:string }
-         }
-      ),
-      ## Preconditioner to be used in combination with the iterative method.
-      (
-         ## Succesive Over-Relaxation
-         ## This includes SSOR (symmetric sor)
-         element preconditioner {
-            attribute name { "sor" }
-         }|
-         ## The Eisenstat method
-         ## This preconditioner is equivalent to SOR but only uses half the number of flops,
-         ## i.e. same convergence rate but twice as fast per iteration. Because it computes
-         ## a different preconditioned residual the convergence in practice may be quite different though.
-         ## It does not work in parallel!
-         element preconditioner {
-            attribute name { "eisenstat" }
-         }|
-         ## Incomplete LU decomposition
-         element preconditioner {
-            attribute name { "ilu" }
-         }|
-         ## Incomplete Cholesky decomposition (only works for symmetric matrices)
-         element preconditioner {
-            attribute name { "icc" }
-         }|
-         ## LU direct solver
-         ## This performs a complete, direct solve of the equation and should only be used in combination with preonly as iterative method.
-         element preconditioner {
-            attribute name { "lu" }
-        }|
-         ## Fluidity`s own multigrid method
-         ## Especially suited for ill-conditioned, large aspect ratio problems.
-         ## Currently does not work in parallel.
-         element preconditioner {
-            attribute name { "mg" }
-         }|
-         ## Prometheus multigrid method
-         element preconditioner {
-            attribute name { "prometheus" }
-         }|
-         ## Hypre preconditioners (includes boomeramg)
-         element preconditioner {
-            attribute name { "hypre" },
-            (
-               ## BoomerAMG multigrid method
-               element hypre_type {
-                  attribute name { "boomeramg" }
-               }|
-               ## Other Hypre preconditioners
-               element hypre_type {
-                  attribute name { string }
-               }
-            )
-         }|
-         ## Other preconditioners
-         ## Any preconditioner provided by the PETSc library
-         ## http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/PC/PCType.html
-         ## (available preconditiors may depend on the PETSc library installed on your system)
-         element preconditioner {
-            attribute name { string }
-         }
-      ),
-      ## Relative error
-      ## The solver finishes if the preconditioned error becomes smaller than the original preconditioned error times this value.
-      ## Suggested value: 1.0e-7
-      element relative_error {
-         real
-      },
-      ## Absolute error bound
-      ## The solver finishes if the preconditioned error becomes smaller than this value.
-      element absolute_error {
-         real
-      }?,
-      ## Maximum number of iterations allowed in the linear solver
-      ## before giving up.
-      element max_iterations {
-         integer
-      },
-      ## Switch on to not use an initial guess from a previous solve but
-      ## start with a zero vector. Note that some of the solves always
-      ## start at zero in which case this switch will have no effect (see the log output).
-      element start_from_zero {
-         empty
-      }?,
-      ## Miscellaneous PETSc options
-      ## Any options not included above can be set using the PETSc option syntax
-      ## For example: -ksp_dtol 1e5 -ksp_monitor_draw
-      element petsc_options {
-         string
-      }?,
-      (
-         ## Solver failures are always treated as fatal errors. The model stops at the end of the time step in order to allow for the latest output to be written.
-         element never_ignore_solver_failures {
-            empty
-         }|
-         ## Allow for an initial period in which solver failures caused by non-convergence in the maximum number of iterations are ignored.
-         element ignore_non_convergence_during_spin_up {
-            ## As long as current_time < spin_up_time, solver failures due to non-convergence in the maximum number of iterations are ignored. This might be used for spinning up the model. As there is no guarantee we're actually solving the flow equations to any accuracy, the results in this period should not be trusted.
-            element spin_up_time {
-               real
-            }
-         }|
-         ## Ignore all solver failures. This is a dangerous option that should only be used in exceptional cases.
-         element ignore_all_solver_failures {
-            empty
-         }
-      ),
-      ## Extra diagnostics to help debug solver problems
-      element diagnostics {
-         ## Print out the norm of vectors and matrices before the solve, and that of the solution vector afterwards.
-         ## Norms are printed at verbosity level 2, so run fluidity with -v2 or -v3
-         element print_norms {
-            empty
-         }?
-      }
    )
