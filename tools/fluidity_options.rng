@@ -11697,103 +11697,80 @@ and in/out boundary conditions</a:documentation>
   <define name="biology">
     <element name="ocean_biology">
       <a:documentation>Model of biological processes in the ocean.</a:documentation>
-      <element name="pznd">
-        <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
-        <choice>
-          <element name="source_and_sink_algorithm">
-            <a:documentation>Python code specifying the source and sink relationships 
+      <choice>
+        <element name="pznd">
+          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
+          <choice>
+            <element name="source_and_sink_algorithm">
+              <a:documentation>Python code specifying the source and sink relationships 
 between the biological tracers. This is usually achieved by 
 importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
-            <ref name="python_code"/>
-          </element>
-          <element name="disable_sources_and_sinks">
-            <a:documentation>Do not calculate sources and sinks. 
-This option is generally only useful for testing. </a:documentation>
-            <empty/>
-          </element>
-        </choice>
-        <!--
-                     ## Phytoplankton
-                     element scalar_field {
-                        attribute rank { "0" },
-                        attribute name { "Phytoplankton" },
-                        (
-                           element prognostic {
-                              velocity_mesh_choice,
-                              prognostic_scalar_field
-                           }|
-                           element prescribed {
-                              velocity_mesh_choice,
-                              prescribed_scalar_field
-                           }
-                        )
-                     },
-                     ## Zooplankton
-                     element scalar_field {
-                        attribute rank { "0" },
-                        attribute name { "Zooplankton" },
-                        (
-                           element prognostic {
-                              velocity_mesh_choice,
-                              prognostic_scalar_field
-                           }|
-                           element prescribed {
-                              velocity_mesh_choice,
-                              prescribed_scalar_field
-                           }
-                        )
-                     },
-                     ## Nutrient
-                     element scalar_field {
-                        attribute rank { "0" },
-                        attribute name { "Nutrient" },
-                        (
-                           element prognostic {
-                              velocity_mesh_choice,
-                              prognostic_scalar_field
-                           }|
-                           element prescribed {
-                              velocity_mesh_choice,
-                              prescribed_scalar_field
-                           }
-                        )
-                     },
-                     ## Detritus
-                     element scalar_field {
-                        attribute rank { "0" },
-                        attribute name { "Detritus" },
-                        (
-                           element prognostic {
-                              velocity_mesh_choice,
-                              prognostic_scalar_field
-                           }|
-                           element prescribed {
-                              velocity_mesh_choice,
-                              prescribed_scalar_field
-                           }
-                        )
-                     },
-        -->
-        <element name="scalar_field">
-          <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>PhotosyntheticRadiation</value>
-          </attribute>
-          <choice>
-            <element name="prognostic">
-              <ref name="velocity_mesh_choice"/>
-              <ref name="prognostic_photosynthetic_radiation"/>
+              <ref name="python_code"/>
             </element>
-            <element name="prescribed">
-              <ref name="velocity_mesh_choice"/>
-              <ref name="prescribed_scalar_field"/>
+            <element name="disable_sources_and_sinks">
+              <a:documentation>Do not calculate sources and sinks. 
+This option is generally only useful for testing. </a:documentation>
+              <empty/>
             </element>
           </choice>
+          <element name="scalar_field">
+            <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>PhotosyntheticRadiation</value>
+            </attribute>
+            <choice>
+              <element name="prognostic">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prognostic_photosynthetic_radiation"/>
+              </element>
+              <element name="prescribed">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </choice>
+          </element>
         </element>
-      </element>
+        <element name="lagrangian_ensemble">
+          <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
+          <choice>
+            <element name="biology_algorithm">
+              <a:documentation>Python code specifying the biology model. This takes
+in velocity and light and outputs Phytoplankton, if
+those fields exist.</a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <element name="disable_biology">
+              <a:documentation>Do not calculate biology
+This option is generally only useful for testing. </a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>PhotosyntheticRadiation</value>
+              </attribute>
+              <choice>
+                <element name="prognostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prognostic_photosynthetic_radiation"/>
+                </element>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="prognostic_photosynthetic_radiation">

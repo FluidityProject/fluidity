@@ -63,14 +63,23 @@ contains
     !!< biology equations.
     type(state_type), intent(inout) :: state
 
-    character(len=OPTION_PATH_LEN) :: prefix
+    character(len=OPTION_PATH_LEN) :: prefix, algorithm
 
     call backup_source_terms(state)
 
-    prefix="/ocean_biology/pznd"
     
     ! Don't do biology if it's not included in the model!
-    if (.not.have_option(prefix)) return
+    if (.not.have_option("/ocean_biology/")) return
+
+    if (have_option("/ocean_biology/pznd")) then
+       prefix="/ocean_biology/pznd"
+       algorithm="/source_and_sink_algorithm"
+    else if (have_option("/ocean_biology/lagrangian_ensemble")) then
+       prefix="/ocean_biology/lagrangian_ensemble"
+       algorithm="/biology_algorithm"
+    else
+       FLExit("Unknown biology algorithm")
+    end if
 
     ewrite(1,*) "Solving biology sources"
 
@@ -78,18 +87,18 @@ contains
     call solve_light_equation(state, prefix)
 
     ! Calculate the sources and sinks at every point.
-    call calculate_biology_from_python(state, prefix)
+    call calculate_biology_from_python(state, prefix, algorithm)
 
   end subroutine calculate_biology_terms
 
 
-  subroutine calculate_biology_from_python(state, prefix)
+  subroutine calculate_biology_from_python(state, prefix, algorithm)
     ! Set the biological sources and sinks from python.
     type(state_type),intent(inout) :: state
-    character(len=*), intent(in) :: prefix
+    character(len=*), intent(in) :: prefix, algorithm
     character(len=PYTHON_FUNC_LEN) :: pycode
 
-    if (.not.have_option(trim(prefix)//"/source_and_sink_algorithm")) then
+    if (.not.have_option(trim(prefix)//trim(algorithm))) then
        ! No sources and sinks specified.
        return
     end if
@@ -98,7 +107,7 @@ contains
 #ifdef HAVE_NUMPY
     call python_reset()
     call python_add_state(state)
-    call get_option(trim(prefix)//"/source_and_sink_algorithm",pycode)
+    call get_option(trim(prefix)//trim(algorithm),pycode)
     ! And finally run the user's code
     call python_run_string(trim(pycode))    
 #else
