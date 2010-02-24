@@ -4,6 +4,7 @@
   <include href="solvers.rng"/>
   <include href="adaptivity_options.rng"/>
   <include href="mesh_options.rng"/>
+  <include href="input_output.rng"/>
   <start>
     <element name="qg_strat_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -123,21 +124,6 @@ Note that this is not necessarily a unit vector (unlike GravityDirection).</a:do
                 <ref name="real_dim_vector"/>
               </element>
             </element>
-            <element name="sine_of_latitude">
-              <a:documentation>Full Coriolis parameter:
-f / 2 = omega sin (latitude)
-Specify omega.</a:documentation>
-              <element name="omega">
-                <ref name="real"/>
-              </element>
-            </element>
-            <element name="on_sphere">
-              <a:documentation>Full representation on sphere</a:documentation>
-              <element name="omega">
-                <a:documentation>Domain rotation vector</a:documentation>
-                <ref name="real_dim_vector"/>
-              </element>
-            </element>
           </choice>
         </element>
       </element>
@@ -183,24 +169,6 @@ Specify omega.</a:documentation>
       </optional>
     </element>
   </start>
-  <define name="input_choice_real_dim_vector">
-    <choice>
-      <element name="constant">
-        <a:documentation>Constant value</a:documentation>
-        <ref name="real_dim_vector"/>
-      </element>
-      <element name="python">
-        <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
-
-def val(X, t):
-   # Function code
-   return # Return value
-
-where X and the return value are tuples of length geometry dimension.</a:documentation>
-        <ref name="python_code"/>
-      </element>
-    </choice>
-  </define>
   <define name="prescribed_scalar_field">
     <ref name="prescribed_scalar_field_no_adapt"/>
     <ref name="adaptivity_options_scalar_field"/>
@@ -367,52 +335,32 @@ For the top and bottom boundaries, we solve an advection-diffusion equation for 
       </element>
     </zeroOrMore>
   </define>
-  <!--
-    Choice of input method for initial conditions
-    Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
-  -->
-  <define name="input_choice_initial_condition_real">
-    <choice>
-      <element name="constant">
-        <a:documentation>Constant value</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="python">
-        <a:documentation>Python function prescribing real input. Functions should be of the form:
-
-def val(X, t):
-   # Function code
-   return # Return value
-
-where X is a tuple of length geometry dimension.</a:documentation>
-        <ref name="python_code"/>
-      </element>
-      <element name="from_file">
-        <a:documentation>Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field. In parallel the process number is appended to the filename, e.g. if the file_name attribute is set to "input.vtu", process 0 reads from "input-0.vtu".</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <element name="format">
-          <a:documentation>The format of the input file containing field data.</a:documentation>
-          <element name="string_value">
-            <value>vtu</value>
-          </element>
-        </element>
-        <ref name="comment"/>
-      </element>
-    </choice>
-  </define>
   <define name="prescribed_values_tensor_field">
-    <element name="value">
-      <a:documentation>Value for WholeMesh
+    <oneOrMore>
+      <choice>
+        <element name="value">
+          <a:documentation>Value for WholeMesh
+
 Only specify one value if not using mesh regions.
 Otherwise select other value option, specify region_ids
 and distinct names.  Then add extra values for other regions.</a:documentation>
-      <attribute name="name">
-        <value>WholeMesh</value>
-      </attribute>
-      <ref name="input_choice_tensor_field"/>
-    </element>
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_tensor_field"/>
+        </element>
+        <element name="value">
+          <a:documentation>Multiple values are now allowed if using different value assignments
+in different regions of the mesh (specified by region_ids).
+In this case each value requires a distinct name for the options dictionary.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_tensor_field"/>
+        </element>
+      </choice>
+    </oneOrMore>
   </define>
   <define name="prescribed_values_dim_minus_one_tensor_field">
     <element name="value">
@@ -424,81 +372,6 @@ and distinct names.  Then add extra values for other regions.</a:documentation>
         <value>WholeMesh</value>
       </attribute>
       <ref name="input_choice_dim_minus_one_tensor_field"/>
-    </element>
-  </define>
-  <!-- Choice of input method, e.g. for boundary conditions -->
-  <define name="input_choice_real">
-    <choice>
-      <element name="constant">
-        <a:documentation>Constant value</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="python">
-        <a:documentation>Python function prescribing real input. Functions should be of the form:
-
-def val(X, t):
-   # Function code
-   return # Return value
-
-where X is a tuple of length geometry dimension.</a:documentation>
-        <ref name="python_code"/>
-      </element>
-    </choice>
-  </define>
-  <define name="input_choice_tensor_field">
-    <choice>
-      <element name="isotropic">
-        <ref name="input_choice_real"/>
-      </element>
-      <element name="anisotropic_symmetric">
-        <ref name="input_choice_real_dim_symmetric_tensor"/>
-      </element>
-      <element name="anisotropic_asymmetric">
-        <ref name="input_choice_real_dim_tensor"/>
-      </element>
-    </choice>
-  </define>
-  <!--
-    Choice of input method for initial/boundary conditions
-    version for real symmetric tensor
-  -->
-  <define name="input_choice_real_dim_symmetric_tensor">
-    <element name="constant">
-      <a:documentation>Constant symmetric tensor</a:documentation>
-      <ref name="real_dim_symmetric_tensor"/>
-    </element>
-  </define>
-  <define name="input_choice_dim_minus_one_tensor_field">
-    <choice>
-      <element name="isotropic">
-        <ref name="input_choice_real"/>
-      </element>
-      <element name="anisotropic_symmetric">
-        <ref name="input_choice_real_dim_minus_one_symmetric_tensor"/>
-      </element>
-      <element name="anisotropic_asymmetric">
-        <ref name="input_choice_real_dim_minus_one_tensor"/>
-      </element>
-    </choice>
-  </define>
-  <!--
-    Choice of input method for initial/boundary conditions
-    version for real symmetric tensor
-  -->
-  <define name="input_choice_real_dim_minus_one_symmetric_tensor">
-    <element name="constant">
-      <a:documentation>Constant symmetric tensor</a:documentation>
-      <ref name="real_dim_minus_one_symmetric_tensor"/>
-    </element>
-  </define>
-  <!--
-    Choice of input method for initial/boundary conditions
-    version for real tensor
-  -->
-  <define name="input_choice_real_dim_minus_one_tensor">
-    <element name="constant">
-      <a:documentation>Constant tensor</a:documentation>
-      <ref name="real_dim_minus_one_tensor"/>
     </element>
   </define>
   <define name="mesh_choice">

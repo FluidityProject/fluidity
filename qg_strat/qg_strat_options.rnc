@@ -2,6 +2,7 @@ include "spud_base.rnc"
 include "../tools/solvers.rnc"
 include "../tools/adaptivity_options.rnc"
 include "../tools/mesh_options.rnc"
+include "../tools/input_output.rnc"
 
 start =
    (
@@ -110,21 +111,6 @@ start =
                      element beta_vector {
                         real_dim_vector
                      }
-                  }|
-                  ## Full Coriolis parameter:
-                  ## f / 2 = omega sin (latitude)
-                  ## Specify omega.
-                  element sine_of_latitude {
-                     element omega {
-                        real
-                     }
-                  }|
-                  ## Full representation on sphere
-                  element on_sphere {
-                     ## Domain rotation vector
-                     element omega {
-                        real_dim_vector
-                     }
                   }
                )
             }
@@ -157,24 +143,6 @@ start =
             }
          },
          mesh_adaptivity_options?
-      }
-   )
-
-input_choice_real_dim_vector =
-   (
-      ## Constant value
-      element constant {
-         real_dim_vector
-      }|
-      ## Python function prescribing dimensional vector input. Functions should be of the form:
-      ##
-      ## def val(X, t):
-      ##    # Function code
-      ##    return # Return value
-      ##
-      ## where X and the return value are tuples of length geometry dimension.
-      element python {
-         python_code
       }
    )
 
@@ -317,47 +285,27 @@ prognostic_streamfunction_field =
       }*
    )
 
-# Choice of input method for initial conditions
-# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
-input_choice_initial_condition_real =
-   (
-      ## Constant value
-      element constant {
-         real
-      }|
-      ## Python function prescribing real input. Functions should be of the form:
-      ##
-      ## def val(X, t):
-      ##    # Function code
-      ##    return # Return value
-      ##
-      ## where X is a tuple of length geometry dimension.
-      element python {
-         python_code
-      }|
-      ## Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field. In parallel the process number is appended to the filename, e.g. if the file_name attribute is set to "input.vtu", process 0 reads from "input-0.vtu".
-      element from_file {
-         attribute file_name { xsd:string },
-         ## The format of the input file containing field data.
-         element format {
-            element string_value {
-            "vtu"
-            }
-         },
-         comment
-      }
-   )
-
 prescribed_values_tensor_field =
    (
-      ## Value for WholeMesh
-      ## Only specify one value if not using mesh regions.
-      ## Otherwise select other value option, specify region_ids
-      ## and distinct names.  Then add extra values for other regions.
-      element value {
-         attribute name { "WholeMesh" },
-         input_choice_tensor_field
-      }
+      (
+         ## Value for WholeMesh
+         ##
+         ## Only specify one value if not using mesh regions.
+         ## Otherwise select other value option, specify region_ids
+         ## and distinct names.  Then add extra values for other regions.
+         element value {
+            attribute name { "WholeMesh" },
+            input_choice_tensor_field
+         }|
+         ## Multiple values are now allowed if using different value assignments
+         ## in different regions of the mesh (specified by region_ids).
+         ## In this case each value requires a distinct name for the options dictionary.
+         element value {
+            attribute name { string },
+            region_ids,
+            input_choice_tensor_field
+         }
+      )+
    )
 
 prescribed_values_dim_minus_one_tensor_field =
@@ -369,86 +317,6 @@ prescribed_values_dim_minus_one_tensor_field =
       element value {
          attribute name { "WholeMesh" },
          input_choice_dim_minus_one_tensor_field
-      }
-   )
-
-
-# Choice of input method, e.g. for boundary conditions
-input_choice_real =
-   (
-      ## Constant value
-      element constant {
-         real
-      }|
-      ## Python function prescribing real input. Functions should be of the form:
-      ##
-      ## def val(X, t):
-      ##    # Function code
-      ##    return # Return value
-      ##
-      ## where X is a tuple of length geometry dimension.
-      element python {
-         python_code
-      }
-   )
-
-input_choice_tensor_field =
-   (
-      (
-         element isotropic {
-            input_choice_real
-         }|
-         element anisotropic_symmetric {
-            input_choice_real_dim_symmetric_tensor
-         }|
-         element anisotropic_asymmetric {
-            input_choice_real_dim_tensor
-         }
-      )
-   )
-
-# Choice of input method for initial/boundary conditions
-# version for real symmetric tensor
-input_choice_real_dim_symmetric_tensor =
-   (
-      ## Constant symmetric tensor
-      element constant {
-         real_dim_symmetric_tensor
-      }
-   )
-
-input_choice_dim_minus_one_tensor_field =
-   (
-      (
-         element isotropic {
-            input_choice_real
-         }|
-         element anisotropic_symmetric {
-            input_choice_real_dim_minus_one_symmetric_tensor
-         }|
-         element anisotropic_asymmetric {
-            input_choice_real_dim_minus_one_tensor
-         }
-      )
-   )
-
-# Choice of input method for initial/boundary conditions
-# version for real symmetric tensor
-input_choice_real_dim_minus_one_symmetric_tensor =
-   (
-      ## Constant symmetric tensor
-      element constant {
-         real_dim_minus_one_symmetric_tensor
-      }
-   )
-
-# Choice of input method for initial/boundary conditions
-# version for real tensor
-input_choice_real_dim_minus_one_tensor =
-   (
-      ## Constant tensor
-      element constant {
-         real_dim_minus_one_tensor
       }
    )
 
