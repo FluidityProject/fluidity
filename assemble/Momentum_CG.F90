@@ -684,7 +684,8 @@
       ! lumped mass matrix in it:
       type(vector_field), intent(inout) :: masslump
 
-      type(vector_field), intent(in) :: x, x_old, x_new, u, oldu, nu, ug
+      type(vector_field), intent(in) :: x, u, oldu, nu, ug
+      type(vector_field), pointer :: x_old, x_new
       type(scalar_field), intent(in) :: density, p, buoyancy
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity
