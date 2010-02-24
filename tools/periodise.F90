@@ -137,27 +137,26 @@ program periodise
       call add_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/remove_periodicity', stat=stat)
 
       call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', str)
-      call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value', trim(str), stat=stat)
-      call set_option_attribute(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value/lines', '20', stat=stat)
-      call set_option_attribute(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value/type', 'python', stat=stat)
+      call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', trim(str), stat=stat)
+!      call set_option_attribute(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value/lines', '20', stat=stat)
+!      call set_option_attribute(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value/type', 'python', stat=stat)
 
       shape_option = option_shape(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids')
       allocate(boundary_ids(shape_option(1)))
       call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids', boundary_ids)
-      call set_option(external_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids/integer_value', boundary_ids, stat=stat)
+      call set_option(external_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids', boundary_ids, stat=stat)
       deallocate(boundary_ids)
 
       shape_option = option_shape(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids')
       allocate(boundary_ids(shape_option(1)))
       call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids', boundary_ids)
-      call set_option(external_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids/integer_value', boundary_ids, stat=stat)
+      call set_option(external_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids', boundary_ids, stat=stat)
       deallocate(boundary_ids)
     end do
 
     call delete_option(periodic_path // '/from_mesh', stat=stat)
     call set_option_attribute(periodic_path // '/from_file/file_name', new_external_filename, stat=stat)
     call set_option_attribute(periodic_path // '/from_file/format/name', 'triangle', stat=stat)
-    call set_option(periodic_path // '/from_file/format/string_value', 'triangle', stat=stat)
     call add_option(periodic_path // '/from_file/stat/include_in_stat', stat=stat)
     call add_option(external_path // '/from_mesh/stat/include_in_stat', stat=stat)
   end subroutine manipulate_options
