@@ -4843,11 +4843,13 @@ family_wandzura allows for degree up to 30
 on triangular meshes.
 family_grundmann_moeller allows for degree up to
 29 on simplicial meshes in arbitrary dimension.</a:documentation>
-            <choice>
-              <value>family_cools</value>
-              <value>family_grundmann_moeller</value>
-              <value>family_wandzura</value>
-            </choice>
+            <element name="string_value">
+              <choice>
+                <value>family_cools</value>
+                <value>family_grundmann_moeller</value>
+                <value>family_wandzura</value>
+              </choice>
+            </element>
           </element>
         </optional>
       </element>

@@ -51,7 +51,9 @@
       <degree replaces="NGI">
         <integer_value rank="0">12</integer_value>
       </degree>
-      <quadrature_family>family_grundmann_moeller</quadrature_family>
+      <quadrature_family>
+        <string_value>family_grundmann_moeller</string_value>
+      </quadrature_family>
     </quadrature>
   </geometry>
   <io>

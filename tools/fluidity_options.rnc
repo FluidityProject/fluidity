@@ -3627,7 +3627,9 @@ geometry =
             ## family_grundmann_moeller allows for degree up to
             ## 29 on simplicial meshes in arbitrary dimension.
             element quadrature_family {
-               ( "family_cools" | "family_grundmann_moeller" | "family_wandzura" ) 
+               element string_value {
+                  ( "family_cools" | "family_grundmann_moeller" | "family_wandzura" ) 
+               }
             }?
          },
          ## This causes the change of variables associated with each element in 
