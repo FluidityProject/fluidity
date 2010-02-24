@@ -1766,4 +1766,206 @@ integral.  If the conservation fails this tolerance a warning is issued
       </optional>
     </element>
   </define>
+  <define name="mesh_adaptivity_options">
+    <element name="mesh_adaptivity">
+      <optional>
+        <element name="mesh_movement">
+          <a:documentation>Options involving mesh movement (Lagrangian, ALE methods)
+ Allow a moving mesh.
+ Assigns memory for grid velocities
+ Amends previous timestep`s mass matrix</a:documentation>
+          <attribute name="replaces">
+            <value>MVMESH = TRUE, ZERQG, CMCHAN = TRUE</value>
+          </attribute>
+          <choice>
+            <element name="free_surface">
+              <a:documentation>enable movement of mesh with the free surface</a:documentation>
+              <choice>
+                <element name="move_surface_nodes">
+                  <a:documentation>Only move the nodes on the free surface using
+the surface height calculated at it.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="move_whole_mesh">
+                  <a:documentation>Move the whole mesh according to the free surface
+height, scaled linearly by the depth from the surface.
+
+Requires the specification of ocean_boundaries under
+geometry.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+            <element name="imposed_grid_velocity">
+              <a:documentation>Enable movement of mesh by an imposed Grid Velocity.
+Requires a prescribed GridVelocity field (see below).</a:documentation>
+              <empty/>
+            </element>
+            <element name="explicit_ale">
+              <a:documentation>enable full ale movement of mesh</a:documentation>
+              <element name="number_of_linesearch_pts">
+                <ref name="integer"/>
+              </element>
+              <element name="maximum_iterations">
+                <ref name="integer"/>
+              </element>
+              <element name="max_elements_second_level">
+                <ref name="integer"/>
+              </element>
+              <element name="functional1_weight">
+                <ref name="real"/>
+              </element>
+              <element name="functional2_weight">
+                <ref name="real"/>
+              </element>
+              <element name="functional3_weight">
+                <ref name="real"/>
+              </element>
+              <element name="functional4_weight">
+                <ref name="real"/>
+              </element>
+              <element name="functional5_weight">
+                <ref name="real"/>
+              </element>
+              <element name="minimum_val_functional_change">
+                <ref name="real"/>
+              </element>
+              <element name="minimum_val_functional">
+                <ref name="real"/>
+              </element>
+              <element name="coarse_tolerance">
+                <ref name="real"/>
+              </element>
+              <element name="fine_tolerance">
+                <ref name="real"/>
+              </element>
+              <element name="gradient_dx">
+                <ref name="real"/>
+              </element>
+              <element name="gradient_dy">
+                <ref name="real"/>
+              </element>
+              <element name="gradient_dz">
+                <ref name="real"/>
+              </element>
+              <optional>
+                <element name="move_nodes_in_x">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="move_nodes_in_y">
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="move_nodes_in_z">
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+            <element name="vertical_ale">
+              <a:documentation>enable vertical movement of mesh (TBD)</a:documentation>
+              <attribute name="replaces">
+                <value>NCOLOP &lt; 0 </value>
+              </attribute>
+              <group>
+                <element name="physical_functionals">
+                  <a:documentation>Functionals</a:documentation>
+                  <choice>
+                    <element name="minimise_relative_velocity_dot_grad_density">
+                      <a:documentation>move the nodes along an isosurface
+Please specify a scalar field</a:documentation>
+                      <attribute name="replaces">
+                        <value>NCOLOP = -1</value>
+                      </attribute>
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                    <element name="use_hessian_density">
+                      <a:documentation>Lock a node to a high curvature region, 
+Please specify a scalar field</a:documentation>
+                      <attribute name="replaces">
+                        <value>NCOLOP = -2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                  </choice>
+                </element>
+                <optional>
+                  <element name="mesh_quality_terms">
+                    <a:documentation>Mesh Quality terms</a:documentation>
+                    <optional>
+                      <element name="spring_term">
+                        <a:documentation>Spring term, default value is 1.0</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="exponential_term">
+                        <a:documentation>Exponential term, default value is 1.0</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="block_nodes_in_x">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="block_nodes_in_y">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="block_nodes_in_z">
+                    <empty/>
+                  </element>
+                </optional>
+              </group>
+            </element>
+          </choice>
+          <element name="vector_field">
+            <a:documentation>The velocity of the mesh.</a:documentation>
+            <attribute name="name">
+              <value>GridVelocity</value>
+            </attribute>
+            <attribute name="rank">
+              <value>1</value>
+            </attribute>
+            <choice>
+              <element name="diagnostic">
+                <ref name="internal_algorithm"/>
+                <element name="mesh">
+                  <attribute name="name">
+                    <value>CoordinateMesh</value>
+                  </attribute>
+                </element>
+                <ref name="diagnostic_vector_field"/>
+              </element>
+              <element name="prescribed">
+                <element name="mesh">
+                  <attribute name="name">
+                    <value>CoordinateMesh</value>
+                  </attribute>
+                </element>
+                <ref name="prescribed_vector_field_no_adapt"/>
+              </element>
+            </choice>
+          </element>
+        </element>
+      </optional>
+      <optional>
+        <choice>
+          <ref name="hr_adaptivity"/>
+          <ref name="prescribed_adaptivity"/>
+        </choice>
+      </optional>
+    </element>
+  </define>
 </grammar>
