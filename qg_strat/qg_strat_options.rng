@@ -9,6 +9,7 @@
   <include href="prescribed_field_options.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
+  <include href="stabilisation.rng"/>
   <start>
     <element name="qg_strat_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>

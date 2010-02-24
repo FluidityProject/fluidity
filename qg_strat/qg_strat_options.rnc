@@ -7,6 +7,7 @@ include "../tools/prognostic_field_options.rnc"
 include "../tools/prescribed_field_options.rnc"
 include "../tools/spatial_discretisation.rnc"
 include "../tools/temporal_discretisation.rnc"
+include "../tools/stabilisation.rnc"
 
 start =
    (
