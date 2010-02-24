@@ -1078,7 +1078,12 @@ This will give a columnar, layered mesh.</a:documentation>
               <a:documentation>If this is enabled, the resolution along each column
 will be computed from the error metric.
 This will give a columnar mesh, but not a layered one.</a:documentation>
-              <empty/>
+              <optional>
+                <element name="adapt_in_vertical_only">
+                  <a:documentation>Ignore the horizontal adapt, and *only* adapt in the vertical</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>

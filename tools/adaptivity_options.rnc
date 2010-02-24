@@ -894,7 +894,10 @@ hr_adaptivity =
            ## will be computed from the error metric.
            ## This will give a columnar mesh, but not a layered one.
            element inhomogenous_vertical_resolution {
-             empty
+              ## Ignore the horizontal adapt, and *only* adapt in the vertical
+              element adapt_in_vertical_only {
+                empty
+              }?
            }?
          }?,
          ## Select the adaptivity library used by hr-adaptivity. If disabled,

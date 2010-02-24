@@ -573,6 +573,7 @@ contains
     type(vector_field) :: old_positions, new_positions
     type(vector_field), pointer :: coordinate
     integer :: stat
+    logical :: vertical_only
 
     ! Vertically structured adaptivity stuff
     type(vector_field) :: extruded_positions
@@ -583,6 +584,9 @@ contains
     nullify(node_ownership)
     
     max_adapt_iteration = adapt_iterations()
+
+    vertical_only = have_option(&
+        & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only")
 
     ! Don't need to strip the level 2 halo with Zoltan .. in fact, we don't want to
 #ifndef HAVE_ZOLTAN
@@ -640,9 +644,14 @@ contains
       
       ! Generate a new mesh field based on the current mesh field and the input
       ! metric
-      call adapt_mesh(old_positions, metric, new_positions, node_ownership = node_ownership, &
-        & force_preserve_regions=initialise_fields)
-      
+      if (.not. vertical_only) then
+        call adapt_mesh(old_positions, metric, new_positions, node_ownership = node_ownership, &
+          & force_preserve_regions=initialise_fields)
+      else
+        call allocate(new_positions,old_positions%dim,old_positions%mesh,name=trim(old_positions%name))
+        call set(new_positions,old_positions)
+      end if
+
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
@@ -740,11 +749,13 @@ contains
 #endif
       end if
       
-      if(no_reserved_meshes()) then
-       ewrite(2, *) "Tagged references remaining:"
-       call print_tagged_references(0)
+      if(vertical_only) then
+        ewrite(2,*) "Using vertical_only adaptivity, so skipping the printing of references"
+      else if (no_reserved_meshes()) then
+        ewrite(2, *) "Tagged references remaining:"
+        call print_tagged_references(0)
       else
-       ewrite(2, *) "There are reserved meshes, so skipping printing of references."
+        ewrite(2, *) "There are reserved meshes, so skipping printing of references."
       end if
       
       call write_adapt_state_debug_output(states, i, max_adapt_iteration)      
