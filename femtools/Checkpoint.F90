@@ -266,7 +266,7 @@ contains
             FLAbort("Failed to set detectors options filename when checkpointing detectors with option path " // "/io/detectors/static_detector")
         end if
 
-        call set_option("/io/detectors/static_detector::" // trim(temp_string) // "/from_checkpoint_file/format/__value", trim(format), stat)
+        call set_option("/io/detectors/static_detector::" // trim(temp_string) // "/from_checkpoint_file/format/", trim(format), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
             FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/static_detector")
@@ -287,7 +287,7 @@ contains
             FLAbort("Failed to set detectors options filename when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
         end if
 
-        call set_option("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/format/__value", trim(format), stat)
+        call set_option("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/format/", trim(format), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
             FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
@@ -317,7 +317,7 @@ contains
         ewrite(1,*) 'In update_detectors_options'
         ewrite(1,*) temp_string
 
-        call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/number_of_detectors/__value", &
+        call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/number_of_detectors/", &
                 & number_det_in_each_group(i+1+static_dete+lagrangian_dete), stat = stat) 
 
         ewrite(1,*) 'In update_detectors_options'
@@ -342,7 +342,7 @@ contains
             FLAbort("Failed to set detectors options filename when checkpointing detectors with option path " // "io/detectors/detector_array")
         end if
 
-        call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/from_checkpoint_file/format/__value", trim(format), stat)
+        call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/from_checkpoint_file/format/", trim(format), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
             FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/detector_array")
