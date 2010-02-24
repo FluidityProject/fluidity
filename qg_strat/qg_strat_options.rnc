@@ -5,6 +5,8 @@ include "../tools/mesh_options.rnc"
 include "../tools/input_output.rnc"
 include "../tools/prognostic_field_options.rnc"
 include "../tools/prescribed_field_options.rnc"
+include "../tools/spatial_discretisation.rnc"
+include "../tools/temporal_discretisation.rnc"
 
 start =
    (
@@ -80,14 +82,14 @@ start =
                element weights {
                   real_vector
                }
-            }
+            }?
          },
          ## The physical parameters
          element physical_parameters {
             ## Set buoyancy frequency N where N^2=-(g/rho)(d rho/dz)
             element buoyancy_frequency {
                real
-            },
+            }?,
             element coriolis {
                (
                   ## f-plane approximation

@@ -7,6 +7,8 @@
   <include href="input_output.rng"/>
   <include href="prognostic_field_options.rng"/>
   <include href="prescribed_field_options.rng"/>
+  <include href="spatial_discretisation.rng"/>
+  <include href="temporal_discretisation.rng"/>
   <start>
     <element name="qg_strat_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -84,22 +86,26 @@ then this is the initial time step size.</a:documentation>
           <a:documentation>Simulation time at which the simulation should end.</a:documentation>
           <ref name="real"/>
         </element>
-        <element name="rungekutta">
-          <a:documentation>Settings for Runge-Kutta timestepping</a:documentation>
-          <element name="stages">
-            <ref name="real_vector"/>
+        <optional>
+          <element name="rungekutta">
+            <a:documentation>Settings for Runge-Kutta timestepping</a:documentation>
+            <element name="stages">
+              <ref name="real_vector"/>
+            </element>
+            <element name="weights">
+              <ref name="real_vector"/>
+            </element>
           </element>
-          <element name="weights">
-            <ref name="real_vector"/>
-          </element>
-        </element>
+        </optional>
       </element>
       <element name="physical_parameters">
         <a:documentation>The physical parameters</a:documentation>
-        <element name="buoyancy_frequency">
-          <a:documentation>Set buoyancy frequency N where N^2=-(g/rho)(d rho/dz)</a:documentation>
-          <ref name="real"/>
-        </element>
+        <optional>
+          <element name="buoyancy_frequency">
+            <a:documentation>Set buoyancy frequency N where N^2=-(g/rho)(d rho/dz)</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
         <element name="coriolis">
           <choice>
             <element name="f_plane">
