@@ -1,6 +1,7 @@
 include "spud_base.rnc"
 include "../tools/solvers.rnc"
 include "../tools/adaptivity_options.rnc"
+include "../tools/mesh_options.rnc"
 
 start =
    (
@@ -465,54 +466,3 @@ mesh_choice =
       }
    )
 
-mesh_info =
-   (
-      ## Read mesh from file.
-      element from_file {
-         (
-            ## Triangle mesh format.
-            ## Enter the base name without the .edge .ele, .face or .node extensions, and without process numbers.
-            element format {
-              attribute name { "triangle" },
-              # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
-              element string_value {
-                 "triangle"
-              },
-              comment
-            }
-         ),
-         attribute file_name { xsd:string },
-         comment
-      }|
-      ## Make mesh from existing mesh. The existing mesh cannot itself be made from an existing mesh (i.e. it must be read from a file).
-      element from_mesh {
-         mesh_choice,
-         element mesh_shape {
-            element polynomial_degree {
-               integer
-            }
-         }?,
-         element mesh_continuity {
-            element string_value{
-               "continuous" | "discontinuous"
-            }
-         }?,
-         ## Make mesh periodic
-         element periodic_boundary_conditions {
-            attribute name { xsd:string },
-            ## List of boundary ids that are aliased to
-            element physical_boundary_ids {
-               integer_vector
-            },
-            ## List of boundary ids that are aliased
-            element  aliased_boundary_ids {
-               integer_vector
-            },
-            ## Python code which takes coordinate of an aliased boundary node and returns the coordinate of a physical boundary node
-            element coordinate_map {
-               python_code
-            }
-         }*,
-         comment
-      }
-    )

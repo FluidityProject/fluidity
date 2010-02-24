@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="mesh_info">
+    <choice>
+      <element name="from_file">
+        <a:documentation>Read mesh from file.</a:documentation>
+        <choice>
+          <element name="format">
+            <a:documentation>Triangle mesh format.
+
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers.</a:documentation>
+            <attribute name="name">
+              <value>triangle</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+          <element name="format">
+            <a:documentation>Read the mesh from a vtu. Note that the mesh will have no surface
+or region IDs.</a:documentation>
+            <attribute name="name">
+              <value>vtu</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+          <element name="format">
+            <a:documentation>CGNS mesh format (not yet implemented)</a:documentation>
+            <attribute name="name">
+              <value>cgns</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
+        </choice>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+        <ref name="from_file_mesh_stat_options"/>
+        <ref name="comment"/>
+      </element>
+      <element name="from_mesh">
+        <a:documentation>Make mesh from existing mesh. </a:documentation>
+        <ref name="mesh_choice"/>
+        <optional>
+          <element name="mesh_shape">
+            <element name="polynomial_degree">
+              <ref name="integer"/>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="mesh_continuity">
+            <element name="string_value">
+              <choice>
+                <value>continuous</value>
+                <value>discontinuous</value>
+              </choice>
+            </element>
+          </element>
+        </optional>
+        <zeroOrMore>
+          <element name="periodic_boundary_conditions">
+            <a:documentation>Make mesh periodic</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="physical_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased to</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="aliased_boundary_ids">
+              <a:documentation>List of boundary ids that are aliased</a:documentation>
+              <ref name="integer_vector"/>
+            </element>
+            <element name="coordinate_map">
+              <a:documentation>Python code which takes coordinate of an aliased
+boundary node and returns the coordinate of a physical
+boundary node</a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <optional>
+              <element name="remove_periodicity">
+                <a:documentation>&lt;b&gt;Don't turn this on by hand!&lt;/b&gt;
+This option gets set by the periodise tool, to indicate
+that this mesh should have the periodic boundary conditions
+&lt;b&gt;removed&lt;/b&gt;. See the discussion on the wiki about 
+parallel periodic boundary conditions.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </zeroOrMore>
+        <optional>
+          <element name="extrude">
+            <a:documentation>Extrude a horizontal (1D or 2D) mesh in the vertical</a:documentation>
+            <element name="bottom_depth">
+              <a:documentation>Depth over which to extrude
+top will be at z=0
+bottom will be at z=-bottom_depth</a:documentation>
+              <ref name="input_choice_real"/>
+            </element>
+            <element name="sizing_function">
+              <a:documentation>Constant or function to specify the depth of the
+layers. The function is a function of all coordinates
+(so in 2+1D: x,y and z) to specify a layer depth that
+varies both in the horizontal as in the vertical.</a:documentation>
+              <ref name="input_choice_real"/>
+            </element>
+            <optional>
+              <element name="top_surface_id">
+                <a:documentation>surface_id to assign to the top of the extruded mesh</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="bottom_surface_id">
+                <a:documentation>surface_id to assign to the bottom of the extruded mesh</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <ref name="derived_mesh_stat_options"/>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+  <!-- Options for inclusion/exclusion of mesh statistics from the .stat file -->
+  <define name="include_mesh_in_stat">
+    <element name="include_in_stat">
+      <a:documentation>Include this mesh in the .stat file</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="exclude_mesh_from_stat">
+    <element name="exclude_from_stat">
+      <a:documentation>Exclude this mesh from the .stat file</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <!-- Diagnostic statistics options for meshed, with enabled by default -->
+  <define name="mesh_stat_options_enabled_default">
+    <ref name="include_mesh_in_stat"/>
+  </define>
+  <define name="mesh_stat_options_enabled_default" combine="choice">
+    <ref name="exclude_mesh_from_stat"/>
+  </define>
+  <!-- Diagnostic statistics options for meshed, with disabled by default -->
+  <define name="mesh_stat_options_disabled_default">
+    <ref name="exclude_mesh_from_stat"/>
+  </define>
+  <define name="mesh_stat_options_disabled_default" combine="choice">
+    <ref name="include_mesh_in_stat"/>
+  </define>
+  <define name="from_file_mesh_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="mesh_stat_options_enabled_default"/>
+    </element>
+  </define>
+  <define name="derived_mesh_stat_options">
+    <element name="stat">
+      <a:documentation>Specify what is added to .stat files</a:documentation>
+      <ref name="mesh_stat_options_disabled_default"/>
+    </element>
+  </define>
+</grammar>

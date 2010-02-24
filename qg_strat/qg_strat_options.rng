@@ -3,6 +3,7 @@
   <include href="spud_base.rng"/>
   <include href="solvers.rng"/>
   <include href="adaptivity_options.rng"/>
+  <include href="mesh_options.rng"/>
   <start>
     <element name="qg_strat_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -517,71 +518,6 @@ where X is a tuple of length geometry dimension.</a:documentation>
         <attribute name="name">
           <value>StreamfunctionMesh</value>
         </attribute>
-      </element>
-    </choice>
-  </define>
-  <define name="mesh_info">
-    <choice>
-      <element name="from_file">
-        <a:documentation>Read mesh from file.</a:documentation>
-        <element name="format">
-          <a:documentation>Triangle mesh format.
-Enter the base name without the .edge .ele, .face or .node extensions, and without process numbers.</a:documentation>
-          <attribute name="name">
-            <value>triangle</value>
-          </attribute>
-          <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
-          <element name="string_value">
-            <value>triangle</value>
-          </element>
-          <ref name="comment"/>
-        </element>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-        <ref name="comment"/>
-      </element>
-      <element name="from_mesh">
-        <a:documentation>Make mesh from existing mesh. The existing mesh cannot itself be made from an existing mesh (i.e. it must be read from a file).</a:documentation>
-        <ref name="mesh_choice"/>
-        <optional>
-          <element name="mesh_shape">
-            <element name="polynomial_degree">
-              <ref name="integer"/>
-            </element>
-          </element>
-        </optional>
-        <optional>
-          <element name="mesh_continuity">
-            <element name="string_value">
-              <choice>
-                <value>continuous</value>
-                <value>discontinuous</value>
-              </choice>
-            </element>
-          </element>
-        </optional>
-        <zeroOrMore>
-          <element name="periodic_boundary_conditions">
-            <a:documentation>Make mesh periodic</a:documentation>
-            <attribute name="name">
-              <data type="string"/>
-            </attribute>
-            <element name="physical_boundary_ids">
-              <a:documentation>List of boundary ids that are aliased to</a:documentation>
-              <ref name="integer_vector"/>
-            </element>
-            <element name="aliased_boundary_ids">
-              <a:documentation>List of boundary ids that are aliased</a:documentation>
-              <ref name="integer_vector"/>
-            </element>
-            <element name="coordinate_map">
-              <a:documentation>Python code which takes coordinate of an aliased boundary node and returns the coordinate of a physical boundary node</a:documentation>
-              <ref name="python_code"/>
-            </element>
-          </element>
-        </zeroOrMore>
-        <ref name="comment"/>
       </element>
     </choice>
   </define>
