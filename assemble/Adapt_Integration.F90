@@ -29,6 +29,7 @@
 
 module adapt_integration
 
+  use data_structures
   use quadrature
   use elements
   use fldebug
@@ -186,7 +187,7 @@ module adapt_integration
 contains
 
   subroutine adapt_mesh(input_positions, metric, output_positions, node_ownership, &
-                                                              force_preserve_regions)
+      & force_preserve_regions, lock_faces)
     !!< Adapt the supplied input mesh using libadaptivity. Return the new
     !!< adapted mesh in output_positions (which is allocated by this routine).
     
@@ -196,6 +197,7 @@ contains
     !! Map from new nodes to old elements. Allocated by this routine.
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
+    type(integer_set), intent(in), optional :: lock_faces
     
     ! Linear tets only
     integer, parameter :: dim = 3, nloc = 4, snloc = 3
@@ -368,7 +370,11 @@ contains
     call interleave_surface_ids(input_positions%mesh, surfid, max_coplanar_id)
     
     ! Node locking
-    call get_locked_nodes(input_positions, prdnds)
+    if(present(lock_faces)) then
+      call get_locked_nodes_and_faces(input_positions, lock_faces, prdnds)
+    else
+      call get_locked_nodes(input_positions, prdnds)
+    end if
     nprdnd = size(prdnds)
     
     ! Coordinates
@@ -410,8 +416,9 @@ contains
     dotop =  max(abs(mestp1), 0.15)  ! Functional tolerance
     minchg = 0.01  ! Unknown
     
+    ! Number of adapt sweeps
     call get_option(base_path // "/adaptivity_library/libadaptivity/sweeps/", &
-      & nsweep, default = 10)  ! Number of adapt sweeps
+      & nsweep, default = 10)
     
     ! Which element operations are we using?
     ! Split edges if true 
@@ -673,6 +680,21 @@ contains
     ewrite(1, *) "Exiting adapt_mesh"
     
   end subroutine adapt_mesh
+  
+  subroutine get_locked_nodes_and_faces(positions, lock_faces, locked_nodes)
+    type(vector_field), intent(in) :: positions
+    type(integer_set), intent(in) :: lock_faces
+    integer, dimension(:), allocatable, intent(out) :: locked_nodes
+    
+    integer, dimension(:), allocatable :: llocked_nodes
+    
+    call get_locked_nodes(positions, llocked_nodes)
+    allocate(locked_nodes(size(llocked_nodes) + key_count(lock_faces) * face_loc(positions, 1)))
+    locked_nodes(:size(llocked_nodes)) = locked_nodes
+    locked_nodes(size(llocked_nodes) + 1:) = set2vector(lock_faces)
+    deallocate(llocked_nodes)
+  
+  end subroutine get_locked_nodes_and_faces
   
   subroutine verify_positions(positions)
     !!< Verify the supplied Coordinate field - replaces elementsok
