@@ -920,8 +920,20 @@ AC_ARG_WITH(
 	[  --with-zoltan=prefix        Prefix where zoltan is installed],
 	[zoltan="$withval"],
     [])
+
+tmpLIBS=$LIBS
+tmpCPPFLAGS=$CPPFLAGS
+if test $zoltan != no; then
+if test $zoltan != yes; then
 zoltan_LIBS_PATH="$zoltan/lib"
 zoltan_INCLUDES_PATH="$zoltan/include"
+# Ensure the comiler finds the library...
+tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
+tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
+fi
+tmpLIBS="$tmpLIBS -lzoltan -lparmetis"
+tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/local/include/"
+fi
 
 # Check that the compiler uses the library we specified...
 if test -e $zoltan_LIBS_PATH/libzoltan.a; then
@@ -929,23 +941,18 @@ if test -e $zoltan_LIBS_PATH/libzoltan.a; then
 fi 
 
 # Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/libzoltan.a; then
+if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
 	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
 fi 
 
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
+
 AC_LANG_SAVE
 AC_LANG_C
-LIBS="$tmpLIBS -L$zoltan_LIBS_PATH -lzoltan -lparmetis"
 AC_CHECK_LIB(
 	[zoltan],
 	[Zoltan_Initialize],
 	[AC_DEFINE(HAVE_ZOLTAN,1,[Define if you have zoltan library.])],
 	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
-tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH -lzoltan -lparmetis"
-tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include -I/$zoltan_INCLUDES_PATH"
 # Save variables...
 AC_LANG_RESTORE
 LIBS=$tmpLIBS

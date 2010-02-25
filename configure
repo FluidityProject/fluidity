@@ -11538,7 +11538,7 @@ fi
   fi
 fi
 
-# PETSc
+# Parmetis and zoltan
 if test "$enable_mpi" != "no"
     then
 
@@ -11648,8 +11648,20 @@ if test "${with_zoltan+set}" = set; then :
   withval=$with_zoltan; zoltan="$withval"
 fi
 
+
+tmpLIBS=$LIBS
+tmpCPPFLAGS=$CPPFLAGS
+if test $zoltan != no; then
+if test $zoltan != yes; then
 zoltan_LIBS_PATH="$zoltan/lib"
 zoltan_INCLUDES_PATH="$zoltan/include"
+# Ensure the comiler finds the library...
+tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
+tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
+fi
+tmpLIBS="$tmpLIBS -lzoltan -lparmetis"
+tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/local/include/"
+fi
 
 # Check that the compiler uses the library we specified...
 if test -e $zoltan_LIBS_PATH/libzoltan.a; then
@@ -11657,13 +11669,11 @@ if test -e $zoltan_LIBS_PATH/libzoltan.a; then
 fi
 
 # Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/libzoltan.a; then
+if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
 	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
 fi
 
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
+
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -11671,7 +11681,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-LIBS="$tmpLIBS -L$zoltan_LIBS_PATH -lzoltan -lparmetis"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
 $as_echo_n "checking for Zoltan_Initialize in -lzoltan... " >&6; }
 if test "${ac_cv_lib_zoltan_Zoltan_Initialize+set}" = set; then :
@@ -11732,8 +11741,6 @@ else
   as_fn_error "Could not link in the zoltan library... exiting " "$LINENO" 5
 fi
 
-tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH -lzoltan -lparmetis"
-tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include -I/$zoltan_INCLUDES_PATH"
 # Save variables...
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'

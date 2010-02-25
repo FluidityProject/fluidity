@@ -759,7 +759,7 @@ EOF
   fi
 fi
 
-# PETSc
+# Parmetis and zoltan
 if test "$enable_mpi" != "no"
     then
     ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
