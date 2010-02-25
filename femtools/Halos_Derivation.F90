@@ -975,6 +975,7 @@ contains
     deallocate(known_global_ids)
     call Zoltan_Destroy(zz)
 #else
+    call allocate(unknowns)  ! Keep the compiler quiet
     FLAbort("invert_comms called without zoltan support")
 #endif
 

@@ -34,6 +34,8 @@ subroutine fladapt(input_basename, input_basename_len, &
   
   use adapt_state_module
   use diagnostic_fields_wrapper
+  use diagnostic_fields_new, only : &
+    & calculate_diagnostic_variables_new => calculate_diagnostic_variables
   use edge_length_module
   use field_options
   use fields
@@ -99,6 +101,7 @@ subroutine fladapt(input_basename, input_basename_len, &
 
   ! Calculate diagnostic fields
   call calculate_diagnostic_variables(states)
+  call calculate_diagnostic_variables_new(states)
 
   ! Find the external mesh field
   !call find_mesh_field_to_adapt(states(1), old_mesh_field)
