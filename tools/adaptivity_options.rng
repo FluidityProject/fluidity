@@ -1104,6 +1104,20 @@ the defaults are:
                   <ref name="integer"/>
                 </element>
               </optional>
+              <optional>
+                <element name="disable_node_movement">
+                  <a:documentation>Enable this option to turn off node movement, and use
+h-adaptivity only.</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="write_adapted_quality">
+                  <a:documentation>Writes vtus containing the Pain 2001 P0 element functionals
+of the adapted meshes.</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
               <ref name="comment"/>
             </element>
             <element name="libmba2d">

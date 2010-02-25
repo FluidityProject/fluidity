@@ -912,6 +912,16 @@ hr_adaptivity =
                element sweeps {
                   integer
                }?,
+               ## Enable this option to turn off node movement, and use
+               ## h-adaptivity only.
+               element disable_node_movement {
+                  comment
+               }?,
+               ## Writes vtus containing the Pain 2001 P0 element functionals
+               ## of the adapted meshes.
+               element write_adapted_quality {
+                  comment
+               }?,
                comment
             }|
             ## libmba2d. 2D. A testing parallel implementation is available.

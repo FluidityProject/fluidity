@@ -40,6 +40,7 @@ module adapt_integration
   use spud
   use surface_id_interleaving
   use tictoc
+  use vtk_interfaces
 
   implicit none
   
@@ -166,6 +167,19 @@ module adapt_integration
       logical, intent(in) :: dbg
       logical, intent(in) :: chcnsy
     end subroutine adptvy
+    
+    subroutine mtetin(x, y, z, m, vol, areas, l, radius, qualty)
+      implicit none
+      real, dimension(4), intent(in) :: x
+      real, dimension(4), intent(in) :: y
+      real, dimension(4), intent(in) :: z
+      real, dimension(3, 3), intent(in) :: m
+      real, intent(out) :: vol
+      real, dimension(4), intent(out) :: areas
+      real, dimension(6), intent(out) :: l
+      real, intent(out) :: radius
+      real, intent(out) :: qualty
+    end subroutine mtetin
   end interface
 #endif
   
@@ -230,11 +244,16 @@ contains
     integer :: nproc, debug_level
     logical :: dbg, chcnsy
   
-    integer :: i, max_coplanar_id, nhalos, stat
+    integer :: i, max_coplanar_id, nhalos
     integer, dimension(:), allocatable :: boundary_ids, coplanar_ids
     real :: mestp1
     type(halo_type), pointer :: old_halo
     type(mesh_type), pointer :: output_mesh
+    
+    integer, save :: output_quality_index = 0
+    logical :: output_quality
+    type(scalar_field) :: quality
+    type(tensor_field) :: new_metric
     
     ! Buffer factor to emulate behaviour of legacy expected elements function
     real, parameter :: expected_elements_buffer = 1.2  
@@ -395,14 +414,19 @@ contains
       & nsweep, default = 10)  ! Number of adapt sweeps
     
     ! Which element operations are we using?
-    mshopt(1) = .true.  ! Split edges if true 
-    mshopt(2) = .true.  ! Collapse edges if true
-    mshopt(3) = .true.  ! Perform edge to face and edge to edge swapping if true
-    mshopt(4) = .true.  ! Perform face to edge swapping if true
+    ! Split edges if true 
+    mshopt(1) = .true.
+    ! Collapse edges if true
+    mshopt(2) = .true.
+    ! Perform edge to face and edge to edge swapping if true
+    mshopt(3) = .true.
+    ! Perform face to edge swapping if true
+    mshopt(4) = .true.
     mshopt(5) = .true.  ! Split elements (do not use this yet)
                         ! In fact, this option is currently ignored and element
                         ! splitting is not performed by libadaptivity
-    mshopt(6) = .true.  ! Move nodes if true 
+    ! Move nodes if true 
+    mshopt(6) = .not. have_option(base_path // "/adaptivity_library/libadaptivity/disable_node_movement")
     
     twostg = .false.  ! Two stages of adapting, with no refinement on first
     togthr = .true.  ! Lumps node movement adaptivity in with connectivity
@@ -467,7 +491,12 @@ contains
     nodlst = 0  ! Unknown
     
     ! Output options
-    newmtx = -1  ! Do not return interpolated metric
+    output_quality = have_option(base_path // "/adaptivity_library/libadaptivity/write_adapted_quality")
+    if(output_quality) then
+      newmtx = 1  ! Return interpolated metric
+    else
+      newmtx = -1  ! Do not return interpolated metric
+    end if
     if(present(node_ownership)) then
       nwndlc = 1  ! Return map from new nodes to old elements
     else
@@ -613,8 +642,27 @@ contains
         
     ewrite(2, *) "Finished constructing output positions"
     
+    if(output_quality) then
+      assert(newmtx > 0)
+      call allocate(new_metric, output_positions%mesh, metric%name)
+      do i = 1, nwnnod
+        call set(new_metric, i, reshape(rlarr(newmtx + (i - 1) * dim * dim:newmtx + i * dim * dim - 1), (/dim, dim/)))
+      end do
+      
+      call element_quality_pain_p0(output_positions, new_metric, quality)
+      ewrite(2, *) "Max element functional: " + maxval(quality%val)
+      call vtk_write_fields("adapted_quality", index = output_quality_index, &
+        & position = output_positions, model = output_positions%mesh, &
+        & sfields = (/quality/), tfields = (/new_metric/))
+      output_quality_index = output_quality_index + 1
+      call deallocate(quality)
+      
+      call deallocate(new_metric)
+    end if
+    
     if(present(node_ownership)) then
       ! Return the node ownership
+      assert(newmtx > 0)
       allocate(node_ownership(nwnnod))
       node_ownership = intarr(nwndlc:nwndlc + nwnnod - 1)
     end if
@@ -665,6 +713,80 @@ contains
     ewrite(1, *) "Exiting verify_positions"
 
   end subroutine verify_positions
+  
+  function pain_functional(ele, positions, metric) result(func)
+    !!< Evaluate the Pain 2001 functional for the supplied 3d tetrahedron.
+    
+    integer, intent(in) :: ele
+    type(vector_field), intent(in) :: positions
+    type(tensor_field), intent(in) :: metric
+    
+    real :: func
+    
+    integer :: i
+    integer, dimension(:), pointer :: nodes
+    real :: scale_factor = 1.0 / (2.0 * sqrt(6.0))
+    
+    ! mtetin arguments
+    real, dimension(4) :: x, y, z
+    real, dimension(3, 3) :: m
+    real :: vol
+    real, dimension(4) :: areas
+    real, dimension(6) :: l
+    real :: radius, qualty
+    
+    x = ele_val(positions, 1, ele)
+    y = ele_val(positions, 2, ele)
+    z = ele_val(positions, 3, ele)
+    nodes => ele_nodes(metric, ele)
+    m = 0.25 * (node_val(metric, nodes(1)) + &
+              & node_val(metric, nodes(2)) + &
+              & node_val(metric, nodes(3)) + &
+              & node_val(metric, nodes(4)))
+    
+    ! Zero output arguments, just in case they're also used as input
+    vol = 0.0
+    areas = 0.0
+    l = 0.0
+    radius = 0.0
+    qualty = 0.0
+    
+    ! Use libadaptivity to compute the edge lengths and in-sphere radius
+#ifdef HAVE_ADAPTIVITY
+    call mtetin(x, y, z, m, vol, areas, l, radius, qualty)
+#else
+    FLAbort("Fluidity compiled without libadaptivity support")
+#endif
+
+    func = 0.5 * (((1.0 - l(1)) ** 2) + &
+                & ((1.0 - l(2)) ** 2) + &
+                & ((1.0 - l(3)) ** 2) + &
+                & ((1.0 - l(4)) ** 2) + &
+                & ((1.0 - l(5)) ** 2) + &
+                & ((1.0 - l(6)) ** 2)) + &
+         & (((scale_factor / radius) - 1.0) ** 2)
+    
+  end function pain_functional
+  
+  subroutine element_quality_pain_p0(positions, metric, quality)
+    type(vector_field), intent(in) :: positions
+    type(tensor_field), intent(in) :: metric
+    type(scalar_field), intent(out) :: quality
+    
+    integer :: ele
+    type(mesh_type) :: pwc_mesh
+
+    assert(positions%dim == 3)
+
+    pwc_mesh = piecewise_constant_mesh(positions%mesh, "PWCMesh")
+    call allocate(quality, pwc_mesh, "ElementQuality")
+    call deallocate(pwc_mesh)
+
+    do ele=1,ele_count(positions)
+      call set(quality, ele, pain_functional(ele, positions, metric))
+    end do
+    
+  end subroutine element_quality_pain_p0
   
   subroutine adapt_integration_check_options
     !!< Checks libadaptivity integration related options
