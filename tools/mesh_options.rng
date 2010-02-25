@@ -74,9 +74,22 @@ or region IDs.</a:documentation>
             <element name="coordinate_map">
               <a:documentation>Python code which takes coordinate of an aliased
 boundary node and returns the coordinate of a physical
-boundary node</a:documentation>
+boundary node.
+Note that in adaptive simulations this will be applied to
+arbitrary points in space, not just those on the original aliased
+boundary.</a:documentation>
               <ref name="python_code"/>
             </element>
+            <optional>
+              <element name="inverse_coordinate_map">
+                <a:documentation>Python code which takes coordinate of a physical
+boundary node and returns the coordinate of an aliased
+boundary node. This is used in adaptive simulations to
+keep the adapted domain inside the bounding box of the
+original domain.</a:documentation>
+                <ref name="python_code"/>
+              </element>
+            </optional>
             <optional>
               <element name="remove_periodicity">
                 <a:documentation>&lt;b&gt;Don't turn this on by hand!&lt;/b&gt;

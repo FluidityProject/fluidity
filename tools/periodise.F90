@@ -138,8 +138,10 @@ program periodise
 
       call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', str)
       call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map', trim(str), stat=stat)
-!      call set_option_attribute(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value/lines', '20', stat=stat)
-!      call set_option_attribute(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/coordinate_map/string_value/type', 'python', stat=stat)
+      if (have_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map')) then
+        call get_option(periodic_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map', str)
+        call set_option(external_path // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/inverse_coordinate_map', trim(str), stat=stat)
+      end if
 
       shape_option = option_shape(periodic_path // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids')
       allocate(boundary_ids(shape_option(1)))

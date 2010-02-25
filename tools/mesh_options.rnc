@@ -53,10 +53,21 @@ mesh_info =
             },
             ## Python code which takes coordinate of an aliased
             ## boundary node and returns the coordinate of a physical
-            ## boundary node
+            ## boundary node.
+            ## Note that in adaptive simulations this will be applied to
+            ## arbitrary points in space, not just those on the original aliased
+            ## boundary.
             element coordinate_map {
                python_code
             },
+            ## Python code which takes coordinate of a physical
+            ## boundary node and returns the coordinate of an aliased
+            ## boundary node. This is used in adaptive simulations to
+            ## keep the adapted domain inside the bounding box of the
+            ## original domain.
+            element inverse_coordinate_map {
+               python_code
+            }?,
             ## <b>Don't turn this on by hand!</b>
             ## This option gets set by the periodise tool, to indicate
             ## that this mesh should have the periodic boundary conditions
