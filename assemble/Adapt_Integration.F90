@@ -669,7 +669,7 @@ contains
     
     if(present(node_ownership)) then
       ! Return the node ownership
-      assert(newmtx > 0)
+      assert(nwnnod > 0)
       allocate(node_ownership(nwnnod))
       node_ownership = intarr(nwndlc:nwndlc + nwnnod - 1)
     end if
