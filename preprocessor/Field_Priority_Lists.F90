@@ -142,29 +142,6 @@ contains
              priority(nsol) = tmpint
           end if
 
-          if (have_option('/material_phase[' &
-               //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic')) then
-             nsol=nsol+1
-             temp_field_name_list(nsol) = "GLSTurbulentKineticEnergy"
-             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
-                  ']/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy'
-             temp_field_state_list(nsol) = p+1
-             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
-                  tmpint, default=0)
-             priority(nsol) = tmpint
-          end if
-          if (have_option('/material_phase[' &
-               //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic')) then
-             nsol=nsol+1
-             temp_field_name_list(nsol) = "GLSGenericSecondQuantity"
-             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
-                  ']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity'
-             temp_field_state_list(nsol) = p+1
-             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
-                  tmpint, default=0)
-             priority(nsol) = tmpint
-          end if
-
           do i=0,option_count('/material_phase[' &
                //int2str(p)//']/sediment/sediment_class')-1
              nsol=nsol+1
@@ -181,6 +158,33 @@ contains
                   tmpint, default=0)
              priority(nsol) = tmpint
           end do
+
+          ! Check for GLS - we need to make sure these fields are solved *after*
+          ! everything else, so set to a big negative value. In addition, the
+          ! Psi solve *must* come after the TKE solve, so make sure the priority
+          ! is set such that this happens
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "GLSTurbulentKineticEnergy"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "GLSGenericSecondQuantity"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
 
        end do
 

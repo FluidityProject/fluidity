@@ -1696,10 +1696,7 @@ contains
     ! Any fields that require backward compatibility are badly behaved, as they
     ! modify constant fields. *Do not add to this list!* Construct an
     ! appropriate diagnostic algorithm instead (possibly an internal).
-    backward_compatibility = any(field_name == (/"ElectricalPotentialDiffusivity      ", &
-                                               & "GLSTurbulentKineticEnergyDiffusivity", &
-                                               & "GLSGenericSecondQuantityDiffusivity "/)) .or. &
-                             (field_name == "Viscosity" .and. have_option("/material_phase::" // trim(state%name) // "/subgridscale_parameterisations/GLS"))
+    backward_compatibility = any(field_name == (/"ElectricalPotentialDiffusivity      "/))
 
     ! Find out what kind of field we have
     is_prescribed=have_option(trim(path)//"/prescribed")

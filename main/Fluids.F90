@@ -459,12 +459,16 @@ contains
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
 
              ! do we have the generic length scale vertical turbulence model?
-             if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
-                if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
-                    call gls_tke(state(1))
-                else if( (trim(field_name_list(it))=="GLSGenericSecondQuantity")) then
-                    call gls_psi(state(1))
-                endif
+             if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
+                if (ITS==nonlinear_iterations) then
+                    if( (trim(field_name_list(it))=="GLSTurbulentKineticEnergy")) then
+                        call gls_tke(state(1))
+                    else if( (trim(field_name_list(it))=="GLSGenericSecondQuantity")) then
+                        call gls_psi(state(1))
+                    end if
+                else
+                    cycle
+                end if
               end if
 
 
@@ -533,11 +537,15 @@ contains
           end do field_loop
 
           ! Sort out the dregs of GLS after the solve on Psi (GenericSecondQuantity) has finished
-          if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option") ) then
-            ! Update the diffusivity, only at the end of the loop ready for
-            ! the next timestep. We do NOT want to be twiddling
-            ! diffusivity/viscosity half way through a non-linear iteration
-            call gls_diffusivity(state(1))
+          if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
+            if (ITS==nonlinear_iterations) then
+                ! Update the diffusivity, only at the end of the loop ready for
+                ! the next timestep. We do NOT want to be twiddling
+                ! diffusivity/viscosity half way through a non-linear iteration
+                call gls_diffusivity(state(1))
+            else 
+                cycle
+            end if
           end if
 
 

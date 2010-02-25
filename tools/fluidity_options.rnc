@@ -6,7 +6,6 @@ include "input_output.rnc"
 include "solvers.rnc"
 include "stabilisation.rnc"
 include "reduced_model.rnc"
-include "mesh_options.rnc"
 include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
@@ -818,7 +817,7 @@ start =
                ##
                ## The GLS model encodes four individual turbulence closure models which can be chosen via 'option' below.
                ##
-               ## You will need to make sure that DistanceToTop and DistanceToBottom fields (under geometry/ocean_boundaries 
+               ## You will need to make sure that DistanceToTop and DistanceToBottom fields (under geometry/ocean_boundaries) 
                ## are switched on, as well as PerturbationDensity.
                element GLS {
                   ## The base GLS option:
@@ -826,6 +825,8 @@ start =
                   ## 2. k-epsilon
                   ## 3. k-omega
                   ## 4. 'gen' from Warner et al 2005
+                  ##
+                  ## The k-epsilon has been extensively tested and is recommended.
                   element option {
                      element string_value {
                      "k-kl"|"k-epsilon"|"k-omega"|"gen"
@@ -836,6 +837,8 @@ start =
                   ## 2. Galperin-88 which corresponds to Galperin et al 1988
                   ## 3. Canuto-01-A which corresponds to choice A from Canuto et al 2001
                   ## 4. Canuto-01-B which corresponds to choice B from Canuto et al 2001
+                  ##
+                  ## The Two Canuto functions are recommended.
                   element stability_function {
                      element string_value {
                      "KanthaClayson-94"|"GibsonLaunder-78"|"Canuto-01-A"|"Canuto-01-B"
@@ -847,14 +850,16 @@ start =
                      element string_value {
                      "neumann"|"dirichlet"
                      },
-                     ## Force the surface values to be equal to that of the Dirichlet BC.
+                     ## Force the surface values of diffusivity/viscosity to be equal to that if
+                     ## a Dirichlet condition is used on the two turbulent fields. The two turbulent
+                     ## fields are not actually altered.
                      ## This forms an ill-posed problem, but appears to stabilise some simulations.
                      ## Manual suggests that this is OFF unless you're having difficulties.
                      element fix_surface_values {
                         empty
                      }?
                   }?,
-                  ## Turbulent kinetic energy
+                  ## Turbulent kinetic energy. Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "GLSTurbulentKineticEnergy" },
@@ -862,9 +867,6 @@ start =
                         element prognostic {
                            velocity_mesh_choice,
                            prognostic_scalar_field,
-                           element priority {
-                              integer
-                           },
                            ## Minimum value of TKE in m2s2. A typical value will be around 1e-6
                            element minimum_value {
                               real
@@ -875,38 +877,42 @@ start =
                         }
                      )
                   },
-                  ## Generic second equation used in GLS
+                  ## Generic second equation used in GLS.  Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "GLSGenericSecondQuantity" },
                      (
                         element prognostic {
                            velocity_mesh_choice,
-                           prognostic_scalar_field,
-                           element priority {
-                              integer
-                           }
+                           prognostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
                         }
                       )
                   },
-                  ## Length scale (a diagnostic with GLS)
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "GLSLengthScale" },
+                  ## Background viscosity
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "GLSBackgroundViscosity" },
                      (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }|
-                        element aliased {
-                           generic_aliased_field
+                        element prescribed {
+                           mesh_choice,
+                           prescribed_tensor_field
                         }
                      )
-                  }?,
+                  },                  
+                  ## Background diffusivity
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "GLSBackgroundDiffusivity" },
+                     (
+                        element prescribed {
+                           mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  },
                   ## Eddy viscosity K_M
                   element tensor_field {
                      attribute rank { "2" },
@@ -921,7 +927,7 @@ start =
                            generic_aliased_field
                         }
                      )
-                  }?,
+                  },
                   ## Eddy diffusivity K_H
                   element tensor_field {
                      attribute rank { "2" },
@@ -931,6 +937,21 @@ start =
                            internal_algorithm,
                            velocity_mesh_choice,
                            diagnostic_tensor_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  },
+                  ## Length scale (a diagnostic with GLS)
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "GLSLengthScale" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1114,28 +1135,6 @@ start =
                         }|
                         element aliased {
                            generic_aliased_field
-                        }
-                     )
-                  }?,
-                  ## Background viscosity
-                  element tensor_field {
-                     attribute rank { "2" },
-                     attribute name { "GLSBackgroundViscosity" },
-                     (
-                        element prescribed {
-                           mesh_choice,
-                           prescribed_tensor_field
-                        }
-                     )
-                  }?,                  
-                  ## Background diffusivity
-                  element tensor_field {
-                     attribute rank { "2" },
-                     attribute name { "GLSBackgroundDiffusivity" },
-                     (
-                        element prescribed {
-                           mesh_choice,
-                           prescribed_tensor_field
                         }
                      )
                   }?,
@@ -1490,7 +1489,121 @@ start =
             }?,
             sediment?
          }+,
-         mesh_adaptivity_options?,
+         ## Mesh adaptivity options
+         element mesh_adaptivity {
+            ## Options involving mesh movement (Lagrangian, ALE methods)
+            ##  Allow a moving mesh.
+            ##  Assigns memory for grid velocities
+            ##  Amends previous timestep`s mass matrix
+            element mesh_movement {
+               attribute replaces { "MVMESH = TRUE, ZERQG, CMCHAN = TRUE" },
+               (
+                  ## enable movement of mesh with the free surface
+                  element free_surface {
+                     (
+                        ## Only move the nodes on the free surface using
+                        ## the surface height calculated at it.
+                        element move_surface_nodes {
+                          empty
+                        }|
+                        ## Move the whole mesh according to the free surface
+                        ## height, scaled linearly by the depth from the surface.
+                        ##
+                        ## Requires the specification of ocean_boundaries under
+                        ## geometry.
+                        element move_whole_mesh {
+                          empty
+                        }
+                     )
+                  }|
+                  ## Enable movement of mesh by an imposed Grid Velocity.
+                  ## Requires a prescribed GridVelocity field (see below).
+                  element imposed_grid_velocity {
+                     empty
+                  }|
+                  ## enable full ale movement of mesh
+                  element explicit_ale {
+                     element number_of_linesearch_pts {integer},
+                     element maximum_iterations {integer},
+                     element max_elements_second_level {integer},
+                     element functional1_weight {real}, 
+                     element functional2_weight {real},
+                     element functional3_weight {real}, 
+                     element functional4_weight {real},
+                     element functional5_weight {real},
+                     element minimum_val_functional_change {real},       
+                     element minimum_val_functional {real},      
+                     element coarse_tolerance {real},
+                     element fine_tolerance {real},
+                     element gradient_dx {real},  
+                     element gradient_dy {real}, 
+                     element gradient_dz {real},
+                     element move_nodes_in_x {empty}?,
+                     element move_nodes_in_y {empty}?,
+                     element move_nodes_in_z {empty}?
+                  }|
+                  ## enable vertical movement of mesh (TBD)
+                  element vertical_ale {
+                     attribute replaces { "NCOLOP < 0 " },
+                     (
+                        ## Functionals
+                        element physical_functionals {
+                           ## move the nodes along an isosurface
+                           ##Please specify a scalar field
+                           element minimise_relative_velocity_dot_grad_density {
+                              attribute replaces { "NCOLOP = -1" },
+                              attribute name { xsd:string }
+                           }|
+                           ## Lock a node to a high curvature region, 
+                           ##Please specify a scalar field
+                           element use_hessian_density {
+                              attribute replaces { "NCOLOP = -2" },
+                              attribute name { xsd:string }
+                           }
+                        },
+                        ##Mesh Quality terms
+                        element mesh_quality_terms {
+                           ##Spring term, default value is 1.0
+                           element spring_term {
+                              real 
+                           }?,
+                           ## Exponential term, default value is 1.0
+                           element exponential_term{
+                              real 
+                           }?
+                        }?,
+                        element block_nodes_in_x {empty}?,
+                        element block_nodes_in_y {empty}?,
+                        element block_nodes_in_z {empty}?
+                     )
+                  }                  
+               ),
+               ## The velocity of the mesh.
+               element vector_field {
+                  attribute name { "GridVelocity" },
+                  attribute rank { "1" },
+                  (
+                     element diagnostic {
+                       internal_algorithm,
+                       element mesh {
+                         attribute name {  "CoordinateMesh" }
+                       },
+                       diagnostic_vector_field
+                     }|
+                     element prescribed {
+                       element mesh {
+                         attribute name {  "CoordinateMesh" }
+                       },
+                       prescribed_vector_field_no_adapt
+                     }
+                  )
+               }               
+            }?,
+            (
+               hr_adaptivity |
+               prescribed_adaptivity
+            )?
+         }?,
          ## Information needed are a set of coordinates and 
          ## radius for each particle.
          element imported_solids{       
@@ -1800,6 +1913,1506 @@ sediment =
             }
          }+
       }
+   )
+
+# Choice of input method, e.g. for boundary conditions
+input_choice_real =
+   (
+      input_choice_real_contents
+   )
+
+input_choice_real_plus_boundary_forcing =
+   (
+      input_choice_real_contents|
+        element from_file {
+           element tidal {
+                attribute file_name { string },
+                attribute variable_name_amplitude { string },
+                attribute variable_name_phase { string },
+                ## See E.W. Schwiderski - Rev. Geophys. Space
+                ## Phys. Vol. 18 No. 1 pp. 243--268, 1980
+                ## for details of these constituent.
+                attribute name {"M2"|"S2"|"N2"|"K2"|"K1"|"O1"|"P1"|"Q1"|"Mf"|"Mm"|"Ssa"}
+           }+
+         }|
+        ## Set the boundary free-surface height from NEMO data.
+        ## A prescribed NEMO pressure scalar field must be set to use this option.
+        ## Set the name of the prescribed NEMO pressure scalar field below.
+        element NEMO_data {
+           attribute field_name { string }
+        }
+   )
+
+input_choice_real_plus_file =
+   (
+      input_choice_real_contents|
+      ## Initialise the field from an existing file (indended primarily for picking up prescribed fields from previously run prognostic simulations). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      ##
+      ## THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          element format {
+              element string_value {
+                  "Temperature"|"Salinity"|"Free-surface height"
+              }
+          }
+      }
+   )
+
+input_choice_real_contents =
+   ## Constant value
+   element constant {
+      real
+   }|
+   ## Generic function prescribing real input
+   element generic_function {
+      anystring
+   }|
+   ## Python function prescribing real input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X is a tuple of length geometry dimension.
+   element python {
+      python_code
+   }
+
+initial_condition_scalar = 
+   (
+      ## Initial condition for WholeMesh
+      ##
+      ## Only specify one condition if not using mesh regions.
+      ## Otherwise select other initial_condition option, specify region_ids
+      ## and distinct names.  Then add extra intial conditions for other regions.
+      element initial_condition {
+         attribute name { "WholeMesh" },
+         input_choice_initial_condition_real
+      }|
+      ## Multiple initial_conditions are allowed if specifying
+      ## different values in different
+      ## regions of the mesh (defined by region_ids).  In this case
+      ## each initial_condition
+      ## requires a distinct name for the options dictionary.
+      element initial_condition {
+         attribute name { string },
+         region_ids,
+         input_choice_initial_condition_real
+      }
+   )
+
+# Choice of input method for initial conditions
+# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
+input_choice_initial_condition_real =
+   (
+      ## Constant value
+      element constant {
+         real
+      }|
+      ## Generic function prescribing real input
+      element generic_function {
+         anystring
+      }|
+      ## Python function prescribing real input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X is a tuple of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Initialise the field from an existing file (indended
+      ## primarily for use in checkpointing). The file mesh must match
+      ## the mesh of this field  (except for piecewise constant fields 
+      ## which will be remapped back from the discontinuous nodal values). 
+      ## In parallel the process number is
+      ## appended to the filename, e.g. if the file_name attribute is
+      ## set to "input.vtu", process 0 reads from "input-0.vtu".
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format|
+            netcdf_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          element format {
+              element string_value {
+                  "Temperature"|"Salinity"|"Free-surface height"
+              }
+          }
+      }
+   )
+
+# Choice of input method, e.g. for boundary conditions
+input_choice_real_dim_vector =
+   (
+      input_choice_real_dim_vector_contents
+   )
+
+# Choice of input method, e.g. for prescribed fields
+input_choice_real_dim_vector_plus_file =
+   (
+      input_choice_real_dim_vector_contents|
+      ## Initialise the field from an existing file (indended primarily for picking up prescribed fields from previously run prognostic simulations). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      ##
+      ## THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          ## Currently, only the velocity vector field may be initialised in this manner.
+          element format {
+              element string_value {
+                  "Velocity"
+              }
+          }
+      }
+   )
+
+input_choice_real_dim_vector_contents =
+   ## Constant value
+   element constant {
+      real_dim_vector
+   }|
+   ## Python function prescribing dimensional vector input. Functions should be of the form:
+   ##
+   ##  def val(X, t):
+   ##     # Function code
+   ##     return # Return value
+   ##
+   ## where X and the return value are tuples of length geometry dimension.
+   element python {
+      python_code
+   }
+
+# Choice of input method, e.g. for boundary conditions
+# this one specifies a vector field of dim minus one
+input_choice_real_dim_minus_one_vector =
+   (
+      ## Constant value
+      element constant {
+         real_dim_minus_one_vector
+      }|
+      # ## Generic function prescribing dimensional vector input
+      # element generic_function {
+      #    anystring
+      # }|
+      ## Python function prescribing dimensional vector input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X and the return value are tuples of length geometry dimension.
+      element python {
+         python_code
+      }
+   )
+
+## Import data from NetCDF CF-1.x file.
+input_choice_netcdf =
+   (
+      element from_file {
+         ## The format of this file should conform to NetCDF CF 1.x
+         ## (http://cf-pcmdi.llnl.gov/)
+         attribute file_name { xsd:string },
+         comment
+      }
+   )
+
+# Choice of input method for initial conditions
+# Note: combine = "choice" should be used here to combine with input_choice_real, but Diamond doesn't support it
+input_choice_initial_condition_vector =
+   (
+      ## Constant value
+      element constant {
+         real_dim_vector
+      }|
+      # ## Generic function prescribing dimensional vector input
+      # element generic_function {
+      #    anystring
+      # }|
+      ## Python function prescribing dimensional vector input. Functions should be of the form:
+      ##
+      ##  def val(X, t):
+      ##     # Function code
+      ##     return # Return value
+      ##
+      ## where X and the return value are tuples of length geometry dimension.
+      element python {
+         python_code
+      }|
+      ## Initialise the field from an existing file (indended primarily for use in checkpointing). The file mesh must match the mesh of this field (except for piecewise constant fields which will be remapped back from the discontinuous nodal values).
+      element from_file {
+         attribute file_name { xsd:string },
+         (
+            vtu_input_format
+         ),
+         comment
+      }|
+      ## Initialize the field from NEMO data. Note that a file path
+      ## under '/ocean_forcing/external_data_boundary_conditions' must
+      ## be set to use this option.
+      element NEMO_data {
+          ## Currently, only the velocity vector field may be initialised in this manner.
+          element format {
+              element string_value {
+                  "Velocity"
+              }
+          }
+      }
+   )  
+
+# Choice of input method for initial/boundary conditions
+# version for real symmetric tensor
+input_choice_real_dim_symmetric_tensor =
+   (
+      ## Constant symmetric tensor
+      element constant {
+         real_dim_symmetric_tensor
+      }|
+#      ## Generic function prescribing symmetric tensor input
+#      element generic_function {
+#         anystring
+#      }|
+      ## Python command prescribing symmetric tensor input.
+      ##
+      ## Note that it is for the python function to determine 
+      ## that the results it produces are, in fact, symmetric.
+      ##
+      ## An example that returns the three-dimensional identity:
+      ##
+      ##  def val(X, t):
+      ##    return [[1, 0, 0],
+      ##                [0, 1, 0],
+      ##                [0, 0, 1]]
+      element python {
+         python_code
+      }
+   )
+
+# Choice of input method for initial/boundary conditions
+# version for real tensor
+input_choice_real_dim_tensor =
+   (
+      ## Constant tensor
+      element constant {
+         real_dim_tensor
+      }|
+#      }|
+#      ## Generic function prescribing tensor input
+#      element generic_function {
+#         anystring
+#      }|
+      ## Python command prescribing tensor input.
+      ##
+      ## An example that returns the three-dimensional identity:
+      ##
+      ##  def val(X, t):
+      ##    return [[1, 0, 0],
+      ##                [0, 1, 0],
+      ##                [0, 0, 1]]
+      element python {
+         python_code
+      }
+   )
+
+prognostic_velocity_field =
+   (
+      velocity_equation_choice,
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         (
+            ## A new version of continuous galerkin assembly.
+            element continuous_galerkin {
+               advection_stabilisation_options,
+               ## Discretisation options for the mass terms in the velocity equation.
+               element mass_terms{
+                  ## Lump the mass matrix - currently required if solving for pressure
+                  ## and not using the schur complement scheme under Pressure
+                  element lump_mass_matrix {
+                     ## Lump on the submesh.
+                     ## This only works for simplex meshes and is only
+                     ## strictly valid on 2d meshes.
+                     element use_submesh {
+                       empty
+                     }?
+                  }?,
+                  ## Remove the mass terms from the equation.
+                  element exclude_mass_terms {
+                     empty
+                  }?
+               },
+               ## Discretisation options for the advection terms in the velocity equation.
+               element advection_terms {
+                  ## Integrate the advection terms of the momentum equation by parts.
+                  ## This allows for the imposition of weak boundary conditions.
+                  ## If activated the element advection matrix takes the form:
+                  ##    /                                            /
+                  ##  - | (grad N_A dot nu) N_B rho dV - (1. - beta) | N_A ( div nu ) N_B rho dV
+                  ##    /                                            /
+                  ## otherwise it takes the standard form:
+                  ##    /                                     /
+                  ##    | N_A (nu dot grad N_B) rho dV + beta | N_A ( div nu ) N_B rho dV
+                  ##    /                                     /
+                  ## where beta is set in conservative_advection, N is
+                  ## a shape function and nu is the relative nonlinear
+                  ## velocity.
+                  element integrate_advection_by_parts {
+                     empty
+                  }?,
+                  ## Remove the advection terms (u.grad u rho + beta
+                  ## div u rho u) from the equation.
+                  ## This overrides any other advection term options
+                  ## (including conservative_advection below).
+                  element exclude_advection_terms {
+                     empty
+                  }?
+               },
+               ## Discretisation options for the stress terms in the velocity equation.
+               element stress_terms {
+                  (
+                     ## Use tensor form of the stress terms:
+                     ##
+                     ## mu u_{i,jj}
+                     ##
+                     ## This is only valid for incompressible
+                     ## simulations as it is basically a simplication
+                     ## of full stress form when divergent elements can
+                     ## be cancelled out.
+                     ##
+                     ## Only diaonal components of viscosity
+                     ## (i.e. either isotropic or
+                     ## diagonal) are physical for isotropic materials.
+                     ##
+                     ## If components differ from each other
+                     ## this must be for numerical reasons (i.e. not
+                     ## physical variations in viscosity otherwise
+                     ## simplification is not valid).
+                     ##
+                     ## If activated, the dim x dim (in this example
+                     ## 3d) discrete stress matrix takes the form:
+                     ##
+                     ##  /  mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z
+                     ##  |   0                                             ...
+                     ##  \   0
+                     ##
+                     ##      0
+                     ##  ... mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z   ...
+                     ##      0
+                     ##
+                     ##      0                                                           \
+                     ##  ... 0                                                           |
+                     ##     mu_xx*N_a,x*N_b,x + mu_yy*N_a,y*N_b,y + mu_zz*N_a,z*N_b,z   /
+                     ##
+                     ## which is derived from b_a^T c b_b, where:
+                     ##
+                     ##  b_a = / N_a,x  \   c = /  mu_xx    0      0    \
+                     ##        | N_a,y  |       |    0    mu_yy    0    |
+                     ##        \ N_a,z  /       \    0      0    mu_zz  /
+                     ##
+                     ## where N_a and N_b are shape functions of the
+                     ## ath and bth node respectively and mu are the
+                     ## components of the viscosity tensor.
+                    element tensor_form {
+                      empty
+                    }|
+                     ## Use full stress form of the stress tensor:
+                     ##
+                     ## 2*mu (u_{(i,j)} - 1/3*\delta_{ij}u_{k,k})
+                     ##
+                     ## This couples the velocity components together.
+                     ## It is required if performing a compressible simulation.
+                     ##
+                     ## If using a viscosity ALL COMPONENTS OF
+                     ## VISCOSITY MUST BE SET (i.e. either
+                     ## anisotropic_symmetric or
+                     ## anisotropic_asymmetric tensors).
+                     ##
+                     ## If components differ form each other this must
+                     ## be for numerical reasons (i.e. not physical
+                     ## variations in viscosity as the material is isotropic).
+                     ##
+                     ## If activated, the dim x dim (in this example
+                     ## 3d) discrete stress matrix takes the form:
+                     ##
+                     ##  /   4/3*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_xy + N_a,z*N_b,z*mu_xz
+                     ##  |   N_a,x*N_b,y*mu_xy - 2/3*N_a,y*N_b,x*mu_yx                       ...
+                     ##  \   N_a,x*N_b,z*mu_xz - 2/3*N_a,z*N_b,x*mu_zx
+                     ##
+                     ##      N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xy
+                     ##  ... N_a,x*N_b,x*mu_xy + 4/3*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_yz   ...
+                     ##      N_a,y*N_b,z*mu_yz - 2/3*N_a,z*N_b,y*mu_zy
+                     ##
+                     ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xz                       \
+                     ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yz                       |
+                     ##      N_a,x*N_b,x*mu_xz + N_a,y*N_b,y*mu_yz + 4/3*N_a,z*N_b,z*mu_zz   /
+                     ##
+                     ## which is derived from b_a^T c b_b, where:
+                     ##
+                     ##  b_a = / N_a,x   0     0   \   c = /  4/3*mu_xx  -2/3*mu_xy -2/3*mu_xz  0    0    0   \
+                     ##        |  0    N_a,y   0   |       | -2/3*mu_yx   4/3*mu_yy -2/3*mu_yz  0    0    0   |
+                     ##        |   0     0   N_a,z |       | -2/3*mu_zx  -2/3*mu_zy  4/3*mu_zz  0    0    0   |
+                     ##        | N_a,y N_a,x   0   |       |     0           0          0     mu_xy  0    0   |
+                     ##        | N_a,z   0   N_a,x |       |     0           0          0       0  mu_xz  0   |
+                     ##        \   0   N_a,z N_a,y /       \     0           0          0       0    0  mu_yz /
+                     ##
+                     ## where N_a and N_b are shape functions of the ath and bth node respectively and mu are the components of the viscosity tensor.
+                     element stress_form {
+                        ## Use the legacy form of the stress tensor.
+                        ##
+                        ## This differs from the standard method in how the components 
+                        ## of the viscosity tensor are distributed.
+                        ##
+                        ## If activated, the dim x dim (in this case
+                        ## 3d) stress matrix takes the form:
+                        ##
+                        ##  /   4/3*N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz
+                        ##  |   N_a,x*N_b,y*mu_yx - 2/3*N_a,y*N_b,x*mu_yy                     ...
+                        ##  \   N_a,x*N_b,z*mu_zx - 2/3*N_a,z*N_b,x*mu_zz
+                        ##
+                        ##      N_a,y*N_b,x*mu_xy - 2/3*N_a,x*N_b,y*mu_xx
+                        ##  ... N_a,x*N_b,x*mu_xx + 4/3*N_a,y*N_b,y*mu_yy + N_a,z*N_b,z*mu_zz ...
+                        ##      N_a,y*N_b,z*mu_zy - 2/3*N_a,z*N_b,y*mu_zz
+                        ##
+                        ##      N_a,z*N_b,x*mu_xz - 2/3*N_a,x*N_b,z*mu_xx                     \
+                        ##  ... N_a,z*N_b,y*mu_yz - 2/3*N_a,y*N_b,z*mu_yy                     |
+                        ##      N_a,x*N_b,x*mu_xx + N_a,y*N_b,y*mu_yy + 4/3*N_a,z*N_b,z*mu_zz /
+                        ##
+                        ## where N_a and N_b are shape functions of
+                        ## the ath and bth node respectively and mu
+                        ## are the components of the viscosity tensor.
+                      element legacy_stress_form {
+                        empty
+                      }?
+                    }
+                  )
+               },
+               ## large-eddy simulation
+               element les_model {
+                  ## literature sybol: Cs
+                  ##
+                  ## suggested value 0.1
+                  element smagorinsky_coefficient {
+                     real
+                  },
+                  ## les options
+                  element order {
+                     ## similar to the original Smag model
+                     element second_order{empty}
+                   |
+                     ## this adds a fourth order operator to tackle the
+                     ## dissipation issues of the original Smag model
+                     ##
+                     ## use this if your turbulence dissipates faster than it should
+                     ##
+                     ## requires a fine mesh to perform well
+                     element fourth_order{empty}
+                  }
+               }?
+            }|
+            ## Discontinuous galerkin formulation. Confusingly it is not necessary to provide
+            ## a discontinuous velocity field for this to work!
+            element discontinuous_galerkin {
+               attribute replaces { "DISOPT" },
+               ## Discretisation options for the mass terms in the velocity equation.
+               element mass_terms{
+                  ## Lump the mass matrix
+                  element lump_mass_matrix {
+                    empty
+                  }?,
+                  ## Remove the mass terms from the equation.
+                  element exclude_mass_terms {
+                     empty
+                  }?
+               }?,
+               element viscosity_scheme {
+                  (
+                     ## Classical scheme from Bassi and Rebay 
+                     ## (JCP 131 267-179 1997)
+                     element bassi_rebay {
+                        empty
+                     }|
+                     ## Scheme in which upwinding is applied in
+                     ## alternating directions. Devised by C.Pain.
+                     element arbitrary_upwind {
+                        empty
+                     }|
+                     ## Classical interior penalty scheme
+                     ## see, e.g., SIAM Journal on Numerical Analysis
+                     ## Vol. 39, No. 5 (2002), pp. 1749-1779 
+                     element interior_penalty {
+                        ## Penalty_parameter
+                        ## The penalty term Int [u][v] dS on element boundaries
+                        ## is scaled by C = C_0 h**p
+                        ## This option specifies the C_0
+                        ## There is a theoretical lower bound for 
+                        ## stability and hence convergence
+                        element penalty_parameter {
+                           real
+                        },
+                        ## Penalty_parameter
+                        ## The penalty term Int [u][v] dS on element boundaries
+                        ## is scaled by C = C_0 h**p
+                        ## This option specifies p
+                        ## Theoretically p=-1 is required for linear elements
+                        element edge_length_power {
+                           real
+                        },
+                        ## Option for how to compute the edge length h
+                        element edge_length_option {
+                           ## Use face integral (take sqrt in 3D)
+                           element use_face_integral {
+                              empty
+                           }|
+                           ## Use difference between element centre 
+                           ## and neighbour centre
+                           ## Use 2x distance to face centre on boundaries
+                           element use_element_centres {
+                              empty
+                           }
+                        },
+                        ## Switch on debugging output
+                        element debug {
+                           ## Bound for testing element gradient matrix
+                           element gradient_test_bound {
+                              real
+                           },
+                           ## Remove the elemental integral:
+                           ## Int grad u.kappa.grad v dV
+                           element remove_element_integral {
+                              empty
+                           }?,
+                           ## Remove the primal fluxes
+                           element remove_primal_fluxes {
+                              empty
+                           }?,
+                           ## Remove the penalty fluxes
+                           element remove_penalty_fluxes {
+                              empty
+                           }?
+                        }?
+                     }
+                  )
+               },
+               element advection_scheme {
+                  (
+                     ## Straightforward upwinding of the nonlinear velocity.
+                     element upwind {
+                        empty
+                     }|
+                     ## Disable advection
+                     element none {
+                        empty
+                     }
+                  ),
+                  ## Integrate the advection terms of the momentum equation by parts.
+                  ##
+                  ## Integrating the advection term by parts is
+                  ## necessary for a discontinuous
+                  ## galerkin discretisation however it is possible to
+                  ## select how many times the
+                  ## integration by parts is performed.
+                  ## Twice is the norm.
+                  element integrate_advection_by_parts {
+                    (
+                      ## If activated the element advection matrix takes the form:
+                      ##    /                                 /
+                      ##    | N_A (nu dot grad N_B) dV + beta | N_A ( div nu ) N_B dV
+                      ##    /                                 /
+                      ##      /                                         /
+                      ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - 1] | N_A_i (nu dot n) N_B_i ds
+                      ##      /                                         /
+                      ## where beta is set in conservative_advection,
+                      ## N is a shape function (uppercase
+                      ## subscripts indicate nodes A or B while
+                      ## lowercase subscripts indicate inner or outer
+                      ## faces i and o respectively), nu is the
+                      ## nonlinear velocity and n is the outward
+                      ## pointing normal from the element.
+                      element twice {
+                        empty
+                      }|
+                      ## If activated the element advection matrix takes the form:
+                      ##    /                                        /
+                      ##  - | (grad N_A dot nu) N_B dV - (1. - beta) | N_A ( div nu ) N_B dV
+                      ##    /                                        /
+                      ##      /                                   /
+                      ##  + I | N_A_i (nu dot n) N_B_o ds + (1-I) | N_A_i (nu dot n) N_B_i ds
+                      ##      /                                   /
+                      ## where beta is set in conservative_advection,
+                      ## N is a shape function (uppercase
+                      ## subscripts indicate nodes A or B while
+                      ## lowercase subscripts indicate inner or outer
+                      ## faces i and o respectively), nu is the
+                      ## nonlinear velocity and n is the outward
+                      ## pointing normal from the element.
+                      element once {
+                        empty
+                      }
+                    )
+                  },
+                  ## If activated the conservation term:
+                  ##  /
+                  ##  | N_A ( div nu ) N_B dV
+                  ##  /
+                  ## is integrated_by_parts such that the element
+                  ## advection matrix becomes:
+                  ##         /                                        /
+                  ##  - beta | (grad N_A dot nu) N_B dV + (1. - beta) | N_A (nu dot grad N_B) dV
+                  ##         /                                        /
+                  ##      /                                                /
+                  ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
+                  ##      /                                                /                  
+                  ## where beta is set in conservative_advection, N is
+                  ## a shape function (uppercase
+                  ## subscripts indicate nodes A or B while lowercase
+                  ## subscripts indicate inner or outer
+                  ## faces i and o respectively), nu is the nonlinear
+                  ## velocity and n is the outward pointing normal
+                  ## from the element.
+                  ## This is invariant regardless of whether the main
+                  ## advection term is integrated by parts once or
+                  ## twice.
+                  element integrate_conservation_term_by_parts {
+                    empty
+                  }?
+               }
+            }
+         ),
+         ## Conservative discretisation of momentum equations
+         ##  BETA=1. -- conservative (divergence form)
+         ##  BETA=0. -- non-conservative
+         ##  0. < BETA < 1.
+         element conservative_advection {
+            attribute replaces {"BETA"},
+            real
+         }
+      },
+      ## Temporal discretisation options
+      element temporal_discretisation {
+         ## Implicit/explicit control (THETA)
+         ##  =0.  -- explicit
+         ##  =0.5 -- Crank-Nicolson
+         ##  =1.  -- implicit
+         element theta {
+            attribute replaces {"THETA"},
+            real
+         },
+         ## Non-linear relaxation term
+         ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
+         ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
+         ##  0. < ITHETA < 1.
+         element relaxation {
+            attribute replaces {"ITHETA"},
+            real
+         },
+         element discontinuous_galerkin {
+            (
+               ## Use timestep subcycling to solve this equation.
+               element advection_cycling {
+                  ## Specify the number of subcycles.
+                  element number_advection_subcycles {
+                     integer
+                  },
+                  ## Specify whether coriolis should be included in the 
+                  ## subcycling.
+                  element coriolis_in_subcycles {
+                     empty
+                  }?
+               }
+            )?
+         }?
+      },
+      ## Solver
+      element solver {
+         linear_solver_options_asym
+      },
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_vector
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_vector
+         }
+      )+,
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute replaces { "boundary, TMPER1 TMPER2 TMPERI" },
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         velocity_boundary_conditions
+      }*,
+      ## For a Newtonian fluid this is the shear viscosity.
+      ##
+      ## For continuous_galerkin see stress_terms to see how the
+      ## viscosity tensor is dealt with in the momentum equation.
+      element tensor_field {
+         attribute replaces {"MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU"},
+         attribute name { "Viscosity" },
+         attribute rank { "2" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_tensor_field_no_adapt
+            }|
+            element diagnostic {
+               mesh_choice?,
+               (
+                  internal_algorithm |
+                  bulk_viscosity_algorithm |
+                  tensor_python_diagnostic_algorithm
+               ),
+               diagnostic_tensor_field
+            }
+         )
+      }?,
+      ## Source
+      element vector_field {
+         attribute name { "Source" },
+         attribute rank { "1" },
+         attribute replaces { "CONSOX CONSOY CONSOZ RONSOX RONSOY RONSOZ ZSOX ZSOY ZSOZ" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_vector_field_no_adapt
+            }|
+            element diagnostic {
+               (
+                  vector_python_diagnostic_algorithm |
+                  imposed_material_velocity_source_algorithm |
+                  internal_velocity_source_algorithm
+               ),
+               diagnostic_vector_field
+            }
+         ),
+         element lump_source {
+            attribute replaces { "SLUMP" },
+            empty
+         }?
+      }?,
+      ## Absorption
+      element vector_field {
+         attribute name { "Absorption" },
+         attribute rank { "1" },
+         attribute replaces { "XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" },
+         (
+            element prescribed {
+               prescribed_vector_field_no_adapt
+            }|
+            element diagnostic { 
+               (
+                  vector_python_diagnostic_algorithm |
+                  imposed_material_velocity_absorption_algorithm |
+                  internal_velocity_absorption_algorithm
+               ),
+               diagnostic_vector_field
+            }
+         ),
+         (
+           ## Default absorption: no lumping, is fully evaluated before the
+           ## the pressure correction.
+           element default_absorption {
+              attribute replaces {"ABSLUM"},
+              empty
+           }|
+           ## Lump the inclusion of absorbtion terms.
+           element lump_absorption {
+              attribute replaces {"ABSLUM"},
+              ## Lump on the submesh.
+              ## This only works for simplex meshes and is only
+              ## strictly valid on 2d meshes.
+              element use_submesh {
+                empty
+              }?
+           }|
+           ## Includes the pressure correction to the velocity in the
+           ## absorption term (for theta>0). This makes the absorption
+           ## term more implicit. The absorption term is lumped if and
+           ## only if the mass matrix is lumped (lump_mass_matrix).
+           element include_pressure_correction {
+              empty
+           }
+         )
+      }?,
+      ## SurfaceTension
+      element tensor_field {
+         attribute name { "SurfaceTension" },
+         attribute rank { "2" },
+         (
+            element diagnostic {
+                internal_algorithm,
+                attribute field_name { "MaterialVolumeFraction" },
+                ## Choose whether the mass matrix is lumped or not for the calculation of the gradient
+                element lump_mass_matrix {
+                  empty
+                }?,
+                ## Solver options are necessary if you're not lumping your mass or if you're field isn't dg
+                element solver {
+                  linear_solver_options_sym
+                }?,
+                ## Choose whether the surface tension term in the momentum equation is integrated by parts or not
+                element integrate_by_parts {
+                  empty
+                }?,
+                diagnostic_tensor_field
+            }
+         )
+      }?,
+      prognostic_vector_output_options,
+      prognostic_velocity_stat_options,
+      vector_convergence_options,
+      prognostic_detector_options,
+      vector_steady_state_options,
+      adaptivity_options_prognostic_vector_field,
+      interpolation_algorithm_vector,
+      discrete_properties_algorithm_vector?
+   )
+
+prognostic_scalar_field =
+   (
+      scalar_equation_choice,
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         (
+            ## Continuous Galerkin formulation
+            element continuous_galerkin {
+               advection_stabilisation_options,
+               ## Discretisation options for the advection terms.
+               element advection_terms {
+                  ## Integrate the advection terms of the advection equation by
+                  ## parts.
+                  element integrate_advection_by_parts {
+                     comment
+                  }?,
+                  ## Remove the advection terms from the equation.
+                  ## This overrides any other advection term options (including
+                  ## conservative_advection below).
+                  element exclude_advection_terms {
+                     comment
+                  }?
+               },
+               ## Discretisation options for the mass terms.
+               element mass_terms {
+                  ## Lump the mass matrix
+                  element lump_mass_matrix {
+                     attribute replaces { "TLUMP" },
+                     empty
+                  }?,
+                  ## Remove the mass terms from the equation. This requires an
+                  ## implicitness factor theta = 1.0 (under
+                  ## temporal_discretisation).
+                  element exclude_mass_terms {
+                     empty
+                  }?
+               },
+               comment
+            }|
+            ## Discontinuous galerkin formulation. You can also use this
+            ## formulation with a continuous field in which case a simple
+            ## galerkin formulation will result. 
+            element discontinuous_galerkin {
+               attribute replace { "70 <= DISOTT <= 90" },
+               element advection_scheme {
+                  (
+                     ## Straightforward upwinding of the nonlinear velocity.
+                     ## This uses SU stabilisation with optimal choice for the
+                     ## stabilisation parameter, and stabilisation parameter
+                     ## scale factor 0.5.
+                     element upwind {
+                        empty
+                     }|
+                     ## Disable advection
+                     element none {
+                        empty
+                     }
+                  ),
+                  ## Integrate the advection terms of the
+                  ## advection-diffusion equation by parts.
+                  ## Integrating the advection term by parts is
+                  ## necessary for a discontinuous
+                  ## galerkin discretisation however it is possible to
+                  ## select how many times the
+                  ## integration by parts is performed.
+                  ## Twice is the norm.
+                  element integrate_advection_by_parts {
+                    (
+                      ## If activated the element advection matrix takes the form:
+                      ##    /                                 /
+                      ##    | N_A (nu dot grad N_B) dV + beta | N_A ( div nu ) N_B dV
+                      ##    /                                 /
+                      ##      /                                         /
+                      ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - 1] | N_A_i (nu dot n) N_B_i ds
+                      ##      /                                         /
+                      ## where beta is set in conservative_advection,
+                      ## N is a shape function (uppercase
+                      ## subscripts indicate nodes A or B while
+                      ## lowercase subscripts indicate inner or outer
+                      ## faces i and o respectively), nu is the
+                      ## nonlinear velocity and n is the outward
+                      ## pointing normal from the element.
+                      element twice {
+                        empty
+                      }|
+                      ## If activated the element advection matrix takes the form:
+                      ##    /                                        /
+                      ##  - | (grad N_A dot nu) N_B dV - (1. - beta) | N_A ( div nu ) N_B dV
+                      ##    /                                        /
+                      ##      /                                   /
+                      ##  + I | N_A_i (nu dot n) N_B_o ds + (1-I) | N_A_i (nu dot n) N_B_i ds
+                      ##      /                                   /
+                      ## where beta is set in conservative_advection,
+                      ## N is a shape function (uppercase
+                      ## subscripts indicate nodes A or B while
+                      ## lowercase subscripts indicate inner or outer
+                      ## faces i and o respectively), nu is the
+                      ## nonlinear velocity and n is the outward
+                      ## pointing normal from the element.
+                      element once {
+                        empty
+                      }
+                    )
+                  },
+                  ## If activated the conservation term:
+                  ##  /
+                  ##  | N_A ( div nu ) N_B dV
+                  ##  /
+                  ## is integrated_by_parts such that the element
+                  ## advection matrix becomes:
+                  ##         /                                        /
+                  ##  - beta | (grad N_A dot nu) N_B dV + (1. - beta) | N_A (nu dot grad N_B) dV
+                  ##         /                                        /
+                  ##      /                                                /
+                  ##  + I | N_A_i (nu dot n) N_B_o ds + [(1-I) - (1-beta)] | N_A_i (nu dot n) N_B_i ds
+                  ##      /                                                /                  
+                  ## where beta is set in conservative_advection, N is
+                  ## a shape function (uppercase
+                  ## subscripts indicate nodes A or B while lowercase
+                  ## subscripts indicate inner or outer
+                  ## faces i and o respectively), nu is the nonlinear
+                  ## velocity and n is the outward pointing normal
+                  ## from the element.
+                  ## This is invariant regardless of whether the main
+                  ## advection term is integrated by parts once or
+                  ## twice.
+                  element integrate_conservation_term_by_parts {
+                    empty
+                  }?
+               },
+               element diffusion_scheme {
+                  (
+                     ## Classical scheme from Bassi and Rebay 
+                     ## (JCP 131 267-179 1997)
+                     element bassi_rebay {
+                        empty
+                     }|
+                     ## Compact discontinuous Galerkin scheme.
+                     ## (Peraire and Persson SIAM J. Sci. Comput. 30, p1806)
+                     element compact_discontinuous_galerkin {
+                        ## Penalty_parameter
+                        ## Add penalty term Int [u][v] dS on element boundaries
+                        ## scaled by C_0
+                        element penalty_parameter {
+                           real
+                        }?,
+                        ## Switch on debugging output
+                        element debug {
+                           ## Bound for testing element gradient matrix
+                           element gradient_test_bound {
+                              real
+                           },
+                           ## Remove the elemental integral:
+                           ## Int grad u.kappa.grad v dV
+                           element remove_element_integral {
+                              empty
+                           }?,
+                           ## Remove the primal fluxes
+                           element remove_primal_fluxes {
+                              empty
+                           }?,
+                           ## Remove the CDG fluxes
+                           element remove_cdg_fluxes {
+                              empty
+                           }?,
+                           ## When present, the penalty term
+                           ## Int [u][v] dS on element boundaries is
+                           ## scaled by C = C_0 h**p This option
+                           ## specifies p.
+                           element edge_length_power {
+                              real
+                           }?
+                        }?
+                     }|
+                     ## Scheme in which upwinding is applied in
+                     ## alternating directions. Devised by C.Pain.
+                     element arbitrary_upwind {
+                        empty
+                     }|
+                     ## Classical interior penalty scheme
+                     ## see, e.g., SIAM Journal on Numerical Analysis
+                     ## Vol. 39, No. 5 (2002), pp. 1749-1779 
+                     element interior_penalty {
+                        ## Penalty_parameter
+                        ## The penalty term Int [u][v] dS on element boundaries
+                        ## is scaled by C = C_0 h**p
+                        ## This option specifies the C_0
+                        ## There is a theoretical lower bound for 
+                        ## stability and hence convergence
+                        element penalty_parameter {
+                           real
+                        },
+                        ## Penalty_parameter
+                        ## The penalty term Int [u][v] dS on element boundaries
+                        ## is scaled by C = C_0 h**p
+                        ## This option specifies p
+                        ## Theoretically p=-1 is required for linear elements
+                        element edge_length_power {
+                           real
+                        },
+                        ## Option for how to compute the edge length h
+                        element edge_length_option {
+                           ## Use face integral (take sqrt in 3D)
+                           element use_face_integral {
+                              empty
+                           }|
+                           ## Use difference between element centre 
+                           ## and neighbour centre
+                           ## Use 2x distance to face centre on boundaries
+                           element use_element_centres {
+                              empty
+                           }
+                        },
+                        ## Switch on debugging output
+                        element debug {
+                           ## Bound for testing element gradient matrix
+                           element gradient_test_bound {
+                              real
+                           },
+                           ## Remove the elemental integral:
+                           ## Int grad u.kappa.grad v dV
+                           element remove_element_integral {
+                              empty
+                           }?,
+                           ## Remove the primal fluxes
+                           element remove_primal_fluxes {
+                              empty
+                           }?,
+                           ## Remove the penalty fluxes
+                           element remove_penalty_fluxes {
+                              empty
+                           }?
+                        }?
+                     }
+                  )
+               },
+               ## This introduces a simple upwind diffusion based on eqn 2.52 in 
+               ## Donea and Huerta (2003) "Finite elements for flow problems".
+               element upwind_stabilisation {
+                  empty
+               }?,
+               (
+                  element slope_limiter {
+                     attribute name { "Cockburn_Shu" },
+                     ## TVB tolerance parameter, below this value (scaled by
+                     ## dx**2) no limiting is done.
+                     ## Reduce to do more limiting, increase to do less
+                     ## Minimum value 0.0
+                     ## Suggested value 5.0
+                     element TVB_factor {
+                        real
+                     },
+                     ## Tolerate negative weights in the reconstruction
+                     ## Algorithm finds the "least bad" coordinates to use.
+                     ## May lead to overshoots on funky meshes.
+                     element tolerate_negative_weights {
+                        empty
+                     }?,
+                     ## Limit factor
+                     ## This value is used to scale the reconstructed slope
+                     ## Minimum value 1.0
+                     ## Suggested value 1.1
+                     element limit_factor {
+                        real
+                     }
+                  }|
+                  ## Hermite-WENO limiter
+                  element slope_limiter {
+                     attribute name { "Hermite_Weno" },
+                     ##Power coefficient in weights.
+                     ##This must be a positive number, possibly
+                     ##an integer. Larger power coefficient leads
+                     ##to greater penalisation of oscillations, on 
+                     ##the other hand causes numerical problems if it
+                     ##gets too big.
+                     ##Suggested value = 4.
+                     element power_coefficient {
+                        real
+                     },
+                     ##Relative/absolute tolerance threshold for 
+                     ##oscillation indicator. Values below this emphasise
+                     ##absolute rather than relative magnitudes of 
+                     ##tracer gradients. 
+                     ##Suggested value = 0.001*T
+                     ##where T is a typical value of the tracer which
+                     ##you might use in a scaling analysis.
+                     element tolerance_threshold_oscillations {
+                        real
+                     },
+                     ##Relative/absolute tolerance threshold for 
+                     ##weights. Values below this emphasise
+                     ##absolute rather than relative magnitudes of 
+                     ##oscillations indicator. 
+                     ##Suggested value = 1.0e-3
+                     element tolerance_threshold_weights {
+                        real
+                     },
+                     ##Tolerance for discontinuity detector.
+                     ##Uses method of 
+                     ##http://www.gce.ucl.ac.be/~remacle/pdf/detect.pdf
+                     ##Detector values greater than this indicate
+                     ##discontinuities at the inflow boundary
+                     ##Suggested value = L^(-p-1)/2)
+                     ##where L is the horizontal lengthscale
+                     ##and p is the polynomial order
+                     element discontinuity_tolerance {
+                        real
+                     },
+                     ##Tolerance for limiter
+                     ##Doesn't apply limiter if max abs value of tracer
+                     ##over the element is below this tolerance
+                     ##Recommended value is something very small
+                     ##but not zero
+                     element limit_tolerance {
+                        real
+                     },
+                     (
+                        ##At boundaries there are less polynomials to
+                        ##construct. With this option, the missing
+                        ##polynomials are simply ignored.
+                        element boundary_treatment {
+                           attribute name { "ignore_missing_polys" }
+                        }|
+                        ##At boundaries there are less polynomials to
+                        ##construct. With this option, the missing
+                        ##polynomials are replaced with the polynomial
+                        ##in the current element.
+                        element boundary_treatment {
+                           attribute name { "replace_missing_polys" }
+                        }|
+                        ##At boundaries there are less polynomials to
+                        ##construct. With this option, the reconstruction
+                        ##is applied at one order down.
+                        ##Since HWENO currently only works for P1,
+                        ##this amounts to L_2 projection to P0.
+                        element boundary_treatment {
+                           attribute name { "lower_order" }
+                        }
+                     ),
+                     ##Switch to chuck out lots of debugging output.
+                     ##Not for production runs.
+                     element debugging {
+                        empty
+                     }?,
+                     ##Don't include Hermite polynomials.
+                     element leave_out_hermite_polynomials {
+                        empty
+                     }?
+                  }|
+                  element slope_limiter {
+                     attribute name { "minimal" }
+                  }
+               )?,
+               ## Discretisation options for the mass terms.
+               element mass_terms {
+                  ## Remove the mass terms from the equation.
+                  element exclude_mass_terms {
+                     empty
+                  }?
+               }?
+            }|
+            pure_cv_options|
+            coupled_cv_options|
+            ## **DO NOT USE!**
+            ## This is a temporary discretisation option to help Cian
+            ## implement P0 advection-diffusion.
+            element finite_volume {
+               element diffusion_scheme {
+                  (
+                     element bassi_rebay {
+                        element penalty {
+                          real
+                        }?
+                     }|
+                     element ldg {
+                        empty
+                     }
+                  )
+               }
+            }
+         ),
+         ## Conservative discretisation of field advection equation
+         ##  TBETA=1. -- conservative (divergence form)
+         ##  TBETA=0. -- non-conservative
+         ##  0. < TBETA < 1.
+         element conservative_advection {
+            attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
+            real
+         }
+      },
+      element temporal_discretisation {
+         ## Implicit/explicit control (TTHETA)
+         ##  =0.  -- explicit
+         ##  =0.5 -- Crank-Nicolson
+         ##  =1.  -- implicit
+         element theta {
+            attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
+            real
+         },
+         temporal_control_volume_options?,
+         temporal_discontinuous_galerkin_options?
+      },
+      (
+         ## Solver
+         element solver {
+            linear_solver_options_asym
+         }|
+         ## Assume this field is being solved explicitly and skip the solver.
+         ##
+         ## ONLY AVAILABLE FOR PURE CONTROL VOLUME SPATIAL DISCRETISATIONS.
+         ##
+         ## Assumes lhs matrix only has diagonal lumped mass (times
+         ## density if appropriate for equation)
+         ## and divides the rhs by this.
+         element explicit {
+            empty
+         }
+      ),
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_real
+         }
+      )+,
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute replaces { "boundary, TTPER1 TTPER2 TTPERI" },
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## Type
+         (
+            element type {
+               attribute name { "dirichlet" },
+               ## Apply the dirichlet bc weakly.  Available
+               ## automatically with discontinuous_galerkin and
+               ## control_volume
+               ## spatial_discretisations.
+               ## If not selected boundary conditions are applied strongly.
+               element apply_weakly {
+                  ## If the initial condition and boundary conditions
+                  ## differ, setting this option will cause the initial
+                  ## condition on the boundary to be overwritten with
+                  ## the boundary condition. Since you are applying the
+                  ## boundary condition weakly, you probably do *not*
+                  ## want this.
+                  element boundary_overwrites_initial_condition {
+                     empty
+                  }?
+               }?,
+               input_choice_real
+            }|
+            element type {
+               attribute name { "neumann" },
+               input_choice_real
+            }|
+            element type {
+               attribute name { "robin" },
+               element order_zero_coefficient {
+                  input_choice_real
+               },
+               element order_one_coefficient {
+                  input_choice_real
+               }
+            }|
+            ## Prevent the field from fluxing out of the boundary.
+            ## Only applicable to control volume spatial discretisations.
+            element type {
+              attribute name { "zero_flux" },
+              empty
+            }
+         )
+      }*,
+      ## Choice of subgridscale model to apply to this field. 
+      ## Note that the selected parameterisation must be switched 
+      ## on for this material phase.
+      ##
+      ## At this time, do not switch on this option if you are using Mellor-Yamada.
+      (
+         element subgridscale_parameterisation {
+            attribute name { "Gent_McWilliams"}
+         }|
+         element subgridscale_parameterisation {
+            attribute name { "GLS"}
+         }|
+         element subgridscale_parameterisation {
+            attribute name { "prescribed_diffusivity"}
+         }
+      )?,
+      ## Diffusivity for field
+      element tensor_field {
+         attribute name { "Diffusivity" },
+         attribute rank { "2" },
+         attribute replaces { "TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" },
+         (
+            element prescribed {
+                mesh_choice?,
+                prescribed_tensor_field_no_adapt
+            }|
+            ## Switch to this is the model is required to set the diffusivity throughout the run.
+            ##
+            ## For electrical modelling - holds electrical conductivity.
+            ##
+            ## For GLS, this needs to be set for the two turbulent fields so that their diffusivity
+            ## can be altered during the run.
+            element diagnostic {
+               (
+                  internal_algorithm |
+                  tensor_python_diagnostic_algorithm
+               ),
+               diagnostic_tensor_field
+            }
+         )
+      }?,
+      ## source term
+      element scalar_field {
+         attribute name { "Source" },
+         attribute rank { "0" },
+         attribute replaces { "ZSOT" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }|
+            ## This only works for traffic modelling
+            element diagnostic {
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_scalar_field_no_adapt
+            } 
+         )
+      }?,
+      ## Absorption term
+      element scalar_field {
+         attribute name { "Absorption" },
+         attribute rank { "0" },
+         attribute replaces { "TABSZE TABS TABSCO TABSOR" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_scalar_field_no_adapt
+            }
+         )
+      }?,
+      ## Velocity at which this substance sinks through the water column.
+      ## 
+      ## This velocity is in the direction of gravity so if the substance
+      ## floats or swims upwards, this field should be negative.
+      element scalar_field {
+         attribute name { "SinkingVelocity" },
+         attribute rank { "0" },
+         (
+            element prescribed {
+               prescribed_scalar_field_no_adapt
+            }|
+            element diagnostic {
+               (
+                  scalar_python_diagnostic_algorithm |
+                  internal_algorithm
+               ),
+               diagnostic_scalar_field_no_adapt
+            }
+         )
+      }?,
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      scalar_convergence_options,
+      prognostic_detector_options,
+      scalar_steady_state_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar,
+      discrete_properties_algorithm_scalar?,
+      ## Set the priority of this field
+      ## This determines the order in which scalar_fields are solved for:
+      ##  - higher numbers have the highest priority
+      ##  - lower numbers (including negative) have the lowest priority
+      ##  - default if not set is 0
+      element priority {
+         integer
+      }?
    )
 
 prognostic_density_field =
@@ -6292,6 +7905,508 @@ tensor_field_choice =
 #            )
 #        }
       )
+   )
+
+mesh_info =
+   (
+      ## Read mesh from file.
+      element from_file {
+         (
+            ## Triangle mesh format.
+            ##
+            ## Enter the base name without the .edge .ele, .face or
+            ## .node extensions, and without process numbers.
+            element format {
+              attribute name { "triangle" },
+              comment
+            }|
+            ## Read the mesh from a vtu. Note that the mesh will have no surface
+            ## or region IDs.
+            element format {
+              attribute name { "vtu" },
+              comment
+            }|
+            ## CGNS mesh format (not yet implemented)
+            element format {
+               attribute name { "cgns" },
+               comment
+            }
+         ),
+         attribute file_name { xsd:string },
+         from_file_mesh_stat_options,
+         comment
+      }|
+      ## Make mesh from existing mesh. 
+      element from_mesh {
+         mesh_choice,
+         element mesh_shape {
+            element polynomial_degree {
+               integer
+            }
+         }?,
+         element mesh_continuity {
+            element string_value{
+               "continuous" | "discontinuous"
+            }
+         }?,
+         ## Make mesh periodic
+         element periodic_boundary_conditions {
+            attribute name { xsd:string },
+            ## List of boundary ids that are aliased to
+            element physical_boundary_ids {
+               integer_vector
+            },
+            ## List of boundary ids that are aliased
+            element  aliased_boundary_ids {
+               integer_vector
+            },
+            ## Python code which takes coordinate of an aliased
+            ## boundary node and returns the coordinate of a physical
+            ## boundary node
+            element coordinate_map {
+               python_code
+            },
+            ## <b>Don't turn this on by hand!</b>
+            ## This option gets set by the periodise tool, to indicate
+            ## that this mesh should have the periodic boundary conditions
+            ## <b>removed</b>. See the discussion on the wiki about 
+            ## parallel periodic boundary conditions.
+            element remove_periodicity {
+               empty
+            }?
+         }*,
+         ## Extrude a horizontal (1D or 2D) mesh in the vertical
+         element extrude {
+            ## Depth over which to extrude
+            ## top will be at z=0
+            ## bottom will be at z=-bottom_depth
+            element bottom_depth {
+               input_choice_real
+            },
+            ## Constant or function to specify the depth of the
+            ## layers. The function is a function of all coordinates
+            ## (so in 2+1D: x,y and z) to specify a layer depth that
+            ## varies both in the horizontal as in the vertical.
+            element sizing_function {
+               input_choice_real
+            },
+            ## surface_id to assign to the top of the extruded mesh
+            element top_surface_id {
+               integer
+            }?,
+            ## surface_id to assign to the bottom of the extruded mesh
+            element bottom_surface_id {
+               integer
+            }?
+         }?,
+         derived_mesh_stat_options,
+         comment
+      }
+   )
+
+# Options for inclusion/exclusion of mesh statistics from the .stat file
+include_mesh_in_stat =
+   (
+      ## Include this mesh in the .stat file
+      element include_in_stat {
+         comment
+      }
+   )
+exclude_mesh_from_stat =
+   (
+      ## Exclude this mesh from the .stat file
+      element exclude_from_stat {
+         comment
+      }
+   )
+
+# Diagnostic statistics options for meshed, with enabled by default
+mesh_stat_options_enabled_default = include_mesh_in_stat
+mesh_stat_options_enabled_default |= exclude_mesh_from_stat
+
+# Diagnostic statistics options for meshed, with disabled by default
+mesh_stat_options_disabled_default = exclude_mesh_from_stat
+mesh_stat_options_disabled_default |= include_mesh_in_stat
+
+from_file_mesh_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         mesh_stat_options_enabled_default
+      }
+   )
+derived_mesh_stat_options =
+   (
+      ## Specify what is added to .stat files
+      element stat {
+         mesh_stat_options_disabled_default
+      }
+   )
+
+input_choice_tensor_field =
+   (
+      (
+         ## An isotropic tensor, i.e.
+         ## one with no directional variation.
+         ## Can be represented as a scalar real.
+         element isotropic {
+            input_choice_real
+         }|
+         ## A diagonal tensor, i.e.
+         ## one with only diagonal nonzero entries.
+         ## Can be represented as a vector real.
+         element diagonal {
+            input_choice_real_dim_vector
+         }|
+         ## A symmetric tensor, i.e.
+         ## A^T = A
+         element anisotropic_symmetric {
+            input_choice_real_dim_symmetric_tensor
+         }|
+         ## A general asymmetric tensor.
+         element anisotropic_asymmetric {
+            input_choice_real_dim_tensor
+         }
+      )
+   )
+
+region_ids = 
+   ( 
+      ## Optional region ids to associate different values
+      ## to different regions of the mesh.
+      ## Leave unselected if you`re not using multiple regions or
+      ## region_ids.
+      ## Currently only works with triangle files created by gmsh2triangle.
+      element region_ids {
+         integer_vector
+      }?
+   )
+
+temporal_control_volume_options =
+   (
+      ## Temporal discretisation options that are only relevant if a control volume or coupled_cv spatial discretisation is selected for this field.
+      element control_volumes {
+         ## Number of iterations within an advection solve.
+         ## This increases the accuracy of the face values and ensures that
+         ## the pivoted solution is cancelled out.
+         ## Defaults to 1 if unselected.
+         element number_advection_iterations {
+            attribute replaces { "INT(ABS(NDISOT)/10)" },
+            integer,
+            ## Cut short advection_iterations if the specified tolerance
+            ## is reached.
+            ## This only works for pure control volume discretisations.
+            element tolerance {
+               real,
+               (
+                  ## Select the norm with which you want the tolerance to be tested.
+                  ##
+                  ## The infinity norm.
+                  element infinity_norm {
+                    empty
+                  }|
+                  ## Select the norm with which you want the tolerance to be tested.
+                  ##
+                  ## The l2 norm.
+                  element l2_norm {
+                    empty
+                  }|
+                  ## Select the norm with which you want the tolerance to be tested.
+                  ##
+                  ## The l2 norm evaluated on a control volume mesh.
+                  element cv_l2_norm {
+                    empty
+                  }
+               )               
+            }?
+         }?,
+         (
+            ## Use timestep subcycling to solve this equation.
+            ## Specify the maximum courant number per subcycle.
+            ## This only works for pure control volume discretisations.
+            element maximum_courant_number_per_subcycle {
+               real,
+               field_based_cfl_number_options
+            }|
+            ## Use timestep subcycling to solve this equation.
+            ## Specify the number of subcycles.
+            ## This only works for pure control volume discretisations.
+            element number_advection_subcycles {
+               integer
+            }
+         )?,
+         ## Only works if a control volume or coupled_cv spatial discretisation is selected.
+         ## If not active then the theta specified above will be used.
+         ## Otherwise use variable limited theta on individual faces.
+         element limit_theta {
+            attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
+            empty
+         }?,
+         ## Only works if a control volume or coupled_cv spatial discretisation is selected.
+         ## Time discretisation of upwind discretisation off which the
+         ## higher order solution is pivotted.
+         ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+         ##                      best choice if not intentionally modifying
+         ##                      scheme to be explicit)
+         ##  - pivot_theta = 0 - explicit pivot
+         element pivot_theta {
+            real
+         }?
+      }
+   )
+
+temporal_discontinuous_galerkin_options = 
+   (
+      ## This enables DG-specific timestepping options, such as
+      ## explicit advection subcycling. 
+      element discontinuous_galerkin {
+         (
+            ## Use timestep subcycling to solve this equation.
+            ## Specify the maximum courant number per subcycle.
+            element maximum_courant_number_per_subcycle {
+               real
+            }|
+            ## Use timestep subcycling to solve this equation.
+            ## Specify the number of subcycles.
+            element number_advection_subcycles {
+               integer
+            }
+         )?
+      }
+   )
+
+pure_cv_options = 
+   (
+      ## Use a pure control volume discretisations.
+      ## Follows a new control volume code path.
+      element control_volumes {
+         spatial_control_volume_options,
+         (
+            ## Use the gradient of the field constructed using the
+            ## basis functions of the parent finite element mesh to
+            ## form the divergence.
+            ##
+            ## DOES NOT CURRENTLY WORK WITH ROBIN OR WEAK DIRICHLET BOUNDARY CONDITIONS!
+            ##
+            ## Based on schemes in Handbook of Numerical Analysis,
+            ## P.G. Ciarlet, J.L. Lions eds, vol 7, pp 713-1020
+            element diffusion_scheme {
+              attribute name{"ElementGradient"}
+            }|
+            ## Use an auxiliary gradient equation to find the gradient of the field.
+            ##
+            ## DOES NOT CURRENTLY WORK WITH ROBIN BOUNDARY CONDITIONS!
+            ##
+            ## Based on scheme proposed in Bassi, F. & Rebay, S., A
+            ## high-order accurate discontinuous finite element method
+            ## for the numerical solution of the compressible
+            ## Navier-Stokes equations, Journal Of Computational
+            ## Physics, 1997, 131, 267-279
+            element diffusion_scheme {
+              attribute name{"BassiRebay"}
+            }
+         )
+      }
+   )
+
+coupled_cv_options = 
+   (
+      ## Use a pure control volume discretisations with face value
+      ## restrictions between different fields in different material_phases.
+      ##
+      ## THIS DOES NOT WORK WITH DIFFUSION!
+      ##
+      ## Follows a new control volume code path.
+      element coupled_cv {
+         coupled_spatial_control_volume_options,
+         ## Set the maximum and minimum bounds for the sum up to and including this field.
+         ## This defines the limiter used to enforce boundedness on this field.
+         element parent_sum {
+            element target_maximum {
+              real
+            },
+            element target_minimum {
+              real
+            }
+         }
+      }
+   )
+
+spatial_control_volume_options = standard_control_volume_options
+spatial_control_volume_options |= compressive_control_volume_options
+
+standard_control_volume_options = 
+   (
+      ## First Order Upwind face value discretisation
+      ##  face_value = donor_value, 
+      ## where
+      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order upwinding is monotonic so no limiting is ever required
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 0,1" },
+        empty
+      }|
+      ## Trapezoidal face value discretisation
+      ##  face_value = 0.5*(val_1 + val_2), 
+      ## where
+      ##  val_i is the value on the ith node neighbouring the face
+      ##
+      ## Trapezoidal discretisation is unbounded so limiting is compulsory
+      element face_value {
+        attribute name { "Trapezoidal" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3" },
+        limiter_options
+      }|
+      ## Finite Element face value discretisation
+      ##  face_value = finite element interpolation from surrounding nodes
+      ##
+      ## Finite element discretisation may become unbounded so limiting is often necessary.
+      element face_value {
+        attribute name { "FiniteElement" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
+        limiter_options
+      }|
+      ## First Order Downwind face value discretisation
+      ##  face_value = downwind_value, 
+      ## where
+      ##  donor_value = (1.-income)*val_1 + income*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order downwinding is unconditionally unstable
+      element face_value {
+        attribute name { "FirstOrderDownwind" },
+        empty
+      }
+   )
+   
+coupled_spatial_control_volume_options = coupled_control_volume_options
+coupled_spatial_control_volume_options |= compressive_control_volume_options
+
+# coupled control volume options are the same as the standard ones (annoyingly copied and pasted)
+# except that firstorderupwind gets limiter options
+coupled_control_volume_options = 
+   (
+      ## First Order Upwind face value discretisation
+      ##  face_value = donor_value, 
+      ## where
+      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order upwinding is monotonic so no limiting is ever required
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 0,1" },
+        limiter_options
+      }|
+      ## Trapezoidal face value discretisation
+      ##  face_value = 0.5*(val_1 + val_2), 
+      ## where
+      ##  val_i is the value on the ith node neighbouring the face
+      ##
+      ## Trapezoidal discretisation is unbounded so limiting is compulsory
+      element face_value {
+        attribute name { "Trapezoidal" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 2,3" },
+        limiter_options
+      }|
+      ## Finite Element face value discretisation
+      ##  face_value = finite element interpolation from surrounding nodes
+      ##
+      ## Finite element discretisation may become unbounded so limiting is often necessary.
+      element face_value {
+        attribute name { "FiniteElement" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
+        limiter_options
+      }
+   )
+   
+compressive_control_volume_options = 
+   (
+      ## HyperC face value discretisation
+      ##
+      ## face_value calculated from upper bound of explicit TVD zone of NVD diagram
+      ## Normally used for MaterialVolumeFraction fields
+      element face_value {
+        attribute name { "HyperC" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 8,9" },
+        upwind_value_options?,
+        cv_face_cfl_number_options
+      }|
+      ## UltraC face value discretisation
+      ##
+      ## face_value calculated from extended upper bound of
+      ## explicit TVD zone of NVD diagram assuming
+      ## values bounded by target_maximum and target_minimum.
+      element face_value {
+        attribute name { "UltraC" },
+        attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 8,9, with ULTRAC = TRUE from solidity_options.inp" },
+        ## Specifiy the upper bound which UltraC will use to
+        ## calculate the maximum flux.
+        element target_maximum {
+            real
+        },
+        ## Specifiy the lower bound which UltraC will use to
+        ## calculate the minimum flux.
+        element target_minimum {
+            real
+        },
+        upwind_value_options?,
+        cv_face_cfl_number_options
+      }|
+      ## **UNDER TESTING**
+      ##
+      ## PotentialUltraC face value discretisation
+      ##
+      ## face_value calculated from extended upper bound of
+      ## explicit TVD zone of NVD diagram if potential
+      ## value of field is sufficient (as specified by
+      ## target_maximum) to ensure the correct front advection
+      ## velocity.
+      ##
+      ## If not then either switch to HyperC or use a modified flux
+      ## based on the potential function.
+      element face_value {
+        attribute name { "PotentialUltraC" },
+        ## Specifiy the upper bound which PotentialUltraC will use
+        ## to calculate the maximum flux if the potential function
+        ## value is sufficient to maintain the correct front
+        ## advection velocity.
+        element target_maximum {
+            real
+        },
+        ## Specifiy the lower bound which PotentialUltraC will use to calculate the minimum flux.
+        element target_minimum {
+            real
+        },
+        (
+            ## Select what PotentialUltraC should do if the
+            ## potential function value does not reach the required
+            ## value specified by the target_maximum.
+            ##
+            ## Switch to using HyperC face values.  This ensures
+            ## that the advection velocity is correct however may
+            ## create isolated regions beneath the target_maximum.
+            element switch_to_hyperc {
+              empty
+            }|
+            ## Select what PotentialUltraC should do if the
+            ## potential function value does not reach the required
+            ## value specified by the target_maximum.
+            ##
+            ## Modify the maximum nodal values (both downwind and
+            ## upwind) so that the fluxes are at their maximum
+            ## possible without affecting the front advection
+            ## velocity.
+            element use_potential_flux {
+              empty
+            }
+        ),
+        upwind_value_options?,
+        cv_face_cfl_number_options
+      }
    )
 
 #Select the type of dynamic control to be used

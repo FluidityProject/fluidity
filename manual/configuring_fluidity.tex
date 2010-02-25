@@ -1003,16 +1003,24 @@ can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model
 \option{\ldots/calculate\_boundaries} is recommended. You must also enable 
 \option{/geometry/ocean\_boundaries}. Finally, you can enable a number of optional diagnostic fields.
 
-The GLSTurbulentKineticEnergy field must be solved before the GLSGenericSecondQuantity field for correct
-calculation of the diffusivity and viscosity. In order for that to happen, the priority of the TKE field
-must be higher than that of the second field. It is advised that setting to 100 for GLSTurbulentKineticEnergy and
-99 for GLSGenericSecondQuantity. If this the priority is not set or incorrectly set, an user error will occur.
-
 For each field that will be effected by the subgrid scale parameterisations, 
 you must enable the correct diffusivity. This
 is done by specifying \option{\ldots/subgridscale\_parameterisation} in the
-field to \option{GLS}. Normally, this would
-be the temperature, salinity and any biology fields active.
+field to \option{GLS}. Normally, this would be the temperature, salinity and any biology fields active.
+
+Finally, a fields that are altered by the GLS model, such as the Viscosity need to be switched
+to a \option{diagnostic/algotiyhm::Internal}-type field. The list of fields to switch is:
+\begin{enumerate}
+\item \option{GLSTurbulentKineticEnergy/Diffusivity}
+\item \option{GLSTurbulentKineticEnergy/Source}
+\item \option{GLSTurbulentKineticEnergy/Absorption}
+\item \option{GLSGenericSecondQuantity/Diffusivity}
+\item \option{GLSGenericSecondQuantity/Source}
+\item \option{GLSGenericSecondQuantity/Absorption}
+\item \option{Velocity/Viscosity}
+\end{enumerate}
+
+If these fields are not set correctly, a user error will occur.
 
 \section{Boundary conditions}\label{Sect:BCs_configure}
 \index{boundary conditions}

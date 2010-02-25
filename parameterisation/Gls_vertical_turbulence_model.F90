@@ -100,15 +100,11 @@ subroutine gls_init(state)
 
     type(state_type), intent(inout) :: state
 
-    type(tensor_field), pointer    :: tensorField
     real                           :: N, gen_l, gen_alpha, gen_d, rad,rcm,cmsf
     integer                        :: stat
     character(len=FIELD_NAME_LEN)  :: gls_option, gls_stability_function
     type(scalar_field), pointer    :: s_cur
-
-    ! check there's a viscosity somewhere
-    tensorField => extract_tensor_field(state, "Viscosity",stat)
-    if(stat/=0) FLExit("Need viscosity")        
+    integer                        :: tke_pri, psi_pri
 
     ! Allocate the temporary, module-level variables
     call gls_allocate_temps(state)
@@ -271,6 +267,7 @@ subroutine gls_init(state)
                  - (1.+4.*gls_m) &
                  *sqrt(sigma_k*(sigma_k+24.*sigma_psi*cPsi2)) ) &
                  /(12.*gls_n**2.) )
+
     ewrite(1,*) "GLS Parameters"
     ewrite(1,*) "--------------------------------------------"
     ewrite(1,*) "gen_d", gen_d
@@ -285,6 +282,7 @@ subroutine gls_init(state)
     ewrite(1,*) "sigma_psi: ",sigma_psi
     ewrite(1,*) "Fixing surface values: ", fix_surface_values
     ewrite(1,*) "Calculating BCs: ", calculate_bcs
+    ewrite(2,*) "Field Priorities: TKE: ", tke_pri, " Psi: ", psi_pri
     ewrite(1,*) "--------------------------------------------"
     
     ! initilise 2 GLS fields with minimum values
@@ -422,27 +420,6 @@ subroutine gls_psi(state)
         call set(psi,i, cm0**gls_p * node_val(tke_old,i)**gls_m * node_val(ll,i)**gls_n)
     end do
 
-    if (fix_surface_values) then
-        call get_boundary_condition(kk, 'tke_top_boundary', type=bc_type)
-     
-        ! We need to just add a dirichlet BC to the TKE first, so we get the right value for the rest
-        ! of this calculation on the surfaces
-        ! only do this if we're using a neumann BC on the solve.
-        if (bc_type == "neumann") then
-    
-            ! call the bc code, but specify we want dirichlet
-            call gls_tke_bc(state, 'dirichlet')
-     
-            ! copy the values onto the mesh using the global node id
-            do i=1,NNodes_sur
-                call set(kk,top_surface_nodes(i),node_val(top_surface_values,i))
-            end do   
-            do i=1,NNodes_bot
-                call set(kk,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-            end do
-        end if
-    end if
-
     ! calc fwall if kkl
     if (calc_fwall) then
         ewrite(1,*) "Calculating the wall function for GLS"
@@ -522,42 +499,52 @@ subroutine gls_diffusivity(state)
 
     type(state_type), intent(inout)  :: state 
     
-    type(scalar_field), pointer      :: KK, psi
+    type(scalar_field), pointer      :: KK_state, psi_state
+    type(scalar_field)               :: KK, psi, kk_copy
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
     real                             :: exp1, exp2, exp3, x
-    character(len=FIELD_NAME_LEN)    :: bc_type
     integer                          :: i, stat
-    real                             :: epslim, tke
+    real                             :: epslim, tke, relax
     real, parameter                  :: galp = 0.53
     logical                          :: limit_length = .true.
 
     ewrite(1,*) "In gls_diffusivity"
 
-    KK => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
-    psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
+    KK_state => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
+    psi_state => extract_scalar_field(state, "GLSGenericSecondQuantity")
     eddy_visc_KM  => extract_tensor_field(state, "GLSEddyViscosityKM",stat)
     eddy_diff_KH => extract_tensor_field(state, "GLSEddyDiffusivityKH",stat)
     viscosity => extract_tensor_field(state, "Viscosity",stat) 
+
+    call allocate(KK,KK_state%mesh,"TKE")
+    call allocate(psi,psi_state%mesh,"PSI")
+    call allocate(kk_copy,kk_state%mesh,"TKE_COPY")
+    call set(kk,kk_state)
+    call set(psi,psi_state)
     
     if (fix_surface_values) then
-        call get_boundary_condition(psi, 'psi_top_boundary', type=bc_type)
     
-        ! We need to just add a dirichlet BC to the TKE first, so we get the right value for the rest
-        ! of this calculation on the surfaces
-        ! only do this if we're using a neumann BC on the solve.
-        if (bc_type == "neumann") then
-    
-            ! call the bc code, but specify we want dirichlet
-            call gls_psi_bc(state, 'dirichlet')
-  
-            ! copy the values onto the mesh using the global node id
-            do i=1,NNodes_sur
-                call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
-            end do   
-            do i=1,NNodes_bot
-                call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-            end do
-        end if
+        ! call the bc code, but specify we want dirichlet
+        call gls_tke_bc(state, 'dirichlet')
+     
+        ! copy the values onto the mesh using the global node id
+        do i=1,NNodes_sur
+            call set(kk,top_surface_nodes(i),node_val(top_surface_values,i))
+        end do   
+
+        call set(kk_copy,kk_state)
+        call set(kk_state,kk)
+
+        ! call the bc code, but specify we want dirichlet
+        call gls_psi_bc(state, 'dirichlet')
+
+        ! copy the values onto the mesh using the global node id
+        do i=1,NNodes_sur
+            call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
+        end do   
+
+        call set(kk_state,kk_copy)
+
     end if
 
 
@@ -598,23 +585,16 @@ subroutine gls_diffusivity(state)
     endif
     
 
+    relax = 1.0
     ! calculate diffusivities for next step and for use in other fields
     do i=1,nNodes
         x = sqrt(node_val(KK,i))*node_val(ll,i)
         ! momentum
-        call set(K_M,i, node_val(S_M,i)*x)
+        call set(K_M,i, (1.-relax) * node_val(K_M,i) + relax*node_val(S_M,i)*x)
         ! tracer
-        call set(K_H,i, node_val(S_H,i)*x)
+        call set(K_H,i, (1.-relax) * node_val(K_H,i) + relax*node_val(S_H,i)*x)
     end do
 
-    ewrite_minmax(K_H)
-    ewrite_minmax(K_M)
-    ewrite_minmax(S_H)
-    ewrite_minmax(S_M)
-    ewrite_minmax(ll)
-    ewrite_minmax(eps)
-    ewrite_minmax(kk)
-    ewrite_minmax(psi)
 
     !set the eddy_diffusivity and viscosity tensors for use by other fields
     call zero(eddy_diff_KH) ! zero it first as we're using an addto below
@@ -625,14 +605,25 @@ subroutine gls_diffusivity(state)
 
     background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity",stat)
     if(stat == 0) then
-        call addto(eddy_diff_KH,background_diff)    
+        call addto(eddy_diff_KH,background_diff)
+        call addto(K_H, extract_scalar_field(background_diff, background_diff%dim, background_diff%dim))
     endif
     background_visc => extract_tensor_field(state, "GLSBackgroundViscosity",stat)
     if(stat == 0) then
-        call addto(eddy_visc_KM,background_visc)    
+        call addto(eddy_visc_KM,background_visc)   
+        call addto(K_M, extract_scalar_field(background_visc, background_visc%dim, background_visc%dim))
     endif   
 
-    
+
+    ewrite_minmax(K_H)
+    ewrite_minmax(K_M)
+    ewrite_minmax(S_H)
+    ewrite_minmax(S_M)
+    ewrite_minmax(ll)
+    ewrite_minmax(eps)
+    ewrite_minmax(kk)
+    ewrite_minmax(psi) 
+
     ! Add background
     if (stat == 0) then
         ! we have a background viscosity - see above
@@ -653,6 +644,10 @@ subroutine gls_diffusivity(state)
     ! We only need to do this to those fields that we haven't pulled from state, but
     ! allocated ourselves
     call gls_output_fields(state)
+
+    call deallocate(kk)
+    call deallocate(psi)
+    call deallocate(kk_copy)
     
 end subroutine gls_diffusivity
 
@@ -718,7 +713,7 @@ end subroutine gls_adapt_mesh
 subroutine gls_check_options
     
     character(len=FIELD_NAME_LEN) :: buffer
-    integer                       :: priority_tke, priority_gsq, stat
+    integer                       :: stat
     real                          :: min_tke
 
     ! Don't do GLS if it's not included in the model!
@@ -743,10 +738,18 @@ subroutine gls_check_options
                           &scalar_field::GLSGenericSecondQuantity")) then
         FLExit("You need GLSGenericSecondQuantity field for GLS")
     end if
+
+    ! check that the diffusivity is on for the two turbulent fields and is
+    ! diagnostic
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &tensor_field::Diffusivity")) then
         FLExit("You need GLSTurbulentKineticEnergy Diffusivity field for GLS")
+    end if    
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
+                          &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
+        FLExit("You need GLSTurbulentKineticEnergy Diffusivity field set to diagnostic/internal")
     end if
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
@@ -754,31 +757,78 @@ subroutine gls_check_options
         FLExit("You need GLSGenericSecondQuantity Diffusivity field for GLS")
     end if
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &scalar_field::GLSGenericSecondQuantity/prognostic/&
+                          &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
+        FLExit("You need GLSGenericSecondQuantity Diffusivity field set to diagnostic/internal")
+    end if
+
+
+    ! source and absorption terms...
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &scalar_field::Source")) then
         FLExit("You need GLSTurbulentKineticEnergy Source field for GLS")
-    end if    
+    end if 
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
+                          &scalar_field::Source/diagnostic/algorithm::Internal")) then
+        FLExit("You need GLSTurbulentKineticEnergy Source field set to diagnostic/internal")
+    end if 
+
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
                           &scalar_field::Source")) then
         FLExit("You need GLSGenericSecondQuantity Source field for GLS")
-    end if    
+    end if      
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &scalar_field::GLSGenericSecondQuantity/prognostic/&
+                          &scalar_field::Source/diagnostic/algorithm::Internal")) then
+        FLExit("You need GLSGenericSecondQuantity Source field set to diagnostic/internal")
+    end if   
+
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
                           &scalar_field::Absorption")) then
         FLExit("You need GLSTurbulentKineticEnergy Absorption field for GLS")
     end if    
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &scalar_field::GLSTurbulentKineticEnergy/prognostic/&
+                          &scalar_field::Absorption/diagnostic/algorithm::Internal")) then
+        FLExit("You need GLSTurbulentKineticEnergy Source field set to diagnostic/internal")
+    end if 
+    
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &scalar_field::GLSGenericSecondQuantity/prognostic/&
                           &scalar_field::Absorption")) then
         FLExit("You need GLSGenericSecondQuantity Absorption field for GLS")
     end if
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &scalar_field::GLSGenericSecondQuantity/prognostic/&
+                          &scalar_field::Absorption/diagnostic/algorithm::Internal")) then
+        FLExit("You need GLSGenericSecondQuantity Source field set to diagnostic/internal")
+    end if 
+
+
+    ! background diffusivities are also needed
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &tensor_field::GLSBackgroundDiffusivity/prescribed")) then
+        FLExit("You need GLSBackgroundDiffusivity tensor field for GLS")
+    end if
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                          &tensor_field::GLSBackgroundViscosity/prescribed")) then
+        FLExit("You need GLSBackgroundViscosity tensor field for GLS")
+    end if
+
+    ! check for some purturbation density and velocity
     if (.not.have_option("/material_phase[0]/scalar_field::PerturbationDensity")) then
         FLExit("You need PerturbationDensity field for GLS")
     end if
     if (.not.have_option("/material_phase[0]/vector_field::Velocity")) then
         FLExit("You need Velocity field for GLS")
     end if
+
+    ! these two fields allow the new diffusivities/viscosities to be used in
+    ! other calculations - we need them!
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                           &tensor_field::GLSEddyViscosityKM")) then
         FLExit("You need GLSEddyViscosityKM field for GLS")
@@ -788,24 +838,19 @@ subroutine gls_check_options
         FLExit("You need GLSEddyViscosityKM field for GLS")
     end if
 
-    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
-                    &scalar_field::GLSTurbulentKineticEnergy/prognostic/priority", priority_tke, stat)
     
-    if (stat/=0) then
-       FLExit("Priority needs to be set on GLSTurbulentKineticEnergy to ensure correct solution")
+    ! check there's a viscosity somewhere
+    if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
+                          &tensor_field::Viscosity/")) then
+        FLExit("Need viscosity switched on under the Velcotiy field for GLS.") 
     end if
-    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
-                    &scalar_field::GLSGenericSecondQuantity/prognostic/priority", priority_gsq, stat)
-    
-    if (stat/=0) then
-       FLExit("Priority needs to be set on GLSGenericSecondQuantity to ensure correct solution")
+    ! check that the user has switch Velocity/viscosity to diagnostic
+    if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
+                          &tensor_field::Viscosity/diagnostic/")) then
+        FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
     end if
 
-    ! check field priorities are correct
-    if (priority_gsq .ge. priority_tke) then
-        FLExit("GLSTurbulentKineticEnergy field needs to have higher priority than GLSGenericSecondQuantity field")
-    end if
-
+  
     ! If calc boundaries is on, check that ocean geometry is on
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/")) then
         if (.not.have_option("/geometry/ocean_boundaries")) then
@@ -819,6 +864,18 @@ subroutine gls_check_options
     if (stat/=0) then
        FLExit("You need to set a minimum TKE value - recommend a value of around 1e-6")
     end if
+
+    ! check if priorities have been set - if so warn the user this might screw
+    ! things up
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                     &scalar_field::GLSTurbulentKineticEnergy/prognostic/priority")) then
+        ewrite(-1,*)("WARNING: Priorities for the GLS fields are set internally. Setting them in the FLML might mess things up")
+    end if
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
+                     &scalar_field::GLSGenericSecondQuantity/prognostic/priority")) then
+        ewrite(-1,*)("WARNING: Priorities for the GLS fields are set internally. Setting them in the FLML might mess things up")
+    end if
+
    
 
 
@@ -1148,6 +1205,7 @@ subroutine gls_psi_bc(state, bc_type)
         do i=1,NNodes_sur
             value = (-gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.))/sigma_psi      &
                        *node_val(top_surface_kk_values,i)**(gls_m+0.5)*(z0s(i)+z0s(i))**gls_n
+            !write(*,*) i,value, node_val(top_surface_kk_values,i), z0s(i)
             call set(top_surface_values,i,value)
         end do
     case("dirichlet")

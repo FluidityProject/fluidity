@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">column-forcing</string_value>
@@ -209,44 +209,30 @@
               </constant>
             </initial_condition>
             <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
-              <prescribed>
-                <value name="WholeMesh">
-                  <anisotropic_symmetric>
-                    <constant>
-                      <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 1.0e-6</real_value>
-                    </constant>
-                  </anisotropic_symmetric>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
-              </prescribed>
+              </diagnostic>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">0.0</real_value>
-                  </constant>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat/>
                 <detectors>
-                  <exclude_from_detectors/>
+                  <include_in_detectors/>
                 </detectors>
-              </prescribed>
+              </diagnostic>
             </scalar_field>
             <scalar_field replaces="TABSZE TABS TABSCO TABSOR" name="Absorption" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">0.0</real_value>
-                  </constant>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat/>
                 <detectors>
-                  <exclude_from_detectors/>
+                  <include_in_detectors/>
                 </detectors>
-              </prescribed>
+              </diagnostic>
             </scalar_field>
             <output/>
             <stat/>
@@ -260,9 +246,6 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
-            <priority>
-              <integer_value rank="0">100</integer_value>
-            </priority>
             <minimum_value>
               <real_value rank="0">7.6e-6</real_value>
             </minimum_value>
@@ -320,44 +303,30 @@
               </constant>
             </initial_condition>
             <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
-              <prescribed>
-                <value name="WholeMesh">
-                  <anisotropic_symmetric>
-                    <constant>
-                      <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 1.0e-6</real_value>
-                    </constant>
-                  </anisotropic_symmetric>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
-              </prescribed>
+              </diagnostic>
             </tensor_field>
             <scalar_field replaces="ZSOT" name="Source" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">0.0</real_value>
-                  </constant>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat/>
                 <detectors>
-                  <exclude_from_detectors/>
+                  <include_in_detectors/>
                 </detectors>
-              </prescribed>
+              </diagnostic>
             </scalar_field>
             <scalar_field replaces="TABSZE TABS TABSCO TABSOR" name="Absorption" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">0.0</real_value>
-                  </constant>
-                </value>
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
                 <stat/>
                 <detectors>
-                  <exclude_from_detectors/>
+                  <include_in_detectors/>
                 </detectors>
-              </prescribed>
+              </diagnostic>
             </scalar_field>
             <output/>
             <stat/>
@@ -371,11 +340,34 @@
               <include_in_steady_state/>
             </steady_state>
             <consistent_interpolation/>
-            <priority>
-              <integer_value rank="0">99</integer_value>
-            </priority>
           </prognostic>
         </scalar_field>
+        <tensor_field name="GLSBackgroundViscosity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <constant>
+                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1000.0 0.0 0.0 0.0 1000.0 0.0 0.0 0.0 1e-6</real_value>
+                </constant>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <tensor_field name="GLSBackgroundDiffusivity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <constant>
+                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1000.0 0.0 0.0 0.0 1000.0 0.0 0.0 0.0 1e-6</real_value>
+                </constant>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <tensor_field name="GLSEddyViscosityKM" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -389,32 +381,6 @@
             <mesh name="VelocityMesh"/>
             <output/>
           </diagnostic>
-        </tensor_field>
-        <tensor_field name="GLSBackgroundViscosity" rank="2">
-          <prescribed>
-            <mesh name="VelocityMesh"/>
-            <value name="WholeMesh">
-              <anisotropic_symmetric>
-                <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 0.0</real_value>
-                </constant>
-              </anisotropic_symmetric>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
-        <tensor_field name="GLSBackgroundDiffusivity" rank="2">
-          <prescribed>
-            <mesh name="VelocityMesh"/>
-            <value name="WholeMesh">
-              <anisotropic_symmetric>
-                <constant>
-                  <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10.0 0.0 0.0 0.0 10.0 0.0 0.0 0.0 0.0</real_value>
-                </constant>
-              </anisotropic_symmetric>
-            </value>
-            <output/>
-          </prescribed>
         </tensor_field>
       </GLS>
     </subgridscale_parameterisations>
@@ -536,16 +502,10 @@
           </type>
         </boundary_conditions>
         <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <diagonal>
-                <constant>
-                  <real_value shape="3" dim1="dim" rank="1">10.0 10.0 1.e-6</real_value>
-                </constant>
-              </diagonal>
-            </value>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
-          </prescribed>
+          </diagnostic>
         </tensor_field>
         <vector_field replaces="XABSZE YABSZE ZABSZE XABS YABS ZABS XABSOR YABSOR ZABSOR XABSCO YABSCO ZABSCO" name="Absorption" rank="1">
           <prescribed>
