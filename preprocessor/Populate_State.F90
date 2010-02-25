@@ -35,7 +35,7 @@ module populate_state_module
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path
+    periodic_boundary_option_path, domain_bbox
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -120,6 +120,8 @@ contains
     call insert_external_mesh(states, save_vtk_cache = .true.)
 
     call insert_derived_meshes(states)
+
+    call allocate_domain_bbox(states)
 
     call allocate_and_insert_fields(states)
 
@@ -3289,6 +3291,19 @@ contains
     end do
   
   end subroutine postprocess_periodic_mesh_face
-  
+
+  subroutine allocate_domain_bbox(states)
+    type(state_type), dimension(:), intent(in) :: states
+    integer :: dim
+    type(vector_field), pointer :: positions
+
+    positions => extract_vector_field(states(1), "Coordinate")
+    allocate(domain_bbox(positions%dim, 2))
+
+    do dim=1,positions%dim
+      domain_bbox(dim, 1) = minval(positions%val(dim)%ptr)
+      domain_bbox(dim, 2) = maxval(positions%val(dim)%ptr)
+    end do
+  end subroutine allocate_domain_bbox
 
 end module populate_state_module

@@ -150,4 +150,10 @@ module global_parameters
   !! optionpath where the periodic boundary conditions are defined
   character(len=OPTION_PATH_LEN) :: periodic_boundary_option_path=""
 
+  !! The bounding box of the input domain
+  ! dim x 2
+  ! (:, 1) are the minima along each coordinate
+  ! (:, 2) are the maxima along each coordinate
+  real, dimension(:, :), allocatable :: domain_bbox
+
 end module global_parameters
