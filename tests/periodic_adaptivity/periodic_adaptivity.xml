@@ -5,14 +5,19 @@
   <name>Periodic adaptivity</name>
   <owner userid="pfarrell"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
-    <command_line>fluidity -v2 -l periodic_adaptivity.flml </command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/periodise periodic_adaptivity.flml; fluidity -v2 -l periodic_adaptivity_periodised.flml </command_line>
   </problem_definition>
   <variables>
   </variables>
   <pass_tests>
-    <test name="dummy" language="python">
-assert 1 == 1
+    <test name="completion" language="python">
+import fluidity_tools
+stat = fluidity_tools.stat_parser("periodic_adaptivity.stat")
+assert stat['ElapsedTime']['value'][-1] == 20.0
+    </test>
+    <test name="references" language="python">
+assert "There are no references left" in open("fluidity.log-0").read()
     </test>
   </pass_tests>
   <warn_tests>
