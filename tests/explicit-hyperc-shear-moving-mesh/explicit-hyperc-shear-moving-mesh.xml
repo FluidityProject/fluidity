@@ -1,0 +1,84 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Shearing volume fraction</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length ="special" nprocs = "1">
+    <command_line>fluidity -v0 hyperc-shear-input.flml &gt;&amp; forward.log &amp;&amp; ./change_options_conservative.py &amp;&amp; fluidity -v0 hyperc-shear_2_checkpoint.flml &gt;&amp; back_2.log </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="error_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+import glob
+import operator
+file_name = glob.glob1('.','*_checkpoint.stat')
+error_1 = []
+for f in range(len(file_name)):
+  error_1.append((int(file_name[f].split('_checkpoint.stat')[0].split('hyperc-shear_')[-1]),stat(file_name[f])["Material1"]["ScalarAbsoluteDifference"]["integral"][-1]/stat(file_name[f])["Material1"]["AnalyticalMaterialVolumeFraction"]["integral"][0]))
+error_1.sort(key=operator.itemgetter(0))
+    </variable>
+    <variable name="materialstartforward_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+materialstartforward_1 = stat("hyperc-shear.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
+    </variable>
+    <variable name="materialendforward_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+materialendforward_1 = stat("hyperc-shear.stat")["Material1"]["MaterialVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="materialstartback_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+import glob
+import operator
+file_name = glob.glob1('.','*_checkpoint.stat')
+materialstartback_1 = []
+for f in range(len(file_name)):
+  materialstartback_1.append((int(file_name[f].split('_checkpoint.stat')[0].split('hyperc-shear_')[-1]), stat(file_name[f])["Material1"]["MaterialVolumeFraction"]["integral"][0]))
+materialstartback_1.sort(key=operator.itemgetter(0))
+    </variable>
+    <variable name="materialendback_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+import glob
+import operator
+file_name = glob.glob1('.','*_checkpoint.stat')
+materialendback_1 = []
+for f in range(len(file_name)):
+  materialendback_1.append((int(file_name[f].split('_checkpoint.stat')[0].split('hyperc-shear_')[-1]), stat(file_name[f])["Material1"]["MaterialVolumeFraction"]["integral"][-1]))
+materialendback_1.sort(key=operator.itemgetter(0))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="check error_1 is less than 0.05" language="python">
+passed=1
+for f in range(len(error_1)):
+  print 'error_1[f] = ', error_1[f]
+  if (error_1[f][1] &gt; 0.05):
+    passed = 0
+if (len(error_1)==0):
+  passed = 0
+assert(passed)
+    </test>
+    <test name="check material1 was conserved on forward run" language="python">
+print 'mass loss = ', abs(materialstartforward_1-materialendforward_1)
+assert abs(materialstartforward_1-materialendforward_1) &lt; 1.e-6
+    </test>
+    <test name="check material1 was conserved on reverse run" language="python">
+passed=1
+for f in range(len(materialstartback_1)):
+  print 'mass loss[f] = ', materialstartback_1[f][0], materialendback_1[f][0], abs(materialstartback_1[f][1]-materialendback_1[f][1])
+  if (abs(materialstartback_1[f][1]-materialendback_1[f][1]) &gt; 1.e-6):
+    passed=0
+assert(passed)
+    </test>
+    <test name="check material1 was conserved on pickup for reverse run" language="python">
+passed=1
+for f in range(len(materialstartback_1)):
+  print 'mass loss[f] = ', materialstartback_1[f][0], abs(materialendforward_1-materialstartback_1[f][1])
+  if (abs(materialendforward_1-materialstartback_1[f][1]) &gt; 1.E-8):
+    passed=0
+assert(passed)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
