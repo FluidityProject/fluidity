@@ -693,7 +693,7 @@ contains
     
     call get_locked_nodes(positions, llocked_nodes)
     allocate(locked_nodes(size(llocked_nodes) + key_count(lock_faces) * snloc))
-    locked_nodes(:size(llocked_nodes)) = locked_nodes
+    locked_nodes(:size(llocked_nodes)) = llocked_nodes
     do i = 1, key_count(lock_faces)
       locked_nodes(size(llocked_nodes) + 1 + snloc * (i - 1):size(llocked_nodes) + snloc * i) = &
         & face_global_nodes(positions, fetch(lock_faces, i))
