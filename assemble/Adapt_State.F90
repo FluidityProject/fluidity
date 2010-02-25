@@ -121,6 +121,8 @@ contains
     type(integer_hash_table) :: aliased_to_new_node_number
     integer, dimension(:), pointer :: nodes
 
+    integer, save :: delete_me = 1
+
 #ifdef DDEBUG
     if(present(node_ownership)) then
       assert(.not. associated(node_ownership))
@@ -132,7 +134,6 @@ contains
       if (old_positions%dim /= 2) then
         FLAbort("Sorry, not implemented yet, but if 2D periodic adaptivity is working it shouldn't be that hard")
       end if
-
 
       assert(mesh_periodic(metric))
 
@@ -523,6 +524,11 @@ contains
       new_positions%name = old_positions%name
       new_positions%mesh%name = old_positions%mesh%name
 
+      call deallocate(intermediate_metric)
+
+      call vtk_write_fields("adapted_mesh", delete_me, position=new_positions, model=new_positions%mesh)
+      delete_me = delete_me + 1
+
     ! Nonperiodic case
     else
       select case(old_positions%dim)
@@ -664,7 +670,6 @@ contains
     type(state_type), dimension(size(states)) :: interpolate_states
     type(mesh_type), pointer :: old_linear_mesh
     type(vector_field) :: old_positions, new_positions
-    type(vector_field), pointer :: coordinate
     integer :: stat
     logical :: vertical_only
 
@@ -700,10 +705,8 @@ contains
       call find_mesh_to_adapt(states(1), old_linear_mesh)
       ewrite(2, *) "External mesh to be adapted: " // trim(old_linear_mesh%name)
       if (mesh_periodic(old_linear_mesh)) then
-        coordinate => extract_vector_field(states(1), "Coordinate")
-        call allocate(old_positions, coordinate%dim, old_linear_mesh, trim(old_linear_mesh%name) // "Coordinate")
-        call remap_field(coordinate, old_positions, stat=stat)
-        call postprocess_periodic_mesh(coordinate%mesh, coordinate, old_positions%mesh, old_positions)
+        old_positions = extract_vector_field(states(1), trim(old_linear_mesh%name) // "Coordinate")
+        call incref(old_positions)
       else
         ! Extract the mesh field to be adapted (takes a reference)
         old_positions = get_coordinate_field(states(1), old_linear_mesh)
@@ -753,7 +756,7 @@ contains
 
       ! We're done with old_positions, so we may deallocate it
       call deallocate(old_positions)
-      
+
       ! Insert meshes from reserve states
       call restore_reserved_meshes(states)
       ! Next we recreate all derived meshes
