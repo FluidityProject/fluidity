@@ -522,7 +522,8 @@ contains
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(vector_field), intent(in) :: positions, old_positions, new_positions
+    type(vector_field), intent(in) :: positions
+    type(vector_field), pointer :: old_positions, new_positions
     type(vector_field), intent(in) :: velocity
     type(vector_field), pointer :: grid_velocity
     type(scalar_field), intent(in) :: source
