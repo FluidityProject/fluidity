@@ -292,7 +292,8 @@ contains
               neighbours => row_m_ptr(eelist, ele)
               do k=1,size(neighbours)
                 if (neighbours(k) < 0) cycle
-                if (node_val(front_field, neighbours(k)) /= 1.0) then
+                if (node_val(front_field, neighbours(k)) /= 1.0 .and. &
+                   any(has_value(aliased_nodes, face_global_nodes(unwrapped_positions_B, ele_face(unwrapped_positions_B, ele, neighbours(k)))))) then
                   call insert(eles_to_add, neighbours(k))
                 end if
               end do
@@ -385,8 +386,8 @@ contains
         assert(l == size(boundary_ids) + 1)
 
         ! deallocate the old faces, and rebuild
-        call vtk_write_fields("mesh", 3, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
-        call vtk_write_surface_mesh("surface", 3, intermediate_positions)
+        call vtk_write_fields("mesh", 3, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
+        call vtk_write_surface_mesh("surface", 3, unwrapped_positions_B)
         call deallocate_faces(intermediate_positions%mesh)
         call add_faces(intermediate_positions%mesh, sndgln=sndgln, element_owner=element_owners, boundary_ids=boundary_ids)
         call vtk_write_fields("mesh", 4, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
@@ -670,7 +671,6 @@ contains
     type(state_type), dimension(size(states)) :: interpolate_states
     type(mesh_type), pointer :: old_linear_mesh
     type(vector_field) :: old_positions, new_positions
-    integer :: stat
     logical :: vertical_only
 
     ! Vertically structured adaptivity stuff
