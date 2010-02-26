@@ -51,7 +51,6 @@ module diagnostic_fields_wrapper
   use vorticity_diagnostics
   use diagnostic_fields_matrices
   use equation_of_state
-  use metric_diagnostics
   use momentum_diagnostic_fields
   use porous_media, only: calculate_porous_media_absorption
   use spontaneous_potentials, only: calculate_formation_conductivity
@@ -73,9 +72,8 @@ contains
     logical, intent(in), optional :: exclude_nonrecalculated
 
     integer :: i,stat
-    type(scalar_field), pointer :: s_field => null()
-    type(tensor_field), pointer :: t_field => null()
-    type(vector_field), pointer :: v_field => null(), other_v_field => null()
+    type(scalar_field), pointer :: s_field
+    type(vector_field), pointer :: v_field, other_v_field
     logical :: diagnostic
     
     ewrite(1, *) "In calculate_diagnostic_variables"
