@@ -931,8 +931,8 @@ zoltan_INCLUDES_PATH="$zoltan/include"
 tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
 tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
 fi
-tmpLIBS="$tmpLIBS -lzoltan -lparmetis"
-tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/local/include/"
+tmpLIBS="$tmpLIBS -L/user/lib -lzoltan -lparmetis"
+tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 
 # Check that the compiler uses the library we specified...

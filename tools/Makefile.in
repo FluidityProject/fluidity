@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include -I/usr/include @FCFLAGS@
+FCFLAGS = -I../include -I/usr/include @CPPFLAGS@ @FCFLAGS@
 
 CC  = @CC@
 CFLAGS  = @CFLAGS@ -I../include
