@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<!-- Drag calculation in 2D flow past circle -->
+<testproblem>
+  <name>circle-2d-drag-zoltan</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="3">
+      <command_line>fluidity -v3 -l -x circle-2d-drag-serial.flml;
+                    mpiexec -n 3 fluidity -v3 -l -x circle-2d-drag-parallel.flml;
+                    mpiexec -n 3 fluidity -v3 -l -x circle-2d-drag-parallel-adaptive.flml;
+      </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="cur_xforce" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("circle-2d-drag-serial.stat")
+cur_xforce = s["0"]["Velocity"]["force%1"][-1]
+    </variable>
+    <variable name="exact_xforce" language="python">
+exact_xforce = 0.01116 # the force in x direction from literature
+    </variable>    
+    <variable name="cur_xforce_par" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("circle-2d-drag-parallel.stat")
+cur_xforce = s["0"]["Velocity"]["force%1"][-1]
+    </variable>
+    <variable name="cur_xforce_par_adapt" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("circle-2d-drag-parallel-adaptive.stat")
+cur_xforce = s["0"]["Velocity"]["force%1"][-1]
+    </variable>
+
+  </variables>
+  <pass_tests>
+    <test name="relative drag force difference (5%) in serial." language="python">
+print (100.0*abs(cur_xforce - exact_xforce)/exact_xforce)
+assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.05)
+    </test>    
+    <test name="relative drag force difference (5%) in parallel." language="python">
+print (100.0*abs(cur_xforce_par - exact_xforce)/exact_xforce)
+assert(abs(cur_xforce_par - exact_xforce)/exact_xforce &lt; 0.05)
+    </test>
+    <test name="relative drag force difference (5%) in adaptive." language="python">
+print (100.0*abs(cur_xforce_par_adapt - exact_xforce)/exact_xforce)
+assert(abs(cur_xforce+par_adapt - exact_xforce)/exact_xforce &lt; 0.05)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="relative drag force difference (3.5%) in serial." language="python">
+assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.035)
+    </test>    
+    <test name="relative drag force difference (3.5%) in serial." language="python">
+assert(abs(cur_xforce_par - exact_xforce)/exact_xforce &lt; 0.035)
+    </test>
+    <test name="relative drag force difference (3.5%) in serial." language="python">
+assert(abs(cur_xforce_par_adapt - exact_xforce)/exact_xforce &lt; 0.035)
+    </test>
+  </warn_tests>
+</testproblem>
