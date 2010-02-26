@@ -3298,6 +3298,9 @@ contains
     type(vector_field), pointer :: positions
 
     positions => extract_vector_field(states(1), "Coordinate")
+    if (allocated(domain_bbox)) then
+      deallocate(domain_bbox)
+    end if
     allocate(domain_bbox(positions%dim, 2))
 
     do dim=1,positions%dim
