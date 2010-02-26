@@ -562,22 +562,6 @@ contains
          end if
        end if
        ! End of vorticity diagnostics
-       
-       ! Start of metric diagnostics
-       s_field => extract_scalar_field(state(i), "MeshEdgeLengths", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call calculate_edge_lengths(state(i), s_field)
-         end if
-       end if
-       
-       t_field => extract_tensor_field(state(i), "FieldTolerance", stat)
-       if(stat == 0) then
-         if(recalculate(trim(t_field%option_path))) then
-           call calculate_field_tolerance(state(i), t_field)
-         end if
-       end if
-       ! End of metric diagnostics
 
        ! Start of porous media diagnostics
        if (have_option("/porous_media")) then

@@ -52,7 +52,7 @@ OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Convective_metric.
      Recovery_estimator.o Aspect_ratios.o Interpolation_error.o Geometric_constraints_metric.o Goals.o Goal_metric.o \
      Conformity_measurement.o Metric_advection.o  Mba_adapt.o Limit_metric.o Anisotropic_gradation_metric.o \
      Project_metric_to_surface.o Field_preprocessing.o Anisotropic_ZZ.o Richardson_metric.o \
-     Metric_Diagnostics.o Reference_Meshes.o
+     Reference_Meshes.o
 
 .SUFFIXES: .f90 .F90 .c .o .a
 
@@ -89,6 +89,5 @@ Mba_adapt.o: Limit_metric.o
 Anisotropic_gradation_metric.o: Form_metric.o Gradation_metric.o
 Anisotropic_ZZ.o: Conformity_measurement.o Bounding_box_metric.o Edge_lengths.o Form_metric.o Limit_metric.o
 Richardson_metric.o: Edge_lengths.o Limit_metric.o
-Metric_Diagnostics.o: Conformity_measurement.o Edge_lengths.o
 Conformity_measurement.o: Limit_metric.o
 Reference_Meshes.o: Conformity_measurement.o

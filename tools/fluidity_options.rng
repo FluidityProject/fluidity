@@ -8426,7 +8426,7 @@ Limitations:
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="scalar_edge_lengths_algorithm"/>
             <element name="mesh">
               <attribute name="name">
                 <value>CoordinateMesh</value>
@@ -10074,31 +10074,6 @@ in a multimaterial simulation.</a:documentation>
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
         <empty/>
-      </element>
-      <element name="tensor_field">
-        <a:documentation>From a field on a mesh, diagnose the anisotropic
-interpolation weight that would give the mesh back.
-It is computed as:
-\Eps = M^-1 |H|</a:documentation>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <attribute name="name">
-          <value>FieldTolerance</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="source_field_name">
-              <data type="string" datatypeLibrary=""/>
-            </element>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_tensor_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
       </element>
     </choice>
     <!--

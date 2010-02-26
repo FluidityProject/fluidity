@@ -491,6 +491,42 @@ and 'tensor_fields';
       <ref name="python_code"/>
     </element>
   </define>
+  <!-- Adaptivity diagnostics -->
+  <define name="field_tolerance_algorithm">
+    <element name="algorithm">
+      <a:documentation>From a field on a mesh, diagnose the anisotropic
+interpolation weight that would give the mesh back.
+It is computed as:
+\Eps = M^-1 |H|</a:documentation>
+      <attribute name="name">
+        <value>field_tolerance</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="source_field"/>
+      <optional>
+        <element name="p_norm">
+          <a:documentation>Scale the Hessian to return the L_p norm tolerance, rather than the
+default L_inf norm tolerance. See
+Chen Sun and Zu, Mathematics of Computation, Volume 76,
+Number 257, January 2007, pp. 179-204.</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="scalar_edge_lengths_algorithm">
+    <element name="algorithm">
+      <a:documentation>Computes the edge lengths of the Coordinate mesh</a:documentation>
+      <attribute name="name">
+        <value>scalar_edge_lengths</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <!-- Misc -->
   <!-- l2norm diagnostic algorithm -->
   <define name="l2norm_algorithm">
@@ -573,5 +609,8 @@ and 'tensor_fields';
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_copy_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="field_tolerance_algorithm"/>
   </define>
 </grammar>

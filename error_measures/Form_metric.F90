@@ -26,7 +26,7 @@ module form_metric_field
   end interface
 
   private
-  public :: form_metric, bound_metric
+  public :: form_metric, bound_metric, p_norm_scale_metric
 
   contains
 

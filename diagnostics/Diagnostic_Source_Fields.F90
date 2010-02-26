@@ -67,41 +67,45 @@ module diagnostic_source_fields
  
 contains
 
-  function scalar_source_field_scalar_single(state, s_field) result(source_field)
+  function scalar_source_field_scalar_single(state, s_field, allocated) result(source_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(in) :: s_field
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
-    source_field => scalar_source_field(state, s_field%option_path)
+    source_field => scalar_source_field(state, s_field%option_path, allocated = allocated)
     
   end function scalar_source_field_scalar_single
   
-  function scalar_source_field_vector_single(state, v_field) result(source_field)
+  function scalar_source_field_vector_single(state, v_field, allocated) result(source_field)
     type(state_type), intent(in) :: state
     type(vector_field), intent(in) :: v_field
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
-    source_field => scalar_source_field(state, v_field%option_path)
+    source_field => scalar_source_field(state, v_field%option_path, allocated = allocated)
     
   end function scalar_source_field_vector_single
   
-  function scalar_source_field_tensor_single(state, t_field) result(source_field)
+  function scalar_source_field_tensor_single(state, t_field, allocated) result(source_field)
     type(state_type), intent(in) :: state
     type(tensor_field), intent(in) :: t_field
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
-    source_field => scalar_source_field(state, t_field%option_path)
+    source_field => scalar_source_field(state, t_field%option_path, allocated = allocated)
     
   end function scalar_source_field_tensor_single
   
-  function scalar_source_field_path_single(state, path) result(source_field)
+  function scalar_source_field_path_single(state, path, allocated) result(source_field)
     type(state_type), intent(in) :: state
     character(len = *), intent(in) :: path
     
     type(scalar_field), pointer :: source_field
+    logical, optional, intent(out) :: allocated
     
 #ifdef DDEBUG
     integer :: i
@@ -114,47 +118,51 @@ contains
       assert(.not. source_field_name(i:i + 1) == "%")
     end do
 #endif
-    source_field => extract_scalar_field(state, source_field_name)
+    source_field => extract_scalar_field(state, source_field_name, allocated = allocated)
     
   end function scalar_source_field_path_single
   
-  function scalar_source_field_scalar_multiple(states, state_index, s_field) result(source_field)
+  function scalar_source_field_scalar_multiple(states, state_index, s_field, allocated) result(source_field)
     type(state_type), dimension(:), intent(in) :: states
     integer, intent(in) :: state_index
     type(scalar_field), intent(in) :: s_field
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
-    source_field => scalar_source_field(states, state_index, s_field%option_path)
+    source_field => scalar_source_field(states, state_index, s_field%option_path, allocated = allocated)
     
   end function scalar_source_field_scalar_multiple
   
-  function scalar_source_field_vector_multiple(states, state_index, v_field) result(source_field)
+  function scalar_source_field_vector_multiple(states, state_index, v_field, allocated) result(source_field)
     type(state_type), dimension(:), intent(in) :: states
     integer, intent(in) :: state_index
     type(vector_field), intent(in) :: v_field
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
-    source_field => scalar_source_field(states, state_index, v_field%option_path)
+    source_field => scalar_source_field(states, state_index, v_field%option_path, allocated = allocated)
     
   end function scalar_source_field_vector_multiple
   
-  function scalar_source_field_tensor_multiple(states, state_index, t_field) result(source_field)
+  function scalar_source_field_tensor_multiple(states, state_index, t_field, allocated) result(source_field)
     type(state_type), dimension(:), intent(in) :: states
     integer, intent(in) :: state_index
     type(tensor_field), intent(in) :: t_field
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
-    source_field => scalar_source_field(states, state_index, t_field%option_path)
+    source_field => scalar_source_field(states, state_index, t_field%option_path, allocated = allocated)
     
   end function scalar_source_field_tensor_multiple
   
-  function scalar_source_field_path_multiple(states, state_index, path) result(source_field)
+  function scalar_source_field_path_multiple(states, state_index, path, allocated) result(source_field)
     type(state_type), dimension(:), intent(in) :: states
     integer, intent(in) :: state_index
     character(len = *), intent(in) :: path
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
     
@@ -184,7 +192,7 @@ contains
         FLAbort("Invalid source field name")
     end select
     
-    source_field => extract_scalar_field(states(lstate_index), split_name(size(split_name)))
+    source_field => extract_scalar_field(states(lstate_index), split_name(size(split_name)), allocated = allocated)
     
     deallocate(split_name)
     

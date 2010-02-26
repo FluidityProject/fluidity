@@ -380,6 +380,37 @@ tensor_python_diagnostic_algorithm =
       }
    )
 
+# Adaptivity diagnostics
+
+field_tolerance_algorithm =
+   (
+      ## From a field on a mesh, diagnose the anisotropic
+      ## interpolation weight that would give the mesh back.
+      ## It is computed as:
+      ## \Eps = M^-1 |H|
+      element algorithm {
+         attribute name { "field_tolerance" },
+         attribute material_phase_support { "single" },
+         source_field,
+         ## Scale the Hessian to return the L_p norm tolerance, rather than the
+         ## default L_inf norm tolerance. See
+         ## Chen Sun and Zu, Mathematics of Computation, Volume 76,
+         ## Number 257, January 2007, pp. 179-204.
+         element p_norm {
+            integer
+         }?
+      }
+   )
+
+scalar_edge_lengths_algorithm =
+   (
+      ## Computes the edge lengths of the Coordinate mesh
+      element algorithm {
+         attribute name { "scalar_edge_lengths" },
+         attribute material_phase_support { "single" }
+      }
+   )
+
 # Misc
 
 # l2norm diagnostic algorithm
@@ -418,3 +449,4 @@ vector_diagnostic_algorithms |= vector_potential_algorithm
 
 tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
+tensor_diagnostic_algorithms |= field_tolerance_algorithm

@@ -29,62 +29,56 @@
 module metric_diagnostics
 
   use conformity_measurement
+  use diagnostic_source_fields
   use edge_length_module
-  use fields
-  use fldebug
-  use state_module
   use field_derivatives
-  use global_parameters, only: FIELD_NAME_LEN
+  use field_options
+  use fields
+  use form_metric_field
+  use fldebug
+  use metric_tools
+  use state_module
   use spud
   use vector_tools
-  use metric_tools
 
   implicit none
   
   private
   
-  public :: calculate_edge_lengths, calculate_field_tolerance
-  
-  interface calculate_edge_lengths
-    module procedure calculate_edge_lengths_scalar
-  end interface calculate_edge_lengths
+  public :: calculate_scalar_edge_lengths, calculate_field_tolerance
 
 contains
 
-  subroutine calculate_field_tolerance(state, field_tolerance)
+  subroutine calculate_field_tolerance(state, t_field)
     type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: field_tolerance
-    type(tensor_field) :: mesh_metric, hessian
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(scalar_field), pointer :: source_field
     type(vector_field), pointer :: positions
-    type(scalar_field), pointer :: field
-
+    type(tensor_field) :: mesh_metric, hessian
     logical :: allocated
-    character(len=FIELD_NAME_LEN) :: field_name
-
-    integer :: node
+    integer :: node, p, stat
     
     ewrite(1, *) "In calculate_field_tolerance"
 
     positions => extract_vector_field(state, "Coordinate")
 
     call compute_mesh_metric(positions, mesh_metric)
-    call get_option(trim(field_tolerance%option_path) // "/diagnostic/source_field_name", field_name)
-    ewrite(2, *) "Source field: " // trim(field_name)
-    field => extract_scalar_field(state, trim(field_name), allocated=allocated)
+    
+    source_field => scalar_source_field(state, t_field, allocated = allocated)
 
-    call allocate(hessian, field%mesh, trim(field_name) // "Hessian")
-    call compute_hessian(field, positions, hessian)
+    call allocate(hessian, source_field%mesh, "Hessian")
+    call compute_hessian(source_field, positions, hessian)
+    call get_option(trim(complete_field_path(t_field%option_path)) // "/algorithm/p_norm", p, stat = stat)
+    if(stat == SPUD_NO_ERROR) call p_norm_scale_metric(hessian, p)
 
     assert(hessian%mesh == mesh_metric%mesh)
-    assert(hessian%mesh == field_tolerance%mesh)
-    do node=1,node_count(mesh_metric)
-      call set(field_tolerance, node, matmul(inverse(node_val(mesh_metric, node)), absolutify_tensor(node_val(hessian, node))))
+    assert(hessian%mesh == t_field%mesh)
+    do node = 1, node_count(mesh_metric)
+      call set(t_field, node, matmul(inverse(node_val(mesh_metric, node)), absolutify_tensor(node_val(hessian, node))))
     end do
 
-    if (allocated) then
-      deallocate(field)
-    end if
-
+    if(allocated) deallocate(source_field)
     call deallocate(hessian)
     call deallocate(mesh_metric)
     
@@ -92,21 +86,21 @@ contains
   
   end subroutine calculate_field_tolerance
 
-  subroutine calculate_edge_lengths_scalar(state, edge_lengths)
+  subroutine calculate_scalar_edge_lengths(state, s_field)
     type(state_type), intent(in) :: state
-    type(scalar_field), intent(inout) :: edge_lengths
+    type(scalar_field), intent(inout) :: s_field
     
     type(tensor_field) :: metric
     type(vector_field), pointer :: positions => null()
     
     positions => extract_vector_field(state, "Coordinate")
-    assert(positions%mesh == edge_lengths%mesh)
+    assert(positions%mesh == s_field%mesh)
     
     call compute_mesh_metric(positions, metric)
-    call get_edge_lengths(metric, edge_lengths)
+    call get_edge_lengths(metric, s_field)
     
     call deallocate(metric)
     
-  end subroutine calculate_edge_lengths_scalar
+  end subroutine calculate_scalar_edge_lengths
 
 end module metric_diagnostics
