@@ -44,7 +44,7 @@ module adapt_state_module
   use edge_length_module
   use eventcounter
   use field_options
-  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name
+  use global_parameters, only : OPTION_PATH_LEN, periodic_boundary_option_path, adaptivity_mesh_name, domain_bbox
   use hadapt_extrude
   use hadapt_metric_based_extrude
   use halos
@@ -66,6 +66,7 @@ module adapt_state_module
   use write_triangle
   use fields_halos
   use data_structures
+  use intersection_finder_module
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
@@ -103,10 +104,10 @@ contains
     integer, dimension(:), allocatable :: surface_id
     type(tensor_field) :: unwrapped_metric_A, unwrapped_metric_B, intermediate_metric
     integer :: stat
-    type(csr_sparsity), pointer :: eelist
+    type(csr_sparsity), pointer :: eelist, nelist
     type(scalar_field) :: front_field
     integer :: ele
-    integer, dimension(:), pointer :: neighbours
+    integer, dimension(:), pointer :: neighbours, eles
     logical :: can_exit
     integer :: face
     type(integer_set) :: aliased_nodes, eles_to_add
@@ -120,6 +121,7 @@ contains
     character(len=OPTION_PATH_LEN) :: periodic_mapping_python
     type(integer_hash_table) :: aliased_to_new_node_number
     integer, dimension(:), pointer :: nodes
+    real, dimension(:, :), allocatable :: tmp_bbox
 
     integer, save :: delete_me = 1
 
@@ -208,6 +210,7 @@ contains
 
         ! Step d). Reperiodise
         intermediate_mesh = make_mesh_periodic_from_options(unwrapped_positions_B%mesh, unwrapped_positions_B, periodic_boundary_option_path)
+        intermediate_mesh%name = "TmpMesh"
         intermediate_mesh%option_path = periodic_boundary_option_path
         call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
         call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
@@ -390,6 +393,7 @@ contains
         call vtk_write_surface_mesh("surface", 3, unwrapped_positions_B)
         call deallocate_faces(intermediate_positions%mesh)
         call add_faces(intermediate_positions%mesh, sndgln=sndgln, element_owner=element_owners, boundary_ids=boundary_ids)
+        intermediate_metric%mesh = intermediate_positions%mesh
         call vtk_write_fields("mesh", 4, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
         call vtk_write_surface_mesh("surface", 4, intermediate_positions)
 
@@ -496,7 +500,67 @@ contains
         call deallocate(unwrapped_positions_A)
         call deallocate(unwrapped_metric_A)
 
-        ! Step i). Reperiodise for the next go around!
+        ! Step i). If the user has specified an inverse coordinate map, then let's loop through the nodes in the mesh
+        ! and map them back to inside the bounding box of the domain
+        if (have_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
+
+          ! nodes_to_map stores the potential nodes to map.
+          ! The rule is: we map any element which contains any node such that:
+          ! the node's location is not inside the original bounding box, and
+          ! the image of the node under the inverse mapping is inside the original bounding box
+
+          ! So first let's find the nodes outside the bounding box
+          call allocate(nodes_to_map)
+          allocate(tmp_bbox(unwrapped_positions_B%dim, 2))
+          do j=1,node_count(unwrapped_positions_B)
+            tmp_bbox(:, 1) = node_val(unwrapped_positions_B, j)
+            tmp_bbox(:, 2) = node_val(unwrapped_positions_B, j)
+            if (.not. bbox_predicate(domain_bbox, tmp_bbox)) then
+              call insert(nodes_to_map, j)
+            end if
+          end do
+
+          allocate(aliased_positions(unwrapped_positions_B%dim, key_count(nodes_to_map)))
+          allocate(physical_positions(unwrapped_positions_B%dim, key_count(nodes_to_map)))
+
+          do j=1,key_count(nodes_to_map)
+            physical_positions(:, j) = node_val(unwrapped_positions_B, fetch(nodes_to_map, j))
+          end do
+
+          ! and map those nodes
+          call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map', periodic_mapping_python)
+          call set_from_python_function(aliased_positions, periodic_mapping_python, physical_positions, time=0.0)
+
+          ! now let's loop through those nodes, and if the image is inside the bounding box, mark
+          ! the elements to map
+          front_field = piecewise_constant_field(unwrapped_positions_B%mesh, "AdvancingFront")
+          call zero(front_field)
+          nelist => extract_nelist(unwrapped_positions_B)
+
+          do j=1,key_count(nodes_to_map)
+            tmp_bbox(:, 1) = aliased_positions(:, j)
+            tmp_bbox(:, 2) = aliased_positions(:, j)
+            if (bbox_predicate(domain_bbox, tmp_bbox)) then
+              eles => row_m_ptr(nelist, fetch(nodes_to_map, j))
+              do k=1,size(eles)
+                call set(front_field, eles(k), 1.0)
+              end do
+            end if
+          end do
+
+          deallocate(physical_positions)
+          deallocate(aliased_positions)
+          call deallocate(nodes_to_map)
+          deallocate(tmp_bbox)
+
+          call vtk_write_fields("mesh", 8, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
+          call vtk_write_surface_mesh("surface", 8, unwrapped_positions_B)
+
+          call deallocate(front_field)
+        end if
+
+
+        ! Step j). Reperiodise for the next go around!
         intermediate_mesh = make_mesh_periodic_from_options(unwrapped_positions_B%mesh, unwrapped_positions_B, periodic_boundary_option_path)
         intermediate_mesh%option_path = periodic_boundary_option_path
         call allocate(intermediate_positions, unwrapped_positions_B%dim, intermediate_mesh, trim(old_positions%name))
@@ -509,14 +573,15 @@ contains
         assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
         assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
         call postprocess_periodic_mesh(unwrapped_positions_B%mesh, unwrapped_positions_B, intermediate_positions%mesh, intermediate_positions)
-        call vtk_write_fields("mesh", 8, position=intermediate_positions, model=intermediate_positions%mesh)
-        call vtk_write_surface_mesh("surface", 8, intermediate_positions)
 
         call deallocate(unwrapped_positions_B)
         call deallocate(unwrapped_metric_B)
 
         deallocate(physical_colours)
         deallocate(aliased_colours)
+
+        call vtk_write_fields("mesh", 9, position=intermediate_positions, model=intermediate_positions%mesh)
+        call vtk_write_surface_mesh("surface", 9, intermediate_positions)
       end do
 
       new_positions = intermediate_positions
