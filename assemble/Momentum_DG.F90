@@ -1504,11 +1504,15 @@ contains
     logical :: boundary, free_surface, no_normal_flow, have_pressure_bc
     logical, dimension(U%dim) :: dirichlet
 
+    logical :: p0
+
     floc = face_loc(u, face)
 
     start=ele_loc(u,ele)+(ni-1)*face_loc(U, face_2)+1
     finish=start+face_loc(U, face_2)-1
     
+    p0=(element_degree(u,ele)==0)
+
     do_primal_fluxes = present(primal_fluxes_mat)
     if(do_primal_fluxes.and..not.present(ele2grad_mat)) then
        FLAbort('need ele2grad mat to compute primal fluxes')
@@ -1576,6 +1580,12 @@ contains
        u_f_q = face_val_at_quad(U_nl, face)
        u_f2_q = face_val_at_quad(U_nl, face_2)
        U_nl_q=0.5*(u_f_q+u_f2_q)
+
+      if(p0) then
+        ! in this case the surface integral of u_f_q is zero so we need
+        ! to modify it to be a suitable measure of divergence
+        u_f_q = 0.5*(u_f_q+u_f2_q)
+      end if
       
       ! Mesh velocity at quadrature points.
       if(move_mesh) then

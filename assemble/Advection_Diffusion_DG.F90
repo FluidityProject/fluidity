@@ -1782,6 +1782,8 @@ contains
 
     logical :: do_primal_fluxes
 
+    logical :: p0_vel
+
     do_primal_fluxes = present(primal_fluxes_mat)
     if(do_primal_fluxes.and..not.present(ele2grad_mat)) then
        FLAbort('need ele2grad mat to compute primal fluxes')
@@ -1798,6 +1800,8 @@ contains
             face_ngi(Diffusivity,face)) )
        kappa_gi = face_val_at_quad(Diffusivity, face)
     end if
+
+    p0_vel =(element_degree(U_nl,ele)==0)
 
     t_face=face_global_nodes(T, face)
     t_face_l=face_local_nodes(T, face)
@@ -1836,6 +1840,15 @@ contains
        u_f_q = face_val_at_quad(U_nl, face)
        u_f2_q = face_val_at_quad(U_nl, face_2)
        U_nl_q=0.5*(u_f_q+u_f2_q)
+
+       if(p0_vel) then
+         ! A surface integral around the inside of a constant
+         ! velocity field will always produce zero so it's
+         ! not possible to evaluate the conservation term
+         ! with p0 that way.  Hence take the average across
+         ! a face.
+         u_f_q = 0.5*(u_f_q+u_f2_q)
+       end if
 
        ! Introduce grid velocities in non-linear terms. 
        if(move_mesh) then
