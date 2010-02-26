@@ -598,7 +598,7 @@ contains
       call tokenize(trim(depends), dependencies, ",")
       
       do j = 1, size(dependencies)
-        call tokenize(trim(dependencies(j)), split_dependency, "%")
+        call tokenize(trim(dependencies(j)), split_dependency, "::")
         select case(size(split_dependency))
           case(1)
             ! Single state dependency
@@ -977,7 +977,7 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
                   
             call tokenize(trim(dependency), dependencies, ",")
             do m = 1, size(dependencies)
-              call tokenize(trim(dependencies(m)), split_dependency, "%")
+              call tokenize(trim(dependencies(m)), split_dependency, "::")
               select case(size(split_dependency))
                 case(1)
                   if(option_count(trim(state_path) // "/scalar_field::" // trim(split_dependency(1))) + &

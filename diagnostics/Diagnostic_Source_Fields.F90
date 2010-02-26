@@ -173,7 +173,7 @@ contains
     nullify(source_field)
     
     call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-    call tokenize(trim(source_field_name), split_name, "%")
+    call tokenize(trim(source_field_name), split_name, "::")
     select case(size(split_name))
       case(1)
         assert(state_index > 0 .and. state_index <= size(states))
@@ -198,7 +198,7 @@ contains
     
   end function scalar_source_field_path_multiple
   
-function vector_source_field_scalar_single(state, s_field) result(source_field)
+  function vector_source_field_scalar_single(state, s_field) result(source_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(in) :: s_field
     
@@ -296,7 +296,7 @@ function vector_source_field_scalar_single(state, s_field) result(source_field)
     nullify(source_field)
     
     call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-    call tokenize(trim(source_field_name), split_name, "%")
+    call tokenize(trim(source_field_name), split_name, "::")
     select case(size(split_name))
       case(1)
         assert(state_index > 0 .and. state_index <= size(states))
@@ -419,7 +419,7 @@ function vector_source_field_scalar_single(state, s_field) result(source_field)
     nullify(source_field)
     
     call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-    call tokenize(trim(source_field_name), split_name, "%")
+    call tokenize(trim(source_field_name), split_name, "::")
     select case(size(split_name))
       case(1)
         assert(state_index > 0 .and. state_index <= size(states))
