@@ -15,7 +15,6 @@ maxspeed =max(fluidity_tools.stat_parser("Seiche_Coarse.stat")['StratifiedFluid'
     </variable>
   </variables>
   <pass_tests>
-    <!-- l2norm should remain within 1% of a constant detemined analytically -->
     <test name="l2norm(speed) at last timestep" language="python">
 assert abs(maxspeed) &lt; 0.50
     </test>
