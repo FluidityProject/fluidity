@@ -198,19 +198,19 @@ assert mid_contour_bounds[3] &gt; -0.1
     </test>
     <test name="check contours are tight lower x" language="python">
 print abs(mid_contour_bounds[1]-lower_contour_bounds[1])
-assert abs(mid_contour_bounds[1]-lower_contour_bounds[1]) &lt; 0.01
+assert abs(mid_contour_bounds[1]-lower_contour_bounds[1]) &lt; 0.012
     </test>
     <test name="check contours are tight upper x" language="python">
 print abs(mid_contour_bounds[1]-upper_contour_bounds[1])
-assert abs(mid_contour_bounds[1]-upper_contour_bounds[1]) &lt; 0.01
+assert abs(mid_contour_bounds[1]-upper_contour_bounds[1]) &lt; 0.012
     </test>
     <test name="check contours are tight lower y" language="python">
 print abs(mid_contour_bounds[3]-lower_contour_bounds[3])
-assert abs(mid_contour_bounds[3]-lower_contour_bounds[3]) &lt; 0.01
+assert abs(mid_contour_bounds[3]-lower_contour_bounds[3]) &lt; 0.012
     </test>
     <test name="check contours are tight upper y" language="python">
 print abs(mid_contour_bounds[3]-upper_contour_bounds[3])
-assert abs(mid_contour_bounds[3]-upper_contour_bounds[3]) &lt; 0.01
+assert abs(mid_contour_bounds[3]-upper_contour_bounds[3]) &lt; 0.012
     </test>
     <test name="check no. nodes has increased" language="python">
 assert nodesend &gt; nodesstart

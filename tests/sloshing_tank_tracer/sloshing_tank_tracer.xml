@@ -43,12 +43,21 @@ beta0tracerdgibp2icbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["wa
     <variable name="beta0tracercv_cons_error" language="python">
 from fluidity_tools import stat_parser as stat
 beta0tracercv_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["integral"][0]</variable>
+    <variable name="beta0tracerhyperc_cons_error" language="python">
+from fluidity_tools import stat_parser as stat
+beta0tracerhyperc_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["integral"][0]</variable>
     <variable name="beta0tracercv_max_diff_max" language="python">
 from fluidity_tools import stat_parser as stat
 beta0tracercv_max_diff_max = max(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"][0])</variable>
     <variable name="beta0tracercv_max_diff_min" language="python">
 from fluidity_tools import stat_parser as stat
 beta0tracercv_max_diff_min = min(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"][0])</variable>
+    <variable name="beta0tracerhyperc_max_diff_max" language="python">
+from fluidity_tools import stat_parser as stat
+beta0tracerhyperc_max_diff_max = max(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["max"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["max"][0])</variable>
+    <variable name="beta0tracerhyperc_max_diff_min" language="python">
+from fluidity_tools import stat_parser as stat
+beta0tracerhyperc_max_diff_min = min(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["max"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerHyperC"]["max"][0])</variable>
     <variable name="momucg_cons_error" language="python">
 from fluidity_tools import stat_parser as stat
 statf = stat("sloshing_tank_tracer.stat")["water"]
