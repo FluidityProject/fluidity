@@ -355,21 +355,6 @@ contains
       ewrite(2, *) "Excluding mass"
     end if
     
-    if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind")) then
-      ewrite(2, *) "Streamline upwind stabilisation"
-      stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
-      call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind", &
-          & nu_bar_scheme, nu_bar_scale)
-    else if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin")) then
-      ewrite(2, *) "SUPG stabilisation"
-      stabilisation_scheme = STABILISATION_SUPG
-      call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
-          & nu_bar_scheme, nu_bar_scale)
-    else
-      ewrite(2, *) "No stabilisation"
-      stabilisation_scheme = STABILISATION_NONE
-    end if
-    
     ! are we moving the mesh?
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement") .and. have_mass)
     if(move_mesh) then
@@ -395,7 +380,27 @@ contains
     else
       ewrite(2,*) "Not moving the mesh"
     end if
-
+    
+    if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind")) then
+      ewrite(2, *) "Streamline upwind stabilisation"
+      stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
+      call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind", &
+          & nu_bar_scheme, nu_bar_scale)
+      if(move_mesh) then
+        FLAbort("Haven't thought about how mesh movement works with stabilisation yet.")
+      end if
+    else if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin")) then
+      ewrite(2, *) "SUPG stabilisation"
+      stabilisation_scheme = STABILISATION_SUPG
+      call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
+          & nu_bar_scheme, nu_bar_scale)
+      if(move_mesh) then
+        FLAbort("Haven't thought about how mesh movement works with stabilisation yet.")
+      end if
+    else
+      ewrite(2, *) "No stabilisation"
+      stabilisation_scheme = STABILISATION_NONE
+    end if
     
     call allocate(dummydensity, t%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
     call set(dummydensity, 1.0)
@@ -411,6 +416,9 @@ contains
       pressure => dummydensity
     case(FIELD_EQUATION_INTERNALENERGY)
       ewrite(2,*) "Solving internal energy equation"
+      if(move_mesh) then
+        FLAbort("Haven't implemented a moving mesh energy equation yet.")
+      end if
       call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
                       density_name)
       density=>extract_scalar_field(state, trim(density_name))
@@ -538,7 +546,7 @@ contains
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)) :: dt_t
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)) :: drho_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t 
-    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t 
+    real, dimension(ele_loc(positions, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t 
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)) :: j_mat 
     type(element_type) :: test_function
     type(element_type), pointer :: t_shape
@@ -562,7 +570,7 @@ contains
     end if
     if(move_mesh) then
       ! the following has been assumed in the declarations above
-      assert(ele_loc(grid_velocity, ele) == ele_loc(velocity, ele))
+      assert(ele_loc(grid_velocity, ele) == ele_loc(positions, ele))
       assert(ele_ngi(grid_velocity, ele) == ele_ngi(velocity, ele))
     end if
 #endif
@@ -587,11 +595,12 @@ contains
     if(have_advection.or.(equation_type==FIELD_EQUATION_INTERNALENERGY)) then
       call transform_to_physical(positions, ele, &
            & ele_shape(velocity, ele), dshape = du_t)
-      if(move_mesh) then
-        call transform_to_physical(positions, ele, &
-            & ele_shape(grid_velocity, ele), dshape = dug_t)
-      end if
     end if
+    
+    if(have_advection.and.move_mesh.and..not.integrate_advection_by_parts) then
+      call transform_to_physical(positions, ele, &
+          & ele_shape(grid_velocity, ele), dshape = dug_t)
+    end if    
     
     if(move_mesh) then
       call transform_to_physical(old_positions, ele, detwei=detwei_old)
@@ -742,7 +751,7 @@ contains
     type(scalar_field), intent(in) :: density, olddensity
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t
-    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t
+    real, dimension(:, :, :) :: dug_t
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)), intent(in) :: drho_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)), intent(in) :: j_mat 
@@ -788,9 +797,6 @@ contains
         advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
-          if(move_mesh) then
-            velocity_div_at_quad = velocity_div_at_quad - ele_div_at_quad(grid_velocity, ele, dug_t)
-          end if
           advection_mat = advection_mat &
                     - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
                                                                       +udotgradrho_at_quad)* detwei)
@@ -799,9 +805,6 @@ contains
         advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei)
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
-          if(move_mesh) then
-            velocity_div_at_quad = velocity_div_at_quad - ele_div_at_quad(grid_velocity, ele, dug_t)
-          end if
           advection_mat = advection_mat &
                     - (1.0-beta)*shape_shape(test_function, t_shape, velocity_div_at_quad*detwei)
         end if
@@ -816,9 +819,6 @@ contains
         advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
-          if(move_mesh) then
-            velocity_div_at_quad = velocity_div_at_quad - ele_div_at_quad(grid_velocity, ele, dug_t)
-          end if
           advection_mat = advection_mat &
                     + beta*shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
                                                                 +udotgradrho_at_quad)*detwei)
@@ -827,11 +827,12 @@ contains
         advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei)
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
-          if(move_mesh) then
-            velocity_div_at_quad = velocity_div_at_quad - ele_div_at_quad(grid_velocity, ele, dug_t)
-          end if
           advection_mat = advection_mat &
                     + beta*shape_shape(test_function, t_shape, velocity_div_at_quad*detwei)
+        end if
+        if(move_mesh) then
+          advection_mat = advection_mat &
+                    - shape_shape(test_function, t_shape, ele_div_at_quad(grid_velocity, ele, dug_t)*detwei)
         end if
       end select
     end if

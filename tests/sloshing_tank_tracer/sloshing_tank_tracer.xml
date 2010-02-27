@@ -19,11 +19,36 @@ tracercgibp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Tra
 tracerdgibp1_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1"]["integral"][0]</variable>
     <variable name="tracerdgibp2_cons_error" language="python">from fluidity_tools import stat_parser as stat
 tracerdgibp2_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2"]["integral"][0]</variable>
-    <variable name="tracerdgibpicbp_cons_error" language="python">from fluidity_tools import stat_parser as stat
-tracerdgibpicbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibpicbp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibpicbp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibpicbp"]["integral"][0]</variable>
+    <variable name="tracerdgibp1icbp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracerdgibp1icbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1icbp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1icbp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp1icbp"]["integral"][0]</variable>
+    <variable name="tracerdgibp2icbp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+tracerdgibp2icbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2icbp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2icbp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerDGibp2icbp"]["integral"][0]</variable>
     <variable name="tracercv_cons_error" language="python">
 from fluidity_tools import stat_parser as stat
 tracercv_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["TracerCV"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["TracerCV"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["TracerCV"]["integral"][0]</variable>
+    <variable name="beta0tracercg_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracercg_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCG"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCG"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCG"]["integral"][0]</variable>
+    <variable name="beta0tracercgl_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracercgl_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCGlumped"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCGlumped"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCGlumped"]["integral"][0]</variable>
+    <variable name="beta0tracercgibp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracercgibp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCGibp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCGibp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCGibp"]["integral"][0]</variable>
+    <variable name="beta0tracerdgibp1_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracerdgibp1_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp1"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp1"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp1"]["integral"][0]</variable>
+    <variable name="beta0tracerdgibp2_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracerdgibp2_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp2"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp2"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp2"]["integral"][0]</variable>
+    <variable name="beta0tracerdgibp1icbp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracerdgibp1icbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp1icbp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp1icbp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp1icbp"]["integral"][0]</variable>
+    <variable name="beta0tracerdgibp2icbp_cons_error" language="python">from fluidity_tools import stat_parser as stat
+beta0tracerdgibp2icbp_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp2icbp"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp2icbp"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerDGibp2icbp"]["integral"][0]</variable>
+    <variable name="beta0tracercv_cons_error" language="python">
+from fluidity_tools import stat_parser as stat
+beta0tracercv_cons_error = max(abs(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["integral"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["integral"][0]))*100/stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["integral"][0]</variable>
+    <variable name="beta0tracercv_max_diff_max" language="python">
+from fluidity_tools import stat_parser as stat
+beta0tracercv_max_diff_max = max(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"][0])</variable>
+    <variable name="beta0tracercv_max_diff_min" language="python">
+from fluidity_tools import stat_parser as stat
+beta0tracercv_max_diff_min = min(stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"]-stat("sloshing_tank_tracer.stat")["water"]["Beta0TracerCV"]["max"][0])</variable>
     <variable name="momucg_cons_error" language="python">
 from fluidity_tools import stat_parser as stat
 statf = stat("sloshing_tank_tracer.stat")["water"]
@@ -50,10 +75,28 @@ assert(tracercgibp_cons_error &lt; 1.E-5)</test>
 assert(tracerdgibp1_cons_error &lt; 1.E-8)</test>
     <test name="dg ibp2 conservation error" language="python">
 assert(tracerdgibp2_cons_error &lt; 1.E-8)</test>
-    <test name="dg ibpicbp conservation error" language="python">
-assert(tracerdgibpicbp_cons_error &lt; 1.E-8)</test>
+    <test name="dg ibp1icbp conservation error" language="python">
+assert(tracerdgibp1icbp_cons_error &lt; 1.E-8)</test>
+    <test name="dg ibp2icbp conservation error" language="python">
+assert(tracerdgibp2icbp_cons_error &lt; 1.E-8)</test>
     <test name="cv conservation error" language="python">
 assert(tracercv_cons_error &lt; 1.E-6)</test>
+    <test name="beta0 cg conservation error" language="python">
+assert(beta0tracercg_cons_error &gt; 1.E-5)</test>
+    <test name="beta0 cgl conservation error" language="python">
+assert(beta0tracercgl_cons_error &gt; 1.E-7)</test>
+    <test name="beta0 cg ibp conservation error" language="python">
+assert(beta0tracercgibp_cons_error &gt; 1.E-5)</test>
+    <test name="beta0 dg ibp1 conservation error" language="python">
+assert(beta0tracerdgibp1_cons_error &gt; 1.E-8)</test>
+    <test name="beta0 dg ibp2 conservation error" language="python">
+assert(beta0tracerdgibp2_cons_error &gt; 1.E-8)</test>
+    <test name="beta0 dg ibp1icbp conservation error" language="python">
+assert(beta0tracerdgibp1icbp_cons_error &gt; 1.E-8)</test>
+    <test name="beta0 dg ibp2icbp conservation error" language="python">
+assert(beta0tracerdgibp2icbp_cons_error &gt; 1.E-8)</test>
+    <test name="beta0 cv conservation error" language="python">
+assert(beta0tracercv_cons_error &gt; 1.E-6)</test>
 <!--    <test name="momu cg conservation error" language="python">
 assert(abs(momucg_cons_error) &lt; 1.E-6)</test>
     <test name="momv cg conservation error" language="python">

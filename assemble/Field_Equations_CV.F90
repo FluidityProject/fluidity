@@ -1600,7 +1600,7 @@ contains
             oldtfield_upwind, tdensity_upwind, oldtdensity_upwind
 
       ! incoming or outgoing flow
-      real :: udotn, income, udotn_bdy
+      real :: udotn, divudotn, income
       logical :: inflow
       ! time and face discretisation
       real :: ptheta, ftheta, beta
@@ -1844,8 +1844,10 @@ contains
                   ! calculate u.n
                   if(move_mesh) then
                     udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi(:))
+                    divudotn=dot_product(u_f(:,ggi), normgi(:))
                   else
                     udotn=dot_product(u_f(:,ggi), normgi(:))
+                    divudotn=udotn
                   end if
                   inflow = (udotn<=0.0)
                   income = merge(1.0,0.0,inflow)
@@ -1909,20 +1911,20 @@ contains
                                           + ptheta*detwei(ggi)*(-udotn)*(1.-income)*tdensity_theta_val
                     mat_local(iloc, iloc) = mat_local(iloc, iloc) &
                                           + ptheta*detwei(ggi)*udotn*(1.0-income)*tdensity_theta_val &
-                                          - ftheta*(1.-beta)*detwei(ggi)*udotn*tdensity_theta_val
+                                          - ftheta*(1.-beta)*detwei(ggi)*divudotn*tdensity_theta_val
                     mat_local(oloc, oloc) = mat_local(oloc, oloc) &
                                           + ptheta*detwei(ggi)*(-udotn)*income*tdensity_theta_val &
-                                          - ftheta*(1.-beta)*detwei(ggi)*(-udotn)*tdensity_theta_val
+                                          - ftheta*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val
                   end if
 
                   rhs_local(iloc) = rhs_local(iloc) &
                                   + ptheta*udotn*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
                                   - udotn*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
-                                  + (1.-ftheta)*(1.-beta)*detwei(ggi)*udotn*tdensity_theta_val*oldtfield_ele(iloc)
+                                  + (1.-ftheta)*(1.-beta)*detwei(ggi)*divudotn*tdensity_theta_val*oldtfield_ele(iloc)
                   rhs_local(oloc) = rhs_local(oloc) &
                                   + ptheta*(-udotn)*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
                                   - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
-                                  + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-udotn)*tdensity_theta_val*oldtfield_ele(oloc)
+                                  + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val*oldtfield_ele(oloc)
 
                   if(l_diffusion) then
 
@@ -2149,18 +2151,21 @@ contains
 
                 ! u.n
                 if(move_mesh) then
-                  udotn_bdy = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                  divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                  if((tfield_bc_type(sele)==4)) then
+                    udotn = 0.0
+                  else
+                    udotn = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                  end if
                 else
-                  udotn_bdy = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                  divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                  if((tfield_bc_type(sele)==4)) then
+                    udotn = 0.0
+                  else
+                    udotn = divudotn
+                  end if
                 end if
                 
-                if((tfield_bc_type(sele)==4)) then
-                  ! zero_flux
-                  udotn=0.0
-                else
-                  udotn=udotn_bdy
-                end if
-
                 if(udotn>0) then
                   income=0.0 ! flow leaving the domain
                 else
@@ -2186,14 +2191,14 @@ contains
                   ! if iloc is the donor we can do this implicitly
                   mat_local_bdy(iloc) = mat_local_bdy(iloc) &
                                   + ptheta*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_theta_val &  
-                                  - ptheta*(1.-beta)*detwei_bdy(ggi)*udotn_bdy*tdensity_theta_val
+                                  - ptheta*(1.-beta)*detwei_bdy(ggi)*divudotn*tdensity_theta_val
                 end if
 
                 ! but we can't if it's the downwind
                 rhs_local_bdy(iloc) = rhs_local_bdy(iloc) &
                               - ptheta*udotn*detwei_bdy(ggi)*income*tdensity_theta_val*ghost_tfield_ele_bdy(iloc) & 
                               - (1.-ptheta)*udotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_face_val &
-                              + (1.-ptheta)*(1.-beta)*udotn_bdy*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(iloc)
+                              + (1.-ptheta)*(1.-beta)*divudotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(iloc)
 
                 if(l_diffusion.and.present_and_true(getdiffmat)) then
 

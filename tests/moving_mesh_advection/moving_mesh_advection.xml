@@ -79,14 +79,23 @@ fieldinitial = vtuinitial.GetField("TracerDGibp2")
 fieldfinal = vtufinal.GetField("TracerDGibp2")
 tracerdifferencedgibp2 = max(abs(fieldinitial-fieldfinal))
     </variable>
-    <variable name="tracerdifferencedgibpicbp" language="python">
+    <variable name="tracerdifferencedgibp1icbp" language="python">
 import vtktools
 from numpy import array
 vtufinal=vtktools.vtu('channel_flow_3.vtu')
 vtuinitial=vtktools.vtu('channel_flow_0.vtu')
-fieldinitial = vtuinitial.GetField("TracerDGibpicbp")
-fieldfinal = vtufinal.GetField("TracerDGibpicbp")
-tracerdifferencedgibpicbp = max(abs(fieldinitial-fieldfinal))
+fieldinitial = vtuinitial.GetField("TracerDGibp1icbp")
+fieldfinal = vtufinal.GetField("TracerDGibp1icbp")
+tracerdifferencedgibp1icbp = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="tracerdifferencedgibp2icbp" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("TracerDGibp2icbp")
+fieldfinal = vtufinal.GetField("TracerDGibp2icbp")
+tracerdifferencedgibp2icbp = max(abs(fieldinitial-fieldfinal))
     </variable>
     <variable name="tracerdifferencehyperc" language="python">
 import vtktools
@@ -96,6 +105,87 @@ vtuinitial=vtktools.vtu('channel_flow_0.vtu')
 fieldinitial = vtuinitial.GetField("TracerHyperC")
 fieldfinal = vtufinal.GetField("TracerHyperC")
 tracerdifferencehyperc = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencecv" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerCV")
+fieldfinal = vtufinal.GetField("Beta0TracerCV")
+beta0tracerdifferencecv = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencecg" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerCG")
+fieldfinal = vtufinal.GetField("Beta0TracerCG")
+beta0tracerdifferencecg = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencecgibp" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerCGibp")
+fieldfinal = vtufinal.GetField("Beta0TracerCGibp")
+beta0tracerdifferencecgibp = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencecglumped" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerCGlumped")
+fieldfinal = vtufinal.GetField("Beta0TracerCGlumped")
+beta0tracerdifferencecglumped = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencedgibp1" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerDGibp1")
+fieldfinal = vtufinal.GetField("Beta0TracerDGibp1")
+beta0tracerdifferencedgibp1 = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencedgibp2" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerDGibp2")
+fieldfinal = vtufinal.GetField("Beta0TracerDGibp2")
+beta0tracerdifferencedgibp2 = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencedgibp1icbp" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerDGibp1icbp")
+fieldfinal = vtufinal.GetField("Beta0TracerDGibp1icbp")
+beta0tracerdifferencedgibp1icbp = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencedgibp2icbp" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerDGibp2icbp")
+fieldfinal = vtufinal.GetField("Beta0TracerDGibp2icbp")
+beta0tracerdifferencedgibp2icbp = max(abs(fieldinitial-fieldfinal))
+    </variable>
+    <variable name="beta0tracerdifferencehyperc" language="python">
+import vtktools
+from numpy import array
+vtufinal=vtktools.vtu('channel_flow_3.vtu')
+vtuinitial=vtktools.vtu('channel_flow_0.vtu')
+fieldinitial = vtuinitial.GetField("Beta0TracerHyperC")
+fieldfinal = vtufinal.GetField("Beta0TracerHyperC")
+beta0tracerdifferencehyperc = max(abs(fieldinitial-fieldfinal))
     </variable>
     <variable name="mxgridvelocity" language="python">
 import fluidity_tools
@@ -115,40 +205,70 @@ mncfl = fluidity_tools.stat_parser("channel_flow.stat")['Water']['ControlVolumeC
     </variable>    
   </variables>
     <pass_tests>  
-    <test name="check minimum volume fraction is 0.0" language="python">
+    <test name="check minimum hyperc is 0.0" language="python">
    assert abs(mnvfrac) &lt; 1e-6
     </test>
-    <test name="check maximum volume fraction is 1.0" language="python">
+    <test name="check maximum hyperc is 1.0" language="python">
    assert abs(mxvfrac-1.0) &lt; 1e-6
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in cg is 0.0" language="python">
    assert abs(tracerdifferencecg) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in cgibp is 0.0" language="python">
    assert abs(tracerdifferencecgibp) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in cglumped is 0.0" language="python">
    assert abs(tracerdifferencecglumped) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in dgibp1 is 0.0" language="python">
    assert abs(tracerdifferencedgibp1) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in dgibp2 is 0.0" language="python">
    assert abs(tracerdifferencedgibp2) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
-   assert abs(tracerdifferencedgibpicbp) &lt; 1e-10
+    <test name="check difference in dgibp1icbp is 0.0" language="python">
+   assert abs(tracerdifferencedgibp1icbp) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in dgibp2icbp is 0.0" language="python">
+   assert abs(tracerdifferencedgibp2icbp) &lt; 1e-10
+    </test>
+    <test name="check difference in cv is 0.0" language="python">
    assert abs(tracerdifferencecv) &lt; 1e-10
     </test>
-    <test name="check difference in volume fraction is 0.0" language="python">
+    <test name="check difference in hyperc is 0.0" language="python">
    assert abs(tracerdifferencehyperc) &lt; 1e-10
     </test>
-    <test name="check initial minimum volume fraction is 0.0" language="python">
+    <test name="check beta0 difference in cg is 0.0" language="python">
+   assert abs(beta0tracerdifferencecg) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in cgibp is 0.0" language="python">
+   assert abs(beta0tracerdifferencecgibp) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in cglumped is 0.0" language="python">
+   assert abs(beta0tracerdifferencecglumped) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in dgibp1 is 0.0" language="python">
+   assert abs(beta0tracerdifferencedgibp1) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in dgibp2 is 0.0" language="python">
+   assert abs(beta0tracerdifferencedgibp2) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in dgibp1icbp is 0.0" language="python">
+   assert abs(beta0tracerdifferencedgibp1icbp) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in dgibp2icbp is 0.0" language="python">
+   assert abs(beta0tracerdifferencedgibp2icbp) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in cv is 0.0" language="python">
+   assert abs(beta0tracerdifferencecv) &lt; 1e-10
+    </test>
+    <test name="check beta0 difference in hyperc is 0.0" language="python">
+   assert abs(beta0tracerdifferencehyperc) &lt; 1e-10
+    </test>
+    <test name="check initial minimum hyperc is 0.0" language="python">
    assert abs(mnvfrac0) &lt; 1e-6
     </test>
-    <test name="check initial maximum volume fraction is 1.0" language="python">
+    <test name="check initial maximum hyperc is 1.0" language="python">
    assert abs(mxvfrac0-1.0) &lt; 1e-6
     </test>
     <test name="check maximum grid speed is 1.0" language="python">

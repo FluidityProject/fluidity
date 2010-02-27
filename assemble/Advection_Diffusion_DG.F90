@@ -68,10 +68,6 @@ module advection_diffusion_DG
 
   ! Whether the advection term is only integrated by parts once.
   logical :: integrate_by_parts_once=.false.
-  ! a factor to determine how many internal surface integrals should be subtracted
-  ! it depends on how many times advection is being integrated by parts and on
-  ! whether the conservation term is being integrated by parts
-  real :: integration_factor = 1.0
   ! Whether the conservation term is integrated by parts or not
   logical :: integrate_conservation_term_by_parts=.false.
   ! Weight between conservative and non-conservative forms of the advection
@@ -141,19 +137,12 @@ contains
     call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &conservative_advection", beta)
 
-    ! by default we assume we're integrating by parts twice and therefore we need to subtract
-    ! an extra internal surface integral
-    integration_factor = 1.0
+    ! by default we assume we're integrating by parts twice
     integrate_by_parts_once = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/advection_scheme/integrate_advection_by_parts/once")
-    ! if we're only integrating by parts once then there's no need for an extra surface integral
-    if(integrate_by_parts_once) integration_factor = 0.0
 
     integrate_conservation_term_by_parts = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/advection_scheme/integrate_conservation_term_by_parts")
-    ! overwrite the previous value of integration_factor as if the conservation term is integrated by parts
-    ! the scheme is invariant for one or two integrations of the advection term
-    if(integrate_conservation_term_by_parts) integration_factor = 1.0-beta
 
     ! Determine the scheme to use to discretise diffusivity.
     if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
@@ -704,14 +693,6 @@ contains
        dt=1.0
     end if
 
-    ! Switch on upwind stabilisation if requested.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/upwind_stabilisation")) then
-       stabilisation_scheme=UPWIND
-    else
-       stabilisation_scheme=NONE
-    end if
-
     include_mass = .not. have_option(trim(T%option_path)//&
            "/prognostic/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms")
            
@@ -720,11 +701,25 @@ contains
       ewrite(2,*) 'Moving mesh'
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
+      
       U_mesh=> extract_vector_field(state, "GridVelocity")
+      assert(U_mesh%dim == mesh_dim(t))
+      assert(ele_count(U_mesh) == ele_count(t))
     else
       ewrite(2,*) 'Not moving mesh'
     end if
     
+    ! Switch on upwind stabilisation if requested.
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/upwind_stabilisation")) then
+       stabilisation_scheme=UPWIND
+       if(move_mesh) then
+          FLAbort("Haven't thought about how mesh movement works with stabilisation yet.")
+       end if
+    else
+       stabilisation_scheme=NONE
+    end if
+
     q_mesh=diffusivity%mesh
 
     assert(has_faces(X%mesh))
@@ -849,7 +844,7 @@ contains
     real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) ::&
          & du_t 
     ! Transformed gradient function for grid velocity.
-    real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) ::&
+    real, dimension(ele_loc(X, ele), ele_ngi(U_nl, ele), mesh_dim(T)) ::&
          & dug_t 
     ! Transformed gradient function for auxiliary variable.
     real, dimension(ele_loc(q_mesh,ele), ele_ngi(q_mesh,ele), mesh_dim(T)) :: dq_t
@@ -912,7 +907,7 @@ contains
 
     if(move_mesh) then
       ! the following have been assumed in the declarations above
-      assert(ele_loc(U_mesh, ele)==ele_loc(U_nl, ele))
+      assert(ele_loc(U_mesh, ele)==ele_loc(X, ele))
       assert(ele_ngi(U_mesh, ele)==ele_ngi(U_nl, ele))
     end if
 
@@ -974,7 +969,9 @@ contains
     if(move_mesh) then
       call transform_to_physical(X_old, ele, detwei=detwei_old)
       call transform_to_physical(X_new, ele, detwei=detwei_new)
-      if(include_advection.and..not.integrate_conservation_term_by_parts) then
+      if(include_advection.and..not.integrate_by_parts_once) then
+        ! need dug_t if we're integrating by parts twice and
+        ! moving the mesh
         call transform_to_physical(X, ele, &
             & ele_shape(U_mesh, ele), dshape=dug_t)
       end if
@@ -983,23 +980,6 @@ contains
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
-
-    if(include_advection) then
-      ! Advecting velocity at quadrature points.
-      U_nl_q=ele_val_at_quad(U_nl,ele)
-      ! Introduce grid velocities in non-linear terms. 
-      if(move_mesh) then
-        U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
-      end if
-      ! Divergence of advecting velocity.
-      if(.not.integrate_conservation_term_by_parts) then
-        U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
-        ! Introduce grid velocities in non-linear terms. 
-        if(move_mesh) then
-          U_nl_div_q = U_nl_div_q - ele_div_at_quad(U_mesh, ele, dug_t)
-        end if
-      end if
-    end if
 
     Diffusivity_ele = ele_val(Diffusivity,ele)
 
@@ -1019,14 +999,36 @@ contains
 
     if (include_advection) then
 
-       if(integrate_conservation_term_by_parts) then
+      ! Advecting velocity at quadrature points.
+      U_nl_q=ele_val_at_quad(U_nl,ele)
+
+      if(integrate_conservation_term_by_parts) then
           ! Element advection matrix
           !         /                                          /
           !  - beta | (grad T dot U_nl) T Rho dV + (1. - beta) | T (U_nl dot grad T) Rho dV
           !         /                                          /
+          
+          ! Introduce grid velocities in non-linear terms. 
           Advection_mat = -beta* dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei)  &
                + (1.-beta) * shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei)
+          if(move_mesh) then
+            if(integrate_by_parts_once) then
+              Advection_mat = Advection_mat &
+                              + dshape_dot_vector_shape(dt_t, ele_val_at_quad(U_mesh,ele), t_shape, detwei)
+            else
+              Advection_mat = Advection_mat &
+                              - shape_vector_dot_dshape(t_shape, ele_val_at_quad(U_mesh,ele), dt_t, detwei) &
+                              - shape_shape(t_shape, t_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei)
+            end if
+          end if
        else
+          ! Introduce grid velocities in non-linear terms. 
+          if(move_mesh) then
+            ! NOTE: modifying the velocities at the gauss points in this case!
+            U_nl_q = U_nl_q - ele_val_at_quad(U_mesh, ele)
+          end if
+          U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
+          
           if(integrate_by_parts_once) then
              ! Element advection matrix
              !    /                                          /
@@ -1041,13 +1043,18 @@ contains
              !  /                                   /
              Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei)  &
                   + beta * shape_shape(t_shape, t_shape, U_nl_div_q * detwei)
+             if(move_mesh) then
+                Advection_mat = Advection_mat &
+                      - shape_shape(t_shape, t_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei)
+             end if
           end if
        end if
-
-       ! Mesh movement terms still to be added.
        
        ! Add stabilisation to the advection term if requested by the user.
        if (stabilisation_scheme==UPWIND) then
+          ! NOTE: U_nl_q may (or may not) have been modified by the grid velocity
+          ! with a moving mesh.  Don't know what's appropriate so changes may be
+          ! required above!  Hence, this should FLAbort above.
           Advection_mat = Advection_mat + &
                element_upwind_stabilisation(t_shape, dt_t, U_nl_q, J_mat,&
                & detwei)
@@ -1764,11 +1771,12 @@ contains
     ! Note that both sides of the face can be assumed to have the same
     ! number of quadrature points.
     real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: normal, u_nl_q,&
-         & u_nl_i, u_f_q, u_f2_q
+         & u_nl_i, u_f_q, u_f2_q, div_u_f_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
     real, dimension(face_ngi(U_nl, face)) :: u_nl_q_dotn, income
     ! Variable transform times quadrature weights.
     real, dimension(face_ngi(T,face)) :: detwei
+    real, dimension(face_ngi(T,face)) :: inner_advection_integral, outer_advection_integral
 
     ! Bilinear forms
     real, dimension(face_loc(T,face),face_loc(T,face)) :: nnAdvection_out
@@ -1847,7 +1855,9 @@ contains
          ! not possible to evaluate the conservation term
          ! with p0 that way.  Hence take the average across
          ! a face.
-         u_f_q = 0.5*(u_f_q+u_f2_q)
+         div_u_f_q = U_nl_q
+       else
+         div_u_f_q = u_f_q
        end if
 
        ! Introduce grid velocities in non-linear terms. 
@@ -1855,7 +1865,7 @@ contains
          ! here we assume that U_mesh at face is the same as U_mesh at face_2
          ! if it isn't then you're in trouble because your mesh will tear
          ! itself apart
-         u_nl_q=u_nl_q - face_val_at_quad(U_mesh, face)
+         U_nl_q=U_nl_q - face_val_at_quad(U_mesh, face)
          ! the velocity on the internal face isn't used again so we can
          ! modify it directly here...
          u_f_q = u_f_q - face_val_at_quad(U_mesh, face)
@@ -1873,15 +1883,35 @@ contains
        !----------------------------------------------------------------------
        
        ! Calculate outflow boundary integral.
+       ! can anyone think of a way of optimising this more to avoid
+       ! superfluous operations (i.e. multiplying things by 0 or 1)?
+
+       ! first the integral around the inside of the element
+       ! (this is the flux *out* of the element)
+       inner_advection_integral = (1.-income)*u_nl_q_dotn
+       if(.not.integrate_by_parts_once) then
+          ! i.e. if we're integrating by parts twice
+          inner_advection_integral = inner_advection_integral &
+                                     - sum(u_f_q*normal,1)
+       end if
+       if(integrate_conservation_term_by_parts) then
+          if(integrate_by_parts_once) then
+            inner_advection_integral = inner_advection_integral &
+                                       - (1.-beta)*sum(div_u_f_q*normal,1)
+          else
+            ! i.e. integrating by parts twice
+            inner_advection_integral = inner_advection_integral &
+                                       + beta*sum(div_u_f_q*normal,1)
+          end if
+       end if
        nnAdvection_out=shape_shape(T_shape, T_shape,  &
-            &                     ((1.-income)*u_nl_q_dotn &
-            &                     -integration_factor*sum(u_f_q*normal,1)) &
-            &                          *detwei) 
+            &                     inner_advection_integral * detwei) 
        
+       ! now the integral around the outside of the element
+       ! (this is the flux *in* to the element)
+       outer_advection_integral = income * u_nl_q_dotn
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
-            &                       income &
-            &                         *u_nl_q_dotn &
-            &                         *detwei) 
+            &                       outer_advection_integral * detwei) 
        
     end if
     if (include_diffusion) then

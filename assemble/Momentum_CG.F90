@@ -769,7 +769,7 @@
       if(move_mesh) then
         call transform_to_physical(x_old, ele, detwei=detwei_old)
         call transform_to_physical(x_new, ele, detwei=detwei_new)
-        if(.not.exclude_advection) then
+        if(.not.exclude_advection.and..not.integrate_advection_by_parts) then
           call transform_to_physical(x, ele, &
                                     ele_shape(ug, ele), dshape=dug_t)
         end if
@@ -1012,11 +1012,10 @@
             
       density_gi=ele_val_at_quad(density, ele)
       relu_gi = ele_val_at_quad(nu, ele)
-      div_relu_gi = ele_div_at_quad(nu, ele, du_t)
       if(move_mesh) then
         relu_gi = relu_gi - ele_val_at_quad(ug, ele)
-        div_relu_gi = div_relu_gi - ele_div_at_quad(ug, ele, dug_t)
       end if
+      div_relu_gi = ele_div_at_quad(nu, ele, du_t)
             
       if(integrate_advection_by_parts) then
         ! element advection matrix
@@ -1032,6 +1031,9 @@
         !  /                                     /
         advection_mat = shape_vector_dot_dshape(test_function, relu_gi, du_t, detwei*density_gi)  &
                       +beta*shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi)
+        if(move_mesh) then
+          advection_mat = advection_mat - shape_shape(test_function, u_shape, ele_div_at_quad(ug, ele, dug_t)*detwei*density_gi)
+        end if
       end if
       
       select case(stabilisation_scheme)
