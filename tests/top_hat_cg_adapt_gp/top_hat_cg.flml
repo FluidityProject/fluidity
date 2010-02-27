@@ -226,7 +226,7 @@
     </scalar_field>
     <scalar_field name="MeshEdgeLengths" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm name="scalar_edge_lengths" material_phase_support="single"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>

@@ -107,17 +107,9 @@ contains
     type(scalar_field), pointer :: source_field
     logical, optional, intent(out) :: allocated
     
-#ifdef DDEBUG
-    integer :: i
-#endif
     character(len = OPTION_PATH_LEN) :: source_field_name
     
     call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-#ifdef DDEBUG
-    do i = 1, len_trim(source_field_name) - 1
-      assert(.not. source_field_name(i:i + 1) == "%")
-    end do
-#endif
     source_field => extract_scalar_field(state, source_field_name, allocated = allocated)
     
   end function scalar_source_field_path_single
@@ -234,17 +226,9 @@ contains
     
     type(vector_field), pointer :: source_field
     
-#ifdef DDEBUG
-    integer :: i
-#endif
     character(len = OPTION_PATH_LEN) :: source_field_name
     
     call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-#ifdef DDEBUG
-    do i = 1, len_trim(source_field_name) - 1
-      assert(.not. source_field_name(i:i + 1) == "%")
-    end do
-#endif
     source_field => extract_vector_field(state, source_field_name)
     
   end function vector_source_field_path_single
@@ -357,17 +341,9 @@ contains
     
     type(tensor_field), pointer :: source_field
     
-#ifdef DDEBUG
-    integer :: i
-#endif
     character(len = OPTION_PATH_LEN) :: source_field_name
     
     call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-#ifdef DDEBUG
-    do i = 1, len_trim(source_field_name) - 1
-      assert(.not. source_field_name(i:i + 1) == "%")
-    end do
-#endif
     source_field => extract_tensor_field(state, source_field_name)
     
   end function tensor_source_field_path_single
