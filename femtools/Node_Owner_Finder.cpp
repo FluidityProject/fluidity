@@ -79,7 +79,7 @@ void NodeOwnerFinder::SetInput(const double*& positions, const int& nnodes, cons
     for( int i=0; i<nelements; i++)
       // add element with fortran id=i+1
       mesh1d.push_back( 
-        Element1D(i+1, positions[enlist[i*2]-1], positions[enlist[i*2+1]-1]) );
+        Element1D(i+1, positions[enlist[i*loc]-1], positions[enlist[(i+1)*loc-1]-1]) );
     // now sort on location (see Element1D::operator< below)
     sort( mesh1d.begin(), mesh1d.end());
   }
