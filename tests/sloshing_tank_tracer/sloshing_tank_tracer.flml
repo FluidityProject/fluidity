@@ -105,7 +105,9 @@
       <real_value rank="0">1.0</real_value>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
-    <stat/>
+    <stat>
+      <output_at_start/>
+    </stat>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
