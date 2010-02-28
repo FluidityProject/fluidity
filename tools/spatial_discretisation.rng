@@ -512,10 +512,10 @@ This defines the limiter used to enforce boundedness on this field.</a:documenta
     </element>
   </define>
   <define name="spatial_control_volume_options">
-    <ref name="standard_control_volume_options"/>
+    <ref name="compressive_control_volume_options"/>
   </define>
   <define name="spatial_control_volume_options" combine="choice">
-    <ref name="compressive_control_volume_options"/>
+    <ref name="standard_control_volume_options"/>
   </define>
   <define name="standard_control_volume_options">
     <choice>

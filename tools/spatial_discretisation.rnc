@@ -443,8 +443,8 @@ coupled_cv_options =
       }
    )
 
-spatial_control_volume_options = standard_control_volume_options
-spatial_control_volume_options |= compressive_control_volume_options
+spatial_control_volume_options = compressive_control_volume_options
+spatial_control_volume_options |= standard_control_volume_options
 
 standard_control_volume_options = 
    (
