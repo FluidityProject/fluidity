@@ -128,7 +128,6 @@
             </lagrange_multiplier>
           </solenoidal>
         </enforce_discrete_properties>
-        <do_not_recalculate/>
       </prescribed>
     </vector_field>
     <scalar_field name="ControlVolumeCFLNumber" rank="0">

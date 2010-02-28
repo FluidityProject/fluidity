@@ -390,6 +390,18 @@ contains
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
+
+       ! move the mesh according to a prescribed grid velocity
+       ! NOTE: there may be a chicken and egg situation here.  This update
+       ! has to come after the setting of the prescribed fields so that 
+       ! the grid velocity is not advected (in a lagrangian way) with the mesh
+       ! after the previous timestep of mesh movement.  However, this means
+       ! that other prescribed fields are actually set up according to an old
+       ! Coordinate field.
+       ! NOTE ALSO: this must come before the enforcement of discrete properties
+       ! to ensure those properties are satisfied on the new mesh not the old one.
+       call move_mesh_imposed_velocity(state)
+
        call enforce_discrete_properties(state, only_prescribed=.true., &
             exclude_interpolated=.true., &
             exclude_nonreprescribed=.true.)
@@ -411,8 +423,9 @@ contains
           call relax_to_nonlinear(state)
           call copy_from_stored_values(state, "Old")
 
+          ! move the mesh according to the free surface algorithm
+          ! (is this the right place to do this??)
           call move_mesh_free_surface(state)
-          call move_mesh_imposed_velocity(state)
 
           call compute_goals(state)
 
