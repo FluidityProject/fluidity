@@ -502,7 +502,7 @@ subroutine gls_diffusivity(state)
     type(tensor_field), pointer      :: eddy_diff_KH,eddy_visc_KM,viscosity,background_diff,background_visc
     real                             :: exp1, exp2, exp3, x
     integer                          :: i, stat
-    real                             :: epslim, tke, relax
+    real                             :: epslim, tke
     real, parameter                  :: galp = 0.53
     logical                          :: limit_length = .true.
 
@@ -583,14 +583,13 @@ subroutine gls_diffusivity(state)
     endif
     
 
-    relax = 1.0
     ! calculate diffusivities for next step and for use in other fields
     do i=1,nNodes
         x = sqrt(node_val(KK,i))*node_val(ll,i)
         ! momentum
-        call set(K_M,i, (1.-relax) * node_val(K_M,i) + relax*node_val(S_M,i)*x)
+        call set(K_M,i, node_val(S_M,i)*x)
         ! tracer
-        call set(K_H,i, (1.-relax) * node_val(K_H,i) + relax*node_val(S_H,i)*x)
+        call set(K_H,i, node_val(S_H,i)*x)
     end do
 
 
