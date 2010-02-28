@@ -489,7 +489,10 @@ contains
     ! the coordinates of a pt just upwind of the node pair
     real, dimension(mesh_dim(field)) :: xc, xc_vector
     ! element node coordinates
-    real, dimension(mesh_dim(x), ele_loc(x, 1)) :: x_ele
+    ! we only consider the vertices coordinates if higher order
+    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
+    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(:), pointer :: x_nodes
     real, dimension(mesh_dim(x_field), ele_loc(x_field, 1)) :: x_field_ele
     ! simplex volume coordinates
     real, dimension(field%mesh%shape%quadrature%vertices) :: coords, l_coords
@@ -595,7 +598,14 @@ contains
         ! (or nearly contains) xc
         do k = 1, size(eles)
           ele = eles(k)
-          x_ele=ele_val(x, ele)
+          if(x%mesh%shape%degree == 1) then
+            x_ele = ele_val(x, ele)
+          else
+            ! only extract the coordinates of the vertices in this case
+            x_nodes => ele_nodes(x, ele)
+            vertices = local_vertices(x%mesh%shape%numbering)
+            x_ele = node_val(x, x_nodes(vertices))
+          end if
           
           if(field_bc_type(i_field)==1) then
             ! find the local node number so we can add the vector
@@ -697,7 +707,10 @@ contains
 
     ! the coordinates of a pt just upwind of the node pair
     real, dimension(x%dim) :: xc, xc_vector
-    real, dimension(x%dim, ele_loc(x, 1)) :: x_ele
+    ! we only consider the vertices coordinates if higher order
+    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
+    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(:), pointer :: x_nodes
     real, dimension(x_field%dim, ele_loc(x_field, 1)) :: x_field_ele
     real, dimension(field%mesh%shape%quadrature%vertices) :: l_coords
     real, dimension(field%mesh%shape%loc) :: field_ele
@@ -774,7 +787,14 @@ contains
                                    on_boundary, normals)
 
           l_ele=ival(upwind_elements,i,nodes(j))
-          x_ele=ele_val(x, l_ele)
+          if(x%mesh%shape%degree == 1) then
+            x_ele = ele_val(x, l_ele)
+          else
+            ! only extract the coordinates of the vertices in this case
+            x_nodes => ele_nodes(x, l_ele)
+            vertices = local_vertices(x%mesh%shape%numbering)
+            x_ele = node_val(x, x_nodes(vertices))
+          end if
           
           if(field_bc_type(i_field)==1) then
             ! find the local node number so we can add the vector
@@ -952,7 +972,10 @@ contains
     ! the gradients of the field and old_field at the donor node
     real, dimension(x%dim) :: grad_c, old_grad_c
     ! element node coordinates
-    real, dimension(x%dim, ele_loc(x, 1)) :: x_ele
+    ! we only consider the vertices coordinates if higher order
+    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
+    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(:), pointer :: x_nodes
     real, dimension(x_field%dim, ele_loc(x_field, 1)) :: x_field_ele
     ! simplex volume coordinates
     real, dimension(x%mesh%shape%loc) :: coords, l_coords
@@ -1081,7 +1104,14 @@ contains
             ! (or nearly contains) xc
             do k = 1, size(eles)
                ele = eles(k)
-               x_ele=ele_val(x, ele)
+               if(x%mesh%shape%degree == 1) then
+                 x_ele = ele_val(x, ele)
+               else
+                 ! only extract the coordinates of the vertices in this case
+                 x_nodes => ele_nodes(x, ele)
+                 vertices = local_vertices(x%mesh%shape%numbering)
+                 x_ele = node_val(x, x_nodes(vertices))
+               end if
           
                if(field_bc_type(i_field)==1) then
                  ! find the local node number so we can add the vector
