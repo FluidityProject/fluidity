@@ -315,7 +315,7 @@ subroutine gls_tke(state)
     type(state_type), intent(inout)  :: state 
     
     type(scalar_field), pointer      :: source, absorption, kk, scalarField
-    type(tensor_field), pointer      :: kk_diff
+    type(tensor_field), pointer      :: kk_diff, background_diff
     real                             :: prod, buoyan, diss
     integer                          :: i, stat
     character(len=FIELD_NAME_LEN)    :: bc_type
@@ -350,11 +350,10 @@ subroutine gls_tke(state)
     enddo
 
     ! set diffusivity for KK
+    call zero(kk_diff)
+    background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
     call set(kk_diff,kk_diff%dim,kk_diff%dim,K_M,scale=1./sigma_k)
-    ! add in background (need to grab from Diamond, rather than hardcode)
-    do i=1,nNodes
-        call addto(kk_diff,kk_diff%dim,kk_diff%dim,i,1.0e-6)
-    end do
+    call addto(KK_diff,background_diff)
 
     ! boundary conditions
     if (calculate_bcs) then
@@ -395,7 +394,7 @@ subroutine gls_psi(state)
     type(state_type), intent(inout)  :: state
     
     type(scalar_field), pointer      :: source, absorption, kk,  psi, scalarField
-    type(tensor_field), pointer      :: psi_diff
+    type(tensor_field), pointer      :: psi_diff, background_diff
     real                             :: prod, buoyan,diss,PsiOverTke
     character(len=FIELD_NAME_LEN)    :: bc_type
     integer                          :: i, stat
@@ -453,11 +452,10 @@ subroutine gls_psi(state)
     end do
 
     ! Set diffusivity for Psi
+    call zero(psi_diff)
+    background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
     call set(psi_diff,psi_diff%dim,psi_diff%dim,K_M,scale=1./sigma_psi)
-    ! Add in background (need to grab from Diamond rather than hardcode)
-    do i=1,nNodes
-        call addto(psi_diff,psi_diff%dim,psi_diff%dim,i,1.0e-6)
-    end do
+    call addto(psi_diff,background_diff)
 
     ! boundary conditions
     if (calculate_bcs) then
@@ -603,17 +601,10 @@ subroutine gls_diffusivity(state)
     call set(eddy_diff_KH,eddy_diff_KH%dim,eddy_diff_KH%dim,K_H)     
     call set(eddy_visc_KM,eddy_visc_KM%dim,eddy_visc_KM%dim,K_M) 
 
-    background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity",stat)
-    if(stat == 0) then
-        call addto(eddy_diff_KH,background_diff)
-        call addto(K_H, extract_scalar_field(background_diff, background_diff%dim, background_diff%dim))
-    endif
-    background_visc => extract_tensor_field(state, "GLSBackgroundViscosity",stat)
-    if(stat == 0) then
-        call addto(eddy_visc_KM,background_visc)   
-        call addto(K_M, extract_scalar_field(background_visc, background_visc%dim, background_visc%dim))
-    endif   
-
+    background_diff => extract_tensor_field(state, "GLSBackgroundDiffusivity")
+    call addto(eddy_diff_KH,background_diff)
+    background_visc => extract_tensor_field(state, "GLSBackgroundViscosity")
+    call addto(eddy_visc_KM,background_visc)   
 
     ewrite_minmax(K_H)
     ewrite_minmax(K_M)
@@ -624,21 +615,10 @@ subroutine gls_diffusivity(state)
     ewrite_minmax(kk)
     ewrite_minmax(psi) 
 
-    ! Add background
-    if (stat == 0) then
-        ! we have a background viscosity - see above
-        call zero(viscosity)
-        call set(viscosity,viscosity%dim,viscosity%dim,K_M)
-        call addto(viscosity,background_visc) 
-    else
-        ! we don't - hard code a reasonable value
-        ! add the viscosity to the vertical velocity viscosity only
-        call set(viscosity,viscosity%dim,viscosity%dim,K_M)
-        ! add background
-        do i = 1,nNodes
-            call addto(viscosity,viscosity%dim,viscosity%dim,i,1.0e-6) 
-        end do
-    end if
+    ! Set viscosity
+    call zero(viscosity)
+    call set(viscosity,viscosity%dim,viscosity%dim,K_M)
+    call addto(viscosity,background_visc) 
     
     ! Set output on optional fields - if the field exists, stick something in it
     ! We only need to do this to those fields that we haven't pulled from state, but
@@ -1336,6 +1316,7 @@ subroutine gls_output_fields(state)
     type(state_type), intent(in)     :: state
 
     type(scalar_field), pointer      :: scalarField
+    type(tensor_field), pointer      :: tensorField
     integer                          :: stat
 
     scalarField => extract_scalar_field(state, "GLSLengthScale", stat)
@@ -1385,12 +1366,18 @@ subroutine gls_output_fields(state)
 
     scalarField => extract_scalar_field(state, "GLSVerticalViscosity", stat)
     if(stat == 0) then
+        ! add vertical background
+        tensorField => extract_tensor_field(state, "GLSBackgroundDiffusivity")
        call set(scalarField,K_M)  
+       call addto(scalarField, extract_scalar_field(tensorField, tensorField%dim, tensorField%dim))
     end if     
       
     scalarField => extract_scalar_field(state, "GLSVerticalDiffusivity", stat)
     if(stat == 0) then
-        call set(scalarField,K_H) 
+        ! add vertical background
+        tensorField => extract_tensor_field(state, "GLSBackgroundDiffusivity")
+        call set(scalarField,K_H)
+        call addto(scalarField, extract_scalar_field(tensorField,tensorField%dim, tensorField%dim))
     end if  
 
 
