@@ -1175,6 +1175,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                     <choice>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
@@ -1192,6 +1194,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                     <choice>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
@@ -1210,6 +1214,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1229,6 +1235,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1248,6 +1256,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1267,6 +1277,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1286,6 +1298,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1305,6 +1319,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1324,6 +1340,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1343,6 +1361,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1362,6 +1382,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1381,6 +1403,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1400,6 +1424,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1419,6 +1445,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1438,6 +1466,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1457,6 +1487,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
@@ -1476,6 +1508,8 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <choice>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>

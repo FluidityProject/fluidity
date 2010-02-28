@@ -921,7 +921,9 @@ start =
                      attribute name { "GLSEddyViscosityKM" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -934,7 +936,9 @@ start =
                      attribute name { "GLSEddyDiffusivityKH" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -947,7 +951,9 @@ start =
                      attribute name { "GLSLengthScale" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -960,7 +966,9 @@ start =
                      attribute name { "GLSBuoyancyFrequency" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -973,7 +981,9 @@ start =
                      attribute name { "GLSVelocityShear" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -986,7 +996,9 @@ start =
                      attribute name { "GLSShearProduction" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -999,7 +1011,9 @@ start =
                      attribute name { "GLSBuoyancyProduction" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1012,7 +1026,9 @@ start =
                      attribute name { "GLSDissipationEpsilon" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1025,7 +1041,9 @@ start =
                      attribute name { "GLSStabilityFunctionSM" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1038,7 +1056,9 @@ start =
                      attribute name { "GLSStabilityFunctionSH" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1051,7 +1071,9 @@ start =
                      attribute name { "GLSSource1" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1064,7 +1086,9 @@ start =
                      attribute name { "GLSSource2" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1077,7 +1101,9 @@ start =
                      attribute name { "GLSAbsorption1" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1090,7 +1116,9 @@ start =
                      attribute name { "GLSAbsorption2" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1103,7 +1131,9 @@ start =
                      attribute name { "GLSWallFunction" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1116,7 +1146,9 @@ start =
                      attribute name { "GLSVerticalViscosity" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
@@ -1129,7 +1161,9 @@ start =
                      attribute name { "GLSVerticalDiffusivity" },
                      (
                         element diagnostic {
-                           internal_algorithm
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field
