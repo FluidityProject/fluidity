@@ -2097,7 +2097,7 @@ contains
     type(state_type), dimension(size(input_states)), intent(inout) :: collapsed_states
     character(len = *), optional, intent(in) :: bctype
   
-    character(len = FIELD_NAME_LEN) :: bcname, lbctype
+    character(len = FIELD_NAME_LEN) :: bcname, lbctype, v_field_comp_name
     character(len = OPTION_PATH_LEN) :: bcoption_path
     integer :: i, j, k, l
     integer, dimension(:), allocatable :: bccount
@@ -2120,16 +2120,18 @@ contains
         
         allocate(v_field_comps(v_field%dim))
         do k = 1, v_field%dim
-          v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), trim(input_states(i)%vector_names(j)) // "%" // int2str(k))
+          v_field_comp_name = trim(input_states(i)%vector_names(j)) // "%" // int2str(k)
+          v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), v_field_comp_name)
          
           if(.not. associated(v_field_comps(k)%ptr%bc)) then
             ! This scalar field has no bc field (probably a borrowed
             ! reference). Wrap it so that it isn't a borrowed reference.
             ! Wrapping is cheaper than a copy here.
             v_field_comp_wrap = wrap_scalar_field(v_field_comps(k)%ptr%mesh, v_field_comps(k)%ptr%val, v_field_comps(k)%ptr%name)
-            call insert(collapsed_states(i), v_field_comp_wrap, v_field_comp_wrap%name)
-            v_field_comps(k)%ptr => v_field_comp_wrap
+            v_field_comp_wrap%option_path = v_field%option_path
+            call insert(collapsed_states(i), v_field_comp_wrap, v_field_comp_name)
             call deallocate(v_field_comp_wrap)
+            v_field_comps(k)%ptr => extract_scalar_field(collapsed_states(i), v_field_comp_name)
           end if
           
           assert(associated(v_field_comps(k)%ptr%bc))
