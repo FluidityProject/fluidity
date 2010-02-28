@@ -8,13 +8,17 @@
     <command_line>fluidity -v2 -l  hyperc-shear-input.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="tracerbeta0_int_0" language="python"> 
+    <variable name="finish_time" language="python"> 
 from fluidity_tools import stat_parser as stat
-tracerbeta0_int_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["integral"][0]
+finish_time = stat("hyperc-shear.stat")["ElapsedTime"]["value"][-1]
     </variable>
-    <variable name="tracerbeta0_int_1" language="python"> 
+    <variable name="tracerbeta1_int_0" language="python"> 
 from fluidity_tools import stat_parser as stat
-tracerbeta0_int_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["integral"][-1]
+tracerbeta1_int_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["integral"][0]
+    </variable>
+    <variable name="tracerbeta1_int_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_int_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["integral"][-1]
     </variable>
     <variable name="tracerbeta1_max_0" language="python"> 
 from fluidity_tools import stat_parser as stat
@@ -32,17 +36,13 @@ tracerbeta1_min_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["min"]
 from fluidity_tools import stat_parser as stat
 tracerbeta1_min_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["min"][-1]
     </variable>
-    <variable name="finish_time" language="python"> 
+    <variable name="tracerbeta0_int_0" language="python"> 
 from fluidity_tools import stat_parser as stat
-finish_time = stat("hyperc-shear.stat")["ElapsedTime"]["value"][-1]
+tracerbeta0_int_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["integral"][0]
     </variable>
-    <variable name="tracerbeta1_int_0" language="python"> 
+    <variable name="tracerbeta0_int_1" language="python"> 
 from fluidity_tools import stat_parser as stat
-tracerbeta1_int_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["integral"][0]
-    </variable>
-    <variable name="tracerbeta1_int_1" language="python"> 
-from fluidity_tools import stat_parser as stat
-tracerbeta1_int_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["integral"][-1]
+tracerbeta0_int_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["integral"][-1]
     </variable>
     <variable name="tracerbeta0_max_0" language="python"> 
 from fluidity_tools import stat_parser as stat
@@ -63,7 +63,7 @@ tracerbeta0_min_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["min"]
   </variables>
   <pass_tests>
     <test name="check finish time reached" language="python">
-assert abs(finish_time) &gt; 1.
+assert finish_time &gt; 1.
     </test>
     <test name="check tracerbeta0 integral was not conserved" language="python">
 print 'mass loss = ', abs(tracerbeta0_int_1-tracerbeta0_int_0)

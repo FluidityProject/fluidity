@@ -59,7 +59,9 @@
       <checkpoint_at_start/>
       <checkpoint_at_end/>
     </checkpointing>
-    <stat/>
+    <stat>
+      <output_at_start/>
+    </stat>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
