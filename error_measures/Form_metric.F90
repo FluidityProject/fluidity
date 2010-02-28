@@ -143,19 +143,18 @@ module form_metric_field
     do i = 1, node_count(metric)
       ! We really need det(metric) to be positive here
       ! This happens again in bound_metric, but it doesn't hurt to do it twice
-      ! (Patrick assures me eigenredecompositions are cheap)
+      ! (Patrick assures me eigenrecompositions are cheap)
       call eigendecomposition_symmetric(node_val(metric, i), evecs, evals)
       do j = 1, n
         evals(j) = abs(evals(j))
       end do
       call eigenrecomposition(metric%val(:, :, i), evecs, evals)
-      assert(all(evals > 0.0))
     
       m_det = 1.0
       do j = 1, size(evals)
         m_det = m_det * evals(j)
       end do
-      assert(m_det > 0.0)
+      m_det = max(m_det, epsilon(0.0))
       
       call set(metric, i, node_val(metric, i) * (m_det ** (-1.0 / (2.0 * p + n))))
     end do

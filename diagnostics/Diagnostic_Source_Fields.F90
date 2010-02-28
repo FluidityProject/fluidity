@@ -67,6 +67,23 @@ module diagnostic_source_fields
  
 contains
 
+  function source_field_component(path)
+    character(len = *), intent(in) :: path
+    
+    character(len = 2) :: source_field_component
+    
+    integer :: component, stat
+    
+    call get_option(trim(path) // "/algorithm/source_field_component", component, stat)
+    if(stat == SPUD_NO_ERROR) then
+      ! Allow truncation if necessary, as that can't be valid
+      source_field_component = "%" // int2str(component)
+    else
+      source_field_component = ""
+    end if
+    
+  end function source_field_component
+
   function scalar_source_field_scalar_single(state, s_field, allocated) result(source_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(in) :: s_field
@@ -107,10 +124,15 @@ contains
     type(scalar_field), pointer :: source_field
     logical, optional, intent(out) :: allocated
     
-    character(len = OPTION_PATH_LEN) :: source_field_name
+    character(len = OPTION_PATH_LEN) :: lpath, source_field_name
     
-    call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
-    source_field => extract_scalar_field(state, source_field_name, allocated = allocated)
+    lpath = complete_field_path(path)
+    call get_option(trim(lpath) // "/algorithm/source_field_name", source_field_name)
+    if(present(allocated)) then
+      source_field => extract_scalar_field(state, trim(source_field_name) // source_field_component(lpath), allocated = allocated)
+    else
+      source_field => extract_scalar_field(state, source_field_name)
+    end if
     
   end function scalar_source_field_path_single
   
@@ -158,13 +180,14 @@ contains
     
     type(scalar_field), pointer :: source_field
     
-    character(len = OPTION_PATH_LEN) :: source_field_name
+    character(len = OPTION_PATH_LEN) :: lpath, source_field_name
     character(len = OPTION_PATH_LEN), dimension(:), allocatable :: split_name
     integer :: lstate_index
     
     nullify(source_field)
     
-    call get_option(trim(complete_field_path(path)) // "/algorithm/source_field_name", source_field_name)
+    lpath = complete_field_path(path)    
+    call get_option(trim(lpath) // "/algorithm/source_field_name", source_field_name)
     call tokenize(trim(source_field_name), split_name, "::")
     select case(size(split_name))
       case(1)
@@ -184,7 +207,11 @@ contains
         FLAbort("Invalid source field name")
     end select
     
-    source_field => extract_scalar_field(states(lstate_index), split_name(size(split_name)), allocated = allocated)
+    if(present(allocated)) then
+      source_field => extract_scalar_field(states(lstate_index), trim(split_name(size(split_name))) // source_field_component(lpath), allocated = allocated)
+    else
+      source_field => extract_scalar_field(states(lstate_index), split_name(size(split_name))) 
+    end if
     
     deallocate(split_name)
     

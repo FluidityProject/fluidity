@@ -84,7 +84,7 @@
     </vector_field>
     <scalar_field name="One" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" name="scalar_copy" source_field_name="Three"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="Three"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
@@ -101,7 +101,7 @@
     </scalar_field>
     <scalar_field name="Two" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" name="scalar_copy" source_field_name="One"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="One"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -118,7 +118,7 @@
     </scalar_field>
     <scalar_field name="Three" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" name="scalar_copy" source_field_name="Two"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="Two"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
