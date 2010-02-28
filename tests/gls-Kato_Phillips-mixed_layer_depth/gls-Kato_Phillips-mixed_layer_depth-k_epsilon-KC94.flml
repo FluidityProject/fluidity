@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA</string_value>
+    <string_value lines="1">gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94</string_value>
     <comment>Surface BCs for TKE on top surface (ID=11) can be set to 
 u*^2/(c_mu^0)^2 = 0.01^2/0.5544^2 = 3.2535206e-4
 
@@ -375,6 +375,16 @@ Surface BCs for second gls quantity on top surface can be set to
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
           </diagnostic>
         </tensor_field>
         <tensor_field name="GLSEddyDiffusivityKH" rank="2">
@@ -382,6 +392,16 @@ Surface BCs for second gls quantity on top surface can be set to
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
           </diagnostic>
         </tensor_field>
         <scalar_field name="GLSLengthScale" rank="0">

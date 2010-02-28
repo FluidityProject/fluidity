@@ -375,6 +375,16 @@ Surface BCs for second gls quantity on top surface can be set to
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
           </diagnostic>
         </tensor_field>
         <tensor_field name="GLSEddyDiffusivityKH" rank="2">
@@ -382,6 +392,16 @@ Surface BCs for second gls quantity on top surface can be set to
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
             <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
           </diagnostic>
         </tensor_field>
         <scalar_field name="GLSLengthScale" rank="0">
