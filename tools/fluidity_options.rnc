@@ -1031,7 +1031,7 @@ start =
                      attribute name { "GLSStabilityFunctionSM" },
                      (
                         element diagnostic {
-                           internal_algorith
+                           internal_algorithm
                         }|
                         element aliased {
                            generic_aliased_field

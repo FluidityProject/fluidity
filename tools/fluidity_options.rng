@@ -1329,7 +1329,7 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       </attribute>
                       <choice>
                         <element name="diagnostic">
-                          <ref name="internal_algorith"/>
+                          <ref name="internal_algorithm"/>
                         </element>
                         <element name="aliased">
                           <ref name="generic_aliased_field"/>
