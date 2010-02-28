@@ -660,6 +660,7 @@ prognostic_velocity_field =
             element diagnostic {
                mesh_choice?,
                (
+                  internal_algorithm |
                   bulk_viscosity_algorithm |
                   tensor_python_diagnostic_algorithm
                ),

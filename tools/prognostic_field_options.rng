@@ -799,6 +799,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
               <ref name="mesh_choice"/>
             </optional>
             <choice>
+              <ref name="internal_algorithm"/>
               <ref name="bulk_viscosity_algorithm"/>
               <ref name="tensor_python_diagnostic_algorithm"/>
             </choice>
