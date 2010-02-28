@@ -868,9 +868,6 @@ start =
                         element prognostic {
                            velocity_mesh_choice,
                            prognostic_scalar_field,
-                           element priority {
-                              integer
-                           },
                            ## Minimum value of TKE in m2s2. A typical value will be around 1e-6
                            element minimum_value {
                               real
@@ -889,10 +886,7 @@ start =
                      (
                         element prognostic {
                            velocity_mesh_choice,
-                           prognostic_scalar_field,
-                           element priority {
-                              integer
-                           }
+                           prognostic_scalar_field
                         }|
                         element aliased {
                            generic_aliased_field

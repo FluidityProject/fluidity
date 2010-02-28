@@ -1109,9 +1109,6 @@ Manual suggests that this is OFF unless you're having difficulties.</a:documenta
                       <element name="prognostic">
                         <ref name="velocity_mesh_choice"/>
                         <ref name="prognostic_scalar_field"/>
-                        <element name="priority">
-                          <ref name="integer"/>
-                        </element>
                         <element name="minimum_value">
                           <a:documentation>Minimum value of TKE in m2s2. A typical value will be around 1e-6</a:documentation>
                           <ref name="real"/>
@@ -1135,9 +1132,6 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       <element name="prognostic">
                         <ref name="velocity_mesh_choice"/>
                         <ref name="prognostic_scalar_field"/>
-                        <element name="priority">
-                          <ref name="integer"/>
-                        </element>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
