@@ -7,6 +7,7 @@ include "solvers.rnc"
 include "stabilisation.rnc"
 include "reduced_model.rnc"
 include "mesh_options.rnc"
+include "physical_parameters.rnc"
 include "prognostic_field_options.rnc"
 include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
@@ -470,141 +471,7 @@ start =
                }?
             }?
          },
-         ## The physical parameters
-         element physical_parameters {
-            ## Set a gravity to be included in the buoyancy term.
-            element gravity {
-               ## Acceleration due to gravity. 9.8 m/s^2 on earth.
-               element magnitude {
-                  attribute replaces { "GRAVTY" },
-                  real
-               },
-               ## The direction of the gravity vector.
-               element vector_field {
-                  attribute name { "GravityDirection" },
-                  attribute rank { "1" },
-                  attribute replaces { "BSOUX BSOUY BSOUZ" },
-                  element prescribed {
-                     element mesh {
-                       attribute name {  "CoordinateMesh" }
-                     },
-                     prescribed_vector_field_no_adapt
-                  }
-               }
-            }?,
-            ## Options relating to Coriolis force. The rotation vector is
-            ## assumed to be in the z-direction:
-            ##
-            ##   F_C = 2 \Omega \hat{k} \times u = f \hat{k} \times u
-            element coriolis {
-               attribute replaces { "OPTOME" },
-               (
-                  ## f-plane approximation
-                  ## This means the Coriolis force looks like:
-                  ##   f k x u
-                  ## where k is the z unit vector
-                  ##    and u the velocity vector
-                  ##    and f is constant
-                  element f_plane {
-                     attribute replaces { "OPTOME = 0" },
-                     ## f-plane approximation
-                     ## This means the Coriolis force looks like:
-                     ##   f k x u
-                     ## where k is the z unit vector
-                     ##    and u the velocity vector
-                     ##    and f is constant
-                     element f {
-                        attribute replaces {"OMEGA" },
-                        real
-                     }
-                  }|
-                  ## Beta-plane approximation
-                  ## This means the Coriolis force looks like:
-                  ##   f k x u
-                  ## where k is the z unit vector
-                  ##    and u the velocity vector
-                  ##    and f=f_0+beta . (x,y,z)
-                  element beta_plane {
-                     attribute replaces { "OPTOME = 1" },
-                     ## Beta-plane approximation
-                     ## This means the Coriolis force looks like:
-                     ##   f k x u
-                     ## where k is the z unit vector
-                     ##    and u the velocity vector
-                     ##    and f=f_0+beta . (x,y,z)
-                     element f_0 {
-                        attribute replaces {"OMEGA" },
-                        real
-                     },
-                     ## Beta-plane approximation
-                     ## This means the Coriolis force looks like:
-                     ##   f k x u
-                     ## where k is the z unit vector
-                     ##    and u the velocity vector
-                     ##    and f=f_0+beta . (x,y,z)
-                     ## usually only the y-component of beta is non-zero
-                     element beta {
-                        attribute replaces {"OMEGA1 OMEGA2 OMEGA3" },
-                        real_dim_vector
-                     }
-                  }|
-                  ## Full Coriolis parameter:
-                  ##   f = 2 omega sin (latitude)
-                  ## where latitude=y/R_earth+latitude_0
-                  ## 
-                  ## Specify omega and R_earth and latitude_0
-                  element sine_of_latitude {
-                     attribute replaces { "OPTOME = 2" },
-                     ## Full Coriolis parameter:
-                     ##   f = 2 omega sin (latitude)
-                     ## where latitude=y/R_earth+latitude_0
-                     element omega {
-                        attribute replaces {"OMEGA" },
-                        real
-                     },
-                     ## Full Coriolis parameter:
-                     ##   f = 2 omega sin (latitude)
-                     ## where latitude=y/R_earth+latitude_0
-                     ## 
-                     ## Suggested value for R_earth: 6.371e6
-                     element R_earth {
-                        real
-                     },
-                     ## Full Coriolis parameter:
-                     ##   f = 2 omega sin (latitude)
-                     ## where 
-                     ##   latitude=y/R_earth+latitude_0
-                     ## latitude_0 is the latitude of y=0
-                     element latitude_0 {
-                        real
-                     }
-                  }|
-                  ## Full representation on sphere
-                  element on_sphere {
-                     ## Earth rotation rate
-                     ## 
-                     ## Suggested value: 2 pi / 86400 = 7.27220522e-5
-                     element omega {
-                        attribute replaces {"OMEGA" },
-                        real
-                     }
-                  }|
-                  ## As f_plane, but with the value for f set using a python
-                  ## function. Allows for time varying rotation rate.
-                  ##
-                  ## Functions should be of the form:
-                  ##
-                  ##  def val(t):
-                  ##     # Function code
-                  ##     return # Return value
-                  ##
-                  ## where the return value is a float.
-                  element python_f_plane {
-                     python_code
-                  }
-               )
-            }?
-         },
+         physical_parameter_options?,
          ## The material or phase options
          element material_phase {
             attribute name { xsd:string },

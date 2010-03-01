@@ -10,6 +10,7 @@
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
   <include href="stabilisation.rng"/>
+  <include href="physical_parameters.rng"/>
   <start>
     <element name="qg_strat_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -109,30 +110,8 @@ then this is the initial time step size.</a:documentation>
         </optional>
         <element name="coriolis">
           <choice>
-            <element name="f_plane">
-              <a:documentation>f-plane approximation
-f / 2 = f_0</a:documentation>
-              <element name="f_0">
-                <a:documentation>f / 2 = f_0</a:documentation>
-                <ref name="real"/>
-              </element>
-            </element>
-            <element name="beta_plane">
-              <a:documentation>Beta-plane approximation
-f / 2 = f_0 + beta_vector . x</a:documentation>
-              <element name="f_0">
-                <a:documentation>f_0, where:
-
-f / 2 = f_0 + beta_vector . x</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="beta_vector">
-                <a:documentation>beta_vector, where:
-f / 2 = f_0 + beta_vector . x
-Note that this is not necessarily a unit vector (unlike GravityDirection).</a:documentation>
-                <ref name="real_dim_vector"/>
-              </element>
-            </element>
+            <ref name="f_plane_options"/>
+            <ref name="beta_plane_options"/>
           </choice>
         </element>
       </element>

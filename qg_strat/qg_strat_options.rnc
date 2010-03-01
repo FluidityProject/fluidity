@@ -8,6 +8,7 @@ include "../tools/prescribed_field_options.rnc"
 include "../tools/spatial_discretisation.rnc"
 include "../tools/temporal_discretisation.rnc"
 include "../tools/stabilisation.rnc"
+include "../tools/physical_parameters.rnc"
 
 start =
    (
@@ -93,30 +94,8 @@ start =
             }?,
             element coriolis {
                (
-                  ## f-plane approximation
-                  ## f / 2 = f_0
-                  element f_plane {
-                     ## f / 2 = f_0
-                     element f_0 {
-                        real
-                     }
-                  }|
-                  ## Beta-plane approximation
-                  ## f / 2 = f_0 + beta_vector . x
-                  element beta_plane {
-                     ## f_0, where:
-                     ##
-                     ## f / 2 = f_0 + beta_vector . x
-                     element f_0 {
-                        real
-                     },
-                     ## beta_vector, where:
-                     ## f / 2 = f_0 + beta_vector . x
-                     ## Note that this is not necessarily a unit vector (unlike GravityDirection).
-                     element beta_vector {
-                        real_dim_vector
-                     }
-                  }
+                  f_plane_options|
+                  beta_plane_options
                )
             }
          },
