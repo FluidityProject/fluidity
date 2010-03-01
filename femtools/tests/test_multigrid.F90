@@ -10,6 +10,7 @@ subroutine test_multigrid
   use unittest_tools
   use fldebug
   use solvers
+  use fields
 #ifdef HAVE_PETSC
 #ifdef HAVE_PETSC_MODULES
   use petsc 
@@ -58,6 +59,7 @@ subroutine test_multigrid
   type(petsc_numbering_type) petsc_numbering1, petsc_numbering2
   type(dynamic_csr_matrix) dcsr1, dcsr2
   type(csr_matrix) csr1, csr2
+  type(scalar_field):: sfield1, sfield2
   character(len=OPTION_PATH_LEN) solver_option_path1, name1
   character(len=OPTION_PATH_LEN) solver_option_path2, name2
   integer literations1, literations2
@@ -82,12 +84,17 @@ subroutine test_multigrid
   
   call set_solver_options("/scalar_field::Field", ksptype=KSPCG, &
      pctype=PCMG, atol=1e-10, rtol=0.0)
+  ! horrible hack - petsc_solve_setup/core only use %name and %option_path
+  sfield1%name="Field1"
+  sfield1%option_path="/scalar_field::Field"
+  sfield2%name="Field2"
+  sfield2%option_path="/scalar_field::Field"
      
   ! setup PETSc objects and petsc_numbering from options and 
   ! compute rhs from "exact" solution
   call petsc_solve_setup(y1, A1, b1, ksp1, petsc_numbering1, &
-        name1, solver_option_path1, lstartfromzero1, &
-        matrix=csr1, &
+        solver_option_path1, lstartfromzero1, &
+        matrix=csr1, sfield=sfield1, &
         option_path="/scalar_field::Field")
   call PetscRandomCreate(MPI_COMM_WORLD, rctx, ierr)
   call PetscRandomSetFromOptions(rctx, ierr)
@@ -98,19 +105,19 @@ subroutine test_multigrid
   ! setup PETSc objects and petsc_numbering from options and 
   ! compute rhs from "exact" solution
   call petsc_solve_setup(y2, A2, b2, ksp2, petsc_numbering2, &
-        name2, solver_option_path2, lstartfromzero2, &
-        matrix=csr2, &
+        solver_option_path2, lstartfromzero2, &
+        matrix=csr2, sfield=sfield2, &
         option_path="/scalar_field::Field")
   call VecDuplicate(y2, xex2, ierr)
   call VecSetRandom(xex2, rctx, ierr)
   call MatMult(A2, xex2, b2, ierr)
      
   call petsc_solve_core(y1, A1, b1, ksp1, petsc_numbering1, &
-        name1, solver_option_path1, lstartfromzero1, &
-        literations1)
+        solver_option_path1, lstartfromzero1, &
+        literations1, sfield=sfield2)
   call petsc_solve_core(y2, A2, b2, ksp2, petsc_numbering2, &
-        name2, solver_option_path2, lstartfromzero2, &
-        literations2)
+        solver_option_path2, lstartfromzero2, &
+        literations2, sfield=sfield2)
         
   ! check answer of first solve
   call VecAXPY(y1, real(-1.0, kind = PetscScalar_kind), xex1, ierr)

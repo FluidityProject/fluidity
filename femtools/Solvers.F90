@@ -80,7 +80,7 @@ module solvers
     
 private
 
-public solcg, gmres, petsc_solve, set_solver_options, &
+public petsc_solve, set_solver_options, &
    complete_solver_option_path
 
 ! meant for unit-testing solver code only:
@@ -90,11 +90,9 @@ public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
 
 interface petsc_solve
    module procedure petsc_solve_scalar, petsc_solve_vector, &
-     petsc_solve_scalar_multiple, petsc_solve_scalar_multiple_rhs_array, &
+     petsc_solve_scalar_multiple, &
      petsc_solve_vector_components, &
      petsc_solve_tensor_components, &
-     petsc_solve_csr, petsc_solve_block_csr, petsc_solve_block_csr_multiple, &
-     petsc_solve_csr_multiple, &
      petsc_solve_scalar_petsc_csr, petsc_solve_vector_petsc_csr
 end interface
   
@@ -104,125 +102,6 @@ interface set_solver_options
 end interface set_solver_options
 
 contains
-
-subroutine solcg(xk,f,nonods,fredop,nnodp,zero,  &
-     a,fina,cola,ncola,nbigm,        &
-     halo_tag,k, &
-     option_path, checkconvergence)
-  use parallel_tools
-  integer, intent(in):: nonods, fredop, nnodp,  nbigm, ncola
-  real, intent(inout):: xk(fredop) ! IN:  initial guess (if ZERO==.false.)
-                                   ! OUT: solution vector
-  real, intent(in):: f(fredop)  ! rhs of equation
-  logical zero ! if zero==.true. use zero initial guess
-  real, intent(in):: A(nbigm) ! values of the matrix
-  integer, intent(in):: fina(nonods+1) ! row structure of matrix
-  integer, intent(in):: cola(ncola)    ! column indices of matrix
-  integer, intent(in):: halo_tag ! for parallel computations
-  integer, intent(out):: k ! returns number of performed iterations
-  character(len=*), optional, intent(in):: option_path
-  logical, optional, intent(in):: checkconvergence ! if .true. (default)
-    ! fail if not converged
-  type(csr_sparsity) :: sparsity
-    
-#ifdef HAVE_PETSC
-  type(block_csr_matrix) matrix
-  integer :: idimm, lhalo_tag, stat
-  type(halo_type) :: halo
-#endif
-
-#ifdef HAVE_PETSC
-  idimm = fredop / nonods
-
-  if (IsParallel()) then
-    ! Halos are stored on meshes / sparsities. We don't have sufficient
-    ! information for a parallel solve.
-    FLAbort("Cannot solve using solcg in parallel")
-  else
-    lhalo_tag=0
-  end if
-  !call import_halo(lhalo_tag, halo,stat)
-  stat = -1
-
-  if (stat==0) then
-     sparsity=wrap(fina, colm=cola, name='TemporarySparsity_solcg', &
-          row_halo=halo, column_halo=halo)
-     matrix=wrap(sparsity, blocks=(/ idimm, idimm /), val=a, &
-          name='TemporaryMatrix_solcg')
-     call deallocate(halo)
-  else
-     sparsity=wrap(fina, colm=cola, name='TemporarySparsity_solcg')
-     matrix=wrap(sparsity, blocks=(/ idimm, idimm /), val=a, &
-          name='TemporaryMatrix_solcg')
-  end if
-  call deallocate(sparsity)
-  call petsc_solve_block_csr(xk, matrix, f, &
-    startfromzero=ZERO, checkconvergence=checkconvergence, &
-    iterations=k, option_path=option_path)
-  call deallocate(matrix)
-  ewrite(2,*) 'Out of petsc_(block_)solve_csr.'
-#endif
-  
-end subroutine solcg
-
-subroutine gmres(x,b,nonods,fredop,nnodp,zero, &
-     a,fina,cola,ncola,nbigm, &
-     halo_tag,k, &
-     option_path, checkconvergence)
-  use parallel_tools
-  integer nnodp
-  integer fredop,ncola,nonods,nbigm
-  integer fina(nonods+1),cola(ncola)
-  real a(nbigm)
-  integer halo_tag,k
-  real x(fredop),b(fredop)
-  logical zero
-  character(len=*), optional, intent(in) :: option_path
-  logical, optional, intent(in) :: checkconvergence
-  type(csr_sparsity) :: sparsity
-  
-#ifdef HAVE_PETSC
-  type(block_csr_matrix) matrix
-  integer idimm, lhalo_tag, stat
-  type(halo_type) halo
-
-  idimm = fredop / nonods
-
-  if (IsParallel()) then
-    ! Halos are stored on meshes / sparsities. We don't have sufficient
-    ! information for a parallel solve.
-    FLAbort("Cannot solve using gmres in parallel")
-  else
-    lhalo_tag=0
-  end if
-  !call import_halo(lhalo_tag, halo, stat)
-  stat = -1
-  
-  if (stat==0) then
-     sparsity=wrap(fina, colm=cola, &
-          name='TemporarySparsity_gmres', &
-          row_halo=halo, column_halo=halo)
-     matrix=wrap(sparsity, blocks=(/ idimm, idimm /), val=a, &
-          name='TemporaryMatrix_gmres')
-     call deallocate(halo)
-  else
-     sparsity=wrap(fina, colm=cola, &
-          name='TemporarySparsity_gmres')
-     matrix=wrap(sparsity, blocks=(/ idimm, idimm /), val=a, &
-          name='TemporaryMatrix_gmres')
-     call deallocate(halo)
-  end if
-
-  call deallocate(sparsity)
-  call petsc_solve_block_csr(x, matrix, b, &
-    startfromzero=zero, checkconvergence=checkconvergence, &
-    iterations=k, &
-    option_path=option_path)
-  call deallocate(matrix)
-  ewrite(2,*) 'Out of petsc_(block_)solve_csr.'
-#endif
-
-end subroutine gmres
 
 subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   preconditioner_matrix, prolongator, surface_node_list,exact, &
@@ -251,8 +130,8 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   Mat A
   Vec y, b
 
+  character(len=OPTION_PATH_LEN):: solver_option_path
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
   integer literations
   logical lstartfromzero
   
@@ -273,19 +152,12 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   end if
 #endif
   
-  ! option_path_in may still point to field 
-  ! (so we have to add "/prognostic/solver" below)
-  if (present(option_path)) then
-    option_path_in=option_path
-  else
-    option_path_in=x%option_path
-  end if
-  
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
+        solver_option_path, lstartfromzero, &
         matrix=matrix, &
-        option_path=option_path_in, &
+        sfield=x, &
+        option_path=option_path, &
         preconditioner_matrix=preconditioner_matrix, &
         prolongator=prolongator,surface_node_list=surface_node_list, &
         exact=exact,internal_smoothing_option=internal_smoothing_option)
@@ -296,8 +168,8 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
      
   ! the solve and convergence check
   call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        literations, x0=x%val)
+        solver_option_path, lstartfromzero, literations, &
+        sfield=x, x0=x%val)
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, petsc_numbering, x, rhs)
@@ -326,7 +198,7 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
   Vec y, b
 
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name
+  character(len=OPTION_PATH_LEN) solver_option_path
   integer literations
   logical lstartfromzero
   integer i
@@ -342,8 +214,8 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
 
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        matrix=matrix, &
+        solver_option_path, lstartfromzero, &
+        matrix=matrix, sfield=x(1), &
         option_path=option_path)
   
   do i=1, size(x)
@@ -355,8 +227,8 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
      
     ! the solve and convergence check
     call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        literations, x0=x(i)%val)
+        solver_option_path, lstartfromzero, literations, &
+        sfield=x(i), x0=x(i)%val)
         
     ! Copy back the result using the petsc numbering:
     call petsc2field(y, petsc_numbering, x(i), rhs(i))
@@ -374,38 +246,6 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
   
 end subroutine petsc_solve_scalar_multiple
 
-subroutine petsc_solve_scalar_multiple_rhs_array(x, matrix, rhs, option_path)
-  !!< Solve a linear system the nice way.
-  !!< Solves multiple scalar fields with the same matrix.
-  !!< This version allows to specify the rhs as an array
-  type(scalar_field), dimension(:), intent(inout) :: x
-  real, dimension(:,:), intent(in) :: rhs
-  type(csr_matrix), intent(in) :: matrix
-  character(len=*), optional, intent(in) :: option_path
-
-#ifdef HAVE_PETSC
-
-  type(scalar_field), dimension(1:size(rhs,2)):: rhs_fields
-  integer i
-  
-  do i=1, size(rhs,2)
-    rhs_fields(i)=wrap_scalar_field(x(i)%mesh, rhs(:,i), &
-      name='petsc_solve_scalar_multiple_rhs_array'//int2str(i))
-  end do
-  
-  call petsc_solve_scalar_multiple(x, matrix, rhs_fields, &
-     option_path=option_path)
-  
-  do i=1, size(rhs,2)
-    call deallocate(rhs_fields(i))
-  end do
-  
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-  
-end subroutine petsc_solve_scalar_multiple_rhs_array
-
 subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   !!< Solve a linear system the nice way. Options for this
   !!< come via the options mechanism. 
@@ -422,7 +262,7 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   Vec y, b
 
   type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path
   integer literations
   logical lstartfromzero
   
@@ -437,14 +277,6 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   assert(x%dim==blocks(matrix,2))
   assert(rhs%dim==blocks(matrix,1))
   
-  ! option_path_in may still point to field 
-  ! (so we have to add "/prognostic/solver" below)
-  if (present(option_path)) then
-    option_path_in=option_path
-  else
-    option_path_in=x%option_path
-  end if
-  
   if(matrix%diagonal) then
     assert(blocks(matrix,1)==blocks(matrix,2))
     ! only want to solve using the diagonal blocks
@@ -455,9 +287,10 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   
       ! setup PETSc object and petsc_numbering from options and 
       call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-            name, solver_option_path, lstartfromzero, &
+            solver_option_path, lstartfromzero, &
             matrix=matrixblock, &
-            option_path=option_path_in)
+            vfield=x, &
+            option_path=option_path)
     
       ! copy array into PETSc vecs
       call petsc_solve_copy_vectors_from_scalar_fields(y, b, xblock, &
@@ -469,8 +302,8 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
         
       ! the solve and convergence check
       call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-            name, solver_option_path, lstartfromzero, &
-            literations, x0=xblock%val)
+            solver_option_path, lstartfromzero, literations, &
+            vfield=x, x0=xblock%val)
             
       ! Copy back the result using the petsc numbering:
       call petsc2field(y, petsc_numbering, xblock, rhsblock)
@@ -484,9 +317,10 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   
     ! setup PETSc object and petsc_numbering from options and 
     call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-          name, solver_option_path, lstartfromzero, &
+          solver_option_path, lstartfromzero, &
           block_matrix=matrix, &
-          option_path=option_path_in)
+          vfield=x, &
+          option_path=option_path)
           
     if(present_and_true(deallocate_matrix)) then
       call deallocate(matrix)
@@ -497,8 +331,8 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
       
     ! the solve and convergence check
     call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-            name, solver_option_path, lstartfromzero, &
-            literations, vector_x0=x)
+            solver_option_path, lstartfromzero, literations, &
+            vfield=x, vector_x0=x)
           
     ! Copy back the result using the petsc numbering:
     call petsc2field(y, petsc_numbering, x)
@@ -548,9 +382,10 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
   
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
+        solver_option_path, lstartfromzero, &
         matrix=matrix, &
-        option_path=option_path_in)
+        vfield=x, &
+        option_path=option_path)
  
   ewrite(1,*) 'Solving for multiple components of a vector field'
   
@@ -564,8 +399,8 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
      
      ! the solve and convergence check
      call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-          name, solver_option_path, lstartfromzero, &
-          literations, x0=x_component%val)
+          solver_option_path, lstartfromzero, literations, &
+          vfield=x, x0=x_component%val)
         
      ! Copy back the result using the petsc numbering:
      call petsc2field(y, petsc_numbering, x_component, rhs_component)
@@ -602,7 +437,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   KSP ksp
   Vec y, b
 
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path
   integer literations
   logical lstartfromzero
   
@@ -610,18 +445,12 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   assert(size(x%val)==size(matrix,2))
   assert(size(rhs%val)==size(matrix,1))
   
-  ! option_path_in may still point to field 
-  ! (so we have to add "/prognostic/solver" below)
-  if (present(option_path)) then
-    option_path_in=option_path
-  else
-    option_path_in=x%option_path
-  end if
-    
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup_petsc_csr(y, b, ksp, &
-        name, solver_option_path, lstartfromzero, &
-        matrix, option_path=option_path_in, &
+        solver_option_path, lstartfromzero, &
+        matrix, &
+        sfield=x, &
+        option_path=option_path, &
         prolongator=prolongator,surface_node_list=surface_node_list, &
         exact=exact)
         
@@ -631,8 +460,8 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
     
   ! the solve and convergence check
   call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
-          name, solver_option_path, lstartfromzero, &
-          literations, x0=x%val)
+          solver_option_path, lstartfromzero, literations, &
+          sfield=x, x0=x%val)
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
@@ -658,7 +487,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
   KSP ksp
   Vec y, b
 
-  character(len=OPTION_PATH_LEN) solver_option_path, name, option_path_in
+  character(len=OPTION_PATH_LEN) solver_option_path
   integer literations
   logical lstartfromzero
   
@@ -669,18 +498,10 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
   assert(x%dim==blocks(matrix,2))
   assert(rhs%dim==blocks(matrix,1))
   
-  ! option_path_in may still point to field 
-  ! (so we have to add "/prognostic/solver" below)
-  if (present(option_path)) then
-    option_path_in=option_path
-  else
-    option_path_in=x%option_path
-  end if
-    
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup_petsc_csr(y, b, ksp, &
-        name, solver_option_path, lstartfromzero, &
-        matrix, option_path=option_path_in)
+        solver_option_path, lstartfromzero, &
+        matrix, vfield=x, option_path=option_path)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_vector_fields(y, b, x, rhs, &
@@ -688,8 +509,8 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
     
   ! the solve and convergence check
   call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
-          name, solver_option_path, lstartfromzero, &
-          literations, vector_x0=x)
+          solver_option_path, lstartfromzero, literations, &
+          vfield=x, vector_x0=x)
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
@@ -741,8 +562,9 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
   
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
+        solver_option_path, lstartfromzero, &
         matrix=matrix, &
+        tfield=x, &
         option_path=option_path_in)
  
   ewrite(1,*) 'Solving for multiple components of a tensor field'
@@ -768,8 +590,8 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
          
         ! the solve and convergence check
         call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-              name, solver_option_path, lstartfromzero, &
-              literations, x0=x_component%val)
+              solver_option_path, lstartfromzero, literations, &
+              tfield=x, x0=x_component%val)
             
         ! Copy back the result using the petsc numbering:
         call petsc2field(y, petsc_numbering, x_component, rhs_component)
@@ -803,216 +625,6 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
 #endif
   
 end subroutine petsc_solve_tensor_components
-
-subroutine petsc_solve_csr(x, matrix, rhs, option_path, &
-  startfromzero, checkconvergence, iterations, prolongator)
-!!< Solve a linear system. This is the lower level version of 
-!!< petsc_solve_scalar.
-!! Equation to be solved is: matrix * x= rhs
-real, dimension(:), intent(inout):: x
-type(csr_matrix), intent(in):: matrix
-real, dimension(:), intent(in):: rhs
-!! path in options tree to solver options:
-character(len=*), optional, intent(in):: option_path
-!! startfromzero=.true. is default. startfromzero==.false. can be 
-logical, optional, intent(in):: startfromzero
-!! checkconvergence determines whether to check that the solve finished
-!! succesfully (if this call is part of a iterative process this might not
-!! be what you want)
-logical, optional, intent(in):: checkconvergence
-!! returns the number of performed iterations:
-integer, optional, intent(out):: iterations
-!! prolongator to be used at the first level of 'mg'
-type(csr_matrix), optional, intent(in) :: prolongator
-
-  type(block_csr_matrix) block_matrix
-  
-  ! redefine matrix as a 1 by 1 block matrix !
-  block_matrix=wrap(matrix%sparsity, (/ 1, 1 /), matrix%val, &
-    name='TemporaryMatrix_petsc_solve_csr')
-  
-  ! now we simply use the block_csr solver as a special case
-  call petsc_solve_block_csr(x, block_matrix, rhs, &
-    option_path=option_path, &
-    startfromzero=startfromzero, checkconvergence=checkconvergence, &
-    iterations=iterations, prolongator=prolongator)
-    
-  call deallocate(block_matrix)
-
-end subroutine petsc_solve_csr
-
-subroutine petsc_solve_block_csr(x, matrix, rhs, option_path, &
-  startfromzero, checkconvergence, iterations, prolongator)
-!!< Solves a linear system based on a block matrix.
-!! The equation to be solved is: matrix * x= rhs
-real, dimension(:), intent(inout):: x
-type(block_csr_matrix), intent(in):: matrix
-real, dimension(:), intent(in):: rhs
-!! path in options tree to solver options:
-character(len=*), optional, intent(in):: option_path
-!! startfromzero=.true. is default. startfromzero==.false. can be 
-logical, optional, intent(in):: startfromzero
-!! checkconvergence determines whether to check that the solve finished
-!! succesfully (if this call is part of a iterative process this might not
-!! be what you want)
-logical, optional, intent(in):: checkconvergence
-!! returns the number of performed iterations per equation:
-integer, optional, intent(out):: iterations
-!! prolongator to be used at the first level of 'mg'
-type(csr_matrix), optional, intent(in) :: prolongator
-
-#ifdef HAVE_PETSC
-  KSP ksp
-  Mat A
-  Vec y, b
-
-  type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name
-  integer literations
-  logical lstartfromzero
-  
-  assert(.not.matrix%diagonal)
-  
-  ! setup PETSc object and petsc_numbering from options and 
-  call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        block_matrix=matrix, &
-        option_path=option_path, &
-        startfromzero_in=startfromzero, &
-        prolongator=prolongator)
-  if (name=='return') return
- 
-  ! copy array into PETSc vecs
-  call petsc_solve_copy_vectors_from_array(y, b, x, rhs, petsc_numbering, lstartfromzero)
-     
-  ! the solve and convergence check
-  call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        literations, x0=x, checkconvergence=checkconvergence)
-        
-  if (present(iterations)) then
-     iterations=literations
-  end if  
-     
-  ! Copy back the result using the petsc numbering:
-  call petsc2array(y, petsc_numbering, x)
-  
-  ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
-  
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-
-end subroutine petsc_solve_block_csr
-
-subroutine petsc_solve_csr_multiple(x, matrix, rhs, option_path, &
-  startfromzero, checkconvergence, iterations)
-!!< Solve a linear system. This is the lower level version of 
-!!< petsc_solve_scalar. 
-!! Equation to be solved is: matrix * x(:,i)= rhs(:,i) 
-real, dimension(:,:), intent(inout):: x
-type(csr_matrix), intent(in):: matrix
-real, dimension(:,:), intent(in):: rhs
-!! path in options tree to solver options:
-character(len=*), optional, intent(in):: option_path
-!! startfromzero=.true. is default.
-logical, optional, intent(in):: startfromzero
-!! checkconvergence determines whether to check that the solve finished
-!! succesfully (if this call is part of a iterative process this might not
-!! be what you want)
-logical, optional, intent(in):: checkconvergence
-!! returns the number of performed iterations:
-integer, optional, dimension(:), intent(out):: iterations
-
-  type(block_csr_matrix) block_matrix
-  
-  ! redefine matrix as a 1 by 1 block matrix !
-  block_matrix=wrap(matrix%sparsity, (/ 1, 1 /), matrix%val, &
-    name='TemporaryMatrix_petsc_solve_csr')
-  
-  ! now we simply use the block_csr solver as a special case
-  call petsc_solve_block_csr_multiple(x, block_matrix, rhs, &
-    option_path=option_path, &
-    startfromzero=startfromzero, checkconvergence=checkconvergence, &
-    iterations=iterations)
-    
-  call deallocate(block_matrix)
-
-end subroutine petsc_solve_csr_multiple
-  
-subroutine petsc_solve_block_csr_multiple(x, matrix, rhs, option_path, &
-  startfromzero, checkconvergence, iterations)
-!!< Solves the same linear system based on a block matrix a number of times with different righthand sides.
-!!< This is the lower level version
-!!< of petsc_solve_scalar/petsc_solve_vector. 
-!! i-th equation to be solved is: matrix * x(:,i)= rhs(:,i)
-real, dimension(:,:), intent(inout):: x
-type(block_csr_matrix), intent(in):: matrix
-real, dimension(:,:), intent(in):: rhs
-!! path in options tree to solver options:
-character(len=*), optional, intent(in):: option_path
-!! startfromzero=.true. is default.
-logical, optional, intent(in):: startfromzero
-!! checkconvergence determines whether to check that the solve finished
-!! succesfully (if this call is part of a iterative process this might not
-!! be what you want)
-logical, optional, intent(in):: checkconvergence
-!! returns the number of performed iterations per equation:
-integer, optional, intent(out):: iterations(:)
-
-#ifdef HAVE_PETSC
-  KSP ksp
-  Mat A
-  Vec y, b
-
-  type(petsc_numbering_type) petsc_numbering
-  character(len=OPTION_PATH_LEN) solver_option_path, name
-  integer literations, i
-  logical lstartfromzero
-  
-  assert(.not.matrix%diagonal)
-  
-  ! setup PETSc object and petsc_numbering from options and 
-  call petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        block_matrix=matrix, &
-        option_path=option_path, &
-        startfromzero_in=startfromzero)
-
-  ewrite(1, *) 'Solving multiple equations with the same matrix'
-  ewrite(1, *) 'Number of equations: ', size(rhs,2)
-  
-  do i=1, size(rhs,2)
-    
-     ! copy array into PETSc vecs
-     call petsc_solve_copy_vectors_from_array(y, b, x(:,i), rhs(:,i), petsc_numbering, lstartfromzero)
-     
-     ewrite(1, *) 'Solving equation no.:', i   
-
-     ! the solve and convergence check
-     call petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-        name, solver_option_path, lstartfromzero, &
-        literations, x0=x(:,i), checkconvergence=checkconvergence)
-     if (name=='return') return
-        
-     if (present(iterations)) then
-        iterations(i)=literations
-     end if  
-     
-     ! Copy back the result using the petsc numbering:
-     call petsc2array(y, petsc_numbering, x(:,i))
-     
-  end do
-
-  ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
-  
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-
-end subroutine petsc_solve_block_csr_multiple
   
 function complete_solver_option_path(option_path)
 character(len=*), intent(in):: option_path
@@ -1037,8 +649,9 @@ end function complete_solver_option_path
 
 #ifdef HAVE_PETSC
 subroutine petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
-  name, solver_option_path, startfromzero, &
-  matrix, block_matrix, option_path, startfromzero_in, &
+  solver_option_path, startfromzero, &
+  matrix, block_matrix, sfield, vfield, tfield, &
+  option_path, startfromzero_in, &
   preconditioner_matrix, prolongator, surface_node_list, &
   exact,internal_smoothing_option)
 !!< sets up things needed to call petsc_solve_core
@@ -1054,8 +667,6 @@ Vec, intent(out):: b
 Mat, intent(out):: ksp
 !! numbering from local (i.e. fluidity speak: global) to PETSc (fluidity: universal) numbering
 type(petsc_numbering_type), intent(out):: petsc_numbering
-!! name of solve, to be printed on log output
-character(len=*), intent(out):: name
 !! returns the option path to solver/ block for new options, otherwise ""
 character(len=*), intent(out):: solver_option_path
 !! whether to start with zero initial guess
@@ -1066,7 +677,12 @@ logical, intent(out):: startfromzero
 !! provide either a matrix or block_matrix to be solved
 type(csr_matrix), target, optional, intent(in):: matrix
 type(block_csr_matrix), target, optional, intent(in):: block_matrix
-!! for new options 
+!! provide either a scalar field or vector field to be solved for
+type(scalar_field), optional, intent(in):: sfield
+type(vector_field), optional, intent(in):: vfield
+type(tensor_field), optional, intent(in):: tfield
+  
+!! if provided overrides sfield%option_path
 character(len=*), optional, intent(in):: option_path
 !! whether to start with zero initial guess (as passed in)
 logical, optional, intent(in):: startfromzero_in
@@ -1095,19 +711,28 @@ type(scalar_field), optional, intent(in) :: exact
   integer i, j
   KSP, pointer:: ksp_pointer
 
-  if (.not. present(option_path)) then
-    FLAbort("No option_path provided to solver call.")
-  end if
-  solver_option_path=complete_solver_option_path(option_path)
-
-  if (have_option(trim(option_path)//'/name')) then
-    call get_option(trim(option_path)//'/name', name)
-    ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving for: ', trim(name)
+  if (present(sfield)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(sfield%option_path)
+    end if
+  else if (present(vfield)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(vfield%option_path)
+    end if
+  else if (present(tfield)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(tfield%option_path)
+    end if
   else
-    ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving using option_path: ', trim(option_path)
-    name=option_path
+    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
   end if
-
+  
   timing=(debug_level()>=2)
   if (timing) then
     call cpu_time(time1)
@@ -1302,8 +927,9 @@ type(scalar_field), optional, intent(in) :: exact
 end subroutine petsc_solve_setup
   
 subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
-  name, solver_option_path, startfromzero, &
-  matrix, option_path, startfromzero_in, &
+  solver_option_path, startfromzero, &
+  matrix, sfield, vfield, tfield, &
+  option_path, startfromzero_in, &
   prolongator,surface_node_list, exact)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
@@ -1314,8 +940,6 @@ Vec, intent(out):: y
 Vec, intent(out):: b
 !! Solver object
 Mat, intent(out):: ksp
-!! name of solve, to be printed on log output
-character(len=*), intent(out):: name
 !! returns the option path to solver/ block for new options, otherwise ""
 character(len=*), intent(out):: solver_option_path
 !! whether to start with zero initial guess
@@ -1325,8 +949,13 @@ logical, intent(out):: startfromzero
 !! 
 !! provide either a matrix or block_matrix to be solved
 type(petsc_csr_matrix), intent(inout):: matrix
-!! for new options 
-character(len=*), intent(in):: option_path
+!! provide either a scalar field or vector field to be solved for
+type(scalar_field), optional, intent(in):: sfield
+type(vector_field), optional, intent(in):: vfield
+type(tensor_field), optional, intent(in):: tfield
+
+!! overrides sfield%option_path or vfield%option_path
+character(len=*), intent(in), optional:: option_path
 !! whether to start with zero initial guess (as passed in)
 logical, optional, intent(in):: startfromzero_in
 
@@ -1343,14 +972,26 @@ type(scalar_field), optional, intent(in) :: exact
   integer ierr
   logical parallel, timing
 
-  solver_option_path=complete_solver_option_path(option_path)
-
-  if (have_option(trim(option_path)//'/name')) then
-    call get_option(trim(option_path)//'/name', name)
-    ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving for: ', trim(name)
+  if (present(sfield)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(sfield%option_path)
+    end if
+  else if (present(vfield)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(vfield%option_path)
+    end if
+  else if (present(tfield)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(tfield%option_path)
+    end if
   else
-    ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving using option_path: ', trim(option_path)
-    name=option_path
+    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
   end if
 
   timing=(debug_level()>=2)
@@ -1516,8 +1157,10 @@ logical, intent(in):: startfromzero
 end subroutine petsc_solve_copy_vectors_from_vector_fields
 
 subroutine petsc_solve_core(y, A, b, ksp, petsc_numbering, &
-  name, solver_option_path, startfromzero, &
-  iterations, x0, vector_x0, checkconvergence)
+  solver_option_path, startfromzero, &
+  iterations, &
+  sfield, vfield, tfield, &
+  x0, vector_x0, checkconvergence)
 !!< inner core of matrix solve, called by all versions of petsc_solve
 !! IN: inital guess, OUT: solution
 Vec, intent(inout):: y
@@ -1529,14 +1172,17 @@ Vec, intent(in):: b
 KSP, intent(inout):: ksp
 !! numbering from local (i.e. fluidity speak: global) to PETSc (fluidity: universal) numbering
 type(petsc_numbering_type), intent(in):: petsc_numbering
-!! name of solve, to be printed on log output
-character(len=*), intent(in):: name
 !! for new options option path to solver/ block
 character(len=*), intent(in):: solver_option_path
 !! whether to start with zero initial guess
 logical, intent(in):: startfromzero
 !! returns number of performed iterations
 integer, intent(out):: iterations
+!! provide either a scalar field or vector field to be solved for
+!! (only for logging/timing purposes)
+type(scalar_field), optional, intent(in):: sfield
+type(vector_field), optional, intent(in):: vfield
+type(tensor_field), optional, intent(in):: tfield
 !! initial guess (written out in matrixdump after failed solve)
 real, dimension(:), optional, intent(in):: x0
 !! initial guess (written out in matrixdump after failed solve) in vector_field form
@@ -1548,8 +1194,22 @@ logical, optional, intent(in):: checkconvergence
   PetscErrorCode ierr
   KSPConvergedReason reason
   PetscLogDouble flops1, flops2
+  character(len=FIELD_NAME_LEN):: name
   logical print_norms, timing
   real time1, time2
+  
+  if (present(sfield)) then
+    name=sfield%name
+    ! call tic(sfield, "solve")
+  else if (present(vfield)) then
+    name=vfield%name
+    ! call tic(vfield, "solve")
+  else if (present(vfield)) then
+    name=tfield%name
+    ! call tic(tfield, "solve")
+  else
+    FLAbort("Need to provide either sfield or vfield to petsc_solve_core.")
+  end if
   
   timing=( debug_level()>=2 )
   

@@ -136,8 +136,8 @@
 
       ewrite(2,*) 'Entering Core PETSc Solve'
       ! Solve Ay = b using KSP and PC. Also check convergence. We call this the inner solve.
-      call petsc_solve_core(y, A, b, ksp, petsc_numbering, name, solver_option_path, lstartfromzero, &
-           literations, x0=x%val)
+      call petsc_solve_core(y, A, b, ksp, petsc_numbering, solver_option_path, lstartfromzero, &
+           literations, sfield=x, x0=x%val)
 
       ewrite(2,*) 'Copying PETSc solution vector into designated Fluidity array'
       ! Copy back the result into the fluidity solution array (x) using the PETSc numbering:
