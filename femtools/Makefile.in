@@ -96,7 +96,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
   CGAL_Tools_C.o CGAL_Tools.o \
   Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o \
-  Fields_Halos.o
+  Fields_Halos.o Profiler.o Profiler_Fortran.o
 
 
 # objects to be included in libfemtools:
