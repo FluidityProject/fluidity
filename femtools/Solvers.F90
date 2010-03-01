@@ -1204,7 +1204,7 @@ logical, optional, intent(in):: checkconvergence
   else if (present(vfield)) then
     name=vfield%name
     ! call tic(vfield, "solve")
-  else if (present(vfield)) then
+  else if (present(tfield)) then
     name=tfield%name
     ! call tic(tfield, "solve")
   else
