@@ -198,7 +198,7 @@ contains
             interxsou,interysou,interzsou,          &
             interxxsou,interxysou,interxzsou,       &
             interyxsou,interyysou,interyzsou,       &
-            interxzsou,interzysou,interzzsou,       &
+            interzxsou,interzysou,interzzsou,       &
             interxsoue,interysoue,interzsoue,       &
             interxxsoue,interxysoue,interxzsoue,    &
             interyxsoue,interyysoue,interyzsoue,    &
@@ -315,7 +315,7 @@ contains
          interintsou1,interintsou2,interintsou3,&
          interintsou4,interintsou5,interintsou6,&
          nonods,nnodp,x,y,z,                    &
-         current_time,intert0sou,intertwidso,         &
+         current_time,intert0sou,intertwidso,   &
          source1,source2,source3,source4,source5)
     
     deallocate(mlad)
@@ -331,7 +331,7 @@ contains
        intsou1,intsou2,intsou3,   &
        intsou4,intsou5,intsou6,   &
        nonods,nnodp,x,y,z,        &
-       current_time,t0sou,twidso,       &
+       current_time,t0sou,twidso, &
        source1,source2,source3,   &
        source4,source5)
     implicit none
@@ -409,7 +409,7 @@ contains
        vrot,drot)
     implicit none
     
-    real   :: m11,m12,m13,m21,m22,m23,m31,m32,m33
+    real, intent(in):: m11,m12,m13,m21,m22,m23,m31,m32,m33
     real   :: vrot(3,3),drot(3),a(3,3)
     
     integer,parameter::ndim=3
@@ -431,7 +431,7 @@ contains
     return
   end subroutine rect_eig
 
-  real function funsoup(x,y,z,t,          &
+  real function funsoup(x,y,z,t, &
        x0,y0,z0,t0,twind,vrot,drot)
     implicit none
 
