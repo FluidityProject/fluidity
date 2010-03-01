@@ -36,7 +36,7 @@ $Elements
 *format "%i"
 *operation(nsurfaces+nelem)
 *loop elems *OnlyinCond
-*format "%i%i%i%i%i%i"
+*format "%i %i %i %i %i %i"
 *LoopVar 2 3 *Cond(1,int) 0 0 *GlobalNodes
 *end elems
 *Set Cond region_ids *elems 
