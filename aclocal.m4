@@ -931,10 +931,11 @@ zoltan_INCLUDES_PATH="$zoltan/include"
 tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
 tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
 fi
-tmpLIBS="$tmpLIBS -L/user/lib -lzoltan -lparmetis"
+tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis"
 tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
-
+LIBS=$tmpLIBS
+CPPFLAGS=$tmpCPPFLAGS
 # Check that the compiler uses the library we specified...
 if test -e $zoltan_LIBS_PATH/libzoltan.a; then
 	echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
@@ -955,6 +956,6 @@ AC_CHECK_LIB(
 	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
 # Save variables...
 AC_LANG_RESTORE
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
+
+echo $LIBS
 ])dnl ACX_zoltan
