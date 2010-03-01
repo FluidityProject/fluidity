@@ -87,10 +87,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -178,23 +178,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
@@ -365,21 +348,7 @@
           </prescribed>
         </tensor_field>
         <output/>
-        <stat>
-          <include_cv_stats/>
-          <surface_integral type="gradient_normal" name="NusseltNoT1">
-            <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
-            </surface_ids>
-          </surface_integral>
-          <surface_integral type="gradient_normal" name="NusseltNoT0">
-            <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
-            </surface_ids>
-            <normalise/>
-          </surface_integral>
-          <surface_integral type="gradient_normal" name="GradientNormalWholeMesh"/>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -391,23 +360,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <scalar_field replaces="IDENT = 42" name="Salinity" rank="0">
       <prognostic>
@@ -487,22 +439,7 @@
           </prescribed>
         </tensor_field>
         <output/>
-        <stat>
-          <include_cv_stats/>
-          <surface_integral type="gradient_normal" name="NusseltNoT1">
-            <surface_ids>
-              <integer_value shape="1" rank="1">30</integer_value>
-            </surface_ids>
-            <normalise/>
-          </surface_integral>
-          <surface_integral type="gradient_normal" name="NusseltNoT0">
-            <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
-            </surface_ids>
-            <normalise/>
-          </surface_integral>
-          <surface_integral type="gradient_normal" name="GradientNormalWholeMesh"/>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
