@@ -82,7 +82,7 @@ Form_metric.o: Recovery_estimator.o
 Gradation_metric.o: Edge_lengths.o
 Bounding_box_metric.o: Edge_lengths.o
 Boundary_metric.o: Bounding_box_metric.o
-Goal_metric.o: Goals.o Gradation_metric.o
+Goal_metric.o: Form_Metric.o Goals.o Gradation_metric.o
 Geometric_constraints_metric.o: Edge_lengths.o Form_metric.o Gradation_metric.o
 Metric_advection.o: Form_metric.o 
 Mba_adapt.o: Limit_metric.o
