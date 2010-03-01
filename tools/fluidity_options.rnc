@@ -1997,29 +1997,6 @@ diagnostic_scalar_field_tidal_range =
       )       
    )
 
-# Default child of prescribed scalar field
-# This is a choice of ways of inputing the prescribed field
-prescribed_scalar_field =
-   (
-      prescribed_scalar_field_no_adapt,
-      adaptivity_options_scalar_field,
-      interpolation_algorithm_scalar?,
-      discrete_properties_algorithm_scalar?,
-      recalculation_options?
-   )
-
-# Default child of prescribed scalar field without adaptivity options
-# This is a choice of ways of inputing the prescribed field
-prescribed_scalar_field_no_adapt =
-   (
-      prescribed_values_scalar_field,
-      prescribed_output_options,
-      prescribed_scalar_stat_options,
-      prescribed_detector_options
-   )
-   
-
-
 # Default child of diagnostic vector field
 # Currently, this is empty, but in future this might include
 # options that are general to all diagnostic vector fields
@@ -2053,51 +2030,6 @@ diagnostic_vector_field_bed_shear_stress =
       adaptivity_options_vector_field
    )
 
-
-
-# Default child of prescribed vector field
-# This is a choice of ways of inputing the prescribed field
-prescribed_vector_field =
-   (
-      prescribed_vector_field_no_adapt,
-      adaptivity_options_vector_field,
-      interpolation_algorithm_vector?,
-      discrete_properties_algorithm_vector?,
-      recalculation_options?
-   )
-   
-# Default child of prescribed vector field without adaptivity options
-# This is a choice of ways of inputing the prescribed field
-prescribed_vector_field_no_adapt =
-   (
-      prescribed_values_vector_field,
-      prescribed_output_options,
-      prescribed_vector_stat_options,
-      prescribed_detector_options
-   )
-
-prescribed_values_vector_field =
-   (
-      (
-         ## Value for WholeMesh
-         ##
-         ## Only specify one value if not using mesh regions.
-         ## Otherwise select other value option, specify region_ids
-         ## and distinct names.  Then add extra values for other regions.
-         element value {
-            attribute name { "WholeMesh" },
-            input_choice_real_dim_vector_plus_file
-         }|
-         ## Multiple values are now allowed if using different value assignments
-         ## in different regions of the mesh (specified by region_ids).
-         ## In this case each value requires a distinct name for the options dictionary.
-         element value {
-            attribute name { string },
-            region_ids,
-            input_choice_real_dim_vector_plus_file
-         }
-      )+
-   )
 
 # Default child of diagnostic tensor field
 # Currently, this is empty, but in future this might include

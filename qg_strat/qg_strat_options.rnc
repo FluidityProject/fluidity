@@ -26,7 +26,7 @@ start =
             element dimension {
                element integer_value {
                   attribute rank {"0"},
-                  ("3")
+                  ("3"|"2")
                }
             },
             ## The position mesh
@@ -58,7 +58,29 @@ start =
             ## A value of 0.0 indicates that there would be a dump at every timestep.
             element dump_period {
                real
-            }
+            },
+            (
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "PotentialVorticityMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "StreamfunctionMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "CoordinateMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { xsd:string }
+               }
+            )
          },
          ## Options dealing with time discretisation
          element timestepping {
@@ -258,3 +280,35 @@ mesh_choice =
       }
    )
 
+beta_plane_options =
+   ## Beta-plane approximation
+   ## This means the Coriolis force looks like:
+   ##   f k x u
+   ## where k is the z unit vector
+   ##    and u the velocity vector
+   ##    and f=f_0+beta . (x,y,z)
+   element beta_plane {
+      ## Beta-plane approximation
+      ## This means the Coriolis force looks like:
+      ##   f k x u
+      ## where k is the z unit vector
+      ##    and u the velocity vector
+      ##    and f=f_0+beta . (x,y,z)
+      element f_0 {
+         real
+      },
+      ## Beta-plane approximation
+      ## This means the Coriolis force looks like:
+      ##   f k x u
+      ## where k is the z unit vector
+      ##    and u the velocity vector
+      ##    and f=f_0+beta . (x,y,z)
+      ## usually only the y-component of beta is non-zero
+      element beta {
+         element vector_field {
+            element prescribed {
+               prescribed_values_vector_field
+            }
+         }
+      }
+   }

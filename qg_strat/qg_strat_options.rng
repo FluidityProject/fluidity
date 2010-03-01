@@ -28,7 +28,10 @@
             <attribute name="rank">
               <value>0</value>
             </attribute>
-            <value>3</value>
+            <choice>
+              <value>3</value>
+              <value>2</value>
+            </choice>
           </element>
         </element>
         <element name="mesh">
@@ -71,6 +74,36 @@ Specifies the period between each dump of the solution to disk.
 A value of 0.0 indicates that there would be a dump at every timestep.</a:documentation>
           <ref name="real"/>
         </element>
+        <choice>
+          <element name="output_mesh">
+            <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+            <attribute name="name">
+              <value>PotentialVorticityMesh</value>
+            </attribute>
+          </element>
+          <element name="output_mesh">
+            <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+            <attribute name="name">
+              <value>StreamfunctionMesh</value>
+            </attribute>
+          </element>
+          <element name="output_mesh">
+            <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+            <attribute name="name">
+              <value>CoordinateMesh</value>
+            </attribute>
+          </element>
+          <element name="output_mesh">
+            <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+          </element>
+        </choice>
       </element>
       <element name="timestepping">
         <a:documentation>Options dealing with time discretisation</a:documentation>
@@ -320,5 +353,38 @@ For the top and bottom boundaries, we solve an advection-diffusion equation for 
         </attribute>
       </element>
     </choice>
+  </define>
+  <define name="beta_plane_options">
+    <element name="beta_plane">
+      <a:documentation>Beta-plane approximation
+This means the Coriolis force looks like:
+  f k x u
+where k is the z unit vector
+   and u the velocity vector
+   and f=f_0+beta . (x,y,z)</a:documentation>
+      <element name="f_0">
+        <a:documentation>Beta-plane approximation
+This means the Coriolis force looks like:
+  f k x u
+where k is the z unit vector
+   and u the velocity vector
+   and f=f_0+beta . (x,y,z)</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="beta">
+        <a:documentation>Beta-plane approximation
+This means the Coriolis force looks like:
+  f k x u
+where k is the z unit vector
+   and u the velocity vector
+   and f=f_0+beta . (x,y,z)
+usually only the y-component of beta is non-zero</a:documentation>
+        <element name="vector_field">
+          <element name="prescribed">
+            <ref name="prescribed_values_vector_field"/>
+          </element>
+        </element>
+      </element>
+    </element>
   </define>
 </grammar>
