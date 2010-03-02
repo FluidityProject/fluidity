@@ -42,6 +42,10 @@ start =
                attribute name { "StreamfunctionMesh" },
                mesh_info
             }?,
+            element mesh {
+               attribute name { xsd:string },
+               mesh_info
+            }*,
             ## Quadrature
             element quadrature {
                ## Quadrature degree
