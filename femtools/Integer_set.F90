@@ -1,6 +1,9 @@
+#include "fdebug.h"
+
 module integer_set_module
   ! Don't use this directly, use data_structures
   use iso_c_binding, only: c_ptr
+  use fldebug
   type integer_set
     type(c_ptr) :: address
   end type integer_set
@@ -36,6 +39,13 @@ module integer_set_module
       integer, intent(out) :: val
     end subroutine integer_set_fetch_c
 
+    subroutine integer_set_remove_c(i, idx, stat)
+      use iso_c_binding, only: c_ptr
+      type(c_ptr), intent(in) :: i
+      integer, intent(in) :: idx
+      integer, intent(out) :: stat
+    end subroutine integer_set_remove_c
+
     subroutine integer_set_has_value_c(i, val, bool)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
@@ -68,9 +78,13 @@ module integer_set_module
     module procedure integer_set_fetch
   end interface
 
+  interface remove
+    module procedure integer_set_remove
+  end interface
+
   private
   public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
-          & set_complement, set2vector, set_intersection, set_minus
+          & set_complement, set2vector, set_intersection, set_minus, remove
 
   contains 
 
@@ -161,6 +175,15 @@ module integer_set_module
 
     call integer_set_fetch_c(iset%address, idx, val)
   end function integer_set_fetch
+
+  subroutine integer_set_remove(iset, idx)
+    type(integer_set), intent(in) :: iset
+    integer, intent(in) :: idx
+    integer :: stat
+
+    call integer_set_remove_c(iset%address, idx, stat)
+    assert(stat == 1)
+  end subroutine integer_set_remove
 
   function integer_set_has_value(iset, val) result(bool)
     type(integer_set), intent(in) :: iset

@@ -49,6 +49,16 @@ void F77_FUNC_(integer_set_fetch_c,INTEGER_SET_FETCH_C)(Pvoid_t* i, int* idx, in
   *i = ptr;
 }
 
+void F77_FUNC_(integer_set_remove_c,INTEGER_SET_REMOVE_C)(Pvoid_t* i, int* idx, int* status)
+{
+  Word_t index = *idx;
+  int stat;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  J1U(stat, ptr, index); 
+  *status = stat;
+  *i = ptr;
+}
+
 void F77_FUNC_(integer_set_has_value_c,INTEGER_SET_HAS_VALUE_C)(Pvoid_t* i, int* val, int* present)
 {
   Word_t wpresent, value = *val;

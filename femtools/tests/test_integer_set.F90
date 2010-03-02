@@ -36,5 +36,10 @@ subroutine test_integer_set
   fail = (len /= 3)
   call report_test("[key_count]", fail, .false., "Should be 3")
 
+  call remove(iset, 4)
+  len = key_count(iset)
+  fail = (len /= 2) .or. has_value(iset, 4)
+  call report_test("[key_count]", fail, .false., "Should change")
+
   call deallocate(iset)
 end subroutine test_integer_set
