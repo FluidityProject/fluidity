@@ -54,7 +54,6 @@ extern "C" {
 #include "Profiler.h"
 
 int main(int argc, char **argv){
-  flprofiler.tic("/fluidity");
   
 #ifdef HAVE_MPI
   // This must be called before we process any arguments
@@ -64,6 +63,8 @@ int main(int argc, char **argv){
   chdir(getenv("PWD"));
   
 #endif
+
+  flprofiler.tic("/fluidity");
   
 #ifdef USING_GFORTRAN
   /* gfortran hack to ensure 4-byte record marker for unformatted files */
