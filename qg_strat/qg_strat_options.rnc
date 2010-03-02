@@ -274,6 +274,9 @@ mesh_choice =
    # Most common mesh choices
    (
       element mesh {
+         attribute name { xsd:string }
+      }|
+      element mesh {
          attribute name { "CoordinateMesh" }
       }|
       element mesh {
