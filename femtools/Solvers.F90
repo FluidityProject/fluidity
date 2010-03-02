@@ -39,6 +39,7 @@ module solvers
   use Global_Parameters
   use spud
   use halos
+  use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
   use petscvec 
@@ -1161,7 +1162,6 @@ subroutine petsc_solve_core(y, A, b, ksp, petsc_numbering, &
   iterations, &
   sfield, vfield, tfield, &
   x0, vector_x0, checkconvergence)
-  use profiler
 !!< inner core of matrix solve, called by all versions of petsc_solve
 !! IN: inital guess, OUT: solution
 Vec, intent(inout):: y
@@ -1196,28 +1196,18 @@ logical, optional, intent(in):: checkconvergence
   KSPConvergedReason reason
   PetscLogDouble flops1, flops2
   character(len=FIELD_NAME_LEN):: name
-  logical print_norms, timing, enable_profiling
+  logical print_norms, timing
   real time1, time2
-  character(len=4096) key
 
   ! Initialise profiler
-  enable_profiling = &
-       have_option(solver_option_path(1:len_trim(solver_option_path)-6)//'profile')
-
-  if(enable_profiling) then
-     key = " "
-     if(present(sfield)) then
-        key = trim(sfield%option_path)//'::solve'
-     else if(present(vfield)) then
-        key = trim(vfield%option_path)//'::solve'
-     else if(present(tfield)) then
-        key = trim(tfield%option_path)//'::solve'
-     else
-        key = "solve"
-     end if
-     call profiler_tic(key)
+  if(present(sfield)) then
+    call profiler_tic(sfield, "solve")
+  else if(present(vfield)) then
+    call profiler_tic(vfield, "solve")
+  else if(present(tfield)) then
+    call profiler_tic(tfield, "solve")
   end if
-
+  
   timing=( debug_level()>=2 )
 
   print_norms=have_option(trim(solver_option_path)//'/diagnostics/print_norms')
@@ -1277,9 +1267,14 @@ logical, optional, intent(in):: checkconvergence
      ewrite(2, *) 'inf-norm of solution:', norm
   end if
 
-  if(enable_profiling) then
-     call profiler_toc(key)
+  if(present(sfield)) then
+    call profiler_toc(sfield, "solve")
+  else if(present(vfield)) then
+    call profiler_toc(vfield, "solve")
+  else if(present(tfield)) then
+    call profiler_toc(tfield, "solve")
   end if
+  
 end subroutine petsc_solve_core
 
 subroutine petsc_solve_destroy(y, A, b, ksp, petsc_numbering, exact, &
