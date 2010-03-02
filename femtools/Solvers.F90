@@ -1201,10 +1201,13 @@ logical, optional, intent(in):: checkconvergence
 
   ! Initialise profiler
   if(present(sfield)) then
+    name=sfield%name
     call profiler_tic(sfield, "solve")
   else if(present(vfield)) then
+    name=vfield%name
     call profiler_tic(vfield, "solve")
   else if(present(tfield)) then
+    name=tfield%name
     call profiler_tic(tfield, "solve")
   end if
   
