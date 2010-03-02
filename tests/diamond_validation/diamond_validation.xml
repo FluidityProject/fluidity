@@ -107,7 +107,7 @@ class DiamondValidator:
   def OptionErrors(self):
     return self._optionErrors
 
-validator = DiamondValidator(rootDir = os.path.join(os.path.pardir, os.path.pardir), testDir = "tests", depth = 1)
+validator = DiamondValidator(rootDir = os.path.join(os.path.pardir, os.path.pardir), testDir = "tests", depth = 2)
 validator.ValidateOptionsFiles(os.path.join("tools", "test_options.rng"), xmlRootNode = "testproblem")
 validator.ValidateOptionsFiles(os.path.join("tools", "fluidity_options.rng"), extension = "flml", xmlRootNode = "fluidity_options")
 validator.ValidateOptionsFiles(os.path.join("tools", "shallow_water_options.rng"), extension = "swml")
