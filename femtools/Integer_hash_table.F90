@@ -38,6 +38,13 @@ module integer_hash_table_module
       integer, intent(out) :: val
     end subroutine integer_hash_table_fetch_c
 
+    subroutine integer_hash_table_remove_c(i, key, stat)
+      use iso_c_binding, only: c_ptr
+      type(c_ptr), intent(inout) :: i
+      integer, intent(in) :: key
+      integer, intent(out) :: stat
+    end subroutine integer_hash_table_remove_c
+
     subroutine integer_hash_table_has_key_c(i, val, bool)
       use iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: i
@@ -59,6 +66,10 @@ module integer_hash_table_module
 
   interface insert
     module procedure integer_hash_table_insert
+  end interface
+
+  interface remove
+    module procedure integer_hash_table_remove
   end interface
 
   interface deallocate
@@ -87,7 +98,7 @@ module integer_hash_table_module
 
   private
   public :: integer_hash_table, allocate, deallocate, has_key, key_count, fetch, insert, &
-            fetch_pair, print
+            fetch_pair, print, remove
 
   contains 
 
@@ -127,6 +138,15 @@ module integer_hash_table_module
 
     call integer_hash_table_fetch_c(ihash%address, key, val)
   end function integer_hash_table_fetch
+
+  subroutine integer_hash_table_remove(ihash, key)
+    type(integer_hash_table), intent(inout) :: ihash
+    integer, intent(in) :: key
+    integer :: stat
+
+    call integer_hash_table_remove_c(ihash%address, key, stat)
+    assert(stat == 1)
+  end subroutine integer_hash_table_remove
 
   function integer_hash_table_fetch_v(ihash, keys) result(vals)
     type(integer_hash_table), intent(in) :: ihash

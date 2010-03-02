@@ -28,5 +28,9 @@ subroutine test_integer_hash_table
   fail = .not. has_key(ihash, 5)
   call report_test("[integer_hash_table_has_value]", fail, .false., "Should be .true.!")
 
+  call remove(ihash, 5)
+  fail = has_key(ihash, 5)
+  call report_test("[integer_hash_table_has_value]", fail, .false., "Should be .false.!")
+
   call deallocate(ihash)
 end subroutine test_integer_hash_table

@@ -105,6 +105,16 @@ void F77_FUNC_(integer_hash_table_fetch_c,INTEGER_HASH_TABLE_FETCH_C)(Pvoid_t* i
   *i = ptr;
 }
 
+void F77_FUNC_(integer_hash_table_remove_c,INTEGER_HASH_TABLE_REMOVE_C)(Pvoid_t* i, int* k, int* status)
+{
+  Word_t key = *k;
+  int stat;
+  Pvoid_t ptr = (Pvoid_t) *i;
+  JLD(stat, ptr, key); 
+  *status = stat;
+  *i = ptr;
+}
+
 void F77_FUNC_(integer_hash_table_has_key_c,INTEGER_HASH_TABLE_HAS_KEY_C)(Pvoid_t* i, int* k, int* present)
 {
   Word_t key = *k, value;
