@@ -32,20 +32,24 @@ contains
   
   real(kind = real_8) function profiler_get(key)
     character(len=*), intent(in)::key
+    external cprofiler_get
     call cprofiler_get(key, len_trim(key), profiler_get)
   end function profiler_get
 
   subroutine profiler_tic(key)
     character(len=*), intent(in)::key
+    external cprofiler_tic
     call cprofiler_tic(key, len_trim(key))
   end subroutine profiler_tic
 
   subroutine profiler_toc(key)
     character(len=*), intent(in)::key
+    external cprofiler_toc
     call cprofiler_toc(key, len_trim(key))
   end subroutine profiler_toc
 
   subroutine profiler_zero()
+    external cprofiler_zero
     call cprofiler_zero()
   end subroutine profiler_zero
 

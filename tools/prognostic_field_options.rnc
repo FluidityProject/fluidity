@@ -199,7 +199,10 @@ prognostic_scalar_field =
       ##  - default if not set is 0
       element priority {
          integer
-      }?
+      }?,
+      element profile {
+         empty
+      }? 
    )
 
 prognostic_velocity_field =
@@ -767,7 +770,10 @@ prognostic_velocity_field =
       vector_steady_state_options,
       adaptivity_options_prognostic_vector_field,
       interpolation_algorithm_vector,
-      discrete_properties_algorithm_vector?
+      discrete_properties_algorithm_vector?,
+      element profile {
+         empty
+      }?
    )
 
 scalar_equation_choice =

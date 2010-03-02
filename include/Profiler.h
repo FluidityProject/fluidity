@@ -41,6 +41,7 @@ class Profiler{
   ~Profiler();
 
   double get(const std::string&) const;
+  void print() const;
   void tic(const std::string&);
   void toc(const std::string&);
   void zero();
@@ -50,3 +51,5 @@ private:
   double wall_time() const;
   std::map< std::string, std::pair<double, double> > timings;
 };
+
+extern Profiler flprofiler;

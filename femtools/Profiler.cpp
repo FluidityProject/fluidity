@@ -45,6 +45,12 @@ double Profiler::get(const std::string &key) const{
   return time; 
 }
 
+void Profiler::print() const{
+  for(map< string, pair<double, double> >::const_iterator it=timings.begin();it!=timings.end();++it){
+    cout<<it->first<<" :: "<<it->second.second<<endl;
+  }
+}
+
 void Profiler::tic(const std::string &key){
   timings[key].first = wall_time();
 }
@@ -76,22 +82,22 @@ Profiler flprofiler;
 
 // Fortran interface
 extern "C" {
-#define cprofiler_get_fc F77_FUNC(profiler_get, PROFILER_GET)
+#define cprofiler_get_fc F77_FUNC(cprofiler_get, CPROFILER_GET)
   void cprofiler_get_fc(const char *key, const int *key_len, double *time){
     *time = flprofiler.get(string(key, *key_len));
   }
 
-#define cprofiler_tic_fc F77_FUNC(profiler_tic, PROFILER_TIC)
+#define cprofiler_tic_fc F77_FUNC(cprofiler_tic, CPROFILER_TIC)
   void cprofiler_tic_fc(const char *key, const int *key_len){
     flprofiler.tic(string(key, *key_len));
   }
 
-#define cprofiler_toc_fc F77_FUNC(profiler_toc, PROFILER_TOC)
+#define cprofiler_toc_fc F77_FUNC(cprofiler_toc, CPROFILER_TOC)
   void cprofiler_toc_fc(const char *key, const int *key_len){
     flprofiler.toc(string(key, *key_len));
   }
 
-#define cprofiler_zero_fc F77_FUNC(profiler_zero, PROFILER_ZERO)
+#define cprofiler_zero_fc F77_FUNC(cprofiler_zero, CPROFILER_ZERO)
   void cprofiler_zero_fc(){
     flprofiler.zero();
   }

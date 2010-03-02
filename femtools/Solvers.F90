@@ -1161,6 +1161,7 @@ subroutine petsc_solve_core(y, A, b, ksp, petsc_numbering, &
   iterations, &
   sfield, vfield, tfield, &
   x0, vector_x0, checkconvergence)
+  use profiler
 !!< inner core of matrix solve, called by all versions of petsc_solve
 !! IN: inital guess, OUT: solution
 Vec, intent(inout):: y
@@ -1195,24 +1196,30 @@ logical, optional, intent(in):: checkconvergence
   KSPConvergedReason reason
   PetscLogDouble flops1, flops2
   character(len=FIELD_NAME_LEN):: name
-  logical print_norms, timing
+  logical print_norms, timing, enable_profiling
   real time1, time2
-  
-  if (present(sfield)) then
-    name=sfield%name
-    ! call tic(sfield, "solve")
-  else if (present(vfield)) then
-    name=vfield%name
-    ! call tic(vfield, "solve")
-  else if (present(tfield)) then
-    name=tfield%name
-    ! call tic(tfield, "solve")
-  else
-    FLAbort("Need to provide either sfield or vfield to petsc_solve_core.")
+  character(len=4096) key
+
+  ! Initialise profiler
+  enable_profiling = &
+       have_option(solver_option_path(1:len_trim(solver_option_path)-6)//'profile')
+
+  if(enable_profiling) then
+     key = " "
+     if(present(sfield)) then
+        key = trim(sfield%option_path)//'::solve'
+     else if(present(vfield)) then
+        key = trim(vfield%option_path)//'::solve'
+     else if(present(tfield)) then
+        key = trim(tfield%option_path)//'::solve'
+     else
+        key = "solve"
+     end if
+     call profiler_tic(key)
   end if
-  
+
   timing=( debug_level()>=2 )
-  
+
   print_norms=have_option(trim(solver_option_path)//'/diagnostics/print_norms')
   if (print_norms) then
      call VecNorm(b, NORM_2, norm, ierr)
@@ -1269,7 +1276,10 @@ logical, optional, intent(in):: checkconvergence
      call VecNorm(y, NORM_INFINITY, norm, ierr)
      ewrite(2, *) 'inf-norm of solution:', norm
   end if
-  
+
+  if(enable_profiling) then
+     call profiler_toc(key)
+  end if
 end subroutine petsc_solve_core
 
 subroutine petsc_solve_destroy(y, A, b, ksp, petsc_numbering, exact, &

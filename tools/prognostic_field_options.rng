@@ -269,6 +269,11 @@ This determines the order in which scalar_fields are solved for:
         <ref name="integer"/>
       </element>
     </optional>
+    <optional>
+      <element name="profile">
+        <empty/>
+      </element>
+    </optional>
   </define>
   <define name="prognostic_velocity_field">
     <ref name="velocity_equation_choice"/>
@@ -949,6 +954,11 @@ only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
     <ref name="interpolation_algorithm_vector"/>
     <optional>
       <ref name="discrete_properties_algorithm_vector"/>
+    </optional>
+    <optional>
+      <element name="profile">
+        <empty/>
+      </element>
     </optional>
   </define>
   <define name="scalar_equation_choice">

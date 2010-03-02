@@ -51,7 +51,11 @@ extern "C" {
 #endif
 }
 
+#include "Profiler.h"
+
 int main(int argc, char **argv){
+  flprofiler.tic("/fluidity");
+  
 #ifdef HAVE_MPI
   // This must be called before we process any arguments
   MPI::Init(argc,argv);
@@ -99,9 +103,11 @@ int main(int argc, char **argv){
   PetscFinalize();
 #endif
   
+  flprofiler.toc("/fluidity");
+  // flprofiler.print();
+
 #ifdef HAVE_MPI
   MPI::Finalize();
 #endif
-
   return(0);
 }

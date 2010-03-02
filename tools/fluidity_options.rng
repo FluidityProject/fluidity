@@ -1605,6 +1605,11 @@ Recommended value: 1.3.</a:documentation>
                     </attribute>
                   </element>
                   <ref name="prognostic_pressure_field"/>
+                  <optional>
+                    <element name="profile">
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
                 <element name="prescribed">
                   <!-- in the future this can be any mesh_choice: -->
@@ -1649,6 +1654,11 @@ Recommended value: 1.3.</a:documentation>
                 <element name="prognostic">
                   <ref name="pressure_mesh_choice"/>
                   <ref name="prognostic_density_field"/>
+                  <optional>
+                    <element name="profile">
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
                 <element name="aliased">
                   <attribute name="material_phase_name">
