@@ -41,108 +41,86 @@ import diamond.schema as schema
 
 debug.SetDebugLevel(0)
 
-rootDir = os.path.join(os.path.pardir, os.path.pardir)
-testDir = os.path.join(rootDir, "tests")
-
-filenames = glob.glob(os.path.join(testDir, "*", "*.flml"))
-filenames += glob.glob(os.path.join(testDir, "*", "*", "*.flml"))
-
-schemafile = os.path.join(rootDir, "tools", "fluidity_options.rng")
-sch = schema.Schema(schemafile)
-
-passes = 0
-optionErrors = {}
-for filename in filenames: 
-  optionsTree = sch.read(filename)
-  lost_eles, added_eles = sch.read_errors()
-  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
-    print filename + " : Pass"
-    passes += 1
-  else:
-    print filename + " : Fail"
-    optionErrors[filename] = (lost_eles, added_eles)
+class DiamondValidator:
+  def __init__(self, rootDir, testDir, depth):
+    self._rootDir = rootDir
+    self._testDir = os.path.join(rootDir, testDir)
+    self._depth = depth
+    self.Reset()
     
-filenames = glob.glob(os.path.join(testDir, "*", "*.xml"))
-filenames += glob.glob(os.path.join(testDir, "*", "*", "*.xml"))
-for filename in filenames:
-  xmlParse = xml.dom.minidom.parse(filename)
-  rootEles = xmlParse.getElementsByTagName("fluidity_options")
-  if len(rootEles) == 0:
-    continue
-
-  optionsTree = sch.read(filename)
-  lost_eles, added_eles = sch.read_errors()
-  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
-    print filename + " : Pass"
-    passes += 1
-  else:
-    print filename + " : Fail"
-    optionErrors[filename] = (lost_eles, added_eles)
+    return
     
-filenames = glob.glob(os.path.join(testDir, "*", "*.swml"))
-filenames += glob.glob(os.path.join(testDir, "*", "*", "*.swml"))
+  def Reset(self):
+    self._passes = 0
+    self._optionErrors = {}
+    
+    return
+    
+  def ValidateOptionsFiles(self, schemafile, extension = None, xmlRootNode = None):
+    debug.dprint("Validating options file against schema: " + schemafile, 0)
+  
+    schemafile = os.path.join(self._rootDir, schemafile)
+    sch = schema.Schema(schemafile)
 
-schemafile = os.path.join(rootDir, "tools", "shallow_water_options.rng")
-sch = schema.Schema(schemafile)
+    if not extension is None:
+      debug.dprint("Testing files with extension: " + extension, 0)
+      for filename in self._TestFiles(extension): 
+        optionsTree = sch.read(filename)
+        lost_eles, added_eles = sch.read_errors()
+        if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+          debug.dprint(filename + " : Pass", 0)
+          self._passes += 1
+        else:
+          debug.dprint(filename + " : Fail", 0)
+          self._optionErrors[filename] = (lost_eles, added_eles)
+          
+    if not xmlRootNode is None:
+      debug.dprint("Testing xml files with root node: " + xmlRootNode, 0)
+      for filename in self._TestFiles("xml"):
+        xmlParse = xml.dom.minidom.parse(filename)
+        rootEles = xmlParse.getElementsByTagName(xmlRootNode)
+        if len(rootEles) == 0:
+          continue
+        optionsTree = sch.read(filename)
+        lost_eles, added_eles = sch.read_errors()
+        if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
+          debug.dprint(filename + " : Pass", 0)
+          self._passes += 1
+        else:
+          debug.dprint(filename + " : Fail", 0)
+          self._optionErrors[filename] = (lost_eles, added_eles)
+    
+    return
+    
+  def _TestFiles(self, extension):
+    filenames = []
+    baseDir = self._testDir
+    for i in range(self._depth + 1):
+      filenames += glob.glob(os.path.join(baseDir, "*." + extension))
+      baseDir = os.path.join(baseDir, "*")
+    
+    return filenames
+    
+  def Passes(self):
+    return self._passes
+    
+  def OptionErrors(self):
+    return self._optionErrors
 
-for filename in filenames: 
-  optionsTree = sch.read(filename)
-  lost_eles, added_eles = sch.read_errors()
-  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
-    print filename + " : Pass"
-    passes += 1
-  else:
-    print filename + " : Fail"
-    optionErrors[filename] = (lost_eles, added_eles)
-
+validator = DiamondValidator(rootDir = os.path.join(os.path.pardir, os.path.pardir), testDir = "tests", depth = 1)
+validator.ValidateOptionsFiles(os.path.join("tools", "test_options.rng"), xmlRootNode = "testproblem")
+validator.ValidateOptionsFiles(os.path.join("tools", "fluidity_options.rng"), extension = "flml", xmlRootNode = "fluidity_options")
+validator.ValidateOptionsFiles(os.path.join("tools", "shallow_water_options.rng"), extension = "swml")
+#validator.ValidateOptionsFiles(os.path.join("qg_strat", "qg_strat_options.rng"), extension = "qgml")
+    
+passes = validator.Passes()
+optionErrors = validator.OptionErrors()
+    
 print "Summary of options files with failures:"
 for filename in optionErrors.keys():
   print filename
 print "Passes: " + str(passes)
 print "Failures: " + str(len(optionErrors))</variable>
-    <variable name="testXmlErrors" language="python">import glob
-import os
-import sys
-import xml.dom.minidom
-
-import gtk.gdk
-
-import diamond.debug as debug
-import diamond.schema as schema
-
-debug.SetDebugLevel(0)
-
-rootDir = os.path.join(os.path.pardir, os.path.pardir)
-testDir = os.path.join(rootDir, "tests")
-
-filenames = glob.glob(os.path.join(testDir, "*", "*.xml"))
-filenames += glob.glob(os.path.join(testDir, "*", "*", "*.xml"))
-
-schemafile = os.path.join(rootDir, "tools", "test_options.rng")
-sch = schema.Schema(schemafile)
-
-passes = 0
-testXmlErrors = {}
-for filename in filenames:
-  xmlParse = xml.dom.minidom.parse(filename)
-  rootEles = xmlParse.getElementsByTagName("testproblem")
-  if len(rootEles) == 0:
-    continue
-
-  optionsTree = sch.read(filename)
-  lost_eles, added_eles = sch.read_errors()
-  if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
-    print filename + " : Pass"
-    passes += 1
-  else:
-    print filename + " : Fail"
-    testXmlErrors[filename] = (lost_eles, added_eles)
-
-print "Summary of test XML files with failures:"
-for filename in testXmlErrors.keys():
-  print filename
-print "Passes: " + str(passes)
-print "Failures: " + str(len(testXmlErrors))</variable>
   </variables>
   <pass_tests>
     <test name="Options files validate" language="python">failures = []
@@ -150,12 +128,6 @@ for filename in optionErrors.keys():
   if not filename in warningOnlyOptionsFiles and not filename in ignoredOptionsFiles:
     failures.append(filename)
 print "Summary of options files with failures:"
-for filename in failures:
-  print filename
-print "Failures: " + str(len(failures))
-assert(len(failures) == 0)</test>
-    <test name="Test XML files validate" language="python">failures = testXmlErrors
-print "Summary of test XML files with failures:"
 for filename in failures:
   print filename
 print "Failures: " + str(len(failures))
