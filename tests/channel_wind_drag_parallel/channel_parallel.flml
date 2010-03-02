@@ -12,9 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="channel">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -83,11 +81,12 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">0.0</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
+          <mesh name="CoordinateMesh"/>
           <value name="whole_mesh">
             <constant>
               <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
@@ -217,7 +216,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <constitutive_law name="fluid"/>
         <initial_condition name="whole_mesh">
           <constant>
             <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
@@ -261,6 +259,7 @@
                 </constant>
               </isotropic>
             </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <output/>
