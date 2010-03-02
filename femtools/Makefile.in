@@ -435,6 +435,8 @@ State_Fields.o: Fields.o State.o FEFields.o Sparsity_Patterns_Meshes.o Dgtools.o
 
 Unify_meshes.o: Fields_Base.o Fields_Data_Types.o Fields_Allocates.o Fields_Manipulation.o
 
+Profiler_Fortran.o: Fields.o
+
 CGAL_Tools.o: Fields.o
 CGAL_Tools_C.o: ../include/CGAL_Tools_C.h
 
