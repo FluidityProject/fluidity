@@ -333,7 +333,7 @@ Wandzura_Quadrature.o: Global_Parameters.o
 
 Solvers.o: Petsc_Tools.o Signal_Vars.o Multigrid.o Fields.o \
   Sparse_Tools.o Global_Parameters.o Sparse_Tools_Petsc.o \
-  Sparse_Matrices_Fields.o Halos.o Parallel_Tools.o 
+  Sparse_Matrices_Fields.o Halos.o Parallel_Tools.o Profiler_Fortran.o
 
 Full_Projection.o: Solvers.o Petsc_Tools.o Multigrid.o Fields_Base.o Sparse_Tools.o \
   Global_Parameters.o Sparse_Matrices_Fields.o Sparse_Tools_Petsc.o
