@@ -142,7 +142,8 @@ module state_module
   end interface
   
   interface collapse_fields_in_state
-      module procedure collapse_fields_in_multiple_states
+      module procedure collapse_fields_in_single_state, &
+        & collapse_fields_in_multiple_states
   end interface
     
   interface halo_update
@@ -2666,6 +2667,22 @@ contains
     end do
   end subroutine collapse_multiple_states
   
+  subroutine collapse_fields_in_single_state(input_state, output_state)
+  !!< Sometimes it is useful to treat everything in state
+  !!< as a big bunch of scalar fields -- adapting and
+  !!< interpolating spring to mind. Collapse all the fields
+  !!< in input_state down to scalar fields in output_state.
+    type(state_type), intent(in) :: input_state
+    type(state_type), intent(out) :: output_state
+    
+    type(state_type), dimension(1) :: linput_state, loutput_state
+    
+    linput_state = (/input_state/)
+    call collapse_fields_in_state(linput_state, loutput_state)
+    output_state = loutput_state(1)
+    
+  end subroutine collapse_fields_in_single_state
+      
   subroutine collapse_fields_in_multiple_states(input_states, output_states)
   !!< Sometimes it is useful to treat everything in state
   !!< as a big bunch of scalar fields -- adapting and

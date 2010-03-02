@@ -72,6 +72,7 @@ FTLE=../bin/FTLE
 CHECKMESH=../bin/checkmesh
 DERIVE_MESH=../bin/derive_mesh
 PROJECT_VTU=../bin/project_vtu
+DIFFERENTIATE_VTU=../bin/differentiate_vtu
 DIFFERENTIATE=../bin/differentiate
 FLADAPT=../bin/fladapt
 IGW=../bin/IGW
@@ -93,7 +94,7 @@ RUNZOLTAN=../bin/zoltan_load_balance
 PERIODISE=../bin/periodise
 BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC) \
   $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE) $(FLINTEGRATE) \
-  $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH) $(DERIVE_MESH) $(PROJECT_VTU) $(TRIANGLE2VTU) \
+  $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH) $(DERIVE_MESH) $(PROJECT_VTU) $(DIFFERENTIATE_VTU) $(TRIANGLE2VTU) \
   $(PROJECT_TO_CONTINUOUS) $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
@@ -252,6 +253,9 @@ $(DERIVE_MESH): Derive_Mesh.o Derive_Mesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(PROJECT_VTU): Project_Vtu.o Project_Vtu_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	
+$(DIFFERENTIATE_VTU): Differentiate_Vtu.o Differentiate_Vtu_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(DIFFERENTIATE): differentiate.F90 lib/
