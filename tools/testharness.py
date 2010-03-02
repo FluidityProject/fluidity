@@ -210,7 +210,7 @@ class TestHarness:
                 lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
                 for line in lines:
                     self.log(line)
-                self.tests.remove(test)
+                self.tests.remove((dir, test))
                 self.teststatus += ['F']
                 test.pass_status = ['F']
                 self.completed_tests += [test]
@@ -336,7 +336,7 @@ if __name__ == "__main__":
       print "-" * 80
       which = os.popen("which %s" % testharness.decide_fluidity_command()).read()
       if len(which) > 0:
-        print "which %s: %s" % ("dfluidity", which),
+        print "which %s: %s" % ("fluidity", which),
       versio = os.popen("%s -V" % testharness.decide_fluidity_command()).read()
       if len(versio) > 0:
         print versio
