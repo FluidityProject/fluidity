@@ -711,7 +711,16 @@ type(scalar_field), optional, intent(in) :: exact
   type(halo_type), pointer ::  halo
   integer i, j
   KSP, pointer:: ksp_pointer
-
+  
+  ! Initialise profiler
+  if(present(sfield)) then
+     call profiler_tic(sfield, "petsc_setup")
+  else if(present(vfield)) then
+     call profiler_tic(vfield, "petsc_setup")
+  else if(present(tfield)) then
+     call profiler_tic(tfield, "petsc_setup")
+  end if
+  
   if (present(sfield)) then
     if (present(option_path)) then
       solver_option_path=complete_solver_option_path(option_path)
@@ -924,7 +933,15 @@ type(scalar_field), optional, intent(in) :: exact
     call cpu_time(time2)
     ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
   end if
-      
+
+  if(present(sfield)) then
+     call profiler_toc(sfield, "petsc_setup")
+  else if(present(vfield)) then
+     call profiler_toc(vfield, "petsc_setup")
+  else if(present(tfield)) then
+     call profiler_toc(tfield, "petsc_setup")
+  end if
+  
 end subroutine petsc_solve_setup
   
 subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
