@@ -2606,7 +2606,7 @@ contains
     !now the detector is moved towards the appropriate face of the element.
 
     call scenario_det_gone_through_wrong_face(state, this_det, xfield, dt, dt_temp, old_pos, &
-                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
+                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration,index_minloc_current)
  
     !In the next if, the most straight forward scenario is dealed with, i.e., the detector previously on the boundary of an element, made to move 
     !in the direction of the flow towards the next element across that boundary, belongs to the next element for a particular value of dt_var 
@@ -2982,7 +2982,7 @@ contains
   end subroutine iterating_for_det_in_bound_elem
 
   subroutine scenario_det_gone_through_wrong_face(state, this_det, xfield, dt, dt_temp, old_pos, &
-                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
+                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration,index_minloc_current)
 
     type(state_type), dimension(:), intent(in) :: state
 
@@ -2993,14 +2993,14 @@ contains
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
     type(vector_field), pointer :: vfield, old_vfield
     integer, intent(in) :: previous_element, cont_check, cont_check_a
-    integer, intent(inout) :: index_next_face, bound_elem_iteration
+    integer, intent(inout) :: index_next_face, bound_elem_iteration, index_minloc_current
     
     real,  dimension(1:size(this_det%local_coords)) :: local_coords_temp, aaa, bbb
 
     real :: dt_var_check, dt_temp_check, dt_a, dt_b, &
             keep_value_this_det_dt, keep_value_this_det_dt_a, minvalue, maxvalue
     integer :: j, k, cont, cont_a, cont_b, cont_c, cont_d, cont_p, cont_r, &
-               cont_apq, index_minloc_current, cont_ready_out, index_minvalue_loc, &
+               cont_apq, cont_ready_out, index_minvalue_loc, &
                cont_ready_out_a, index_temp, cont_apqrt, cont_ready, &
                index_temp_maxvalue, cont_loop, node, current_element_number, number_of_elem, &
                cont_elem_neg, cont_static_det, det_inside_an_ele
