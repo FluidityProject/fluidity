@@ -1490,17 +1490,55 @@ Solves 2 additional equations for diffusivity epsilon and turbulent kinetic ener
                     </choice>
                   </element>
                   <element name="scalar_field">
-                    <a:documentation>Turbulent diffusivity (epsilon)</a:documentation>
+                    <a:documentation>Turbulent dissipation (epsilon)</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
                     </attribute>
                     <attribute name="name">
-                      <value>TurbulentDiffusivity</value>
+                      <value>TurbulentDissipation</value>
                     </attribute>
                     <choice>
                       <element name="prognostic">
                         <ref name="velocity_mesh_choice"/>
                         <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="aliased">
+                        <ref name="generic_aliased_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Eddy viscosity (turbulent diffusion of velocity)</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyViscosity</value>
+                    </attribute>
+                    <choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                      <element name="aliased">
+                        <ref name="generic_aliased_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Eddy diffusivity (diffusion of tracer e.g. temperature)</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyDiffusivity</value>
+                    </attribute>
+                    <choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
@@ -1526,35 +1564,15 @@ Solves 2 additional equations for diffusivity epsilon and turbulent kinetic ener
                       </element>
                     </choice>
                   </element>
-                  <element name="tensor_field">
-                    <a:documentation>Eddy viscosity</a:documentation>
-                    <attribute name="rank">
-                      <value>2</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>EddyViscosity</value>
-                    </attribute>
-                    <choice>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                      <element name="aliased">
-                        <ref name="generic_aliased_field"/>
-                      </element>
-                    </choice>
-                  </element>
                   <optional>
                     <element name="calculate_boundaries">
                       <a:documentation>Enable this option to use recommended boundary conditions:
-k = 0, and eps = nu * (delta^2 k/delta n^2) on walls, where n = wall normal.</a:documentation>
-                      <element name="string_value">
-                        <choice>
-                          <value>neumann</value>
-                          <value>dirichlet</value>
-                        </choice>
-                      </element>
+k = 0, and eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.</a:documentation>
+                      <optional>
+                        <element name="string_value">
+                          <empty/>
+                        </element>
+                      </optional>
                     </element>
                   </optional>
                   <element name="C_mu">

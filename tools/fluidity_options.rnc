@@ -1130,10 +1130,10 @@ start =
                         }
                      )
                   },
-                  ## Turbulent diffusivity (epsilon)
+                  ## Turbulent dissipation (epsilon)
                   element scalar_field {
                      attribute rank { "0" },
-                     attribute name { "TurbulentDiffusivity" },
+                     attribute name { "TurbulentDissipation" },
                      (
                         element prognostic {
                            velocity_mesh_choice,
@@ -1142,7 +1142,37 @@ start =
                         element aliased {
                            generic_aliased_field
                         }
-                      )
+                     )
+                  },
+                  ## Eddy viscosity (turbulent diffusion of velocity)
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "EddyViscosity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_tensor_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  },
+                  ## Eddy diffusivity (diffusion of tracer e.g. temperature)
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "EddyDiffusivity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_tensor_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
                   },
                   ## Length scale (a diagnostic with k-epsilon)
                   element scalar_field {
@@ -1159,27 +1189,12 @@ start =
                         }
                      )
                   },
-                  ## Eddy viscosity
-                  element tensor_field {
-                     attribute rank { "2" },
-                     attribute name { "EddyViscosity" },
-                     (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_tensor_field
-                        }|
-                        element aliased {
-                           generic_aliased_field
-                        }
-                     )
-                  },
                   ## Enable this option to use recommended boundary conditions:
-                  ## k = 0, and eps = nu * (delta^2 k/delta n^2) on walls, where n = wall normal.
+                  ## k = 0, and eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.
                   element calculate_boundaries {
                      element string_value {
-                     "neumann"|"dirichlet"
-                     }
+                     empty
+                     }?
                   }?,
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value: 0.09.
