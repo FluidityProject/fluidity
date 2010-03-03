@@ -46,7 +46,7 @@ LINKER = $(CXX)
 
 LFLAGS   = @LIBS@ @FLIBS@ @LDFLAGS@
 
-OBJS = Picker.o Tri3toTri3.o Locator3D.o VerticalShellMapper.o
+OBJS = Tri3toTri3.o Locator3D.o VerticalShellMapper.o
 
 .SUFFIXES: .c .o .cpp .f90 .F90 .a .so
 
@@ -73,10 +73,6 @@ tests: $(OBJS) testTetra4toTetra4.o
 testVerticalShellMapper: src/VerticalShellMapper.cpp include/projections.h include/VerticalShellMapper.h
 	$(CXX) $(CXXFLAGS) -DTEST_VERTICALSHELLMAPPER -o testVerticalShellMapper \
           ./src/VerticalShellMapper.cpp ../lib/libspatialindex.a
-
-testPicker: src/Picker.cpp include/projections.h include/Picker.h
-	$(CXX) $(CXXFLAGS) -DTEST_PICKER -o testPicker \
-          ./src/Picker.cpp ../lib/libspatialindex.a
 
 documentation:
 	cd doc; make
