@@ -43,6 +43,7 @@ module diagnostic_variables
   use MeshDiagnostics
   use spud
   use parallel_tools
+  use Profiler
   use sparsity_patterns
   use solvers
   use write_state_module, only: vtk_write_state_new_options
@@ -1403,7 +1404,6 @@ contains
   
   subroutine write_diagnostics(state, time, dt)
     !!< Write the diagnostics to the previously opened diagnostics file.
-
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
 
@@ -1420,6 +1420,7 @@ contains
     type(vector_field), pointer :: xfield
 
     ewrite(1,*) 'In write_diagnostics'
+    call profiler_tic("I/O")
 
     format="(" // real_format(padding = 1) // ")"
     format2="(2" // real_format(padding = 1) // ")"
@@ -1583,6 +1584,8 @@ contains
     
     call write_detectors(state, time, dt)
   
+    call profiler_toc("I/O")
+
   contains
   
     subroutine write_body_forces(state, vfield)

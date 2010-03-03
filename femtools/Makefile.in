@@ -190,7 +190,7 @@ Diagnostic_variables.o: FETools.o Field_derivatives.o State.o  \
    Write_State.o Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
    Detector_Data_Types.o Embed_Python_Fortran.o MeshDiagnostics.o Pickers.o \
    State_Fields.o Mixing_Statistics.o C_Interfaces_Fortran.o \
-   Memory_Diagnostics.o Parallel_Tools.o
+   Memory_Diagnostics.o Parallel_Tools.o Profiler_Fortran.o
 Memory_Diagnostics.o: Global_Parameters.o Parallel_Tools.o
 
 Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
@@ -404,7 +404,7 @@ Surface_Labels.o: Merge_tensors.o Vector_Tools.o Fields.o Elements.o \
    VTK_interfaces.o Data_structures.o Halos.o Parallel_Tools.o
 
 Write_State.o: State.o Fields.o Timers.o VTK_interfaces.o \
-  Global_Parameters.o Field_Options.o Halos.o
+  Global_Parameters.o Field_Options.o Halos.o Profiler_Fortran.o
 
 Field_Options.o: Metric_tools.o Fields_Data_Types.o Quadrature.o Elements.o \
   State.o Fields_Base.o Fields_Allocates.o Fields_Calculations.o Data_structures.o

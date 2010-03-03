@@ -36,17 +36,17 @@ module Profiler
   
   interface profiler_tic
     module procedure profiler_tic_scalar, profiler_tic_vector, &
-      profiler_tic_tensor
+      profiler_tic_tensor, profiler_tic_key
   end interface profiler_tic
   
   interface profiler_toc
     module procedure profiler_toc_scalar, profiler_toc_vector, &
-      profiler_toc_tensor
+      profiler_toc_tensor, profiler_toc_key
   end interface profiler_toc
     
   interface profiler_get
     module procedure profiler_get_scalar, profiler_get_vector, &
-      profiler_get_tensor
+      profiler_get_tensor, profiler_get_key
   end interface profiler_get
 
 contains

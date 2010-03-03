@@ -102,12 +102,14 @@ contains
 
 
   subroutine populate_state(states)
+    use Profiler
     type(state_type), pointer, dimension(:) :: states
 
     integer :: nstates ! number of states
     integer :: i
 
     ewrite(1,*) "In populate_state"
+    call profiler_tic("I/O")
     call tictoc_clear(TICTOC_ID_IO_READ)
 
     ! Find out how many states there are
@@ -141,8 +143,8 @@ contains
     call create_reserve_state(states)
 
     call tictoc_report(2, TICTOC_ID_IO_READ)
+    call profiler_toc("I/O")
     ewrite(1, *) "Exiting populate_state"
-
   end subroutine populate_state
 
   subroutine insert_external_mesh(states, save_vtk_cache)

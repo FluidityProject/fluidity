@@ -50,6 +50,7 @@
     use solvers
     use full_projection
     use petsc_solve_state_module
+    use Profiler
     use geostrophic_pressure
     use vertical_extrapolation_module
     use oceansurfaceforcing
@@ -429,13 +430,13 @@
       end if
 
       ! assemble the momentum equation
+      call profiler_tic(u, "assembly")
       if(dg) then
-        
-        call construct_momentum_dg(u, p, density, x, &
-             big_m, mom_rhs, state(istate), &
-             inverse_masslump=inverse_masslump, &
-             inverse_mass=inverse_mass, &
-             cg_pressure=cg_pressure)
+         call construct_momentum_dg(u, p, density, x, &
+              big_m, mom_rhs, state(istate), &
+              inverse_masslump=inverse_masslump, &
+              inverse_mass=inverse_mass, &
+              cg_pressure=cg_pressure)
         
         if(has_scalar_field(state(istate), gp_name)) then
           call subtract_geostrophic_pressure_gradient(mom_rhs, state(istate))
@@ -448,11 +449,13 @@
              assemble_ct_matrix=get_ct_m, &
              cg_pressure=cg_pressure)
       end if
+      call profiler_toc(u, "assembly")
       if(has_scalar_field(state(istate), hp_name)) then
         call calculate_hydrostatic_pressure(state(istate))
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
       end if
       
+      call profiler_tic(u, "assembly")
       if (has_boundary_condition(u, "wind_forcing")) then
         call wind_forcing(state(istate), mom_rhs)
       end if
@@ -466,18 +469,23 @@
             has_boundary_condition(u, "log_law_of_wall")) then
          call wall_functions(big_m, mom_rhs, state(istate))
       end if
+      call profiler_toc(u, "assembly")
 
+      call profiler_tic(p, "assembly")
       if(cv_pressure) then
         call assemble_divergence_matrix_cv(ct_m, state(istate), ct_rhs=ct_rhs, &
                                            test_mesh=p%mesh, field=u, get_ct=get_ct_m)
       end if
+
       ! At the moment cg does its own ct assembly. We might change this in
       ! the future.
       if(cg_pressure.and.dg) then
         call  assemble_divergence_matrix_cg(CT_m, state(istate), ct_rhs=ct_rhs, & 
              test_mesh=p%mesh, field=u, get_ct=get_ct_m)
       end if
+      call profiler_toc(p, "assembly")
 
+      call profiler_tic(u, "assembly")
       if (have_rotated_bcs(u)) then
         ! rotates big_m, rhs and the velocity field at strong, surface_aligned dirichlet bcs
         call rotate_momentum_equation(big_m, mom_rhs, u, state(istate))
@@ -485,12 +493,14 @@
       end if    
       
       call apply_dirichlet_conditions(big_m, mom_rhs, u, dt)
+      call profiler_toc(u, "assembly")
 
       do i = 1, ct_m%blocks(2)
         ewrite_minmax(ct_m%val(1,i)%ptr(:))
       end do
 
       ! do we want to solve for pressure?
+      call profiler_tic(p, "assembly")
       if(have_option(trim(p%option_path)//"/prognostic")) then
         if(use_compressible_projection) then
           allocate(ctp_m)
@@ -625,8 +635,10 @@
         ewrite_minmax(kmk_rhs%val)
 
       end if ! prognostic pressure
+      call profiler_toc(p, "assembly")
 
       ! allocate the momentum solution vector
+      call profiler_tic(u, "assembly")
       call allocate(delta_u, u%dim, u%mesh, "DeltaU")
       delta_u%option_path = trim(u%option_path)
 
@@ -652,6 +664,7 @@
 
       ! impose zero guess on change in u
       call zero(delta_u)
+      call profiler_toc(u, "assembly")
 
       ! solve for the change in velocity
       call petsc_solve(delta_u, big_m, mom_rhs)
@@ -669,6 +682,7 @@
 
       ! do we want to solve for pressure?
       if(have_option(trim(p%option_path)//"/prognostic")) then
+         call profiler_tic(p, "assembly")
          ! assemble the rhs
          ! if we are adding the P1-P1 stabilisation,
          ! this will have to have KMK * P added to it;
@@ -733,7 +747,8 @@
         if(have_option(trim(p%option_path)//"/prognostic/repair_stiff_nodes")) then
           call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
         end if
-            
+        call profiler_toc(p, "assembly")
+   
         ! solve for the change in pressure
         if(full_schur) then
            if(apply_kmk) then

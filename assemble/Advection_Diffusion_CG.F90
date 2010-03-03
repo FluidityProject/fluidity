@@ -40,6 +40,7 @@ module advection_diffusion_cg
   use field_options
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use Profiler
   use spud
   use solvers
   use state_module
@@ -127,16 +128,22 @@ contains
     ewrite(2, *) "Solving advection-diffusion equation for field " // &
       & trim(field_name) // " in state " // trim(state%name)
 
+    call profiler_tic(t, "assembly")
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state)
 
     call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name)
+    call profiler_toc(t, "assembly")
 
+    call profiler_tic(t, "solve_total")
     call solve_advection_diffusion_cg(t, delta_t, matrix, rhs)
+    call profiler_toc(t, "solve_total")
 
+    call profiler_tic(t, "assembly")
     call apply_advection_diffusion_cg_change(t, delta_t, dt)
     
     call finalise_advection_diffusion_cg(delta_t, matrix, rhs)
-    
+    call profiler_toc(t, "assembly")
+
     ewrite(1, *) "Exiting solve_field_equation_cg"
     
   end subroutine solve_field_equation_cg
