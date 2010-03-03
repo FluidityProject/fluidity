@@ -1470,7 +1470,7 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
               <optional>
                 <element name="k-epsilon">
                   <a:documentation>[UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
-Solves 2 additional equations for diffusivity epsilon and turbulent kinetic energy k, in order to close momentum equations.</a:documentation>
+Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentKineticEnergy (k), in order to close momentum equations.</a:documentation>
                   <element name="scalar_field">
                     <a:documentation>Turbulent kinetic energy (k)</a:documentation>
                     <attribute name="rank">
@@ -1581,12 +1581,12 @@ Recommended value: 0.09.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="C_eps_1">
-                    <a:documentation>Diffusivity production coefficient.
+                    <a:documentation>TurbulentDissipation production coefficient.
 Recommended value: 1.44.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="C_eps_2">
-                    <a:documentation>Diffusivity destruction coefficient.
+                    <a:documentation>TurbulentDissipation destruction coefficient.
 Recommended value: 1.92.</a:documentation>
                     <ref name="real"/>
                   </element>

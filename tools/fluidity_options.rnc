@@ -1114,7 +1114,7 @@ start =
                   }
                }?,
                ## [UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
-               ## Solves 2 additional equations for diffusivity epsilon and turbulent kinetic energy k, in order to close momentum equations.
+               ## Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentKineticEnergy (k), in order to close momentum equations.
                element k-epsilon {
                   ## Turbulent kinetic energy (k)
                   element scalar_field {
@@ -1199,10 +1199,10 @@ start =
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value: 0.09.
                   element C_mu {real},
-                  ## Diffusivity production coefficient.
+                  ## TurbulentDissipation production coefficient.
                   ## Recommended value: 1.44.
                   element C_eps_1 {real},
-                  ## Diffusivity destruction coefficient.
+                  ## TurbulentDissipation destruction coefficient.
                   ## Recommended value: 1.92.
                   element C_eps_2 {real},
                   ## Turbulent Schmidt number (eddy viscosity coefficient from k equation).
