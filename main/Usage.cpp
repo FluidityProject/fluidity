@@ -146,13 +146,12 @@ void print_version(ostream& stream){
 
 void print_environment(){
 
-  const char *relevant_variables[]={"FLUIDITY_INTEGER_SIZE", "FLUIDITY_REAL_SIZE",
-    "PETSC_OPTIONS"};
+  const char *relevant_variables[]={"PETSC_OPTIONS"};
     
   int no_relevant_variables=1;
   
-  cout<<"Environment(al) variables relevant for fluidity:\n";
-  for(int i=0; i<3; i++) {
+  cout<<"Environment variables relevant for fluidity:\n";
+  for(int i=0; i<1; i++) {
     char *env=getenv(relevant_variables[i]);
     if(env!=NULL) {
       cout<<relevant_variables[i]<<" = "<<env<<endl;
@@ -168,17 +167,11 @@ void usage(char *cmd){
   print_version();
   cerr<<"\n\nUsage: "<<cmd<<" [options ...] [simulation-file]\n"
       <<"\nOptions (NOTE: Long options are not available on AIX.):\n"
-      <<" -a <mode>, --adjoint <mode>\n\tRun the full adjoint model. Possible modes are {forward, initial, bc, sensitivity, parameter,getobservation}\n"
       <<" -h, --help\n\tHelp! Prints this message.\n"
-      <<" -k, --vtk\n\tDumps out VTK files (.vtu) rather than the usual .d files.\n" 
       <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
       <<" Sets default value for -v to 2.\n"
-      <<" -r <mode>, --reduced <mode>\n\tRun the POD reduced model. Possible modes are {forward, initial, bc, sensitivity, parameter,getobservation}\n"
       <<" -v <level>, --verbose\n\tVerbose output to stdout, default level 0\n"
-      <<" -V, --version\n\tVersion\n"
-      <<" -d, --pseudo2d\n\tSpecify squashed dimension for pseudo2d domains\n"
-      <<" -p, --petsc\n\tPetsc Options (e.g. -p -info,-geopressure_ksp_type,cg)\n"
-      <<" -x, --xml\n\tRun from a new xml options file\n";
+      <<" -V, --version\n\tVersion\n";
   return;
 }
 
@@ -186,16 +179,10 @@ void ParseArguments(int argc, char** argv){
 
 #ifndef _AIX
   struct option longOptions[] = {
-    {"adjoint", 1, 0, 'a'},
     {"help", 0, 0, 'h'},
-    {"vtk", 0, 0, 'k'},
     {"log", 0, 0, 'l'},
     {"verbose", optional_argument, 0, 'v'},
     {"version", 0, 0, 'V'},
-    {"pseudo2d", 0, 0, 'd'},
-    {"petscopts", 0, 0, 'p'},
-    {"reduced", 1, 0, 'r'},
-    {"xml", 1, 0, 'x'},
     {0, 0, 0, 0}
   };
 #endif
@@ -208,45 +195,22 @@ void ParseArguments(int argc, char** argv){
 
   while (true){
 #ifndef _AIX
-    c = getopt_long(argc, argv, "a:hklr:v::Sd:p:Vx:", longOptions, &optionIndex);
+    c = getopt_long(argc, argv, "hlv::V", longOptions, &optionIndex);
 #else
-    c = getopt(argc, argv, "a:hklr:v::Sd:p:Vx:");
+    c = getopt(argc, argv, "hlv::V");
 #endif
     if (c == -1) break;
 
     OptionError stat;
     switch (c){
-    case 'a':
-      // Add this to the options tree
-      stat = set_option(string("/model/fluids/adjoint/") + string(optarg), "enable");
-      assert(stat == SPUD_NO_ERROR or stat == SPUD_NEW_KEY_WARNING);
-      break;
-
     case 'h':
       fl_command_line_options["help"] = "";
       break;
 
-    case 'k':
-      stat = set_option("io/dump_format", "vtk");
-      assert(stat == SPUD_NO_ERROR or stat == SPUD_NEW_KEY_WARNING);
-      break;
-      
     case 'l':
       fl_command_line_options["log"] = "";
       break;        
       
-    case 'r':
-#if defined(HAVE_LIBARPACK)
-      // Add this to the options tree
-      stat = set_option(string("/model/fluids/reduced/") + string(optarg), "enable");
-      assert(stat == SPUD_NO_ERROR or stat == SPUD_NEW_KEY_WARNING);   
-#else
-      cerr<<"ERROR: missing ARPACK support\n";
-      usage(argv[0]);
-      exit(-1);
-#endif
-      break;
-
     case 'v':
       fl_command_line_options["verbose"] = (optarg == NULL) ? "1" : optarg;
       break;  
@@ -255,18 +219,6 @@ void ParseArguments(int argc, char** argv){
       fl_command_line_options["version"] = "";
       break;
     
-    case 'd':
-      fl_command_line_options["pseudo2d"] = optarg;
-      break;
-    
-    case 'p':
-      fl_command_line_options["petscopts"] = optarg;
-      break;
-
-    case 'x':
-      fl_command_line_options["xml"] = optarg;
-      break;
-
     case '?':
       // missing argument only returns ':' if the option string starts with ':'
       // but this seems to stop the printing of error messages by getopt?
@@ -364,7 +316,6 @@ void ParseArguments(int argc, char** argv){
   load_options(fl_command_line_options["xml"]);
   if(!have_option("/simulation_name")){
     cerr<<"ERROR: failed to find simulation name after loading options file\n";
-    cerr<<"Note that running from gem files is no longer supported.\n";
     exit(-1);
   }
   OptionError stat = get_option("/simulation_name", fl_command_line_options["simulation_name"]);
@@ -442,23 +393,10 @@ void PetscInit(int argc, char** argv){
 #ifdef HAVE_PETSC
   int petscargc;
   char** petscargv;
-  if (fl_command_line_options.count("petscopts")){
-    vector<string> petscopts;
-    Tokenize(fl_command_line_options["petscopts"], petscopts, ",");
-    petscargc = petscopts.size() + 1;
-    petscargv = new char*[petscargc];
-    petscargv[0] = new char[strlen(argv[0]) + 1];
-    for(int i = 1; i < petscargc; i++)
-      petscargv[i] = new char[petscopts[i-1].size()+1];
-    strncpy(petscargv[0], argv[0], strlen(argv[0]) + 1);
-    for(int i = 1; i < petscargc; i++)
-      strncpy(petscargv[i], petscopts[i-1].c_str(), petscopts[i-1].size()+1);
-  }else{
-    petscargc = 1;
-    petscargv = new char*[1];
-    petscargv[0] = new char[strlen(argv[0]) + 1];
-    strncpy(petscargv[0], argv[0], strlen(argv[0]) + 1);
-  }
+  petscargc = 1;
+  petscargv = new char*[1];
+  petscargv[0] = new char[strlen(argv[0]) + 1];
+  strncpy(petscargv[0], argv[0], strlen(argv[0]) + 1);
 
   static char help[] = "Use --help to see the help.\n\n";
   PetscErrorCode ierr = PetscInitialize(&petscargc, &petscargv, NULL, help);
