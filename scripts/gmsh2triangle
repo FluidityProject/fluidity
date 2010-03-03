@@ -38,7 +38,8 @@ assert(mshfile.readline().strip()in["2 0 8", "2.1 0 8"])
 assert(mshfile.readline().strip()=="$EndMeshFormat")
 
 # Nodes section
-assert(mshfile.readline().strip()=="$Nodes")
+while mshfile.readline().strip() !="$Nodes":
+    pass
 nodecount=int(mshfile.readline())
 
 dim=options.dim
