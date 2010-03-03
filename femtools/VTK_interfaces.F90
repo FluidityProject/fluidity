@@ -1336,16 +1336,8 @@ contains
 
     nloc = sz_enlist/elements
     ! set quadrature to max available
-    if(dim==2) then
-      select case (nloc)
-      case (3, 6) ! triangles
-        quaddegree = 8
-      case (4, 9) ! quads
-        quaddegree = 9
-      case default
-        FLAbort("Unknown element type!")
-      end select
-    else if (dim==3) then
+    select case(dim)
+    case(3)
       select case (nloc)
       case (4, 10) ! tets
         quaddegree = 8
@@ -1354,9 +1346,22 @@ contains
       case default
         FLAbort("Unknown element type!")
       end select
-    else
+    case(2)
+      select case (nloc)
+      case (3, 6) ! triangles
+        quaddegree = 8
+      case (4, 9) ! quads
+        quaddegree = 9
+      case default
+        FLAbort("Unknown element type!")
+      end select
+    case(0)
+      ewrite(-1, *) "For vtu filename: " // trim(filename)
+      FLExit("vtu not found")
+    case default
+      ewrite(-1, *) "Dimension: ", dim
       FLAbort("Only 2 or 3 dimensions implemented currently.")
-    end if
+    end select
     if (present(quad_degree)) then
        quaddegree=quad_degree
     end if
