@@ -3,4 +3,4 @@ input:
 	../../scripts/gmsh2triangle --2d src/MMS_B.msh
 
 clean:
-	rm *.vtu *.log-? *.err-?
+	rm -f *.vtu *.log-? *.err-?
