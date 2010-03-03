@@ -4,7 +4,7 @@
 <testproblem>
   <name>Parallel periodic channel with wind-forcing and quadratic bottom drag.</name>
   <owner userid="amcvicar"/>
-  <tags>flml</tags>
+  <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -np 4 fluidity -v3 -l -x channel_parallel_periodised_flredecomp.flml </command_line>
   </problem_definition>

@@ -378,16 +378,22 @@ test: fltools bin/@FLUIDITY@ serialtest
 
 serialtest:
 ifeq (@MBA2D@,yes)
-	@cd tests; ../tools/testharness.py -l short -p serial
+	@cd tests; ../tools/testharness.py -l short -p serial -e zoltan
 else
-	@cd tests; ../tools/testharness.py -l short -p serial -e 2dadapt
+	@cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan"
+endif
+ifeq (@ZOLTAN@,yes)
+	@cd tests; ../tools/testharness.py -l short -p serial -t zoltan
 endif
 
 adjtest:
 	@cd tests; ../tools/testharness.py -l any -t adjoint -p serial
 
 mediumtest:
-	@cd tests; ../tools/testharness.py -l medium
+	@cd tests; ../tools/testharness.py -l medium -e zoltan
+ifeq (@ZOLTAN@,yes)
+	@cd tests; ../tools/testharness.py -l medium -t zoltan
+endif
 
 setuputs: 
 	@echo "SETUP tests"

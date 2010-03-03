@@ -957,5 +957,8 @@ AC_CHECK_LIB(
 # Save variables...
 AC_LANG_RESTORE
 
+ZOLTAN="yes"
+AC_SUBST(ZOLTAN)
+
 echo $LIBS
 ])dnl ACX_zoltan
