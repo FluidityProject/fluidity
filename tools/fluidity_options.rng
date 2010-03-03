@@ -790,17 +790,17 @@ from solidity_imputs.inp -&gt; MATEOS</a:documentation>
                     </element>
                   </choice>
                   <!--
-                    (
-                       element leray {
-                          empty
-                       }|
-                       element LANS_momentum_form {
-                          empty
-                       }|
-                       element LANS_stress_form {
-                          empty
-                       }
-                    )
+                                  (
+                                     element leray {
+                                        empty
+                                     }|
+                                     element LANS_momentum_form {
+                                        empty
+                                     }|
+                                     element LANS_stress_form {
+                                        empty
+                                     }
+                                  )
                   -->
                 </element>
               </optional>
@@ -1507,8 +1507,27 @@ Solves 2 additional equations for diffusivity epsilon and turbulent kinetic ener
                       </element>
                     </choice>
                   </element>
+                  <element name="scalar_field">
+                    <a:documentation>Length scale (a diagnostic with k-epsilon)</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>LengthScale</value>
+                    </attribute>
+                    <choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                      <element name="aliased">
+                        <ref name="generic_aliased_field"/>
+                      </element>
+                    </choice>
+                  </element>
                   <element name="tensor_field">
-                    <a:documentation>Eddy viscosity (turbulent diffusion of velocity)</a:documentation>
+                    <a:documentation>Eddy viscosity</a:documentation>
                     <attribute name="rank">
                       <value>2</value>
                     </attribute>
@@ -1526,51 +1545,16 @@ Solves 2 additional equations for diffusivity epsilon and turbulent kinetic ener
                       </element>
                     </choice>
                   </element>
-                  <element name="tensor_field">
-                    <a:documentation>Eddy diffusivity (diffusion of tracer e.g. temperature)</a:documentation>
-                    <attribute name="rank">
-                      <value>2</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>EddyDiffusivity</value>
-                    </attribute>
-                    <choice>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                      <element name="aliased">
-                        <ref name="generic_aliased_field"/>
-                      </element>
-                    </choice>
-                  </element>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Length scale (a diagnostic field)</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>LengthScale</value>
-                      </attribute>
-                      <choice>
-                        <element name="diagnostic">
-                          <ref name="internal_algorithm"/>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                        <element name="aliased">
-                          <ref name="generic_aliased_field"/>
-                        </element>
-                      </choice>
-                    </element>
-                  </optional>
                   <optional>
                     <element name="calculate_boundaries">
                       <a:documentation>Enable this option to use recommended boundary conditions:
 k = 0, and eps = nu * (delta^2 k/delta n^2) on walls, where n = wall normal.</a:documentation>
-                      <empty/>
+                      <element name="string_value">
+                        <choice>
+                          <value>neumann</value>
+                          <value>dirichlet</value>
+                        </choice>
+                      </element>
                     </element>
                   </optional>
                   <element name="C_mu">
@@ -3931,33 +3915,33 @@ normals and tangenials 1/2</a:documentation>
   <!-- and again for robin b.c.s -->
   <define name="robin_velocity_components_choice">
     <!--
-      element align_bc_with_surface {
-         element normal_component {
-            element order_zero_coefficient {
-               input_choice_real
-            },
-            element order_one_coefficient {
-               input_choice_real
-            }
-         }?,
-         element tangent_component_1 {
-            element order_zero_coefficient {
-               input_choice_real
-            },
-            element order_one_coefficient {
-               input_choice_real
-            }
-         }?,
-         element tangent_component_2 {
-            element order_zero_coefficient {
-               input_choice_real
-            },
-            element order_one_coefficient {
-               input_choice_real
-            }
-         }?,
-         rotation_matrix_components
-      }|
+              element align_bc_with_surface {
+                 element normal_component {
+                    element order_zero_coefficient {
+                       input_choice_real
+                    },
+                    element order_one_coefficient {
+                       input_choice_real
+                    }
+                 }?,
+                 element tangent_component_1 {
+                    element order_zero_coefficient {
+                       input_choice_real
+                    },
+                    element order_one_coefficient {
+                       input_choice_real
+                    }
+                 }?,
+                 element tangent_component_2 {
+                    element order_zero_coefficient {
+                       input_choice_real
+                    },
+                    element order_one_coefficient {
+                       input_choice_real
+                    }
+                 }?,
+                 rotation_matrix_components
+              }|
     -->
     <element name="align_bc_with_cartesian">
       <optional>
@@ -6975,24 +6959,24 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
     </choice>
+    <!--
+      Insert new diagnostic scalar fields here using the template:
+             element scalar_field {
+                 attribute rank { "0" },
+                 attribute name { "NewFieldName" },
+                 (
+                    element diagnostic {
+                       internal_algorithm,
+                       velocity_mesh_choice,
+                       diagnostic_scalar_field
+                    }|
+                    element aliased {
+                       generic_aliased_field
+                    }
+                 )
+             }
+    -->
   </define>
-  <!--
-    Insert new diagnostic scalar fields here using the template:
-           element scalar_field {
-               attribute rank { "0" },
-               attribute name { "NewFieldName" },
-               (
-                  element diagnostic {
-                     internal_algorithm,
-                     velocity_mesh_choice,
-                     diagnostic_scalar_field
-                  }|
-                  element aliased {
-                     generic_aliased_field
-                  }
-               )
-           }
-  -->
   <!-- This is the choice of additional vector field to be solved for -->
   <define name="vector_field_choice">
     <!--
@@ -7743,24 +7727,24 @@ This diagnostic depends on ImbalancedVelocity.</a:documentation>
         </choice>
       </element>
     </choice>
+    <!--
+      Insert new diagnostic vector field here using the template:
+             element vector_field {
+                 attribute rank { "1" },
+                 attribute name { "NewFieldName" },
+                 (
+                    element diagnostic {
+                       internal_algorithm,
+                       mesh_choice,
+                       diagnostic_vector_field
+                    }|
+                    element aliased {
+                       generic_aliased_field
+                    }
+                 )
+             }
+    -->
   </define>
-  <!--
-    Insert new diagnostic vector field here using the template:
-           element vector_field {
-               attribute rank { "1" },
-               attribute name { "NewFieldName" },
-               (
-                  element diagnostic {
-                     internal_algorithm,
-                     mesh_choice,
-                     diagnostic_vector_field
-                  }|
-                  element aliased {
-                     generic_aliased_field
-                  }
-               )
-           }
-  -->
   <!-- This is the choice of additional tensor fields -->
   <define name="tensor_field_choice">
     <!--
@@ -7853,23 +7837,23 @@ in a multimaterial simulation.</a:documentation>
         <empty/>
       </element>
     </choice>
+    <!--
+      Insert new diagnostic tensor field here using the template:
+             element tensor_field {
+                 attribute name { "NewFieldName" },
+                 (
+                    element diagnostic {
+                       internal_algorithm,
+                       mesh_choice,
+                       diagnostic_tensor_field
+                    }|
+                    element aliased {
+                       generic_aliased_field
+                    }
+                 )
+             }
+    -->
   </define>
-  <!--
-    Insert new diagnostic tensor field here using the template:
-           element tensor_field {
-               attribute name { "NewFieldName" },
-               (
-                  element diagnostic {
-                     internal_algorithm,
-                     mesh_choice,
-                     diagnostic_tensor_field
-                  }|
-                  element aliased {
-                     generic_aliased_field
-                  }
-               )
-           }
-  -->
   <!--
     Select the type of dynamic control to be used
     Note: DEM and FEMDEM require the respective libraries
@@ -8394,7 +8378,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <empty/>
     </element>
   </define>
-  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file   -->
   <define name="surface_integral_stats_base.surface_integral">
     <attribute name="name">
       <data type="string"/>
