@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity --xml lotka_volterra.flml</command_line>
+    <command_line>fluidity  lotka_volterra.flml</command_line>
     <!-- Symmetric predator-prey problem. Zooplankton and Phytoplankton should both form stable cycles with maxmima at 20.0 -->
   </problem_definition>
   <variables>

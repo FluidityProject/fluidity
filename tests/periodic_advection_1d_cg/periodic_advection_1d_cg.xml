@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>fluidity --xml tracer.flml </command_line>
+    <command_line>fluidity  tracer.flml </command_line>
     <!-- One dimensional problem in which a pulse of tracer us introduced via a dirichlet boundary condition on the tracer. The tracer then flows out of the domain. -->
   </problem_definition>
   <variables>

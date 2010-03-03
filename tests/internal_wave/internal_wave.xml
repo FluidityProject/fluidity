@@ -6,7 +6,7 @@
   <owner userid="bmartin"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity -v3 -l --xml internal_wave.flml &gt; /dev/null 2&gt;&amp;1</command_line>
+    <command_line>fluidity -v3 -l  internal_wave.flml &gt; /dev/null 2&gt;&amp;1</command_line>
   </problem_definition>
   <variables>
     <variable name="speednorm" language="python">

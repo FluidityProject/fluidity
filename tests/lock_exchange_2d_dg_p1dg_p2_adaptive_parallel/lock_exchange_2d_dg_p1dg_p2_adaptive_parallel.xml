@@ -4,7 +4,7 @@
   <owner userid="pfarrell"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l --xml lock_exchange_2d_dg.flml</command_line>
+    <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l  lock_exchange_2d_dg.flml</command_line>
   </problem_definition>
   <variables/>
   <pass_tests>

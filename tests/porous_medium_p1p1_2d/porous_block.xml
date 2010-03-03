@@ -6,7 +6,7 @@
   <owner userid="jsaund"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity --xml porous_block.flml </command_line>
+    <command_line>fluidity  porous_block.flml </command_line>
     <!-- Trivial 2D test case of uniform flow through a square. -->
   </problem_definition>
   <variables>

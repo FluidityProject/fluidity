@@ -7,9 +7,9 @@
   <owner userid="jhill1"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="3">
-      <command_line>fluidity -v3 -l -x circle-2d-drag-serial.flml;
-                    mpiexec -n 3 fluidity -v3 -l -x circle-2d-drag-parallel.flml;
-                    mpiexec -n 3 fluidity -v3 -l -x circle-2d-drag-parallel-adaptive.flml;
+      <command_line>fluidity -v3 -l  circle-2d-drag-serial.flml;
+                    mpiexec -n 3 fluidity -v3 -l  circle-2d-drag-parallel.flml;
+                    mpiexec -n 3 fluidity -v3 -l  circle-2d-drag-parallel-adaptive.flml;
       </command_line>
   </problem_definition>
   <variables>

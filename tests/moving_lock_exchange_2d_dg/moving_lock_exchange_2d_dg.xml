@@ -6,7 +6,7 @@
   <owner userid="yves"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>fluidity --xml moving_lock_exchange_2d_dg.flml </command_line>
+    <command_line>fluidity  moving_lock_exchange_2d_dg.flml </command_line>
     <!-- Two dimensional wind driven cavity. -->
   </problem_definition>
   <variables>

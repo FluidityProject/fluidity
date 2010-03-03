@@ -6,7 +6,7 @@
   <owner userid="fmactavish"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity --xml saltfinger2d_quad.flml </command_line>
+    <command_line>fluidity  saltfinger2d_quad.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="final_time" language="python">

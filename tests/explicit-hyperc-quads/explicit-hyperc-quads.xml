@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml solidity</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>fluidity --xml channel_flow_input.flml || true &amp;&amp; fluidity --xml channel_flow_1_checkpoint.flml </command_line>
+    <command_line>fluidity  channel_flow_input.flml || true &amp;&amp; fluidity  channel_flow_1_checkpoint.flml </command_line>
   </problem_definition>  
   <variables>  
      <variable name="mxvfrac0" language="python"> 

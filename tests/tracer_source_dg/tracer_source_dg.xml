@@ -6,7 +6,7 @@
   <owner userid="dham"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity --xml tracer.flml </command_line>
+    <command_line>fluidity  tracer.flml </command_line>
     <!-- Trivial problem in which a source term is prescribed for a tracer. -->
   </problem_definition>
   <variables>

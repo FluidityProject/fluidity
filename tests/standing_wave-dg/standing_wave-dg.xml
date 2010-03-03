@@ -6,7 +6,7 @@
   <owner userid="skramer"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v3 -l -x standing_wave.flml</command_line>
+    <command_line>fluidity -v3 -l  standing_wave.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="halfway_free_surface" language="python">

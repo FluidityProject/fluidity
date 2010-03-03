@@ -6,7 +6,7 @@
   <owner userid="maddison"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity --xml detectors.flml </command_line>
+    <command_line>fluidity  detectors.flml </command_line>
     <!-- Test that detectors work the new way. -->
   </problem_definition>
   <variables>

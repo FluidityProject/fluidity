@@ -6,7 +6,7 @@
   <owner userid="skramer"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">
-    <command_line>fluidity -v3 -l -x gyre.flml</command_line>
+    <command_line>fluidity -v3 -l  gyre.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="western_boundary_width" language="python">
