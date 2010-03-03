@@ -49,6 +49,31 @@ module Profiler
       profiler_get_tensor, profiler_get_key
   end interface profiler_get
 
+  interface
+    subroutine cprofiler_zero
+    end subroutine cprofiler_zero
+    
+    subroutine cprofiler_tic(key, key_len)
+      implicit none
+      integer, intent(in) :: key_len
+      character(len = key_len), intent(in) :: key
+    end subroutine cprofiler_tic
+    
+    subroutine cprofiler_toc(key, key_len)
+      implicit none
+      integer, intent(in) :: key_len
+      character(len = key_len), intent(in) :: key
+    end subroutine cprofiler_toc
+    
+    subroutine cprofiler_get(key, key_len, time)
+      use global_parameters, only : real_8
+      implicit none
+      integer, intent(in) :: key_len
+      character(len = key_len), intent(in) :: key
+      real(kind = real_8), intent(out) :: time
+    end subroutine cprofiler_get
+  end interface
+
 contains
   
   real(kind = real_8) function profiler_get_scalar(field, action)
@@ -83,7 +108,6 @@ contains
   
   real(kind = real_8) function profiler_get_key(key)
     character(len=*), intent(in)::key
-    external cprofiler_get
     call cprofiler_get(key, len_trim(key), profiler_get_key)
   end function profiler_get_key
   
@@ -157,18 +181,15 @@ contains
   
   subroutine profiler_tic_key(key)
     character(len=*), intent(in)::key
-    external cprofiler_tic
     call cprofiler_tic(key, len_trim(key))
   end subroutine profiler_tic_key
 
   subroutine profiler_toc_key(key)
     character(len=*), intent(in)::key
-    external cprofiler_toc
     call cprofiler_toc(key, len_trim(key))
   end subroutine profiler_toc_key
 
   subroutine profiler_zero()
-    external cprofiler_zero
     call cprofiler_zero()
   end subroutine profiler_zero
 

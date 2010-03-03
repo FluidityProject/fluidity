@@ -95,7 +95,6 @@ contains
   end function do_checkpoint_simulation
 
   subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name)
-    use Profiler
     !!< Checkpoint the whole simulation
     
     type(state_type), dimension(:), intent(in) :: state
