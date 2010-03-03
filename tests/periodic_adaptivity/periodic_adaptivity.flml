@@ -49,6 +49,11 @@
    from math import pi
    return(X[0]-1, X[1])</string_value>
           </coordinate_map>
+          <inverse_coordinate_map>
+            <string_value type="python" lines="20">def val(X,t):
+   from math import pi
+   return(X[0]+1, X[1])</string_value>
+          </inverse_coordinate_map>
         </periodic_boundary_conditions>
         <stat>
           <exclude_from_stat/>
@@ -156,7 +161,7 @@
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.25 0.0 0.0 0.25</real_value>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.1 0.0 0.0 0.1</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
