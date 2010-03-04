@@ -339,7 +339,7 @@
                ewrite(3,*) "WARNING: you are making the wall treatment unhappy",u_p, 'its', its
             end if
 
-            T(loc) = max(tau, 0.)
+            T(loc) = max(tau/dt, 0.)
 
          end do ! snloc
 
@@ -374,7 +374,7 @@
          do loc = 1, face_loc(u, sele)
             n_face = node_val(normal_nodes, sfield_nodes(loc))
             u_dot_n(loc) = dot_product( &
-                node_val(u, loc), n_face )
+                node_val(u, u_nodes_bdy(loc)), n_face )
          end do
 
          do i = 1, ele_loc(u, ele)
@@ -392,7 +392,7 @@
          ! dim x snloc x nloc
          mat1 = shape_dshape( u_f_shape, vol_dshape_face, &
               detwei_bdy * viscosity_gi(1, 1, :) * &
-              face_val_at_quad(density, sele) )
+              face_val_at_quad(density, sele) * 2. )
 
          msk=.false.
          do i = 1, ele_loc(u, ele)
@@ -405,22 +405,22 @@
 
          do dim = 1, ndim
             call addto( rhs, dim, ele_nodes_u, &
-                 mat1(dim, 1, :) * u_dot_n_e )
+                 sum(mat1(dim, :, :), 1) * u_dot_n_e )
             call addto_diag( bigm, dim, dim, ele_nodes_u, &
-                 dt * theta * mat1(dim, 1, :) )
+                 dt * theta * sum(mat1(dim, :, :), 1) )
          end do
 
          ! nloc x snloc
          mat2 = dshape_dot_vector_shape( &
               vol_dshape_face, normal_bdy, u_f_shape, &
               detwei_bdy * viscosity_gi(1, 1, :) * &
-              face_val_at_quad(density, sele) )
+              face_val_at_quad(density, sele) * 2. )
 
          do dim = 1, ndim
             call addto( rhs, dim, ele_nodes_u, &
-                 mat2(:, 1) * ele_val(u, dim, ele) )
+                 sum(mat2(:, :), 2) * ele_val(u, dim, ele) )
             call addto_diag( bigm, dim, dim, ele_nodes_u, &
-                 dt * theta * mat2(:, 1) )
+                 dt * theta * sum(mat2(:, :), 2) )
          end do
 
          call deallocate(augmented_shape)
