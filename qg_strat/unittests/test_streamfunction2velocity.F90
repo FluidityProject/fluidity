@@ -11,17 +11,31 @@ subroutine test_streamfunction2velocity()
   use unittest_tools
   use vtk_interfaces
   use PV_inversion
+  use spud
 
   real, dimension(2) :: l2error
-  integer i, j
+  integer i, j, stat
   logical fail
 
   print*, "in test_streamfunction2velocity"
 
+  !2D
+  call test_streamfunction2velocity_from_file( &
+       mesh_file="meshes/square", &
+       streamfn_file="test_streamfunction.py", &
+       solution_file="2d_velocity.py", l2error=l2error, j=1)
+  do i=1,2
+     fail=l2error(i)>0.15
+     print*, "testing component ", i, " of error"
+     print*, l2error(i)
+     call report_test("[test_streamfunction2velocity]", fail, .false., &
+          "incorrect velocity calculated from streamfunction")
+  end do
+
   call test_streamfunction2velocity_from_file( &
        mesh_file="meshes/basin", &
-       streamfn_file="x-periodic_streamfunction.py", &
-       solution_file="x-periodic_velocity.py", l2error=l2error, j=1)
+       streamfn_file="test_streamfunction.py", &
+       solution_file="x-periodic_velocity.py", l2error=l2error, j=2)
   do i=1,2
      fail=l2error(i)>0.4
      print*, "testing component ", i, " of error"
@@ -32,8 +46,8 @@ subroutine test_streamfunction2velocity()
 
   call test_streamfunction2velocity_from_file( &
        mesh_file="meshes/refined_basin", &
-       streamfn_file="x-periodic_streamfunction.py", &
-       solution_file="x-periodic_velocity.py", l2error=l2error, j=2)
+       streamfn_file="test_streamfunction.py", &
+       solution_file="x-periodic_velocity.py", l2error=l2error, j=3)
   do i=1,2
      fail=l2error(i)>0.25
      print*, "testing component ", i, " of error"

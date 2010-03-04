@@ -49,8 +49,7 @@ FLIBS = -L../lib @FLIBS@
 # diagnostic output and FLabort:
 DEBUG_OBJECTS=../debug/Debug.o ../debug/Debug_Parameters.o
 
-QG_OBJS    =  qg_strat.o Qg_forward.o qg_usage.o Advection_Diffusion_CG.o \
-	PV_Inversion.o
+QG_OBJS    =  qg_strat.o Qg_forward.o qg_usage.o PV_Inversion.o
 
 QG_STRAT=../bin/qg_strat
 BINARIES = $(QG_STRAT)
@@ -72,7 +71,7 @@ $(QG_STRAT): qg_strat_main.o $(QG_OBJS) lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 qg_strat.o: Qg_forward.o
-Qg_forward.o: Advection_Diffusion_CG.o PV_Inversion.o
+Qg_forward.o: PV_Inversion.o
 
 # we need a symlink to ../lib, as $(LIBS) contains relative references to
 # libraries
