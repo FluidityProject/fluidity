@@ -48,7 +48,7 @@ module vtk_interfaces
   private
 
   public :: vtk_write_state, vtk_write_fields, vtk_read_state, &
-    vtk_write_surface_mesh
+    vtk_write_surface_mesh, vtk_write_internal_face_mesh
   
   ! Element types from VTK
   integer, public, parameter :: VTK_VERTEX=1
@@ -1585,5 +1585,41 @@ contains
     deallocate(sfields, surface_element_list)    
     
   end subroutine vtk_write_surface_mesh
+    
+  subroutine vtk_write_internal_face_mesh(filename, index, position)
+    character(len=*), intent(in):: filename
+    integer, intent(in), optional:: index
+    type(vector_field), intent(in), target:: position
+    
+    type(vector_field):: face_position
+    type(mesh_type):: face_mesh
+    integer:: i, faces, nloc
+    
+    ! this isn't really exposed through the interface
+    faces=size(position%mesh%faces%face_element_list)
+    
+    nloc=face_loc(position,1)
+    
+    call allocate( face_mesh, node_count(position), faces, &
+      position%mesh%faces%shape, name="InternalFaceMesh")
+      
+    do i=1, faces
+      face_mesh%ndglno( (i-1)*nloc+1:i*nloc ) = face_global_nodes(position, i)
+    end do
+      
+    call allocate( face_position, position%dim, face_mesh, name="InternalFaceMeshCoordinate")
+    
+    ! the node number is the same, so we can just copy, even though the mesh is entirely different
+    do i=1, position%dim
+      face_position%val(i)%ptr=position%val(i)%ptr
+    end do
+    
+    call vtk_write_fields(filename, index=index, position=face_position, &
+      model=face_mesh)
+      
+    call deallocate(face_position)
+    call deallocate(face_mesh)
+    
+  end subroutine vtk_write_internal_face_mesh
 
 end module vtk_interfaces
