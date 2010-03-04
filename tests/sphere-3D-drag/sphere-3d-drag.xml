@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<!-- Drag calculation in 3D flow past sphere -->
+<testproblem>
+  <name>circle-2d-drag</name>
+  <owner userid="piggt01"/>
+  <tags>flml</tags>
+  <problem_definition length="long" nprocs="1">
+    <command_line>fluidity -v3 -l sphere-3d-drag.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="cur_xforce" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("sphere-3d-drag.stat")
+cur_xforce = s["0"]["Velocity"]["force%1"][-1]
+    </variable>
+    <variable name="exact_xforce" language="python">
+from math import pi
+
+def drag(Re):
+# Correlation to lab data from Brown & Lawler 2003,
+# Sphere drag and settling velocity revisited,
+# Journal of Environmental Engineering 129 (3), 222–231
+   Cd = (24.0/Re)*(1.0 + 0.15*(Re**0.681)) + 0.407/(1.0 + (8710.0/Re))  
+   return Cd     
+
+Re = 100
+exact_xforce = drag(Re)*(0.5*1.0*1.0*(pi**2)/4.0)
+print exact_xforce 
+
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="relative drag force difference (5%)." language="python">
+print (100.0*abs(cur_xforce - exact_xforce)/exact_xforce)
+assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.05)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="relative drag force difference (3.5%)." language="python">
+assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.035)
+    </test>
+  </warn_tests>
+</testproblem>
