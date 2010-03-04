@@ -42,7 +42,6 @@ void print_version(ostream& stream){
 #endif
       <<endl
       <<"Compile date: "<<__DATE__<<" "<<__TIME__<<endl
-    //#include <cvsdata.h>
       <<"Adaptivity support\t\t"
 #ifdef HAVE_ADAPTIVITY
       <<"yes\n"
@@ -97,6 +96,12 @@ void print_version(ostream& stream){
 #else
       <<"yes\n"
 #endif
+      <<"Stream I/O support\t\t"
+#ifdef STREAM_IO
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
       <<"PETSc support\t\t\t"
 #ifdef HAVE_PETSC
       <<"yes\n"
@@ -135,6 +140,12 @@ void print_version(ostream& stream){
 #endif
       <<"Zoltan support\t\t\t"
 #ifdef HAVE_ZOLTAN
+      <<"yes\n"
+#else
+      <<"no\n"
+#endif
+      <<"Memory diagnostics\t\t"
+#ifdef HAVE_MEMORY_STATS
       <<"yes\n"
 #else
       <<"no\n"
@@ -201,7 +212,6 @@ void ParseArguments(int argc, char** argv){
 #endif
     if (c == -1) break;
 
-    OptionError stat;
     switch (c){
     case 'h':
       fl_command_line_options["help"] = "";
