@@ -356,16 +356,8 @@ contains
 
         ! and now fetch the information for the faces we are adding
 
-        ! front_contained_nodes is a set of all the nodes behind the front (in an element
-        ! which is coloured by the front)
-        ! front_face_nodes is a set of all the nodes on the front itself (facing onto elements
-        ! not coloured by the front)
-        call allocate(front_face_nodes)
-        call allocate(front_contained_nodes)
-
         do ele=1,ele_count(front_field)
           if (node_val(front_field, ele) == 1.0) then
-            call insert(front_contained_nodes, ele_nodes(intermediate_positions, ele))
             neighbours => row_m_ptr(eelist, ele)
             do k=1,size(neighbours)
               j = neighbours(k)
@@ -375,7 +367,6 @@ contains
                 boundary_ids(l) = new_colour
                 element_owners(l) = ele
                 sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
-                call insert(front_face_nodes, face_global_nodes(intermediate_positions, face))
                 l = l + 1
 
                 face = ele_face(intermediate_positions, j, ele)
@@ -415,7 +406,26 @@ contains
         ! we still need to map the positions of the nodes inner to the front
         ! nodes_to_map should be: all nodes behind the front (in the front elements) that are not actually on the front itself (facing onto non-front elements)
 
+        ! front_contained_nodes is a set of all the nodes behind the front (in an element
+        ! which is coloured by the front)
+        ! front_face_nodes is a set of all the nodes on the front itself (facing onto elements
+        ! not coloured by the front)
+        call allocate(front_face_nodes)
+        call allocate(front_contained_nodes)
+
+        do ele=1,ele_count(front_field)
+          if (node_val(front_field, ele) == 1.0) then
+            call insert(front_contained_nodes, ele_nodes(unwrapped_positions_A, ele))
+          end if
+        end do
+        do ele=1,surface_element_count(unwrapped_positions_A)
+          if (surface_element_id(unwrapped_positions_A, ele) == new_colour) then
+            call insert(front_face_nodes, face_global_nodes(unwrapped_positions_A, ele))
+          end if
+        end do
+
         call set_minus(nodes_to_map, front_contained_nodes, front_face_nodes)
+
         call deallocate(front_contained_nodes)
         call deallocate(front_face_nodes)
 
@@ -437,17 +447,8 @@ contains
         deallocate(aliased_positions)
         call deallocate(nodes_to_map)
 
-        do ele=1,ele_count(unwrapped_positions_A)
-          if (node_val(front_field, ele) == 1.0) then
-            nodes => ele_nodes(unwrapped_positions_A, ele)
-            do j=1,size(nodes)
-              k = nodes(j)
-              if (has_key(aliased_to_new_node_number, k)) then
-                nodes(j) = fetch(aliased_to_new_node_number, k)
-              end if
-            end do
-          end if
-        end do
+        call vtk_write_fields("mesh", 6, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh, sfields=(/front_field/))
+        call vtk_write_surface_mesh("surface", 6, unwrapped_positions_A)
 
         call allocate(unwrapped_metric_A, unwrapped_positions_A%mesh, trim(metric%name))
         call remap_field(intermediate_metric, unwrapped_metric_A)
@@ -455,8 +456,6 @@ contains
         call deallocate(intermediate_positions)
         call deallocate(intermediate_metric)
 
-        call vtk_write_fields("mesh", 6, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh, sfields=(/front_field/))
-        call vtk_write_surface_mesh("surface", 6, unwrapped_positions_A)
         assert(has_faces(unwrapped_positions_A%mesh))
 
         call deallocate(front_field)
@@ -691,10 +690,7 @@ contains
           deallocate(element_owners)
           deallocate(boundary_ids)
 
-          write(0,*) "set2vector(front_contained_nodes): ", set2vector(front_contained_nodes)
-          write(0,*) "set2vector(front_face_nodes): ", set2vector(front_face_nodes)
           call set_minus(nodes_to_map, front_contained_nodes, front_face_nodes)
-          write(0,*) "set2vector(nodes_to_map): ", set2vector(nodes_to_map)
           call deallocate(front_contained_nodes)
           call deallocate(front_face_nodes)
 
