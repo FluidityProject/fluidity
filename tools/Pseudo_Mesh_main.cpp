@@ -101,6 +101,12 @@ int main(int argc, char** argv){
     exit(0);
   }
   
+  if (optind != argc - 1){
+    cerr << "Need exactly one non-option argument" << endl;
+    Usage();
+    exit(-1);
+  }
+
   // Verbosity
   int verbosity = 0;
   if(args.count('v') > 0){
