@@ -1326,7 +1326,7 @@ contains
 
 #ifdef STREAM_IO
       open(unit = detector_unit, file = trim(filename) // '.detectors.dat', &
-        & action = "write", access = "stream", form = "unformatted")
+        & action = "write", access = "stream", form = "unformatted", status = "replace")
 #else
       FLAbort("No stream I/O support")
 #endif

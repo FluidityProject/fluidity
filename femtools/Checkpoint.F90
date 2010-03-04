@@ -209,16 +209,12 @@ contains
 #ifdef STREAM_IO
       open(unit = det_unit, &
         & file = trim(detectors_cp_filename) // '_det.positions.dat', &
-        & action = "write", access = "stream", form = "unformatted")
+        & action = "write", access = "stream", form = "unformatted", status = "replace")
 #else
       FLAbort("No stream I/O support")
 #endif
-!      do i = 1, size(detector_list)
-!        write(det_unit) detector_list(i)%position
-!      end do
 
       node => detector_list%firstnode
-
       do i = 1, detector_list%length
         write(det_unit) node%position
         node => node%next      
