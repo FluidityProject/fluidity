@@ -133,6 +133,7 @@ subroutine gls_init(state)
         cPsi3_minus = 2.53
         psi_min = 1.e-8
         calc_fwall = .true.
+        call set( Fwall, 1.0 )  
     case ("k-epsilon")
         gls_p = 3.0
         gls_m = 1.5
@@ -293,10 +294,11 @@ subroutine gls_init(state)
     ! init other fields
     call set(NN2,0.0)
     call set(MM2,0.0)
-    call set(ll,cde*k_min**1.5/eps_min)
+    call set(ll,cde*k_min**1.5/psi_min)
     call set(K_H,1e-6)
     call set(K_M,1e-6)
     call set(eps,eps_min)
+    call gls_calc_wall_function(state)
 
     ! intilise surface - only if we need to though
     if (calculate_bcs) then
@@ -503,7 +505,7 @@ subroutine gls_diffusivity(state)
     real                             :: exp1, exp2, exp3, x
     integer                          :: i, stat
     real                             :: epslim, tke
-    real, parameter                  :: galp = 0.53
+    real, parameter                  :: galp = 0.748331 ! sqrt(0.56)
     logical                          :: limit_length = .true.
 
     ewrite(1,*) "In gls_diffusivity"
@@ -569,8 +571,9 @@ subroutine gls_diffusivity(state)
     if (limit_length) then
         do i=1,nNodes
             if (node_val(NN2,i) .gt. 0) then
-                ! compute limit
-                epslim = cde/sqrt(2.)/galp*node_val(KK,i)*sqrt(node_val(NN2,i))
+                ! compute limit (the sqrt(2) comes from the fact that we've
+                ! defined k = tke, but the limit uses q where tke = 1/2*(q^2)
+                epslim = (cde*node_val(KK,i)*sqrt(node_val(NN2,i))) / (sqrt(2.)*galp)
 
                 ! clip at new limit
                 call set(eps,i, max(node_val(eps,i),epslim))
@@ -1183,8 +1186,7 @@ subroutine gls_psi_bc(state, bc_type)
     case("neumann")
         do i=1,NNodes_sur
             value = (-gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.))/sigma_psi      &
-                       *node_val(top_surface_kk_values,i)**(gls_m+0.5)*(z0s(i)+z0s(i))**gls_n
-            !write(*,*) i,value, node_val(top_surface_kk_values,i), z0s(i)
+                       *(u_taus_squared(i)/(cm0**2))**(gls_m+0.5)*(z0s(i)+z0s(i))**gls_n
             call set(top_surface_values,i,value)
         end do
     case("dirichlet")
@@ -1458,11 +1460,14 @@ subroutine gls_calc_wall_function(state)
     distanceToTop => extract_scalar_field(state, "DistanceToTop")
     distanceToBottom => extract_scalar_field(state, "DistanceToBottom")  
     do i=1,nNodes ! there are lots of alternative formulae for this wall function
-        LLL = (node_val(distanceToTop,i) + node_val(distanceToBottom,i)) / &
-              (node_val(distanceToTop,i) * node_val(distanceToBottom,i)) 
-        if( (node_val(distanceToBottom,i).lt.1.0) .or.  (node_val(distanceToTop,i).lt.1.0) ) then
+        !LLL = (node_val(distanceToTop,i) + node_val(distanceToBottom,i)) / &
+        !      (node_val(distanceToTop,i) * node_val(distanceToBottom,i)) 
+        LLL = 1.0 / node_val(distanceToBottom,i)
+        !if( (node_val(distanceToBottom,i).lt.1.0) .or.  (node_val(distanceToTop,i).lt.1.0) ) then
+        if( (node_val(distanceToBottom,i).lt.1.0)) then
             call set( Fwall, i, 1.0 + E2 ) ! hanert-ish       
         else
+            !write(*,*) node_val(ll,i), LLL
             call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))       
         end if
     end do
