@@ -42,6 +42,7 @@ module vtk_interfaces
   use parallel_tools
   use parallel_fields
   use spud
+  use data_structures
   
   implicit none
 
@@ -1586,14 +1587,17 @@ contains
     
   end subroutine vtk_write_surface_mesh
     
-  subroutine vtk_write_internal_face_mesh(filename, index, position)
+  subroutine vtk_write_internal_face_mesh(filename, index, position, face_sets)
     character(len=*), intent(in):: filename
     integer, intent(in), optional:: index
     type(vector_field), intent(in), target:: position
+    type(integer_set), dimension(:), intent(in), optional :: face_sets
     
     type(vector_field):: face_position
-    type(mesh_type):: face_mesh
-    integer:: i, faces, nloc
+    type(mesh_type):: face_mesh, pwc_mesh
+    integer:: i, j, faces, nloc
+    type(scalar_field), dimension(:), allocatable :: sfields
+    integer :: face, opp_face
     
     ! this isn't really exposed through the interface
     faces=size(position%mesh%faces%face_element_list)
@@ -1613,10 +1617,38 @@ contains
     do i=1, position%dim
       face_position%val(i)%ptr=position%val(i)%ptr
     end do
-    
-    call vtk_write_fields(filename, index=index, position=face_position, &
-      model=face_mesh)
+
+    if (present(face_sets)) then
+      pwc_mesh = piecewise_constant_mesh(face_position%mesh, "PWCMesh")
+
+      allocate(sfields(size(face_sets)))
+      do i=1,size(face_sets)
+        call allocate(sfields(i), pwc_mesh, "FaceSet" // int2str(i))
+        call zero(sfields(i))
+        do j=1,key_count(face_sets(i))
+          face = fetch(face_sets(i), j)
+          call set(sfields(i), face, 1.0)
+          opp_face = face_opposite(position, face)
+          if (opp_face > 0) then
+            call set(sfields(i), opp_face, 1.0)
+          end if
+        end do
+      end do
+
+      call vtk_write_fields(filename, index=index, position=face_position, &
+        model=face_mesh, sfields=sfields)
+
+      do i=1,size(face_sets)
+        call deallocate(sfields(i))
+      end do
       
+      deallocate(sfields)
+      call deallocate(pwc_mesh)
+    else
+      call vtk_write_fields(filename, index=index, position=face_position, &
+        model=face_mesh)
+    end if
+    
     call deallocate(face_position)
     call deallocate(face_mesh)
     
