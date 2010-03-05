@@ -207,6 +207,7 @@
 
       integer, dimension(:), allocatable:: ghost_nodes
 
+      PetscObject:: myPETSC_NULL_OBJECT
       PetscErrorCode ierr
       KSP ksp_schur ! ksp object for the inner solve in the Schur Complement
       Mat G_t_comp ! PETSc compressible divergence matrix
@@ -276,7 +277,11 @@
       if(associated(kmk_matrix)) then
          call MatCreateSchurComplement(inner_M%M,G,G_t_comp,S,A,ierr)
       else
+         myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
          call MatCreateSchurComplement(inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
+         if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+         end if
       end if
       
       ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 

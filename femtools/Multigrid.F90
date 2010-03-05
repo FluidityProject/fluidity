@@ -115,6 +115,7 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
   PC, intent(inout) :: pc
   logical, intent(in), optional :: no_top_smoothing
   !
+  PetscObject:: myPETSC_NULL_OBJECT
   type(csr_matrix) :: matrix_internal
   integer :: row,i, ierr, nsurface
   integer, dimension(:), pointer :: r_ptr
@@ -175,7 +176,11 @@ subroutine SetUpInternalSmoother(surface_node_list_in,matrix,pc, &
        Internal_Smoother_Mat,DIFFERENT_NONZERO_PATTERN,ierr)
 
   !set up pc to output
+  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call PCShellSetApply(pc,ApplySmoother,PETSC_NULL_OBJECT,ierr)
+  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+  end if  
 
   surface_node_list = surface_node_list - 1
 
@@ -370,6 +375,7 @@ logical, intent(in), optional :: no_top_smoothing
   PetscScalar :: Px2
   Vec:: eigvec, Px
   PetscReal, allocatable, dimension(:):: emin, emax
+  PetscObject:: myPETSC_NULL_OBJECT
   integer, allocatable, dimension(:):: contexts
   integer i, j, ri, nolevels, m, n, top_level
   integer nosmd, nosmu, clustersize
@@ -431,7 +437,11 @@ logical, intent(in), optional :: no_top_smoothing
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
+        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
         call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
+        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+        end if
         ierror=1
         return
       end if
@@ -453,7 +463,11 @@ logical, intent(in), optional :: no_top_smoothing
       nolevels=i
     end if
     
+    myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
     call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
+    if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+       FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+    end if
     
     if (lno_top_smoothing) then
       top_level=nolevels-2
@@ -477,7 +491,11 @@ logical, intent(in), optional :: no_top_smoothing
         call PowerMethod(matrices(ri), eigval, eigvec)
         emax(ri)=eigval
         
+        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
         call MatGetVecs(prolongators(ri-1), PETSC_NULL_OBJECT, Px, ierr)
+        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+        end if
         call MatMult(prolongators(ri-1), eigvec, Px, ierr)
         call VecNorm(Px, NORM_2, Px2, ierr)
         emin(ri-1)=eigval/Px2**2.
@@ -840,6 +858,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   integer, intent(in):: base
   PetscReal, intent(in):: omega
   
+  PetscObject:: myPETSC_NULL_OBJECT
   PetscErrorCode:: ierr
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
@@ -883,7 +902,11 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     coarse_base=-1
   end if
   
+  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
+  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+  end if
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
     
@@ -1085,13 +1108,17 @@ Vec, intent(out):: eigvec
   PetscReal:: rho_k, rho_kp1, norm2
   integer:: i
   PetscRandom:: pr
-  
+  PetscObject:: myPETSC_NULL_OBJECT  
   
   call MatGetVecs(matrix, x_kp1, x_k, ierr)
   
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
+  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call VecSetRandom(x_k, PETSC_NULL_OBJECT, ierr)
+  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
+    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+  end if
   call PetscRandomDestroy(pr, ierr)
 
   rho_k=0.0
