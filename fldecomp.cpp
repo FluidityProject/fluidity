@@ -119,6 +119,9 @@ void create_partitions(bool verbose,
                        const vector<int>& decomp, int nparts, int nnodes, int nelms, int nloc, const vector<int>& ENList,
                        vector<deque<int> >& nodes, vector<int>& npnodes, vector<deque<int> >& elements,
                        vector< vector<set<int> > >& halo1, vector< vector<set<int> > >& halo2){
+  if(verbose)
+    cout<<"void create_partitions( ... )";
+
   nodes.clear();    nodes.resize(nparts);
   npnodes.clear();  npnodes.resize(nparts);
   elements.clear(); elements.resize(nparts);
@@ -237,13 +240,13 @@ void create_partitions(bool verbose,
 }
 
 int main(int argc, char **argv){
- #ifdef HAVE_MPI
+#ifdef HAVE_MPI
   // This must be called before we process any arguments
   MPI::Init(argc,argv);
   // Undo some MPI init shenanigans
   chdir(getenv("PWD"));
 #endif
- 
+  
   // Get any command line arguments
   // reset optarg so we can detect changes
   optarg = NULL;  
@@ -276,10 +279,12 @@ int main(int argc, char **argv){
   // What to do with stdout?
   bool verbose=false;
   int val=3;
-  if(flArgs.count('v'))
+  if(flArgs.count('v')){
     verbose = true;
-  else
+    cout<<"Verbose mode enabled.\n";
+  }else{
     val = 0;
+  }
   set_global_debug_level_fc(&val);
   
   if(!flArgs.count('f')){
@@ -294,11 +299,7 @@ int main(int argc, char **argv){
 
   string file_format;
   if(!flArgs.count('i')){
-    if(filename.substr(filename.size()-4, 4)==string(".dat")){
-      file_format="gid_dat";
-    }else{
-      file_format="triangle";
-    }
+    file_format="triangle";
   }else{
     file_format=flArgs['i'];
   }
