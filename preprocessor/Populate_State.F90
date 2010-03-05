@@ -745,6 +745,7 @@ contains
     integer:: n_periodic_bcs
     integer:: j
     type(integer_hash_table) :: laliased_to_new_node_number
+    type(integer_set) :: all_periodic_bc_ids
     logical :: fiddled_with_faces
 
     if (present(stat)) then
@@ -760,6 +761,22 @@ contains
     
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
+
+    call allocate(all_periodic_bc_ids)
+    do j=0, n_periodic_bcs-1
+       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/physical_boundary_ids")
+       allocate( physical_boundary_ids(shape_option(1)) )
+       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/physical_boundary_ids",physical_boundary_ids)
+       call insert(all_periodic_bc_ids, physical_boundary_ids)
+       deallocate(physical_boundary_ids)
+
+       shape_option = option_shape(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/aliased_boundary_ids")
+       allocate( aliased_boundary_ids(shape_option(1)) )
+       call get_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions["//int2str(j)//"]/aliased_boundary_ids",aliased_boundary_ids)
+       call insert(all_periodic_bc_ids, aliased_boundary_ids)
+       deallocate(aliased_boundary_ids)
+    end do
+
     do j=0, n_periodic_bcs-1
        
        ! get some options
@@ -783,7 +800,7 @@ contains
 
        nonperiodic_position=make_mesh_unperiodic(lfrom_position,&
           physical_boundary_ids,aliased_boundary_ids, &
-          periodic_mapping_python, mesh_name, laliased_to_new_node_number)
+          periodic_mapping_python, mesh_name, all_periodic_bc_ids, laliased_to_new_node_number)
 
        if (fiddled_with_faces) then
          lfrom_position%mesh%faces => null()
@@ -814,6 +831,8 @@ contains
     end if
     
     position=nonperiodic_position
+
+    call deallocate(all_periodic_bc_ids)
     
   end function make_mesh_unperiodic_from_options
   

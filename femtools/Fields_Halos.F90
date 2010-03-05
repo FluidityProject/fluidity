@@ -38,18 +38,18 @@ public:: make_mesh_unperiodic
   
 contains
 
-  function make_mesh_unperiodic(model, physical_boundary_ids, aliased_boundary_ids, periodic_mapping_python, name, aliased_to_new_node_number) &
+  function make_mesh_unperiodic(model, my_physical_boundary_ids, aliased_boundary_ids, periodic_mapping_python, name, all_periodic_bc_ids, aliased_to_new_node_number) &
        result (new_positions)
     !!< Produce a mesh based on an old mesh but with periodic boundary conditions
     type(vector_field) :: new_positions
 
     type(vector_field), intent(in) :: model
-    integer, dimension(:), intent(in) :: physical_boundary_ids, aliased_boundary_ids
+    integer, dimension(:), intent(in) :: my_physical_boundary_ids, aliased_boundary_ids
     character(len=*), intent(in) :: periodic_mapping_python
     character(len=*), intent(in):: name
+    type(integer_set), intent(in) :: all_periodic_bc_ids ! all boundary ids from all periodic BCs
     
     type(integer_hash_table), intent(out) :: aliased_to_new_node_number
-    type(integer_set):: physical_boundary_ids_set
     type(mesh_type):: mesh
     real, dimension(:,:), allocatable:: aliased_positions, physical_positions
     integer:: mapped_node_count, aliased_node, physical_node
@@ -103,7 +103,7 @@ contains
       assert(halo_verifies(model%mesh%halos(2), is_periodic))
 #endif
     end if
-      
+
     ! we now have info to allocate the new mesh
     call allocate(mesh, node_count(model)+mapped_node_count, element_count(model), &
       model%mesh%shape, name=name)
@@ -137,18 +137,15 @@ contains
     end do
       
     ! now fix the elements
-    call allocate(physical_boundary_ids_set)
-    call insert(physical_boundary_ids_set, physical_boundary_ids)
     do i = 1, surface_element_count(model)
       sid = surface_element_id(model, i)
-      if (has_value(physical_boundary_ids_set, sid)) then
+      if (any(sid == my_physical_boundary_ids)) then
         ele=face_ele(model, i)
         call make_mesh_unperiodic_fix_ele(mesh, model%mesh, &
-           aliased_to_new_node_number, physical_boundary_ids_set, ele)
+           aliased_to_new_node_number, all_periodic_bc_ids, ele)
       end if
     end do
 
-    call deallocate( physical_boundary_ids_set )
     call deallocate( mesh )
     deallocate( aliased_positions, physical_positions )
 
@@ -173,7 +170,7 @@ contains
   end function make_mesh_unperiodic
   
   recursive subroutine make_mesh_unperiodic_fix_ele(mesh, model, &
-    aliased_to_new_node_number, physical_boundary_ids_set, ele)
+    aliased_to_new_node_number, boundary_ids_set, ele)
     ! For an element on the physical side of a periodic boundary,
     ! change all nodes from aliased to physical. This is recursively 
     ! called for all neighbouring elements. Neighbours are found using
@@ -187,7 +184,7 @@ contains
     type(mesh_type), intent(inout):: mesh
     type(mesh_type), intent(in):: model
     type(integer_hash_table), intent(in):: aliased_to_new_node_number
-    type(integer_set), intent(in):: physical_boundary_ids_set
+    type(integer_set), intent(in):: boundary_ids_set
     integer, intent(in):: ele
     
     integer, dimension(:), pointer:: nodes, neigh, faces
@@ -217,12 +214,12 @@ contains
         ! check if we're crossing a physical boundary
         if (faces(j)<=surface_element_count(model)) then
           sid = surface_element_id(model, faces(j))
-          if (has_value(physical_boundary_ids_set, sid)) cycle
+          if (has_value(boundary_ids_set, sid)) cycle
         end if
         
         ! otherwise go fix it
         call make_mesh_unperiodic_fix_ele(mesh, model, &
-           aliased_to_new_node_number, physical_boundary_ids_set, neigh(j))
+           aliased_to_new_node_number, boundary_ids_set, neigh(j))
       end if
     end do
     
