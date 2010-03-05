@@ -126,7 +126,7 @@ module zoltan_integration
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_num_edges
 
-  subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
+subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
                                   &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)
     integer(zoltan_int), intent(in) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
@@ -140,10 +140,16 @@ module zoltan_integration
     integer(zoltan_int), intent(out) :: ierr 
 
     integer :: count
-    integer :: node, j, nnode
+    integer :: node, i, j, nnode
     integer :: head
     integer, dimension(:), pointer :: neighbours
-    real(zoltan_float) :: qual
+    real(zoltan_float) :: quality
+
+    integer, dimension(:), pointer :: my_nelist, nbor_nelist
+    type(integer_set) :: nelistA, nelistB, intersection
+
+    real(zoltan_float) :: min_quality, max_weight, ninety_weight
+    integer :: ele, total_num_edges
 
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
@@ -152,29 +158,96 @@ module zoltan_integration
     count = zz_halo%nowned_nodes
     assert(count == num_obj)
 
+    total_num_edges = sum(num_edges(1:num_obj))
+
     head = 1
+
+!   loop over the nodes you own
+
     do node=1,count
-      neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
-      assert(size(neighbours) == num_edges(node))
-      nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zz_halo, neighbours)
-      nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zz_halo, neighbours) - 1
-      do j=1,size(neighbours)
-        qual = min(node_val(node_quality, node), node_val(node_quality, neighbours(j)))
-        if (qual < 0.15) then
-          ewgts(head + j - 1) = 100000.0
-        else
-          ewgts(head + j - 1) = 1.0
-        end if
-        !write(0,*) "ewgts(", head + j - 1, "): ", ewgts(head + j - 1)
-        !ewgts(head + j - 1) = -1000 * qual**2 + 1001.0
+!      find nodes neighbours
+       neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
+
+!      check the number of neighbours matches the number of edges
+       assert(size(neighbours) == num_edges(node))
+
+!      find global ids for each neighbour
+       nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zz_halo, neighbours)
+
+!      find owning proc for each neighbour
+       nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zz_halo, neighbours) - 1
+
+!      get elements associated with current node
+       my_nelist => row_m_ptr(zz_nelist, local_ids(node))
+
+!      allocate and setup a set containing the elements associated with current node
+       call allocate(nelistA)
+       call insert(nelistA, my_nelist)
+
+       do j=1,size(neighbours)
+
+!         get elements associated with neighbour node
+          nbor_nelist => row_m_ptr(zz_nelist, neighbours(j))
+
+!         allocate and setup a set containing the elements associated with the neighbouring node
+          call allocate(nelistB)
+          call insert(nelistB, nbor_nelist)
+
+!         get intersection of the two nelists
+          call set_intersection(intersection, nelistA, nelistB)
+          call deallocate(nelistB)
+
+          min_quality = 1.0
+
+!         loop over all the elements in the intersection
+          do i=1,key_count(intersection)
+             ele = fetch(intersection, i)
+!            determine the quality of the element
+             quality = node_val(element_quality, ele)
+
+!            store the element quality if it's less (worse) than the previous elements
+             if (quality .LT. min_quality) then
+                min_quality = quality
+             end if
+          end do
+
+         call deallocate(intersection)
+
+!        check if the quality is within the tolerance         
+         if (min_quality .GT. 0.6) then
+!           if it is
+            ewgts(head + j - 1) = 1.0
+         else
+!           if it's not
+            ewgts(head + j - 1) = (1.0 - min_quality) * (total_num_edges + 1)
+         end if
       end do
 
+      call deallocate(nelistA)
       head = head + size(neighbours)
-    end do
-    assert(head == sum(num_edges(1:num_obj))+1)
+   end do
 
-    ierr = ZOLTAN_OK
-  end subroutine zoltan_cb_get_edge_list
+   assert(head == sum(num_edges(1:num_obj))+1)
+   
+!  calculate the maximum edge weight
+   max_weight = maxval(ewgts(1:head))
+!   max_weight = 1.0
+!   do i=1,head
+!      max_weight = max(max_weight, ewgts(i))
+!   end do
+   
+   ninety_weight = max_weight * 0.9
+
+!  make the worst 10% of elements uncuttable
+   do i=1,head
+      if (ewgts(i) .GT. ninety_weight) then
+         ewgts(i) = total_num_edges + 1
+      end if
+   end do
+   
+   ierr = ZOLTAN_OK
+ end subroutine zoltan_cb_get_edge_list
+  
 
   ! Here is how we pack nodal positions for phase one migration:
   ! ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
