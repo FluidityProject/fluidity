@@ -169,9 +169,16 @@ class vtu:
     for i in range(len(array)):
       data.SetValue(i, array[i])
 
-    pointdata=self.ugrid.GetPointData()
-    pointdata.AddArray(data)
-    pointdata.SetActiveScalars(name)
+    if len(array) == self.ugrid.GetNumberOfPoints():
+      pointdata=self.ugrid.GetPointData()
+      pointdata.AddArray(data)
+      pointdata.SetActiveScalars(name)
+    elif len(array) == self.ugrid.GetNumberOfCells():
+      celldata=self.ugrid.GetCellData()
+      celldata.AddArray(data)
+      celldata.SetActiveScalars(name)
+    else:
+      raise Exception("Length neither number of nodes nor number of cells")
 
   def AddVectorField(self, name, array):
     """Adds a vector field with the specified name using the values from the array."""
