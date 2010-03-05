@@ -4,12 +4,15 @@ module hadapt_extrude
   !!< Extrude a given 2D mesh to a full 3D mesh.
   !!< The layer depths are specified by a sizing function
   !!< which can be arbitrary python.
-  use elements
-  use fields
-  use spud
+! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
   use quadrature
-  use global_parameters
+  use elements
   use sparse_tools
+  use fields
+  use state_module
+!
+  use spud
+  use global_parameters
   use hadapt_advancing_front
   use hadapt_metric_based_extrude
   implicit none
