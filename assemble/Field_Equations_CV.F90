@@ -1260,6 +1260,8 @@ contains
 
       logical :: l_diffusion
 
+      ewrite(1, *) "In assemble_field_eqn_cv"
+
       if(present(diffusion)) then
         l_diffusion = diffusion
       else
@@ -1468,6 +1470,8 @@ contains
       if(move_mesh) then
         call deallocate(massconservation)
       end if
+      
+      ewrite(1, *) "Exiting assemble_field_eqn_cv"
 
     end subroutine assemble_field_eqn_cv
     ! end of equation wrapping subroutines
@@ -1633,7 +1637,7 @@ contains
       integer, dimension(:), allocatable :: diffusivity_lglno, diffusivity_lglno_bdy
 
 
-      ewrite(2,*) 'assemble_advectiondiffusion_m_cv'
+      ewrite(1, *) "In assemble_advectiondiffusion_m_cv"
 
       ! for backward compatibility get the local option path
       ! and field that we need with bcs etc.
@@ -2356,6 +2360,8 @@ contains
         call deallocate(div_m)
         call deallocate(grad_rhs)
       end if
+
+      ewrite(1, *) "Exiting assemble_advectiondiffusion_m_cv"
 
     end subroutine assemble_advectiondiffusion_m_cv
 

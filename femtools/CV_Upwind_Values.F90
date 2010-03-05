@@ -155,7 +155,8 @@ contains
     ! which node are we projecting from?
     integer :: projection_node
     
-    ewrite(2,*) 'in find_upwind_values for field ', trim(field%name), ' on sparsity from mesh ', trim(x_field%mesh%name)
+    ewrite(1, *) "In find_upwind_values"
+    ewrite(2, *) "For field ", trim(field%name), " on sparsity from mesh ", trim(x_field%mesh%name)
 
     projection_node=0 ! initialise
 
@@ -444,6 +445,8 @@ contains
 
     end select
 
+    ewrite(1, *) "Exiting find_upwind_values"
+
   end subroutine find_upwind_values_multiple_states
 
   subroutine calculate_upwind_values_constant(field, upwind_values, &
@@ -516,7 +519,7 @@ contains
 
     integer :: save_pos=0 ! saves the position in the matrix for optimisation
     
-    ewrite(2,*) 'in calculate_all_upwind_project'
+    ewrite(1, *) "In calculate_all_upwind_project"
     ! the projected point values upwind value matrix is on the x_field mesh
     ! which cannot be periodic
 
@@ -678,6 +681,8 @@ contains
 
     call deallocate(normals)
     deallocate(field_bc_type)
+
+    ewrite(1, *) "Exiting calculate_all_upwind_project"
 
   end subroutine calculate_all_upwind_project
 
