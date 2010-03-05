@@ -528,6 +528,17 @@ and 'tensor_fields';
     </element>
   </define>
   <!-- Adaptivity diagnostics -->
+  <define name="scalar_edge_lengths_algorithm">
+    <element name="algorithm">
+      <a:documentation>Computes the edge lengths of the Coordinate mesh</a:documentation>
+      <attribute name="name">
+        <value>scalar_edge_lengths</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="field_tolerance_algorithm">
     <element name="algorithm">
       <a:documentation>From a field on a mesh, diagnose the anisotropic
@@ -552,15 +563,17 @@ Number 257, January 2007, pp. 179-204.</a:documentation>
       </optional>
     </element>
   </define>
-  <define name="scalar_edge_lengths_algorithm">
+  <define name="eigenvalues_symmetric_algorithm">
     <element name="algorithm">
-      <a:documentation>Computes the edge lengths of the Coordinate mesh</a:documentation>
+      <a:documentation>Computes the eigenvalues of a given symmetric tensor field. The output
+eigenvalues are sorted from lowest to highest.</a:documentation>
       <attribute name="name">
-        <value>scalar_edge_lengths</value>
+        <value>eigenvalues_symmetric</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
       </attribute>
+      <ref name="tensor_source_field"/>
     </element>
   </define>
   <!-- Misc -->
@@ -639,6 +652,9 @@ Number 257, January 2007, pp. 179-204.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_potential_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="eigenvalues_symmetric_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms">
     <ref name="tensor_python_diagnostic_algorithm"/>

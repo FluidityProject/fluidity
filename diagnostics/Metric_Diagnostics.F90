@@ -37,6 +37,7 @@ module metric_diagnostics
   use form_metric_field
   use fldebug
   use metric_tools
+  use quicksort
   use state_module
   use spud
   use vector_tools
@@ -45,7 +46,8 @@ module metric_diagnostics
   
   private
   
-  public :: calculate_scalar_edge_lengths, calculate_field_tolerance
+  public :: calculate_scalar_edge_lengths, calculate_field_tolerance, &
+    & calculate_eigenvalues_symmetric
 
 contains
 
@@ -102,5 +104,30 @@ contains
     call deallocate(metric)
     
   end subroutine calculate_scalar_edge_lengths
+  
+  subroutine calculate_eigenvalues_symmetric(state, v_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    integer :: i
+    integer, dimension(v_field%dim) :: permutation
+    real, dimension(v_field%dim) :: evals
+    real, dimension(v_field%dim, v_field%dim) :: evecs
+    type(tensor_field), pointer :: source_field
+    
+    source_field => tensor_source_field(state, v_field)
+    if(.not. source_field%mesh == v_field%mesh) then
+      ewrite(-1, *) trim(v_field%name) // " mesh: " // trim(v_field%mesh%name)
+      ewrite(-1, *) trim(source_field%name) // " mesh: " // trim(source_field%mesh%name)
+      FLExit("Eigendecomposition mesh must match source tensor field mesh")
+    end if
+    
+    do i = 1, node_count(source_field)
+      call eigendecomposition_symmetric(node_val(source_field, i), evecs, evals)
+      call qsort(evals, permutation)
+      call set(v_field, i, evals(permutation))
+    end do
+    
+  end subroutine calculate_eigenvalues_symmetric
 
 end module metric_diagnostics

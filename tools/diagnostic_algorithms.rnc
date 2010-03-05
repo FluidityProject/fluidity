@@ -406,6 +406,14 @@ tensor_python_diagnostic_algorithm =
 
 # Adaptivity diagnostics
 
+scalar_edge_lengths_algorithm =
+   (
+      ## Computes the edge lengths of the Coordinate mesh
+      element algorithm {
+         attribute name { "scalar_edge_lengths" },
+         attribute material_phase_support { "single" }
+      }
+   )
 field_tolerance_algorithm =
    (
       ## From a field on a mesh, diagnose the anisotropic
@@ -425,13 +433,14 @@ field_tolerance_algorithm =
          }?
       }
    )
-
-scalar_edge_lengths_algorithm =
+eigenvalues_symmetric_algorithm =
    (
-      ## Computes the edge lengths of the Coordinate mesh
+      ## Computes the eigenvalues of a given symmetric tensor field. The output
+      ## eigenvalues are sorted from lowest to highest.
       element algorithm {
-         attribute name { "scalar_edge_lengths" },
-         attribute material_phase_support { "single" }
+         attribute name { "eigenvalues_symmetric" },
+         attribute material_phase_support { "single" },
+         tensor_source_field
       }
    )
 
@@ -470,6 +479,7 @@ vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
 vector_diagnostic_algorithms |= vector_potential_algorithm
+vector_diagnostic_algorithms |= eigenvalues_symmetric_algorithm
 
 tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
