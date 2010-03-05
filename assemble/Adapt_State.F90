@@ -703,7 +703,7 @@ contains
             l = l + 1
           end do
           assert(l == size(boundary_ids) + 1)
-          call vtk_write_internal_face_mesh("surface", 11, unwrapped_positions_B, face_sets=(/new_physical_faces, new_aliased_faces/))
+          !call vtk_write_internal_face_mesh("surface", 11, unwrapped_positions_B, face_sets=(/new_physical_faces, new_aliased_faces/))
           assert(key_count(new_physical_faces) == key_count(new_aliased_faces))
 
           call deallocate(new_physical_faces)
@@ -772,6 +772,7 @@ contains
       unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path))
       call vtk_write_fields("adapted_mesh_unwrapped", delete_me, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("adapted_surface_unwrapped", delete_me, unwrapped_positions_A)
+      call deallocate(unwrapped_positions_A)
       delete_me = delete_me + 1
 
     ! Nonperiodic case
