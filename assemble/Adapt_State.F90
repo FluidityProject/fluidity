@@ -123,6 +123,7 @@ contains
     integer, dimension(:), pointer :: nodes, faces
     real, dimension(:, :), allocatable :: tmp_bbox
     type(integer_set) :: new_aliased_faces, new_physical_faces, old_physical_nodes
+    type(integer_set) :: other_surface_ids
 
     integer, save :: delete_me = 1
 
@@ -162,7 +163,7 @@ contains
         ! Step a). Unwrap the periodic input.
         unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path))
         call allocate(unwrapped_metric_A, unwrapped_positions_A%mesh, trim(metric%name))
-        call remap_field(metric, unwrapped_metric_A)
+        call remap_field(intermediate_metric, unwrapped_metric_A)
 
         ! We don't need the periodic mesh anymore
         call deallocate(intermediate_positions)
@@ -171,6 +172,7 @@ contains
         ! Step b). Collect all the faces that need to be locked through the adapt
         call allocate(lock_faces)
         call allocate(surface_ids)
+        call allocate(other_surface_ids)
 
         ! Collect all the relevant surface labels
         do j=0,no_bcs-1
@@ -179,6 +181,9 @@ contains
           allocate(surface_id(shape_option(1)))
           call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids', surface_id)
           call insert(surface_ids, surface_id)
+          if (j /= bc) then
+            call insert(other_surface_ids, surface_id)
+          end if
           deallocate(surface_id)
 
           ! and aliased
@@ -186,6 +191,9 @@ contains
           allocate(surface_id(shape_option(1)))
           call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids', surface_id)
           call insert(surface_ids, surface_id)
+          if (j /= bc) then
+            call insert(other_surface_ids, surface_id)
+          end if
           deallocate(surface_id)
         end do
 
@@ -572,6 +580,22 @@ contains
           call deallocate(nodes_to_map)
           deallocate(tmp_bbox)
 
+          ! For doubly periodic, we need to make sure that the front is "periodic" in some sense.
+          ! Otherwise, bad things can happen where the node on one side of the other BC wants to be
+          ! mapped, but the other node doesn't, and there's no consistent solution.
+          do ele=1,ele_count(front_field)
+            if (node_val(front_field, ele) == 1.0) then
+              neighbours => ele_neigh(intermediate_positions, ele)
+              do j=1,size(neighbours)
+                face = ele_face(intermediate_positions, ele, neighbours(j))
+                if (face > surface_element_count(intermediate_positions)) cycle
+                if (has_value(other_surface_ids, surface_element_id(intermediate_positions, face))) then
+                  call set(front_field, neighbours(j), 1.0)
+                end if
+              end do
+            end if
+          end do
+
           call vtk_write_fields("mesh", 8, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
           call vtk_write_surface_mesh("surface", 8, unwrapped_positions_B)
 
@@ -679,12 +703,17 @@ contains
             l = l + 1
           end do
           assert(l == size(boundary_ids) + 1)
+          call vtk_write_internal_face_mesh("surface", 11, unwrapped_positions_B, face_sets=(/new_physical_faces, new_aliased_faces/))
+          assert(key_count(new_physical_faces) == key_count(new_aliased_faces))
+
           call deallocate(new_physical_faces)
           call deallocate(new_aliased_faces)
+
 
           ! deallocate the old faces, and rebuild
           call deallocate_faces(intermediate_positions%mesh)
           call add_faces(intermediate_positions%mesh, sndgln=sndgln, element_owner=element_owners, boundary_ids=boundary_ids)
+          call vtk_write_surface_mesh("surface", 12, intermediate_positions)
           intermediate_metric%mesh = intermediate_positions%mesh
           deallocate(sndgln)
           deallocate(element_owners)
@@ -726,6 +755,8 @@ contains
 
         call vtk_write_fields("mesh", 10, position=intermediate_positions, model=intermediate_positions%mesh)
         call vtk_write_surface_mesh("surface", 10, intermediate_positions)
+
+        call deallocate(other_surface_ids)
       end do
 
       new_positions = intermediate_positions
@@ -737,6 +768,10 @@ contains
       call deallocate(intermediate_metric)
 
       call vtk_write_fields("adapted_mesh", delete_me, position=new_positions, model=new_positions%mesh)
+
+      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path))
+      call vtk_write_fields("adapted_mesh_unwrapped", delete_me, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
+      call vtk_write_surface_mesh("adapted_surface_unwrapped", delete_me, unwrapped_positions_A)
       delete_me = delete_me + 1
 
     ! Nonperiodic case
