@@ -284,6 +284,11 @@ module fields_base
   interface tetvol
     module procedure tetvol_old
   end interface tetvol
+
+  interface face_opposite
+    module procedure face_opposite_mesh, face_opposite_scalar, face_opposite_vector, &
+      face_opposite_tensor
+  end interface
     
 contains
 
@@ -3300,5 +3305,49 @@ contains
     end select
    
   end function simplex_volume
+
+  function face_opposite_mesh(mesh, face) result (opp_face)
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: face
+
+    integer :: parent_ele, opp_ele, opp_face
+    integer, dimension(:), pointer :: neighbours
+
+    parent_ele = face_ele(mesh, face)
+    neighbours => ele_neigh(mesh, parent_ele)
+    opp_ele = neighbours(local_face_number(mesh, face))
+    if (opp_ele > 0) then
+      opp_face = ele_face(mesh, opp_ele, parent_ele)
+    else
+      opp_face = -1
+    end if
+  end function face_opposite_mesh
+   
+  function face_opposite_scalar(sfield, face) result (opp_face)
+    type(scalar_field), intent(in) :: sfield
+    integer, intent(in) :: face
+
+    integer :: opp_face
+
+    opp_face = face_opposite_mesh(sfield%mesh, face)
+  end function face_opposite_scalar
+   
+  function face_opposite_vector(vfield, face) result (opp_face)
+    type(vector_field), intent(in) :: vfield
+    integer, intent(in) :: face
+
+    integer :: opp_face
+
+    opp_face = face_opposite_mesh(vfield%mesh, face)
+  end function face_opposite_vector
+   
+  function face_opposite_tensor(tfield, face) result (opp_face)
+    type(tensor_field), intent(in) :: tfield
+    integer, intent(in) :: face
+
+    integer :: opp_face
+
+    opp_face = face_opposite_mesh(tfield%mesh, face)
+  end function face_opposite_tensor
    
 end module fields_base
