@@ -18,6 +18,10 @@ void python_init_(void){
   // Initialize a persistent dictionary
   PyRun_SimpleString("persistent = {}");
 
+  // Add the working directory to the module search path.
+  PyRun_SimpleString("import sys");
+  PyRun_SimpleString("sys.path.append('.')");
+  
   init_vars();
 #endif
 }
