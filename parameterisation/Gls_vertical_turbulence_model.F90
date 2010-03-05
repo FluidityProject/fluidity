@@ -298,7 +298,9 @@ subroutine gls_init(state)
     call set(K_H,1e-6)
     call set(K_M,1e-6)
     call set(eps,eps_min)
-    call gls_calc_wall_function(state)
+    if (calc_fwall) then
+        call gls_calc_wall_function(state)
+    end if
 
     ! intilise surface - only if we need to though
     if (calculate_bcs) then

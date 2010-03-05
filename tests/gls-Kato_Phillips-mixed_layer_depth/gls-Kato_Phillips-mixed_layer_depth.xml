@@ -6,10 +6,10 @@
   <owner userid="jhill1"/>
   <tags>flml gls</tags>
     <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.flml &gt; /dev/null 2&gt;&amp;1;
-                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB.flml &gt; /dev/null 2&gt;&amp;1;
-                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94.flml &gt; /dev/null 2&gt;&amp;1;
-                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.flml &gt; /dev/null 2&gt;&amp;1;
+    <command_line>fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoA.flml;
+                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-CanutoB.flml;
+                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-KC94.flml;
+                  fluidity gls-Kato_Phillips-mixed_layer_depth-k_epsilon-GL78.flml;
     </command_line>
   </problem_definition>  
   <variables>  
