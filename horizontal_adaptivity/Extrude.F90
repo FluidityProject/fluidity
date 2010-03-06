@@ -4,22 +4,19 @@ module hadapt_extrude
   !!< Extrude a given 2D mesh to a full 3D mesh.
   !!< The layer depths are specified by a sizing function
   !!< which can be arbitrary python.
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
-  use quadrature
   use elements
-  use sparse_tools
   use fields
-  use state_module
-!
   use spud
+  use quadrature
   use global_parameters
+  use sparse_tools
   use hadapt_advancing_front
   use hadapt_metric_based_extrude
   implicit none
 
   private
   
-  public :: extrude, extrude_azimuthal, compute_z_nodes
+  public :: extrude, compute_z_nodes
 
   contains
 
@@ -129,103 +126,6 @@ module hadapt_extrude
     end if
         
   end subroutine extrude
-  
-  subroutine extrude_azimuthal(v_mesh, out_mesh, ndivisions)
-    !!< Extrude the given 2D around the z-axis mesh to form a 3D annular domain
-    
-    type(vector_field), intent(in) :: v_mesh
-    type(vector_field), target, intent(out) :: out_mesh
-    integer, intent(in) :: ndivisions
-    
-    ! Linear simplices only
-    integer, parameter :: dim = 3, sdim = 2, nloc = 4, snloc = 3
-    
-    integer :: i, index, j, neles_2d, neles_3d, nnodes_2d, nnodes_3d
-    integer, dimension(nloc) :: nodes_3d
-    integer, dimension(node_count(v_mesh), ndivisions + 1) :: chain_map
-    integer, dimension(:), pointer :: nodes_2d
-    real :: r, x, y, z
-    real, dimension(ndivisions) :: theta
-    type(element_type) :: shape_3d
-    type(element_type), pointer :: shape_2d
-    type(mesh_type), pointer :: mesh_3d
-    type(quadrature_type) :: quad_3d
-    
-    assert(.not. isparallel())
-    assert(v_mesh%dim == sdim)
-    assert(mesh_dim(v_mesh) == sdim)
-    assert(ndivisions > 0)
-    
-    shape_2d => ele_shape(v_mesh, 1)
-    assert(shape_2d%degree == 1)
-    assert(ele_numbering_family(shape_2d) == FAMILY_SIMPLEX)
-    
-    ! Generate the 3d shape function
-    quad_3d = make_quadrature(vertices = nloc, dim = dim, degree = shape_2d%quadrature%degree)
-    shape_3d = make_element_shape(vertices = nloc, dim = dim, degree = 1, quad = quad_3d)
-    call deallocate(quad_3d)
-    
-    nnodes_2d = node_count(v_mesh)
-    nnodes_3d = nnodes_2d * ndivisions  ! Fence posts = fence sections (periodic)
-    
-    neles_2d = ele_count(v_mesh)
-    neles_3d = neles_2d * ndivisions * 3  ! Split each triangular prism into 3 tets
-    
-    allocate(mesh_3d)
-    call allocate(mesh_3d, nnodes_3d, neles_3d, shape_3d, name = trim(v_mesh%mesh%name) // "AzimuthalExtrusion")
-    call deallocate(shape_3d)
-    
-    call allocate(out_mesh, dim, mesh_3d, "Coordinate")
-    deallocate(mesh_3d)
-    mesh_3d => out_mesh%mesh
-    
-    ! Generate the nodes
-    index = 0
-    do i = 1, ndivisions
-      theta(i) = 2.0 * pi * float(i - 1) / float(ndivisions)
-    end do
-    do i = 1, nnodes_2d
-      r = node_val(v_mesh, 1, i)
-      z = node_val(v_mesh, 2, i)
-      do j = 1, ndivisions
-        index = index + 1
-        x = r * cos(theta(j))
-        y = r * sin(theta(j))
-        call set(out_mesh, index, (/x, y, z/))
-        chain_map(i, j) = index
-      end do
-    end do
-    assert(index == nnodes_3d)
-    chain_map(:, ndivisions + 1) = chain_map(:, 1)
-    
-    ! Generate the element node list
-    index = 0
-    do i = 1, neles_2d
-      nodes_2d => ele_nodes(v_mesh, i)
-      assert(size(nodes_2d) == snloc)
-      do j = 1, ndivisions
-        index = index + 1
-        nodes_3d = (/chain_map(nodes_2d(1), j), chain_map(nodes_2d(1), j + 1), chain_map(nodes_2d(3), j), chain_map(nodes_2d(2), j)/)
-        mesh_3d%ndglno((index - 1) * nloc + 1:index * nloc) = nodes_3d
-        index = index + 1
-        nodes_3d = (/chain_map(nodes_2d(3), j), chain_map(nodes_2d(1), j + 1), chain_map(nodes_2d(3), j + 1), chain_map(nodes_2d(2), j)/)
-        mesh_3d%ndglno((index - 1) * nloc + 1:index * nloc) = nodes_3d
-        index = index + 1
-        nodes_3d = (/chain_map(nodes_2d(1), j + 1), chain_map(nodes_2d(2), j), chain_map(nodes_2d(2), j + 1), chain_map(nodes_2d(3), j + 1)/)
-        mesh_3d%ndglno((index - 1) * nloc + 1:index * nloc) = nodes_3d
-      end do
-    end do
-    assert(index == neles_3d)
-    
-    ! Surface mesh not currently generated
-    call add_faces(mesh_3d)
-    
-    mesh_3d%option_path = empty_path
-    out_mesh%option_path = empty_path
-    
-    call deallocate(mesh_3d)
-    
-  end subroutine extrude_azimuthal
 
   subroutine compute_z_nodes(z_mesh, depth, xy, sizing, sizing_function)
     !!< Figure out at what depths to put the layers.
