@@ -81,17 +81,23 @@ contains
     integer :: procno
 #ifdef HAVE_MPI
     integer :: ierr, lcommunicator
-
-    if(present(communicator)) then
-      lcommunicator = communicator
+    logical :: initialized
+    
+    call MPI_Initialized(initialized, ierr)
+    if(initialized) then
+       if(present(communicator)) then
+          lcommunicator = communicator
+       else
+          lcommunicator = MPI_COMM_WORLD
+       end if
+       
+       assert(valid_communicator(lcommunicator))
+       call MPI_Comm_Rank(lcommunicator, procno, ierr)
+       assert(ierr == MPI_SUCCESS)
+       procno = procno + 1
     else
-      lcommunicator = MPI_COMM_WORLD
+       procno = 1
     end if
-
-    assert(valid_communicator(lcommunicator))
-    call MPI_Comm_Rank(lcommunicator, procno, ierr)
-    assert(ierr == MPI_SUCCESS)
-    procno = procno + 1
 #else
     procno = 1
 #endif
@@ -134,17 +140,23 @@ contains
     
 #ifdef HAVE_MPI
     integer :: ierr, lcommunicator
-    
-    if(present(communicator)) then
-      assert(valid_communicator(communicator))
-      lcommunicator = communicator
+    logical :: initialized
+
+    call MPI_Initialized(initialized, ierr)
+    if(initialized) then
+       if(present(communicator)) then
+          assert(valid_communicator(communicator))
+          lcommunicator = communicator
+       else
+          lcommunicator = MPI_COMM_WORLD
+       end if
+       
+       assert(valid_communicator(lcommunicator))
+       call MPI_Comm_Size(lcommunicator, nprocs, ierr)
+       assert(ierr == MPI_SUCCESS)
     else
-      lcommunicator = MPI_COMM_WORLD
+       nprocs = 1
     end if
-    
-    assert(valid_communicator(lcommunicator))
-    call MPI_Comm_Size(lcommunicator, nprocs, ierr)
-    assert(ierr == MPI_SUCCESS)
 #else
     nprocs = 1
 #endif
