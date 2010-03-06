@@ -294,6 +294,7 @@ namespace Fluidity{
     }
 
     int snnodes = graph.size();
+
     vector< set<int> > cgraph(snnodes);
     for(map<int, set<int> >::const_iterator it=graph.begin(); it!=graph.end(); ++it)
       for(set<int>::const_iterator jt=it->second.begin(); jt!=it->second.end(); ++jt){
@@ -304,10 +305,9 @@ namespace Fluidity{
     
     // Map 2D decomposition onto 3D mesh.
     decomp.resize(nnodes);
-    for(int i=0;i<nnodes;i++){
+    for(int i=0;i<nnodes;i++)
       decomp[i] = sdecomp[surface_nids[i]-1];
-    }
-    
+        
     return edgecut;
   }  
   

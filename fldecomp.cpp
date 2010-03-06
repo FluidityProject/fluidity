@@ -26,10 +26,6 @@
     USA
 */
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 #include <unistd.h>
 
 #ifndef _AIX
@@ -72,8 +68,6 @@ void usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] -n nparts file\n"
       <<"\t-c <number of cores per node>\t\tApplies hierarchical partitioning.\n"
       <<"\t-d\t\tPrint out partition diagnostics.\n"
-      <<"\t-e <id>\t\tRecognise as extruded in the direction perpendicular "
-      <<"to the surface with id.\n"
       <<"\t-f <file name>\t\tInput file (can alternatively specify as final "
       <<"argument)\n"
       <<"\t-h\t\tPrints out this message\n"
@@ -240,19 +234,12 @@ void create_partitions(bool verbose,
 }
 
 int main(int argc, char **argv){
-#ifdef HAVE_MPI
-  // This must be called before we process any arguments
-  MPI::Init(argc,argv);
-  // Undo some MPI init shenanigans
-  chdir(getenv("PWD"));
-#endif
-  
   // Get any command line arguments
   // reset optarg so we can detect changes
   optarg = NULL;  
   char c;
   map<char, string> flArgs;
-  while((c = getopt(argc, argv, "c:de:f:hi:kn:rtv")) != -1){
+  while((c = getopt(argc, argv, "c:df:hi:kn:rtv")) != -1){
     if (c != '?'){
       if (optarg == NULL){
         flArgs[c] = "true";
@@ -306,7 +293,6 @@ int main(int argc, char **argv){
   if(verbose)
     cout<<"Input mesh type: "<<file_format<<endl;
   
-  vector<int> surface_nids;
   int nparts = atoi(flArgs['n'].c_str());
   if(nparts<2){
     cerr<<"ERROR: number of partitions requested is less than 2. Please check your usage and try again.\n";
@@ -321,368 +307,375 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-
-  if(file_format=="triangle"){
-    const int halo1_level = 1, halo2_level = 2;
-    
-    // Read in the mesh
-    if(verbose)
-      cout<<"Reading in triangle mesh with base name "<<filename<<"\n";
-    vector<double> x;
-    int dim;
-    vector<int> ENList, regionIds;
-    int nloc;
-    deque<vector<int> > SENList;
-    vector<int> boundaryIds;
-    int snloc;
-    if(ReadMesh(filename, file_format, x, dim,
-                ENList, regionIds, nloc, SENList, boundaryIds, snloc)){
-      cerr<<"ERROR: failed to read mesh file with base name "<<filename<<endl;
-      exit(-1);
-    }
-    
-    int nnodes=x.size()/dim;
-    vector<int> surface_nids;
-    
-    if(flArgs.count('e')){
-      // This triangle file has been extruded perpendicular for
-      // surface with the id specified with the -e option. The domain
-      // decomposition goes along this surface.
-      
-      // Initialise surface_nids
-      surface_nids.resize(nnodes);
-      for(int i=0;i<nnodes;i++)
-        surface_nids[i] = -1;
-      
-      int eplane = atoi(flArgs['e'].c_str());
-      map<int, set<int> > sNSList;
-      map<int, vector<double> > eplane_elements;
-      int nselements = SENList.size();
-      for(int i=0;i<nselements;i++){
-        if(boundaryIds[i]==eplane){
-          eplane_elements[i] = normal(&(x[3*(SENList[i][0]-1)]),
-                                      &(x[3*(SENList[i][1]-1)]),
-                                      &(x[3*(SENList[i][2]-1)]));
-          for(int j=0;j<snloc;j++){
-            sNSList[SENList[i][j]-1].insert(i);
-            surface_nids[SENList[i][j]-1] = SENList[i][j]-1;
-          }
-        }
-      }
-
-      // Approximate the normal at each vertex
-      map<int, vector<double> > normals;
-      for(map<int, set<int> >::const_iterator it=sNSList.begin();it!=sNSList.end();++it){
-        double patch_area = 0.0;
-        vector<double> weighed_normal(3, 0.0);
-        for(set<int>::const_iterator jt=it->second.begin();jt!=it->second.end();++jt){
-          patch_area += eplane_elements[*jt][3];
-          for(int i=0;i<3;i++)
-            weighed_normal[i] += eplane_elements[*jt][i]*eplane_elements[*jt][3];
-        }
-        
-        // renormalise
-        double mag = sqrt(weighed_normal[0]*weighed_normal[0]+
-                          weighed_normal[1]*weighed_normal[1]+
-                          weighed_normal[2]*weighed_normal[2]);
-        for(int i=0;i<3;i++)
-          weighed_normal[i] /= mag;
-        
-        normals[it->first] = weighed_normal;
-      }
-      
-      // Get the useful node-node adjancy list
-      vector< set<int> > NNList(nnodes);
-      for(int i=0;i<nnodes;i++){
-        for(int j=0;j<nloc;j++){
-          if(surface_nids[ENList[i*nloc+j]-1]==-1)
-            NNList[i].insert(ENList[i*nloc+j]-1);
-        }
-      }
-      
-      // Finally, discover the extrusion.
-      for(map<int, set<int> >::const_iterator it=sNSList.begin();it!=sNSList.end();++it){
-        int enode = it->first;
-        set<int>::const_iterator next_node=NNList[enode].begin();
-        for(;next_node!=NNList[enode].end();++next_node){
-          double dot = 0;
-          for(int i=0;i<3;i++)
-            dot += normals[enode][i]*(x[enode*3+i]-x[(*next_node)*3+i]);
-          
-          if(fabs(fabs(dot)-1)<0.0e-5){
-            break;
-          }
-        }
-        if(next_node==NNList[enode].end()){
-          break;
-        }else{
-          surface_nids[*next_node] = surface_nids[enode];
-          enode = *next_node;
-        }
-      }
-
-      // Check all is well
-      int err=0;
-      for(int i=0;i<nnodes;i++){
-        if(surface_nids[i]<0){
-          err=-1;
-          cerr<<"ERROR: failed to cover one of the extruded nodes.\n";
-        }
-      }
-      if(err)
-        exit(-1);
-    }else if(flArgs.count('t')){
-      // This triangle file came from Terreno and should have
-      // attribure data indicating the surface node lieing above the
-      // node in the extruded mesh.
-      string filename_node = filename+".node";
-      fstream afile;
-      afile.open(filename_node.c_str(), ios::in);
-      if(!afile.is_open()){
-        cerr<<"ERROR: Shoreline data file, "<<filename_node
-            <<", cannot be opened. Does it exist? Have you read permission?\n";
-        exit(-1);
-      }
-      afile.close();
-      
-      FILE *file=fopen(filename_node.c_str(), "r");
-      
-      int header[4];
-      for(int i=0;i<4;i++)
-        fscanf(file, "%d", header+i);
-      if(header[2]==1){
-        assert(nnodes==header[0]);
-        surface_nids.resize(nnodes);
-        double dummy;
-        for(int i=0;i<nnodes;i++){
-          for(int j=0;j<=header[1];j++)
-            fscanf(file, "%lf", &dummy);
-          fscanf(file, "%d", &(surface_nids[i]));
-        }
-      }
-      fclose(file);
-    }
-    
-    vector<int> decomp;
-    int partition_method = -1;
-
-    if(flArgs.count('r')){
-      partition_method = 0; // METIS PartGraphRecursive
-      
-      if(flArgs.count('k')){
-        cerr<<"WARNING: should not specify both -k and -r. Choosing -r.\n";
-      }
-    }
-    if(flArgs.count('k')){
-      partition_method = 1; // METIS PartGraphKway
-    }
-
-    vector<int> npartitions;
-    if(ncores>1){
-      npartitions.push_back(nparts/ncores);
-      npartitions.push_back(ncores);
-    }else{
-      npartitions.push_back(nparts);
-    }
-
-    int edgecut=0;
-    if(surface_nids.size()){
-      // Partition the mesh
-      if(verbose)
-        cout<<"Partitioning the extruded Terreno mesh\n";
-
-      // Partition the mesh. Generates a map "decomp" from node number
-      // (numbered from zero) to partition number (numbered from
-      // zero).
-      edgecut = partition(ENList, surface_nids, nloc, nnodes, npartitions, partition_method, decomp);
-    }else{
-      // Partition the mesh
-      if(verbose)
-        cout<<"Partitioning the mesh\n";
-      
-      // Partition the mesh. Generates a map "decomp" from node number
-      // (numbered from zero) to partition number (numbered from
-      // zero).
-      edgecut = partition(ENList, dim, nloc, nnodes, npartitions, partition_method, decomp);
-    }
-
-    if(flArgs.count('d')){
-      cout<<"Edge-cut: "<<edgecut<<endl;
-    }
-
-    // Process the partitioning
-    if(verbose)
-      cout<<"Processing the mesh partitions\n";
-    vector<deque<int> > nodes(nparts);
-    vector<int> npnodes(nparts);
-    vector<deque<int> > elements(nparts);
-    vector< vector<set<int> > > halo1(nparts), halo2(nparts);
-    // Construct:
-    //   nodes    - nodes in each partition (private and halo), numbered from
-    //              one
-    //   npnodes  - number of nodes private to each partition
-    //   elements - elements ids in each partition (private and halo), numbered
-    //              from zero
-    //   halo1    - receive nodes (numbered from one) in the first halo for each
-    //              partition
-    //   halo2    - receive nodes (numbered from one) in the second halo for
-    //              each partition
-    // where in each case partitions are numbered from zero.
-    create_partitions(verbose,
-                      decomp, nparts, nnodes, ENList.size()/nloc, nloc, ENList,
-                      nodes, npnodes, elements, halo1, halo2);
-                 
-    // Extract and write out data for each partition
-    for(int i=0;i<nparts;i++){
-      if(verbose)
-        cout<<"Extracting mesh data for partition "<<i<<"\n";
-      
-      // Map from global node numbering (numbered from one) to partition node 
-      // numbering (numbered from one)
-      map<int, int> renumber;
-      for(size_t j=0;j<nodes[i].size();j++){
-        assert(renumber.find(nodes[i][j])==renumber.end());
-        renumber[nodes[i][j]]=j+1;
-      }
-      
-      // Coordinate data
-      vector<double> partX(nodes[i].size()*dim);
-      for(size_t j=0;j<nodes[i].size();j++){
-        for(int k=0;k<dim;k++){
-          partX[j * dim + k] = x[(nodes[i][j] - 1) * dim + k];
-        }
-      }
-      
-      // Volume element data
-      vector<int> partENList;
-      vector<int> partRegionIds;
-      // Map from partition node numbers (numbered from one) to partition
-      // element numbers (numbered from zero)
-      multimap<int, int> partNodesToEid;
-      for(deque<int>::const_iterator iter=elements[i].begin();iter!=elements[i].end();iter++){
-        for(int j=0;j<nloc;j++){
-          assert(renumber.find(ENList[*iter*nloc+j])!=renumber.end());
-          partENList.push_back(renumber[ENList[*iter*nloc+j]]);
-          partNodesToEid.insert(pair<int, int>(*(partENList.rbegin()),(partENList.size()-1)/nloc));
-        }
-        partRegionIds.push_back(regionIds[*iter]);
-      }
-      
-      // Surface element data
-      deque<vector<int> > partSENList;
-      vector<int> partBoundaryIds;
-#ifndef NDEBUG
-      set< vector<int> > surf_elms;
-#endif
-      for(size_t j=0;j<SENList.size();j++){
-        // In order for a global surface element to be a partition surface
-        // element, all of its nodes must be attached to at least one partition
-        // volume element
-        if(SENList[j].size()==0 or renumber.find(SENList[j][0])==renumber.end() or partNodesToEid.count(renumber[SENList[j][0]])==0){
-          continue;
-        }
-        
-        bool SEOwned=false;
-        for(multimap<int, int>::const_iterator iter=partNodesToEid.find(renumber[SENList[j][0]]);iter->first==renumber[SENList[j][0]];iter++){
-          SEOwned=true;
-          set<int> VENodes;
-          for(int k=iter->second*nloc;k<iter->second*nloc+nloc;k++){
-            VENodes.insert(partENList[k]);
-          }
-          for(size_t k=1;k<SENList[j].size();k++){
-            if(renumber.find(SENList[j][k])==renumber.end() or VENodes.count(renumber[SENList[j][k]])==0){
-              SEOwned=false;
-              break;
-            }
-          }
-          if(SEOwned){
-            break;
-          }
-        }
-
-        if(SEOwned){
-          vector<int> elm(SENList[j].size());
-          
-          for(size_t k=0;k<SENList[j].size();k++){
-            assert(renumber.find(SENList[j][k])!=renumber.end());
-            elm[k]=renumber[SENList[j][k]];
-          }
-#ifndef NDEBUG
-          assert(surf_elms.find(elm)==surf_elms.end());
-          surf_elms.insert(elm);
-#endif
-          partSENList.push_back(elm);
-          partBoundaryIds.push_back(boundaryIds[j]);
-        }
-      }
-      
-      // Write out the partition mesh
-      ostringstream buffer;
-      buffer<<filename<<"_"<<i;
-      if(verbose)
-        cout<<"Writing out triangle mesh for partition "<<i<<" to files with base name "<<buffer.str()<<"\n";
-      if(WriteMesh(buffer.str(), file_format, partX, dim,
-                   partENList, partRegionIds, nloc, partSENList, partBoundaryIds, snloc)){
-        cerr<<"ERROR: failed to write mesh file with base name "<<buffer.str()<<endl;
-        exit(-1);
-      }
-      buffer.str("");
-
-      // Extract halo data
-      if(verbose)
-        cout<<"Extracting halo data for partition "<<i<<"\n";
-      map<int, vector< vector<int> > > send, recv;
-      map<int, int> npnodes_handle;
-
-      recv[halo1_level].resize(nparts);
-      send[halo1_level].resize(nparts);
-
-      recv[halo2_level].resize(nparts);
-      send[halo2_level].resize(nparts);
-
-      for(int j=0;j<nparts;j++){
-        for(set<int>::const_iterator it=halo1[i][j].begin();it!=halo1[i][j].end();++it){
-          assert(renumber.find(*it)!=renumber.end());
-          assert(renumber[*it]>npnodes[i]);
-          recv[halo1_level][j].push_back(renumber[*it]);
-        }
-        for(set<int>::const_iterator it=halo1[j][i].begin();it!=halo1[j][i].end();++it){
-          assert(renumber.find(*it)!=renumber.end());
-          assert(renumber[*it]<=npnodes[i]);
-          send[halo1_level][j].push_back(renumber[*it]);
-        }
-
-        for(set<int>::const_iterator it=halo2[i][j].begin();it!=halo2[i][j].end();++it){
-          assert(renumber.find(*it)!=renumber.end());
-          assert(renumber[*it]>npnodes[i]);
-          recv[halo2_level][j].push_back(renumber[*it]);
-        }
-        for(set<int>::const_iterator it=halo2[j][i].begin();it!=halo2[j][i].end();++it){
-          assert(renumber.find(*it)!=renumber.end());
-          assert(renumber[*it]<=npnodes[i]);
-          send[halo2_level][j].push_back(renumber[*it]);
-        }
-      }
-
-      npnodes_handle[halo1_level]=npnodes[i];
-      npnodes_handle[halo2_level]=npnodes[i];
-
-      buffer<<filename<<"_"<<i<<".halo";
-      if(verbose)
-        cout<<"Writing out halos for partition "<<i<<" to file "<<buffer.str()<<"\n";
-
-      if(WriteHalos(buffer.str(), i, nparts, npnodes_handle, send, recv)){
-        cerr<<"ERROR: failed to write halos to file "<<buffer.str()<<endl;
-        exit(-1);
-      }
-      buffer.str("");
-    }
-  }else{
-    cerr<<"ERROR: unrecognised file type\n";
+  
+  if(file_format!="triangle"){
+    cerr<<"ERROR: file format not supported\n";
   }
   
-#ifdef HAVE_MPI
-  MPI::Finalize();
+  const int halo1_level = 1, halo2_level = 2;
+  
+  // Read in the mesh
+  if(verbose)
+    cout<<"Reading in triangle mesh with base name "<<filename<<"\n";
+  
+  bool extruded = (flArgs.find('t')!=flArgs.end());
+  if(extruded&&verbose){
+    // This triangle file came from Terreno and should have
+    // attribure data indicating the surface node lieing above the
+    // node in the extruded mesh.
+    cout<<"Reading in extrusion information\n";
+  }
+
+  string filename_node = filename+".node";
+  if(verbose)
+    cout<<"Reading "<<filename_node<<endl;
+
+  fstream node_file;
+  node_file.open(filename_node.c_str(), ios::in);
+  if(!node_file.is_open()){
+    cerr<<"ERROR: Triangle file, "<<filename_node
+        <<", cannot be opened. Does it exist? Have you read permission?\n";
+    exit(-1);
+  }
+  
+  int nnodes, dim, natt, nboundary;
+  node_file>>nnodes>>dim>>natt>>nboundary;
+  if(extruded){
+    if(natt!=1){
+      cerr<<"ERROR: The -t option is specified but there is not the right number "
+          <<"of attributes in the .node file.\n";
+    }
+  }
+  
+  vector<double> x(nnodes*dim);
+  vector<int> surface_nids;
+  if(extruded||(natt==1))
+    surface_nids.resize(nnodes);
+  
+  {
+    int id, pos=0;
+    for(int i=0;i<nnodes;i++){
+      node_file>>id;
+      for(int j=0;j<dim;j++)
+        node_file>>x[pos++];
+      if(natt)
+        node_file>>surface_nids[i];
+    }
+  }
+  node_file.close();
+
+  string filename_ele;
+  filename_ele = filename+".ele";
+  if(verbose)
+    cout<<"Reading "<<filename_ele<<endl;
+
+  fstream ele_file;
+  ele_file.open(filename_ele.c_str(), ios::in);
+  if(!ele_file.is_open()){
+    cerr<<"ERROR: Triangle file, "<<filename_ele
+        <<", cannot be opened. Does it exist? Have you read permission?\n";
+    exit(-1);
+  }
+  
+  vector<int> ENList, regionIds;
+  int nele, nloc;
+  {
+    int natt, id, pos=0;
+    ele_file>>nele>>nloc>>natt;
+    ENList.resize(nele*nloc);
+    regionIds.resize(nele);
+    if(natt>1){
+      cerr<<"ERROR: Don't know what to do with more than 1 attribute.\n";
+      exit(-1);
+    }
+
+    for(int i=0;i<nele;i++){
+      ele_file>>id;
+      for(int j=0;j<nloc;j++)
+        ele_file>>ENList[pos++];
+      if(natt)
+        ele_file>>regionIds[i];
+      else
+        regionIds[i]=0;
+    }
+  }
+  ele_file.close();
+
+  string filename_face;
+  if(dim==3){
+    filename_face = filename+".face";
+  }else if(dim==2){
+    filename_face = filename+".edge";
+  }else if(dim==1){
+    filename_face = filename+".bound";
+  }else{
+    cerr<<"ERROR: dim=="<<dim<<" not supported.\n";
+    exit(-1);
+  }
+  if(verbose)
+    cout<<"Reading "<<filename_face<<endl;
+
+  fstream face_file;
+  face_file.open(filename_face.c_str(), ios::in);
+  if(!face_file.is_open()){
+    cerr<<"ERROR: Triangle file, "<<filename_face
+        <<", cannot be opened. Does it exist? Have you read permission?\n";
+    exit(-1);
+  }
+  
+  deque< vector<int> > SENList;
+  vector<int> boundaryIds;
+  int nsele, snloc;
+  {
+    int natt, id;
+    face_file>>nsele>>natt;
+    if((nloc==4)&&(dim==3))
+      snloc=3;
+    else if((nloc==4)&&(dim==2))
+      snloc=2;
+    else if((nloc==2)&&(dim==1))
+      snloc=1;
+    else if(nloc==3)
+      snloc=2;
+    else if(nloc==8)
+      snloc=4;
+    else{
+      cerr<<"ERROR: no idea what snloc is.\n";
+      exit(-1);
+    }
+    SENList.resize(nsele);
+    if(natt>1){
+      cerr<<"ERROR: Don't know what to do with more than 1 attribute.\n";
+      exit(-1);
+    }
+    if(natt)
+      boundaryIds.resize(nsele);
+    for(int i=0;i<nsele;i++){
+      vector<int> facet(snloc);
+      face_file>>id;
+      for(int j=0;j<snloc;j++)
+        face_file>>facet[j];
+      SENList[i] = facet;
+      if(natt)
+        face_file>>boundaryIds[i];
+    }
+  }
+  face_file.close();
+
+  vector<int> decomp;
+  int partition_method = -1;
+  
+  if(flArgs.count('r')){
+    partition_method = 0; // METIS PartGraphRecursive
+    
+    if(flArgs.count('k')){
+      cerr<<"WARNING: should not specify both -k and -r. Choosing -r.\n";
+    }
+  }
+  if(flArgs.count('k')){
+    partition_method = 1; // METIS PartGraphKway
+  }
+  
+  vector<int> npartitions;
+  if(ncores>1){
+    npartitions.push_back(nparts/ncores);
+    npartitions.push_back(ncores);
+  }else{
+    npartitions.push_back(nparts);
+  }
+  
+  int edgecut=0;
+  if(surface_nids.size()){
+    // Partition the mesh
+    if(verbose)
+      cout<<"Partitioning the extruded Terreno mesh\n";
+    
+    // Partition the mesh. Generates a map "decomp" from node number
+    // (numbered from zero) to partition number (numbered from
+    // zero).
+    edgecut = partition(ENList, surface_nids, nloc, nnodes, npartitions, partition_method, decomp);
+  }else{
+    // Partition the mesh
+    if(verbose)
+      cout<<"Partitioning the mesh\n";
+    
+    // Partition the mesh. Generates a map "decomp" from node number
+    // (numbered from zero) to partition number (numbered from
+    // zero).
+    edgecut = partition(ENList, dim, nloc, nnodes, npartitions, partition_method, decomp);
+  }
+  
+  if(flArgs.count('d')){
+    cout<<"Edge-cut: "<<edgecut<<endl;
+  }
+  
+  // Process the partitioning
+  if(verbose)
+    cout<<"Processing the mesh partitions\n";
+  vector<deque<int> > nodes(nparts);
+  vector<int> npnodes(nparts);
+  vector<deque<int> > elements(nparts);
+  vector< vector<set<int> > > halo1(nparts), halo2(nparts);
+  // Construct:
+  //   nodes    - nodes in each partition (private and halo), numbered from
+  //              one
+  //   npnodes  - number of nodes private to each partition
+  //   elements - elements ids in each partition (private and halo), numbered
+  //              from zero
+  //   halo1    - receive nodes (numbered from one) in the first halo for each
+  //              partition
+  //   halo2    - receive nodes (numbered from one) in the second halo for
+  //              each partition
+  // where in each case partitions are numbered from zero.
+  create_partitions(verbose,
+                    decomp, nparts, nnodes, ENList.size()/nloc, nloc, ENList,
+                    nodes, npnodes, elements, halo1, halo2);
+  
+  // Extract and write out data for each partition
+  for(int i=0;i<nparts;i++){
+    if(verbose)
+      cout<<"Extracting mesh data for partition "<<i<<"\n";
+    
+    // Map from global node numbering (numbered from one) to partition node 
+    // numbering (numbered from one)
+    map<int, int> renumber;
+    for(size_t j=0;j<nodes[i].size();j++){
+      assert(renumber.find(nodes[i][j])==renumber.end());
+      renumber[nodes[i][j]]=j+1;
+    }
+    
+    // Coordinate data
+    vector<double> partX(nodes[i].size()*dim);
+    for(size_t j=0;j<nodes[i].size();j++){
+      for(int k=0;k<dim;k++){
+        partX[j * dim + k] = x[(nodes[i][j] - 1) * dim + k];
+      }
+    }
+    
+    // Volume element data
+    vector<int> partENList;
+    vector<int> partRegionIds;
+    // Map from partition node numbers (numbered from one) to partition
+    // element numbers (numbered from zero)
+    multimap<int, int> partNodesToEid;
+    for(deque<int>::const_iterator iter=elements[i].begin();iter!=elements[i].end();iter++){
+      for(int j=0;j<nloc;j++){
+        assert(renumber.find(ENList[*iter*nloc+j])!=renumber.end());
+        partENList.push_back(renumber[ENList[*iter*nloc+j]]);
+        partNodesToEid.insert(pair<int, int>(*(partENList.rbegin()),(partENList.size()-1)/nloc));
+      }
+      partRegionIds.push_back(regionIds[*iter]);
+    }
+    
+    // Surface element data
+    deque<vector<int> > partSENList;
+    vector<int> partBoundaryIds;
+#ifndef NDEBUG
+    set< vector<int> > surf_elms;
 #endif
+    for(size_t j=0;j<SENList.size();j++){
+      // In order for a global surface element to be a partition surface
+      // element, all of its nodes must be attached to at least one partition
+      // volume element
+      if(SENList[j].size()==0 or renumber.find(SENList[j][0])==renumber.end() or partNodesToEid.count(renumber[SENList[j][0]])==0){
+        continue;
+      }
+      
+      bool SEOwned=false;
+      for(multimap<int, int>::const_iterator iter=partNodesToEid.find(renumber[SENList[j][0]]);iter->first==renumber[SENList[j][0]];iter++){
+        SEOwned=true;
+        set<int> VENodes;
+        for(int k=iter->second*nloc;k<iter->second*nloc+nloc;k++){
+          VENodes.insert(partENList[k]);
+        }
+        for(size_t k=1;k<SENList[j].size();k++){
+          if(renumber.find(SENList[j][k])==renumber.end() or VENodes.count(renumber[SENList[j][k]])==0){
+            SEOwned=false;
+            break;
+          }
+        }
+        if(SEOwned){
+          break;
+        }
+      }
+      
+      if(SEOwned){
+        vector<int> elm(SENList[j].size());
+        
+        for(size_t k=0;k<SENList[j].size();k++){
+          assert(renumber.find(SENList[j][k])!=renumber.end());
+          elm[k]=renumber[SENList[j][k]];
+        }
+#ifndef NDEBUG
+        assert(surf_elms.find(elm)==surf_elms.end());
+        surf_elms.insert(elm);
+#endif
+        partSENList.push_back(elm);
+        partBoundaryIds.push_back(boundaryIds[j]);
+      }
+    }
+    
+    // Write out the partition mesh
+    ostringstream buffer;
+    buffer<<filename<<"_"<<i;
+    if(verbose)
+      cout<<"Writing out triangle mesh for partition "<<i<<" to files with base name "<<buffer.str()<<"\n";
+    if(WriteMesh(buffer.str(), file_format, partX, dim,
+                 partENList, partRegionIds, nloc, partSENList, partBoundaryIds, snloc)){
+      cerr<<"ERROR: failed to write mesh file with base name "<<buffer.str()<<endl;
+      exit(-1);
+    }
+    buffer.str("");
+    
+    // Extract halo data
+    if(verbose)
+      cout<<"Extracting halo data for partition "<<i<<"\n";
+    map<int, vector< vector<int> > > send, recv;
+    map<int, int> npnodes_handle;
+    
+    recv[halo1_level].resize(nparts);
+    send[halo1_level].resize(nparts);
+    
+    recv[halo2_level].resize(nparts);
+    send[halo2_level].resize(nparts);
+    
+    for(int j=0;j<nparts;j++){
+      for(set<int>::const_iterator it=halo1[i][j].begin();it!=halo1[i][j].end();++it){
+        assert(renumber.find(*it)!=renumber.end());
+        assert(renumber[*it]>npnodes[i]);
+        recv[halo1_level][j].push_back(renumber[*it]);
+      }
+      for(set<int>::const_iterator it=halo1[j][i].begin();it!=halo1[j][i].end();++it){
+        assert(renumber.find(*it)!=renumber.end());
+        assert(renumber[*it]<=npnodes[i]);
+        send[halo1_level][j].push_back(renumber[*it]);
+      }
+      
+      for(set<int>::const_iterator it=halo2[i][j].begin();it!=halo2[i][j].end();++it){
+        assert(renumber.find(*it)!=renumber.end());
+        assert(renumber[*it]>npnodes[i]);
+        recv[halo2_level][j].push_back(renumber[*it]);
+      }
+      for(set<int>::const_iterator it=halo2[j][i].begin();it!=halo2[j][i].end();++it){
+        assert(renumber.find(*it)!=renumber.end());
+        assert(renumber[*it]<=npnodes[i]);
+        send[halo2_level][j].push_back(renumber[*it]);
+      }
+    }
+    
+    npnodes_handle[halo1_level]=npnodes[i];
+    npnodes_handle[halo2_level]=npnodes[i];
+    
+    buffer<<filename<<"_"<<i<<".halo";
+    if(verbose)
+      cout<<"Writing out halos for partition "<<i<<" to file "<<buffer.str()<<"\n";
+    
+    if(WriteHalos(buffer.str(), i, nparts, npnodes_handle, send, recv)){
+      cerr<<"ERROR: failed to write halos to file "<<buffer.str()<<endl;
+      exit(-1);
+    }
+    buffer.str("");
+  }
+
   return(0);
 }
