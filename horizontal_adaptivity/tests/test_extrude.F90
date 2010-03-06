@@ -12,7 +12,6 @@ subroutine test_extrude
 
   character(len=OPTION_PATH_LEN):: option_PATH
   integer, parameter:: QUAD_DEGREE=4
-  type(ilist) :: seeds
   type(vector_field) :: h_mesh, out_mesh
   integer :: stat
 
@@ -21,17 +20,11 @@ subroutine test_extrude
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/sizing_function/constant", 0.1, stat=stat)
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/bottom_surface_id", 4, stat=stat)
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/top_surface_id", 5, stat=stat)
-  
-  call print_options()
-  
+    
   h_mesh=read_triangle_files('data/square-2d_A', quad_degree=QUAD_DEGREE)
   
   option_path='/geometry/mesh::ExtrudedMesh'
   call extrude(h_mesh, option_path, out_mesh)
-  
-  seeds = advancing_front_intersection_finder_seeds(out_mesh)
-  print *, list2vector(seeds)
-  call deallocate(seeds)
   
   call write_triangle_files('extrude', out_mesh)
   
