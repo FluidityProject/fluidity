@@ -35,25 +35,19 @@ CONTAINS
     real :: tadapt
     integer :: dump_count=1
     !
-    type(scalar_field), pointer :: PV, PV_Old, streamfunction
+    type(scalar_field), pointer :: PV, PV_Old, streamfunction, time
     type(scalar_field), pointer :: buoyancy, buoyancy_old
     type(vector_field), pointer :: X, beta
-    type(scalar_field), dimension(:), allocatable :: PV_RK_Stages
     type(csr_sparsity), pointer :: pv_sparsity
     type(csr_sparsity), pointer :: buoyancy_sparsity
     type(mesh_type), pointer :: mesh
     type(tensor_field) :: metric
-    !RK stage coefficients
-    real, dimension(:), allocatable :: Rk_a, RK_b
     integer :: nstages, stage
     integer :: i, n_buoyancy_bcs
     integer, dimension(2) :: shape_option
 
     character(len=FIELD_NAME_LEN) :: bc_name
     character(len=FIELD_NAME_LEN) :: filename=""
-
-    !True if we're using RK
-    logical :: rk
 
     call get_option("/simulation_name",filename)
 
@@ -65,19 +59,7 @@ CONTAINS
 
     call populate_state(state)
 
-    ! RK stages
-    rk=have_option("/timestepping/rungekutta")
-    if(rk) then
-       shape_option = option_shape("/timestepping/rungekutta/stages")
-       nstages = shape_option(1)
-       allocate( rk_a(nstages), rk_b(nstages), PV_RK_Stages(nstages) )
-       call get_option("/timestepping/rungekutta/stages",rk_a)
-       call get_option("/timestepping/rungekutta/weights",rk_b)
-    else
-       nstages=1
-    end if
-
-    call allocate_and_insert_auxilliary_qg_fields(state(1), PV_RK_Stages)
+    call allocate_and_insert_auxilliary_qg_fields(state(1))
 
     ! Setup adaptivity if used
     if(have_option("/mesh_adaptivity")) then
@@ -90,7 +72,7 @@ CONTAINS
        ewrite(1,*) "adapting mesh at first timestep"
        call assemble_metric(state, metric)
        call adapt_state(state, metric)
-       call allocate_and_insert_auxilliary_qg_fields(state(1), PV_RK_Stages)
+       call allocate_and_insert_auxilliary_qg_fields(state(1))
     end if
 
     PV => extract_scalar_field(state(1), 'PotentialVorticity')
@@ -136,6 +118,10 @@ CONTAINS
        t = t + dt
        !update time in options dictionary
        call set_option("/timestepping/current_time", t)
+       !update time field in state (for writing to vtus)
+       time => extract_scalar_field(state(1), 'Time')
+       call set(time, t)
+
        tdump = tdump + dt
        tadapt = tadapt + dt
 
@@ -154,7 +140,7 @@ CONTAINS
           call assemble_metric(state, metric)
           call adapt_state(state, metric)
           ! Reallocate and insert stuff into state:
-          call allocate_and_insert_auxilliary_qg_fields(state(1), PV_RK_Stages)
+          call allocate_and_insert_auxilliary_qg_fields(state(1))
           tadapt=0.
           ! Re-extract fields and recalculate velocity from streamfunction
           PV => extract_scalar_field(state(1), 'PotentialVorticity')
@@ -166,56 +152,42 @@ CONTAINS
 
        call set(PV_old, PV)
 
-       rkstages: do stage = 1, nstages
+       pv_sparsity => extract_csr_sparsity(state(1), &
+            'PotentialVorticitySparsity')
+       call solve_field_equation_cg('PotentialVorticity', &
+            state(1), dt, velocity_name='GeostrophicVelocity')
+       PV => extract_scalar_field(state(1), "PotentialVorticity")
 
-          pv_sparsity => extract_csr_sparsity(state(1), &
-               'PotentialVorticitySparsity')
-          call solve_field_equation_cg('PotentialVorticity', &
-          state(1), dt, velocity_name='GeostrophicVelocity')
-          PV => extract_scalar_field(state(1), "PotentialVorticity")
-          if(rk) then
-             call set(PV_RK_Stages(stage), PV)
+       ! If streamfunction is prognostic, solve for it and 
+       ! recalculate velocity
+       if(have_option("/material_phase[0]/scalar_field::&
+            Streamfunction/prognostic")) then
+          ! If we are advecting buoyancy on the top and bottom
+          ! surfaces, we must solve for it first:
+          if(n_buoyancy_bcs>=1) then
+             call update_2d_state_for_boundary_conditions(state(1), bc_states)
+             do i=0, n_buoyancy_bcs-1
+                buoyancy=>extract_scalar_field(bc_states(i+1), "Buoyancy")
+                buoyancy_old=>extract_scalar_field(bc_states(i+1), &
+                     "OldBuoyancy")
+                call set(buoyancy_old, buoyancy)
+                buoyancy_sparsity=>extract_csr_sparsity(bc_states(i+1), &
+                     "BuoyancySparsity")
+                call set(buoyancy_old, buoyancy)
+                call solve_field_equation_cg('Buoyancy', bc_states(i+1), &
+                     dt, velocity_name='GeostrophicVelocity')
+                call get_option("/material_phase["//int2str(0)//&
+                     "]/scalar_field::Streamfunction/prognostic/&
+                     boundary_conditions["//int2str(i)//"]/name",&
+                     bc_name)
+                call insert_surface_field(streamfunction, trim(bc_name), &
+                     buoyancy)
+             end do
           end if
-
-          ! If streamfunction is prognostic, solve for it and 
-          ! recalculate velocity
-          if(have_option("/material_phase[0]/scalar_field::&
-               Streamfunction/prognostic")) then
-             ! If we are advecting buoyancy on the top and bottom
-             ! surfaces, we must solve for it first:
-             if(n_buoyancy_bcs>=1) then
-                call update_2d_state_for_boundary_conditions(state(1), bc_states)
-                do i=0, n_buoyancy_bcs-1
-                   buoyancy=>extract_scalar_field(bc_states(i+1), "Buoyancy")
-                   buoyancy_old=>extract_scalar_field(bc_states(i+1), &
-                        "OldBuoyancy")
-                   call set(buoyancy_old, buoyancy)
-                   buoyancy_sparsity=>extract_csr_sparsity(bc_states(i+1), &
-                        "BuoyancySparsity")
-                   call set(buoyancy_old, buoyancy)
-                   call solve_field_equation_cg('Buoyancy', bc_states(i+1), &
-                        dt, velocity_name='GeostrophicVelocity')
-                   call get_option("/material_phase["//int2str(0)//&
-                        "]/scalar_field::Streamfunction/prognostic/&
-                        boundary_conditions["//int2str(i)//"]/name",&
-                        bc_name)
-                   call insert_surface_field(streamfunction, trim(bc_name), &
-                        buoyancy)
-                end do
-             end if
-             call solve_streamfunction_qg(state(1))
-             call streamfunction2velocity(state(1))
-          end if
-
-       end do rkstages
-
-       if(rk) then
-          call zero(PV)
-          rkstage_step: do stage = 1, nstages
-             call addto(PV, PV_RK_Stages(stage), rk_b(stage))
-          end do rkstage_step
+          call solve_streamfunction_qg(state(1))
+          call streamfunction2velocity(state(1))
        end if
-          
+
        if(tdump>=dump_period) then 
           ewrite(1,*) 'dump', dump_count
           tdump = 0.
@@ -245,15 +217,14 @@ CONTAINS
 
   end subroutine qg_forward_run
 
-  subroutine allocate_and_insert_auxilliary_qg_fields(state, PV_RK_Stages)
+  subroutine allocate_and_insert_auxilliary_qg_fields(state)
     !!< This subroutine allocates and inserts into state 
     !!< fields that are unique to qg_strat
 
     type(state_type), intent(inout) :: state
 
     type(scalar_field), pointer :: PV, streamfunction
-    type(scalar_field) :: OldPV
-    type(scalar_field), dimension(:) :: PV_RK_Stages
+    type(scalar_field) :: OldPV, Time
     type(vector_field), pointer :: X
     type(vector_field) :: V, beta
     type(csr_sparsity) :: pv_sparsity
@@ -296,13 +267,14 @@ CONTAINS
     call insert(state, pv_sparsity, "PotentialVorticitySparsity")
     call deallocate(pv_sparsity)    
 
-    do stage = 1, size(PV_RK_Stages)
-       call allocate( PV_RK_Stages(stage), PV%mesh, &
-            'PV_RK_Stages'//int2str(stage) )
-       call zero(PV_RK_Stages(stage))
-       call insert(state, PV_RK_Stages(stage), 'PV_RK_Stages'//int2str(stage))
-       call deallocate(PV_RK_Stages(stage))
-    end do
+    ! Ensure that time is output in vtu files.
+    call allocate(Time, X%mesh, 'Time', field_type=FIELD_TYPE_CONSTANT)
+    call get_option('/timestepping/current_time', current_time)
+    call set(Time, current_time)
+    Time%option_path = ""
+    call insert(state, Time, 'Time')
+    call deallocate(Time)
+
 
   end subroutine allocate_and_insert_auxilliary_qg_fields
 
