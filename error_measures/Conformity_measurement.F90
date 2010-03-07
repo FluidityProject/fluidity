@@ -265,10 +265,6 @@ module conformity_measurement
     beta = ((1.0 / metric_xpct) * pwc_xpct) ** (2.0 / dim)
     call scale(metric, beta)
 
-    if (present(target)) then
-      assert(expected_elements(positions, metric) == target)
-    end if
-
   end subroutine project_p0_metric_p1
 
 
