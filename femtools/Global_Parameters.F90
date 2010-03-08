@@ -156,4 +156,6 @@ module global_parameters
   ! (:, 2) are the maxima along each coordinate
   real, dimension(:, :), allocatable :: domain_bbox
 
+  real :: domain_volume
+
 end module global_parameters
