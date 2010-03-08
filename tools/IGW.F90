@@ -105,7 +105,7 @@ subroutine IGW
   ewrite(1,*) 'subroutine IGW'
 
   call PetscOptionsGetString('igw_', '-filename', filename, flag, ierr)
-  if (PetscFlagIsFalse(flag)) then
+  if (.not. flag) then
      call usage
      stop
   end if

@@ -97,7 +97,6 @@
 
 
 #ifdef HAVE_PETSC
-#if PETSC_VERSION_MAJOR==3
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
       Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
@@ -147,9 +146,6 @@
       ! Destroy all PETSc objects and the petsc_numbering:
       call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
 #else
-      FLAbort("PETSC_solve_full_projection only works with PETSc 3.0")
-#endif
-#else
       FLAbort("PETSc_solve_Full_Projection called while not configured with PETSc")
 #endif
       
@@ -158,7 +154,6 @@
     end subroutine petsc_solve_full_projection
 
 #ifdef HAVE_PETSC
-#if PETSC_VERSION_MAJOR==3
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          inner_solver_option_path,lstartfromzero,inner_m,div_matrix_comp, &
@@ -320,7 +315,6 @@
 
     end subroutine petsc_solve_setup_full_projection
 
-#endif
 #endif
 
   end module Full_Projection

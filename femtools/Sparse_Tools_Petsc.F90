@@ -235,27 +235,15 @@ contains
     ! this is very important for assembly routines (e.g. DG IP viscosity)
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, ierr)
-#endif
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
     ! option fixes your problem the number of no
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_NEW_NONZERO_ALLOCATION_ERR, ierr)
-#endif
 
     ! saves us from doing a transpose for block inserts
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_COLUMN_ORIENTED, ierr)
-#endif
 
     if (associated(sparsity%row_halo)) then
       ! these are also pointed to in the row_numbering
@@ -426,28 +414,16 @@ contains
       ! this is very important for assembly routines (e.g. DG IP viscosity)
       ! that try to add zeros outside the provided sparsity; if we go outside
       ! the provided n/o nonzeros the assembly will become very slow!!!
-#if PETSC_VERSION_MAJOR==3
       call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
-#else
-      call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, ierr)
-#endif
     end if
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
     ! option fixes your problem the number of no
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_NEW_NONZERO_ALLOCATION_ERR, ierr)
-#endif
 
     ! saves us from doing a transpose for block inserts
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_COLUMN_ORIENTED, ierr)
-#endif
 
     if (associated(lrow_halo)) then
       ! these are also pointed to in the row_numbering
@@ -511,27 +487,15 @@ contains
     ! this is very important for assembly routines (e.g. DG IP viscosity)
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, ierr)
-#endif
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
     ! option fixes your problem the number of no
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_NEW_NONZERO_ALLOCATION_ERR, ierr)
-#endif
 
     ! saves us from doing a transpose for block inserts
-#if PETSC_VERSION_MAJOR==3
     call MatSetOption(matrix%M, MAT_ROW_ORIENTED, PETSC_FALSE, ierr)
-#else
-    call MatSetOption(matrix%M, MAT_COLUMN_ORIENTED, ierr)
-#endif
     
     nullify(matrix%refcount) ! Hack for gfortran component initialisation
     !                         bug.

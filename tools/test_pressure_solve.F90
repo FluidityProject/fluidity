@@ -315,36 +315,31 @@
 
     call PetscOptionsGetString(&
          &PETSC_NULL_CHARACTER, '-filename', triangle_filename, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
        call usage()
     end if
 
     call PetscOptionsGetReal(PETSC_NULL_CHARACTER, '-epsilon', number_in, flag, ierr)
-    if(PetscFlagIsFalse(flag)) then
+    if(.not. flag) then
        call usage()
     end if
     eps0 = number_in
 
     call PetscOptionsGetString(PETSC_NULL_CHARACTER, '-exact_solution', &
          & exact_sol_filename, flag, ierr) 
-    if (PetscFlagIsFalse(flag)) then 
+    if (.not. flag) then 
        call usage()
     end if
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as', flag, ierr)
-    vl_as = PetscFlagIsTrue(flag)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as', vl_as, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as_wsor', flag, ierr)
-    vl_as_wsor = PetscFlagIsTrue(flag)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl_as_wsor', vl_as_wsor, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl', flag, ierr)
-    vl = PetscFlagIsTrue(flag)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-vl', vl, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-no_vl', flag, ierr)
-    no_vl = PetscFlagIsTrue(flag)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-no_vl', no_vl, ierr)
 
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-sor', flag, ierr)
-    sor = PetscFlagIsTrue(flag)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER, '-sor', sor, ierr)
 
   end subroutine pressure_solve_options
 

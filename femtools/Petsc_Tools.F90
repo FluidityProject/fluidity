@@ -126,7 +126,6 @@ module Petsc_Tools
   public csr2petsc, petsc2csr, block_csr2petsc, petsc2array, array2petsc
   public field2petsc, petsc2field
   public petsc_numbering_type, PetscNumberingCreateVec, allocate, deallocate
-  public PetscFlagIsFalse, PetscFlagIsTrue
   public csr2petsc_CreateSeqAIJ, csr2petsc_CreateMPIAIJ
   public addup_global_assembly
   ! for petsc_numbering:
@@ -604,11 +603,7 @@ contains
       call VecCreateSeq(MPI_COMM_SELF, ulength, vec, ierr)
     end if
 
-#if PETSC_VERSION_MAJOR==3
     call VecSetOption(vec, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
-#else
-    call VecSetOption(vec, VEC_IGNORE_NEGATIVE_INDICES, ierr)
-#endif
 
   end function PetscNumberingCreateVec
   
@@ -1475,34 +1470,6 @@ contains
     PetscErrorCode :: ierr
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr); CHKERRQ(ierr);
   end subroutine Initialize_Petsc
-    
-  function PetscFlagIsFalse(flag)
-    PetscTruth, intent(in):: flag
-    logical:: PetscFlagIsFalse
-    
-#if PETSC_VERSION_MAJOR==3
-    ! in PETSc 3 PETScTruth is a proper logical
-    PetscFlagIsFalse= .not. flag
-#else
-    ! for PETSc <3 they are integers
-    PetscFlagIsFalse= flag==PETSC_FALSE
-#endif
-
-  end function PetscFlagIsFalse
-
-  function PetscFlagIsTrue(flag)
-    PetscTruth, intent(in):: flag
-    logical:: PetscFlagIsTrue
-    
-#if PETSC_VERSION_MAJOR==3
-    ! in PETSc 3 PETScTruth is a proper logical
-    PetscFlagIsTrue= flag
-#else
-    ! for PETSc <3 they are integers
-    PetscFlagIsTrue= flag==PETSC_TRUE
-#endif
-
-  end function PetscFlagIsTrue
   
 #include "Reference_count_petsc_numbering_type.F90"
 #endif

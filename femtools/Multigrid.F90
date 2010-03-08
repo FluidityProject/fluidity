@@ -691,23 +691,23 @@ integer, intent(out):: nosmd, nosmu, clustersize
   PetscErrorCode ierr
 
     call PetscOptionsGetReal('', '-mymg_epsilon', epsilon, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       epsilon=MULTIGRID_EPSILON_DEFAULT
     end if
     call PetscOptionsGetReal('', '-mymg_epsilon_decay', epsilon_decay, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       epsilon_decay=MULTIGRID_EPSILON_DECAY_DEFAULT
     end if
     call PetscOptionsGetReal('', '-mymg_omega', omega, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       omega=MULTIGRID_OMEGA_DEFAULT
     end if
     call PetscOptionsGetInt('', '-mymg_maxlevels', maxlevels, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       maxlevels=MULTIGRID_MAXLEVELS_DEFAULT
     end if
     call PetscOptionsGetInt('', '-mymg_coarsesize', coarsesize, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       if (IsParallel()) then
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_PARALLEL
       else
@@ -715,15 +715,15 @@ integer, intent(out):: nosmd, nosmu, clustersize
       end if
     end if
     call PetscOptionsGetInt('', '-mymg_nosmd', nosmd, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       nosmd=MULTIGRID_NOSMD_DEFAULT
     end if
     call PetscOptionsGetInt('', '-mymg_nosmu', nosmu, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       nosmu=MULTIGRID_NOSMU_DEFAULT
     end if
     call PetscOptionsGetInt('', '-mymg_clustersize', clustersize, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       clustersize=MULTIGRID_CLUSTERSIZE_DEFAULT
     end if
 

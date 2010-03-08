@@ -134,7 +134,7 @@ contains
     type(csr_matrix) A
     real value
     real time1, time2, time3
-    integer i, n, iterations
+    integer i, n, n1, n2, iterations
     
     ewrite(0,*) "Called petsc_readnsolve without specifying flml."
     ewrite(0,*) "The recommend way of calling petsc_readnsolve is now&
@@ -163,13 +163,14 @@ contains
     ewrite(2,*) 'init. residual inf-norm:', value  
 
     ! get values to locate 'large sping' boundary conditions:
-    call VecGetSize(rhs, n, ierr)
+    call VecGetOwnershipRange(rhs, n1, n2, ierr)
+    n=n2-n1
     allocate(rv(1:n), xv(1:n), rhsv(1:n), dv(1:n))
-    call VecGetValues(y, n, (/ (i, i=0, n-1) /), rv,ierr)
-    call VecGetValues(x, n, (/ (i, i=0, n-1) /), xv,ierr)
-    call VecGetValues(rhs, n, (/ (i, i=0, n-1) /), rhsv,ierr)
+    call VecGetValues(y, n, (/ (i, i=0, n-1) /)+n1, rv,ierr)
+    call VecGetValues(x, n, (/ (i, i=0, n-1) /)+n1, xv,ierr)
+    call VecGetValues(rhs, n, (/ (i, i=0, n-1) /)+n1, rhsv,ierr)
     call MatGetDiagonal(matrix, y, ierr)
-    call VecGetValues(y, n, (/ (i, i=0, n-1) /), dv,ierr)
+    call VecGetValues(y, n, (/ (i, i=0, n-1) /)+n1, dv,ierr)
     
     ! This can get massive so lower verbosity if you don't want it:
     ewrite(3,*) 'Large spring boundary conditions found at:'
@@ -708,41 +709,38 @@ contains
     PetscErrorCode ierr
     
     call PetscOptionsGetString('prns_', '-filename', filename, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (flag) then
       filename='matrixdump'
     end if
 
     call PetscOptionsGetString('prns_', '-flml', flml, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       flml=''
     end if
     
     call PetscOptionsGetString('prns_', '-field', field, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       field=''
     end if
     
     call PetscOptionsGetString('prns_', '-read_solution', read_solution, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       read_solution=''
     end if
     
     call PetscOptionsGetString('prns_', '-write_solution', write_solution, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not. flag) then
       write_solution=''
     end if
 
-    call PetscOptionsHasName('prns_', '-zero_init_guess', flag, ierr)
-    zero_init_guess=PetscFlagIsTrue(flag)
+    call PetscOptionsHasName('prns_', '-zero_init_guess', zero_init_guess, ierr)
 
-    call PetscOptionsHasName('prns_', '-scipy', flag, ierr)
-    scipy=PetscFlagIsTrue(flag)
+    call PetscOptionsHasName('prns_', '-scipy', scipy, ierr)
 
-    call PetscOptionsHasName('prns_', '-random_rhs', flag, ierr)
-    random_rhs=PetscFlagIsTrue(flag)
+    call PetscOptionsHasName('prns_', '-random_rhs', random_rhs, ierr)
     
     call PetscOptionsGetInt('prns_', '-verbosity', current_debug_level, flag, ierr)
-    if (PetscFlagIsFalse(flag)) then
+    if (.not.flag) then
       current_debug_level=3
     end if
       
