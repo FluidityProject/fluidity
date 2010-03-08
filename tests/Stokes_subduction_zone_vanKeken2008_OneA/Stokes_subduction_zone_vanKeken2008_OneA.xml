@@ -3,7 +3,7 @@
   <name>vanKeken2008-Benchmark(1a)</name>
   <owner userid="gl709"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="long" nprocs="1">
     <command_line>dfluidity -v2 -l vanKekenOneA.flml</command_line>
   </problem_definition>
   <variables>
