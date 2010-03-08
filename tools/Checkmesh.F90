@@ -69,7 +69,11 @@ contains
     end if
 
     seeds = advancing_front_intersection_finder_seeds(positions)
-    print "(a,i0)", "Connectivity: ", seeds%length
+    if(.not. isparallel()) then
+      print "(a,i0)", "Partition connectivity: ", seeds%length
+    else
+      print "(a,i0)", "Connectivity: ", seeds%length
+    end if
     call deallocate(seeds)
     
     call print_mesh_edge_statistics(positions)

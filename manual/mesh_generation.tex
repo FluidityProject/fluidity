@@ -630,7 +630,9 @@ triangle file. checkmesh tests for:
 Test \ref{item:mesh_tangling} is performed by testing for any mesh self-intersections
 via mesh intersection (see section \ref{sec:supermeshing}).
 
-checkmesh is a serial program, but can be passed partitions from a decomposed mesh.
+checkmesh is parallelised. If running in parallel, it should be launched on a number
+of processes equal to that in the mesh decomposition. In parallel checkmesh output
+is written to checkmesh.log-\[process\] and checkmesh.err-\[process\] log files.
 
 \begin{example}
 \begin{lstlisting}[language = Bash]
