@@ -42,7 +42,7 @@ subroutine checkmesh(filename, filename_len)
 contains
 
   subroutine print_mesh_statistics(positions)
-    !!< print some statistics for the supplied mesh
+    !!< Print some statistics for the supplied mesh
     
     type(vector_field), intent(in) :: positions
 
@@ -50,9 +50,9 @@ contains
 
     print "(a)", "Mesh statistics:"
     print "(a,i0)", "Dimension: ", positions%dim
-    print "(a,i0)", "Nodes: ", node_count(positions)
-    print "(a,i0)", "Volume elements: ", ele_count(positions)
-    print "(a,i0)", "Surface elements: ", surface_element_count(positions)
+    print "(a,i0)", "Nodes: ", global_nodes
+    print "(a,i0)", "Volume elements: ", global_ele
+    print "(a,i0)", "Surface elements: ", global_sele
     if(associated(positions%mesh%faces)) then
       if(associated(positions%mesh%faces%boundary_ids)) then
         print "(a)", "Has boundary IDs"
@@ -315,7 +315,7 @@ contains
 
     integer, intent(in) :: number
     real, dimension(:, :), intent(in) :: coords
-    integer, dimension(:), intent(in) :: numbering
+    integer, dimension(size(coords, 2)), intent(in) :: numbering
 
     character(len = 1 + int2str_len(size(coords, 1)) + real_format_len(padding = 1) + 1) :: format_buffer
     integer :: i
