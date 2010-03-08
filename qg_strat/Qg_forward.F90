@@ -29,7 +29,6 @@ CONTAINS
     type(state_type), pointer, dimension(:) :: bc_states
     real :: t
     real :: dt
-    real :: tmax
     real :: dump_period
     real :: tdump
     real :: adapt_period
@@ -54,7 +53,6 @@ CONTAINS
 
     ! Get timestepping options
     call get_option("/timestepping/current_time", t)
-    call get_option("/timestepping/finish_time", tmax)
     call get_option("/timestepping/timestep", dt)
     call get_option("/io/dump_period", dump_period)
 
@@ -114,7 +112,7 @@ CONTAINS
     tdump = 0.
 
     timestep_loop: do
-       if(simulation_completed(current_time)) exit
+       if(simulation_completed(t)) exit
 
        t = t + dt
        !update time in options dictionary
