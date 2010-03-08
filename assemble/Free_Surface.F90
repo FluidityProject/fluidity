@@ -556,11 +556,12 @@ contains
     if (stat/=0) then
        FLExit("For vertical lumping you need to specify the ocean_boundaries under /geometry")
     end if
-       
+
     positions => extract_vector_field(state, "Coordinate")
+
     if (.not. (positions%mesh==mesh)) then
       call allocate(mesh_positions, positions%dim, mesh)
-      call remap_field(positions, mesh_positions)
+      call remap_field(positions, mesh_positions, stat=stat)
     else
       mesh_positions=positions
     end if
@@ -672,7 +673,7 @@ contains
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0
      integer:: i, j, sele, stat
-     
+
      ! the prognostic free surface is calculated elsewhere (this is the
      ! separate free surface equation approach in the old code path)
      if (have_option(trim(free_surface%option_path)//'/prognostic')) return
@@ -700,7 +701,6 @@ contains
        call VerticalExtrapolation(p, free_surface, x, &
          vertical_normal, surface_element_list=surface_element_list, &
          surface_name="DistanceToTop")
-         
        ! divide by rho0 g
        call scale(free_surface, 1/g/rho0)
        
@@ -710,8 +710,8 @@ contains
        ! the values at the free surface nodes and divide by rho0 g
        
        ! make sure other nodes are zeroed
-       call zero(free_surface)
-       
+       call zero(free_surface)    
+
        do i=1, get_boundary_condition_count(u)
           call get_boundary_condition(u, i, type=bctype, &
              surface_element_list=surface_element_list)
@@ -729,8 +729,7 @@ contains
                
           end if
           
-       end do
-       
+       end do      
      end if
     
   end subroutine calculate_diagnostic_free_surface

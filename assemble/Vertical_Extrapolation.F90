@@ -48,6 +48,7 @@ use pickers
 use coordinates, only: earth_radius
 use boundary_conditions
 use integer_set_module
+use vtk_interfaces
 implicit none
 
 interface VerticalExtrapolation
@@ -322,7 +323,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   real, dimension(positions%dim):: xyz
   integer, dimension(:), allocatable:: eles
   integer, dimension(:), pointer:: horizontal_mesh_list
-  integer i, j, to_nodes, face
+  integer i, j, to_nodes, face, stat
   logical:: on_sphere
 
   assert(size(from_fields)==size(to_fields))
@@ -352,7 +353,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
      ! directly put result in to_fields
      to_fields_non_periodic=to_fields
   end if
-  
+
   if (to_fields_non_periodic(1)%mesh==x_mesh) then
     to_positions=positions
     ! make to_positions indep. ref. of the field, so we can deallocate it 
@@ -361,7 +362,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   else
     call allocate(to_positions, positions%dim, to_fields_non_periodic(1)%mesh, &
       name='ToPositions_VerticalExtrapolation')
-    call remap_field(positions, to_positions)
+    call remap_field(positions, to_positions, stat)
   end if
      
   on_sphere = have_option('/geometry/spherical_earth')
@@ -507,8 +508,8 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
   horizontal_positions => extract_surface_field(positions, surface_name, &
     trim(surface_name)//"HorizontalCoordinate")
     
-  !call vtk_write_fields('horizontal_mesh', 0, horizontal_positions, &
-  !  horizontal_positions%mesh)    
+!   call vtk_write_fields('horizontal_mesh', 0,      horizontal_positions, &
+!     horizontal_positions%mesh)    
     
   call get_boundary_condition(positions, surface_name, &
     surface_element_list=horizontal_mesh_list)
