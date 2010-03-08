@@ -4,6 +4,7 @@ subroutine checkmesh(filename, filename_len)
   !!< Checks the validity of the supplied triangle mesh
 
   use fields
+  use halos
   use intersection_finder_module
   use linked_lists
   use meshdiagnostics
@@ -17,14 +18,18 @@ subroutine checkmesh(filename, filename_len)
 
   character(len = filename_len), intent(in) :: filename
   character(len = real_format_len()) :: rformat
+  integer :: global_ele, global_nodes, global_sele
   type(vector_field) :: positions
 
   rformat = real_format()    
 
   print "(a)", "Reading in triangle mesh with base name " // trim(filename)
-  positions = read_triangle_files(trim(filename), quad_degree = 4)
+  positions = read_triangle_files(filename, quad_degree = 4)    
+  if(isparallel()) call read_halos(filename, positions%mesh)
   print "(a)", "Read successful"
 
+  call mesh_stats(positions%mesh, elements = global_ele, nodes = global_nodes, surface_elements = global_sele)
+  
   call print_mesh_statistics(positions)
 
   call check_elements(positions)
@@ -37,7 +42,7 @@ subroutine checkmesh(filename, filename_len)
 contains
 
   subroutine print_mesh_statistics(positions)
-    !!< Print some statistics for the supplied mesh
+    !!< print some statistics for the supplied mesh
     
     type(vector_field), intent(in) :: positions
 
@@ -80,14 +85,20 @@ contains
     integer :: i
     
     domain_volume = 0.0
-    max_volume = 0.0
     min_volume = huge(0.0)
+    max_volume = 0.0
     do i = 1, ele_count(positions)
+      if(.not. element_owned(positions, i)) cycle
+    
       volume = element_volume(positions, i)
       domain_volume = domain_volume + volume
       min_volume = min(min_volume, volume)
       max_volume = max(max_volume, volume)
     end do    
+    
+    call allsum(domain_volume)
+    call allmin(min_volume)
+    call allmax(max_volume)
     
     print "(a," // rformat // ")", "Volume: ", domain_volume
     if(ele_count(positions) > 0) then
@@ -103,19 +114,22 @@ contains
     
     integer :: i, j
     integer, dimension(:), pointer :: nodes
+    logical :: all_simplices
     real :: length, max_length, min_length
     type(element_type), pointer :: shape
     
-    if(ele_count(positions) == 0) then
+    if(global_ele == 0) then
       return
     end if
     
+    all_simplices = .true.
     min_length = huge(0.0)
     max_length = 0.0
     do i = 1, ele_count(positions)
       shape => ele_shape(positions, i)
       if(shape%degree /= 1 .or. ele_numbering_family(shape) /= FAMILY_SIMPLEX) then
-        return
+        all_simplices = .false.
+        exit
       end if
       
       nodes => ele_nodes(positions, i)
@@ -125,6 +139,11 @@ contains
         max_length = max(max_length, length)
       end do
     end do
+    
+    call alland(all_simplices)
+    if(.not. all_simplices) return    
+    call allmin(min_length)
+    call allmax(max_length)
     
     print "(a," // rformat // ")", "Min edge length: ", min_length
     print "(a," // rformat // ")", "Max edge length: ", max_length
@@ -143,11 +162,11 @@ contains
     real, dimension(:), allocatable :: detwei
     type(element_type), pointer :: shape
 
-    if(ele_count(positions) > 0) then
+    if(global_ele > 0) then
       print "(a)", "Checking volume elements ..."
       min_volume = huge(0.0)
       all_ok = .true.
-      do i = 1, ele_count(positions)
+      do i = 1, ele_count(positions)               
         shape => ele_shape(positions, i)
         if(shape%degree == 1 .and. ele_numbering_family(shape) == FAMILY_SIMPLEX .and. positions%dim == 3) then
           volume = simplex_volume(positions, i)
@@ -166,17 +185,21 @@ contains
           all_ok = .false.
         end if
       end do 
+      
+      call alland(all_ok)
+      call allmin(min_volume)
+      
       print "(a," // rformat // ")", "Min volume element volume: ", min_volume
       if(all_ok) then
         print "(a)", "All volume elements are non-degenerate"
       end if
     end if
 
-    if(surface_element_count(positions) > 0) then
+    if(global_sele > 0) then
       print "(a)", "Checking surface elements ..."
       min_volume = huge(0.0)
       all_ok = .true.
-      do i = 1, surface_element_count(positions)
+      do i = 1, surface_element_count(positions)      
         allocate(detwei(face_ngi(positions, i)))
         call transform_facet_to_physical(positions, i, detwei_f = detwei)
         volume = abs(sum(detwei))
@@ -188,6 +211,10 @@ contains
           all_ok = .false.
         end if
       end do
+      
+      call alland(all_ok)
+      call allmin(min_volume)
+      
       print "(a," // rformat // ")", "Min surface element area: ", min_volume
       if(all_ok) then
         print "(a)", "All surface elements are non-degenerate"
@@ -210,6 +237,10 @@ contains
     type(plane_type), dimension(4) :: planes_b
     type(tet_type) :: tet_a, tet_b
     type(vector_field) :: intersection
+    
+    if(global_ele == 0) then
+      return
+    end if
     
     print "(a)", "Checking volume elements for tangling ..."
 
@@ -269,6 +300,8 @@ contains
       end do
     end do map_loop
       
+    call alland(all_ok)
+      
     if(all_ok) then
       print "(a)", "No volume element tangling"
     end if
@@ -282,7 +315,7 @@ contains
 
     integer, intent(in) :: number
     real, dimension(:, :), intent(in) :: coords
-    integer, dimension(size(coords, 2)), intent(in) :: numbering
+    integer, dimension(:), intent(in) :: numbering
 
     character(len = 1 + int2str_len(size(coords, 1)) + real_format_len(padding = 1) + 1) :: format_buffer
     integer :: i
@@ -297,7 +330,7 @@ contains
 
     print "(a)", "Numbering:"
     do i = 1, size(numbering)
-      print *, numbering(i)
+      print "(i0)", numbering(i)
     end do
 
   end subroutine print_element

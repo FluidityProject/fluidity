@@ -28,6 +28,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <stdlib.h>
 
 #include "confdefs.h"
@@ -61,6 +62,35 @@ int main(int argc, char** argv){
   if(argc < 2){
     Usage();
     return -1;
+  }
+  
+  // Logging
+  int nprocs = 1;
+#ifdef HAVE_MPI
+  if(MPI::Is_initialized()){
+    nprocs = MPI::COMM_WORLD.Get_size();
+  }
+#endif
+if(nprocs > 1){
+  int rank = 0;
+#ifdef HAVE_MPI
+  if(MPI::Is_initialized()){
+    rank = MPI::COMM_WORLD.Get_rank();
+  }
+#endif
+  ostringstream buffer;
+  buffer << "checkmesh.log-" << rank;
+  if(freopen(buffer.str().c_str(), "w", stdout) == NULL){
+    cerr << "Failed to redirect stdout" << endl;
+    exit(-1);
+  }
+  buffer.str("");
+  buffer << "checkmesh.err-" << rank;
+  if(freopen(buffer.str().c_str(), "w", stderr) == NULL){
+    cerr << "Failed to redirect stderr" << endl;
+    exit(-1);
+  }
+  buffer.str("");
   }
 
   // Verbosity
