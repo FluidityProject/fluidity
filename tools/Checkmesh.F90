@@ -16,37 +16,40 @@ subroutine checkmesh(filename, filename_len)
   integer, intent(in) :: filename_len
 
   character(len = filename_len), intent(in) :: filename
+  character(len = real_format_len()) :: rformat
+  type(vector_field) :: positions
 
-  type(vector_field) :: mesh_field
+  rformat = real_format()    
 
-  print *, "Reading in triangle mesh with base name " // trim(filename)
-  mesh_field = read_triangle_files(trim(filename), quad_degree = 4)
-  print *, "Read successful"
+  print "(a)", "Reading in triangle mesh with base name " // trim(filename)
+  positions = read_triangle_files(trim(filename), quad_degree = 4)
+  print "(a)", "Read successful"
 
-  call print_mesh_statistics(mesh_field)
+  call print_mesh_statistics(positions)
 
-  call check_elements(mesh_field)
-  call check_volume_element_tangling(mesh_field)
+  call check_elements(positions)
+  call check_volume_element_tangling(positions)
 
-  call deallocate(mesh_field)
+  call deallocate(positions)
 
   call print_references(0)
 
 contains
 
-  subroutine print_mesh_statistics(mesh_field)
-    !!< Print some statistics for the supplied mesh field
+  subroutine print_mesh_statistics(positions)
+    !!< Print some statistics for the supplied mesh
+    
+    type(vector_field), intent(in) :: positions
 
     type(ilist) :: seeds
-    type(vector_field), intent(in) :: mesh_field
 
     print "(a)", "Mesh statistics:"
-    print "(a,i0)", "Dimension: ", mesh_field%dim
-    print "(a,i0)", "Nodes: ", node_count(mesh_field)
-    print "(a,i0)", "Volume elements: ", ele_count(mesh_field)
-    print "(a,i0)", "Surface elements: ", surface_element_count(mesh_field)
-    if(associated(mesh_field%mesh%faces)) then
-      if(associated(mesh_field%mesh%faces%boundary_ids)) then
+    print "(a,i0)", "Dimension: ", positions%dim
+    print "(a,i0)", "Nodes: ", node_count(positions)
+    print "(a,i0)", "Volume elements: ", ele_count(positions)
+    print "(a,i0)", "Surface elements: ", surface_element_count(positions)
+    if(associated(positions%mesh%faces)) then
+      if(associated(positions%mesh%faces%boundary_ids)) then
         print "(a)", "Has boundary IDs"
       else
         print "(a)", "Has no boundary IDs"
@@ -54,22 +57,85 @@ contains
     else
       print "(a)", "Has no faces information"
     end if
-    if(associated(mesh_field%mesh%region_ids)) then
+    if(associated(positions%mesh%region_ids)) then
       print "(a)", "Has region IDs"
     else
       print "(a)", "Has no region IDs"
     end if
 
-    seeds = advancing_front_intersection_finder_seeds(mesh_field)
+    seeds = advancing_front_intersection_finder_seeds(positions)
     print "(a,i0)", "Connectivity: ", seeds%length
     call deallocate(seeds)
+    
+    call print_mesh_edge_statistics(positions)
+    call print_mesh_volume_statistics(positions)
 
   end subroutine print_mesh_statistics
+  
+  subroutine print_mesh_volume_statistics(positions)
+    type(vector_field), intent(in) :: positions
+    
+    real :: domain_volume, max_volume, min_volume, volume
+    
+    integer :: i
+    
+    domain_volume = 0.0
+    max_volume = 0.0
+    min_volume = huge(0.0)
+    do i = 1, ele_count(positions)
+      volume = element_volume(positions, i)
+      domain_volume = domain_volume + volume
+      min_volume = min(min_volume, volume)
+      max_volume = max(max_volume, volume)
+    end do    
+    
+    print "(a," // rformat // ")", "Volume: ", domain_volume
+    if(ele_count(positions) > 0) then
+      print "(a," // rformat // ")", "Min element volume: ", min_volume
+      print "(a," // rformat // ")", "Max element volume: ", max_volume
+      print "(a," // rformat // ")", "Ratio of max to min element volumes: ", max_volume / min_volume
+    end if
+    
+  end subroutine print_mesh_volume_statistics
+  
+  subroutine print_mesh_edge_statistics(positions)
+    type(vector_field), intent(in) :: positions
+    
+    integer :: i, j
+    integer, dimension(:), pointer :: nodes
+    real :: length, max_length, min_length
+    type(element_type), pointer :: shape
+    
+    if(ele_count(positions) == 0) then
+      return
+    end if
+    
+    min_length = huge(0.0)
+    max_length = 0.0
+    do i = 1, ele_count(positions)
+      shape => ele_shape(positions, i)
+      if(shape%degree /= 1 .or. ele_numbering_family(shape) /= FAMILY_SIMPLEX) then
+        return
+      end if
+      
+      nodes => ele_nodes(positions, i)
+      do j = 2, shape%loc
+        length = sqrt(sum((node_val(positions, nodes(j)) - node_val(positions, nodes(1))) ** 2))
+        min_length = min(min_length, length)
+        max_length = max(max_length, length)
+      end do
+    end do
+    
+    print "(a," // rformat // ")", "Min edge length: ", min_length
+    print "(a," // rformat // ")", "Max edge length: ", max_length
+    print "(a," // rformat // ")", "Ratio of max to min edge lengths: ", max_length / min_length
+    
+  end subroutine print_mesh_edge_statistics
 
-  subroutine check_elements(mesh_field)
-    !!< Check that the supplied mesh field for inverted or degenerate elements
+  subroutine check_elements(positions)
+    !!< Check that the supplied mesh for inverted or degenerate elements
 
-    type(vector_field), intent(in) :: mesh_field
+    type(vector_field), intent(in) :: positions
 
     integer :: i
     logical :: all_ok
@@ -77,52 +143,52 @@ contains
     real, dimension(:), allocatable :: detwei
     type(element_type), pointer :: shape
 
-    if(ele_count(mesh_field) > 0) then
+    if(ele_count(positions) > 0) then
       print "(a)", "Checking volume elements ..."
       min_volume = huge(0.0)
       all_ok = .true.
-      do i = 1, ele_count(mesh_field)
-        shape => ele_shape(mesh_field, i)
-        if(shape%degree == 1 .and. ele_numbering_family(shape) == FAMILY_SIMPLEX .and. mesh_field%dim == 3) then
-          volume = simplex_volume(mesh_field, i)
+      do i = 1, ele_count(positions)
+        shape => ele_shape(positions, i)
+        if(shape%degree == 1 .and. ele_numbering_family(shape) == FAMILY_SIMPLEX .and. positions%dim == 3) then
+          volume = simplex_volume(positions, i)
           if(volume < 0.0) then
             print "(a)", "Inverted volume element found: "
-            call print_element(i, ele_val(mesh_field, i), ele_nodes(mesh_field, i))
+            call print_element(i, ele_val(positions, i), ele_nodes(positions, i))
           end if
           volume = abs(volume)
         else
-          volume = element_volume(mesh_field, i)
+          volume = element_volume(positions, i)
         end if
         min_volume = min(min_volume, volume)
         if(volume < epsilon(0.0)) then
           print "(a)", "Degenerate volume element found: "
-          call print_element(i, ele_val(mesh_field, i), ele_nodes(mesh_field, i))
+          call print_element(i, ele_val(positions, i), ele_nodes(positions, i))
           all_ok = .false.
         end if
       end do 
-      print *, "Min volume element volume: ", min_volume
+      print "(a," // rformat // ")", "Min volume element volume: ", min_volume
       if(all_ok) then
         print "(a)", "All volume elements are non-degenerate"
       end if
     end if
 
-    if(surface_element_count(mesh_field) > 0) then
+    if(surface_element_count(positions) > 0) then
       print "(a)", "Checking surface elements ..."
       min_volume = huge(0.0)
       all_ok = .true.
-      do i = 1, surface_element_count(mesh_field)
-        allocate(detwei(face_ngi(mesh_field, i)))
-        call transform_facet_to_physical(mesh_field, i, detwei_f = detwei)
+      do i = 1, surface_element_count(positions)
+        allocate(detwei(face_ngi(positions, i)))
+        call transform_facet_to_physical(positions, i, detwei_f = detwei)
         volume = abs(sum(detwei))
         deallocate(detwei)
         min_volume = min(min_volume, volume)
         if(volume < epsilon(0.0)) then
           print "(a)", "Degenerate surface element found: "
-          call print_element(i, face_val(mesh_field, i), face_global_nodes(mesh_field, i))
+          call print_element(i, face_val(positions, i), face_global_nodes(positions, i))
           all_ok = .false.
         end if
       end do
-      print *, "Min surface element area: ", min_volume
+      print "(a," // rformat // ")", "Min surface element area: ", min_volume
       if(all_ok) then
         print "(a)", "All surface elements are non-degenerate"
       end if
@@ -130,34 +196,34 @@ contains
 
   end subroutine check_elements
   
-  subroutine check_volume_element_tangling(mesh_field)
-    !!< Check the supplied mesh field for tangling of the volume elements
+  subroutine check_volume_element_tangling(positions)
+    !!< Check the supplied mesh for tangling of the volume elements
     
-    type(vector_field), intent(in) :: mesh_field
+    type(vector_field), intent(in) :: positions
     
     integer :: dim, i, j, stat
     logical :: all_ok, intersection_found
     real :: ele_volume, intersection_volume
     real, parameter :: relative_tolerance = 1.0e-8
     type(inode), pointer :: llnode
-    type(ilist), dimension(ele_count(mesh_field)) :: intersection_map
+    type(ilist), dimension(ele_count(positions)) :: intersection_map
     type(plane_type), dimension(4) :: planes_b
     type(tet_type) :: tet_a, tet_b
     type(vector_field) :: intersection
     
     print "(a)", "Checking volume elements for tangling ..."
 
-    dim = mesh_field%dim
+    dim = positions%dim
     call intersector_set_dimension(dim)
     call intersector_set_exactness(.false.)
 
     all_ok = .true.
-    intersection_map = intersection_finder(mesh_field, mesh_field)
+    intersection_map = intersection_finder(positions, positions)
     map_loop: do i = 1, size(intersection_map)
-      ele_volume = element_volume(mesh_field, i)
+      ele_volume = element_volume(positions, i)
 
       if(dim == 3 .and. (intersector_exactness .eqv. .false.)) then
-        tet_b%v = ele_val(mesh_field, i)
+        tet_b%v = ele_val(positions, i)
         planes_b = get_planes(tet_b)
       end if
       
@@ -165,14 +231,14 @@ contains
       intersection_found = .false.
       do while(associated(llnode))
         if(dim == 3 .and. (intersector_exactness .eqv. .false.)) then
-          tet_a%v = ele_val(mesh_field, llnode%value)
-          call intersect_tets(tet_a, planes_b, ele_shape(mesh_field, llnode%value), stat = stat, output = intersection)
+          tet_a%v = ele_val(positions, llnode%value)
+          call intersect_tets(tet_a, planes_b, ele_shape(positions, llnode%value), stat = stat, output = intersection)
           if(stat /= 0) then
             llnode => llnode%next
             cycle
           end if
         else
-          intersection = intersect_elements(mesh_field, llnode%value, ele_val(mesh_field, i), ele_shape(mesh_field, i))
+          intersection = intersect_elements(positions, llnode%value, ele_val(positions, i), ele_shape(positions, i))
           if(ele_count(intersection) == 0) then
             call deallocate(intersection)
             llnode => llnode%next
@@ -190,7 +256,7 @@ contains
           ! elements case.
           if(intersection_found .or. abs(ele_volume - intersection_volume) > abs(max(relative_tolerance, relative_tolerance * ele_volume))) then
             print "(a)", "Tangled volume element found: "
-            call print_element(i, ele_val(mesh_field, i), ele_nodes(mesh_field, i))
+            call print_element(i, ele_val(positions, i), ele_nodes(positions, i))
             call deallocate(intersection)
             all_ok = .false.
             exit map_loop
