@@ -10,14 +10,15 @@ module qg_forward
   use global_parameters, only: OPTION_PATH_LEN
   use metric_assemble
   use adapt_state_module 
-  use SPUD
+  use spud
   use sparse_tools
   use sparsity_patterns
   use boundary_conditions
   use advection_diffusion_cg
   use vtk_interfaces
   use global_parameters, only:FIELD_NAME_LEN, global_debug_level
-  use PV_INVERSION
+  use pv_inversion
+  use timeloop_utilities
   implicit none
 
 CONTAINS
@@ -113,7 +114,7 @@ CONTAINS
     tdump = 0.
 
     timestep_loop: do
-       if(t>=tmax) exit
+       if(simulation_completed(current_time)) exit
 
        t = t + dt
        !update time in options dictionary
