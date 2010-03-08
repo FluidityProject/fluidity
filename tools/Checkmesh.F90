@@ -69,7 +69,7 @@ contains
     end if
 
     seeds = advancing_front_intersection_finder_seeds(positions)
-    if(.not. isparallel()) then
+    if(isparallel()) then
       print "(a,i0)", "Partition connectivity: ", seeds%length
     else
       print "(a,i0)", "Connectivity: ", seeds%length
