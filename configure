@@ -12734,6 +12734,8 @@ if test "x$PETSC_LIBS" == "x" ; then
   fi
 fi
 
+
+
 # logic to work out the PETSc include path
 PETSc_INCLUDES_PATH="$PETSc/include"
 if test -e $PETSc_INCLUDES_PATH/petsc.h; then
@@ -12964,6 +12966,23 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 tmpCPPFLAGS="$tmpCPPFLAGS -DHAVE_PETSC -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
 CPPFLAGS=$tmpCPPFLAGS
 LIBS="$PETSC_LIBS $tmpLIBS"
+
+# finally check we have the right petsc version
+if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
+
+else
+  as_fn_error "Unknown petsc version" "$LINENO" 5
+fi
+
+if test "x$PETSC_VERSION_MAJOR" == "x3" ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version 3" >&5
+$as_echo "$as_me: Detected PETSc version 3" >&6;}
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\"" >&5
+$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\"" >&6;}
+  as_fn_error "Fluidity needs PETSc version 3" "$LINENO" 5
+fi
+
 
 
 

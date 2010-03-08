@@ -451,6 +451,8 @@ if test "x$PETSC_LIBS" == "x" ; then
   fi
 fi
 
+
+
 # logic to work out the PETSc include path
 PETSc_INCLUDES_PATH="$PETSc/include"
 if test -e $PETSc_INCLUDES_PATH/petsc.h; then
@@ -537,6 +539,17 @@ AC_LANG_RESTORE
 tmpCPPFLAGS="$tmpCPPFLAGS -DHAVE_PETSC -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
 CPPFLAGS=$tmpCPPFLAGS
 LIBS="$PETSC_LIBS $tmpLIBS"
+
+# finally check we have the right petsc version
+AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
+  [AC_MSG_ERROR([Unknown petsc version])])
+if test "x$PETSC_VERSION_MAJOR" == "x3" ; then
+  AC_MSG_NOTICE([Detected PETSc version 3])
+else
+  AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"])
+  AC_MSG_ERROR([Fluidity needs PETSc version 3])
+fi
+
 ])dnl ACX_PETSc
 
 AC_DEFUN([ACX_ParMetis], [
