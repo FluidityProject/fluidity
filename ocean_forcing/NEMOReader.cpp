@@ -653,17 +653,17 @@ int NEMOReader::RegisterDataFile(string file){
   
   }
 
-  {
-     ofstream myfile("longlat.dat");
-
-     long leni = vdimension[0];
-     long lenj = vdimension[1];
-     for(long i=0;i<leni;i++){
-       for(long j=0;j<lenj;j++){
-         myfile << i << '\t' << longitude[i] << '\t' << j << '\t' << latitude[j] << endl;
-       }
-     }
-  }
+//   {
+//      ofstream myfile("longlat.dat");
+// 
+//      long leni = vdimension[0];
+//      long lenj = vdimension[1];
+//      for(long i=0;i<leni;i++){
+//        for(long j=0;j<lenj;j++){
+//          myfile << i << '\t' << longitude[i] << '\t' << j << '\t' << latitude[j] << endl;
+//        }
+//      }
+//   }
 
   { // load depth levels
     nc_type xtypep;                 /* variable type */
