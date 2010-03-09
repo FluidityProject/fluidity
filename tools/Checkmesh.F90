@@ -110,7 +110,7 @@ contains
     call allmax(max_volume)
     
     print "(a," // rformat // ")", "Volume: ", domain_volume
-    if(ele_count(positions) > 0) then
+    if(global_ele > 0) then
       print "(a," // rformat // ")", "Min element volume: ", min_volume
       print "(a," // rformat // ")", "Max element volume: ", max_volume
       print "(a," // rformat // ")", "Ratio of max to min element volumes: ", max_volume / min_volume
