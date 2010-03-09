@@ -165,7 +165,7 @@ contains
     call allmin(min_length)
     call allmax(max_length)
     call allmin(min_anisotropy)
-    call allmin(max_anisotropy)
+    call allmax(max_anisotropy)
     
     print "(a," // rformat // ")", "Min edge length: ", min_length
     print "(a," // rformat // ")", "Max edge length: ", max_length
