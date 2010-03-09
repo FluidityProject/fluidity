@@ -315,7 +315,7 @@ def JoinStat(*args):
   startT = [startT[index] for index in permutation]
   times = [times[index] for index in permutation]
   
-  endIndices = numpy.empty(nStat, dtype = int)
+  endIndices = numpy.array([len(time) for time in times], dtype = int)
   for i, t in enumerate(times[:-1]):
     for j, time in enumerate(t):
       if calc.AlmostEquals(startT[i + 1], time, tolerance = 1.0e-6):
@@ -324,7 +324,6 @@ def JoinStat(*args):
       elif startT[i + 1] < time:
         endIndices[i] = j
         break
-  endIndices[-1] = len(times[-1])
   debug.dprint("Time ranges:")
   for i in range(nStat): 
     debug.dprint((startT[i], times[i][endIndices[i] - 1]))
