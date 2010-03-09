@@ -8,6 +8,7 @@ subroutine checkmesh(filename, filename_len)
   use intersection_finder_module
   use linked_lists
   use meshdiagnostics
+  use metric_tools
   use read_triangle
   use supermesh_construction
   use tetrahedron_intersection_module
@@ -55,7 +56,11 @@ contains
     print "(a,i0)", "Surface elements: ", global_sele
     if(associated(positions%mesh%faces)) then
       if(associated(positions%mesh%faces%boundary_ids)) then
-        print "(a)", "Has boundary IDs"
+        if(any(positions%mesh%faces%boundary_ids /= 0)) then
+          print "(a)", "Has boundary IDs"
+        else
+          print "(a)", "Has no boundary IDs"
+        end if
       else
         print "(a)", "Has no boundary IDs"
       end if
@@ -118,21 +123,26 @@ contains
     
     integer :: i, j
     integer, dimension(:), pointer :: nodes
-    logical :: all_simplices
+    logical :: all_linear_simplices
     real :: length, max_length, min_length
+    real :: anisotropy, max_anisotropy, min_anisotropy
+    real, dimension(positions%dim) :: evals
+    real, dimension(positions%dim, positions%dim) :: edge_lengths, evecs
     type(element_type), pointer :: shape
     
     if(global_ele == 0) then
       return
     end if
     
-    all_simplices = .true.
+    all_linear_simplices = .true.
     min_length = huge(0.0)
     max_length = 0.0
+    min_anisotropy = huge(0.0)
+    max_anisotropy = 0.0
     do i = 1, ele_count(positions)
       shape => ele_shape(positions, i)
       if(shape%degree /= 1 .or. ele_numbering_family(shape) /= FAMILY_SIMPLEX) then
-        all_simplices = .false.
+        all_linear_simplices = .false.
         exit
       end if
       
@@ -142,16 +152,24 @@ contains
         min_length = min(min_length, length)
         max_length = max(max_length, length)
       end do
+      
+      edge_lengths = edge_lengths_from_metric(simplex_tensor(positions, i))
+      call eigendecomposition_symmetric(edge_lengths, evecs, evals)
+      anisotropy = maxval(evals) / minval(evals)
+      min_anisotropy = min(min_anisotropy, anisotropy)
+      max_anisotropy = max(max_anisotropy, anisotropy)
     end do
     
-    call alland(all_simplices)
-    if(.not. all_simplices) return    
+    call alland(all_linear_simplices)
+    if(.not. all_linear_simplices) return    
     call allmin(min_length)
     call allmax(max_length)
     
     print "(a," // rformat // ")", "Min edge length: ", min_length
     print "(a," // rformat // ")", "Max edge length: ", max_length
     print "(a," // rformat // ")", "Ratio of max to min edge lengths: ", max_length / min_length
+    print "(a," // rformat // ")", "Min anisotropy: ", min_anisotropy
+    print "(a," // rformat // ")", "Max anisotropy: ", max_anisotropy
     
   end subroutine print_mesh_edge_statistics
 
