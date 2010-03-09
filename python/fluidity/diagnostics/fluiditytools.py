@@ -342,7 +342,7 @@ def JoinStat(*args):
   
   output = Stat(delimiter = delimiter)
   for key in data.keys():
-    output[key] = data[key]
+    output[key] = numpy.array(data[key])
   
   return output
                 
@@ -474,7 +474,7 @@ def DetectorArrays(stat):
         arrays.remove(name)
         break
   
-  # Fantastic! We have our detetectors dictionary!
+  # Fantastic! We have our detectors dictionary!
   debug.dprint("Detector keys:")
   debug.dprint(arrays.keys())
     

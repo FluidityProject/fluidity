@@ -760,7 +760,7 @@ def CartesianVectorsToPolar(coordinates, data):
       assert(len(coord) == 2)
       assert(len(data[i]) == 2)
   
-  newData = numpy.zeros((len(data), 2))
+  newData = numpy.empty((len(data), 2))
   for i, coord in enumerate(coordinates):
     datum = data[i]
   
@@ -784,7 +784,7 @@ def CartesianVectorsToCylindrical(coordinates, data):
       assert(len(coord) == 3)
       assert(len(data[i]) == 3)
   
-  newData = numpy.zeros((len(data), 3))
+  newData = numpy.empty((len(data), 3))
   for i, coord in enumerate(coordinates):
     datum = data[i]
   
@@ -808,7 +808,7 @@ def CylindricalVectorsToCartesian(coordinates, data):
       assert(len(coord) == 3)
       assert(len(data[i]) == 3)
   
-  newData = numpy.zeros((len(data), 3))
+  newData = numpy.empty((len(data), 3))
   for i, coord in enumerate(coordinates):
     datum = data[i]
   
@@ -840,7 +840,7 @@ def Maxima(data):
       increasing = False
       maxima.append(i - 1)
 
-  return maxima
+  return numpy.array(maxima)
 
 def Minima(data):
   """
@@ -862,7 +862,7 @@ def Minima(data):
       decreasing = False
       minima.append(i - 1)
   
-  return minima
+  return numpy.array(minima)
   
 def Factorise(integer):
   """
@@ -906,9 +906,9 @@ def CrossProduct(vector1, vector2):
   assert(len(vector1) == 3)
   assert(len(vector2) == 3)
   
-  return [vector1[1] * vector2[2] - vector1[2] * vector2[1], \
-         -vector1[0] * vector2[2] + vector1[2] * vector2[0], \
-          vector1[0] * vector2[1] - vector1[1] * vector2[0]]
+  return numpy.array([vector1[1] * vector2[2] - vector1[2] * vector2[1], \
+                     -vector1[0] * vector2[2] + vector1[2] * vector2[0], \
+                      vector1[0] * vector2[1] - vector1[1] * vector2[0]])
     
 class calcUnittests(unittest.TestCase):
   def testNumpySupport(self):

@@ -235,28 +235,23 @@ def PvtuToVtu(pvtu):
       return
   
     def __cmp__(self, val):
-      def cmp(x, y, order, depth = 0):
-        comp = order[depth]
-      
-        if x[comp] > y[comp]:
-          return 1
-        elif x[comp] < y[comp]:
-          return -1
-        elif depth == len(order) - 1:
-          return 0
-        else:
-          return cmp(x, y, order, depth + 1)
+      def cmp(x, y, order):
+        for comp in order:        
+          if x[comp] > y[comp]:
+            return 1
+          elif x[comp] < y[comp]:
+            return -1
+        
+        return 0
         
       return cmp(self._key, val.GetKey(), self._order)
   
   def Dup(x, y, tol):
-    if abs(x[0] - y[0]) < tol:
-      if len(x) == 1:
-        return True
-      else:
-        return Dup(x[1:], y[1:], tol)
-    else:
-      return False
+    for i, xVal in enumerate(x):
+      if abs(xVal - y[i]) > tol:
+        return False
+        
+    return True
       
   locations = pvtu.GetLocations()
   lbound, ubound = VtuBoundingBox(pvtu).GetBounds()
@@ -290,24 +285,32 @@ def PvtuToVtu(pvtu):
             newNodeId = permutedNodeIds[i]
             while not duplicateNodeMap[newNodeId] is None:
               newNodeId = duplicateNodeMap[newNodeId]
+              if newNodeId == oldNodeId:
+                # This is already mapped the other way
+                break
+            if newNodeId == oldNodeId:
+              # Can only occur from early exit of the above loop
+              j += 1
+              continue
+            
+            def MapInverses(oldNodeId, newNodeId):
+              for nodeId in duplicateNodeMapInverse[oldNodeId]:
+                 assert(not nodeId == newNodeId)
+                 assert(keepNode[newNodeId])
+                 keepNode[nodeId] = False
+                 duplicateNodeMap[nodeId] = newNodeId
+                 duplicateNodeMapInverse[newNodeId].append(nodeId)
+                 MapInverses(nodeId, newNodeId)
+              duplicateNodeMapInverse[oldNodeId] = []
+               
+              return
               
-            if not oldNodeId == newNodeId:    
-              def MapInverses(oldNodeId, newNodeId):
-                for nodeId in duplicateNodeMapInverse[oldNodeId]:
-                   assert(not nodeId == newNodeId)
-                   keepNode[nodeId] = False
-                   duplicateNodeMap[nodeId] = newNodeId
-                   MapInverses(nodeId, newNodeId)
-                duplicateNodeMapInverse[oldNodeId] = []
-                 
-                return
-              # Map everything mapped to the old node ID to the new node ID
-              MapInverses(oldNodeId, newNodeId)
-                
-              keepNode[newNodeId] = True
-              keepNode[oldNodeId] = False 
-              duplicateNodeMap[oldNodeId] = newNodeId
-              duplicateNodeMapInverse[newNodeId].append(oldNodeId)
+            keepNode[newNodeId] = True
+            keepNode[oldNodeId] = False 
+            # Map everything mapped to the old node ID to the new node ID
+            MapInverses(oldNodeId, newNodeId)
+            duplicateNodeMap[oldNodeId] = newNodeId
+            duplicateNodeMapInverse[newNodeId].append(oldNodeId)
           j += 1
         else:
           break
