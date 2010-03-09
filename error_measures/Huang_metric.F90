@@ -75,7 +75,7 @@ module huang_metric_module
     do node=1,node_count(hessian)
       abs_h = node_val(hessian, node)
 
-      metric = ((1.0/sigma) * (alpha / eps)**power_C)**(2.0/n) * &
+      metric = ((1.0/sigma) * ((alpha / eps)**power_C))**(2.0/n) * &
                (det(identity + (1.0/alpha) * abs_h) ** power_B) * &
                (identity + (1.0/alpha) * abs_h)
 
