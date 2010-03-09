@@ -665,6 +665,7 @@ contains
       end do phaseloop
 
       write(diag_unit, '(a)') "</header>"
+      flush(diag_unit)
     end if
 
     call initialise_detectors(filename, state)
