@@ -119,6 +119,8 @@ module anisotropic_zz_module
     character(len=OPTION_PATH_LEN) :: path
     real :: eta, ele_eta
 
+    integer :: patch_count, max_patch_count, sum_patch_count
+
     path = trim(complete_field_path(trim(field%option_path))) // "/adaptivity_options/anisotropic_zienkiewicz_zhu"
     call get_option(trim(path) // "/tau", tau)
     ewrite(1,*) "Using tau = ", tau
@@ -135,9 +137,13 @@ module anisotropic_zz_module
     pwc_mesh = piecewise_constant_mesh(metric%mesh, "PiecewiseConstantMesh")
     call allocate(pwc_metric, pwc_mesh, "PiecewiseConstantMetric")
 
+    max_patch_count = 0
+    sum_patch_count = 0
     eta = 0.0
     do ele=1,ele_count(positions)
-      call anisotropic_zz_element_metric(field, positions, pwc_metric, tau, ele, ele_eta)
+      call anisotropic_zz_element_metric(field, positions, pwc_metric, tau, ele, ele_eta, patch_count=patch_count)
+      max_patch_count = max(max_patch_count, patch_count)
+      sum_patch_count = sum_patch_count + patch_count
       eta = eta + ele_eta
     end do
     eta = sqrt(eta)
@@ -146,6 +152,8 @@ module anisotropic_zz_module
     end if
 
     ewrite(1,*) "Current mesh error estimate: ", eta
+    ewrite(2,*) "Max patch count: ", max_patch_count
+    ewrite(2,*) "Avg patch count: ", float(sum_patch_count)/ele_count(positions)
 
     ! Project to P1 here
     call project_p0_metric_p1(positions, pwc_metric, metric)
@@ -154,13 +162,14 @@ module anisotropic_zz_module
     call deallocate(pwc_mesh)
   end subroutine compute_anisotropic_zz_metric
 
-  subroutine anisotropic_zz_element_metric(field, positions, pwc_metric, tau, ele, eta)
+  subroutine anisotropic_zz_element_metric(field, positions, pwc_metric, tau, ele, eta, patch_count)
     type(scalar_field), intent(in) :: field
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(inout) :: pwc_metric
     real, intent(in) :: tau
     integer, intent(in) :: ele
     real, intent(out) :: eta
+    integer, intent(out), optional :: patch_count
 
     real, dimension(positions%dim) :: lambda_k, g_evals, sorted_g_evals, out_evals, out_edges 
     real, dimension(positions%dim, positions%dim) :: g_hat, m_k, out_k, rt_k, vt_k, g_evecs, &
@@ -185,7 +194,7 @@ module anisotropic_zz_module
     end if
 
     ! (a) and (b): compute g_hat
-    g_hat = compute_g_hat(field, positions, ele_shape(pwc_metric, ele), ele, patch_vol=patch_volume)
+    g_hat = compute_g_hat(field, positions, ele_shape(pwc_metric, ele), ele, patch_vol=patch_volume, patch_count=patch_count)
     j_k = get_jacobian_azz(positions, ele)
     call svd(j_k, rt_k, lambda_k, vt_k)
     m_k = matmul(matmul(rt_k, get_mat_diag(1.0/(lambda_k**2))), transpose(rt_k))
@@ -284,12 +293,13 @@ module anisotropic_zz_module
     end do
   end function compute_out_evecs
 
-  function compute_g_hat(field, positions, pwc_shape, ele, patch_vol) result(g_hat)
+  function compute_g_hat(field, positions, pwc_shape, ele, patch_vol, patch_count) result(g_hat)
     type(scalar_field), intent(in) :: field
     type(vector_field), intent(in) :: positions
     type(element_type), intent(in) :: pwc_shape
     integer, intent(in) :: ele
     real, optional, intent(out) :: patch_vol
+    integer, optional, intent(out) :: patch_count
 
     real, dimension(positions%dim) :: recovered_gradient
     real, dimension(positions%dim, ele_ngi(field, ele)) :: error_at_quad
@@ -325,6 +335,11 @@ module anisotropic_zz_module
     end do
 
     patch_size = count(seen_elements)
+
+    if (present(patch_count)) then
+      patch_count = patch_size
+    end if
+
     allocate(patch_elements(patch_size))
     j = 1
     do i=1,size(seen_elements)
