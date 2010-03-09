@@ -69,7 +69,7 @@ module populate_state_module
        allocate_and_insert_auxilliary_fields, &
        initialise_field, allocate_metric_limits, &
        make_mesh_periodic_from_options, make_mesh_unperiodic_from_options, &
-       postprocess_periodic_mesh
+       postprocess_periodic_mesh, compute_domain_statistics
 
   interface allocate_field_as_constant
     
@@ -3317,7 +3317,8 @@ contains
     type(state_type), dimension(:), intent(in) :: states
     integer :: dim
     type(vector_field), pointer :: positions
-    integer :: ele, vol
+    integer :: ele
+    real :: vol
 
     positions => extract_vector_field(states(1), "Coordinate")
     if (allocated(domain_bbox)) then
