@@ -2529,7 +2529,7 @@ state dictionary which is updated rather than a local copy.
 \begin{lstlisting}
 function extract_@\emph{object\_type}@(state, name, stat[, allocated])
   type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@ 
-  type(state\_type), intent(in) :: state
+  type(state_type), intent(in) :: state
   character(len=*), intent(in) :: name
   integer, intent(out), optional :: state
   logical, intent(out), optional :: allocated
@@ -2538,7 +2538,7 @@ function extract_@\emph{object\_type}@(state, name, stat[, allocated])
 \begin{lstlisting}
 function extract_@\emph{object\_type}@(state, name, stat[, allocated])
   type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@ 
-  type(state\_type), dimension(:), intent(in) :: state
+  type(state_type), dimension(:), intent(in) :: state
   character(len=*), intent(in) :: name
   integer, intent(out), optional :: state
   logical, intent(out), optional :: allocated
@@ -2604,7 +2604,7 @@ form of the extraction routines is provided:
 \begin{lstlisting}
 function extract_@\emph{object\_type}@(state, index)
   type{@\emph{object\_type}@}, pointer :: extract_@\emph{object\_type}@ 
-  type(state\_type), intent(in) :: state
+  type(state_type), intent(in) :: state
   integer, intent(in) :: index
 \end{lstlisting}
 
