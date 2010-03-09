@@ -1,6 +1,6 @@
 #include "fdebug.h"
 
-module huang_metric
+module huang_metric_module
 ! 10.1016/j.jcp.2004.10.024
 
   use fields
@@ -8,10 +8,12 @@ module huang_metric
   use vtk_interfaces
   use form_metric_field
   use vector_tools
-  use global_parameters, only: domain_volume
+  use global_parameters, only: domain_volume, OPTION_PATH_LEN
   use fldebug
   use spud
   use metric_tools
+  use field_options
+
   implicit none
 
   type(tensor_field), save :: m_hessian
@@ -23,33 +25,36 @@ module huang_metric
 
   contains
 
-  subroutine form_huang_metric(hessian, field, weight, state)
+  subroutine form_huang_metric(hessian, field, coordinate, weight)
     type(tensor_field), intent(inout) :: hessian
-    type(scalar_field), intent(in) :: field, weight
-    type(state_type), intent(in) :: state
+    type(scalar_field), intent(in) :: field
+    type(vector_field), intent(in), target :: coordinate
+    real, intent(in) :: weight
 
     integer :: n, m, l, p, q
     integer, dimension(2) :: tmp
     real :: gamma, sigma, alpha, eps, power_A, power_B, power_C
     integer :: node
     real, dimension(hessian%dim, hessian%dim) :: identity, abs_h, metric
+    character(len=OPTION_PATH_LEN) :: path
 
     assert(field%mesh%shape%degree == 1) ! this can be generalised, but currently I don't have the time
-    assert(weight%field_type == FIELD_TYPE_CONSTANT) ! this can't
 
-    m_coordinate => extract_vector_field(state, "Coordinate")
+    m_coordinate => coordinate
 
     n = mesh_dim(field)
     l = field%mesh%shape%degree + 1
     p = 1
 
-    call get_option(trim(field%option_path) // "/adaptivity_options/huang_metric/seminorm", tmp)
+    path = trim(complete_field_path(trim(field%option_path))) // "/adaptivity_options/huang_metric"
+    call get_option(trim(path) // "/seminorm", tmp)
     m = tmp(1)
     q = tmp(2)
 
-    eps = node_val(weight, 1)
+    eps = weight
     gamma = (float(n) / q) + (2 - m)
     power_A = 1 + float((n * (p - 1)))/(p * gamma) + max(0.0, float(n)/(p*gamma) - 1)
+    assert(domain_volume > 0)
     sigma = (2 ** power_A) * domain_volume
     m_sigma = sigma
 
@@ -65,7 +70,7 @@ module huang_metric
     m_hessian = hessian
     m_gamma = gamma
 
-    alpha = secant_method(beta, 1.0e-6, 1.0e6, 1.0e-6)
+    alpha = secant_method(beta, 1.0, 2.0, 1.0e-6)
 
     do node=1,node_count(hessian)
       abs_h = node_val(hessian, node)
@@ -76,8 +81,6 @@ module huang_metric
 
       call set(hessian, node, metric)
     end do
-
-    call bound_metric(hessian, state)
 
     contains 
 
@@ -110,6 +113,7 @@ module huang_metric
 
         do while(.true.)
           xnplus = xn - ( (xn - xnminus) / (fn - fnminus) ) * fn
+          assert(.not. is_nan(xnplus))
           fnplus = func(xnplus)
           if (abs(fnplus) < eps) then
             root = xnplus
@@ -154,9 +158,9 @@ module huang_metric
       p = p + dot_product(integrand_s, detwei)
     end do
 
+    write(0,*) "alpha: ", alpha, "; \int rho: ", p, "; sigma: ", m_sigma, "; output: ", p - m_sigma
     p = p - m_sigma
 
-    write(0,*) "alpha: ", alpha, "; beta: ", p
   end function beta
 
-end module huang_metric
+end module huang_metric_module
