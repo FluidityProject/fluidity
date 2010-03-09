@@ -30,6 +30,7 @@ except ImportError:
   debug.deprint("Warning: Failed to import numpy module")
 
 import fluidity.diagnostics.debug as debug
+import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.utils as utils
 
 try:
@@ -107,6 +108,21 @@ class Stat:
     else:
       return item
     
+  def __setitem__(self, key, value):
+    keySplit = self.SplitPath(key)
+    assert(len(keySplit) > 0)
+    s = self
+    for key in keySplit[:-1]:
+      if s.haskey(key):
+        s = s[key]
+        assert(isinstance(s, Stat))
+      else:
+        s._s[key] = {}
+        s = s[key]
+    s._s[keySplit[-1]] = value
+    
+    return
+    
   def __str__(self):
     paths = self.Paths()
     string = "Stat file:\n"
@@ -138,6 +154,9 @@ class Stat:
       return paths
   
     return SPathSplit(self._s, self._delimiter, path)
+    
+  def haskey(self, key):
+    return self.HasPath(key)
     
   def keys(self):
     return self.Paths()
@@ -273,7 +292,59 @@ class Stat:
 
     self._s = ParseRawS(statParser, self._delimiter)
     
+    if "ElapsedTime" in self.keys():
+      t = self["ElapsedTime"]
+      debug.dprint("Time range: " + str((t[0], t[-1])))
+    
     return
+    
+def JoinStat(*args):
+  """
+  Joins a series of stat files together. Useful for combining checkpoint .stat
+  files. Selects data in later stat files over earlier stat files. Assumes
+  data in stat files are sorted by ElapsedTime.
+  """
+
+  nStat = len(args)
+  assert(nStat > 0)
+  times = [stat["ElapsedTime"] for stat in args]
+  
+  startT = [t[0] for t in times]
+  permutation = utils.KeyedSort(startT, range(nStat))
+  stats = [args[index] for index in permutation]
+  startT = [startT[index] for index in permutation]
+  times = [times[index] for index in permutation]
+  
+  endIndices = numpy.empty(nStat, dtype = int)
+  for i, t in enumerate(times[:-1]):
+    for j, time in enumerate(t):
+      if calc.AlmostEquals(startT[i + 1], time, tolerance = 1.0e-6):
+        endIndices[i] = max(j - 1, 0)
+        break
+      elif startT[i + 1] < time:
+        endIndices[i] = j
+        break
+  endIndices[-1] = len(times[-1])
+  debug.dprint("Time ranges:")
+  for i in range(nStat): 
+    debug.dprint((startT[i], times[i][endIndices[i] - 1]))
+    
+  stat = stats[0]
+  data = {}
+  for key in stat.keys():
+    data[key] = stat[key].tolist()[:endIndices[0]]
+  delimiter = stat.GetDelimiter()
+  
+  for i in range(1, nStat):
+    stat = stats[i]
+    for key in stat.keys(): 
+      data[key] += stat[key].tolist()[:endIndices[i]]
+  
+  output = Stat(delimiter = delimiter)
+  for key in data.keys():
+    output[key] = data[key]
+  
+  return output
                 
 def DetectorArrays(stat):
   """

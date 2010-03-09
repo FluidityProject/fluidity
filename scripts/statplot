@@ -19,7 +19,7 @@ import fluidity.diagnostics.gui as gui
 import fluidity.diagnostics.plotting as plotting
 
 def Help():
-  debug.dprint("Usage: statplot [OPTIONS] FILENAME\n" + \
+  debug.dprint("Usage: statplot [OPTIONS] FILENAME [FILENAME ...]\n" + \
                "\n" + \
                "Options:\n" + \
                "\n" + \
@@ -43,32 +43,18 @@ if ("-h", "") in opts:
   
 if len(args) == 0:
   debug.FatalError("Filename must be specified")
-elif len(args) > 1:
-  debug.FatalError("Unrecognised trailing argument")
-
-filename = args[0]
 
 class StatplotWindow(gtk.Window):
-  def __init__(self, filename):
-    self._filename = filename
+  def __init__(self, filenames):
+    assert(len(filenames) > 0)
+    
+    self._filenames = filenames
   
     gtk.Window.__init__(self)
-    self.set_title(self._filename)
+    self.set_title(self._filenames[-1])
     self.connect("key-press-event", self._KeyPressed)
     
-    failcount = 0
-    self._stat = None
-    while failcount < 5:
-      try:
-        self._stat = fluidity_tools.Stat(self._filename)
-        break
-      except TypeError, ValueError:
-        # We opened the .stat when it was being written to by fluidity
-        time.sleep(0.2)
-        failcount = failcount + 1
-
-    if self._stat is None:
-      debug.FatalError("Could not open %s" % self._filename)
+    self._ReadData()
 
     # Containers
     self._vBox = gtk.VBox()
@@ -98,8 +84,6 @@ class StatplotWindow(gtk.Window):
       self._xCombo.set_active_iter(iter)
     self._hBox.pack_start(self._xCombo)
     
-    paths = self._stat.Paths()
-    paths.sort()
     self._yCombo = gui.ComboBoxFromEntries(paths)
     self._yCombo.connect("changed", self._YComboChanged)
     iter = self._yCombo.get_model().get_iter_first()
@@ -113,6 +97,27 @@ class StatplotWindow(gtk.Window):
     
     self._vBox.show_all()
     
+    return
+    
+  def _ReadData(self):
+    stats = []
+    for i, filename in enumerate(self._filenames):
+      failcount = 0
+      while failcount < 5:
+        try:
+          stats.append(fluidity_tools.Stat(filename))
+          break
+        except TypeError, ValueError:
+          # We opened the .stat when it was being written to by fluidity
+          time.sleep(0.2)
+          failcount = failcount + 1
+      if failcount == 5:
+        raise Exception("Could not open %s" % filename)
+    if len(stats) == 1:
+      self._stat = stats[0]
+    else:
+      self._stat = fluidity_tools.JoinStat(*stats)
+      
     return
     
   def _RefreshData(self, keepBounds = False):
@@ -188,11 +193,7 @@ class StatplotWindow(gtk.Window):
   def _KeyPressed(self, widget, event):
     char = event.string
     if char == "R":
-      try:
-       self._stat = fluidity_tools.Stat(self._filename)
-      except TypeError, ValueError:
-        # Tolerate a half written line in the .stat file
-        return
+      self._ReadData()
       self._RefreshData(keepBounds = True)
     elif char == "l":
       self._plotType = plotting.LinePlot
@@ -212,11 +213,7 @@ class StatplotWindow(gtk.Window):
     elif char == "q":
       self.destroy()
     elif char == "r":
-      try:
-        self._stat = fluidity_tools.Stat(self._filename)
-      except TypeError, ValueError:
-        # Tolerate a half written line in the .stat file
-        return
+      self._ReadData()
       self._RefreshData()
     elif char == "s":
       self._plotType = plotting.ScatterPlot
@@ -225,7 +222,7 @@ class StatplotWindow(gtk.Window):
     return
 
 # The window
-window = StatplotWindow(filename)
+window = StatplotWindow(args)
 window.set_default_size(640, 480)
 
 # Fire up the GUI
