@@ -12,6 +12,10 @@ subroutine test_anisotropic_zz
   use state_module
   use form_metric_field
   use interpolation_error
+  use huang_metric_module
+  use populate_state_module
+  use adapt_state_module
+  use global_parameters
   implicit none
 
   type(vector_field) :: positions
@@ -19,7 +23,6 @@ subroutine test_anisotropic_zz
   type(state_type) :: state
   type(tensor_field) :: metric
   integer :: loop, stat
-  character(len=255) :: path
   logical :: fail
   real :: h1
   real :: eta, tau
@@ -36,13 +39,16 @@ subroutine test_anisotropic_zz
     end function gradsoln
   end interface
 
-  !call set_global_debug_level(2)
+  call set_global_debug_level(2)
 
   positions = read_triangle_files("data/unit_metric", 4)
   call initialise_bounding_box_metric(positions)
   call insert(state, positions, "Coordinate")
-  call insert(state, positions%mesh, "Mesh")
   call deallocate(positions)
+
+  adaptivity_mesh_name = "Mesh"
+
+  call compute_domain_statistics((/state/))
 
   tau = 0.8
 
@@ -50,28 +56,39 @@ subroutine test_anisotropic_zz
 
     state%name = "StateNameHere"
     positions = extract_vector_field(state, "Coordinate")
+    if (.not. has_faces(positions%mesh)) then
+      call add_faces(positions%mesh)
+    end if
+    call insert(state, positions%mesh, "Mesh")
+    call insert(state, positions%mesh, "CoordinateMesh")
     call allocate(u, positions%mesh, "U")
     call set_from_function(u, solution, positions)
     u%option_path = "/fields/u"
-    call set_option("/fields/u/prognostic/adaptivity_options/anisotropic_zz/tau", tau, stat=stat)
+    call set_option("/fields/u/prognostic/adaptivity_options/anisotropic_zienkiewicz_zhu/tau", tau, stat=stat)
+    call set_option("/fields/u/prognostic/adaptivity_options/huang_metric/seminorm", (/1, 2/), stat=stat)
+    call set_option("/mesh_adaptivity/hr_adaptivity/maximum_number_of_nodes", 100000, stat=stat)
 
     call allocate(metric, positions%mesh, "Metric")
     call zero(metric)
 
     call compute_anisotropic_zz_metric(u, positions, metric, eta_estimate=eta)
+!    call compute_hessian(u, positions, metric)
+!    call form_huang_metric(metric, u, positions, tau)
     h1 = compute_interpolation_error_h1(gradsoln, u, positions)
     ewrite(2,*) "h1: ", h1
     call adaptivity_bounds(state, 0.000001, 10.0)
     call bound_metric(metric, state)
 
-    call insert(state, u, "U")
     call deallocate(u)
-    call mba_adapt(state, metric)
-    call deallocate(metric)
-    u = extract_scalar_field(state, "U")
+
+    call adapt_state(state, metric)
+
     positions = extract_vector_field(state, "Coordinate")
+    call allocate(u, positions%mesh, "U")
     call set_from_function(u, solution, positions)
-    !call vtk_write_state("data/anisotropic_zz", loop, state=(/state/))
+    call vtk_write_fields("anisotropic_zz", loop, positions, positions%mesh, sfields=(/u/))
+    call deallocate(u)
+
   end do
 
   fail = ((eta - tau)/tau > 0.01)
