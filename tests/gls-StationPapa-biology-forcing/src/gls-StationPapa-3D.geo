@@ -1,22 +1,22 @@
-Point(1) = {-3.35835e+06,-2.35154e+06,4.88594e+06,1};
+Point(1) = {0,0,0,1};
 Extrude {100.0,0.0,0.0} {
   Point{1};Layers{1};
 }
 Extrude {0.0,100.0,0.0} {
   Line{1};Layers{1};
 }
-Extrude {0.0,0.0,-200.0} {
-  Surface{5};Layers{50};
+Extrude {0.0,0.0,-150.0} {
+  Surface{5};Layers{75};
 }
-Extrude {0.0,0.0,-160.0} {
-  Surface{27};Layers{40};
+Extrude {0.0,0.0,-48.0} {
+  Surface{27};Layers{12};
 }
 
-Extrude {0.0,0.0,-40.0} {
-  Surface{49};Layers{10};
+Extrude {0.0,0.0,-44.0} {
+  Surface{49};Layers{11};
 }
-Extrude {0.0,0.0,-100.0} {
-  Surface{71};Layers{20};
+Extrude {0.0,0.0,-50.0} {
+  Surface{71};Layers{5};
 }
 Physical Surface(111) = {5};
 // north
