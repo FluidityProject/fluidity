@@ -325,7 +325,7 @@ contains
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
     integer :: dim, stat
     
-    if(.not. have_option(base_path) .or. .not. have_option(base_path // "/adaptivity_library/libmba2d")) then
+    if(.not. have_option(base_path) .or. .not. have_option(base_path // "/adaptivity_library/libmba3d")) then
       ! Nothing to check
       return
     end if
