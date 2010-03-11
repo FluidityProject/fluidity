@@ -230,9 +230,7 @@ $(PERIODISE): periodise.F90 lib/
 	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(PERIODISE) periodise.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
-	$(LINKER) -o $@ $(filter %.o,$^) fldiagnostics_module.o -l$(FLUIDITY) $(LIBS)
-
-fldiagnostics.o: fldiagnostics_module.o 
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(STREAMFUNCTION_2D): Streamfunction_2D.o Streamfunction_2D_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

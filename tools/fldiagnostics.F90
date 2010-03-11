@@ -21,8 +21,6 @@ subroutine fldiag_add_diag(input_name, input_name_len, &
   use state_module
   use vtk_interfaces
 
-  use fldiagnostics_module
-
   implicit none
 
   integer, intent(in) :: input_name_len, output_name_len, outfield_name_len, &
@@ -35,7 +33,7 @@ subroutine fldiag_add_diag(input_name, input_name_len, &
   character(len = state_name_len), intent(in) :: state_name
   integer, intent(in), optional :: outfield_rank
 
-  integer :: i, field_rank, stat
+  integer :: i, rank, stat
   type(mesh_type), pointer :: mesh
   type(state_type), dimension(1) :: state
 
@@ -50,12 +48,12 @@ subroutine fldiag_add_diag(input_name, input_name_len, &
     call get_option("/material_phase[0]/name", state(1)%name, stat)
   end if
 
-  mesh => find_mesh_field(state(1), meshfield_name)
+  mesh => extract_field_mesh(state(1), meshfield_name)
 
-  field_rank = find_existing_field_rank(state(1), outfield_name)
+  rank = field_rank(state(1), outfield_name)
 
   if(present(outfield_rank)) then
-    if(field_rank > 0 .and. field_rank /= outfield_rank) then
+    if(rank > 0 .and. rank /= outfield_rank) then
       FLExit("Requested diagnostic field rank and rank of existing field in input file do not match")
     end if
     call insert_diagnostic_field(state(1), outfield_name, mesh, outfield_rank)
@@ -63,7 +61,7 @@ subroutine fldiag_add_diag(input_name, input_name_len, &
     do i = 0, 3
       call insert_diagnostic_field(state(1), outfield_name, mesh, i, stat)
       if(stat == 0) then
-        if(field_rank >= 0 .and. field_rank /= i) then
+        if(rank >= 0 .and. rank /= i) then
           FLExit("Rank of calculated diagnostic field and existing field in input file do not match")
         end if
         exit        

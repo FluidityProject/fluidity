@@ -155,8 +155,9 @@ module state_module
   end interface
   
   public state_type, deallocate, insert, nullify
-  public extract_scalar_field, extract_vector_field, extract_tensor_field, extract_petsc_csr_matrix
-  public extract_mesh, extract_halo, extract_csr_sparsity, extract_csr_matrix, extract_block_csr_matrix
+  public field_rank, extract_scalar_field, extract_vector_field, extract_tensor_field
+  public extract_field_mesh, extract_mesh, extract_halo
+  public extract_csr_sparsity, extract_csr_matrix, extract_block_csr_matrix, extract_petsc_csr_matrix
   public has_scalar_field, has_vector_field, has_tensor_field, has_mesh, has_halo
   public has_csr_sparsity, has_csr_matrix, has_block_csr_matrix, has_petsc_csr_matrix
   public get_state_index, print_state, select_state_by_mesh
@@ -1399,6 +1400,45 @@ contains
 
   end subroutine remove_petsc_csr_matrix
   
+  function field_rank(state, name, stat)
+    !!< Return the rank of the named field in state
+
+    type(state_type), intent(in) :: state
+    character(len = *), intent(in) :: name
+    integer, optional, intent(out) :: stat
+
+    integer :: field_rank
+  
+    logical :: s_field, v_field, t_field
+  
+    if(present(stat)) stat = 0
+  
+    s_field = has_scalar_field(state, name)
+    v_field = has_vector_field(state, name)
+    t_field = has_tensor_field(state, name)
+  
+    if(count((/s_field, v_field, t_field/)) > 1)  then
+      if(present(stat)) then
+        stat = 2
+      else
+        FLAbort("Multiple field types found for field " // trim(name))
+      end if
+    else if(s_field) then
+      field_rank = 0
+    else if(v_field) then
+      field_rank = 1
+    else if(t_field) then
+      field_rank = 2
+    else
+      if(present(stat)) then
+        stat = 1
+      else
+        FLAbort(trim(name) // " is not a field name in this state") 
+      end if
+    end if
+  
+  end function field_rank
+  
   function extract_tensor_field(state, name, stat) result (field)
     !!< Return a pointer to the tensor field with the correct name.
     type(tensor_field), pointer :: field
@@ -1618,6 +1658,48 @@ contains
     end if
 
   end function extract_from_any_scalar_field
+
+  function extract_field_mesh(state, name, stat) result(mesh)
+    !!< Return the mesh for the named field in state
+  
+    type(state_type), intent(in) :: state
+    character(len = *), intent(in) :: name
+    integer, optional, intent(out) :: stat
+  
+    type(mesh_type), pointer :: mesh
+    
+    integer :: s_stat, v_stat, t_stat
+    type(scalar_field), pointer :: s_field
+    type(tensor_field), pointer :: t_field
+    type(vector_field), pointer :: v_field
+    
+    if(present(stat)) stat = 0
+    
+    s_field => extract_scalar_field(state, name, s_stat)
+    v_field => extract_vector_field(state, name, v_stat)
+    t_field => extract_tensor_field(state, name, t_stat)
+  
+    if(count((/s_stat == 0, v_stat == 0, t_stat == 0/)) > 1) then
+      if(present(stat)) then
+        stat = 2
+      else
+        FLAbort("Multiple field types found for field " // trim(name))
+      end if
+    else if(s_stat == 0) then
+      mesh => s_field%mesh
+    else if(v_stat == 0) then
+      mesh => v_field%mesh
+    else if(t_stat == 0) then
+      mesh => t_field%mesh
+    else
+      if(present(stat)) then
+        stat = 1
+      else
+        FLAbort(trim(name) // " is not a field name in this state") 
+      end if
+    end if
+  
+  end function extract_field_mesh
 
   function extract_mesh_from_one(state, name, stat) result (mesh)
     !!< Return a pointer to the mesh with the correct name.
