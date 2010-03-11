@@ -331,13 +331,13 @@ contains
     assert(sum(nreceives) == size(receives))
     
     ! Allocate the halo
-    call allocate(halo, nsends, nreceives, nprocs = nprocs, name = "HaloFormedFromRawData", ordering_scheme = lordering_scheme)
-    if(present(nowned_nodes)) then
-      call set_halo_nowned_nodes(halo, nowned_nodes)
-    end if
+    call allocate(halo, nsends, nreceives, nprocs = nprocs, &
+      & nowned_nodes = nowned_nodes, name = "HaloFormedFromRawData", &
+      & ordering_scheme = lordering_scheme)
+    deallocate(nsends)
+    deallocate(nreceives)
     
     ! Copy sends and receives into the halo
-    call zero(halo)
     call set_all_halo_sends(halo, sends)
     call set_all_halo_receives(halo, receives)
     
@@ -346,9 +346,6 @@ contains
       call create_ownership(halo)
     end if
     
-    deallocate(nsends)
-    deallocate(nreceives)
-
   end subroutine form_halo_from_raw_data
   
 end module halos_registration

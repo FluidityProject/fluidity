@@ -52,7 +52,6 @@ module halos_derivation
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos
-  public :: ele_owner
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh, derive_l1_from_l2_halo_halo
@@ -992,9 +991,12 @@ contains
     integer :: key, output
 #endif
 
-    assert(associated(model%mesh%element_halos))
-    assert(associated(model%mesh%halos))
-
+    assert(halo_count(model) == 2)
+    assert(element_halo_count(model) == 2)
+    assert(halo_valid_for_communication(model%mesh%element_halos(1)))
+    assert(halo_valid_for_communication(model%mesh%element_halos(2)))
+    assert(halo_valid_for_communication(model%mesh%halos(1)))
+    assert(halo_valid_for_communication(model%mesh%halos(2)))
 #ifdef DDEBUG
     map_verification = 0
     do i=1,key_count(aliased_to_new_node_number)
@@ -1005,11 +1007,6 @@ contains
 
     assert(halo_verifies(model%mesh%halos(2), model))
 #endif
-
-    assert(halo_valid_for_communication(model%mesh%element_halos(1)))
-    assert(halo_valid_for_communication(model%mesh%element_halos(2)))
-    assert(halo_valid_for_communication(model%mesh%halos(1)))
-    assert(halo_valid_for_communication(model%mesh%halos(2)))
 
     ! element halos are easy, just a copy, na ja?
     allocate(new_positions%mesh%element_halos(2))
@@ -1054,7 +1051,7 @@ contains
     call allocate(new_positions%mesh%halos(2), &
                   nsends = sends%length, &
                   nreceives = receives%length, &
-                  name = halo_name(model%mesh%halos(2)), &   ! Probably should change this
+                  name = trim(new_positions%mesh%name) // "Level2Halo", &
                   communicator = halo_communicator(model%mesh%halos(2)), &
                   nowned_nodes = new_nowned_nodes, &
                   data_type = halo_data_type(model%mesh%halos(2)), &

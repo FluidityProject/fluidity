@@ -264,8 +264,7 @@ Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
   Halos_Debug.o Reference_Counting.o
 Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o MPI_Interfaces.o
 Halos_Communications.o: Fields_Data_Types.o Futils.o Halos_Allocates.o Halos_Base.o \
-  Halo_Data_Types.o Halos_Debug.o Halos_Ownership.o Halos_Numbering.o \
-  Fields_Manipulation.o
+  Halo_Data_Types.o Halos_Debug.o Fields_Manipulation.o
 Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
 Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
@@ -467,6 +466,7 @@ test_invert_dg_mass_matrix: test_invert_dg_mass_matrix.F90
 test_projections: projections.cpp
 	$(CXX) $(CXXFLAGS) -DPROJECTIONS_UNIT_TEST -o $@ $^ $(LIBS)
 
+MPI_Interfaces.o: Global_Parameters.o
 Parallel_Tools.o: Global_Parameters.o MPI_Interfaces.o
 
 Fields_Halos.o: Fields.o Halos.o Data_structures.o

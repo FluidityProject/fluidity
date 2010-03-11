@@ -39,8 +39,6 @@ module halos_communications
   use halos_allocates
   use halos_base
   use halos_debug
-  use halos_numbering
-  use halos_ownership
   use mpi_interfaces
   use parallel_tools
   use linked_lists

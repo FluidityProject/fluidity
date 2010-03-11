@@ -481,7 +481,6 @@ contains
     integer, dimension(node_count(halo)), intent(out) :: unns
     
     assert(has_global_to_universal_numbering(halo))
-    assert(size(unns) >= node_count(halo))
 
     select case(halo_ordering_scheme(halo))
       case(HALO_ORDER_GENERAL)
