@@ -278,7 +278,8 @@ module fields_base
 
   interface set_from_python_function
      module procedure set_values_from_python_scalar, set_values_from_python_scalar_pos, &
-       set_values_from_python_vector, set_values_from_python_vector_pos
+       set_values_from_python_vector, set_values_from_python_vector_pos, &
+       set_values_from_python_vector_field
   end interface
     
   interface tetvol
@@ -3211,6 +3212,33 @@ contains
     end select    
     
   end subroutine set_values_from_python_vector_pos
+
+  subroutine set_values_from_python_vector_field(values, func, vfield, time)
+    !!< Given a list of positions and a time, evaluate the python function
+    !!< specified in the string func at those points. 
+    real, dimension(:,:), intent(inout) :: values
+    !! Func may contain any python at all but the following function must
+    !! be defiled:
+    !!  def val(X, t)
+    !! where X is a tuple containing the position of a point and t is the
+    !! time. The result must be a float. 
+    character(len=*), intent(in) :: func
+    type(vector_field), intent(in) :: vfield
+    real, intent(in) :: time
+
+    integer :: dim
+    
+    dim=vfield%dim
+    select case(dim)
+    case(1)
+      call set_values_from_python_vector(values, func, vfield%val(1)%ptr, time=time)
+    case(2)
+      call set_values_from_python_vector(values, func, vfield%val(1)%ptr, vfield%val(2)%ptr, time=time)
+    case(3)
+      call set_values_from_python_vector(values, func, vfield%val(1)%ptr, vfield%val(2)%ptr, vfield%val(3)%ptr, time=time)
+    end select    
+    
+  end subroutine set_values_from_python_vector_field
 
   ! ------------------------------------------------------------------------
   ! Geometric element volume routines. These really ought to go somewhere
