@@ -91,8 +91,9 @@ module mpi_interfaces
     end subroutine mpi_iprobe
     
     function mpi_tick()
+      use global_parameters, only : real_8
       implicit none
-      real(kind = selected_real_kind(8)) :: mpi_tick
+      real(kind = real_8) :: mpi_tick
     end function mpi_tick
 
     subroutine mpi_type_commit(type, ierr)
@@ -116,6 +117,16 @@ module mpi_interfaces
       integer, intent(in) :: type
       integer, intent(out) :: ierr
     end subroutine mpi_type_free
+    
+    subroutine mpi_type_vector(blocks, block_size, stride, old_type, new_type, ierr)
+      implicit none
+      integer, intent(in) :: blocks
+      integer, intent(in) :: block_size
+      integer, intent(in) :: stride
+      integer, intent(in) :: old_type
+      integer, intent(out) :: new_type
+      integer, intent(out) :: ierr
+    end subroutine mpi_type_vector
   end interface
   
   external :: mpi_allreduce
