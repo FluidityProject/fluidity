@@ -2430,6 +2430,7 @@ contains
     if (associated(state%scalar_names)) then
       do i=1,size(state%scalar_names)
         write(lunit,'(a)') " +" // trim(state%scalar_names(i)) &
+             // " (" // trim(state%scalar_fields(i)%ptr%name) // ") " &
              // " on " // trim(state%scalar_fields(i)%ptr%mesh%name)
       end do
     else
@@ -2440,6 +2441,7 @@ contains
     if (associated(state%vector_names)) then
       do i=1,size(state%vector_names)
         write(lunit,'(a)') " +" // trim(state%vector_names(i)) &
+             // " (" // trim(state%vector_fields(i)%ptr%name) // ") " &
              // " on " // trim(state%vector_fields(i)%ptr%mesh%name)
       end do
     else
@@ -2450,6 +2452,7 @@ contains
     if (associated(state%tensor_names)) then
       do i=1,size(state%tensor_names)
         write(lunit,'(a)') " +" // trim(state%tensor_names(i)) &
+             // " (" // trim(state%tensor_fields(i)%ptr%name) // ") " &
              // " on " // trim(state%tensor_fields(i)%ptr%mesh%name)
       end do
     else
