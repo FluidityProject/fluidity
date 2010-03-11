@@ -403,8 +403,8 @@ contains
         ! Step g). Unwrap again
         ! We need to fiddle with the options tree to mark the aliased and physical surface IDs appropriately
         ! fixme: do I need the __value here?
-        call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids/', (/new_colour/))
-        call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids/', (/new_colour+1/))
+        call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids/', (/physical_colours, new_colour/))
+        call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids/', (/aliased_colours, new_colour+1/))
 
         unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path), & 
                                   aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
