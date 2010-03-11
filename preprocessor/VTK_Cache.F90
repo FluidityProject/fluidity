@@ -63,6 +63,7 @@ subroutine vtk_cache_finalise()
   end do
     
   deallocate( vtk_states_read )
+  nullify(vtk_states_read)
   
 end subroutine vtk_cache_finalise
   
