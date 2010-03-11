@@ -116,6 +116,7 @@ module interpolation_error
     h1 = sqrt(h1)
 
     call vtk_write_fields("h1_error", 0, positions, field%mesh, sfields=(/debug/))
+    call deallocate(debug)
   
   end function compute_interpolation_error_h1
 
