@@ -43,6 +43,7 @@ module interpolation_manager
   use boundary_conditions_from_options
   use tictoc
   use geostrophic_pressure
+  use quicksort
   
   implicit none
   
@@ -70,6 +71,9 @@ contains
     integer :: state, state_cnt, mesh
     integer :: mesh_cnt
     character(len=FIELD_NAME_LEN) :: mesh_name
+    
+    integer :: unique_mesh_index
+    integer, dimension(:), allocatable :: mesh_ele_counts, mesh_indices, unique_mesh_indices
 
     type(scalar_field), pointer :: field_s
     type(vector_field), pointer :: field_v, field_v_2
@@ -96,15 +100,9 @@ contains
     integer :: stat
 
     ewrite(1, *) "In interpolate"
-
-    mesh_cnt = option_count("/geometry/mesh")
-    allocate(meshes_old(mesh_cnt))
-    allocate(meshes_new(mesh_cnt))
-    allocate(alg_old(mesh_cnt))
-    allocate(alg_new(mesh_cnt))
-    alg_cnt = size(algorithms)
-    state_cnt = size(states_old)
+    
     assert(size(states_old) == size(states_new))
+    state_cnt = size(states_old)
 
     ! First thing: check the usual case. If all field request consistent
     ! interpolation, and all fields are on linear meshes, the just pass over to
@@ -203,10 +201,56 @@ contains
     ! OK! So we have some work to do.
     ! First, let's organise the fields according to what mesh
     ! they are on.
-    do mesh=1,mesh_cnt
 
-      call get_option("/geometry/mesh["//int2str(mesh-1)//"]/name", mesh_name)
+    ! The following is a temporary hack - it identifies the unique meshes in
+    ! states_old(1)
+    
+    ! 1. Sort the meshes by their element count to reduce the number of
+    ! mesh comparisons
+    mesh_cnt = mesh_count(states_old(1))
+    allocate(mesh_ele_counts(mesh_cnt))
+    do mesh = 1, mesh_cnt
+      old_mesh => extract_mesh(states_old(1), mesh)
+      mesh_ele_counts(mesh) = ele_count(old_mesh)
+    end do
+    allocate(mesh_indices(size(mesh_ele_counts)))
+    call qsort(mesh_ele_counts, mesh_indices)
+    call apply_permutation(mesh_ele_counts, mesh_indices)
+        
+    ! 2. Count up the unique meshes
+    allocate(unique_mesh_indices(mesh_cnt))
+    unique_mesh_indices(mesh_indices(1)) = 1
+    mesh_cnt = 1  
+    do mesh = 2, size(mesh_ele_counts)
+      if(mesh_ele_counts(mesh) == mesh_ele_counts(mesh - 1)) then
+        old_mesh => extract_mesh(states_old(1), mesh_indices(mesh))
+        if(old_mesh == extract_mesh(states_old(1), mesh_indices(mesh - 1))) then
+          ewrite(2, *) "Duplicate mesh: " // trim(old_mesh%name)
+          unique_mesh_indices(mesh_indices(mesh)) = unique_mesh_indices(mesh_indices(mesh - 1))
+          cycle
+        end if
+      end if
 
+      mesh_cnt = mesh_cnt + 1
+      unique_mesh_indices(mesh_indices(mesh)) = mesh_cnt
+    end do
+    deallocate(mesh_indices)
+    deallocate(mesh_ele_counts)
+    ewrite(2, *) "Unique meshes: ", mesh_cnt
+    ewrite(2, *) "Duplicate meshes: ", mesh_count(states_old(1)) - mesh_cnt
+        
+    allocate(meshes_old(mesh_cnt))
+    allocate(meshes_new(mesh_cnt))
+    allocate(alg_old(mesh_cnt))
+    allocate(alg_new(mesh_cnt))
+    alg_cnt = size(algorithms)
+    
+    do mesh = 1, mesh_count(states_old(1))
+      old_mesh => extract_mesh(states_old(1), mesh)
+      mesh_name = old_mesh%name
+      unique_mesh_index = unique_mesh_indices(mesh)
+      assert(unique_mesh_index >= 1 .and. unique_mesh_index <= mesh_cnt)
+      
       do state=1,state_cnt
         do field=1,scalar_field_count(states_old(state))
           field_s => extract_scalar_field(states_old(state), field)
@@ -214,12 +258,12 @@ contains
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_old(mesh), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
+            call insert(meshes_old(unique_mesh_index), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
             field_s => extract_scalar_field(states_new(state), trim(field_s%name))
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_new(mesh), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
+            call insert(meshes_new(unique_mesh_index), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
           end if
         end do
 
@@ -229,12 +273,12 @@ contains
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_old(mesh), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
+            call insert(meshes_old(unique_mesh_index), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
             field_v => extract_vector_field(states_new(state), trim(field_v%name))
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_new(mesh), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
+            call insert(meshes_new(unique_mesh_index), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
           end if
         end do
 
@@ -244,17 +288,18 @@ contains
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_old(mesh), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
+            call insert(meshes_old(unique_mesh_index), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
             field_t => extract_tensor_field(states_new(state), trim(field_t%name))
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_new(mesh), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
+            call insert(meshes_new(unique_mesh_index), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
           end if
         end do
 
       end do
-    end do
+    end do    
+    deallocate(unique_mesh_indices)
 
     ! Great! Now let's loop over the fields associated with each mesh
     ! and group them by algorithm.
@@ -277,9 +322,8 @@ contains
       select case(trim(algorithms(alg)))
         case("consistent_interpolation")
           do mesh = 1, mesh_cnt
-            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
-            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_mesh => extract_mesh(states_old(1), mesh)
+            new_mesh => extract_mesh(states_new(1), old_mesh%name)
             
             call insert(alg_old(mesh), old_mesh, "Mesh")
             call insert(alg_new(mesh), new_mesh, "Mesh")
@@ -307,9 +351,8 @@ contains
           end do
         case("interpolation_galerkin")
           do mesh = 1, mesh_cnt
-            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
-            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_mesh => extract_mesh(states_old(1), mesh)
+            new_mesh => extract_mesh(states_new(1), old_mesh%name)
             
             call insert(alg_old(mesh), old_mesh, "Mesh")
             call insert(alg_new(mesh), new_mesh, "Mesh")
@@ -346,9 +389,8 @@ contains
           end do
         case("grandy_interpolation")
           do mesh = 1, mesh_cnt
-            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
-            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_mesh => extract_mesh(states_old(1), mesh)
+            new_mesh => extract_mesh(states_new(1), old_mesh%name)
             
             call insert(alg_old(mesh), old_mesh, "Mesh")
             call insert(alg_new(mesh), new_mesh, "Mesh")

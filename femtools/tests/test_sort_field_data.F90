@@ -1,6 +1,6 @@
 subroutine test_sort_field_data
 
-  use halos_repair
+  use quicksort
   use unittest_tools
 
   implicit none

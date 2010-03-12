@@ -1,19 +1,36 @@
-! Retrieved from:
-! http://users.bigpond.net.au/amiller/NSWC/qsortd.f90
-! Believed to be public domain as it is the work of 
-! a US government employee.
+#include "fdebug.h"
 
 module quicksort
 
+  use fldebug
   use global_parameters, only : real_4
 
   implicit none
 
+  private
+  
+  public :: qsort, sort, count_unique, inverse_permutation, apply_permutation
+
   interface qsort
     module procedure qsortd, qsortsp, qsorti
   end interface qsort
+  
+  interface sort
+    module procedure sort_integer_array, sort_real_array
+  end interface
+  
+  interface apply_permutation
+    module procedure apply_permutation_integer_array, &
+      & apply_permutation_real_array, apply_permutation_integer, &
+      & apply_permutation_real
+  end interface apply_permutation
 
 contains
+
+! Retrieved from:
+! http://users.bigpond.net.au/amiller/NSWC/qsortd.f90
+! Believed to be public domain as it is the work of 
+! a US government employee.
 
 SUBROUTINE qsortd(x, ind)
  
@@ -633,5 +650,277 @@ IF (t < x(indx)) GO TO 100
 ind(k+1) = it
 GO TO 90
 END SUBROUTINE qsorti
+  
+  recursive subroutine sort_integer_array(integer_array, permutation)   
+    !!< Sort integer_array along integer_array(:, 1), then integer_array(:, 2), etc.
+  
+    integer, dimension(:, :), intent(in) :: integer_array
+    integer, dimension(size(integer_array, 1)), intent(out) :: permutation
+    
+    integer :: end_index, i, j, start_index
+    integer, dimension(:), allocatable :: sub_permutation
+    logical :: do_sub_permute
+    integer, dimension(:, :), allocatable :: sorted_integer_array
+    
+    permutation = 0
+    
+    if(size(integer_array, 2) == 1) then
+      ! Terminating case
+      
+      ! Sort along integer_array(:, 1)
+      call qsort(integer_array(:, 1), permutation)
+    else
+      ! Recursing case
+      
+      ! Sort along integer_array(:, 1)
+      call qsort(integer_array(:, 1), permutation)
+      ! Now we need to sort equal consecutive entries in
+      ! integer_array(permutation, 1) using integer_array(permutation, 2:)
+      start_index = -1  ! When this is > 0, it indicates we're iterating over
+                        ! equal consecutive entries in
+                        ! integer_array(permutation, 1)
+      do i = 2, size(integer_array, 1) + 1
+        if(start_index < 0) then
+          ! We haven't yet found equal consecutive entries in
+          ! integer_array(permutation, 1) over which to sort
+          
+          if(i <= size(integer_array, 1)) then
+            ! We're not yet at the end of the array
+            if(abs(integer_array(permutation(i), 1) - integer_array(permutation(i - 1), 1)) == 0) then
+              ! We've found equal entries in integer_array(permutation, 1) - this
+              ! gives us a start index over which to sort
+              start_index = i - 1
+            end if
+          end if
+        else
+          ! We're already iterating over equal entries in
+          ! integer_array(permutation, 1)
+          
+          ! We've found an end index over which to sort if ...
+          ! ... we're at the end of the array ...
+          do_sub_permute = i == size(integer_array, 1) + 1
+          if(.not. do_sub_permute) then
+            ! ... or we've hit non-equal consecutive entries
+            do_sub_permute = abs(integer_array(permutation(i), 1) - integer_array(permutation(i - 1), 1)) > 0
+          end if
+          if(do_sub_permute) then
+            ! We've found an end index
+            end_index = i - 1
+            
+            ! Sort using integer_array(permutation(start_index:end_index), 2:)
+            allocate(sorted_integer_array(end_index - start_index + 1, size(integer_array, 2) - 1))
+            do j = 1, size(sorted_integer_array, 1)
+              assert(permutation(j + start_index - 1) >= 1 .and. permutation(j + start_index - 1) <= size(integer_array, 1))
+              sorted_integer_array(j, :) = integer_array(permutation(j + start_index - 1), 2:)
+            end do
+            allocate(sub_permutation(end_index - start_index + 1))
+            call sort(sorted_integer_array, sub_permutation)
+            call apply_permutation(permutation(start_index:end_index), sub_permutation)
+            deallocate(sub_permutation)
+            deallocate(sorted_integer_array)
+            
+            ! Now we need to find a new start index
+            start_index = -1
+          end if
+        end if
+      end do
+    end if
+    
+  end subroutine sort_integer_array
+  
+  recursive subroutine sort_real_array(real_array, permutation)   
+    !!< Sort real_array along real_array(:, 1), then real_array(:, 2), etc.
+  
+    real, dimension(:, :), intent(in) :: real_array
+    integer, dimension(size(real_array, 1)), intent(out) :: permutation
+    
+    integer :: end_index, i, j, start_index
+    integer, dimension(:), allocatable :: sub_permutation
+    logical :: do_sub_permute
+    real, dimension(:, :), allocatable :: sorted_real_array
+    
+    permutation = 0
+    
+    if(size(real_array, 2) == 1) then
+      ! Terminating case
+      
+      ! Sort along real_array(:, 1)
+      call qsort(real_array(:, 1), permutation)
+    else
+      ! Recursing case
+      
+      ! Sort along real_array(:, 1)
+      call qsort(real_array(:, 1), permutation)
+      ! Now we need to sort equal consecutive entries in
+      ! real_array(permutation, 1) using real_array(permutation, 2:)
+      start_index = -1  ! When this is > 0, it indicates we're iterating over
+                        ! equal consecutive entries in
+                        ! real_array(permutation, 1)
+      do i = 2, size(real_array, 1) + 1
+        if(start_index < 0) then
+          ! We haven't yet found equal consecutive entries in
+          ! real_array(permutation, 1) over which to sort
+          
+          if(i <= size(real_array, 1)) then
+            ! We're not yet at the end of the array
+            if(abs(real_array(permutation(i), 1) - real_array(permutation(i - 1), 1)) == 0.0) then
+              ! We've found equal entries in real_array(permutation, 1) - this
+              ! gives us a start index over which to sort
+              start_index = i - 1
+            end if
+          end if
+        else
+          ! We're already iterating over equal entries in
+          ! real_array(permutation, 1)
+          
+          ! We've found an end index over which to sort if ...
+          ! ... we're at the end of the array ...
+          do_sub_permute = i == size(real_array, 1) + 1
+          if(.not. do_sub_permute) then
+            ! ... or we've hit non-equal consecutive entries
+            do_sub_permute = abs(real_array(permutation(i), 1) - real_array(permutation(i - 1), 1)) > 0.0
+          end if
+          if(do_sub_permute) then
+            ! We've found an end index
+            end_index = i - 1
+            
+            ! Sort using real_array(permutation(start_index:end_index), 2:)
+            allocate(sorted_real_array(end_index - start_index + 1, size(real_array, 2) - 1))
+            do j = 1, size(sorted_real_array, 1)
+              assert(permutation(j + start_index - 1) >= 1 .and. permutation(j + start_index - 1) <= size(real_array, 1))
+              sorted_real_array(j, :) = real_array(permutation(j + start_index - 1), 2:)
+            end do
+            allocate(sub_permutation(end_index - start_index + 1))
+            call sort(sorted_real_array, sub_permutation)
+            call apply_permutation(permutation(start_index:end_index), sub_permutation)
+            deallocate(sub_permutation)
+            deallocate(sorted_real_array)
+            
+            ! Now we need to find a new start index
+            start_index = -1
+          end if
+        end if
+      end do
+    end if
+    
+  end subroutine sort_real_array
+
+  function count_unique(int_array) result(unique)
+    !!< Count the unique entries in the supplied array of integers
+
+    integer, dimension(:), intent(in) :: int_array
+
+    integer :: unique
+
+    integer :: i
+    integer, dimension(size(int_array)) :: permutation
+
+    call qsort(int_array, permutation)
+    
+    unique = 0
+    if(size(int_array) > 0) then
+      unique = unique + 1
+    end if
+    do i = 2, size(int_array)
+      if(int_array(permutation(i)) == int_array(permutation(i - 1))) cycle
+      unique = unique + 1
+    end do
+
+  end function count_unique
+  
+  pure function inverse_permutation(permutation)
+    !!< Return the inverse of the supplied permutation
+    
+    integer, dimension(:), intent(in) :: permutation
+    
+    integer, dimension(size(permutation)) :: inverse_permutation
+    
+    integer :: i
+    
+    do i = 1, size(permutation)
+      inverse_permutation(permutation(i)) = i
+    end do
+  
+  end function inverse_permutation
+  
+  subroutine apply_permutation_integer_array(permutation, applied_permutation)
+    !!< Apply the given applied_permutation to the array permutation
+    !!< Use this instead of permutation = permutation(applied_permutation), as
+    !!< the inline form can cause intermittent errors on some compilers.
+  
+    integer, dimension(:, :), intent(inout) :: permutation
+    integer, dimension(size(permutation, 1)), intent(in) :: applied_permutation
+    
+    integer :: i
+    integer, dimension(size(permutation, 1), size(permutation, 2)) :: temp_permutation
+    
+    temp_permutation = permutation
+    
+    do i = 1, size(applied_permutation)
+      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+      permutation(i, :) = temp_permutation(applied_permutation(i), :)
+    end do
+    
+  end subroutine apply_permutation_integer_array  
+  
+  subroutine apply_permutation_real_array(permutation, applied_permutation)
+    !!< Apply the given applied_permutation to the array permutation
+    !!< Use this instead of permutation = permutation(applied_permutation), as
+    !!< the inline form can cause intermittent errors on some compilers.
+    
+    real, dimension(:, :), intent(inout) :: permutation
+    integer, dimension(size(permutation, 1)), intent(in) :: applied_permutation
+    
+    integer :: i
+    real, dimension(size(permutation, 1), size(permutation, 2)) :: temp_permutation
+    
+    temp_permutation = permutation
+    
+    do i = 1, size(applied_permutation)
+      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+      permutation(i, :) = temp_permutation(applied_permutation(i), :)
+    end do
+    
+  end subroutine apply_permutation_real_array  
+  
+  subroutine apply_permutation_integer(permutation, applied_permutation)
+    !!< Apply the given applied_permutation to the array permutation
+    !!< Use this instead of permutation = permutation(applied_permutation), as
+    !!< the inline form can cause intermittent errors on some compilers.
+  
+    integer, dimension(:), intent(inout) :: permutation
+    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+    
+    integer :: i
+    integer, dimension(size(permutation)) :: temp_permutation
+    
+    temp_permutation = permutation
+    
+    do i = 1, size(applied_permutation)
+      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+      permutation(i) = temp_permutation(applied_permutation(i))
+    end do
+    
+  end subroutine apply_permutation_integer
+  
+  subroutine apply_permutation_real(permutation, applied_permutation)
+    !!< Apply the given applied_permutation to the array permutation
+    !!< Use this instead of permutation = permutation(applied_permutation), as
+    !!< the inline form can cause intermittent errors on some compilers.
+  
+    real, dimension(:), intent(inout) :: permutation
+    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+    
+    integer :: i
+    real, dimension(size(permutation)) :: temp_permutation
+    
+    temp_permutation = permutation
+    
+    do i = 1, size(applied_permutation)
+      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+      permutation(i) = temp_permutation(applied_permutation(i))
+    end do
+    
+  end subroutine apply_permutation_real
 
 end module quicksort

@@ -51,7 +51,7 @@ module halos_base
     & extract_all_halo_receives, set_all_halo_sends, set_all_halo_receives, &
     & min_halo_send_node, min_halo_receive_node, min_halo_node, &
     & max_halo_send_node, max_halo_receive_node, max_halo_node,&
-    & count_unique, node_count, serial_storage_halo
+    & node_count, serial_storage_halo
   
   interface zero
     module procedure zero_halo
@@ -720,29 +720,6 @@ contains
     max_node = max(max_node, max_halo_receive_node(halo))
     
   end function max_halo_node
-
-  function count_unique(int_array) result(unique)
-    !!< Count the unique entries in the supplied array of integers
-
-    integer, dimension(:), intent(in) :: int_array
-
-    integer :: unique
-
-    integer :: i
-    integer, dimension(size(int_array)) :: permutation
-
-    call qsort(int_array, permutation)
-    
-    unique = 0
-    if(size(int_array) > 0) then
-      unique = unique + 1
-    end if
-    do i = 2, size(int_array)
-      if(int_array(permutation(i)) == int_array(permutation(i - 1))) cycle
-      unique = unique + 1
-    end do
-
-  end function count_unique
   
   function serial_storage_halo(halo) result(serial)
     !!< Return whether this halo is used to store parallel data in serial. This
