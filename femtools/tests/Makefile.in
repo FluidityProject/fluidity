@@ -47,7 +47,7 @@ DISABLED_TESTS=test_blasmul test_surface_ids \
   test_halo_communication test_halo_numbering test_halo_receive_renumbering \
   test_submesh test_cv_faces \
   test_vertical_integration compare_intersection_finder test_remap_coordinate \
-  test_adaptive_interpolation_refine test_array_permutation
+  test_adaptive_interpolation_refine test_array_permutation test_vtk_read_surface
 
 
 # the test programs to be built:
