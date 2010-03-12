@@ -1194,6 +1194,7 @@ contains
   
             if(option_count(trim(path) // "/boundary_conditions/type::neumann") > 0 &
               & .and. .not. (have_option(trim(path) // "/tensor_field::Diffusivity") &
+              & .or. have_option(trim(path) // "/subgridscale_parameterisation::k-epsilon") &
               & .or. have_option(trim(path) // "/subgridscale_parameterisation::GLS"))) then
                 call field_warning(state_name, field_name, &
                 & "Neumann boundary condition set, but have no diffusivity - boundary condition will not be applied")
