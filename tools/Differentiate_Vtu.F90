@@ -29,8 +29,14 @@
 
 subroutine differentiate_vtu(input_filename, input_filename_len, output_filename, output_filename_len, input_fieldname, input_fieldname_len)
 
-  use field_derivatives
+! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use quadrature
+  use elements
+  use sparse_tools
   use fields
+  use state_module
+!
+  use field_derivatives
   use fldebug
   use state_module
   use vtk_interfaces
@@ -54,7 +60,7 @@ subroutine differentiate_vtu(input_filename, input_filename_len, output_filename
   type(vector_field) :: field_grad
   type(vector_field), dimension(:), allocatable :: field_grads
   type(vector_field), pointer :: positions
-  
+ 
   ewrite(1, *) "In differentiate_vtu"
   
   call vtk_read_state(trim(input_filename), state)
@@ -127,7 +133,7 @@ subroutine differentiate_vtu(input_filename, input_filename_len, output_filename
   call print_references(0)
   
   ewrite(1, *) "Exiting differentate_vtu"
-       
+ 
 contains
 
   subroutine solve_grad_ele(ele, positions, fields, field_grads)
