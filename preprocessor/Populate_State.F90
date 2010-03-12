@@ -81,12 +81,13 @@ module populate_state_module
   !! A list of locations in which additional scalar fields
   !! are to be found. It is assumed that all additional scalar fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(6) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(7) :: field_locations=&
        (/ &
        "/ocean_biology/pznd                                                     ", &
        "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada         ", &
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                   ", &
+       "/material_phase[0]/subgridscale_parameterisations/k-epsilon             ", &
        "/ocean_forcing/output_fluxes_diagnostics                                ", &
        "/porous_media                                                           " &
        /)
@@ -1320,6 +1321,32 @@ contains
           if (have_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
                &::GLS")) then
+             
+             tfield%name=trim(sfield%name)//"Diffusivity"
+             call insert(states(i), tfield, tfield%name)
+
+          end if
+
+       end do
+       
+    end do
+
+    ! k-epsilon diffusivity:
+    do i = 1, size(states)
+       
+       tfield=extract_tensor_field(states(i), "EddyDiffusivity", stat)
+
+       if (stat/=0) cycle
+
+       tfield%aliased=.True.
+
+       do s = 1, scalar_field_count(states(i))
+
+          sfield => extract_scalar_field(states(i), s)
+          
+          if (have_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k-epsilon")) then
              
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)

@@ -186,6 +186,33 @@ contains
              priority(nsol) = -tmpint*100
           end if
 
+          ! Check for k-epsilon - we need to make sure these fields are solved *after*
+          ! everything else, so set to a big negative value. In addition, the
+          ! TurbulentDissipation (Epsilon) solve *must* come after the TKE solve,
+          ! so make sure the priority is set such that this happens.
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentKineticEnergy/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "TurbulentKineticEnergy"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentKineticEnergy'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "TurbulentDissipation"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
+
        end do
 
        if(have_option('/traffic_model/scalar_field::TrafficTracerTemplate'))then
@@ -310,6 +337,16 @@ contains
             //int2str(p)//']/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic')) then
           ntsol=ntsol + 1
        end if
+       ! prognostic scalar fields for k-epsilon turbulence model:
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentKineticEnergy/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+
        ! Prognostic sediment fields.
        ntsol=ntsol+option_count('/material_phase[' &
             //int2str(p)//']/sediment/sediment_class')

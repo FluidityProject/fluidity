@@ -152,6 +152,10 @@ contains
        end if
 
     end if
+    ! N.B. k-epsilon turbulence model DOES NOT use ocean boundaries, unlike GLS.
+    if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/calculate_boundaries')) then
+       call populate_kepsilon_boundary_conditions(states(1))
+    end if
 
   end subroutine populate_boundary_conditions
 
@@ -1759,6 +1763,83 @@ contains
     deallocate(surface_ids)
     
   end subroutine populate_gls_boundary_conditions
+
+
+
+  subroutine populate_kepsilon_boundary_conditions(state)
+    type(state_type), intent(in)      :: state
+    integer, dimension(:), pointer    :: surface_nodes
+    integer, dimension(:), pointer    :: surface_element_list
+    type(vector_field), pointer       :: velocity, positions
+    type(scalar_field), pointer       :: tke, eps
+    type(scalar_field)                :: scalar_surface_field
+    type(mesh_type)                   :: input_mesh
+    type(mesh_type)                   :: keps_surface_mesh
+    type(mesh_type), pointer          :: surface_mesh
+    character(len=FIELD_NAME_LEN)     :: input_mesh_name
+    integer, dimension(:), allocatable:: surface_ids
+    integer, dimension(2)             :: shape_option
+    integer                           :: stat
+
+    ! Get 2 scalar fields
+    ewrite(1,*) "In populate_kepsilon_boundary_conditions"
+    tke  => extract_scalar_field(state, "TurbulentKineticEnergy",stat)
+    if(stat/=0) FLAbort("Need TurbulentKineticEnergy field")
+    eps => extract_scalar_field(state, "TurbulentDissipation",stat)
+    if(stat/=0) FLAbort("Need TurbulentDissipation field")
+
+    ! Get velocity field
+    velocity => extract_vector_field(state, "Velocity")
+    positions => extract_vector_field(state, "Coordinate")
+
+    ! Check that we have a no-slip boundary condition for the velocity field
+    if(.not. have_option(trim(velocity%option_path)//&
+             "/prognostic/boundary_conditions::NoSlip")) then
+        FLAbort("You have not specified a no-slip boundary condition for the velocity field. See manual.")
+    end if
+
+    ! Use the velocity mesh for the 2 fields. Must have the same surface ids in flml!
+    ewrite(1,*) "Getting input mesh for k-epsilon fields"
+    call get_option(trim(velocity%option_path)//'/prognostic/mesh/name', input_mesh_name)
+    input_mesh = extract_mesh(state, input_mesh_name);
+
+    ! Use the velocity no-slip BC to get surface elements
+    call get_boundary_condition(velocity, name='NoSlip', surface_element_list=surface_element_list)
+    ewrite(1,*) "Number of surface elements:", size(surface_element_list)
+    ewrite(1,*) "Creating surface mesh for k-epsilon fields"
+    call create_surface_mesh(keps_surface_mesh, surface_nodes, input_mesh, surface_element_list, 'KEpsilonSurfaceMesh')
+
+    ! Get surface ids from Velocity options (we shouldn't have BC options specified for tke or eps! We create them.)
+    shape_option=option_shape(trim(velocity%option_path)//"/prognostic/boundary_conditions::NoSlip/surface_ids")
+    allocate(surface_ids(1:shape_option(1)))
+    ewrite(1,*) "Getting surface ids from velocity No-Slip BC"
+    call get_option(trim(velocity%option_path)//"/prognostic/boundary_conditions::NoSlip/surface_ids", surface_ids)
+    ewrite(2,*) "surface ids:",(surface_ids)
+
+    ! Add a BC to the TurbulentKineticEnergy field. Hard-coded to Dirichlet for now.
+    ewrite(1,*) "Adding bcs to k-field"
+    call add_boundary_condition(tke, 'tke_boundary', 'Dirichlet', surface_ids)
+    call get_boundary_condition(tke, 'tke_boundary', surface_mesh=surface_mesh)
+    call allocate(scalar_surface_field, surface_mesh, name="value")
+    call insert_surface_field(tke, 'tke_boundary', scalar_surface_field)
+    call deallocate(scalar_surface_field)
+
+    ! Add a BC to the TurbulentDissipation field. Hard-coded to Dirichlet for now.
+    ewrite(1,*) "Adding bcs to epsilon-field"
+    call add_boundary_condition(eps, 'eps_boundary', 'Dirichlet', surface_ids)
+    call get_boundary_condition(eps, 'eps_boundary', surface_mesh=surface_mesh)
+    call allocate(scalar_surface_field, surface_mesh, name="value")
+    call insert_surface_field(eps, 'eps_boundary', scalar_surface_field)
+
+    call deallocate(scalar_surface_field)
+    call deallocate(keps_surface_mesh)
+    deallocate(surface_ids)
+
+    ewrite(1,*) "Exiting populate_kepsilon_boundary_conditions"
+
+  end subroutine populate_kepsilon_boundary_conditions
+
+
   
   subroutine impose_reference_pressure_node(cmc_m, rhs, option_path)
     !!< If there are only Neumann boundaries on P, it is necessary to pin
