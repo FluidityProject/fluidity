@@ -83,6 +83,7 @@ module fluids_module
   use spontaneous_potentials, only: calculate_electrical_potential
   use discrete_properties_module
   use gls
+  use k_epsilon
   use halos
   use memory_diagnostics
   use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
@@ -326,6 +327,11 @@ contains
         call gls_init(state(1))
     end if
 
+    ! Initialise k_epsilon
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+        call keps_init(state(1))
+    end if
+
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -484,6 +490,18 @@ contains
                 end if
               end if
 
+             ! do we have the k-epsilon 2 equation turbulence model?
+             if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+                if (ITS==nonlinear_iterations) then
+                    if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
+                        call keps_tke(state(1))
+                    else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
+                        call keps_eps(state(1))
+                    endif
+                else
+                    cycle
+                end if
+             end if
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
@@ -561,6 +579,17 @@ contains
             end if
           end if
 
+          ! k_epsilon after the solve on Epsilon has finished
+          if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+            if (ITS==nonlinear_iterations) then
+                ! Update the diffusivity, only at the end of the loop ready for
+                ! the next timestep. We do NOT want to be twiddling
+                ! diffusivity/viscosity half way through a non-linear iteration
+                call keps_eddyvisc(state(1))
+            else
+                cycle
+            end if
+          end if
 
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
              call coupled_cv_field_eqn(state, global_it=its)
@@ -706,6 +735,11 @@ contains
         call gls_cleanup()
     end if
 
+    ! cleanup k_epsilon
+    if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/')) then
+        call keps_cleanup()
+    end if
+
     ! closing .stat, .convergence and .detector files
     call close_diagnostic_files()
 
@@ -759,6 +793,12 @@ contains
         call gls_cleanup() ! deallocate everything
     end if
 
+    ! k_epsilon - we need to deallocate all module-level fields or the memory
+    ! management system complains
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+        call keps_cleanup() ! deallocate everything
+    end if
+
   end subroutine pre_adapt_tasks
  
   subroutine update_state_post_adapt(state, metric_tensor, dt)
@@ -804,6 +844,11 @@ contains
     ! GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         call gls_adapt_mesh(state(1))
+    end if
+
+    ! k_epsilon
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+        call keps_adapt_mesh(state(1))
     end if
            
   end subroutine update_state_post_adapt
