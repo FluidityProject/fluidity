@@ -26,6 +26,8 @@
     USA
 */
 
+#include "confdefs.h"
+
 #include <unistd.h>
 
 #ifndef _AIX
@@ -424,8 +426,10 @@ int main(int argc, char **argv){
   }
   
   deque< vector<int> > SENList;
+  vector<int> topSENList;
+  set<int> tmpset;
   vector<int> boundaryIds;
-  int nsele, snloc;
+  int nsele, snloc, snnodes=0;
   {
     int natt, id;
     face_file>>nsele>>natt;
@@ -456,8 +460,16 @@ int main(int argc, char **argv){
       for(int j=0;j<snloc;j++)
         face_file>>facet[j];
       SENList[i] = facet;
-      if(natt)
+      if(natt){
         face_file>>boundaryIds[i];
+        if(boundaryIds[i]==1){
+          for(int j=0;j<snloc;j++){
+            topSENList.push_back(SENList[i][j]);
+            snnodes=max(snnodes, SENList[i][j]);
+            tmpset.insert(SENList[i][j]);
+          }
+        }
+      }
     }
   }
   face_file.close();
@@ -489,11 +501,18 @@ int main(int argc, char **argv){
     // Partition the mesh
     if(verbose)
       cout<<"Partitioning the extruded Terreno mesh\n";
-    
+
+    cout<<"looking for number of nodes on surface "<<snnodes<<", "<<tmpset.size()<<endl;
+
     // Partition the mesh. Generates a map "decomp" from node number
     // (numbered from zero) to partition number (numbered from
     // zero).
-    edgecut = partition(ENList, surface_nids, nloc, nnodes, npartitions, partition_method, decomp);
+    edgecut = partition(topSENList, 2, snloc, snnodes, npartitions, partition_method, decomp);
+    topSENList.clear();
+    decomp.resize(nnodes);
+    for(size_t i=snnodes;i<nnodes;i++){
+      decomp[i] = decomp[surface_nids[i]-1];
+    }
   }else{
     // Partition the mesh
     if(verbose)
