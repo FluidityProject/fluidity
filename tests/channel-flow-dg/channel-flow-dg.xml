@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf8'?>
+<testproblem>
+  <name>channel-flow-dg</name>
+  <owner userid="dham"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>dfluidity channel.flml</command_line>
+  </problem_definition>
+  <variables/>
+  <pass_tests/>
+</testproblem>
