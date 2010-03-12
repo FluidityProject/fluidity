@@ -1470,9 +1470,16 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
               <optional>
                 <element name="k-epsilon">
                   <a:documentation>[UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
-Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentKineticEnergy (k), in order to close momentum equations.</a:documentation>
+Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
+in order to close momentum equations.
+If calculate_boundaries is selected, Dirichlet BCs for the 2 scalar fields are imposed
+on the same surface ids as the no-slip BC. Must be used with a no-slip velocity BC.
+This will be modified to include wall functions and other more sophisticated BCs for the fields later.</a:documentation>
                   <element name="scalar_field">
-                    <a:documentation>Turbulent kinetic energy (k)</a:documentation>
+                    <a:documentation>Turbulent kinetic energy (k). COMPULSORY OPTIONS:
+1. DO NOT specify a boundary condition (done internally; hard-coded to Dirichlet).
+2. Turn on diffusivity, source and absorption diagnostic fields.
+3. Use VelocityMesh.</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
                     </attribute>
@@ -1490,7 +1497,10 @@ Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentK
                     </choice>
                   </element>
                   <element name="scalar_field">
-                    <a:documentation>Turbulent dissipation (epsilon)</a:documentation>
+                    <a:documentation>TurbulentDissipation (epsilon). COMPULSORY OPTIONS:
+1. DO NOT specify a boundary condition (done internally; hard-coded to Dirichlet).
+2. Turn on diffusivity, source and absorption diagnostic fields.
+3. Use VelocityMesh.</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
                     </attribute>
@@ -1545,6 +1555,32 @@ Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentK
                       </element>
                     </choice>
                   </element>
+                  <element name="tensor_field">
+                    <a:documentation>Background viscosity</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>BackgroundViscosity</value>
+                    </attribute>
+                    <element name="prescribed">
+                      <ref name="mesh_choice"/>
+                      <ref name="prescribed_tensor_field"/>
+                    </element>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Background diffusivity</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>BackgroundDiffusivity</value>
+                    </attribute>
+                    <element name="prescribed">
+                      <ref name="mesh_choice"/>
+                      <ref name="prescribed_tensor_field"/>
+                    </element>
+                  </element>
                   <element name="scalar_field">
                     <a:documentation>Length scale (a diagnostic with k-epsilon)</a:documentation>
                     <attribute name="rank">
@@ -1565,9 +1601,95 @@ Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentK
                     </choice>
                   </element>
                   <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Source1 - TurbulentKineticEnergy source term</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Source1</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Source2 - TurbulentDissipation (epsilon) source term</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Source2</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Absorption1 - TurbulentKineticEnergy absorption term</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Absorption1</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Absorption2 - TurbulentDissipation (epsilon) absorption term</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Absorption2</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="calculate_boundaries">
-                      <a:documentation>Enable this option to use recommended boundary conditions:
-k = 0, and eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.</a:documentation>
+                      <a:documentation>If calculate_boundaries is selected, Dirichlet BCs for the 2 scalar fields are imposed
+on the same surface ids as the no-slip BC. Must be used with a no-slip velocity BC.
+More sophisticated BCs for Epsilon (turbulentDissipation) will be included soon:
+eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.</a:documentation>
                       <optional>
                         <element name="string_value">
                           <empty/>
@@ -1577,27 +1699,27 @@ k = 0, and eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall norma
                   </optional>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
-Recommended value: 0.09.</a:documentation>
+Recommended value (default): 0.09.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="C_eps_1">
                     <a:documentation>TurbulentDissipation production coefficient.
-Recommended value: 1.44.</a:documentation>
+Recommended value (default): 1.44.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="C_eps_2">
                     <a:documentation>TurbulentDissipation destruction coefficient.
-Recommended value: 1.92.</a:documentation>
+Recommended value (default): 1.92.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="sigma_k">
                     <a:documentation>Turbulent Schmidt number (eddy viscosity coefficient from k equation).
-Recommended value: 1.0.</a:documentation>
+Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="sigma_eps">
                     <a:documentation>Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
-Recommended value: 1.3.</a:documentation>
+Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
                 </element>

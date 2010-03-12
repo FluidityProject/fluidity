@@ -1114,9 +1114,16 @@ start =
                   }
                }?,
                ## [UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
-               ## Solves 2 additional equations for Turbulent Dissipation (epsilon) and TurbulentKineticEnergy (k), in order to close momentum equations.
+               ## Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
+               ## in order to close momentum equations.
+               ## If calculate_boundaries is selected, Dirichlet BCs for the 2 scalar fields are imposed
+               ## on the same surface ids as the no-slip BC. Must be used with a no-slip velocity BC.
+               ## This will be modified to include wall functions and other more sophisticated BCs for the fields later.
                element k-epsilon {
-                  ## Turbulent kinetic energy (k)
+                  ## Turbulent kinetic energy (k). COMPULSORY OPTIONS:
+                  ## 1. DO NOT specify a boundary condition (done internally; hard-coded to Dirichlet).
+                  ## 2. Turn on diffusivity, source and absorption diagnostic fields.
+                  ## 3. Use VelocityMesh.
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "TurbulentKineticEnergy" },
@@ -1130,7 +1137,10 @@ start =
                         }
                      )
                   },
-                  ## Turbulent dissipation (epsilon)
+                  ## TurbulentDissipation (epsilon). COMPULSORY OPTIONS:
+                  ## 1. DO NOT specify a boundary condition (done internally; hard-coded to Dirichlet).
+                  ## 2. Turn on diffusivity, source and absorption diagnostic fields.
+                  ## 3. Use VelocityMesh.
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "TurbulentDissipation" },
@@ -1174,6 +1184,28 @@ start =
                         }
                      )
                   },
+                  ## Background viscosity
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundViscosity" },
+                     (
+                        element prescribed {
+                           mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  },                  
+                  ## Background diffusivity
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundDiffusivity" },
+                     (
+                        element prescribed {
+                           mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  },
                   ## Length scale (a diagnostic with k-epsilon)
                   element scalar_field {
                      attribute rank { "0" },
@@ -1189,27 +1221,89 @@ start =
                         }
                      )
                   },
-                  ## Enable this option to use recommended boundary conditions:
-                  ## k = 0, and eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.
+                  ## Source1 - TurbulentKineticEnergy source term
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Source1" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  }?,
+                  ## Source2 - TurbulentDissipation (epsilon) source term
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Source2" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  }?,
+                  ## Absorption1 - TurbulentKineticEnergy absorption term
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Absorption1" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  }?,
+                  ## Absorption2 - TurbulentDissipation (epsilon) absorption term
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Absorption2" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element aliased {
+                           generic_aliased_field
+                        }
+                     )
+                  }?,
+                  ## If calculate_boundaries is selected, Dirichlet BCs for the 2 scalar fields are imposed
+                  ## on the same surface ids as the no-slip BC. Must be used with a no-slip velocity BC.
+                  ## More sophisticated BCs for Epsilon (turbulentDissipation) will be included soon:
+                  ## eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.
                   element calculate_boundaries {
                      element string_value {
                      empty
                      }?
                   }?,
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
-                  ## Recommended value: 0.09.
+                  ## Recommended value (default): 0.09.
                   element C_mu {real},
                   ## TurbulentDissipation production coefficient.
-                  ## Recommended value: 1.44.
+                  ## Recommended value (default): 1.44.
                   element C_eps_1 {real},
                   ## TurbulentDissipation destruction coefficient.
-                  ## Recommended value: 1.92.
+                  ## Recommended value (default): 1.92.
                   element C_eps_2 {real},
                   ## Turbulent Schmidt number (eddy viscosity coefficient from k equation).
-                  ## Recommended value: 1.0.
+                  ## Recommended value (default): 1.0.
                   element sigma_k {real},
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
-                  ## Recommended value: 1.3.
+                  ## Recommended value (default): 1.3.
                   element sigma_eps {real}
 
                }?
