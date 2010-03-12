@@ -2682,7 +2682,7 @@ prognostic_stream_function_field =
       prognostic_scalar_stat_options,
       prognostic_detector_options,
       adaptivity_options_prognostic_scalar_field,
-      interpolation_algorithm_scalar,
+      interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
    

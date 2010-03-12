@@ -3707,7 +3707,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="prognostic_detector_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
-    <ref name="interpolation_algorithm_scalar"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
     <optional>
       <ref name="discrete_properties_algorithm_scalar"/>
     </optional>
