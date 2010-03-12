@@ -58,9 +58,6 @@ using namespace std;
 
 using namespace Fluidity;
 
-#define DDEBUG 1
-#undef NDEBUG
-
 extern "C" {
   void fldecomp_fc(const char *, const int *, const int *);
   void set_global_debug_level_fc(int *val);
@@ -136,6 +133,9 @@ void create_partitions(bool verbose,
     if(verbose)
       cout<<"Making partition "<<part<<endl;
     
+    vector<bool> halo_nodes(nnodes, false);
+    vector<bool> more_halo_nodes(nnodes, false);
+
     // Find owned nodes 
     for(int nid=0; nid<nnodes; nid++){
       if(decomp[nid]==part)
@@ -146,7 +146,6 @@ void create_partitions(bool verbose,
       cout<<"Found "<<npnodes[part]<<" owned nodes\n";
 
     // Find elements with owned nodes and halo1
-    set<int> halo_nodes;
     deque< pair<int, int> > sorted_elements;
     for(int eid=0;eid<nelms;eid++){
       int halo_count=0;
@@ -169,7 +168,7 @@ void create_partitions(bool verbose,
             int nid = ENList[eid*nloc+j] - 1;
             if(decomp[nid]!=part){
               halo1[part][decomp[nid]].insert(nid+1);
-              halo_nodes.insert(nid+1);
+              halo_nodes[nid] = true;
             }
           }
         }
@@ -184,16 +183,16 @@ void create_partitions(bool verbose,
         elements[part].push_back(it->second);
 
     if(verbose)
-      cout<<"Found "<<halo_nodes.size()<<" halo1 nodes\n";
+      cout<<"Found halo1 nodes\n";
     
     // Find halo2 elements and nodes
-    set<int> halo2_elements,  more_halo_nodes;
+    set<int> halo2_elements;
     for(int eid=0; eid<nelms; eid++){
       int owned_node_count=0;
       bool touches_halo1=false;
       for(int j=0;j<nloc;j++){
         int fnid = ENList[eid*nloc+j];
-        if(halo_nodes.count(fnid)){
+        if(halo_nodes[fnid-1]){
           touches_halo1 = true;
         }
         if(decomp[fnid-1]==part)
@@ -204,9 +203,9 @@ void create_partitions(bool verbose,
         halo2_elements.insert(eid);
         for(int j=0;j<nloc;j++){
           int fnid = ENList[eid*nloc+j];
-          if(!halo_nodes.count(fnid)){
+          if(!halo_nodes[fnid-1]){
             halo2[part][decomp[fnid-1]].insert(fnid);
-            more_halo_nodes.insert(fnid);
+            more_halo_nodes[fnid-1]=true;
           }
         }
       }
@@ -219,11 +218,13 @@ void create_partitions(bool verbose,
       for(set<int>::const_iterator it=halo1[part][i].begin(); it!=halo1[part][i].end(); ++it)
         halo2[part][i].insert(*it);
 
-    for(set<int>::const_iterator it=halo_nodes.begin(); it!=halo_nodes.end(); ++it)
-      nodes[part].push_back(*it);
-    
-    for(set<int>::const_iterator it=more_halo_nodes.begin(); it!=more_halo_nodes.end(); ++it)
-      nodes[part].push_back(*it);
+    for(int i=0;i<nnodes;i++)
+      if(halo_nodes[i])
+        nodes[part].push_back(i+1);
+
+    for(int i=0;i<nnodes;i++)
+      if(more_halo_nodes[i])
+        nodes[part].push_back(i+1);
     
     for(set<int>::const_iterator it=halo2_elements.begin(); it!=halo2_elements.end(); ++it)
       elements[part].push_back(*it);
@@ -427,7 +428,6 @@ int main(int argc, char **argv){
   
   deque< vector<int> > SENList;
   vector<int> topSENList;
-  set<int> tmpset;
   vector<int> boundaryIds;
   int nsele, snloc, snnodes=0;
   {
@@ -466,7 +466,6 @@ int main(int argc, char **argv){
           for(int j=0;j<snloc;j++){
             topSENList.push_back(SENList[i][j]);
             snnodes=max(snnodes, SENList[i][j]);
-            tmpset.insert(SENList[i][j]);
           }
         }
       }
@@ -501,8 +500,6 @@ int main(int argc, char **argv){
     // Partition the mesh
     if(verbose)
       cout<<"Partitioning the extruded Terreno mesh\n";
-
-    cout<<"looking for number of nodes on surface "<<snnodes<<", "<<tmpset.size()<<endl;
 
     // Partition the mesh. Generates a map "decomp" from node number
     // (numbered from zero) to partition number (numbered from
@@ -560,7 +557,7 @@ int main(int argc, char **argv){
     map<int, int> renumber;
     for(size_t j=0;j<nodes[i].size();j++){
       assert(renumber.find(nodes[i][j])==renumber.end());
-      renumber[nodes[i][j]]=j+1;
+      renumber.insert(pair<int, int>(nodes[i][j], j+1));
     }
     
     // Coordinate data
