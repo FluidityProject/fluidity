@@ -77,7 +77,10 @@ class DiamondValidator:
     if not xmlRootNode is None:
       debug.dprint("Testing xml files with root node: " + xmlRootNode, 0)
       for filename in self._TestFiles("xml"):
-        xmlParse = xml.dom.minidom.parse(filename)
+        try:
+          xmlParse = xml.dom.minidom.parse(filename)
+        except xml.dom.minidom.ExpatError:
+          continue
         rootEles = xmlParse.getElementsByTagName(xmlRootNode)
         if len(rootEles) == 0:
           continue
