@@ -33,6 +33,7 @@ else:
 import os
 import sys
 import xml.dom.minidom
+import xml.parsers.expat
 
 import gtk.gdk
 
@@ -79,7 +80,7 @@ class DiamondValidator:
       for filename in self._TestFiles("xml"):
         try:
           xmlParse = xml.dom.minidom.parse(filename)
-        except xml.dom.minidom.ExpatError:
+        except xml.parsers.expat.ExpatError:
           continue
         rootEles = xmlParse.getElementsByTagName(xmlRootNode)
         if len(rootEles) == 0:
