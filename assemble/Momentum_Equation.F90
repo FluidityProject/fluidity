@@ -87,7 +87,7 @@
 
       ! this loop is just about the limit of multiphase support in this
       ! version of the momentum solve so far!
-      call profiler_tic(u, "momentum_loop")
+      call profiler_tic("momentum_loop")
       state_loop: do istate = 1, size(state)
 
         ! get the velocity
@@ -104,18 +104,18 @@
            have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
                                   &/discontinuous_galerkin")) then
 
-           call profiler_tic(u, "momentum_diagnostics")
+           call profiler_tic("momentum_diagnostics")
            call calculate_momentum_diagnostics(state, istate)
-           call profiler_toc(u, "momentum_diagnostics")
+           call profiler_toc("momentum_diagnostics")
 
-           call profiler_tic(u, "momentum_solve")
+           call profiler_tic("momentum_solve")
            call solve_momentum(state, istate, at_first_timestep)
-           call profiler_toc(u, "momentum_solve")
+           call profiler_toc("momentum_solve")
 
         end if
 
       end do state_loop
-      call profiler_toc(u, "momentum_loop")
+      call profiler_toc("momentum_loop")
 
     end subroutine momentum_loop
 
