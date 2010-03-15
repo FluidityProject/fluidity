@@ -178,8 +178,10 @@ contains
     ! Set up non-blocking communications
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
     do i = 1, nprocs      
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
@@ -288,8 +290,10 @@ contains
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
     do i = 1, nprocs      
       allocate(receives_unn(i)%ptr(halo_receive_count(halo, i)))
       

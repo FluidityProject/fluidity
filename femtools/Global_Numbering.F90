@@ -1163,8 +1163,10 @@ contains
     communicator = halo_communicator(element_halo)
     allocate(requests(nprocs))
     rank = getrank(communicator)  
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
 
     do proc=1, nprocs
 

@@ -402,8 +402,10 @@ contains
        
        ! Actually communicate the data
        rank = getrank(communicator) 
+#ifdef DDEBUG
        call mpi_barrier(communicator, ierr)
        assert(ierr == MPI_SUCCESS)
+#endif
        allocate(requests(2*nprocs))
        requests = MPI_REQUEST_NULL
        do p = 1, nprocs          
@@ -672,8 +674,10 @@ contains
     allocate(requests(nprocs * 2 * repair_field%dim))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
     do i = 1, nprocs
       do j = 1, repair_field%dim
         ! Non-blocking sends

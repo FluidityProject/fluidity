@@ -196,8 +196,10 @@ contains
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
     do i = 1, nprocs
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
@@ -292,8 +294,10 @@ contains
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
     do i = 1, nprocs
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
@@ -536,8 +540,10 @@ contains
     allocate(requests(nprocs * 4))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
+#ifdef DDEBUG
     call mpi_barrier(communicator, ierr)
     assert(ierr == MPI_SUCCESS)
+#endif
     do i = 1, nprocs
       ! Allocate receive arrays
       allocate(receive_real_array(i)%ptr(halo_send_count(halo, i)))

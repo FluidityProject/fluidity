@@ -497,8 +497,10 @@ contains
       ! Communicate the old surface IDs
                     
       requests = MPI_REQUEST_NULL
+#ifdef DDEBUG
       call mpi_barrier(communicator, ierr)
       assert(ierr == MPI_SUCCESS)
+#endif
       do i = 1, nprocs          
         ! Non-blocking sends
         if(size(send_buffer(i)%ptr) > 0) then
@@ -546,7 +548,7 @@ contains
       end do
       
       ! This is where a divide and conquer algorithm would live. We need to
-      ! communicate (for comms > 1) information from the map id_map:
+      ! communicate (for comm > 1) information from the map id_map:
       !   old_id -> new_id
       ! between each process sharing a given common old_id.
       
