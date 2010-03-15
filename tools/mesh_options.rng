@@ -152,17 +152,17 @@ varies both in the horizontal as in the vertical.</a:documentation>
   </define>
   <!-- Diagnostic statistics options for meshed, with enabled by default -->
   <define name="mesh_stat_options_enabled_default">
-    <ref name="include_mesh_in_stat"/>
-  </define>
-  <define name="mesh_stat_options_enabled_default" combine="choice">
-    <ref name="exclude_mesh_from_stat"/>
+    <choice>
+      <ref name="include_mesh_in_stat"/>
+      <ref name="exclude_mesh_from_stat"/>
+    </choice>
   </define>
   <!-- Diagnostic statistics options for meshed, with disabled by default -->
   <define name="mesh_stat_options_disabled_default">
-    <ref name="exclude_mesh_from_stat"/>
-  </define>
-  <define name="mesh_stat_options_disabled_default" combine="choice">
-    <ref name="include_mesh_in_stat"/>
+    <choice>
+      <ref name="exclude_mesh_from_stat"/>
+      <ref name="include_mesh_in_stat"/>
+    </choice>
   </define>
   <define name="from_file_mesh_stat_options">
     <element name="stat">

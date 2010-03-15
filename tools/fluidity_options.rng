@@ -424,10 +424,7 @@ then this is the initial time step size.</a:documentation>
         </optional>
         <optional>
           <element name="cpu_time_limit">
-            <a:documentation>Maximum CPU time (secs) taken up before
-simulation terminates writing results to disc.
-
-Manual suggests 1.E+20</a:documentation>
+            <a:documentation>Maximum CPU time (in seconds) before the simulation terminates</a:documentation>
             <attribute name="replaces">
               <value>CPULIM</value>
             </attribute>

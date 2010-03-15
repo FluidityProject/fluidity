@@ -123,12 +123,18 @@ exclude_mesh_from_stat =
    )
 
 # Diagnostic statistics options for meshed, with enabled by default
-mesh_stat_options_enabled_default = include_mesh_in_stat
-mesh_stat_options_enabled_default |= exclude_mesh_from_stat
+mesh_stat_options_enabled_default =
+   (
+      include_mesh_in_stat|
+      exclude_mesh_from_stat
+   )
 
 # Diagnostic statistics options for meshed, with disabled by default
-mesh_stat_options_disabled_default = exclude_mesh_from_stat
-mesh_stat_options_disabled_default |= include_mesh_in_stat
+mesh_stat_options_disabled_default = 
+   (
+      exclude_mesh_from_stat|
+      include_mesh_in_stat
+   )
 
 from_file_mesh_stat_options =
    (
