@@ -27,14 +27,15 @@
 */
 
 #include "Usage.h"
+#include "Precision.h"
 
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
 
 extern "C" {
-#define differentiate_vtu_fc F77_FUNC(differentiate_vtu, DIFFERENTIATE_VTU)
-  void differentiate_vtu_fc(const char*, int*, const char*, int*, const char*, int*);
+#define vtu_bins_fc F77_FUNC(vtu_bins, VTU_BINS)
+  void vtu_bins_fc(const char*, int*, const char*, int*, flfloat_t*, int*);
 }
 
 #ifdef _AIX
@@ -53,11 +54,9 @@ extern "C" {
 
 using namespace std; 
 
-void differentiate_vtu_usage(char *binary){
-  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename output_filename [input_fieldname]\n"
-      <<"Takes the gradient a scalar field in a vtu. Writes an output vtu\n"
-      <<"containing a field input_fieldnameGradient. If input_fieldname is not\n"
-      <<"supplied, takes the gradient of all scalar fields in the input vtu.\n"
+void vtu_bins_usage(char *binary){
+  cerr<<"Usage: "<<binary<<" [OPTIONS] input_filename input_fieldname BOUND1 [BOUND2 BOUND3 ...]\n"
+      <<"Return the volumes between field values.\n"
       <<"\t-h\t\tPrints out this message\n"
       <<"\t-v\t\tVerbose mode\n";
 }
@@ -92,20 +91,20 @@ int main(int argc, char **argv){
       }else{
         cerr << "Unknown option " << hex << optopt << endl;
       }
-      differentiate_vtu_usage(argv[0]);
+      vtu_bins_usage(argv[0]);
       exit(-1);
     }
   }
 
   // Help?
   if(args.count('h')){
-    differentiate_vtu_usage(argv[0]);
+    vtu_bins_usage(argv[0]);
     exit(-1);
   }
   
-  if (optind != argc - 2 and optind != argc - 3){
-    cerr << "Need exactly two or three non-option arguments" << endl;
-    differentiate_vtu_usage(argv[0]);
+  if(optind > argc - 3){
+    cerr << "Need an input vtu, input field name and at least one boundary value" << endl;
+    vtu_bins_usage(argv[0]);
     exit(-1);
   }
 
@@ -118,18 +117,17 @@ int main(int argc, char **argv){
   string input_filename = argv[optind];
   int input_filename_len = input_filename.length();  
   
-  string output_filename = argv[optind + 1];
-  int output_filename_len = output_filename.length(); 
-  
   string input_fieldname;
-  if(optind <= argc - 3){
-    input_fieldname = argv[optind + 2];
-  }else{
-    input_fieldname = "";
+  input_fieldname = argv[optind + 1];  
+  int input_fieldname_len = input_fieldname.length();
+  
+  int nbounds =  argc - optind - 2;
+  flfloat_t bounds[nbounds];
+  for(int i = 0;i < nbounds;i++){
+    bounds[i] = atof(argv[optind + 2 + i]);
   }
-  int input_fieldname_len = input_fieldname.length(); 
 
-  differentiate_vtu_fc(input_filename.c_str(), &input_filename_len, output_filename.c_str(), &output_filename_len, input_fieldname.c_str(), &input_fieldname_len);
+  vtu_bins_fc(input_filename.c_str(), &input_filename_len, input_fieldname.c_str(), &input_fieldname_len, bounds, &nbounds);
     
 #ifdef HAVE_PETSC
   PetscFinalize();
