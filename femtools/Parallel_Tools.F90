@@ -38,10 +38,10 @@ module parallel_tools
   private
 
   public :: halgetnb, halgetnb_simple
-  public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals, &
-     geqt_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
-     isparallel, parallel_filename, parallel_filename_len, &
-     valid_communicator, next_mpi_tag
+  public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals,&
+       get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
+       isparallel, parallel_filename, parallel_filename_len, &
+       valid_communicator, next_mpi_tag
   
   interface allmax
     module procedure allmax_integer, allmax_real
@@ -72,7 +72,7 @@ module parallel_tools
 
 contains
 
-  function next_mpi_tag()
+  integer function next_mpi_tag()
 #ifdef HAVE_MPI
     integer, save::last_tag=0
     last_tag = mod(last_tag+1, MPI_TAG_UB)
