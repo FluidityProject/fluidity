@@ -26,200 +26,408 @@
   !    USA
   
 #include "fdebug.h"
-  program form_pod_basis
-    use advection_diffusion_dg
-    use advection_diffusion_cg
-    use linear_shallow_water
-    use spud
-    use fields
-    use state_module
-    use FLDebug
-    use populate_state_module
-    use write_state_module
-    use populate_state_module
-    use timeloop_utilities
-    use sparsity_patterns_meshes
-    use sparse_matrices_fields
-    use solvers
-    use diagnostic_variables
-    use diagnostic_fields_wrapper
-    use assemble_cmc
-    use global_parameters, only: option_path_len, current_time, dt
-    use adapt_state_prescribed_module
-    use memory_diagnostics
-    use reserve_state_module
-    use vtk_interfaces
-    implicit none
+program form_pod_basis
+  use advection_diffusion_dg
+  use advection_diffusion_cg
+  use linear_shallow_water
+  use spud
+  use fields
+  use state_module
+  use FLDebug
+  use populate_state_module
+  use write_state_module
+  use populate_state_module
+  use timeloop_utilities
+  use sparsity_patterns_meshes
+  use sparse_matrices_fields
+  use solvers
+  use diagnostic_variables
+  use diagnostic_fields_wrapper
+  use assemble_cmc
+  use global_parameters, only: option_path_len, current_time, dt
+  use adapt_state_prescribed_module
+  use memory_diagnostics
+  use reserve_state_module
+  use vtk_interfaces
+  use FLDebug
+  use signals
+  use snapsvd_module
+  implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
 #endif
-    type(state_type), dimension(:), allocatable :: state
-    type(state_type) :: pod_state
+  type(state_type), dimension(:), allocatable :: state,state_test
+  type(state_type), dimension(:,:), allocatable :: pod_state
 
-    integer :: timestep
-    integer :: ierr
+  integer :: timestep
+  integer :: ierr
 
-    character(len = OPTION_PATH_LEN) :: simulation_name
+  character(len = OPTION_PATH_LEN) :: simulation_name
+
 #ifdef HAVE_MPI
-    call mpi_init(ierr)
+  call mpi_init(ierr)
 #endif
 
 #ifdef HAVE_PETSC
-    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+  call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 #endif
 
-    call python_init()
-    call read_command_line()
+  call python_init()
+  call read_command_line()
 
-    call form_basis()
+  call form_basis()
 
 
-    call deallocate(pod_state)
-    call deallocate(state)
-    call deallocate_transform_cache()
-    
-    call print_references(0)
+  deallocate(pod_state)
+  call deallocate(state)
+  call deallocate_transform_cache()
+
+  call print_references(0)
 #ifdef HAVE_MEMORY_STATS
-    call print_current_memory_stats(0)
+  call print_current_memory_stats(0)
 #endif
 
 #ifdef HAVE_MPI
-    call mpi_finalize(ierr)
+  call mpi_finalize(ierr)
 #endif
 
-  contains
+contains
 
-    subroutine form_basis()
+  subroutine form_basis()
+    !!< Matrices containing the snapshots for arpack
+    !      type(state_type), dimension(:), allocatable :: state
 
-      call get_option('/simulation_name',simulation_name)
-      call read_input_states(state)
-      
-      
+    real, dimension(:,:,:), allocatable :: snapmatrix_velocity
+    real, dimension(:,:), allocatable :: snapmatrix_pressure
+    real, dimension(:,:,:), allocatable :: leftsvd_velocity
+    real, dimension(:,:), allocatable :: leftsvd_pressure
+    real, dimension(:,:), allocatable :: svdval_velocity
+    real, dimension(:), allocatable :: svdval_pressure
+    integer :: snapshots, u_nodes, p_nodes, nsvd
+    integer :: i,dump_no, d, dim
+    integer :: stat
 
-    end subroutine form_basis
+    call get_option(&
+         '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
+    call get_option('/simulation_name',simulation_name)
+    call read_input_states(state)
 
-    subroutine read_input_states(state)
-      !!< Read the input states from the vtu dumps of the forward run.
-      type(state_type), intent(out), dimension(:), allocatable :: state
-      character(len=1024) :: filename
+    call retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure)
 
-      integer :: dump_period, quadrature_degree
-      integer :: i,j,k,total_dumps
+    call form_svd(snapmatrix_velocity, snapmatrix_pressure,&
+       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure)
 
-      call get_option('/reduced_model/pod_basis_fomation/dump_sampling_period',dump_period)
-      call get_option('/geometry/quadrature/degree', quadrature_degree)
+    call form_podstate(state,pod_state,leftsvd_velocity,leftsvd_pressure)
 
-      total_dumps=count_dumps(dump_period)
-      
-      allocate(state(total_dumps))
-      do i=1, total_dumps-1
-         
-         !! Note that this won't work in parallel. Have to look for the pvtu in that case.
-         write(filename, '(a, i0, a)') trim(simulation_name)//'_', (i-1)*dump_period,".vtu" 
-         
-         call vtk_read_state(filename, state(i), quadrature_degree)
+    do i=1,nsvd
 
-         !! Note that we might need code in here to clean out unneeded fields.
+       dump_no=i
 
-      end do
+       call vtk_write_state(filename=trim(simulation_name)//"_POD", index=dump_no, state=pod_state(i,:))
 
-    end subroutine read_input_states
+    enddo
 
-    function count_dumps(dump_period) result (count)
-      !! Work out how many dumps we're going to read in.
-      integer :: count,dump_period
-      
-      logical :: exists
-!      character(len=FILE_NAME_LEN) :: filename
-      character(len=1024) :: filename
+    !! Produce updated flml file in which the execute_reduced_model
+    !! option is set.
+    call add_option("/reduced_model/execute_reduced_model",stat)
+    call write_options(trim(simulation_name)//"_POD.flml")
 
-      count=1
+  end subroutine form_basis
 
-      do 
-         !! Note that this won't work in parallel. Have to look for the pvtu in that case.
-         write(filename, '(a, i0, a)') trim(simulation_name)//'_', (count-1)*dump_period,".vtu" 
-         inquire(file=trim(filename), exist=exists)
-         if (.not. exists) then
-            count=count -1
-            exit
-         end if
 
-         count=count+1
-      end do
+  subroutine retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure)
+    !!< 
+    type(state_type), intent(in), dimension(:) :: state
+    real, dimension(:,:,:), allocatable :: snapmatrix_velocity
+    real, dimension(:,:), allocatable :: snapmatrix_pressure
+    real, dimension(:,:), allocatable :: snapmean_velocity
+    real, dimension(:), allocatable :: snapmean_pressure
 
-      if (count==0) then
-         FLExit("No .vtu files found!")
-      end if
 
-    end function count_dumps
+    integer :: snapshots, u_nodes, p_nodes, dim, i, d
+    type(vector_field), pointer :: velocity
+    type(scalar_field), pointer :: pressure
 
-    subroutine output_state(state)
+    velocity => extract_vector_field(state(1), "Velocity")
+    pressure => extract_scalar_field(state(1), "Pressure")
 
-      implicit none
-      type(state_type), dimension(:), intent(inout) :: state
+    dim=velocity%dim
+    p_nodes=node_count(pressure)
+    u_nodes=node_count(velocity)
 
-      integer, save :: dump_no=0
+    snapshots=size(state)
 
-      call write_state(dump_no, state)
+    allocate(snapmatrix_velocity(u_nodes,snapshots,dim))
+    allocate(snapmatrix_pressure(p_nodes,snapshots))
+    allocate(snapmean_velocity(u_nodes,dim))
+    allocate(snapmean_pressure(p_nodes))
 
-    end subroutine output_state
 
-    subroutine read_command_line()
-      implicit none
-      ! Read the input filename.
-      character(len=1024) :: argument, filename
-      integer :: status, argn, level
+    do i = 1, snapshots
+       velocity => extract_vector_field(state(i), "Velocity")
+       pressure => extract_scalar_field(state(i), "Pressure")
 
-      call set_global_debug_level(0)
+       do d = 1, dim
+          snapmatrix_velocity(:,i,d)=field_val(velocity,d)
+       end do
 
-      argn=1
-      do 
+       snapmatrix_pressure(:,i)=field_val(pressure)
 
-         call get_command_argument(argn, value=argument, status=status)
-         argn=argn+1
+    end do
 
-         if (status/=0) then
-            call usage
-            stop
-         end if
 
-         if (argument=="-v") then
-            call get_command_argument(argn, value=argument, status=status)
-            argn=argn+1
+    do i=1, snapshots
 
-            if (status/=0) then
-               call usage
-               stop
-            end if
+       do d=1, dim
+          snapmean_velocity(:,d)= snapmean_velocity(:,d)+snapmatrix_velocity(:,i,d)
+       enddo
 
-            read(argument, "(i1)", err=666) level
-            call set_global_debug_level(level)
+       snapmean_pressure(:)=snapmean_pressure(:)+snapmatrix_pressure(:,i)
 
-         else
-            
-            ! Must be the filename
-            filename=argument
+    end do
 
-         end if
 
-         if (argn>=command_argument_count()) exit
-      end do
+    do d=1,dim
+       snapmean_velocity(:,d)=snapmean_velocity(:,d)/snapshots
+    enddo
 
-      call load_options(filename)
 
-      return
+    snapmean_pressure(:)=snapmean_pressure(:)/snapshots
 
-666   call usage
-      stop
+    do i=1,snapshots
+       do d=1,dim
+          snapmatrix_velocity(:,i,d)=snapmatrix_velocity(:,i,d)-snapmean_velocity(:,d)
+       enddo
+       snapmatrix_pressure(:,i)=snapmatrix_pressure(:,i)-snapmean_pressure(:)
+    enddo
 
-    end subroutine read_command_line
+  end subroutine retrieve_snapshots
 
-    subroutine usage
-      implicit none
+  subroutine form_svd(snapmatrix_velocity, snapmatrix_pressure,&
+       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure)
+    
+    real, dimension(:,:,:), intent(in) :: snapmatrix_velocity
+    real, dimension(:,:), intent(in) :: snapmatrix_pressure
+    real, dimension(:,:,:), allocatable, intent(out) :: leftsvd_velocity
+    real, dimension(:,:), allocatable, intent(out) :: leftsvd_pressure
+    real, dimension(:,:), allocatable, intent(out) :: svdval_velocity
+    real, dimension(:), allocatable, intent(out) :: svdval_pressure
+    integer i, d, dim ,nsvd, snapshots, p_nodes, u_nodes
 
-      write (0,*) "usage: form_pod_basis [-v n] <options_file>"
-      write (0,*) ""
-      write (0,*) "-v n sets the verbosity of debugging"
-    end subroutine usage
+    call get_option(&
+         '/reduced_model/pod_basis_formation/pod_basis_count', nsvd)
 
-  end program form_pod_basis
+    dim=size(snapmatrix_velocity,3)
+    p_nodes=size(snapmatrix_pressure,1)
+    u_nodes=size(snapmatrix_velocity,1)
+
+    allocate(leftsvd_velocity(u_nodes,nsvd,dim))
+    allocate(leftsvd_pressure(p_nodes,nsvd))
+    allocate(svdval_velocity(nsvd,dim))
+    allocate(svdval_pressure(nsvd))
+
+  
+    do d=1,dim
+       call snapsvd(u_nodes,snapshots,snapmatrix_velocity(:,:,d),&
+            nsvd,nsvd,leftsvd_velocity(:,:,d),svdval_velocity(:,d))
+    end do
+
+    call snapsvd(p_nodes,snapshots,snapmatrix_pressure,nsvd,nsvd,leftsvd_pressure,svdval_pressure)
+
+  end subroutine form_svd
+
+  subroutine form_podstate(state, pod_state, leftsvd_u, leftsvd_p)
+
+    type(state_type), intent(in), dimension(:) :: state
+    type(state_type), intent(out), dimension(:,:), allocatable :: pod_state
+
+    real, intent(in), dimension(:,:,:) :: leftsvd_u
+    real, intent(in), dimension(:,:) :: leftsvd_p
+    type(mesh_type), pointer :: pod_xmesh, pod_umesh, pod_pmesh, pmesh, pod_mesh
+    type(element_type) :: pod_xshape, pod_ushape, pod_pshape
+    type(vector_field), pointer :: pod_positions, velocity
+    type(scalar_field), pointer :: pressure
+
+    type(vector_field) :: pod_velocity
+    type(scalar_field) :: pod_u, pod_v
+    type(scalar_field) :: pod_pressure
+
+    real, dimension(:), pointer :: x_ptr,y_ptr,z_ptr
+    real, dimension(:), allocatable :: x,y,z   
+
+    character(len=1024) :: filename
+    character(len = FIELD_NAME_LEN) :: field_name
+
+
+    integer :: dump_period, quadrature_degree,nonods
+    integer :: i,j,k,nod,total_dumps,POD_num,stat,dim,f,d
+    logical :: all_meshes_same
+
+    call get_option(&
+         "/reduced_model/pod_basis_formation/pod_basis_count", POD_num) 
+
+    allocate(pod_state(POD_num,1))
+    call nullify(pod_state)
+
+    do i = 1,POD_num
+
+       pod_mesh => extract_mesh(state(1), "Mesh")
+
+       all_meshes_same = .true.
+
+       pod_xmesh => extract_mesh(state(1), "Mesh", stat)
+       pod_umesh => extract_mesh(state(1), "Mesh", stat)
+
+       pod_pmesh => extract_mesh(state(1), "Mesh", stat)
+       pod_positions => extract_vector_field(state(1), "Coordinate")
+
+       call insert(pod_state(i,1), pod_xmesh, "Mesh")
+       call insert(pod_state(i,1), pod_xmesh, "Position mesh")
+       call insert(pod_state(i,1), pod_umesh, "VelocityMesh")
+       call insert(pod_state(i,1), pod_pmesh, "PressureMesh")
+       call insert(pod_state(i,1), pod_positions, "Coordinate")
+
+       velocity => extract_vector_field(state(1), "Velocity")
+
+       dim=velocity%dim
+
+       call allocate(pod_velocity, velocity%dim, pod_umesh, "POD_velocity")
+       call zero(pod_velocity)
+       do d=1,dim
+          call set_all(pod_velocity, d, leftsvd_u(:,i,d))
+       end do
+
+       call insert(pod_state(i,1), pod_velocity, name="POD_velocity")
+
+       call allocate(pod_pressure, pod_umesh, "POD_pressure")
+       call zero(pod_pressure)
+
+       call set_all(pod_pressure, leftsvd_p(:,i))
+
+       call insert(pod_state(i,1), pod_pressure, name="POD_pressure")
+
+    enddo
+
+  end subroutine form_podstate
+
+
+  subroutine read_input_states(state)
+    !!< Read the input states from the vtu dumps of the forward run.
+    type(state_type), intent(out), dimension(:), allocatable :: state
+    character(len=1024) :: filename
+
+    integer :: dump_period, quadrature_degree
+    integer :: i,j,k,total_dumps
+
+
+    call get_option('/reduced_model/pod_basis_formation/dump_sampling_period',dump_period)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
+
+    !substract gyre_0.vtu
+    total_dumps=count_dumps(dump_period)-1
+
+    allocate(state(total_dumps))
+
+    !     ewrite(3,*) 'dump_period',dump_period
+
+    do i=1, total_dumps
+
+       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+       write(filename, '(a, i0, a)') trim(simulation_name)//'_', i*dump_period,".vtu" 
+
+       call vtk_read_state(filename, state(i), quadrature_degree)
+
+       !! Note that we might need code in here to clean out unneeded fields.
+
+    end do
+
+  end subroutine read_input_states
+
+  function count_dumps(dump_period) result (count)
+    !! Work out how many dumps we're going to read in.
+    integer :: count,dump_period
+
+    logical :: exists
+    !      character(len=FILE_NAME_LEN) :: filename
+    character(len=1024) :: filename
+
+    count=1
+
+    do 
+       !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+       write(filename, '(a, i0, a)') trim(simulation_name)//'_', (count-1)*dump_period,".vtu" 
+       inquire(file=trim(filename), exist=exists)
+       if (.not. exists) then
+          count=count -1
+          exit
+       end if
+
+       count=count+1
+    end do
+
+    if (count==0) then
+       FLExit("No .vtu files found!")
+    end if
+
+  end function count_dumps
+
+
+  subroutine read_command_line()
+    implicit none
+    ! Read the input filename.
+    character(len=1024) :: argument, filename
+    integer :: status, argn, level
+
+    call set_global_debug_level(0)
+
+    argn=1
+    do 
+
+       call get_command_argument(argn, value=argument, status=status)
+       argn=argn+1
+
+       if (status/=0) then
+          call usage
+          stop
+       end if
+
+       if (argument=="-v") then
+          call get_command_argument(argn, value=argument, status=status)
+          argn=argn+1
+
+          if (status/=0) then
+             call usage
+             stop
+          end if
+
+          read(argument, "(i1)", err=666) level
+          call set_global_debug_level(level)
+
+       else
+
+          ! Must be the filename
+          filename=argument
+
+       end if
+
+       if (argn>=command_argument_count()) exit
+    end do
+
+    call load_options(filename)
+
+    return
+
+666 call usage
+    stop
+
+  end subroutine read_command_line
+
+  subroutine usage
+    implicit none
+
+    write (0,*) "usage: form_pod_basis [-v n] <options_file>"
+    write (0,*) ""
+    write (0,*) "-v n sets the verbosity of debugging"
+  end subroutine usage
+
+end program form_pod_basis

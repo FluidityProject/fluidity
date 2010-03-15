@@ -43,7 +43,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-#OBJS    = ******.o \
+OBJS    = snapsvd.o\
 #        ******.o
 
 .SUFFIXES: .f90 .F90 .c .o .a
