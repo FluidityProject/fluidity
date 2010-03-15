@@ -171,6 +171,7 @@ grad_algorithm =
         scalar_source_field
       }
    )
+
 curl_algorithm =
    (
       ## curl (source field)
@@ -239,7 +240,7 @@ grad_normal_algorithm =
          }?
       }
    )
-   
+
 # Momentum diagnostics
 buoyancy_algorithm =
    (
@@ -456,6 +457,19 @@ l2norm_algorithm =
         vector_source_field
       }
    )
+
+extract_scalar_component_algorithm =
+   (
+      ## Extract a component from a vector field as a scalar
+      element algorithm {
+        attribute name { "extract_scalar_component" },
+        attribute material_phase_support { "single" },
+        vector_source_field,
+        element component {
+          integer
+        }
+      }
+   )
    
 scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
@@ -470,6 +484,7 @@ scalar_diagnostic_algorithms |= grad_normal_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
+scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
 
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm

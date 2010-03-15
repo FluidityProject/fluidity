@@ -45,7 +45,7 @@ module field_copies_diagnostics
   
   public :: calculate_scalar_copy, calculate_vector_copy, calculate_tensor_copy
   public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
-  
+  public :: extract_scalar_component_copy
 contains
 
   subroutine calculate_scalar_copy(state, s_field)
@@ -83,6 +83,21 @@ contains
     call remap_field(source_field, t_field)
     
   end subroutine calculate_tensor_copy
+
+  subroutine extract_scalar_component_copy(state, s_field, dim)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+    integer, intent(in) :: dim
+
+    type(vector_field), pointer :: source_field
+    type(scalar_field) :: component
+
+    source_field => vector_source_field(state, s_field)
+    component = extract_scalar_field(source_field, dim)
+
+    call remap_field(component, s_field)
+    
+  end subroutine extract_scalar_component_copy
   
   subroutine calculate_scalar_galerkin_projection(state, s_field)
     type(state_type), intent(inout) :: state
