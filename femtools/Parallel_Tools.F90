@@ -39,9 +39,9 @@ module parallel_tools
 
   public :: halgetnb, halgetnb_simple
   public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals, &
-    & get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
-    & isparallel, parallel_filename, parallel_filename_len, &
-    & valid_communicator
+     geqt_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
+     isparallel, parallel_filename, parallel_filename_len, &
+     valid_communicator, next_mpi_tag
   
   interface allmax
     module procedure allmax_integer, allmax_real
@@ -72,6 +72,19 @@ module parallel_tools
 
 contains
 
+  function next_mpi_tag()
+#ifdef HAVE_MPI
+    integer, save::last_tag=0
+    last_tag = mod(last_tag+1, MPI_TAG_UB)
+    if(last_tag==0) then
+       last_tag = last_tag+1
+    end if
+    next_mpi_tag = last_tag
+#else
+    next_mpi_tag = 1
+#endif
+  end function next_mpi_tag
+  
   function getprocno(communicator) result(procno)
     !!< This is a convenience routine which returns the MPI rank
     !!< number + 1 when MPI is being used and 1 otherwise.
