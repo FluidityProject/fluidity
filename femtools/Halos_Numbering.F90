@@ -98,6 +98,7 @@ contains
     integer, dimension(:), allocatable :: receive_types, requests,&
          & send_types, statuses
     logical, dimension(:), allocatable :: local_nodes
+    integer tag
 
     ewrite(1,*) "Creating universal numbering for a general order halo"
 
@@ -178,20 +179,18 @@ contains
     ! Set up non-blocking communications
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+    
     do i = 1, nprocs      
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
-        call mpi_isend(halo%gnn_to_unn, 1, send_types(i), i - 1, rank, communicator, requests(i), ierr)
+        call mpi_isend(halo%gnn_to_unn, 1, send_types(i), i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
       
       ! Non-blocking receives
       if(halo_receive_count(halo, i) > 0) then
-        call mpi_irecv(halo%gnn_to_unn, 1, receive_types(i), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+        call mpi_irecv(halo%gnn_to_unn, 1, receive_types(i), i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
     end do    
@@ -240,6 +239,7 @@ contains
     integer :: communicator, i, ierr, nowned_nodes, nprocs, rank
     integer, dimension(:), allocatable :: requests, statuses
     type(integer_vector), dimension(:), allocatable :: receives_unn, sends_unn
+    integer tag
 
     ewrite(1,*) "Creating universal numbering for a trailing receives halo"
     assert(trailing_receives_consistent(halo))
@@ -290,23 +290,20 @@ contains
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
     do i = 1, nprocs      
       allocate(receives_unn(i)%ptr(halo_receive_count(halo, i)))
       
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
-        call mpi_isend(sends_unn(i)%ptr, size(sends_unn(i)%ptr), getpinteger(), i - 1, rank, communicator, requests(i), ierr)
+        call mpi_isend(sends_unn(i)%ptr, size(sends_unn(i)%ptr), getpinteger(), i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
 
       ! Non-blocking receives
       if(halo_receive_count(halo, i) > 0) then
         call mpi_irecv(receives_unn(i)%ptr, halo_receive_count(halo, i),&
-             & getpinteger(), i - 1, i - 1, communicator, requests(i +&
+             & getpinteger(), i - 1, tag, communicator, requests(i +&
              & nprocs), ierr) 
         assert(ierr == MPI_SUCCESS)
       end if

@@ -659,7 +659,8 @@ contains
     integer, dimension(:), allocatable :: nreceives, nsends, requests, statuses
     type(integer_hash_table) :: gnns
     type(integer_vector), dimension(:), allocatable :: receives_uenlist, sends_uenlist
-    
+    integer tag
+
     assert(continuity(mesh) == 0)
     assert(halo_data_type(node_halo) == HALO_TYPE_CG_NODE)
     assert(halo_data_type(element_halo) == HALO_TYPE_ELEMENT)
@@ -694,22 +695,22 @@ contains
     allocate(sends_uenlist(nprocs))
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+
     do i = 1, nprocs
       allocate(sends_uenlist(i)%ptr(halo_send_count(element_halo, i)*loc))
       
       ! Non-blocking sends
       if(size(receives_uenlist(i)%ptr) > 0) then
-        call mpi_isend(receives_uenlist(i)%ptr, size(receives_uenlist(i)%ptr), getpinteger(), i - 1, rank, communicator, requests(i), ierr)
+        call mpi_isend(receives_uenlist(i)%ptr, size(receives_uenlist(i)%ptr), getpinteger(), &
+             i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
       
       ! Non-blocking receives
       if(size(sends_uenlist(i)%ptr) > 0) then
-        call mpi_irecv(sends_uenlist(i)%ptr, size(sends_uenlist(i)%ptr), getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+        call mpi_irecv(sends_uenlist(i)%ptr, size(sends_uenlist(i)%ptr), getpinteger(), &
+             i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
     end do    
@@ -757,7 +758,8 @@ contains
     integer, dimension(:), pointer :: faces
     type(integer_hash_table) :: gnns
     type(integer_vector), dimension(:), allocatable :: receives_uenlist, sends_uenlist
-    
+    integer tag
+
     assert(continuity(mesh) == 0)
     assert(halo_data_type(element_halo) == HALO_TYPE_ELEMENT)
     assert(halo_data_type(selement_halo) == HALO_TYPE_ELEMENT)
@@ -792,22 +794,22 @@ contains
     allocate(sends_uenlist(nprocs))
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+
     do i = 1, nprocs
       allocate(sends_uenlist(i)%ptr(halo_send_count(selement_halo, i)*2))
       
       ! Non-blocking sends
       if(size(receives_uenlist(i)%ptr) > 0) then
-        call mpi_isend(receives_uenlist(i)%ptr, size(receives_uenlist(i)%ptr), getpinteger(), i - 1, rank, communicator, requests(i), ierr)
+        call mpi_isend(receives_uenlist(i)%ptr, size(receives_uenlist(i)%ptr), getpinteger(), &
+             i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
       
       ! Non-blocking receives
       if(size(sends_uenlist(i)%ptr) > 0) then
-        call mpi_irecv(sends_uenlist(i)%ptr, size(sends_uenlist(i)%ptr), getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+        call mpi_irecv(sends_uenlist(i)%ptr, size(sends_uenlist(i)%ptr), getpinteger(), &
+             i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
     end do    

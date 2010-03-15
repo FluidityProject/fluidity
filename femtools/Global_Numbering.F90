@@ -1112,7 +1112,7 @@ contains
     integer, dimension(:), allocatable :: requests, receive_list
     integer, dimension(MPI_STATUS_SIZE) :: status
     integer :: proc, e, ierr, rank, communicator, count, nprocs, sends,&
-         & receives, pos, p, sendproc
+         & receives, pos, p, sendproc, tag
     
 
     nprocs=halo_proc_count(element_halo)
@@ -1163,16 +1163,13 @@ contains
     communicator = halo_communicator(element_halo)
     allocate(requests(nprocs))
     rank = getrank(communicator)  
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
 
     do proc=1, nprocs
 
        call mpi_isend(send_lists(proc)%ptr, &
             size(send_lists(proc)%ptr), MPI_INTEGER,&
-            proc-1, rank, communicator, requests(proc), ierr)
+            proc-1, tag, communicator, requests(proc), ierr)
        assert(ierr == MPI_SUCCESS)
 
     end do
@@ -1182,7 +1179,7 @@ contains
     ! Wait for incoming data.
     do proc=1, nprocs
 
-       call mpi_probe(MPI_ANY_SOURCE, MPI_ANY_TAG, communicator, status,&
+       call mpi_probe(MPI_ANY_SOURCE, tag, communicator, status,&
             & ierr)
        assert(ierr == MPI_SUCCESS)
 
@@ -1192,7 +1189,7 @@ contains
        allocate(receive_list(count))
 
        call mpi_recv(receive_list, count, MPI_INTEGER, status(MPI_SOURCE),&
-            & status(MPI_TAG), communicator, MPI_STATUS_IGNORE, ierr)
+            tag, communicator, MPI_STATUS_IGNORE, ierr)
        assert(ierr == MPI_SUCCESS)
 
        sendproc=status(MPI_SOURCE)+1

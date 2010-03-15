@@ -429,7 +429,8 @@ contains
       & send_buffer
     type(halo_type) :: sele_halo
     type(halo_type), pointer :: ele_halo
-    
+    integer tag
+
     ewrite(1, *) "In merge_surface_ids"
     
     nhalos = element_halo_count(mesh)
@@ -494,13 +495,10 @@ contains
         end do
       end do
           
-      ! Communicate the old surface IDs
-                    
+      ! Communicate the old surface IDs                
       requests = MPI_REQUEST_NULL
-#ifdef DDEBUG
-      call mpi_barrier(communicator, ierr)
-      assert(ierr == MPI_SUCCESS)
-#endif
+      tag = next_mpi_tag()
+
       do i = 1, nprocs          
         ! Non-blocking sends
         if(size(send_buffer(i)%ptr) > 0) then

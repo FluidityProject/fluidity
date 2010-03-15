@@ -70,6 +70,8 @@ contains
     
     pending = (ipending /= 0)
 
+    ! Note - removing this mpi_barrier could result in a false
+    ! positive on another process.
     call mpi_barrier(halo_communicator(halo), ierr)
     assert(ierr == MPI_SUCCESS)
 #else

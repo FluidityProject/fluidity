@@ -155,7 +155,7 @@ contains
 #ifdef HAVE_MPI
     integer :: communicator, i, ierr, nprocs, nreceives, nsends, rank
     integer, dimension(:), allocatable :: receive_types, requests, send_types, statuses
-
+    integer tag
     assert(halo_valid_for_communication(halo))
     assert(.not. pending_communication(halo))
 
@@ -196,20 +196,18 @@ contains
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+
     do i = 1, nprocs
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
-        call mpi_isend(integer_data, 1, send_types(i), i - 1, rank, communicator, requests(i), ierr)
+         call mpi_isend(integer_data, 1, send_types(i), i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
       
       ! Non-blocking receives
       if(halo_receive_count(halo, i) > 0) then
-        call mpi_irecv(integer_data, 1, receive_types(i), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+        call mpi_irecv(integer_data, 1, receive_types(i), i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
     end do    
@@ -253,6 +251,7 @@ contains
 #ifdef HAVE_MPI
     integer :: communicator, i, ierr, nprocs, nreceives, nsends, rank
     integer, dimension(:), allocatable :: receive_types, requests, send_types, statuses
+    integer tag
 
     assert(halo_valid_for_communication(halo))
     assert(.not. pending_communication(halo))
@@ -294,20 +293,18 @@ contains
     allocate(requests(nprocs * 2))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+
     do i = 1, nprocs
       ! Non-blocking sends
       if(halo_send_count(halo, i) > 0) then
-        call mpi_isend(real_data, 1, send_types(i), i - 1, rank, communicator, requests(i), ierr)
+        call mpi_isend(real_data, 1, send_types(i), i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
       
       ! Non-blocking receives
       if(halo_receive_count(halo, i) > 0) then
-        call mpi_irecv(real_data, 1, receive_types(i), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+        call mpi_irecv(real_data, 1, receive_types(i), i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
     end do    
@@ -497,6 +494,7 @@ contains
     integer :: communicator, i, ierr, nprocs, nsends, nreceives, rank
     integer, dimension(:), allocatable :: requests, receive_types, send_types, statuses
     type(real_vector), dimension(:), allocatable :: receive_real_array
+    integer tag
 
     assert(halo_valid_for_communication(halo))
     assert(.not. pending_communication(halo))
@@ -540,10 +538,8 @@ contains
     allocate(requests(nprocs * 4))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+
     do i = 1, nprocs
       ! Allocate receive arrays
       allocate(receive_real_array(i)%ptr(halo_send_count(halo, i)))
@@ -551,21 +547,24 @@ contains
     
       if(halo_send_count(halo, i) > 0) then
         ! Non-blocking sends on sends
-        call mpi_isend(real_data, 1, send_types(i), i - 1, rank, communicator, requests(i), ierr)
+        call mpi_isend(real_data, 1, send_types(i), i - 1, tag, communicator, requests(i), ierr)
         assert(ierr == MPI_SUCCESS)
         
         ! Non-blocking receives on sends
-        call mpi_irecv(receive_real_array(i)%ptr, size(receive_real_array(i)%ptr), getpreal(), i - 1, i - 1 + nprocs, communicator, requests(i + nprocs), ierr)
+        call mpi_irecv(receive_real_array(i)%ptr, size(receive_real_array(i)%ptr), getpreal(), &
+             i - 1, tag, communicator, requests(i + nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
             
       if(halo_receive_count(halo, i) > 0) then
         ! Non-blocking sends on receives
-        call mpi_isend(real_data, 1, receive_types(i), i - 1, rank + nprocs, communicator, requests(i + 2 * nprocs), ierr)
+        call mpi_isend(real_data, 1, receive_types(i), i - 1, tag, communicator, &
+             requests(i + 2 * nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
         
         ! Non-blocking receives on receives
-        call mpi_irecv(receive_real_array(i + nprocs)%ptr, size(receive_real_array(i + nprocs)%ptr), getpreal(), i - 1, i - 1, communicator, requests(i + 3 * nprocs), ierr)
+        call mpi_irecv(receive_real_array(i + nprocs)%ptr, size(receive_real_array(i + nprocs)%ptr),&
+             getpreal(), i - 1, tag, communicator, requests(i + 3 * nprocs), ierr)
         assert(ierr == MPI_SUCCESS)
       end if
     end do    

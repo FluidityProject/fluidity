@@ -358,6 +358,7 @@ contains
     integer :: current_unn, new_unn, total_halo, sends, receives
     integer, dimension(:), pointer :: nodes
     integer, dimension(:), allocatable :: requests, statuses
+    integer tag(2)
 
     nprocs = halo_proc_count(node_halo)
     communicator = halo_communicator(node_halo)
@@ -402,17 +403,15 @@ contains
        
        ! Actually communicate the data
        rank = getrank(communicator) 
-#ifdef DDEBUG
-       call mpi_barrier(communicator, ierr)
-       assert(ierr == MPI_SUCCESS)
-#endif
+       tag(i) = next_mpi_tag()
+       
        allocate(requests(2*nprocs))
        requests = MPI_REQUEST_NULL
        do p = 1, nprocs          
           if(size(send_data(p)%ptr) > 0) then
             ! Non-blocking sends
             call mpi_isend(send_data(p)%ptr, size(send_data(p)%ptr), getpinteger()&
-                 &, p - 1, p, communicator, &
+                 &, p - 1, tag(i), communicator, &
                  & requests(p), ierr)
             assert(ierr == MPI_SUCCESS)
           end if
@@ -420,7 +419,7 @@ contains
           ! Non-blocking receives
           if(size(receive_data(p)%ptr) > 0) then
             call mpi_irecv(receive_data(p)%ptr, size(receive_data(p)%ptr),&
-                 & getpinteger(), p-1, rank+1, communicator, requests(p+nprocs), ierr)
+                 & getpinteger(), p-1, tag(i), communicator, requests(p+nprocs), ierr)
             assert(ierr == MPI_SUCCESS)
           end if
        end do
@@ -631,6 +630,7 @@ contains
       & send_types, start_indices, statuses, permutation, &
       & permutation_inverse
     real, dimension(:, :), allocatable :: current_receive_data, correct_receive_data
+    integer tag
 
     assert(trailing_receives_consistent(halo))
     
@@ -674,26 +674,22 @@ contains
     allocate(requests(nprocs * 2 * repair_field%dim))
     requests = MPI_REQUEST_NULL
     rank = getrank(communicator) 
-#ifdef DDEBUG
-    call mpi_barrier(communicator, ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
+    tag = next_mpi_tag()
+
     do i = 1, nprocs
       do j = 1, repair_field%dim
         ! Non-blocking sends
         if(halo_send_count(halo, i) > 0) then
           call mpi_isend(repair_field%val(j)%ptr, 1, send_types(i), i - 1, &
-            & rank * repair_field%dim + j, communicator, &
-            & requests((i - 1) * repair_field%dim + j), ierr)
+               tag, communicator, requests((i - 1) * repair_field%dim + j), ierr)
           assert(ierr == MPI_SUCCESS)
         end if
         
         ! Non-blocking receives
         if(halo_receive_count(halo, i) > 0) then
           call mpi_irecv(correct_receive_data(start_indices(i):, j), &
-            & halo_receive_count(halo, i), getpreal(), i - 1, &
-            & (i - 1) * repair_field%dim + j, communicator, &
-            & requests((i - 1 + nprocs) * repair_field%dim + j), ierr)
+               halo_receive_count(halo, i), getpreal(), i - 1, tag, &
+               communicator, requests((i - 1 + nprocs) * repair_field%dim + j), ierr)
           assert(ierr == MPI_SUCCESS)
         end if
       end do

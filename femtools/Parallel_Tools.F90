@@ -74,8 +74,13 @@ contains
 
   integer function next_mpi_tag()
 #ifdef HAVE_MPI
-    integer, save::last_tag=0
-    last_tag = mod(last_tag+1, MPI_TAG_UB)
+    integer, save::last_tag=0, tag_ub=0
+    integer flag, ierr
+    if(tag_ub==0) then
+       call MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, tag_ub, flag, ierr)
+    end if
+
+    last_tag = mod(last_tag+1, tag_ub)
     if(last_tag==0) then
        last_tag = last_tag+1
     end if
