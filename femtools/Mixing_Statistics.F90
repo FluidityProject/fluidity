@@ -44,15 +44,17 @@ module mixing_statistics
   implicit none
 
   interface heaviside_integral
-     module procedure heaviside_integral_old, heaviside_integral_new   
-  end interface
+    module procedure heaviside_integral_old, heaviside_integral_new, &
+      & heaviside_integral_new_options
+  end interface heaviside_integral
 
   interface mixing_stats
      module procedure mixing_stats_scalar
   end interface
 
   private
-  public mixing_stats
+  
+  public :: heaviside_integral, mixing_stats
 
 contains
 
@@ -148,7 +150,7 @@ contains
 
   end subroutine control_volume_mixing
 
-  subroutine heaviside_integral_new(f_mix_fraction, sfield, Xfield, mixing_stats_count)
+  subroutine heaviside_integral_new_options(f_mix_fraction, sfield, Xfield, mixing_stats_count)
 
     real, dimension(:), intent(out) :: f_mix_fraction
     type(scalar_field), target, intent(inout) :: sfield
@@ -250,7 +252,36 @@ contains
     endif
 
     return
-  end subroutine heaviside_integral_new
+  end subroutine heaviside_integral_new_options
+  
+  function heaviside_integral_new(sfield, bound, positions, tolerance) result(integral)
+    type(scalar_field), intent(inout) :: sfield
+    real, intent(in) :: bound
+    type(vector_field), intent(in) :: positions
+    real, optional, intent(in) :: tolerance
+    
+    real :: integral
+    
+    real :: ltolerance
+    type(element_type), pointer :: shape
+    
+    if(present(tolerance)) then
+      ltolerance = tolerance
+    else
+      ltolerance = epsilon(0.0)
+    end if
+    
+    shape => ele_shape(sfield, 1)
+    if(positions%dim /= 3 .or. ele_numbering_family(shape) /= FAMILY_SIMPLEX .or. shape%degree /= 1) then
+      FLAbort("heaviside_integral_new requires a linear tetrahedron input mesh")
+    end if
+    
+    call heaviside_integral(integral = integral, scalar_field = sfield%val, &
+      & heavi_value = bound, x = positions%val(1)%ptr, y = positions%val(2)%ptr, z = positions%val(3)%ptr, nonods = node_count(sfield), &
+      & totele = ele_count(sfield), nloc = shape%loc, ndglno = sfield%mesh%ndglno, tolerance = ltolerance, &
+      & mesh = sfield%mesh)
+    
+  end function heaviside_integral_new
 
   subroutine heaviside_integral_old(integral,scalar_field,heavi_value, &
        x,y,z,nonods,totele,nloc,ndglno,tolerance, mesh)
