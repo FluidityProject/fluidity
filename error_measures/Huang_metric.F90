@@ -52,15 +52,15 @@ module huang_metric_module
     q = tmp(2)
 
     eps = weight
-    gamma = (float(n) / q) + (2 - m)
-    power_A = 1 + float((n * (p - 1)))/(p * gamma) + max(0.0, float(n)/(p*gamma) - 1)
+    gamma = (real(n) / q) + (2 - m)
+    power_A = 1 + real((n * (p - 1)))/(p * gamma) + max(0.0, real(n)/(p*gamma) - 1)
     assert(domain_volume > 0)
     sigma = (2 ** power_A) * domain_volume
     m_sigma = sigma
 
     identity = get_matrix_identity(n)
     power_B = (1.0/n) * ((2.0/gamma) - 1)
-    power_C = float(n) / (2 - m)
+    power_C = real(n) / (2 - m)
 
     do node=1,node_count(hessian)
       abs_h = absolutify(node_val(hessian, node))
