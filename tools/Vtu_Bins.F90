@@ -85,11 +85,11 @@ subroutine vtu_bins(input_filename, input_filename_len, input_fieldname, input_f
   
   rformat = real_format()
   rformatp = real_format(padding = 1)
-  print "(a," // rformatp // ",a," // rformat // ")", "                      -inf - ", lbounds(1), " : ", volume - integrals(1)
+  print "(a," // rformatp // ",a," // rformat // ")", "                      -inf - ", lbounds(1), " : ", (volume - integrals(1)) / volume
   do i = 1, nbounds - 1
-    print "(" // rformatp // ",a," // rformatp // ",a," // rformat // ")", lbounds(i), " - ", lbounds(i + 1), " : ", volume - (integrals(i + 1) - integrals(i))
+    print "(" // rformatp // ",a," // rformatp // ",a," // rformat // ")", lbounds(i), " - ", lbounds(i + 1), " : ", (volume - (integrals(i + 1) - integrals(i))) / volume
   end do
-  print "(" // rformatp // "a," // rformat // ")", lbounds(i), " -                        inf : ", volume - (integrals(nbounds + 1) - integrals(nbounds))
+  print "(" // rformatp // "a," // rformat // ")", lbounds(nbounds), " -                        inf : ", (volume - (integrals(nbounds + 1) - integrals(nbounds))) / volume
   
   if(allocated) deallocate(field)
   call deallocate(state)
