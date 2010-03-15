@@ -761,7 +761,7 @@ type(scalar_field), optional, intent(in) :: exact
       ksp=matrix%ksp
     end if
   else if (present(block_matrix)) then
-    if (associated(matrix%ksp)) then
+    if (associated(block_matrix%ksp)) then
       ksp=block_matrix%ksp
     end if
   end if
