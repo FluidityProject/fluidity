@@ -90,7 +90,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period replaces="TIMDUM">
-      <real_value rank="0">43200</real_value>
+      <real_value rank="0">86400</real_value>
       <comment>86400.0 - day
 43200 - 0.5 days</comment>
     </dump_period>
@@ -181,7 +181,7 @@
           <string_value>k-epsilon</string_value>
         </option>
         <stability_function>
-          <string_value>KanthaClayson-94</string_value>
+          <string_value>Canuto-01-A</string_value>
         </stability_function>
         <calculate_boundaries>
           <string_value>neumann</string_value>
@@ -191,18 +191,14 @@
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
-              <continuous_galerkin>
-                <stabilisation>
-                  <streamline_upwind>
-                    <nu_bar_unity/>
-                    <nu_scale name="unity">
-                      <real_value shape="1" rank="0">1.0</real_value>
-                    </nu_scale>
-                  </streamline_upwind>
-                </stabilisation>
-                <advection_terms/>
-                <mass_terms/>
-              </continuous_galerkin>
+              <control_volumes>
+                <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+                  <limit_face_value>
+                    <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
               <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
                 <real_value rank="0">0.0</real_value>
               </conservative_advection>
@@ -211,6 +207,11 @@
               <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
                 <real_value rank="0">1.0</real_value>
               </theta>
+              <control_volumes>
+                <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+                  <integer_value rank="0">3</integer_value>
+                </number_advection_iterations>
+              </control_volumes>
             </temporal_discretisation>
             <solver>
               <iterative_method name="gmres">
@@ -220,7 +221,7 @@
               </iterative_method>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.0e-5</real_value>
+                <real_value rank="0">1.0e-7</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">2000</integer_value>
@@ -283,18 +284,14 @@
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
-              <continuous_galerkin>
-                <stabilisation>
-                  <streamline_upwind>
-                    <nu_bar_unity/>
-                    <nu_scale name="unity">
-                      <real_value shape="1" rank="0">1.0</real_value>
-                    </nu_scale>
-                  </streamline_upwind>
-                </stabilisation>
-                <advection_terms/>
-                <mass_terms/>
-              </continuous_galerkin>
+              <control_volumes>
+                <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+                  <limit_face_value>
+                    <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
               <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
                 <real_value rank="0">0.0</real_value>
               </conservative_advection>
@@ -303,6 +300,11 @@
               <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
                 <real_value rank="0">1.0</real_value>
               </theta>
+              <control_volumes>
+                <number_advection_iterations replaces="INT(ABS(NDISOT)/10)">
+                  <integer_value rank="0">3</integer_value>
+                </number_advection_iterations>
+              </control_volumes>
             </temporal_discretisation>
             <solver>
               <iterative_method name="gmres">
@@ -312,7 +314,7 @@
               </iterative_method>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.0E-5</real_value>
+                <real_value rank="0">1.0E-7</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">2000</integer_value>
@@ -709,7 +711,7 @@
           <continuous_galerkin>
             <stabilisation>
               <streamline_upwind>
-                <nu_bar_unity/>
+                <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
@@ -745,7 +747,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0E-5</real_value>
+            <real_value rank="0">1.0E-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">5000</integer_value>
@@ -841,7 +843,7 @@
           <continuous_galerkin>
             <stabilisation>
               <streamline_upwind>
-                <nu_bar_unity/>
+                <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
@@ -869,7 +871,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -883,17 +885,37 @@
           <python>
             <string_value lines="20" type="python">global interp_temp_ic
 from scipy.interpolate import interp1d
-from numpy import loadtxt
+import numpy
+import csv
 
-layer,temp=loadtxt("wod_1970_jan_11.csv", delimiter=",",unpack=True)
+templ = []
+layerl = []
+reader = csv.reader(file("temperature.csv"))
+for row in reader:
+  layerl.append(abs(float(row[0])))
+  templ.append(float(row[1]))
+
+temp = numpy.array(templ)
+layer = numpy.array(layerl)
 
 # The fill_value will set nodes below the bottom of the data to the bottom value.
+# The abs() is because we need increasing values of layer to interp
 interp_temp_ic=interp1d(layer,temp,bounds_error=False,fill_value=temp[-1])
 
 def val(X,t):
-    return float(interp_temp_ic(-X[2]))</string_value>
+    return float(interp_temp_ic(abs(X[2])))</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="ZeroFluxTemp">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <subgridscale_parameterisation name="GLS"/>
         <output/>
         <stat/>
@@ -980,17 +1002,36 @@ def val(X,t):
           <python>
             <string_value lines="20" type="python">global interp_sal_ic
 from scipy.interpolate import interp1d
-from numpy import loadtxt
+import numpy
+import csv
 
-layer,temp,sal=loadtxt("wod_stationpapa_jan1970_t_s.csv", delimiter=",",unpack=True,skiprows=7)
+templ = []
+layerl = []
+reader = csv.reader(file("salinity.csv"))
+for row in reader:
+  layerl.append(abs(float(row[0])))
+  templ.append(float(row[1]))
+
+temp = numpy.array(templ)
+layer = numpy.array(layerl)
 
 # The fill_value will set nodes below the bottom of the data to the bottom value.
-interp_sal_ic=interp1d(layer,sal,bounds_error=False,fill_value=sal[-1])
+interp_sal_ic=interp1d(layer,temp,bounds_error=False,fill_value=temp[-1])
 
 def val(X,t):
-    return float(interp_sal_ic(-X[2]))</string_value>
+    return float(interp_sal_ic(abs(X[2])))</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="ZeroFluxSalinity">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <subgridscale_parameterisation name="GLS"/>
         <output/>
         <stat/>
