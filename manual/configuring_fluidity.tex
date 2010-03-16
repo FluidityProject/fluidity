@@ -206,7 +206,7 @@ The input to periodise is your flml (in this case foo.flml), which contains the 
 ./myfluidity/bin/periodise foo.flml
 \end{lstlisting}
 
-The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required. For example, to run a periodic simulation on four processors simply type:
+The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required. For example, to decompose a periodic mesh to be run on four processors simply type:
 
 \begin{lstlisting}[language=bash]
 mpiexec -np 4 ./myfluidity/bin/flredecomp \
@@ -221,7 +221,13 @@ mpiexec -np [target number of processors] \
         -o [target number of processors] [input flml] [output flml]
 \end{lstlisting}
 
-The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. 
+The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
+
+\begin{lstlisting}[language=bash]
+mpiexec -np [number of processors] \
+   ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
+\end{lstlisting}
+
 
 \subsubsection{Extruded meshes}
 \index{mesh!extruded}
