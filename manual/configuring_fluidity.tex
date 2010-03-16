@@ -175,6 +175,54 @@ Select \option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn on\onlypdf\
 
 Meshes that are required to be periodic can now be derived from this periodic mesh.
 
+Running a periodic mesh in parallel is relatively straight forward. To begin with fludity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
+
+\begin{lstlisting}[language=bash]
+dpkg -l libzoltan*
+\end{lstlisting}
+
+If the libaries are not present install them with:
+
+\begin{lstlisting}[language=bash]
+sudo apt-get install libzoltan_dev
+\end{lstlisting}
+
+Then configure fluidity with zoltan:
+
+\begin{lstlisting}[language=bash]
+./configure --with-zoltan
+\end{lstlisting}
+
+To produce the periodic meshes you have to use two tools (these tools are built as part of the fltools build target (see section \ref{sect:fltools})):
+
+\begin{itemize}
+\item periodise
+\item flredecomp
+\end{itemize}
+
+The input to periodise is your flml (in this case foo.flml), which contains the mapping for the periodic boundary as described above. Run using the command:
+
+\begin{lstlisting}[language=bash]
+./myfluidity/bin/periodise foo.flml
+\end{lstlisting}
+
+The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required. For example, to run a periodic simulation on four processors simply type:
+
+\begin{lstlisting}[language=bash]
+mpiexec -np 4 ./myfluidity/bin/flredecomp \
+    -i 1 -o 4 foo_periodised foo_periodised_flredecomp
+\end{lstlisting}
+
+Where:
+
+\begin{lstlisting}[language=bash]
+mpiexec -np [target number of processors] \
+   ./myfluidity/bin/flredecomp -i [input number of processors] \
+        -o [target number of processors] [input flml] [output flml]
+\end{lstlisting}
+
+The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. 
+
 \subsubsection{Extruded meshes}
 \index{mesh!extruded}
 
