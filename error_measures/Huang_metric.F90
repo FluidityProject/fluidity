@@ -60,7 +60,7 @@ module huang_metric_module
 
     identity = get_matrix_identity(n)
     power_B = (1.0/n) * ((2.0/gamma) - 1)
-    power_C = real(n) / (2 - m)
+    power_C = real(n) / (l - m)
 
     do node=1,node_count(hessian)
       abs_h = absolutify(node_val(hessian, node))
@@ -70,21 +70,21 @@ module huang_metric_module
     m_hessian = hessian
     m_gamma = gamma
 
-    alpha = secant_method(beta, 1.0, 2.0, 1.0e-6)
+    alpha = find_root(beta, 0.05, 2.5, 1.0e-6)
 
     do node=1,node_count(hessian)
       abs_h = node_val(hessian, node)
 
       metric = ((1.0/sigma) * ((alpha / eps)**power_C))**(2.0/n) * &
                (det(identity + (1.0/alpha) * abs_h) ** power_B) * &
-               (identity + (1.0/alpha) * abs_h)
+               (identity + (1.0/alpha) * abs_h) * 4
 
       call set(hessian, node, metric)
     end do
 
     contains 
 
-      function secant_method(func, x0, x1, eps) result(root)
+      function find_root(func, x0, x1, eps) result(root)
         real, intent(in) :: x0, x1, eps
         real :: root
         interface
@@ -111,19 +111,38 @@ module huang_metric_module
           return
         end if
 
-        do while(.true.)
-          xnplus = xn - ( (xn - xnminus) / (fn - fnminus) ) * fn
-          assert(.not. is_nan(xnplus))
-          fnplus = func(xnplus)
-          if (abs(fnplus) < eps) then
-            root = xnplus
-            return
-          end if
+        if (fnminus * fn < 0) then
+          do while(.true.)
+            xnplus = (fn*xnminus - fnminus*xn) / (fn - fnminus)
+            fnplus = func(xnplus)
+            if (abs(fnplus) < eps) then
+              root = xnplus
+              return
+            end if
 
-          xnminus = xn; fnminus = fn
-          xn = xnplus; fn = fnplus
-        end do
-      end function secant_method
+            if (sign(1.0, fnplus) == sign(1.0, fnminus)) then
+              fnminus = fnplus
+              xnminus = xnplus
+            else
+              fn = fnplus
+              xn = xnplus
+            end if
+          end do
+        else
+          do while(.true.)
+            xnplus = xn - ( (xn - xnminus) / (fn - fnminus) ) * fn
+            assert(.not. is_nan(xnplus))
+            fnplus = func(xnplus)
+            if (abs(fnplus) < eps) then
+              root = xnplus
+              return
+            end if
+
+            xnminus = xn; fnminus = fn
+            xn = xnplus; fn = fnplus
+          end do
+        end if
+      end function find_root
 
       function absolutify(hessian) result(abs_h)
         real, dimension(:, :), intent(in) :: hessian
