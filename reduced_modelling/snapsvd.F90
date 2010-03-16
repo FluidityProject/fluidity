@@ -1,5 +1,44 @@
-module snapsvd_module
+!!$BSD Software License
+!!$
+!!$Pertains to ARPACK and P_ARPACK
+!!$
+!!$Copyright (c) 1996-2008 Rice University.  
+!!$Developed by D.C. Sorensen, R.B. Lehoucq, C. Yang, and K. Maschhoff.
+!!$All rights reserved.
+!!$
+!!$Redistribution and use in source and binary forms, with or without
+!!$modification, are permitted provided that the following conditions are
+!!$met:
+!!$
+!!$- Redistributions of source code must retain the above copyright
+!!$  notice, this list of conditions and the following disclaimer. 
+!!$  
+!!$- Redistributions in binary form must reproduce the above copyright
+!!$  notice, this list of conditions and the following disclaimer listed
+!!$  in this license in the documentation and/or other materials
+!!$  provided with the distribution.
+!!$  
+!!$- Neither the name of the copyright holders nor the names of its
+!!$  contributors may be used to endorse or promote products derived from
+!!$  this software without specific prior written permission.
+!!$  
+!!$THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+!!$"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT  
+!!$LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+!!$A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+!!$OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+!!$SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+!!$LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+!!$DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+!!$THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT  
+!!$(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+!!$OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+!!$
+
 #include "fdebug.h"
+
+module snapsvd_module
+  use vector_tools 
   implicit none
 
 contains 
@@ -132,7 +171,7 @@ contains
     !     | Local Arrays |
     !     %--------------%
     !
-    !Double precision v(ldv,maxncv), u(ldu, maxnev),            & 
+    !real v(ldv,maxncv), u(ldu, maxnev),            & 
     !                 workl(maxncv*(maxncv+8)), workd(3*maxn),  &
     !                 s(maxncv,2), resid(maxn), ax(maxm)
     !logical          select(maxncv)
@@ -151,28 +190,28 @@ contains
     integer          ido, nev, ncv, lworkl, info, ierr,   &
          j, ishfts, maxitr, mode1, nconv
     logical          rvec
-    Double precision toll, sigma, temp
+    real toll, sigma, temp
     !
     !     %------------%
     !     | Parameters |
     !     %------------%
     !
-    Double precision one, zero
+    real one, zero
     parameter        (one = 1.0D+0, zero = 0.0D+0)
 
 
     !ccccc declare input
-    double precision snapmatrix(m,n)
+    real snapmatrix(m,n)
     integer nsvd,nsvd_total
     !cccccccc  declare output
-    double precision usv(m,nsvd),svdval(nsvd) ! left svd, svdval
+    real usv(m,nsvd),svdval(nsvd) ! left svd, svdval
     !
     !  
     !     %-----------------------------%
     !     | BLAS & LAPACK routines used |
     !     %-----------------------------%
     !
-    Double precision dnrm2
+    real dnrm2
 
     !
     !  %-------------%
@@ -181,7 +220,7 @@ contains
 
     REAL TOTAL_E,PARTIAL_E,PERCENT_E
 
-    external         dnrm2, daxpy, dcopy, dscal
+!    external         dnrm2, daxpy, dcopy, dscal
     !
     !     %-----------------------%
     !     | Executable Statements |
@@ -355,9 +394,15 @@ contains
     !        | has been exceeded.                          |
     !        %---------------------------------------------%
     !
+#ifdef DOUBLEP
     call dsaupd ( ido, bmat, n, which, nev, toll, resid,      &
          ncv, v, ldv, iparam, ipntr, workd, workl,   &
          lworkl, info )
+#else
+    call ssaupd ( ido, bmat, n, which, nev, toll, resid,      &
+         ncv, v, ldv, iparam, ipntr, workd, workl,   &
+         lworkl, info )
+#endif
     !
     if (ido .eq. -1 .or. ido .eq. 1) then
        !
@@ -417,9 +462,15 @@ contains
        !           
        rvec = .true.
        !
+#ifdef DOUBLEP
        call dseupd ( rvec, 'All', select, s, v, ldv, sigma,   &
             bmat, n, which, nev, toll, resid, ncv, v, ldv,    &
             iparam, ipntr, workd, workl, lworkl, ierr )
+#else
+       call sseupd ( rvec, 'All', select, s, v, ldv, sigma,   &
+            bmat, n, which, nev, toll, resid, ncv, v, ldv,    &
+            iparam, ipntr, workd, workl, lworkl, ierr )
+#endif
        !
        !        %-----------------------------------------------%
        !        | Singular values are returned in the first     |
@@ -475,9 +526,12 @@ contains
              !              %-----------------------------%
              !
              call av(m, n, snapmatrix, v(1,j), ax)
-             call dcopy(m, ax, 1, u(1,j), 1)
-             temp = one/dnrm2(m, u(1,j), 1)
-             call dscal(m, temp, u(1,j), 1)
+             u(:,j)=ax
+             !call dcopy(m, ax, 1, u(1,j), 1)
+             temp = one/norm2(u(:,j))
+             !temp = one/dnrm2(m, u(1,j), 1)
+             u(:,j)=u(:,j)*temp
+             !call dscal(m, temp, u(1,j), 1)
              !
              !              %---------------------------%
              !              |                           |
@@ -495,8 +549,10 @@ contains
              !              | column of array S.        |
              !              %---------------------------%
              !
-             call daxpy(m, -s(j,1), u(1,j), 1, ax, 1)
-             s(j,2) = dnrm2(m, ax, 1)
+             !call daxpy(m, -s(j,1), u(1,j), 1, ax, 1)
+             ax=ax-s(j,1)*u(:,j)
+             s(j,2) = norm2(ax)
+             !s(j,2) = dnrm2(m, ax, 1)
              !
 20        end do
 
@@ -507,8 +563,13 @@ contains
           !           %-------------------------------%
           !           | Display computed residuals    |
           !           %-------------------------------%
+#ifdef DOUBLEP
           call dmout(6, nconv, 2, s, maxncv, -6,           &
                'Singular values and direct residuals')
+#else
+          call smout(6, nconv, 2, s, maxncv, -6,           &
+               'Singular values and direct residuals')
+#endif
        end if
        !
        !        %------------------------------------------%
@@ -717,7 +778,7 @@ contains
     !     | Local Arrays |
     !     %--------------%
     !
-    !Double precision v(ldv,maxncv), u(ldu, maxnev),            & 
+    !real v(ldv,maxncv), u(ldu, maxnev),            & 
     !                 workl(maxncv*(maxncv+8)), workd(3*maxn),  &
     !                 s(maxncv,2), resid(maxn), ax(maxm)
     !logical          select(maxncv)
@@ -738,30 +799,30 @@ contains
     integer          ido, nev, ncv, lworkl, info, ierr,   &
          j, ishfts, maxitr, mode1, nconv
     logical          rvec
-    Double precision toll, sigma, temp
+    real toll, sigma, temp
     !
     !     %------------%
     !     | Parameters |
     !     %------------%
     !
-    Double precision one, zero
+    real one, zero
     parameter        (one = 1.0D+0, zero = 0.0D+0)
 
 
     !ccccc declare input
-    double precision snapmatrix(m,n)
-    double precision snapmatrix_dx(m,n),snapmatrix_dy(m,n),snapmatrix_dz(m,n)
+    real snapmatrix(m,n)
+    real snapmatrix_dx(m,n),snapmatrix_dy(m,n),snapmatrix_dz(m,n)
     real epsilon
     integer nsvd,nsvd_total
     !cccccccc  declare output
-    double precision usv(m,nsvd),svdval(nsvd) ! left svd, svdval
+    real usv(m,nsvd),svdval(nsvd) ! left svd, svdval
     !
     !  
     !     %-----------------------------%
     !     | BLAS & LAPACK routines used |
     !     %-----------------------------%
     !
-    Double precision dnrm2
+    real dnrm2
 
     !
     !  %-------------%
@@ -770,7 +831,7 @@ contains
 
     REAL TOTAL_E,PARTIAL_E,PERCENT_E
 
-    external         dnrm2, daxpy, dcopy, dscal
+!    external         dnrm2, daxpy, dcopy, dscal
     !
     !     %-----------------------%
     !     | Executable Statements |
@@ -952,9 +1013,15 @@ contains
     !        | has been exceeded.                          |
     !        %---------------------------------------------%
     !
+#ifdef DOUBLEP
     call dsaupd ( ido, bmat, n, which, nev, toll, resid,      &
          ncv, v, ldv, iparam, ipntr, workd, workl,   &
          lworkl, info )
+#else
+    call ssaupd ( ido, bmat, n, which, nev, toll, resid,      &
+         ncv, v, ldv, iparam, ipntr, workd, workl,   &
+         lworkl, info )
+#endif
     !
     if (ido .eq. -1 .or. ido .eq. 1) then
        !
@@ -1039,9 +1106,15 @@ contains
        !           
        rvec = .true.
        !
+#ifdef DOUBLEP
        call dseupd ( rvec, 'All', select, s, v, ldv, sigma,   &
             bmat, n, which, nev, toll, resid, ncv, v, ldv,    &
             iparam, ipntr, workd, workl, lworkl, ierr )
+#else
+       call sseupd ( rvec, 'All', select, s, v, ldv, sigma,   &
+            bmat, n, which, nev, toll, resid, ncv, v, ldv,    &
+            iparam, ipntr, workd, workl, lworkl, ierr )
+#endif
        !
        !        %-----------------------------------------------%
        !        | Singular values are returned in the first     |
@@ -1096,9 +1169,12 @@ contains
              !              %-----------------------------%
              !
              call av(m, n, snapmatrix, v(1,j), ax)
-             call dcopy(m, ax, 1, u(1,j), 1)
-             temp = one/dnrm2(m, u(1,j), 1)
-             call dscal(m, temp, u(1,j), 1)
+             u(:,j)=ax
+             !call dcopy(m, ax, 1, u(1,j), 1)
+             temp = one/norm2(u(:,j))
+             !temp = one/dnrm2(m, u(1,j), 1)
+             u(:,j)=temp*u(:,j)
+             !call dscal(m, temp, u(1,j), 1)
              !
              !              %---------------------------%
              !              |                           |
@@ -1116,8 +1192,10 @@ contains
              !              | column of array S.        |
              !              %---------------------------%
              !
-             call daxpy(m, -s(j,1), u(1,j), 1, ax, 1)
-             s(j,2) = dnrm2(m, ax, 1)
+             ax=ax-s(j,1)*u(:,j)
+             !call daxpy(m, -s(j,1), u(1,j), 1, ax, 1)
+             s(j,2) = norm2(ax)
+             !s(j,2) = dnrm2(m, ax, 1)
              !
 20        end do
 
@@ -1128,8 +1206,13 @@ contains
           !           %-------------------------------%
           !           | Display computed residuals    |
           !           %-------------------------------%
+#ifdef DOUBLEP
           call dmout(6, nconv, 2, s, maxncv, -6,           &
                'Singular values and direct residuals')
+#else
+          call smout(6, nconv, 2, s, maxncv, -6,           &
+               'Singular values and direct residuals')
+#endif
        end if
        !
        !        %------------------------------------------%
@@ -1224,9 +1307,9 @@ contains
 
     !      include 'paramnew.h'
 
-    double precision x(n), w(m), psum
+    real x(n), w(m), psum
     integer i,j,m,n
-    double precision snapmatrix(m,n) 
+    real snapmatrix(m,n) 
 
 
     !      if (n .ne. nrsnapshots) then
@@ -1258,10 +1341,10 @@ contains
 
     !      include 'paramnew.h'
     integer         m, n
-    double precision w(m), y(n),psum
+    real w(m), y(n),psum
 
     integer i,j
-    double precision snapmatrix(m,n) 
+    real snapmatrix(m,n) 
 
     !      if (n .ne. nrsnapshots .or. m .ne. istate) then
     !         write(*,*)'transpose matrix dimension error'
