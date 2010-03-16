@@ -97,6 +97,21 @@ this option to these these internal algorithms.</a:documentation>
       <ref name="scalar_source_field"/>
     </element>
   </define>
+  <define name="extract_scalar_component_algorithm">
+    <element name="algorithm">
+      <a:documentation>Extract a component from a vector field as a scalar</a:documentation>
+      <attribute name="name">
+        <value>extract_scalar_component</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+      <element name="component">
+        <ref name="integer"/>
+      </element>
+    </element>
+  </define>
   <define name="vector_copy_algorithm">
     <element name="algorithm">
       <a:documentation>Copies the source field. This is intended for testing purposes
@@ -590,26 +605,14 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
       <ref name="vector_source_field"/>
     </element>
   </define>
-  <define name="extract_scalar_component_algorithm">
-    <element name="algorithm">
-      <a:documentation>grad (source field)</a:documentation>
-      <attribute name="name">
-        <value>extract_scalar_component</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>single</value>
-      </attribute>
-      <ref name="vector_source_field"/>
-      <element name="component">
-        <ref name="integer"/>
-      </element>
-    </element>
-  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="scalar_python_diagnostic_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_copy_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="extract_scalar_component_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>
@@ -643,9 +646,6 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="l2norm_algorithm"/>
-  </define>
-  <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="extract_scalar_component_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_python_diagnostic_algorithm"/>

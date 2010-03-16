@@ -44,6 +44,7 @@ module interpolation_manager
   use tictoc
   use geostrophic_pressure
   use populate_state_module
+  use quicksort
   use vtk_interfaces
   
   implicit none
@@ -75,6 +76,10 @@ contains
     integer :: state, state_cnt, mesh
     integer :: mesh_cnt
     character(len=FIELD_NAME_LEN) :: mesh_name
+    
+    integer :: unique_mesh_index
+    integer, dimension(:), allocatable :: mesh_ele_counts, mesh_indices, unique_mesh_indices
+    logical, dimension(:), allocatable :: duplicate_mesh
 
     type(scalar_field), pointer :: field_s, p_field_s
     type(vector_field), pointer :: field_v, field_v_2, p_field_v
@@ -104,18 +109,11 @@ contains
 
     ewrite(1, *) "In interpolate"
 
-    mesh_cnt = option_count("/geometry/mesh")
-    allocate(meshes_old(mesh_cnt))
-    allocate(meshes_new(mesh_cnt))
-    allocate(periodic_new(mesh_cnt))
-    allocate(alg_old(mesh_cnt))
-    allocate(alg_new(mesh_cnt))
-    alg_cnt = size(algorithms)
     state_cnt = size(states_old)
     assert(size(states_old) == size(states_new))
 
     ! First thing: check the usual case. If all field request consistent
-    ! interpolation, and all fields are on linear meshes, the just pass over to
+    ! interpolation, and all fields are on linear non-periodic meshes, the just pass over to
     ! linear interpolation
 
     all_consistent_interpolation = .true.
@@ -185,7 +183,7 @@ contains
     end do consistent_linear_state_loop
     
     if(all_consistent_interpolation .and. all_linear_meshes) then
-      ewrite(2, *) "All fields are on linear meshes and use consistent interpolation"
+      ewrite(2, *) "All fields are on linear non-periodic meshes and use consistent interpolation"
 
       call tictoc_clear(TICTOC_ID_INTERPOLATION)
       call tic(TICTOC_ID_INTERPOLATION)
@@ -205,15 +203,71 @@ contains
       return
     end if
 
-    ewrite(2, *) "Not all fields are on linear meshes and use consistent interpolation"
+    ewrite(2, *) "Not all fields are on linear meshes non-periodic and use consistent interpolation"
     ewrite(2, *) "Gathering fields for more general interpolation"
-
+    
     ! OK! So we have some work to do.
     ! First, let's organise the fields according to what mesh
     ! they are on.
-    do mesh=1,mesh_cnt
 
-      call get_option("/geometry/mesh["//int2str(mesh-1)//"]/name", mesh_name)
+    ! The following is a temporary hack - it identifies the unique meshes in
+    ! states_old(1)
+    
+    ! 1. Sort the meshes by their element count to reduce the number of
+    ! mesh comparisons
+    mesh_cnt = mesh_count(states_old(1))
+    allocate(mesh_ele_counts(mesh_cnt))
+    do mesh = 1, mesh_cnt
+      old_mesh => extract_mesh(states_old(1), mesh)
+      mesh_ele_counts(mesh) = ele_count(old_mesh)
+    end do
+    allocate(mesh_indices(size(mesh_ele_counts)))
+    call qsort(mesh_ele_counts, mesh_indices)
+    call apply_permutation(mesh_ele_counts, mesh_indices)
+        
+    ! 2. Count up the unique meshes
+    allocate(unique_mesh_indices(mesh_cnt))
+    allocate(duplicate_mesh(mesh_cnt))
+    duplicate_mesh = .false.
+    unique_mesh_indices(mesh_indices(1)) = 1
+    mesh_cnt = 1  
+    do mesh = 2, size(mesh_ele_counts)
+      if(mesh_ele_counts(mesh) == mesh_ele_counts(mesh - 1)) then
+        old_mesh => extract_mesh(states_old(1), mesh_indices(mesh))
+        if(old_mesh == extract_mesh(states_old(1), mesh_indices(mesh - 1))) then
+          ewrite(2, *) "Duplicate mesh: " // trim(old_mesh%name)
+          unique_mesh_indices(mesh_indices(mesh)) = mesh_cnt
+          duplicate_mesh(mesh_indices(mesh)) = .true.
+          cycle
+        end if
+      end if
+
+      mesh_cnt = mesh_cnt + 1
+      unique_mesh_indices(mesh_indices(mesh)) = mesh_cnt
+    end do
+    deallocate(mesh_indices)
+    deallocate(mesh_ele_counts)
+    ewrite(2, *) "Unique meshes: ", mesh_cnt
+    ewrite(2, *) "Duplicate meshes: ", mesh_count(states_old(1)) - mesh_cnt
+    
+    allocate(meshes_old(mesh_cnt))
+    allocate(meshes_new(mesh_cnt))
+    allocate(periodic_new(mesh_cnt))
+    allocate(alg_old(mesh_cnt))
+    allocate(alg_new(mesh_cnt))
+    alg_cnt = size(algorithms)
+    
+    do mesh = 1, mesh_count(states_old(1))
+      old_mesh => extract_mesh(states_old(1), mesh)
+      new_mesh => extract_mesh(states_new(1), mesh)
+      mesh_name = old_mesh%name
+      unique_mesh_index = unique_mesh_indices(mesh)
+      assert(unique_mesh_index >= 1 .and. unique_mesh_index <= mesh_cnt)
+      
+      if(.not. duplicate_mesh(mesh)) then
+        call insert(meshes_old(unique_mesh_index), old_mesh, "Mesh")
+        call insert(meshes_new(unique_mesh_index), new_mesh, "Mesh")
+      end if
 
       do state=1,state_cnt
         do field=1,scalar_field_count(states_old(state))
@@ -222,12 +276,12 @@ contains
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_old(mesh), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
+            call insert(meshes_old(unique_mesh_index), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
             field_s => extract_scalar_field(states_new(state), trim(field_s%name))
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_new(mesh), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
+            call insert(meshes_new(unique_mesh_index), field_s, trim(states_new(state)%name)//"::"//trim(field_s%name))
           end if
         end do
 
@@ -237,12 +291,12 @@ contains
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_old(mesh), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
+            call insert(meshes_old(unique_mesh_index), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
             field_v => extract_vector_field(states_new(state), trim(field_v%name))
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_new(mesh), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
+            call insert(meshes_new(unique_mesh_index), field_v, trim(states_new(state)%name)//"::"//trim(field_v%name))
           end if
         end do
 
@@ -252,72 +306,74 @@ contains
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_old(mesh), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
+            call insert(meshes_old(unique_mesh_index), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
             field_t => extract_tensor_field(states_new(state), trim(field_t%name))
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
-            call insert(meshes_new(mesh), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
+            call insert(meshes_new(unique_mesh_index), field_t, trim(states_new(state)%name)//"::"//trim(field_t%name))
           end if
         end do
 
       end do
-
-      old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-      call insert(meshes_old(mesh), old_mesh, "Mesh")
-
-      new_mesh => extract_mesh(states_new(1), trim(mesh_name))
-      call insert(meshes_new(mesh), new_mesh, "Mesh")
-
+    end do
+    deallocate(unique_mesh_indices)
+    deallocate(duplicate_mesh)
+    
+    do mesh = 1, mesh_cnt
+      old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+      
       if (mesh_periodic(old_mesh)) then
-        ! Nice work, soldier! Now if the mesh is periodic we need to expand the mesh in the plane,
-        ! as if we've adapted the domain edges won't match up, will they? We also need to unwrap all the 
-        ! meshes and such.
+          ! Nice work, soldier! Now if the mesh is periodic we need to expand the mesh in the plane,
+          ! as if we've adapted the domain edges won't match up, will they? We also need to unwrap all the 
+          ! meshes and such.
+          
+          new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
 
-        do field=1,scalar_field_count(meshes_new(mesh))
-          field_s => extract_scalar_field(meshes_new(mesh), field)
-          call insert(periodic_new(mesh), field_s, trim(field_s%name))
-        end do
+          do field=1,scalar_field_count(meshes_new(mesh))
+            field_s => extract_scalar_field(meshes_new(mesh), field)
+            call insert(periodic_new(mesh), field_s, trim(field_s%name))
+          end do
 
-        do field=1,vector_field_count(meshes_new(mesh))
-          field_v => extract_vector_field(meshes_new(mesh), field)
-          call insert(periodic_new(mesh), field_v, trim(field_v%name))
-        end do
+          do field=1,vector_field_count(meshes_new(mesh))
+            field_v => extract_vector_field(meshes_new(mesh), field)
+            call insert(periodic_new(mesh), field_v, trim(field_v%name))
+          end do
 
-        do field=1,tensor_field_count(meshes_new(mesh))
-          field_t => extract_tensor_field(meshes_new(mesh), field)
-          call insert(periodic_new(mesh), field_t, trim(field_t%name))
-        end do
+          do field=1,tensor_field_count(meshes_new(mesh))
+            field_t => extract_tensor_field(meshes_new(mesh), field)
+            call insert(periodic_new(mesh), field_t, trim(field_t%name))
+          end do
 
-        ! The following routine unwraps and expands the mesh in the plane for meshes_old, 
-        ! and just unwraps for meshes_new
+          ! The following routine unwraps and expands the mesh in the plane for meshes_old, 
+          ! and just unwraps for meshes_new
 
-        field_v => extract_vector_field(states_old(1), "Coordinate")
-        call allocate(coordinate, field_v%dim, old_mesh, "Coordinate")
-        call remap_field(field_v, coordinate, stat=stat)
-        path = coordinate%mesh%option_path
-        coordinate%mesh%option_path = trim(periodic_boundary_option_path)
-        call postprocess_periodic_mesh(field_v%mesh, field_v, coordinate%mesh, coordinate)
-        coordinate%mesh%option_path = path
-        call insert(meshes_old(mesh), coordinate, "Coordinate")
-        call deallocate(coordinate)
+          field_v => extract_vector_field(states_old(1), "Coordinate")
+          call allocate(coordinate, field_v%dim, old_mesh, "Coordinate")
+          call remap_field(field_v, coordinate, stat=stat)
+          path = coordinate%mesh%option_path
+          coordinate%mesh%option_path = trim(periodic_boundary_option_path)
+          call postprocess_periodic_mesh(field_v%mesh, field_v, coordinate%mesh, coordinate)
+          coordinate%mesh%option_path = path
+          call insert(meshes_old(mesh), coordinate, "Coordinate")
+          call deallocate(coordinate)
 
-        field_v => extract_vector_field(states_new(1), "Coordinate")
-        call allocate(coordinate, field_v%dim, new_mesh, "Coordinate")
-        call remap_field(field_v, coordinate, stat=stat)
-        path = coordinate%mesh%option_path
-        coordinate%mesh%option_path = trim(periodic_boundary_option_path)
-        call postprocess_periodic_mesh(field_v%mesh, field_v, coordinate%mesh, coordinate)
-        coordinate%mesh%option_path = path
-        call insert(meshes_new(mesh), coordinate, "Coordinate")
-        call insert(periodic_new(mesh), coordinate, "Coordinate")
-        call deallocate(coordinate)
+          field_v => extract_vector_field(states_new(1), "Coordinate")
+          call allocate(coordinate, field_v%dim, new_mesh, "Coordinate")
+          call remap_field(field_v, coordinate, stat=stat)
+          path = coordinate%mesh%option_path
+          coordinate%mesh%option_path = trim(periodic_boundary_option_path)
+          call postprocess_periodic_mesh(field_v%mesh, field_v, coordinate%mesh, coordinate)
+          coordinate%mesh%option_path = path
+          call insert(meshes_new(mesh), coordinate, "Coordinate")
+          call insert(periodic_new(mesh), coordinate, "Coordinate")
+          call deallocate(coordinate)
 
-        call prepare_periodic_states_for_interpolation(meshes_old(mesh), meshes_new(mesh))
-      else
-        call insert(meshes_old(mesh), extract_vector_field(states_old(1), "Coordinate"), "Coordinate")
-        call insert(meshes_new(mesh), extract_vector_field(states_new(1), "Coordinate"), "Coordinate")
-      end if
+          call prepare_periodic_states_for_interpolation(meshes_old(mesh), meshes_new(mesh))
+        else
+          call insert(meshes_old(mesh), extract_vector_field(states_old(1), "Coordinate"), "Coordinate")
+          call insert(meshes_new(mesh), extract_vector_field(states_new(1), "Coordinate"), "Coordinate")
+        end if
     end do
 
     ! Great! Now let's loop over the fields associated with each mesh
@@ -341,9 +397,8 @@ contains
       select case(trim(algorithms(alg)))
         case("consistent_interpolation")
           do mesh = 1, mesh_cnt
-            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
-            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+            new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
             old_pos = extract_vector_field(meshes_old(mesh), "Coordinate")
             new_pos = extract_vector_field(meshes_new(mesh), "Coordinate")
             
@@ -373,9 +428,8 @@ contains
           end do
         case("interpolation_galerkin")
           do mesh = 1, mesh_cnt
-            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
-            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+            new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
             old_pos = extract_vector_field(meshes_old(mesh), "Coordinate")
             new_pos = extract_vector_field(meshes_new(mesh), "Coordinate")
             
@@ -414,9 +468,8 @@ contains
           end do
         case("grandy_interpolation")
           do mesh = 1, mesh_cnt
-            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
-            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
-            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+            new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
             old_pos = extract_vector_field(meshes_old(mesh), "Coordinate")
             new_pos = extract_vector_field(meshes_new(mesh), "Coordinate")
             
@@ -454,11 +507,11 @@ contains
     end do alg_loop
     
     do mesh=1,mesh_cnt
-      call get_option("/geometry/mesh["//int2str(mesh-1)//"]/name", mesh_name)
-      old_mesh => extract_mesh(states_old(1), trim(mesh_name))
+      old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
 
       ! If we are periodic, we have interpolated the unwrapped version
       ! So let's remap to the periodic one we actually need
+            
       if (mesh_periodic(old_mesh)) then
         do field=1,scalar_field_count(meshes_new(mesh))
           field_s => extract_scalar_field(meshes_new(mesh), field)
@@ -480,9 +533,10 @@ contains
           assert(trim(field_t%name) == trim(p_field_t%name))
           call remap_field(field_t, p_field_t, stat=stat)
         end do
-
+        
         call deallocate(periodic_new(mesh))
       end if
+      
       call deallocate(meshes_old(mesh))
       call deallocate(meshes_new(mesh))
     end do
