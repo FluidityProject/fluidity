@@ -25,9 +25,12 @@ Physical Surface(1) = {6};
 def generate_meshfile(name,layers):
 
 
-    file(name,'w').write(
+    file(name+".geo",'w').write(
         meshtemplate.replace('<dx>',str(1./layers)
                  ).replace('<layers>',str(layers)))
+
+    os.system("gmsh -2 "+name+".geo")
+    os.system("../../scripts/gmsh2triangle --2d "+name+".msh")
 
 
 def run_test(layers, binary):
@@ -38,10 +41,7 @@ def run_test(layers, binary):
     isotropic. binary is a string containing the fluidity command to run.
     The return value is the error in u and p at the end of the simulation.'''
 
-    generate_meshfile("channel.geo",layers)
-
-    os.system("gmsh -2 channel.geo")
-    os.system("../../scripts/gmsh2triangle --2d channel.msh")
+    generate_meshfile("channel",layers)
 
     os.system(binary+" channel_viscous.flml")
 

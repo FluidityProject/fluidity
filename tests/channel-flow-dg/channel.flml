@@ -88,12 +88,12 @@
       <real_value rank="0">0.025</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">2</real_value>
+      <real_value rank="0">10</real_value>
     </finish_time>
     <steady_state>
       <tolerance replaces="STEDER">
         <real_value rank="0">1.0e-6</real_value>
-        <infinity_norm/>
+        <l2_norm/>
       </tolerance>
     </steady_state>
   </timestepping>

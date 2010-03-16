@@ -55,7 +55,7 @@
           <coordinate_map>
             <string_value lines="20" type="python">def val(X,t):
 	result = list(X)
-	result[0]=0.0
+	result[0]=result[0]-1.0
 	return result</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -66,7 +66,7 @@
     </mesh>
     <quadrature>
       <degree replaces="NGI">
-        <integer_value rank="0">6</integer_value>
+        <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -213,7 +213,7 @@
           <python>
             <string_value lines="20" type="python">import channel_viscous
 global sol
-sol=channel.solution(channel.forcing)
+sol=channel_viscous.solution(channel_viscous.forcing)
         
 def val(X,t):
         return (sol(X), 0.0)</string_value>
@@ -257,7 +257,7 @@ def val(X,t):
               <python>
                 <string_value lines="20" type="python">def val(X,t):
         import channel_viscous
-        return channel.numeric_forcing(X)</string_value>
+        return channel_viscous.numeric_forcing(X)</string_value>
               </python>
             </value>
             <output/>
@@ -326,7 +326,7 @@ sys.path.append(".")
 import channel_viscous
 
 global sol
-sol=channel.solution(channel.forcing)
+sol=channel_viscous.solution(channel_viscous.forcing)
 
 def val(X,t):
 	return sol(X)</string_value>
@@ -350,7 +350,7 @@ sys.path.append(".")
 import channel_viscous
 
 global sol
-sol=channel.pressure_solution(channel.forcing)
+sol=channel_viscous.pressure_solution(channel_viscous.forcing)
 
 def val(X,t):
 	return sol(X)</string_value>
