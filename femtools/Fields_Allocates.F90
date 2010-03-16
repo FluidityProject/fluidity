@@ -1124,6 +1124,7 @@ contains
     integer, dimension(:), intent(in), optional :: element_owner
     integer, intent(out), optional :: stat
 
+    type(integer_hash_table):: lperiodic_face_map
     type(mesh_type), pointer :: lmodel
     type(element_type), pointer :: element
     type(quadrature_type) :: quad_face
@@ -1203,7 +1204,7 @@ contains
         
          ! make face_list from the model but change periodic faces to normal external faces
          call add_faces_face_list_non_periodic_from_periodic_model( &
-            mesh, model, stat=stat)
+            mesh, model, lperiodic_face_map, stat=stat)
          
       else
          ! Transfer the faces from model to mesh
@@ -1320,9 +1321,15 @@ contains
 
        end do faceloop
     end do eleloop
-      
-    if (present(periodic_face_map)) then
+    
+    if (present(periodic_face_map)) then  
       call fix_periodic_face_orientation(model, mesh, periodic_face_map)
+    else if (present(model)) then
+      if (model%periodic .and. .not. mesh%periodic) then
+        nullify(mesh%faces%surface_node_list)
+        call fix_periodic_face_orientation(mesh, model, lperiodic_face_map)
+        call deallocate(lperiodic_face_map)
+      end if
     end if
       
     ! this is a surface mesh consisting of all exterior faces
@@ -1601,12 +1608,14 @@ contains
   end subroutine add_faces_face_list_periodic_from_non_periodic_model
     
   subroutine add_faces_face_list_non_periodic_from_periodic_model( &
-     mesh, model, stat)
+     mesh, model, periodic_face_map, stat)
      ! computes the face_list of a non-periodic mesh by copying it from
      ! a periodic model mesh and changing the periodic faces
      ! to external
      type(mesh_type), intent(inout):: mesh
      type(mesh_type), intent(in):: model
+     ! we return a list of periodic face pairs, as these need their local node numbering fixed later
+     type(integer_hash_table), intent(out):: periodic_face_map
      integer, intent(out), optional :: stat
        
      type(csr_sparsity):: face_list_sparsity
@@ -1630,6 +1639,8 @@ contains
        type=CSR_INTEGER, name=trim(mesh%name)//"FaceList")
      mesh%faces%face_list%ival=model%faces%face_list%ival
      call deallocate(face_list_sparsity)
+
+     call allocate(periodic_face_map)
      
      ! now fix the face list - by searching for internal faces in the
      ! model mesh, these are the periodic faces that now need to be removed
@@ -1660,34 +1671,38 @@ contains
                ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2))
                FLAbort("Left-over internal faces in removing periodic bcs.")
              end if
-          end if
+         end if
           
           ! we're cool
           neigh(lface1)=-lface1
           ! might as well fix the other side while we're at it
           neigh => row_m_ptr(mesh%faces%face_list, ele2)
           neigh(lface2)=-lface2
+          ! we store these as their face local node numbering needs to be "fixed" later
+          call insert(periodic_face_map, face, face2)
         end if
         
      end do
 
   end subroutine add_faces_face_list_non_periodic_from_periodic_model
     
-  subroutine fix_periodic_face_orientation(model, mesh, periodic_face_map)
-    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic model
+  subroutine fix_periodic_face_orientation(nonperiodic, periodic, periodic_face_map)
+    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic nonperiodic
     !!< in periodic faces to make it consistent with the periodic 'mesh'
-    !!< Assumes the shape functions of elements and faces in mesh and model are the same!!
-    type(mesh_type), intent(in):: model
-    type(mesh_type), intent(in):: mesh
+    !!< Assumes the shape functions of elements and faces in mesh and nonperiodic are the same!!
+    type(mesh_type), intent(in):: nonperiodic
+    type(mesh_type), intent(in):: periodic
     type(integer_hash_table), intent(in):: periodic_face_map
     
-    type(mesh_faces), pointer:: model_faces
+    type(mesh_faces), pointer:: nonperiodic_faces
     integer:: i, face1, face2
     
-    if (.not. mesh%faces%shape==model%faces%shape) then
+    ewrite(1,*) "Inside fix_periodic_face_orientation"
+
+    if (.not. periodic%faces%shape==nonperiodic%faces%shape) then
       ewrite(-1,*) "When deriving the faces structure of a periodic mesh from a non-periodic mesh"
       ewrite(-1,*) "Its shape functions have to be the same"
-      FLAbort("Different shape functions in non-periodic model mesh")
+      FLAbort("Different shape functions in non-periodic nonperiodic mesh")
     end if
     
     do i=1, key_count(periodic_face_map)
@@ -1695,15 +1710,19 @@ contains
        call fix_periodic_face_orientation_face(face1)
        call fix_periodic_face_orientation_face(face2)
     end do
+
+    ! when deriving a non-periodic mesh from a periodic model,
+    ! we don't have the surface mesh yet, so no need to fix it:
+    if (.not. associated(nonperiodic%faces%surface_node_list)) return
     
-    model_faces => model%faces
-    call deallocate(model_faces%surface_mesh)
-    deallocate(model_faces%surface_node_list)
-    call create_surface_mesh(model_faces%surface_mesh, &
-       model_faces%surface_node_list, model, name='Surface'//trim(model%name))
+    nonperiodic_faces => nonperiodic%faces
+    call deallocate(nonperiodic_faces%surface_mesh)
+    deallocate(nonperiodic_faces%surface_node_list)
+    call create_surface_mesh(nonperiodic_faces%surface_mesh, &
+       nonperiodic_faces%surface_node_list, nonperiodic, name='Surface'//trim(nonperiodic%name))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", &
-         size(model_faces%surface_node_list), name='Surface'//trim(model%name))
+         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
 #endif
       
     contains
@@ -1711,12 +1730,12 @@ contains
     subroutine fix_periodic_face_orientation_face(face)
     integer, intent(in):: face
     
-      integer, dimension(:), pointer:: mesh_face_local_nodes, model_face_local_nodes
+      integer, dimension(:), pointer:: mesh_face_local_nodes, nonperiodic_face_local_nodes
       
-      mesh_face_local_nodes => face_local_nodes(mesh, face)
-      model_face_local_nodes => face_local_nodes(model, face)
+      mesh_face_local_nodes => face_local_nodes(periodic, face)
+      nonperiodic_face_local_nodes => face_local_nodes(nonperiodic, face)
       
-      model_face_local_nodes=mesh_face_local_nodes
+      nonperiodic_face_local_nodes=mesh_face_local_nodes
       
     end subroutine fix_periodic_face_orientation_face
     
