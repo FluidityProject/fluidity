@@ -182,8 +182,6 @@ contains
     call check_diagnostic_dependencies(state)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
-       if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)
-
        call adapt_state_first_timestep(state)
    
        ! Auxilliary fields.
@@ -193,7 +191,6 @@ contains
        call relax_to_nonlinear(state)
        
        call enforce_discrete_properties(state)
-       if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
     else
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
