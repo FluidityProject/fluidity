@@ -171,11 +171,11 @@ can be easily accomplished using the create\_aligned\_mesh script in the scripts
 
 In Diamond, a periodic mesh can now be formed. Add a new mesh under \option{/geometry/mesh}. 
 Select \option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn on\onlypdf\linebreak
-\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension that is periodic. There are three fields that need to be completed: the surface IDs of one side, the surface IDs of the opposite side and a python function (\option{coordinate\_map}) which contains the necessary mapping function
+\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension that is periodic. There are three fields that need to be completed: the surface IDs of one side, the surface IDs of the opposite side and a python function (\option{coordinate\_map}) which contains the necessary mapping function.
 
 Meshes that are required to be periodic can now be derived from this periodic mesh.
 
-Running a periodic mesh in parallel is relatively straight forward. To begin with fludity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
+Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
 
 \begin{lstlisting}[language=bash]
 dpkg -l libzoltan*
@@ -184,7 +184,7 @@ dpkg -l libzoltan*
 If the libaries are not present install them with:
 
 \begin{lstlisting}[language=bash]
-sudo apt-get install libzoltan_dev
+sudo apt-get install libzoltan-dev
 \end{lstlisting}
 
 Then configure fluidity with zoltan:
@@ -209,14 +209,14 @@ The input to periodise is your flml (in this case foo.flml), which contains the 
 The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required. For example, to decompose a periodic mesh to be run on four processors simply type:
 
 \begin{lstlisting}[language=bash]
-mpiexec -np 4 ./myfluidity/bin/flredecomp \
+mpiexec -n 4 ./myfluidity/bin/flredecomp \
     -i 1 -o 4 foo_periodised foo_periodised_flredecomp
 \end{lstlisting}
 
 Where:
 
 \begin{lstlisting}[language=bash]
-mpiexec -np [target number of processors] \
+mpiexec -n [target number of processors] \
    ./myfluidity/bin/flredecomp -i [input number of processors] \
         -o [target number of processors] [input flml] [output flml]
 \end{lstlisting}
@@ -224,10 +224,9 @@ mpiexec -np [target number of processors] \
 The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
 
 \begin{lstlisting}[language=bash]
-mpiexec -np [number of processors] \
+mpiexec -n [number of processors] \
    ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
 \end{lstlisting}
-
 
 \subsubsection{Extruded meshes}
 \index{mesh!extruded}
