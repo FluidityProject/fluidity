@@ -52,12 +52,9 @@
               <data type="string"/>
             </attribute>
             <attribute name="language">
-              <choice>
-                <value>python</value>
-                <value>bash</value>
-              </choice>
+              <value>python</value>
             </attribute>
-            <data type="string"/>
+            <ref name="python_code"/>
             <ref name="comment"/>
           </element>
         </zeroOrMore>
@@ -89,12 +86,9 @@
         <data type="string"/>
       </attribute>
       <attribute name="language">
-        <choice>
-          <value>python</value>
-          <value>bash</value>
-        </choice>
+        <value>python</value>
       </attribute>
-      <data type="string"/>
+      <ref name="python_code"/>
       <ref name="comment"/>
     </element>
   </define>

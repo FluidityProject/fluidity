@@ -35,8 +35,8 @@ start =
          ## A test variable
          element variable {
             attribute name { xsd:string },
-            attribute language { "python" | "bash" },
-            xsd:string,
+            attribute language { "python" },
+            python_code,
             comment
          }*,
          comment
@@ -60,8 +60,8 @@ test =
    ## A test
    element test {
       attribute name { xsd:string },
-      attribute language { "python" | "bash" },
-      xsd:string,
+      attribute language { "python" },
+      python_code,
       comment
    }
 )
