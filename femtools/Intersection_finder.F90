@@ -201,33 +201,27 @@ contains
     
     ewrite(1, *) "In intersection_finder"
 
-    if(isparallel()) then
-      ! In parallel we cannot assume connectedness, so we may have to run the
-      ! advancing front more than once (once per connected sub-domain)
+    ! We cannot assume connectedness, so we may have to run the
+    ! advancing front more than once (once per connected sub-domain)
+  
+    seeds = advancing_front_intersection_finder_seeds(positionsA)
     
-      seeds = advancing_front_intersection_finder_seeds(positionsA)
-      
-      allocate(sub_map_AB(size(map_AB)))
-      node => seeds%firstnode
-      do while(associated(node))
-        sub_map_AB = advancing_front_intersection_finder(positionsA, positionsB, seed = node%value)
-        do i = 1, size(sub_map_AB)
-          if(sub_map_AB(i)%length > 0) then
-            assert(map_AB(i)%length == 0)
-            map_AB(i) = sub_map_AB(i)
-          end if
-        end do
-      
-        node => node%next
+    allocate(sub_map_AB(size(map_AB)))
+    node => seeds%firstnode
+    do while(associated(node))
+      sub_map_AB = advancing_front_intersection_finder(positionsA, positionsB, seed = node%value)
+      do i = 1, size(sub_map_AB)
+        if(sub_map_AB(i)%length > 0) then
+          assert(map_AB(i)%length == 0)
+          map_AB(i) = sub_map_AB(i)
+        end if
       end do
-      
-      deallocate(sub_map_AB)
-      call deallocate(seeds)
-    else
-      ! In serial we assume connectedness
     
-      map_AB = advancing_front_intersection_finder(positionsA, positionsB)
-    end if
+      node => node%next
+    end do
+    
+    deallocate(sub_map_AB)
+    call deallocate(seeds)
 
     ewrite(1, *) "Exiting intersection_finder"
   
@@ -760,7 +754,10 @@ contains
       ewrite(-1,*) "Element in A we are searching for: ", ele_A
       ewrite(-1,*) "Neighbour element we are looking for a clue from: ", neighbour
       ewrite(-1,*) "Recorded list of neighbour's intersections: "
-!      call print_list(possibles, -1)
+      call print_list(possibles, -1)
+      ewrite(-1,*) "I will not crash as this MIGHT happen legitimately if your"
+      ewrite(-1,*) "source domain is not connected, but your target domain is connected"
+      ewrite(-1,*) "across the disconnection."
 !      subpos = extract_elements(positionsB, list2vector(possibles))
 !      call vtk_write_fields("intersection_failure", 0, subpos, subpos%mesh)
 !      call deallocate(subpos)
@@ -779,7 +776,7 @@ contains
 !      subpos = extract_elements(positionsA, (/ele_A, neighbour/))
 !      call vtk_write_fields("intersection_failure", 3, subpos, subpos%mesh)
 !      call deallocate(subpos)
-      FLAbort("Should never get here -- it has to intersect /something/!")
+!      FLAbort("Should never get here -- it has to intersect /something/!")
     end if
   end function clueful_search
 
