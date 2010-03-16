@@ -74,6 +74,7 @@ contains
     
     integer :: unique_mesh_index
     integer, dimension(:), allocatable :: mesh_ele_counts, mesh_indices, unique_mesh_indices
+    logical, dimension(:), allocatable :: duplicate_mesh
 
     type(scalar_field), pointer :: field_s
     type(vector_field), pointer :: field_v, field_v_2
@@ -219,6 +220,8 @@ contains
         
     ! 2. Count up the unique meshes
     allocate(unique_mesh_indices(mesh_cnt))
+    allocate(duplicate_mesh(mesh_cnt))
+    duplicate_mesh = .false.
     unique_mesh_indices(mesh_indices(1)) = 1
     mesh_cnt = 1  
     do mesh = 2, size(mesh_ele_counts)
@@ -227,6 +230,7 @@ contains
         if(old_mesh == extract_mesh(states_old(1), mesh_indices(mesh - 1))) then
           ewrite(2, *) "Duplicate mesh: " // trim(old_mesh%name)
           unique_mesh_indices(mesh_indices(mesh)) = unique_mesh_indices(mesh_indices(mesh - 1))
+          duplicate_mesh(mesh_indices(mesh)) = .true.
           cycle
         end if
       end if
@@ -250,6 +254,10 @@ contains
       mesh_name = old_mesh%name
       unique_mesh_index = unique_mesh_indices(mesh)
       assert(unique_mesh_index >= 1 .and. unique_mesh_index <= mesh_cnt)
+      if(.not. duplicate_mesh(mesh)) then
+        call insert(meshes_old(unique_mesh_index), old_mesh, "Mesh")
+        call insert(meshes_new(unique_mesh_index), extract_mesh(states_new(1), mesh_name), "Mesh")
+      end if
       
       do state=1,state_cnt
         do field=1,scalar_field_count(states_old(state))
@@ -300,6 +308,7 @@ contains
       end do
     end do    
     deallocate(unique_mesh_indices)
+    deallocate(duplicate_mesh)
 
     ! Great! Now let's loop over the fields associated with each mesh
     ! and group them by algorithm.
@@ -322,8 +331,8 @@ contains
       select case(trim(algorithms(alg)))
         case("consistent_interpolation")
           do mesh = 1, mesh_cnt
-            old_mesh => extract_mesh(states_old(1), mesh)
-            new_mesh => extract_mesh(states_new(1), old_mesh%name)
+            old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+            new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
             
             call insert(alg_old(mesh), old_mesh, "Mesh")
             call insert(alg_new(mesh), new_mesh, "Mesh")
@@ -351,8 +360,8 @@ contains
           end do
         case("interpolation_galerkin")
           do mesh = 1, mesh_cnt
-            old_mesh => extract_mesh(states_old(1), mesh)
-            new_mesh => extract_mesh(states_new(1), old_mesh%name)
+            old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+            new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
             
             call insert(alg_old(mesh), old_mesh, "Mesh")
             call insert(alg_new(mesh), new_mesh, "Mesh")
@@ -389,8 +398,8 @@ contains
           end do
         case("grandy_interpolation")
           do mesh = 1, mesh_cnt
-            old_mesh => extract_mesh(states_old(1), mesh)
-            new_mesh => extract_mesh(states_new(1), old_mesh%name)
+            old_mesh => extract_mesh(meshes_old(mesh), "Mesh")
+            new_mesh => extract_mesh(meshes_new(mesh), "Mesh")
             
             call insert(alg_old(mesh), old_mesh, "Mesh")
             call insert(alg_new(mesh), new_mesh, "Mesh")
