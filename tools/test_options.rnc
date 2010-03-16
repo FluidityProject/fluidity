@@ -36,7 +36,7 @@ start =
          element variable {
             attribute name { xsd:string },
             attribute language { "python" },
-            python_code,
+            xsd:string,
             comment
          }*,
          comment
@@ -61,7 +61,7 @@ test =
    element test {
       attribute name { xsd:string },
       attribute language { "python" },
-      python_code,
+      xsd:string,
       comment
    }
 )

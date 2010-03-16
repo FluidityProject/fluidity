@@ -54,7 +54,7 @@
             <attribute name="language">
               <value>python</value>
             </attribute>
-            <ref name="python_code"/>
+            <data type="string"/>
             <ref name="comment"/>
           </element>
         </zeroOrMore>
@@ -88,7 +88,7 @@
       <attribute name="language">
         <value>python</value>
       </attribute>
-      <ref name="python_code"/>
+      <data type="string"/>
       <ref name="comment"/>
     </element>
   </define>
