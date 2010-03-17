@@ -3,7 +3,7 @@ MESH = annulus-structured-tanh-23x64
 
 default: input
 
-input:
+input: src/$(MESH).tar.bz2
 	tar -xvjf src/$(MESH).tar.bz2
 
 clean: clean-mesh clean-run-debug

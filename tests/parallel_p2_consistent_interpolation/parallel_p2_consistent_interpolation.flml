@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">parallel_p2_consistent_interpolation</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="square-unstructured">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="P2Mesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period replaces="TIMDUM">
+      <real_value rank="0">1</real_value>
+    </dump_period>
+    <disable_dump_at_start/>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">1.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">1.0</real_value>
+    </finish_time>
+  </timestepping>
+  <material_phase name="Fluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(x, t):
+        return x</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+  </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity replaces="ADMESH">
+      <period replaces="TIMMES">
+        <real_value rank="0">1</real_value>
+      </period>
+      <maximum_number_of_nodes replaces="MXNODS">
+        <integer_value rank="0">100000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation/>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e-6 0.0 0.0 1.0e-6</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e-6 0.0 0.0 1.0e-6</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <adaptivity_library>
+        <libmba2d>
+          <quality>
+            <real_value rank="0">0.0</real_value>
+          </quality>
+        </libmba2d>
+      </adaptivity_library>
+    </hr_adaptivity>
+  </mesh_adaptivity>
+</fluidity_options>

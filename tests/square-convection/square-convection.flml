@@ -549,7 +549,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <no_interpolation/>
+        <consistent_interpolation/>
       </prognostic>
     </scalar_field>
     <scalar_field name="StreamFunction" rank="0">

@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>parallel_p2_consistent_interpolation</name>
+  <owner userid="maddison"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>make clean-run; mpiexec -n 2 fluidity -l parallel_p2_consistent_interpolation.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="stat" language="python">import fluidity_tools
+
+stat = fluidity_tools.stat_parser("parallel_p2_consistent_interpolation.stat")</variable>
+    <variable name="interpolatedVtu" language="python">import vtktools
+
+interpolatedVtu = vtktools.vtu("parallel_p2_consistent_interpolation_0.pvtu")</variable>
+  </variables>
+  <pass_tests>
+    <test name="SimulationCompleted" language="python">print "Timesteps: ", len(stat["ElapsedTime"])
+
+assert(len(stat["ElapsedTime"]) == 1)</test>
+    <test name="Interpolation" language="python">import fluidity_tools
+
+coords = interpolatedVtu.GetLocations()
+x, y = coords[:, 0], coords[:, 1]
+
+vel = interpolatedVtu.GetVectorField("Velocity")
+u, v = vel[:, 0], vel[:, 1]
+
+fluidity_tools.compare_variables(u, x, 1.0e-10)
+fluidity_tools.compare_variables(v, y, 1.0e-10)</test>
+  </pass_tests>
+</testproblem>
