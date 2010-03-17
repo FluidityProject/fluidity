@@ -534,9 +534,9 @@ contains
           call remap_field(field_t, p_field_t, stat=stat)
         end do
         
-        call deallocate(periodic_new(mesh))
       end if
       
+      call deallocate(periodic_new(mesh))
       call deallocate(meshes_old(mesh))
       call deallocate(meshes_new(mesh))
     end do
