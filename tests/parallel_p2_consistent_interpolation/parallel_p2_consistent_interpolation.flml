@@ -58,9 +58,8 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period replaces="TIMDUM">
-      <real_value rank="0">1</real_value>
+      <real_value rank="0">inf</real_value>
     </dump_period>
-    <disable_dump_at_start/>
     <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
@@ -72,7 +71,7 @@
       <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">2.0</real_value>
     </finish_time>
   </timestepping>
   <material_phase name="Fluid">
@@ -92,6 +91,28 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <adaptivity_options>
+          <absolute_measure>
+            <vector_field replaces="ADWEIU ADWEIV ADWEIW" name="InterpolationErrorBound" rank="1">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value shape="2" dim1="dim" rank="1">100.0 100.0</real_value>
+                  </constant>
+                </value>
+                <output>
+                  <exclude_from_vtu/>
+                </output>
+                <stat>
+                  <exclude_from_stat/>
+                </stat>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </vector_field>
+          </absolute_measure>
+        </adaptivity_options>
         <consistent_interpolation/>
       </prescribed>
     </vector_field>
@@ -104,7 +125,7 @@
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">100000</integer_value>
       </maximum_number_of_nodes>
-      <enable_gradation/>
+      <disable_gradation/>
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
@@ -115,7 +136,7 @@
       <tensor_field name="MaximumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e-6 0.0 0.0 1.0e-6</real_value>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0e6 0.0 0.0 1.0e6</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>

@@ -548,6 +548,11 @@ module mba2d_integration
 #ifndef HAVE_MBA_2D
       FLExit("Cannot use libmba2d without the libmba2d library. Reconfigure with --enable-2d-adaptivity")
 #endif
+#ifndef HAVE_ZOLTAN
+      if(isparallel()) then
+        FLExit("Cannot use libmba2d in parallel without zoltan. Reconfigure with --with-zoltan")
+      end if
+#endif
 
       if(dim /= 2) then
         FLExit("libmba2d can only be used in 2D")
