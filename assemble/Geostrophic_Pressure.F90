@@ -1052,6 +1052,7 @@ contains
     if(apply_kmk) then      
       ! this is only to retrieve the right meshes to base sparsities on:
       call insert(lstate, field, name = "Velocity")
+      call insert(lstate, u_mesh, name = "VelocityMesh")
       call insert(lstate, p, name = "Pressure")
       
       call assemble_kmk_matrix(lstate, u_mesh, positions, theta_pg = 1.0)    
