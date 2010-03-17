@@ -249,19 +249,33 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       diagonal = .not.have_coriolis.and.(.not.(have_viscosity.and.stress_form))
 
-      ! allocate a dummy scalar field in case we have no pressure
-      p_mesh => extract_mesh(state(istate), "PressureMesh")
-      allocate(dummypressure)
-      call allocate(dummypressure, p_mesh, "DummyPressure", field_type=FIELD_TYPE_CONSTANT)
-      call zero(dummypressure)
-      dummypressure%option_path=""
-
       ! get the pressure
       p=>extract_scalar_field(state(istate), "Pressure", stat)
-      if(stat/=0) p=>dummypressure
+      if(stat/=0) then 
+        ! allocate a dummy scalar field in case we have no pressure
+        allocate(dummypressure)
+        call allocate(dummypressure, u%mesh, "DummyPressure", field_type=FIELD_TYPE_CONSTANT)
+        call zero(dummypressure)
+        dummypressure%option_path=""
+        p => dummypressure
+        p_mesh => u%mesh
+        old_p => dummypressure
+        nullify(ct_m)
+        get_ct_m=.false.
+        nullify(cmc_m)
+        get_cmc_m=.false.
+      else
+        p_mesh => p%mesh
+        nullify(dummypressure)
+        old_p => extract_scalar_field(state, "OldPressure", stat)
+        if(stat/=0) old_p => p
+        ! get the pressure gradient matrix
+        ct_m => get_velocity_divergence_matrix(state, get_ct=get_ct_m)
+      
+        ! get the pressure poisson matrix
+        cmc_m => get_pressure_poisson_matrix(state, get_cmc=get_cmc_m)
+      end if
       ewrite_minmax(p%val)
-      old_p => extract_scalar_field(state, "OldPressure", stat)
-      if(stat/=0) old_p=>dummypressure
             
       allocate(dummydensity)
       call allocate(dummydensity, u%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -273,11 +287,6 @@
       call zero(dummyscalar)
       dummyscalar%option_path=""
 
-      ! get the pressure gradient matrix
-      ct_m => get_velocity_divergence_matrix(state, get_ct=get_ct_m)
-      
-      ! get the pressure poisson matrix
-      cmc_m => get_pressure_poisson_matrix(state, get_cmc=get_cmc_m)
 
       call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", &
                       equation_type)
@@ -501,9 +510,11 @@
       call apply_dirichlet_conditions(big_m, mom_rhs, u, dt)
       call profiler_toc(u, "assembly")
 
-      do i = 1, ct_m%blocks(2)
-        ewrite_minmax(ct_m%val(1,i)%ptr(:))
-      end do
+      if (associated(ct_m)) then
+        do i = 1, ct_m%blocks(2)
+          ewrite_minmax(ct_m%val(1,i)%ptr(:))
+        end do
+      end if
 
       ! do we want to solve for pressure?
       call profiler_tic(p, "assembly")
@@ -648,25 +659,27 @@
       call allocate(delta_u, u%dim, u%mesh, "DeltaU")
       delta_u%option_path = trim(u%option_path)
 
-      ! add - ct_m^T*p to the rhs of the momentum eqn
-      ! (delta_u is just used as dummy memory here)
-      !
-      ! despite multiplying pressure by a nonlocal operator
-      ! a halo_update isn't necessary as this is just a rhs
-      ! contribution
-      call mult_T(delta_u, ct_m, p_theta)
+      if (associated(ct_m)) then
+        ! add - ct_m^T*p to the rhs of the momentum eqn
+        ! (delta_u is just used as dummy memory here)
+        !
+        ! despite multiplying pressure by a nonlocal operator
+        ! a halo_update isn't necessary as this is just a rhs
+        ! contribution
+        call mult_T(delta_u, ct_m, p_theta)
 
-      if (dg) then
-         ! We have just poluted the halo rows of delta_u. This is incorrect
-         ! in the dg case due to the non-local assembly system employed.
-         call zero_non_owned(delta_u)
+        if (dg) then
+           ! We have just poluted the halo rows of delta_u. This is incorrect
+           ! in the dg case due to the non-local assembly system employed.
+           call zero_non_owned(delta_u)
+        end if
+
+        ewrite(2,*) 'note that delta_u = ct_m^T*p at this stage'
+        do i = 1, delta_u%dim
+          ewrite_minmax(delta_u%val(i)%ptr(:))
+        end do
+        call addto(mom_rhs, delta_u)
       end if
-
-      ewrite(2,*) 'note that delta_u = ct_m^T*p at this stage'
-      do i = 1, delta_u%dim
-        ewrite_minmax(delta_u%val(i)%ptr(:))
-      end do
-      call addto(mom_rhs, delta_u)
 
       ! impose zero guess on change in u
       call zero(delta_u)
@@ -843,8 +856,10 @@
 
       call deallocate(mom_rhs)
       call deallocate(ct_rhs)
-      call deallocate(dummypressure)
-      deallocate(dummypressure)
+      if (associated(dummypressure)) then
+        call deallocate(dummypressure)
+        deallocate(dummypressure)
+      end if
       call deallocate(dummydensity)
       deallocate(dummydensity)
       call deallocate(dummyscalar)

@@ -34,6 +34,7 @@ module preprocess_module
   use state_module
   use fldebug
   use sparsity_patterns_meshes
+  use field_options
   implicit none
 
   private
@@ -51,7 +52,7 @@ contains
     integer ph
       
     U_mesh => extract_mesh(state(1), "VelocityMesh")
-    P_mesh => extract_mesh(state(1), "PressureMesh")
+    P_mesh => extract_pressure_mesh(state)
     
     ! Generate sparsity patterns.
     ! First order for CG but second order for DG due to viscosity.

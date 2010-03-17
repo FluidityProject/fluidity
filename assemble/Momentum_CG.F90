@@ -152,8 +152,8 @@
       ! NOTE: you have to call deallocate_cg_mass after you're done
       ! with mass and inverse_masslump
       
-      ! the pressure gradient matrix
-      type(block_csr_matrix), intent(inout) :: ct_m
+      ! the pressure gradient matrix (might be null if assemble_ct_matrix=.false.)
+      type(block_csr_matrix), pointer :: ct_m
       ! the pressure gradient rhs
       type(scalar_field), intent(inout), optional :: ct_rhs
       ! the rhs
@@ -561,7 +561,7 @@
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
 
-      type(block_csr_matrix), intent(inout) :: ct_m
+      type(block_csr_matrix), pointer :: ct_m
       type(scalar_field), intent(inout) :: ct_rhs
 
       type(vector_field), intent(in) :: x, oldu
@@ -679,7 +679,7 @@
       integer, intent(in) :: ele
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
-      type(block_csr_matrix), intent(inout) :: ct_m
+      type(block_csr_matrix), pointer :: ct_m
       type(petsc_csr_matrix), intent(inout) :: mass
       ! above we supply inverse_masslump, but we start assembling the non-inverted
       ! lumped mass matrix in it:

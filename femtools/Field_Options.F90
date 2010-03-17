@@ -74,6 +74,10 @@ module field_options
    interface diagonal_field
       module procedure diagonal_field_tensor
    end interface
+     
+   interface extract_pressure_mesh
+      module procedure extract_pressure_mesh_from_state, extract_pressure_mesh_from_any_state
+   end interface extract_pressure_mesh
    
    private
     
@@ -86,7 +90,8 @@ module field_options
      & do_not_recalculate, needs_initial_mesh, &
      & get_external_coordinate_field, collect_fields_by_mesh, &
      & equation_type_index, field_options_check_options, &
-     & constant_field, isotropic_field, diagonal_field
+     & constant_field, isotropic_field, diagonal_field, &
+     & extract_pressure_mesh
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
@@ -403,7 +408,39 @@ contains
     end if
     
   end function get_coordinate_field
+  
+  function extract_pressure_mesh_from_state(state, stat)
+    type(state_type), intent(in):: state
+    type(mesh_type), pointer:: extract_pressure_mesh_from_state
+    integer, optional, intent(out):: stat
+      
+    type(scalar_field), pointer:: p
+      
+    p => extract_scalar_field(state, "Pressure", stat=stat)
+    if (associated(p)) then
+      extract_pressure_mesh_from_state => p%mesh
+    else
+      nullify(extract_pressure_mesh_from_state)
+    end if
+  
+  end function extract_pressure_mesh_from_state
 
+  function extract_pressure_mesh_from_any_state(states, stat)
+    type(state_type), dimension(:), intent(in):: states
+    type(mesh_type), pointer:: extract_pressure_mesh_from_any_state
+    integer, optional, intent(out):: stat
+      
+    type(scalar_field), pointer:: p
+      
+    p => extract_scalar_field(states, "Pressure", stat=stat)
+    if (associated(p)) then
+      extract_pressure_mesh_from_any_state => p%mesh
+    else
+      nullify(extract_pressure_mesh_from_any_state)
+    end if
+  
+  end function extract_pressure_mesh_from_any_state
+  
   subroutine select_fields_to_interpolate(state, interpolate_state, no_positions, &
     first_time_step)
     !!< This routine returns a state that is a selection of the fields

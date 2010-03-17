@@ -36,6 +36,7 @@ module state_matrices_module
   use divergence_matrix_cg, only: assemble_divergence_matrix_cg
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
   use eventcounter
+  use field_options
   implicit none
 
   interface get_divergence_matrix_cv
@@ -177,7 +178,7 @@ contains
     if(stat/=0) then
       if(present(get_cmc)) get_cmc = .true.
     
-      p_mesh => extract_mesh(states, "PressureMesh")
+      p_mesh => extract_pressure_mesh(states)
       u_mesh => extract_mesh(states, "VelocityMesh")
       
       cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
@@ -225,7 +226,7 @@ contains
     kmk_m => extract_csr_matrix(states, "PressureStabilisationMatrix", stat)
     
     if(stat/=0) then
-      p_mesh => extract_mesh(states, "PressureMesh")
+      p_mesh => extract_pressure_mesh(states)
       u_mesh => extract_mesh(states, "VelocityMesh")
       
       cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
@@ -276,7 +277,7 @@ contains
     if(stat/=0) then
       if(present(get_ct)) get_ct = .true.
     
-      p_mesh => extract_mesh(states, "PressureMesh")
+      p_mesh => extract_pressure_mesh(states)
       u_mesh => extract_mesh(states, "VelocityMesh")
       do i = 1, size(states)
         velocity => extract_vector_field(states(i), "Velocity", stat)
