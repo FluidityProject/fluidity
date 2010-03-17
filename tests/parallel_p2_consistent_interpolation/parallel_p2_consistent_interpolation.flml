@@ -81,7 +81,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(x, t):
+            <string_value lines="20" type="python">def val(x, t):
         return x</string_value>
           </python>
         </value>
@@ -92,6 +92,7 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
+        <consistent_interpolation/>
       </prescribed>
     </vector_field>
   </material_phase>
