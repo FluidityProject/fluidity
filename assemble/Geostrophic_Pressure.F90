@@ -1050,11 +1050,15 @@ contains
     end if
     
     if(apply_kmk) then      
-      call insert(lstate, u_mesh, name = "VelocityMesh")
-      call insert(lstate, p_mesh, name = "PressureMesh")
+      ! this is only to retrieve the right meshes to base sparsities on:
+      call insert(lstate, field, name = "Velocity")
+      call insert(lstate, p, name = "Pressure")
       
       call assemble_kmk_matrix(lstate, u_mesh, positions, theta_pg = 1.0)    
-      call add_kmk_matrix(lstate, cmc_m)  
+      call add_kmk_matrix(lstate, cmc_m)
+      
+      call remove_vector_field(lstate, "Velocity")
+      call remove_scalar_field(lstate, "Pressure")
     end if
     
     ! Assemble the RHS
