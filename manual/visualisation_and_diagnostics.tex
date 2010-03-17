@@ -820,6 +820,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
     	vertical\_integration			& \ref{sect:vertical_integration} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
+	differentiate\_vtu          & \ref{sect:differentiate_vtu}		\\
 	vtu\_bins           & \ref{sect:vtu_bins}		\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
     \hline
@@ -1091,14 +1092,33 @@ Vorticity integral diagnostic options:
 	and dumps debugging mesh to vorticityDebugMesh.vtu
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%% DIFFERENTIATE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{differentiate\_vtu}
+\label{sect:differentiate_vtu}
+
+differentiate\_vtu takes the gradient of every scalar field and vector field
+component within an vtu. It is primarily intended for cases where the derivatives
+of large numbers of fields are required. differentiate\_vtu is built as part of the fltools
+build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+vtu_bins [-v] input_filename output_filename [input_fieldname]
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input_filename+ is the input vtu and
+\lstinline[language = Bash]+output_filename+ is the output vtu. If
+\lstinline[language = Bash]+input_fieldname+ is supplied then only that field
+is differentiated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
+
 %%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtu\_bins}
 \label{sect:vtu_bins}
 
 vtu\_bins returns the fraction of the domain contained within given values
-for a given scalar field. vtu\_bins is built as part of the fltools build target
-(see section \ref{sect:fltools}), and is used via:
+for a given scalar field in a vtu. vtu\_bins is built as part of the fltools
+build target (see section \ref{sect:fltools}), and is used via:
 
 \begin{lstlisting}[language = Bash]
 vtu_bins [-v] input_filename input_fieldname BOUND1 [BOUND2 BOUND3]
@@ -1108,16 +1128,17 @@ where \lstinline[language = Bash]+input_filename+ is a vtu file containing a sca
 field \lstinline[language = Bash]+input_fieldname+, and
 \lstinline[language = Bash]+BOUND1+, \lstinline[language = Bash]+BOUND2+,
 \lstinline[language = Bash]+...+ are the boundary values. The output is sent to
-standard output.
+standard output. The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
-If negative boundary values are required, add two ``-'' before the boundary
+If negative boundary values are required, add two ``-''s before the boundary
 values on the command line:
 
 \begin{lstlisting}[language = Bash]
 vtu_bins [-v] input_filename input_fieldname -- BOUND1 [BOUND2 BOUND3]
 \end{lstlisting}
 
-vtu\_bins requires a linear tetrahedron mesh for field \lstinline[language = Bash]+input_fieldname+.
+vtu\_bins requires a linear tetrahedron mesh for the field
+\lstinline[language = Bash]+input_fieldname+.
 
 \begin{example}
   \begin{lstlisting}[language = Bash]
