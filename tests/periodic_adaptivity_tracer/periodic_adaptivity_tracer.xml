@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Periodic adaptivity tracer advection</name>
+  <owner userid="piggt01"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>../../bin/periodise periodic_adaptivity_tracer.flml; fluidity periodic_adaptivity_tracer_periodised.flml &gt; /dev/null 2&gt;&amp;1 </command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+    <test name="completion" language="python">
+import fluidity_tools
+stat = fluidity_tools.stat_parser("periodic_adaptivity_tracer.stat")
+assert stat['ElapsedTime']['value'][-1] &gt; 10.0
+    </test>
+    <test name="tracer upper bound" language="python">
+import fluidity_tools
+stat = fluidity_tools.stat_parser("periodic_adaptivity_tracer.stat")
+assert abs(stat['Main']['PrognosticFieldConsistent']['max'][-1] - 0.8) &lt;  0.1
+    </test>
+    <test name="tracer lower bound" language="python">
+import fluidity_tools
+stat = fluidity_tools.stat_parser("periodic_adaptivity_tracer.stat")
+assert abs(stat['Main']['PrognosticFieldConsistent']['min'][-1] - 0.0) &lt;  0.05
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
