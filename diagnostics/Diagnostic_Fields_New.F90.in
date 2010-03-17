@@ -118,7 +118,9 @@ contains
     end if
     
     do i = 1, size(lcheck_states)
-      ewrite(2, *) "Checking dependencies for diagnostic fields in state: " // trim(lcheck_states(i)%name)
+      if(.not. present(check_states)) then
+        ewrite(2, *) "Checking dependencies for diagnostic fields in state: " // trim(lcheck_states(i)%name)
+      end if
       
       do j = 1, scalar_field_count(lcheck_states(i))
         s_field => extract_scalar_field(lcheck_states(i), j)

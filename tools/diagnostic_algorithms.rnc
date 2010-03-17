@@ -76,10 +76,7 @@ extract_scalar_component_algorithm =
       element algorithm {
         attribute name { "extract_scalar_component" },
         attribute material_phase_support { "single" },
-        vector_source_field,
-        element component {
-          integer
-        }
+        component_source_field
       }
    )
 vector_copy_algorithm =
@@ -126,6 +123,23 @@ vector_galerkin_projection_algorithm =
          element solver {
             linear_solver_options_sym
          }?
+      }
+   )
+helmholtz_smoothed_scalar_algorithm =
+   (
+      ## Smooth a scalar field by inverting a Helmholtz operator.
+      element algorithm {
+         attribute name { "helmholtz_smoothed_scalar" },
+         attribute material_phase_support { "single" },
+         component_source_field,
+         ## The characteristic length scale used by the smoother.
+         element smoothing_length_scale {
+             real_dim_symmetric_tensor
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
       }
    )
 
@@ -473,6 +487,7 @@ l2norm_algorithm =
 scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
+scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm

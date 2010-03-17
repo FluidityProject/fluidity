@@ -106,10 +106,7 @@ this option to these these internal algorithms.</a:documentation>
       <attribute name="material_phase_support">
         <value>single</value>
       </attribute>
-      <ref name="vector_source_field"/>
-      <element name="component">
-        <ref name="integer"/>
-      </element>
+      <ref name="component_source_field"/>
     </element>
   </define>
   <define name="vector_copy_algorithm">
@@ -172,6 +169,26 @@ this option to these these internal algorithms.</a:documentation>
           <ref name="linear_solver_options_sym"/>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="helmholtz_smoothed_scalar_algorithm">
+    <element name="algorithm">
+      <a:documentation>Smooth a scalar field by inverting a Helmholtz operator.</a:documentation>
+      <attribute name="name">
+        <value>helmholtz_smoothed_scalar</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="component_source_field"/>
+      <element name="smoothing_length_scale">
+        <a:documentation>The characteristic length scale used by the smoother</a:documentation>
+        <ref name="real_dim_symmetric_tensor"/>
+      </element>
+      <element name="solver">
+        <a:documentation>Linear solver options</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
     </element>
   </define>
   <!-- Time aggregated diagnostics -->
@@ -613,6 +630,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="extract_scalar_component_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="helmholtz_smoothed_scalar_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_galerkin_projection_algorithm"/>

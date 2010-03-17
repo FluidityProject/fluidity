@@ -33,9 +33,12 @@ module field_copies_diagnostics
   use field_options
   use fields
   use fldebug
+  use global_parameters, only : OPTION_PATH_LEN
+  use smoothing_module
   use solvers
   use sparse_tools
   use sparsity_patterns_meshes
+  use spud
   use state_module
   use transform_elements
 
@@ -44,8 +47,10 @@ module field_copies_diagnostics
   private
   
   public :: calculate_scalar_copy, calculate_vector_copy, calculate_tensor_copy
+  public :: calculate_extract_scalar_component
   public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
-  public :: extract_scalar_component_copy
+  public :: calculate_helmholtz_smoothed_scalar
+  
 contains
 
   subroutine calculate_scalar_copy(state, s_field)
@@ -84,20 +89,18 @@ contains
     
   end subroutine calculate_tensor_copy
 
-  subroutine extract_scalar_component_copy(state, s_field, dim)
+  subroutine calculate_extract_scalar_component(state, s_field)
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
-    integer, intent(in) :: dim
 
-    type(vector_field), pointer :: source_field
-    type(scalar_field) :: component
+    logical :: allocated
+    type(scalar_field), pointer :: source_field
 
-    source_field => vector_source_field(state, s_field)
-    component = extract_scalar_field(source_field, dim)
-
-    call remap_field(component, s_field)
+    source_field => scalar_source_field(state, s_field, allocated = allocated)   
+    call remap_field(source_field, s_field)
+    if(allocated) deallocate(source_field)
     
-  end subroutine extract_scalar_component_copy
+  end subroutine calculate_extract_scalar_component
   
   subroutine calculate_scalar_galerkin_projection(state, s_field)
     type(state_type), intent(inout) :: state
@@ -312,5 +315,38 @@ contains
     end subroutine solve_gp_ele
     
   end subroutine calculate_vector_galerkin_projection
+  
+  subroutine calculate_helmholtz_smoothed_scalar(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    integer, dimension(2) :: alpha_shape
+    logical :: allocated
+    real, dimension(:, :), allocatable :: alpha
+    type(scalar_field), pointer :: source_field
+    type(vector_field), pointer :: positions
+    
+    ewrite(1, *) "In calculate_helmholtz_smoothed_scalar"
+    
+    source_field => scalar_source_field(state, s_field, allocated = allocated)
+    positions => extract_vector_field(state, "Coordinate")
+    
+    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+    alpha_shape = option_shape(trim(path) // "/smoothing_length_scale")
+    allocate(alpha(alpha_shape(1), alpha_shape(2)))
+    call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
+    
+    ewrite_minmax(source_field%val)
+    call smooth_scalar(source_field, positions, s_field, alpha, path)
+    ewrite_minmax(s_field%val)
+    
+    deallocate(alpha)
+    if(allocated) deallocate(source_field)
+    
+    ewrite(1, *) "Exiting calculate_helmholtz_smoothed_scalar"
+    
+  end subroutine calculate_helmholtz_smoothed_scalar
 
 end module field_copies_diagnostics
