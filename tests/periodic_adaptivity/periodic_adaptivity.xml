@@ -3,7 +3,7 @@
   <name>Periodic adaptivity</name>
   <owner userid="pfarrell"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>../../bin/periodise periodic_adaptivity.flml; fluidity -v2 -l periodic_adaptivity_periodised.flml</command_line>
   </problem_definition>
   <variables>
