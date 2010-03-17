@@ -250,6 +250,8 @@ module solenoidal_interpolation_module
       ! construction of the sparsity
       call insert(local_state, lagrange_mesh, name="PressureMesh")
       call insert(local_state, v_field%mesh, name="VelocityMesh")
+      call insert(local_state, lagrange, name="Pressure")
+      call insert(local_state, v_field, name="Velocity")
       ! end of hack... you can look again now
       
       ewrite(2,*) "Assembling P1-P1 stabilisation"
@@ -261,6 +263,10 @@ module solenoidal_interpolation_module
         call get_option("/timestepping/timestep", dt)
         call add_kmk_rhs(local_state, kmk_rhs, s_field, dt)
       end if
+      
+      ! clean up our mess
+      call remove_scalar_field(local_state, name="Pressure")
+      call remove_vector_field(local_state, name="Velocity")
       
       call addto(projec_rhs, kmk_rhs)
     end if
