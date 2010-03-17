@@ -1535,21 +1535,25 @@ end subroutine ConvergenceCheck
     PetscErrorCode ierr
     MatNullSpace sp ! Nullspace object
     
-    logical startfromzero
+    logical startfromzero, remove_null_space
     
     ewrite(1,*) "Inside setup_ksp_from_options"
     
-    call KSPGetPC(ksp, pc, ierr)
     
-    ! set ksptype and pctype, and external "PETSC_OPTIONS"
+    ! first set pc options
     ! =========================================================
-    call get_option(trim(solver_option_path)//'/iterative_method[0]/name', &
-      ksptype)
+    call KSPGetPC(ksp, pc, ierr)
+    remove_null_space=have_option(trim(solver_option_path)//'/remove_null_space')
     call setup_pc_from_options(pc, pmat, &
        trim(solver_option_path)//'/preconditioner[0]', &
        prolongator=prolongator, surface_node_list=surface_node_list, &
-       matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option)
+       matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option, &
+       has_null_space=remove_null_space)
     
+    ! then ksp type
+    ! =========================================================
+    call get_option(trim(solver_option_path)//'/iterative_method[0]/name', &
+      ksptype)
     ! set type first, so ksptype specific PETSC_OPTIONS are picked up
     call KSPSetType(ksp, ksptype, ierr)
     ! set options that may have been supplied via the
@@ -1590,7 +1594,7 @@ end subroutine ConvergenceCheck
     ! If requested, remove nullspace from residual field. This is similar
     ! to imposing a reference pressure node, but initial testing suggests that
     ! it leads to improved rates of convergence.    
-    if (have_option(trim(solver_option_path)//'/remove_null_space')) then
+    if (remove_null_space) then
        ewrite(2,*) 'Adding null-space removal options to KSP'
        call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL_OBJECT_ARRAY,sp,ierr)
        call KSPSetNullSpace(ksp,sp,ierr)
@@ -1632,7 +1636,7 @@ end subroutine ConvergenceCheck
     
   recursive subroutine setup_pc_from_options(pc, pmat, option_path, &
     prolongator, surface_node_list, matrix_csr, internal_smoothing_option, &
-    is_subpc)
+    is_subpc, has_null_space)
   PC, intent(inout):: pc
   Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
@@ -1643,6 +1647,8 @@ end subroutine ConvergenceCheck
   integer, optional, intent(in) :: internal_smoothing_option
   ! if present and true, don't setup sor and eisenstat as subpc (again)
   logical, optional, intent(in) :: is_subpc
+  ! option to "mg" to tell it not to do a direct solve at the coarsest level
+  logical, optional, intent(in) :: has_null_space
     
     KSP:: subksp
     PC:: subpc
@@ -1655,7 +1661,8 @@ end subroutine ConvergenceCheck
             external_prolongator=prolongator, &
             surface_node_list=surface_node_list, &
             matrix_csr=matrix_csr, &
-            internal_smoothing_option=internal_smoothing_option)
+            internal_smoothing_option=internal_smoothing_option, &
+            has_null_space=has_null_space)
       if (ierr/=0) then
          if (IsParallel()) then
            ! we give up as SOR is probably not good enough either

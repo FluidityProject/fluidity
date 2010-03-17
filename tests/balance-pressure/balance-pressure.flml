@@ -66,10 +66,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1.0</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -114,9 +114,6 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
-        <reference_node replaces="NDPSET">
-          <integer_value rank="0">1</integer_value>
-        </reference_node>
         <scheme>
           <poisson_pressure_solution replaces="POISON">
             <string_value lines="1">never</string_value>
@@ -125,13 +122,14 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
+          <remove_null_space/>
           <never_ignore_solver_failures/>
           <cache_solver_context/>
           <diagnostics>

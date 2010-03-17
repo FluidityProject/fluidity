@@ -221,7 +221,7 @@ end subroutine DestroyInternalSmoother
 
 subroutine SetupMultigrid(prec, matrix, ierror, &
   external_prolongator, surface_node_list, matrix_csr, &
-  internal_smoothing_option)
+  internal_smoothing_option, has_null_space)
 !!< This subroutine sets up the multigrid preconditioner including
 !!< all options (vertical_lumping, internal_smoother)
 PC, intent(inout):: prec
@@ -237,7 +237,9 @@ type(csr_matrix), optional, intent(in):: external_prolongator
 integer, optional, dimension(:):: surface_node_list
 type(csr_matrix), intent(in), optional :: matrix_csr
 integer, optional, intent(in) :: internal_smoothing_option
-!
+!! option to prevent a direct solve at the coarsest level
+logical, optional, intent(in) :: has_null_space
+
 integer :: linternal_smoothing_option
 
   PetscErrorCode ierr
@@ -253,7 +255,8 @@ integer :: linternal_smoothing_option
   case (INTERNAL_SMOOTHING_NONE)
      !Don't apply internal smoothing, just regular mg
      call SetupSmoothedAggregation(prec, matrix, ierror, &
-          external_prolongator)
+          external_prolongator=external_prolongator, &
+          has_null_space=has_null_space)
   case (INTERNAL_SMOOTHING_WRAP_SOR)
      !Apply the internal smoothing with wrapped SOR
      if(.not.present(surface_node_list)) then
@@ -295,7 +298,8 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(subprec, 0, subsubprec, ierr)
      call SetupSmoothedAggregation(subsubprec, matrix, ierror, &
-          external_prolongator,no_top_smoothing=.true.)
+          external_prolongator,no_top_smoothing=.true., &
+          has_null_space=has_null_space)
      !set up the "internal" mg shell
      call PCCompositeGetPC(subprec, 1, subsubprec, ierr)
      call SetupInternalSmoother(surface_node_list,matrix_csr,subsubprec, &
@@ -320,7 +324,8 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call SetupSmoothedAggregation(subprec, matrix, ierror, &
-          external_prolongator)
+          external_prolongator=external_prolongator, &
+          has_null_space=has_null_space)
      ! set up the "internal" mg shell
      call PCCompositeGetPC(prec, 1, subprec, ierr)
      call SetupInternalSmoother(surface_node_list,matrix_csr,subprec)
@@ -350,7 +355,7 @@ PC, intent(inout):: prec
 end subroutine DestroyMultigrid
 
 subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
-  external_prolongator,no_top_smoothing)
+  external_prolongator,no_top_smoothing, has_null_space)
 !!< This subroutine sets up the preconditioner for using the smoothed
 !!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
@@ -363,6 +368,8 @@ integer, intent(out):: ierror
 type(csr_matrix), optional, intent(in):: external_prolongator
 !! Don't do smoothing on the top level
 logical, intent(in), optional :: no_top_smoothing
+!! option to prevent a direct solve at the coarsest level
+logical, optional, intent(in) :: has_null_space
 
   Mat, allocatable, dimension(:):: matrices, prolongators
   KSP ksp_smoother
@@ -587,7 +594,7 @@ logical, intent(in), optional :: no_top_smoothing
     ! solver options coarsest level:
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
-    if (IsParallel()) then
+    if (IsParallel() .or. has_null_space) then
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
     else
