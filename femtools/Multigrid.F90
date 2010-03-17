@@ -594,7 +594,7 @@ logical, optional, intent(in) :: has_null_space
     ! solver options coarsest level:
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
-    if (IsParallel() .or. has_null_space) then
+    if (IsParallel() .or. present_and_true(has_null_space)) then
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
     else
