@@ -268,12 +268,17 @@ Some diagnostic algorithms contain a \option{\ldots/diagnostic/algorithm/source\
 attribute defining the field used to compute the diagnostic (for example the
 field used to compute a gradient). If this source field is itself a diagnostic
 field defined in terms of a diagnostic algorithm then the source field is
-computed first (dependency resolution). The attribute
-\option{\ldots/diagnostic/algorithm/material\_phase\_support}, which may take the
+computed first (dependency resolution).
+In the majority of cases, a \option{scalar\_source\_field}, \option{vector\_source\_field}, \option{tensor\_source\_field}
+or \option{component\_source\_field} attribute is defined. This identifies the
+expected type of input field. \option{component\_source\_field} denotes scalar field
+input, but for which vector or tensor field components of the form \option{field\_name\%comp}
+can be used.
+The attribute \option{\ldots/diagnostic/algorithm/material\_phase\_support}, which may take the
 value ``single'' or ``multiple'', defines if the diagnostic algorithm may
 access fields in other material / phases. For multiple \option{material\_phase\_support}
 diagnostic fields, a source field in another material / phase
-may be defined by a \% delimited ``state\_name\%field\_name'' string.
+may be defined by a :: delimited ``state\_name\::field\_name'' string.
 
 \begin{figure}[ht]
   \centering
@@ -815,6 +820,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
     	vertical\_integration			& \ref{sect:vertical_integration} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
+	vtu\_bins           & \ref{sect:vtu_bins}		\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
     \hline
   \end{tabular}
@@ -1085,6 +1091,43 @@ Vorticity integral diagnostic options:
 	and dumps debugging mesh to vorticityDebugMesh.vtu
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{vtu\_bins}
+\label{sect:vtu_bins}
+
+vtu\_bins returns the fraction of the domain contained within given values
+for a given scalar field. vtu\_bins is built as part of the fltools build target
+(see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+vtu_bins [-v] input_filename input_fieldname BOUND1 [BOUND2 BOUND3]
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input_filename+ is a vtu file containing a scalar
+field \lstinline[language = Bash]+input_fieldname+, and
+\lstinline[language = Bash]+BOUND1+, \lstinline[language = Bash]+BOUND2+,
+\lstinline[language = Bash]+...+ are the boundary values. The output is sent to
+standard output.
+
+If negative boundary values are required, add two ``-'' before the boundary
+values on the command line:
+
+\begin{lstlisting}[language = Bash]
+vtu_bins [-v] input_filename input_fieldname -- BOUND1 [BOUND2 BOUND3]
+\end{lstlisting}
+
+vtu\_bins requires a linear tetrahedron mesh for field \lstinline[language = Bash]+input_fieldname+.
+
+\begin{example}
+  \begin{lstlisting}[language = Bash]
+$ vtu_bins annulus_1564.vtu Temperature 0.0 1.0
+                      -inf -   0.00000000000000000E+000 :  0.23071069007104538E-004
+  0.00000000000000000E+000 -   0.10000000000000000E+001 :  0.99951353813554100E+000
+  0.10000000000000000E+001 -                        inf :  0.46339079545184387E-003
+  \end{lstlisting}
+\end{example}
+
 %%%%%%%%%%%%%%%%%%%%%% VTKPROJECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtk\_projection}
@@ -1103,7 +1146,7 @@ The \lstinline[language = Bash]+OPTIONS+ are:
 	Coordinates of input file. Valid types are:
 	 type      | description 
 	-------------------------
-	 cart      | Cartesian (meters)
+	 cart      | Cartesian (meters)e
 	 spherical | Longitude/Latitude
 	 stereo    | Stereographic Projection
 
