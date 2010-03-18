@@ -614,11 +614,18 @@ The return value must be an integer.</a:documentation>
       </optional>
       <optional>
         <element name="functional_tolerance">
-          <a:documentation>Functional value above which elements are considered for adaption.
- 0.5 to 1.0 seems O.K- it can be negative.
- 0.5 corresponds to a minimum insphere radius of 0.3 relative 1 and max-edge size 2.
- Value used in code is MAX(ABS(MESTP1), 0.15)
- Manual suggests 0.0</a:documentation>
+          <a:documentation>Specifies the minimum element functional value for which elements
+are considered for adaptivity. For the Pain et al 2001 functional,
+ideal tetrahdera have a functional value of 0.0. A functional value
+of 0.5 corresponds to a tetrehedron with: unit edge lengths and
+and in-sphere radius of 0.3, or alternatively unit in-sphere radius,
+five edges of unit length and a single edge of length 2
+(all measured in metric space).
+
+The minimum permitted value is 0.15 - the value supplied to
+libadaptivity is max(abs(user value), 0.15).
+
+Default value if not specified: 0.15</a:documentation>
           <attribute name="replaces">
             <value>MESTP1</value>
           </attribute>
