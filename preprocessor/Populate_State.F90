@@ -375,6 +375,7 @@ contains
 
     ! Get number of meshes
     nmeshes=option_count("/geometry/mesh")
+    periodic_boundary_option_path=""
 
     outer_loop: do
        ! Updated becomes true if we manage to set up at least one mesh on
@@ -454,8 +455,6 @@ contains
                   
                   ! extrusion by user specifed layer depths
                   
-                  ! get the model positions from the external mesh... this assumes that we are only one
-                  ! mesh removed from the external mesh... dangerous!
                   modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
                
                   call extrude(modelposition, mesh_path, extrudedposition)
@@ -502,8 +501,18 @@ contains
                  call incref(mesh)
                  
                else
-                 position => extract_vector_field(states(1), "Coordinate")
+                 if (trim(model_mesh_name) == "CoordinateMesh") then
+                   position => extract_vector_field(states(1), 'Coordinate')
+                 else
+                   position => extract_vector_field(states(1), trim(model_mesh_name)//'Coordinate')
+                 end if
                  mesh = make_mesh_periodic_from_options(model_mesh, position, mesh_path)
+                 call allocate(periodic_position, position%dim, mesh, trim(mesh_name) // 'Coordinate')
+                 call remap_field(position, periodic_position, stat=stat)
+                 call postprocess_periodic_mesh(position%mesh, position, periodic_position%mesh, periodic_position)
+                 mesh = periodic_position%mesh
+                 call insert(states, periodic_position, trim(periodic_position%name))
+                 call deallocate(periodic_position)
                end if
                
              else
@@ -550,7 +559,7 @@ contains
 
              ! Insert mesh into all states
              call insert(states, mesh, mesh%name)
-             
+
              if (.not. have_option(trim(mesh_path)//'/exclude_from_mesh_adaptivity')) then
                ! update info for adaptivity/error metric code:
                
@@ -564,7 +573,7 @@ contains
                  adaptivity_mesh_name=mesh%name
                end if
 
-               if (periodic) then
+               if (periodic .and. trim(periodic_boundary_option_path) == "") then
                  periodic_boundary_option_path = trim(mesh_path)             
                end if
              end if
@@ -585,7 +594,6 @@ contains
        end if
        
     end do outer_loop
-
   end subroutine insert_derived_meshes
     
   function make_mesh_from_options(from_mesh, mesh_path) result (mesh)
@@ -3150,7 +3158,7 @@ contains
     ! We can't use the external mesh in the extruded case -- these have to go on the
     ! CoordinateMesh.
     !mesh => get_external_mesh((/state/))
-    mesh => X%mesh
+    mesh => extract_mesh(state, trim(topology_mesh_name))
 
     if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths")) then
       ewrite(-1,*) "Warning: adaptivity turned on, but no edge length limits available?"
