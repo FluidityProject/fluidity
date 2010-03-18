@@ -269,11 +269,13 @@
         nullify(dummypressure)
         old_p => extract_scalar_field(state, "OldPressure", stat)
         if(stat/=0) old_p => p
+        call profiler_tic(p, "assembly")
         ! get the pressure gradient matrix
         ct_m => get_velocity_divergence_matrix(state, get_ct=get_ct_m)
       
         ! get the pressure poisson matrix
         cmc_m => get_pressure_poisson_matrix(state, get_cmc=get_cmc_m)
+        call profiler_toc(p, "assembly")
       end if
       ewrite_minmax(p%val)
             
@@ -417,6 +419,7 @@
         theta_pg=1.0
       end if
       
+      call profiler_tic(u, "assembly")
       ! allocation of big_m
       if(dg) then
         call allocate_big_m_dg(big_m, u)
@@ -438,6 +441,7 @@
       ! allocate the ct rhs
       call allocate(ct_rhs, p_mesh, "DivergenceRHS")
       call zero(ct_rhs)
+      call profiler_toc(u, "assembly")
       
       if(has_scalar_field(state(istate), "BalancePressure") .or. &
         & has_scalar_field(state(istate), gp_name)) then
@@ -465,6 +469,7 @@
              cg_pressure=cg_pressure)
       end if
       call profiler_toc(u, "assembly")
+      
       if(has_scalar_field(state(istate), hp_name)) then
         call calculate_hydrostatic_pressure(state(istate))
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
@@ -617,7 +622,9 @@
           
           call impose_reference_pressure_node(cmc_m, poisson_rhs, trim(p%option_path))
           
+          call profiler_toc(p, "assembly") ! don't include poisson solve
           call petsc_solve(p_theta, cmc_m, poisson_rhs, state(istate))
+          call profiler_tic(p, "assembly")
             
           if (has_boundary_condition(u, "free_surface")) then
             ! use this as initial pressure guess, except at the free surface
@@ -691,6 +698,7 @@
         ewrite_minmax(delta_u%val(i)%ptr(:))
       end do
 
+      call profiler_tic(u, "assembly")
       ! apply change to velocity field
       call addto(u, delta_u, dt)
       do i = 1, u%dim
@@ -698,37 +706,38 @@
       end do
 
       call deallocate(delta_u)
+      call profiler_toc(u, "assembly")
 
       ! do we want to solve for pressure?
       if(have_option(trim(p%option_path)//"/prognostic")) then
-         call profiler_tic(p, "assembly")
-         ! assemble the rhs
-         ! if we are adding the P1-P1 stabilisation,
-         ! this will have to have KMK * P added to it;
-         !
-         ! despite multiplying velocity by a nonlocal operator
-         ! a halo_update isn't necessary as this is just a rhs
-         ! contribution
-         if (.not. use_theta_pg) then
-            ! continuity is evaluated at the end of the time step
-            call mult(projec_rhs, ctp_m, u)
-         else
-            ! evaluate continuity at n+theta
-            ! compute theta*u+(1-theta)*old_u
-            call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
-            if (have_rotated_bcs(u)) then
-              call rotate_velocity(old_u, state(istate))
-            end if
-            call set(delta_u, u, old_u, theta_pg)
-            call mult(projec_rhs, ctp_m, delta_u)
-            call deallocate(delta_u)
-         end if
-         call addto(projec_rhs, kmk_rhs)
-         call scale(projec_rhs, -1.0)
-         call addto(projec_rhs, ct_rhs)
-         ewrite_minmax(projec_rhs%val(:))
+        call profiler_tic(p, "assembly")
+        ! assemble the rhs
+        ! if we are adding the P1-P1 stabilisation,
+        ! this will have to have KMK * P added to it;
+        !
+        ! despite multiplying velocity by a nonlocal operator
+        ! a halo_update isn't necessary as this is just a rhs
+        ! contribution
+        if (.not. use_theta_pg) then
+          ! continuity is evaluated at the end of the time step
+          call mult(projec_rhs, ctp_m, u)
+        else
+          ! evaluate continuity at n+theta
+          ! compute theta*u+(1-theta)*old_u
+          call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
+          if (have_rotated_bcs(u)) then
+            call rotate_velocity(old_u, state(istate))
+          end if
+          call set(delta_u, u, old_u, theta_pg)
+          call mult(projec_rhs, ctp_m, delta_u)
+          call deallocate(delta_u)
+        end if
+        call addto(projec_rhs, kmk_rhs)
+        call scale(projec_rhs, -1.0)
+        call addto(projec_rhs, ct_rhs)
+        ewrite_minmax(projec_rhs%val(:))
          
-         if(use_compressible_projection) then
+        if(use_compressible_projection) then
           call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
           
           if(cv_pressure) then
@@ -792,6 +801,7 @@
                sfields=(/ delta_p, p, old_p, p_theta /), vfields=(/ u /))
         end if
         
+        call profiler_tic(p, "assembly")
         if (use_theta_pg) then
           ! we've solved theta_pg**2*dt*dp, in the velocity correction
           ! however we need theta_pg*dt*dp
@@ -806,7 +816,9 @@
         if(use_compressible_projection) then
           call update_compressible_density(state)
         end if
+        call profiler_toc(p, "assembly")
 
+        call profiler_tic(u, "assembly")
         ! correct velocity according to new delta_p
         if(full_schur) then
           call correct_velocity_cg(u, inner_m, ct_m, delta_p)
@@ -817,6 +829,7 @@
         else
           FLAbort("Don't know how to correct the velocity.")
         end if
+        call profiler_toc(u, "assembly")
         
         call deallocate(kmk_rhs)
         call deallocate(projec_rhs)
@@ -829,9 +842,11 @@
 
       end if
       
+      call profiler_tic(u, "assembly")
       if (have_rotated_bcs(u)) then
         call rotate_velocity_back(u, state(istate))
       end if
+      call profiler_toc(u, "assembly")
       
       if(dg)then
         if (lump_mass) then
