@@ -42,6 +42,7 @@ module traffic
   use parallel_tools
   use qmesh_module, only: do_adapt_mesh
   use vector_tools
+  use field_options
 
   implicit none
   
@@ -284,7 +285,7 @@ contains
     type(mesh_type),pointer      :: mesh=>null()
     integer,dimension(:), pointer:: ndglno
 
-    mesh => extract_mesh(state, "VelocityMesh")
+    mesh => extract_velocity_mesh(state)
     ndglno => mesh%ndglno
     
     v_field => extract_vector_field(state, "Coordinate")

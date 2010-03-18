@@ -179,7 +179,7 @@ contains
       if(present(get_cmc)) get_cmc = .true.
     
       p_mesh => extract_pressure_mesh(states)
-      u_mesh => extract_mesh(states, "VelocityMesh")
+      u_mesh => extract_velocity_mesh(states)
       
       cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
       
@@ -227,7 +227,7 @@ contains
     
     if(stat/=0) then
       p_mesh => extract_pressure_mesh(states)
-      u_mesh => extract_mesh(states, "VelocityMesh")
+      u_mesh => extract_velocity_mesh(states)
       
       cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
       
@@ -278,7 +278,7 @@ contains
       if(present(get_ct)) get_ct = .true.
     
       p_mesh => extract_pressure_mesh(states)
-      u_mesh => extract_mesh(states, "VelocityMesh")
+      u_mesh => extract_velocity_mesh(states)
       do i = 1, size(states)
         velocity => extract_vector_field(states(i), "Velocity", stat)
         if(stat==0) exit

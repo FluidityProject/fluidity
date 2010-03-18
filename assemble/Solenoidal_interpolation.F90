@@ -248,8 +248,8 @@ module solenoidal_interpolation_module
     if(apply_kmk) then
       ! a hack to make sure the appropriate meshes are available for the
       ! construction of the sparsity
-      call insert(local_state, lagrange_mesh, name="PressureMesh")
-      call insert(local_state, v_field%mesh, name="VelocityMesh")
+      call insert(local_state, lagrange, name="Pressure")
+      call insert(local_state, v_field, name="Velocity")
       call insert(local_state, lagrange, name="Pressure")
       call insert(local_state, v_field, name="Velocity")
       ! end of hack... you can look again now

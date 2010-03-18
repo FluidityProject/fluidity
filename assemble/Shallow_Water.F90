@@ -515,7 +515,7 @@ contains
     type(vector_field) :: U_rhs
     type(mesh_type) :: tmp_mesh
     
-    tmp_mesh=extract_mesh(state, "VelocityMesh")
+    tmp_mesh=extract_velocity_mesh(state)
 
     call allocate(U_rhs, 2, tmp_mesh, name="VelocityRHS")
     call insert(State, U_rhs, "VelocityRHS")

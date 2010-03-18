@@ -1174,12 +1174,12 @@ contains
     vfield2=extract_vector_field(state(1),trim(vfield2name))
 
     !Obtain the respective mesh names and Coordinate names to extract nodal positions
-    if (field1%mesh%name/="VelocityMesh") then
+    if (field1%mesh%name/="CoordinateMesh") then
        position_name1=trim(field1%mesh%name)//"Coordinate"
     else 
        position_name1="Coordinate"       
     end if
-    if (field2%mesh%name/="VelocityMesh") then
+    if (field2%mesh%name/="CoordinateMesh") then
        position_name2=trim(field2%mesh%name)//"Coordinate"
     else 
        position_name2="Coordinate"       

@@ -86,9 +86,12 @@ contains
     call get_option(base_path // "/increase_tolerance", increase_tolerance, default = huge(0.0) * epsilon(0.0))
     ! what type of cfl number are we using?
     call get_option(base_path//"/courant_number[0]/name", cfl_type)
-    call get_option(base_path//"/courant_number[0]/mesh[0]/name", mesh_name, default = "VelocityMesh")
-    
-    mesh => extract_mesh(state(1), mesh_name)
+    call get_option(base_path//"/courant_number[0]/mesh[0]/name", mesh_name, stat=stat)
+    if (stat==0) then
+      mesh => extract_mesh(state(1), mesh_name)
+    else
+      mesh => extract_velocity_mesh(state)
+    end if
 
     allocate(guess_dt(size(state)))
     guess_dt(:) = dt ! store all our attempts at creating a new dt (then choose the minimum of them)

@@ -901,8 +901,7 @@ contains
        do i=1, ncars
           field_name='TrafficTracer'//int2str(i)
           call allocate_and_insert_scalar_field('/traffic_model/scalar_field::TrafficTracerTemplate', &
-            states(1), parent_mesh='VelocityMesh', &
-            field_name=field_name, &
+            states(1), field_name=field_name, &
             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
        end do
     end if
@@ -911,16 +910,16 @@ contains
     if (have_option('/porous_media')) then
        do i=1, nstates
           call allocate_and_insert_scalar_field('/porous_media/scalar_field::Porosity', &
-             states(i), parent_mesh='VelocityMesh', field_name='Porosity')
+             states(i), field_name='Porosity')
           if (have_option("/porous_media/scalar_field::Permeability")) then
              call allocate_and_insert_scalar_field('/porous_media/scalar_field::Permeability', &
-               states(i), parent_mesh='VelocityMesh', field_name='Permeability')
+               states(i), field_name='Permeability')
           elseif (have_option("/porous_media/vector_field::Permeability")) then
              call allocate_and_insert_vector_field('/porous_media/vector_field::Permeability', &
-               states(i), parent_mesh='VelocityMesh')
+               states(i))
           elseif (have_option("/porous_media/tensor_field::Permeability")) then
              call allocate_and_insert_tensor_field('/porous_media/tensor_field::Permeability', &
-               states(i), parent_mesh='VelocityMesh')
+               states(i))
           end if
        end do
     end if
@@ -947,19 +946,6 @@ contains
                                               field_name='Electrochemical['//int2str(i-1)//']')
       end if
     end do
-
-    if ( has_scalar_field(states(1),'HarmonicAmplitudeM2') .or. has_scalar_field(states(1),'HarmonicPhaseM2') ) then
-       do ii=1,50 ! this number will be an option from diamond, hard code to a reasonable value for now.
-
-! if you give an option path these fields will be output to vtu                 
-!          call allocate_and_insert_scalar_field('/material_phase[Fields]/scalar_field::harmonic', &
-!             states(1), parent_mesh='VelocityMesh', field_name='harmonic'//int2str(ii))
-
-          call allocate_and_insert_scalar_field('', &
-             states(1), parent_mesh='VelocityMesh', field_name='harmonic'//int2str(ii))
-
-       end do
-    end if
 
     ! insert miscellaneous fields
     do i=1, size(field_locations)

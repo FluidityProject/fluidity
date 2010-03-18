@@ -79,6 +79,10 @@ module field_options
       module procedure extract_pressure_mesh_from_state, extract_pressure_mesh_from_any_state
    end interface extract_pressure_mesh
    
+   interface extract_velocity_mesh
+      module procedure extract_velocity_mesh_from_state, extract_velocity_mesh_from_any_state
+   end interface extract_velocity_mesh
+   
    private
     
    public :: complete_mesh_path, complete_field_path, &
@@ -91,7 +95,7 @@ module field_options
      & get_external_coordinate_field, collect_fields_by_mesh, &
      & equation_type_index, field_options_check_options, &
      & constant_field, isotropic_field, diagonal_field, &
-     & extract_pressure_mesh
+     & extract_pressure_mesh, extract_velocity_mesh
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
@@ -440,6 +444,38 @@ contains
     end if
   
   end function extract_pressure_mesh_from_any_state
+  
+  function extract_velocity_mesh_from_state(state, stat)
+    type(state_type), intent(in):: state
+    type(mesh_type), pointer:: extract_velocity_mesh_from_state
+    integer, optional, intent(out):: stat
+      
+    type(vector_field), pointer:: u
+      
+    u => extract_vector_field(state, "Velocity", stat=stat)
+    if (associated(u)) then
+      extract_velocity_mesh_from_state => u%mesh
+    else
+      nullify(extract_velocity_mesh_from_state)
+    end if
+  
+  end function extract_velocity_mesh_from_state
+
+  function extract_velocity_mesh_from_any_state(states, stat)
+    type(state_type), dimension(:), intent(in):: states
+    type(mesh_type), pointer:: extract_velocity_mesh_from_any_state
+    integer, optional, intent(out):: stat
+      
+    type(vector_field), pointer:: u
+      
+    u => extract_vector_field(states, "Velocity", stat=stat)
+    if (associated(u)) then
+      extract_velocity_mesh_from_any_state => u%mesh
+    else
+      nullify(extract_velocity_mesh_from_any_state)
+    end if
+  
+  end function extract_velocity_mesh_from_any_state
   
   subroutine select_fields_to_interpolate(state, interpolate_state, no_positions, &
     first_time_step)

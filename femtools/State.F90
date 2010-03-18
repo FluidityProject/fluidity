@@ -92,7 +92,8 @@ module state_module
   end interface
 
   interface extract_vector_field
-     module procedure extract_vector_field, extract_vector_field_by_index
+     module procedure extract_from_one_vector_field, extract_from_any_vector_field, &
+       extract_vector_field_by_index
   end interface
 
   interface extract_tensor_field
@@ -1476,7 +1477,7 @@ contains
     
   end function extract_tensor_field
 
-  function extract_vector_field(state, name, stat) result (field)
+  function extract_from_one_vector_field(state, name, stat) result (field)
     !!< Return a pointer to the vector field with the correct name.
     type(vector_field), pointer :: field
     type(state_type), intent(in) :: state
@@ -1511,7 +1512,7 @@ contains
       FLAbort(trim(name)//" is not a field name in this state") 
     end if
 
-  end function extract_vector_field
+  end function extract_from_one_vector_field
 
   function extract_from_one_scalar_field(state, name, stat, allocated) result (field)
     !!< Return a pointer to the scalar field with the correct name.
@@ -1659,6 +1660,47 @@ contains
 
   end function extract_from_any_scalar_field
 
+  function extract_from_any_vector_field(state, name, stat) result (field)
+    !!< Return a pointer to the vector field with the correct name.
+    type(vector_field), pointer :: field
+    type(state_type), dimension(:), intent(in) :: state
+    character(len=*), intent(in) :: name
+    integer, intent(out), optional :: stat
+    
+    integer :: i, j
+
+    if (present(stat)) stat=0
+    field => fake_vector_field
+
+    do i = 1, size(state)
+      if (associated(state(i)%vector_fields)) then
+        do j=1,size(state(i)%vector_fields)
+            if (trim(name)==trim(state(i)%vector_names(j))) then
+              ! Found the right field
+              
+              field=>state(i)%vector_fields(j)%ptr
+              return
+            end if
+        end do
+      end if
+    end do
+
+    ! We didn't find name!
+    if (present(stat)) then
+       stat=1
+    else
+      do i = 1, size(state)
+        if (associated(state(i)%vector_names)) then
+          do j=1,size(state(i)%vector_names)
+            ewrite(-1,*) "i, j: ", i, j, " -- ", state(i)%vector_names(j)
+          end do
+        end if
+      end do
+      FLAbort(trim(name)//" is not a field name in these states") 
+    end if
+
+  end function extract_from_any_vector_field
+  
   function extract_field_mesh(state, name, stat) result(mesh)
     !!< Return the mesh for the named field in state
   

@@ -35,11 +35,14 @@ program popstate
   use spud
   use state_module
   use vtk_interfaces
+  use global_parameters, only: FIELD_NAME_LEN
+  implicit none
 
 #ifdef HAVE_MPI
   integer :: ierr
 #endif
   character(len = 512) :: filename, output
+  character(len = FIELD_NAME_LEN):: output_mesh_name
   type(state_type), dimension(:), pointer :: states => null()
 
 #ifdef HAVE_MPI
@@ -54,7 +57,8 @@ program popstate
 
   call load_options(filename)
   call populate_state(states)
-  call vtk_write_state(trim(output), model="VelocityMesh", state=states)
+  call get_option('/io/output_mesh/name', output_mesh_name)
+  call vtk_write_state(trim(output), model=trim(output_mesh_name), state=states)
   
 #ifdef HAVE_MPI
   call MPI_Finalize(ierr)

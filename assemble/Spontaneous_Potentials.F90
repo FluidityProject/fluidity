@@ -79,7 +79,7 @@ module spontaneous_potentials
     tmpstring = '/material_phase['//int2str(i-1)//']/electrical_properties/coupling_coefficients/'
 
     ! extract necessary fields for calculations
-    vmesh => extract_mesh(state, "VelocityMesh")
+    vmesh => extract_velocity_mesh(state)
     positions => extract_vector_field(state, "Coordinate", stat=stat)
 
     ! extract electrical potential field

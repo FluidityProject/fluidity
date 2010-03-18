@@ -51,7 +51,7 @@ contains
     type(mesh_type), pointer :: U_mesh, P_mesh
     integer ph
       
-    U_mesh => extract_mesh(state(1), "VelocityMesh")
+    U_mesh => extract_velocity_mesh(state)
     P_mesh => extract_pressure_mesh(state)
     
     ! Generate sparsity patterns.

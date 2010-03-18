@@ -1052,7 +1052,6 @@ contains
     if(apply_kmk) then      
       ! this is only to retrieve the right meshes to base sparsities on:
       call insert(lstate, field, name = "Velocity")
-      call insert(lstate, u_mesh, name = "VelocityMesh")
       call insert(lstate, p, name = "Pressure")
       
       call assemble_kmk_matrix(lstate, u_mesh, positions, theta_pg = 1.0)    
@@ -2174,8 +2173,7 @@ contains
     if (stat == 0) then
       u_mesh => u%mesh
     else
-      u => null()
-      u_mesh => extract_mesh(state, "VelocityMesh")
+      FLAbort("Need to have a Velocity field in order to compute balanced velocity.")
     endif
     
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
