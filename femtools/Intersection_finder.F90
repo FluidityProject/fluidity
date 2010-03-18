@@ -205,7 +205,7 @@ contains
     ! advancing front more than once (once per connected sub-domain)
   
     seeds = advancing_front_intersection_finder_seeds(positionsA)
-    
+
     allocate(sub_map_AB(size(map_AB)))
     node => seeds%firstnode
     do while(associated(node))
@@ -749,35 +749,35 @@ contains
       node => node%next
     end do
 
-    if (clues%length == 0) then
-      ewrite(-1,*) "It seems something has gone rather badly wrong."
-      ewrite(-1,*) "Element in A we are searching for: ", ele_A
-      ewrite(-1,*) "Neighbour element we are looking for a clue from: ", neighbour
-      ewrite(-1,*) "Recorded list of neighbour's intersections: "
-      call print_list(possibles, -1)
-      ewrite(-1,*) "I will not crash as this MIGHT happen legitimately if your"
-      ewrite(-1,*) "source domain is not connected, but your target domain is connected"
-      ewrite(-1,*) "across the disconnection."
-!      subpos = extract_elements(positionsB, list2vector(possibles))
-!      call vtk_write_fields("intersection_failure", 0, subpos, subpos%mesh)
-!      call deallocate(subpos)
-!      ewrite(-1,*) "Brute forcing to find intersections of neighbour: "
-!      clues = brute_force_search(neighbour_posA, positionsB, bboxes_B)
-!      call print_list(clues, -1)
-!      subpos = extract_elements(positionsB, list2vector(clues))
-!      call vtk_write_fields("intersection_failure", 1, subpos, subpos%mesh)
-!      call deallocate(subpos)
-!      ewrite(-1,*) "Brute forcing to find intersections of ele_A: "
-!      clues = brute_force_search(posA, positionsB, bboxes_B)
-!      call print_list(clues, -1)
-!      subpos = extract_elements(positionsB, list2vector(clues))
-!      call vtk_write_fields("intersection_failure", 2, subpos, subpos%mesh)
-!      call deallocate(subpos)
-!      subpos = extract_elements(positionsA, (/ele_A, neighbour/))
-!      call vtk_write_fields("intersection_failure", 3, subpos, subpos%mesh)
-!      call deallocate(subpos)
-!      FLAbort("Should never get here -- it has to intersect /something/!")
-    end if
+!    if (clues%length == 0) then
+!      ewrite(-1,*) "It seems something has gone rather badly wrong."
+!      ewrite(-1,*) "Element in A we are searching for: ", ele_A
+!      ewrite(-1,*) "Neighbour element we are looking for a clue from: ", neighbour
+!      ewrite(-1,*) "Recorded list of neighbour's intersections: "
+!      call print_list(possibles, -1)
+!      ewrite(-1,*) "I will not crash as this MIGHT happen legitimately if your"
+!      ewrite(-1,*) "source domain is not connected, but your target domain is connected"
+!      ewrite(-1,*) "across the disconnection."
+!!      subpos = extract_elements(positionsB, list2vector(possibles))
+!!      call vtk_write_fields("intersection_failure", 0, subpos, subpos%mesh)
+!!      call deallocate(subpos)
+!!      ewrite(-1,*) "Brute forcing to find intersections of neighbour: "
+!!      clues = brute_force_search(neighbour_posA, positionsB, bboxes_B)
+!!      call print_list(clues, -1)
+!!      subpos = extract_elements(positionsB, list2vector(clues))
+!!      call vtk_write_fields("intersection_failure", 1, subpos, subpos%mesh)
+!!      call deallocate(subpos)
+!!      ewrite(-1,*) "Brute forcing to find intersections of ele_A: "
+!!      clues = brute_force_search(posA, positionsB, bboxes_B)
+!!      call print_list(clues, -1)
+!!      subpos = extract_elements(positionsB, list2vector(clues))
+!!      call vtk_write_fields("intersection_failure", 2, subpos, subpos%mesh)
+!!      call deallocate(subpos)
+!!      subpos = extract_elements(positionsA, (/ele_A, neighbour/))
+!!      call vtk_write_fields("intersection_failure", 3, subpos, subpos%mesh)
+!!      call deallocate(subpos)
+!!      FLAbort("Should never get here -- it has to intersect /something/!")
+!    end if
   end function clueful_search
 
 end module
