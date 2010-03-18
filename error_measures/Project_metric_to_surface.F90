@@ -116,9 +116,11 @@ module project_metric_to_surface_module
     
     type(vector_field):: down_here
     type(vector_field), pointer:: down
-    integer:: i
+    integer:: i, stat
       
-    down => extract_vector_field(state, "GravityDirection")
+    down => extract_vector_field(state, "GravityDirection", stat=stat)
+
+    if (stat /= 0) return
     
     call allocate(down_here, down%dim, error_metric%mesh, "GravityDirectionOnCoordinateMesh")
     call remap_field(down, down_here)
