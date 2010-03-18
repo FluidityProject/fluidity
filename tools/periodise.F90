@@ -102,7 +102,8 @@ program periodise
         call get_option(trim(mesh%option_path) // '/from_file/file_name', external_filename)
       end if
 
-      if (have_option(trim(mesh%option_path) // '/from_mesh/periodic_boundary_conditions')) then
+      if (have_option(trim(mesh%option_path) // '/from_mesh/periodic_boundary_conditions') .and. &
+          .not. have_option(trim(mesh%option_path) // '/from_mesh/periodic_boundary_conditions/remove_periodicity')) then
         seen_periodic_meshes = seen_periodic_meshes + 1
         periodic_name = mesh%name
       end if
