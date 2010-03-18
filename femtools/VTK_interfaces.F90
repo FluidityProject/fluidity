@@ -1545,6 +1545,8 @@ contains
     integer, dimension(:), allocatable:: surface_element_list
     integer:: i
     
+    if (position%dim==1) return
+
     mesh => position%mesh    
     
     assert( has_faces(mesh) )
@@ -1599,6 +1601,8 @@ contains
     type(scalar_field), dimension(:), allocatable :: sfields
     integer :: face, opp_face
     
+    if (position%dim==1) return
+
     ! this isn't really exposed through the interface
     faces=size(position%mesh%faces%face_element_list)
     
