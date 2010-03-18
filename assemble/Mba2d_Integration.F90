@@ -550,7 +550,7 @@ module mba2d_integration
 #endif
 #ifndef HAVE_ZOLTAN
       if(isparallel()) then
-        FLExit("Cannot use libmba2d in parallel without zoltan. Reconfigure with --with-zoltan")
+        ewrite(0, *) "Warning: It is recommended that you use zoltan with libmba2d in parallel. Reconfigure with --with-zoltan"
       end if
 #endif
 
