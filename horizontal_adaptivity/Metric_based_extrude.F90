@@ -65,7 +65,7 @@ module hadapt_metric_based_extrude
       
     ! combine these into a full mesh
     call combine_z_meshes(h_mesh, out_z_meshes, out_mesh, &
-      ele_shape(back_mesh, 1), back_mesh%name)
+      ele_shape(back_mesh, 1), back_mesh%name, trim(back_mesh%mesh%option_path))
 
     call deallocate(oned_shape)
     do column=1,node_count(h_mesh)
@@ -74,19 +74,10 @@ module hadapt_metric_based_extrude
       call deallocate(back_sizing(column))
     end do
     
-    out_mesh%mesh%option_path = back_mesh%mesh%option_path
-    out_mesh%option_path = ""
-    
-    if (has_faces(h_mesh%mesh)) then
-      ! if the horizontal mesh has a surface mesh
-      ! give one to the extruded mesh as well
-      call generate_extruded_surface_mesh(h_mesh, out_mesh)
-    end if
-    
   end subroutine metric_based_extrude
     
   subroutine combine_z_meshes(h_mesh, z_meshes, out_mesh, &
-    full_shape, mesh_name)
+    full_shape, mesh_name, option_path)
   !! Given the h_mesh and a z_mesh under each node of it combines these
   !! into a full horiz+vertic. mesh
   type(vector_field), intent(inout):: h_mesh
@@ -94,7 +85,7 @@ module hadapt_metric_based_extrude
   type(vector_field), intent(out):: out_mesh
   type(element_type), intent(in):: full_shape
   !! the name of the topol. mesh to be created, not the coordinate field
-  character(len=*), intent(in):: mesh_name  
+  character(len=*), intent(in):: mesh_name, option_path
   
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
@@ -124,6 +115,10 @@ module hadapt_metric_based_extrude
       call allocate(out_mesh, mesh_dim(h_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
     end if
     call deallocate(mesh)
+
+    out_mesh%mesh%option_path=option_path
+    out_mesh%option_path=""
+    out_mesh%mesh%periodic = mesh_periodic(h_mesh)
 
     last_seen = 0
     do column=1,node_count(h_mesh)
@@ -305,122 +300,5 @@ module hadapt_metric_based_extrude
     end do
     
   end subroutine append_to_structures
-
-  subroutine generate_extruded_surface_mesh(h_mesh, out_mesh)
-    !!< Create a surface mesh for the extruded mesh and extrapolates
-    !!< the boundary ids of the surface mesh of the horizontal mesh
-    !!< on it. h_mesh needs to have a surface mesh before calling this
-    type(vector_field), intent(inout):: h_mesh
-    type(vector_field), intent(inout):: out_mesh
-    
-    integer, dimension(:), allocatable:: hnode2surfnode
-    integer top_boundary_id, bottom_boundary_id
-    integer i, hnode
-    
-    if (.not. has_faces(h_mesh%mesh)) then
-      FLAbort("Horizontal mesh needs to have a surface mesh for extrusion")
-    end if
-    
-    ! that's easy isn't it:
-    call add_faces(out_mesh%mesh)
-    
-    ! now for the complicated part, "extruding" the boundary ids
-    
-    ! first find out if top and bottom boundary markers have been set
-    call get_option(trim(out_mesh%mesh%option_path)//"/from_mesh/extrude/bottom_surface_id", &
-      bottom_boundary_id, default=0)
-    call get_option(trim(out_mesh%mesh%option_path)//"/from_mesh/extrude/top_surface_id", &
-      top_boundary_id, default=0)
-        
-    ! now we need a mapping between nodes in the horizontal mesh and its
-    ! node number in the surface mesh of the horizontal mesh (i.e. the edges
-    ! around the horizontal mesh), interior nodes all map to 0
-    allocate( hnode2surfnode(1: node_count(h_mesh)) )
-    hnode2surfnode=0
-    ! loop over the surface nodes of the horizontal mesh
-    do i=1, size(h_mesh%mesh%faces%surface_node_list)
-      ! its node number in the full horizontal mesh
-      hnode=h_mesh%mesh%faces%surface_node_list(i)
-      hnode2surfnode(hnode)=i
-    end do
-
-    ! this node element list provides a mapping between horizontal
-    ! surface nodes and horizontal surface elements
-    call add_nelist(h_mesh%mesh%faces%surface_mesh)
-    
-    ! now we loop over the extruded surface mesh, and use the 2 mappings
-    ! to find the horizontal surface element above each extruded surface element
-    do i=1, surface_element_count(out_mesh)
-      ! find the element and copy its boundary id
-      call find_h_surface_element(i)
-    end do
-        
-    contains
-    
-    subroutine find_h_surface_element(sele)
-    ! this is put in a separate function so we can have a face_loc
-    ! array
-    integer, intent(in):: sele
-    
-      integer, dimension(1: face_loc(out_mesh, sele)):: face_nodes, hsnodes
-      integer, dimension(1):: surface_elements
-      integer j, n
-      
-      ! the nodes of this face
-      face_nodes=face_global_nodes(out_mesh, sele)
-      ! find the nodes in the horizontal mesh using its surface node numbering (i.e.
-      ! the node numbering of the edge around the horizontal mesh), or return 0
-      ! if not below an edge node
-      hsnodes=hnode2surfnode(out_mesh%mesh%columns(face_nodes))
-      
-      do j=1, size(hsnodes)
-        if (hsnodes(j)==0) then
-          ! this is probably a horizontal surface element, i.e. not on one
-          ! of the vertical sides, we need to find out if it's on the top
-          ! or at the bottom
-          if (abs(node_val(out_mesh,out_mesh%dim,face_nodes(j)))<epsilon(1.0)) then
-            ! it's on top (z=0, we might need some other logic in the future)
-            out_mesh%mesh%faces%boundary_ids(sele)=top_boundary_id
-            return
-          else
-            ! bottom then (I hope)
-            out_mesh%mesh%faces%boundary_ids(sele)=bottom_boundary_id
-            return
-          end if
-        end if
-      end do
-      
-      ! this routine returns the (surface) elements that are adjacent 
-      ! to all the given nodes
-      assert(associated(h_mesh%mesh%faces%surface_mesh%adj_lists))
-      assert(associated(h_mesh%mesh%faces%surface_mesh%adj_lists%nelist))
-      call FindCommonElements(surface_elements, n, &
-        h_mesh%mesh%faces%surface_mesh%adj_lists%nelist, hsnodes)
-      ! this should return just 1 element
-      if (n==0) then
-        ! this happens for a top or bottom surface element that has all nodes
-        ! on the boundary of the horizontal mesh (i.e. a stiff triangle in the
-        ! corner of the horizontal mesh)
-        if (all(abs(node_val(out_mesh, out_mesh%dim, face_nodes))<epsilon(1.0))) then
-          ! it's on top (z=0, we might need some other logic in the future)
-          out_mesh%mesh%faces%boundary_ids(sele)=top_boundary_id
-            return
-        else
-          ! bottom then (I hope)
-          out_mesh%mesh%faces%boundary_ids(sele)=bottom_boundary_id
-          return
-        end if
-      else if (n>1) then
-        ewrite(-1,*) "Something went wrong in the extrusion of the surface mesh"
-        ewrite(-1,*) "For an extruded surface element multiple horizontal surface element are found. "
-        FLAbort("Check your mesh extrusion settings.")
-      end if
-      
-      out_mesh%mesh%faces%boundary_ids(sele)= &
-        h_mesh%mesh%faces%boundary_ids(surface_elements(1))
-      
-    end subroutine find_h_surface_element
-    
-  end subroutine generate_extruded_surface_mesh
 
 end module hadapt_metric_based_extrude

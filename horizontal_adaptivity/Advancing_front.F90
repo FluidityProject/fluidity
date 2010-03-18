@@ -7,6 +7,9 @@ module hadapt_advancing_front
   use linked_lists
   use adjacency_lists
   use meshdiagnostics
+  use data_structures
+  use vtk_interfaces
+  use spud
   implicit none
 
   contains
@@ -37,11 +40,21 @@ module hadapt_advancing_front
     integer :: chain
 
     integer :: dim
-    integer :: ele, h_ele
+    integer :: ele, h_ele, snloc
+    ! the maximum amount of faces you could possibly want to add is
+    ! number of elements in the extruded mesh (ele_count(mesh))
+    ! x number of faces per element (in the absence of face_count, use ele_loc)
+    integer, dimension(ele_count(mesh) * ele_loc(mesh, 1)) :: element_owners, boundary_ids
+    integer, dimension(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)), target :: sndgln
+    integer :: faces_seen
+    integer :: bottom_count, top_count
 
     real :: vol
-    
+    type(integer_set) :: bottom_nodes, top_nodes
     type(csr_sparsity), pointer :: nelist
+    integer, dimension(:), pointer :: nodes, faces
+    integer :: top_surface_id, bottom_surface_id
+    integer, dimension(1) :: other_node
 
     dim = mesh_dim(mesh)
 
@@ -52,6 +65,9 @@ module hadapt_advancing_front
     ! 0.1 From the node to column map, create a column to node map
     call create_columns_sparsity(columns, mesh%mesh)
 
+    call allocate(bottom_nodes)
+    call allocate(top_nodes)
+
     ! 0.2 The linked lists representing the chains.
     do h_node=1,node_count(h_mesh)
       chain_len = row_length(columns, h_node)
@@ -59,6 +75,8 @@ module hadapt_advancing_front
       do c_node=1,chain_len
         call insert(chains(h_node), chain_ptr(c_node))
       end do
+      call insert(top_nodes, chain_ptr(1))
+      call insert(bottom_nodes, chain_ptr(chain_len))
     end do
 
     ! 0.3 The heights and indices of the hanging nodes.
@@ -81,6 +99,12 @@ module hadapt_advancing_front
     call qsort(heights, sorted)
 
     ! The main loop.
+
+    faces_seen = 0
+    if (has_faces(h_mesh%mesh)) then
+      snloc = mesh_dim(mesh)
+      assert( snloc==face_loc(h_mesh,1)+1 )
+    end if
 
     ele = 1
     ndglno_ptr => ele_nodes(mesh, ele)
@@ -125,6 +149,28 @@ module hadapt_advancing_front
           ndglno_ptr(2) = l
         end if
 
+        ! if the horizontal element has any surface faces, add them to the extruded surface mesh
+        if (has_faces(h_mesh%mesh)) then
+          faces => ele_faces(h_mesh, h_ele)
+          do k=1, size(faces)
+            if (faces(k)<=surface_element_count(h_mesh)) then
+              if (.not. any(chain == face_global_nodes(h_mesh, faces(k)))) cycle
+              faces_seen = faces_seen + 1
+              element_owners(faces_seen) = ele
+              boundary_ids(faces_seen) = surface_element_id(h_mesh, faces(k))
+              nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+              nodes(1) = chains(chain)%firstnode%value
+              nodes(2) = chains(chain)%firstnode%next%value
+
+              if (mesh_dim(mesh) == 3) then
+                other_node = pack(face_global_nodes(h_mesh, faces(k)), (chain /= face_global_nodes(h_mesh, faces(k))))
+                nodes(3) = chains(other_node(1))%firstnode%value
+              end if
+            end if
+          end do
+        end if
+
+
         ! Get ready to process the next element
 
         ele = ele + 1
@@ -137,6 +183,39 @@ module hadapt_advancing_front
       ! And advance down the chain ..
       k = pop(chains(chain))
     end do
+
+    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/top_surface_id', top_surface_id, default=0)
+    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/bottom_surface_id', bottom_surface_id, default=0)
+
+    if (has_faces(h_mesh%mesh)) then
+      ! Add the top faces, and the bottom ones:
+
+      do ele=1,ele_count(mesh)
+        nodes => ele_nodes(mesh, ele)
+        bottom_count = count(has_value(bottom_nodes, nodes))
+        top_count = count(has_value(top_nodes, nodes))
+
+        if (bottom_count == ele_loc(mesh, ele) - 1) then
+          faces_seen = faces_seen + 1
+          element_owners(faces_seen) = ele
+          boundary_ids(faces_seen) = bottom_surface_id
+          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(bottom_nodes, nodes))
+        end if
+
+        if (top_count == ele_loc(mesh, ele) - 1) then
+          faces_seen = faces_seen + 1
+          element_owners(faces_seen) = ele
+          boundary_ids(faces_seen) = top_surface_id
+          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(top_nodes, nodes))
+        end if
+      end do
+
+      call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), element_owner=element_owners(1:faces_seen), boundary_ids=boundary_ids(1:faces_seen))
+    end if
+
+    call deallocate(top_nodes)
+    call deallocate(bottom_nodes)
+
 
     do h_node=1,node_count(h_mesh)
       call deallocate(chains(h_node))

@@ -106,25 +106,16 @@ module hadapt_extrude
     call deallocate(quad)
 
     call get_option(trim(option_path)//'/name', mesh_name)
-      
+
     ! combine the 1d vertical meshes into a full mesh
     call combine_z_meshes(h_mesh, z_meshes, out_mesh, &
-       full_shape, mesh_name)
+       full_shape, mesh_name, option_path)
        
     do column=1, node_count(h_mesh)
       call deallocate(z_meshes(column))
     end do
     call deallocate(full_shape)
 
-    out_mesh%mesh%option_path=option_path
-    out_mesh%option_path=""
-
-    if (has_faces(h_mesh%mesh)) then
-      ! if the horizontal mesh has a surface mesh
-      ! give one to the extruded mesh as well
-      call generate_extruded_surface_mesh(h_mesh, out_mesh)
-    end if
-        
   end subroutine extrude
 
   subroutine compute_z_nodes(z_mesh, depth, xy, sizing, sizing_function)
