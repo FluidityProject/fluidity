@@ -760,7 +760,7 @@ contains
     if (present(stat)) then
       stat = 0
     end if
-    
+
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
     
@@ -770,6 +770,12 @@ contains
     
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
+    if (n_periodic_bcs == 0) then
+      ewrite(-1,*) "You almost certainly didn't mean to pass in this option path."
+      ewrite(-1,*) "trim(mesh_path): ", trim(mesh_path)
+      ewrite(-1,*) "mesh_name: ", trim(mesh_name)
+      FLAbort("No periodic boundary conditions to unwrap!")
+    end if
 
     call allocate(all_periodic_bc_ids)
     do j=0, n_periodic_bcs-1
@@ -834,6 +840,8 @@ contains
     ! this is checked for in add_faces
     ! this flag needs setting before the call to add_faces
     nonperiodic_position%mesh%periodic=.false.
+
+    assert(associated(nonperiodic_position%mesh%shape%numbering))
     
     if (has_faces(from_position%mesh)) then
       call add_faces(nonperiodic_position%mesh, model=from_position%mesh, stat=stat)
