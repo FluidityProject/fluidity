@@ -1,6 +1,7 @@
 import os
 from fluidity_tools import stat_parser
 from sympy import *
+from numpy import array,max,abs
 
 meshtemplate='''
 Point(1) = {0, 0, 0, <dx>};
@@ -130,6 +131,88 @@ def pressure_solution(forcing):
         return analytic_pressure_solution(forcing).subs(Symbol('x'),sx[1])
 
     return sol
+
+
+def plot_theory():
+    '''Produce a plot showing the forcing, analytic velocity solution and
+    analytic pressure solution'''
+    from pylab import \
+    plot,figure,quiver,frange,subplot,xticks,yticks,axis,xlabel,ylabel, \
+    subplots_adjust 
+
+
+    figure()
+
+    y=frange(0.0,1,0.05)
+
+    psol=pressure_solution(forcing)
+
+    usol=solution(forcing)
+
+    v=0*y
+
+    x=0*y
+
+    us=array([float(usol(pos)) for pos in zip(x,y)])
+
+    ps=array([float(psol(pos)) for pos in zip(x,y)])
+
+    uf=array([forcing(pos) for pos in zip(x,y)])[:,0]
+
+    subplots_adjust(wspace=0.25)
+    subplot(1,3,1)
+
+    quiver(x[1:-1],y[1:-1],uf[1:-1],v[1:-1], scale=1)
+    plot(uf,y)
+    xticks([0,0.5,1],map(str,[0,0.5,1]))
+    yticks([ 0 ,  0.2,  0.4,  0.6,  0.8,  1 ],map(str,[ 0 ,  0.2,  0.4,  0.6,  0.8,  1 ]))
+    ylabel("y")
+    xlabel("u source")
+
+    subplot(1,3,2)
+    plot(us,y)
+    quiver(x[1:-1],y[1:-1],us[1:-1],v[1:-1], scale=.03)
+    xticks([0,0.01,0.02,0.03],map(str,[0,0.01,0.02,0.03]))
+    yticks([])
+    xlabel("u solution")
+
+    subplot(1,3,3)
+    plot(ps,y)
+    xticks([-0.02,-0.01,0],map(str,[-0.02,-0.01,0]))
+    yticks([])
+    xlabel("p solution")
+    
+
+    return uf,us,ps
+
+def plot_stored_results(): 
+    import pickle
+
+    (dx,error)=pickle.load(file("error_results"))
+
+    plot_results(dx, error)
+
+def plot_results(dx, error):
+    '''plot_results(error)
+
+    Produce a plot of the actual errors provided in the argument
+    "error". Error should be a two column matrix with the first column being
+    the velocity error and the second column the pressure error.
+    '''
+    from pylab import \
+    plot,figure,quiver,frange,subplot,xticks,yticks,axis,xlabel,ylabel, \
+    subplots_adjust,loglog,legend
+
+    figure()
+
+    loglog(dx,error)
+    loglog(dx,0.03*dx**2)
+    yticks(yticks()[0], map(lambda x: "%3.1e"%x, yticks()[0]))
+    xticks(xticks()[0], map(lambda x: "%3.1e"%x, xticks()[0]))
+
+    xlabel("dx")
+
+    legend(("u error","p error","O(dx^2)"))
 
 
 
