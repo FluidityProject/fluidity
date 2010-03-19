@@ -18,7 +18,10 @@ consistent_max = s['Main']['PrognosticFieldConsistent']['max'][-1]
 stat = fluidity_tools.stat_parser("periodic_adaptivity.stat")
 assert stat['ElapsedTime']['value'][-1] == 20.0</test>
     <test name="references" language="python">assert "There are no references left" in open("fluidity.log-0").read()</test>
-    <test name="consistent_max" language="python">assert consistent_max == 1.0</test>
+    <test name="consistent_max" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(consistent_max, 1.0, 1.0e-10)
+    </test>
   </pass_tests>
   <warn_tests/>
 </testproblem>
