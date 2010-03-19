@@ -1773,9 +1773,9 @@ contains
     type(vector_field), pointer       :: velocity, positions
     type(scalar_field), pointer       :: tke, eps
     type(scalar_field)                :: scalar_surface_field
-    type(mesh_type)                   :: input_mesh
+    !type(mesh_type)                   :: input_mesh
     type(mesh_type)                   :: keps_surface_mesh
-    type(mesh_type), pointer          :: surface_mesh
+    type(mesh_type), pointer          :: input_mesh, surface_mesh
     character(len=FIELD_NAME_LEN)     :: input_mesh_name
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(2)             :: shape_option
@@ -1800,8 +1800,9 @@ contains
 
     ! Use the velocity mesh for the 2 fields. Must have the same surface ids in flml!
     ewrite(1,*) "Getting input mesh for k-epsilon fields"
-    call get_option(trim(velocity%option_path)//'/prognostic/mesh/name', input_mesh_name)
-    input_mesh = extract_mesh(state, input_mesh_name);
+    !call get_option(trim(velocity%option_path)//'/prognostic/mesh/name', input_mesh_name)
+    input_mesh => extract_velocity_mesh(state)
+    !input_mesh = extract_mesh(state, input_mesh_name);
 
     ! Use the velocity no-slip BC to get surface elements
     call get_boundary_condition(velocity, name='NoSlip', surface_element_list=surface_element_list)

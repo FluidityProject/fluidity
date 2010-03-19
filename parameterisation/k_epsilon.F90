@@ -41,6 +41,7 @@ module k_epsilon
   use boundary_conditions
   use fields_manipulation
   !use ieee_arithmetic
+  use fetools
   use FLDebug
 
   implicit none
@@ -52,9 +53,8 @@ module k_epsilon
   type(scalar_field), save :: surface_kk_values, surface_eps_values
   ! Minimum values of 2 fields to initialise, and empirical constants from flml
   real, save               :: eps_min, k_min, c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
-  integer, save                        :: nNodes, NNodes_sur
-  integer, dimension(:), pointer, save :: surface_node_list, surface_element_list
-  logical, save                        :: initialised, calculate_bcs
+  integer, save            :: nNodes
+  logical, save            :: initialised, calculate_bcs
 
   ! The following are the public subroutines
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_adapt_mesh, keps_check_options
@@ -192,13 +192,10 @@ subroutine keps_tke(state)
 
     ewrite(1,*) "In kinetic energy production term loop"
     do ii = 1, nNodes
-        ! DU_DXT = transpose(DU_DX(:,:,ii))       ! for alternative expression
         do i = 1, velocity%dim
             do j = 1, velocity%dim
                 call addto(source, ii, EV%val(ii) * ( DU_DX%val(i,j,ii) + DU_DX%val(j,i,ii) ) &
                 * DU_DX%val(i,j,ii) )
-                ! alternative expression (from Lew et al 2000):
-                !call addto(P, EV%val(ii) / 2 * ( DU_DX%val(i,j,ii)+DU_DXT%val(i,j,ii) ) )
             end do
         end do
         call set(absorption, ii, eps%val(ii) / kk%val(ii))
@@ -215,15 +212,15 @@ subroutine keps_tke(state)
 
     ! puts the BC boundary values in surface_kk_values (module level variable):
     if (calculate_bcs) then
-        call tke_bc(state)
+        call tke_bc(state)   ! (almost) zero Dirichlet BC: sets to k_min
         ! map these onto the actual BCs in kk - like GLS, but is it necessary if no fix_surface_values?
         scalar_surface => extract_surface_field(KK, 'tke_boundary', "value")
         call remap_field(surface_kk_values, scalar_surface)
     end if
     
-    ! finally, we need a copy of the old TKE for eps, so grab it before we solve. Clip at k_min?
+    ! finally, we need a copy of the old TKE for eps, so grab it before we solve.
     do i=1,nNodes
-        call set(tke_old, i, max(kk%val(i), k_min) )
+        call set(tke_old, i, kk%val(i) )
     end do
 
     ewrite_minmax(source%val(:))
@@ -249,12 +246,16 @@ subroutine keps_eps(state)
     type(state_type), intent(inout)  :: state
     type(scalar_field), pointer      :: source, absorption, kk, eps, kksource
     type(scalar_field), pointer      :: scalarField, scalar_surface
+    type(vector_field), pointer      :: positions
     type(tensor_field), pointer      :: eps_diff, background_diff
     real                             :: prod, diss, EpsOverTke
-    integer                          :: i, stat
+    integer                          :: i, stat, sele, NNodes_sur
+    integer, dimension(:), pointer   :: surface_elements, surface_node_list
+    character(len=FIELD_NAME_LEN)    :: bc_type
 
     ewrite(1,*) "In keps_eps"
 
+    positions  => extract_vector_field(state, "Coordinates")
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     kksource   => extract_scalar_field(state, "TurbulentKineticEnergySource")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
@@ -283,7 +284,15 @@ subroutine keps_eps(state)
 
     ! puts the BC boundary values in surface_eps_values (module level variable):
     if (calculate_bcs) then
-        call eps_bc(state)
+        call get_boundary_condition(eps, name='eps_boundary', type=bc_type, &
+                                       surface_node_list=surface_node_list, &
+                                       surface_element_list=surface_elements)
+        ewrite(1,*) "tke bc type: ",bc_type
+        NNodes_sur = size(surface_node_list)
+        do i = 1, size(surface_elements)
+            sele = surface_elements(i)
+            call eps_bc(state, kk, eps, positions, sele)
+        end do
         ! map these onto the actual BC in eps - JON - NOT REQUIRED IF NOT FIX_SURFACE_VALUES?
         scalar_surface => extract_surface_field(eps, 'eps_boundary', "value")
         call remap_field(surface_eps_values, scalar_surface)
@@ -331,13 +340,22 @@ subroutine keps_eddyvisc(state)
         call set(eps, i, max(eps%val(i),eps_min) )   ! clip at eps_min
         ! compute dissipative scale - MAY NEED CHANGING TO INCLUDE LENGTH LIMITER
         call set(ll, i, (kk%val(i))**1.5 / eps%val(i))
+
+    ! calculate wall-normal element mesh size - from weak bcs
+    !call compute_inverse_jacobian( ele_val(x, ele), ele_shape(x, ele), invJ )
+    !G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
+    !n(:,1) = normal_bdy(:,1)
+    !hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
+    !h  = hb(1, 1)
+
+
+
         ! calculate viscosity and diffusivity for next step and for use in other fields
         call set( EV, i, C_mu * sqrt(kk%val(i)) * ll%val(i) )       ! momentum
         call set( ED, i, C_mu * sqrt(kk%val(i)) * ll%val(i) )       ! temperature etc.
     end do
 
-    ewrite(1,*) "Set k-epsilon tensors for use in other fields"
-    ! Set the eddy_diffusivity and viscosity tensors for use by other fields
+    ewrite(1,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors for use in other fields"
     call zero(eddy_visc) ! zero it first as we're using an addto below
     call zero(eddy_diff)
     call set(eddy_visc, eddy_visc%dim, eddy_visc%dim, EV) 
@@ -538,7 +556,6 @@ subroutine keps_init_surfaces(state)
     type(state_type), intent(in)     :: state
     type(scalar_field), pointer      :: kk, eps
     type(mesh_type), pointer         :: surface_mesh
-    integer                          :: nbcs
 
     ewrite(1,*) "In keps_init_surfaces"
 
@@ -547,39 +564,31 @@ subroutine keps_init_surfaces(state)
     eps => extract_scalar_field(state, "TurbulentDissipation")
 
     ! if we're already initialised, then deallocate surface fields to make space for new ones
-    ! Not needed now! See latest GLS
+    ! Not needed now??? See latest GLS
     if (initialised) then
-            ewrite(1,*) "initialised: ", initialised
+        ewrite(1,*) "initialised: ", initialised
         call deallocate(surface_kk_values)
         call deallocate(surface_eps_values)
         call deallocate(surface_mesh)
     end if
 
-    ewrite(1,*) "Grab BCs for kk and eps fields"
     ! ONLY ONE MESH/ONE CONDITION FOR NOW. Must have the same surface ids in flml!
+    ! If domain is open, we also need inflow BCs: be careful applying them!
     ! N.B. JON DOES THIS PURELY FOR THE FIX_SURFACE_VALUES OPTION:
     ! THIS IS AN EXTRA MESH USED TO IMPOSE LENGTHSCALES ETC. ON THE ACTUAL
     ! BOUNDARY IF THE OPTION IS CHOSEN.
     ! BCS_FROM_OPTIONS ALREADY CREATES THE ACTUAL SURFACE MESH,
     ! WHICH SHOULD BE ALL I NEED.
 
-    do nbcs=1, get_boundary_condition_count(kk)
-        call get_boundary_condition(field=kk, n=nbcs, surface_mesh=surface_mesh)
-        NNodes_sur = node_count(surface_mesh)        ! Set module-level counter
-    end do
-
-    ewrite(1,*) "allocate space for surface kk values"
+    ewrite(1,*) "allocate space for surface kk and eps values"
+    call get_boundary_condition(kk, 'tke_boundary', surface_mesh=surface_mesh)
     call allocate(surface_kk_values, surface_mesh, name="SurfaceValuesTKE")
+    call get_boundary_condition(eps, 'eps_boundary', surface_mesh=surface_mesh)
+    call allocate(surface_eps_values, surface_mesh, name="SurfaceValuesEps")
 
-    do nbcs=1, get_boundary_condition_count(eps)
-        call get_boundary_condition(field=eps, n=nbcs, surface_mesh=surface_mesh)
-        if(node_count(surface_mesh) /= NNodes_sur) then
-            FLAbort("kk and eps BCs are on different surface meshes")
-        end if
-    end do
-
-    ewrite(1,*) "allocate space for surface eps values"
-    call allocate(surface_eps_values,surface_mesh, name="SurfaceValuesEps")
+    if(node_count(surface_kk_values) /= node_count(surface_eps_values)) then
+        FLAbort("kk and eps BCs are on different surface meshes")
+    end if
 
     ewrite(1,*) "Leaving keps_init_surfaces"
     initialised = .true.
@@ -587,7 +596,8 @@ subroutine keps_init_surfaces(state)
 end subroutine keps_init_surfaces
 
 !----------
-! tke_bc calculates the Dirichlet BCs on the TKE (kk) field
+! tke_bc calculates the Dirichlet BCs on the TKE (kk) field.
+! BC is applied to the surface ids on which no-slip velocity bcs exist.
 !----------
 
 subroutine tke_bc(state)
@@ -595,24 +605,25 @@ subroutine tke_bc(state)
     type(state_type), intent(in)     :: state
     type(scalar_field), pointer      :: kk
     character(len=FIELD_NAME_LEN)    :: bc_type
-    integer                          :: i, bcs
+    integer                          :: i, NNodes_sur
+    integer, dimension(:), pointer   :: surface_node_list
+
 
     kk => extract_scalar_field(state, "TurbulentKineticEnergy")
     ewrite(1,*) "tke bc count: ", get_boundary_condition_count(kk)
 
-    do bcs=1, get_boundary_condition_count(kk)
-        call get_boundary_condition(field=kk, n=bcs, type=bc_type, surface_node_list=surface_node_list)
-        ewrite(1,*) "tke bc type: ",bc_type
+        call get_boundary_condition(kk, 'tke_boundary', type=bc_type, surface_node_list=surface_node_list)
+        ewrite(1,*) "tke bc type: ", bc_type
+        NNodes_sur = size(surface_node_list)
         select case(bc_type)
         case("Dirichlet")
             do i=1,NNodes_sur
-                call set(surface_kk_values,i,0.0)
-                call set(kk,surface_node_list(i),surface_kk_values%val(i))
+                call set(surface_kk_values, i, k_min)   ! not zero, that causes NaNs
+                call set(kk, surface_node_list(i), surface_kk_values%val(i))
             end do
         case default
             FLAbort('Unknown surface BC for TKE')
         end select
-    end do
 
 end subroutine tke_bc
 
@@ -620,15 +631,28 @@ end subroutine tke_bc
 ! eps_bc calculates the boundary conditions on the eps field = 2*EV*(d(k^0.5)/dn)^2.
 !----------
 
-subroutine eps_bc(state)
+subroutine eps_bc(state, kk, eps, positions, sele)
 
-    type(state_type), intent(inout) :: state
-    integer                         :: i, j, ele, sele, bcs
-    type(scalar_field), pointer     :: kk, eps
-    type(vector_field), pointer     :: positions
-    character(len=FIELD_NAME_LEN)   :: bc_type
-    real, dimension(1)              :: dkdn
-    real                            :: eps_bdy
+    type(state_type), intent(inout)                           :: state
+    type(scalar_field), pointer, intent(inout)                :: kk, eps
+    type(vector_field), intent(in)                            :: positions
+    type(element_type)                                        :: shape_kk, shape_bdy
+    integer, intent(in)                                       :: sele
+    integer                                                   :: i, j, ele, NNodes_sur
+    integer, dimension(:), pointer                            :: surface_elements, surface_node_list
+    real                                                      :: eps_bdy
+    real, dimension(face_ngi(positions, sele))                :: detwei_bdy
+    real, dimension(positions%dim, face_ngi(positions, sele)) :: normal_bdy
+    real, dimension(ele_loc(positions, sele), &
+                    ele_ngi(positions, sele), positions%dim)  :: dshape_kk
+    real, dimension(face_loc(positions, sele))                :: detwei
+    real, dimension(face_ngi(positions, sele))                :: rhs
+    real, dimension(ele_loc(positions, sele))                 :: dkdn
+
+    ewrite(1,*) "In eps_bc"
+
+        !do i=1,NNodes_sur
+            !call set(surface_eps_values, i, eps_min)   ! not zero, that causes NaNs
 
     ! 05/03/10: Chris Pain suggests a good idea.
     ! Instead of evaluating eps = f(d(k^.5)/dn) at the nodes, do it at the Gauss quadrature points on the surface.
@@ -638,54 +662,32 @@ subroutine eps_bc(state)
     ! Lump the mass matrix to diagonalise it, then simply solve the system for epsilon.
     ! If/when nodal values of epsilon on surface are required, they can be easily extracted.
 
-    ewrite(1,*) "In eps_bc"
+    ! Form RHS
+    do i = 1, size(surface_elements)
+        !sele = surface_elements(i)
+        ele  = face_ele(positions, sele)   ! element with facet sele
+        shape_kk = ele_shape(positions, i)
+        ! Get dshape_kk and element quadrature weights: ngi
+        call transform_to_physical( positions, ele, &
+             shape_kk, dshape=dshape_kk, detwei=detwei )
+        ! Get boundary normal and transformed element quadrature weights over surface.
+        call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
+        ! dot normal with dshape_kk to get dk/dn: dim * ngi
+        dkdn = dshape_dot_vector_rhs( dshape_kk, vector=normal_bdy, detwei=detwei )
+        ! Get surface shape functions
+        shape_bdy = face_shape( positions, sele )
+        ! Construct RHS surface integral
+        rhs = shape_rhs( shape_bdy, detwei_bdy ) * 2.0 * kk%val(i) * EV%val(i) * dkdn**2.0
+    end do
 
-    ! grab hold of some essential fields
-    positions => extract_vector_field(state, "Coordinate")
-    kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
-    eps       => extract_scalar_field(state, "TurbulentDissipation")
-    ewrite(1,*) "eps bc count: ", get_boundary_condition_count(eps)
-
-    ewrite(1,*) "Get boundary condition"
-    do bcs=1, get_boundary_condition_count(eps)
-        call get_boundary_condition(field=eps, n=bcs, type=bc_type, &
-                               surface_node_list=surface_node_list, &
-                               surface_element_list=surface_element_list)
-        ewrite(1,*) "tke bc type: ",bc_type
-        select case(bc_type)
-        case("Dirichlet")
-
-            do i=1,NNodes_sur
-                call set(surface_eps_values, i, 0.0)
-
-!        do i = 1, size(surface_element_list)
-!            sele = surface_element_list(i)
-!            ele  = face_ele(positions, sele)
-!            kk%val = sqrt(kk%val)
-
-            ! Calculate the k gradient w.r.t. the boundary normal at surface element sele:
-!            call gradient_surface_ele(kk, positions, ele, sele, dkdn )
-!            ewrite(1,*) "dkdn(i):", (i), (dkdn)
-
-!            dkdn = dkdn**2.
-!            dkdn = 2. * EV%val * dkdn
-!            eps_bdy = 0
-
-!            do j=1,size(dkdn)
-!                eps_bdy = eps_bdy + dkdn(j)**2.
-!            end do
-
-!            eps_bdy = sqrt(eps_bdy)
-!            call set(surface_eps_values, sele, eps_bdy )
+!.....................................
 
             ! copy the boundary values onto the mesh using the global node id
-                call set(eps, surface_node_list(i), surface_eps_values%val(i))
-            end do
-
-        case default
-            FLAbort('Unknown surface BC for TurbulentDissipation')
-        end select
-    end do
+            !call set(eps, surface_node_list(i), surface_eps_values%val(i))
+        !end do
+    !case default
+        !FLAbort('Unknown surface BC for TurbulentDissipation')
+    !end select
 
 end subroutine eps_bc
 
