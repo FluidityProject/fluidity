@@ -1048,32 +1048,6 @@ type(scalar_field), optional, intent(in) :: exact
       
 end subroutine petsc_solve_setup_petsc_csr
 
-subroutine petsc_solve_copy_vectors_from_array(y, b,  x, rhs,  petsc_numbering, startfromzero)
-Vec, intent(inout):: y, b
-real, dimension(:), intent(in):: x, rhs
-type(petsc_numbering_type), intent(in):: petsc_numbering
-logical, intent(in):: startfromzero
-
-  ewrite(1, *) 'Assembling RHS.'
-  
-  ! create PETSc vec for rhs using above numbering:
-  call array2petsc(rhs, petsc_numbering, b)
-  
-  ewrite(1, *) 'RHS assembly completed.'
-
-  if (.not. startfromzero) then
-    
-    ewrite(1, *) 'Assembling initial guess.'
-
-    ! create PETSc vec for initial guess and result using above numbering:
-    call array2petsc(x, petsc_numbering, y)
-
-    ewrite(1, *) 'Initial guess assembly completed.'
-    
-  end if
-  
-end subroutine petsc_solve_copy_vectors_from_array
-
 subroutine petsc_solve_copy_vectors_from_scalar_fields(y, b,  x, matrix, rhs,  petsc_numbering, startfromzero)
 Vec, intent(inout):: y, b
 type(scalar_field), target, intent(in):: x, rhs
@@ -1087,6 +1061,7 @@ logical, intent(in):: startfromzero
   
   ewrite(1, *) 'Assembling RHS.'  
   
+  call profiler_tic(x, "field2petsc")
   if (present(matrix)) then
     inactive_mask => get_inactive_mask(matrix)
   else
@@ -1145,6 +1120,7 @@ logical, intent(in):: startfromzero
     ewrite(1, *) 'Initial guess assembly completed.'
     
   end if
+  call profiler_toc(x, "field2petsc")
   
 end subroutine petsc_solve_copy_vectors_from_scalar_fields
 
@@ -1154,6 +1130,7 @@ type(vector_field), intent(in):: x, rhs
 type(petsc_numbering_type), intent(in):: petsc_numbering
 logical, intent(in):: startfromzero
 
+  call profiler_tic(x, "field2petsc")
   ewrite(1, *) 'Assembling RHS.'
   
   ! create PETSc vec for rhs using above numbering:
@@ -1171,6 +1148,7 @@ logical, intent(in):: startfromzero
     ewrite(1, *) 'Initial guess assembly completed.'
     
   end if
+  call profiler_toc(x, "field2petsc")
   
 end subroutine petsc_solve_copy_vectors_from_vector_fields
 

@@ -37,6 +37,7 @@ module Petsc_Tools
   use halos_communications
   use halos_numbering
   use Reference_Counting
+  use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
   use petscvec 
@@ -698,19 +699,23 @@ contains
 #ifdef DOUBLEP
     do b=1, nfields
       
+      call profiler_tic(fields(b), "petsc2field")
       call VecGetValues(vec, nnodp, &
         petsc_numbering%gnn2unn( 1:nnodp, b ), &
         fields(b)%val( 1:nnodp ), ierr)
+      call profiler_toc(fields(b), "petsc2field")
         
     end do
 #else
     allocate(vals(nnodp))
     do b=1, nfields
       
+      call profiler_tic(fields(b), "petsc2field")
       call VecGetValues(vec, nnodp, &
         petsc_numbering%gnn2unn( 1:nnodp, b ), &
         vals, ierr)
       fields(b)%val( 1:nnodp ) = vals
+      call profiler_toc(fields(b), "petsc2field")
         
     end do
     deallocate(vals)
@@ -724,8 +729,10 @@ contains
        end if
        
        do b=1, nfields
+         call profiler_tic(fields(b), "petsc2field")
          call set(fields(b), petsc_numbering%ghost_nodes, &
             node_val(rhs(b), petsc_numbering%ghost_nodes))
+         call profiler_toc(fields(b), "petsc2field")
        end do
        
     end if        
@@ -736,9 +743,11 @@ contains
           ewrite(2, *) 'Updating of halo of multiple scalar fields needs to be improved.'
        end if
        do b=1, size(fields)
+          call profiler_tic(fields(b), "petsc2field")
           ! Always update on the level 2 halo to ensure that the whole
           ! field is well defined.
           call halo_update(fields(b), 2)
+          call profiler_toc(fields(b), "petsc2field")
        end do
     end if
 
@@ -792,12 +801,14 @@ contains
     b=1
     do i=1, size(fields)
       
+      call profiler_tic(fields(i), "petsc2field")
       do j=1, fields(i)%dim
          call VecGetValues(vec, nnodp, &
            petsc_numbering%gnn2unn( 1:nnodp, b ), &
            fields(i)%val(j)%ptr( 1:nnodp ), ierr)
          b=b+1
       end do
+      call profiler_toc(fields(i), "petsc2field")
         
     end do
 #else
@@ -805,6 +816,7 @@ contains
     b=1
     do i=1, size(fields)
       
+      call profiler_tic(fields(i), "petsc2field")
       do j=1, fields(i)%dim
          call VecGetValues(vec, nnodp, &
            petsc_numbering%gnn2unn( 1:nnodp, b ), &
@@ -812,6 +824,7 @@ contains
          fields(i)%val(j)%ptr( 1:nnodp ) = vals
          b=b+1
       end do
+      call profiler_toc(fields(i), "petsc2field")
         
     end do
     deallocate(vals)
@@ -823,7 +836,9 @@ contains
        do i=1, size(fields)
           ! Always update on the level 2 halo to ensure that the whole
           ! field is well defined.
+          call profiler_tic(fields(i), "petsc2field")
           call halo_update(fields(i), 2)
+          call profiler_toc(fields(i), "petsc2field")
        end do
     end if
 
