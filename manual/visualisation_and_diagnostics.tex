@@ -238,7 +238,7 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[Displacement :] Displacement    
  \item[GalerkinProjection :] Galerkin projection of one field onto another mesh. The field must be in this material\_phase. NOTE: you need the solver options if the meshof this field is continuous.    
  \item[Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. Note that multiple projection methods are available (under the algorithm option).    
- \item[ImbalancedVelocity :] Compute the imbalanced component of velocity,that is,$u - u_{bal}$ where $u_{bal}$ is the velocity that puts the state in geostrophicbalance. Note: if your VelocityMesh is continuous, then the solver option is necessary.    
+ \item[ImbalancedVelocity :] Compute the imbalanced component of velocity,that is,$u - u_{bal}$ where $u_{bal}$ is the velocity that puts the state in geostrophicbalance. Note: needs to be on the same mesh as velocity. If this mesh is continous solver options are necessary.
  \item[BalancedVelocity :] Compute the balanced component of velocity,that is, the velocity that puts the state in geostrophicbalance. This diagnostic depends on ImbalancedVelocity.    
 \end{description}
 
