@@ -419,12 +419,19 @@ void BulkLoader::createLevel(
 			ExternalSorter::Record* pR;
 			Tools::SmartPointer<ExternalSorter> es3 = Tools::SmartPointer<ExternalSorter>(new ExternalSorter(pageSize, numberOfPages));
 			
-			for (uint64_t i = 0; i < S * b; ++i)
+			if(S * b > 0)
 			{
-				try { pR = es->getNextRecord(); }
-				catch (Tools::EndOfStreamException) { bMore = false; break; }
-				pR->m_s = dimension + 1;
-				es3->insert(pR);
+			  for (uint64_t i = 0; i < S * b; ++i)
+			  {
+				  try { pR = es->getNextRecord(); }
+				  catch (Tools::EndOfStreamException) { bMore = false; break; }
+				  pR->m_s = dimension + 1;
+				  es3->insert(pR);
+			  }
+			}
+			else
+			{
+			  bMore = false;
 			}
 			es3->sort();
 			createLevel(pTree, es3, dimension + 1, bleaf, bindex, level, es2, pageSize, numberOfPages);
