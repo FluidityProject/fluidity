@@ -145,12 +145,15 @@ For information on generating meshes in triangle format, see chapter
 \subsubsection{Deriving meshes from other meshes}
 \index{mesh!derived}
 The alternative to reading a mesh from a file is to derive it from another
-mesh. In the simplest case, this can be used to specify that one mesh is the
-same as another mesh. For example, since \option{CoordinateMesh} is linear
-and continuous, it is possible to specify that \option{VelocityMesh} will
-also be continuous and linear by selecting \option{from\_mesh} under
-\option{/geometry/mesh::VelocityMesh} and selecting
-\option{mesh::CoordinateMesh}\ under that.
+mesh. This is necessary when for instance we wish to derive a mesh with
+different continuity or elements from the original mesh. 
+For example, if we have a \option{CoordinateMesh} as our input mesh read 
+from file, it is possible to derive a \option{VelocityMesh} from it
+by adding \option{/geometry/mesh::VelocityMesh}, selecting 
+\option{from\_mesh} under it and there selecting
+\option{mesh::CoordinateMesh}. If nothing further is specified 
+under the new mesh, the derived mesh will be exactly the same as the mesh
+it is derived from.
 
 The more interesting case occurs where we wish to derive a mesh with
 different continuity or elements from the original mesh. To specify a
@@ -160,6 +163,19 @@ discontinuous mesh, under \option{\ldots/from\_mesh} enable
 Similarly, to specify a mesh with higher polynomial degree elements, enable
 \option{mesh\_shape} under \option{\ldots/from\_mesh} and set
 \option{polynomial\_degree}.
+
+Meshes with any name can be added. Only the name \option{CoordinateMesh} 
+is special, as it will be used to store the coordinates of the mesh. This 
+is also the only required mesh. \option{VelocityMesh} and \option{PressureMesh}
+are only provided as suggested names as quite often the pressure 
+and velocity fields need to be on a different mesh 
+than the coordinate mesh, e.g. for \PoDGPt. It is however 
+not required that the velocity is defined on a mesh with the name
+\option{VelocityMesh}, nor does the pressure field have to be on a mesh
+with the name \option{PressureMesh}. If for instance the mesh needed 
+for pressure is the same as your \option{CoordinateMesh}, e.g. 
+for \Poo or \Pzero\Pone, the pressure can be defined directly on
+the \option{CoordinateMesh} and no extra mesh is needed.
 
 \subsubsection{Periodic meshes}
 \index{mesh!periodic}
@@ -480,8 +496,12 @@ It is possible to swap \option{/io/dump\_period} for \option{/io/dump\_period\_i
 \index{mesh!output}
 
 All fields will be interpolated onto the same mesh for output. Usually the
-VelocityMesh is the right choice but it can be necessary to change this if,
-for example, the domain is periodic.
+CoordinateMesh is the right choice. If you have fields that are 
+higher order than the selected output mesh you will loose 
+accuracy. Interpolating all fields to a higher order mesh for output may give
+very large dump files however. If any 
+of the fields in the output is discontinous, the mesh in the output file
+will be a discontinuous version of the mesh selected here.
 
 \subsubsection{Disable dump at start}
 
