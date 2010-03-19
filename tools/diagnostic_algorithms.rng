@@ -182,11 +182,11 @@ this option to these these internal algorithms.</a:documentation>
       </attribute>
       <ref name="component_source_field"/>
       <element name="smoothing_length_scale">
-        <a:documentation>The characteristic length scale used by the smoother</a:documentation>
+        <a:documentation>The characteristic length scale used by the smoother.</a:documentation>
         <ref name="real_dim_symmetric_tensor"/>
       </element>
       <element name="solver">
-        <a:documentation>Linear solver options</a:documentation>
+        <a:documentation>Solver options.</a:documentation>
         <ref name="linear_solver_options_sym"/>
       </element>
     </element>

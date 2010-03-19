@@ -1313,9 +1313,7 @@ start =
                (
                   element prognostic {
                      # in the future this can be any mesh_choice:
-                     element mesh {
-                        attribute name { "PressureMesh" }
-                     },
+                     pressure_mesh_choice,
                      prognostic_pressure_field,
                      element profile {
                         empty
@@ -1323,9 +1321,7 @@ start =
                   }|
                   element prescribed {
                      # in the future this can be any mesh_choice:
-                     element mesh {
-                        attribute name { "PressureMesh" }
-                     },
+                     pressure_mesh_choice,
                      prescribed_scalar_field
                   }|
                   element aliased {
@@ -1369,15 +1365,11 @@ start =
                ## Field type
                (
                   element prognostic {
-                     element mesh {
-                        attribute name { "VelocityMesh" }
-                     },
+                     velocity_mesh_choice,
                      prognostic_velocity_field
                   }|
                   element prescribed {
-                     element mesh {
-                        attribute name { "VelocityMesh" }
-                     },
+                     velocity_mesh_choice,
                      prescribed_vector_field
                   }|
                   element aliased {
@@ -1959,12 +1951,12 @@ geometry =
          element mesh {
             attribute name { "VelocityMesh" },
             mesh_info
-         },
+         }?,
          ## The pressure mesh
          element mesh {
             attribute name { "PressureMesh" },
             mesh_info
-         },
+         }?,
          element mesh {
             attribute name { xsd:string },
             mesh_info,
@@ -3610,46 +3602,38 @@ mesh_choice =
       }
    )
 
-# Not really a choice, for fields that have to be on the velocity mesh
-# currently that's all scalar fields, except pressure
-# and of course velocity itself
-# If you want to implement scalar fields on other meshes, feel free to do so
-# but bare in mind you need to make sure the field stays outside RMEM.
-# Currently all scalar fields are packed in RMEM with length nonods
+# Same choices, but with VelocityMesh offered first
 velocity_mesh_choice =
    (
-      (
-         element mesh {
-            attribute name { "VelocityMesh" }
-         }|
-         element mesh {
-            attribute name { "PressureMesh" }
-         }|
-         element mesh {
-            attribute name { "CoordinateMesh" }
-         }|
-         element mesh {
-            attribute name { string }
-         }
-      )
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
    )
 
+# Same choices, but with PressureMesh offered first
 pressure_mesh_choice =
    (
-      (
-         element mesh {
-            attribute name { "PressureMesh" }
-         }|
-         element mesh {
-            attribute name { "VelocityMesh" }
-         }|
-         element mesh {
-            attribute name { "CoordinateMesh" }
-         }|
-         element mesh {
-            attribute name { string }
-         }
-      )
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
    )
 
 # This is the choice of additional scalar field to be solved for
@@ -3779,9 +3763,7 @@ scalar_field_choice =
                   # if this is no longer true, it should be option-checked to be on the
                   # same mesh as Pressure
                   ## Must be on the same mesh as Pressure
-                  element mesh {
-                     attribute name { "PressureMesh" }
-                  },
+                  pressure_mesh_choice,
                   diagnostic_scalar_field
                }
                
@@ -3837,9 +3819,7 @@ scalar_field_choice =
                   ## Note that this is not the quadratic mesh balance pressure is
                   ## actually calculated on, but the linear mesh it is projected back
                   ## on for output purposes.
-                  element mesh {
-                     attribute name {  "VelocityMesh" }
-                  },
+                  velocity_mesh_choice,
                   prognostic_balance_pressure_field
                }
             )
@@ -4606,9 +4586,7 @@ scalar_field_choice =
             attribute name { "GridReynoldsNumber" },
             (element diagnostic {
                internal_algorithm,
-               element mesh {
-                  attribute name { "VelocityMesh" }
-               },
+               velocity_mesh_choice,
                diagnostic_scalar_field
             }
             | element aliased { generic_aliased_field })
@@ -5643,9 +5621,7 @@ vector_field_choice =
                   #   attribute material_phase_support { "single" },
                   #   attribute source_field_name { "Velocity" }
                   #},
-                  element mesh {
-                     attribute name { "VelocityMesh" }
-                  },
+                  velocity_mesh_choice,
                   diagnostic_vector_field
                }|
                element aliased {
@@ -6032,7 +6008,7 @@ vector_field_choice =
          ## u - u_bal
          ## where u_bal is the velocity that puts the state in geostrophic
          ## balance.
-         ## Note: if your VelocityMesh is continuous, then the solver option
+         ## Note: if your velocity mesh is continuous, then the solver option
          ## is necessary.
          element vector_field {
             attribute rank { "1" },

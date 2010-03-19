@@ -18,22 +18,6 @@
         </stat>
       </from_file>
     </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <mesh name="GeostrophicPressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -60,7 +44,7 @@
     <dump_period replaces="TIMDUM">
       <real_value rank="0">0.1</real_value>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -75,9 +59,9 @@
     </finish_time>
   </timestepping>
   <physical_parameters>
-    <coriolis replaces="OPTOME">
-      <f_plane replaces="OPTOME = 0">
-        <f replaces="OMEGA">
+    <coriolis>
+      <f_plane>
+        <f>
           <real_value rank="0">2.0</real_value>
         </f>
       </f_plane>
@@ -86,7 +70,7 @@
   <material_phase name="Water">
     <scalar_field name="Pressure" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
@@ -130,24 +114,9 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="whole_mesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -282,7 +251,7 @@
     <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -338,7 +307,7 @@
     <scalar_field name="GridReynoldsNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -355,7 +324,7 @@
     <vector_field name="ImbalancedVelocity" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
@@ -388,7 +357,7 @@
     <vector_field depends="ImbalancedVelocity" name="BalancedVelocity" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
           <include_in_stat/>

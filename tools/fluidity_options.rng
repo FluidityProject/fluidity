@@ -1736,11 +1736,7 @@ Recommended value (default): 1.3.</a:documentation>
                 <a:documentation>Field type</a:documentation>
                 <element name="prognostic">
                   <!-- in the future this can be any mesh_choice: -->
-                  <element name="mesh">
-                    <attribute name="name">
-                      <value>PressureMesh</value>
-                    </attribute>
-                  </element>
+                  <ref name="pressure_mesh_choice"/>
                   <ref name="prognostic_pressure_field"/>
                   <optional>
                     <element name="profile">
@@ -1750,11 +1746,7 @@ Recommended value (default): 1.3.</a:documentation>
                 </element>
                 <element name="prescribed">
                   <!-- in the future this can be any mesh_choice: -->
-                  <element name="mesh">
-                    <attribute name="name">
-                      <value>PressureMesh</value>
-                    </attribute>
-                  </element>
+                  <ref name="pressure_mesh_choice"/>
                   <ref name="prescribed_scalar_field"/>
                 </element>
                 <element name="aliased">
@@ -1819,19 +1811,11 @@ Recommended value (default): 1.3.</a:documentation>
             <choice>
               <a:documentation>Field type</a:documentation>
               <element name="prognostic">
-                <element name="mesh">
-                  <attribute name="name">
-                    <value>VelocityMesh</value>
-                  </attribute>
-                </element>
+                <ref name="velocity_mesh_choice"/>
                 <ref name="prognostic_velocity_field"/>
               </element>
               <element name="prescribed">
-                <element name="mesh">
-                  <attribute name="name">
-                    <value>VelocityMesh</value>
-                  </attribute>
-                </element>
+                <ref name="velocity_mesh_choice"/>
                 <ref name="prescribed_vector_field"/>
               </element>
               <element name="aliased">
@@ -2754,20 +2738,24 @@ This determines the order in which scalar_fields are solved for:
         </attribute>
         <ref name="mesh_info"/>
       </element>
-      <element name="mesh">
-        <a:documentation>The velocity mesh</a:documentation>
-        <attribute name="name">
-          <value>VelocityMesh</value>
-        </attribute>
-        <ref name="mesh_info"/>
-      </element>
-      <element name="mesh">
-        <a:documentation>The pressure mesh</a:documentation>
-        <attribute name="name">
-          <value>PressureMesh</value>
-        </attribute>
-        <ref name="mesh_info"/>
-      </element>
+      <optional>
+        <element name="mesh">
+          <a:documentation>The velocity mesh</a:documentation>
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+          <ref name="mesh_info"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="mesh">
+          <a:documentation>The pressure mesh</a:documentation>
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+          <ref name="mesh_info"/>
+        </element>
+      </optional>
       <zeroOrMore>
         <element name="mesh">
           <attribute name="name">
@@ -4798,14 +4786,7 @@ i.e. excluding the components</a:documentation>
       </element>
     </choice>
   </define>
-  <!--
-    Not really a choice, for fields that have to be on the velocity mesh
-    currently that's all scalar fields, except pressure
-    and of course velocity itself
-    If you want to implement scalar fields on other meshes, feel free to do so
-    but bare in mind you need to make sure the field stays outside RMEM.
-    Currently all scalar fields are packed in RMEM with length nonods
-  -->
+  <!-- Same choices, but with VelocityMesh offered first -->
   <define name="velocity_mesh_choice">
     <choice>
       <element name="mesh">
@@ -4830,6 +4811,7 @@ i.e. excluding the components</a:documentation>
       </element>
     </choice>
   </define>
+  <!-- Same choices, but with PressureMesh offered first -->
   <define name="pressure_mesh_choice">
     <choice>
       <element name="mesh">
@@ -5010,12 +4992,9 @@ of the free surface elevation.</a:documentation>
             if this is no longer true, it should be option-checked to be on the
             same mesh as Pressure
           -->
-          <element name="mesh">
+          <ref name="pressure_mesh_choice">
             <a:documentation>Must be on the same mesh as Pressure</a:documentation>
-            <attribute name="name">
-              <value>PressureMesh</value>
-            </attribute>
-          </element>
+          </ref>
           <ref name="diagnostic_scalar_field"/>
         </element>
       </element>
@@ -5085,14 +5064,11 @@ of the free surface elevation.</a:documentation>
             of the mesh, this is because of restrictions of the
             current code, will change in the near future.
           -->
-          <element name="mesh">
+          <ref name="velocity_mesh_choice">
             <a:documentation>Note that this is not the quadratic mesh balance pressure is
 actually calculated on, but the linear mesh it is projected back
 on for output purposes.</a:documentation>
-            <attribute name="name">
-              <value>VelocityMesh</value>
-            </attribute>
-          </element>
+          </ref>
           <ref name="prognostic_balance_pressure_field"/>
         </element>
       </element>
@@ -6028,11 +6004,7 @@ for the equation of state of all materials.</a:documentation>
         <choice>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>VelocityMesh</value>
-              </attribute>
-            </element>
+            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -7334,12 +7306,9 @@ Field must be in this material_phase.</a:documentation>
                 attribute source_field_name { "Velocity" }
               },
             -->
-            <element name="mesh">
+            <ref name="velocity_mesh_choice">
               <a:documentation>Relative vorticity</a:documentation>
-              <attribute name="name">
-                <value>VelocityMesh</value>
-              </attribute>
-            </element>
+            </ref>
             <ref name="diagnostic_vector_field"/>
           </element>
           <element name="aliased">
@@ -7816,7 +7785,7 @@ that is,
 u - u_bal
 where u_bal is the velocity that puts the state in geostrophic
 balance.
-Note: if your VelocityMesh is continuous, then the solver option
+Note: if your velocity mesh is continuous, then the solver option
 is necessary.</a:documentation>
         <attribute name="rank">
           <value>1</value>

@@ -786,9 +786,9 @@ contains
       end if
       
       if (have_free_surface) then
-        ewrite(2,*) "With the free surface you need to subtract out the hydrostatic level"
+         ewrite(2,*) "You have a free surface, checking its options"
       end if
-        
+      
       ! first check we're using the new code path (cg_test or dg)
       if (have_free_surface .and. .not. have_option(trim(option_path)// &
            '/spatial_discretisation/continuous_galerkin') .and. &
@@ -799,6 +799,12 @@ contains
       end if
 
       ! check pressure options
+      ! first check we have a progn. pressure at all
+      if (have_free_surface .and. .not. have_option(pressure_path)) then
+         ewrite(-1,*) "With the free_surface boundary condition"
+         FLExit("You need a prognostic pressure")
+      end if
+      
       if (have_free_surface .and. .not. have_option(trim(pressure_path)// &
         '/spatial_discretisation/continuous_galerkin/integrate_continuity_by_parts')) then
          ewrite(-1,*) "With the free_surface boundary condition"
