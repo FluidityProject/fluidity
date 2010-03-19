@@ -24,6 +24,9 @@ IMAGES=geometry_dimension mesh_name \
 ./visualisation_and_diagnostics_images/Paraview-subwindows \
 ./visualisation_and_diagnostics_images/diamond_enable_stat  
 
+EPS_IMAGES=./examples_images/rotating_channel/analytic_solution \
+./examples_images/rotating_channel/convergence 
+
 CHAPTERS=getting_started model_physics numerical_discretisation parameterisations \
 adaptivity mesh_generation configuring_fluidity external_libraries trouble_shooting \
 parallel mathematical_notation about visualisation_and_diagnostics examples \
@@ -36,6 +39,7 @@ fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .pdftex_t, $(XFIG_IMAGES)) \
 	$(addsuffix _tex.pdf, $(XFIG_IMAGES))  \
 	$(addsuffix .pdf, $(IMAGES))  \
+	$(addsuffix .eps, $(EPS_IMAGES))  \
 	bibliography.bib
 
 fluidity_manual.html: fluidity_manual.tex notation.tex\

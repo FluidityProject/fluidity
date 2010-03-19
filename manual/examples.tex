@@ -785,8 +785,8 @@ of turbulence parameterisations and here will be used to examine this in additio
 adaptivity to simulate this problem.
 
 The reattachment length was defined here to be the length
-from the step at which the zero-isosurface of the $x$-component of $\bar{u}$ intersects with
-the bottom boundary. This quantity was computed from $\bar{u}$
+from the step at which the zero-isosurface of the $x$-component of $\vec{u}$ intersects with
+the bottom boundary. This quantity was computed from $\vec{u}$
 using the VTK library. For the simulation described, the reattachment
 length was approximately 10 times the step height, which is consistent with the value
 given in the literature \cite{le1997}.
@@ -797,6 +797,120 @@ repeating the experiment for a range of Reynolds numbers and comparing the reatt
 length of multiple model runs. It may be seen that pseudo-supermeshing is an efficient
 method to produce a common mesh suitable for the interpolation of fields from multiple
 meshes, such as is necessary in time-averaging.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------CHANNEL------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Rotating periodic channel}
+\label{sect:periodic_channel}
+
+\subsection{Overview}
+
+This problem provides a convergence test for the \PoDGPt\ element pair.
+Utilising almost all the terms of the incompressible equations in two
+dimensions.
+
+The domain is a unit square which is periodic in the zonal direction. The
+North and South boundaries are zero slip (i.e. $\vec{u}=0$). The remaining
+parameters are as follows:
+
+\begin{tabular}{lll}
+  Coriolis parameter & $f$ & $1$ \\
+  Viscosity & $\nu$ & $1$ 
+\end{tabular}
+
+The flow is driven by a velocity source term:
+\begin{equation}
+  \vec{F}=
+  \begin{bmatrix}
+    y^3 \\
+    0
+  \end{bmatrix}
+\end{equation}
+
+So the whole system of equations becomes:
+\begin{gather}
+  \ppt{u}+u\ppt[x]{u}-v=-\grad p +y^3\\
+  \ppt{v}+v\ppt[y]{v}+u=-\grad p \\
+  \div\vec{u}=0
+\end{gather}
+
+This system has a steady solution at:
+\begin{gather}
+  \vec{u}=
+  \begin{bmatrix}
+    \frac{1}{20}(y-y^5)\\
+    0
+  \end{bmatrix}\\
+  p=\frac{1}{120}y^6-\frac{1}{40}y^2+C
+\end{gather}
+Where $C$ is an arbitrary constant resulting from the use of Dirichlet
+boundary conditions on both the domain boundaries.
+
+Since the maximum velocity in the domain is approximately 0.025, the
+Reynolds number for this solution is much smaller than 1 so the flow is
+safely within the laminar regime and will remain steady. Figure
+\ref{fig:periodic_channel}\ shows the forcing term for velocity and the
+analytic solutions for velocity and pressure.
+
+
+\begin{figure}[ht]
+  \centering
+  \onlypdf{\begin{pdfdisplay}}
+    \psfrag{u source}{$\vec{u}$ source}
+    \psfrag{u solution}{$\vec{u}$ solution}
+    \psfrag{p solution}{$p$ solution}
+    \psfrag{0}{0}
+    \psfrag{0.2}{0.2}
+    \psfrag{0.4}{0.4}
+    \psfrag{0.5}{0.5}
+    \psfrag{0.2}{0.6}
+    \psfrag{0.8}{0.8}
+    \psfrag{1}{1}
+    \psfrag{y}{$y$}
+    \psfrag{-0.01}{-0.01}
+    \psfrag{-0.02}{-0.02}
+    \psfrag{0.01}{0.01}
+    \psfrag{0.02}{0.02}
+    \psfrag{0.03}{0.03}
+    \includegraphics[width=1.1\textwidth]{examples_images/rotating_channel/analytic_solution.eps}
+  \onlypdf{\end{pdfdisplay}}
+  \caption{Velocity forcing term and analytic solutions for velocity and
+    pressure for the rotating periodic channel test case. Note that each of
+    these quantities is constant in the $x$ direction.}
+  \label{fig:periodic_channel}
+\end{figure}
+
+The convergence test is conducted by repeating this simulation on unstructured meshes
+with typical resolution $1/4$, $1/8$, $1/16$, $1/32$, $1/64$. The results
+are then compared to the analytic solution. In the case of pressure, the
+answer is translated to account for the arbitrary constant. Figure
+\ref{fig:periodic_channel_error}\ shows the $\textrm{L}^2$ error for
+velocity and pressure. It is apparent that both quantities converge at
+second order.
+
+\begin{figure}[ht]
+  \centering
+  \onlypdf{\begin{pdfdisplay}}
+    \psfrag{u error}{$\vec{u}$ error}
+    \psfrag{p error}{$p$ error}
+    \psfrag{O\(dx^2\)}{$O(\d x^2)$}
+    \psfrag{dx}{$\d x$}
+    \psfrag{1.0e+00}{\small\hspace{1em}$1$}
+    \psfrag{1.0e-01}{\small\hspace{1em}$10^{-1}$}
+    \psfrag{1.0e-02}{\small\hspace{1em}$10^{-2}$}
+    \psfrag{1.0e-03}{\small\hspace{1em}$10^{-3}$}
+    \psfrag{1.0e-04}{\small\hspace{1em}$10^{-4}$}
+    \psfrag{1.0e-05}{\small\hspace{1em}$10^{-5}$}
+    \psfrag{1.0e-06}{\small\hspace{1em}$10^{-6}$}
+    \includegraphics[width=1.1\textwidth]{examples_images/rotating_channel/convergence.eps}
+  \onlypdf{\end{pdfdisplay}}  
+  \caption{Error in the pressure and velocity solutions for the rotating channel as a function of resolution.}
+  \label{fig:periodic_channel_error}
+\end{figure}
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -818,7 +932,8 @@ Matt Piggott
 \subsection{Overview}
 In this problem the unsteady velocity field in the domain $\Omega = L\times L$
 ($L=1000\,\textrm{km}$) driven by a constant
-wind stress is computed.
+wind s
+tress is computed.
 The two-dimensional constant density Navier-Stokes equations in the following form are considered.
 
 \subsection{Configuration}

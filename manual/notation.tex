@@ -23,6 +23,9 @@
 % This is for matrices in the discrete system.
 \newcommand{\mat}[1]{\mathrm{#1}}
 
+\renewcommand{\div}{\nabla\cdot}
+\newcommand{\grad}{\nabla}
+\newcommand{\curl}{\nabla\cross}
 
 \DeclareMathOperator{\sgn}{sgn}
 \newtheorem{thm}{Theorem}[section]
@@ -97,7 +100,7 @@
 \newcommand{\Pthree}{\ensuremath{P_3} }
 \newcommand{\PN}{\ensuremath{P_N} }
 \newcommand{\Poo}{\ensuremath{P_1P_1} }
-\newcommand{\PoDGPt}{\ensuremath{P_{-1}P_2} }
+\newcommand{\PoDGPt}{\ensuremath{P_{1\mathrm{DG}}P_2} }
 
 \newcommand{\metric}{\tensor{M}}
 \newcommand{\configureflag}[1]{\texttt{#1}}
