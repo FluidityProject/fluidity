@@ -327,10 +327,6 @@ void BulkLoader::bulkLoadUsingSTR(
 	NodePtr n = pTree->readNode(pTree->m_rootID);
 	pTree->deleteNode(n.get());
 
-	#ifndef NDEBUG
-	std::cerr << "RTree::BulkLoader: Sorting data." << std::endl;
-	#endif
-
 	Tools::SmartPointer<ExternalSorter> es = Tools::SmartPointer<ExternalSorter>(new ExternalSorter(pageSize, numberOfPages));
 
 	while (stream.hasNext())
@@ -354,10 +350,6 @@ void BulkLoader::bulkLoadUsingSTR(
 
 	while (true)
 	{
-		#ifndef NDEBUG
-		std::cerr << "RTree::BulkLoader: Building level " << level << std::endl;
-		#endif
-
 		pTree->m_stats.m_nodesInLevel.push_back(0);
 
 		Tools::SmartPointer<ExternalSorter> es2 = Tools::SmartPointer<ExternalSorter>(new ExternalSorter(pageSize, numberOfPages));

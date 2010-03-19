@@ -50,9 +50,6 @@ namespace Tools
 				delete x;
 			}
 
-			#ifndef NDEBUG
-			std::cerr << "Lost pointers: " << m_pointerCount << std::endl;
-			#endif
 		}
 
 		PoolPointer<SpatialIndex::MVRTree::Node> acquire()

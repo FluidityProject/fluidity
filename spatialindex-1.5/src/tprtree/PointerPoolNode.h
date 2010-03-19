@@ -49,10 +49,6 @@ namespace Tools
 				#endif
 				delete x;
 			}
-
-			#ifndef NDEBUG
-			std::cerr << "Lost pointers: " << m_pointerCount << std::endl;
-			#endif
 		}
 
 		PoolPointer<TPRTree::Node> acquire()
