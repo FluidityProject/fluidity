@@ -45,7 +45,7 @@ subroutine test_generate_layered_mesh_2d
   full_shape = make_element_shape(vertices = 3, dim =2, degree=1, quad=quad)
   call deallocate(quad)
   call combine_z_meshes(h_mesh, z_meshes, out_mesh, &
-    full_shape, "Mesh")
+    full_shape, "Mesh", option_path="")
   
   fail = node_count(out_mesh) /= 9
   call report_test("[out_mesh: node_count]", fail, .false., "Should be 9")
