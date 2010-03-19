@@ -33,7 +33,6 @@ module vorticity_diagnostics
   use field_derivatives
   use fields
   use fldebug
-  use global_parameters
   use state_fields_module
   use state_module
 
@@ -81,14 +80,14 @@ contains
       positions_remap = positions
       call incref(positions_remap)
     else
-      call allocate(positions_remap, positions%dim, positions%mesh, positions%name)
+      call allocate(positions_remap, positions%dim, vort_field%mesh, positions%name)
       call remap_field(positions, positions_remap)
     end if
     
     call zero(vort_field)
     do i = 1, node_count(vort_field)
       call set(vort_field,  W_, i, &
-           sum(coriolis(spread(node_val(positions, i), 1, 1)), 1))
+           sum(coriolis(spread(node_val(positions, i), 0, 1)), 1))
     end do
     
     call deallocate(positions_remap)
