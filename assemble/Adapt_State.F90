@@ -97,6 +97,8 @@ contains
       FLAbort("Locking faces not implemented for 3D so far")
     end if
 
+    assert(.not. mesh_periodic(old_positions))
+
     select case(old_positions%dim)
       case(1)
         call adapt_mesh_1d(old_positions, metric, new_positions, &
@@ -140,7 +142,7 @@ contains
     logical :: can_exit
     integer :: face
     type(integer_set) :: aliased_nodes, eles_to_add
-    integer :: new_colour
+    integer :: new_physical_colour, new_aliased_colour
     integer :: front_face_count, existing_face_count
     integer, dimension(:), allocatable :: sndgln, boundary_ids, element_owners
     integer :: floc
@@ -162,6 +164,8 @@ contains
 
     intermediate_positions = old_positions
     call incref(intermediate_positions)
+
+    assert(metric%dim == old_positions%dim)
     intermediate_metric = metric
     call incref(metric)
 
@@ -342,8 +346,8 @@ contains
       ! Step f). Colour those faces on either side of the new cut
 
       ! Choose a new colour that isn't used
-      ! new_colour+1 will be used for the aliased side, and new_colour for the physical side
-      new_colour = maxval(intermediate_positions%mesh%faces%boundary_ids) + 1
+      new_physical_colour = maxval(intermediate_positions%mesh%faces%boundary_ids) + 1
+      new_aliased_colour = new_physical_colour + 1
       ! the only forward-compatible way of doing this is to fetch the information from
       ! the current faces into the primitive data structures, and then re-call add_faces
       ! fixme: for mixed meshes
@@ -389,13 +393,13 @@ contains
             if (j <= 0) cycle
             if (node_val(front_field, j) /= 1.0) then
               face = ele_face(intermediate_positions, ele, j)
-              boundary_ids(l) = new_colour
+              boundary_ids(l) = new_physical_colour
               element_owners(l) = ele
               sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
               l = l + 1
 
               face = ele_face(intermediate_positions, j, ele)
-              boundary_ids(l) = new_colour + 1
+              boundary_ids(l) = new_aliased_colour
               element_owners(l) = j
               sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
               l = l + 1
@@ -420,8 +424,8 @@ contains
       ! Step g). Unwrap again
       ! We need to fiddle with the options tree to mark the aliased and physical surface IDs appropriately
       ! fixme: do I need the __value here?
-      call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids/', (/physical_colours, new_colour/))
-      call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids/', (/aliased_colours, new_colour+1/))
+      call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids/', (/physical_colours, new_physical_colour/))
+      call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids/', (/aliased_colours, new_aliased_colour/))
 
       unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path), & 
                                 aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
@@ -444,7 +448,7 @@ contains
         end if
       end do
       do ele=1,surface_element_count(unwrapped_positions_A)
-        if (surface_element_id(unwrapped_positions_A, ele) == new_colour) then
+        if (surface_element_id(unwrapped_positions_A, ele) == new_physical_colour) then
           call insert(front_face_nodes, face_global_nodes(unwrapped_positions_A, ele))
         end if
       end do
@@ -557,7 +561,7 @@ contains
         do j=1,node_count(intermediate_positions)
           tmp_bbox(:, 1) = node_val(intermediate_positions, j)
           tmp_bbox(:, 2) = node_val(intermediate_positions, j)
-          if (.not. bbox_predicate(domain_bbox, tmp_bbox)) then
+          if (.not. bbox_predicate(domain_bbox(1:intermediate_positions%dim, :), tmp_bbox)) then
             call insert(nodes_to_map, j)
           end if
         end do
@@ -584,7 +588,7 @@ contains
         do j=1,key_count(nodes_to_map)
           tmp_bbox(:, 1) = aliased_positions(:, j)
           tmp_bbox(:, 2) = aliased_positions(:, j)
-          if (bbox_predicate(domain_bbox, tmp_bbox)) then
+          if (bbox_predicate(domain_bbox(1:intermediate_positions%dim, :), tmp_bbox)) then
             eles => row_m_ptr(nelist, fetch(nodes_to_map, j))
             do k=1,size(eles)
               call set(front_field, eles(k), 1.0)
@@ -632,10 +636,10 @@ contains
         call allocate(old_physical_nodes)
         existing_face_count = 0
         do j=1,surface_element_count(intermediate_positions)
-          if (surface_element_id(intermediate_positions, j) == new_colour) then
+          if (surface_element_id(intermediate_positions, j) == new_physical_colour) then
             call insert(new_physical_faces, j)
             call insert(old_physical_nodes, face_global_nodes(intermediate_positions, j))
-          else if (surface_element_id(intermediate_positions, j) == new_colour+1) then
+          else if (surface_element_id(intermediate_positions, j) == new_aliased_colour) then
             call insert(new_aliased_faces, j)
           else
             existing_face_count = existing_face_count + 1
@@ -693,9 +697,9 @@ contains
 
         l = 1
         do j=1,surface_element_count(intermediate_positions)
-          if (surface_element_id(intermediate_positions, j) == new_colour) then
+          if (surface_element_id(intermediate_positions, j) == new_physical_colour) then
             cycle
-          else if (surface_element_id(intermediate_positions, j) == new_colour+1) then
+          else if (surface_element_id(intermediate_positions, j) == new_aliased_colour) then
             cycle
           else
             boundary_ids(l) = surface_element_id(intermediate_positions, j)
@@ -708,13 +712,13 @@ contains
 
         do j=1,key_count(new_physical_faces)
           face = fetch(new_physical_faces, j)
-          boundary_ids(l) = new_colour
+          boundary_ids(l) = new_physical_colour
           element_owners(l) = face_ele(intermediate_positions, face)
           sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
           l = l + 1
 
           face = fetch(new_aliased_faces, j)
-          boundary_ids(l) = new_colour + 1
+          boundary_ids(l) = new_aliased_colour
           element_owners(l) = face_ele(intermediate_positions, face)
           sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
           l = l + 1
