@@ -1,5 +1,7 @@
 XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
-./examples_images/sediment/bathymetry
+./examples_images/sediment/bathymetry \
+./configuring_fluidity_images/periodic_domain
+
 
 IMAGES=geometry_dimension mesh_name \
 ./examples_images/lock_exchange/le_basic_0_mesh_nice \

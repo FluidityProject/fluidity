@@ -178,19 +178,49 @@ for \Poo or \Pzero\Pone, the pressure can be defined directly on
 the \option{CoordinateMesh} and no extra mesh is needed.
 
 \subsubsection{Periodic meshes}
-\index{mesh!periodic}
-\index{periodic domain}
-Periodic meshes are those that are ``virtually'' connected in one or more directions. To make a periodic mesh you must first
-create a triangle file where the edges that are periodic can be mapped exactly by a simple transformation. For example,
-if the mesh is periodic in the X-direction, the two edges must have nodes at exactly the same height on each side. This
-can be easily accomplished using the create\_aligned\_mesh script in the scripts folder.
+\index{mesh!periodic} \index{periodic domain} Periodic meshes are those that
+are ``virtually'' connected in one or more directions. To make a periodic
+mesh you must first create a triangle file where the edges that are periodic
+can be mapped exactly by a simple transformation. For example, if the mesh
+is periodic in the X-direction, the two edges must have nodes at exactly the
+same height on each side. This can be easily accomplished using the
+create\_aligned\_mesh script in the scripts folder.
 
-In Diamond, a periodic mesh can now be formed. Add a new mesh under \option{/geometry/mesh}. 
-Select \option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn on\onlypdf\linebreak
-\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension that is periodic. There are three fields that need to be completed: the surface IDs of one side, the surface IDs of the opposite side and a python function (\option{coordinate\_map}) which contains the necessary mapping function.
+To specify a periodic domain in Diamond, add a new mesh under
+\option{/geometry/mesh}.  Select \onlypdf\linebreak
+\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
+on \onlypdf\\
+\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
+that is periodic. There are three fields that need to be completed: the
+surface IDs of one side, the surface IDs of the opposite side and a python
+function (\option{coordinate\_map}) which contains the necessary mapping
+function.
+
+For example, suppose that the domain is the unit square shown in figure
+\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
+designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
+\emph{aliased boundary}. We therefore enter 1 in
+\option{\ldots/physical\_boundary\_ids}\ and 2 in
+\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
+takes a point on the \emph{aliased}\ boundary to the corresponding point on
+the \emph{physical}\ boundary. In this case, the appropriate function is:
+\begin{lstlisting}[language=Python]
+def val(X,t):
+    result = list(X)
+    result[0]=result[0]-1.0
+    return result
+\end{lstlisting}
+
+\begin{figure}[ht]
+  \centering
+  \xfig{configuring_fluidity_images/periodic_domain}
+  \caption{Periodic unit square with surface IDs 1-4 shown.}
+  \label{fig:periodic}
+\end{figure}
 
 Meshes that are required to be periodic can now be derived from this periodic mesh.
 
+\index{Zoltan}\index{parallel!periodic domains}
 Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
 
 \begin{lstlisting}[language=bash]
@@ -485,7 +515,8 @@ It is not usually necessary to change the settings for either of the scalar fiel
 These options control the frequency and form of model outputs.
 \subsubsection{Dump format}
 \index{vtk}
-Whether to dump vtk files or the old fluidity dumpfiles. Unless you know there is a particular reason to choose the old mechanism, set this to vtk. Support for dumpfiles will be dropped at some point in the future. 
+The file format of used to output fields to disk. At this stage, vtu is the
+only allowed format.
 
 \subsubsection{Dump period}
 This is the interval between the state fields being output to disk. You should usually start by setting this to a rather low value (possibly as short as your timestep) for testing and then increase it for production runs once you know your configuration works.
