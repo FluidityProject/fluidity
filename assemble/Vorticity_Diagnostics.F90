@@ -87,7 +87,7 @@ contains
     call zero(vort_field)
     do i = 1, node_count(vort_field)
       call set(vort_field,  W_, i, &
-           sum(coriolis(spread(node_val(positions, i), 0, 1)), 1))
+           sum(coriolis(spread(node_val(positions, i), 2, 1)), 1))
     end do
     
     call deallocate(positions_remap)
