@@ -65,6 +65,7 @@ subroutine test_adapt_state_3d
   call insert(state, mesh_field, "Coordinate")
 
   adaptivity_mesh_name = "CoordinateMesh"
+  topology_mesh_name = "CoordinateMesh"
 
   call deallocate(state_read)
 
