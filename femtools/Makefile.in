@@ -340,7 +340,7 @@ Full_Projection.o: Solvers.o Petsc_Tools.o Multigrid.o Fields_Base.o Sparse_Tool
 Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
   Fields_Base.o Reference_count_petsc_numbering_type.F90 Fields_Manipulation.o \
   Halo_Data_Types.o Halos_Base.o Reference_Counting.o Halos_Communications.o \
-  Halos_Numbering.o Parallel_Tools.o Profiler.o
+  Halos_Numbering.o Parallel_Tools.o Profiler_Fortran.o
 
 Coordinates.o: Vector_Tools.o Fields.o
 
