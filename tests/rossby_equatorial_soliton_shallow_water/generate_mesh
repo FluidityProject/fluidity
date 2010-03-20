@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+from optparse import OptionParser
+import sys
+
+#####################################################################
+# Script starts here.
+optparser=OptionParser(usage='usage: %prog [options] dx',
+                       add_help_option=True,
+                       description="""Generate the mesh files for a given"""+
+		       """element size dx in the unit square.""")
+
+(options, argv) = optparser.parse_args()
+
+try:
+    dx=float(argv[0])
+except:
+    optparser.print_help()
+    sys.exit(1)
+
+sys.path.append(".")
+
+import rossby
+
+rossby.generate_meshfile("channel",dx)
