@@ -749,7 +749,7 @@ contains
                 A=BLOCK5X5(node,:,:)
                 Bn(:,1)=BNEW(node,:)
 
-                call solve(A,Bn,info=lstat)
+                call solve(A,Bn,stat=lstat)
                 ugnew(node,:)=Bn(:,1)
                 
              end do
