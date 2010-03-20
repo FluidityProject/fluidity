@@ -95,17 +95,17 @@ contains
     b = b_tmp(:, 1)
   end subroutine solve_single
 
-  subroutine solve_multiple(A,B, info)
+  subroutine solve_multiple(A,B, stat)
     !!< Solve Ax=b for multiple right hand sides B putting the result in B.
     !!<
     !!< This is simply a wrapper for lapack.
     real, dimension(:,:), intent(in) :: A
     real, dimension(:,:), intent(inout) :: B
+    integer, optional, intent(out) :: stat
 
     real, dimension(size(A,1), size(A,2)) :: Atmp
     integer, dimension(size(A,1)) :: ipiv
-    integer, optional :: info
-    integer :: stat = 0
+    integer :: info
 
     interface 
 #ifdef DOUBLEP
@@ -123,7 +123,7 @@ contains
 #endif
     end interface
 
-    if (present(info)) info = 0
+    if (present(stat)) stat = 0
 
     ASSERT(size(A,1)==size(A,2))
     ASSERT(size(A,1)==size(B,1))
@@ -132,16 +132,16 @@ contains
 
 #ifdef DOUBLEP
     call dgesv(size(A,1), size(B,2), Atmp, size(A,1), ipiv, B, size(B,1),&
-         & stat)  
+         & info)  
 #else
     call sgesv(size(A,1), size(B,2), Atmp, size(A,1), ipiv, B, size(B,1),&
-         & stat)  
+         & info)  
 #endif
 
-    if (.not. present(info)) then
-      ASSERT(stat==0)
+    if (.not. present(stat)) then
+      ASSERT(info==0)
     else
-      info = stat
+      stat = info
     end if
 
   end subroutine solve_multiple
@@ -376,7 +376,7 @@ contains
     deallocate(work, A_temp)
   end subroutine eigendecomposition
 
-  subroutine eigendecomposition_symmetric(M, V, A)
+  subroutine eigendecomposition_symmetric(M, V, A, stat)
     !!<  M == matrix to decompose
     !!<  V == matrix whose columns are normalised eigenvectors
     !!<  A == vector of eigenvalues. Assumed to be real, as they will always be for what I want
@@ -385,6 +385,7 @@ contains
     real, dimension(:, :), intent(in) :: M
     real, dimension(:, :), intent(out) :: V
     real, dimension(:), intent(out) :: A
+    integer, optional, intent(out) :: stat
 
     integer :: info, i, j, dim
     real, dimension(3 * size(M,1)) :: work
@@ -402,6 +403,8 @@ contains
       END SUBROUTINE
     end interface
 
+    if(present(stat)) stat = 0
+
     dim = size(M, 1)
     do j=1,dim
       do i=1,j
@@ -415,10 +418,14 @@ contains
     call SSPEV('V', 'U', size(M, 1), AP, A, V, size(V, 1), work, info)
 #endif
 
-    if (info /= 0) then
-      ewrite(-1,*) "eigendecomposition_symmetric failed: matrix == ", transpose(M)
+    if(info /= 0) then
+      if(present(stat)) then
+        stat = info
+      else
+        ewrite(-1, *) "For matrix: ", transpose(M)
+        FLAbort("eigendecomposition_symmetric failed")
+      end if
     end if
-    assert(info == 0)
 
   end subroutine eigendecomposition_symmetric
 
