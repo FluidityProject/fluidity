@@ -5,8 +5,12 @@ module smoothing_module
   use sparse_tools
   use sparsity_patterns
   use solvers
-  use global_parameters
+  use global_parameters, only : OPTION_PATH_LEN
   implicit none
+  
+  private
+  
+  public :: smooth_scalar
 
   contains
 
@@ -31,7 +35,8 @@ module smoothing_module
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
          & field_in%mesh, name='HelmholtzSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzSmoothingMatrix")    
+    call allocate(M, M_sparsity, name="HelmholtzSmoothingMatrix")   
+    call deallocate(M_sparsity) 
     call zero(M)
     
     !allocate RHSFIELD
