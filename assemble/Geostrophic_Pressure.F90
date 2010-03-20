@@ -1968,7 +1968,9 @@ contains
       
       ! Insert the conservative potential gradient
       call allocate(old_grad_p, dim, old_u_mesh, trim(old_p%name) // "Gradient")
+      old_grad_p%option_path = old_res%option_path
       call allocate(new_grad_p, dim, new_u_mesh, trim(new_p%name) // "Gradient")
+      new_grad_p%option_path = old_grad_p%option_path
       ! We could compute this when computing old_res, but adding this here
       ! for now as this routine is complicated enough
       call compute_conservative(old_grad_p, matrices, old_p)
@@ -1980,10 +1982,12 @@ contains
       if(aux_p) then        
         ! Insert the Pressure gradient        
         call allocate(old_grad_aux_p, dim, old_u_mesh, trim(lold_aux_p%name) // "Gradient")
+        old_grad_aux_p%option_path = old_grad_p%option_path
         call compute_conservative(old_grad_aux_p, matrices, lold_aux_p)
         call insert(old_proj_state(1), old_grad_aux_p, old_grad_aux_p%name)
         
         call allocate(new_grad_aux_p, dim, new_u_mesh, trim(lnew_aux_p%name) // "Gradient")
+        new_grad_aux_p%option_path = old_grad_aux_p%option_path
         call zero(new_grad_aux_p)
         call insert(new_proj_state(1), new_grad_aux_p, new_grad_aux_p%name)
         call deallocate(old_grad_aux_p)
