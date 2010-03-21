@@ -18,22 +18,6 @@
         </stat>
       </from_file>
     </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <mesh name="GeostrophicPressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -60,7 +44,7 @@
     <dump_period_in_timesteps>
       <integer_value rank="0">5</integer_value>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <checkpointing>
       <checkpoint_period_in_dumps>
         <integer_value rank="0">50</integer_value>
@@ -142,7 +126,7 @@
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
@@ -201,7 +185,7 @@
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -347,7 +331,7 @@
     </vector_field>
     <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -500,7 +484,7 @@
     <scalar_field replaces="IDENT = -601" name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -554,7 +538,7 @@
     </scalar_field>
     <scalar_field name="StreamFunction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -585,7 +569,7 @@
     <vector_field name="TemperatureGradient" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>

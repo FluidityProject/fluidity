@@ -92,8 +92,6 @@ final_checkpoint_test = {}
 final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.edge"] = True
 final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.ele"] = True
 final_checkpoint_test["square-convection_CoordinateMesh_51_checkpoint.node"] = True
-final_checkpoint_test["square-convection_PressureMesh_51_checkpoint.vtu"] = True
-final_checkpoint_test["square-convection_VelocityMesh_51_checkpoint.vtu"] = True
 final_checkpoint_test["square-convection_51_checkpoint.flml"] = True
 for key in final_checkpoint_test.keys():
   try:
@@ -119,7 +117,7 @@ picked_up_solvers_converged = not "matrixdump" in files and not "matrixdump.info
     <variable name = "pickup_initial_vtudiff" language = "python">
 import vtktools
 vtu1 = vtktools.vtu("square-convection_50.vtu")
-vtu2 = vtktools.vtu("checkpoint/square-convection-picked-up_VelocityMesh_0_checkpoint.vtu")
+vtu2 = vtktools.vtu("checkpoint/square-convection-picked-up_CoordinateMesh_0_checkpoint.vtu")
 pickup_initial_vtudiff = vtktools.VtuDiff(vtu1, vtu2)
     </variable>
     <variable name = "pickup_final_vtudiff" language = "python">
