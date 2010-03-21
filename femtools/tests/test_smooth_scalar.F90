@@ -41,6 +41,7 @@ subroutine test_smooth_scalar
   character(len = *), parameter :: path = "/dummy"
   integer :: i
   integer, parameter :: quad_degree = 2
+  logical :: fail
   real, dimension(2) :: minmax
   real, dimension(:, :), allocatable :: alpha
   type(scalar_field) :: s_field, smoothed_s_field
@@ -60,13 +61,13 @@ subroutine test_smooth_scalar
   
   call set_solver_options(path, ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
   call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
-  
-  minmax = (/huge(0.0), -huge(0.0)/)
-  do i = 1, node_count(smoothed_s_field)
-    minmax(1) = min(minmax(1), node_val(smoothed_s_field, i))
-    minmax(2) = max(minmax(2), node_val(smoothed_s_field, i))
+
+  fail = .false.
+  do i = 1, node_count(s_field)
+    fail = fnequals(node_val(s_field, i), node_val(smoothed_s_field, i))
+    if(fail) exit
   end do  
-  call report_test("[Not smoothed]", fequals(minmax(2), minmax(1)), .false., "Smoothed")
+  call report_test("[Not smoothed]", fail, .false., "Smoothed")
   
   alpha = 0.0
   do i = 1, positions%dim
