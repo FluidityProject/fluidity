@@ -4,7 +4,7 @@
   <owner userid="maddison"/>
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>make clean-run; mpiexec -n 2 fluidity -l parallel_p2_consistent_interpolation.flml</command_line>
+    <command_line>make clean-run; mpiexec -n 2 ../../bin/fluidity -l parallel_p2_consistent_interpolation.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="stat" language="python">import fluidity_tools
