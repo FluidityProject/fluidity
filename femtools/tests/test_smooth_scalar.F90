@@ -31,7 +31,6 @@ subroutine test_smooth_scalar
 
   use fields
   use fldebug
-  use global_parameters, only : empty_path
   use read_triangle
   use solvers
   use smoothing_module
@@ -56,12 +55,8 @@ subroutine test_smooth_scalar
   
   allocate(alpha(positions%dim, positions%dim))
   alpha = 0.0
-  do i = 1, positions%dim
-    alpha(i, i) = 1.0e6
-  end do
   
   call allocate(smoothed_s_field, positions%mesh, "SmoothedScalar")
-  smoothed_s_field%option_path = empty_path
   
   call set_solver_options(path, ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
   call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
@@ -70,9 +65,22 @@ subroutine test_smooth_scalar
   do i = 1, node_count(smoothed_s_field)
     minmax(1) = min(minmax(1), node_val(smoothed_s_field, i))
     minmax(2) = max(minmax(2), node_val(smoothed_s_field, i))
+  end do  
+  call report_test("[Not smoothed]", fequals(minmax(2), minmax(1)), .false., "Smoothed")
+  
+  alpha = 0.0
+  do i = 1, positions%dim
+    alpha(i, i) = 1.0e6
   end do
   
-  call report_test("[smoothed]", fnequals(minmax(2), minmax(1), tol = 1.0e-6), .false., "Not smoothed")
+  call smooth_scalar(s_field, positions, smoothed_s_field, alpha, path)
+  
+  minmax = (/huge(0.0), -huge(0.0)/)
+  do i = 1, node_count(smoothed_s_field)
+    minmax(1) = min(minmax(1), node_val(smoothed_s_field, i))
+    minmax(2) = max(minmax(2), node_val(smoothed_s_field, i))
+  end do  
+  call report_test("[Smoothed]", fnequals(minmax(2), minmax(1), tol = 1.0e-6), .false., "Not smoothed")
   
   deallocate(alpha)
   call deallocate(smoothed_s_field)

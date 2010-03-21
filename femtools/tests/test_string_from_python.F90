@@ -43,14 +43,12 @@ subroutine test_string_from_python
     & '  else:' // new_line("") // &
     & '    return "Negative"'
   character(len = PYTHON_FUNC_LEN) :: result
-  integer :: result_len, stat
+  integer :: stat
     
-  result_len = len(result)
   call string_from_python(func, -1.0, result, stat = stat)
   call report_test("[string_from_python]", stat /= 0, .false., "string_from_python returned an error")
   call report_test("[Expected result]", result /= "Negative", .false., "string_from_python returned incorrect string")
   
-  result_len = len(result)
   call string_from_python(func, 1.0, result, stat = stat)
   call report_test("[string_from_python]", stat /= 0, .false., "string_from_python returned an error")
   call report_test("[Expected result]", result /= "Positive", .false., "string_from_python returned incorrect string")
