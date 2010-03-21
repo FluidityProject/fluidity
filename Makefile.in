@@ -383,7 +383,7 @@ else
 	@cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan"
 endif
 ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l short -p serial -t zoltan
+	@cd tests; ../tools/testharness.py -l short -p serial -t zoltan -e nozoltan
 endif
 
 adjtest:
