@@ -24,7 +24,7 @@ module smoothing_module
     type(vector_field), intent(in) :: positions
     !output field, should have same mesh as input field
     type(scalar_field), intent(inout) :: field_out
-    character(len=OPTION_PATH_LEN), intent(in) :: path
+    character(len=*), intent(in) :: path
     
     !local variables
     type(csr_matrix) :: M
