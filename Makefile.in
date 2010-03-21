@@ -378,7 +378,7 @@ test: fltools bin/@FLUIDITY@ serialtest
 
 serialtest:
 ifeq (@MBA2D@,yes)
-	@cd tests; ../tools/testharness.py -l short -p serial -e zoltan -e nozoltan
+	@cd tests; ../tools/testharness.py -l short -p serial -e "zoltan nozoltan"
 else
 	@cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan nozoltan"
 endif
