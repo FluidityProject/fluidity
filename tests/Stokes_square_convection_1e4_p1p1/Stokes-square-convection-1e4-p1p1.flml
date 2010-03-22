@@ -61,6 +61,26 @@
           <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
         </location>
       </static_detector>
+      <static_detector name="TopLeftCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="TopRightCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">1.0 1.0</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="BottomLeftCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="BottomRightCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">1.0 0.0</real_value>
+        </location>
+      </static_detector>
     </detectors>
   </io>
   <timestepping>
@@ -487,5 +507,22 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="TemperatureGradient" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
   </material_phase>
 </fluidity_options>

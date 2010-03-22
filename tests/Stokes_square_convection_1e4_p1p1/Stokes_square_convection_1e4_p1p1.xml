@@ -27,6 +27,16 @@ from fluidity_tools import stat_parser as stat
 rms_vel= stat("stokes-1e4-p1p1.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
 </variable>
 
+<variable name="q_one" language="python">
+from fluidity_tools import stat_parser as stat
+q_one = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["TemperatureGradient"]["TopLeftCorner"]["2"]))
+</variable>
+
+<variable name="q_two" language="python">
+from fluidity_tools import stat_parser as stat
+q_two = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["TemperatureGradient"]["TopRightCorner"]["2"]))
+</variable>
+
 </variables>
 
 <pass_tests>
@@ -41,6 +51,14 @@ assert(abs(rms_vel-44.5) &lt; 1.5)
 
 <test name="Divergence small .lt. 130" language="python">
 assert(max_div &lt; 130)
+</test>
+
+<test name="Nondimensional Temp Gradient at TopLeftCorner Validity: 7.90 .lt. q_one .lt. 8.22" language="python">
+assert(abs(q_one-8.0594) &lt; 0.16)
+</test>
+
+<test name="Nondimensional Temp Gradient at TopRightCorner Validity: 0.5772 .lt. q_one .lt. 0.6004" language="python">
+assert(abs(q_two-0.5888) &lt; 0.0116)
 </test>
 
 </pass_tests>                                                                                                                                                                                                
