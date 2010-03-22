@@ -38,7 +38,7 @@ double Profiler::get(const std::string &key) const{
   double time = timings.find(key)->second.second;
   if(MPI::Is_initialized()){
     double gtime;
-    MPI::COMM_WORLD.Reduce(&time, &gtime, 1, MPI::DOUBLE, MPI::SUM, 0);
+    MPI::COMM_WORLD.Reduce(&time, &gtime, 1, MPI::DOUBLE, MPI::MAX, 0);
     return gtime;
   }
   
@@ -47,7 +47,7 @@ double Profiler::get(const std::string &key) const{
 
 void Profiler::print() const{
   for(map< string, pair<double, double> >::const_iterator it=timings.begin();it!=timings.end();++it){
-    cout<<it->first<<" :: "<<it->second.second<<endl;
+    cout<<it->first<<" :: "<<get(it->first)<<endl;
   }
 }
 
