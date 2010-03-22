@@ -501,15 +501,13 @@ contains
                  call incref(mesh)
                  
                else
+                 ! this means we can only periodise a mesh with an associated position field
                  if (trim(model_mesh_name) == "CoordinateMesh") then
                    position => extract_vector_field(states(1), 'Coordinate')
                  else
                    position => extract_vector_field(states(1), trim(model_mesh_name)//'Coordinate')
                  end if
-                 mesh = make_mesh_periodic_from_options(model_mesh, position, mesh_path)
-                 call allocate(periodic_position, position%dim, mesh, trim(mesh_name) // 'Coordinate')
-                 call remap_field(position, periodic_position, stat=stat)
-                 call postprocess_periodic_mesh(position%mesh, position, periodic_position%mesh, periodic_position)
+                 periodic_position = make_mesh_periodic_from_options(position, mesh_path)
                  mesh = periodic_position%mesh
                  call insert(states, periodic_position, trim(periodic_position%name))
                  call deallocate(periodic_position)
@@ -654,33 +652,33 @@ contains
                
   end function make_mesh_from_options
   
-  function make_mesh_periodic_from_options(from_mesh, position, mesh_path) result (mesh)
+  function make_mesh_periodic_from_options(position, mesh_path) result (position_out)
     ! make a periodic mesh as specified by options
-    type(mesh_type):: mesh
-    type(mesh_type), intent(inout):: from_mesh
+    type(vector_field):: position_out
     type(vector_field), intent(in):: position
     character(len=*), intent(in):: mesh_path
 
+    
     type(vector_field):: from_position
-    type(mesh_type):: lfrom_mesh, periodic_mesh
     type(integer_hash_table):: periodic_face_map
-    character(len=FIELD_NAME_LEN):: bc_name
+    character(len=FIELD_NAME_LEN):: bc_name, mesh_name
     character(len=OPTION_PATH_LEN) :: periodic_mapping_python
     integer, dimension(:), allocatable :: physical_boundary_ids, aliased_boundary_ids
     integer, dimension(2) :: shape_option
     integer:: n_periodic_bcs
     integer:: j
     logical :: fiddled_with_faces
-    integer :: stat
     
-    lfrom_mesh=from_mesh
+    assert(has_faces(position%mesh))
+    
+    from_position=position
     
     ! builds up a map from aliased to physical faces
     call allocate(periodic_face_map)
     
     n_periodic_bcs=option_count(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
     ewrite(2,*) "n_periodic_bcs=", n_periodic_bcs
-    call incref(lfrom_mesh)
+    call incref(from_position)
     do j=0, n_periodic_bcs-1
        
        ! get some options
@@ -696,46 +694,37 @@ contains
        
        ewrite(2,*) 'Making periodic mesh'
        
-       if (lfrom_mesh==position%mesh) then
-         from_position=position
-         call incref(from_position)
-       else
-         call allocate(from_position, position%dim, lfrom_mesh, "ModelPositions")
-         call remap_field(position, from_position, stat=stat)
-         if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-           FLAbort("Just remapped from a discontinuous to a continuous field!")
-         else if(stat==REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
-           FLAbort("Just remapped from a higher order to a lower order continuous field!")
-         end if
-         ! we've allowed it to remap from periodic to unperiodic
-       end if
 
        fiddled_with_faces = .false.
-       if (.not. has_faces(lfrom_mesh)) then
-         lfrom_mesh%faces => from_mesh%faces
+       if (.not. has_faces(from_position%mesh)) then
+         from_position%mesh%faces => position%mesh%faces
          fiddled_with_faces = .true.
        end if
-       periodic_mesh=make_mesh_periodic(lfrom_mesh,from_position,&
+       position_out=make_mesh_periodic(from_position,&
           physical_boundary_ids,aliased_boundary_ids, &
           periodic_mapping_python, periodic_face_map=periodic_face_map)
        if (fiddled_with_faces) then
-         lfrom_mesh%faces => null()
+         from_position%mesh%faces => null()
        end if
        call deallocate(from_position)
-       call deallocate(lfrom_mesh)
-       lfrom_mesh=periodic_mesh
+       from_position=position_out
        
        deallocate( physical_boundary_ids, aliased_boundary_ids )
     end do
-                
-    mesh=periodic_mesh
     
-    if (has_faces(from_mesh)) then
-      call add_faces(mesh, model=from_mesh, periodic_face_map=periodic_face_map)
-    end if
+    call add_faces(position_out%mesh, model=position%mesh, periodic_face_map=periodic_face_map)
     
     call deallocate(periodic_face_map)
-                
+    
+    ! finally fix the name of the produced mesh and its coordinate field
+    call get_option(trim(mesh_path)//'/name', mesh_name)
+    position_out%mesh%name=mesh_name
+    if (mesh_name=="CoordinateMesh") then
+      position_out%name="Coordinate"
+    else
+      position_out%name=trim(mesh_name)//"Coordinate"
+    end if
+    
   end function make_mesh_periodic_from_options
 
   function make_mesh_unperiodic_from_options(from_position, mesh_path, aliased_to_new_node_number, stat) result (position)
@@ -865,7 +854,7 @@ contains
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
     character(len=OPTION_PATH_LEN) :: field_name
-    integer :: i, ii ! counters
+    integer :: i ! counters
     integer :: nstates ! number of states
     integer :: ncars   ! number of vehicles
     character(len=255) :: tmp ! temporary string to make life a little easier

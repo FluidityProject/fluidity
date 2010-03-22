@@ -130,7 +130,6 @@ contains
     integer :: no_bcs, bc, j, k, l
     type(integer_set) :: lock_faces, surface_ids
     type(vector_field) :: unwrapped_positions_A, unwrapped_positions_B, intermediate_positions
-    type(mesh_type) :: intermediate_mesh
     integer, dimension(2) :: shape_option
     integer, dimension(:), allocatable :: surface_id
     type(tensor_field) :: unwrapped_metric_A, unwrapped_metric_B, intermediate_metric
@@ -239,21 +238,15 @@ contains
       call deallocate(unwrapped_metric_A)
 
       ! Step d). Reperiodise
-      intermediate_mesh = make_mesh_periodic_from_options(unwrapped_positions_B%mesh, unwrapped_positions_B, periodic_boundary_option_path)
-      intermediate_mesh%name = "TmpMesh"
-      intermediate_mesh%option_path = periodic_boundary_option_path
+      intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path)
+      intermediate_positions%mesh%name = "TmpMesh"
+      intermediate_positions%mesh%option_path = periodic_boundary_option_path
       call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
-      call allocate(intermediate_positions, unwrapped_positions_B%dim, intermediate_mesh, trim(old_positions%name))
-      call allocate(intermediate_metric, intermediate_mesh, trim(metric%name))
-      call deallocate(intermediate_mesh)
-      call remap_field(unwrapped_positions_B, intermediate_positions, stat=stat)
-      assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
-      assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
+      call allocate(intermediate_metric, intermediate_positions%mesh, trim(metric%name))
       call remap_field(unwrapped_metric_B, intermediate_metric, stat=stat)
       assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
       assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
-      call postprocess_periodic_mesh(unwrapped_positions_B%mesh, unwrapped_positions_B, intermediate_positions%mesh, intermediate_positions)
       call vtk_write_fields("mesh", 2, position=intermediate_positions, model=intermediate_positions%mesh)
       call vtk_write_surface_mesh("surface", 2, intermediate_positions)
 
@@ -533,18 +526,12 @@ contains
       call deallocate(unwrapped_metric_A)
 
       ! Step i). Reperiodise for the next go around!
-      intermediate_mesh = make_mesh_periodic_from_options(unwrapped_positions_B%mesh, unwrapped_positions_B, periodic_boundary_option_path)
-      intermediate_mesh%option_path = periodic_boundary_option_path
-      call allocate(intermediate_positions, unwrapped_positions_B%dim, intermediate_mesh, trim(old_positions%name))
-      call allocate(intermediate_metric, intermediate_mesh, trim(metric%name))
-      call deallocate(intermediate_mesh)
-      call remap_field(unwrapped_positions_B, intermediate_positions, stat=stat)
-      assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
-      assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
+      intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path)
+      intermediate_positions%mesh%option_path = periodic_boundary_option_path
+      call allocate(intermediate_metric, intermediate_positions%mesh, trim(metric%name))
       call remap_field(unwrapped_metric_B, intermediate_metric, stat=stat)
       assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
       assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
-      call postprocess_periodic_mesh(unwrapped_positions_B%mesh, unwrapped_positions_B, intermediate_positions%mesh, intermediate_positions)
 
       ! Step j). If the user has specified an inverse coordinate map, then let's loop through the nodes in the mesh
       ! and map them back to inside the bounding box of the domain

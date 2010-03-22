@@ -1839,26 +1839,29 @@ contains
 
   end function SetContains
 
-  function make_mesh_periodic(model,positions,physical_boundary_ids,aliased_boundary_ids,periodic_mapping_python,name, periodic_face_map) &
-       result (mesh)
+  function make_mesh_periodic(positions,physical_boundary_ids,aliased_boundary_ids,periodic_mapping_python,name, periodic_face_map) &
+       result (positions_out)
     !!< Produce a mesh based on an old mesh but with periodic boundary conditions
-    type(mesh_type) :: mesh
-
-    type(vector_field), intent(in) :: positions
-    type(mesh_type), intent(in) :: model
+    type(vector_field) :: positions_out
+    type(vector_field), target, intent(in) :: positions
+    
     integer, dimension(:), intent(in) :: physical_boundary_ids, aliased_boundary_ids
     character(len=*), intent(in) :: periodic_mapping_python
+    ! name of positions_out%mesh, positions_out will called trim(name)//"Coordinate"
     character(len=*), intent(in), optional :: name
     !! builds up a map between aliased and physical faces, has to be allocated
     !! before the call, and is not emptied, so this can be used to build up a
     !! aliased to physical face map over multiple calls to make_mesh_periodic
     type(integer_hash_table), optional, intent(inout):: periodic_face_map
     
+    type(mesh_type) :: mesh
+    type(mesh_type), pointer:: model
+    
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
     integer, dimension(:,:), allocatable :: local_mapping_list
     integer, dimension(:), allocatable :: mapping_list, mapped
-    integer :: i, j, id, nod, nod1, map_index, periodic_faces
+    integer :: i, j, k, id, nod, nod1, map_index, periodic_faces
     integer, dimension(:), allocatable :: face_nodes, face_nodes2
     integer :: count
     real, dimension(:,:), allocatable :: mapX
@@ -1867,7 +1870,8 @@ contains
     real :: epsilon0
     logical :: found_node
 
-    assert(model==positions%mesh)
+    model => positions%mesh
+    
     assert(has_faces(model))
         
     !get pointers to coordinates
@@ -1909,6 +1913,10 @@ contains
 
     !get old connectivity
     ndglno=model%ndglno
+    
+    nullify(mesh%refcount) ! Hack for gfortran component initialisation
+    !                         bug.
+    call addref(mesh)
     
     !mapping_list is mapping from coordinates to periodic node number
     !mapped takes value 1 if node is aliased
@@ -1989,7 +1997,7 @@ contains
             periodic_mapping_python, x(local_mapping_list(1,:)),  &
             y(local_mapping_list(1,:)), z(local_mapping_list(1,:)), 0.0)
     end if
-       
+           
     !compute list of aliased to nodes
     !loop over surface elements
     !check for mapped to ids
@@ -2025,7 +2033,10 @@ contains
           end do
        end if
     end do
-
+      
+    ! now create a new periodic positions:
+    call allocate(positions_out, positions%dim, mesh, name=trim(mesh%name)//"Coordinate")
+    
     !check that it worked
     if(any(local_mapping_list==0)) then
        do nod = 1, size(local_mapping_list,2)
@@ -2042,6 +2053,9 @@ contains
     do nod = 1, size(local_mapping_list,2)
        mapping_list(local_mapping_list(2,nod)) = nod
        mapping_list(local_mapping_list(1,nod)) = nod
+       do k=1, positions_out%dim
+         positions_out%val(k)%ptr(nod)=node_val(positions, k, local_mapping_list(1,nod))
+       end do
     end do
     !then the rest
     count = size(local_mapping_list,2)
@@ -2049,15 +2063,14 @@ contains
        if(mapping_list(nod)==0) then
           count = count + 1
           mapping_list(nod) = count
+          do k=1, positions_out%dim
+             positions_out%val(k)%ptr(count)=node_val(positions, k, nod)
+          end do
        end if
     end do
 
     !construct periodic ndglno
     mesh%ndglno = mapping_list(ndglno)
-
-    nullify(mesh%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(mesh)
 
     !validate mesh
     if(maxval(mesh%ndglno) > mesh%nodes) then
