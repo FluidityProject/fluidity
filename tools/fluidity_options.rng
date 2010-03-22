@@ -2921,6 +2921,9 @@ i.e. the free surface or rigid lid.</a:documentation>
     <optional>
       <ref name="recalculation_options"/>
     </optional>
+    <optional>
+      <ref name="interpolation_options"/>
+    </optional>
   </define>
   <!-- Default child of diagnostic scalar field without adaptivity options -->
   <define name="diagnostic_scalar_field_no_adapt">
@@ -8872,6 +8875,12 @@ This determines the order in which scalar_fields are solved for:
     <element name="do_not_recalculate">
       <a:documentation>Prevent this field from being recalculated at every timestep.
 This is cheaper especially if you are enforcing discrete properties on the field.</a:documentation>
+      <empty/>
+    </element>
+  </define>
+  <define name="interpolation_options">
+    <element name="interpolate_field">
+      <a:documentation>Interpolate field after an adapt.</a:documentation>
       <empty/>
     </element>
   </define>

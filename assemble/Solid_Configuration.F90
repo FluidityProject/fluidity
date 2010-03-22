@@ -105,17 +105,12 @@ contains
     integer, intent(in)    :: its,itinoi  !this is just to know where in the non linear loop the subroutine is called
 
     !general integers
-    integer  inod,ielem,ierr,node,stat,i,j
-    integer  iloc,countinside,io1,ipart        
+    integer  inod,ielem,node,stat,i,j
+    integer  iloc,countinside,ipart        
 
     !for tetrahedral local coordinate handling
-    real xx(4),yy(4),zz(4),pvl(4),vl,xx1,yy1,zz1,vcheck1
-    real shapef,rx,ry,rz,x,y,z
-
-    !for particle courant number
-    real,    allocatable ,save :: hmin_tensor(:,:)
-    logical,              save :: use_particle_cfl
-    real                       :: pvel,particle_cfl
+    real xx(4),yy(4),zz(4),pvl(4),xx1,yy1,zz1,vcheck1
+    real rx,ry,rz,x,y,z
 
     !options
     character(len=OPTION_PATH_LEN)       :: tmp_path
@@ -125,8 +120,9 @@ contains
     character(len=OPTION_PATH_LEN), save :: python_angular_velocity
 
     !for buffer zone
-    real solid_concentration_min,profile1,profile2,profile3,hyptan,dist,const_profile
-    real x0,mm,buffer_conc,buffer
+    !real profile1,profile2,profile3
+    !real dist,const_profile
+    !real buffer_conc,buffer
 
     !new variable types.
     type(scalar_field) visualize,matvolfrac,visualizesolid,particle_scalar,solid_concentration
@@ -134,10 +130,7 @@ contains
     type(vector_field) velocity,velocityplotforsolids
 
     !logicals
-    logical inside,inside1,got_particles,got_quad2lin
-
-    !for profiling
-    real sec1,sec2
+    logical inside,got_particles,got_quad2lin
 
     !files
     integer dat_unit
@@ -489,7 +482,7 @@ contains
 
     !allocate space for particle tracking (node to particle list)
     allocate(node_to_particle(node_count(position1)))
-    node_to_particle=0    
+    node_to_particle=0
 
     !Ensure that vectors are zero before mapping.
     solid_concentration%val=0.0
@@ -525,7 +518,7 @@ contains
              svelocity%val(Y_)%ptr(inod)= pvely(ipart) + pavelz(ipart)*rx
           end if
        end do
-    case("spheres") 
+    case("spheres")
        do inod=1,node_count(position1)
           x=position1%val(X_)%ptr(inod)
           y=position1%val(Y_)%ptr(inod)
@@ -541,7 +534,7 @@ contains
                 exit
              end if
           end do
-          if(inside) then
+          if (inside) then
              rx=x-centerpx(ipart)
              ry=y-centerpy(ipart)
              rz=z-centerpz(ipart)
@@ -550,6 +543,7 @@ contains
              svelocity%val(Z_)%ptr(inod)= pvelz(ipart) - pavely(ipart)*rx + pavelx(ipart)*ry
           end if
        end do
+       visualizesolid%val=solid_concentration%val
     case("external_2D_mesh")
        ewrite(0,*) 'no mapping here yet for 2d mesh yet'
        FLExit('no mapping posibility for 2d meshes yet')
@@ -641,7 +635,7 @@ contains
     end if
     start=0 !this switches of the parameter-reading side of the subroutine.
     !deallocate(node_to_particle)
-    ewrite(0,*) 'Finished setting up Solid fields...'    
+    ewrite(0,*) 'Finished setting up Solid fields...'
   end subroutine solid_configuration
 
   subroutine initialise_output_files()
@@ -671,7 +665,7 @@ contains
     integer, intent(in) :: itinoi
     type(scalar_field) visualizesolid
     type(vector_field) svelocity,flow_velocity
-    integer i,stat   
+    integer i   
 
     visualizesolid=extract_scalar_field(state(1),"VisualizeSolid")
     svelocity=extract_vector_field(state(1),"SolidVelocity")    
@@ -1130,9 +1124,8 @@ contains
     return
   end function element_derivatives
 
-  subroutine mesh2mesh_3d(state,ipart,node_to_particle1,  &
-       field1name,field2name,                            &
-       vfield1name,vfield2name)
+  subroutine mesh2mesh_3d(state,ipart,node_to_particle1, &
+       field1name,field2name,vfield1name,vfield2name)
     !this subroutine maps values of field2(mesh2) to the mesh from field1 (mesh1)
     !obviously, field1 and field2 are on different meshes.
     implicit none
@@ -1145,7 +1138,6 @@ contains
     type(scalar_field) :: field1,field2
     type(vector_field) :: vfield1,vfield2
     type(vector_field) :: position1,position2 
-    type(mesh_type)  :: mesh
     character(len=OPTION_PATH_LEN) :: position_name1,position_name2
 
     integer nonods1,nonods2,totele1,totele2
@@ -1153,16 +1145,13 @@ contains
     integer nfastest,nbrute,ntry,inod,ielem,iele,i,j,k,imin,new_i,new_j,new_k
     real ffmin
 
-    real bin_x_max,bin_y_max,bin_z_max,bin_tol
+    real bin_x_max,bin_y_max,bin_z_max
     real bin_x_min,bin_y_min,bin_z_min,dx,dy,dz
     real xx(4),yy(4),zz(4),xx1,yy1,zz1,pvl(4),volume   
     real sec1,sec2,shapef,vcheck1
 
     integer max_number_of_bins_x,max_number_of_bins_y,max_number_of_bins_z
-    integer ii,iloc,nloc,node1,node2,node3,node4,itry,icon,jloc
-    integer node,nface,nod
-
-    character(len=OPTION_PATH_LEN) :: tmpstring
+    integer ii,iloc,nloc,itry,node
 
     logical inside
     call cpu_time(sec1)    
@@ -1511,7 +1500,6 @@ contains
     character(len=OPTION_PATH_LEN), intent(in) :: position_name
     real,    intent(in) :: dx,dy,dz        
 
-    type (scalar_field) :: field
     type (vector_field) :: position
     integer nloc,ielem,i,j,k,ii,iii,node(4)
     real avg(3) 
@@ -2136,7 +2124,7 @@ contains
     integer sele,stat,sngi
     real, allocatable, dimension(:) :: face_detwei 
     character(len=OPTION_PATH_LEN) :: tmpstring
-    integer nsbc,nvbc,i,j,ph
+    integer nsbc,nvbc,ph
     integer state_to_use
 
     phaseloop: do ph = 1, size(state)               

@@ -511,7 +511,7 @@ contains
     ! Select all prognostic and prescribed scalar fields that do not have interpolation
     ! disabled
     do i = 1, scalar_field_count(state)
-      sfield => extract_scalar_field(state, i)
+      sfield => extract_scalar_field(state, i)      
       if (interpolate_field(sfield, first_time_step=first_time_step)) then
         ewrite(2,*) 'selecting to interpolate ', trim(sfield%name)
         call insert(interpolate_state, sfield, sfield%name)
@@ -592,7 +592,8 @@ contains
     interpolate_options = (have_option(trim(option_path) // "/prognostic") .and. &
           & .not. have_option(trim(option_path) // "/prognostic/no_interpolation")) &
           .or. have_option(trim(option_path)//"/prescribed/galerkin_projection") &
-          .or. have_option(trim(option_path)//"/prescribed/consistent_interpolation")
+          .or. have_option(trim(option_path)//"/prescribed/consistent_interpolation") &
+          .or. have_option(trim(option_path)//"/diagnostic/interpolate_field")
           
   end function interpolate_options
   

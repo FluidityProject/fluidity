@@ -124,6 +124,8 @@ contains
     consistent_linear_state_loop: do state=1,state_cnt
       do field=1,scalar_field_count(states_old(state))
         field_s => extract_scalar_field(states_old(state), field)
+        ! If the field diagnostic, assume consistent interpolation
+        if (have_option(trim(field_s%option_path)//"/diagnostic")) cycle
         ! If the field has no option path, assume consistent interpolation
         if(len_trim(field_s%option_path) /= 0) then
           assert(have_option(trim(field_s%option_path)//"/prognostic").or.have_option(trim(field_s%option_path)//"/prescribed"))

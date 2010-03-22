@@ -439,7 +439,7 @@ contains
           end if
 
           !     Addition for reading solids in - jem  02-04-2008
-          if(have_solids) call solid_configuration(state(ss:ss),its,nonlinear_iterations)
+          if (have_solids) call solid_configuration(state(ss:ss), its, nonlinear_iterations)
 
           !Explicit ALE ------------   jem 21/07/08         
           if (use_ale) then 
@@ -606,8 +606,13 @@ contains
           
           if (have_option("/traffic_model")) then
              call traffic_source(state(1),timestep)
-             call traffic_density_update(state(1))
-          endif
+          end if
+ 
+          if (have_solids) then
+             ewrite(2,*) 'into solid_drag_calculation'
+             call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
+             ewrite(2,*) 'out of solid_drag_calculation'
+          end if
           
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
@@ -630,6 +635,16 @@ contains
                   exit nonlinear_iteration_loop
                endif
              end if
+          end if
+
+          if (have_option("/traffic_model")) then
+             call traffic_density_update(state(1))
+          end if
+
+          if(have_solids) then
+             ewrite(2,*) 'into solid_data_update'
+             call solid_data_update(state(ss:ss), its, nonlinear_iterations)
+             ewrite(2,*) 'out of solid_data_update'
           end if
 
        end do nonlinear_iteration_loop
