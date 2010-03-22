@@ -123,9 +123,9 @@ Adapt_error_norm = snorm2
     </variable>
     <variable name="Adapt_node_count" language="python">
 import vtktools
-import nodecount
 file = 'Stommel_gyre_adapt_A_10.vtu'
-Adapt_node_count = nodecount.nodecount(file)
+ug=vtktools.vtu(file)
+Adapt_node_count = ug.ugrid.GetNumberOfPoints()
     </variable>
   </variables>
   <pass_tests>
