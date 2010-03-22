@@ -509,6 +509,7 @@ contains
                  end if
                  periodic_position = make_mesh_periodic_from_options(position, mesh_path)
                  mesh = periodic_position%mesh
+                 call incref(mesh)
                  call insert(states, periodic_position, trim(periodic_position%name))
                  call deallocate(periodic_position)
                end if

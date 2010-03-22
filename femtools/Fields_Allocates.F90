@@ -2111,6 +2111,9 @@ contains
        end do face_loop_1
 
     end if
+    
+    ! lose our reference
+    call deallocate(mesh)
 
   end function make_mesh_periodic
 
