@@ -377,7 +377,6 @@
         <name>
           <python>
             <string_value lines="20" type="python">def val(t):
-	return "InitialMesh"
 	meshes = ["Adapt1", "Adapt2"]
 	if "mesh_count" in persistent:
 		persistent["mesh_count"] +=1 
