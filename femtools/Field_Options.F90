@@ -593,7 +593,8 @@ contains
           & .not. have_option(trim(option_path) // "/prognostic/no_interpolation")) &
           .or. have_option(trim(option_path)//"/prescribed/galerkin_projection") &
           .or. have_option(trim(option_path)//"/prescribed/consistent_interpolation") &
-          .or. have_option(trim(option_path)//"/diagnostic/interpolate_field")
+          .or. have_option(trim(option_path)//"/diagnostic/galerkin_projection") &
+          .or. have_option(trim(option_path)//"/diagnostic/consistent_interpolation")
           
   end function interpolate_options
   

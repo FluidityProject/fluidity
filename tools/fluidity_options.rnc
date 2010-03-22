@@ -2077,7 +2077,7 @@ diagnostic_scalar_field =
       scalar_steady_state_options,
       adaptivity_options_scalar_field,
       recalculation_options?,
-      interpolation_options?
+      interpolation_algorithm_scalar?
    )
    
 # Default child of diagnostic scalar field without adaptivity options
@@ -6912,14 +6912,6 @@ recalculation_options =
       ## Prevent this field from being recalculated at every timestep.
       ## This is cheaper especially if you are enforcing discrete properties on the field.
       element do_not_recalculate {
-        empty
-      }
-   )
-
-interpolation_options =
-   (
-      ## Interpolate field after an adapt.
-      element interpolate_field {
         empty
       }
    )
