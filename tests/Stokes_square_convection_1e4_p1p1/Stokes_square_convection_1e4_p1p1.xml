@@ -29,12 +29,12 @@ rms_vel= stat("stokes-1e4-p1p1.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-
 
 <variable name="q_one" language="python">
 from fluidity_tools import stat_parser as stat
-q_one = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["TemperatureGradient"]["TopLeftCorner"]["2"]))
+q_one = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["Temperature%Gradient"]["TopLeftCorner"]["2"])
 </variable>
 
 <variable name="q_two" language="python">
 from fluidity_tools import stat_parser as stat
-q_two = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["TemperatureGradient"]["TopRightCorner"]["2"]))
+q_two = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["Temperature%Gradient"]["TopRightCorner"]["2"])
 </variable>
 
 </variables>

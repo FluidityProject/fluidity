@@ -19,22 +19,6 @@
         </stat>
       </from_file>
     </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">5</integer_value>
@@ -48,7 +32,7 @@
     <dump_period replaces="TIMDUM">
       <real_value rank="0">0.1</real_value>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
     <detectors>
       <static_detector name="MidPoint">
@@ -98,7 +82,7 @@
         <real_value rank="0">3.0</real_value>
       </requested_cfl>
       <courant_number name="ControlVolumeCFLNumber">
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
       </courant_number>
       <increase_tolerance>
         <real_value rank="0">1.1</real_value>
@@ -113,11 +97,11 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">10000.</real_value>
         <comment>Rayleigh number</comment>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -159,7 +143,7 @@
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
@@ -221,7 +205,7 @@
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="Boussinesq"/>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -333,7 +317,7 @@
     </vector_field>
     <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -462,7 +446,7 @@
     <scalar_field name="ControlVolumeCFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -479,7 +463,7 @@
     <scalar_field name="FiniteElementDivergence" rank="0">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
@@ -510,7 +494,7 @@
     <vector_field name="TemperatureGradient" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
