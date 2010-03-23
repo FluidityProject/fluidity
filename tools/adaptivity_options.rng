@@ -1409,15 +1409,6 @@ applied to this field.</a:documentation>
             <ref name="comment"/>
           </element>
           <optional>
-            <element name="project_gradient">
-              <a:documentation>Project the conservative potential gradient rather than the
-conservative potential. This involves one more CMC solve (two if
-additionally projecting Pressure), but is equivalent to a
-supermesh assembled decomposition.</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
-          <optional>
             <element name="project_pressure">
               <a:documentation>Additionally project the Pressure field</a:documentation>
               <attribute name="name">
@@ -1452,36 +1443,14 @@ the L2 norm of the residual</a:documentation>
             </optional>
             <ref name="comment"/>
           </element>
-          <ref name="comment"/>
-        </element>
-        <optional>
-          <element name="geopressure_preconditioner">
-            <a:documentation>Precondition the Helmholtz decomposition using a GeostrophicPressure
-solver</a:documentation>
-            <ref name="mesh_choice"/>
-            <optional>
-              <element name="reference_node">
-                <a:documentation>Reference node, at which the solution value is pinned to zero</a:documentation>
-                <ref name="integer"/>
-              </element>
-            </optional>
-            <element name="solver">
-              <a:documentation>Solver options for the GeostrophicPressure solve</a:documentation>
-              <ref name="linear_solver_options_sym"/>
-            </element>
-            <element name="galerkin_projection">
-              <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
-non-bounded. The most accurate choice, in the sense of minimising
-the L2 norm of the residual</a:documentation>
-              <ref name="continuous_projection"/>
-              <optional>
-                <ref name="supermesh_conservation"/>
-              </optional>
+          <optional>
+            <element name="enforce_solenoidal">
+              <a:documentation>Enforce divergence free after the projection</a:documentation>
               <ref name="comment"/>
             </element>
-            <ref name="comment"/>
-          </element>
-        </optional>
+          </optional>
+          <ref name="comment"/>
+        </element>
         <ref name="comment"/>
       </element>
     </choice>

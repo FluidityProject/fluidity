@@ -275,6 +275,10 @@ module fields_base
   interface field_val
     module procedure field_val_scalar, field_val_vector
   end interface field_val
+ 
+  interface eval_field
+    module procedure eval_field_scalar, eval_field_vector
+  end interface eval_field
 
   interface set_from_python_function
      module procedure set_values_from_python_scalar, set_values_from_python_scalar_pos, &
@@ -3020,6 +3024,82 @@ contains
       FLAbort("Trying to pass around the value space of a pythonic field")
     end select
   end function field_val_vector
+  
+  function eval_field_scalar(ele, s_field, local_coord) result(val)
+    !!< Evaluate the scalar field s_field at element local coordinate
+    !!< local_coord of element ele.
+  
+    integer, intent(in) :: ele
+    type(scalar_field), intent(inout) :: s_field
+    real, dimension(:), intent(in) :: local_coord
+    
+    real :: val
+    
+    integer :: i
+    real, dimension(ele_loc(s_field, ele)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => ele_shape(s_field, ele)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    val = dot_product(ele_val(s_field, ele), n)
+      
+  end function eval_field_scalar
+  
+  function eval_field_vector(ele, v_field, local_coord) result(val)
+    !!< Evaluate the vector field v_field at element local coordinate
+    !!< local_coord of element ele.
+  
+    integer, intent(in) :: ele
+    type(vector_field), intent(inout) :: v_field
+    real, dimension(:), intent(in) :: local_coord
+    
+    real, dimension(v_field%dim) :: val
+    
+    integer :: i
+    real, dimension(ele_loc(v_field, ele)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => ele_shape(v_field, ele)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    do i = 1, size(val)
+      val(i) = dot_product(ele_val(v_field, i, ele), n)
+    end do
+      
+  end function eval_field_vector
 
   subroutine getsndgln(mesh, sndgln)
   !! get legacy surface mesh ndglno that uses node numbering of the full mesh
@@ -3249,10 +3329,11 @@ contains
     real :: t
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele
-    real, dimension(positions%dim, positions%mesh%shape%loc) :: pos
+    real, dimension(positions%dim, ele_loc(positions, ele)) :: pos
 
     pos = ele_val(positions, ele)
     t = tetvol_old(pos(1, :), pos(2, :), pos(3, :))
+    
   end function tetvol_new
 
   real function tetvol_old( x, y, z )

@@ -213,7 +213,6 @@
                 </solver>
               </continuous>
             </galerkin_projection>
-            <project_gradient/>
             <project_pressure name="LayerThickness"/>
             <interpolate_boundary/>
           </conservative_potential>

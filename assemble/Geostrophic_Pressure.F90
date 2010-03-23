@@ -54,9 +54,11 @@ module geostrophic_pressure
   use conservative_interpolation_module
   use dgtools
   use divergence_matrix_cg
+  use fefields
   use momentum_cg
   use momentum_dg
   use state_fields_module
+  use surfacelabels
   use unittest_tools
   use vtk_interfaces
 
@@ -93,35 +95,46 @@ module geostrophic_pressure
   logical, save :: include_buoyancy = .true.
   logical, save :: include_coriolis = .true.
   integer, save :: reference_node = 0
- 
-  interface eval_field
-    module procedure eval_field_scalar, eval_field_vector
-  end interface eval_field
-  
+    
   type cmc_matrices
     logical :: lump_mass
     logical :: integrate_by_parts
     type(mesh_type) :: u_mesh
     type(mesh_type) :: p_mesh
+    character(len = OPTION_PATH_LEN) :: option_path
     type(block_csr_matrix) :: ct_m
     type(scalar_field) :: ct_rhs
     type(block_csr_matrix) :: inverse_mass_b
     type(vector_field) :: inverse_masslump_v
+    
+    logical :: have_cmc_m = .false.
     type(csr_matrix) :: cmc_m
     
-    logical :: geopressure = .false.
+    logical :: have_geopressure = .false.
     type(csr_matrix) :: cmc_gp_m
     type(block_csr_matrix) :: ct_gp_m
   end type cmc_matrices
+  
+  interface allocate
+    module procedure allocate_cmc_matrices
+  end interface allocate
   
   interface deallocate
     module procedure deallocate_cmc_matrices
   end interface deallocate
   
-  interface derive_p_dirichlet
-    module procedure derive_p_dirichlet_single, derive_p_dirichlet_double, &
-      & derive_p_dirichlet_multiple
-  end interface derive_p_dirichlet
+  interface clear_boundary_conditions
+    module procedure clear_boundary_conditions_scalar_single, clear_boundary_conditions_scalar_multiple
+  end interface clear_boundary_conditions
+  
+  interface derive_interpolated_p_dirichlet
+    module procedure derive_interpolated_p_dirichlet_single, derive_interpolated_p_dirichlet_double, &
+      & derive_interpolated_p_dirichlet_multiple
+  end interface derive_interpolated_p_dirichlet
+  
+  interface decompose_p_mean
+    module procedure decompose_p_mean_multiple
+  end interface decompose_p_mean
     
 contains
   
@@ -658,82 +671,6 @@ contains
 
   end subroutine set_zero_point
   
-  function eval_field_scalar(ele, s_field, local_coord) result(val)
-    !!< Evaluate the scalar field s_field at element local coordinate
-    !!< local_coord of element ele.
-  
-    integer, intent(in) :: ele
-    type(scalar_field), intent(inout) :: s_field
-    real, dimension(:), intent(in) :: local_coord
-    
-    real :: val
-    
-    integer :: i
-    real, dimension(ele_loc(s_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(s_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if(ele_numbering_family(s_field, ele) == FAMILY_SIMPLEX) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    val = dot_product(ele_val(s_field, ele), n)
-      
-  end function eval_field_scalar
-  
-  function eval_field_vector(ele, v_field, local_coord) result(val)
-    !!< Evaluate the vector field v_field at element local coordinate
-    !!< local_coord of element ele.
-  
-    integer, intent(in) :: ele
-    type(vector_field), intent(inout) :: v_field
-    real, dimension(:), intent(in) :: local_coord
-    
-    real, dimension(v_field%dim) :: val
-    
-    integer :: i
-    real, dimension(ele_loc(v_field, ele)) :: n
-    type(element_type), pointer :: shape
-    
-    shape => ele_shape(v_field, ele)
-    
-    select case(shape%degree)
-      case(0)
-        n = 1.0
-      case(1)
-        if(ele_numbering_family(v_field, ele) == FAMILY_SIMPLEX) then
-          n = local_coord
-        else
-          do i = 1, size(n)
-            n(i) = eval_shape(shape, i, local_coord)
-          end do   
-        end if
-      case default
-        do i = 1, size(n)
-          n(i) = eval_shape(shape, i, local_coord)
-        end do    
-    end select
-      
-    do i = 1, size(val)
-      val(i) = dot_product(ele_val(v_field, i, ele), n)
-    end do
-      
-  end function eval_field_vector
-  
   subroutine subtract_geostrophic_pressure_gradient(mom_rhs, state)
     !!< Subtract the GeostrophicPressure gradient from the momentum equation
     !!< RHS. Based on David's Geostrophic_Pressure, and some parts of Assnav /
@@ -927,202 +864,106 @@ contains
   
   end subroutine grad
           
-  subroutine projection_decomposition(state, field, p, gp, option_path, &
-    & matrices)   
-    !!< Perform a Helmholz decomposition of the supplied vector field. Basically
-    !!< a pressure projection solve.
-  
+  subroutine allocate_cmc_matrices(matrices, state, field, p, option_path, gp, add_cmc)
+    type(cmc_matrices), intent(out) :: matrices
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: field
     type(scalar_field), target, intent(inout) :: p
-    type(scalar_field), optional, intent(in) :: gp
     character(len = *), optional, intent(in) :: option_path
-    !! Handy matrix cache
-    type(cmc_matrices), optional, intent(out) :: matrices
+    type(scalar_field), optional, intent(inout) :: gp
+    logical, optional, intent(in) :: add_cmc
     
-    character(len = OPTION_PATH_LEN) :: loption_path
     integer :: dim, i, stat
-    logical :: apply_kmk, integrate_by_parts, lump_mass
-    type(block_csr_matrix) :: ct_gp_m, inverse_mass_b
-    type(block_csr_matrix), target :: ct_m
-    type(block_csr_matrix), pointer :: ctp_m
-    type(csr_matrix) :: cmc_gp_m, cmc_m, inverse_mass
+    type(csr_matrix) :: inverse_mass
     type(csr_sparsity) :: mass_sparsity
-    type(csr_sparsity), pointer :: cmc_sparsity, ct_sparsity
-    type(element_type), pointer :: p_shape, u_shape
-    type(mesh_type), pointer :: u_mesh, p_mesh
-    type(scalar_field) :: cmc_rhs, ct_rhs, inverse_masslump
-    type(state_type) :: lstate
-    type(vector_field) :: inverse_masslump_v
+    type(csr_sparsity), pointer :: ct_sparsity
+    type(scalar_field) :: inverse_masslump
     type(vector_field), pointer :: positions
-        
-    ewrite(1, *) "In projection_decomposition"
-        
+    
+    ewrite(1, *) "In allocate_cmc_matrices"
+    
     if(present(option_path)) then
-      loption_path = option_path
+      matrices%option_path = option_path
     else
-      loption_path = complete_field_path(p%option_path, stat = stat)
+      matrices%option_path = complete_field_path(p%option_path, stat = stat)
     end if
-    ewrite(2, *) "Option path: " // trim(loption_path)
-        
+    ewrite(2, *) "Option path: " // trim(matrices%option_path)
+    
     dim = field%dim
-    u_mesh => field%mesh
-    p_mesh => p%mesh    
-    u_shape => ele_shape(u_mesh, 1)
-    p_shape => ele_shape(p_mesh, 1)
-    assert(continuity(p_mesh) == 0)
+    matrices%u_mesh = field%mesh
+    matrices%p_mesh = p%mesh   
+    call incref(matrices%u_mesh) 
+    call incref(matrices%p_mesh)
+    assert(continuity(matrices%p_mesh) == 0)
     
     ewrite(2, *) "Decomposed field: ", trim(field%name)
-    ewrite(2, *) "On mesh: ", trim(u_mesh%name)
-    ewrite(2, *) "Scalar potential mesh: ", trim(p_mesh%name)
-    if(present(gp)) then
-      ewrite(2, *) "Using GeostrophicPressure field: ", trim(gp%name)
-      ewrite(2, *) "On mesh: ", trim(gp%mesh%name)
-    end if
+    ewrite(2, *) "On mesh: ", trim(matrices%u_mesh%name)
+    ewrite(2, *) "Scalar potential mesh: ", trim(matrices%p_mesh%name)
     
     positions => extract_vector_field(state, "Coordinate")
-    call insert(lstate, positions, name = positions%name)
     
-    cmc_sparsity => get_csr_sparsity_secondorder(state, p_mesh, u_mesh)
-    ct_sparsity => get_csr_sparsity_firstorder(state, p_mesh, u_mesh)
-    call allocate(cmc_m, cmc_sparsity, name = "CMC")
-    call allocate(ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
-    ctp_m => ct_m
-    call allocate(cmc_rhs, p_mesh, "CMCRHS")
-    call allocate(ct_rhs, p_mesh, "CTRHS")
-        
+    ct_sparsity => get_csr_sparsity_firstorder(state, matrices%p_mesh, matrices%u_mesh)
+    call allocate(matrices%ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
+    call allocate(matrices%ct_rhs, matrices%p_mesh, "CTRHS")
+    
     ! Options
-    lump_mass = have_option(trim(loption_path) // &
+    matrices%lump_mass = have_option(trim(matrices%option_path) // &
            & "/spatial_discretisation/mass/lump_mass")
-    integrate_by_parts = have_option(trim(loption_path) // &
+    matrices%integrate_by_parts = have_option(trim(matrices%option_path) // &
            & "/spatial_discretisation/continuous_galerkin/integrate_divergence_by_parts")
-    apply_kmk = continuity(p_mesh) == 0 .and. p_shape%degree == 1 .and. ele_numbering_family(p_shape) == FAMILY_SIMPLEX &
-        & .and. continuity(u_mesh) == 0 .and. u_shape%degree == 1 .and. ele_numbering_family(u_shape) == FAMILY_SIMPLEX &
-        & .and. .not. have_option(trim(loption_path) // &
-           & "/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")
     
-    ewrite(2, *) "Lump mass? ", lump_mass
-    ewrite(2, *) "Integrate divergence by parts? ", integrate_by_parts
-    ewrite(2, *) "KMK stabilisation? ", apply_kmk
-    if(continuity(u_mesh) == 0 .and. .not. lump_mass) then
+    ewrite(2, *) "Lump mass? ", matrices%lump_mass
+    ewrite(2, *) "Integrate divergence by parts? ", matrices%integrate_by_parts
+    if(continuity(matrices%u_mesh) == 0 .and. .not. matrices%lump_mass) then
       ewrite(-1, *) "Decomposed field: ", trim(field%name)
-      ewrite(-1, *) "On mesh: ", trim(u_mesh%name)
+      ewrite(-1, *) "On mesh: ", trim(matrices%u_mesh%name)
       FLExit("Must lump mass with continuous decomposed field")
     end if
      
     ! Assemble the matrices
      
-    if(lump_mass) then
-      call allocate(inverse_masslump, u_mesh, "InverseLumpedMass")    
-      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
-                                         test_mesh = p_mesh, field = field, &
-                                         grad_mass_lumped = inverse_masslump, option_path = loption_path)
+    if(matrices%lump_mass) then
+      call allocate(inverse_masslump, matrices%u_mesh, "InverseLumpedMass")    
+      call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
+                                         test_mesh = matrices%p_mesh, field = field, &
+                                         grad_mass_lumped = inverse_masslump, option_path = matrices%option_path)
       
       call invert(inverse_masslump)
-      call allocate(inverse_masslump_v, dim, inverse_masslump%mesh, "InverseLumpedMass")
+      call allocate(matrices%inverse_masslump_v, dim, inverse_masslump%mesh, "InverseLumpedMass")
       do i = 1, dim
-        call set(inverse_masslump_v, i, inverse_masslump)
+        call set(matrices%inverse_masslump_v, i, inverse_masslump)
       end do
       call deallocate(inverse_masslump)
       
-      call apply_dirichlet_conditions_inverse_mass(inverse_masslump_v, field)
-      
-      call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_masslump_v, ct_m)
+      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_masslump_v, field)
     else
-      call assemble_divergence_matrix_cg(ct_m, lstate, ct_rhs = ct_rhs, &
-                                         test_mesh = p_mesh, field = field, &
-                                         option_path = loption_path)
+      call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
+                                         test_mesh = matrices%p_mesh, field = field, &
+                                         option_path = matrices%option_path)
 
-      mass_sparsity = make_sparsity_dg_mass(u_mesh)  
-      call allocate(inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
+      mass_sparsity = make_sparsity_dg_mass(matrices%u_mesh)  
+      call allocate(matrices%inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
       call deallocate(mass_sparsity)
       assert(dim > 0)
-      inverse_mass = block(inverse_mass_b, 1, 1)
+      inverse_mass = block(matrices%inverse_mass_b, 1, 1)
       do i = 1, ele_count(field)
-        call assemble_mass_ele(i, u_mesh, positions, inverse_mass = inverse_mass)
+        call assemble_mass_ele(i, matrices%u_mesh, positions, inverse_mass = inverse_mass)
       end do
       do i = 2, dim
-        inverse_mass_b%val(i, i)%ptr = inverse_mass%val
+        matrices%inverse_mass_b%val(i, i)%ptr = inverse_mass%val
       end do
-      call apply_dirichlet_conditions_inverse_mass(inverse_mass_b, field)
-      
-      call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_mass_b)
+      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_mass_b, field)
     end if
     
-    if(apply_kmk) then      
-      ! this is only to retrieve the right meshes to base sparsities on:
-      call insert(lstate, field, name = "Velocity")
-      call insert(lstate, p, name = "Pressure")
-      
-      call assemble_kmk_matrix(lstate, u_mesh, positions, theta_pg = 1.0)    
-      call add_kmk_matrix(lstate, cmc_m)
-      
-      call remove_vector_field(lstate, "Velocity")
-      call remove_scalar_field(lstate, "Pressure")
-    end if
-    
-    ! Assemble the RHS
-    
-    call mult(cmc_rhs, ct_m, field)
-    call scale(cmc_rhs, -1.0)
     if(present(gp)) then
-      ! Subtract CT M^-1 C_gp p_gp from the RHS
-      if(lump_mass) then
-        call geopressure_precondition_cmc(state, u_mesh, p_mesh, gp, ctp_m, cmc_rhs, positions, &
-          & inverse_masslump_v = inverse_masslump_v, cmc_gp_m = cmc_gp_m, ct_gp_m = ct_gp_m)
-      else
-        call geopressure_precondition_cmc(state, u_mesh, p_mesh, gp, ctp_m, cmc_rhs, positions, &
-          & inverse_mass_b = inverse_mass_b, cmc_gp_m = cmc_gp_m, ct_gp_m = ct_gp_m)
-      end if
+      call add_geopressure_matrices(state, gp%mesh, matrices)
     end if
-    call addto(cmc_rhs, ct_rhs)
     
-    call impose_reference_pressure_node(cmc_m, cmc_rhs, option_path = loption_path)
+    if(.not. present_and_false(add_cmc)) then
+      call add_cmc_matrix(state, matrices)
+    end if
     
-    ! Solve      
-    
-    call petsc_solve(p, cmc_m, cmc_rhs, option_path = loption_path)
-    
-    if(present(matrices)) then
-      matrices%lump_mass = lump_mass
-      matrices%integrate_by_parts = integrate_by_parts
-      matrices%geopressure = present(gp)
-      matrices%u_mesh = u_mesh
-      call incref(matrices%u_mesh)
-      matrices%p_mesh = p_mesh
-      call incref(matrices%p_mesh)
-      if(lump_mass) then
-        matrices%inverse_masslump_v = inverse_masslump_v
-      else
-        matrices%inverse_mass_b = inverse_mass_b
-      end if
-      matrices%ct_m = ct_m
-      matrices%ct_rhs = ct_rhs
-      matrices%cmc_m = cmc_m
-      if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
-      if(present(gp)) then
-        matrices%cmc_gp_m = cmc_gp_m
-        matrices%ct_gp_m = ct_gp_m
-      end if
-    else
-      if(lump_mass) then
-        call deallocate(inverse_masslump_v)
-      else
-        call deallocate(inverse_mass_b)
-      end if
-      call deallocate(ct_m)
-      call deallocate(ct_rhs)
-      call deallocate(cmc_m)      
-      if(present(gp)) then
-        call deallocate(cmc_gp_m)
-        call deallocate(ct_gp_m)
-      end if
-    end if 
-    call deallocate(cmc_rhs)
-    
-    call deallocate(lstate)
-       
-    ewrite(1, *) "Exiting projection_decomposition"
+    ewrite(1, *) "Exiting allocate_cmc_matrices"
   
   contains
   
@@ -1158,8 +999,67 @@ contains
       end if
       
     end subroutine assemble_mass_ele
+  
+  end subroutine allocate_cmc_matrices
+  
+  subroutine add_cmc_matrix(state, matrices)
+    type(state_type), intent(inout) :: state
+    type(cmc_matrices), intent(inout) :: matrices
     
-  end subroutine projection_decomposition
+    logical :: apply_kmk
+    type(csr_sparsity), pointer :: cmc_sparsity
+    type(element_type), pointer :: p_shape, u_shape
+    
+    type(scalar_field) :: dummy_p
+    type(state_type) :: lstate
+    type(vector_field) :: dummy_u
+    type(vector_field), pointer :: positions
+    
+    ewrite(1, *) "In add_cmc_matrix"
+    
+    if(matrices%have_cmc_m) then
+      ewrite(1, *) "Exiting add_cmc_matrix"
+      return
+    end if
+    
+    u_shape => ele_shape(matrices%u_mesh, 1)
+    p_shape => ele_shape(matrices%p_mesh, 1)
+    apply_kmk = continuity(matrices%p_mesh) == 0 .and. p_shape%degree == 1 .and. ele_numbering_family(p_shape) == FAMILY_SIMPLEX &
+        & .and. continuity(matrices%u_mesh) == 0 .and. u_shape%degree == 1 .and. ele_numbering_family(u_shape) == FAMILY_SIMPLEX &
+        & .and. .not. have_option(trim(matrices%option_path) // &
+           & "/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")
+    
+    cmc_sparsity => get_csr_sparsity_secondorder(state, matrices%p_mesh, matrices%u_mesh)
+    call allocate(matrices%cmc_m, cmc_sparsity, name = "CMC")
+    
+    if(matrices%lump_mass) then
+      call assemble_masslumped_cmc(matrices%cmc_m, matrices%ct_m, matrices%inverse_masslump_v, matrices%ct_m)
+    else
+      call assemble_cmc_dg(matrices%cmc_m, matrices%ct_m, matrices%ct_m, matrices%inverse_mass_b)
+    end if
+    
+    if(apply_kmk) then      
+      ! this is only to retrieve the right meshes to base sparsities on:
+      positions => extract_vector_field(state, "Coordinate")
+      call allocate(dummy_p, matrices%p_mesh, "Pressure", field_type = FIELD_TYPE_CONSTANT)
+      call allocate(dummy_u, positions%dim, matrices%u_mesh, "Velocity", field_type = FIELD_TYPE_CONSTANT)
+      call insert(lstate, positions, "Coordinate")
+      call insert(lstate, dummy_p,  "Pressure")
+      call insert(lstate, dummy_u, "Velocity")
+      call deallocate(dummy_p)
+      call deallocate(dummy_u)
+      
+      call assemble_kmk_matrix(lstate, matrices%u_mesh, positions, theta_pg = 1.0)    
+      call add_kmk_matrix(lstate, matrices%cmc_m)
+      
+      call deallocate(lstate)
+    end if
+    
+    matrices%have_cmc_m = .true.
+    
+    ewrite(1, *) "Exiting add_cmc_matrix"
+    
+  end subroutine add_cmc_matrix
     
   function geopressure_divergence(state, u_mesh, gp_mesh, positions) result(ct_gp_m)
     type(state_type), intent(inout) :: state
@@ -1204,76 +1104,135 @@ contains
     
   end function geopressure_divergence
   
-  subroutine add_geopressure_matrices(state, u_mesh, gp_mesh, positions, matrices)
+  subroutine add_geopressure_matrices(state, gp_mesh, matrices)
     type(state_type), intent(inout) :: state
-    type(mesh_type), intent(inout) :: u_mesh
     type(mesh_type), intent(inout) :: gp_mesh
-    type(vector_field), intent(in) :: positions
     type(cmc_matrices), intent(inout) :: matrices
     
-    if(matrices%geopressure) return
+    type(vector_field), pointer :: positions
     
-    matrices%geopressure = .true.
-    matrices%ct_gp_m = geopressure_divergence(state, u_mesh, gp_mesh, positions)
+    if(matrices%have_geopressure) return
+    
+    positions => extract_vector_field(state, "Coordinate")
+    
+    matrices%ct_gp_m = geopressure_divergence(state, matrices%u_mesh, gp_mesh, positions)
     if(matrices%lump_mass) then
       call assemble_cmc_dg(matrices%cmc_gp_m, matrices%ct_m, matrices%ct_gp_m, matrices%inverse_mass_b)
     else
       call assemble_masslumped_cmc(matrices%cmc_gp_m, matrices%ct_m, matrices%inverse_masslump_v, matrices%ct_gp_m)
     end if
     
+    matrices%have_geopressure = .true.
+    
   end subroutine add_geopressure_matrices
-    
-  subroutine geopressure_precondition_cmc(state, u_mesh, p_mesh, gp, ctp_m, cmc_rhs, positions, inverse_mass_b, inverse_masslump_v, cmc_gp_m, ct_gp_m)
-    type(state_type), intent(inout) :: state
-    type(mesh_type), intent(inout) :: u_mesh
-    type(mesh_type), intent(in) :: p_mesh
-    type(scalar_field), target, intent(in) :: gp
-    type(block_csr_matrix), intent(in) :: ctp_m
+  
+  subroutine assemble_cmc_rhs(field, matrices, cmc_rhs, gp)
+    type(vector_field), intent(in) :: field
+    type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(inout) :: cmc_rhs
-    type(vector_field), intent(in) :: positions
-    type(block_csr_matrix), optional, intent(in) :: inverse_mass_b
-    type(vector_field), optional, intent(in) :: inverse_masslump_v
-    type(csr_matrix), optional, intent(out) :: cmc_gp_m
-    type(block_csr_matrix), optional, intent(out) :: ct_gp_m
+    type(scalar_field), optional, intent(in) :: gp
     
-    type(csr_matrix) :: lcmc_gp_m
-    type(csr_sparsity) :: cmc_gp_sparsity
-    type(block_csr_matrix) :: lct_gp_m
-    type(mesh_type), pointer :: gp_mesh
     type(scalar_field) :: cmc_rhs_addto
     
-    gp_mesh => gp%mesh
-    
-    cmc_gp_sparsity = make_sparsity_mult(p_mesh, u_mesh, gp_mesh, name = "CMC_gpSparsity")
-    call allocate(lcmc_gp_m, cmc_gp_sparsity, name = "CMC_gp")
-    call deallocate(cmc_gp_sparsity)
-    
-    lct_gp_m = geopressure_divergence(state, u_mesh, gp_mesh, positions)
-    
-    if(present(inverse_mass_b)) then
-      call assemble_cmc_dg(lcmc_gp_m, ctp_m, lct_gp_m, inverse_mass_b)
-    else
-      assert(present(inverse_masslump_v))
-      call assemble_masslumped_cmc(lcmc_gp_m, ctp_m, inverse_masslump_v, lct_gp_m)
-    end if
-    
-    call allocate(cmc_rhs_addto, cmc_rhs%mesh, trim(cmc_rhs%name) // "Addto")
-    call mult(cmc_rhs_addto, lcmc_gp_m, gp)
-    
-    call scale(cmc_rhs_addto, -1.0)
-    call addto(cmc_rhs, cmc_rhs_addto)
-    call deallocate(cmc_rhs_addto)
-    
-    if(present(ct_gp_m)) then
-      cmc_gp_m = lcmc_gp_m
-      ct_gp_m = lct_gp_m
-    else
-      call deallocate(lcmc_gp_m)
-      call deallocate(lct_gp_m)
-    end if
-            
-  end subroutine geopressure_precondition_cmc
+    assert(matrices%have_cmc_m)
+    assert(field%mesh == matrices%u_mesh)
+    assert(cmc_rhs%mesh == matrices%p_mesh)
   
+    call mult(cmc_rhs, matrices%ct_m, field)
+    call scale(cmc_rhs, -1.0)
+    if(matrices%have_geopressure .and. present(gp)) then
+      call allocate(cmc_rhs_addto, cmc_rhs%mesh, trim(cmc_rhs%name) // "Addto")
+      call mult(cmc_rhs_addto, matrices%cmc_gp_m, gp)
+      
+      call scale(cmc_rhs_addto, -1.0)
+      call addto(cmc_rhs, cmc_rhs_addto)
+      call deallocate(cmc_rhs_addto)
+    end if
+    call addto(cmc_rhs, matrices%ct_rhs)
+  
+  end subroutine assemble_cmc_rhs
+  
+  subroutine cmc_solve_setup(matrices, cmc_rhs)
+    type(cmc_matrices), intent(inout) :: matrices
+    type(scalar_field), intent(inout) :: cmc_rhs
+    
+    assert(matrices%have_cmc_m)
+    
+    call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = matrices%option_path)
+  
+  end subroutine cmc_solve_setup
+  
+  subroutine cmc_solve_finalise(matrices)
+    type(cmc_matrices), intent(inout) :: matrices
+    
+    assert(matrices%have_cmc_m)
+    
+    if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
+    
+  end subroutine cmc_solve_finalise
+  
+  subroutine deallocate_cmc_matrices(matrices)
+    type(cmc_matrices), intent(inout) :: matrices
+    
+    call deallocate(matrices%u_mesh)
+    call deallocate(matrices%p_mesh)
+    if(matrices%lump_mass) then
+      call deallocate(matrices%inverse_masslump_v)
+    else
+      call deallocate(matrices%inverse_mass_b)
+    end if
+    call deallocate(matrices%ct_m)
+    call deallocate(matrices%ct_rhs)
+    
+    if(matrices%have_cmc_m) then
+      call deallocate(matrices%cmc_m)
+    end if
+    
+    if(matrices%have_geopressure) then
+      call deallocate(matrices%cmc_gp_m)
+      call deallocate(matrices%ct_gp_m)
+    end if
+    
+  end subroutine deallocate_cmc_matrices
+          
+  subroutine projection_decomposition(state, field, p, gp, option_path, &
+    & matrices)   
+    !!< Perform a Helmholz decomposition of the supplied vector field. Basically
+    !!< a pressure projection solve.
+  
+    type(state_type), intent(inout) :: state
+    type(vector_field), target, intent(inout) :: field
+    type(scalar_field), target, intent(inout) :: p
+    type(scalar_field), optional, intent(inout) :: gp
+    character(len = *), optional, intent(in) :: option_path
+    type(cmc_matrices), optional, intent(out) :: matrices
+    
+    type(cmc_matrices) :: lmatrices
+    type(scalar_field) :: cmc_rhs    
+        
+    ewrite(1, *) "In projection_decomposition"
+  
+    call allocate(lmatrices, state, field, p, option_path = option_path, gp = gp, add_cmc = .true.)
+    
+    call allocate(cmc_rhs, lmatrices%p_mesh, "CMCRHS")
+    call assemble_cmc_rhs(field, lmatrices, cmc_rhs, gp = gp)
+    
+    call cmc_solve_setup(lmatrices, cmc_rhs)
+    call petsc_solve(p, lmatrices%cmc_m, cmc_rhs, option_path = lmatrices%option_path)
+    call cmc_solve_finalise(lmatrices)
+    
+    call deallocate(cmc_rhs)
+    
+    if(present(matrices)) then
+      matrices = lmatrices
+    else
+      call deallocate(lmatrices)
+    end if
+       
+    ewrite(1, *) "Exiting projection_decomposition"
+    
+  end subroutine projection_decomposition
+      
   subroutine geopressure_decomposition(state, field, p, option_path)
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(in) :: field
@@ -1350,26 +1309,6 @@ contains
     end subroutine assemble_geopressure_ele
     
   end subroutine geopressure_decomposition
-  
-  subroutine deallocate_cmc_matrices(matrices)
-    type(cmc_matrices), intent(inout) :: matrices
-    
-    call deallocate(matrices%u_mesh)
-    call deallocate(matrices%p_mesh)
-    if(matrices%lump_mass) then
-      call deallocate(matrices%inverse_masslump_v)
-    else
-      call deallocate(matrices%inverse_mass_b)
-    end if
-    call deallocate(matrices%ct_m)
-    call deallocate(matrices%ct_rhs)
-    call deallocate(matrices%cmc_m)
-    if(matrices%geopressure) then
-      call deallocate(matrices%cmc_gp_m)
-      call deallocate(matrices%ct_gp_m)
-    end if
-    
-  end subroutine deallocate_cmc_matrices
   
   subroutine correct_velocity(velocity, p, matrices, conserv)
     type(vector_field), intent(inout) :: velocity
@@ -1452,31 +1391,6 @@ contains
   
   end subroutine compute_divergence
   
-  subroutine assemble_cmc_rhs(field, matrices, cmc_rhs, gp)
-    type(vector_field), intent(in) :: field
-    type(cmc_matrices), intent(inout) :: matrices
-    type(scalar_field), intent(inout) :: cmc_rhs
-    type(scalar_field), optional, intent(in) :: gp
-    
-    type(scalar_field) :: cmc_rhs_addto
-    
-    assert(field%mesh == matrices%u_mesh)
-    assert(cmc_rhs%mesh == matrices%p_mesh)
-  
-    call mult(cmc_rhs, matrices%ct_m, field)
-    call scale(cmc_rhs, -1.0)
-    if(matrices%geopressure .and. present(gp)) then
-      call allocate(cmc_rhs_addto, cmc_rhs%mesh, trim(cmc_rhs%name) // "Addto")
-      call mult(cmc_rhs_addto, matrices%cmc_gp_m, gp)
-      
-      call scale(cmc_rhs_addto, -1.0)
-      call addto(cmc_rhs, cmc_rhs_addto)
-      call deallocate(cmc_rhs_addto)
-    end if
-    call addto(cmc_rhs, matrices%ct_rhs)
-  
-  end subroutine assemble_cmc_rhs
-  
   function coriolis_val(coord, velocity)
     real, dimension(:), intent(in) :: coord
     real, dimension(size(coord)), intent(in) :: velocity
@@ -1508,21 +1422,7 @@ contains
     if(size(velocity) == 3) velocity(W_) = 0.0
     
   end function velocity_from_coriolis_val
-  
-  function bc_ids(mesh, surface_element_list)
-    type(mesh_type), intent(in) :: mesh
-    integer, dimension(:), intent(in) :: surface_element_list
     
-    integer :: i
-    type(integer_set) :: bc_ids
-    
-    call allocate(bc_ids)
-    do i = 1, size(surface_element_list)
-      call insert(bc_ids, surface_element_id(mesh, surface_element_list(i)))
-    end do
-    
-  end function bc_ids
-  
   subroutine copy_bcs(donor, target, bcname)
     type(vector_field), intent(in) :: donor
     type(vector_field), intent(inout) :: target
@@ -1530,23 +1430,24 @@ contains
     
     character(len = FIELD_NAME_LEN) :: lbcname, bctype
     integer :: i
+    integer, dimension(surface_element_count(target)) :: surface_eles
     integer, dimension(:), pointer:: surface_element_list
     logical, dimension(donor%dim):: applies
-    type(integer_set) :: boundary_ids
     
     ewrite(2, *) "Bc count for field " // trim(donor%name), get_boundary_condition_count(donor)
+    do i = 1, size(surface_eles)
+      surface_eles(i) = i
+    end do
     do i = 1, get_boundary_condition_count(donor)
       call get_boundary_condition(donor, i, name = lbcname, type = bctype, &
         & surface_element_list = surface_element_list, applies = applies)
       if(present(bcname)) then
         if(.not. lbcname == bcname) cycle
       end if
-      
-      boundary_ids = bc_ids(donor%mesh, surface_element_list)       
-      ewrite(2, *), "Copying bc " // trim(lbcname) // " to IDs ", set2vector(boundary_ids)   
-      call add_boundary_condition(target, lbcname, bctype,&
-        & set2vector(boundary_ids), applies = applies)            
-      call deallocate(boundary_ids)
+         
+      ewrite(2, *), "Copying bc " // trim(lbcname)
+      call add_boundary_condition_surface_elements(target, lbcname, bctype,&
+        & surface_eles, applies = applies)            
     end do
   
   end subroutine copy_bcs
@@ -1693,7 +1594,7 @@ contains
     
   end subroutine interpolate_boundary_values
   
-  subroutine derive_p_dirichlet_single(base_p, base_positions, p, positions)
+  subroutine derive_interpolated_p_dirichlet_single(base_p, base_positions, p, positions)
     type(scalar_field), intent(in) :: base_p  
     type(vector_field), intent(inout) :: base_positions
     type(scalar_field), intent(inout) :: p  
@@ -1703,12 +1604,12 @@ contains
     
     lbase_p = (/base_p/)
     lp = (/p/)
-    call derive_p_dirichlet(lbase_p, base_positions, lp, positions)
+    call derive_interpolated_p_dirichlet(lbase_p, base_positions, lp, positions)
     p = lp(1)
   
-  end subroutine derive_p_dirichlet_single
+  end subroutine derive_interpolated_p_dirichlet_single
   
-  subroutine derive_p_dirichlet_double(base_p_1, base_p_2, base_positions, p_1, p_2, positions)
+  subroutine derive_interpolated_p_dirichlet_double(base_p_1, base_p_2, base_positions, p_1, p_2, positions)
     type(scalar_field), intent(in) :: base_p_1  
     type(scalar_field), intent(in) :: base_p_2
     type(vector_field), intent(inout) :: base_positions
@@ -1720,23 +1621,49 @@ contains
     
     lbase_p = (/base_p_1, base_p_2/)
     lp = (/p_1, p_2/)
-    call derive_p_dirichlet(lbase_p, base_positions, lp, positions)
+    call derive_interpolated_p_dirichlet(lbase_p, base_positions, lp, positions)
     p_1 = lp(1)
     p_2 = lp(2)
   
-  end subroutine derive_p_dirichlet_double
+  end subroutine derive_interpolated_p_dirichlet_double
   
-  subroutine derive_p_dirichlet_multiple(base_ps, base_positions, ps, positions)
+  subroutine clear_boundary_conditions_scalar_single(field)
+    type(scalar_field), intent(inout) :: field
+    
+    type(scalar_field), dimension(1) :: lfield
+    
+    lfield(1) = field
+    call clear_boundary_conditions(lfield)
+    field = lfield(1)
+    
+  end subroutine clear_boundary_conditions_scalar_single
+  
+  subroutine clear_boundary_conditions_scalar_multiple(fields)
+    type(scalar_field), dimension(:), intent(inout) :: fields
+    
+    integer :: i, j
+    
+    do i = 1, size(fields)
+      if(associated(fields(i)%bc%boundary_condition)) then
+         do j = 1, size(fields(i)%bc%boundary_condition)
+           call deallocate(fields(i)%bc%boundary_condition(j))
+         end do
+        deallocate(fields(i)%bc%boundary_condition)
+      end if
+    end do
+    
+  end subroutine clear_boundary_conditions_scalar_multiple
+  
+  subroutine derive_interpolated_p_dirichlet_multiple(base_ps, base_positions, ps, positions)
     type(scalar_field), dimension(:), intent(inout) :: base_ps 
     type(vector_field), intent(inout) :: base_positions
     type(scalar_field), dimension(size(base_ps)), intent(inout) :: ps  
     type(vector_field), intent(inout) :: positions
     
-    integer :: i, j
-    integer, dimension(:), allocatable :: boundary_ids_vec
+    integer :: i
     integer, dimension(:), pointer :: surface_element_list
-    type(scalar_field), dimension(size(ps)) :: b_ps
-    type(integer_set) :: boundary_ids    
+    integer, dimension(surface_element_count(positions)) :: surface_eles
+    type(scalar_field), dimension(size(ps)) :: b_ps 
     type(mesh_type), pointer :: b_mesh
     
 #ifdef DDEBUG
@@ -1747,25 +1674,13 @@ contains
     end do
 #endif
     
-    do i = 1, size(ps)
-      if(associated(ps(i)%bc%boundary_condition)) then
-         do j = 1, size(ps(i)%bc%boundary_condition)
-           call deallocate(ps(i)%bc%boundary_condition(j))
-         end do
-        deallocate(ps(i)%bc%boundary_condition)
-      end if
-    end do
+    call clear_boundary_conditions(ps)
     
-    call allocate(boundary_ids)
-    do i = 1, surface_element_count(base_positions)
-      call insert(boundary_ids, surface_element_id(base_positions, i))
+    ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(1)%name)
+    do i = 1, size(surface_eles)
+      surface_eles(i) = i
     end do
-    allocate(boundary_ids_vec(key_count(boundary_ids)))
-    boundary_ids_vec = set2vector(boundary_ids)
-    call deallocate(boundary_ids)
-    
-    ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(1)%name) // " to IDs ", boundary_ids_vec 
-    call add_boundary_condition(ps(1), "InterpolatedBoundary", "dirichlet", boundary_ids_vec) 
+    call add_boundary_condition_surface_elements(ps(1), "InterpolatedBoundary", "dirichlet", surface_eles) 
     call get_boundary_condition(ps(1), 1, surface_mesh = b_mesh, &
       & surface_element_list = surface_element_list) 
     call interpolate_boundary_values(base_ps, base_positions, ps, positions, b_mesh, surface_element_list, b_ps) 
@@ -1774,16 +1689,180 @@ contains
     call insert_surface_field(ps(1), 1, b_ps(1))
     call deallocate(b_ps(1))
     do i = 2, size(ps)
-      ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i)%name) // " to IDs ", boundary_ids_vec 
-      call add_boundary_condition(ps(i), "InterpolatedBoundary", "dirichlet", boundary_ids_vec) 
+      ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i)%name) 
+      call add_boundary_condition_surface_elements(ps(i), "InterpolatedBoundary", "dirichlet", surface_eles) 
       ewrite_minmax(b_ps(i)%val)
       call insert_surface_field(ps(i), 1, b_ps(i))
       call deallocate(b_ps(i))
     end do
     
-    deallocate(boundary_ids_vec)
+  end subroutine derive_interpolated_p_dirichlet_multiple
+  
+  subroutine decompose_p_mean_multiple(state, base_ps, positions, ps, add_bcs)
+    !!< Decompose a conservative potential into a part constant on the
+    !!< boundary and a residual, by taking a mean on the boundary
+  
+    type(state_type), intent(inout) :: state
+    type(scalar_field), dimension(:), target, intent(inout) :: base_ps 
+    type(vector_field), intent(inout) :: positions
+    type(scalar_field), dimension(size(base_ps), 2), intent(inout) :: ps
+    !! If present and .true., as strong Dirichlet bcs to the output constant
+    !! part
+    logical, optional, intent(in) :: add_bcs  
     
-  end subroutine derive_p_dirichlet_multiple
+    integer :: i, j, nsurfaces
+    integer, dimension(:), allocatable :: connected_surface
+    integer, dimension(:), pointer :: bc_surface_element_list
+    logical :: ladd_bcs
+    real, dimension(:), allocatable :: surface_areas
+    real, dimension(:, :), allocatable :: surface_means
+    type(csr_matrix) :: mass
+    type(csr_sparsity), pointer :: sparsity
+    type(integer_vector), dimension(:), allocatable :: connected_surface_eles
+    type(scalar_field) :: bc_field
+    type(scalar_field), dimension(size(base_ps)) :: rhs
+    type(mesh_type), pointer :: bc_mesh, mesh
+    
+    ewrite(1, *) "In decompose_p_multiple"
+    
+#ifdef DDEBUG
+    assert(size(base_ps) > 0)
+    do i = 2, size(base_ps)
+      assert(base_ps(i)%mesh == base_ps(1)%mesh)
+      assert(ps(i, 1)%mesh == ps(1, 1)%mesh)
+      assert(ps(i, 2)%mesh == ps(1, 1)%mesh)
+    end do
+#endif
+    if(positions%dim /= 2) then
+      ! Doing this for 3D unstructured meshes is very tricky
+      FLAbort("Conservative potential decomposition only implemented for 2D")
+    end if
+    
+    ladd_bcs = present_and_true(add_bcs)
+    
+    mesh => base_ps(1)%mesh
+    assert(continuity(mesh) == 0)
+    
+    ! Extract connected regions of the surface
+    allocate(connected_surface(surface_element_count(mesh)))
+    if(ladd_bcs) then
+      ! If we're adding strong Dirichlet bcs to the output we need more
+      ! connectivity information
+      call get_connected_surface_eles(mesh, connected_surface_eles, &
+        & connected_surface = connected_surface, nconnected_surfaces = nsurfaces)
+    else
+      connected_surface = surface_connectivity(mesh, nconnected_surfaces = nsurfaces)
+    end if
+        
+    ! Compute the mean value on the connected surfaces
+    allocate(surface_areas(nsurfaces))
+    allocate(surface_means(size(base_ps), nsurfaces))
+    surface_areas = 0.0
+    surface_means = 0.0
+    do i = 1, nsurfaces
+      call integrate_surface_element(i, base_ps, positions, &
+        & surface_areas(connected_surface(i)), surface_means(:, connected_surface(i)))
+    end do
+    do i = 1, size(surface_means, 1)
+      surface_means(i, :) = surface_means(i, :) / surface_areas
+      ewrite(2, *) "Surface means for " // trim(base_ps(i)%name) // ": ", surface_means(i, :)
+    end do
+    deallocate(surface_areas)
+    
+    ! Assemble the Galerkin projection
+    sparsity => get_csr_sparsity_firstorder(state, mesh, mesh)
+    call allocate(mass, sparsity, name = "MassMatrix")
+    call compute_mass(positions, mesh, mass)
+    do i = 1, size(base_ps)
+      call allocate(rhs(i), mesh, name = "Rhs")
+      call mult(rhs(i), mass, base_ps(i))
+    end do
+    
+    ! Apply strong Dirichlet bcs
+    do i = 1, surface_element_count(mesh)
+      do j = 1, size(base_ps)
+        call set_dirichlet(i, mass, rhs(j), surface_means(j, connected_surface(i)))
+      end do
+    end do
+    deallocate(connected_surface)
+    
+    ! Compute the part constant on the boundary
+    call petsc_solve(ps(:, 1), mass, rhs)   
+    ewrite_minmax(ps(i, 1)%val) 
+    call deallocate(mass)
+    do i = 1, size(rhs)
+      call deallocate(rhs(i))
+    end do
+    
+    ! Compute the residual
+    do i = 1, size(ps, 1)
+      ps(i, 2)%val = base_ps(i)%val - ps(i, 1)%val
+      ewrite_minmax(ps(i, 2)%val)
+    end do
+    
+    if(ladd_bcs) then
+      ! Add strong dirichlet bcs to the part constant on the boundary
+      call clear_boundary_conditions(ps(:, 1))
+      do i = 1, size(ps, 1)
+        do j = 1, nsurfaces
+          ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(ps(i, 1)%name)
+          call add_boundary_condition(ps(i, 1), "ConstantBoundary", "dirichlet", connected_surface_eles(j)%ptr) 
+          call get_boundary_condition(ps(i, 1), j, surface_mesh = bc_mesh, &
+            & surface_element_list = bc_surface_element_list) 
+          call allocate(bc_field, bc_mesh, name = "value")
+          call set(bc_field, surface_means(i, j))
+          call insert_surface_field(ps(i, 1), j, bc_field)
+          call deallocate(bc_field)
+        end do
+      end do
+      do i = 1, nsurfaces
+        deallocate(connected_surface_eles(j)%ptr)
+      end do
+      deallocate(connected_surface_eles(j)%ptr)  
+    end if
+     
+    deallocate(surface_means) 
+    
+    ewrite(1, *) "Exiting decompose_p_multiple"   
+    
+  contains
+  
+    subroutine integrate_surface_element(face, ps, positions, area, integrals)
+      integer, intent(in) :: face
+      type(scalar_field), dimension(:), intent(in) :: ps
+      type(vector_field), intent(in) :: positions
+      real, dimension(size(ps)), intent(inout) :: area
+      real, dimension(size(ps)), intent(inout) :: integrals
+      
+      integer :: i
+      real, dimension(face_ngi(positions, face)) :: detwei
+      
+      call transform_facet_to_physical(positions, face, &
+        & detwei_f = detwei)
+        
+      area = area + abs(sum(detwei))
+      do i = 1, size(ps)
+        integrals(i) = integrals(i) + dot_product(face_val_at_quad(ps(i), face), detwei)
+      end do
+                
+    end subroutine integrate_surface_element
+    
+    subroutine set_dirichlet(face, matrix, rhs, val)
+      integer, intent(in) :: face
+      type(csr_matrix), intent(inout) :: matrix
+      type(scalar_field), intent(inout) :: rhs
+      real, intent(in) :: val
+      
+      integer, dimension(face_loc(rhs, face)) :: nodes
+      
+      nodes = face_global_nodes(rhs, face)
+      
+      call set_inactive(matrix, nodes)
+      call set(rhs, nodes, spread(val, 1, ele_loc(rhs, face)))
+      
+    end subroutine set_dirichlet
+    
+  end subroutine decompose_p_mean_multiple
   
   subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
     !!< Perform a Helmholz decomposed projection of the Coriolis force, and
@@ -1800,26 +1879,15 @@ contains
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
-    type(state_type), dimension(3) :: new_proj_state, old_proj_state
+    type(state_type), dimension(2) :: new_proj_state, old_proj_state
     type(vector_field) :: coriolis, coriolis_addto, new_res, old_res
     type(vector_field), pointer :: new_positions, &
       & old_positions
-    
-    logical :: proj_grad_p
-    type(scalar_field) :: cmc_rhs
-    type(vector_field) :: new_grad_p, old_grad_p
-    
-    logical :: geopressure
-    character(len = OPTION_PATH_LEN) :: gp_mesh_name
-    type(cmc_matrices) :: gp_matrices
-    type(scalar_field) :: new_gp, old_gp
-    type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
-    
+        
     character(len = OPTION_PATH_LEN) :: aux_p_name
     logical :: aux_p
     type(scalar_field) :: lold_aux_p, lnew_aux_p
     type(scalar_field), pointer :: new_aux_p, old_aux_p
-    type(vector_field) :: new_grad_aux_p, old_grad_aux_p
     
     integer, save :: vtu_index = 0
     type(scalar_field) :: div
@@ -1844,21 +1912,7 @@ contains
     call allocate(coriolis, dim, old_u_mesh, "Coriolis")
     coriolis%option_path = old_velocity%option_path
     call coriolis_from_velocity(old_positions, old_velocity, coriolis)
-    
-    geopressure = have_option(trim(base_path) // "/geopressure_preconditioner")
-    if(geopressure) then
-      ! We're preconditioning with a GeostrophicPressure solve
-      call get_option(trim(base_path) // "/geopressure_preconditioner/mesh/name", gp_mesh_name)
-      ewrite(2, *) "Computing GeostrophicPressure of mesh: ", trim(gp_mesh_name)
-      old_gp_mesh => extract_mesh(old_state, gp_mesh_name)
-      new_gp_mesh => extract_mesh(new_state, gp_mesh_name)
-      
-      call allocate(old_gp, old_gp_mesh, gp_name)
-      old_gp%option_path = trim(base_path) // "/geopressure_preconditioner"
-      call zero(old_gp)
-      call geopressure_decomposition(old_state, coriolis, old_gp)
-    end if    
-    
+        
     call allocate(old_p, old_p_mesh, "CoriolisConservativePotential")
     old_p%option_path = trim(base_path) // "/conservative_potential"
     call allocate(old_res, dim, old_u_mesh, "CoriolisNonConservativeResidual")
@@ -1884,12 +1938,7 @@ contains
     end if
     
     call copy_bcs(old_velocity, coriolis)
-    if(geopressure) then
-      call projection_decomposition(old_state, coriolis, old_p, &
-        & gp = old_gp, matrices = matrices) 
-    else
-      call projection_decomposition(old_state, coriolis, old_p, matrices = matrices) 
-    end if
+    call projection_decomposition(old_state, coriolis, old_p, matrices = matrices) 
     call set(old_res, coriolis)
     call correct_velocity(old_res, old_p, matrices)
     
@@ -1897,13 +1946,8 @@ contains
     div%option_path = trim(old_p%option_path) // "/galerkin_projection/continuous"
     call zero(div)
     call compute_divergence(old_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
-    if(geopressure) then
-      call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_gp, old_p, div/), vfields = (/old_velocity, coriolis, old_res/))
-    else
-      call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_p, div/), vfields = (/old_velocity, coriolis, old_res/))
-    end if
+    call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
+      & sfields = (/old_p, div/), vfields = (/old_velocity, coriolis, old_res/))
     call deallocate(div)
     
     ! Step 2: Galerkin project the decomposition
@@ -1938,15 +1982,14 @@ contains
       call deallocate(old_w)
     end if
     
-    proj_grad_p = have_option(trim(base_path) // "/conservative_potential/project_gradient")
-    
     if(have_option(trim(base_path) // "/conservative_potential/interpolate_boundary")) then
       ! Set-up the projection boundary conditions
+      
       ! If projecting the gradient, these are also applied to the Poisson solve
       if(aux_p) then
-        call derive_p_dirichlet(old_p, lold_aux_p, old_positions, new_p, lnew_aux_p, new_positions)
+        call derive_interpolated_p_dirichlet(old_p, lold_aux_p, old_positions, new_p, lnew_aux_p, new_positions)
       else
-        call derive_p_dirichlet(old_p, old_positions, new_p, new_positions)
+        call derive_interpolated_p_dirichlet(old_p, old_positions, new_p, new_positions)
       end if
     end if
       
@@ -1962,48 +2005,6 @@ contains
       call insert(new_proj_state(2), lnew_aux_p, lnew_aux_p%name)
     end if
     
-    if(proj_grad_p) then
-      ! Note: We insert the conservative potential as well (above) to give a
-      ! good initial guess for the subsequent solve
-      
-      ! Insert the conservative potential gradient
-      call allocate(old_grad_p, dim, old_u_mesh, trim(old_p%name) // "Gradient")
-      old_grad_p%option_path = old_res%option_path
-      call allocate(new_grad_p, dim, new_u_mesh, trim(new_p%name) // "Gradient")
-      new_grad_p%option_path = old_grad_p%option_path
-      ! We could compute this when computing old_res, but adding this here
-      ! for now as this routine is complicated enough
-      call compute_conservative(old_grad_p, matrices, old_p)
-      
-      call insert(old_proj_state(1), old_grad_p, old_grad_p%name)
-      call insert(new_proj_state(1), new_grad_p, new_grad_p%name)
-      call deallocate(old_grad_p)
-      
-      if(aux_p) then        
-        ! Insert the Pressure gradient        
-        call allocate(old_grad_aux_p, dim, old_u_mesh, trim(lold_aux_p%name) // "Gradient")
-        old_grad_aux_p%option_path = old_grad_p%option_path
-        call compute_conservative(old_grad_aux_p, matrices, lold_aux_p)
-        call insert(old_proj_state(1), old_grad_aux_p, old_grad_aux_p%name)
-        
-        call allocate(new_grad_aux_p, dim, new_u_mesh, trim(lnew_aux_p%name) // "Gradient")
-        new_grad_aux_p%option_path = old_grad_aux_p%option_path
-        call zero(new_grad_aux_p)
-        call insert(new_proj_state(1), new_grad_aux_p, new_grad_aux_p%name)
-        call deallocate(old_grad_aux_p)
-      end if
-    end if
-        
-    if(geopressure) then
-      ! Insert the GeostrophicPressure
-      call allocate(new_gp, new_gp_mesh, gp_name)
-      new_gp%option_path = old_gp%option_path
-      call insert(old_proj_state(3), old_gp_mesh, old_gp_mesh%name)
-      call insert(old_proj_state(3), old_gp, old_gp%name)
-      call insert(new_proj_state(3), new_gp_mesh, new_gp_mesh%name)
-      call insert(new_proj_state(3), new_gp, new_gp%name)
-    end if
-    
     call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
     
     do i = 1, size(old_proj_state)
@@ -2014,64 +2015,33 @@ contains
     call deallocate(coriolis)
     call deallocate(matrices)
     call deallocate(old_res)
-    if(geopressure) call deallocate(old_gp)
     
     ! Step 3: Form the new Coriolis from the decomposition and invert for
     ! Velocity
     
     call allocate(coriolis, dim, new_u_mesh, "Coriolis")
     
-    ! Add the solenoidal component. Project the interpolated residual to
-    ! guarantee solenoidal.
-    
-    call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
-    res_p%option_path = new_p%option_path
-    call zero(res_p)
+    ! Add the solenoidal component
+        
     call copy_bcs(new_velocity, new_res)
-    call projection_decomposition(new_state, new_res, res_p, matrices = matrices)
     call set(coriolis, new_res)
-    call correct_velocity(coriolis, res_p, matrices)
-    call deallocate(res_p)
+    if(have_option(trim(base_path) // "/residual/enforce_solenoidal")) then
+      ! Project the interpolated residual to guarantee solenoidal
+      call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
+      res_p%option_path = new_p%option_path
+      call zero(res_p)
+      call projection_decomposition(new_state, new_res, res_p, matrices = matrices)
+      call correct_velocity(coriolis, res_p, matrices)
+      call deallocate(res_p)
+    else
+      call allocate(matrices, new_state, new_res, new_p, add_cmc = .false.)
+    end if
     
     ! Add the conservative component  
-    
-    if(proj_grad_p) then
-      ! Decompose the projected potential gradient for the new conservative
-      ! potential
-      
-      call allocate(cmc_rhs, new_p_mesh, "CMCRHS")
-      call assemble_cmc_rhs(new_grad_p, matrices, cmc_rhs)
-      call deallocate(new_grad_p)
-      call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, new_p)
-      call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = new_p%option_path)
-      call petsc_solve(new_p, matrices%cmc_m, cmc_rhs)
-      if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
-      
-      if(aux_p) then
-        ! Invert the Pressure gradient for the Pressure
-    
-        call assemble_cmc_rhs(new_grad_aux_p, matrices, cmc_rhs)
-        call deallocate(new_grad_aux_p)
-        call apply_dirichlet_conditions(matrices%cmc_m, cmc_rhs, lnew_aux_p)
-        call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = lnew_aux_p%option_path)
-        call petsc_solve(lnew_aux_p, matrices%cmc_m, cmc_rhs)
-        if(has_inactive(matrices%cmc_m)) matrices%cmc_m%inactive%ptr = .false.
-      end if
-      
-      call deallocate(cmc_rhs) 
-    end if
-    
+        
     call allocate(coriolis_addto, dim, new_u_mesh, name = "CoriolisAddto")
     call compute_conservative(coriolis_addto, matrices, new_p)  
-    call addto(coriolis, coriolis_addto)
-    
-    if(geopressure) then
-      ! Add the GeostrophicPressure gradient
-      call add_geopressure_matrices(new_state, new_u_mesh, new_gp_mesh, new_positions, matrices)
-      call compute_conservative(coriolis_addto, gp_matrices, new_gp, geopressure = .true.)
-      call addto(coriolis, coriolis_addto)
-    end if
-      
+    call addto(coriolis, coriolis_addto)          
     call deallocate(coriolis_addto)
     
     ! Invert for the new Velocity
@@ -2089,13 +2059,8 @@ contains
     div%option_path = trim(new_p%option_path) // "/galerkin_projection/continuous"
     call zero(div)
     call compute_divergence(new_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
-    if(geopressure) then
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_gp, new_p, div/), vfields = (/new_velocity, coriolis, new_res/))
-    else
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p, div/), vfields = (/new_velocity, coriolis, new_res/))
-    end if    
+    call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
+      & sfields = (/new_p, div/), vfields = (/new_velocity, coriolis, new_res/))
     call deallocate(div)
     
     if(aux_p) then
@@ -2105,7 +2070,6 @@ contains
     end if
     
     call deallocate(old_p)
-    if(geopressure) call deallocate(new_gp)
     call deallocate(coriolis)
     call deallocate(matrices)
     call deallocate(new_p)

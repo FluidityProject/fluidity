@@ -51,7 +51,8 @@ module SurfaceLabels
   private
   public :: FindGeometryConstraints, &
        get_coplanar_ids, reset_coplanar_ids, &
-       minimum_distance_to_line_segment
+       minimum_distance_to_line_segment, surface_connectivity, &
+       get_connected_surface_eles
        
   ! The magic numbers corresponds to what's used in libadapt
   real, parameter:: COPLANAR_MAGIC_NUMBER=0.999999
@@ -438,8 +439,6 @@ contains
     ele_halo => mesh%element_halos(nhalos)
     if(serial_storage_halo(ele_halo)) return
     
-    assert(element_halo_count(mesh) > 0)
-    
     communicator = halo_communicator(ele_halo)
     nprocs = halo_proc_count(ele_halo)
     procno = getprocno(communicator = communicator)
@@ -636,5 +635,137 @@ contains
       dist = distance_to_line(point, line_start, line_end)
     end if
   end function minimum_distance_to_line_segment
+  
+  function surface_connectivity(mesh, nconnected_surfaces) result(connected_surface)
+    !!< Mark connected surface elements
+    
+    type(mesh_type), intent(in) :: mesh
+    integer, optional, intent(out) :: nconnected_surfaces
+    
+    integer, dimension(surface_element_count(mesh)) :: connected_surface
+    
+    integer :: face, first_face, i, lnconnected_surfaces
+    integer, dimension(:), pointer :: neigh, surface_nodes
+    type(csr_sparsity), pointer :: eelist
+    type(ilist) :: next
+    type(mesh_type) :: surface_mesh
+    
+    ewrite(1, *) "In surface_connectivity"
+    
+    call create_surface_mesh(surface_mesh, surface_nodes, mesh, name = trim(mesh%name) // "Surface")
+    assert(continuity(surface_mesh) == 0)
+    eelist => extract_eelist(surface_mesh)
+    
+    connected_surface = 0
+    
+    first_face = 1
+    lnconnected_surfaces = 0
+    do while(first_face /= 0)
+      face = first_face
+      assert(face > 0)
+      assert(face <= ele_count(surface_mesh))
+      assert(connected_surface(face) == 0)
+      
+      lnconnected_surfaces = lnconnected_surfaces + 1
+      connected_surface(face) = lnconnected_surfaces
+      
+      neigh => row_m_ptr(eelist, face)
+      do i = 1, size(neigh)
+        if(neigh(i) <= 0) cycle
+        if(connected_surface(neigh(i)) > 0) cycle
+      
+        call insert(next, neigh(i))
+      end do
+      
+      do while(next%length > 0)
+        face = pop(next)
+        if(connected_surface(face) > 0) cycle
+        
+        connected_surface(face) = lnconnected_surfaces
+        
+        neigh => row_m_ptr(eelist, face)
+        do i = 1, size(neigh)
+          if(neigh(i) <= 0) cycle
+          if(connected_surface(neigh(i)) > 0) cycle
+          ! Should check if neigh(i) is already in the list
+          
+          call insert(next, neigh(i))
+        end do
+      end do
+      
+      first_face = next_zero_loc(first_face + 1, connected_surface)
+    end do
+    assert(all(connected_surface > 0))
+    ewrite(2, *) "Connected surfaces: ", lnconnected_surfaces
+    
+    call deallocate(surface_mesh)
+    
+    if(present(nconnected_surfaces)) nconnected_surfaces = lnconnected_surfaces
+    
+    ewrite(1, *) "Exiting surface_connectivity"
+    
+  contains
+  
+    pure function next_zero_loc(start_index, integer_vector) result(loc)
+      integer, intent(in) :: start_index
+      integer, dimension(:), intent(in) :: integer_vector
+      
+      integer :: loc
+      
+      integer :: i
+      
+      do i = start_index, size(integer_vector)
+        if(integer_vector(i) == 0) then
+          loc = i
+          return
+        end if
+      end do
+      
+      loc = 0
+      
+    end function next_zero_loc
+    
+  end function surface_connectivity
+  
+  subroutine get_connected_surface_eles(mesh, surface_eles, connected_surface, nconnected_surfaces)
+    !!< Return lists of connected surface elements
+        
+    type(mesh_type), intent(in) :: mesh
+    type(integer_vector), dimension(:), allocatable, intent(out) :: surface_eles
+    integer, dimension(surface_element_count(mesh)), optional, intent(out) :: connected_surface
+    integer, optional, intent(out) :: nconnected_surfaces
+    
+    integer :: i, npaint
+    integer, dimension(:), allocatable :: nsurface_eles
+    integer, dimension(surface_element_count(mesh)) :: paint
+    
+    ewrite(1, *) "In get_connected_surface_eles"
+        
+    paint = surface_connectivity(mesh, nconnected_surfaces = npaint)
+    
+    allocate(nsurface_eles(npaint))
+    nsurface_eles = 0
+    do i = 1, size(paint)
+      nsurface_eles(paint(i)) = nsurface_eles(paint(i)) + 1
+    end do
+    
+    allocate(surface_eles(npaint))
+    do i = 1, npaint
+      allocate(surface_eles(i)%ptr(nsurface_eles(i)))
+    end do
+    
+    nsurface_eles = 0
+    do i = 1, size(paint)
+      nsurface_eles(paint(i)) = nsurface_eles(paint(i)) + 1
+      surface_eles(paint(i))%ptr(nsurface_eles(paint(i))) = i
+    end do
+    deallocate(nsurface_eles)
+    
+    if(present(connected_surface)) connected_surface = paint
+    if(present(nconnected_surfaces)) nconnected_surfaces = npaint
+    
+    ewrite(1, *) "Exiting get_connected_surface_eles"
+    
+  end subroutine get_connected_surface_eles
 
 end module SurfaceLabels

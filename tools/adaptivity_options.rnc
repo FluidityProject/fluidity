@@ -1177,13 +1177,6 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
-           ## Project the conservative potential gradient rather than the
-           ## conservative potential. This involves one more CMC solve (two if
-           ## additionally projecting Pressure), but is equivalent to a
-           ## supermesh assembled decomposition.
-           element project_gradient {
-              comment
-           }?,
            ## Additionally project the Pressure field
            element project_pressure {
               attribute name { xsd:string },
@@ -1211,30 +1204,12 @@ interpolation_algorithm_vector =
              supermesh_conservation?,
              comment
            },
+           ## Enforce divergence free after the projection
+           element enforce_solenoidal {
+             comment
+           }?,
            comment
         },
-        ## Precondition the Helmholtz decomposition using a GeostrophicPressure
-        ## solver
-        element geopressure_preconditioner {
-           mesh_choice,
-           ## Reference node, at which the solution value is pinned to zero
-           element reference_node {
-             integer
-           }?,
-           ## Solver options for the GeostrophicPressure solve
-           element solver {
-              linear_solver_options_sym
-           },
-           ## Galerkin projection. By default, conservative, non-dissipative and
-           ## non-bounded. The most accurate choice, in the sense of minimising
-           ## the L2 norm of the residual
-           element galerkin_projection {
-             continuous_projection,
-             supermesh_conservation?,
-             comment
-           },
-           comment
-        }?,
         comment
       }
     )
