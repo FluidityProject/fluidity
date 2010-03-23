@@ -48,6 +48,10 @@
     use adapt_state_prescribed_module
     use memory_diagnostics
     use reserve_state_module
+    use boundary_conditions_from_options
+      use diagnostic_fields_new, only : &
+    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+    & check_diagnostic_dependencies
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -86,6 +90,9 @@
     call read_command_line()
 
     call populate_state(state)
+
+    ! Check the diagnostic field dependencies for circular dependencies
+    call check_diagnostic_dependencies(state)
 
     call get_option('/simulation_name',simulation_name)
     Call initialise_diagnostics(trim(simulation_name),state)
@@ -129,9 +136,20 @@
        timestep=timestep+1
        ewrite (1,*) "SW: start of timestep ",timestep, current_time
 
+       ! this may already have been done in populate_state, but now
+       ! we evaluate at the correct "shifted" time level:
+       call set_boundary_conditions_values(state, shift_time=.true.)
+       
+       ! evaluate prescribed fields at time = current_time+dt
+       call set_prescribed_field_values(state, exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=current_time+dt)
+
        call execute_timestep(state(1), dt)
 
-       call calculate_diagnostic_variables(state)
+       call calculate_diagnostic_variables(state,&
+            & exclude_nonrecalculated = .true.)
+       call calculate_diagnostic_variables_new(state,&
+            & exclude_nonrecalculated = .true.)
 
        if (simulation_completed(current_time, timestep)) exit timestep_loop     
 
@@ -234,7 +252,7 @@
       type(scalar_field) :: d_rhs, delta_d, old_d
       type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
       type(scalar_field) :: velocity_cpt, old_velocity_cpt
-      integer :: i,  dim, nit, d1
+      integer :: dim, nit, d1
 
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
@@ -420,7 +438,7 @@
       !
       type(scalar_field), pointer :: D
       type(vector_field), pointer :: U,X
-      integer :: dim, ele
+      integer :: ele
       type(vector_field) :: u_tmp
       type(scalar_field) :: u1,u2
 

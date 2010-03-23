@@ -429,50 +429,11 @@ usually only the y-component of beta is non-zero</a:documentation>
               <ref name="prognostic_layerthickness_field"/>
             </element>
           </element>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>Passive Tracer</a:documentation>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>Tracer</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>IDENT = 666</value>
-              </attribute>
-              <element name="prognostic">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prognostic_scalar_field"/>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>CFLNumber
-
-See http://amcg.ese.ic.ac.uk/index.php?title=Local:Diagnostics#CFL_Number
-
-Adapting to this field is not recommended</a:documentation>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>CFLNumber</value>
-              </attribute>
-              <attribute name="replaces">
-                <value>IDENT = -601</value>
-              </attribute>
-              <element name="diagnostic">
-                <ref name="internal_algorithm"/>
-                <ref name="velocity_mesh_choice"/>
-                <ref name="diagnostic_scalar_field"/>
-              </element>
-            </element>
-          </optional>
+          <zeroOrMore>
+            <ref name="scalar_field_choice"/>
+          </zeroOrMore>
         </group>
         <!--
-          scalar_field_choice*,
           vector_field_choice*,
           tensor_field_choice*
         -->
@@ -487,6 +448,75 @@ Adapting to this field is not recommended</a:documentation>
       </optional>
     </element>
   </start>
+  <define name="scalar_field_choice">
+    <!--
+      The first is a generic field, which may be used for any user-defined field
+      that FLUIDITY knows nothing about, or a generic diagnostic
+    -->
+    <choice>
+      <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <choice>
+          <a:documentation>Field type</a:documentation>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="scalar_diagnostic_algorithms"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Passive Tracer</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Tracer</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>IDENT = 666</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="prognostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>CFLNumber
+
+See http://amcg.ese.ic.ac.uk/index.php?title=Local:Diagnostics#CFL_Number
+
+Adapting to this field is not recommended</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>CFLNumber</value>
+        </attribute>
+        <attribute name="replaces">
+          <value>IDENT = -601</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+    </choice>
+  </define>
   <!-- Choice of input method, e.g. for boundary conditions -->
   <define name="input_choice_real">
     <ref name="input_choice_real_contents"/>

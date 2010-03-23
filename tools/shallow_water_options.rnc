@@ -315,34 +315,7 @@ start =
                      prognostic_layerthickness_field
                   }
                },                  
-               ## Passive Tracer
-               element scalar_field {
-                  attribute rank { "0" },
-                  attribute name { "Tracer" },
-                  attribute replaces { "IDENT = 666" },
-                  element prognostic {
-                     velocity_mesh_choice,
-                     prognostic_scalar_field
-                  }
-               }?,
-               ## CFLNumber
-               ##
-               ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Diagnostics#CFL_Number
-               ##
-               ## Adapting to this field is not recommended
-               element scalar_field {
-                  attribute rank { "0" },
-                  attribute name { "CFLNumber" },
-                  attribute replaces { "IDENT = -601" },
-                  (
-                     element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field
-                     }
-                  )
-               }?
-               #scalar_field_choice*,
+               scalar_field_choice*
                #vector_field_choice*,
                #tensor_field_choice*
             )
@@ -355,6 +328,61 @@ start =
         }?
       }
    )      
+
+scalar_field_choice = 
+   (
+      # The first is a generic field, which may be used for any user-defined field
+      # that FLUIDITY knows nothing about, or a generic diagnostic
+      (
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { xsd:string },
+            ## Field type
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }|
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }|
+               element diagnostic {
+                  scalar_diagnostic_algorithms,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }|
+         ## Passive Tracer
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "Tracer" },
+            attribute replaces { "IDENT = 666" },
+            element prognostic {
+               velocity_mesh_choice,
+               prognostic_scalar_field
+            }
+         }|
+         ## CFLNumber
+         ##
+         ## See http://amcg.ese.ic.ac.uk/index.php?title=Local:Diagnostics#CFL_Number
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "CFLNumber" },
+            attribute replaces { "IDENT = -601" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         }
+      )
+   )
 
 # Choice of input method, e.g. for boundary conditions
 input_choice_real =
