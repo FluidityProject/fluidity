@@ -373,6 +373,7 @@ contains
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
 
+    type(vector_field), pointer:: position
     character(len = FIELD_NAME_LEN) :: mesh_name
     character(len = OPTION_PATH_LEN) :: mesh_path, mesh_filename
     integer :: i, n_meshes
@@ -402,7 +403,12 @@ contains
 
         if(get_active_nparts(ele_count(mesh)) > 1) then
           ! Write out the mesh
-          call write_triangle_files(parallel_filename(mesh_filename), state(1), mesh)
+          if (mesh%name=="CoordinateMesh") then
+            position => extract_vector_field(state(1), "Coordinate")
+          else
+            position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
+          end if
+          call write_triangle_files(parallel_filename(mesh_filename), position)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
           call write_halos(mesh_filename, mesh)
