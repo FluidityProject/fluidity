@@ -1789,7 +1789,13 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       !call find_mesh_to_adapt(states(1), zz_mesh)
       zz_mesh = get_external_mesh(states)
       call incref(zz_mesh)
-      zz_positions = get_coordinate_field(states(1), zz_mesh)
+      if (zz_mesh%name=="CoordinateMesh") then
+        zz_positions = extract_vector_field(states, "Coordinate")
+      else
+        zz_positions = extract_vector_field(states, trim(zz_mesh%name)//"Coordinate")
+      end if
+      call incref(zz_positions)
+        
       zz_nelist => extract_nelist(zz_mesh)
 
       zz => Zoltan_Create(halo_communicator(zz_mesh))
