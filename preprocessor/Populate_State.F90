@@ -2178,7 +2178,8 @@ contains
 
           ! if (prognostic or diagnostic) and (doing a steady state check on this field or doing more than 1 global iteration)
           if((prognostic.or.diagnostic)&
-              .and.((steady_state_global.and.steady_state_field(sfield)).or.(iterations>1))) then
+              .and.((steady_state_global.and.steady_state_field(sfield)).or.(iterations>1) .or. &
+              have_option(trim(sfield%option_path) // '/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter::FPN'))) then
 
             call allocate(aux_sfield, sfield%mesh, "Old"//trim(sfield%name))
             call zero(aux_sfield)

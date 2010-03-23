@@ -1347,7 +1347,7 @@ contains
     integer :: ele
     real :: ele_max, ele_min
     integer, dimension(:), pointer :: neighbours
-    integer :: j
+    integer :: j, k(1)
 
     old_t => extract_scalar_field(state, "Old" // trim(t%name))
 
@@ -1364,10 +1364,12 @@ contains
 
     do ele=1,ele_count(old_t)
       neighbours => row_m_ptr(eelist, ele)
-      ele_max = maxval(ele_val(old_t, neighbours(1)))
-      ele_min = minval(ele_val(old_t, neighbours(1)))
+      k = minloc(neighbours, mask=neighbours > 0)
+      ele_max = maxval(ele_val(old_t, neighbours(k(1))))
+      ele_min = minval(ele_val(old_t, neighbours(k(1))))
 
-      do j=2,size(neighbours)
+      do j=k(1)+1,size(neighbours)
+        if (neighbours(j) <= 0) cycle
         ele_max = max(ele_max, maxval(ele_val(old_t, neighbours(j))) )
         ele_min = min(ele_min, minval(ele_val(old_t, neighbours(j))) )
       end do
