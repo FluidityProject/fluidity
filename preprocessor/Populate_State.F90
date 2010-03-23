@@ -508,6 +508,11 @@ contains
                    position => extract_vector_field(states(1), trim(model_mesh_name)//'Coordinate')
                  end if
                  periodic_position = make_mesh_periodic_from_options(position, mesh_path)
+                 ! Ensure the name and option path are set on the original
+                 ! mesh descriptor.
+                 periodic_position%mesh%name = mesh_name
+                 periodic_position%mesh%option_path = trim(mesh_path)
+
                  mesh = periodic_position%mesh
                  call incref(mesh)
                  call insert(states, periodic_position, trim(periodic_position%name))
