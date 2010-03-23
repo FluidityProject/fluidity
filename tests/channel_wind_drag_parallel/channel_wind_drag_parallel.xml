@@ -6,7 +6,7 @@
   <owner userid="amcvicar"/>
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -np 4 fluidity -v3 -l  channel_parallel_periodised_flredecomp.flml </command_line>
+    <command_line>mpiexec -np 4 ../../bin/fluidity -v3 -l  channel_parallel_periodised_flredecomp.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="numerical_solution" language="python">
