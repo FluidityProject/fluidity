@@ -14,7 +14,6 @@
     <variable name="Fixed_error_norm" language="python">
 from numpy import sqrt,pi,exp,sin,array,size,abs,max,amax,dot,zeros,reshape,transpose,arange
 import vtktools
-import nodecount
 
 def function_psi(X,Y):
 	lam = 1.0;      b = 1.0;
@@ -38,7 +37,6 @@ def function_trivol(X,Y):
    return abs(VOL/2)
 
 file = 'Stommel_gyre_A_10.vtu'
-n = nodecount.nodecount(file)
 ug=vtktools.vtu(file)
 ug.GetFieldNames()
 temp=ug.GetScalarField('Temperature')
@@ -62,14 +60,13 @@ snorm2 = sqrt(abs(norm2))
 ##print norm1
 ##print snorm2
 ##print amax(err)
-print n,norm1, snorm2, amax(err)
+print norm1, snorm2, amax(err)
 
 Fixed_error_norm = snorm2
     </variable>
     <variable name="Adapt_error_norm" language="python">
 from numpy import sqrt,pi,exp,sin,array,size,abs,max,amax,dot,zeros,reshape,transpose,arange
 import vtktools
-import nodecount
 
 def function_psi(X,Y):
 	lam = 1.0;      b = 1.0;
@@ -93,7 +90,6 @@ def function_trivol(X,Y):
    return abs(VOL/2)
 
 file = 'Stommel_gyre_adapt_A_10.vtu'
-n = nodecount.nodecount(file)
 ug=vtktools.vtu(file)
 ug.GetFieldNames()
 temp=ug.GetScalarField('Temperature')
@@ -117,7 +113,7 @@ snorm2 = sqrt(abs(norm2))
 ##print norm1
 ##print snorm2
 ##print amax(err)
-print n,norm1, snorm2, amax(err)
+print norm1, snorm2, amax(err)
 
 Adapt_error_norm = snorm2
     </variable>
