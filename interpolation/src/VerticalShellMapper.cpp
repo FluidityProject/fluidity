@@ -408,54 +408,58 @@ int VerticalShellMapper::pFind(const double *x, const double *y, const double *z
 #ifdef HAVE_MPI
   if(IsParallel()){
     int missing=xyz.size();
-    for(size_t i=0;i<NProcs;i++){
-      MPI::COMM_WORLD.Bcast(&missing, 1, MPI::INT, i);
-      if(myrank!=i){
-        xyz.resize(missing);
-      }
-      MPI::COMM_WORLD.Bcast(&(xyz[0]), missing, MPI::DOUBLE, i);
-
-      if(myrank!=i){
-        missing /= 3;
-        vector<int> found_tid;
-        vector<double> missing_shape(3), found_shape;
-        for(size_t j=0;j<(size_t)missing;j++){
-          int missing_tid = Find(xyz[j*3], xyz[j*3+1], xyz[j*3+2], &(missing_shape[0]));
-          if(missing_tid>=0){
-            found_tid.push_back(j);
-            found_tid.push_back(missing_tid);
-            found_shape.insert(found_shape.end(), missing_shape.begin(), missing_shape.end());
-          }
+    int total_missing=0;
+    MPI::COMM_WORLD.Allreduce(&missing, &total_missing, 1, MPI::INT, MPI::SUM);
+    if(total_missing>0){
+      for(size_t i=0;i<NProcs;i++){
+        MPI::COMM_WORLD.Bcast(&missing, 1, MPI::INT, i);
+        if(myrank!=i){
+          xyz.resize(missing);
         }
+        MPI::COMM_WORLD.Bcast(&(xyz[0]), missing, MPI::DOUBLE, i);
         
-        if(found_tid.size()>0){
-          MPI::COMM_WORLD.Send(&(found_tid[0]), found_tid.size(), MPI::INT, i, 33);
-          MPI::COMM_WORLD.Send(&(found_shape[0]), found_shape.size(), MPI::DOUBLE, i, 34);
+        if(myrank!=i){
+          missing /= 3;
+          vector<int> found_tid;
+          vector<double> missing_shape(3), found_shape;
+          for(size_t j=0;j<(size_t)missing;j++){
+            int missing_tid = Find(xyz[j*3], xyz[j*3+1], xyz[j*3+2], &(missing_shape[0]));
+            if(missing_tid>=0){
+              found_tid.push_back(j);
+              found_tid.push_back(missing_tid);
+              found_shape.insert(found_shape.end(), missing_shape.begin(), missing_shape.end());
+            }
+          }
+          
+          if(found_tid.size()>0){
+            MPI::COMM_WORLD.Send(&(found_tid[0]), found_tid.size(), MPI::INT, i, 33);
+            MPI::COMM_WORLD.Send(&(found_shape[0]), found_shape.size(), MPI::DOUBLE, i, 34);
+          }else{
+            MPI::COMM_WORLD.Send(NULL, 0, MPI::INT, i, 33);
+          }
         }else{
-          MPI::COMM_WORLD.Send(NULL, 0, MPI::INT, i, 33);
-        }
-      }else{
-        for(size_t j=0;j<NProcs;j++){
-          if(i==j)
-            continue;
-          
-          MPI::Status recvStatus;
-          MPI::COMM_WORLD.Probe(j, 33, recvStatus);  
-          int mesg_size = recvStatus.Get_count(MPI::INT);
-          int found_cnt = mesg_size/2;
-
-          vector<int> buffer_int(found_cnt*2);
-          MPI::COMM_WORLD.Recv(&(buffer_int[0]), found_cnt*2, MPI::INT, j, 33);
-
-          vector<double> buffer_real(3*found_cnt);
-          if(found_cnt)
-            MPI::COMM_WORLD.Recv(&(buffer_real[0]), 3*found_cnt, MPI::DOUBLE, j, 34);
-          
-          for(int k=0;k<found_cnt;k++){
-            tid[lut[buffer_int[k*2]]] = buffer_int[k*2+1];
-            for(int l=0;l<3;l++)
-              shape[lut[k*2]+l] = buffer_real[k*3+l];
-            host[lut[buffer_int[k*2]]] = j;
+          for(size_t j=0;j<NProcs;j++){
+            if(i==j)
+              continue;
+            
+            MPI::Status recvStatus;
+            MPI::COMM_WORLD.Probe(j, 33, recvStatus);  
+            int mesg_size = recvStatus.Get_count(MPI::INT);
+            int found_cnt = mesg_size/2;
+            
+            vector<int> buffer_int(found_cnt*2);
+            MPI::COMM_WORLD.Recv(&(buffer_int[0]), found_cnt*2, MPI::INT, j, 33);
+            
+            vector<double> buffer_real(3*found_cnt);
+            if(found_cnt)
+              MPI::COMM_WORLD.Recv(&(buffer_real[0]), 3*found_cnt, MPI::DOUBLE, j, 34);
+            
+            for(int k=0;k<found_cnt;k++){
+              tid[lut[buffer_int[k*2]]] = buffer_int[k*2+1];
+              for(int l=0;l<3;l++)
+                shape[lut[k*2]+l] = buffer_real[k*3+l];
+              host[lut[buffer_int[k*2]]] = j;
+            }
           }
         }
       }
