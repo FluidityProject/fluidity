@@ -33,16 +33,19 @@ use ieee_arithmetic
 use fldebug_parameters
 use spud
 use eventcounter
+use state_fields_module
+use bound_field_module
 implicit none
 
 private
-public limit_slope_dg
+public limit_slope_dg, limit_fpn
 
 integer, parameter :: LIMITER_MINIMAL=1
 integer, parameter :: LIMITER_COCKBURN=2
 integer, parameter :: LIMITER_HERMITE_WENO=3
+integer, parameter :: LIMITER_FPN=4
 
-public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO
+public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO, LIMITER_FPN
 
 !!CockburnShuLimiter stuff
 real :: TVB_factor=5.0
@@ -201,6 +204,8 @@ contains
        T%val = T_limit%val
        call deallocate(T_limit)
 
+    case (LIMITER_FPN)
+      call limit_fpn(state, T)
     end select
 
     ewrite(2,*) 'END subroutiune limit_slope_dg'
@@ -1329,5 +1334,53 @@ contains
     end select
     
   end function get_H
+
+  subroutine limit_fpn(state, t)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: t
+    
+    type(scalar_field), pointer :: old_t, lumped_mass
+    type(scalar_field) :: min_bound, max_bound, inverse_lumped_mass
+    type(csr_matrix), pointer :: mass
+
+    type(csr_sparsity), pointer :: eelist
+    integer :: ele
+    real :: ele_max, ele_min
+    integer, dimension(:), pointer :: neighbours
+    integer :: j
+
+    old_t => extract_scalar_field(state, "Old" // trim(t%name))
+
+    call allocate(min_bound, t%mesh, "MinBound")
+    call allocate(max_bound, t%mesh, "MaxBound")
+    call zero(min_bound); call zero(max_bound)
+
+    mass => get_mass_matrix(state, t%mesh)
+    lumped_mass => get_lumped_mass(state, t%mesh)
+    call allocate(inverse_lumped_mass, lumped_mass%mesh, "InverseLumpedMass")
+    inverse_lumped_mass%val = 1.0/lumped_mass%val
+
+    eelist => extract_eelist(t%mesh)
+
+    do ele=1,ele_count(old_t)
+      neighbours => row_m_ptr(eelist, ele)
+      ele_max = maxval(ele_val(old_t, neighbours(1)))
+      ele_min = minval(ele_val(old_t, neighbours(1)))
+
+      do j=2,size(neighbours)
+        ele_max = max(ele_max, maxval(ele_val(old_t, neighbours(j))) )
+        ele_min = min(ele_min, minval(ele_val(old_t, neighbours(j))) )
+      end do
+
+      call set(min_bound, ele_nodes(min_bound, ele), spread(ele_min, 1, ele_loc(min_bound, ele)))
+      call set(max_bound, ele_nodes(max_bound, ele), spread(ele_max, 1, ele_loc(max_bound, ele)))
+    end do
+
+    call bound_field_diffuse(t, max_bound, min_bound, mass, lumped_mass, inverse_lumped_mass)
+
+    call deallocate(inverse_lumped_mass)
+    call deallocate(min_bound)
+    call deallocate(max_bound)
+  end subroutine limit_fpn
 
 end module slope_limiters_dg

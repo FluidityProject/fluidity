@@ -346,6 +346,10 @@ spatial_discretisation_options =
                }|
                element slope_limiter {
                   attribute name { "minimal" }
+               }|
+               ## The experimental Farrell-Piggott-Nelson limiter
+               element slope_limiter {
+                  attribute name { "FPN" }
                }
             )?,
             ## Discretisation options for the mass terms.

@@ -406,6 +406,12 @@ Not for production runs.</a:documentation>
                   <value>minimal</value>
                 </attribute>
               </element>
+              <element name="slope_limiter">
+                <a:documentation>The experimental Farrell-Piggott-Nelson limiter</a:documentation>
+                <attribute name="name">
+                  <value>FPN</value>
+                </attribute>
+              </element>
             </choice>
           </optional>
           <optional>

@@ -457,6 +457,8 @@ contains
           limiter=LIMITER_HERMITE_WENO
        case("minimal")
           limiter=LIMITER_MINIMAL
+       case("FPN")
+          limiter=LIMITER_FPN
        case default
           FLAbort('No such limiter')
        end select
