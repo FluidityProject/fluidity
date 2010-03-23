@@ -93,10 +93,6 @@ contains
     logical, intent(in), optional :: force_preserve_regions
     type(integer_set), intent(in), optional :: lock_faces
 
-    if (present(lock_faces) .and. old_positions%dim == 3) then
-      FLAbort("Locking faces not implemented for 3D so far")
-    end if
-
     assert(.not. mesh_periodic(old_positions))
 
     select case(old_positions%dim)
@@ -108,11 +104,12 @@ contains
           & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
+          assert(.not. present(lock_faces))
           call adapt_mesh_mba3d(old_positions, metric, new_positions, &
                              force_preserve_regions=force_preserve_regions)
         else
           call adapt_mesh_3d(old_positions, metric, new_positions, node_ownership = node_ownership, &
-                             force_preserve_regions=force_preserve_regions)
+                             force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
         end if
       case default
         FLAbort("Mesh adaptivity requires a 1D, 2D or 3D mesh")
@@ -339,8 +336,8 @@ contains
       ! Step f). Colour those faces on either side of the new cut
 
       ! Choose a new colour that isn't used
-      new_physical_colour = maxval(intermediate_positions%mesh%faces%boundary_ids) + 1
-      new_aliased_colour = new_physical_colour + 1
+      new_physical_colour = maxval(physical_colours)
+      new_aliased_colour = maxval(aliased_colours)
       ! the only forward-compatible way of doing this is to fetch the information from
       ! the current faces into the primitive data structures, and then re-call add_faces
       ! fixme: for mixed meshes
@@ -416,9 +413,6 @@ contains
 
       ! Step g). Unwrap again
       ! We need to fiddle with the options tree to mark the aliased and physical surface IDs appropriately
-      ! fixme: do I need the __value here?
-      call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids/', (/physical_colours, new_physical_colour/))
-      call set_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids/', (/aliased_colours, new_aliased_colour/))
 
       unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path), & 
                                 aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
