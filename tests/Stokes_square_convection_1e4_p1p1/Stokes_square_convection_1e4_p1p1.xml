@@ -29,12 +29,12 @@ rms_vel= stat("stokes-1e4-p1p1.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-
 
 <variable name="q_one" language="python">
 from fluidity_tools import stat_parser as stat
-q_one = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["Temperature%Gradient"]["TopLeftCorner"]["2"])
+q_one = (-1.)*(stat("stokes-1e4-p1p1.detectors")["Fluid"]["TemperatureGradient"]["TopLeftCorner"][1,:][-1])
 </variable>
 
 <variable name="q_two" language="python">
 from fluidity_tools import stat_parser as stat
-q_two = -(stat("stokes-1e4-p1p1.stat")["Fluid"]["Temperature%Gradient"]["TopRightCorner"]["2"])
+q_two = (-1.)*(stat("stokes-1e4-p1p1.detectors")["Fluid"]["TemperatureGradient"]["TopRightCorner"][1,:][-1])
 </variable>
 
 </variables>
@@ -53,12 +53,12 @@ assert(abs(rms_vel-44.5) &lt; 1.5)
 assert(max_div &lt; 130)
 </test>
 
-<test name="Nondimensional Temp Gradient at TopLeftCorner Validity: 7.90 .lt. q_one .lt. 8.22" language="python">
-assert(abs(q_one-8.0594) &lt; 0.16)
+<test name="Nondimensional Temp Gradient at TopLeftCorner Validity: 7.00 .lt. q_one .lt. 9.50" language="python">
+assert(abs(q_two-8.0594) &lt; 1.50)
 </test>
 
-<test name="Nondimensional Temp Gradient at TopRightCorner Validity: 0.5772 .lt. q_one .lt. 0.6004" language="python">
-assert(abs(q_two-0.5888) &lt; 0.0116)
+<test name="Nondimensional Temp Gradient at TopRightCorner Validity: 0.55 .lt. q_one .lt. 0.65" language="python">
+assert(abs(q_one-0.5888) &lt; 0.05)
 </test>
 
 </pass_tests>                                                                                                                                                                                                
