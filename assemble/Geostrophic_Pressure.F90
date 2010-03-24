@@ -93,7 +93,7 @@ module geostrophic_pressure
   logical, save :: include_coriolis = .true.
   integer, save :: reference_node = 0
     
-  !! Type for handing pressure projection matrices
+  !! Type for handling pressure projection matrices
   type cmc_matrices
     !! Whether this is a lumped mass projection
     logical :: lump_mass
@@ -268,7 +268,7 @@ contains
       & a_include_coriolis = include_coriolis, &
       & a_reference_node = reference_node)
     
-    ! Step 3: Assemble
+    ! Step 2: Assemble
     if(gp_mesh%continuity == 0) then
       call assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
     else if(gp_mesh%continuity == -1) then
@@ -278,7 +278,7 @@ contains
       FLAbort("Unrecognised mesh continuity")
     end if
     
-    ! Step 4: Solve
+    ! Step 3: Solve
     call solve_geostrophic_pressure(gp_m, gp_rhs, lgp, state)
     
     ! Optional output argument
@@ -287,7 +287,7 @@ contains
       call incref(gp)
     end if
     
-    ! Step 5: Drop references
+    ! Step 4: Drop references
     call deallocate(gp_mesh)
     call deallocate(lgp)
     call deallocate(gp_m)

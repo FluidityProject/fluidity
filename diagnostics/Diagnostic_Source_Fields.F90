@@ -120,9 +120,9 @@ contains
   function scalar_source_field_path_single(state, path, allocated) result(source_field)
     type(state_type), intent(in) :: state
     character(len = *), intent(in) :: path
+    logical, optional, intent(out) :: allocated
     
     type(scalar_field), pointer :: source_field
-    logical, optional, intent(out) :: allocated
     
     character(len = OPTION_PATH_LEN) :: lpath, source_field_name
     

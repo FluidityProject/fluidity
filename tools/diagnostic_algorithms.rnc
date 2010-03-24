@@ -183,9 +183,36 @@ div_algorithm =
    (
       ## div (source field)
       element algorithm {
-        attribute name { "div" },
-        attribute material_phase_support { "single" },
-        vector_source_field
+         attribute name { "div" },
+         attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
+finite_element_divergence_algorithm =
+   (
+      ## div (source field)
+      ## Divergence of the velocity field where
+      ## the divergence operator is defined using
+      ## the finite element C^T matrix.
+      element algorithm {
+         attribute name { "finite_element_divergence" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Integrate the divergence operator by parts
+         element integrate_divergence_by_parts {
+            comment
+         }?,
+         (
+            ## Consistent mass Galerkin projection of divergence. Requires
+            ## solver options.
+            element solver {
+               linear_solver_options_sym
+            }|
+            ## Lumped mass Galerkin projection of divergence
+            element lump_mass {
+               comment
+            }
+         )
       }
    )
 grad_algorithm =
@@ -403,7 +430,11 @@ scalar_python_diagnostic_algorithm =
       element algorithm {
          attribute name { "scalar_python_diagnostic" },
          attribute material_phase_support { "single" },
-         python_code
+         python_code,
+         ## Enable to specify dependencies manually
+         element depends {
+            anystring
+         }?
       }
    )
 vector_python_diagnostic_algorithm = 
@@ -415,7 +446,11 @@ vector_python_diagnostic_algorithm =
       element algorithm {
          attribute name { "vector_python_diagnostic" },
          attribute material_phase_support { "single" },
-         python_code
+         python_code,
+         ## Enable to specify dependencies manually
+         element depends {
+            anystring
+         }?
       }
    )
 tensor_python_diagnostic_algorithm = 
@@ -427,7 +462,11 @@ tensor_python_diagnostic_algorithm =
       element algorithm {
          attribute name { "tensor_python_diagnostic" },
          attribute material_phase_support { "single" },
-         python_code
+         python_code,
+         ## Enable to specify dependencies manually
+         element depends {
+            anystring
+         }?
       }
    )
 
@@ -492,6 +531,7 @@ scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
+scalar_diagnostic_algorithms |= finite_element_divergence_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= scalar_laplacian_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm

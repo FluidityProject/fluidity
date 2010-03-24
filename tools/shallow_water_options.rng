@@ -2183,9 +2183,6 @@ fields.</a:documentation>
           <element name="diagnostic">
             <ref name="scalar_diagnostic_algorithms"/>
             <ref name="velocity_mesh_choice"/>
-            <optional>
-              <ref name="python_diagnostic_field_code"/>
-            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -2919,39 +2916,6 @@ control volumes.</a:documentation>
             </attribute>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_cv_divergence_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>FiniteElementDivergence:
-
-div field
-
-Divergence of the velocity field where
-the divergence operator is defined using
-the finite element C^T matrix.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>FiniteElementDivergence</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <attribute name="field_name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="velocity_mesh_choice"/>
-            <optional>
-              <element name="integrate_divergence_by_parts">
-                <empty/>
-              </element>
-            </optional>
-            <ref name="diagnostic_fe_divergence_scalar_field"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>

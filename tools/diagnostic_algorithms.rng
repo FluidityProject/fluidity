@@ -255,6 +255,38 @@ this option to these these internal algorithms.</a:documentation>
       <ref name="vector_source_field"/>
     </element>
   </define>
+  <define name="finite_element_divergence_algorithm">
+    <element name="algorithm">
+      <a:documentation>div (source field)
+Divergence of the velocity field where
+the divergence operator is defined using
+the finite element C^T matrix.</a:documentation>
+      <attribute name="name">
+        <value>finite_element_divergence</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+      <optional>
+        <element name="integrate_divergence_by_parts">
+          <a:documentation>Integrate the divergence operator by parts</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <choice>
+        <element name="solver">
+          <a:documentation>Consistent mass Galerkin projection of divergence. Requires
+solver options.</a:documentation>
+          <ref name="linear_solver_options_sym"/>
+        </element>
+        <element name="lump_mass">
+          <a:documentation>Lumped mass Galerkin projection of divergence</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
+  </define>
   <define name="grad_algorithm">
     <element name="algorithm">
       <a:documentation>grad (source field)</a:documentation>
@@ -527,6 +559,12 @@ and 'tensor_fields';
         <value>single</value>
       </attribute>
       <ref name="python_code"/>
+      <optional>
+        <element name="depends">
+          <a:documentation>Enable to specify dependencies manually</a:documentation>
+          <ref name="anystring"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="vector_python_diagnostic_algorithm">
@@ -542,6 +580,12 @@ and 'tensor_fields';
         <value>single</value>
       </attribute>
       <ref name="python_code"/>
+      <optional>
+        <element name="depends">
+          <a:documentation>Enable to specify dependencies manually</a:documentation>
+          <ref name="anystring"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="tensor_python_diagnostic_algorithm">
@@ -557,6 +601,12 @@ and 'tensor_fields';
         <value>single</value>
       </attribute>
       <ref name="python_code"/>
+      <optional>
+        <element name="depends">
+          <a:documentation>Enable to specify dependencies manually</a:documentation>
+          <ref name="anystring"/>
+        </element>
+      </optional>
     </element>
   </define>
   <!-- Adaptivity diagnostics -->
@@ -645,6 +695,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="div_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="finite_element_divergence_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_advection_algorithm"/>

@@ -1518,8 +1518,8 @@ module field_derivatives
 
     subroutine div(infield, positions, divergence)
       !! Implement div() operator.
-      type(vector_field), intent(in), target :: infield, positions
-      type(scalar_field), intent(inout) :: divergence
+      type(vector_field), intent(in):: infield, positions
+      type(scalar_field), intent(inout), target  :: divergence
 
       type(scalar_field) :: component
       type(scalar_field), dimension(1) :: derivative
@@ -1527,7 +1527,7 @@ module field_derivatives
       logical, dimension(mesh_dim(infield)) :: derivatives
       integer :: i
 
-      mesh => infield%mesh
+      mesh => divergence%mesh
       call allocate(derivative(1), mesh, "Derivative")
 
       call zero(divergence)

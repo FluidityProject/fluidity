@@ -30,11 +30,15 @@
 module differential_operator_diagnostics
 
   use diagnostic_source_fields
+  use divergence_matrix_cg
   use field_derivatives
   use field_options
   use fields
   use fldebug
   use global_parameters, only : OPTION_PATH_LEN
+  use solvers
+  use sparse_matrices_fields
+  use sparsity_patterns_meshes
   use spud
   use state_fields_module
   use state_module
@@ -43,7 +47,8 @@ module differential_operator_diagnostics
   
   private
   
-  public :: calculate_grad, calculate_div, calculate_curl, &
+  public :: calculate_grad, calculate_div, &
+    & calculate_finite_element_divergence, calculate_curl, &
     & calculate_scalar_advection, calculate_scalar_laplacian, &
     & calculate_vector_advection, calculate_vector_laplacian
   
@@ -77,6 +82,50 @@ contains
     call div(source_field, positions, s_field)
     
   end subroutine calculate_div
+  
+  subroutine calculate_finite_element_divergence(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    type(block_csr_matrix) :: CT_m
+    type(csr_sparsity), pointer :: divergence_sparsity
+    type(csr_matrix), pointer :: mass
+    type(scalar_field) :: ctfield, ct_rhs
+    type(scalar_field), pointer :: masslump
+    type(vector_field), pointer :: positions, source_field
+    
+    source_field => vector_source_field(state, s_field)
+    
+    positions => extract_vector_field(state, "Coordinate")
+
+    call allocate(ctfield, s_field%mesh, name="CTField")
+
+    divergence_sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, source_field%mesh)
+    call allocate(CT_m, divergence_sparsity, (/1, source_field%dim/), name="DivergenceMatrix" )
+    call allocate(ct_rhs, s_field%mesh, name="CTRHS")
+
+    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+    call assemble_divergence_matrix_cg(CT_m, state, ct_rhs=ct_rhs, &
+                                       test_mesh=s_field%mesh, field=source_field, &
+                                       option_path=path)
+
+    call mult(ctfield, CT_m, source_field)
+    call addto(ctfield, ct_rhs, -1.0)
+    call deallocate(ct_rhs)
+    
+    if(have_option(trim(path) // "/lump_mass")) then
+      masslump => get_lumped_mass(state, s_field%mesh)
+      s_field%val = ctfield%val / masslump%val
+    else
+      mass => get_mass_matrix(state, s_field%mesh)  
+      call petsc_solve(s_field, mass, ctfield, option_path = path)
+    end if
+
+    call deallocate(CT_m)
+    call deallocate(ctfield)
+    
+  end subroutine calculate_finite_element_divergence
 
   subroutine calculate_curl(state, v_field)
     type(state_type), intent(in) :: state

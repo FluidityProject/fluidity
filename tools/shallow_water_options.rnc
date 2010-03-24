@@ -1845,7 +1845,6 @@ scalar_field_choice =
                element diagnostic {
                   scalar_diagnostic_algorithms,
                   velocity_mesh_choice,
-                  python_diagnostic_field_code?,
                   diagnostic_scalar_field
                }|
                element aliased {
@@ -2442,32 +2441,6 @@ scalar_field_choice =
                   attribute field_name { string },
                   velocity_mesh_choice,
                   diagnostic_cv_divergence_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-
-         ## FiniteElementDivergence:
-         ##
-         ## div field
-         ##
-         ## Divergence of the velocity field where
-         ## the divergence operator is defined using
-         ## the finite element C^T matrix.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "FiniteElementDivergence" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  attribute field_name { string },
-                  velocity_mesh_choice,
-                  element integrate_divergence_by_parts {
-                     empty
-                  }?,
-                  diagnostic_fe_divergence_scalar_field
                }|
                element aliased {
                   generic_aliased_field
