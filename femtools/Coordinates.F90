@@ -32,6 +32,7 @@ module Coordinates
   use vector_tools
   use fields
   use global_parameters
+  use spud
   implicit none
   
   private
@@ -44,7 +45,8 @@ module Coordinates
   public:: &
        LongitudeLatitude,  &
        cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
-       earth_radius, higher_order_sphere_projection
+       earth_radius, higher_order_sphere_projection, &
+       Coordinates_check_options
        
   interface LongitudeLatitude
      module procedure LongitudeLatitude_single, LongitudeLatitude_multiple
@@ -193,5 +195,27 @@ contains
     call deallocate(radius)    
   
   end subroutine higher_order_sphere_projection
+
+  ! Coordinates options checking
+  subroutine Coordinates_check_options
+
+    integer :: nmat, m
+
+    ! Pressure stabilisation does not currently work with a p2 or higher
+    ! coordinate fields. Check that this term is not enabled and, if it is,
+    ! exit.
+    nmat = option_count("/material_phase")
+    do m = 0, nmat-1
+      if (have_option('/geometry/spherical_earth/superparametric_mapping/').and. &
+        (.not.have_option("/material_phase["//int2str(m)// &
+        "]/scalar_field::Pressure/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term"))) then
+        ewrite(-1,*) "Pressure stabilisation does not currently work with 2nd order or higher coordinate meshes. Please enable"
+        ewrite(-1,*) "remove_stabilisation_term under the spatial discretisation tab of your pressure field. Things should work"
+        ewrite(-1,*) "nicely then. Thanks!"
+        FLExit("Pressure stabilisation is not currently compatible with coordinate fields of order >1.")
+      end if
+    end do
+
+  end subroutine Coordinates_check_options
 
 end module Coordinates
