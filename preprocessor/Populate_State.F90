@@ -577,8 +577,8 @@ contains
                  adaptivity_mesh_name=mesh%name
                end if
 
-               if (periodic .and. trim(periodic_boundary_option_path) == "") then
-                 periodic_boundary_option_path = trim(mesh_path)             
+               if (periodic .and. trim(periodic_boundary_option_path(mesh%shape%dim)) == "") then
+                 periodic_boundary_option_path(mesh%shape%dim) = trim(mesh_path)
                end if
              end if
              

@@ -151,17 +151,19 @@ contains
     real, dimension(:, :), allocatable :: tmp_bbox
     type(integer_set) :: new_aliased_faces, new_physical_faces, old_physical_nodes
     type(integer_set) :: other_surface_ids
+    integer :: dim
 
     integer, save :: delete_me = 1
 
     assert(mesh_periodic(metric))
+    assert(metric%dim == old_positions%dim)
+    dim = metric%dim
 
-    no_bcs = option_count(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions')
+    no_bcs = option_count(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions')
 
     intermediate_positions = old_positions
     call incref(intermediate_positions)
 
-    assert(metric%dim == old_positions%dim)
     intermediate_metric = metric
     call incref(metric)
 
@@ -170,15 +172,15 @@ contains
 
     do bc=0,no_bcs-1
 
-      shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids')
+      shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids')
       allocate(physical_colours(shape_option(1)))
-      call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids', physical_colours)
-      shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids')
+      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/physical_boundary_ids', physical_colours)
+      shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids')
       allocate(aliased_colours(shape_option(1)))
-      call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids', aliased_colours)
+      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids', aliased_colours)
 
       ! Step a). Unwrap the periodic input.
-      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path))
+      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)))
       call allocate(unwrapped_metric_A, unwrapped_positions_A%mesh, trim(metric%name))
       call remap_field(intermediate_metric, unwrapped_metric_A)
 
@@ -194,9 +196,9 @@ contains
       ! Collect all the relevant surface labels
       do j=0,no_bcs-1
         ! Physical ...
-        shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids')
+        shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids')
         allocate(surface_id(shape_option(1)))
-        call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids', surface_id)
+        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids', surface_id)
         call insert(surface_ids, surface_id)
         if (j /= bc) then
           call insert(other_surface_ids, surface_id)
@@ -204,9 +206,9 @@ contains
         deallocate(surface_id)
 
         ! and aliased
-        shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids')
+        shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids')
         allocate(surface_id(shape_option(1)))
-        call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids', surface_id)
+        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids', surface_id)
         call insert(surface_ids, surface_id)
         if (j /= bc) then
           call insert(other_surface_ids, surface_id)
@@ -235,9 +237,9 @@ contains
       call deallocate(unwrapped_metric_A)
 
       ! Step d). Reperiodise
-      intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path)
+      intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path(dim))
       intermediate_positions%mesh%name = "TmpMesh"
-      intermediate_positions%mesh%option_path = periodic_boundary_option_path
+      intermediate_positions%mesh%option_path = periodic_boundary_option_path(dim)
       call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
       call allocate(intermediate_metric, intermediate_positions%mesh, trim(metric%name))
@@ -250,9 +252,9 @@ contains
       ! Step e). Advance a front in the new mesh using the unwrapped eelist from the aliased boundary
       ! until the front contains no nodes on the boundary; this forms the new cut
       eelist => extract_eelist(unwrapped_positions_B)
-      shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids')
+      shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids')
       allocate(surface_id(shape_option(1)))
-      call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids', surface_id)
+      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids', surface_id)
 
       ! We represent the front with a field, for whether an element has been
       ! included behind the front
@@ -414,7 +416,7 @@ contains
       ! Step g). Unwrap again
       ! We need to fiddle with the options tree to mark the aliased and physical surface IDs appropriately
 
-      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path), & 
+      unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)), & 
                                 aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
 
       call vtk_write_fields("mesh", 5, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh, sfields=(/front_field/))
@@ -452,7 +454,7 @@ contains
         aliased_positions(:, j) = node_val(unwrapped_positions_A, fetch(nodes_to_map, j))
       end do
 
-      call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/coordinate_map', periodic_mapping_python)
+      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/coordinate_map', periodic_mapping_python)
       call set_from_python_function(physical_positions, periodic_mapping_python, aliased_positions, time=0.0)
 
       do j=1,key_count(nodes_to_map)
@@ -486,16 +488,16 @@ contains
       ! Collect all the relevant surface labels
       do j=0,no_bcs-1
         ! Physical ...
-        shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids')
+        shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids')
         allocate(surface_id(shape_option(1)))
-        call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids', surface_id)
+        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/physical_boundary_ids', surface_id)
         call insert(surface_ids, surface_id)
         deallocate(surface_id)
 
         ! and aliased
-        shape_option = option_shape(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids')
+        shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids')
         allocate(surface_id(shape_option(1)))
-        call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids', surface_id)
+        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(j)//']/aliased_boundary_ids', surface_id)
         call insert(surface_ids, surface_id)
         deallocate(surface_id)
       end do
@@ -520,8 +522,8 @@ contains
       call deallocate(unwrapped_metric_A)
 
       ! Step i). Reperiodise for the next go around!
-      intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path)
-      intermediate_positions%mesh%option_path = periodic_boundary_option_path
+      intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path(dim))
+      intermediate_positions%mesh%option_path = periodic_boundary_option_path(dim)
       call allocate(intermediate_metric, intermediate_positions%mesh, trim(metric%name))
       call remap_field(unwrapped_metric_B, intermediate_metric, stat=stat)
       assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
@@ -529,7 +531,7 @@ contains
 
       ! Step j). If the user has specified an inverse coordinate map, then let's loop through the nodes in the mesh
       ! and map them back to inside the bounding box of the domain
-      if (have_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
+      if (have_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
 
         ! nodes_to_map stores the potential nodes to map.
         ! The rule is: we map any element which contains any node such that:
@@ -555,7 +557,7 @@ contains
         end do
 
         ! and map those nodes
-        call get_option(trim(periodic_boundary_option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map', periodic_mapping_python)
+        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map', periodic_mapping_python)
         call set_from_python_function(aliased_positions, periodic_mapping_python, physical_positions, time=0.0)
 
         ! now let's loop through those nodes, and if the image is inside the bounding box, mark
@@ -771,7 +773,7 @@ contains
 
     call vtk_write_fields("adapted_mesh", delete_me, position=new_positions, model=new_positions%mesh)
 
-    unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path))
+    unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)))
     call vtk_write_fields("adapted_mesh_unwrapped", delete_me, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
     call vtk_write_surface_mesh("adapted_surface_unwrapped", delete_me, unwrapped_positions_A)
     call deallocate(unwrapped_positions_A)

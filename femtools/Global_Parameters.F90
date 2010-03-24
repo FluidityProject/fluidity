@@ -148,7 +148,7 @@ module global_parameters
   character(len=FIELD_NAME_LEN):: adaptivity_mesh_name=""
   
   !! optionpath where the periodic boundary conditions are defined
-  character(len=OPTION_PATH_LEN) :: periodic_boundary_option_path=""
+  character(len=OPTION_PATH_LEN), dimension(3) :: periodic_boundary_option_path=""
 
   !! The bounding box of the input domain
   ! dim x 2
