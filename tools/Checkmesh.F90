@@ -95,9 +95,9 @@ contains
   subroutine print_mesh_volume_statistics(positions)
     type(vector_field), intent(in) :: positions
     
-    real :: domain_volume, max_volume, min_volume, volume
-    
     integer :: i
+    real :: domain_volume, domain_surface_area, max_volume, min_volume, volume
+    real, dimension(:), allocatable :: detwei
     
     domain_volume = 0.0
     min_volume = huge(0.0)
@@ -110,12 +110,24 @@ contains
       min_volume = min(min_volume, volume)
       max_volume = max(max_volume, volume)
     end do    
+    domain_surface_area = 0.0
+    do i = 1, surface_element_count(positions)
+      if(.not. surface_element_owned(positions, i)) cycle
+      
+      allocate(detwei(face_ngi(positions, i)))
+      call transform_facet_to_physical(positions, i, &
+        detwei_f = detwei)      
+      domain_surface_area = domain_surface_area + abs(sum(detwei))
+      deallocate(detwei)
+    end do
     
     call allsum(domain_volume)
     call allmin(min_volume)
     call allmax(max_volume)
+    call allsum(domain_surface_area)
     
     print "(a," // rformat // ")", "Volume: ", domain_volume
+    print "(a," // rformat // ")", "Surface area: ", domain_surface_area
     if(global_ele > 0) then
       print "(a," // rformat // ")", "Min element volume: ", min_volume
       print "(a," // rformat // ")", "Max element volume: ", max_volume

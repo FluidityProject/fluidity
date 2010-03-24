@@ -1195,8 +1195,7 @@ interpolation_algorithm_vector =
                     element l2_minimised_residual {
                        comment
                     }|
-                    ## Use the mean boundary value as the constant component
-                    ## boundary condition
+                    ## Use the mean boundary value
                     element boundary_mean {
                        comment
                     }

@@ -71,10 +71,7 @@ module geostrophic_pressure
     & geostrophic_pressure_check_options
     
   public :: projection_decomposition, geopressure_decomposition, &
-    & add_geopressure_matrices, cmc_matrices, deallocate, &
-    & coriolis_from_velocity, velocity_from_coriolis, &
-    & correct_velocity, compute_conservative, compute_divergence, &
-    & geostrophic_velocity, geostrophic_interpolation
+    & cmc_matrices, geostrophic_velocity, geostrophic_interpolation
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   

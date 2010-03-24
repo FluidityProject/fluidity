@@ -1432,8 +1432,7 @@ residual</a:documentation>
                     <ref name="comment"/>
                   </element>
                   <element name="boundary_mean">
-                    <a:documentation>Use the mean boundary value as the constant component
-boundary condition</a:documentation>
+                    <a:documentation>Use the mean boundary value</a:documentation>
                     <ref name="comment"/>
                   </element>
                 </choice>
