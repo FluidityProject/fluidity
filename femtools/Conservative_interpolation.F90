@@ -403,7 +403,8 @@ module conservative_interpolation_module
           if (force_bc(mesh, field)) then
 
             if (.not. has_boundary_condition(new_fields(mesh, field), "dirichlet")) then
-              ewrite(0,*) "Warning: asked to honour strong boundary conditions through the Galerkin projection without any such BCs"
+              ewrite(0, *) "Warning: For field: " // trim(new_fields(mesh, field)%name)
+              ewrite(0, *) "Warning: Asked to honour strong boundary conditions through the Galerkin projection without any such BCs"
             end if
 
             call set_dirichlet_consistent(new_fields(mesh, field))

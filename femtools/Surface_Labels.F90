@@ -51,8 +51,9 @@ module SurfaceLabels
   private
   public :: FindGeometryConstraints, &
        get_coplanar_ids, reset_coplanar_ids, &
-       minimum_distance_to_line_segment, surface_connectivity, &
-       get_connected_surface_eles
+       minimum_distance_to_line_segment
+  public :: connected_surfaces_count, surface_connectivity, &
+    & get_connected_surface_eles
        
   ! The magic numbers corresponds to what's used in libadapt
   real, parameter:: COPLANAR_MAGIC_NUMBER=0.999999
@@ -635,6 +636,19 @@ contains
       dist = distance_to_line(point, line_start, line_end)
     end if
   end function minimum_distance_to_line_segment
+  
+  function connected_surfaces_count(mesh) result(nconnected_surfaces)
+    !!< Count the number of connected surfaces
+    
+    type(mesh_type), intent(in) :: mesh
+    
+    integer :: nconnected_surfaces
+    
+    integer, dimension(surface_element_count(mesh)) :: connected_surface
+  
+    connected_surface = surface_connectivity(mesh, nconnected_surfaces = nconnected_surfaces)
+  
+  end function connected_surfaces_count
   
   function surface_connectivity(mesh, nconnected_surfaces) result(connected_surface)
     !!< Mark connected surface elements

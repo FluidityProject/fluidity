@@ -1418,15 +1418,30 @@ applied to this field.</a:documentation>
             </element>
           </optional>
           <optional>
-            <element name="interpolate_boundary">
-              <a:documentation>Interpolate the boundary values using consistent interpolation and
+            <choice>
+              <element name="decompose">
+                <a:documentation>Decompose the conservative potential into a component constant
+on the boundary, and a residual.
+
+If interpolating Pressure, a similar decomposition is applied
+to the Pressure projection.</a:documentation>
+                <element name="boundary_mean">
+                  <a:documentation>Use the mean boundary value as the constant component
+boundary condition</a:documentation>
+                  <ref name="comment"/>
+                </element>
+                <ref name="comment"/>
+              </element>
+              <element name="interpolate_boundary">
+                <a:documentation>Interpolate the boundary values using consistent interpolation and
 use these as a strong Dirichlet boundary condition on the
 conservative potential.
 
 If interpolating Pressure, a similar boundary condition is applied
 to the Pressure projection.</a:documentation>
-              <ref name="comment"/>
-            </element>
+                <ref name="comment"/>
+              </element>
+            </choice>
           </optional>
           <ref name="comment"/>
         </element>

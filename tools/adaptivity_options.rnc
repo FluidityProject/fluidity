@@ -1182,15 +1182,32 @@ interpolation_algorithm_vector =
               attribute name { xsd:string },
               comment
            }?,
-           ## Interpolate the boundary values using consistent interpolation and
-           ## use these as a strong Dirichlet boundary condition on the
-           ## conservative potential.
-           ## 
-           ## If interpolating Pressure, a similar boundary condition is applied
-           ## to the Pressure projection.
-           element interpolate_boundary {
-              comment
-           }?,
+           (
+              ## Decompose the conservative potential into a component constant
+              ## on the boundary, and a residual.
+              ## 
+              ## If interpolating Pressure, a similar decomposition is applied
+              ## to the Pressure projection.
+              element decompose {
+                 (
+                    ## Use the mean boundary value as the constant component
+                    ## boundary condition
+                    element boundary_mean {
+                       comment
+                    }
+                 ),
+                 comment
+              }|
+              ## Interpolate the boundary values using consistent interpolation and
+              ## use these as a strong Dirichlet boundary condition on the
+              ## conservative potential.
+              ## 
+              ## If interpolating Pressure, a similar boundary condition is applied
+              ## to the Pressure projection.
+              element interpolate_boundary {
+                 comment
+              }
+           )?,
            comment
         },
         ## Options relating to the non-conservative residual component of the
