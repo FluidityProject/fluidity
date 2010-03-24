@@ -226,7 +226,7 @@ subroutine VerticalExtrapolationScalar(from_field, to_field, &
   type(scalar_field), intent(in):: from_field
   !! Resulting extrapolated field. May be the same field or a field on
   !! a different mesh (different degree).
-  type(scalar_field), intent(in):: to_field
+  type(scalar_field), intent(inout):: to_field
   !! positions, and upward normal vector on the whole domain
   type(vector_field), target, intent(inout):: positions
   type(vector_field), target, intent(in):: vertical_normal
@@ -239,7 +239,10 @@ subroutine VerticalExtrapolationScalar(from_field, to_field, &
   !! the same surface_element_list should again be provided.
   character(len=*), optional, intent(in):: surface_name
 
-  call VerticalExtrapolationMultiple( (/ from_field /) , (/ to_field /), &
+  type(scalar_field), dimension(1):: to_fields
+    
+  to_fields=(/ to_field /)
+  call VerticalExtrapolationMultiple( (/ from_field /) , to_fields, &
       positions, vertical_normal, surface_element_list, &
       surface_name=surface_name)
   
@@ -255,7 +258,7 @@ subroutine VerticalExtrapolationVector(from_field, to_field, &
   type(vector_field), intent(in):: from_field
   !! Resulting extrapolated field. May be the same field or a field on
   !! a different mesh (different degree).
-  type(vector_field), intent(in):: to_field
+  type(vector_field), intent(inout):: to_field
   !! positions, and upward normal vector on the whole domain
   type(vector_field), target, intent(inout):: positions
   type(vector_field), target, intent(in):: vertical_normal
@@ -298,7 +301,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   type(scalar_field), dimension(:), intent(in):: from_fields
   !! Resulting extrapolated field. May be the same field or a field on
   !! a different mesh (different degree).
-  type(scalar_field), dimension(:), intent(in):: to_fields
+  type(scalar_field), dimension(:), intent(inout):: to_fields
   !! positions, and upward normal vector on the whole domain
   type(vector_field), target, intent(inout):: positions
   type(vector_field), target, intent(in):: vertical_normal
@@ -314,9 +317,6 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
 
   type(vector_field):: to_positions
   type(vector_field), pointer:: horizontal_positions
-  type(scalar_field), dimension(size(to_fields)):: to_fields_non_periodic
-  type(scalar_field):: to_field_copy
-  type(mesh_type):: to_mesh
   type(mesh_type), pointer:: x_mesh
   real, dimension(:,:), allocatable:: horizontal_coordinate, loc_coords
   real, dimension(vertical_normal%dim):: normal_vector
@@ -333,34 +333,14 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   end do
   
   x_mesh => positions%mesh
-  if (to_fields(1)%mesh%periodic) then
-     ! we first extrapolate to a non-periodic field
-     if (to_fields(1)%mesh%shape%degree==x_mesh%shape%degree) then
-        ! can put it on the x_mesh
-        call allocate(to_fields_non_periodic(1), x_mesh, &
-             & name='ToFieldNonPeriodic_VerticalExtrapolation')
-     else
-        ! need to make our own non-periodic mesh
-        to_mesh=make_mesh(x_mesh, to_fields(1)%mesh%shape, continuity=continuity(to_fields(1)),&
-             name="NonPeriodicMesh_VerticalExtrapolation") 
-        call allocate(to_fields_non_periodic(1), to_mesh, &
-             & name='ToFieldNonPeriodic_VerticalExtrapolation')
-        call deallocate(to_mesh)
-     end if
-     ! we only need to allocate one field and then reuse it for the rest
-     to_fields_non_periodic(2:)=to_fields_non_periodic(1)
-  else
-     ! directly put result in to_fields
-     to_fields_non_periodic=to_fields
-  end if
 
-  if (to_fields_non_periodic(1)%mesh==x_mesh) then
+  if (to_fields(1)%mesh==x_mesh) then
     to_positions=positions
     ! make to_positions indep. ref. of the field, so we can deallocate it 
     ! safely without destroying positions
     call incref(to_positions)
   else
-    call allocate(to_positions, positions%dim, to_fields_non_periodic(1)%mesh, &
+    call allocate(to_positions, positions%dim, to_fields(1)%mesh, &
       name='ToPositions_VerticalExtrapolation')
     call remap_field(positions, to_positions, stat)
   end if
@@ -423,7 +403,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
           ! given by the local coordinates \xi, the dot_product therefore evaluates:
           !   \sum_k N_k(\xi) f_k
           ! where f_k are the values of the "from" field in the nodes k.
-          call set(to_fields_non_periodic(i), j, &
+          call set(to_fields(i), j, &
              dot_product( eval_shape( ele_shape(from_fields(i), eles(j)), loc_coords(:,j) ), &
                ele_val( from_fields(i), eles(j) ) ))
         else
@@ -444,7 +424,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
         if (eles(j)>0) then
           face=horizontal_mesh_list(eles(j))
           ! same as above, except ele_shape -> face_shape, ele_val -> face_val
-          call set(to_fields_non_periodic(i), j, &
+          call set(to_fields(i), j, &
              dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
                face_val( from_fields(i), face ) ))
         else
@@ -456,19 +436,6 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
     end do
     
   end if
-    
-  ! map back to the actual periodic fields if necessary
-  if (to_fields(1)%mesh%periodic) then
-     ewrite(1,*) 'Mapping from non-periodic to periodic in VerticalExtrapolation'
-     do i=1, size(to_fields)
-        ! this is a bit of a hack: we want to_fields to be intent(in)
-        ! so we remap the field to a copy of to_fields(i) that points to the same value space
-        to_field_copy=to_fields(i)
-        call remap_field(to_fields_non_periodic(i), to_field_copy)
-     end do
-     ! we only allocated one, so only need to deallocate one
-     call deallocate(to_fields_non_periodic(1))
-  endif
     
   if (.not. present(surface_name)) then
     call remove_boundary_condition(positions, "TempSurfaceName")
