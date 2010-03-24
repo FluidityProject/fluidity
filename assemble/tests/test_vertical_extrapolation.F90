@@ -17,7 +17,7 @@ implicit none
      "  import math"//NEWLINE_CHAR// &
      "  return math.cos(math.pi*X[0])*math.sin(math.pi*X[1])"
   ! the mesh files should have the top surface marked with boundary id 1
-  integer, dimension(1), parameter:: TOP_BOUNDARY_IDS=(/ 1 /)
+  integer, dimension(1), parameter:: TOP_BOUNDARY_IDS=(/ 2 /)
   integer, parameter:: QUAD_DEGREE=4, NVERTICES=4, DIM=3
   integer, parameter:: POLY_DEGREE=2 ! degree of fields we're integrating
   
@@ -46,12 +46,13 @@ character(len=*), intent(in):: python_function
 real, intent(out):: l2error
 
   type(vector_field), target:: positions, bc_positions, vertical_normal
-  type(scalar_field) to_field, from_field, error_field
+  type(scalar_field) to_field, from_field, error_field, from_surface_field
   type(mesh_type), pointer:: x_mesh, surface_mesh
   type(mesh_type) dg_quad_mesh
   type(element_type) quad_shape
   type(quadrature_type) quad
   integer, dimension(:), pointer:: surface_element_list
+  integer:: i, sele
     
   positions=read_triangle_files(mesh_file, quad_degree=QUAD_DEGREE)
   x_mesh => positions%mesh
@@ -69,11 +70,20 @@ real, intent(out):: l2error
   call get_boundary_condition(to_field, "Top", &
     surface_mesh=surface_mesh, &      
     surface_element_list=surface_element_list)
-  call allocate(from_field, surface_mesh, name="FromField")
+  call allocate(from_surface_field, surface_mesh, name="FromSurfaceField")
   call allocate(bc_positions, DIM, surface_mesh, name="BCPositions")
   call remap_field_to_surface(positions, bc_positions, surface_element_list)
-  call set_from_python_function(from_field, python_function, bc_positions, &
+  call set_from_python_function(from_surface_field, python_function, bc_positions, &
       time=0.0)
+  ! map values of from_surface_field on faces of from_field
+  call allocate(from_field, dg_quad_mesh, name="FromField")
+  ! make sure other values are not used:
+  call set(from_field, 1e123)
+  do i=1, size(surface_element_list)
+    sele=surface_element_list(i)
+    call set(from_field, face_global_nodes(dg_quad_mesh, i), &
+      ele_val(from_surface_field, i))
+  end do
       
   call allocate(vertical_normal, positions%dim, x_mesh, &
     field_type=FIELD_TYPE_CONSTANT, name="VerticalNormal")
@@ -89,14 +99,15 @@ real, intent(out):: l2error
   ! then subtract the found solution:
   call addto(error_field, to_field, scale=-1.0)
   
-  !call vtk_write_fields(mesh_file, 0, &
-  !  positions, dg_quad_mesh, sfields=(/ to_field, error_field /))
+!  call vtk_write_fields(mesh_file, 0, &
+!    positions, dg_quad_mesh, sfields=(/ from_field, to_field, error_field /))
 
   l2error=norm2(error_field, positions)
   print *, l2error
   
   call deallocate(to_field)
   call deallocate(from_field)
+  call deallocate(from_surface_field)
   call deallocate(error_field)
   call deallocate(bc_positions)
   call deallocate(vertical_normal)

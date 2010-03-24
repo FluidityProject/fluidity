@@ -219,10 +219,9 @@ end subroutine calculate_vertical_coordinate
 subroutine VerticalExtrapolationScalar(from_field, to_field, &
   positions, vertical_normal, surface_element_list, surface_name)
   !!< This sub extrapolates the values on a horizontal 2D surface
-  !!< in the vertical direction to a 3D field
-  !! The from_field may be a 3D field of which only the values on the
-  !! 2D horizontal surface are used, or it is a 2D field defined
-  !! on the surface mesh.
+  !!< in the vertical direction to 3D fields
+  !! The from_fields should be 3D fields of which only the values on the
+  !! 2D horizontal surface are used.
   type(scalar_field), intent(in):: from_field
   !! Resulting extrapolated field. May be the same field or a field on
   !! a different mesh (different degree).
@@ -251,10 +250,9 @@ end subroutine VerticalExtrapolationScalar
 subroutine VerticalExtrapolationVector(from_field, to_field, &
   positions, vertical_normal, surface_element_list, surface_name)
   !!< This sub extrapolates the values on a horizontal 2D surface
-  !!< in the vertical direction to a 3D field
-  !! The from_field may be a 3D field of which only the values on the
-  !! 2D horizontal surface are used, or it is a 2D field defined
-  !! on the surface mesh.
+  !!< in the vertical direction to 3D fields
+  !! The from_fields should be 3D fields of which only the values on the
+  !! 2D horizontal surface are used.
   type(vector_field), intent(in):: from_field
   !! Resulting extrapolated field. May be the same field or a field on
   !! a different mesh (different degree).
@@ -291,9 +289,8 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   positions, vertical_normal, surface_element_list, surface_name)
   !!< This sub extrapolates the values on a horizontal 2D surface
   !!< in the vertical direction to 3D fields
-  !! The from_fields may be 3D fields of which only the values on the
-  !! 2D horizontal surface are used, or it is 2D fields defined
-  !! on the surface mesh.
+  !! The from_fields should be 3D fields of which only the values on the
+  !! 2D horizontal surface are used.
   !! This version takes multiple from_fields at the same time and extrapolates
   !! to to_fields, such that the surface search only has to be done once. This 
   !! will only work if all the from_fields are on the same mesh, and on all the 
@@ -315,51 +312,126 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   !! the same surface_element_list should again be provided.
   character(len=*), optional, intent(in):: surface_name
 
-  type(vector_field):: to_positions
-  type(vector_field), pointer:: horizontal_positions
-  type(mesh_type), pointer:: x_mesh
-  real, dimension(:,:), allocatable:: horizontal_coordinate, loc_coords
-  real, dimension(vertical_normal%dim):: normal_vector
-  real, dimension(positions%dim):: xyz
-  integer, dimension(:), allocatable:: eles
-  integer, dimension(:), pointer:: horizontal_mesh_list
-  integer i, j, to_nodes, face, stat
-  logical:: on_sphere
+  character(len=FIELD_NAME_LEN):: lsurface_name
+  real, dimension(:,:), allocatable:: loc_coords
+  integer, dimension(:), allocatable:: seles
+  integer i, j, to_nodes, face
 
   assert(size(from_fields)==size(to_fields))
+  assert(element_count(from_fields(1))==element_count(to_fields(1)))
   do i=2, size(to_fields)
      assert(to_fields(1)%mesh==to_fields(i)%mesh)
      assert(from_fields(1)%mesh==from_fields(i)%mesh)
   end do
   
-  x_mesh => positions%mesh
-
-  if (to_fields(1)%mesh==x_mesh) then
-    to_positions=positions
-    ! make to_positions indep. ref. of the field, so we can deallocate it 
-    ! safely without destroying positions
-    call incref(to_positions)
+  to_nodes=node_count(to_fields(1))
+  ! local coordinates is one more than horizontal coordinate dim
+  allocate( seles(to_nodes), loc_coords(1:positions%dim, 1:to_nodes) )
+  
+  if (present(surface_name)) then
+    lsurface_name=surface_name
   else
-    call allocate(to_positions, positions%dim, to_fields(1)%mesh, &
-      name='ToPositions_VerticalExtrapolation')
-    call remap_field(positions, to_positions, stat)
+    lsurface_name="TempSurfaceName"
   end if
-     
-  on_sphere = have_option('/geometry/spherical_earth')
-  to_nodes=node_count(to_positions)
-    allocate( horizontal_coordinate(1:positions%dim-1, 1:to_nodes), &
-        eles(to_nodes), &
-        loc_coords(1:positions%dim, 1:to_nodes) ) ! local coordinates is one more than horizontal coordinate dim
-  if (on_sphere) then
-    assert(to_positions%dim==3)
-    do i=1, node_count(to_positions)      
-      xyz=node_val(to_positions, i)
+  
+  ! project the positions of to_fields(1)%mesh into the horizontal plane
+  ! and returns face numbers 'seles' and loc_coords to tell where
+  ! these projected nodes are found in the surface mesh
+  call horizontal_picker(to_fields(1)%mesh, positions, vertical_normal, &
+      surface_element_list, lsurface_name, &
+      seles, loc_coords)
+  
+  ! interpolate using the returned faces and loc_coords
+  do i=1, size(to_fields)
+    do j=1, to_nodes
+      face=seles(j)
+      call set(to_fields(i), j, &
+           dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
+             face_val( from_fields(i), face ) ))
+     end do
+  end do
+  
+  if (.not. present(surface_name)) then
+    call remove_boundary_condition(positions, "TempSurfaceName")
+  end if
+  
+end subroutine VerticalExtrapolationMultiple
+  
+subroutine horizontal_picker(mesh, positions, vertical_normal, &
+  surface_element_list, surface_name, &
+  seles, loc_coords)
+  !! Searches the nodes of 'mesh' in the surface mesh above.
+  !! Returns the surface elements 'seles' that each node lies under
+  !! and the loc_coords in this element of this node projected
+  !! upward (radially on the sphere) onto the surface mesh
+  
+  !! mesh
+  type(mesh_type), intent(in):: mesh
+  !! a valid positions field for the whole domain, not necessarily on 'mesh'
+  !! for instance in a periodic domain, mesh is periodic and positions should not be
+  type(vector_field), target, intent(inout):: positions
+  !! upward normal vector on the whole domain
+  type(vector_field), target, intent(in):: vertical_normal
+  !! the surface elements (faces numbers) that make up the surface
+  integer, dimension(:), intent(in):: surface_element_list
+  !! The projected surface mesh onto horizontal coordinates 
+  !! and its associated rtree/pickers are cached under this name and 
+  !! attached to the 'positions'. When called again with
+  !! the same 'positions' and the same surface_name,
+  !! the same surface_element_list should again be provided.
+  character(len=*), intent(in):: surface_name
+  
+  !! returned surface elements (face numbers in 'mesh')
+  !! and loc coords each node has been found in
+  integer, dimension(node_count(mesh)), intent(out):: seles
+  real, dimension(positions%dim,node_count(mesh)), intent(out):: loc_coords
+  
+  type(vector_field):: mesh_positions
+  type(vector_field), pointer:: horizontal_positions
+  integer, dimension(:), pointer:: horizontal_mesh_list
+  real, dimension(:,:), allocatable:: horizontal_coordinate
+  real, dimension(vertical_normal%dim):: normal_vector
+  real, dimension(positions%dim):: xyz
+  integer:: i, stat
+  
+  assert(.not. mesh_periodic(positions))
+  
+  if (mesh==positions%mesh) then
+    mesh_positions=positions
+    ! make mesh_positions indep. ref. of the field, so we can deallocate it 
+    ! safely without destroying positions
+    call incref(mesh_positions)
+  else
+    call allocate(mesh_positions, positions%dim, mesh, &
+      name='ToPositions_VerticalExtrapolation')
+    call remap_field(positions, mesh_positions, stat)
+    if (stat/=0 .and. stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS .and. &
+      stat/=REMAP_ERR_UNPERIODIC_PERIODIC) then
+      ! Mapping from higher order to lower order is allowed for coordinates
+      ! (well depends on how the higher order is derived from the lower order)
+      !
+      ! Mapping to periodic coordinates is ok in this case as we only need
+      ! locations for the nodes individually (i.e. we don't care about elements
+      ! in 'mesh') - the created horizontal_positions will be non-periodic
+      ! So that we should be able to find nodes on the periodic boundary on
+      ! either side. Using this to interpolate is consistent as long as
+      ! the interpolated from field is indeed periodic.
+      FLAbort("Unknown error in remmaping positions in horizontal_picker.")
+    end if
+  end if
+  
+  ! create an array of the horizontally projected coordinates of the 'mesh' nodes
+  allocate( horizontal_coordinate(1:positions%dim-1, 1:node_count(mesh)) )
+  if (have_option('/geometry/spherical_earth')) then
+    assert(mesh_positions%dim==3)
+    do i=1, node_count(mesh)
+      xyz=node_val(mesh_positions, i)
       if (xyz(3)>0.0) then
         horizontal_coordinate(:,i) = &
-          map2horizontal_sphere( node_val(to_positions, i), +1.0)
+          map2horizontal_sphere( node_val(mesh_positions, i), +1.0)
       else
         horizontal_coordinate(:,i) = &
-          map2horizontal_sphere( node_val(to_positions, i), -1.0)
+          map2horizontal_sphere( node_val(mesh_positions, i), -1.0)
         horizontal_coordinate(1,i)=horizontal_coordinate(1,i)+HEMISPHERE_SHIFT
       end if
     end do
@@ -367,83 +439,38 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
     assert( vertical_normal%field_type==FIELD_TYPE_CONSTANT )
     normal_vector=node_val(vertical_normal,1)
 
-    do i=1, node_count(to_positions)
+    do i=1, node_count(mesh)
       horizontal_coordinate(:,i) = &
-          map2horizontal( node_val(to_positions, i), normal_vector )
+          map2horizontal( node_val(mesh_positions, i), normal_vector )
     end do
   end if
     
-  if (present(surface_name)) then
-    call get_horizontal_positions(positions, surface_element_list, &
+  call get_horizontal_positions(positions, surface_element_list, &
       vertical_normal, surface_name, &
       horizontal_positions, horizontal_mesh_list)
-  else
-    call get_horizontal_positions(positions, surface_element_list, &
-      vertical_normal, "TempSurfaceName", &
-      horizontal_positions, horizontal_mesh_list)
-  end if
     
   call picker_inquire( horizontal_positions, horizontal_coordinate, &
-    eles, loc_coords, global=.false. )
-  deallocate(horizontal_coordinate)
+    seles, loc_coords, global=.false. )
+    
+  ! in the spherical case some of the surface elements may be duplicated
+  ! within horizontal positions, the returned seles refer to elements
+  ! of this horizontal mesh and horiozontal_mesh_list is a map from these
+  ! to face numbers in the full mesh
   
-  if (element_count(from_fields(1))==size(surface_element_list)) then
-    ! assume the from field is on the surface mesh only
-    ! eles(j) refers to elements of this surface mesh
-    if (on_sphere) then
-      ! we'll fix this when it's actually used again
-      ewrite(0,*) "Called vertical_extrapolation with from field that is on the surface mesh only"
-      FLAbort("This is no longer supported on the sphere.")
+  ! we return face numbers however
+  do i=1, size(seles)
+    if (seles(i)>0) then
+      seles(i)=horizontal_mesh_list(seles(i))
+    else
+      ewrite(0,*) "For node with coordinate", node_val(mesh_positions, i)
+      ewrite(0,*) "no top surface node was found."
+      FLAbort("Something wrong with the geometry.")
     end if
+  end do
     
-    do i=1, size(to_fields)
-      do j=1, to_nodes
-        if (eles(j)>0) then
-          ! eval_shape evaluates all "from" shape functions N_k in the point
-          ! given by the local coordinates \xi, the dot_product therefore evaluates:
-          !   \sum_k N_k(\xi) f_k
-          ! where f_k are the values of the "from" field in the nodes k.
-          call set(to_fields(i), j, &
-             dot_product( eval_shape( ele_shape(from_fields(i), eles(j)), loc_coords(:,j) ), &
-               ele_val( from_fields(i), eles(j) ) ))
-        else
-          ewrite(0,*) "For node with coordinate", node_val(to_positions, j)
-          ewrite(0,*) "no top surface node was found."
-          FLAbort("Something wrong with the geometry.")
-        end if
-      end do
-    end do
-       
-  else
-    ! the from field is on the full mesh and we're only interested
-    ! in its values at its faces that form the surface mesh
-    ! eles(j) gives the element in the surface mesh where the projected node
-    ! is found, so the face number is given by surface_element_list(eles(j))
-    do i=1, size(to_fields)
-      do j=1, to_nodes
-        if (eles(j)>0) then
-          face=horizontal_mesh_list(eles(j))
-          ! same as above, except ele_shape -> face_shape, ele_val -> face_val
-          call set(to_fields(i), j, &
-             dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
-               face_val( from_fields(i), face ) ))
-        else
-          ewrite(0,*) "For node with coordinate", node_val(to_positions, j)
-          ewrite(0,*) "no top surface node was found."
-          FLAbort("Something wrong with the geometry.")
-        end if
-       end do
-    end do
-    
-  end if
-    
-  if (.not. present(surface_name)) then
-    call remove_boundary_condition(positions, "TempSurfaceName")
-  end if
-  call deallocate(to_positions)
-  deallocate( eles, loc_coords )
-  
-end subroutine VerticalExtrapolationMultiple
+  call deallocate(mesh_positions)
+
+end subroutine horizontal_picker
   
 subroutine get_horizontal_positions(positions, surface_element_list, vertical_normal, surface_name, &
   horizontal_positions, horizontal_mesh_list)
