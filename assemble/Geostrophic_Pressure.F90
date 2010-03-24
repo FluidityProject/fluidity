@@ -135,6 +135,10 @@ module geostrophic_pressure
   interface decompose_p_mean
     module procedure decompose_p_mean_single, decompose_p_mean_double, decompose_p_mean_multiple
   end interface decompose_p_mean
+  
+  interface decompose_p_optimal
+    module procedure decompose_p_optimal_single, decompose_p_optimal_double, decompose_p_optimal_multiple
+  end interface decompose_p_optimal
     
 contains
   
@@ -1758,6 +1762,21 @@ contains
     
   end subroutine decompose_p_mean_double
   
+  subroutine set_dirichlet_face(face, matrix, rhs, val)
+    integer, intent(in) :: face
+    type(csr_matrix), intent(inout) :: matrix
+    type(scalar_field), intent(inout) :: rhs
+    real, intent(in) :: val
+    
+    integer, dimension(face_loc(rhs, face)) :: nodes
+    
+    nodes = face_global_nodes(rhs, face)
+    
+    call set_inactive(matrix, nodes)
+    call set(rhs, nodes, spread(val, 1, face_loc(rhs, face)))
+    
+  end subroutine set_dirichlet_face
+    
   subroutine decompose_p_mean_multiple(state, base_ps, positions, ps, bc_ps)
     !!< Decompose a conservative potential into a part constant on the
     !!< boundary and a residual, by taking a mean on the boundary
@@ -1830,7 +1849,7 @@ contains
     ! Apply strong Dirichlet bcs
     do i = 1, surface_element_count(mesh)
       do j = 1, size(base_ps)
-        call set_dirichlet(i, mass, rhs(j), surface_means(j))
+        call set_dirichlet_face(i, mass, rhs(j), surface_means(j))
       end do
     end do
     
@@ -1894,22 +1913,229 @@ contains
                 
     end subroutine integrate_surface_element
     
-    subroutine set_dirichlet(face, matrix, rhs, val)
-      integer, intent(in) :: face
-      type(csr_matrix), intent(inout) :: matrix
-      type(scalar_field), intent(inout) :: rhs
-      real, intent(in) :: val
-      
-      integer, dimension(face_loc(rhs, face)) :: nodes
-      
-      nodes = face_global_nodes(rhs, face)
-      
-      call set_inactive(matrix, nodes)
-      call set(rhs, nodes, spread(val, 1, face_loc(rhs, face)))
-      
-    end subroutine set_dirichlet
-    
   end subroutine decompose_p_mean_multiple
+  
+  subroutine decompose_p_optimal_single(state, base_p, positions, ps, bc_p)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(in) :: base_p
+    type(vector_field), intent(inout) :: positions
+    type(scalar_field), dimension(2), intent(inout) :: ps
+    type(scalar_field), optional, intent(inout) :: bc_p
+    
+    type(scalar_field), dimension(1) :: lbase_ps, lbc_ps
+    type(scalar_field), dimension(1, 2) :: lps
+    
+    lbase_ps(1) = base_p
+    lps(1, :) = ps
+    if(present(bc_p)) then  
+      lbc_ps(1) = bc_p
+      call decompose_p_optimal(state, lbase_ps, positions, lps, bc_ps = lbc_ps)
+    else
+      call decompose_p_optimal(state, lbase_ps, positions, lps)
+    end if
+    ps = lps(1, :)
+    if(present(bc_p)) then
+      bc_p = lbc_ps(1)
+    end if
+    
+  end subroutine decompose_p_optimal_single
+  
+  subroutine decompose_p_optimal_double(state, base_p_1, base_p_2, positions, ps_1, ps_2, bc_p_1, bc_p_2)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(in) :: base_p_1
+    type(scalar_field), intent(in) :: base_p_2
+    type(vector_field), intent(inout) :: positions
+    type(scalar_field), dimension(2), intent(inout) :: ps_1
+    type(scalar_field), dimension(2), intent(inout) :: ps_2
+    type(scalar_field), optional, intent(inout) :: bc_p_1
+    type(scalar_field), optional, intent(inout) :: bc_p_2
+    
+    type(scalar_field), dimension(2) :: lbase_ps, lbc_ps
+    type(scalar_field), dimension(2, 2) :: lps
+    
+    lbase_ps(1) = base_p_1
+    lbase_ps(2) = base_p_2
+    lps(1, :) = ps_1
+    lps(2, :) = ps_2
+    if(present(bc_p_1)) then
+      assert(present(bc_p_2))
+      lbc_ps(1) = bc_p_1
+      lbc_ps(2) = bc_p_2
+      call decompose_p_optimal(state, lbase_ps, positions, lps, bc_ps = lbc_ps)
+    else
+      call decompose_p_optimal(state, lbase_ps, positions, lps)
+    end if
+    ps_1 = lps(1, :)
+    ps_2 = lps(2, :)
+    if(present(bc_p_1)) then
+      assert(present(bc_p_2))
+      bc_p_1 = lbc_ps(1)
+      bc_p_2 = lbc_ps(2)
+    end if
+    
+  end subroutine decompose_p_optimal_double
+  
+  subroutine decompose_p_optimal_multiple(state, base_ps, positions, ps, bc_ps)
+    !!< Decompose a conservative potential into a part constant on the
+    !!< boundary and a residual, by minimising the L2 norm of the residual
+  
+    type(state_type), intent(inout) :: state
+    type(scalar_field), dimension(:), target, intent(inout) :: base_ps 
+    type(vector_field), intent(inout) :: positions
+    type(scalar_field), dimension(size(base_ps), 2), intent(inout) :: ps
+    type(scalar_field), dimension(size(base_ps)), optional, intent(inout) :: bc_ps
+    
+    integer :: i, j
+    integer, dimension(:), allocatable :: surface_eles
+    integer, dimension(:), pointer :: bc_surface_element_list
+    real, dimension(size(base_ps)) :: num, denom, c
+    type(csr_matrix) :: mass
+    type(csr_sparsity), pointer :: sparsity
+    type(scalar_field) :: bc_field
+    type(scalar_field), dimension(size(base_ps)) :: ps_1
+    type(scalar_field), dimension(size(base_ps)) :: rhs
+    type(mesh_type), pointer :: bc_mesh, mesh
+    
+    ewrite(1, *) "In decompose_p_optimal_multiple"
+    
+#ifdef DDEBUG
+    assert(size(base_ps) > 0)
+    do i = 2, size(base_ps)
+      assert(base_ps(i)%mesh == base_ps(1)%mesh)
+      assert(ps(i, 1)%mesh == ps(1, 1)%mesh)
+      assert(ps(i, 2)%mesh == ps(1, 1)%mesh)
+    end do
+    if(present(bc_ps)) then
+      do i = 2, size(bc_ps)
+        assert(bc_ps(i)%mesh == bc_ps(1)%mesh)
+      end do
+    end if
+#endif
+    if(positions%dim /= 2) then
+      ! Doing this for 3D unstructured meshes is very tricky
+      FLAbort("Conservative potential decomposition only implemented for 2D")
+    end if
+    
+    mesh => base_ps(1)%mesh
+    assert(continuity(mesh) == 0)
+    assert(connected_surfaces_count(mesh) == 1)
+    
+    ! Assemble the Galerkin projection
+    sparsity => get_csr_sparsity_firstorder(state, mesh, mesh)
+    call allocate(mass, sparsity, name = "MassMatrix")
+    call compute_mass(positions, mesh, mass)
+    do i = 1, size(base_ps)
+      call allocate(rhs(i), mesh, name = "Rhs")
+      call mult(rhs(i), mass, base_ps(i))
+      ewrite_minmax(rhs(i))
+    end do
+    
+    ! Apply strong Dirichlet bcs
+    do i = 1, surface_element_count(mesh)
+      do j = 1, size(base_ps)
+        call set_dirichlet_face(i, mass, rhs(j), 0.0)
+      end do
+    end do
+    
+    ! Compute the part zero on the boundary
+    call petsc_solve(ps(:, 1), mass, rhs)   
+    
+    do i = 1, size(base_ps)
+      call allocate(ps_1(i), mesh, "ZeroBoundaryOne")
+      call zero(ps_1(i))
+      ps_1%option_path = base_ps%option_path
+      
+      call zero(rhs(i))
+    end do
+    
+    ! Apply strong Dirichlet bcs
+    do i = 1, surface_element_count(mesh)
+      do j = 1, size(base_ps)
+        call set_dirichlet_face(i, mass, rhs(j), 1.0)
+      end do
+    end do
+    
+    ! Compute the part one on the boundary and zero elsewhere
+    call petsc_solve(ps_1, mass, rhs)    
+    call deallocate(mass)
+    do i = 1, size(rhs)
+      call deallocate(rhs(i))
+    end do
+    
+    ! Compute the boundary value that minimises the l2 norm of the residual
+    num = 0.0
+    denom = 0.0
+    do i = 1, ele_count(mesh)
+      call add_inner_products_ele(i, positions, base_ps, ps(:, 1), ps_1, num, denom)
+    end do
+    c = num / denom
+    
+    ! Compute the part constant on the boundary
+    do i = 1, size(base_ps)
+      ewrite(2, *) "Boundary value for " // trim(base_ps(i)%name) // ": ", c(i)
+      call addto(ps(i, 1), ps_1(i), scale = c(i))
+      ewrite_minmax(ps(i, 1)%val) 
+      call deallocate(ps_1(i))
+    end do
+    
+    ! Compute the residual
+    do i = 1, size(ps, 1)
+      ps(i, 2)%val = base_ps(i)%val - ps(i, 1)%val
+      ewrite_minmax(ps(i, 2)%val)
+    end do
+    
+    if(present(bc_ps)) then
+      ! Add strong dirichlet bcs to the part constant on the boundary
+      allocate(surface_eles(surface_element_count(bc_ps(1))))
+      do i = 1, size(surface_eles)
+        surface_eles(i) = i
+      end do
+      do i = 1, size(bc_ps, 1)
+        call clear_boundary_conditions(bc_ps(i))
+        ewrite(2, *), "Adding strong Dirichlet bc for field " // trim(bc_ps(i)%name)
+        call add_boundary_condition_surface_elements(bc_ps(i), "ConstantBoundary", "dirichlet", surface_eles) 
+        call get_boundary_condition(bc_ps(i), 1, surface_mesh = bc_mesh, &
+          & surface_element_list = bc_surface_element_list) 
+        call allocate(bc_field, bc_mesh, name = "value")
+        call set(bc_field, c(i))
+        call insert_surface_field(bc_ps(i), 1, bc_field)
+        call deallocate(bc_field)
+      end do
+      deallocate(surface_eles)
+    end if
+    
+    ewrite(1, *) "Exiting decompose_p_mean_multiple"
+    
+  contains
+  
+    subroutine add_inner_products_ele(ele, positions, p, p_0, p_1, num, denom)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(scalar_field), dimension(:), intent(in) :: p
+      type(scalar_field), dimension(size(p)), intent(in) :: p_0
+      type(scalar_field), dimension(size(p)), intent(in) :: p_1
+      real, dimension(size(p)), intent(inout) :: num
+      real, dimension(size(p)), intent(inout) :: denom
+      
+      integer :: i
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(p(1), ele), ele_loc(p(1), ele)) :: little_mass
+      type(element_type), pointer :: shape
+    
+      call transform_to_physical(positions, ele, &
+        & detwei = detwei)
+        
+      shape => ele_shape(p(1), ele)
+      little_mass = shape_shape(shape, shape, detwei)
+      
+      do i = 1, size(p)
+        num(i) = num(i) + dot_product(ele_val(p_1(i), ele), matmul(little_mass, ele_val(p(i), ele) - ele_val(p_0(i), ele)))
+        denom(i) = denom(i) + dot_product(ele_val(p_1(i), ele), matmul(little_mass, ele_val(p_1(i), ele)))
+      end do
+    
+    end subroutine add_inner_products_ele
+  
+  end subroutine decompose_p_optimal_multiple
   
   subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
     !!< Perform a Helmholz decomposed projection of the Coriolis force, and
@@ -2069,8 +2295,15 @@ contains
         call allocate(new_aux_p_decomp(2), new_p_mesh, trim(lnew_aux_p%name) // "Imbalanced")
         new_aux_p_decomp(2)%option_path = lnew_aux_p%option_path
         
-        call decompose_p_mean(old_state, old_p, lold_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
-          & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
+        if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
+          call decompose_p_mean(old_state, old_p, lold_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
+            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
+        else if(have_option(trim(base_path) // "/conservative_potential/decompose/l2_minimised_residual")) then
+          call decompose_p_optimal(old_state, old_p, lold_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
+            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
+        else
+          FLAbort("Unable to determine conservative potential decomposition type")
+        end if
               
         call insert(old_proj_state(2), old_aux_p_decomp(1), old_aux_p_decomp(1)%name)
         call insert(old_proj_state(2), old_aux_p_decomp(2), old_aux_p_decomp(2)%name)
@@ -2082,8 +2315,15 @@ contains
         
         call deallocate(lold_aux_p)
       else
-        call decompose_p_mean(old_state, old_p, old_positions, old_p_decomp, &
-          & bc_p = new_p_decomp(1))
+        if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
+          call decompose_p_mean(old_state, old_p, old_positions, old_p_decomp, &
+            & bc_p = new_p_decomp(1))
+        else if(have_option(trim(base_path) // "/conservative_potential/decompose/l2_minimised_residual")) then
+          call decompose_p_optimal(old_state, old_p, old_positions, old_p_decomp, &
+            & bc_p = new_p_decomp(1))
+        else
+          FLAbort("Unable to determine conservative potential decomposition type")
+        end if
       end if
       
       call insert(old_proj_state(2), old_p_decomp(1), old_p_decomp(1)%name)

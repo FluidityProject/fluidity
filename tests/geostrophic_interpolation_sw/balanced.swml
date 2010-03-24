@@ -215,7 +215,7 @@
             </galerkin_projection>
             <project_pressure name="LayerThickness"/>
             <decompose>
-              <boundary_mean/>
+              <l2_minimised_residual/>
             </decompose>
           </conservative_potential>
           <residual>

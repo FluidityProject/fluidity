@@ -1190,11 +1190,17 @@ interpolation_algorithm_vector =
               ## to the Pressure projection.
               element decompose {
                  (
+                    ## Choose a boundary value that minimises the l2 norm of the
+                    ## residual
+                    element l2_minimised_residual {
+                       comment
+                    }|
                     ## Use the mean boundary value as the constant component
                     ## boundary condition
                     element boundary_mean {
                        comment
                     }
+                    
                  ),
                  comment
               }|

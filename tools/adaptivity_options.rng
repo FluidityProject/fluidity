@@ -1425,11 +1425,18 @@ on the boundary, and a residual.
 
 If interpolating Pressure, a similar decomposition is applied
 to the Pressure projection.</a:documentation>
-                <element name="boundary_mean">
-                  <a:documentation>Use the mean boundary value as the constant component
+                <choice>
+                  <element name="l2_minimised_residual">
+                    <a:documentation>Choose a boundary value that minimises the l2 norm of the
+residual</a:documentation>
+                    <ref name="comment"/>
+                  </element>
+                  <element name="boundary_mean">
+                    <a:documentation>Use the mean boundary value as the constant component
 boundary condition</a:documentation>
-                  <ref name="comment"/>
-                </element>
+                    <ref name="comment"/>
+                  </element>
+                </choice>
                 <ref name="comment"/>
               </element>
               <element name="interpolate_boundary">
