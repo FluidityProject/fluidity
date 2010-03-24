@@ -35,6 +35,7 @@ module momentum_diagnostics
   use field_options
   use fields
   use fldebug
+  use geostrophic_pressure
   use global_parameters, only : OPTION_PATH_LEN
   use multimaterial_module
   use solvers
@@ -50,7 +51,8 @@ module momentum_diagnostics
   public :: calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
             calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
-            calculate_scalar_potential, calculate_vector_potential
+            calculate_scalar_potential, calculate_vector_potential, &
+            calculate_geostrophic_velocity
   
   interface coriolis_force
     module procedure coriolis_force_single, coriolis_force_multiple
@@ -532,5 +534,31 @@ contains
     end subroutine assemble_vector_potential_ele
 
   end subroutine calculate_vector_potential
+  
+  subroutine calculate_geostrophic_velocity(state, v_field)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: stat
+    real :: scale_factor
+    type(scalar_field), pointer :: source_field
+    type(cmc_matrices) :: matrices
+    type(vector_field), pointer :: positions, velocity
+    
+    source_field => scalar_source_field(state, v_field)
+    positions => extract_vector_field(state, "Coordinate")
+    velocity => extract_vector_field(state, "Velocity")
+    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+    call allocate(matrices, state, velocity, source_field, option_path = path, add_cmc = .false.)
+    
+    call geostrophic_velocity(matrices, positions, v_field, source_field) 
+    
+    call deallocate(matrices)
+    
+    call get_option(trim(path) // "/scale_factor", scale_factor, stat = stat)
+    if(stat == SPUD_NO_ERROR) call scale(v_field, scale_factor)
+  
+  end subroutine calculate_geostrophic_velocity
 
 end module momentum_diagnostics

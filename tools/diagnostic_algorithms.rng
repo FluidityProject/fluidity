@@ -475,6 +475,45 @@ with a strong Dirichlet boundary condition of zero on all boundaries.</a:documen
       </element>
     </element>
   </define>
+  <define name="geostrophic_velocity_algorithm">
+    <element name="algorithm">
+      <a:documentation>Compute the velocity in geostrophic balance with a pressure field</a:documentation>
+      <attribute name="name">
+        <value>geostrophic_velocity</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="depends">
+        <value>Velocity</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="mass">
+        <a:documentation>Options relating to the mass matrix</a:documentation>
+        <optional>
+          <element name="lump_mass">
+            <a:documentation>Lump the mass matrix. Required for continuous fields.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+      </element>
+      <optional>
+        <element name="integrate_divergence_by_parts">
+          <a:documentation>Integrate the divergence operator by parts</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="scale_factor">
+          <a:documentation>Scale the computed geostrophic velocity by some factor. This is
+useful if the pressure field is divided by some reference value
+e.g., in a shallow water with mean layer thickness H, this should
+take the value 1 / H.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
   <define name="bulk_viscosity_algorithm">
     <element name="algorithm">
       <a:documentation>The average (or bulk) viscosity formed from the MaterialViscosity for
@@ -743,6 +782,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_potential_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="geostrophic_velocity_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="eigenvalues_symmetric_algorithm"/>

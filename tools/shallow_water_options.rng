@@ -432,11 +432,11 @@ usually only the y-component of beta is non-zero</a:documentation>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>
+          <zeroOrMore>
+            <ref name="vector_field_choice"/>
+          </zeroOrMore>
         </group>
-        <!--
-          vector_field_choice*,
-          tensor_field_choice*
-        -->
+        <!-- tensor_field_choice* -->
       </element>
       <optional>
         <element name="mesh_adaptivity">
@@ -4428,9 +4428,6 @@ ocean biology is being simulated.</a:documentation>
           <element name="diagnostic">
             <ref name="vector_diagnostic_algorithms"/>
             <ref name="velocity_mesh_choice"/>
-            <optional>
-              <ref name="python_diagnostic_field_code"/>
-            </optional>
             <ref name="diagnostic_vector_field"/>
           </element>
         </choice>

@@ -315,8 +315,8 @@ start =
                      prognostic_layerthickness_field
                   }
                },                  
-               scalar_field_choice*
-               #vector_field_choice*,
+               scalar_field_choice*,
+               vector_field_choice*
                #tensor_field_choice*
             )
          },
@@ -3645,7 +3645,6 @@ vector_field_choice =
                element diagnostic {
                   vector_diagnostic_algorithms,
                   velocity_mesh_choice,
-                  python_diagnostic_field_code?,
                   diagnostic_vector_field
                }
             )

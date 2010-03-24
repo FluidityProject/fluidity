@@ -71,7 +71,9 @@ module geostrophic_pressure
     & geostrophic_pressure_check_options
     
   public :: projection_decomposition, geopressure_decomposition, &
-    & cmc_matrices, geostrophic_velocity, geostrophic_interpolation
+    & geostrophic_velocity, geostrophic_interpolation
+  public :: cmc_matrices, allocate, deallocate, add_cmc_matrix, &
+    & add_geopressure_matrices, correct_velocity, compute_conservative
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
@@ -1503,20 +1505,16 @@ contains
     
   end function velocity_from_coriolis_val
 
-  subroutine geostrophic_velocity(positions, velocity, p, matrices)  
+  subroutine geostrophic_velocity(matrices, positions, velocity, p)  
+    type(cmc_matrices), intent(in) :: matrices
     type(vector_field), intent(in) :: positions
     type(vector_field), target, intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
-    type(cmc_matrices), optional, intent(in) :: matrices
     
     type(vector_field) :: coriolis
             
     call allocate(coriolis, velocity%dim, velocity%mesh, "Coriolis")
-    if(present(matrices)) then
-      call compute_conservative(coriolis, matrices, p)
-    else
-      call grad(p, positions, coriolis)
-    end if
+    call compute_conservative(coriolis, matrices, p)
     
     call velocity_from_coriolis(positions, coriolis, velocity)
     call deallocate(coriolis)
@@ -1594,14 +1592,10 @@ contains
     
     character(len = FIELD_NAME_LEN) :: lbcname, bctype
     integer :: i
-    integer, dimension(surface_element_count(target)) :: surface_eles
     integer, dimension(:), pointer:: surface_element_list
     logical, dimension(donor%dim):: applies
     
     ewrite(2, *) "Bc count for field " // trim(donor%name), get_boundary_condition_count(donor)
-    do i = 1, size(surface_eles)
-      surface_eles(i) = i
-    end do
     do i = 1, get_boundary_condition_count(donor)
       call get_boundary_condition(donor, i, name = lbcname, type = bctype, &
         & surface_element_list = surface_element_list, applies = applies)
@@ -1611,7 +1605,7 @@ contains
          
       ewrite(2, *), "Copying bc " // trim(lbcname)
       call add_boundary_condition_surface_elements(target, lbcname, bctype,&
-        & surface_eles, applies = applies)            
+        & surface_element_list, applies = applies)            
     end do
   
   end subroutine copy_bcs
@@ -1657,7 +1651,7 @@ contains
     allocate(eles(face_loc(fields_b(1), 1)))
     allocate(l_coords(ele_loc(positions_a, 1), ele_loc(b_positions, 1)))
     do i = 1, ele_count(b_positions)
-      call picker_inquire(positions_a, ele_val(b_positions, i), eles, local_coords = l_coords)
+      call picker_inquire(positions_a, ele_val(b_positions, i), eles, local_coords = l_coords, global = .false.)
       assert(all(eles > 0))
       nodes => ele_nodes(b_mesh, i)
       assert(size(nodes) == size(eles))

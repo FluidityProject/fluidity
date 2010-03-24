@@ -367,6 +367,34 @@ vector_potential_algorithm =
          }
       }
    )
+geostrophic_velocity_algorithm =
+   (
+      ## Compute the velocity in geostrophic balance with a pressure field
+      element algorithm {
+         attribute name { "geostrophic_velocity" },
+         attribute material_phase_support { "single" },
+         attribute depends { "Velocity" },
+         scalar_source_field,         
+         ## Options relating to the mass matrix
+         element mass {
+            ## Lump the mass matrix. Required for continuous fields.
+            element lump_mass {
+               comment
+            }?
+         },
+         ## Integrate the divergence operator by parts
+         element integrate_divergence_by_parts {
+            comment
+         }?,
+         ## Scale the computed geostrophic velocity by some factor. This is
+         ## useful if the pressure field is divided by some reference value
+         ## e.g., in a shallow water with gravity magnitude g, this should
+         ## take the value g.
+         element scale_factor {
+            real
+         }?
+      }
+   )
 bulk_viscosity_algorithm =
    (
        ## The average (or bulk) viscosity formed from the MaterialViscosity for
@@ -548,6 +576,7 @@ vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
 vector_diagnostic_algorithms |= vector_potential_algorithm
+vector_diagnostic_algorithms |= geostrophic_velocity_algorithm
 vector_diagnostic_algorithms |= eigenvalues_symmetric_algorithm
 
 tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
