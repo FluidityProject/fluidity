@@ -76,13 +76,15 @@ USE_MODULES
       & get_dependencies_tensor, get_dependencies_path
   end interface get_dependencies
   
-  character(len = *), dimension(6), parameter :: depend_paths = (/ &
-    "depends                     ", &
-    "source_field_name           ", &
-    "source_field_names          ", &
-    "algorithm/depends           ", &
-    "algorithm/source_field_name ", &
-    "algorithm/source_field_names"/)
+  character(len = *), dimension(8), parameter :: depend_paths = (/ &
+    "depends                      ", &
+    "source_field_name            ", &
+    "source_field_1_name          ", &
+    "source_field_2_name          ", &
+    "algorithm/depends            ", &
+    "algorithm/source_field_name  ", &
+    "algorithm/source_field_1_name", &
+    "algorithm/source_field_2_name"/)
         
 contains
 
