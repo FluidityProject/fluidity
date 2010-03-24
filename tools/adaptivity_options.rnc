@@ -1102,8 +1102,8 @@ interpolation_algorithm_vector =
       ## for Velocity fields.
       ## <b>FOR TESTING ONLY - NOT FOR PRODUCTION USE</b>
       element geostrophic_interpolation {
-        ## Options relating to the conservative potential of the Helmholtz
-        ## decomposition
+        ## Options relating to the conservative potential component of the
+        ## Helmholtz decomposition
         element conservative_potential {
            (
               ## The mesh used for the conservative potential. Note that this is

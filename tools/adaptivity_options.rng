@@ -1316,8 +1316,8 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
 for Velocity fields.
 &lt;b&gt;FOR TESTING ONLY - NOT FOR PRODUCTION USE&lt;/b&gt;</a:documentation>
         <element name="conservative_potential">
-          <a:documentation>Options relating to the conservative potential of the Helmholtz
-decomposition</a:documentation>
+          <a:documentation>Options relating to the conservative potential component of the
+Helmholtz decomposition</a:documentation>
           <choice>
             <element name="mesh">
               <a:documentation>The mesh used for the conservative potential. Note that this is

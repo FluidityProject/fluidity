@@ -93,22 +93,37 @@ module geostrophic_pressure
   logical, save :: include_coriolis = .true.
   integer, save :: reference_node = 0
     
+  !! Type for handing pressure projection matrices
   type cmc_matrices
+    !! Whether this is a lumped mass projection
     logical :: lump_mass
+    !! Whether divergence have been integrated by parts
     logical :: integrate_by_parts
+    !! Velocity mesh
     type(mesh_type) :: u_mesh
+    !! Pressure mesh
     type(mesh_type) :: p_mesh
+    !! Pressure option path
     character(len = OPTION_PATH_LEN) :: option_path
+    !! Divergence matrix
     type(block_csr_matrix) :: ct_m
+    !! RHS terms from integrating the divergence operator by parts
     type(scalar_field) :: ct_rhs
+    !! Inverse mass matrix. Only used when not lumping mass.
     type(block_csr_matrix) :: inverse_mass_b
+    !! Inverse lumped mass matrix. Only used when lumping mass.
     type(vector_field) :: inverse_masslump_v
     
+    !! Whether CMC itself has been added
     logical :: have_cmc_m = .false.
+    !! Laplacian matrix, C^T M^-1 C
     type(csr_matrix) :: cmc_m
     
+    !! Whether geopressure preconditioner matrices have been added
     logical :: have_geopressure = .false.
+    !! Geopressure Laplacian matrix, C^T M^-1 C_gp
     type(csr_matrix) :: cmc_gp_m
+    !! Geopressure divergence matrix
     type(block_csr_matrix) :: ct_gp_m
   end type cmc_matrices
   
@@ -866,12 +881,17 @@ contains
   end subroutine grad
           
   subroutine allocate_cmc_matrices(matrices, state, field, p, option_path, gp, add_cmc)
+    !!< Allocate cmc_matrices. By default, this assembles the divergence C^T
+    !!< and Laplacian C^T M^-1 C matrices.
+  
     type(cmc_matrices), intent(out) :: matrices
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: field
     type(scalar_field), target, intent(inout) :: p
     character(len = *), optional, intent(in) :: option_path
+    !! If present, additionally assembles geopressure preconditioner matrices
     type(scalar_field), optional, intent(inout) :: gp
+    !! If present and .false., do not assemble CMC itself
     logical, optional, intent(in) :: add_cmc
     
     integer :: dim, i, stat
@@ -1004,6 +1024,8 @@ contains
   end subroutine allocate_cmc_matrices
   
   subroutine add_cmc_matrix(state, matrices)
+    !!< Add CMC to the supplied cmc_matrices
+  
     type(state_type), intent(inout) :: state
     type(cmc_matrices), intent(inout) :: matrices
     
@@ -1063,6 +1085,8 @@ contains
   end subroutine add_cmc_matrix
     
   function geopressure_divergence(state, u_mesh, gp_mesh, positions) result(ct_gp_m)
+    !!< Assemble the divergence operator
+  
     type(state_type), intent(inout) :: state
     type(mesh_type), intent(inout) :: u_mesh
     type(mesh_type), intent(inout) :: gp_mesh
@@ -1106,6 +1130,8 @@ contains
   end function geopressure_divergence
   
   subroutine add_geopressure_matrices(state, gp_mesh, matrices)
+    !!< Add geopressure preconditioner matrices to the supplied cmc_matrices
+  
     type(state_type), intent(inout) :: state
     type(mesh_type), intent(inout) :: gp_mesh
     type(cmc_matrices), intent(inout) :: matrices
@@ -1128,6 +1154,8 @@ contains
   end subroutine add_geopressure_matrices
   
   subroutine assemble_cmc_rhs(field, matrices, cmc_rhs, gp)
+    !!< Assemble the pressure projection RHS
+  
     type(vector_field), intent(in) :: field
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(inout) :: cmc_rhs
@@ -1153,7 +1181,9 @@ contains
   
   end subroutine assemble_cmc_rhs
   
-  subroutine cmc_solve_setup(matrices, cmc_rhs)
+  subroutine apply_cmc_reference_node(matrices, cmc_rhs)
+    !!< Apply reference node to CMC
+  
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(inout) :: cmc_rhs
     
@@ -1161,9 +1191,45 @@ contains
     
     call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = matrices%option_path)
   
-  end subroutine cmc_solve_setup
+  end subroutine apply_cmc_reference_node
+  
+  subroutine apply_cmc_boundary_value(matrices, cmc_rhs, value)
+    !!< Apply a strong dirichlet bc to CMC on all boundaries
+  
+    type(cmc_matrices), intent(inout) :: matrices
+    type(scalar_field), intent(inout) :: cmc_rhs
+    real, intent(in) :: value
+    
+    integer :: i
+    
+    assert(matrices%have_cmc_m)
+        
+    do i = 1, surface_element_count(cmc_rhs)
+      call set_dirichlet_face(i, matrices%cmc_m, cmc_rhs, value)
+    end do
+    
+  contains
+  
+    subroutine set_dirichlet_face(face, matrix, rhs, val)
+      integer, intent(in) :: face
+      type(csr_matrix), intent(inout) :: matrix
+      type(scalar_field), intent(inout) :: rhs
+      real, intent(in) :: val
+      
+      integer, dimension(face_loc(rhs, face)) :: nodes
+      
+      nodes = face_global_nodes(rhs, face)
+      
+      call set_inactive(matrix, nodes)
+      call set(rhs, nodes, spread(val, 1, face_loc(rhs, face)))
+      
+    end subroutine set_dirichlet_face
+    
+  end subroutine apply_cmc_boundary_value
   
   subroutine cmc_solve_finalise(matrices)
+    !!< Cleanup cmc_matrices after a solve
+  
     type(cmc_matrices), intent(inout) :: matrices
     
     assert(matrices%have_cmc_m)
@@ -1173,6 +1239,8 @@ contains
   end subroutine cmc_solve_finalise
   
   subroutine deallocate_cmc_matrices(matrices)
+    !!< Deallocate cmc_matrices
+    
     type(cmc_matrices), intent(inout) :: matrices
     
     call deallocate(matrices%u_mesh)
@@ -1200,7 +1268,7 @@ contains
           
   subroutine projection_decomposition(state, field, p, gp, option_path, &
     & matrices)   
-    !!< Perform a Helmholz decomposition of the supplied vector field. Basically
+    !!< Perform a Helmholz decomposition of the supplied vector field using
     !!< a pressure projection solve.
   
     type(state_type), intent(inout) :: state
@@ -1220,7 +1288,7 @@ contains
     call allocate(cmc_rhs, lmatrices%p_mesh, "CMCRHS")
     call assemble_cmc_rhs(field, lmatrices, cmc_rhs, gp = gp)
     
-    call cmc_solve_setup(lmatrices, cmc_rhs)
+    call apply_cmc_reference_node(lmatrices, cmc_rhs)
     call petsc_solve(p, lmatrices%cmc_m, cmc_rhs, option_path = lmatrices%option_path)
     call cmc_solve_finalise(lmatrices)
     
@@ -1237,6 +1305,9 @@ contains
   end subroutine projection_decomposition
       
   subroutine geopressure_decomposition(state, field, p, option_path)
+    !!< Perform a Helmholz decomposition of the supplied vector field using
+    !!< a geopressure solve.
+    
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(in) :: field
     type(scalar_field), target, intent(inout) :: p
@@ -1314,6 +1385,8 @@ contains
   end subroutine geopressure_decomposition
   
   subroutine correct_velocity(velocity, p, matrices, conserv)
+    !!< Project velocity onto the solenoidal space
+    
     type(vector_field), intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
     type(cmc_matrices), intent(inout) :: matrices
@@ -1342,6 +1415,8 @@ contains
   end subroutine correct_velocity
   
   subroutine compute_conservative(conserv, matrices, p, geopressure)
+    !!< Compute the pressure gradient
+  
     type(vector_field), intent(inout) :: conserv
     type(cmc_matrices), target, intent(in) :: matrices
     type(scalar_field), intent(in) :: p
@@ -1380,6 +1455,8 @@ contains
   end subroutine compute_conservative
   
   subroutine compute_divergence(field, ct_m, mass, div)
+    !!< Compute the divergence of a field
+  
     type(vector_field), intent(in) :: field
     type(block_csr_matrix), intent(in) :: ct_m
     type(csr_matrix), intent(in) :: mass
@@ -1760,45 +1837,33 @@ contains
     end if
     
   end subroutine decompose_p_mean_double
-  
-  subroutine set_dirichlet_face(face, matrix, rhs, val)
-    integer, intent(in) :: face
-    type(csr_matrix), intent(inout) :: matrix
-    type(scalar_field), intent(inout) :: rhs
-    real, intent(in) :: val
-    
-    integer, dimension(face_loc(rhs, face)) :: nodes
-    
-    nodes = face_global_nodes(rhs, face)
-    
-    call set_inactive(matrix, nodes)
-    call set(rhs, nodes, spread(val, 1, face_loc(rhs, face)))
-    
-  end subroutine set_dirichlet_face
     
   subroutine decompose_p_mean_multiple(matrices, base_ps, positions, ps, bc_ps)
     !!< Decompose a conservative potential into a part constant on the
     !!< boundary and a residual, by taking a mean on the boundary
   
-    type(cmc_matrices), intent(inout) :: matrices
-    type(scalar_field), dimension(:), target, intent(inout) :: base_ps 
+    type(cmc_matrices), target, intent(inout) :: matrices
+    type(scalar_field), dimension(:), intent(inout) :: base_ps 
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(size(base_ps), 2), intent(inout) :: ps
+    !! Adds strong dirichlet bcs to these fields to impose the constant value
+    !! on the boundary used to decompose base_ps
     type(scalar_field), dimension(size(base_ps)), optional, intent(inout) :: bc_ps
     
-    integer :: i, j
+    integer :: i
     integer, dimension(:), allocatable :: surface_eles
     integer, dimension(:), pointer :: bc_surface_element_list
     real :: surface_area
     real, dimension(:), allocatable :: surface_means
     type(mesh_type), pointer :: bc_mesh, mesh
     type(scalar_field) :: bc_field
-    type(scalar_field), dimension(size(base_ps)) :: rhs
+    type(scalar_field) :: rhs
     
     ewrite(1, *) "In decompose_p_mean_multiple"
     
 #ifdef DDEBUG
     assert(size(base_ps) > 0)
+    assert(base_ps(1)%mesh == matrices%p_mesh)
     do i = 2, size(base_ps)
       assert(base_ps(i)%mesh == base_ps(1)%mesh)
       assert(ps(i, 1)%mesh == ps(1, 1)%mesh)
@@ -1815,11 +1880,11 @@ contains
       FLAbort("Conservative potential decomposition only implemented for 2D")
     end if
     
-    mesh => base_ps(1)%mesh
+    mesh => matrices%p_mesh
     assert(continuity(mesh) == 0)
     assert(connected_surfaces_count(mesh) == 1)
         
-    ! Compute the mean value surface
+    ! Compute the mean surface value
     allocate(surface_means(size(base_ps)))
     surface_area = 0.0
     surface_means = 0.0
@@ -1833,25 +1898,19 @@ contains
       ewrite(2, *) "Surface mean for " // trim(base_ps(i)%name) // ": ", surface_means(i)
     end do
     
-    ! Assemble the projection RHS
+    call allocate(rhs, mesh, name = "Rhs")
     do i = 1, size(base_ps)
-      call allocate(rhs(i), mesh, name = "Rhs")
+      ! Assemble the projection RHS
       assert(matrices%have_cmc_m)
-      call mult(rhs(i), matrices%cmc_m, base_ps(i))
-      ewrite_minmax(rhs(i))
-    end do   
+      call mult(rhs, matrices%cmc_m, base_ps(i))
+      ewrite_minmax(rhs)
         
-    ! Compute the part constant on the boundary
-    do i = 1, size(base_ps)
-      assert(matrices%have_cmc_m)
-      ! Apply strong Dirichlet bcs
-      do j = 1, surface_element_count(mesh)
-        call set_dirichlet_face(j, matrices%cmc_m, rhs(i), surface_means(i))
-      end do
-      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs(i))   
+      ! Compute the part constant on the boundary
+      call apply_cmc_boundary_value(matrices, rhs, surface_means(i))
+      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs)   
       call cmc_solve_finalise(matrices)
-      call deallocate(rhs(i))
     end do
+    call deallocate(rhs)
     
     ! Compute the residual
     do i = 1, size(ps, 1)
@@ -1976,9 +2035,11 @@ contains
     type(scalar_field), dimension(:), intent(inout) :: base_ps 
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(size(base_ps), 2), intent(inout) :: ps
+    !! Adds strong dirichlet bcs to these fields to impose the constant value
+    !! on the boundary used to decompose base_ps
     type(scalar_field), dimension(size(base_ps)), optional, intent(inout) :: bc_ps
     
-    integer :: i, j
+    integer :: i
     integer, dimension(:), allocatable :: surface_eles
     integer, dimension(:), pointer :: bc_surface_element_list
     real :: denom
@@ -1986,7 +2047,7 @@ contains
     type(mesh_type), pointer :: bc_mesh, mesh
     type(scalar_field) :: bc_field
     type(scalar_field) :: p_1
-    type(scalar_field), dimension(size(base_ps)) :: rhs
+    type(scalar_field) :: rhs
     
     ewrite(1, *) "In decompose_p_optimal_multiple"
     
@@ -2013,47 +2074,29 @@ contains
     assert(continuity(mesh) == 0)
     assert(connected_surfaces_count(mesh) == 1)
     
-    ! Assemble the projection RHS
+    call allocate(rhs, mesh, name = "Rhs")
     do i = 1, size(base_ps)
-      call allocate(rhs(i), mesh, name = "Rhs")
+      ! Assemble the projection RHS
       assert(matrices%have_cmc_m)
-      call mult(rhs(i), matrices%cmc_m, base_ps(i))
-      ewrite_minmax(rhs(i))
-    end do    
+      call mult(rhs, matrices%cmc_m, base_ps(i))
+      ewrite_minmax(rhs)
     
-    ! Apply strong Dirichlet bcs
-    do i = 1, surface_element_count(mesh)
-      do j = 1, size(base_ps)
-        call set_dirichlet_face(i, matrices%cmc_m, rhs(j), 0.0)
-      end do
-    end do
-    
-    ! Compute the part zero on the boundary
-    do i = 1, size(base_ps)
-      assert(matrices%have_cmc_m)
-      ! Apply strong Dirichlet bcs
-      do j = 1, surface_element_count(mesh)
-        call set_dirichlet_face(j, matrices%cmc_m, rhs(i), 0.0)
-      end do
-      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs(i))   
+      ! Compute the part zero on the boundary
+      call apply_cmc_boundary_value(matrices, rhs, 0.0)
+      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs)   
       call cmc_solve_finalise(matrices)
-      if(i > 1) call deallocate(rhs(i))
     end do
     
     call allocate(p_1, mesh, "ZeroBoundaryOne")
     call zero(p_1)
     p_1%option_path = base_ps(1)%option_path
-    call zero(rhs(1))
+    call zero(rhs)
     
     ! Compute the part one on the boundary and zero elsewhere
-    assert(matrices%have_cmc_m)
-    ! Apply strong Dirichlet bcs
-    do i = 1, surface_element_count(mesh)
-      call set_dirichlet_face(i, matrices%cmc_m, rhs(1), 1.0)
-    end do
-    call petsc_solve(p_1, matrices%cmc_m, rhs(1))   
+    call apply_cmc_boundary_value(matrices, rhs, 1.0)
+    call petsc_solve(p_1, matrices%cmc_m, rhs)   
     call cmc_solve_finalise(matrices)
-    call deallocate(rhs(1))
+    call deallocate(rhs)
     
     ! Compute the boundary value that minimises the l2 norm of the residual
     num = 0.0
@@ -2662,7 +2705,16 @@ contains
     
     ewrite(2, *) "Checking GeostrophicPressure options"
     
-    if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then        
+    if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
+      ewrite(0, *) "*********************"
+      ewrite(0, *) "****** WARNING ******"
+      ewrite(0, *) "*********************"
+      ewrite(0, *) "BalancePressure is deprecated and will be removed in the near future"
+      ewrite(0, *) "Switch to GeostrophicPressure"    
+      ewrite(0, *) "*********************"
+      ewrite(0, *) "****** WARNING ******"
+      ewrite(0, *) "*********************"
+         
       if(option_count("/geometry/mesh::" // gp_mesh_name) > 0) then
         FLExit("The mesh name " // gp_mesh_name // " is reserved")
       end if
