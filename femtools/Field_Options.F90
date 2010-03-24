@@ -371,6 +371,9 @@ contains
   !!< pulled from state if present, otherwise remapped 
   !!< from "Coordinate" onto mesh. NOTE: The returned vector_field
   !!< should always be deallocated
+  !!< This routine returns the coordinate field appropriate for /assembly/;
+  !!< if you want to use the coordinate for something else, then this
+  !!< probably isn't the routine for you (especially for periodic meshes)
   type(state_type), intent(in):: state
   type(mesh_type), intent(in):: mesh
   type(vector_field) positions
@@ -380,13 +383,7 @@ contains
     type(mesh_type) :: unperiodic_mesh
       
     coordinate_field => extract_vector_field(state, "Coordinate")
-    if (coordinate_field%mesh==mesh) then
-       positions=coordinate_field
-       call incref(positions)
-    elseif (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
-       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
-       call incref(positions)
-    elseif (mesh_periodic(mesh)) then
+    if (mesh_periodic(mesh)) then
        ! you should never have periodic coordinates
        if((coordinate_field%mesh%shape==mesh%shape).and.&
           (coordinate_field%mesh%elements==mesh%elements).and.&
@@ -406,6 +403,12 @@ contains
           call remap_field(coordinate_field, positions)
           call deallocate(unperiodic_mesh)
        end if
+    elseif (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
+       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+       call incref(positions)
+    elseif (coordinate_field%mesh==mesh) then
+       positions=coordinate_field
+       call incref(positions)
     else
        call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
        call remap_field(coordinate_field, positions)
