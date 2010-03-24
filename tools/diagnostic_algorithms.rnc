@@ -208,7 +208,16 @@ helmholtz_smoothed_scalar_algorithm =
    )
 
 # Binary operators
-
+scalar_difference_algorithm =
+   (
+      ## Difference between two scalar fields, field 1 - field 2
+      element algorithm {
+         attribute name { "scalar_difference" },
+         attribute material_phase_support { "single" },
+         scalar_source_field_1,
+         scalar_source_field_2
+      }
+   )
 vector_difference_algorithm =
    (
       ## Difference between two vector fields, field 1 - field 2
@@ -644,6 +653,7 @@ scalar_diagnostic_algorithms |= grad_normal_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
+vector_diagnostic_algorithms |= scalar_difference_algorithm
 
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm

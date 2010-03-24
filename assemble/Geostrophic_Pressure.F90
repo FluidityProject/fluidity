@@ -1513,7 +1513,10 @@ contains
     
     type(vector_field) :: coriolis
             
-    call allocate(coriolis, velocity%dim, velocity%mesh, "Coriolis")
+    assert(velocity%mesh == matrices%u_mesh)
+    assert(p%mesh == matrices%p_mesh)
+            
+    call allocate(coriolis, velocity%dim, matrices%u_mesh, "Coriolis")
     call compute_conservative(coriolis, matrices, p)
     
     call velocity_from_coriolis(positions, coriolis, velocity)

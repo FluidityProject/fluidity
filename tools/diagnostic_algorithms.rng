@@ -280,9 +280,22 @@ this option to these these internal algorithms.</a:documentation>
     </element>
   </define>
   <!-- Binary operators -->
+  <define name="scalar_difference_algorithm">
+    <element name="algorithm">
+      <a:documentation>Difference between two scalar fields, field 1 - field 2</a:documentation>
+      <attribute name="name">
+        <value>scalar_difference</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field_1"/>
+      <ref name="scalar_source_field_2"/>
+    </element>
+  </define>
   <define name="vector_difference_algorithm">
     <element name="algorithm">
-      <a:documentation>Difference between two vector fields</a:documentation>
+      <a:documentation>Difference between two vector fields, field 1 - field 2</a:documentation>
       <attribute name="name">
         <value>vector_difference</value>
       </attribute>
@@ -860,6 +873,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="l2norm_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_difference_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_python_diagnostic_algorithm"/>

@@ -38,9 +38,23 @@ module binary_operators
   
   private
   
-  public :: calculate_vector_difference
+  public :: calculate_scalar_difference, calculate_vector_difference
   
 contains
+
+  subroutine calculate_scalar_difference(state, s_field)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: s_field
+    
+    type(scalar_field), pointer :: source_field_1, source_field_2
+    
+    source_field_1 => scalar_source_field(state, s_field, index = 1)
+    source_field_2 => scalar_source_field(state, s_field, index = 2)
+  
+    call set(s_field, source_field_1)
+    call addto(s_field, source_field_2, scale = -1.0)
+  
+  end subroutine calculate_scalar_difference
 
   subroutine calculate_vector_difference(state, v_field)
     type(state_type), intent(in) :: state
