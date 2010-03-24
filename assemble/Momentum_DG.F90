@@ -1057,7 +1057,7 @@ contains
               ele_2_X = x_neigh(ni)
               ele_centre = sum(X_val,2)/size(X_val,2)
               face_centre = sum(face_val(X,face),2)/size(face_val(X,face),2)
-              if(boundary_element) then
+              if(face==face_2) then
                  ! Boundary case. We compute 2x the distance to the face centre
                  h0 = 2*sqrt( sum(ele_centre - face_centre)**2 )
               else if (ele_2/=x_neigh(ni)) then
