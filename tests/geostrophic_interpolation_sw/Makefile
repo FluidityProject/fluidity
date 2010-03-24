@@ -7,4 +7,5 @@ input: clean
 
 clean:
 	rm -f *.ele *.edge *.face *.node *.vtu *.s *.stat *.log src/*.msh
-	rm -f geostrophic_interpolation_new*vtu geostrophic_interpolation_old*vtu
+	rm -f geostrophic_interpolation_new*vtu geostrophic_interpolation_old*vtu p_decomp_new*vtu p_decomp_old*vtu
+	rm -f matrixdump matrixdump.info
