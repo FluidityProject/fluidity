@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>parallel-p2p1-Stokes-square-convection-1e4</name>
+  <owner userid="rhodrid"/>
+
+  <tags>flml</tags>
+
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l Stokes-square-convection-1e4-p2p1-parallel.flml</command_line>
+  </problem_definition>
+
+<variables>  
+
+<variable name="nu_top" language="python">
+from fluidity_tools import stat_parser as stat
+nu_top = abs(stat("stokes-1e4-p2p1-parallel.stat")["Fluid"]["Temperature"]["surface_integral%TopH"][-1])
+</variable>
+
+<variable name="max_div" language="python">
+from fluidity_tools import stat_parser as stat
+max_div = max(max(abs(stat("stokes-1e4-p2p1-parallel.stat")["Fluid"]["FiniteElementDivergence"]["max"])), max(abs(stat("stokes-1e4-p2p1-parallel.stat")["Fluid"]["FiniteElementDivergence"]["min"])))
+</variable>
+
+<variable name="rms_vel" language="python">
+from fluidity_tools import stat_parser as stat
+rms_vel= stat("stokes-1e4-p2p1-parallel.stat")["Fluid"]["Velocity%magnitude"]["l2norm"][-1]
+</variable>
+
+</variables>
+
+<pass_tests>
+
+<test name="Surface Nusselt Number Validity: 4.5 .lt. Nu .lt. 4.8" language="python">
+assert(abs(nu_top-4.65) &lt; 0.15)
+</test>
+
+<test name="RMS Velocity Validity: 41.0 .lt. V_RMS .lt. 44.0" language="python">
+assert(abs(rms_vel-42.5) &lt; 1.5)
+</test>
+
+<test name="Divergence small .lt. 1.0E-3" language="python">
+assert(max_div &lt; 1.0E-3)
+</test>
+
+</pass_tests>                                                                                                                                                                                                
+
+<warn_tests>
+</warn_tests>
+
+</testproblem>
+
+
+
+
+
