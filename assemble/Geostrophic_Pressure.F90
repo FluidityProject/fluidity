@@ -1794,7 +1794,6 @@ contains
     type(mesh_type), pointer :: bc_mesh, mesh
     type(scalar_field) :: bc_field
     type(scalar_field), dimension(size(base_ps)) :: rhs
-    type(vector_field) :: grad_p
     
     ewrite(1, *) "In decompose_p_mean_multiple"
     
@@ -1820,7 +1819,7 @@ contains
     assert(continuity(mesh) == 0)
     assert(connected_surfaces_count(mesh) == 1)
         
-    ! Compute the mean value on the connected surfaces
+    ! Compute the mean value surface
     allocate(surface_means(size(base_ps)))
     surface_area = 0.0
     surface_means = 0.0
@@ -1836,12 +1835,10 @@ contains
     
     ! Assemble the projection RHS
     do i = 1, size(base_ps)
-      call allocate(grad_p, positions%dim, matrices%u_mesh, trim(base_ps(i)%name) // "Gradient")
-      call compute_conservative(grad_p, matrices, base_ps(i))
       call allocate(rhs(i), mesh, name = "Rhs")
-      call assemble_cmc_rhs(grad_p, matrices, rhs(i))
+      assert(matrices%have_cmc_m)
+      call mult(rhs(i), matrices%cmc_m, base_ps(i))
       ewrite_minmax(rhs(i))
-      call deallocate(grad_p)
     end do   
         
     ! Compute the part constant on the boundary
@@ -1984,12 +1981,12 @@ contains
     integer :: i, j
     integer, dimension(:), allocatable :: surface_eles
     integer, dimension(:), pointer :: bc_surface_element_list
-    real, dimension(size(base_ps)) :: num, denom, c
+    real :: denom
+    real, dimension(size(base_ps)) :: num, c
     type(mesh_type), pointer :: bc_mesh, mesh
     type(scalar_field) :: bc_field
-    type(scalar_field), dimension(size(base_ps)) :: ps_1
+    type(scalar_field) :: p_1
     type(scalar_field), dimension(size(base_ps)) :: rhs
-    type(vector_field) :: grad_p
     
     ewrite(1, *) "In decompose_p_optimal_multiple"
     
@@ -2018,12 +2015,10 @@ contains
     
     ! Assemble the projection RHS
     do i = 1, size(base_ps)
-      call allocate(grad_p, positions%dim, matrices%u_mesh, trim(base_ps(i)%name) // "Gradient")
-      call compute_conservative(grad_p, matrices, base_ps(i))
       call allocate(rhs(i), mesh, name = "Rhs")
-      call assemble_cmc_rhs(grad_p, matrices, rhs(i))
+      assert(matrices%have_cmc_m)
+      call mult(rhs(i), matrices%cmc_m, base_ps(i))
       ewrite_minmax(rhs(i))
-      call deallocate(grad_p)
     end do    
     
     ! Apply strong Dirichlet bcs
@@ -2042,43 +2037,39 @@ contains
       end do
       call petsc_solve(ps(i, 1), matrices%cmc_m, rhs(i))   
       call cmc_solve_finalise(matrices)
+      if(i > 1) call deallocate(rhs(i))
     end do
     
-    do i = 1, size(base_ps)
-      call allocate(ps_1(i), mesh, "ZeroBoundaryOne")
-      call zero(ps_1(i))
-      ps_1%option_path = base_ps%option_path
-      
-      call zero(rhs(i))
-    end do
+    call allocate(p_1, mesh, "ZeroBoundaryOne")
+    call zero(p_1)
+    p_1%option_path = base_ps(1)%option_path
+    call zero(rhs(1))
     
     ! Compute the part one on the boundary and zero elsewhere
-    do i = 1, size(base_ps)
-      assert(matrices%have_cmc_m)
-      ! Apply strong Dirichlet bcs
-      do j = 1, surface_element_count(mesh)
-        call set_dirichlet_face(j, matrices%cmc_m, rhs(i), 1.0)
-      end do
-      call petsc_solve(ps_1(i), matrices%cmc_m, rhs(i))   
-      call cmc_solve_finalise(matrices)
-      call deallocate(rhs(i))
+    assert(matrices%have_cmc_m)
+    ! Apply strong Dirichlet bcs
+    do i = 1, surface_element_count(mesh)
+      call set_dirichlet_face(i, matrices%cmc_m, rhs(1), 1.0)
     end do
+    call petsc_solve(p_1, matrices%cmc_m, rhs(1))   
+    call cmc_solve_finalise(matrices)
+    call deallocate(rhs(1))
     
     ! Compute the boundary value that minimises the l2 norm of the residual
     num = 0.0
     denom = 0.0
     do i = 1, ele_count(mesh)
-      call add_inner_products_ele(i, positions, base_ps, ps(:, 1), ps_1, num, denom)
+      call add_inner_products_ele(i, positions, base_ps, ps(:, 1), p_1, num, denom)
     end do
     c = num / denom
     
     ! Compute the part constant on the boundary
     do i = 1, size(base_ps)
       ewrite(2, *) "Boundary value for " // trim(base_ps(i)%name) // ": ", c(i)
-      call addto(ps(i, 1), ps_1(i), scale = c(i))
+      call addto(ps(i, 1), p_1, scale = c(i))
       ewrite_minmax(ps(i, 1)%val) 
-      call deallocate(ps_1(i))
     end do
+    call deallocate(p_1)
     
     ! Compute the residual
     do i = 1, size(ps, 1)
@@ -2115,9 +2106,9 @@ contains
       type(vector_field), intent(in) :: positions
       type(scalar_field), dimension(:), intent(in) :: p
       type(scalar_field), dimension(size(p)), intent(in) :: p_0
-      type(scalar_field), dimension(size(p)), intent(in) :: p_1
+      type(scalar_field), intent(in) :: p_1
       real, dimension(size(p)), intent(inout) :: num
-      real, dimension(size(p)), intent(inout) :: denom
+      real, intent(inout) :: denom
       
       integer :: i
       real, dimension(ele_ngi(positions, ele)) :: detwei
@@ -2131,9 +2122,9 @@ contains
       little_mass = shape_shape(shape, shape, detwei)
       
       do i = 1, size(p)
-        num(i) = num(i) + dot_product(ele_val(p_1(i), ele), matmul(little_mass, ele_val(p(i), ele) - ele_val(p_0(i), ele)))
-        denom(i) = denom(i) + dot_product(ele_val(p_1(i), ele), matmul(little_mass, ele_val(p_1(i), ele)))
+        num(i) = num(i) + dot_product(ele_val(p_1, ele), matmul(little_mass, ele_val(p(i), ele) - ele_val(p_0(i), ele)))
       end do
+      denom = denom + dot_product(ele_val(p_1, ele), matmul(little_mass, ele_val(p_1, ele)))
     
     end subroutine add_inner_products_ele
   
@@ -2279,7 +2270,7 @@ contains
       ! Decompose the conservative potential
       
       call allocate(old_p_decomp(1), old_p_mesh, trim(old_p%name) // "Balanced")
-      call zero(old_p_decomp(1))
+      call set(old_p_decomp(1), old_p)
       call allocate(old_p_decomp(2), old_p_mesh, trim(old_p%name) // "Imbalanced")
       old_p_decomp%option_path = old_p%option_path
       
@@ -2291,7 +2282,7 @@ contains
         ! Decompose the Pressure
       
         call allocate(old_aux_p_decomp(1), old_p_mesh, trim(lold_aux_p%name) // "Balanced")
-        call zero(old_aux_p_decomp(1))
+        call set(old_aux_p_decomp(1), lold_aux_p)
         call allocate(old_aux_p_decomp(2), old_p_mesh, trim(lold_aux_p%name) // "Imbalanced")
         old_aux_p_decomp%option_path = lold_aux_p%option_path
         
