@@ -874,7 +874,7 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="l2norm_algorithm"/>
   </define>
-  <define name="vector_diagnostic_algorithms" combine="choice">
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_difference_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms">

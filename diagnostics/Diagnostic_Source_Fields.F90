@@ -76,6 +76,7 @@ contains
     integer :: component, stat
     
     if(present(index)) then
+      assert(any(index == (/1, 2/)))
       call get_option(trim(path) // "/algorithm/source_field_" // int2str(index) // "_component", component, stat)
     else
       call get_option(trim(path) // "/algorithm/source_field_component", component, stat)
