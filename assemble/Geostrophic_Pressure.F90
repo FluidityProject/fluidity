@@ -123,6 +123,8 @@ module geostrophic_pressure
     
     !! Whether geopressure preconditioner matrices have been added
     logical :: have_geopressure = .false.
+    !! Geopressure mesh
+    type(mesh_type) :: gp_mesh
     !! Geopressure Laplacian matrix, C^T M^-1 C_gp
     type(csr_matrix) :: cmc_gp_m
     !! Geopressure divergence matrix
@@ -1138,20 +1140,34 @@ contains
     type(mesh_type), intent(inout) :: gp_mesh
     type(cmc_matrices), intent(inout) :: matrices
     
+    type(csr_sparsity) :: sparsity
     type(vector_field), pointer :: positions
     
-    if(matrices%have_geopressure) return
+    ewrite(1, *) "In add_geopressure_matrices"
     
-    positions => extract_vector_field(state, "Coordinate")
+    if(matrices%have_geopressure) then
+      ewrite(1, *) "Exiting add_geopressure_matrices"
+      return
+    end if
     
-    matrices%ct_gp_m = geopressure_divergence(state, matrices%u_mesh, gp_mesh, positions)
+    matrices%gp_mesh = gp_mesh
+    call incref(matrices%gp_mesh)
+    
+    positions => extract_vector_field(state, "Coordinate")    
+    matrices%ct_gp_m = geopressure_divergence(state, matrices%u_mesh, matrices%gp_mesh, positions)
+    
+    sparsity = make_sparsity_mult(matrices%p_mesh, matrices%u_mesh, matrices%gp_mesh, name = "CMC_gpSparsity")
+    call allocate(matrices%cmc_gp_m, sparsity, name = "CMC_gp")
+    call deallocate(sparsity)
     if(matrices%lump_mass) then
-      call assemble_cmc_dg(matrices%cmc_gp_m, matrices%ct_m, matrices%ct_gp_m, matrices%inverse_mass_b)
-    else
       call assemble_masslumped_cmc(matrices%cmc_gp_m, matrices%ct_m, matrices%inverse_masslump_v, matrices%ct_gp_m)
+    else
+      call assemble_cmc_dg(matrices%cmc_gp_m, matrices%ct_m, matrices%ct_gp_m, matrices%inverse_mass_b)
     end if
     
     matrices%have_geopressure = .true.
+    
+    ewrite(1, *) "Exiting add_geopressure_matrices"
     
   end subroutine add_geopressure_matrices
   
@@ -1261,6 +1277,7 @@ contains
     end if
     
     if(matrices%have_geopressure) then
+      call deallocate(matrices%gp_mesh)
       call deallocate(matrices%cmc_gp_m)
       call deallocate(matrices%ct_gp_m)
       matrices%have_geopressure = .false.
