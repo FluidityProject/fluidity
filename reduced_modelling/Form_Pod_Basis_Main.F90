@@ -27,31 +27,17 @@
   
 #include "fdebug.h"
 program form_pod_basis
-  use advection_diffusion_dg
-  use advection_diffusion_cg
-  use linear_shallow_water
   use spud
   use fields
   use state_module
-  use FLDebug
-  use populate_state_module
   use write_state_module
-  use populate_state_module
   use timeloop_utilities
-  use sparsity_patterns_meshes
-  use sparse_matrices_fields
-  use solvers
-  use diagnostic_variables
-  use diagnostic_fields_wrapper
-  use assemble_cmc
-  use global_parameters, only: option_path_len, current_time, dt
-  use adapt_state_prescribed_module
-  use memory_diagnostics
-  use reserve_state_module
-  use vtk_interfaces
+  use global_parameters, only: option_path_len, current_time, dt, FIELD_NAME_LEN
   use FLDebug
-  use signals
   use snapsvd_module
+  use vtk_interfaces
+  use memory_diagnostics
+
   implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -103,6 +89,8 @@ contains
     real, dimension(:,:), allocatable :: leftsvd_pressure
     real, dimension(:,:), allocatable :: svdval_velocity
     real, dimension(:), allocatable :: svdval_pressure
+    real, dimension(:,:), allocatable :: snapmean_velocity
+    real, dimension(:), allocatable :: snapmean_pressure
     integer :: snapshots, u_nodes, p_nodes, nsvd
     integer :: i,dump_no, d, dim
     integer :: stat
@@ -112,37 +100,41 @@ contains
     call get_option('/simulation_name',simulation_name)
     call read_input_states(state)
 
-    call retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure)
+    call retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure, &
+                            & snapmean_velocity, snapmean_pressure)
 
     call form_svd(snapmatrix_velocity, snapmatrix_pressure,&
-       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure)
+       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure, snapshots)
 
-    call form_podstate(state,pod_state,leftsvd_velocity,leftsvd_pressure)
+    call form_podstate(state,pod_state,leftsvd_velocity,leftsvd_pressure, snapmean_velocity, snapmean_pressure)
 
     do i=1,nsvd
 
        dump_no=i
 
-       call vtk_write_state(filename=trim(simulation_name)//"_POD", index=dump_no, state=pod_state(i,:))
+       call vtk_write_state(filename=trim(simulation_name)//"_PODBasis", index=dump_no, state=pod_state(i,:))
+
+       call deallocate(pod_state(i,:))
 
     enddo
 
     !! Produce updated flml file in which the execute_reduced_model
     !! option is set.
     call add_option("/reduced_model/execute_reduced_model",stat)
+    call set_option('/simulation_name', trim(simulation_name)//'_POD') 
     call write_options(trim(simulation_name)//"_POD.flml")
 
   end subroutine form_basis
 
 
-  subroutine retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure)
+  subroutine retrieve_snapshots(state, snapshots, u_nodes, p_nodes, snapmatrix_velocity, snapmatrix_pressure, &
+                                & snapmean_velocity, snapmean_pressure)
     !!< 
     type(state_type), intent(in), dimension(:) :: state
     real, dimension(:,:,:), allocatable :: snapmatrix_velocity
     real, dimension(:,:), allocatable :: snapmatrix_pressure
     real, dimension(:,:), allocatable :: snapmean_velocity
     real, dimension(:), allocatable :: snapmean_pressure
-
 
     integer :: snapshots, u_nodes, p_nodes, dim, i, d
     type(vector_field), pointer :: velocity
@@ -162,7 +154,6 @@ contains
     allocate(snapmean_velocity(u_nodes,dim))
     allocate(snapmean_pressure(p_nodes))
 
-
     do i = 1, snapshots
        velocity => extract_vector_field(state(i), "Velocity")
        pressure => extract_scalar_field(state(i), "Pressure")
@@ -170,29 +161,21 @@ contains
        do d = 1, dim
           snapmatrix_velocity(:,i,d)=field_val(velocity,d)
        end do
-
        snapmatrix_pressure(:,i)=field_val(pressure)
-
     end do
-
 
     do i=1, snapshots
 
        do d=1, dim
           snapmean_velocity(:,d)= snapmean_velocity(:,d)+snapmatrix_velocity(:,i,d)
        enddo
-
        snapmean_pressure(:)=snapmean_pressure(:)+snapmatrix_pressure(:,i)
-
     end do
-
 
     do d=1,dim
        snapmean_velocity(:,d)=snapmean_velocity(:,d)/snapshots
     enddo
-
-
-    snapmean_pressure(:)=snapmean_pressure(:)/snapshots
+       snapmean_pressure(:)=snapmean_pressure(:)/snapshots
 
     do i=1,snapshots
        do d=1,dim
@@ -204,7 +187,7 @@ contains
   end subroutine retrieve_snapshots
 
   subroutine form_svd(snapmatrix_velocity, snapmatrix_pressure,&
-       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure)
+       & leftsvd_velocity, leftsvd_pressure, svdval_velocity, svdval_pressure, snapshots)
     
     real, dimension(:,:,:), intent(in) :: snapmatrix_velocity
     real, dimension(:,:), intent(in) :: snapmatrix_pressure
@@ -226,7 +209,6 @@ contains
     allocate(svdval_velocity(nsvd,dim))
     allocate(svdval_pressure(nsvd))
 
-  
     do d=1,dim
        call snapsvd(u_nodes,snapshots,snapmatrix_velocity(:,:,d),&
             nsvd,nsvd,leftsvd_velocity(:,:,d),svdval_velocity(:,d))
@@ -236,21 +218,25 @@ contains
 
   end subroutine form_svd
 
-  subroutine form_podstate(state, pod_state, leftsvd_u, leftsvd_p)
+  subroutine form_podstate(state, pod_state, leftsvd_u, leftsvd_p, snapmean_u, snapmean_p)
 
     type(state_type), intent(in), dimension(:) :: state
     type(state_type), intent(out), dimension(:,:), allocatable :: pod_state
 
     real, intent(in), dimension(:,:,:) :: leftsvd_u
     real, intent(in), dimension(:,:) :: leftsvd_p
+    real, intent(in), dimension(:,:) :: snapmean_u
+    real, intent(in), dimension(:) :: snapmean_p 
+
     type(mesh_type), pointer :: pod_xmesh, pod_umesh, pod_pmesh, pmesh, pod_mesh
     type(element_type) :: pod_xshape, pod_ushape, pod_pshape
     type(vector_field), pointer :: pod_positions, velocity
     type(scalar_field), pointer :: pressure
 
     type(vector_field) :: pod_velocity
-    type(scalar_field) :: pod_u, pod_v
     type(scalar_field) :: pod_pressure
+    type(vector_field) :: snapmean_velocity
+    type(scalar_field) :: snapmean_pressure
 
     real, dimension(:), pointer :: x_ptr,y_ptr,z_ptr
     real, dimension(:), allocatable :: x,y,z   
@@ -258,9 +244,8 @@ contains
     character(len=1024) :: filename
     character(len = FIELD_NAME_LEN) :: field_name
 
-
-    integer :: dump_period, quadrature_degree,nonods
-    integer :: i,j,k,nod,total_dumps,POD_num,stat,dim,f,d
+    integer :: dump_sampling_period, quadrature_degree,nonods
+    integer :: i,j,k,nod,total_dumps,POD_num,stat,f,d
     logical :: all_meshes_same
 
     call get_option(&
@@ -277,34 +262,47 @@ contains
 
        pod_xmesh => extract_mesh(state(1), "Mesh", stat)
        pod_umesh => extract_mesh(state(1), "Mesh", stat)
-
        pod_pmesh => extract_mesh(state(1), "Mesh", stat)
+
        pod_positions => extract_vector_field(state(1), "Coordinate")
 
-       call insert(pod_state(i,1), pod_xmesh, "Mesh")
-       call insert(pod_state(i,1), pod_xmesh, "Position mesh")
+!       call insert(pod_state(i,1), pod_xmesh, "Mesh")
+       call insert(pod_state(i,1), pod_xmesh, "CoordinateMesh")
        call insert(pod_state(i,1), pod_umesh, "VelocityMesh")
        call insert(pod_state(i,1), pod_pmesh, "PressureMesh")
        call insert(pod_state(i,1), pod_positions, "Coordinate")
 
        velocity => extract_vector_field(state(1), "Velocity")
 
-       dim=velocity%dim
-
-       call allocate(pod_velocity, velocity%dim, pod_umesh, "POD_velocity")
+       call allocate(pod_velocity, velocity%dim, pod_umesh, "PODVelocity")
        call zero(pod_velocity)
-       do d=1,dim
+       do d=1,velocity%dim
           call set_all(pod_velocity, d, leftsvd_u(:,i,d))
        end do
+       call insert(pod_state(i,1), pod_velocity, name="PODVelocity")
+       call deallocate(pod_velocity)
 
-       call insert(pod_state(i,1), pod_velocity, name="POD_velocity")
-
-       call allocate(pod_pressure, pod_umesh, "POD_pressure")
+       call allocate(pod_pressure, pod_umesh, "PODPressure")
        call zero(pod_pressure)
-
        call set_all(pod_pressure, leftsvd_p(:,i))
+       call insert(pod_state(i,1), pod_pressure, name="PODPressure")
+       call deallocate(pod_pressure)
 
-       call insert(pod_state(i,1), pod_pressure, name="POD_pressure")
+!!insert snapmean data into state
+     
+       call allocate(snapmean_velocity, velocity%dim, pod_umesh, "SnapmeanVelocity")
+       call zero(snapmean_velocity)
+       do d=1,velocity%dim
+          call set_all(snapmean_velocity, d, snapmean_u(:,d))
+       end do
+       call insert(pod_state(i,1), snapmean_velocity, name="SnapmeanVelocity")
+       call deallocate(snapmean_velocity)
+
+       call allocate(snapmean_pressure, pod_umesh, "SnapmeanPressure")
+       call zero(snapmean_pressure)
+       call set_all(snapmean_pressure, snapmean_p(:))
+       call insert(pod_state(i,1), snapmean_pressure, name="SnapmeanPressure")
+       call deallocate(snapmean_pressure)
 
     enddo
 
@@ -316,24 +314,26 @@ contains
     type(state_type), intent(out), dimension(:), allocatable :: state
     character(len=1024) :: filename
 
-    integer :: dump_period, quadrature_degree
-    integer :: i,j,k,total_dumps
+    integer :: dump_sampling_period, quadrature_degree
+    integer :: i,j,k,total_dumps,stable_dumps
 
-
-    call get_option('/reduced_model/pod_basis_formation/dump_sampling_period',dump_period)
+    call get_option('/reduced_model/pod_basis_formation/dump_sampling_period',dump_sampling_period)
     call get_option('/geometry/quadrature/degree', quadrature_degree)
 
-    !substract gyre_0.vtu
-    total_dumps=count_dumps(dump_period)-1
+    ewrite(3,*) 'dump_sampling_period',dump_sampling_period
 
+    !substract gyre_0.vtu
+    total_dumps=count_dumps(dump_sampling_period)-1
     allocate(state(total_dumps))
 
-    !     ewrite(3,*) 'dump_period',dump_period
+!    stable_dumps=total_dumps-10
+!    allocate(state(stable_dumps))
 
     do i=1, total_dumps
+!    do i=1, stable_dumps
 
        !! Note that this won't work in parallel. Have to look for the pvtu in that case.
-       write(filename, '(a, i0, a)') trim(simulation_name)//'_', i*dump_period,".vtu" 
+       write(filename, '(a, i0, a)') trim(simulation_name)//'_', (i)*dump_sampling_period,".vtu" 
 
        call vtk_read_state(filename, state(i), quadrature_degree)
 
@@ -343,9 +343,9 @@ contains
 
   end subroutine read_input_states
 
-  function count_dumps(dump_period) result (count)
+  function count_dumps(dump_sampling_period) result (count)
     !! Work out how many dumps we're going to read in.
-    integer :: count,dump_period
+    integer :: count,dump_sampling_period
 
     logical :: exists
     !      character(len=FILE_NAME_LEN) :: filename
@@ -355,7 +355,7 @@ contains
 
     do 
        !! Note that this won't work in parallel. Have to look for the pvtu in that case.
-       write(filename, '(a, i0, a)') trim(simulation_name)//'_', (count-1)*dump_period,".vtu" 
+       write(filename, '(a, i0, a)') trim(simulation_name)//'_', (count-1)*dump_sampling_period,".vtu" 
        inquire(file=trim(filename), exist=exists)
        if (.not. exists) then
           count=count -1

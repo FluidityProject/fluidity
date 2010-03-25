@@ -62,15 +62,15 @@
     use vtk_interfaces
     use rotated_boundary_conditions
     use Weak_BCs
+    use reduced_model_runtime
 
     implicit none
 
     private
     public :: momentum_loop, momentum_equation_check_options
-
   contains
 
-    subroutine momentum_loop(state, at_first_timestep)
+    subroutine momentum_loop(state, at_first_timestep, timestep, POD_state)
       !!< Construct and solve the momentum and continuity equations using
       !!< a continuous galerkin discretisation.
 
@@ -78,10 +78,10 @@
       ! the whole array is needed for the sake of multimaterial assembly
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: at_first_timestep
+      type(state_type), dimension(:) :: POD_state
 
       type(vector_field), pointer :: u
-
-      integer :: istate, stat
+      integer :: istate, stat, timestep
 
       ewrite(1,*) 'Entering momentum_loop'
 
@@ -109,7 +109,7 @@
            call profiler_toc("momentum_diagnostics")
 
            call profiler_tic("momentum_solve")
-           call solve_momentum(state, istate, at_first_timestep)
+           call solve_momentum(state, istate, at_first_timestep, timestep, POD_state)
            call profiler_toc("momentum_solve")
 
         end if
@@ -119,13 +119,18 @@
 
     end subroutine momentum_loop
 
-    subroutine solve_momentum(state, istate, at_first_timestep)
-      !!< Construct and solve the momentum and continuity equations.
+    subroutine solve_momentum(state, istate, at_first_timestep, timestep, POD_state)
+      !!for reduced model
+      type(state_type), dimension(:) :: POD_state
+      type(vector_field), pointer :: snapmean_velocity
+      type(scalar_field), pointer :: snapmean_pressure
+      integer :: d
 
+      !!< Construct and solve the momentum and continuity equations.
       ! an array of buckets full of fields
       ! the whole array is needed for the sake of multimaterial assembly
       type(state_type), dimension(:), intent(inout) :: state
-      integer, intent(in) :: istate
+      integer, intent(in) :: istate, timestep
       logical, intent(in) :: at_first_timestep
 
       ! the pressure gradient matrix (extracted from state)
@@ -209,6 +214,8 @@
       logical :: apply_kmk, assemble_kmk
       logical :: have_viscosity, stress_form, have_coriolis, diagonal
       logical :: pressure_debugging_vtus
+      !! True if the momentum equation should be solved with the reduced model.
+      logical :: reduced_model
       
       type(ilist), save :: stiff_nodes_list
       
@@ -248,6 +255,8 @@
           &/stress_terms/stress_form") 
       have_coriolis = have_option("/physical_parameters/coriolis")
       diagonal = .not.have_coriolis.and.(.not.(have_viscosity.and.stress_form))
+
+      reduced_model= have_option("/reduced_model/execute_reduced_model")
 
       ! get the pressure
       p=>extract_scalar_field(state(istate), "Pressure", stat)
@@ -340,6 +349,9 @@
         FLExit(trim(poisson_scheme)//" is not a legal poisson_pressure_solution") 
       end select
       
+      ! If we are using the reduced model then there is no pressure projection.
+      if (reduced_model) get_cmc_m=.false.
+
       get_diag_schur = .false.
       full_schur = have_option(trim(p%option_path)//&
           &"/prognostic/scheme&
@@ -523,7 +535,7 @@
 
       ! do we want to solve for pressure?
       call profiler_tic(p, "assembly")
-      if(have_option(trim(p%option_path)//"/prognostic")) then
+      if(have_option(trim(p%option_path)//"/prognostic").and..not.reduced_model) then
         if(use_compressible_projection) then
           allocate(ctp_m)
           call allocate(ctp_m, ct_m%sparsity, (/1, u%dim/), name="CTP_m")
@@ -556,7 +568,8 @@
               & continuity(u%mesh) >= 0 .and. u%mesh%shape%degree == 1 .and. u%mesh%shape%numbering%family == FAMILY_SIMPLEX .and. &
               & .not. have_option(trim(p%option_path) // &
               & "/prognostic/spatial_discretisation/continuous_galerkin/remove_stabilisation_term") .and. &
-              & .not. cv_pressure)
+              & .not. cv_pressure .and.&
+              & .not. reduced_model)
         assemble_kmk= apply_kmk .and. &
                   ((.not. has_csr_matrix(state(istate), "PressureStabilisationMatrix")) .or. &
                   have_option(trim(p%option_path)// &
@@ -660,7 +673,8 @@
 
       end if ! prognostic pressure
       call profiler_toc(p, "assembly")
-
+      
+      if (.not.reduced_model) then
       ! allocate the momentum solution vector
       call profiler_tic(u, "assembly")
       call allocate(delta_u, u%dim, u%mesh, "DeltaU")
@@ -841,6 +855,40 @@
         end if
 
       end if
+
+      else ! Reduced model version
+ 
+         ! allocate the change in pressure field
+         call allocate(delta_p, p%mesh, "DeltaP")
+         delta_p%option_path = trim(p%option_path)
+         call zero(delta_p)
+         
+         call allocate(delta_u, u%dim, u%mesh, "DeltaU")
+         delta_u%option_path = trim(u%option_path)
+         call zero(delta_u)
+
+         call solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, POD_state) 
+
+         snapmean_velocity=>extract_vector_field(POD_state(1), "SnapmeanVelocity")
+         snapmean_pressure=>extract_scalar_field(POD_state(1), "SnapmeanPressure")
+
+         if(timestep==1)then
+            do d=1,snapmean_velocity%dim
+               u%val(d)%ptr=snapmean_velocity%val(d)%ptr
+            enddo
+            p%val=snapmean_pressure%val
+
+            call addto(u, delta_u, dt)
+            call addto(p, delta_p, dt)
+         else
+            call addto(u, delta_u, dt)
+            call addto(p, delta_p, dt)
+         endif
+
+         call deallocate(delta_p)
+         call deallocate(delta_u)
+         
+      end if ! end of if reduced model
       
       call profiler_tic(u, "assembly")
       if (have_rotated_bcs(u)) then
@@ -880,7 +928,7 @@
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
       call deallocate(big_m)
-
+ 
     end subroutine solve_momentum
       
     subroutine momentum_equation_check_options
