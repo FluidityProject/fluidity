@@ -1181,13 +1181,13 @@ contains
     
     type(scalar_field) :: cmc_rhs_addto
     
-    assert(matrices%have_cmc_m)
     assert(field%mesh == matrices%u_mesh)
     assert(cmc_rhs%mesh == matrices%p_mesh)
   
     call mult(cmc_rhs, matrices%ct_m, field)
     call scale(cmc_rhs, -1.0)
-    if(matrices%have_geopressure .and. present(gp)) then
+    if(present(gp)) then
+      assert(matrices%have_geopressure)
       call allocate(cmc_rhs_addto, cmc_rhs%mesh, trim(cmc_rhs%name) // "Addto")
       call mult(cmc_rhs_addto, matrices%cmc_gp_m, gp)
       
