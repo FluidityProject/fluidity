@@ -703,7 +703,7 @@ contains
         assert(trim(v_field_new%name) == trim(v_field_old%name))
         assert(trim(v_field_new%option_path) == trim(v_field_old%option_path))
 #endif
-        if(v_field_new%name == "Coordinate") cycle
+        if(index(trim(v_field_new%name), "Coordinate") /= 0) cycle
         if(.not.aliased(v_field_new).and.test(v_field_new%option_path)) then
           ewrite(2, *) "    Found ", trim(v_field_new%name)
           ! make sure we keep the multi-material_phase/state safe names from state

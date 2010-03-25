@@ -500,12 +500,18 @@ contains
     type(mesh_type), pointer :: mesh    
     type(scalar_field), pointer:: sfield => null()
     type(vector_field), pointer:: vfield => null()
+    integer :: stat
     
     interpolate_state%name = state%name
     
     do i=1, mesh_count(state)
       mesh => extract_mesh(state, i)
       call insert(interpolate_state, mesh, trim(mesh%name))
+
+      vfield => extract_vector_field(state, trim(mesh%name) // 'Coordinate', stat=stat)
+      if (stat == 0) then
+        call insert(interpolate_state, vfield, trim(mesh%name) // 'Coordinate')
+      end if
     end do
     
     ! Select all prognostic and prescribed scalar fields that do not have interpolation
