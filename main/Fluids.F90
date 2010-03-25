@@ -92,6 +92,7 @@ module fluids_module
                                simulation_start_wall_time, &
                                topology_mesh_name
   use eventcounter
+  use reduced_model_runtime
   
   implicit none
 
@@ -121,12 +122,13 @@ contains
 
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
+    type(state_type), dimension(:), allocatable :: POD_state
+
     type(tensor_field) :: metric_tensor
     !     Dump index
     integer :: dump_no = 0
     !     Temporary buffer for any string options which may be required.
     character(len=OPTION_PATH_LEN) :: option_buffer
-
     REAL :: CHANGE,CHAOLD
 
     integer :: i, it, its
@@ -177,6 +179,12 @@ contains
 
     ! Read state from .flml file
     call populate_state(state)
+
+    ewrite(3,*)'before have_option test' 
+
+    if (have_option("/reduced_model/execute_reduced_model")) then
+       call read_pod_basis(POD_state, state)
+    end if
     
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
@@ -332,6 +340,8 @@ contains
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
+
+
     timestep_loop: do
        timestep = timestep + 1
 
@@ -617,8 +627,9 @@ contains
           ! This is where the non-legacy momentum stuff happens
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
-          call momentum_loop(state, at_first_timestep=((timestep==1).and.(its==1)))
-                       
+
+          call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+          
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
              call test_and_write_convergence(state, current_time + dt, dt, its, change)
@@ -766,6 +777,12 @@ contains
     end do
     ! Deallocate the reserve state
     call deallocate_reserve_state()
+
+    if (allocated(pod_state)) then
+       do i=1, size(pod_state)
+          call deallocate(pod_state(i))
+       end do
+    end if
 
     ! deallocate the pointer to the array of states
     deallocate(state)
