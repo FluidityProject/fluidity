@@ -32,6 +32,14 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">5</integer_value>
@@ -56,6 +64,26 @@
       <static_detector name="LeftBoundaryMidHeight">
         <location>
           <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="TopLeftCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.0 1.0</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="TopRightCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">1.0 1.0</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="BottomLeftCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="BottomRightCorner">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">1.0 0.0</real_value>
         </location>
       </static_detector>
     </detectors>
@@ -484,5 +512,22 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="TemperatureGradient" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
   </material_phase>
 </fluidity_options>
