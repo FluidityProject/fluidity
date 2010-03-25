@@ -43,7 +43,12 @@ program periodise
 
   external_mesh => extract_mesh(states(1), trim(external_name))
   periodic_mesh => extract_mesh(states(1), trim(periodic_name))
-  external_positions = get_coordinate_field(states(1), external_mesh)
+  if (trim(external_name) /= "CoordinateMesh") then
+    external_positions = extract_vector_field(states(1), trim(external_name) // 'Coordinate')
+  else
+    external_positions = extract_vector_field(states(1), 'Coordinate')
+  end if
+  call incref(external_positions)
   call allocate(periodic_positions, external_positions%dim, periodic_mesh, trim(periodic_name) // 'Coordinate')
   call remap_field(external_positions, periodic_positions, stat=stat)
   if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
