@@ -42,6 +42,7 @@ module reduced_model_runtime
   private
 
   public :: read_pod_basis, solve_momentum_reduced
+  public :: pod_matrix_type, pod_rhs_type
 
   type(state_type), dimension(:), allocatable, save :: POD_state
 
