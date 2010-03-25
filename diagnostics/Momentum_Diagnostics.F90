@@ -51,8 +51,8 @@ module momentum_diagnostics
   public :: calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
             calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
-            calculate_scalar_potential, calculate_vector_potential, &
-            calculate_geostrophic_velocity
+            calculate_scalar_potential, calculate_projection_scalar_potential, &
+            calculate_vector_potential, calculate_geostrophic_velocity
   
   interface coriolis_force
     module procedure coriolis_force_single, coriolis_force_multiple
@@ -392,72 +392,36 @@ contains
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
 
-    integer :: i, ref_node, stat
-    type(csr_sparsity), pointer :: sparsity
-    type(csr_matrix) :: matrix
-    type(scalar_field) :: rhs
-    type(vector_field), pointer :: positions, source_field
+    type(vector_field), pointer :: source_field
 
-    positions => extract_vector_field(state, "Coordinate")
-    if(continuity(s_field) /= 0) then
-      FLExit("Can only compute scalar potentials on a continuous mesh")
-    end if
     source_field => vector_source_field(state, s_field)
-
-    sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, s_field%mesh)
-    ! Could cache this
-    call allocate(matrix, sparsity, name = "LaplacianMatrix")
-    call allocate(rhs, s_field%mesh, "ScalarPotentialRHS")
-
-    call zero(matrix)
-    call zero(rhs)
-    do i = 1, ele_count(rhs)
-      call assemble_scalar_potential_ele(i, positions, source_field, matrix, rhs)
-    end do
-
-    call get_option(trim(complete_field_path(s_field%option_path)) // "/algorithm/reference_node", ref_node, stat = stat)
-    if(stat == SPUD_NO_ERROR) call set_reference_node(matrix, ref_node, rhs = rhs)
-
-    call petsc_solve(s_field, matrix, rhs, option_path = trim(complete_field_path(s_field%option_path)) // "/algorithm")
-
-    call deallocate(matrix)
-    call deallocate(rhs)
-
-  contains
-
-    subroutine assemble_scalar_potential_ele(ele, positions, source_field, matrix, rhs)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: positions
-      type(vector_field), intent(in) :: source_field
-      type(csr_matrix), intent(inout) :: matrix
-      type(scalar_field), intent(inout) :: rhs
-
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_ngi(rhs, ele)) :: detwei
-      real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), positions%dim) :: dshape_f
-      real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), positions%dim) :: dshape
-      type(element_type), pointer :: shape, shape_f
-
-      shape => ele_shape(rhs, ele)
-      shape_f => ele_shape(source_field, ele)
-
-      call transform_to_physical(positions, ele, shape, &
-        & dshape = dshape, detwei = detwei)
-      if(shape == shape_f) then
-        dshape_f = dshape
-      else
-        call transform_to_physical(positions, ele, shape_f, &
-          & dshape = dshape_f)
-      end if
-
-      nodes => ele_nodes(rhs, ele)
-
-      call addto(matrix, nodes, nodes, dshape_dot_dshape(dshape, dshape, detwei))
-      call addto(rhs, nodes, shape_rhs(shape, ele_div_at_quad(source_field, ele, dshape_f) * detwei))
-
-    end subroutine assemble_scalar_potential_ele
+    call geopressure_decomposition(state, source_field, s_field, &
+      & option_path = trim(complete_field_path(s_field%option_path)) // "/algorithm")
 
   end subroutine calculate_scalar_potential
+  
+  subroutine calculate_projection_scalar_potential(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    character(len = OPTION_PATH_LEN) :: path
+    type(scalar_field), pointer :: gp
+    type(vector_field), pointer :: source_field
+
+    source_field => vector_source_field(state, s_field, index = 1)
+    
+    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+    
+    if(have_option(trim(path) // "/source_field_2_name")) then
+      gp => scalar_source_field(state, s_field, index = 2)
+      call projection_decomposition(state, source_field, s_field, gp = gp, &
+        & option_path = path)
+    else
+      call projection_decomposition(state, source_field, s_field, &
+        & option_path = path)
+    end if
+
+  end subroutine calculate_projection_scalar_potential
 
   subroutine calculate_vector_potential(state, v_field)
     type(state_type), intent(inout) :: state

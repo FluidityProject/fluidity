@@ -572,6 +572,69 @@ all boundaries.</a:documentation>
       </element>
     </element>
   </define>
+  <define name="projection_scalar_potential_algorithm">
+    <element name="algorithm">
+      <a:documentation>Compute the scalar potential phi where:
+  F = nabla phi + nabla x A + H
+using a pressure projection method</a:documentation>
+      <attribute name="name">
+        <value>projection_scalar_potential</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field_1"/>
+      <optional>
+        <element name="source_field_2_name">
+          <a:documentation>If enabled, applies geopressure preconditioning using this field</a:documentation>
+          <attribute name="source_field_2_type">
+            <value>scalar</value>
+          </attribute>
+          <ref name="anystring"/>
+        </element>
+      </optional>
+      <element name="spatial_discretisation">
+        <a:documentation>Spatial discretisation options</a:documentation>
+        <element name="mass">
+          <a:documentation>Options relating to the mass matrix</a:documentation>
+          <optional>
+            <element name="lump_mass">
+              <a:documentation>Lump the mass matrix. Required for continuous fields.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </element>
+        <element name="continuous_galerkin">
+          <a:documentation>Use a continuous Galerkin discretisation</a:documentation>
+          <optional>
+            <element name="integrate_divergence_by_parts">
+              <a:documentation>Integrate the divergence operator by parts</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="remove_stabilisation_term">
+              <a:documentation>Remove the stabilisation term from the projection operator.
+
+Automatic when not using P1P1.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <ref name="comment"/>
+        </element>
+      </element>
+      <optional>
+        <element name="reference_node">
+          <a:documentation>Solver reference node</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <element name="solver">
+        <a:documentation>Linear solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
   <define name="vector_potential_algorithm">
     <element name="algorithm">
       <a:documentation>Computes the vector potential A where:
@@ -861,6 +924,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_potential_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="projection_scalar_potential_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="grad_normal_algorithm"/>
