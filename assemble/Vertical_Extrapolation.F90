@@ -61,27 +61,6 @@ interface vertical_integration
     vertical_integration_multiple, vertical_integration_vector
 end interface vertical_integration
 
-interface verticalshellmapper_find
-  module procedure verticalshellmapper_find_sp
-
-  subroutine verticalshellmapper_find(x, y, z, nnodes, &
-    & senlist, ntri, fortran_zero_index, &
-    & flat_earth, tri_ids, shape_fxn)
-    use global_parameters, only: real_8
-    implicit none
-    integer, intent(in) :: nnodes
-    integer, intent(in) :: ntri
-    real(kind = real_8), dimension(nnodes), intent(in) :: x
-    real(kind = real_8), dimension(nnodes), intent(in) :: y
-    real(kind = real_8), dimension(nnodes), intent(in) :: z
-    integer, dimension(ntri), intent(in) :: senlist
-    integer, intent(in) :: fortran_zero_index
-    integer, intent(in) :: flat_earth
-    integer, dimension(nnodes), intent(out) :: tri_ids
-    real(kind = real_8), dimension(*), intent(out) :: shape_fxn
-  end subroutine verticalshellmapper_find
-end interface verticalshellmapper_find
-
 !! element i is considered to be above j iff the inner product of the face
 !! normal point from i to j and the gravity normal is bigger than this
 real, parameter:: VERTICAL_INTEGRATION_EPS=1.0e-8
@@ -110,29 +89,6 @@ public :: calculate_hydrostatic_pressure, &
 character(len = *), parameter, public :: hp_name = "HydrostaticPressure"
 
 contains
-
-subroutine verticalshellmapper_find_sp(x, y, z, nnodes, &
-  & senlist, ntri, fortran_zero_index, &
-  & flat_earth, tri_ids, shape_fxn)
-  integer, intent(in) :: nnodes
-  integer, intent(in) :: ntri
-  real(kind = real_4), dimension(nnodes), intent(in) :: x
-  real(kind = real_4), dimension(nnodes), intent(in) :: y
-  real(kind = real_4), dimension(nnodes), intent(in) :: z
-  integer, dimension(ntri), intent(in) :: senlist
-  integer, intent(in) :: fortran_zero_index
-  integer, intent(in) :: flat_earth
-  integer, dimension(nnodes), intent(out) :: tri_ids
-  real(kind = real_4), dimension(:), intent(out) :: shape_fxn
-  
-  real(kind = real_8), dimension(size(shape_fxn)) :: lshape_fxn
-  
-  call verticalshellmapper_find(real(x, kind = real_8), real(y, kind = real_8), real(z, kind = real_8), nnodes, &
-    & senlist, ntri, fortran_zero_index, &
-    & flat_earth, tri_ids, lshape_fxn)
-  shape_fxn = lshape_fxn
-  
-end subroutine verticalshellmapper_find_sp
   
 subroutine UpdateDistanceField(state, name, vertical_coordinate)
   ! This sub calculates the vertical distance to the free surface
@@ -783,8 +739,8 @@ end function map2horizontal_sphere
 function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   surface_element_list, owned_nodes, surface_mesh)
   !! creates a prolongation operator that prolongates values on
-  !! a surface mesh to a full mesh below using interpolation
-  !! with VerticalShellMapper. The transpose of this prolongation
+  !! a surface mesh to a full mesh below using the same interpolation
+  !! as the vertical extrapolation code above. The transpose of this prolongation
   !! operator can be used as a restriction/clustering operator 
   !! from the full mesh to the surface.
   type(csr_matrix) :: VerticalProlongationOperator

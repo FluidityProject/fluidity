@@ -124,8 +124,6 @@ libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
 	@echo '    MAKE debug'
 	@cd debug; $(MAKE)
-	@echo '    MAKE interpolation'
-	@cd interpolation; $(MAKE)
 	@echo '    MAKE libwm'
 	@cd libwm; $(MAKE)
 	@cd femtools; echo '    MAKE libfemtools'; $(MAKE) libfemtools ; cp libfemtools.a ../lib/; cd ..
@@ -214,8 +212,6 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@rm -f lib/lib@FLUIDITY@.a 
 	@echo "    MAKE debug"
 	@cd debug; 	$(MAKE)
-	@echo "    MAKE interpolation"
-	@cd interpolation; $(MAKE)
 	@echo '    MAKE libwm'
 	@cd libwm; $(MAKE)
 	@echo "    MAKE femtools"
@@ -303,8 +299,6 @@ all:
 clean-light:
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
-	@echo "    CLEAN interpolation"
-	@cd interpolation;  $(MAKE) clean
 	@echo "    CLEAN femtools"
 	@cd femtools; $(MAKE) clean
 	@echo "    CLEAN femtools/tests"

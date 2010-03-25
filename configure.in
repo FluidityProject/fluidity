@@ -1414,7 +1414,6 @@ fi
 AC_OUTPUT(Makefile
           debug/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
-          interpolation/Makefile 
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile
           horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile
