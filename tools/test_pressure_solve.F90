@@ -26,7 +26,7 @@
 #include "finclude/petscpc.h"
 
     type(state_type) :: state
-    type(vector_field), target:: positions
+    type(vector_field), target:: positions, vertical_normal
     type(scalar_field) :: psi, DistanceToTop, exact
     type(mesh_type) :: psi_mesh
     type(mesh_type), pointer :: x_mesh
@@ -61,6 +61,13 @@
 
        call insert(state, positions, name="Coordinate")
        call insert(state, positions%mesh, "Coordinate_mesh")
+       
+       call allocate(vertical_normal, mesh_dim(x_mesh), x_mesh, &
+         field_type=FIELD_TYPE_CONSTANT, name="GravityDirection")
+       call zero(vertical_normal)
+       call set(vertical_normal, mesh_dim(x_mesh), -1.0)
+       call insert(state, vertical_normal, name="GravityDirection")
+       call deallocate(vertical_normal)
 
        ! Shape functions for psi
        assert(dim==mesh_dim(positions))
