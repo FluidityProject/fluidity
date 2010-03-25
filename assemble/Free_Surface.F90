@@ -564,8 +564,7 @@ contains
     if (IsParallel()) then
       assert( associated(mesh%halos) )
       vertical_prolongator=VerticalProlongationOperator( &
-         mesh, positions, vertical_normal, surface_element_list, &
-         owned_nodes=halo_nowned_nodes(mesh%halos(1)) )
+         mesh, positions, vertical_normal, surface_element_list)
       ! note that in surface_positions the non-owned free surface nodes may be inbetween
       ! the reduce_columns option should have removed those however
       ! with debugging perform test to check if this is the case:

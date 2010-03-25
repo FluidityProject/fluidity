@@ -339,8 +339,9 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   
   !! returned surface elements (face numbers in 'mesh')
   !! and loc coords each node has been found in
-  integer, dimension(node_count(mesh)), intent(out):: seles
-  real, dimension(positions%dim,node_count(mesh)), intent(out):: loc_coords
+  !! size(seles)==size(loc_coords,2)==nowned_nodes(mesh)
+  integer, dimension(:), intent(out):: seles
+  real, dimension(:,:), intent(out):: loc_coords
   
   type(vector_field):: mesh_positions
   type(vector_field), pointer:: horizontal_positions
@@ -348,9 +349,16 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   real, dimension(:,:), allocatable:: horizontal_coordinate
   real, dimension(vertical_normal%dim):: normal_vector
   real, dimension(positions%dim):: xyz
-  integer:: i, stat
+  integer:: i, stat, nodes
   
   assert(.not. mesh_periodic(positions))
+  
+  ! search only the first owned nodes
+  nodes=nowned_nodes(mesh)
+  
+  assert( size(seles)==nodes )
+  assert(size(loc_coords,1)==positions%dim)
+  assert( size(loc_coords,2)==nodes )
   
   if (mesh==positions%mesh) then
     mesh_positions=positions
@@ -376,11 +384,12 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
     end if
   end if
   
+  
   ! create an array of the horizontally projected coordinates of the 'mesh' nodes
-  allocate( horizontal_coordinate(1:positions%dim-1, 1:node_count(mesh)) )
+  allocate( horizontal_coordinate(1:positions%dim-1, 1:nodes) )
   if (have_option('/geometry/spherical_earth')) then
     assert(mesh_positions%dim==3)
-    do i=1, node_count(mesh)
+    do i=1, nodes
       xyz=node_val(mesh_positions, i)
       if (xyz(3)>0.0) then
         horizontal_coordinate(:,i) = &
@@ -395,7 +404,7 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
     assert( vertical_normal%field_type==FIELD_TYPE_CONSTANT )
     normal_vector=node_val(vertical_normal,1)
 
-    do i=1, node_count(mesh)
+    do i=1, nodes
       horizontal_coordinate(:,i) = &
           map2horizontal( node_val(mesh_positions, i), normal_vector )
     end do
@@ -737,7 +746,7 @@ real, dimension(2):: map2horizontal_sphere
 end function map2horizontal_sphere
 
 function VerticalProlongationOperator(mesh, positions, vertical_normal, &
-  surface_element_list, owned_nodes, surface_mesh)
+  surface_element_list, surface_mesh)
   !! creates a prolongation operator that prolongates values on
   !! a surface mesh to a full mesh below using the same interpolation
   !! as the vertical extrapolation code above. The transpose of this prolongation
@@ -753,13 +762,6 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   type(vector_field), target, intent(in):: vertical_normal
   !! the face numbers of the surface mesh
   integer, dimension(:), intent(in):: surface_element_list
-  !! if present only construct prolongation from first 1:owned_nodes nodes
-  !! this can be used in parallel (assuming owned nodes come first) to construct
-  !! a local vertical prolongation operator provided the mesh is columnar and decomposed
-  !! along columns (2d decomposition). The surface_positions don't necessarily need to be
-  !! ordered such that owned nodes are first. In that case you do however need to use
-  !! reduce_columns==.true. to remove the inbetween non-owned surface nodes
-  integer, intent(in), optional:: owned_nodes
   !! Optionally a surface mesh may be provided that represents the nodes
   !! /from/ which to interpolate (may be of different signature than 'mesh')
   !! Each column in the prolongator will correspond to a node in this surface_mesh.
@@ -777,13 +779,15 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   real:: coef
   integer, dimension(:), pointer:: snodes
   integer, dimension(:), allocatable:: seles, colm, findrm, snod2used_snod
-  integer i, j, k, mesh_nodes, entries, count, snod, sele
+  integer i, j, k, rows, entries, count, snod, sele
   ! coefficient have to be at least this otherwise they're negligable in an interpolation
   real, parameter :: COEF_EPS=1d-10
   
-  mesh_nodes=node_count(mesh)
+  ! only assemble the rows associted with nodes we own
+  rows=nowned_nodes(mesh)
+  
   ! local coordinates is one more than horizontal coordinate dim
-  allocate( seles(mesh_nodes), loc_coords(1:positions%dim, 1:mesh_nodes) )
+  allocate( seles(rows), loc_coords(1:positions%dim, 1:rows) )
   
   ! project the positions of to_fields(1)%mesh into the horizontal plane
   ! and returns 'seles' (indices in surface_element_list) and loc_coords 
@@ -794,11 +798,11 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
 
   ! count upper estimate for n/o entries for sparsity
   entries=0
-  do i=1, mesh_nodes
+  do i=1, rows
      entries=entries+face_loc(mesh, seles(i))
   end do
   ! preliminary matrix:  
-  allocate( mat(1:entries), findrm(1:mesh_nodes+1), &
+  allocate( mat(1:entries), findrm(1:rows+1), &
     colm(1:entries) )
   
   if (.not. present(surface_mesh)) then
@@ -817,7 +821,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   end if
 
   entries=0 ! this time only count nonzero entries
-  do i=1, mesh_nodes
+  do i=1, rows
 
      ! beginning of each row in mat
      findrm(i)=entries+1
@@ -860,7 +864,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
     count=node_count(surface_mesh)
   end if
   
-  call allocate(sparsity, mesh_nodes, count, &
+  call allocate(sparsity, rows, count, &
      entries, diag=.false., name="VerticalProlongationSparsity")
   sparsity%findrm=findrm
   sparsity%colm=colm(1:entries)
@@ -874,7 +878,7 @@ function VerticalProlongationOperator(mesh, positions, vertical_normal, &
   ! as the sparsity has been sorted the ordering of mat(:) no longer
   ! matches that of sparsity%colm, however it still matches the original 
   ! unsorted colm(:)
-  do i=1, mesh_nodes
+  do i=1, rows
      do k=findrm(i), findrm(i+1)-1
        j=colm(k)
        call set(VerticalProlongationOperator, i, j, mat(k))
