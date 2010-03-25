@@ -64,11 +64,11 @@ module reduced_model_runtime
   end interface
 
   interface addto
-     module procedure addto_pod_matrix_vector_vector
+     module procedure addto_pod_matrix_vector_vector, addto_pod_rhs_velocity
   end interface
 
   interface addto_p
-     module procedure pressure_addto_matrix
+     module procedure addto_pod_matrix_pressure, addto_pod_rhs_pressure
   end interface
 
 contains
@@ -230,8 +230,11 @@ contains
 
 !!calculations for pod_rhs
 
-          pod_rhs%val(j+(d1-1)*POD_num)=sum(dot_product(mom_rhs, u_c))
-          pod_rhs%val(j+POD_u%dim*POD_num)=dot_product(ct_rhs, POD_p)
+          call addto(POD_state, pod_rhs, j, d1, sum(dot_product(mom_rhs, u_c)))
+          call addto_p(POD_state, POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p))
+
+!          pod_rhs%val(j+(d1-1)*POD_num)=sum(dot_product(mom_rhs, u_c))
+!          pod_rhs%val(j+POD_u%dim*POD_num)=dot_product(ct_rhs, POD_p)
 
             do i=1, POD_num
                POD_p=>extract_scalar_field(POD_state(i), "PODPressure")
@@ -350,7 +353,7 @@ contains
 
   subroutine addto_pod_matrix_vector_vector(POD_state, matrix, d1, d2, i, j, value)
     type(pod_matrix_type), intent(inout) :: matrix
-    type(state_type), dimension(:) :: POD_state
+    type(state_type), dimension(:), intent(in) :: POD_state
 
     integer, intent(in) :: i, j, d1, d2
     real, dimension(:,:), allocatable :: value    
@@ -364,9 +367,9 @@ contains
 
   end subroutine addto_pod_matrix_vector_vector
 
-  subroutine pressure_addto_matrix(POD_state, matrix, d1, i, j, value) 
+  subroutine addto_pod_matrix_pressure(POD_state, matrix, d1, i, j, value) 
      type(pod_matrix_type), intent(inout) :: matrix
-     type(state_type), dimension(:) :: POD_state
+     type(state_type), dimension(:), intent(in) :: POD_state
 
      integer, intent(in) :: i, j, d1
      real :: value
@@ -377,7 +380,36 @@ contains
                          matrix%val(i+matrix%u_dim*POD_num, j+(d1-1)*POD_num)+ &
                          value
 
-  end subroutine pressure_addto_matrix
+  end subroutine addto_pod_matrix_pressure
+
+  subroutine addto_pod_rhs_velocity(POD_state, pod_rhs, j, d1, value)
+    type(pod_rhs_type), intent(inout) :: pod_rhs
+    type(state_type), dimension(:), intent(in) :: POD_state
+
+    integer, intent(in) :: j, d1
+    real :: value
+    integer ::  POD_num
+
+    POD_num=size(POD_state)
+
+    pod_rhs%val(j+(d1-1)*POD_num)=pod_rhs%val(j+(d1-1)*POD_num)+value
+
+  end subroutine addto_pod_rhs_velocity
+
+  subroutine addto_pod_rhs_pressure(POD_state,  pod_u, pod_rhs, j, value)
+    type(pod_rhs_type), intent(inout) :: pod_rhs
+    type(state_type), dimension(:), intent(in) :: POD_state
+    type(vector_field), pointer, intent(in) :: POD_u
+
+    integer, intent(in) :: j 
+    real :: value
+    integer ::  POD_num
+
+    POD_num=size(POD_state)
+         
+    pod_rhs%val(j+POD_u%dim*POD_num)=pod_rhs%val(j+POD_u%dim*POD_num)+value
+          
+  end subroutine addto_pod_rhs_pressure
 
 
     SUBROUTINE LEGS_POD(A,N,B,X)
