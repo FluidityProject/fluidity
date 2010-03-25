@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Periodic adaptivity in 3D</name>
+  <owner userid="pfarrell"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>../../bin/periodise periodic_adaptivity_3d.flml; fluidity -v2 -l periodic_adaptivity_3d_periodised.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="consistent_max" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("periodic_adaptivity_3d.stat")
+consistent_max = s['Main']['PrognosticFieldConsistent']['max'][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="completion" language="python">import fluidity_tools
+stat = fluidity_tools.stat_parser("periodic_adaptivity_3d.stat")
+assert stat['ElapsedTime']['value'][-1] == 20.0</test>
+    <test name="references" language="python">assert "There are no references left" in open("fluidity.log-0").read()</test>
+    <test name="consistent_max" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(consistent_max, 1.0, 1.0e-10)
+    </test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
