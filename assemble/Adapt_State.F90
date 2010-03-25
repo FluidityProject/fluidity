@@ -116,11 +116,10 @@ contains
     end select
   end subroutine adapt_mesh_simple
 
-  subroutine adapt_mesh_periodic(old_positions, metric, new_positions, node_ownership, force_preserve_regions)
+  subroutine adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions)
     type(vector_field), intent(in) :: old_positions
     type(tensor_field), intent(inout) :: metric
     type(vector_field), intent(out) :: new_positions
-    integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
 
     ! Periodic adaptivity variables
@@ -228,7 +227,7 @@ contains
       call vtk_write_fields("mesh", 0, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("surface", 0, unwrapped_positions_A)
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, & 
-                & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, node_ownership=node_ownership)
+                & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
 !        unwrapped_positions_B = unwrapped_positions_A; call incref(unwrapped_positions_B)
       call allocate(unwrapped_metric_B, unwrapped_positions_B%mesh, trim(metric%name))
       call linear_interpolation(unwrapped_metric_A, unwrapped_positions_A, unwrapped_metric_B, unwrapped_positions_B)
@@ -511,7 +510,7 @@ contains
       call deallocate(surface_ids)
 
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, &
-                  & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, node_ownership=node_ownership)
+                  & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
       call deallocate(lock_faces)
       call vtk_write_fields("mesh", 7, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 7, unwrapped_positions_B)
@@ -799,10 +798,10 @@ contains
 
     ! Periodic case
     if (mesh_periodic(old_positions)) then
-      call adapt_mesh_periodic(old_positions, metric, new_positions, node_ownership, force_preserve_regions)
+      call adapt_mesh_periodic(old_positions, metric, new_positions, force_preserve_regions=force_preserve_regions)
     ! Nonperiodic case
     else
-      call adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions)
+      call adapt_mesh_simple(old_positions, metric, new_positions, node_ownership=node_ownership, force_preserve_regions=force_preserve_regions)
     end if
   end subroutine adapt_mesh
 
