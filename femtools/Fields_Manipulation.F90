@@ -3460,11 +3460,7 @@ implicit none
     if (associated(input_positions%mesh%faces)) then
       allocate(sndgln(surface_element_count(input_positions) * face_loc(input_positions, 1)))
       call getsndgln(input_positions%mesh, sndgln)
-      if (isparallel()) then
-        call add_faces(output_mesh, sndgln=sndgln, private_nodes=0, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
-      else
-        call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
-      end if
+      call add_faces(output_mesh, sndgln=sndgln, element_owner=permutation(input_positions%mesh%faces%face_element_list(1:surface_element_count(input_positions))))
       deallocate(sndgln)
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if (associated(input_positions%mesh%faces%coplanar_ids)) then
@@ -3655,11 +3651,7 @@ implicit none
       element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
       
       call deallocate_faces(mesh)
-      if(isparallel()) then
-        call add_faces(mesh, sndgln = sndgln, private_nodes = 0, element_owner=element_owners)
-      else
-        call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
-      end if
+      call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
       mesh%faces%boundary_ids = boundary_ids
       if(allocated(coplanar_ids)) then
         allocate(mesh%faces%coplanar_ids(size(coplanar_ids)))

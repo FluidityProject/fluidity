@@ -366,37 +366,14 @@ contains
     end if
     
     if (boundaries<2) then
-      if(isparallel()) then
-        ! Set private_nodes to zero, so that we don't generate surface elements
-        ! on the partition external / globally external faces
-        call add_faces(field%mesh, &
-          &               sndgln=sndglno(1:edge_count*sloc), &
-          &               boundary_ids=boundary_ids(1:edge_count), &
-          &               private_nodes = 0)
-      else
-        ! In serial, can safely generate surface elements for all elements that
-        ! are on the surface
-        call add_faces(field%mesh, &
+      call add_faces(field%mesh, &
           &               sndgln=sndglno(1:edge_count*sloc), &
           &               boundary_ids=boundary_ids(1:edge_count))
-      end if
     else
-      if(isparallel()) then
-        ! Set private_nodes to zero, so that we don't generate surface elements
-        ! on the partition external / globally external faces
-        call add_faces(field%mesh, &
+      call add_faces(field%mesh, &
           &               sndgln=sndglno(1:edge_count*sloc), &
           &               boundary_ids=boundary_ids(1:edge_count), &
-          &               element_owner=element_owner, &
-          &               private_nodes = 0)
-      else
-        ! In serial, can safely generate surface elements for all elements that
-        ! are on the surface
-        call add_faces(field%mesh, &
-          &               sndgln=sndglno(1:edge_count*sloc), &
-          &               element_owner=element_owner, &
-          &               boundary_ids=boundary_ids(1:edge_count))
-      end if
+          &               element_owner=element_owner)
     end if
 
     deallocate(edge_buffer)

@@ -560,9 +560,9 @@ module sam_integration
        output_linear_mesh%ndglno = new_ndglno(1:new_ndglno_size)
        if(isparallel()) then
          if(associated(input_linear_mesh%faces%boundary_ids)) then
-           call add_faces(output_linear_mesh, sndgln = new_sndgln(1:new_sndgln_size), boundary_ids = new_boundary_ids(1:new_boundary_ids_size), private_nodes = 0)
+           call add_faces(output_linear_mesh, sndgln = new_sndgln(1:new_sndgln_size), boundary_ids = new_boundary_ids(1:new_boundary_ids_size))
          else
-           call add_faces(output_linear_mesh, sndgln = new_sndgln(1:new_sndgln_size), private_nodes = 0)
+           call add_faces(output_linear_mesh, sndgln = new_sndgln(1:new_sndgln_size))
          end if
        else
          if(associated(input_linear_mesh%faces%boundary_ids)) then
@@ -793,9 +793,6 @@ module sam_integration
        positions => extract_vector_field(states(1), trim(linear_coordinate_field_name))
        dim = positions%dim
        linear_shape = ele_shape(external_mesh, 1)
-       if (.not. has_faces(external_mesh)) then
-         call add_faces(external_mesh)
-       end if
 
        nloc = external_mesh%shape%loc
        snloc = external_mesh%faces%surface_mesh%shape%loc
@@ -929,11 +926,7 @@ module sam_integration
        allocate(boundary_ids(stotel))
        allocate(coplanar_ids(stotel))
        call deinterleave_surface_ids(surface_ids, max_coplanar_id, boundary_ids, coplanar_ids)
-       if(isparallel()) then
-         call add_faces(linear_mesh, sndgln=senlist, boundary_ids=boundary_ids, private_nodes=0)
-       else
-         call add_faces(linear_mesh, sndgln=senlist, boundary_ids=boundary_ids)
-       end if
+       call add_faces(linear_mesh, sndgln=senlist, boundary_ids=boundary_ids)
        deallocate(boundary_ids)
        allocate(linear_mesh%faces%coplanar_ids(stotel))
        linear_mesh%faces%coplanar_ids = coplanar_ids
@@ -1222,9 +1215,6 @@ module sam_integration
        mesh => get_external_mesh(states, external_mesh_name=external_mesh_name)
        positions => extract_vector_field(states(1), "Coordinate")
        dim = mesh_dim(mesh)
-       if(.not. has_faces(mesh)) then
-         call add_faces(mesh)
-       end if
        nonods = node_count(mesh)
        totele = ele_count(mesh)
        stotel = surface_element_count(mesh)

@@ -40,6 +40,7 @@ use global_numbering, only: make_global_numbering, make_global_numbering_dg
 use memory_diagnostics
 use ieee_arithmetic
 use data_structures
+use parallel_tools
 
 implicit none
 
@@ -1076,7 +1077,7 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    private_nodes, periodic_face_map, element_owner, stat)
+    periodic_face_map, element_owner, stat)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1091,9 +1092,11 @@ contains
     !! surface mesh (ndglno using the same node numbering as in 'mesh')
     !! if present the N elements in this mesh will correspond to the first
     !! N faces of the new faces component.
-    !! Any other faces found to be on the boundary of the domain are inserted
-    !! after that. So that with M=surface_element_count(mesh) (where M>=N)
-    !! the first 1:M faces form a complete surface mesh of the domain.
+    !! LEGACY: Any other faces found to be on the boundary of the domain are 
+    !! inserted after that. So that with M=surface_element_count(mesh) (where M>=N)
+    !! the first 1:M faces form a complete surface mesh of the domain. This
+    !! is legacy functionality that only works in serial. 
+    !! A warning will therefore be issued.
     integer, dimension(:), intent(in), optional:: sndgln
     !! number of quadrature points for the faces mesh (if not present the
     !! degree of 'mesh' is maintained):
@@ -1101,16 +1104,6 @@ contains
     !! A list of ids marking different parts of the surface mesh
     !! so that boundary conditions can be associated with it.
     integer, dimension(:), intent(in), optional :: boundary_ids
-    !! In parallel: number of nodes owned by this process. If provided
-    !! faces of which all nodes have global node number > private_nodes
-    !! will not be included in the surface mesh (except when it's explicitly
-    !! present in sndgln in which case we presume this has been
-    !! given to us by the decomposer who knows what it's doing)
-    !! NOTE that this strips away all surface elements in the second
-    !! halo layer (except for those in sndgln)
-    !! By giving a value of 0 for this argument one can prevent any surface
-    !! elements being added to the surface mesh sndgln
-    integer, intent(in), optional :: private_nodes
     !! if supplied the mesh is periodic and the model non-periodic
     !! this list must contain the pairs of faces, on the periodic boundary, 
     !! that are now between two elements. This is needed to update the face_list
@@ -1165,8 +1158,8 @@ contains
        !       (i.e. there are 2 opposite faces between two elements)
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
-       call add_faces_face_list(mesh, sndgln=sndgln, &
-         boundary_ids=boundary_ids, private_nodes=private_nodes, &
+       call add_faces_face_list(mesh, sndgln, &
+         boundary_ids=boundary_ids, &
          element_owner=element_owner)
          
        ! we don't calculate coplanar_ids here, as we need positions
@@ -1346,7 +1339,7 @@ contains
 
   end subroutine add_faces
 
-  subroutine add_faces_face_list(mesh, sndgln, boundary_ids, private_nodes, &
+  subroutine add_faces_face_list(mesh, sndgln, boundary_ids, &
     element_owner)
     !!< Subroutine to calculate the face_list and face_element_list of the 
     !!< faces component of a 'model mesh'. This should be the linear continuous 
@@ -1357,16 +1350,17 @@ contains
     !! N faces of the new faces component.
     integer, dimension(:), target, intent(in), optional:: sndgln
     integer, dimension(:), target, intent(in), optional:: boundary_ids
-    integer, intent(in), optional :: private_nodes
     integer, dimension(:), intent(in), optional :: element_owner
 
     type(element_type), pointer :: mesh_shape
     type(element_type) :: face_shape
-    logical:: internal_face
+    logical:: internal_face, surface_elements_added
+    ! listen very carefully, I shall say this only once:
+    logical, save :: warning_given=.false. 
     integer, dimension(:), pointer :: faces, neigh, snodes, ele_glnodes
     integer, dimension(:), allocatable :: face_glnodes
     integer, dimension(2) :: common_elements
-    integer :: nloc, snloc, stotel, lprivate_nodes
+    integer :: nloc, snloc, stotel
     integer :: bdry_count, ele, sele, j, no_found
     integer :: no_faces
     type(csr_sparsity) :: sparsity
@@ -1391,12 +1385,6 @@ contains
     call register_allocation("mesh_type", "integer", no_faces, &
          trim(mesh%name)//" face_element_list")
 #endif
-    
-    if (present(private_nodes)) then
-      lprivate_nodes=private_nodes
-    else
-      lprivate_nodes=mesh%nodes
-    end if
     
     snloc=face_vertices(mesh_shape)
     if (present(sndgln)) then
@@ -1475,28 +1463,40 @@ contains
             
     allocate(face_glnodes(1:snloc))
 
-    ! register the rest of the boundaries
-    ! remaining exterior boundaries first:
-    do ele=1, size(mesh%faces%face_list,1)
+    if (.not. IsParallel()) then
+      ! register the rest of the boundaries
+      ! remaining exterior boundaries first, thus completing the surface mesh
+      ! This does not work in parallel and is therefore discouraged
       
-       neigh=>row_m_ptr(mesh%faces%face_list, ele)
-       faces=>row_ival_ptr(mesh%faces%face_list, ele)
-       ele_glnodes => ele_nodes(mesh, ele)
-       
-       do j=1,size(neigh)
-    
-          face_glnodes = ele_glnodes(boundary_numbering(mesh_shape, j))
-          
-          if (neigh(j)==0 .and. .not. all(face_glnodes>lprivate_nodes)) then
+      do ele=1, size(mesh%faces%face_list,1)
+        
+         neigh=>row_m_ptr(mesh%faces%face_list, ele)
+         faces=>row_ival_ptr(mesh%faces%face_list, ele)
+         ele_glnodes => ele_nodes(mesh, ele)
+         
+         do j=1,size(neigh)
+      
+            face_glnodes = ele_glnodes(boundary_numbering(mesh_shape, j))
             
-            bdry_count=bdry_count+1
-            faces(j)=bdry_count
-            neigh(j)=-j ! negative number indicates exterior boundary
-            
-          end if
-       end do
-       
-    end do
+            if (neigh(j)==0) then
+              
+              bdry_count=bdry_count+1
+              faces(j)=bdry_count
+              neigh(j)=-j ! negative number indicates exterior boundary
+              
+              surface_elements_added=.true.
+              
+            end if
+         end do
+         
+      end do
+      if (surface_elements_added .and. .not. warning_given) then
+        ewrite(0,*) "WARNING: an incomplete surface mesh has been provided."
+        ewrite(0,*) "This will not work in parallel."
+        ewrite(0,*) "All parts of the domain boundary need to be marked with a (physical) surface id."
+        warning_given=.true.
+      end if
+    end if
       
     deallocate(face_glnodes)
       

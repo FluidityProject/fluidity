@@ -210,9 +210,7 @@ function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnod
   mesh_field%mesh%ndglno = enlist
   allocate(mesh_field%mesh%region_ids(size(region_ids)))
   mesh_field%mesh%region_ids = region_ids
-  ! Set private_nodes to 0 so that no extra surface elements are added to the
-  ! surface mesh
-  call add_faces(mesh_field%mesh, sndgln = senlist, boundary_ids = boundary_ids, private_nodes = 0)
+  call add_faces(mesh_field%mesh, sndgln = senlist, boundary_ids = boundary_ids)
   
   ! Write the mesh
   select case(meshtype)

@@ -283,11 +283,7 @@ contains
     allocate(boundary_ids(nf))
     allocate(coplanar_ids(nf))
     call deinterleave_surface_ids(lbf(:nf), max_coplanar_id, boundary_ids, coplanar_ids)
-    if(isparallel()) then
-      call add_faces(output_mesh, sndgln = reshape(ipf(:, :nf), (/nf * snloc/)), boundary_ids = boundary_ids, private_nodes = 0)
-    else
-      call add_faces(output_mesh, sndgln = reshape(ipf(:, :nf), (/nf * snloc/)), boundary_ids = boundary_ids)
-    end if
+    call add_faces(output_mesh, sndgln = reshape(ipf(:, :nf), (/nf * snloc/)), boundary_ids = boundary_ids)
     deallocate(boundary_ids)
     allocate(output_mesh%faces%coplanar_ids(nf))
     output_mesh%faces%coplanar_ids = coplanar_ids

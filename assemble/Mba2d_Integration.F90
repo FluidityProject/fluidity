@@ -106,10 +106,6 @@ module mba2d_integration
     call deallocate_boundcount
     call initialise_boundcount(xmesh, input_positions)
 
-    if (.not. has_faces(xmesh)) then
-      call add_faces(xmesh)
-    end if
-
     ! mxnods is an option to adaptivity specifying the maximum number of nodes
     call get_option('/mesh_adaptivity/hr_adaptivity/maximum_number_of_nodes', &
       mxnods)
@@ -367,7 +363,7 @@ module mba2d_integration
         new_sndgln(1:2, i) = ipf(1:2, fetch(physical_surface_ids, i))
       end do
       call add_faces(new_mesh, sndgln=reshape(new_sndgln, (/ 2*stotel /) ), &
-        boundary_ids=boundary_ids, private_nodes = 0)
+        boundary_ids=boundary_ids)
       deallocate(boundary_ids)
       deallocate(new_sndgln)
       

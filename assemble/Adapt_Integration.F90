@@ -623,11 +623,7 @@ contains
     allocate(boundary_ids(nwnsel))
     allocate(coplanar_ids(nwnsel))
     call deinterleave_surface_ids(intarr(nwsfid:nwsfid + nwnsel - 1), max_coplanar_id, boundary_ids, coplanar_ids)
-    if(nhalos > 0) then
-      call add_faces(output_mesh, sndgln = intarr(nwsnls:nwsnls + nwszsn - 1), boundary_ids = boundary_ids, private_nodes = 0)
-    else
-      call add_faces(output_mesh, sndgln = intarr(nwsnls:nwsnls + nwszsn - 1), boundary_ids = boundary_ids)
-    end if
+    call add_faces(output_mesh, sndgln = intarr(nwsnls:nwsnls + nwszsn - 1), boundary_ids = boundary_ids)
     deallocate(boundary_ids)
     if(associated(input_positions%mesh%faces%coplanar_ids)) then
       allocate(output_mesh%faces%coplanar_ids(nwnsel))

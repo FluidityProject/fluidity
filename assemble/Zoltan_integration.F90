@@ -1582,7 +1582,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       end do
       assert(j == full_elements + 1)
 
-      call add_faces(new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners, private_nodes=0)
+      call add_faces(new_positions%mesh, sndgln=sndgln, boundary_ids=surface_ids, element_owner=element_owners)
 
       do i=1,size(senlists)
         call deallocate(senlists(i))

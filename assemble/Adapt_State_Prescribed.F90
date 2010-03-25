@@ -165,18 +165,12 @@ contains
       do i = 1, ele_count(lnew_positions_mesh)
         call set_ele_nodes(lnew_positions_mesh, i, ele_nodes(new_positions%mesh, i))
       end do
-      if(associated(new_positions%mesh%faces)) then
-        if(associated(new_positions%mesh%faces%boundary_ids)) then
-          allocate(sndgln(surface_element_count(new_positions%mesh) * face_loc(new_positions%mesh, 1)))
-          call getsndgln(new_positions%mesh, sndgln)
-          call add_faces(lnew_positions_mesh, sndgln = sndgln, boundary_ids = new_positions%mesh%faces%boundary_ids)
-          deallocate(sndgln)
-        else
-          call add_faces(lnew_positions_mesh)
-        end if
-      else
-        call add_faces(lnew_positions_mesh)
-      end if
+      assert(associated(new_positions%mesh%faces))
+      assert(associated(new_positions%mesh%faces%boundary_ids))
+      allocate(sndgln(surface_element_count(new_positions%mesh) * face_loc(new_positions%mesh, 1)))
+      call getsndgln(new_positions%mesh, sndgln)
+      call add_faces(lnew_positions_mesh, sndgln = sndgln, boundary_ids = new_positions%mesh%faces%boundary_ids)
+      deallocate(sndgln)
       if(associated(new_positions%mesh%region_ids)) then
         allocate(lnew_positions_mesh%region_ids(ele_count(new_positions%mesh)))
         lnew_positions_mesh%region_ids = new_positions%mesh%region_ids
