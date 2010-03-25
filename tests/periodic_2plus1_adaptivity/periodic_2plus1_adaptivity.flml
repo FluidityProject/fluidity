@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">periodic_adaptivity</string_value>
+    <string_value lines="1">periodic_2plus1_adaptivity</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
