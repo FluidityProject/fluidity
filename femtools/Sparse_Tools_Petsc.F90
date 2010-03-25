@@ -961,22 +961,25 @@ contains
   subroutine petsc_csr_mult_vector(x, A, b)
     !!< Performs the matrix-vector multiplication x=Ab
     type(vector_field), intent(inout):: x
-    type(petsc_csr_matrix), intent(in):: A
+    type(petsc_csr_matrix), intent(inout):: A
     type(vector_field), intent(in):: b
     
     PetscErrorCode:: ierr
     Vec:: bvec, xvec
-    
+ 
     assert( node_count(x)==block_size(A, 1) )
     assert( node_count(b)==block_size(A, 2) )
     assert( x%dim==blocks(A,1) )
     assert( b%dim==blocks(A,2) )
+
+    call petsc_csr_assemble(A)
     
     ! copy b to petsc vector
     bvec=PetscNumberingCreateVec(A%column_numbering)
     call field2petsc(b, A%column_numbering, bvec)
     ! creates PETSc solution vec of the right size:
     xvec=PetscNumberingCreateVec(A%row_numbering)
+
     ! perform the multiply
     call MatMult(A%M, bvec, xvec, ierr)
     ! copy answer back to vector_field
@@ -990,7 +993,7 @@ contains
   subroutine petsc_csr_mult_vector_to_scalar(x, A, b)
     !!< Performs the matrix-scalar multiplication x=Ab
     type(scalar_field), intent(inout):: x
-    type(petsc_csr_matrix), intent(in):: A
+    type(petsc_csr_matrix), intent(inout):: A
     type(vector_field), intent(in):: b
     
     PetscErrorCode:: ierr
@@ -1001,6 +1004,8 @@ contains
     assert( 1==blocks(A,1) )
     assert( b%dim==blocks(A,2) )
     
+    call petsc_csr_assemble(A)
+
     ! copy b to petsc vector
     bvec=PetscNumberingCreateVec(A%column_numbering)
     call field2petsc(b, A%column_numbering, bvec)
@@ -1019,7 +1024,7 @@ contains
   subroutine petsc_csr_mult_T_vector(x, A, b)
     !!< Performs the matrix-vector multiplication x=Ab
     type(vector_field), intent(inout):: x
-    type(petsc_csr_matrix), intent(in):: A
+    type(petsc_csr_matrix), intent(inout):: A
     type(vector_field), intent(in):: b
     
     PetscErrorCode:: ierr
@@ -1029,7 +1034,9 @@ contains
     assert( node_count(b)==block_size(A, 1) )
     assert( x%dim==blocks(A,2) )
     assert( b%dim==blocks(A,1) )
-    
+
+    call petsc_csr_assemble(A)    
+
     ! copy b to petsc vector
     bvec=PetscNumberingCreateVec(A%row_numbering)
     call field2petsc(b, A%row_numbering, bvec)
@@ -1048,7 +1055,7 @@ contains
   subroutine petsc_csr_mult_T_scalar_to_vector(x, A, b)
     !!< Performs the matrix-scalar multiplication x=Ab
     type(vector_field), intent(inout):: x
-    type(petsc_csr_matrix), intent(in):: A
+    type(petsc_csr_matrix), intent(inout):: A
     type(scalar_field), intent(in):: b
     
     PetscErrorCode:: ierr
@@ -1059,6 +1066,8 @@ contains
     assert( x%dim==blocks(A,2) )
     assert( 1==blocks(A,1) )
     
+    call petsc_csr_assemble(A)
+
     ! copy b to petsc vector
     bvec=PetscNumberingCreateVec(A%row_numbering)
     call field2petsc(b, A%row_numbering, bvec)

@@ -4329,7 +4329,7 @@ END SUBROUTINE POSINM_COLOUR
     do i = 1, size(vector_out)
        vector_out(i) = sum( vector_in(row_m(mat,i)) * row_val_ptr(mat,i) )
     end do
-
+   
   end subroutine csr_mult
 
   subroutine dcsr_mult(m,v,mv)

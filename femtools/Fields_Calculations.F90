@@ -83,8 +83,12 @@ implicit none
   end interface
 
   interface dot_product
-    module procedure dot_product_scalar
+    module procedure dot_product_scalar, dot_product_vector
   end interface dot_product
+
+  interface outer_product
+    module procedure outer_product_vector
+ end interface
 
   interface norm2_difference
     module procedure norm2_difference_single, norm2_difference_multiple
@@ -505,7 +509,79 @@ implicit none
       end do
     end if
   end function dot_product_scalar
-    
+
+  function dot_product_vector(fieldA, fieldB) result(val)
+    type(vector_field), intent(in) :: fieldA, fieldB
+    real, dimension(fieldA%dim) :: val
+    integer :: i, d
+
+    assert(fieldA%dim==fieldB%dim)
+
+    if (.not. associated(fieldA%mesh%refcount, fieldB%mesh%refcount)) then
+      ewrite(-1,*) "Hello! dot_product_vector here."
+      ewrite(-1,*) "I couldn't be bothered remapping the fields,"
+      ewrite(-1,*) "even though this is perfectly possible."
+      ewrite(-1,*) "Code this up to remap the fields to continue!"
+      FLAbort("Programmmer laziness detected")
+    end if
+
+    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
+       do d=1,fieldA%dim
+          val(d) = dot_product(fieldA%val(d)%ptr, fieldB%val(d)%ptr)
+       end do
+    else if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
+       do d=1,fieldA%dim
+          val(d) = fieldA%val(d)%ptr(1) * fieldB%val(d)%ptr(1) * node_count(fieldA)
+       end do
+    else
+       val = 0.0
+       do i=1,node_count(fieldA)
+          val = val + node_val(fieldA, i) * node_val(fieldB, i)
+       end do
+    end if
+  end function dot_product_vector
+
+  function outer_product_vector(fieldA, fieldB) result(val)
+    type(vector_field), intent(in) :: fieldA, fieldB
+    real, dimension(fieldA%dim,fieldB%dim) :: val
+    integer :: i, d1,d2
+    real, dimension(fieldA%dim) :: tmpA
+    real, dimension(fieldB%dim) :: tmpB
+
+    if (.not. associated(fieldA%mesh%refcount, fieldB%mesh%refcount)) then
+      ewrite(-1,*) "Hello! outer_product_vector here."
+      ewrite(-1,*) "I couldn't be bothered remapping the fields,"
+      ewrite(-1,*) "even though this is perfectly possible."
+      ewrite(-1,*) "Code this up to remap the fields to continue!"
+      FLAbort("Programmmer laziness detected")
+    end if
+
+    if (fieldA%field_type == FIELD_TYPE_NORMAL .and. fieldB%field_type == FIELD_TYPE_NORMAL) then
+       do d1=1,fieldA%dim
+          do d2=1,fieldB%dim
+             val(d1,d2) = dot_product(fieldA%val(d1)%ptr, fieldB%val(d2)%ptr)
+          end do
+       end do
+    else if (fieldA%field_type == FIELD_TYPE_CONSTANT .and. fieldB%field_type == FIELD_TYPE_CONSTANT) then
+       do d1=1,fieldA%dim
+          do d2=1,fieldB%dim
+             val(d1,d2) = fieldA%val(d1)%ptr(1) * fieldB%val(d2)%ptr(1) * node_count(fieldA)
+          end do
+       end do
+    else
+       val = 0.0
+       do i=1,node_count(fieldA)
+          tmpA=node_val(fieldA, i)
+          tmpB=node_val(fieldB, i)
+          do d1=1,fieldA%dim
+             do d2=1,fieldB%dim
+                val(d1,d2) = val(d1,d2) + tmpA(d1) * tmpB(d2)
+             end do
+          end do
+       end do
+    end if
+  end function outer_product_vector
+       
   function function_val_at_quad_scalar(fxn, positions, ele)
     interface
       function fxn(pos)

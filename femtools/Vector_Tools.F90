@@ -35,6 +35,10 @@ module vector_tools
   interface cross_product
      module procedure cross_product_array
   end interface
+
+  interface outer_product
+     module procedure outer_product
+  end interface
     
   private
   public blasmul, solve, norm2, cross_product, invert, inverse, cholesky_factor, &

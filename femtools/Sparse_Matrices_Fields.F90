@@ -82,7 +82,7 @@ contains
     
     integer :: i
     type(scalar_field) :: x_comp, b_comp
-    
+
     assert(x%dim==b%dim)
     do i = 1, b%dim
       x_comp = extract_scalar_field(x, i)

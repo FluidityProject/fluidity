@@ -100,6 +100,7 @@ implicit none
                    & set_tensor_field_scalar_field, &
                    & set_tensor_field_diag_vector_field, &
                    & set_scalar_field_theta, set_vector_field_theta, &
+                   & set_vector_field_vfield_dim, &
                    & set_tensor_field_theta
   end interface
   
@@ -1097,6 +1098,30 @@ implicit none
     end select
 
   end subroutine set_vector_field_field_dim
+
+  subroutine set_vector_field_vfield_dim(out_field, dim, in_field)
+    !!< Set in_field to out_field. This will only work if the fields have
+    !!< the same mesh.
+    type(vector_field), intent(inout) :: out_field
+    type(vector_field), intent(in) :: in_field
+    integer, intent(in):: dim
+
+    assert(mesh_compatible(out_field%mesh, in_field%mesh))
+    assert(out_field%field_type/=FIELD_TYPE_PYTHON)
+    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    assert(dim>=1 .and. dim<=out_field%dim .and. dim<=in_field%dim)
+
+    select case (in_field%field_type)
+    case (FIELD_TYPE_NORMAL)
+       out_field%val(dim)%ptr=in_field%val(dim)%ptr
+    case (FIELD_TYPE_CONSTANT)
+       out_field%val(dim)%ptr=in_field%val(dim)%ptr(1)
+    case default
+       ! someone could implement in_field type python
+       FLAbort("Illegal in_field field type in set()")
+    end select
+
+  end subroutine set_vector_field_vfield_dim
 
   subroutine set_tensor_field_field(out_field, in_field )
     !!< Set in_field to out_field. This will only work if the fields have
