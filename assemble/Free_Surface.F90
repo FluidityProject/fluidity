@@ -543,13 +543,10 @@ contains
   type(mesh_type), intent(in):: mesh
   type(csr_matrix):: vertical_prolongator
     
-    type(mesh_type), pointer:: coordinate_surface_mesh
-    type(mesh_type):: surface_mesh
     type(scalar_field), pointer:: topdis
-    type(vector_field), pointer:: positions
-    type(vector_field) mesh_positions, surface_positions
+    type(vector_field), pointer:: positions, vertical_normal
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer stat, i, nowned_surface_nodes, node
+    integer:: stat, i, nowned_surface_nodes, node
     
     ewrite(1, *) "Constructing vertical_prolongator_from_free_surface to be used in mg"
     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
@@ -558,35 +555,16 @@ contains
     end if
 
     positions => extract_vector_field(state, "Coordinate")
-
-    if (.not. (positions%mesh==mesh)) then
-      call allocate(mesh_positions, positions%dim, mesh)
-      call remap_field(positions, mesh_positions, stat=stat)
-    else
-      mesh_positions=positions
-    end if
+    vertical_normal => extract_vector_field(state, "GravityDirection")
 
     call get_boundary_condition(topdis, 1, &
-      surface_mesh=coordinate_surface_mesh, &
       surface_element_list=surface_element_list, &
       surface_node_list=surface_node_list)
-    if (coordinate_surface_mesh%shape%degree/=mesh%shape%degree) then
-      ! note we replace surface_node_list here:
-      call create_surface_mesh(surface_mesh, surface_node_list, &
-        mesh, surface_element_list, name="SurfaceMesh_VerticalLumping")
-    else
-      surface_mesh=coordinate_surface_mesh
-      ! note we keep surface_node_list associated with the coordinate mesh
-    end if
-    call allocate(surface_positions, positions%dim, surface_mesh, &
-       name="FreeSurfacePositions")
-    ! this does a remap if coordinate shape/=mesh shape degree
-    call remap_field_to_surface(positions, surface_positions, surface_element_list)
     
     if (IsParallel()) then
       assert( associated(mesh%halos) )
       vertical_prolongator=VerticalProlongationOperator( &
-         mesh_positions, surface_positions, reduce_columns=.true., &
+         mesh, positions, vertical_normal, surface_element_list, &
          owned_nodes=halo_nowned_nodes(mesh%halos(1)) )
       ! note that in surface_positions the non-owned free surface nodes may be inbetween
       ! the reduce_columns option should have removed those however
@@ -594,7 +572,7 @@ contains
 #ifdef DDEBUG
       ! count n/o owned surface nodes
       nowned_surface_nodes=0
-      do i=1, node_count(surface_mesh)
+      do i=1, size(surface_node_list)
         node=surface_node_list(i)
         if (node_owned(mesh, node)) then
           nowned_surface_nodes=nowned_surface_nodes+1
@@ -612,16 +590,8 @@ contains
 #endif
     else
       vertical_prolongator=VerticalProlongationOperator( &
-         mesh_positions, surface_positions, reduce_columns=.true.)
+         mesh, positions, vertical_normal, surface_element_list)
     end if
-
-    if (.not. (positions%mesh==mesh)) then
-      call deallocate(mesh_positions)
-    end if
-    if (coordinate_surface_mesh%shape%degree/=mesh%shape%degree) then
-      call deallocate(surface_mesh)
-    end if
-    call deallocate(surface_positions)
 
   end function vertical_prolongator_from_free_surface
   

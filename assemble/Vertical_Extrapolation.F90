@@ -335,8 +335,8 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   end if
   
   ! project the positions of to_fields(1)%mesh into the horizontal plane
-  ! and returns face numbers 'seles' and loc_coords to tell where
-  ! these projected nodes are found in the surface mesh
+  ! and returns 'seles' (indices in surface_element_list) and loc_coords 
+  ! to tell where these projected nodes are found in the surface mesh
   call horizontal_picker(to_fields(1)%mesh, positions, vertical_normal, &
       surface_element_list, lsurface_name, &
       seles, loc_coords)
@@ -344,7 +344,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
   ! interpolate using the returned faces and loc_coords
   do i=1, size(to_fields)
     do j=1, to_nodes
-      face=seles(j)
+      face=surface_element_list(seles(j))
       call set(to_fields(i), j, &
            dot_product( eval_shape( face_shape(from_fields(i), face), loc_coords(:,j) ), &
              face_val( from_fields(i), face ) ))
@@ -453,11 +453,8 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
     seles, loc_coords, global=.false. )
     
   ! in the spherical case some of the surface elements may be duplicated
-  ! within horizontal positions, the returned seles refer to elements
-  ! of this horizontal mesh and horiozontal_mesh_list is a map from these
-  ! to face numbers in the full mesh
-  
-  ! we return face numbers however
+  ! within horizontal positions, the returned seles should refer to entries
+  ! in surface_element_list however - also check for nodes not found
   do i=1, size(seles)
     if (seles(i)>0) then
       seles(i)=horizontal_mesh_list(seles(i))
@@ -469,6 +466,7 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
   end do
     
   call deallocate(mesh_positions)
+  deallocate(horizontal_mesh_list)
 
 end subroutine horizontal_picker
   
@@ -482,12 +480,22 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
   integer, dimension(:), intent(in):: surface_element_list
   character(len=*), intent(in):: surface_name
   
-  ! returns the horizontal positions, and a mapping between elements
-  ! in this horizontally projected mesh and facets in 'positions'
-  ! in the case of the sphere, this is not the same as surface_element_list
-  ! as some of the facets have been duplicated (around the equator)
+  ! Returns the horizontal positions on a horizontal mesh, this mesh
+  ! may have some of the faces in surface_element_list duplicated -
+  ! this is only in the spherical case where the horizontal mesh
+  ! consists of two disjoint regions representing the two hemispheres
+  ! and surface elements near the equator may be represented in both.
+  ! Therefore we also return a map between elements in the horizontal positions mesh
+  ! and entries in surface_element_list. If ele is an element in the horizontal 
+  ! position mesh, then surface_element_list(horizontal_mesh(ele)) 
+  ! is the face number in the full  mesh
+  ! horizontal_positions is a borrowed reference, don't allocate
+  ! horizontal_mesh_list does need to be deallocated
   type(vector_field), pointer:: horizontal_positions
   integer, dimension(:), pointer:: horizontal_mesh_list
+  
+  integer, dimension(:), pointer:: horizontal_sele_list
+  integer:: i, j, k, sele
   
   if (.not. has_boundary_condition_name(positions, surface_name)) then
     if (have_option('/geometry/spherical_earth')) then
@@ -505,8 +513,41 @@ subroutine get_horizontal_positions(positions, surface_element_list, vertical_no
 !   call vtk_write_fields('horizontal_mesh', 0,      horizontal_positions, &
 !     horizontal_positions%mesh)    
     
-  call get_boundary_condition(positions, surface_name, &
-    surface_element_list=horizontal_mesh_list)
+    
+  allocate( horizontal_mesh_list(1:element_count(horizontal_positions)) )
+  if (have_option('/geometry/spherical_earth')) then
+    call get_boundary_condition(positions, surface_name, &
+      surface_element_list=horizontal_sele_list)
+    ! by construction the map can be obtained by running 
+    ! through surface_element_list twice (for each hemisphere)
+    i=1 ! position in horizontal_sele_list
+    sele=horizontal_sele_list(i) ! face we're looking for
+outer_loop: &
+    do j=1, 2
+      do k=1, size(surface_element_list)
+        if (surface_element_list(k)==sele) then
+          ! found matching position in surface_element_list
+          horizontal_mesh_list(i)=k
+          ! next one to search
+          i=i+1
+          if (i>size(horizontal_sele_list)) exit outer_loop
+          sele=horizontal_sele_list(i)
+        end if
+      end do
+    end do outer_loop
+      
+    if (i<=size(horizontal_sele_list)) then
+      ! not all were found in 2 loops through surface_element_list
+      ! something's wrong
+      FLAbort("Internal error in horizontal mesh administration")
+    end if
+        
+  else
+    ! no duplication: horizontal_mesh_list is simply the identity map
+    do i=1, size(horizontal_mesh_list)
+      horizontal_mesh_list(i)=i
+    end do
+  end if
   
 end subroutine get_horizontal_positions
   
@@ -739,28 +780,23 @@ real, dimension(2):: map2horizontal_sphere
     
 end function map2horizontal_sphere
 
-function VerticalProlongationOperator(positions, &
-  surface_positions, reduce_columns, owned_nodes)
+function VerticalProlongationOperator(mesh, positions, vertical_normal, &
+  surface_element_list, owned_nodes, surface_mesh)
   !! creates a prolongation operator that prolongates values on
   !! a surface mesh to a full mesh below using interpolation
   !! with VerticalShellMapper. The transpose of this prolongation
   !! operator can be used as a restriction/clustering operator 
   !! from the full mesh to the surface.
   type(csr_matrix) :: VerticalProlongationOperator
-  !! the locations of the nodes to which to prolongate, this can be
-  !! on any mesh, the nodes are only used a set of loose points
-  type(vector_field), target, intent(inout):: positions
-  integer::flat_earth_int
-  !! positions of the surface mesh - its surface node numbering will 
-  !! be used as the numbering of the columns, i.e. of the 
-  !! aggregates/clusters. This has to be on a non-periodic mesh to ensure
-  !! nodes on the periodic boundary are found
-  type(vector_field), intent(in):: surface_positions
-  !! if present and true, columns of the prolongation operator
-  !! that are not used, i.e. not interpolated from are taken out
-  !! and the columns renumbered. This means the column indexing does
-  !! no longer correspond to the ordering of surface_positions
-  logical, intent(in), optional:: reduce_columns
+  !! the mesh to which to prolongate, its nodes are only considered as
+  !! a set of loose points
+  type(mesh_type), target, intent(in):: mesh
+  !! positions on the whole domain (doesn't have to be the same mesh)
+  type(vector_field), intent(inout):: positions
+  !! upward normal vector on the whole domain
+  type(vector_field), target, intent(in):: vertical_normal
+  !! the face numbers of the surface mesh
+  integer, dimension(:), intent(in):: surface_element_list
   !! if present only construct prolongation from first 1:owned_nodes nodes
   !! this can be used in parallel (assuming owned nodes come first) to construct
   !! a local vertical prolongation operator provided the mesh is columnar and decomposed
@@ -768,142 +804,90 @@ function VerticalProlongationOperator(positions, &
   !! ordered such that owned nodes are first. In that case you do however need to use
   !! reduce_columns==.true. to remove the inbetween non-owned surface nodes
   integer, intent(in), optional:: owned_nodes
+  !! Optionally a surface mesh may be provided that represents the nodes
+  !! /from/ which to interpolate (may be of different signature than 'mesh')
+  !! Each column in the prolongator will correspond to a node in this surface_mesh.
+  !! If not provided, the "from mesh" is considered to consist of faces
+  !! given by surface_element_list (and same cont. and order as 'mesh').
+  !! In this case however empty columns, i.e. surface nodes from which no
+  !! value in the full mesh is interpolated, are removed and there is no
+  !! necessary relation between column numbering and surface node numbering.
+  type(mesh_type), intent(in), target, optional:: surface_mesh
 
   type(csr_sparsity):: sparsity
-  real, dimension(:), allocatable:: x, y, z
-  integer, dimension(:), pointer:: sele_nodes
-  integer, dimension(:), allocatable:: senlist
-  integer, dimension(:), allocatable:: tri_ids
-  real, dimension(:), allocatable:: shape_fxn
-  integer, dimension(:), allocatable:: surface_node2all
-  integer, dimension(:), allocatable:: surface_node2used
-  integer, dimension(:), allocatable:: findrm, colm
+  type(mesh_type), pointer:: lsurface_mesh
+  real, dimension(:,:), allocatable:: loc_coords
   real, dimension(:), allocatable:: mat
-  real coef
-  integer count
-  integer i, j, k, nod, snod, entries, nnodes
-  logical lreduce_columns
-  ! number of vertices in surface element, has to be 3, a triangle
-  integer, parameter:: surface_vertices=3
-  real, dimension(1:surface_vertices):: loc_coords
-  integer, dimension(1:surface_vertices):: flv
+  real:: coef
+  integer, dimension(:), pointer:: snodes
+  integer, dimension(:), allocatable:: seles, colm, findrm, snod2used_snod
+  integer i, j, k, mesh_nodes, entries, count, snod, sele
   ! coefficient have to be at least this otherwise they're negligable in an interpolation
   real, parameter :: COEF_EPS=1d-10
   
-  if(have_option('/geometry/spherical_earth')) then
-     flat_earth_int = 0
-  else
-     flat_earth_int = 1
-  end if
+  mesh_nodes=node_count(mesh)
+  ! local coordinates is one more than horizontal coordinate dim
+  allocate( seles(mesh_nodes), loc_coords(1:positions%dim, 1:mesh_nodes) )
+  
+  ! project the positions of to_fields(1)%mesh into the horizontal plane
+  ! and returns 'seles' (indices in surface_element_list) and loc_coords 
+  ! to tell where these projected nodes are found in the surface mesh
+  call horizontal_picker(mesh, positions, vertical_normal, &
+      surface_element_list, "TempSurfaceName", &
+      seles, loc_coords)
 
-  assert(size(local_vertices(ele_shape(surface_positions,1)))==surface_vertices)
-  ! local node number of the vertices of a face (surface element)
-  !ATTENTION doesn't work with meshes with varying element types
-  flv=local_vertices(ele_shape(surface_positions,1))
-  
-  if (present(reduce_columns)) then
-     lreduce_columns=reduce_columns
-  else
-     lreduce_columns=.false.
-  end if
-  
-  ! the nodes we feed to VerticalShellMapper() are the nodes given
-  ! by positions and added to those the vertices of the surface mesh
-  ! map between surface node number and this total list of nodes
-  allocate( surface_node2all(1:node_count(surface_positions)) )
-  surface_node2all=0
-  
-  ! first in this list are the given positions
-  if (present(owned_nodes)) then
-    nnodes=owned_nodes
-  else
-    nnodes=node_count(positions)
-  end if
-  count=nnodes
-  
-  ! make linear, triangular surface mesh, regardless of surface mesh degree 
-  ! the node numbering refers to all the positions given to VerticalShellMapper
-  allocate( senlist(element_count(surface_positions) * surface_vertices) )
- 
-  entries=1
-  do i=1, element_count(surface_positions)
-    ! the global nodes of each surface element
-    sele_nodes => ele_nodes(surface_positions, i)
-    ! copy the vertices thereof in senlist
-    do j=1, surface_vertices
-      snod=sele_nodes(flv(j))
-      if (surface_node2all(snod)==0) then
-        ! this vertex is new and added to the list
-        count=count+1
-        surface_node2all(snod)=count
-      end if
-      senlist( entries )=surface_node2all(snod)
-      entries=entries+1
-    end do
-  end do
-  
-  ! Allocate some tempory space. This could be cached.
-  allocate(tri_ids(1:count))
-  allocate(shape_fxn(1:count*surface_vertices))
-  allocate(x(1:count), y(1:count), z(1:count))
-  ! first the given nodes:
-  x(1:nnodes)=positions%val(X_)%ptr(1:nnodes)
-  y(1:nnodes)=positions%val(Y_)%ptr(1:nnodes)
-  z(1:nnodes)=positions%val(Z_)%ptr(1:nnodes)
-  ! then surface vertices
-  do i=1, node_count(surface_positions)
-    nod=surface_node2all(i)
-    if (nod/=0) then
-      x(nod)=surface_positions%val(X_)%ptr(i)
-      y(nod)=surface_positions%val(Y_)%ptr(i)
-      z(nod)=surface_positions%val(Z_)%ptr(i)
-    end if
-  end do
-  
-  ! Perform spatial search
-  call VerticalShellMapper_find(x, y, z, count, senlist, &
-       element_count(surface_positions), 1, flat_earth_int, tri_ids, shape_fxn)
-  deallocate( senlist, surface_node2all )
-  
   ! count upper estimate for n/o entries for sparsity
   entries=0
-  do nod=1, nnodes
-     entries=entries+ele_loc(surface_positions, tri_ids(nod))
+  do i=1, mesh_nodes
+     entries=entries+face_loc(mesh, seles(i))
   end do
-  ! preliminate matrix:  
-  allocate( mat(1:entries), findrm(1:nnodes+1), &
+  ! preliminary matrix:  
+  allocate( mat(1:entries), findrm(1:mesh_nodes+1), &
     colm(1:entries) )
   
-  if (lreduce_columns) then
-     ! not all surface nodes may be used (i.e. interpolated from)
-     ! unused nodes must be removed and the surface node numbering adjusted
-     allocate(surface_node2used(1:node_count(surface_positions)))
-     surface_node2used=0
+  if (.not. present(surface_mesh)) then
+     ! We use the entire surface mesh of 'mesh'
+     lsurface_mesh => mesh%faces%surface_mesh
+     ! Not all surface nodes may be used (i.e. interpolated from) - even
+     ! within surface elements that /are/ in surface_element-list.
+     ! We need a map between global surface node numbering and 
+     ! a consecutive numbering of used surface nodes.
+     ! (this will be the column numbering)
+     allocate(snod2used_snod(1:node_count(lsurface_mesh)))
+     snod2used_snod=0
      count=0 ! counts number of used surface nodes
+  else
+     lsurface_mesh => surface_mesh
   end if
 
   entries=0 ! this time only count nonzero entries
-  do nod=1, nnodes
+  do i=1, mesh_nodes
 
      ! beginning of each row in mat
-     findrm(nod)=entries+1
-     ! local coordinates of the node projected on the surface element
-     loc_coords=shape_fxn( (nod-1)*surface_vertices+1 : nod*surface_vertices )
+     findrm(i)=entries+1
       
-     sele_nodes => ele_nodes(surface_positions, tri_ids(nod))
+     if (present(surface_mesh)) then
+       ! element number within surface_mesh
+       sele=seles(i)
+     else
+       ! face number in 'mesh', i.e. element number within entire surface_mesh
+       sele=surface_element_list(seles(i))
+     end if
      
-     do j=1, size(sele_nodes)
-       coef=eval_shape(ele_shape(surface_positions, tri_ids(nod)), j, loc_coords)
+     snodes => ele_nodes(lsurface_mesh, sele)
+     
+     do j=1, size(snodes)
+       coef=eval_shape(ele_shape(lsurface_mesh, sele), j, loc_coords(:,i))
+       snod=snodes(j)
        if (abs(coef)>COEF_EPS) then
-         snod=sele_nodes(j)
-         if (lreduce_columns) then
-           if (surface_node2used(snod)==0) then
+         if (.not. present(surface_mesh)) then
+           if (snod2used_snod(snod)==0) then
              ! as of yet unused surface node
              count=count+1
-             surface_node2used(snod)=count
+             snod2used_snod(snod)=count
            end if
            ! this is the column index we're gonna use instead
-           snod=surface_node2used(snod)
+           snod=snod2used_snod(snod)
          end if
          entries=entries+1
          colm(entries)=snod
@@ -912,20 +896,21 @@ function VerticalProlongationOperator(positions, &
      end do
        
   end do
-  findrm(nod)=entries+1
+  findrm(i)=entries+1
   
-  if (.not. lreduce_columns) then
-    ! we haven't counted used surface nodes, instead we're including all
-    count=node_count(surface_positions)
+  if (present(surface_mesh)) then
+    ! we haven't counted used surface nodes, instead we're using all 
+    ! nodes of surface mesh as columns
+    count=node_count(surface_mesh)
   end if
   
-  call allocate(sparsity, nnodes, count, &
+  call allocate(sparsity, mesh_nodes, count, &
      entries, diag=.false., name="VerticalProlongationSparsity")
   sparsity%findrm=findrm
   sparsity%colm=colm(1:entries)
   ! for lots of applications it's good to have sorted rows
   call sparsity_sort(sparsity)
-    
+  
   call allocate(VerticalProlongationOperator, sparsity, &
     name="VerticalProlongationOperator")
   call deallocate(sparsity)
@@ -933,18 +918,20 @@ function VerticalProlongationOperator(positions, &
   ! as the sparsity has been sorted the ordering of mat(:) no longer
   ! matches that of sparsity%colm, however it still matches the original 
   ! unsorted colm(:)
-  do i=1, nnodes
+  do i=1, mesh_nodes
      do k=findrm(i), findrm(i+1)-1
        j=colm(k)
        call set(VerticalProlongationOperator, i, j, mat(k))
      end do
   end do
   
-  if (lreduce_columns) then
-    deallocate( surface_node2used )
+  if (.not. present(surface_mesh)) then
+    deallocate( snod2used_snod )
   end if
   deallocate( findrm, colm, mat )
-  deallocate( tri_ids, shape_fxn )
+  deallocate( seles, loc_coords )
+  
+  call remove_boundary_condition(positions, "TempSurfaceName")
   
 end function VerticalProlongationOperator
   

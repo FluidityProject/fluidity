@@ -46,7 +46,7 @@ character(len=*), intent(in):: mesh_file
 character(len=*), intent(in):: python_function
 real, intent(out):: l2error
 
-  type(vector_field), target:: positions, bc_positions, to_positions
+  type(vector_field), target:: positions, bc_positions, vertical_normal
   type(scalar_field) to_field, from_field, error_field
   type(mesh_type), pointer:: x_mesh, surface_mesh
   type(mesh_type) quad_mesh
@@ -75,10 +75,13 @@ real, intent(out):: l2error
   call remap_field_to_surface(positions, bc_positions, surface_element_list)
   call set_from_python_function(from_field, python_function, bc_positions, &
       time=0.0)
-  call allocate(to_positions, DIM, quad_mesh, name="ToPositions")
-  call remap_field(positions, to_positions)
+  call allocate(vertical_normal, positions%dim, x_mesh, &
+    field_type=FIELD_TYPE_CONSTANT, name="VerticalNormal")
+  call set(vertical_normal, (/ 0., 0., -1. /) )
   
-  prolongator=VerticalProlongationOperator(to_positions, bc_positions)
+  prolongator=VerticalProlongationOperator(quad_mesh, positions, &
+    vertical_normal, surface_element_list, &
+    surface_mesh=surface_mesh)
   call mult(to_field%val, prolongator, from_field%val)
     
   call allocate(error_field, quad_mesh, name="ErrorField")
@@ -94,11 +97,11 @@ real, intent(out):: l2error
   l2error=norm2(error_field, positions)
   print *, l2error
   
+  call deallocate(vertical_normal)
   call deallocate(to_field)
   call deallocate(from_field)
   call deallocate(error_field)
   call deallocate(bc_positions)
-  call deallocate(to_positions)
   call deallocate(prolongator)
       
 end subroutine test_vertical_prolongation_from_file
