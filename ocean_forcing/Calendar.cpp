@@ -49,6 +49,9 @@ Calendar::Calendar(){
     if(err)
       exit(err);
   }
+#else
+    cerr<<"ERROR ("<<__FILE__<<"): No udunits support.\n";
+    exit(1);
 #endif
   SetTransformation("seconds since 1-1-1 0:0:0", 
                     "seconds since 1-1-1 0:0:0",
@@ -116,7 +119,9 @@ int Calendar::SetTransformation(string _from_unit, string _to_unit, string _cale
   }
   if(err)
     exit(-1);
-
+#else
+    cerr<<"ERROR ("<<__FILE__<<"): No udunits support.\n";
+    exit(1);
 #endif
   return err;
 }

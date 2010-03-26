@@ -11,7 +11,8 @@ extern "C" {
 extern void report_test(const string& title, const bool& fail, const bool& warn, const string& msg);
 
 void test_FluxesReader_fc() {
-  
+
+#ifdef HAVE_UDUNITS
   FluxesReader data;
   FluxesReader data2;
   data.VerboseOff();
@@ -493,9 +494,8 @@ void test_FluxesReader_fc() {
   if ( err == -1 ) fail = false;
   //report_test("[test_FluxesReader subset: Identify missing values]",fail,warn,"Failed to spot missing values");
   fail = true;
-
-
-
-
+#else
+  report_test("[dummy]",false,false,"Dummy");
+#endif
 
 }
