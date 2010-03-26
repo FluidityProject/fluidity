@@ -502,13 +502,13 @@ contains
       do i = 1, nprocs          
         ! Non-blocking sends
         if(size(send_buffer(i)%ptr) > 0) then
-          call mpi_isend(send_buffer(i)%ptr, size(send_buffer(i)%ptr), getpinteger(), i - 1, procno - 1, communicator, requests(i), ierr)
+          call mpi_isend(send_buffer(i)%ptr, size(send_buffer(i)%ptr), getpinteger(), i - 1, tag, communicator, requests(i), ierr)
           assert(ierr == MPI_SUCCESS)
         end if
         
         ! Non-blocking receives
         if(size(receive_buffer(i)%ptr) > 0) then
-          call mpi_irecv(receive_buffer(i)%ptr, size(receive_buffer(i)%ptr), getpinteger(), i - 1, i - 1, communicator, requests(i + nprocs), ierr)
+          call mpi_irecv(receive_buffer(i)%ptr, size(receive_buffer(i)%ptr), getpinteger(), i - 1, tag, communicator, requests(i + nprocs), ierr)
           assert(ierr == MPI_SUCCESS)
         end if
       end do  
