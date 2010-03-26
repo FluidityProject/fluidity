@@ -12,7 +12,7 @@ extern void report_test(const string& title, const bool& fail, const bool& warn,
 
 void test_FluxesReader_fc() {
 
-#ifdef HAVE_UDUNITS
+#ifdef HAVE_LIBUDUNITS
   FluxesReader data;
   FluxesReader data2;
   data.VerboseOff();
