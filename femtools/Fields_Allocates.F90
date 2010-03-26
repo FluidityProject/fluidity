@@ -1468,6 +1468,7 @@ contains
       ! remaining exterior boundaries first, thus completing the surface mesh
       ! This does not work in parallel and is therefore discouraged
       
+      surface_elements_added=.false.
       do ele=1, size(mesh%faces%face_list,1)
         
          neigh=>row_m_ptr(mesh%faces%face_list, ele)
