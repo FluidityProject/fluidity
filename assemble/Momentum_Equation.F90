@@ -79,9 +79,10 @@
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: at_first_timestep
       type(state_type), dimension(:) :: POD_state
+      integer, intent(in) :: timestep
 
       type(vector_field), pointer :: u
-      integer :: istate, stat, timestep
+      integer :: istate, stat
 
       ewrite(1,*) 'Entering momentum_loop'
 
@@ -120,18 +121,13 @@
     end subroutine momentum_loop
 
     subroutine solve_momentum(state, istate, at_first_timestep, timestep, POD_state)
-      !!for reduced model
-      type(state_type), dimension(:) :: POD_state
-      type(vector_field), pointer :: snapmean_velocity
-      type(scalar_field), pointer :: snapmean_pressure
-      integer :: d
-
       !!< Construct and solve the momentum and continuity equations.
       ! an array of buckets full of fields
       ! the whole array is needed for the sake of multimaterial assembly
       type(state_type), dimension(:), intent(inout) :: state
-      integer, intent(in) :: istate, timestep
       logical, intent(in) :: at_first_timestep
+      integer, intent(in) :: istate, timestep
+      type(state_type), dimension(:), intent(inout) :: POD_state
 
       ! the pressure gradient matrix (extracted from state)
       type(block_csr_matrix), pointer :: ct_m
@@ -221,6 +217,12 @@
       
       ! increased each call to momentum equation, used as index for pressure debugging vtus
       integer,save :: pdv_count=-1
+
+      !!for reduced model
+      type(vector_field), pointer :: snapmean_velocity
+      type(scalar_field), pointer :: snapmean_pressure
+      integer :: d
+
 
       ewrite(1,*) 'Entering solve_momentum'
       
@@ -675,219 +677,220 @@
       call profiler_toc(p, "assembly")
       
       if (.not.reduced_model) then
-      ! allocate the momentum solution vector
-      call profiler_tic(u, "assembly")
-      call allocate(delta_u, u%dim, u%mesh, "DeltaU")
-      delta_u%option_path = trim(u%option_path)
+      
+          ! allocate the momentum solution vector
+          call profiler_tic(u, "assembly")
+          call allocate(delta_u, u%dim, u%mesh, "DeltaU")
+          delta_u%option_path = trim(u%option_path)
 
-      if (associated(ct_m)) then
-        ! add - ct_m^T*p to the rhs of the momentum eqn
-        ! (delta_u is just used as dummy memory here)
-        !
-        ! despite multiplying pressure by a nonlocal operator
-        ! a halo_update isn't necessary as this is just a rhs
-        ! contribution
-        call mult_T(delta_u, ct_m, p_theta)
+          if (associated(ct_m)) then
+            ! add - ct_m^T*p to the rhs of the momentum eqn
+            ! (delta_u is just used as dummy memory here)
+            !
+            ! despite multiplying pressure by a nonlocal operator
+            ! a halo_update isn't necessary as this is just a rhs
+            ! contribution
+            call mult_T(delta_u, ct_m, p_theta)
 
-        if (dg) then
-           ! We have just poluted the halo rows of delta_u. This is incorrect
-           ! in the dg case due to the non-local assembly system employed.
-           call zero_non_owned(delta_u)
-        end if
+            if (dg) then
+              ! We have just poluted the halo rows of delta_u. This is incorrect
+              ! in the dg case due to the non-local assembly system employed.
+              call zero_non_owned(delta_u)
+            end if
 
-        ewrite(2,*) 'note that delta_u = ct_m^T*p at this stage'
-        do i = 1, delta_u%dim
-          ewrite_minmax(delta_u%val(i)%ptr(:))
-        end do
-        call addto(mom_rhs, delta_u)
-      end if
-
-      ! impose zero guess on change in u
-      call zero(delta_u)
-      call profiler_toc(u, "assembly")
-
-      ! solve for the change in velocity
-      call petsc_solve(delta_u, big_m, mom_rhs)
-      do i = 1, u%dim
-        ewrite_minmax(delta_u%val(i)%ptr(:))
-      end do
-
-      call profiler_tic(u, "assembly")
-      ! apply change to velocity field
-      call addto(u, delta_u, dt)
-      do i = 1, u%dim
-        ewrite_minmax(u%val(i)%ptr(:))
-      end do
-
-      call deallocate(delta_u)
-      call profiler_toc(u, "assembly")
-
-      ! do we want to solve for pressure?
-      if(have_option(trim(p%option_path)//"/prognostic")) then
-        call profiler_tic(p, "assembly")
-        ! assemble the rhs
-        ! if we are adding the P1-P1 stabilisation,
-        ! this will have to have KMK * P added to it;
-        !
-        ! despite multiplying velocity by a nonlocal operator
-        ! a halo_update isn't necessary as this is just a rhs
-        ! contribution
-        if (.not. use_theta_pg) then
-          ! continuity is evaluated at the end of the time step
-          call mult(projec_rhs, ctp_m, u)
-        else
-          ! evaluate continuity at n+theta
-          ! compute theta*u+(1-theta)*old_u
-          call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
-          if (have_rotated_bcs(u)) then
-            call rotate_velocity(old_u, state(istate))
+            ewrite(2,*) 'note that delta_u = ct_m^T*p at this stage'
+            do i = 1, delta_u%dim
+              ewrite_minmax(delta_u%val(i)%ptr(:))
+            end do
+            call addto(mom_rhs, delta_u)
           end if
-          call set(delta_u, u, old_u, theta_pg)
-          call mult(projec_rhs, ctp_m, delta_u)
+
+          ! impose zero guess on change in u
+          call zero(delta_u)
+          call profiler_toc(u, "assembly")
+
+          ! solve for the change in velocity
+          call petsc_solve(delta_u, big_m, mom_rhs)
+          do i = 1, u%dim
+            ewrite_minmax(delta_u%val(i)%ptr(:))
+          end do
+
+          call profiler_tic(u, "assembly")
+          ! apply change to velocity field
+          call addto(u, delta_u, dt)
+          do i = 1, u%dim
+            ewrite_minmax(u%val(i)%ptr(:))
+          end do
+
           call deallocate(delta_u)
-        end if
-        call addto(projec_rhs, kmk_rhs)
-        call scale(projec_rhs, -1.0)
-        call addto(projec_rhs, ct_rhs)
-        ewrite_minmax(projec_rhs%val(:))
-         
-        if(use_compressible_projection) then
-          call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
-          
-          if(cv_pressure) then
-            call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
-                                                     get_cmc_m)
-          else if(cg_pressure) then
-            call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
-                                                     get_cmc_m)
-          else
-            FLAbort("Unknown pressure discretisation for compressible projection.")
+          call profiler_toc(u, "assembly")
+
+          ! do we want to solve for pressure?
+          if(have_option(trim(p%option_path)//"/prognostic")) then
+            call profiler_tic(p, "assembly")
+            ! assemble the rhs
+            ! if we are adding the P1-P1 stabilisation,
+            ! this will have to have KMK * P added to it;
+            !
+            ! despite multiplying velocity by a nonlocal operator
+            ! a halo_update isn't necessary as this is just a rhs
+            ! contribution
+            if (.not. use_theta_pg) then
+              ! continuity is evaluated at the end of the time step
+              call mult(projec_rhs, ctp_m, u)
+            else
+              ! evaluate continuity at n+theta
+              ! compute theta*u+(1-theta)*old_u
+              call allocate(delta_u, u%dim, u%mesh, "VelocityTheta")
+              if (have_rotated_bcs(u)) then
+                call rotate_velocity(old_u, state(istate))
+              end if
+              call set(delta_u, u, old_u, theta_pg)
+              call mult(projec_rhs, ctp_m, delta_u)
+              call deallocate(delta_u)
+            end if
+            call addto(projec_rhs, kmk_rhs)
+            call scale(projec_rhs, -1.0)
+            call addto(projec_rhs, ct_rhs)
+            ewrite_minmax(projec_rhs%val(:))
+            
+            if(use_compressible_projection) then
+              call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
+              
+              if(cv_pressure) then
+                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
+                                                        get_cmc_m)
+              else if(cg_pressure) then
+                call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
+                                                        get_cmc_m)
+              else
+                FLAbort("Unknown pressure discretisation for compressible projection.")
+              end if
+              
+              ewrite_minmax(compress_projec_rhs%val)
+              ewrite_minmax(cmc_m%val)
+              
+              call addto(projec_rhs, compress_projec_rhs)
+
+              call deallocate(compress_projec_rhs)
+            end if
+
+            ! apply strong dirichlet conditions
+            ! we're solving for "delta_p"=theta_pg**2*dp*dt, where dp=p_final-p_current
+            ! apply_dirichlet_condition however assumes we're solving for
+            ! "acceleration" dp/dt, by providing dt=1/(dt*theta_pg**2) we get what we want
+            call apply_dirichlet_conditions(cmc_m, projec_rhs, p, &
+              dt=1.0/(dt*theta_pg**2))
+            
+            call impose_reference_pressure_node(cmc_m, projec_rhs, trim(p%option_path))
+            
+            ! allocate the change in pressure field
+            call allocate(delta_p, p%mesh, "DeltaP")
+            delta_p%option_path = trim(p%option_path)
+            call zero(delta_p)
+
+            if(have_option(trim(p%option_path)//"/prognostic/repair_stiff_nodes")) then
+              call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
+            end if
+            call profiler_toc(p, "assembly")
+      
+            ! solve for the change in pressure
+            if(full_schur) then
+              if(apply_kmk) then
+                  kmk_matrix => get_pressure_stabilisation_matrix(state(istate))
+              else
+                  nullify(kmk_matrix)
+              end if
+              call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs,cmc_m,kmk_matrix)
+            else
+              call petsc_solve(delta_p, cmc_m, projec_rhs, state(istate))
+            end if
+
+            ewrite_minmax(delta_p%val)
+
+            if (pressure_debugging_vtus) then
+              ! writes out the pressure and velocity before the correction is added in
+              ! (as the corrected fields are already available in the convergence files)
+              call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
+                  sfields=(/ delta_p, p, old_p, p_theta /))
+              ! same thing but now on velocity mesh:
+              call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
+                  sfields=(/ delta_p, p, old_p, p_theta /), vfields=(/ u /))
+            end if
+            
+            call profiler_tic(p, "assembly")
+            if (use_theta_pg) then
+              ! we've solved theta_pg**2*dt*dp, in the velocity correction
+              ! however we need theta_pg*dt*dp
+              call scale(delta_p, 1.0/theta_pg)
+            end if        
+            
+            ! add the change in pressure to the pressure
+            ! (if .not. use_theta_pg then theta_pg is 1.0)
+            call addto(p, delta_p, scale=1.0/(theta_pg*dt))
+            ewrite_minmax(p%val)
+            
+            if(use_compressible_projection) then
+              call update_compressible_density(state)
+            end if
+            call profiler_toc(p, "assembly")
+
+            call profiler_tic(u, "assembly")
+            ! correct velocity according to new delta_p
+            if(full_schur) then
+              call correct_velocity_cg(u, inner_m, ct_m, delta_p)
+            elseif(lump_mass) then
+              call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
+            elseif(dg) then
+              call correct_velocity_dg(u, inverse_mass, ct_m, delta_p)
+            else
+              FLAbort("Don't know how to correct the velocity.")
+            end if
+            call profiler_toc(u, "assembly")
+            
+            call deallocate(kmk_rhs)
+            call deallocate(projec_rhs)
+            call deallocate(delta_p)
+
+            if(use_compressible_projection) then
+              call deallocate(ctp_m)
+              deallocate(ctp_m)
+            end if
+
           end if
-          
-          ewrite_minmax(compress_projec_rhs%val)
-          ewrite_minmax(cmc_m%val)
-          
-          call addto(projec_rhs, compress_projec_rhs)
-
-          call deallocate(compress_projec_rhs)
-        end if
-
-        ! apply strong dirichlet conditions
-        ! we're solving for "delta_p"=theta_pg**2*dp*dt, where dp=p_final-p_current
-        ! apply_dirichlet_condition however assumes we're solving for
-        ! "acceleration" dp/dt, by providing dt=1/(dt*theta_pg**2) we get what we want
-        call apply_dirichlet_conditions(cmc_m, projec_rhs, p, &
-          dt=1.0/(dt*theta_pg**2))
-        
-        call impose_reference_pressure_node(cmc_m, projec_rhs, trim(p%option_path))
-        
-        ! allocate the change in pressure field
-        call allocate(delta_p, p%mesh, "DeltaP")
-        delta_p%option_path = trim(p%option_path)
-        call zero(delta_p)
-
-        if(have_option(trim(p%option_path)//"/prognostic/repair_stiff_nodes")) then
-          call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
-        end if
-        call profiler_toc(p, "assembly")
-   
-        ! solve for the change in pressure
-        if(full_schur) then
-           if(apply_kmk) then
-              kmk_matrix => get_pressure_stabilisation_matrix(state(istate))
-           else
-              nullify(kmk_matrix)
-           end if
-           call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs,cmc_m,kmk_matrix)
-        else
-           call petsc_solve(delta_p, cmc_m, projec_rhs, state(istate))
-        end if
-
-        ewrite_minmax(delta_p%val)
-
-        if (pressure_debugging_vtus) then
-           ! writes out the pressure and velocity before the correction is added in
-           ! (as the corrected fields are already available in the convergence files)
-           call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
-               sfields=(/ delta_p, p, old_p, p_theta /))
-           ! same thing but now on velocity mesh:
-           call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
-               sfields=(/ delta_p, p, old_p, p_theta /), vfields=(/ u /))
-        end if
-        
-        call profiler_tic(p, "assembly")
-        if (use_theta_pg) then
-          ! we've solved theta_pg**2*dt*dp, in the velocity correction
-          ! however we need theta_pg*dt*dp
-          call scale(delta_p, 1.0/theta_pg)
-        end if        
-        
-        ! add the change in pressure to the pressure
-        ! (if .not. use_theta_pg then theta_pg is 1.0)
-        call addto(p, delta_p, scale=1.0/(theta_pg*dt))
-        ewrite_minmax(p%val)
-        
-        if(use_compressible_projection) then
-          call update_compressible_density(state)
-        end if
-        call profiler_toc(p, "assembly")
-
-        call profiler_tic(u, "assembly")
-        ! correct velocity according to new delta_p
-        if(full_schur) then
-          call correct_velocity_cg(u, inner_m, ct_m, delta_p)
-        elseif(lump_mass) then
-          call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
-        elseif(dg) then
-          call correct_velocity_dg(u, inverse_mass, ct_m, delta_p)
-        else
-          FLAbort("Don't know how to correct the velocity.")
-        end if
-        call profiler_toc(u, "assembly")
-        
-        call deallocate(kmk_rhs)
-        call deallocate(projec_rhs)
-        call deallocate(delta_p)
-
-        if(use_compressible_projection) then
-          call deallocate(ctp_m)
-          deallocate(ctp_m)
-        end if
-
-      end if
 
       else ! Reduced model version
- 
-         ! allocate the change in pressure field
-         call allocate(delta_p, p%mesh, "DeltaP")
-         delta_p%option_path = trim(p%option_path)
-         call zero(delta_p)
-         
-         call allocate(delta_u, u%dim, u%mesh, "DeltaU")
-         delta_u%option_path = trim(u%option_path)
-         call zero(delta_u)
+  
+          ! allocate the change in pressure field
+          call allocate(delta_p, p%mesh, "DeltaP")
+          delta_p%option_path = trim(p%option_path)
+          call zero(delta_p)
+          
+          call allocate(delta_u, u%dim, u%mesh, "DeltaU")
+          delta_u%option_path = trim(u%option_path)
+          call zero(delta_u)
 
-         call solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, POD_state) 
+          call solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, POD_state) 
 
-         snapmean_velocity=>extract_vector_field(POD_state(1), "SnapmeanVelocity")
-         snapmean_pressure=>extract_scalar_field(POD_state(1), "SnapmeanPressure")
+          snapmean_velocity=>extract_vector_field(POD_state(1), "SnapmeanVelocity")
+          snapmean_pressure=>extract_scalar_field(POD_state(1), "SnapmeanPressure")
 
-         if(timestep==1)then
-            do d=1,snapmean_velocity%dim
-               u%val(d)%ptr=snapmean_velocity%val(d)%ptr
-            enddo
-            p%val=snapmean_pressure%val
+          if(timestep==1)then
+              do d=1,snapmean_velocity%dim
+                u%val(d)%ptr=snapmean_velocity%val(d)%ptr
+              enddo
+              p%val=snapmean_pressure%val
 
-            call addto(u, delta_u, dt)
-            call addto(p, delta_p, dt)
-         else
-            call addto(u, delta_u, dt)
-            call addto(p, delta_p, dt)
-         endif
+              call addto(u, delta_u, dt)
+              call addto(p, delta_p, dt)
+          else
+              call addto(u, delta_u, dt)
+              call addto(p, delta_p, dt)
+          endif
 
-         call deallocate(delta_p)
-         call deallocate(delta_u)
-         
+          call deallocate(delta_p)
+          call deallocate(delta_u)
+          
       end if ! end of if reduced model
       
       call profiler_tic(u, "assembly")
