@@ -50,8 +50,8 @@ print withadd[12,2], 2.0e6
 assert withadd[12,2] &lt; 2.0e6
     </test>
     <test name="with vertical lumping and internal smoother and wrapped SOR check error" language="python">
-print withwrap[12,1],1.0e-9
-assert withwrap[12,1] &lt; 1.0e-9
+print withwrap[12,1],2.0e-9
+assert withwrap[12,1] &lt; 2.0e-9
     </test>
     <test name="with vertical lumping and internal smoother and wrapped SOR check flops" language="python">
 print withwrap[12,2], 2.0e6
