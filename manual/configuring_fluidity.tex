@@ -277,6 +277,15 @@ mpiexec -n [number of processors] \
 \subsubsection{Extruded meshes}
 \index{mesh!extruded}
 
+Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
+by checking the extrude option under \ldots/from mesh. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
+between layers). These distances can currently be entered as a constant, a generic\_function or
+as a python function. Optionally, the user can then set the surface id given to the top and bottom surfaces. 
+
+As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file), given a pseudo 2D mesh on a spherical shell, fluidity can perform
+and extrusion in the radial direction. To perform such an extrusion simply enable the options as noted above and additionally check the geometry/spherical\_earth option. With
+this option enabled fluidity will then perform the specified extrusion towards the center of the sphere.
+
 \subsubsection{Required meshes}
 \index{mesh!required}
 
