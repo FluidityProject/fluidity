@@ -32,14 +32,6 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">5</integer_value>
