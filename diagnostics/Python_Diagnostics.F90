@@ -31,7 +31,7 @@ module python_diagnostics
 
   use fields
   use fldebug
-  use global_parameters, only : PYTHON_FUNC_LEN
+  use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
   use python_state
   use spud
   use state_module
@@ -45,31 +45,51 @@ module python_diagnostics
     
 contains
 
-  subroutine calculate_scalar_python_diagnostic(state, s_field, current_time, dt)
+  subroutine calculate_scalar_python_diagnostic(states, state_index, s_field, current_time, dt)
     !!< Set a field from Python
     !!< So add the whole state and make a variable with the diagnostic
     !!< field available to the interpreter
   
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), target, intent(inout) :: states
+    integer, intent(in) :: state_index
     type(scalar_field), intent(inout) :: s_field
     real, intent(in) :: current_time
     real, intent(in) :: dt
-    
+
 #ifdef HAVE_NUMPY    
     character(len = PYTHON_FUNC_LEN) :: pycode
     character(len = 30) :: buffer
+    character(len = OPTION_PATH_LEN) :: material_phase_support
+    type(state_type), pointer :: this_state
     
     ! Clean up to make sure that nothing else interferes
     call python_reset()
     
-    call python_add_state(state)
+    call get_option(trim(s_field%option_path)&
+         //"/diagnostic/algorithm/material_phase_support",material_phase_support)
+
+    select case(material_phase_support)
+    case("single")
+       call python_add_state(states(state_index))
+
+    case ("multiple")
+       call python_add_states(states)
+       this_state=>states(state_index)
+       call python_run_string("state = states['"//trim(this_state%name)//"']")
+
+    case default
+       ewrite(0,*) trim(material_phase_support)&
+            //" is not a valid value for material_phase_support"
+       FLExit("Options file error")
+    end select
+
     call python_run_string("field = state.scalar_fields['"//trim(s_field%name)//"']")
     write(buffer,*) current_time
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
     call python_run_string("dt="//trim(buffer))  
       
-    ! And finally run the user's code
+    ! And finally run the user's codey
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm",pycode)
     call python_run_string(trim(pycode))
     
@@ -81,12 +101,13 @@ contains
 
   end subroutine calculate_scalar_python_diagnostic
   
-  subroutine calculate_vector_python_diagnostic(state, v_field, current_time, dt)
+  subroutine calculate_vector_python_diagnostic(states, state_index, v_field, current_time, dt)
     !!< Set a field from Python
     !!< So add the whole state and make a variable with the diagnostic
     !!< field available to the interpreter
     
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), target, intent(inout) :: states
+    integer, intent(in) :: state_index
     type(vector_field), intent(inout) :: v_field
     real, intent(in) :: current_time
     real, intent(in) :: dt
@@ -94,11 +115,30 @@ contains
 #ifdef HAVE_NUMPY
     character(len = PYTHON_FUNC_LEN) :: pycode
     character(len = 30) :: buffer
+    character(len = OPTION_PATH_LEN) :: material_phase_support
+    type(state_type), pointer :: this_state
     
     ! Clean up to make sure that nothing else interferes
     call python_reset()
     
-    call python_add_state(state)
+    call get_option(trim(v_field%option_path)&
+         //"/diagnostic/algorithm/material_phase_support",material_phase_support)
+
+    select case(material_phase_support)
+    case("single")
+       call python_add_state(states(state_index))
+
+    case ("multiple")
+       call python_add_states(states)
+       this_state=>states(state_index)
+       call python_run_string("state = states['"//trim(this_state%name)//"']")
+
+    case default
+       ewrite(0,*) trim(material_phase_support)&
+            //" is not a valid value for material_phase_support"
+       FLExit("Options file error")
+    end select
+
     call python_run_string("field = state.vector_fields['"//trim(v_field%name)//"']")
     write(buffer,*) current_time
     call python_run_string("time="//trim(buffer))
@@ -117,12 +157,13 @@ contains
     
   end subroutine calculate_vector_python_diagnostic
   
-  subroutine calculate_tensor_python_diagnostic(state, t_field, current_time, dt)
+  subroutine calculate_tensor_python_diagnostic(states, state_index, t_field, current_time, dt)
     !!< Set a field from Python
     !!< So add the whole state and make a variable with the diagnostic
     !!< field available to the interpreter
     
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), target, intent(inout) :: states
+    integer, intent(in) :: state_index
     type(tensor_field), intent(inout) :: t_field
     real, intent(in) :: current_time
     real, intent(in) :: dt
@@ -130,11 +171,30 @@ contains
 #ifdef HAVE_NUMPY
     character(len = PYTHON_FUNC_LEN) :: pycode
     character(len = 30) :: buffer
+    character(len = OPTION_PATH_LEN) :: material_phase_support
+    type(state_type), pointer :: this_state
     
     ! Clean up to make sure that nothing else interferes
     call python_reset()
     
-    call python_add_state(state)
+    call get_option(trim(t_field%option_path)&
+         //"/diagnostic/algorithm/material_phase_support",material_phase_support)
+
+    select case(material_phase_support)
+    case("single")
+       call python_add_state(states(state_index))
+
+    case ("multiple")
+       call python_add_states(states)
+       this_state=>states(state_index)
+       call python_run_string("state = states['"//trim(this_state%name)//"']")
+
+    case default
+       ewrite(0,*) trim(material_phase_support)&
+            //" is not a valid value for material_phase_support"
+       FLExit("Options file error")
+    end select
+
     call python_run_string("field = state.tensor_fields['"//trim(t_field%name)//"']")
     write(buffer,*) current_time
     call python_run_string("time="//trim(buffer))

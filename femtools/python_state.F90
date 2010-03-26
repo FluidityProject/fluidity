@@ -34,7 +34,8 @@ module python_state
   private
   
   public :: python_init, python_reset
-  public :: python_add_array, python_add_field, python_add_state
+  public :: python_add_array, python_add_field
+  public :: python_add_state, python_add_states
   public :: python_run_string, python_run_file
 
   interface
@@ -371,10 +372,15 @@ module python_state
     end if
   end subroutine python_add_state
 
+  subroutine python_add_states(S)
+    type(state_type), dimension(:) :: S
+    integer :: i
 
-
-
-
+    do i = 1, size(S)
+       call python_add_state(S(i))
+    end do
+    
+  end subroutine python_add_states
 
   !! Wrapper procedures to add arrays to the Python interpreter
 

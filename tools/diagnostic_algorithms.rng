@@ -773,7 +773,10 @@ and 'tensor_fields';
         <value>scalar_python_diagnostic</value>
       </attribute>
       <attribute name="material_phase_support">
-        <value>single</value>
+        <choice>
+          <value>single</value>
+          <value>multiple</value>
+        </choice>
       </attribute>
       <ref name="python_code"/>
       <optional>
@@ -794,7 +797,10 @@ and 'tensor_fields';
         <value>vector_python_diagnostic</value>
       </attribute>
       <attribute name="material_phase_support">
-        <value>single</value>
+        <choice>
+          <value>single</value>
+          <value>multiple</value>
+        </choice>
       </attribute>
       <ref name="python_code"/>
       <optional>
@@ -815,7 +821,10 @@ and 'tensor_fields';
         <value>tensor_python_diagnostic</value>
       </attribute>
       <attribute name="material_phase_support">
-        <value>single</value>
+        <choice>
+          <value>single</value>
+          <value>multiple</value>
+        </choice>
       </attribute>
       <ref name="python_code"/>
       <optional>

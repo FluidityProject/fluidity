@@ -591,7 +591,7 @@ scalar_python_diagnostic_algorithm =
       ## 'field' is the diagnostic field to be set
       element algorithm {
          attribute name { "scalar_python_diagnostic" },
-         attribute material_phase_support { "single" },
+         attribute material_phase_support { "single"|"multiple" },
          python_code,
          ## Enable to specify dependencies manually
          element depends {
@@ -607,7 +607,7 @@ vector_python_diagnostic_algorithm =
       ## 'field' is the diagnostic field to be set
       element algorithm {
          attribute name { "vector_python_diagnostic" },
-         attribute material_phase_support { "single" },
+         attribute material_phase_support { "single"|"multiple" },
          python_code,
          ## Enable to specify dependencies manually
          element depends {
@@ -623,7 +623,7 @@ tensor_python_diagnostic_algorithm =
       ## 'field' is the diagnostic field to be set
       element algorithm {
          attribute name { "tensor_python_diagnostic" },
-         attribute material_phase_support { "single" },
+         attribute material_phase_support { "single"|"multiple" },
          python_code,
          ## Enable to specify dependencies manually
          element depends {
