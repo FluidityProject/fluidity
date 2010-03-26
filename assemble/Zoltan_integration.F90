@@ -963,6 +963,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     call finalise_transfer
 
     call cleanup_basic_module_variables
+    call cleanup_other_module_variables
     dumpno = dumpno + 1
 
     ewrite(1,*) "Exiting zoltan_drive"
