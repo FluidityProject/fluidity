@@ -8,9 +8,11 @@ module hadapt_metric_based_extrude
   use hadapt_advancing_front
   use spud
   use metric_tools
+  use vector_tools
+  use meshdiagnostics
   implicit none
 
-  public :: metric_based_extrude, combine_z_meshes
+  public :: metric_based_extrude, combine_z_meshes, combine_r_meshes
 
   contains
 
@@ -130,6 +132,61 @@ module hadapt_metric_based_extrude
     call deallocate(out_columns)
     
   end subroutine combine_z_meshes
+
+  subroutine combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
+    full_shape, mesh_name, option_path)
+  !! Given the shell_mesh and a r_mesh under each node of it combines these
+  !! into a full layered mesh
+  type(vector_field), intent(inout):: shell_mesh
+  type(vector_field), dimension(:), intent(in):: r_meshes
+  type(vector_field), intent(out):: out_mesh
+  type(element_type), intent(in):: full_shape
+  !! the name of the topol. mesh to be created, not the coordinate field
+  character(len=*), intent(in):: mesh_name, option_path
+  
+    type(csr_sparsity):: out_columns
+    type(mesh_type):: mesh
+    integer:: column, total_out_nodes, total_out_elements, r_elements, last_seen
+    
+    total_out_nodes = 0
+    ! For each column,
+    ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
+    ! to compute the number of elements the extrusion routine will produce
+    total_out_elements = 0
+    do column=1, size(r_meshes)
+      r_elements = ele_count(r_meshes(column))
+      total_out_nodes = total_out_nodes + r_elements + 1
+      assert(associated(shell_mesh%mesh%adj_lists))
+      assert(associated(shell_mesh%mesh%adj_lists%nelist))
+      total_out_elements = total_out_elements + r_elements * row_length(shell_mesh%mesh%adj_lists%nelist, column)
+    end do
+
+    call allocate(mesh, total_out_nodes, total_out_elements, &
+      full_shape, mesh_name)
+    ! allocate mapping between extruded nodes to surface node (column number)
+    ! it lies under
+    allocate(mesh%columns(total_out_nodes))
+    if (mesh_name=="CoordinateMesh") then
+      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, "Coordinate")
+    else
+      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
+    end if
+    call deallocate(mesh)
+
+    out_mesh%mesh%option_path=option_path
+    out_mesh%option_path=""
+    out_mesh%mesh%periodic = mesh_periodic(shell_mesh) ! Leave this here for now
+    
+    last_seen = 0
+    do column=1,node_count(shell_mesh)
+      call append_to_structures_radial(column, r_meshes(column), shell_mesh, out_mesh, last_seen)
+    end do
+      
+    call create_columns_sparsity(out_columns, out_mesh%mesh)
+    call generate_radially_layered_mesh(out_mesh, shell_mesh)
+    call deallocate(out_columns)
+    
+  end subroutine combine_r_meshes
 
   subroutine get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, z_mesh, sizing)
     integer, intent(in) :: column
@@ -300,5 +357,28 @@ module hadapt_metric_based_extrude
     end do
     
   end subroutine append_to_structures
+
+  subroutine append_to_structures_radial(column, r_mesh, shell_mesh, out_mesh, last_seen)
+    integer, intent(in) :: column
+    type(vector_field), intent(in) :: r_mesh, shell_mesh
+    type(vector_field), intent(inout) :: out_mesh
+    integer, intent(inout) :: last_seen
+
+    integer :: j
+    integer :: shell_dim, r_dim
+
+    real, dimension(mesh_dim(out_mesh)) :: pos
+
+    shell_dim = mesh_dim(shell_mesh)+1 ! This is the number of coordinates and not the topological dimesnion
+    r_dim = mesh_dim(out_mesh)
+
+    do j=1,node_count(r_mesh)
+      last_seen = last_seen + 1
+      out_mesh%mesh%columns(last_seen)=column
+      pos(1:r_dim) = node_val(r_mesh, j)             ! note that in z-dir extrusion case only the z value was loaded into the out mesh from the z mesh. Here however,
+      call set(out_mesh, last_seen, pos)
+    end do
+    
+  end subroutine append_to_structures_radial
 
 end module hadapt_metric_based_extrude

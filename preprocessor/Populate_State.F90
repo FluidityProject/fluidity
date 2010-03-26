@@ -48,6 +48,7 @@ module populate_state_module
   use halos
   use tictoc
   use hadapt_extrude
+  use hadapt_extrude_radially
   use initialise_fields_module
   use transform_elements
   use parallel_tools
@@ -457,7 +458,11 @@ contains
                   
                   modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
                
-                  call extrude(modelposition, mesh_path, extrudedposition)
+                  if (have_option('/geometry/spherical_earth/')) then
+                    call extrude_radially(modelposition, mesh_path, extrudedposition)
+                  else
+                    call extrude(modelposition, mesh_path, extrudedposition)
+                  end if
                 
                end if
                

@@ -35,6 +35,7 @@ module read_triangle
   use elements
   use fields
   use state_module
+  use spud
 
   implicit none
 
@@ -231,24 +232,42 @@ contains
     
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
 
-    call allocate(field, dim, mesh, name="Coordinate")
+    if (have_option('/geometry/spherical_earth/')) then
+      call allocate(field, dim+1, mesh, name="Coordinate") ! Pseudo 2D mesh points have 3 coordinates
+    else
+      call allocate(field, dim, mesh, name="Coordinate")
+    end if
 
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
-    allocate(read_buffer(dim+node_attributes+boundaries+1))
+    if (have_option('/geometry/spherical_earth/')) then
+      allocate(read_buffer(dim+node_attributes+boundaries+2))
+    else
+      allocate(read_buffer(dim+node_attributes+boundaries+1))
+    end if
 
     if(node_attributes==1) then ! this assumes the node attribute are column numbers
       allocate(field%mesh%columns(1:nodes))
     end if
 
     do i=1,nodes
-       read(node_unit,*) read_buffer
-       forall (j=1:dim)
-          field%val(j)%ptr(i)=read_buffer(j+1)
-       end forall
-       if (node_attributes==1) then
-         field%mesh%columns(i)=floor(read_buffer(dim+1))
+       if (have_option('/geometry/spherical_earth/')) then
+         read(node_unit,*) read_buffer
+         forall (j=1:dim+1)
+            field%val(j)%ptr(i)=read_buffer(j+1)
+         end forall
+         if (node_attributes==1) then
+           field%mesh%columns(i)=floor(read_buffer(dim+2))
+         end if
+       else
+         read(node_unit,*) read_buffer
+         forall (j=1:dim)
+            field%val(j)%ptr(i)=read_buffer(j+1)
+         end forall
+         if (node_attributes==1) then
+           field%mesh%columns(i)=floor(read_buffer(dim+1))
+         end if
        end if
     end do
 
@@ -672,7 +691,7 @@ contains
     integer, allocatable, dimension(:):: node_order
     logical :: file_exists
     type(mesh_type) :: mesh
-    
+
     ! If running in parallel, add the process number
     if(isparallel()) then
       lfilename = parallel_filename(filename)

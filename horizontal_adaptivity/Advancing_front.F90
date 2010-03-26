@@ -222,6 +222,215 @@ module hadapt_advancing_front
     end do
 
   end subroutine generate_layered_mesh
+
+    subroutine generate_radially_layered_mesh(mesh, shell_mesh)
+    !! Given a radially columnar mesh with the positions
+    !! nodes, fill in the elements. 
+    type(vector_field), intent(inout) :: mesh
+    type(vector_field), intent(inout) :: shell_mesh
+
+    type(csr_sparsity) :: columns
+    type(ilist), dimension(node_count(shell_mesh)) :: chains
+
+    ! node_count(mesh) - node_count(shell_mesh) == number of nodes below the outer shell.
+    ! The radial coordinate act as priorities in a priority queue, while the indices
+    ! record on which chain this radius lives.
+    real, dimension(node_count(mesh) - node_count(shell_mesh)) :: radius
+    integer, dimension(node_count(mesh) - node_count(shell_mesh)) :: indices
+    integer, dimension(node_count(mesh) - node_count(shell_mesh)) :: sorted
+
+ 
+    integer :: shell_node ! node on a shell of constant radius
+    integer :: c_node ! chain_node
+    integer :: chain_len
+    integer, dimension(:), pointer :: chain_ptr, ndglno_ptr, shell_elements, shell_ndglno
+    integer, dimension(mesh_dim(mesh) - 1) :: other_chain_heads
+    integer :: i, j, k, l
+    integer :: chain
+
+    integer :: dim
+    integer :: ele, shell_ele, snloc
+    ! the maximum amount of faces you could possibly want to add is
+    ! number of elements in the extruded mesh (ele_count(mesh))
+    ! x number of faces per element (in the absence of face_count, use ele_loc)
+    integer, dimension(ele_count(mesh) * ele_loc(mesh, 1)) :: element_owners, boundary_ids
+    integer, dimension(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)), target :: sndgln
+    integer :: faces_seen
+    integer :: bottom_count, top_count
+
+    real :: vol
+    type(integer_set) :: bottom_nodes, top_nodes
+    type(csr_sparsity), pointer :: nelist
+    integer, dimension(:), pointer :: nodes, faces
+    integer :: top_surface_id, bottom_surface_id
+    integer, dimension(1) :: other_node
+
+    dim = mesh_dim(mesh)
+
+    ! Step 0. Generate the data structures necessary:
+    ! 0.1 The chain-element connectivity list
+    nelist => extract_nelist(shell_mesh)
+    
+    ! 0.1 From the node to column map, create a column to node map
+    call create_columns_sparsity(columns, mesh%mesh)
+
+    call allocate(bottom_nodes) ! checkcheck
+    call allocate(top_nodes)   
+
+    ! 0.2 The linked lists representing the chains.
+    do shell_node=1,node_count(shell_mesh)
+      chain_len = row_length(columns, shell_node)
+      chain_ptr => row_m_ptr(columns, shell_node)
+      do c_node=1,chain_len
+        call insert(chains(shell_node), chain_ptr(c_node))
+      end do
+      call insert(top_nodes, chain_ptr(1)) ! checkcheck
+      call insert(bottom_nodes, chain_ptr(chain_len))
+    end do
+
+    ! 0.3 The radii and indices of the hanging nodes.
+    i = 1
+    do shell_node=1,node_count(shell_mesh)
+      chain_len = row_length(columns, shell_node)
+      chain_ptr => row_m_ptr(columns, shell_node)
+      ! Note: c_node loops from 2 to skip the node in the chain on the shell mesh
+      do c_node=2,chain_len
+!         heights(i) = abs(node_val(mesh, dim, chain_ptr(c_node)))
+        radius(i) = norm2(node_val(mesh, chain_ptr(c_node)))
+        indices(i) = shell_node
+        i = i + 1
+      end do
+    end do
+      
+    ! bored with it now
+    call deallocate(columns)
+
+    ! Sort the chains by radius
+    call qsort(radius, sorted)
+
+    ! The main loop.
+
+    faces_seen = 0
+    if (has_faces(shell_mesh%mesh)) then
+      snloc = mesh_dim(mesh)
+      assert( snloc==face_loc(shell_mesh,1)+1 )
+    end if
+
+    ele = 1
+    ndglno_ptr => ele_nodes(mesh, ele)
+    do i=1,size(sorted)
+      ! Get the chain we're dealing with.
+      chain = indices(sorted(i))
+      assert(associated(chains(chain)%firstnode%next))
+
+      ! So we're going to form an element.
+      ! It's going to have nodes
+      ! [chain_head, next_along_chain_from_chain_head, [others]]
+      ! where others are the chain_heads of chains in elements
+      ! neighbouring the current chain.
+
+      shell_elements => row_m_ptr(nelist, chain)
+      do j=1,size(shell_elements)
+        shell_ele = shell_elements(j)
+        ! Get the chains in sele that are NOT the current chain.
+        shell_ndglno => ele_nodes(shell_mesh, shell_ele)
+        l = 1
+        do k=1,size(shell_ndglno)
+          if (shell_ndglno(k) /= chain) then
+            other_chain_heads(l) = chains(shell_ndglno(k))%firstnode%value
+            l = l + 1
+          end if
+        end do
+
+        ! So now we know the heads of the chains next to us.
+        ! Let's form the element! Quick! quick!
+
+        ndglno_ptr(1) = chains(chain)%firstnode%value
+        ndglno_ptr(2) = chains(chain)%firstnode%next%value
+        ndglno_ptr(3:dim+1) = other_chain_heads
+
+        ! Now we have to orient the element. 
+
+        vol = simplex_volume(mesh, ele)
+        assert(abs(vol) /= 0.0)
+        if (vol < 0.0) then
+          l = ndglno_ptr(1)
+          ndglno_ptr(1) = ndglno_ptr(2)
+          ndglno_ptr(2) = l
+        end if
+
+        ! if the horizontal element has any surface faces, add them to the extruded surface mesh
+        if (has_faces(shell_mesh%mesh)) then
+          faces => ele_faces(shell_mesh, shell_ele)
+          do k=1, size(faces)
+            if (faces(k)<=surface_element_count(shell_mesh)) then
+              if (.not. any(chain == face_global_nodes(shell_mesh, faces(k)))) cycle
+              faces_seen = faces_seen + 1
+              element_owners(faces_seen) = ele
+              boundary_ids(faces_seen) = surface_element_id(shell_mesh, faces(k))
+              nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+              nodes(1) = chains(chain)%firstnode%value
+              nodes(2) = chains(chain)%firstnode%next%value
+
+              if (mesh_dim(mesh) == 3) then
+                other_node = pack(face_global_nodes(shell_mesh, faces(k)), (chain /= face_global_nodes(shell_mesh, faces(k))))
+                nodes(3) = chains(other_node(1))%firstnode%value
+              end if
+            end if
+          end do
+        end if
+
+        ! Get ready to process the next element
+
+        ele = ele + 1
+        if (ele <= ele_count(mesh)) then
+          ndglno_ptr => ele_nodes(mesh, ele)
+        end if
+
+      end do
+
+      ! And advance down the chain ..
+      k = pop(chains(chain))
+    end do
+
+    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/top_surface_id', top_surface_id, default=0)
+    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/bottom_surface_id', bottom_surface_id, default=0)
+
+    if (has_faces(shell_mesh%mesh)) then
+      ! Add the top faces, and the bottom ones:
+
+      do ele=1,ele_count(mesh)
+        nodes => ele_nodes(mesh, ele)
+        bottom_count = count(has_value(bottom_nodes, nodes))
+        top_count = count(has_value(top_nodes, nodes))
+
+        if (bottom_count == ele_loc(mesh, ele) - 1) then
+          faces_seen = faces_seen + 1
+          element_owners(faces_seen) = ele
+          boundary_ids(faces_seen) = bottom_surface_id
+          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(bottom_nodes, nodes))
+        end if
+
+        if (top_count == ele_loc(mesh, ele) - 1) then
+          faces_seen = faces_seen + 1
+          element_owners(faces_seen) = ele
+          boundary_ids(faces_seen) = top_surface_id
+          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(top_nodes, nodes))
+        end if
+      end do
+
+      call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), element_owner=element_owners(1:faces_seen), boundary_ids=boundary_ids(1:faces_seen))
+    end if
+
+    call deallocate(top_nodes)
+    call deallocate(bottom_nodes)
+
+
+    do shell_node=1,node_count(shell_mesh)
+      call deallocate(chains(shell_node))
+    end do
+
+  end subroutine generate_radially_layered_mesh
     
   subroutine create_columns_sparsity(columns, mesh)
     !! Auxillary routine that creates a sparsity of which the rows

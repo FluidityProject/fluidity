@@ -1,0 +1,264 @@
+#include "fdebug.h"
+
+module hadapt_extrude_radially
+  !!< Extrude a given pseudo 2D mesh on a spherical shell to a full 3D mesh.
+  !!< The layer depths are specified by a sizing function
+  !!< which can be arbitrary python.
+  use elements
+  use fields
+  use spud
+  use quadrature
+  use global_parameters
+  use sparse_tools
+  use hadapt_advancing_front
+  use hadapt_metric_based_extrude
+  use vector_tools
+  use vtk_interfaces
+  implicit none
+
+  private
+  
+  public :: extrude_radially, compute_r_nodes
+
+  contains
+
+  subroutine extrude_radially(shell_mesh, option_path, out_mesh)
+    !!< The pseudo 2D mesh on the spherical shell.
+    !!< Note: this must be linear.
+    type(vector_field), intent(inout) :: shell_mesh
+    !!< options to be set for out_mesh,
+    !!< at the moment: /name, and under from_mesh/extrude/:
+    !!< depth, sizing_function optionally top_surface_id and bottom_surface_id
+    character(len=*), intent(in) :: option_path
+    !!< The full extruded 3D mesh.
+    type(vector_field), intent(out) :: out_mesh
+
+    character(len=FIELD_NAME_LEN):: mesh_name    
+    type(quadrature_type) :: quad
+    type(element_type) :: full_shape
+    type(vector_field), dimension(node_count(shell_mesh)) :: r_meshes
+    character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
+    logical:: sizing_is_constant, depth_is_constant
+    real:: constant_sizing, depth
+    integer:: stat, shell_dim, column, quadrature_degree
+    real:: r_shell
+    
+    real, dimension(1) :: tmp_depth
+    real, dimension(mesh_dim(shell_mesh), 1) :: tmp_pos
+
+    !! We assume that for the extrusion operation,
+    !! the layer configuration is independent of phi and theta.
+    !! (i.e. the layers are the same everywhere.)
+
+    !! Checking linearity of shell_mesh.
+    assert(shell_mesh%mesh%shape%degree == 1)
+    assert(shell_mesh%mesh%continuity >= 0)
+
+    call add_nelist(shell_mesh%mesh)
+
+    ! get the extrusion options
+    call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/constant', &
+       depth, stat=stat)
+    if (stat==0) then
+       depth_is_constant = .true.
+    else
+       depth_is_constant = .false.
+       call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python', &
+          depth_function, stat=stat)
+       if (stat /= 0) then
+         FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
+       end if
+    end if
+    
+    call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/constant', &
+       constant_sizing, stat=stat)
+    if (stat==0) then
+       sizing_is_constant=.true.
+    else
+       sizing_is_constant=.false.
+       call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/python', &
+          sizing_function, stat=stat)
+       if (stat/=0) then
+         FLAbort("Unknown way of specifying sizing function in mesh extrusion")
+       end if       
+    end if
+  
+    ! create a 1d radial mesh under each surface node
+    do column=1, size(r_meshes)
+      
+      if(.not.depth_is_constant) then
+        tmp_pos(:,1) = node_val(shell_mesh, column)
+        call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+        depth = tmp_depth(1)
+      end if
+      
+      if (sizing_is_constant) then
+        call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+          sizing=constant_sizing) ! Return r_shell, will be needed for working out face id's later
+      else
+        call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+          sizing_function=sizing_function)
+      end if
+    end do
+      
+    ! Now the tiresome business of making a shape function.
+    shell_dim = mesh_dim(shell_mesh)
+    call get_option("/geometry/quadrature/degree", quadrature_degree)
+    quad = make_quadrature(vertices=shell_dim+2, dim=shell_dim+1, degree=quadrature_degree)
+    full_shape = make_element_shape(vertices=shell_dim+2, dim=shell_dim+1, degree=1, quad=quad)
+    call deallocate(quad)
+
+    call get_option(trim(option_path)//'/name', mesh_name)
+      
+    ! combine the 1d radial meshes into a full mesh
+    call combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
+       full_shape, mesh_name, option_path)
+    ! vtk_write_state(filename, index, model, state, write_region_ids, stat)
+    call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
+!     call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
+       
+    do column=1, node_count(shell_mesh)
+      call deallocate(r_meshes(column))
+    end do
+    call deallocate(full_shape)
+
+!    call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
+        
+  end subroutine extrude_radially
+
+  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, sizing, sizing_function)
+    !!< Figure out at what depths to put the layers.
+    type(vector_field), intent(out) :: r_mesh
+    real, intent(in):: depth
+    real, intent(out):: r_shell
+    real, dimension(:), intent(in):: xyz
+    real, optional, intent(in):: sizing
+    character(len=*), optional, intent(in):: sizing_function
+
+    ! this is a safety gap:
+    integer, parameter:: MAX_VERTICAL_NODES=1e6
+    ! to prevent infinitesimally thin bottom layer if sizing function
+    ! is an integer mulitple of total depth, the bottom layer needs
+    ! to have at least this fraction of the layer depth above it:
+    real, parameter:: MIN_BOTTOM_LAYER_FRAC=1e-3
+    
+    integer :: elements
+    logical :: is_constant
+    real :: constant_value
+
+    type(mesh_type) :: mesh
+    type(element_type) :: oned_shape
+    type(quadrature_type) :: oned_quad
+    integer :: quadrature_degree
+    integer :: ele
+    integer, parameter :: loc=2
+    integer :: node
+    real, dimension(1:size(xyz)):: xyz_new
+    real :: delta_r, r, rnew
+    real :: thetanew, phinew
+    character(len=PYTHON_FUNC_LEN) :: py_func
+
+    ! Review this bit
+!     call get_option("/geometry/quadrature/degree", quadrature_degree)
+!     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
+!     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
+!     call deallocate(oned_quad)
+
+    call get_option("/geometry/quadrature/degree", quadrature_degree)
+    oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
+    oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
+    call deallocate(oned_quad)
+
+    if (present(sizing)) then
+      is_constant=.true.
+      constant_value=sizing
+      py_func = " "
+    else if (present(sizing_function)) then
+      is_constant=.false.
+      constant_value=-1.0
+      py_func = sizing_function
+    else
+      FLAbort("Need to supply either sizing or sizing_function")
+    end if
+
+    ! First work out number of nodes/elements:
+    r_shell=norm2(xyz)
+    r=r_shell
+    node=2
+    xyz_new(1:size(xyz))=xyz
+    do
+      delta_r = get_delta_r( xyz_new, is_constant, constant_value, py_func)
+      r=r - delta_r
+      if (r<(r_shell-depth+MIN_BOTTOM_LAYER_FRAC*delta_r)) exit
+      node=node+1
+      if (node>MAX_VERTICAL_NODES) then
+        ewrite(-1,*) "Check your extrude/sizing_function"
+        FLAbort("Maximum number of vertical layers reached")
+      end if
+    end do
+    elements=node-1
+
+    call allocate(mesh, elements+1, elements, oned_shape, "RMesh") ! (mesh, nodes, elements, shape, name)
+    call deallocate(oned_shape)
+    do ele=1,elements
+      mesh%ndglno((ele-1) * loc + 1: ele*loc) = (/ele, ele+1/)
+    end do
+
+    call allocate(r_mesh, 3, mesh, "RMeshCoordinates")
+    call deallocate(mesh)
+
+    ! Start the mesh at r=r(shell_r) and work down to r=shell_r-depth.
+    call set(r_mesh, 1, xyz)
+    ! Set theta and phi - these will be the same at all layers
+    thetanew=acos(xyz(3)/norm2(xyz))
+    phinew=atan2(xyz(2),xyz(1))  
+    do node=2,elements
+      xyz_new=node_val(r_mesh, node-1)
+      delta_r = get_delta_r(xyz_new, is_constant, constant_value, py_func)
+      rnew=norm2(xyz_new)-delta_r
+      xyz_new(1)=rnew*sin(thetanew)*cos(phinew)
+      xyz_new(2)=rnew*sin(thetanew)*sin(phinew)
+      xyz_new(3)=rnew*cos(thetanew)
+      call set(r_mesh, node, xyz_new )
+    end do    
+    xyz_new(1)=(r_shell-depth)*sin(thetanew)*cos(phinew)
+    xyz_new(2)=(r_shell-depth)*sin(thetanew)*sin(phinew)
+    xyz_new(3)=(r_shell-depth)*cos(thetanew)
+    call set(r_mesh, elements+1, xyz_new)
+
+    ! For pathological sizing functions the mesh might have gotten inverted at the last step.
+    ! If you encounter this, make this logic smarter.
+!    assert(all(node_val(r_mesh, elements) > node_val(r_mesh, elements+1)))  -- check this for radial extrushions
+    
+    assert(oned_quad%refcount%count == 1)
+    assert(oned_shape%refcount%count == 1)
+    assert(r_mesh%refcount%count == 1)
+    assert(mesh%refcount%count == 1)
+
+    contains
+    
+      function get_delta_r(pos, is_constant, constant_value, py_func) result(delta_r)
+        real, dimension(:), intent(in) :: pos
+        logical, intent(in) :: is_constant
+        real, intent(in) :: constant_value
+        character(len=PYTHON_FUNC_LEN), intent(in) :: py_func
+
+        real :: delta_r
+        real, dimension(1) :: delta_r_tmp
+        real, dimension(size(pos), 1) :: pos_tmp
+        
+        if (is_constant) then
+          delta_r = constant_value
+        else
+          pos_tmp(:, 1) = pos
+          call set_from_python_function(delta_r_tmp, trim(py_func), pos_tmp, time=0.0)
+          delta_r = delta_r_tmp(1)
+        end if
+        assert(delta_r > 0.0)
+        
+      end function get_delta_r
+      
+  end subroutine compute_r_nodes
+
+    
+end module hadapt_extrude_radially
