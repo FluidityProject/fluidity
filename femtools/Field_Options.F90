@@ -95,7 +95,8 @@ module field_options
      & get_external_coordinate_field, collect_fields_by_mesh, &
      & equation_type_index, field_options_check_options, &
      & constant_field, isotropic_field, diagonal_field, &
-     & extract_pressure_mesh, extract_velocity_mesh
+     & extract_pressure_mesh, extract_velocity_mesh, &
+     & postprocess_periodic_mesh
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
@@ -366,55 +367,174 @@ contains
     
   end function get_external_coordinate_field
 
-  function get_coordinate_field(state, mesh) result (positions)
-  !!< returns a coordinate field for the given mesh
-  !!< pulled from state if present, otherwise remapped 
-  !!< from "Coordinate" onto mesh. NOTE: The returned vector_field
-  !!< should always be deallocated
-  !!< This routine returns the coordinate field appropriate for /assembly/;
-  !!< if you want to use the coordinate for something else, then this
-  !!< probably isn't the routine for you (especially for periodic meshes)
+  function get_diagnostic_coordinate_field(state, mesh) result (positions)
+  !!< Returns a coordinate field suitable for finite element integration.
+  !!< In most cases this will be the "Coordinate" field. In case of 
+  !!< external meshes with the exclude_from_mesh_adaptivity_option, or in
+  !!< the case of the horizontal mesh in an extruded mesh setup, it will 
+  !!< return the positions field stored for that mesh in state.
   type(state_type), intent(in):: state
   type(mesh_type), intent(in):: mesh
   type(vector_field) positions
     
     type(vector_field), pointer:: coordinate_field
     
-    type(mesh_type) :: unperiodic_mesh
-      
-    coordinate_field => extract_vector_field(state, "Coordinate")
-    if (mesh_periodic(mesh)) then
-       ! you should never have periodic coordinates
-       if((coordinate_field%mesh%shape==mesh%shape).and.&
-          (coordinate_field%mesh%elements==mesh%elements).and.&
-          (coordinate_field%mesh%continuity==mesh%continuity)) then
-          ! meshes are sufficiently similar that you shouldn't 
-          ! need to remake the mesh (hopefully)
-          positions=coordinate_field
-          call incref(positions)
-       else
-          ! meshes are different in an important way so 
-          ! remake the mesh using the shape and continuity
-          ! of the desired mesh (but not periodic)
-          unperiodic_mesh=make_mesh(coordinate_field%mesh, mesh%shape, mesh%continuity, &
-                                    name="UnPeriodicCoordinateMesh")
-          call allocate(positions, coordinate_field%dim, unperiodic_mesh, &
-                        name="Coordinate")
-          call remap_field(coordinate_field, positions)
-          call deallocate(unperiodic_mesh)
-       end if
-    elseif (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
-       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
-       call incref(positions)
-    elseif (coordinate_field%mesh==mesh) then
-       positions=coordinate_field
-       call incref(positions)
+    if (have_option(trim(mesh%option_path)//"/exclude_from_mesh_adaptivity")) then
+      positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+      call incref(positions)
     else
-       call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
-       call remap_field(coordinate_field, positions)
+      coordinate_field => extract_vector_field(state, "Coordinate")
+      if (mesh_dim(mesh)+1==mesh_dim(coordinate_field)) then
+         ! coordinate is extruded, mesh is a horizontal mesh
+         if (mesh_periodic(mesh)) then
+            ewrite(0,*) "Can't find a suitable unperiodic coordinate field for periodic mesh ", &
+              trim(mesh%name)
+            ewrite(0,*) "This probably means the operation you want to do on this field &
+               &is not supported for a horizontal periodic mesh"
+            FLAbort("No suitable coordinate field found.")
+         end if
+         positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+         call incref(positions)
+      else if (element_count(coordinate_field)==element_count(mesh) .and. &
+         mesh_dim(coordinate_field)==mesh_dim(mesh)) then
+         positions=coordinate_field
+         call incref(positions)
+      else
+         ewrite(0,*) "Can't find a suitable coordinate field for mesh ", &
+             trim(mesh%name)
+         ewrite(0,*) "This probably means the operation you want to do is not&
+              &supported for this mesh"
+         FLAbort("No suitable coordinate field found.")         
+      end if
     end if
     
+  end function get_diagnostic_coordinate_field
+  
+  function get_coordinate_field(state, mesh) result (positions)
+  !!< Returns a coordinate field for the given mesh, that has the same
+  !!< shape (and thus number of nodes) in each element. If the mesh is 
+  !!< discontinuous or periodic however, the positions%mesh is not 
+  !!< necessarily the same as 'mesh'. The returned positions field is
+  !!< never periodic and thus provides valid coordinates for each element
+  !!< individually. 
+  !!< As the polynomial degree of the returned coordinates is the same as 
+  !!< that of the input mesh, it won't return a superparametric 
+  !!< "Coordinate" field. This routine should therefore only be used if 
+  !!< there is an algorithmic reason to have the positions on the same 
+  !!< nodes as 'mesh' in each element.
+  !!< NOTE: The returned vector_field should always be deallocated
+  type(state_type), intent(in):: state
+  type(mesh_type), intent(in):: mesh
+  type(vector_field) positions
+    
+    type(vector_field), pointer:: coordinate_field    
+    type(mesh_type) :: unperiodic_mesh
+    logical:: can_remap_from_coordinate_field
+      
+    if (have_option(trim(mesh%option_path)//"/exclude_from_mesh_adaptivity")) then
+      positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+      call incref(positions)
+    else
+      coordinate_field => extract_vector_field(state, "Coordinate")
+      can_remap_from_coordinate_field = &
+         element_count(coordinate_field)==element_count(mesh) .and. &
+         mesh_dim(coordinate_field)==mesh_dim(mesh)
+      if (mesh_dim(mesh)+1==mesh_dim(coordinate_field)) then
+         ! coordinate is extruded, mesh is a horizontal mesh
+         if (mesh_periodic(mesh)) call give_up
+         positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+         call incref(positions)
+      else if (mesh_periodic(mesh)) then
+         ! never return periodic coordinates
+         if((coordinate_field%mesh%shape==mesh%shape).and.&
+            (coordinate_field%mesh%elements==mesh%elements).and.&
+            (coordinate_field%mesh%continuity==mesh%continuity)) then
+            ! meshes are sufficiently similar that you shouldn't 
+            ! need to remake the mesh (hopefully)
+            positions=coordinate_field
+            call incref(positions)
+         else if (can_remap_from_coordinate_field) then
+            ! meshes are different in an important way so 
+            ! remake the mesh using the shape and continuity
+            ! of the desired mesh (but not periodic)
+            unperiodic_mesh=make_mesh(coordinate_field%mesh, mesh%shape, mesh%continuity, &
+                                      name="UnPeriodicCoordinateMesh")
+            call allocate(positions, coordinate_field%dim, unperiodic_mesh, &
+                          name="Coordinate")
+            call remap_field(coordinate_field, positions)
+            call deallocate(unperiodic_mesh)
+         else
+            call give_up()
+         end if
+      elseif (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
+         positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+         call incref(positions)
+      elseif (coordinate_field%mesh==mesh) then
+         positions=coordinate_field
+         call incref(positions)
+      else if (can_remap_from_coordinate_field) then
+         call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
+         call remap_field(coordinate_field, positions)
+      else
+         call give_up()
+      end if
+    end if
+    
+    contains
+    
+    subroutine give_up()
+      
+      ewrite(0,*) "Can't find a suitable coordinate field for mesh ", &
+          trim(mesh%name)
+      ewrite(0,*) "This probably means the operation you want to do is not&
+           &supported for this mesh"
+      FLAbort("No suitable coordinate field found.")      
+      
+    end subroutine give_up
+    
   end function get_coordinate_field
+  
+  function get_nodal_coordinate_field(state, mesh) result (positions)
+  !!< Returns a coordinate field on the mesh provided. For periodic
+  !!< meshes the nodes on the periodic boundary will get the original 
+  !!< position of the aliased nodes. The returned field is not suitable
+  !!< for finite element integration.
+  !!< NOTE: The returned vector_field should always be deallocated
+  type(state_type), intent(in):: state
+  type(mesh_type), intent(in):: mesh
+  type(vector_field) positions
+    
+    type(vector_field), pointer:: coordinate_field
+    
+    if (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
+      positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+      call incref(positions)
+    else
+      coordinate_field => extract_vector_field(state, "Coordinate")
+      if (coordinate_field%mesh==mesh) then
+         positions=coordinate_field
+         call incref(positions)
+      else if (element_count(coordinate_field)==element_count(mesh) .and. &
+         mesh_dim(coordinate_field)==mesh_dim(mesh)) then
+         ! can remap from coordinate field
+         call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
+         call remap_field(coordinate_field, positions)
+         if (mesh_periodic(mesh)) then
+            ! make sure the remapped coordinates adhere to the convention
+            ! of storing the aliased from position in the periodic boundary nodes
+            call postprocess_periodic_mesh(coordinate_field%mesh, coordinate_field, &
+              mesh, positions)
+         end if
+      else
+         ewrite(0,*) "Can't find a suitable coordinate field for mesh ", &
+             trim(mesh%name)
+         ewrite(0,*) "This probably means the operation you want to do is not&
+              &supported for this mesh"
+         FLAbort("No suitable coordinate field found.")
+      end if
+    end if
+    
+  end function get_nodal_coordinate_field  
   
   function extract_pressure_mesh_from_state(state, stat)
     type(state_type), intent(in):: state
@@ -913,6 +1033,110 @@ contains
 
   end function diagonal_field_tensor
 
+  subroutine postprocess_periodic_mesh(external_mesh, external_positions, periodic_mesh, periodic_positions)
+    type(mesh_type), intent(in) :: periodic_mesh
+    type(mesh_type), intent(in) :: external_mesh
+    type(vector_field), intent(inout) :: periodic_positions
+    type(vector_field), intent(in) :: external_positions
+
+    type(integer_set):: physical_bc_nodes
+    integer :: periodic_bc, aliased_id, physical_id, j
+    integer, dimension(2) :: shape_option
+    integer, dimension(:), allocatable :: aliased_boundary_ids, physical_boundary_ids
+    integer :: face
+    integer :: ele
+    real, dimension(ele_ngi(periodic_positions, 1)) :: detwei
+    real :: vol
+
+    ! Check for degenerate elements
+    do ele=1,ele_count(periodic_positions)
+      call transform_to_physical(periodic_positions, ele, detwei=detwei)
+      vol = sum(detwei)
+      assert(vol > 0)
+    end do
+
+    ! First we need to create a set of all nodes that are on physical periodic 
+    ! boundaries. If these nodes (in the non-periodic mesh) also appear on 
+    ! aliased boundaries (happens for double periodic), they should not be 
+    ! used to determine the position in the periodic coordinate field
+    
+    call allocate(physical_bc_nodes)
+    do periodic_bc=0,option_count(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions')-1
+      shape_option = option_shape(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/physical_boundary_ids')
+      allocate(physical_boundary_ids(shape_option(1)))
+      call get_option(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/physical_boundary_ids', physical_boundary_ids)
+      do j=1, shape_option(1)
+        physical_id = physical_boundary_ids(j)
+        ! Now we can finally loop over faces with this id and set appropriately
+        do face=1, surface_element_count(external_mesh)
+          if (surface_element_id(external_mesh, face) == physical_id) then
+            call insert(physical_bc_nodes, face_global_nodes(external_mesh, face))
+          end if
+        end do
+      end do
+      deallocate(physical_boundary_ids)
+    end do
+
+    ! We need to loop through all aliased faces and set the periodic positions to
+    ! the aliased values, so that we can recover them by applying the map later
+    
+    do periodic_bc=0,option_count(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions')-1
+      shape_option = option_shape(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions['//int2str(periodic_bc)//']/aliased_boundary_ids') 
+      allocate(aliased_boundary_ids(shape_option(1)))
+      call get_option(trim(periodic_mesh%option_path) // '/from_mesh/periodic_boundary_conditions[' // int2str(periodic_bc) // ']/aliased_boundary_ids', aliased_boundary_ids)
+      do j=1,shape_option(1)
+        aliased_id = aliased_boundary_ids(j)
+        ! Now we can finally loop over faces with this id and set appropriately
+        do face=1,surface_element_count(external_mesh)
+          if (surface_element_id(external_mesh, face) == aliased_id) then
+            call postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
+          end if
+        end do
+      end do
+      deallocate(aliased_boundary_ids)
+      
+    end do
+      
+    call deallocate(physical_bc_nodes)
+
+    ! Check for degenerate elements
+    do ele=1,ele_count(periodic_positions)
+      call transform_to_physical(periodic_positions, ele, detwei=detwei)
+      vol = sum(detwei)
+      assert(vol > 0)
+    end do
+
+  end subroutine postprocess_periodic_mesh
+
+  subroutine postprocess_periodic_mesh_face(periodic_positions, external_positions, face, physical_bc_nodes)
+    ! Write the positions of the nodes on this aliased face
+    ! to the periodic_positions. The physical positions can later be
+    ! recovered by applying the coordinate map. Nodes that are on both
+    ! a physical and an aliased face (happens for double/triple periodic)
+    ! should not be written, as they have another copy, going back
+    ! applying the inverse of the coordinate map associated with the 
+    ! physical face - and its that position we want to write out.
+    type(vector_field), intent(inout):: periodic_positions
+    type(vector_field), intent(in):: external_positions
+    integer, intent(in):: face
+    type(integer_set), intent(in):: physical_bc_nodes
+  
+    integer, dimension(face_loc(external_positions, face)):: face_non_periodic_nodes, face_periodic_nodes
+    integer:: k, np_node, p_node
+    
+    face_non_periodic_nodes=face_global_nodes(external_positions, face)
+    face_periodic_nodes=face_global_nodes(periodic_positions, face)
+    
+    do k=1, size(face_non_periodic_nodes)
+      np_node=face_non_periodic_nodes(k)
+      p_node=face_periodic_nodes(k)
+      if (.not. has_value(physical_bc_nodes, np_node)) then
+        call set(periodic_positions, p_node, node_val(external_positions, np_node))
+      end if
+    end do
+  
+  end subroutine postprocess_periodic_mesh_face
+  
   subroutine field_options_check_options
     integer :: nmat, nfield, m, f
     character(len=OPTION_PATH_LEN) :: mat_name, field_name
