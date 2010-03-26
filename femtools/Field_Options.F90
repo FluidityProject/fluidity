@@ -96,7 +96,8 @@ module field_options
      & equation_type_index, field_options_check_options, &
      & constant_field, isotropic_field, diagonal_field, &
      & extract_pressure_mesh, extract_velocity_mesh, &
-     & postprocess_periodic_mesh
+     & postprocess_periodic_mesh, get_diagnostic_coordinate_field, &
+     & get_nodal_coordinate_field
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &

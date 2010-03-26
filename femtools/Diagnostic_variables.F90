@@ -1418,7 +1418,7 @@ contains
     type(scalar_field) :: vfield_comp
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
-    type(vector_field), pointer :: xfield
+    type(vector_field) :: xfield
 
     ewrite(1,*) 'In write_diagnostics'
     call profiler_tic("I/O")
@@ -1460,7 +1460,7 @@ contains
           ! Output statistics for each scalar field
           sfield=>extract_scalar_field(state(phase), sfield_list(phase)%ptr(i))
 
-          xfield=>get_external_coordinate_field(state(phase), sfield%mesh)
+          xfield=get_diagnostic_coordinate_field(state(phase), sfield%mesh)
 
           ! Standard scalar field stats
           if(stat_field(sfield, state(phase))) then
@@ -1513,6 +1513,8 @@ contains
              write(diag_unit, trim(format), advance = "no") surface_integral
            end if
          end do
+           
+         call deallocate(xfield)
 
        end do scalar_field_loop
 
@@ -1521,7 +1523,7 @@ contains
          vfield => extract_vector_field(state(phase), &
            & vfield_list(phase)%ptr(i))
           
-         xfield=>get_external_coordinate_field(state(phase), vfield%mesh)
+         xfield=get_diagnostic_coordinate_field(state(phase), vfield%mesh)
 
          ! Standard scalar field stats for vector field magnitude
          if(stat_field(vfield,state(phase))) then
@@ -1569,6 +1571,8 @@ contains
             call write_momentum_conservation_error(state(phase), vfield)
           end if
          end if
+         
+         call deallocate(xfield)
          
        end do vector_field_loop
 

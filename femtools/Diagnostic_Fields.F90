@@ -320,7 +320,7 @@ contains
         call calculate_galerkin_projection(state, d_field)
         
       case("DiagnosticCoordinate")
-        call get_diagnostic_coordinate_field(state, d_field)
+        call calculate_diagnostic_coordinate_field(state, d_field)
         
       case default
         if(present(stat)) then
@@ -3304,7 +3304,7 @@ contains
        end subroutine assemble_galerkin_projection
    end subroutine calculate_galerkin_projection_tensor
    
-   subroutine get_diagnostic_coordinate_field(state, field)
+   subroutine calculate_diagnostic_coordinate_field(state, field)
     type(state_type), intent(in) :: state
     type(vector_field), intent(inout) :: field
     
@@ -3314,7 +3314,7 @@ contains
     
     call remap_field(coordinate, field)
    
-   end subroutine get_diagnostic_coordinate_field
+   end subroutine calculate_diagnostic_coordinate_field
    
    subroutine diagnostic_fields_check_options
      !!< Checks diagnostic fields related options
