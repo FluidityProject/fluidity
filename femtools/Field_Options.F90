@@ -379,6 +379,9 @@ contains
   type(vector_field) positions
     
     type(vector_field), pointer:: coordinate_field
+    type(mesh_type), pointer:: mesh_i
+    character(len=FIELD_NAME_LEN):: mesh_name
+    integer:: i
     
     if (have_option(trim(mesh%option_path)//"/exclude_from_mesh_adaptivity")) then
       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
@@ -388,14 +391,28 @@ contains
       if (mesh_dim(mesh)+1==mesh_dim(coordinate_field)) then
          ! coordinate is extruded, mesh is a horizontal mesh
          if (mesh_periodic(mesh)) then
+            ! search for the unperiodic mesh derived from it
+            do i=1, mesh_count(state)
+              mesh_i => extract_mesh(state, i)
+              if (have_option(trim(mesh_i%option_path)//"/from_mesh/mesh[0]/name") &
+                .and. have_option(trim(mesh_i%option_path)// &
+                "/from_mesh/periodic_boundary_conditions/remove_periodicity")) then
+                 call get_option(trim(mesh_i%option_path)//"/name", mesh_name)
+                 positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+                 call incref(positions)
+                 return
+              end if
+            end do
+            ! no mesh derived from it
             ewrite(0,*) "Can't find a suitable unperiodic coordinate field for periodic mesh ", &
               trim(mesh%name)
             ewrite(0,*) "This probably means the operation you want to do on this field &
                &is not supported for a horizontal periodic mesh"
             FLAbort("No suitable coordinate field found.")
+         else
+            positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+            call incref(positions)
          end if
-         positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
-         call incref(positions)
       else if (element_count(coordinate_field)==element_count(mesh) .and. &
          mesh_dim(coordinate_field)==mesh_dim(mesh)) then
          positions=coordinate_field
