@@ -382,18 +382,15 @@ contains
 
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement')) then 
-          ! Coordinate isn't handled by the standard timeloop utility calls so instead
-          ! we have to make sure the (Old)Coordinate field is updated with the current, most up
-          ! to date Coordinates, which actually lie in IteratedCoordinate (since if the mesh
-          ! is moving Coordinate is evaluated at time level n+theta).
-          ! Using state(1) should be safe as they are aliased across all states.
-          call set_vector_field_in_state(state(1), "OldCoordinate", "IteratedCoordinate")
-          call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
+          ! Coordinate isn't handled by the standard timeloop utility calls.
+          ! During the nonlinear iterations of a timestep, Coordinate is
+          ! evaluated at n+theta, i.e. (1-theta)*OldCoordinate+theta*IteratedCoordinate.
+          ! At the end of the previous timestep however, the most up-to-date Coordinate, 
+          ! i.e. IteratedCoordinate, has been copied into Coordinate. This value
+          ! is now used as the Coordinate at the beginning of the time step.
+          call set_vector_field_in_state(state(1), "OldCoordinate", "Coordinate")
+          call set_vector_field_in_state(state(1), "OldGridVelocity", "GridVelocity")
           call IncrementEventCounter(EVENT_MESH_MOVEMENT)
-          
-          ! same for GridVelocity
-          call set_vector_field_in_state(state(1), "OldGridVelocity", "IteratedGridVelocity")
-          call set_vector_field_in_state(state(1), "GridVelocity", "IteratedGridVelocity")
        end if
 
        ! this may already have been done in populate_state, but now
@@ -671,7 +668,17 @@ contains
           ewrite(1,*) 'Entering vertical_ale routine'
           !move the mesh and calculate the grid velocity
           call movemeshy(state(1))
-       endif
+       end if
+       if (have_option('/mesh_adaptivity/mesh_movement')) then 
+          ! During the timestep Coordinate is evaluated at n+theta, i.e.
+          ! (1-theta)*OldCoordinate+theta*IteratedCoordinate. For writing
+          ! the diagnostics we use the end-of-timestep n+1 coordinate however,
+          ! so that we can check conservation properties.
+          ! Using state(1) should be safe as they are aliased across all states.
+          call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
+          call set_vector_field_in_state(state(1), "GridVelocity", "IteratedGridVelocity")
+          call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+       end if
        
        current_time=current_time+DT
 
