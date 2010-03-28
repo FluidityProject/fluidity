@@ -243,19 +243,11 @@ contains
     type(vector_field), intent(inout) :: coriolis
   
     integer :: i
-    type(vector_field) :: positions_remap, velocity_remap
-    type(vector_field), pointer :: positions, velocity
+    type(vector_field) :: positions, velocity_remap
+    type(vector_field), pointer :: velocity
     
-    positions => extract_vector_field(state, "Coordinate")
+    positions = get_nodal_coordinate_field(state, coriolis%mesh)
     velocity => extract_vector_field(state, "Velocity")
-    
-    if(positions%mesh == coriolis%mesh) then
-      positions_remap = positions
-      call incref(positions_remap)
-    else
-      call allocate(positions_remap, positions%dim, coriolis%mesh, "CoordinateRemap")
-      call remap_field(positions, positions_remap)
-    end if
     
     if(velocity%mesh == coriolis%mesh) then
       velocity_remap = velocity
@@ -266,10 +258,10 @@ contains
     end if
     
     do i = 1, node_count(coriolis)
-      call set(coriolis, i, coriolis_force(node_val(positions_remap, i), node_val(velocity_remap, i)))
+      call set(coriolis, i, coriolis_force(node_val(positions, i), node_val(velocity_remap, i)))
     end do
     
-    call deallocate(positions_remap)
+    call deallocate(positions)
     call deallocate(velocity_remap)
     
   end subroutine compute_coriolis_ci

@@ -402,6 +402,27 @@ solver options.</a:documentation>
       </choice>
     </element>
   </define>
+  <define name="finite_element_divergence_transpose_algorithm">
+    <element name="algorithm">
+      <a:documentation>Gradient of a scalar field evaluated using the transpose
+of the C^T divergence matrix constructed using finite
+elements.</a:documentation>
+      <attribute name="name">
+        <value>finite_element_divergence_transpose</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+      <optional>
+        <element name="integrate_divergence_by_parts">
+          <a:documentation>Integrate the divergence operator by parts</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <ref name="comment"/>
+    </element>
+  </define>
   <define name="grad_algorithm">
     <element name="algorithm">
       <a:documentation>grad (source field)</a:documentation>
@@ -963,6 +984,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="grad_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="finite_element_divergence_transpose_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="curl_algorithm"/>

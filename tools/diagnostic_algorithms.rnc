@@ -301,6 +301,22 @@ finite_element_divergence_algorithm =
          )
       }
    )
+finite_element_divergence_transpose_algorithm =
+   (
+      ## Gradient of a scalar field evaluated using the transpose
+      ## of the C^T divergence matrix constructed using finite
+      ## elements.
+      element algorithm {
+         attribute name { "finite_element_divergence_transpose" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         ## Integrate the divergence operator by parts
+         element integrate_divergence_by_parts {
+            comment
+         }?,
+         comment
+      }
+   )
 grad_algorithm =
    (
       ## grad (source field)
@@ -707,6 +723,7 @@ vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= grad_algorithm
+vector_diagnostic_algorithms |= finite_element_divergence_transpose_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm

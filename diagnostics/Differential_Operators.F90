@@ -35,6 +35,7 @@ module differential_operator_diagnostics
   use field_options
   use fields
   use fldebug
+  use geostrophic_pressure
   use global_parameters, only : OPTION_PATH_LEN
   use solvers
   use sparse_matrices_fields
@@ -48,7 +49,8 @@ module differential_operator_diagnostics
   private
   
   public :: calculate_grad, calculate_div, &
-    & calculate_finite_element_divergence, calculate_curl, &
+    & calculate_finite_element_divergence, &
+    & calculate_finite_element_divergence_transpose, calculate_curl, &
     & calculate_scalar_advection, calculate_scalar_laplacian, &
     & calculate_vector_advection, calculate_vector_laplacian
   
@@ -126,6 +128,23 @@ contains
     call deallocate(ctfield)
     
   end subroutine calculate_finite_element_divergence
+  
+  subroutine calculate_finite_element_divergence_transpose(state, v_field)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    type(cmc_matrices) :: matrices
+    type(scalar_field), pointer :: source_field
+    
+    source_field => scalar_source_field(state, v_field)
+    
+    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+    call allocate(matrices, state, v_field, source_field, option_path = path, add_cmc = .false.)
+    call compute_conservative(matrices, v_field, source_field)
+    call deallocate(matrices)
+    
+  end subroutine calculate_finite_element_divergence_transpose
 
   subroutine calculate_curl(state, v_field)
     type(state_type), intent(in) :: state
