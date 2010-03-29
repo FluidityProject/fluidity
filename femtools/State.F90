@@ -2971,7 +2971,8 @@ contains
     
     do i = 1, vector_field_count(state)
       v_field => extract_vector_field(state, i)
-      if(v_field%name == "Coordinate" .and. .not. present_and_true(update_positions)) cycle
+      if(index(v_field%name,"Coordinate")==len_trim(v_field%name)-9  &
+        .and. .not. present_and_true(update_positions)) cycle
       if(v_field%field_type == FIELD_TYPE_NORMAL .and. &
         & (.not. present_and_false(update_aliased) .or. &
         & .not. aliased(v_field))) then

@@ -813,7 +813,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
         do field_no=1,vector_field_count(source_states(state_no))
           vfield => extract_vector_field(source_states(state_no), field_no)
-          if (trim(vfield%name) == "Coordinate") cycle
+          if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
           loc = ele_loc(vfield, old_local_element_number)
           rbuf(rhead:rhead + loc*vfield%dim - 1) = reshape(ele_val(vfield, old_local_element_number), (/loc*vfield%dim/))
           rhead = rhead + loc * vfield%dim
@@ -873,7 +873,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
         do field_no=1,vector_field_count(target_states(state_no))
           vfield => extract_vector_field(target_states(state_no), field_no)
-          if (trim(vfield%name) == "Coordinate") cycle
+          if (index(vfield%name,"Coordinate")==len_trim(vfield%name)-9) cycle
           loc = ele_loc(vfield, new_local_element_number)
           call set(vfield, ele_nodes(vfield, new_local_element_number), reshape(rbuf(rhead:rhead + loc*vfield%dim - 1), (/vfield%dim, loc/)))
           rhead = rhead + loc * vfield%dim
@@ -1072,7 +1072,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
           source_vfield => extract_vector_field(source_states(state_no), field_no)
           target_vfield => extract_vector_field(target_states(state_no), field_no)
           assert(trim(source_vfield%name) == trim(target_vfield%name))
-          if (trim(source_vfield%name) == "Coordinate") cycle
+          if (source_vfield%name == new_positions%name) cycle
 
           do i=1,key_count(self_sends)
             old_universal_element_number = fetch(self_sends, i)
@@ -1100,6 +1100,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       call deallocate(sends)
 
       call halo_update(target_states)
+      
     end subroutine transfer_fields
 
     subroutine finalise_transfer
