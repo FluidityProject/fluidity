@@ -322,9 +322,9 @@ contains
     ! pattern.
 
     ! Ensure delta_T inherits options from T.
-    call allocate(delta_T, T%mesh, "delta_T")
+    call allocate(delta_T, T%mesh, trim(field_name)//"Change")
     delta_T%option_path = T%option_path
-    call allocate(rhs, T%mesh, trim(field_name)//" RHS")
+    call allocate(rhs, T%mesh, trim(field_name)//"RHS")
     
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state) 
 

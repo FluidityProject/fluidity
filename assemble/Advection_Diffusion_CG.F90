@@ -176,7 +176,7 @@ contains
     
     call allocate(matrix, sparsity, name = advdif_cg_m_name)
     call allocate(rhs, t%mesh, name = advdif_cg_rhs_name)
-    call allocate(delta_t, t%mesh, name = advdif_cg_delta_t_name)
+    call allocate(delta_t, t%mesh, name = trim(field_name)//advdif_cg_delta_t_name)
     
     call set_advection_diffusion_cg_initial_guess(delta_t)
     
