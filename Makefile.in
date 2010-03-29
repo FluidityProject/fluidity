@@ -155,7 +155,7 @@ bin/shallow_water: fluidity_library main/Shallow_Water.F90
 	@echo "    LD shallow_water"
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
-bin/form_bod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
+bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
 	@echo "BUILD Form_Pod_Basis"
 	@echo "    MKDIR bin"
