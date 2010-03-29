@@ -1472,6 +1472,48 @@ the L2 norm of the residual</a:documentation>
           </optional>
           <ref name="comment"/>
         </element>
+        <optional>
+          <element name="geopressure">
+            <a:documentation>If enabled, preconditions the Helmholtz decomposition by solving
+for the conservative potential using a geopressure solver. The
+projection equation then becomes:
+  M f = M f_* + C \phi + C_{gp} \phi_{gp},
+where f_* is the coriolis acceleration, f is divergence free, phi is
+the conservative potential, phi_gp is the geopressure conservative
+potential and:
+  C_{gp,ij}^q = \int_Omega N_j \partial_q M_i,
+is the geopressure gradient matrix, where N_i are the velocity shape
+functions and M_i the geopressure conservative potential shape
+functions.</a:documentation>
+            <element name="mesh">
+              <a:documentation>The mesh used for the geopressure conservative potential</a:documentation>
+              <attribute name="name">
+                <data type="string" datatypeLibrary=""/>
+              </attribute>
+            </element>
+            <optional>
+              <element name="reference_node">
+                <a:documentation>Reference node, at which the solution value is pinned to zero</a:documentation>
+                <ref name="integer"/>
+              </element>
+            </optional>
+            <element name="solver">
+              <a:documentation>Solver options for the geopressure conservative potential
+calculation</a:documentation>
+              <ref name="linear_solver_options_sym"/>
+            </element>
+            <element name="galerkin_projection">
+              <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
+non-bounded. The most accurate choice, in the sense of minimising
+the L2 norm of the residual</a:documentation>
+              <ref name="continuous_projection"/>
+              <optional>
+                <ref name="supermesh_conservation"/>
+              </optional>
+              <ref name="comment"/>
+            </element>
+          </element>
+        </optional>
         <ref name="comment"/>
       </element>
     </choice>

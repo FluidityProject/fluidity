@@ -1232,6 +1232,42 @@ interpolation_algorithm_vector =
            }?,
            comment
         },
+        ## If enabled, preconditions the Helmholtz decomposition by solving
+        ## for the conservative potential using a geopressure solver. The
+        ## projection equation then becomes:
+        ##   M f = M f_* + C \phi + C_{gp} \phi_{gp},
+        ## where f_* is the coriolis acceleration, f is divergence free, phi is
+        ## the conservative potential, phi_gp is the geopressure conservative
+        ## potential and:
+        ##   C_{gp,ij}^q = \int_Omega N_j \partial_q M_i,
+        ## is the geopressure gradient matrix, where N_i are the velocity shape
+        ## functions and M_i the geopressure conservative potential shape
+        ## functions.
+        element geopressure {
+           (
+              ## The mesh used for the geopressure conservative potential
+              element mesh {
+                 attribute name { string }
+              }
+           ),
+           ## Reference node, at which the solution value is pinned to zero
+           element reference_node {
+             integer
+           }?,
+           ## Solver options for the geopressure conservative potential
+           ## calculation
+           element solver {
+              linear_solver_options_sym
+           },
+           ## Galerkin projection. By default, conservative, non-dissipative and
+           ## non-bounded. The most accurate choice, in the sense of minimising
+           ## the L2 norm of the residual
+           element galerkin_projection {
+             continuous_projection,
+             supermesh_conservation?,
+             comment
+           }
+        }?,
         comment
       }
     )
