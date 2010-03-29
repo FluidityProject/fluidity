@@ -231,7 +231,7 @@ void write_partitions(bool verbose, string filename, string file_format,
     // Map from global node numbering (numbered from one) to partition node 
     // numbering (numbered from one)
     for(size_t j=0;j<nodes.size();j++){
-      assert(renumber[nodes[j]]==-1);
+      // assert(renumber[nodes[j]]==-1);
       renumber[part].insert(renumber[part].end(), pair<int, int>(nodes[j], j+1));
     }
     
