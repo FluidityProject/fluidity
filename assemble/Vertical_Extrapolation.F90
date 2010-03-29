@@ -280,7 +280,7 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
      assert(from_fields(1)%mesh==from_fields(i)%mesh)
   end do
   
-  to_nodes=node_count(to_fields(1))
+  to_nodes=nowned_nodes(to_fields(1))
   ! local coordinates is one more than horizontal coordinate dim
   allocate( seles(to_nodes), loc_coords(1:positions%dim, 1:to_nodes) )
   

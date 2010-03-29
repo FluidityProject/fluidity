@@ -37,6 +37,7 @@ use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
 use parallel_tools
 use halos
 use eventcounter
+use integer_set_module
 implicit none
 
 private
@@ -545,8 +546,9 @@ contains
     
     type(scalar_field), pointer:: topdis
     type(vector_field), pointer:: positions, vertical_normal
+    type(integer_set):: owned_surface_nodes
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer:: stat, i, nowned_surface_nodes, node
+    integer:: stat, i, face
     
     ewrite(1, *) "Constructing vertical_prolongator_from_free_surface to be used in mg"
     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
@@ -570,22 +572,21 @@ contains
       ! with debugging perform test to check if this is the case:
 #ifdef DDEBUG
       ! count n/o owned surface nodes
-      nowned_surface_nodes=0
-      do i=1, size(surface_node_list)
-        node=surface_node_list(i)
-        if (node_owned(mesh, node)) then
-          nowned_surface_nodes=nowned_surface_nodes+1
-        end if
+      call allocate(owned_surface_nodes)
+      do i=1, size(surface_element_list)
+        face=surface_element_list(i)
+        call insert(owned_surface_nodes, face_global_nodes(mesh, face))
       end do
-      ewrite(2,*) "Number of owned surface nodes:", nowned_surface_nodes
+      ewrite(2,*) "Number of owned surface nodes:", key_count(owned_surface_nodes)
       ewrite(2,*) "Number of columns in vertical prolongator:", size(vertical_prolongator,2)
-      if (size(vertical_prolongator,2)>nowned_surface_nodes) then
+      if (size(vertical_prolongator,2)>key_count(owned_surface_nodes)) then
         ewrite(-1,*) "Vertical prolongator seems to be using more surface nodes than the number"
         ewrite(-1,*) "of surface nodes within completely owned surface elements. This indicates"
         ewrite(-1,*) "the parallel decomposition is not done along columns. You shouldn't be using"
         ewrite(-1,*) "mg with vertical_lumping in that case."
         FLAbort("Vertical lumping requires 2d decomposition along columns")
       end if
+      call deallocate(owned_surface_nodes)
 #endif
     else
       vertical_prolongator=VerticalProlongationOperator( &
