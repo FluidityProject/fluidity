@@ -210,7 +210,11 @@ function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnod
   mesh_field%mesh%ndglno = enlist
   allocate(mesh_field%mesh%region_ids(size(region_ids)))
   mesh_field%mesh%region_ids = region_ids
-  call add_faces(mesh_field%mesh, sndgln = senlist, boundary_ids = boundary_ids)
+  ! incomplete_surface_mesh=.true. to prevent legacy behaviour of
+  ! "completing" the surface mesh (this would add faces at the end of the halo
+  ! to the surface mesh)
+  call add_faces(mesh_field%mesh, sndgln = senlist, boundary_ids = boundary_ids, &
+    incomplete_surface_mesh=.true.)
   
   ! Write the mesh
   select case(meshtype)

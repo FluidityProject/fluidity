@@ -1077,7 +1077,7 @@ contains
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
-    periodic_face_map, element_owner, stat)
+    periodic_face_map, element_owner, incomplete_surface_mesh, stat)
     !!< Subroutine to add a faces component to mesh. Since mesh may be 
     !!< discontinuous, a continuous model mesh must
     !!< be provided. To avoid duplicate computations, and ensure 
@@ -1097,6 +1097,8 @@ contains
     !! the first 1:M faces form a complete surface mesh of the domain. This
     !! is legacy functionality that only works in serial. 
     !! A warning will therefore be issued.
+    !! This legacy behaviour can be switched off with 
+    !! incomplete_surface_mesh=.true. (see below)
     integer, dimension(:), intent(in), optional:: sndgln
     !! number of quadrature points for the faces mesh (if not present the
     !! degree of 'mesh' is maintained):
@@ -1115,6 +1117,8 @@ contains
     !! decide which of the two adjacent elements the face belongs to
     !! (used in reading in periodic meshes which include the periodic faces in the surface mesh)
     integer, dimension(:), intent(in), optional :: element_owner
+    !! See comments above sndgln
+    logical, intent(in), optional :: incomplete_surface_mesh
     integer, intent(out), optional :: stat
 
     type(integer_hash_table):: lperiodic_face_map
@@ -1160,7 +1164,8 @@ contains
        !     each face
        call add_faces_face_list(mesh, sndgln, &
          boundary_ids=boundary_ids, &
-         element_owner=element_owner)
+         element_owner=element_owner, &
+         incomplete_surface_mesh=incomplete_surface_mesh)
          
        ! we don't calculate coplanar_ids here, as we need positions
        mesh%faces%coplanar_ids => null()
@@ -1340,7 +1345,7 @@ contains
   end subroutine add_faces
 
   subroutine add_faces_face_list(mesh, sndgln, boundary_ids, &
-    element_owner)
+    element_owner, incomplete_surface_mesh)
     !!< Subroutine to calculate the face_list and face_element_list of the 
     !!< faces component of a 'model mesh'. This should be the linear continuous 
     !!< mesh that may serve as a 'model' for other meshes.
@@ -1351,6 +1356,7 @@ contains
     integer, dimension(:), target, intent(in), optional:: sndgln
     integer, dimension(:), target, intent(in), optional:: boundary_ids
     integer, dimension(:), intent(in), optional :: element_owner
+    logical, intent(in), optional :: incomplete_surface_mesh
 
     type(element_type), pointer :: mesh_shape
     type(element_type) :: face_shape
@@ -1463,7 +1469,7 @@ contains
             
     allocate(face_glnodes(1:snloc))
 
-    if (.not. IsParallel()) then
+    if (.not. (IsParallel() .or. present_and_true(incomplete_surface_mesh))) then
       ! register the rest of the boundaries
       ! remaining exterior boundaries first, thus completing the surface mesh
       ! This does not work in parallel and is therefore discouraged
