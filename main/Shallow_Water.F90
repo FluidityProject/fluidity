@@ -556,6 +556,7 @@
       end do
 
       call load_options(argument)
+      if(.not. have_option("/simulation_name")) goto 666
 
       return
 
