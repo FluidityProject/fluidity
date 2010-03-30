@@ -229,6 +229,8 @@ contains
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, & 
                 & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
 !        unwrapped_positions_B = unwrapped_positions_A; call incref(unwrapped_positions_B)
+      call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
+      call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
       call allocate(unwrapped_metric_B, unwrapped_positions_B%mesh, trim(metric%name))
       call linear_interpolation(unwrapped_metric_A, unwrapped_positions_A, unwrapped_metric_B, unwrapped_positions_B)
       call deallocate(lock_faces)
@@ -239,8 +241,7 @@ contains
       intermediate_positions = make_mesh_periodic_from_options(unwrapped_positions_B, periodic_boundary_option_path(dim))
       intermediate_positions%mesh%name = "TmpMesh"
       intermediate_positions%mesh%option_path = periodic_boundary_option_path(dim)
-      call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
-      call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
+
       call allocate(intermediate_metric, intermediate_positions%mesh, trim(metric%name))
       call remap_field(unwrapped_metric_B, intermediate_metric, stat=stat)
       assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
@@ -539,11 +540,11 @@ contains
 
         ! So first let's find the nodes outside the bounding box
         call allocate(nodes_to_map)
-        allocate(tmp_bbox(intermediate_positions%dim, 2))
-        do j=1,node_count(intermediate_positions)
-          tmp_bbox(:, 1) = node_val(intermediate_positions, j)
-          tmp_bbox(:, 2) = node_val(intermediate_positions, j)
-          if (.not. bbox_predicate(domain_bbox(1:intermediate_positions%dim, :), tmp_bbox)) then
+        allocate(tmp_bbox(unwrapped_positions_B%dim, 2))
+        do j=1, node_count(unwrapped_positions_B)
+          tmp_bbox(:, 1) = node_val(unwrapped_positions_B, j)
+          tmp_bbox(:, 2) = node_val(unwrapped_positions_B, j)
+          if (.not. bbox_predicate(domain_bbox(1:unwrapped_positions_B%dim, :), tmp_bbox)) then
             call insert(nodes_to_map, j)
           end if
         end do
@@ -552,7 +553,7 @@ contains
         allocate(physical_positions(intermediate_positions%dim, key_count(nodes_to_map)))
 
         do j=1,key_count(nodes_to_map)
-          physical_positions(:, j) = node_val(intermediate_positions, fetch(nodes_to_map, j))
+          physical_positions(:, j) = node_val(unwrapped_positions_B, fetch(nodes_to_map, j))
         end do
 
         ! and map those nodes
@@ -563,14 +564,14 @@ contains
         ! the elements to map
         front_field = piecewise_constant_field(intermediate_positions%mesh, "AdvancingFront")
         call zero(front_field)
-        nelist => extract_nelist(intermediate_positions)
+        nelist => extract_nelist(unwrapped_positions_B)
         eelist => extract_eelist(unwrapped_positions_B)
         periodic_eelist => extract_eelist(intermediate_positions)
 
         do j=1,key_count(nodes_to_map)
           tmp_bbox(:, 1) = aliased_positions(:, j)
           tmp_bbox(:, 2) = aliased_positions(:, j)
-          if (bbox_predicate(domain_bbox(1:intermediate_positions%dim, :), tmp_bbox)) then
+          if (bbox_predicate(domain_bbox(1:unwrapped_positions_B%dim, :), tmp_bbox)) then
             eles => row_m_ptr(nelist, fetch(nodes_to_map, j))
             do k=1,size(eles)
               call set(front_field, eles(k), 1.0)
