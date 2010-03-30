@@ -139,16 +139,23 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     real(zoltan_float), intent(out), dimension(*) :: ewgts
     integer(zoltan_int), intent(out) :: ierr 
 
+!   elements with quality greater than this value are ok
+!   those with element quality below it need to be adapted
+    integer, parameter :: quality_tolerance = 0.6
     integer :: count
     integer :: node, i, j, nnode
     integer :: head
     integer, dimension(:), pointer :: neighbours
-    real(zoltan_float) :: quality
+
+!   variables for recording various element quality functional values 
+    real(zoltan_float) :: quality, min_quality
+
+!   variables for recording the local maximum edge weight and local 90th percentile edge weight
+    real(zoltan_float) :: max_weight, ninety_weight
 
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
     type(integer_set) :: nelistA, nelistB, intersection
 
-    real(zoltan_float) :: min_quality, max_weight, ninety_weight
     integer :: ele, total_num_edges
 
     assert(num_gid_entries == 1)
@@ -162,8 +169,11 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     head = 1
 
-!   loop over the nodes you own
+!   Aim is to assign high edge weights to poor quality elements
+!   so that when we load balance poor quality elements are placed
+!   in the centre of partitions and can be adapted
 
+!   loop over the nodes you own
     do node=1,count
 !      find nodes neighbours
        neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
@@ -184,6 +194,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
        call allocate(nelistA)
        call insert(nelistA, my_nelist)
 
+!      loop over all neighbouring nodes
        do j=1,size(neighbours)
 
 !         get elements associated with neighbour node
@@ -205,7 +216,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 !            determine the quality of the element
              quality = node_val(element_quality, ele)
 
-!            store the element quality if it's less (worse) than the previous elements
+!            store the element quality if it's less (worse) than any previous elements
              if (quality .LT. min_quality) then
                 min_quality = quality
              end if
@@ -214,7 +225,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
          call deallocate(intersection)
 
 !        check if the quality is within the tolerance         
-         if (min_quality .GT. 0.6) then
+         if (min_quality .GT. quality_tolerance) then
 !           if it is
             ewgts(head + j - 1) = 1.0
          else
@@ -229,13 +240,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
    assert(head == sum(num_edges(1:num_obj))+1)
    
-!  calculate the maximum edge weight
+!  calculate the local maximum edge weight
    max_weight = maxval(ewgts(1:head))
-!   max_weight = 1.0
-!   do i=1,head
-!      max_weight = max(max_weight, ewgts(i))
-!   end do
-   
+
+!  calculate the local 90th percentile edge weight   
    ninety_weight = max_weight * 0.9
 
 !  make the worst 10% of elements uncuttable
