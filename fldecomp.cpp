@@ -62,24 +62,23 @@ extern "C" {
   void fldecomp_fc(const char *, const int *, const int *);
   void set_global_debug_level_fc(int *val);
 }
- 
+
 void usage(char *binary){
   cerr<<"Usage: "<<binary<<" [OPTIONS] -n nparts file\n"
-      <<"\t-c <number of cores per node>\t\tApplies hierarchical partitioning.\n"
-      <<"\t-d\t\tPrint out partition diagnostics.\n"
-      <<"\t-f <file name>\t\tInput file (can alternatively specify as final "
+      <<"\t-c,--cores <number of cores per node>\n\t\tApplies hierarchical partitioning.\n"
+      <<"\t-d,--diagnostics\n\t\tPrint out partition diagnostics.\n"
+      <<"\t-f,--file <file name>\n\t\tInput file (can alternatively specify as final "
       <<"argument)\n"
-      <<"\t-h\t\tPrints out this message\n"
-      <<"\t-i <file format>\t\tInput mesh type. Valid values are: triangle\n"
-      <<"\t-k \t\tPartition a graph into k equal-size parts using the "
+      <<"\t-h,--help\n\t\tPrints out this message\n"
+      <<"\t-k.--kway\n\t\tPartition a graph into k equal-size parts using the "
       <<"multilevel k-way partitioning algorithm (METIS PartGraphKway). This "
       <<"is the default if the number of partitions is greater than 8.\n"
-      <<"\t-n <number of partitions>\t\tNumber of parts\n"
-      <<"\t-r\t\tPartition a graph into k equal-size parts using multilevel recursive "
+      <<"\t-n,--nparts <number of partitions>\n\t\tNumber of parts\n"
+      <<"\t-r,--recursive\n\t\tPartition a graph into k equal-size parts using multilevel recursive "
       <<"bisection (METIS PartGraphRecursive). This is the default if num partitions "
       <<"is less or equal to 8.\n"
-      <<"\t-t\t\tRecognise as a Terreno output that is extruded in the Z direction\n"
-      <<"\t-v\t\tVerbose mode\n";
+      <<"\t-t,--terreno [boundary id]\n\t\tRecognise as a Terreno output that is extruded in the Z direction. By default the boundary id of the extruded plane is 1.\n"
+      <<"\t-v,--verbose\n\t\tVerbose mode\n";
   exit(-1);
 }
 
@@ -381,12 +380,37 @@ void write_partitions(bool verbose, string filename, string file_format,
 int main(int argc, char **argv){
   // Get any command line arguments
   // reset optarg so we can detect changes
+#ifndef _AIX
+  struct option longOptions[] = {
+    {"cores", 0, 0, 'c'},
+    {"diagnostics", 0, 0, 'd'},
+    {"file", 0, 0, 'f'},
+    {"help", 0, 0, 'h'},
+    {"kway", 0, 0, 'k'},
+    {"nparts", 0, 0, 'n'},
+    {"recursive", 0, 0, 'r'},
+    {"terreno", optional_argument, 0, 't'},
+    {"verbose", 0, 0, 'v'},
+    {0, 0, 0, 0}
+  };
+#endif
+  int optionIndex = 0;
+  
   optarg = NULL;  
   char c;
   map<char, string> flArgs;
-  while((c = getopt(argc, argv, "c:df:hi:kn:rtv")) != -1){
+  while (true){
+#ifndef _AIX
+    c = getopt_long(argc, argv, "c:df:hkn:rt::v", longOptions, &optionIndex);
+#else
+    c = getopt(argc, argv, "c:df:hkn:rt::v");
+#endif
+    if (c == -1) break;
+
     if (c != '?'){
-      if (optarg == NULL){
+      if(c == 't')
+        flArgs[c] = (optarg == NULL) ? "1" : optarg;
+      else if (optarg == NULL){
         flArgs[c] = "true";
       }else{
         flArgs[c] = optarg;
@@ -429,14 +453,7 @@ int main(int argc, char **argv){
   
   string filename = flArgs['f'];
 
-  string file_format;
-  if(!flArgs.count('i')){
-    file_format="triangle";
-  }else{
-    file_format=flArgs['i'];
-  }
-  if(verbose)
-    cout<<"Input mesh type: "<<file_format<<endl;
+  string file_format("triangle");
   
   int nparts = atoi(flArgs['n'].c_str());
   if(nparts<2){
@@ -568,6 +585,10 @@ int main(int argc, char **argv){
   
   deque< vector<int> > SENList;
   vector<int> topSENList;
+  // Set the boundary id of the extruded surface -- default 1.
+  int bid = 1;
+  if(flArgs.count('t'))
+    bid = atoi(flArgs['t'].c_str());
   vector<int> boundaryIds;
   int nsele, snloc, snnodes=0;
   {
@@ -602,7 +623,7 @@ int main(int argc, char **argv){
       SENList[i] = facet;
       if(natt){
         face_file>>boundaryIds[i];
-        if(boundaryIds[i]==1){
+        if(boundaryIds[i]==bid){
           for(int j=0;j<snloc;j++){
             topSENList.push_back(SENList[i][j]);
             snnodes=max(snnodes, SENList[i][j]);
