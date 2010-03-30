@@ -11,7 +11,7 @@ input: src/$(MESH).edge src/$(MESH).ele src/$(MESH).node clean
 	cp src/$(MESH).edge src/$(MESH).ele src/$(MESH).node .
 
 ifdef NP
-	fldecomp -i triangle -n $(NP) -v $(MESH) > decomp.log 2> decomp_err.log
+	fldecomp -n $(NP) -v $(MESH) > decomp.log 2> decomp_err.log
 endif
 
 clean: clean-mesh clean-run-debug

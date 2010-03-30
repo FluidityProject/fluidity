@@ -5,7 +5,7 @@ default: input
 
 input: src/$(MESH).tar.bz2
 	tar -xvjf src/$(MESH).tar.bz2
-	fldecomp -i triangle -n 2 $(MESH)
+	fldecomp -n 2 $(MESH)
 
 clean: clean-mesh clean-run
 clean-mesh:

@@ -8,7 +8,7 @@ default: input
 input:
 	tar -xvjf $(MESHARCH).tar.bz2
 ifdef NP
-	fldecomp -i triangle -n $(NP) -v $(MESH) > decomp.log 2> decomp_err.log
+	fldecomp -n $(NP) -v $(MESH) > decomp.log 2> decomp_err.log
 endif
 
 clean: clean-mesh clean-run-debug

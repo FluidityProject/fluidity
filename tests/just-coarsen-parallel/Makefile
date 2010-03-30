@@ -1,7 +1,7 @@
 input: clean
 	gmsh -3 -o just-coarsen-parallel.msh just-coarsen-parallel.geo
 	../../scripts/gmsh2triangle just-coarsen-parallel.msh
-	../../bin/fldecomp -n 2 -i triangle -f just-coarsen-parallel
+	../../bin/fldecomp -n 2  -f just-coarsen-parallel
 
 
 clean:

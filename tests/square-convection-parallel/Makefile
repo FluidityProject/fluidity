@@ -7,7 +7,7 @@ MODEL = square-convection
 default: input
 
 input: clean
-	fldecomp -i triangle -n 2 -f src/$(MESH)
+	fldecomp -n 2 -f src/$(MESH)
 	mv src/*_* .
 
 clean: clean-mesh clean-run-debug 

@@ -1,7 +1,7 @@
 input: clean
 	gmsh -3 src/2d_square.geo
 	../../scripts/gmsh2triangle src/2d_square.msh
-	../../bin/fldecomp -n 2 -i triangle 2d_square
+	../../bin/fldecomp -n 2  2d_square
 
 clean:
 	rm -rf *.stat *.vtu *.pvtu *.node *.ele *.halo *.face *checkpoint* *convergence* *.log-0 *.err-0 src/2d_square.msh
