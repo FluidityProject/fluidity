@@ -85,13 +85,15 @@ module adapt_state_module
   
 contains
 
-  subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, lock_faces)
+  subroutine adapt_mesh_simple(old_positions, metric, new_positions, node_ownership, force_preserve_regions, &
+      lock_faces, allow_boundary_elements)
     type(vector_field), intent(in) :: old_positions
     type(tensor_field), intent(inout) :: metric
     type(vector_field), intent(out) :: new_positions
     integer, dimension(:), pointer, optional :: node_ownership
     logical, intent(in), optional :: force_preserve_regions
     type(integer_set), intent(in), optional :: lock_faces
+    logical, intent(in), optional :: allow_boundary_elements
 
     assert(.not. mesh_periodic(old_positions))
 
@@ -101,7 +103,8 @@ contains
           & node_ownership = node_ownership, force_preserve_regions = force_preserve_regions)
       case(2)
         call adapt_mesh_mba2d(old_positions, metric, new_positions, &
-          & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
+          & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces, &
+          & allow_boundary_elements=allow_boundary_elements)
       case(3)
         if(have_option("/mesh_adaptivity/hr_adaptivity/adaptivity_library/libmba3d")) then
           assert(.not. present(lock_faces))
@@ -227,7 +230,8 @@ contains
       call vtk_write_fields("mesh", 0, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("surface", 0, unwrapped_positions_A)
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, & 
-                & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
+                & force_preserve_regions=force_preserve_regions, &
+                & lock_faces=lock_faces, allow_boundary_elements=.true.)
 !        unwrapped_positions_B = unwrapped_positions_A; call incref(unwrapped_positions_B)
       call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
@@ -511,7 +515,8 @@ contains
       call deallocate(surface_ids)
 
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, &
-                  & force_preserve_regions=force_preserve_regions, lock_faces=lock_faces)
+                  & force_preserve_regions=force_preserve_regions, &
+                  & lock_faces=lock_faces, allow_boundary_elements=.true.)
       call deallocate(lock_faces)
       call vtk_write_fields("mesh", 7, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 7, unwrapped_positions_B)

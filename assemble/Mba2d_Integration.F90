@@ -25,12 +25,17 @@ module mba2d_integration
 
   contains
 
-  subroutine adapt_mesh_mba2d(input_positions, metric, output_positions, force_preserve_regions, lock_faces)
+  subroutine adapt_mesh_mba2d(input_positions, metric, output_positions, force_preserve_regions, &
+    lock_faces, allow_boundary_elements)
     type(vector_field), intent(in), target :: input_positions
     type(tensor_field), intent(in) :: metric
     type(vector_field), intent(out) :: output_positions
     logical, intent(in), optional :: force_preserve_regions
     type(integer_set), intent(in), optional :: lock_faces
+    ! if present and true allow boundary elements, i.e. elements with
+    ! all nodes on the boundary, if not present, the default
+    ! in serial is to forbid boundary elements, and allow them in parallel
+    logical, intent(in), optional :: allow_boundary_elements
 
 #ifdef HAVE_MBA_2D
 
@@ -265,10 +270,21 @@ module mba2d_integration
     allocate(rW(maxWr))
     allocate(iW(maxWi))
 
-    if(nhalos > 0) then
-      status = 0
+    if (present(allow_boundary_elements)) then
+      if (allow_boundary_elements) then
+        status=0
+      else
+        status=1
+      end if
+    else if(nhalos > 0) then
+      ! we don't want to avoid boundary elements along the local domain
+      ! boundaries, as the ragged boundary will usually have a lot of
+      ! triangles with 2 faces on the boundary and we don't want to split
+      ! these up unnecessarily - unfortunately we can't only allow it 
+      ! along local domain boundaries and forbid them on the global domain boundary
+      status = 0 ! allow boundary elements
     else
-      status = 1
+      status = 1 ! forbid boundary elements
     end if
 
     ! Now we decide how many iterations the library
