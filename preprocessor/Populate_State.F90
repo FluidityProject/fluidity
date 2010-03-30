@@ -3278,6 +3278,7 @@ contains
     do dim=1,positions%dim
       domain_bbox(dim, 1) = minval(positions%val(dim)%ptr)
       domain_bbox(dim, 2) = maxval(positions%val(dim)%ptr)
+      ewrite(2,*) "domain_bbox - dim, range =", dim, domain_bbox(dim,:)
     end do
 
     vol = 0.0
@@ -3286,6 +3287,7 @@ contains
     end do
 
     domain_volume = vol
+    ewrite(2,*) "domain_volume =", domain_volume
 
   end subroutine compute_domain_statistics
 
