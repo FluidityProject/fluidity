@@ -232,7 +232,7 @@ contains
     
     call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
 
-    if (have_option('/geometry/spherical_earth/')) then
+    if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
       call allocate(field, dim+1, mesh, name="Coordinate") ! Pseudo 2D mesh points have 3 coordinates
     else
       call allocate(field, dim, mesh, name="Coordinate")
