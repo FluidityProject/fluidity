@@ -241,7 +241,7 @@ contains
     ! Drop the local reference to mesh - now field owns the only reference.
     call deallocate(mesh)
 
-    if (have_option('/geometry/spherical_earth/')) then
+    if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
       allocate(read_buffer(dim+node_attributes+boundaries+2))
     else
       allocate(read_buffer(dim+node_attributes+boundaries+1))
@@ -252,7 +252,7 @@ contains
     end if
 
     do i=1,nodes
-       if (have_option('/geometry/spherical_earth/')) then
+       if ((dim==2).and.(have_option('/geometry/spherical_earth/'))) then
          read(node_unit,*) read_buffer
          forall (j=1:dim+1)
             field%val(j)%ptr(i)=read_buffer(j+1)
