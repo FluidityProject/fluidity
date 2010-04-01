@@ -64,7 +64,7 @@ contains
           end if
         case(2)
           call get_option("/io/dump_period", real_dump_period, stat)
-          if(stat == 0) then
+          if(stat == SPUD_NO_ERROR) then
             if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period)) then
               do_write_state = .true.
               exit
@@ -72,7 +72,7 @@ contains
           end if
         case(3)
           call get_option("/io/dump_period_in_timesteps", int_dump_period, stat)
-          if(stat == 0) then
+          if(stat == SPUD_NO_ERROR) then
             if(int_dump_period == 0 .or. mod(timestep, int_dump_period) == 0) then
               do_write_state = .true.
               exit
@@ -82,7 +82,7 @@ contains
           call cpu_time(current_cpu_time)
           call allmax(current_cpu_time)
           call get_option("/io/cpu_dump_period", real_dump_period, stat)
-          if(stat == 0) then
+          if(stat == SPUD_NO_ERROR) then
             if(real_dump_period == 0.0 .or. dump_count_greater(current_cpu_time, last_dump_cpu_time, real_dump_period)) then
               do_write_state = .true.
               exit
@@ -92,7 +92,7 @@ contains
           current_wall_time = wall_time()
           call allmax(current_wall_time)
           call get_option("/io/wall_time_dump_period", real_dump_period, stat)
-          if(stat == 0) then
+          if(stat == SPUD_NO_ERROR) then
             if(real_dump_period == 0.0 .or. dump_count_greater(current_wall_time, last_dump_wall_time, real_dump_period)) then
               do_write_state = .true.
               exit
@@ -554,17 +554,20 @@ contains
   subroutine write_state_module_check_options
     !!< Check output related options
 
-    character(len = OPTION_PATH_LEN) :: dump_format
+    character(len = OPTION_PATH_LEN) :: dump_format, output_mesh_name
     integer :: int_dump_period, max_dump_file_count, stat
     real :: real_dump_period
 
     ewrite(2, *) "Checking output options"
     
     call get_option("/io/dump_format", dump_format, stat)
-    if(stat == 0) then
+    if(stat == SPUD_NO_ERROR) then
       if(trim(dump_format) == "vtk") then
-        if(.not. have_option("/io/output_mesh[0]/name")) then
+        call get_option("/io/output_mesh[0]/name", output_mesh_name, stat = stat)
+        if(stat /= SPUD_NO_ERROR) then
           FLExit("An output mesh must be specified if using vtk dump format")
+        else if(option_count("/geometry/mesh::" // output_mesh_name) == 0) then
+          FLExit("Output mesh " // trim(output_mesh_name) // " is not defined")
         end if
       else
         FLExit('Unrecognised dump format "' // trim(dump_format) // '"specified')
@@ -574,13 +577,13 @@ contains
     end if
     
     call get_option("/io/dump_period", real_dump_period, stat)
-    if(stat == 0) then
+    if(stat == SPUD_NO_ERROR) then
       if(real_dump_period < 0.0) then
         FLExit("Dump period cannot be negative")
       end if
     else
       call get_option("/io/dump_period_in_timesteps", int_dump_period, stat)
-      if(stat == 0) then
+      if(stat == SPUD_NO_ERROR) then
         if(int_dump_period < 0) then
           FLExit("Dump period cannot be negative")
         end if
@@ -590,14 +593,14 @@ contains
     end if
     
     call get_option("/io/cpu_dump_period", real_dump_period, stat)
-    if(stat == 0) then
+    if(stat == SPUD_NO_ERROR) then
       if(real_dump_period < 0.0) then
         FLExit("CPU dump period cannot be negative")
       end if
     end if
     
     call get_option("/io/wall_time_dump_period", real_dump_period, stat)
-    if(stat == 0) then
+    if(stat == SPUD_NO_ERROR) then
       if(real_dump_period < 0.0) then
         FLExit("Wall time dump period cannot be negative")
       end if
