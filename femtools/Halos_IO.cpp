@@ -296,6 +296,8 @@ extern "C"{
     int errorCount = 0;
     if(ret == HALO_READ_FILE_NOT_FOUND){
       if(*process == 0){
+        cerr << "Error reading halo file " << buffer << "\n"
+             << "Zero process file not found" << endl;
         errorCount++;
       }else{
         readHaloData->process = *process;
@@ -305,8 +307,20 @@ extern "C"{
         readHaloData->recv.clear();
       }
     }else if(ret != HALO_READ_SUCCESS){
+      cerr << "Error reading halo file " << buffer << "\n";
+      switch(ret){
+        case(HALO_READ_FILE_INVALID):
+          cerr << "Invalid .halo file" << endl;
+          break;
+        // HALO_READ_FILE_NOT_FOUND case handled above
+        default:
+          cerr << "Unknown error" << endl;
+          break;
+      }
       errorCount++;
     }else if(readHaloData->process != *process or readHaloData->nprocs > *nprocs){
+      cerr << "Error reading halo file " << buffer << "\n"
+           << "Process number in .halo file exceeds number of running processes" << endl;
       errorCount++;
     }
     
