@@ -318,9 +318,12 @@ extern "C"{
           break;
       }
       errorCount++;
-    }else if(readHaloData->process != *process or readHaloData->nprocs > *nprocs){
+    }else if(readHaloData->process != *process){
       cerr << "Error reading halo file " << buffer << "\n"
-           << "Process number in .halo file exceeds number of running processes" << endl;
+           << "Unexpected process number in .halo file" << endl;
+    }else if(readHaloData->nprocs > *nprocs){
+      cerr << "Error reading halo file " << buffer << "\n"
+           << "Number of processes in .halo file exceeds number of running processes" << endl;
       errorCount++;
     }
     
