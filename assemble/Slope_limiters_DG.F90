@@ -1339,7 +1339,7 @@ contains
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
     
-    type(scalar_field), pointer :: old_t, lumped_mass
+    type(scalar_field), pointer :: limiting_t, lumped_mass
     type(scalar_field) :: min_bound, max_bound, inverse_lumped_mass
     type(csr_matrix), pointer :: mass
 
@@ -1349,7 +1349,12 @@ contains
     integer, dimension(:), pointer :: neighbours
     integer :: j, k(1)
 
-    old_t => extract_scalar_field(state, "Old" // trim(t%name))
+    if (have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/slope_limiter::FPN/limit_from_previous_time_step")) then
+      limiting_t => extract_scalar_field(state, "Old" // trim(t%name))
+    else
+      limiting_t => extract_scalar_field(state, trim(t%name))
+    end if
 
     call allocate(min_bound, t%mesh, "MinBound")
     call allocate(max_bound, t%mesh, "MaxBound")
@@ -1362,16 +1367,20 @@ contains
 
     eelist => extract_eelist(t%mesh)
 
-    do ele=1,ele_count(old_t)
+    do ele=1,ele_count(limiting_t)
       neighbours => row_m_ptr(eelist, ele)
       k = minloc(neighbours, mask=neighbours > 0)
-      ele_max = maxval(ele_val(old_t, neighbours(k(1))))
-      ele_min = minval(ele_val(old_t, neighbours(k(1))))
+
+      if (have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/slope_limiter::FPN/limit_from_previous_time_step")) then
+        ele_max = maxval(ele_val(limiting_t, neighbours(k(1))))
+        ele_min = minval(ele_val(limiting_t, neighbours(k(1))))
+      end if
 
       do j=k(1)+1,size(neighbours)
         if (neighbours(j) <= 0) cycle
-        ele_max = max(ele_max, maxval(ele_val(old_t, neighbours(j))) )
-        ele_min = min(ele_min, minval(ele_val(old_t, neighbours(j))) )
+        ele_max = max(ele_max, maxval(ele_val(limiting_t, neighbours(j))) )
+        ele_min = min(ele_min, minval(ele_val(limiting_t, neighbours(j))) )
       end do
 
       call set(min_bound, ele_nodes(min_bound, ele), spread(ele_min, 1, ele_loc(min_bound, ele)))
