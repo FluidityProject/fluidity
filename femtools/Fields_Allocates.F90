@@ -1363,8 +1363,7 @@ contains
     logical:: internal_face, surface_elements_added
     ! listen very carefully, I shall say this only once:
     logical, save :: warning_given=.false. 
-    integer, dimension(:), pointer :: faces, neigh, snodes, ele_glnodes
-    integer, dimension(:), allocatable :: face_glnodes
+    integer, dimension(:), pointer :: faces, neigh, snodes
     integer, dimension(2) :: common_elements
     integer :: nloc, snloc, stotel
     integer :: bdry_count, ele, sele, j, no_found
@@ -1467,8 +1466,6 @@ contains
       
     end if
             
-    allocate(face_glnodes(1:snloc))
-
     if (.not. (IsParallel() .or. present_and_true(incomplete_surface_mesh))) then
       ! register the rest of the boundaries
       ! remaining exterior boundaries first, thus completing the surface mesh
@@ -1479,12 +1476,9 @@ contains
         
          neigh=>row_m_ptr(mesh%faces%face_list, ele)
          faces=>row_ival_ptr(mesh%faces%face_list, ele)
-         ele_glnodes => ele_nodes(mesh, ele)
          
          do j=1,size(neigh)
       
-            face_glnodes = ele_glnodes(boundary_numbering(mesh_shape, j))
-            
             if (neigh(j)==0) then
               
               bdry_count=bdry_count+1
@@ -1504,8 +1498,6 @@ contains
         warning_given=.true.
       end if
     end if
-      
-    deallocate(face_glnodes)
       
     ! the size of this array will be the way to store the n/o
     ! exterior boundaries (returned by surface_element_count())
