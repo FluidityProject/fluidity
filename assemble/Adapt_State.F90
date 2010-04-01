@@ -126,7 +126,7 @@ contains
     logical, intent(in), optional :: force_preserve_regions
 
     ! Periodic adaptivity variables
-    integer :: no_bcs, bc, j, k, l
+    integer :: no_bcs, bc, i, j, k, l
     type(integer_set) :: lock_faces, surface_ids
     type(vector_field) :: unwrapped_positions_A, unwrapped_positions_B, intermediate_positions
     integer, dimension(2) :: shape_option
@@ -135,25 +135,23 @@ contains
     integer :: stat
     type(csr_sparsity), pointer :: eelist, nelist, periodic_eelist
     type(scalar_field) :: front_field
-    integer :: ele
-    integer, dimension(:), pointer :: neighbours, eles, periodic_neighbours
-    logical :: can_exit
-    integer :: face
-    type(integer_set) :: aliased_nodes, eles_to_add
+    integer :: ele, ele2, node, face
+    integer, dimension(:), pointer :: neighbours, eles, periodic_neighbours, neighbours2
     integer :: new_physical_colour, new_aliased_colour
-    integer :: front_face_count, existing_face_count
-    integer, dimension(:), allocatable :: sndgln, boundary_ids, element_owners
+    integer :: face_count, existing_face_count
+    integer, dimension(:), allocatable :: sndgln, boundary_ids, element_owners, fnodes
     integer :: floc
     integer, dimension(:), allocatable :: physical_colours, aliased_colours
-    type(integer_set) :: front_contained_nodes, front_face_nodes, nodes_to_map
+    type(integer_set) :: nodes_to_move, periodic_nodes_to_move, extra_nodes_to_move
     real, dimension(:,:), allocatable:: aliased_positions, physical_positions
     character(len=OPTION_PATH_LEN) :: periodic_mapping_python
     type(integer_hash_table) :: aliased_to_new_node_number
     integer, dimension(:), pointer :: nodes, faces
     real, dimension(:, :), allocatable :: tmp_bbox
     type(integer_set) :: new_aliased_faces, new_physical_faces, old_physical_nodes
+    type(integer_set) :: front_contained_nodes, front_face_nodes
     type(integer_set) :: other_surface_ids
-    integer :: dim
+    integer :: dim, sid
 
     integer, save :: delete_me = 1
 
@@ -227,12 +225,13 @@ contains
       call deallocate(surface_ids)
 
       ! Step c). Adapt the mesh, locking appropriately, and interpolate the metric
+      ! mesh_0: incoming unwrapped mesh
       call vtk_write_fields("mesh", 0, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("surface", 0, unwrapped_positions_A)
       call adapt_mesh_simple(unwrapped_positions_A, unwrapped_metric_A, unwrapped_positions_B, & 
                 & force_preserve_regions=force_preserve_regions, &
                 & lock_faces=lock_faces, allow_boundary_elements=.true.)
-!        unwrapped_positions_B = unwrapped_positions_A; call incref(unwrapped_positions_B)
+      ! mesh_1: first adapted mesh
       call vtk_write_fields("mesh", 1, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 1, unwrapped_positions_B)
       call allocate(unwrapped_metric_B, unwrapped_positions_B%mesh, trim(metric%name))
@@ -250,95 +249,125 @@ contains
       call remap_field(unwrapped_metric_B, intermediate_metric, stat=stat)
       assert(stat /= REMAP_ERR_DISCONTINUOUS_CONTINUOUS)
       assert(stat /= REMAP_ERR_HIGHER_LOWER_CONTINUOUS)
+      ! mesh_2: first adapted mesh, periodised
       call vtk_write_fields("mesh", 2, position=intermediate_positions, model=intermediate_positions%mesh)
       call vtk_write_surface_mesh("surface", 2, intermediate_positions)
 
-      ! Step e). Advance a front in the new mesh using the unwrapped eelist from the aliased boundary
+      ! Step e). Advance a front in the new mesh using the unwrapped nelist from the aliased boundary
       ! until the front contains no nodes on the boundary; this forms the new cut
-      eelist => extract_eelist(unwrapped_positions_B)
+      nelist => extract_nelist(unwrapped_positions_B)
       shape_option = option_shape(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids')
       allocate(surface_id(shape_option(1)))
       call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/aliased_boundary_ids', surface_id)
 
-      ! We represent the front with a field, for whether an element has been
-      ! included behind the front
-      front_field = piecewise_constant_field(intermediate_positions%mesh, "AdvancingFront")
-      call zero(front_field)
-
-      ! Initialise the front with the parent elements of the aliased faces
-      ! and expand by one level in the eelist
-      ! We also need to record the set of nodes on the aliased boundary,
-      ! for the termination criterion for the front later
-      call allocate(aliased_nodes)
+      call allocate(nodes_to_move)
+      call allocate(periodic_nodes_to_move)
+      ! start from the nodes on the aliased boundary
       do j=1,surface_element_count(unwrapped_positions_B)
         if (any(surface_id == surface_element_id(unwrapped_positions_B, j))) then
-          call insert(aliased_nodes, face_global_nodes(unwrapped_positions_B, j))
-          ele = face_ele(unwrapped_positions_B, j)
-          call set(front_field, ele, 1.0)
-          neighbours => row_m_ptr(eelist, ele)
-          do k=1,size(neighbours)
-            if (neighbours(k) <= 0) cycle
-            call set(front_field, neighbours(k), 1.0)
-          end do
+          call insert(nodes_to_move, face_global_nodes(unwrapped_positions_B, j))
+          call insert(periodic_nodes_to_move, face_global_nodes(intermediate_positions, j))
         end if
       end do
-
-      front_loop: do while(.true.)
-        ! First, check to see if we can stop.
-        can_exit = .true.
-        front_face_count = 0
-        exit_check: do ele=1,ele_count(unwrapped_positions_B)
-          ! Loop through the elements in the front,
-          ! find the faces that face onto elements that are not in the front
-          ! If any of these faces have a node on the aliased boundary,
-          ! we need to keep moving forward
-          if (node_val(front_field, ele) == 1.0) then
-            neighbours => row_m_ptr(eelist, ele)
-            do k=1,size(neighbours)
-              j = neighbours(k)
-              if (j <= 0) cycle
-              if (node_val(front_field, j) /= 1.0) then
-                face = ele_face(unwrapped_positions_B, ele, j)
-                front_face_count = front_face_count + 1
-                if (any(has_value(aliased_nodes, face_global_nodes(unwrapped_positions_B, face)))) then
-                  can_exit = .false.
-                  exit exit_check
-                end if
-              end if
-            end do
-          end if
-        end do exit_check
-
-        ! If we can leave, then let's
-        if (can_exit) then
-          exit front_loop
-        end if
-
-        ! Otherwise, expand in the eelist again
-        call allocate(eles_to_add)
-        do ele=1,ele_count(unwrapped_positions_B)
-          if (node_val(front_field, ele) == 1.0) then
-            neighbours => row_m_ptr(eelist, ele)
-            do k=1,size(neighbours)
-              if (neighbours(k) < 0) cycle
-              if (node_val(front_field, neighbours(k)) /= 1.0 .and. &
-                 any(has_value(aliased_nodes, face_global_nodes(unwrapped_positions_B, ele_face(unwrapped_positions_B, ele, neighbours(k)))))) then
-                call insert(eles_to_add, neighbours(k))
-              end if
-            end do
-          end if
-        end do
-
-        assert(key_count(eles_to_add) > 0)
-        do j=1,key_count(eles_to_add)
-          call set(front_field, fetch(eles_to_add, j), 1.0)
-        end do
-        call deallocate(eles_to_add)
-      end do front_loop
-
       deallocate(surface_id)
-      call deallocate(aliased_nodes)
+        
+      ! if any nodes on the other periodic are in the elements directly
+      ! adjacent move them too
+      if (key_count(other_surface_ids)>0) then
+        call allocate(extra_nodes_to_move)
+        do i=1, key_count(nodes_to_move)
+          node = fetch(nodes_to_move, i)
+          neighbours => row_m_ptr(nelist, node)
+          do j=1, size(neighbours)
+            ele = neighbours(j)
+            faces => ele_faces(unwrapped_positions_B, ele)
+            do k=1, size(faces)
+              face = faces(k)
+              if (face>surface_element_count(unwrapped_positions_B)) cycle
+              sid = surface_element_id(unwrapped_positions_B, face)
+              if (has_value(other_surface_ids, sid)) then
+                call insert(nodes_to_move, face_global_nodes(unwrapped_positions_B, face))
+                ! work out face on the other side
+                periodic_neighbours => ele_neigh(intermediate_positions, ele)
+                face = ele_face(intermediate_positions, periodic_neighbours(k), ele)
+                call insert(extra_nodes_to_move, face_global_nodes(unwrapped_positions_B, face))
+              end if
+            end do
+          end do
+        end do
+        call insert(nodes_to_move, set2vector(extra_nodes_to_move))
+        call deallocate(extra_nodes_to_move)
+      end if
+      
+      ! the new cut now consists of the faces in the elements adjacent
+      ! to the nodes to move that are not in "nodes_to_move" itself
+      ! the nodes on the cut will in fact not be moved as they will retain
+      ! their aliased position in the periodic position field
+      call allocate(new_physical_faces)
+      call allocate(new_aliased_faces)
+      
+      do i=1, key_count(nodes_to_move)
+        node = fetch(nodes_to_move, i)
+        neighbours => row_m_ptr(nelist, node)
+        do j=1, size(neighbours)
+           ele = neighbours(j)
+           call insert(periodic_nodes_to_move, ele_nodes(intermediate_positions, ele))
+           faces => ele_faces(unwrapped_positions_B, ele)
+           neighbours2 => ele_neigh(unwrapped_positions_B, ele)
+           do k=1, size(faces)
+             face = faces(k)
+             ele2 = neighbours2(k)
+             if (ele2<=0) cycle
+             if (.not. any(has_value(nodes_to_move,face_global_nodes(unwrapped_positions_B, face))) &
+               .and. .not. any(has_value(nodes_to_move,ele_nodes(unwrapped_positions_B, ele2))) &
+               ) then
+               call insert(new_physical_faces, face)               
+               ! opposite face becomes aliased
+               face = ele_face(unwrapped_positions_B, ele2, ele)
+               call insert(new_aliased_faces, face)
+             end if
+           end do
+        end do
+      end do
+      call deallocate(nodes_to_move)
+      
+      ! don't want to move nodes on the new cut, as they'll retain
+      ! their original before-aliasing position
+      floc = face_loc(intermediate_positions, 1)
+      allocate(fnodes(1:floc))
+      do j=1, key_count(new_physical_faces)
+        face = fetch(new_physical_faces, j)
+        fnodes = face_global_nodes(intermediate_positions, face)
+        do k=1, floc
+          node = fnodes(k)
+          if (has_value(periodic_nodes_to_move, node)) then
+            call remove(periodic_nodes_to_move, node)
+          end if
+        end do
+      end do
+      deallocate(fnodes)
+        
+      ! now move the nodes in the periodic positions field
+      allocate(aliased_positions(intermediate_positions%dim, key_count(periodic_nodes_to_move)))
+      allocate(physical_positions(intermediate_positions%dim, key_count(periodic_nodes_to_move)))
 
+      do j=1,key_count(periodic_nodes_to_move)
+        node = fetch(periodic_nodes_to_move, j)
+        aliased_positions(:, j) = node_val(intermediate_positions, node)
+      end do
+
+      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/coordinate_map', periodic_mapping_python)
+      call set_from_python_function(physical_positions, periodic_mapping_python, aliased_positions, time=0.0)
+
+      do j=1,key_count(periodic_nodes_to_move)
+        node = fetch(periodic_nodes_to_move, j)
+        call set(intermediate_positions, node, physical_positions(:, j))
+      end do
+
+      deallocate(physical_positions)
+      deallocate(aliased_positions)
+      call deallocate(periodic_nodes_to_move)
+      
       ! Step f). Colour those faces on either side of the new cut
 
       ! Choose a new colour that isn't used
@@ -350,68 +379,63 @@ contains
       ! note well: we /lose/ the old faces, as we don't need that cut anymore
       ! (and can't retain it through the adapt anyway)
 
-      ! first things first: find out how many faces associated with this BC we have
-      existing_face_count = 0
+      ! first things first: find out how many faces we have
+      face_count = key_count(new_physical_faces) + key_count(new_aliased_faces)
       do j=1,surface_element_count(intermediate_positions)
         if (.not. (any(surface_element_id(intermediate_positions, j) == physical_colours) .or. &
           & any(surface_element_id(intermediate_positions, j) == aliased_colours))) then
-          existing_face_count = existing_face_count + 1
+          face_count = face_count + 1
         end if
       end do
       
-      floc = face_loc(intermediate_positions, 1)
-      allocate(boundary_ids(existing_face_count + 2*front_face_count))
-      allocate(element_owners(existing_face_count + 2*front_face_count))
-      allocate(sndgln((existing_face_count + 2*front_face_count) * floc))
+      allocate(boundary_ids(face_count))
+      allocate(element_owners(face_count))
+      allocate(sndgln(face_count * floc))
 
       ! fetch the existing information
-      l = 1
+      l = 0
       do j=1,surface_element_count(intermediate_positions)
         if (.not. (any(surface_element_id(intermediate_positions, j) == physical_colours) .or. &
           & any(surface_element_id(intermediate_positions, j) == aliased_colours))) then
         
+          l = l + 1
           boundary_ids(l) = surface_element_id(intermediate_positions, j)
           element_owners(l) = face_ele(intermediate_positions, j)
           sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, j)
-          l = l + 1
         end if
       end do
-
-      assert(l == existing_face_count + 1)
-
+        
       ! and now fetch the information for the faces we are adding
-
-      do ele=1,ele_count(front_field)
-        if (node_val(front_field, ele) == 1.0) then
-          neighbours => row_m_ptr(eelist, ele)
-          do k=1,size(neighbours)
-            j = neighbours(k)
-            if (j <= 0) cycle
-            if (node_val(front_field, j) /= 1.0) then
-              face = ele_face(intermediate_positions, ele, j)
-              boundary_ids(l) = new_physical_colour
-              element_owners(l) = ele
-              sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
-              l = l + 1
-
-              face = ele_face(intermediate_positions, j, ele)
-              boundary_ids(l) = new_aliased_colour
-              element_owners(l) = j
-              sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
-              l = l + 1
-            end if
-          end do
-        end if
+      
+      do j=1, key_count(new_physical_faces)
+        l = l + 1
+        face = fetch(new_physical_faces, j)
+        boundary_ids(l) = new_physical_colour
+        element_owners(l) = face_ele(unwrapped_positions_B, face)
+        sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
       end do
-      assert(l == size(boundary_ids) + 1)
+      call deallocate(new_physical_faces)
+      
+      do j=1, key_count(new_aliased_faces)
+        l = l + 1
+        face = fetch(new_aliased_faces, j)
+        boundary_ids(l) = new_aliased_colour
+        element_owners(l) = face_ele(unwrapped_positions_B, face)
+        sndgln( (l-1)*floc + 1:l*floc ) = face_global_nodes(intermediate_positions, face)
+      end do
+      call deallocate(new_aliased_faces)
 
+      assert(l == face_count)
+      
       ! deallocate the old faces, and rebuild
-      call vtk_write_fields("mesh", 3, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
-      call vtk_write_surface_mesh("surface", 3, unwrapped_positions_B)
+      ! mesh_3: first adapted mesh, periodised with moving front nodes moved over
+      call vtk_write_fields("mesh", 3, position=intermediate_positions, model=intermediate_positions%mesh)
+      call vtk_write_surface_mesh("surface", 3, intermediate_positions)
       call deallocate_faces(intermediate_positions%mesh)
       call add_faces(intermediate_positions%mesh, sndgln=sndgln, element_owner=element_owners, boundary_ids=boundary_ids)
       intermediate_metric%mesh = intermediate_positions%mesh
-      call vtk_write_fields("mesh", 4, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
+      ! mesh_4: first adapted mesh, periodised with moving front nodes moved over and surface mesh relabeled
+      call vtk_write_fields("mesh", 4, position=intermediate_positions, model=intermediate_positions%mesh)
       call vtk_write_surface_mesh("surface", 4, intermediate_positions)
       deallocate(sndgln)
       deallocate(element_owners)
@@ -423,55 +447,10 @@ contains
       unwrapped_positions_A = make_mesh_unperiodic_from_options(intermediate_positions, trim(periodic_boundary_option_path(dim)), & 
                                 aliased_to_new_node_number=aliased_to_new_node_number, stat=stat)
 
-      call vtk_write_fields("mesh", 5, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh, sfields=(/front_field/))
+      ! mesh_5: adapted once, moved up, ready to adapt again
+      call vtk_write_fields("mesh", 5, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh)
       call vtk_write_surface_mesh("surface", 5, unwrapped_positions_A)
-      ! we still need to map the positions of the nodes inner to the front
-      ! nodes_to_map should be: all nodes behind the front (in the front elements) that are not actually on the front itself (facing onto non-front elements)
-
-      ! front_contained_nodes is a set of all the nodes behind the front (in an element
-      ! which is coloured by the front)
-      ! front_face_nodes is a set of all the nodes on the front itself (facing onto elements
-      ! not coloured by the front)
-      call allocate(front_face_nodes)
-      call allocate(front_contained_nodes)
-
-      do ele=1,ele_count(front_field)
-        if (node_val(front_field, ele) == 1.0) then
-          call insert(front_contained_nodes, ele_nodes(unwrapped_positions_A, ele))
-        end if
-      end do
-      do ele=1,surface_element_count(unwrapped_positions_A)
-        if (surface_element_id(unwrapped_positions_A, ele) == new_physical_colour) then
-          call insert(front_face_nodes, face_global_nodes(unwrapped_positions_A, ele))
-        end if
-      end do
-
-      call set_minus(nodes_to_map, front_contained_nodes, front_face_nodes)
-
-      call deallocate(front_contained_nodes)
-      call deallocate(front_face_nodes)
-
-      allocate(aliased_positions(unwrapped_positions_A%dim, key_count(nodes_to_map)))
-      allocate(physical_positions(unwrapped_positions_A%dim, key_count(nodes_to_map)))
-
-      do j=1,key_count(nodes_to_map)
-        aliased_positions(:, j) = node_val(unwrapped_positions_A, fetch(nodes_to_map, j))
-      end do
-
-      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/coordinate_map', periodic_mapping_python)
-      call set_from_python_function(physical_positions, periodic_mapping_python, aliased_positions, time=0.0)
-
-      do j=1,key_count(nodes_to_map)
-        call set(unwrapped_positions_A, fetch(nodes_to_map, j), physical_positions(:, j))
-      end do
-
-      deallocate(physical_positions)
-      deallocate(aliased_positions)
-      call deallocate(nodes_to_map)
-
-      call vtk_write_fields("mesh", 6, position=unwrapped_positions_A, model=unwrapped_positions_A%mesh, sfields=(/front_field/))
-      call vtk_write_surface_mesh("surface", 6, unwrapped_positions_A)
-
+      
       call allocate(unwrapped_metric_A, unwrapped_positions_A%mesh, trim(metric%name))
       call remap_field(intermediate_metric, unwrapped_metric_A)
 
@@ -480,7 +459,6 @@ contains
 
       assert(has_faces(unwrapped_positions_A%mesh))
 
-      call deallocate(front_field)
       call deallocate(unwrapped_positions_B)
       call deallocate(unwrapped_metric_B)
 
@@ -518,6 +496,7 @@ contains
                   & force_preserve_regions=force_preserve_regions, &
                   & lock_faces=lock_faces, allow_boundary_elements=.true.)
       call deallocate(lock_faces)
+      ! mesh_7: after second adapt
       call vtk_write_fields("mesh", 7, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh)
       call vtk_write_surface_mesh("surface", 7, unwrapped_positions_B)
 
@@ -538,27 +517,27 @@ contains
       ! and map them back to inside the bounding box of the domain
       if (have_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
 
-        ! nodes_to_map stores the potential nodes to map.
+        ! nodes_to_move stores the potential nodes to map.
         ! The rule is: we map any element which contains any node such that:
         ! the node's location is not inside the original bounding box, and
         ! the image of the node under the inverse mapping is inside the original bounding box
 
         ! So first let's find the nodes outside the bounding box
-        call allocate(nodes_to_map)
+        call allocate(nodes_to_move)
         allocate(tmp_bbox(unwrapped_positions_B%dim, 2))
         do j=1, node_count(unwrapped_positions_B)
           tmp_bbox(:, 1) = node_val(unwrapped_positions_B, j)
           tmp_bbox(:, 2) = node_val(unwrapped_positions_B, j)
           if (.not. bbox_predicate(domain_bbox(1:unwrapped_positions_B%dim, :), tmp_bbox)) then
-            call insert(nodes_to_map, j)
+            call insert(nodes_to_move, j)
           end if
         end do
 
-        allocate(aliased_positions(intermediate_positions%dim, key_count(nodes_to_map)))
-        allocate(physical_positions(intermediate_positions%dim, key_count(nodes_to_map)))
+        allocate(aliased_positions(intermediate_positions%dim, key_count(nodes_to_move)))
+        allocate(physical_positions(intermediate_positions%dim, key_count(nodes_to_move)))
 
-        do j=1,key_count(nodes_to_map)
-          physical_positions(:, j) = node_val(unwrapped_positions_B, fetch(nodes_to_map, j))
+        do j=1,key_count(nodes_to_move)
+          physical_positions(:, j) = node_val(unwrapped_positions_B, fetch(nodes_to_move, j))
         end do
 
         ! and map those nodes
@@ -573,11 +552,11 @@ contains
         eelist => extract_eelist(unwrapped_positions_B)
         periodic_eelist => extract_eelist(intermediate_positions)
 
-        do j=1,key_count(nodes_to_map)
+        do j=1,key_count(nodes_to_move)
           tmp_bbox(:, 1) = aliased_positions(:, j)
           tmp_bbox(:, 2) = aliased_positions(:, j)
           if (bbox_predicate(domain_bbox(1:unwrapped_positions_B%dim, :), tmp_bbox)) then
-            eles => row_m_ptr(nelist, fetch(nodes_to_map, j))
+            eles => row_m_ptr(nelist, fetch(nodes_to_move, j))
             do k=1,size(eles)
               call set(front_field, eles(k), 1.0)
             end do
@@ -586,7 +565,7 @@ contains
 
         deallocate(physical_positions)
         deallocate(aliased_positions)
-        call deallocate(nodes_to_map)
+        call deallocate(nodes_to_move)
         deallocate(tmp_bbox)
 
         ! For doubly periodic, we need to make sure that the front is "periodic" in some sense.
@@ -605,9 +584,11 @@ contains
           end if
         end do
 
+        ! mesh_8: after second adapt, showing elements to be moved back into bounding box
         call vtk_write_fields("mesh", 8, position=unwrapped_positions_B, model=unwrapped_positions_B%mesh, sfields=(/front_field/))
         call vtk_write_surface_mesh("surface", 8, unwrapped_positions_B)
 
+        ! mesh_8: same thing periodised
         call vtk_write_fields("mesh", 9, position=intermediate_positions, model=intermediate_positions%mesh, sfields=(/front_field/))
         call vtk_write_surface_mesh("surface", 9, intermediate_positions)
 
@@ -633,7 +614,6 @@ contains
             existing_face_count = existing_face_count + 1
           end if
         end do
-
 
         call allocate(front_contained_nodes)
         call allocate(front_face_nodes)
@@ -728,30 +708,30 @@ contains
         deallocate(element_owners)
         deallocate(boundary_ids)
 
-        call set_minus(nodes_to_map, front_contained_nodes, front_face_nodes)
+        call set_minus(nodes_to_move, front_contained_nodes, front_face_nodes)
         call deallocate(front_contained_nodes)
         call deallocate(front_face_nodes)
 
-        allocate(aliased_positions(intermediate_positions%dim, key_count(nodes_to_map)))
-        allocate(physical_positions(intermediate_positions%dim, key_count(nodes_to_map)))
+        allocate(aliased_positions(intermediate_positions%dim, key_count(nodes_to_move)))
+        allocate(physical_positions(intermediate_positions%dim, key_count(nodes_to_move)))
 
-        do j=1,key_count(nodes_to_map)
-          physical_positions(:, j) = node_val(intermediate_positions, fetch(nodes_to_map, j))
+        do j=1,key_count(nodes_to_move)
+          physical_positions(:, j) = node_val(intermediate_positions, fetch(nodes_to_move, j))
         end do
 
         call set_from_python_function(aliased_positions, periodic_mapping_python, physical_positions, time=0.0)
 
         allocate(tmp_bbox(intermediate_positions%dim, 2))
-        do j=1,key_count(nodes_to_map)
+        do j=1,key_count(nodes_to_move)
           tmp_bbox(:, 1) = aliased_positions(:, j)
           tmp_bbox(:, 2) = aliased_positions(:, j)
-          call set(intermediate_positions, fetch(nodes_to_map, j), aliased_positions(:, j))
+          call set(intermediate_positions, fetch(nodes_to_move, j), aliased_positions(:, j))
         end do
         deallocate(tmp_bbox)
 
         deallocate(physical_positions)
         deallocate(aliased_positions)
-        call deallocate(nodes_to_map)
+        call deallocate(nodes_to_move)
 
         call deallocate(front_field)
       end if
@@ -762,6 +742,7 @@ contains
       deallocate(physical_colours)
       deallocate(aliased_colours)
 
+      ! mesh_10: final mesh
       call vtk_write_fields("mesh", 10, position=intermediate_positions, model=intermediate_positions%mesh)
       call vtk_write_surface_mesh("surface", 10, intermediate_positions)
 
