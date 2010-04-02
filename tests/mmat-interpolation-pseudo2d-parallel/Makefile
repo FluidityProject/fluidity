@@ -4,4 +4,4 @@ input: clean
 	../../bin/fldecomp -n 2  2d_square
 
 clean:
-	rm -rf *.stat *.vtu *.pvtu *.node *.ele *.halo *.face *checkpoint* *convergence* *.log-0 *.err-0 src/2d_square.msh
+	rm -rf *.stat *.vtu *.pvtu *.node *.ele *.halo *.face *checkpoint* *convergence* *.log-? *.err-? src/2d_square.msh
