@@ -63,6 +63,7 @@ def get_last_dump():
   for i in range(len(filelist)):
     nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
   nums.sort(key=operator.itemgetter(1))
+  print filelist[nums[-1][0]]
   return filelist[nums[-1][0]]
 
 def get_head_pos(file):
@@ -100,6 +101,7 @@ def get_last_dump():
   for i in range(len(filelist)):
     nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
   nums.sort(key=operator.itemgetter(1))
+  print filelist[nums[-1][0]]
   return filelist[nums[-1][0]]
 
 def get_head_pos(file):
@@ -137,6 +139,7 @@ def get_last_dump():
   for i in range(len(filelist)):
     nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
   nums.sort(key=operator.itemgetter(1))
+  print filelist[nums[-1][0]]
   return filelist[nums[-1][0]]
 
 def get_head_pos(file):
