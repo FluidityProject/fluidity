@@ -449,7 +449,8 @@ contains
     type(mesh_type) :: unperiodic_mesh
     logical:: can_remap_from_coordinate_field
       
-    if (have_option(trim(mesh%option_path)//"/exclude_from_mesh_adaptivity")) then
+    if (have_option(trim(mesh%option_path)//"/exclude_from_mesh_adaptivity").and.&
+        has_vector_field(state, trim(mesh%name)//"Coordinate")) then
       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
       call incref(positions)
     else
