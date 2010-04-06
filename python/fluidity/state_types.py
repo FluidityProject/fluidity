@@ -1,4 +1,4 @@
-import numpy,sys,copy
+import numpy,sys,copy,operator
 
 class State:
   def __init__(self,n=""):
@@ -24,13 +24,7 @@ class Field:
 
   def set_mesh(self,mesh):
     self.mesh = mesh
-
-  def node_count(self):
-    return self.val.shape[0]
-
-  def element_count(self):
-    return self.mesh.element_count()
-# region_id()
+    self.element_count = self.mesh.element_count
 
   def shape(self):
     return self.mesh.shape
@@ -47,12 +41,33 @@ class Field:
   def ele_shape(self,ele_number):
     return self.mesh.shape
 
-  def node_val(self,n):
-    return self.val[n]
+  def addto(self, node, val):
+      '''Add val to node of this field. If node is a scalar then val must
+      have the shape of one data item in this field. If node is a sequence then
+      the leading dimension of val must match the length of node and the
+      remaining dimensions must match the shape of a data item in this field.'''
+      try:
+          for ii,vv in zip(node,val):
+              self.val[ii]=self.val[ii]+vv
+      except TypeError:
+          # In this case it's presumably scalars.
+          self.val[node]=self.val[node]+val
 
-  def set_val_at_node(self,node,val):
-    # Set the value at position node to val
-    self.val[node] = val
+  def set(self, node, val):
+      '''Set node of this field to val.  If node is a scalar then val must
+      have the shape of one data item in this field. If node is a sequence then
+      the leading dimension of val must match the length of node and the
+      remaining dimensions must match the shape of a data item in this
+      field.'''
+      
+      try:
+          for ii,vv in zip(node,val):
+              self.val[ii]=vv
+      except TypeError:
+          self.val[node]=val
+     
+  def node_val(self,node):
+    return self.val[node]
 
   def ele_val(self,ele_number):
     # Return the values of field at the nodes of ele_number
@@ -69,10 +84,6 @@ class Field:
   def ele_region_id(self,ele_number):
     return self.mesh.ele_region_id(ele_number)
 
-  def ele_neighbors(self,ele_number):
-    return self.mesh.ele_neighbors(ele_number)
-
-
 
 class ScalarField(Field):
   "A scalar field"  
@@ -82,25 +93,6 @@ class ScalarField(Field):
     self.val = v
     self.node_count = self.val.shape[0]
 
-  def addto(self, i, val):
-      '''Add val to node i of this field. val and i many be scalars or
-      sequences of the same length as each other'''
-      try:
-          for ii,vv in zip(i,val):
-              self.val[ii]=self.val[ii]+vv
-      except TypeError:
-          # In this case it's presumably scalars.
-          self.val[i]=self.val[i]+val
-
-  def set(self, i, val):
-      '''Set node i of this field to val. val and i many be scalars or
-      sequences of the same length as each other'''
-      try:
-          for ii,vv in zip(i,val):
-              self.val[ii]=vv
-      except TypeError:
-          self.val[i]=val
-     
 
 class VectorField(Field):
   "A vector field"
@@ -114,51 +106,62 @@ class VectorField(Field):
     self.dimension = dim
     self.node_count=self.val1.shape[0]
 
-  def node_count(self):
-    return self.val1.shape[0]
-
-  def node_val(self, n):
-    # Returns the values at position n in each dimension
+  def node_val(self, node):
+    # Returns the values at position node in each dimension
     v = []
     if(self.dimension>=1):
-      v.append(self.val1[n])
+      v.append(self.val1[node])
     if(self.dimension>=2):
-      v.append(self.val2[n])
+      v.append(self.val2[node])
     if(self.dimension>=3):
-      v.append(self.val2[n])
+      v.append(self.val2[node])
     return numpy.array(v)
 
-  def set(self,node,val):
-    # Set the value at position n to the ith value in val[]
-    self.val1[node] = val[0]
-    if(self.dimension>=2):
-      self.val2[node] = val[1]
-    if(self.dimension>=3):
-      self.val3[node] = val[2]
+  def set(self, node, val):
+      '''Set the value of node node of this field to val. If node is a scalar then
+      val must be a sequence of length equal to the field dimension. If node is
+      a sequence then val must be two dimensional with first dimension the
+      same length as node and second dimension equal to the field dimension.'''
+
+      if (operator.isSequenceType(node)):
+          # We have a sequence of values to insert.
+          for ii in range(len(node)):
+              self.val1[node[ii]] = val[ii][0]
+              if(self.dimension>=2):
+                  self.val2[node[ii]] = val[ii][1]
+              if(self.dimension>=3):
+                  self.val3[node[ii]] = val[ii][2]
+                  
+      else:
+          self.val1[node] = val[0]
+          if(self.dimension>=2):
+              self.val2[node] = val[1]
+          if(self.dimension>=3):
+              self.val3[node] = val[2]
+
+
       
-  def set_val_at_node(self,node,val):
-    # Set the value at position node to val
-    self.set(node, val)
-    
-    return
+  def addto(self, node, val):
+      '''Add val to node node of this field. If node is a scalar then val must be
+      a sequence of length equal to the field dimension. If node is a sequence
+      then val must be two dimensional with first dimension the same length
+      as node and second dimension equal to the field dimension.'''
 
-  def addto(self, i, val):
-      '''Add val to node i of this field. val and i many be scalars or
-      sequences of the same length as each other'''
-      def add_to_all_dim(i,val):
-        self.node_val(i)+val
-      try:
-        for ii,vv in zip(i,val):
-          for j in range(vv.size):
-            #print vv[0,0],vv[0,1],vv
-            self.val[j][ii] = self.val[j][ii]+ vv[j]
-   
-      # This is probably wrong!
-      except TypeError:
-        # In this case it's presumably scalars.
-        for j in range (val.size):
-            self.val[j][i] = self.val[j][i] + val[j]
-
+      if (operator.isSequenceType(node)):
+          # We have a sequence of values to insert.
+          for ii in range(len(i)):
+              self.val1[node[ii]] = self.val1[node[ii]] + val[ii][0]
+              if(self.dimension>=2):
+                  self.val2[node[ii]] = self.val2[node[ii]] + val[ii][1]
+              if(self.dimension>=3):
+                  self.val3[node[ii]] = self.val3[node[ii]] + val[ii][2]
+                  
+      else:
+          self.val1[node] = self.val1[node] + val[0]
+          if(self.dimension>=2):
+              self.val2[node] = self.val2[node] + val[1]
+          if(self.dimension>=3):
+              self.val3[node] = self.val3[node] + val[2]
 
 
 class TensorField(Field):
@@ -175,8 +178,8 @@ class Mesh:
   "A mesh"
   def __init__(self,ndglno,elements,nodes,continuity,name,option_path,region_ids):
     self.ndglno = ndglno
-    self.elements = elements
-    self.nodes = nodes
+    self.element_count = elements
+    self.node_count = nodes
     self.continuity = continuity
     self.name = name
     self.option_path = option_path
@@ -185,14 +188,6 @@ class Mesh:
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
-
-  def node_count(self):
-    # Returns number of nodes in the mesh
-    return self.nodes
-
-  def element_count(self):
-    # Returns number of elements in the mesh
-    return self.elements
 
   def ele_shape(self,ele_number):
     # Returns the shape of this mesh
@@ -214,18 +209,6 @@ class Mesh:
   def ele_region_id(ele_number):
     # Return the region_id of element ele_number
     return self.mesh.region_ids[ele_number]
-  
-  def ele_nodes_all(self):
-    # Return all elements as a list of their nodes
-    return map([e for e in range(elements)])
-  
-  def ele_neighbors_2d_triangles(self,ele_number):
-    # Return a list of element numbers adjacent to ele_number (only works for triangles)
-    def are_neighbors(el1,el2):
-      return (len([ x for x in self.ele_nodes(el1) if x in self.ele_nodes(el2)])==2)
-    return [e for e in range(self.elements) if (e!=ele_number and are_neighbors(ele_number,e))]
-
-
 
 class Element:
   "An element"
@@ -248,8 +231,6 @@ class Element:
     self.quadrature = quadrature
   def set_surface_quadrature(self,quadrature):
     self.surface_quadrature = quadrature
-  def set_superconvergence(self,ns,l,n,dn):
-    self.superconvergence = SuperConvergence(ns,l,n,dn)
   def set_polynomial_s(self,poly,x,y):
       self.spoly[x-1][y-1] = poly
   def set_polynomial_ds(self,poly,x,y):
@@ -266,7 +247,6 @@ class Quadrature:
     self.locations = locations  # Locations of quadrature points
 
 
-
 class Polynomial:
   "Polynomial"
   def __init__(self,coefs,degree):
@@ -274,18 +254,6 @@ class Polynomial:
     self.degree = degree
   def __repr__(self):
     return '(Polynomial)'+str(self.coefficients)
-
-
-
-class SuperConvergence:
-  "Superconvergence"
-  def __init__(self,nsp,l,n,dn):
-    self.nsp=nsp
-    self.l = l
-    self.n = n
-    self.dn = dn
-
-
 
 class Transform:
   "Transform with information about the detwei and Jacobian"

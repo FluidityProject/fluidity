@@ -1,0 +1,214 @@
+\chapter{The \fluidity\ Python state interface}\label{chap:python}
+\index{field!Python function}
+\index{Python!state interface}
+
+\fluidity\ incorporates the Python interpretted programming language as a
+mechanism for users to customise the model without editing the main Fortran
+source of the model. There are, in fact, two distinct Python interfaces
+presented by \fluidity. The first allows users to specify prescribed fields
+and the initial conditions of prognostic fields by providing a Python
+function of space and time. This interface is documented in section
+\ref{Sect:setting_with_python}. The present chapter documents the much more
+comprehensive \emph{Python state}\ interface which gives the user access to
+the complete current system state. This may be used to specify diagnostic
+fields as a function of the values of other fields. In particular, this is
+used by embedded models such as the biology model to specify the coupling
+between different model variables.
+
+\section{System requirements}
+
+The \fluidity\ Python interface requires Python to be installed as well as
+NumPy, the fundamental Python numerical package. To check that \fluidity\
+has been build with Python, run:
+\begin{lstlisting}[language=Bash]
+  fluidity -h
+\end{lstlisting}
+and check for the lines:
+\begin{lstlisting}[language=Bash]
+Python support			yes
+Numpy support			yes
+\end{lstlisting}
+Python will be installed on any modern Unix machine but NumPy may need to be
+specially installed. Ubuntu and Debian users can do so with the
+\lstinline[language=Bash]+python-numpy+ package.
+
+\fluidity\ also requires access to its own Python modules which are stored in
+the python directory in the \fluidity\ source tree. To ensure that these are
+visible to \fluidity\ at runtime, users should add this directory to the
+\lstinline[language=Bash]+PYTHONPATH+ environment variable. For example:\
+\begin{lstlisting}[language=Bash]
+export PYTHONPATH=<my_fluidity>/python/:$PYTHONPATH
+\end{lstlisting}%$
+where \lstinline[language=Bash]+<my_fluidity>+ is the location of the
+\fluidity\ source tree.
+
+\section{Data types}
+
+The data classes of most importance to users are
+\lstinline[language=Python]+State+ and
+\lstinline[language=Python]+Field+. Between them, these present all of the
+field data in \fluidity\ in a readily accessible way.
+
+\subsection{\lstinline[language=Python]+Field+ objects}
+
+The \lstinline[language=Python]+Field+ class defines data types for
+\fluidity\ fields. The fields are implemented as wrappers around the
+internal data structures in \fluidity\ so the field values are always
+current and changes to field values are seen by the whole model. Field
+objects are actually of an appropriate subclass:
+\lstinline[language=Python]+ScalarField+,
+\lstinline[language=Python]+VectorField+ or
+\lstinline[language=Python]+TensorField+ however these classes differ only
+in the shape of arguments to their data routines.
+
+\lstinline+Field+ objects support the following methods and attributes:
+
+\begin{description}
+\item[node\_count] The number of nodes in the field.
+\item[element\_count] The number of elements in the field.
+\item[dimension] The data dimension (not for
+  \lstinline[language=Python]+ScalarField+ objects).
+\item[node\_val(node)] Return the value of the field at node(s). If
+  \lstinline[language=Python]+node+ is a scalar then the result is the value
+  of the field at that one node. If \lstinline[language=Python]+node+ is a
+  sequence then the result is the value of the field at each of those
+  nodes. The shape of the result is given for each case below.
+\item[set(node, val)] Set the value(s) of the field at the node(s) specified. If
+  \lstinline[language=Python]+node+ is a scalar then the value
+  of the field at that one node is set. If \lstinline[language=Python]+node+ is a
+  sequence then the value of the field at each of those nodes is set. The
+  shape of \lstinline[language=Python]+val+ must be as given below.
+\item[addto(node, val)] Add value(s) to the field at the node(s) specified.
+  If \lstinline[language=Python]+node+ is a scalar then the value of the
+  field at that one node is modified. If \lstinline[language=Python]+node+
+  is a sequence then the value of the field at each of those nodes is
+  modified. The shape of \lstinline[language=Python]+val+ must be as given
+  below.
+\item[ele\_loc(ele\_number)] Return the number of nodes in element
+  \lstinline[language=Python]+ele\_number+.
+\item[ele\_nodes(ele\_number)] Return the indices of the nodes in element
+  \lstinline[language=Python]+ele\_number+. 
+\item[ele\_nodes(ele\_number)] Return the value of the field at the nodes in element
+  \lstinline[language=Python]+ele\_number+. This is equivalent to calling
+  \lstinline[language=Python]+field.node\_val(field.ele\_nodes(ele\_number))+. 
+\item[ele\_region\_id(ele\_number)] Return the region\_id of element
+  \lstinline[language=Python]+ele\_number+. This can be used to specify
+  diagnostics which only apply over some portion of the domain. 
+\end{description}
+
+\begin{table}
+\centering
+
+\begin{tabular}{lccc}
+  \textbf{\lstinline[language=Python]+node+ shape}
+  &\textbf{\lstinline[language=Python]+ScalarField+ values} & 
+  \textbf{\lstinline[language=Python]+VectorField+ values} & 
+  \textbf{\lstinline[language=Python]+TensorField+ values}\\
+  \textbf{scalar} &
+scalar& \lstinline[language=Python]+(dim)+ &\lstinline[language=Python]+(dim, dim)+ \\
+  \textbf{sequence} &
+\lstinline[language=Python]+(len(node))+&
+\lstinline[language=Python]+(len(node), dim)+&
+\lstinline[language=Python]+(len(node), dim, dim)+\\
+\end{tabular}
+
+\caption{The shapes of the return value of \lstinline[language=Python]+node_val+ and the
+\lstinline[language=Python]+val+ argument to
+\lstinline[language=Python]+set+ and
+\lstinline[language=Python]+addto+. \lstinline[language=Python]+dim+ is the
+data dimension of the field.
+}
+\end{table}
+
+\subsection{\lstinline[language=Python]+State+ objects}
+
+A \lstinline[language=Python]+State+ is a container for all of the fields in
+a single material phase. The Fields in the material phase are accessed by
+the names given in the \fluidity\ options file.
+\lstinline[language=Python]+State+ objects contain the following data. In
+each case it is assumed that \lstinline[language=Python]+s+ is an object of
+class \lstinline[language=Python]+State+.
+
+\begin{description}
+\item[scalar\_fields] This is a dictionary of all the scalar fields in the
+  material phase. For example, if the state contains a field named
+  ``Temperature'' then it can be accessed with\\
+  \lstinline+s.scalar\_fields['Temperature']+.
+\item[vector\_fields] This is a dictionary of all the vector fields in the
+  state. For example, the coordinate field can be accessed using
+  \lstinline[language=Python]+s.vector_fields['Coordinate']+.
+\item[tensor\_fields] This is a dictionary of all the tensor fields in the
+  state. For example, if there is a field called ``Viscosity'', it can be
+  accessed as \lstinline[language=Python]+s.tensor_fields['Viscosity']+.
+\end{description}
+
+A useful debugging facility is that a \lstinline[language=Python]+State+ can
+be printed from within python (\lstinline[language=Python]+print `s`+) which
+results in a list of the fields and meshes in that state.
+
+\section{Predefined data}
+
+ There will always be a variable named
+\lstinline[language=Python]+state+ of type
+\lstinline[language=Python]+State+ which will contain all of the fields in
+the material phase of diagnostic field currently being calculated.
+
+There will also always be a dictionary called \lstinline[language=Python]+states+
+which will contain at least the current material phase. If the interface is
+being used to specify a diagnostic field and the\\
+\option{\ldots/diagnostic/material\_phase\_support}\ attribute is set to
+``multiple'', then all of the material phases will be present in the
+states dictionary. For example, if there are two material phases, ``Air''
+and ``Water'', then the air velocity will be present as the field
+\lstinline[language=Python]+states['Air'].vector\_fields['Velocity']+. 
+
+In addition to these states, the variable \lstinline[language=Python]+field+
+is preset to the current diagnostic to be set (this does not apply in
+situations such as the biology model in which multiple fields are to be set
+in a single Python calculation). 
+
+The variables \lstinline[language=Python]+time+ and
+\lstinline[language=Python]+dt+ are pre-set to the current simulation time
+and the timestep respectively.
+
+\section{Importing modules and accessing external data}
+
+The Python interpreter run by \fluidity\ is exactly the same as that used by
+the Python command line. Therefore essentially anything which is legal in
+Python is legal in the \fluidity\ Python interface. In particular, standard
+and user-defined modules can be imported includin modules for reading
+external data sources. The current directory is automatically added to the
+Python search path when \fluidity\ is run so user defined modules placed in
+the directory from which \fluidity\ is launched will be found.
+
+\section{The persistent dictionary}
+
+All of the data in the \fluidity\ interpreter is wiped after every field
+calculation. Usually this is desirable as it prevents the code for different
+diagnostics interfering. If it is necessary to store data in the Python
+interpreter after flow passes back to the main model, these data items can
+be stored in the dictionary named \lstinline[language=Python]+persistent+
+under any key the user chooses.
+
+It is \emph{not}\ safe to store fields extracted from the states in the
+persistent dictionary. 
+
+\section{Limitations}
+
+The Python state interface is essentially driven at fields which are
+pointwise functions of other fields. This is only straightforward in the
+situation where all the fields concerned are on the same mesh. Where this is
+not the case, it is possible to work around this in two different ways.
+
+If the field to be calculated is discontinuous or periodic and it is desired
+to use continuous and/or non-periodic data in the calculation (for example
+because the field is a function of position), this can be achieved by
+looping over the elements and setting the value at each node of each
+element rather than directly looping over all the nodes in the field. This
+is possible because the element numbering and the local numbering of nodes within
+elements is common between meshes of different continuity. 
+
+In other cases, such as the case in which a diagnostic field is a function
+of a field of different polynomial order, it may be necessary to introduce
+an additional diagnostic field which is the Galerkin projection of the
+second field onto the same mesh as the diagnostic field. 

@@ -32,7 +32,7 @@ EPS_IMAGES=./examples_images/rotating_channel/analytic_solution \
 CHAPTERS=getting_started model_physics numerical_discretisation parameterisations \
 adaptivity mesh_generation configuring_fluidity external_libraries trouble_shooting \
 parallel mathematical_notation about visualisation_and_diagnostics examples \
-embedded_models paraviewman
+embedded_models paraviewman python
 
 
 

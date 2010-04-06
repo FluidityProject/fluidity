@@ -186,16 +186,6 @@ module python_state
       real, dimension(loc_size) :: locations
     end subroutine python_add_quadrature
 
-    subroutine python_add_superconvergence(nsp,l,lx,ly,n,nx,ny,dn,dnx,dny,dnz)
-      !! Add a superconvergence to the last added element
-      implicit none
-      integer :: nsp
-      integer :: lx,ly,nx,ny,dnx,dny,dnz
-      real,dimension(lx,ly) :: l
-      real,dimension(nx,ny) :: n
-      real,dimension(dnx,dny,dnz) :: dn
-    end subroutine python_add_superconvergence
-
     subroutine python_add_polynomial(coefs, scoefs, degree, x,y, is_spoly)
       !! Add a polynomial to the last added element at position x,y
       !! is_spoly==1 <-> will be added to spoly, 0 to dspoly
@@ -288,9 +278,8 @@ module python_state
     !! attributes one by one the element's
     !! 1) basic attributes
     !! 2) quadrature
-    !! 3) superconvergence
-    !! 4) spoly
-    !! 5) dspoly
+    !! 3) spoly
+    !! 4) dspoly
     type(element_type) :: E
     type(mesh_type) :: M
     type(state_type) :: st
@@ -313,12 +302,6 @@ module python_state
        &E%surface_quadrature%weight, size(E%surface_quadrature%weight), &
        &E%surface_quadrature%l, size(E%surface_quadrature%l),1)
     end if
-!!    if (associated(E%superconvergence)) then
-!!      call python_add_superconvergence(E%superconvergence%nsp, &
-!!        &E%superconvergence%l,size(E%superconvergence%l,1),size(E%superconvergence%l,2),&
-!!        &E%superconvergence%n, size(E%superconvergence%n,1), size(E%superconvergence%n,2),&
-!!        &E%superconvergence%dn,size(E%superconvergence%dn,1),size(E%superconvergence%dn,2), size(E%superconvergence%dn,3))
-!!    endif
 
     !! Since these are in an array, the polynomials must be added one by one, passing their indices
     if (associated(E%spoly)) then

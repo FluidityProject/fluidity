@@ -126,7 +126,7 @@ char* fix_string(char *s,int len){
 
 
 
-// Functions to add a state and fields: scalar, vector, tensor, mesh, quadrature, superconvergence, polynomial
+// Functions to add a state and fields: scalar, vector, tensor, mesh, quadrature, polynomial
 
 
 void python_add_statec_(char *name,int *len){
@@ -409,30 +409,6 @@ void python_add_quadrature_(int *dim,int *degree,int *loc, int *ngi,
 }
 
 
-void python_add_superconvergence_(int *nsp, double *l, int *lx, int *ly,
-  double *n, int *nx, int *ny,
-  double *dn, int *dnx, int *dny, int *dnz){
-#ifdef HAVE_NUMPY
-  // Only call after an element has been added
-
-  // Set l
-  python_add_array_double_2d(l, lx, ly, "l");
-  // Set n
-  python_add_array_double_2d(n, nx, ny, "n");
-  // ... and dn
-  python_add_array_double_3d(dn, dnx, dny,dnz, "dn");
-
-  // Add to the interpreter
-  char c[150];
-  sprintf(c,"element.set_superconvergence(%d,l,n,dn)",*nsp);
-  PyRun_SimpleString(c);
-
-  // ... and clean up
-  PyRun_SimpleString("del l; del n; del dn");
-#endif
-}
-
-
 void python_add_polynomial_(double *coefs,int *size,int *degree, int *x,int *y, int *spoly){
 #ifdef HAVE_NUMPY
   // Add a polynomial to the latest element
@@ -450,14 +426,6 @@ void python_add_polynomial_(double *coefs,int *size,int *degree, int *x,int *y, 
 //   Py_DECREF(arr); 
 #endif
 }
-
-
-
-
-
-
-
-
 
 
 
