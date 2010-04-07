@@ -651,6 +651,10 @@ contains
     
     logical :: verifies
     
+    
+#ifdef DDEBUG
+    integer :: i, j, receive
+#endif
     integer, dimension(size(integer_array)) :: linteger_array
     
     linteger_array = integer_array
@@ -659,6 +663,28 @@ contains
     call halo_update(halo, linteger_array)
     
     verifies = all(integer_array - linteger_array == 0)
+#ifdef DDEBUG
+    if(.not. verifies) then
+      do i = 1, halo_proc_count(halo)
+        do j = 1, halo_receive_count(halo, i)
+          receive = halo_receive(halo, i, j)
+          if(integer_array(receive) /= linteger_array(receive)) then
+            ewrite(0, *) "Warning: Halo receive ", receive, " failed verification"
+            ewrite(0, *) "Reference = ", integer_array(receive)
+            ewrite(0, *) "Value in verification array = ", linteger_array(receive)
+          end if
+        end do
+      end do
+      
+      do i = 1, size(integer_array)
+        if(integer_array(i) /= linteger_array(i)) then
+          ewrite(0, *) "Warning: Halo receive ", i, " failed verification"
+          ewrite(0, *) "Reference = ", integer_array(i)
+          ewrite(0, *) "Value in verification array = ", linteger_array(i)
+        end if
+      end do
+    end if
+#endif
     
     if(verifies) then
       ewrite(2, *) "halo_verifies_array_integer returning .true."
@@ -704,7 +730,7 @@ contains
       
       do i = 1, size(real_array)
         if(abs(real_array(i) - lreal_array(i)) >= 10000.0&
-               &*max(spacing(real_array(receive)), epsilon(real_array(receive)))) then
+               &*max(spacing(real_array(i)), epsilon(real_array(i)))) then
           ewrite(0, *) "Warning: Reference index ", i, " failed verification"
           ewrite(0, *) "Reference = ", real_array(i)
           ewrite(0, *) "Value in verification array = ", lreal_array(i)
