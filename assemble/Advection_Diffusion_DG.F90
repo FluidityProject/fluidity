@@ -311,15 +311,16 @@ contains
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
 
-    !select case(diffusion_scheme)
-    !case(CDG)
+    select case(diffusion_scheme)
+    case(CDG)
        ! This is bigger than we need for CDG
-    !   sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
-    !case(IP)
-    !   sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
-    !case default
-    sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
-    !end select
+       sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
+       !sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
+    case(IP)
+       sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
+    case default
+       sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
+    end select
     
     call allocate(matrix, sparsity) ! Add data space to the sparsity
     ! pattern.
