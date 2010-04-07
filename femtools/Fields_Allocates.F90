@@ -1000,7 +1000,7 @@ contains
        end if
        
        if (associated(model%halos)) then
-          assert(associated(model%element_halos))
+          assert(element_halo_count(model) > 0)
           allocate(mesh%halos(size(model%halos)))
 
           call make_global_numbering &
@@ -1022,7 +1022,7 @@ contains
        else
           
           call make_global_numbering &
-               (mesh%nodes, mesh%ndglno, maxval(ndglno), mesh%elements, &
+               (mesh%nodes, mesh%ndglno, max(maxval(ndglno), 0), mesh%elements, &
                ndglno, mesh%shape)
        end if
 
@@ -1063,6 +1063,7 @@ contains
     ! Transfer the eelist from model to mesh
     assert(associated(model%adj_lists))
     if(associated(model%adj_lists%eelist)) then
+      ewrite(2, *) "Transferring element-element list to mesh " // trim(mesh%name)
       allocate(mesh%adj_lists%eelist)
       mesh%adj_lists%eelist = model%adj_lists%eelist
       call incref(mesh%adj_lists%eelist)
