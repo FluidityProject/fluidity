@@ -678,7 +678,7 @@ contains
       
       do i = 1, size(integer_array)
         if(integer_array(i) /= linteger_array(i)) then
-          ewrite(0, *) "Warning: Halo receive ", i, " failed verification"
+          ewrite(0, *) "Warning: Reference index ", i, " failed verification"
           ewrite(0, *) "Reference = ", integer_array(i)
           ewrite(0, *) "Value in verification array = ", linteger_array(i)
         end if
