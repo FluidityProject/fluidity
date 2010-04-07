@@ -99,6 +99,7 @@ subroutine test_geostrophic_pressure
   do i = 1, node_count(gp)
     pos = node_val(positions_remap, i)
     if(fnequals(node_val(gp, i) - gp_zero_point, pos(3) - z_zero_point, tol = 1.0e-10)) then
+      ewrite(-1, *) "Error: ", abs((node_val(gp, i) - gp_zero_point) - (pos(3) - z_zero_point))
       fail = .true.
       exit
     end if
@@ -124,6 +125,7 @@ subroutine test_geostrophic_pressure
   do i = 1, node_count(gp)
     pos = node_val(positions_remap, i)
     if(fnequals(node_val(gp, i) - gp_zero_point, pos(2) - y_zero_point, tol = 1.0e-10)) then
+      ewrite(-1, *) "Error: ", abs((node_val(gp, i) - gp_zero_point) - (pos(2) - y_zero_point))
       fail = .true.
       exit
     end if
@@ -140,6 +142,7 @@ subroutine test_geostrophic_pressure
   do i = 1, node_count(gp)
     pos = node_val(positions_remap, i)
     if(fnequals(node_val(gp, i) - gp_zero_point, (pos(2) - y_zero_point) + (pos(3) - z_zero_point), tol = 1.0e-10)) then
+      ewrite(-1, *) "Error: ", abs((node_val(gp, i) - gp_zero_point) - ((pos(2) - y_zero_point) + (pos(3) - z_zero_point)))
       fail = .true.
       exit
     end if
