@@ -827,8 +827,6 @@ contains
     ewrite(2, *) "On mesh: ", trim(matrices%u_mesh%name)
     ewrite(2, *) "Scalar potential mesh: ", trim(matrices%p_mesh%name)
     
-    positions => extract_vector_field(state, "Coordinate")
-    
     ct_sparsity => get_csr_sparsity_firstorder(state, matrices%p_mesh, matrices%u_mesh)
     call allocate(matrices%ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
     call allocate(matrices%ct_rhs, matrices%p_mesh, "CTRHS")
@@ -894,6 +892,7 @@ contains
       call allocate(matrices%inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
       call deallocate(mass_sparsity)
       assert(dim > 0)
+      positions => extract_vector_field(state, "Coordinate")
       inverse_mass = block(matrices%inverse_mass_b, 1, 1)
       do i = 1, ele_count(field)
         call assemble_mass_ele(i, matrices%u_mesh, positions, inverse_mass = inverse_mass)
@@ -1806,9 +1805,9 @@ contains
     
     do i = 1, size(fields)
       if(associated(fields(i)%bc%boundary_condition)) then
-         do j = 1, size(fields(i)%bc%boundary_condition)
-           call deallocate(fields(i)%bc%boundary_condition(j))
-         end do
+        do j = 1, size(fields(i)%bc%boundary_condition)
+          call deallocate(fields(i)%bc%boundary_condition(j))
+        end do
         deallocate(fields(i)%bc%boundary_condition)
       end if
     end do
@@ -1963,7 +1962,12 @@ contains
     
     mesh => matrices%p_mesh
     assert(continuity(mesh) == 0)
-    assert(connected_surfaces_count(mesh) == 1)
+#ifdef DDEBUG
+    ! This test isn't cheap, so only perform it with debugging
+    if(connected_surfaces_count(mesh) /= 1) then
+      FLAbort("Conservative potential decomposition only implemented for simply connected domains")
+    end if
+#endif
         
     ! Compute the mean surface value
     allocate(surface_means(size(base_ps)))
@@ -2153,7 +2157,12 @@ contains
     
     mesh => matrices%p_mesh
     assert(continuity(mesh) == 0)
-    assert(connected_surfaces_count(mesh) == 1)
+#ifdef DDEBUG
+    ! This test isn't cheap, so only perform it with debugging
+    if(connected_surfaces_count(mesh) /= 1) then
+      FLAbort("Conservative potential decomposition only implemented for simply connected domains")
+    end if
+#endif
     
     call allocate(rhs, mesh, name = "Rhs")
     do i = 1, size(base_ps)
@@ -2265,7 +2274,7 @@ contains
     type(ilist), dimension(:), optional, intent(in) :: map_BA
     
     character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
-    integer :: dim, i, stat
+    integer :: dim, stat
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
@@ -2273,8 +2282,6 @@ contains
     type(vector_field) :: coriolis, conserv, new_res, old_res
     type(vector_field), pointer :: new_positions, &
       & old_positions
-
-    logical :: debug_vtus
 
     logical :: gp
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
@@ -2290,6 +2297,7 @@ contains
     type(scalar_field), dimension(2) :: new_p_decomp, old_p_decomp
     type(scalar_field), dimension(2) :: new_aux_p_decomp, old_aux_p_decomp
         
+    logical :: debug_vtus
     integer, save :: vtu_index = 0
     type(scalar_field) :: div
     
@@ -2540,10 +2548,8 @@ contains
     
     call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
     
-    do i = 1, size(old_proj_state)
-      call deallocate(old_proj_state(i))
-      call deallocate(new_proj_state(i))
-    end do
+    call deallocate(old_proj_state)
+    call deallocate(new_proj_state)
     
     call deallocate(matrices)
     
@@ -2870,14 +2876,7 @@ contains
     ewrite(2, *) "Checking GeostrophicPressure options"
     
     if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
-      ewrite(0, *) "*********************"
-      ewrite(0, *) "****** WARNING ******"
-      ewrite(0, *) "*********************"
-      ewrite(0, *) "BalancePressure is deprecated and will be removed in the near future"
-      ewrite(0, *) "Switch to GeostrophicPressure"    
-      ewrite(0, *) "*********************"
-      ewrite(0, *) "****** WARNING ******"
-      ewrite(0, *) "*********************"
+      FLExit("BalancePressure is deprecated and about to be removed")
          
       if(option_count("/geometry/mesh::" // gp_mesh_name) > 0) then
         FLExit("The mesh name " // gp_mesh_name // " is reserved")
