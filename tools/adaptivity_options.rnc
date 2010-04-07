@@ -1168,11 +1168,7 @@ interpolation_algorithm_vector =
            ## non-bounded. The most accurate choice, in the sense of minimising
            ## the L2 norm of the residual
            element galerkin_projection {
-             ## If set, the Galerkin projection will honour strong Dirichlet boundary conditions
-             ## applied to this field.
-             element honour_strong_boundary_conditions {
-                comment
-             },
+             galerkin_projection_honour_strong_bcs,
              continuous_projection,
              supermesh_conservation?,
              comment
@@ -1268,20 +1264,33 @@ interpolation_algorithm_vector =
              comment
            }
         }?,
+        ## Debug options
+        element debug {
+           ## If enabled, pre and post interpolation decomposition vtus are
+           ## written
+           element write_debug_vtus {
+              comment
+           }?,
+           comment
+        }?,
         comment
       }
     )
+    
+galerkin_projection_honour_strong_bcs =
+   (
+      ## Honour strong Dirichlet boundary conditions in the Galerkin projection
+      element honour_strong_boundary_conditions {
+        empty
+      }
+   )
     
 galerkin_projection_vector =
     (
       continuous_discontinuous_projection,
       supermesh_free?,
       supermesh_conservation?,
-      ## If set, the Galerkin projection will honour strong Dirichlet boundary conditions
-      ## applied to this field.
-      element honour_strong_boundary_conditions {
-        empty
-      }?
+      galerkin_projection_honour_strong_bcs?
     )
 
 galerkin_projection_scalar =
@@ -1289,11 +1298,7 @@ galerkin_projection_scalar =
       continuous_discontinuous_projection,
       supermesh_free?,
       supermesh_conservation?,
-      ## If set, the Galerkin projection will honour strong Dirichlet boundary conditions
-      ## applied to this field.
-      element honour_strong_boundary_conditions {
-        empty
-      }?
+      galerkin_projection_honour_strong_bcs?
     )
 
 continuous_projection =
@@ -1464,7 +1469,7 @@ continuous_projection =
 continuous_discontinuous_projection =
     (
       continuous_projection|
-      ## Discontinuous field Galerkin projection
+      ## Discontinuous field Galerkin projection.
       ## In this case, no linear solver is required to invert the mass matrix.
       element discontinuous {
         empty

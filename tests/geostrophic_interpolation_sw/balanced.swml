@@ -226,6 +226,9 @@
               <discontinuous/>
             </galerkin_projection>
           </residual>
+          <debug>
+            <write_debug_vtus/>
+          </debug>
         </geostrophic_interpolation>
       </prognostic>
     </vector_field>
@@ -291,7 +294,7 @@
     </scalar_field>
     <scalar_field name="Div" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="finite_element_divergence">
+        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
           <integrate_divergence_by_parts/>
           <solver>
             <iterative_method name="cg"/>
@@ -327,7 +330,7 @@
     </scalar_field>
     <vector_field name="Bal" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" depends="Velocity" source_field_type="scalar" source_field_name="LayerThickness" name="geostrophic_velocity">
+        <algorithm depends="Velocity" source_field_type="scalar" material_phase_support="single" name="geostrophic_velocity" source_field_name="LayerThickness">
           <mass/>
           <integrate_divergence_by_parts/>
           <scale_factor>
@@ -352,7 +355,7 @@
     </vector_field>
     <vector_field name="Imbal" rank="1">
       <diagnostic>
-        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="Bal" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="Bal" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>

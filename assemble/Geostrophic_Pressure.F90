@@ -100,7 +100,7 @@ module geostrophic_pressure
   type cmc_matrices
     !! Whether this is a lumped mass projection
     logical :: lump_mass
-    !! Whether divergence have been integrated by parts
+    !! Whether divergence has been integrated by parts
     logical :: integrate_by_parts
     !! Velocity mesh
     type(mesh_type) :: u_mesh
@@ -1318,7 +1318,7 @@ contains
       real, dimension(ele_ngi(p_mesh, ele)) :: detwei
       real, dimension(ele_loc(p_mesh, ele), ele_ngi(p_mesh, ele), mesh_dim(p_mesh)) :: dp_shape
       
-      call transform_to_physical(positions, ele, ele_shape(p, ele), &
+      call transform_to_physical(positions, ele, ele_shape(p_mesh, ele), &
         & dshape = dp_shape, detwei = detwei)
         
       p_nodes => ele_nodes(p_mesh, ele)
@@ -2274,6 +2274,8 @@ contains
     type(vector_field), pointer :: new_positions, &
       & old_positions
 
+    logical :: debug_vtus
+
     logical :: gp
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
     type(mesh_type), pointer :: new_gp_mesh, old_gp_mesh
@@ -2295,6 +2297,8 @@ contains
 
     base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
     ewrite(2, *) "Option path: " // trim(base_path)
+    debug_vtus = have_option(trim(base_path) // "/debug/write_debug_vtus")
+    
     call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
     old_u_mesh => old_velocity%mesh
     old_p_mesh => extract_mesh(old_state, p_mesh_name)
@@ -2364,21 +2368,23 @@ contains
       call correct_velocity(matrices, old_res, old_p, conserv = conserv)
     end if
     
-    call allocate(div, old_p_mesh, trim(old_velocity%name) // "Divergence")
-    div%option_path = trim(old_p%option_path) // "/galerkin_projection/continuous"
-    call zero(div)
-    call compute_divergence(old_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
-    if(gp) then
-      call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_p, old_gp, div/), vfields = (/old_velocity, coriolis, conserv, old_res/), stat = stat)
-    else
-      call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-        & sfields = (/old_p, div/), vfields = (/old_velocity, coriolis, conserv, old_res/), stat = stat)
+    if(debug_vtus) then
+      call allocate(div, old_p_mesh, trim(old_velocity%name) // "Divergence")
+      div%option_path = trim(old_p%option_path) // "/galerkin_projection/continuous"
+      call zero(div)
+      call compute_divergence(old_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
+      if(gp) then
+        call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
+          & sfields = (/old_p, old_gp, div/), vfields = (/old_velocity, coriolis, conserv, old_res/), stat = stat)
+      else
+        call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
+          & sfields = (/old_p, div/), vfields = (/old_velocity, coriolis, conserv, old_res/), stat = stat)
+      end if
+      if(stat /= 0) then
+        ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+      end if
+      call deallocate(div)
     end if
-    if(stat /= 0) then
-      ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
-    end if
-    call deallocate(div)
     call deallocate(conserv)
         
     call deallocate(coriolis)
@@ -2395,6 +2401,10 @@ contains
     call insert(new_proj_state(1), new_u_mesh, new_u_mesh%name)    
     call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
     call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
+    if(gp) then
+      call insert(old_proj_state(3), old_gp_mesh, old_gp_mesh%name)
+      call insert(new_proj_state(3), new_gp_mesh, new_gp_mesh%name)
+    end if
     
     ! Insert the horizontal Velocity residual    
     
@@ -2489,10 +2499,12 @@ contains
           FLAbort("Unable to determine conservative potential decomposition type")
         end if
       end if
-      call vtk_write_fields("p_decomp_old", index = vtu_index, position = old_positions, model = old_p_mesh, &
-        & sfields = (/old_p, old_p_decomp(1), old_p_decomp(2)/), stat = stat)
-      if(stat /= 0) then
-        ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+      if(debug_vtus) then
+        call vtk_write_fields("p_decomp_old", index = vtu_index, position = old_positions, model = old_p_mesh, &
+          & sfields = (/old_p, old_p_decomp(1), old_p_decomp(2)/), stat = stat)
+        if(stat /= 0) then
+          ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+        end if
       end if
       
       call insert(old_proj_state(2), old_p_decomp(1), old_p_decomp(1)%name)
@@ -2566,10 +2578,12 @@ contains
     end if    
     
     if(decompose_p) then   
-      call vtk_write_fields("p_decomp_new", index = vtu_index, position = new_positions, model = new_p_mesh, &
-        & sfields = (/new_p_decomp(1), new_p_decomp(2)/), stat = stat)        
-      if(stat /= 0) then
-        ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+      if(debug_vtus) then
+        call vtk_write_fields("p_decomp_new", index = vtu_index, position = new_positions, model = new_p_mesh, &
+          & sfields = (/new_p_decomp(1), new_p_decomp(2)/), stat = stat)        
+        if(stat /= 0) then
+          ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+        end if
       end if
       
       call addto(new_p, new_p_decomp(2))
@@ -2589,21 +2603,23 @@ contains
       call deallocate(new_w)
     end if
     
-    call allocate(div, new_p_mesh, trim(new_velocity%name) // "Divergence")
-    div%option_path = trim(new_p%option_path) // "/galerkin_projection/continuous"
-    call zero(div)
-    call compute_divergence(new_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
-    if(gp) then
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p, new_gp, div/), vfields = (/new_velocity, coriolis, conserv, new_res/), stat = stat)
-    else
-      call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-        & sfields = (/new_p, div/), vfields = (/new_velocity, coriolis, conserv, new_res/), stat = stat)
+    if(debug_vtus) then
+      call allocate(div, new_p_mesh, trim(new_velocity%name) // "Divergence")
+      div%option_path = trim(new_p%option_path) // "/galerkin_projection/continuous"
+      call zero(div)
+      call compute_divergence(new_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
+      if(gp) then
+        call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
+          & sfields = (/new_p, new_gp, div/), vfields = (/new_velocity, coriolis, conserv, new_res/), stat = stat)
+      else
+        call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
+          & sfields = (/new_p, div/), vfields = (/new_velocity, coriolis, conserv, new_res/), stat = stat)
+      end if
+      if(stat /= 0) then
+        ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+      end if
+      call deallocate(div)
     end if
-    if(stat /= 0) then
-      ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
-    end if
-    call deallocate(div)
     call deallocate(conserv)
     
     if(aux_p) then      
@@ -2622,7 +2638,7 @@ contains
     if(gp) call deallocate(new_gp)
     call deallocate(new_p)
     
-    vtu_index = vtu_index + 1
+    if(debug_vtus) vtu_index = vtu_index + 1
     
     ewrite(1, *) "Exiting geostrophic_interpolation"
     

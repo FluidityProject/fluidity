@@ -1397,11 +1397,7 @@ Automatic when not using P1P1.</a:documentation>
             <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
-            <element name="honour_strong_boundary_conditions">
-              <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
-applied to this field.</a:documentation>
-              <ref name="comment"/>
-            </element>
+            <ref name="galerkin_projection_honour_strong_bcs"/>
             <ref name="continuous_projection"/>
             <optional>
               <ref name="supermesh_conservation"/>
@@ -1514,9 +1510,28 @@ the L2 norm of the residual</a:documentation>
             </element>
           </element>
         </optional>
+        <optional>
+          <element name="debug">
+            <a:documentation>Debug options</a:documentation>
+            <optional>
+              <element name="write_debug_vtus">
+                <a:documentation>If enabled, pre and post interpolation decomposition vtus are
+written</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <ref name="comment"/>
+          </element>
+        </optional>
         <ref name="comment"/>
       </element>
     </choice>
+  </define>
+  <define name="galerkin_projection_honour_strong_bcs">
+    <element name="honour_strong_boundary_conditions">
+      <a:documentation>Honour strong Dirichlet boundary conditions in the Galerkin projection</a:documentation>
+      <empty/>
+    </element>
   </define>
   <define name="galerkin_projection_vector">
     <ref name="continuous_discontinuous_projection"/>
@@ -1527,11 +1542,7 @@ the L2 norm of the residual</a:documentation>
       <ref name="supermesh_conservation"/>
     </optional>
     <optional>
-      <element name="honour_strong_boundary_conditions">
-        <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
-applied to this field.</a:documentation>
-        <empty/>
-      </element>
+      <ref name="galerkin_projection_honour_strong_bcs"/>
     </optional>
   </define>
   <define name="galerkin_projection_scalar">
@@ -1543,11 +1554,7 @@ applied to this field.</a:documentation>
       <ref name="supermesh_conservation"/>
     </optional>
     <optional>
-      <element name="honour_strong_boundary_conditions">
-        <a:documentation>If set, the Galerkin projection will honour strong Dirichlet boundary conditions
-applied to this field.</a:documentation>
-        <empty/>
-      </element>
+      <ref name="galerkin_projection_honour_strong_bcs"/>
     </optional>
   </define>
   <define name="continuous_projection">
@@ -1769,7 +1776,7 @@ for only a minimal saving in computational cost.</a:documentation>
     <choice>
       <ref name="continuous_projection"/>
       <element name="discontinuous">
-        <a:documentation>Discontinuous field Galerkin projection
+        <a:documentation>Discontinuous field Galerkin projection.
 In this case, no linear solver is required to invert the mass matrix.</a:documentation>
         <empty/>
       </element>
