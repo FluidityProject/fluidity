@@ -67,7 +67,7 @@ subroutine test_python_state
   call python_add_state(state)
   call python_run_string('s_field = state.scalar_fields["ScalarField"]' // new_line("") // &
                        & 'for i in range(s_field.node_count):' // new_line("") // &
-                       & '  s_field.set_val_at_node(i, i + 1)' // new_line(""), &
+                       & '  s_field.set(i, i + 1)' // new_line(""), &
                        & stat = stat)
   call python_reset()
   
@@ -102,7 +102,7 @@ subroutine test_python_state
   call python_add_state(state)
   call python_run_string('v_field = state.vector_fields["VectorField"]' // new_line("") // &
                        & 'for i in range(v_field.node_count):' // new_line("") // &
-                       & '  v_field.set_val_at_node(i, numpy.array([i + 1]))' // new_line(""), &
+                       & '  v_field.set(i, numpy.array([i + 1]))' // new_line(""), &
                        & stat = stat)
   call python_reset()
   
@@ -131,7 +131,7 @@ subroutine test_python_state
   call python_add_state(state)
   call python_run_string('t_field = state.tensor_fields["TensorField"]' // new_line("") // &
                        & 'for i in range(t_field.node_count):' // new_line("") // &
-                       & '  t_field.set_val_at_node(i, numpy.array([[i + 1]]))' // new_line(""), &
+                       & '  t_field.set(i, numpy.array([[i + 1]]))' // new_line(""), &
                        & stat = stat)
   call python_reset()
   
