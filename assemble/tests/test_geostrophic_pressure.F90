@@ -69,8 +69,8 @@ subroutine test_geostrophic_pressure
   call deallocate(gp_shape)
   call allocate(gp, gp_mesh, gp_name)
   call deallocate(gp_mesh)
+  call zero(gp)
   call set_solver_options(gp, ksptype = "cg", pctype = "mg", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .false.)
-  assert(stat == SPUD_NEW_KEY_WARNING)
   call insert(state, gp, gp%name)
   
   ! Hydrostatic balance
