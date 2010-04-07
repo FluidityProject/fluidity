@@ -2010,25 +2010,6 @@ scalar_field_choice =
                }
             )
          }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "BalancePressure" },
-            attribute replaces { "IDENT = -2003" },
-            (
-               element prognostic {
-                  # Note the assumptions about quadratic/linear below and hard-coding
-                  # of the mesh, this is because of restrictions of the
-                  # current code, will change in the near future.
-                  ## Note that this is not the quadratic mesh balance pressure is
-                  ## actually calculated on, but the linear mesh it is projected back
-                  ## on for output purposes.
-                  element mesh {
-                     attribute name {  "VelocityMesh" }
-                  },
-                  prognostic_balance_pressure_field
-               }
-            )
-         }|
          ## If enabled, decomposes Pressure by solving for the balanced part of 
          ## Pressure using a "geopressure" solver:
          ## 
@@ -2037,10 +2018,6 @@ scalar_field_choice =
          ## By choosing an appropriate mesh (typically velocity mesh order + 1)
          ## for the balanced part of pressure, physical balance can be
          ## represented to a higher degree of accuracy.
-         ##
-         ## Expanded BalancePressure field. As BalancePressure, but with
-         ## additional options, including the ability to choose a general
-         ## mesh for the geopressure solver.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "GeostrophicPressure" },

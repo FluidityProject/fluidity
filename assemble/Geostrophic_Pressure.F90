@@ -73,13 +73,13 @@ module geostrophic_pressure
   public :: projection_decomposition, geopressure_decomposition, &
     & geostrophic_velocity, geostrophic_interpolation
   public :: cmc_matrices, allocate, deallocate, add_cmc_matrix, &
-    & add_geopressure_matrices, correct_velocity, compute_conservative
+    & add_geopressure_matrices, correct_velocity, compute_conservative, &
+    & compute_divergence
   public :: coriolis_val, velocity_from_coriolis_val
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
   character(len = *), parameter, public :: gp_name = "GeostrophicPressure"
-  character(len = *), parameter, public :: gp_mesh_name = "GeostrophicPressureMesh"
   character(len = *), parameter, public :: gp_rhs_name = "GeostrophicPressureRhs"
   character(len = *), parameter, public :: gp_m_name = "GeostrophicPressureMatrix"
   
@@ -181,32 +181,24 @@ contains
     integer :: reference_node, stat
     logical :: assemble_matrix, include_buoyancy, include_coriolis
     real, dimension(:), allocatable :: zero_coord
-    type(scalar_field) :: lgp
-    type(scalar_field), pointer :: gp_options_field, old_gp
+    type(scalar_field), pointer :: lgp
     type(vector_field), pointer :: positions
     
     ewrite(1, *) "In calculate_geostrophic_pressure_options"
-    
-    gp_options_field => extract_scalar_field(state, "BalancePressure", stat = stat)
-    if(stat /= 0) gp_options_field => extract_scalar_field(state, gp_name)
 
-    path = complete_field_path(gp_options_field%option_path)
+    lgp => extract_scalar_field(state, gp_name)
+    path = complete_field_path(lgp%option_path)
+    
     assemble_matrix = do_assemble_matrix(state)
     call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
     include_buoyancy = have_option("/physical_parameters/gravity") .and. &
       & geostrophic_pressure_option /= "exclude_buoyancy"
     include_coriolis = have_option("/physical_parameters/coriolis") .and. &
       & geostrophic_pressure_option /= "exclude_coriolis"
-    if(gp_options_field%name == gp_name) then
-      ! If using GeostrophicPressure, default to no reference node
-      call get_option(trim(path) // "/reference_node", reference_node, default = 0)
-    else
-      ! If using BalancePressure, default to reference node 1
-      call get_option(trim(path) // "/reference_node", reference_node, default = 1)
-    end if
+    call get_option(trim(path) // "/reference_node", reference_node, default = 0)
 
     ! Calculate GeostrophicPressure
-    call calculate_geostrophic_pressure(state, gp = lgp, &
+    call calculate_geostrophic_pressure(state, lgp, &
       & velocity_name = "NonlinearVelocity", assemble_matrix = assemble_matrix, include_buoyancy = include_buoyancy, include_coriolis = include_coriolis, &
       & reference_node = reference_node)
 
@@ -218,17 +210,10 @@ contains
       call set_zero_point(lgp, positions, zero_coord)
     end if
     deallocate(zero_coord)
-        
-    ! Set the BalancePressure field (if present)
-    if(has_scalar_field(state, "BalancePressure")) call set_balance_pressure_from_geostrophic_pressure(lgp, state)
-    ! Over-write the OldGeostrophicPressure field
-    old_gp => extract_scalar_field(state, "Old" // gp_name, stat = stat)
-    if(stat == 0) call set(old_gp, lgp)
-    
+            
     if(present(gp)) then
       gp = lgp
-    else
-      call deallocate(lgp)
+      call incref(gp)
     end if
             
     ewrite(1, *) "Exiting calculate_geostrophic_pressure_options"
@@ -257,7 +242,7 @@ contains
     !!< state, and optionally returned through the "gp" argument.
     
     type(state_type), intent(inout) :: state
-    type(scalar_field), optional, intent(out) :: gp
+    type(scalar_field), intent(inout) :: gp
     !! name of velocity field used in coriolis:
     character(len = *), optional, intent(in) :: velocity_name
     !! If present and .false., turn off LHS matrix assembly
@@ -270,11 +255,10 @@ contains
     integer, optional, intent(in) :: reference_node
     
     type(csr_matrix) :: gp_m
-    type(mesh_type) :: gp_mesh
-    type(scalar_field) :: lgp, gp_rhs
+    type(scalar_field) :: gp_rhs
         
     ! Step 1: Initialise
-    call initialise_geostrophic_pressure(gp_mesh, lgp, gp_m, gp_rhs, state)
+    call initialise_geostrophic_pressure(gp, gp_m, gp_rhs, state)
     call initialise_assembly_options(a_velocity_name = velocity_name, &
       & a_assemble_matrix = assemble_matrix, &
       & a_include_buoyancy = include_buoyancy, &
@@ -282,27 +266,20 @@ contains
       & a_reference_node = reference_node)
     
     ! Step 2: Assemble
-    if(gp_mesh%continuity == 0) then
-      call assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
-    else if(gp_mesh%continuity == -1) then
-      FLAbort("DG GeostrophicPressure is not available")
-    else
-      ewrite(-1, "(a,i0)") "For mesh continuity ", gp_mesh%continuity
-      FLAbort("Unrecognised mesh continuity")
-    end if
+    select case(continuity(gp))
+      case(0)
+        call assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
+      case(-1)
+        FLAbort("DG GeostrophicPressure is not available")
+      case default
+        ewrite(-1, "(a,i0)") "For mesh continuity ", continuity(gp)
+        FLAbort("Unrecognised mesh continuity")
+    end select
     
     ! Step 3: Solve
-    call solve_geostrophic_pressure(gp_m, gp_rhs, lgp, state)
-    
-    ! Optional output argument
-    if(present(gp)) then
-      gp = lgp
-      call incref(gp)
-    end if
+    call solve_geostrophic_pressure(gp_m, gp_rhs, gp, state)
     
     ! Step 4: Drop references
-    call deallocate(gp_mesh)
-    call deallocate(lgp)
     call deallocate(gp_m)
     call deallocate(gp_rhs)
 
@@ -341,88 +318,26 @@ contains
     end if
     
   end subroutine initialise_assembly_options
-    
-  subroutine initialise_geostrophic_pressure_mesh(gp_mesh, state)
-    !!< Initialise the GeostrophicPressure mesh. gp_mesh takes a reference in
-    !!< this routine and, if a new object is constructed, is inserted into
-    !!< state.
-    
-    type(mesh_type), intent(out) :: gp_mesh
-    type(state_type), intent(inout) :: state
-    
-    type(element_type) :: gp_shape
-    type(element_type), pointer :: bp_shape
-    type(mesh_type), pointer :: bp_mesh
-    type(quadrature_type), pointer :: quad
-    type(scalar_field), pointer :: bp
-
-    if(has_mesh(state, gp_mesh_name)) then
-       ! If a GeostrophicPressure mesh already exists in state, use it
-      gp_mesh = extract_mesh(state, gp_mesh_name)
-      call incref(gp_mesh)
-    else if(has_mesh(state, "BalancePressureMesh")) then
-      ! If a BalancePressureMesh already exists in state, use that instead
-      gp_mesh = extract_mesh(state, "BalancePressureMesh")
-      call incref(gp_mesh)
-    else
-      ! Otherwise, generate it and insert it into state
-    
-      ! Base the GeostrophicPressure quadrature on the BalancePressure quadrature
-      bp => extract_scalar_field(state, "BalancePressure")
-      bp_mesh => bp%mesh
-      assert(ele_count(bp) > 0)
-      bp_shape => ele_shape(bp, 1)
-      quad => bp_shape%quadrature
-      
-      ! Construct the GeostrophicPressure mesh
-      gp_shape = make_element_shape(ele_vertices(bp_mesh, 1), mesh_dim(bp_mesh), degree = 2, quad = quad)
-      gp_mesh = make_mesh(bp_mesh, gp_shape, continuity = bp_mesh%continuity, name = gp_mesh_name)
-      call deallocate(gp_shape)
-      ! Insert the new mesh into state
-      call insert(state, gp_mesh, gp_mesh_name)
-    end if
   
-  end subroutine initialise_geostrophic_pressure_mesh
-  
-  subroutine initialise_geostrophic_pressure(gp_mesh, gp, gp_m, gp_rhs, state)
-    !!< Allocate / extract GeostrophicPressure variables. gp_mesh, gp, gp_m and
-    !!< gp_rhs all take references in this routine and, if new objects are
-    !!< constructed, are inserted into state.
+  subroutine initialise_geostrophic_pressure(gp, gp_m, gp_rhs, state)
+    !!< Allocate / extract GeostrophicPressure variables. gp_m and gp_rhs take
+    !!< references in this routine and, if new objects are constructed, are
+    !!< inserted into state.
 
-    type(mesh_type), intent(out) :: gp_mesh
-    type(scalar_field), intent(out) :: gp
+    type(scalar_field), target, intent(in) :: gp
     type(csr_matrix), intent(out) :: gp_m
     type(scalar_field), intent(out) :: gp_rhs
     type(state_type), intent(inout) :: state
     
+    integer :: stat
     type(csr_sparsity), pointer :: gp_sparsity
-        
-    ! GeostrophicPressure
-    if(has_scalar_field(state, gp_name)) then
-      ! state already contains a pre-prepared GeostrophicPressure field, so
-      ! let's use it
-
-      gp = extract_scalar_field(state, gp_name)
-      call incref(gp)
-      
-      ! GeostrophicPressure mesh
-      gp_mesh = gp%mesh
-      call incref(gp_mesh)
-    else
-      ! state does not contain a pre-prepared GeostrophicPressure field, so we
-      ! must create one
+    type(mesh_type), pointer :: gp_mesh
     
-      ! GeostrophicPressure mesh
-      call initialise_geostrophic_pressure_mesh(gp_mesh, state)
-      
-      call allocate(gp, gp_mesh, gp_name)
-      call set_geostrophic_pressure_initial_guess(gp, state)
-      call insert(state, gp, gp_name)
-    end if
+    gp_mesh => gp%mesh
     
     ! LHS Matrix
-    if(has_csr_matrix(state, gp_m_name)) then
-      gp_m = extract_csr_matrix(state, gp_m_name)
+    gp_m = extract_csr_matrix(state, gp_m_name, stat = stat)
+    if(stat == 0) then
       call incref(gp_m)
     else
       ! Matrix sparsity
@@ -433,8 +348,8 @@ contains
     end if
     
     ! RHS
-    if(has_scalar_field(state, gp_rhs_name)) then
-      gp_rhs = extract_scalar_field(state, gp_rhs_name)
+    gp_rhs = extract_scalar_field(state, gp_rhs_name, stat = stat)
+    if(stat == 0) then
       call incref(gp_rhs)
     else
       call allocate(gp_rhs, gp_mesh, gp_rhs_name)
@@ -442,19 +357,6 @@ contains
     end if
     
   end subroutine initialise_geostrophic_pressure
-  
-  subroutine set_geostrophic_pressure_initial_guess(gp, state)
-    !!< Use BalancePressure as an initial guess for GeostrophicPressure
-    
-    type(scalar_field), intent(inout) :: gp
-    type(state_type), intent(in) :: state
-    
-    type(scalar_field), pointer :: bp
-
-    bp => extract_scalar_field(state, "BalancePressure")
-    call remap_field(bp, gp)
-    
-  end subroutine set_geostrophic_pressure_initial_guess
   
   subroutine assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
     !!< Assemble the elliptic equation for GeostrophicPressure
@@ -661,15 +563,8 @@ contains
     type(scalar_field), intent(in) :: gp_rhs
     type(scalar_field), intent(inout) :: gp
     type(state_type), intent(inout) :: state
-    
-    integer :: stat
-    type(scalar_field), pointer :: gp_options_field
-    
-    gp_options_field => extract_scalar_field(state, "BalancePressure", stat = stat)
-    if(stat /= 0) gp_options_field => extract_scalar_field(state, gp_name)
-    
-    call petsc_solve(gp, gp_m, gp_rhs, state, &
-      & option_path = gp_options_field%option_path)
+        
+    call petsc_solve(gp, gp_m, gp_rhs, state)
     
     ewrite_minmax(gp%val)
     
@@ -764,27 +659,6 @@ contains
     call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(gp, ele, dn_t)), detwei))
   
   end subroutine subtract_given_geostrophic_pressure_gradient_element
-  
-  subroutine set_balance_pressure_from_geostrophic_pressure(gp, state)
-    !!< Set the BalancePressure field in the given state to be equal to the
-    !!< remapped GeostrophicPressure
-    
-    type(scalar_field), intent(in) :: gp
-    type(state_type), intent(in) :: state
-    
-    type(scalar_field), pointer :: bp
-    integer :: stat
-    
-    bp => extract_scalar_field(state, "BalancePressure")
-    call remap_field(gp, bp, stat=stat)
-    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-      FLAbort("Just remapped from a discontinuous to a continuous field!")
-    else if(stat==REMAP_ERR_UNPERIODIC_PERIODIC) then
-      FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
-    end if
-    ! we've allowed it to remap from from higher order to lower order continuous fields
-    
-  end subroutine set_balance_pressure_from_geostrophic_pressure
           
   subroutine allocate_cmc_matrices(matrices, state, field, p, option_path, gp, add_cmc)
     !!< Allocate cmc_matrices. By default, this assembles the divergence C^T
@@ -2867,57 +2741,44 @@ contains
       & geostrophic_pressure_option
     integer :: i, j, reference_node, stat
     
-    if(option_count("/material_phase/scalar_field::" // gp_name) + &
-      & option_count("/material_phase/scalar_field::BalancePressure") == 0) then
-      ! Nothing to check
-      return
-    end if
-    
-    ewrite(2, *) "Checking GeostrophicPressure options"
-    
-    if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
-      FLExit("BalancePressure is deprecated and about to be removed")
-         
-      if(option_count("/geometry/mesh::" // gp_mesh_name) > 0) then
-        FLExit("The mesh name " // gp_mesh_name // " is reserved")
+    if(option_count("/material_phase/scalar_field::" // gp_name) > 0) then
+      ewrite(2, *) "Checking GeostrophicPressure options"
+      
+      if(option_count("/material_phase/scalar_field::" // gp_rhs_name) > 0) then
+        FLExit("The scalar field name " // gp_rhs_name // " is reserved")
       end if
       
-      if(option_count("/material_phase/scalar_field::" // gp_name) > 0) then
-        FLExit("The scalar field name " // gp_name // " is reserved")
-      end if
-    end if
-    
-    if(option_count("/material_phase/scalar_field::" // gp_rhs_name) > 0) then
-      FLExit("The scalar field name " // gp_rhs_name // " is reserved")
-    end if
-    
-    do i = 0, option_count("/material_phase") - 1
-      mat_phase_path = "/material_phase[" // int2str(i) // "]"      
-      do j = 0, option_count(trim(mat_phase_path) // "/scalar_field") - 1
-        path = "/material_phase[" // int2str(i) // "]/scalar_field[" // int2str(j) // "]"
-        call get_option(trim(path) // "/name", field_name)
-        path = complete_field_path(path, stat = stat)
-        if(field_name == gp_name) then
-          call get_option(trim(path) // "/reference_node", reference_node, stat = stat)
-          if(stat /= 0) then
-            if(.not. have_option(trim(path) // "/solver/remove_null_space")) then
-              FLExit("GeostrophicPressure requires either a reference node or null space removal in the solver")
+      do i = 0, option_count("/material_phase") - 1
+        mat_phase_path = "/material_phase[" // int2str(i) // "]"      
+        do j = 0, option_count(trim(mat_phase_path) // "/scalar_field") - 1
+          path = "/material_phase[" // int2str(i) // "]/scalar_field[" // int2str(j) // "]"
+          
+          call get_option(trim(path) // "/name", field_name)
+          if(field_name == gp_name) then
+            path = complete_field_path(path, stat = stat)
+            
+            call get_option(trim(path) // "/reference_node", reference_node, stat = stat)
+            if(stat /= SPUD_NO_ERROR) then
+              if(.not. have_option(trim(path) // "/solver/remove_null_space")) then
+                FLExit("GeostrophicPressure requires either a reference node or null space removal in the solver")
+              end if
+            else if(reference_node <= 0) then
+              FLExit("GeostrophicPressure reference node must be positive")
             end if
-          else if(reference_node <= 0) then
-            FLExit("GeostrophicPressure reference node must be positive")
+            
+            call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
+            if(geostrophic_pressure_option == "include_buoyancy" .and. &
+              & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressure") > 0) then
+              FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressure")
+            end if
           end if
-        end if
-        if(any(field_name == (/gp_name, "BalancePressure"/))) then
-          call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
-          if(geostrophic_pressure_option == "include_buoyancy" .and. &
-            & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressure") > 0) then
-            FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressure")
-          end if
-        end if
+        end do
       end do
-    end do
     
-    ewrite(2, *) "Finished checking GeostrophicPressure options"
+      ewrite(2, *) "Finished checking GeostrophicPressure options"
+    else if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
+      FLExit("BalancePressure has been removed - switch to GeostrophicPressure")
+    end if
   
   end subroutine geostrophic_pressure_check_options
 

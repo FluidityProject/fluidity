@@ -45,9 +45,10 @@ subroutine test_geostrophic_pressure
   logical :: fail
   real :: gp_zero_point, y_zero_point, z_zero_point
   real, dimension(:), allocatable :: pos
-  type(element_type), pointer :: gp_shape
+  type(element_type) :: gp_shape
+  type(mesh_type) :: gp_mesh
   type(mesh_type), pointer :: mesh
-  type(scalar_field) :: bp, gp, buoyancy
+  type(scalar_field) :: gp, buoyancy
   type(state_type) :: state
   type(vector_field) :: gravity_direction, positions_remap, velocity
   type(vector_field), pointer :: positions
@@ -63,12 +64,14 @@ subroutine test_geostrophic_pressure
   
   allocate(pos(positions%dim))
   
-  call allocate(bp, mesh, "BalancePressure")
-  call zero(bp)
-  call set_solver_options(bp, ksptype = "cg", pctype = "mg", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .false.)
+  gp_shape = make_element_shape(ele_shape(mesh, 1), degree = 2)
+  gp_mesh = make_mesh(mesh, shape = gp_shape)
+  call deallocate(gp_shape)
+  call allocate(gp, gp_mesh, gp_name)
+  call deallocate(gp_mesh)
+  call set_solver_options(gp, ksptype = "cg", pctype = "mg", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .false.)
   assert(stat == SPUD_NEW_KEY_WARNING)
-  call insert(state, bp, bp%name)
-  call deallocate(bp)
+  call insert(state, gp, gp%name)
   
   ! Hydrostatic balance
   call allocate(buoyancy, mesh, "VelocityBuoyancyDensity", field_type = FIELD_TYPE_CONSTANT)
@@ -84,14 +87,9 @@ subroutine test_geostrophic_pressure
   call insert(state, gravity_direction, gravity_direction%name)
   call deallocate(gravity_direction)
   
-  call calculate_geostrophic_pressure(state, gp = gp, &
+  call calculate_geostrophic_pressure(state, gp, &
     & assemble_matrix = .true., include_buoyancy = .true., include_coriolis = .false., reference_node = 1)
-    
-  assert(ele_count(gp) > 0)
-  gp_shape => ele_shape(gp, 1)
-  call report_test("[Degree 2 mesh]", gp_shape%degree /= 2, .false., "Incorrect degree mesh")
-  call report_test("[Degree 2 mesh]", node_count(gp) <= node_count(positions), .false., "Incorrect degree mesh")
-  
+      
   call allocate(positions_remap, positions%dim, gp%mesh, "Positions")
   call remap_field(positions, positions_remap)
   
@@ -106,8 +104,6 @@ subroutine test_geostrophic_pressure
     end if
   end do
   call report_test("[Hydrostatic balance]", fail, .false., "Incorrect solution")
-
-  call deallocate(gp)
   
   ! Geostrophic balance
   call set_option("/physical_parameters/coriolis/f_plane/f", 1.0, stat)
@@ -119,12 +115,8 @@ subroutine test_geostrophic_pressure
   call insert(state, velocity%mesh, trim(velocity%name) // "Mesh")
   call deallocate(velocity)
     
-  call calculate_geostrophic_pressure(state, gp = gp, &
-    & velocity_name = velocity%name, assemble_matrix = .false., include_buoyancy = .false., include_coriolis = .true., reference_node = 1)
-
-  call report_test("[Degree 2 mesh]", gp_shape%degree /= 2, .false., "Incorrect degree mesh")
-  call report_test("[Degree 2 mesh]", node_count(gp) /= node_count(positions_remap), .false., "Incorrect degree mesh")
-  call report_test("[Degree 2 mesh]", ele_count(gp) /= ele_count(positions_remap), .false., "Incorrect degree mesh")
+  call calculate_geostrophic_pressure(state, gp, &
+    & velocity_name = velocity%name, assemble_matrix = .false., include_buoyancy = .false., include_coriolis = .true.)
     
   fail = .false.
   gp_zero_point = minval(gp%val)
@@ -137,16 +129,10 @@ subroutine test_geostrophic_pressure
     end if
   end do
   call report_test("[Geostrophic balance]", fail, .false., "Incorrect solution")
-  
-  call deallocate(gp)
-  
+    
   ! Thermal wind balance
-  call calculate_geostrophic_pressure(state, gp = gp, &
-    & velocity_name = velocity%name, assemble_matrix = .false., include_buoyancy = .true., include_coriolis = .true., reference_node = 1)
-
-  call report_test("[Degree 2 mesh]", gp_shape%degree /= 2, .false., "Incorrect degree mesh")
-  call report_test("[Degree 2 mesh]", node_count(gp) /= node_count(positions_remap), .false., "Incorrect degree mesh")
-  call report_test("[Degree 2 mesh]", ele_count(gp) /= ele_count(positions_remap), .false., "Incorrect degree mesh")
+  call calculate_geostrophic_pressure(state, gp, &
+    & velocity_name = velocity%name, assemble_matrix = .false., include_buoyancy = .true., include_coriolis = .true.)
   
   fail = .false.
   gp_zero_point = minval(gp%val)
@@ -160,10 +146,9 @@ subroutine test_geostrophic_pressure
   end do
   call report_test("[Thermal wind balance]", fail, .false., "Incorrect solution")
   
-  call deallocate(gp)
-  
   call deallocate(positions_remap)
   
+  call deallocate(gp)
   call deallocate(state)
   deallocate(pos)
   

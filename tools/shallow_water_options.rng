@@ -2390,33 +2390,6 @@ of the free surface elevation.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>BalancePressure</value>
-        </attribute>
-        <attribute name="replaces">
-          <value>IDENT = -2003</value>
-        </attribute>
-        <element name="prognostic">
-          <!--
-            Note the assumptions about quadratic/linear below and hard-coding
-            of the mesh, this is because of restrictions of the
-            current code, will change in the near future.
-          -->
-          <element name="mesh">
-            <a:documentation>Note that this is not the quadratic mesh balance pressure is
-actually calculated on, but the linear mesh it is projected back
-on for output purposes.</a:documentation>
-            <attribute name="name">
-              <value>VelocityMesh</value>
-            </attribute>
-          </element>
-          <ref name="prognostic_balance_pressure_field"/>
-        </element>
-      </element>
-      <element name="scalar_field">
         <a:documentation>If enabled, decomposes Pressure by solving for the balanced part of 
 Pressure using a "geopressure" solver:
 
@@ -2424,11 +2397,7 @@ Pressure using a "geopressure" solver:
 
 By choosing an appropriate mesh (typically velocity mesh order + 1)
 for the balanced part of pressure, physical balance can be
-represented to a higher degree of accuracy.
-
-Expanded BalancePressure field. As BalancePressure, but with
-additional options, including the ability to choose a general
-mesh for the geopressure solver.</a:documentation>
+represented to a higher degree of accuracy.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

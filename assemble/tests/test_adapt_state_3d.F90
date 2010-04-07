@@ -102,6 +102,7 @@ subroutine test_adapt_state_3d
   assert(stat == SPUD_NEW_KEY_WARNING)
 
   call set_option("/geometry/dimension", 3, stat = stat)
+  assert(stat == SPUD_NEW_KEY_WARNING)
   call adaptivity_bounds(state_array(1), 0.01, 1.0, name = "CoordinateMesh")
 
   call allocate(metric, mesh, "Metric")
