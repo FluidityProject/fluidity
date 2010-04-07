@@ -966,13 +966,11 @@ contains
          mindiag=huge(0.0)
          maxdiag=-mindiag
          do i=1, nbrowsp
-            if (row2ghost(i)==0) then
-               do bv=1, nblocksv
-                  diag=abs(val(A, bv, bv, i, i))
-                  if (diag<mindiag) mindiag=diag
-                  if (diag>maxdiag) maxdiag=diag
-               end do
-            end if
+           do bv=1, nblocksv
+              diag=abs(val(A, bv, bv, i, i))
+              if (diag<mindiag) mindiag=diag
+              if (diag>maxdiag) maxdiag=diag
+           end do
          end do
          ghost_pivot=sqrt((maxdiag+mindiag)*maxdiag/2.0)
       end if
