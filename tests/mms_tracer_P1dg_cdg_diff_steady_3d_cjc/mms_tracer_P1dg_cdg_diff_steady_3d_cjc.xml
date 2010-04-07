@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>channel-flow-dg</name>
+  <owner userid="colin"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>for layer in 5 10 20 30; do ./generate_mesh $layer; fluidity cdg_cjc.flml; cp cdg.stat cdg-$layer.stat; cp cdg_1.vtu cdg-$layer.vtu; done</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergence" language="python">import numpy
+from fluidity_tools import stat_parser
+layers = numpy.array([5,10,20,30])
+dxs=1.0/layers
+error=[]
+for layer in layers:
+        s=stat_parser("cdg-"+`layer`+".stat")
+        error.append((s["Stuff"]['AbsoluteDifference']['l2norm'][-1]))
+
+error=numpy.array(error)
+convergence=numpy.log(error[:-1]/error[1:])/numpy.log((1.0*layers[1:])/(1.0*layers[:-1]))
+print error
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="ConvergesToSecondOrder" language="python">
+import numpy
+assert(numpy.all(convergence &gt;1.9))</test>
+  </pass_tests>
+</testproblem>
