@@ -174,6 +174,9 @@
                 <integrate_divergence_by_parts/>
               </continuous_galerkin>
             </spatial_discretisation>
+            <reference_node>
+              <integer_value rank="0">1</integer_value>
+            </reference_node>
             <solver>
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
@@ -286,6 +289,86 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Div" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="finite_element_divergence">
+          <integrate_divergence_by_parts/>
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.0e-16</real_value>
+            </relative_error>
+            <absolute_error>
+              <real_value rank="0">1.0e-16</real_value>
+            </absolute_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Bal" rank="1">
+      <diagnostic>
+        <algorithm material_phase_support="single" depends="Velocity" source_field_type="scalar" source_field_name="LayerThickness" name="geostrophic_velocity">
+          <mass/>
+          <integrate_divergence_by_parts/>
+          <scale_factor>
+            <real_value rank="0">10.0</real_value>
+          </scale_factor>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="Imbal" rank="1">
+      <diagnostic>
+        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="Bal" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
   </material_phase>
   <mesh_adaptivity>
     <prescribed_adaptivity>

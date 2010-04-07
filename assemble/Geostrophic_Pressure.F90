@@ -74,6 +74,7 @@ module geostrophic_pressure
     & geostrophic_velocity, geostrophic_interpolation
   public :: cmc_matrices, allocate, deallocate, add_cmc_matrix, &
     & add_geopressure_matrices, correct_velocity, compute_conservative
+  public :: coriolis_val, velocity_from_coriolis_val
     
   public :: compute_balanced_velocity_diagnostics, compute_balanced_velocity
   
@@ -138,6 +139,14 @@ module geostrophic_pressure
   interface deallocate
     module procedure deallocate_cmc_matrices
   end interface deallocate
+
+  interface coriolis_val
+    module procedure coriolis_val_single, coriolis_val_multiple
+  end interface coriolis_val
+
+  interface velocity_from_coriolis_val
+    module procedure velocity_from_coriolis_val_single, velocity_from_coriolis_val_multiple
+  end interface velocity_from_coriolis_val
   
   interface clear_boundary_conditions
     module procedure clear_boundary_conditions_scalar_single, clear_boundary_conditions_scalar_multiple
@@ -1358,7 +1367,7 @@ contains
   end subroutine correct_velocity
   
   subroutine compute_conservative(matrices, conserv, p, geopressure)
-    !!< Compute the pressure gradient
+    !!< Compute the gradient of a field
   
     type(cmc_matrices), target, intent(in) :: matrices
     type(vector_field), intent(inout) :: conserv
@@ -1416,7 +1425,7 @@ contains
   
   end subroutine compute_divergence
   
-  function coriolis_val(coord, velocity)
+  function coriolis_val_single(coord, velocity) result(coriolis_val)
     real, dimension(:), intent(in) :: coord
     real, dimension(size(coord)), intent(in) :: velocity
     
@@ -1430,9 +1439,28 @@ contains
     coriolis_val(V_) = -velocity(U_) * two_omega
     if(size(velocity) == 3) coriolis_val(W_) = 0.0
         
-  end function coriolis_val
+  end function coriolis_val_single
+
+  function coriolis_val_multiple(coord, velocity) result(coriolis_val)
+    !! size(dim, loc)
+    real, dimension(:, :), intent(in) :: coord
+    !! size(dim, loc)
+    real, dimension(size(coord, 1), size(coord, 2)), intent(in) :: velocity
+
+    !! size(dim, loc)
+    real, dimension(size(coord, 1), size(coord, 2)) :: coriolis_val
+
+    real, dimension(size(coord, 2)) :: two_omega
+
+    two_omega = coriolis(coord)
+    assert(any(size(velocity, 1) == (/2, 3/)))
+    coriolis_val(U_, :) = velocity(V_, :) * two_omega
+    coriolis_val(V_, :) = -velocity(U_, :) * two_omega
+    if(size(velocity, 1) == 3) coriolis_val(W_, :) = 0.0
+    
+  end function coriolis_val_multiple
   
-  function velocity_from_coriolis_val(coord, coriolis_val) result(velocity)
+  function velocity_from_coriolis_val_single(coord, coriolis_val) result(velocity)
     real, dimension(:), intent(in) :: coord
     real, dimension(size(coord)) :: coriolis_val
     
@@ -1444,13 +1472,32 @@ contains
     assert(any(size(coriolis_val) == (/2, 3/)))
     velocity(U_) = -coriolis_val(V_) / two_omega
     velocity(V_) = coriolis_val(U_) / two_omega
-    if(size(velocity) == 3) velocity(W_) = 0.0
+    if(size(coriolis_val, 1) == 3) velocity(W_) = 0.0
     
-  end function velocity_from_coriolis_val
+  end function velocity_from_coriolis_val_single
+  
+  function velocity_from_coriolis_val_multiple(coord, coriolis_val) result(velocity)
+    !! size(dim, loc)
+    real, dimension(:, :), intent(in) :: coord
+    !! size(dim, loc)
+    real, dimension(size(coord, 1), size(coord, 2)) :: coriolis_val
+    
+    !! size(dim, loc)
+    real, dimension(size(coord, 1), size(coord, 2)) :: velocity
+    
+    real, dimension(size(coord, 2)) :: two_omega
+    
+    two_omega = coriolis(coord)
+    assert(any(size(coriolis_val, 1) == (/2, 3/)))
+    velocity(U_, :) = -coriolis_val(V_, :) / two_omega
+    velocity(V_, :) = coriolis_val(U_, :) / two_omega
+    if(size(coriolis_val, 1) == 3) velocity(W_, :) = 0.0
+    
+  end function velocity_from_coriolis_val_multiple
 
   subroutine geostrophic_velocity(matrices, state, velocity, p)  
     type(cmc_matrices), intent(in) :: matrices
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
     
@@ -1468,53 +1515,160 @@ contains
   end subroutine geostrophic_velocity
   
   subroutine velocity_from_coriolis(state, coriolis, velocity)
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: coriolis
-    type(vector_field), target, intent(inout) :: velocity
+    type(vector_field), intent(inout) :: velocity
   
     integer :: i
-    type(mesh_type), pointer :: u_mesh
-    type(vector_field) :: positions
-  
-    assert(coriolis%mesh == velocity%mesh)
+    type(scalar_field), pointer :: masslump
+    type(vector_field), pointer :: positions
     
-    ! More generally this should be a Galerkin projection for Velocity
-    
-    u_mesh => velocity%mesh
-    positions = get_nodal_coordinate_field(state, u_mesh)
-    
-    do i = 1, node_count(velocity)
-      call set(velocity, i, &
-        & velocity_from_coriolis_val(node_val(positions, i), node_val(coriolis, i)))
-    end do
-    call deallocate(positions)
+    positions => extract_vector_field(state, "Coordinate")
+    select case(continuity(velocity))
+      case(-1)
+        do i = 1, ele_count(velocity)
+          call solve_velocity_ele(i, positions, coriolis, velocity)
+        end do
+      case(0)
+        masslump => get_lumped_mass(state, velocity%mesh)
+        call zero(velocity)
+        do i = 1, ele_count(velocity)
+          call assemble_velocity_ele(i, positions, coriolis, velocity)
+        end do
+        do i = 1, coriolis%dim
+          velocity%val(i)%ptr = velocity%val(i)%ptr / masslump%val
+        end do
+      case default
+        ewrite(-1, *) "For mesh continuity: ", continuity(coriolis)
+        FLAbort("Unrecognised mesh continuity")
+    end select
+
+  contains
+
+    subroutine assemble_velocity_ele(ele, positions, coriolis, rhs)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: coriolis
+      type(vector_field), intent(inout) :: rhs
+
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      type(element_type), pointer :: shape
+
+      call transform_to_physical(positions, ele, &
+        & detwei = detwei)
+        
+      shape => ele_shape(rhs, ele)
+      call addto(rhs, ele_nodes(rhs, ele), &
+        & shape_vector_rhs(shape, &
+        & velocity_from_coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(coriolis, ele)), detwei))
+
+    end subroutine assemble_velocity_ele
+
+    subroutine solve_velocity_ele(ele, positions, coriolis, velocity)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: coriolis
+      type(vector_field), intent(inout) :: velocity
+
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(velocity, ele), velocity%dim) :: little_rhs
+      real, dimension(ele_loc(velocity, ele), ele_loc(velocity, ele)) :: little_mass
+      type(element_type), pointer :: shape
+
+      call transform_to_physical(positions, ele, &
+        & detwei = detwei)
+
+      shape => ele_shape(velocity, ele)
+      little_mass = shape_shape(shape, shape, detwei)
+      little_rhs = transpose(shape_vector_rhs(shape, &
+        & velocity_from_coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(coriolis, ele)), detwei))
+
+      call solve(little_mass, little_rhs)
+
+      call set(velocity, ele_nodes(velocity, ele), transpose(little_rhs))
+
+    end subroutine solve_velocity_ele
     
   end subroutine velocity_from_coriolis
   
   subroutine coriolis_from_velocity(state, velocity, coriolis)
-    type(state_type), intent(in) :: state
-    type(vector_field), target, intent(in) :: velocity
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(in) :: velocity
     type(vector_field), intent(inout) :: coriolis
   
     integer :: i
-    type(mesh_type), pointer :: u_mesh
-    type(vector_field) :: positions
+    type(scalar_field), pointer :: masslump
+    type(vector_field), pointer :: positions
     
-    assert(coriolis%mesh == velocity%mesh)
-    
-    ! More generally this should be a Galerkin projection for Coriolis
-    
-    u_mesh => velocity%mesh
-    positions = get_nodal_coordinate_field(state, u_mesh)
-  
-    do i = 1, node_count(coriolis)
-      call set(coriolis, i, coriolis_val(node_val(positions, i), node_val(velocity, i)))
-    end do
-    call deallocate(positions)
+    positions => extract_vector_field(state, "Coordinate")
+    select case(continuity(coriolis))
+      case(-1)
+        do i = 1, ele_count(coriolis)
+          call solve_coriolis_ele(i, positions, velocity, coriolis)
+        end do
+      case(0)
+        masslump => get_lumped_mass(state, coriolis%mesh)
+        call zero(coriolis)
+        do i = 1, ele_count(coriolis)
+          call assemble_coriolis_ele(i, positions, velocity, coriolis)
+        end do
+        do i = 1, coriolis%dim
+          coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
+        end do
+      case default
+        ewrite(-1, *) "For mesh continuity: ", continuity(coriolis)
+        FLAbort("Unrecognised mesh continuity")
+    end select
     
     do i = 1, coriolis%dim
       ewrite_minmax(coriolis%val(i)%ptr)
     end do
+
+  contains
+
+    subroutine assemble_coriolis_ele(ele, positions, velocity, rhs)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: velocity
+      type(vector_field), intent(inout) :: rhs
+
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      type(element_type), pointer :: shape
+
+      call transform_to_physical(positions, ele, &
+        & detwei = detwei)
+        
+      shape => ele_shape(rhs, ele)
+      call addto(rhs, ele_nodes(rhs, ele), &
+        & shape_vector_rhs(shape, &
+        & coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei))
+
+    end subroutine assemble_coriolis_ele
+
+    subroutine solve_coriolis_ele(ele, positions, velocity, coriolis)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: velocity
+      type(vector_field), intent(inout) :: coriolis
+
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(coriolis, ele), coriolis%dim) :: little_rhs
+      real, dimension(ele_loc(coriolis, ele), ele_loc(coriolis, ele)) :: little_mass
+      type(element_type), pointer :: shape
+
+      call transform_to_physical(positions, ele, &
+        & detwei = detwei)
+
+      shape => ele_shape(coriolis, ele)
+      little_mass = shape_shape(shape, shape, detwei)
+      little_rhs = transpose(shape_vector_rhs(shape, &
+        & coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei))
+
+      call solve(little_mass, little_rhs)
+
+      call set(coriolis, ele_nodes(coriolis, ele), transpose(little_rhs))
+
+    end subroutine solve_coriolis_ele
     
   end subroutine coriolis_from_velocity
     

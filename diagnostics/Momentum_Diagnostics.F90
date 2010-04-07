@@ -54,10 +54,6 @@ module momentum_diagnostics
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_vector_potential, calculate_geostrophic_velocity
   
-  interface coriolis_force
-    module procedure coriolis_force_single, coriolis_force_multiple
-  end interface coriolis_force
-  
 contains
   
   subroutine calculate_bulk_viscosity(states, t_field)
@@ -258,7 +254,7 @@ contains
     end if
     
     do i = 1, node_count(coriolis)
-      call set(coriolis, i, coriolis_force(node_val(positions, i), node_val(velocity_remap, i)))
+      call set(coriolis, i, coriolis_val(node_val(positions, i), node_val(velocity_remap, i)))
     end do
     
     call deallocate(positions)
@@ -329,56 +325,10 @@ contains
 
     call addto(rhs, ele_nodes(rhs, ele), &
       & shape_vector_rhs(ele_shape(rhs, ele), &
-        & coriolis_force(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), &
+        & coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), &
       & detwei))
 
   end subroutine assemble_coriolis_ele
-  
-  function coriolis_force_single(position, velocity) result(cf)
-    real, dimension(:), intent(in) :: position
-    real, dimension(size(position)), intent(in) :: velocity
-    
-    real, dimension(size(position)) :: cf
-       
-    real, dimension(1) :: f
-        
-    f = two_omega(spread(position, 2, 1))
-    select case(size(position))
-      case(2)
-        cf(1) = velocity(2) * f(1)
-        cf(2) = -velocity(1) * f(1)
-      case(3)
-        cf(1) = velocity(2) * f(1)
-        cf(2) = -velocity(1) * f(1)
-        cf(3) = 0.0
-      case default
-        FLAbort("Coriolis can only be computed in 2D or 3D")
-    end select
-    
-  end function coriolis_force_single
-  
-  function coriolis_force_multiple(positions, velocity) result(cf)
-    real, dimension(:, :), intent(in) :: positions
-    real, dimension(size(positions, 1), size(positions, 2)) :: velocity
-    
-    real, dimension(size(positions, 1), size(positions, 2)) :: cf
-    
-    real, dimension(size(positions, 2)) :: f
-    
-    f = two_omega(positions)
-    select case(size(positions, 1))
-      case(2)
-        cf(1, :) = velocity(2, :) * f
-        cf(2, :) = -velocity(1, :) * f
-      case(3)
-        cf(1, :) = velocity(2, :) * f
-        cf(2, :) = -velocity(1, :) * f
-        cf(3, :) = 0.0
-      case default
-        FLAbort("Coriolis can only be computed in 2D or 3D")
-    end select
-    
-  end function coriolis_force_multiple
   
   subroutine calculate_scalar_potential(state, s_field)
     type(state_type), intent(inout) :: state

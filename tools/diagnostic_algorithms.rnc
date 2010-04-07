@@ -208,6 +208,16 @@ helmholtz_smoothed_scalar_algorithm =
    )
 
 # Binary operators
+scalar_sum_algorithm =
+   (
+      ## Sum of two scalar fields
+      element algorithm {
+         attribute name { "scalar_sum" },
+         attribute material_phase_support { "single" },
+         scalar_source_field_1,
+         scalar_source_field_2
+      }
+   )
 scalar_difference_algorithm =
    (
       ## Difference between two scalar fields, field 1 - field 2
@@ -717,6 +727,7 @@ scalar_diagnostic_algorithms |= grad_normal_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
+scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_difference_algorithm
 
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
