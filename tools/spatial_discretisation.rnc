@@ -349,7 +349,25 @@ spatial_discretisation_options =
                }|
                ## The experimental Farrell-Piggott-Nelson limiter
                element slope_limiter {
-                  attribute name { "FPN" }
+                  attribute name { "FPN" },
+                  ## Options allowing the user to set the bounds using
+                  ## the field from the current or previous time step and
+                  ## whether or not to exclude the current value at the
+                  ## node in the calculation of the bounds. 
+                  ## (Currently not in the trunk) Users can also manually set the
+                  ## upper and lower bounds if they wish.
+                  element limit_from_previous_time_step {
+                     empty
+                  }?,
+                  element exclude_current_node {
+                     empty
+                  }?,
+                  element max_upper_bound {
+                     real
+                  }?,
+                  element min_lower_bound {
+                     real
+                  }?
                }
             )?,
             ## Discretisation options for the mass terms.
