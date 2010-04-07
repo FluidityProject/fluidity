@@ -709,7 +709,7 @@ contains
     PetscErrorCode ierr
     
     call PetscOptionsGetString('prns_', '-filename', filename, flag, ierr)
-    if (flag) then
+    if (.not. flag) then
       filename='matrixdump'
     end if
 
