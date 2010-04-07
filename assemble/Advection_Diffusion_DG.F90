@@ -159,7 +159,12 @@ contains
        !Set the switch vector
        if(associated(switch_g)) deallocate(switch_g)
        allocate(switch_g(mesh_dim(T)))
-       switch_g = 1.0/(sqrt(1.0*mesh_dim(T)))
+       switch_g = 0.
+       switch_g(1) = exp(sin(3.0+exp(1.0)))
+       if(mesh_dim(T)>1) switch_g(2) = (cos(exp(3.0)/sin(2.0)))**2.0
+       if(mesh_dim(T)>2) switch_g(3) = sin(cos(sin(cos(3.0))))
+       switch_g = switch_g/sqrt(sum(switch_g**2))
+       !switch_g = 1.0/(sqrt(1.0*mesh_dim(T)))
 
        remove_penalty_fluxes = .true.
        interior_penalty_parameter = 0.0
@@ -237,6 +242,8 @@ contains
             &"/prognostic/spatial_discretisation/&
             &discontinuous_galerkin/diffusion_scheme&
             &/interior_penalty/debug")
+       remove_element_integral = .false.
+       remove_primal_fluxes = .false.
        if(debugging) then
           call get_option(trim(T%option_path)//&
                &"/prognostic/spatial_discretisation/&
@@ -254,10 +261,6 @@ contains
                &"/prognostic/spatial_discretisation/&
                &discontinuous_galerkin/diffusion_scheme&
                &/interior_penalty/debug/remove_penalty_fluxes")
-       else
-          remove_element_integral = .false.
-          remove_primal_fluxes = .false.
-          remove_penalty_fluxes = .false.
        end if
     else
        FLAbort("Unknown diffusion scheme.")
@@ -308,16 +311,16 @@ contains
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
 
-    select case(diffusion_scheme)
-      case(CDG)
-        ! This is bigger than we need for CDG
-        sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
-      case(IP)
-        sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
-      case default
-        sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
-    end select
-
+    !select case(diffusion_scheme)
+    !case(CDG)
+       ! This is bigger than we need for CDG
+    !   sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
+    !case(IP)
+    !   sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
+    !case default
+    sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
+    !end select
+    
     call allocate(matrix, sparsity) ! Add data space to the sparsity
     ! pattern.
 
@@ -328,6 +331,7 @@ contains
     
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state) 
 
+    
     ! Apply strong dirichlet boundary conditions.
     ! This is for big spring boundary conditions.
     call apply_dirichlet_conditions(matrix, rhs, T, dt)
@@ -437,9 +441,7 @@ contains
        call calculate_diagnostic_variable(state, "DG_CourantNumber", &
             & s_field)
        
-       ewrite(3,*) 'maxval DG Courant', maxval(s_field%val)
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
-       ewrite(3,*) 'subcycles = ', subcycles
     end if
 
     limit_slope=.false.
@@ -1079,6 +1081,7 @@ contains
              Diffusivity_mat(:size(T_ele),:size(T_ele))= &
                   dshape_tensor_dshape(dt_t, ele_val_at_quad(Diffusivity,ele), &
                   &                    dt_t, detwei)
+
           end if
 
           !Get ele2grad_mat
@@ -1237,16 +1240,13 @@ contains
 
         if(dg.and.diffusion_scheme==IP) then
            if(edge_length_option==USE_ELEMENT_CENTRES) then
-              ewrite(3,*) 'cjc getting centre_vec'
              ele_2_X = x_neigh(ni)
               ele_centre = sum(X_val,2)/size(X_val,2)
               face_centre = sum(face_val(X,face),2)/size(face_val(X,face),2)
               if(boundary_element) then
-                 ewrite(3,*) 'cjc boundary case'
                  ! Boundary case. We compute 2x the distance to the face centre
                  centre_vec = 2.0*(ele_centre - face_centre)
               else if (ele_2/=x_neigh(ni)) then
-                 ewrite(3,*) 'cjc periodic boundary case'
                  ! Periodic boundary case. We have to cook up the coordinate by
                  ! adding vectors to the face from each side.
                  x_val_2 = ele_val(X,ele_2_X)
@@ -1256,7 +1256,6 @@ contains
                  centre_vec = ele_centre - face_centre + &
                       & face_centre_2 - neigh_centre
               else
-                 ewrite(3,*) 'cjc interior case'
                  x_val_2 = ele_val(X,ele_2_X)
                  neigh_centre = sum(X_val_2,2)/size(X_val_2,2)
                  centre_vec = ele_centre - neigh_centre
@@ -1365,7 +1364,7 @@ contains
           end do boundary_neighbourloop
           
        end if
-
+       
     end if
 
     !----------------------------------------------------------------------
@@ -1836,10 +1835,13 @@ contains
     ! Change of coordinates on face.
     !----------------------------------------------------------------------
 
-    call transform_facet_to_physical(X, face, &
+    !Unambiguously calculate the normal using the face with the higher
+    !face number. This is so that the normal is identical on both sides.
+    call transform_facet_to_physical(X, max(face,face_2), &
          &                          detwei_f=detwei,&
          &                          normal=normal)
-        
+    if(face_2>face) normal = -normal
+
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
@@ -2264,8 +2266,6 @@ contains
       case default
          FLAbort('no such option')
       end select
-
-      ewrite(3,*) 'cjc h0', h0
 
       if(cdg_penalty) then
          C_h = Interior_Penalty_Parameter
