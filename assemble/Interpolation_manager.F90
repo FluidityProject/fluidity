@@ -271,7 +271,7 @@ contains
       call insert(meshes_new(mesh), new_pos, "Coordinate")
 
       if (mesh_periodic(new_mesh)) then
-
+        
         ! Nice work, soldier! Now if the mesh is periodic we need to expand the mesh in the plane,
         ! as if we've adapted the domain edges won't match up, will they?
         
@@ -377,6 +377,9 @@ contains
             call deallocate(alg_new(mesh))
           end do
         case("geostrophic_interpolation")
+          ! this needs to be changed to work with periodic adaptivity
+          ! it should be passing on the expanded fields from meshes_old/new
+          ! and not touch anything in states_old/new
           do state = 1, state_cnt
             do field = 1, vector_field_count(states_old(state))
               field_v_2 => extract_vector_field(states_old(state), field)
@@ -448,6 +451,10 @@ contains
         do field=1,vector_field_count(meshes_new(mesh))
           field_v => extract_vector_field(meshes_new(mesh), field)
           if (trim(field_v%name) == "Coordinate") cycle
+          if (interpolate_field_geostrophic(field_v%option_path)) then
+            ewrite(0,*) "Warning: geostrophic_interpolation only works with prescribed periodic adaptivity"
+            cycle
+          end if
           p_field_v => extract_vector_field(periodic_new(mesh), trim(field_v%name))
           assert(trim(field_v%name) == trim(p_field_v%name))
           call remap_field(field_v, p_field_v, stat=stat)
@@ -789,6 +796,7 @@ contains
     do field=1,scalar_field_count(mesh_new)
       p_field_s => extract_scalar_field(mesh_new, field)
       call allocate(field_s, new_mesh_unperiodic, trim(p_field_s%name))
+      field_s%option_path = p_field_s%option_path
       call remap_field(p_field_s, field_s)
       call insert(mesh_new, field_s, trim(mesh_new%scalar_names(field)))
       call deallocate(field_s)
@@ -800,6 +808,7 @@ contains
         cycle
       end if
       call allocate(field_v, p_field_v%dim, new_mesh_unperiodic, trim(p_field_v%name))
+      field_v%option_path = p_field_v%option_path
       call remap_field(p_field_v, field_v)
       call insert(mesh_new, field_v, trim(mesh_new%vector_names(field)))
       call deallocate(field_v)
@@ -808,6 +817,7 @@ contains
     do field=1,tensor_field_count(mesh_new)
       p_field_t => extract_tensor_field(mesh_new, field)
       call allocate(field_t, new_mesh_unperiodic, trim(p_field_t%name))
+      field_t%option_path = p_field_t%option_path
       call remap_field(p_field_t, field_t)
       call insert(mesh_new, field_t, trim(mesh_new%tensor_names(field)))
       call deallocate(field_t)
@@ -876,6 +886,7 @@ contains
       p_field_s => extract_scalar_field(mesh_old, field)
       u_field_s => extract_scalar_field(unwrapped_state, trim(p_field_s%name))
       call allocate(field_s, old_mesh_expanded, trim(p_field_s%name))
+      field_s%option_path = p_field_s%option_path
       do node=1,node_count(u_field_s)
         do j=0,total_multiple-1
           call set(field_s, node + j*node_count(u_field_s), node_val(u_field_s, node))
@@ -892,6 +903,7 @@ contains
       end if
       u_field_v => extract_vector_field(unwrapped_state, trim(p_field_v%name))
       call allocate(field_v, p_field_v%dim, old_mesh_expanded, trim(p_field_v%name))
+      field_v%option_path = p_field_v%option_path
       do node=1,node_count(u_field_v)
         do j=0,total_multiple-1
           call set(field_v, node + j*node_count(u_field_v), node_val(u_field_v, node))
@@ -905,6 +917,7 @@ contains
       p_field_t => extract_tensor_field(mesh_old, field)
       u_field_t => extract_tensor_field(unwrapped_state, trim(p_field_t%name))
       call allocate(field_t, old_mesh_expanded, trim(p_field_t%name))
+      field_t%option_path = p_field_t%option_path
       do node=1,node_count(u_field_t)
         do j=0,total_multiple-1
           call set(field_t, node + j*node_count(u_field_t), node_val(u_field_t, node))
