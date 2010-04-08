@@ -6941,6 +6941,14 @@ solenoidal_options =
         element reference_node {
           integer
         }?,
+        ## **UNDER DEVELOPMENT**
+        ## This searches the CMC matrix diagonal looking for nodes that are less than the maximum value time epsilon(0.0) (i.e. nodes that are effectively zero).
+        ## It then zeros that row and column and places a one on the diagonal and a zero on the rhs.
+        ## At a debug level of 2 it also prints out the value and the sum of the row values.
+        ## This is useful as a debugging tool if PETSc complains about zeros on the diagonal (i.e. if you have a stiff node in your mesh) but doesn't necessary produce nice answers at the end.
+        element repair_stiff_nodes {
+           empty
+        }?,
         (
           ## Update a scalar field using the lagrange multiplier from
           ## the divergence free projection of this field.  The selected

@@ -4,7 +4,7 @@
   <name>Multimaterial adaptivity and interpolation test</name>
   <owner userid="cwilson"/>
   <tags>flml 2dadapt zoltan</tags>
-  <problem_definition length ="special" nprocs = "1">
+  <problem_definition length ="short" nprocs = "1">
     <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l mmat-interpolation.flml &amp;&amp; mv fluidity.log-0 first.log-0 &amp;&amp; mv fluidity.log-1 first.log-1 &amp;&amp; mv fluidity.err-0 first.err-0 &amp;&amp; mv fluidity.err-1 first.err-1 &amp;&amp; ./change_options.py &amp;&amp; mpiexec -np 2 ../../bin/fluidity -v2 -l mmat-interpolation_2_checkpoint.flml &amp;&amp; mv fluidity.log-0 checkpoint.log-0 &amp;&amp; mv fluidity.log-1 checkpoint.log-1 &amp;&amp; mv fluidity.err-0 checkpoint.err-0 &amp;&amp; mv fluidity.err-1 checkpoint.err-1 </command_line>
   </problem_definition>
   <variables>

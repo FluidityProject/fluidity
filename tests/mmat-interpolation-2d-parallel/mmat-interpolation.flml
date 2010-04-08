@@ -145,6 +145,7 @@ will get cut off by final_timestep</comment>
               <spatial_discretisation>
                 <control_volumes/>
               </spatial_discretisation>
+              <repair_stiff_nodes/>
               <update_scalar_field name="Lambda"/>
               <solver>
                 <iterative_method name="cg"/>
@@ -383,6 +384,23 @@ will get cut off by final_timestep</comment>
       <diagnostic>
         <algorithm name="element_halo" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="UniversalNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -644,6 +662,7 @@ will get cut off by final_timestep</comment>
       <debug>
         <write_adapted_mesh/>
         <write_adapted_state/>
+        <checkpoint/>
       </debug>
     </hr_adaptivity>
   </mesh_adaptivity>

@@ -213,6 +213,11 @@
       !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
       
+      ! the list of stiff nodes
+      ! this is saved because the list is only formed when cmc is assembled, which
+      ! isn't necessarily every time this subroutine is called but the list is
+      ! still needed to fix the rhs (applying the fix to cmc itself wipes out the
+      ! information that would be required to recompile the list)
       type(ilist), save :: stiff_nodes_list
       
       ! increased each call to momentum equation, used as index for pressure debugging vtus

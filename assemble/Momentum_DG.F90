@@ -794,10 +794,10 @@ contains
     end if
 
     if(have_advection.and.(.not.p0).and.owned_element) then
-       ! Advecting velocity at quadrature points.
-       U_nl_q=ele_val_at_quad(U_nl,ele)
+      ! Advecting velocity at quadrature points.
+      U_nl_q=ele_val_at_quad(U_nl,ele)
 
-       if(integrate_conservation_term_by_parts) then
+      if(integrate_conservation_term_by_parts) then
         ! Element advection matrix
         !         /                                          /
         !  - beta | (grad T dot U_nl) T Rho dV + (1. - beta) | T (U_nl dot grad T) Rho dV

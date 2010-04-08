@@ -114,6 +114,9 @@ module solenoidal_interpolation_module
     type(state_type) :: local_state
 
     character(len=OPTION_PATH_LEN) :: l_option_path
+
+    type(ilist) :: stiff_nodes_list
+    logical :: stiff_nodes_repair
     
     call insert(local_state, coordinate, "Coordinate")
     
@@ -138,6 +141,9 @@ module solenoidal_interpolation_module
     div_cv = have_option(trim(l_option_path) //&
           &"/lagrange_multiplier/spatial_discretisation/control_volumes")
     div_cg = .not.div_cv
+
+    stiff_nodes_repair = have_option(trim(l_option_path) //&
+          &"/lagrange_multiplier/repair_stiff_nodes")
 
     apply_kmk = (continuity(lagrange_mesh) >= 0 .and. lagrange_mesh%shape%degree == 1 &
           & .and. lagrange_mesh%shape%numbering%family == FAMILY_SIMPLEX .and. &
@@ -232,15 +238,18 @@ module solenoidal_interpolation_module
       do j=1, inverse_field_lumped_mass_vector%dim
         call set(inverse_field_lumped_mass_vector, j, field_lumped_mass)
       end do
-        
       
       call apply_dirichlet_conditions_inverse_mass(inverse_field_lumped_mass_vector, v_field)
-      
+
       call assemble_masslumped_cmc(cmc_m, ctp_m, inverse_field_lumped_mass_vector, ct_m)
     else if(dg) then
       call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_field_mass)
     else
       FLAbort("Not possible to not lump the mass if not dg.")
+    end if
+
+    if(stiff_nodes_repair) then
+      call repair_stiff_nodes(cmc_m, stiff_nodes_list)
     end if
     
     call mult(projec_rhs, ct_m, v_field)
@@ -276,6 +285,10 @@ module solenoidal_interpolation_module
     
     call impose_reference_pressure_node(cmc_m, projec_rhs, trim(l_option_path)//"/lagrange_multiplier")
     
+    if(stiff_nodes_repair) then
+      call zero_stiff_nodes(projec_rhs, stiff_nodes_list)
+    end if
+
     call petsc_solve(lagrange, cmc_m, projec_rhs)
     
     if(associated(s_field)) then
