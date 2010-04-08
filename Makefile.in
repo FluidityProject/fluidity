@@ -372,25 +372,34 @@ test: fltools bin/@FLUIDITY@ serialtest
 
 serialtest:
 ifeq (@MBA2D@,yes)
-	@cd tests; ../tools/testharness.py -l short -p serial -e "zoltan nozoltan"
+        ifeq (@ZOLTAN@,yes)
+	        @cd tests; ../tools/testharness.py -l short -p serial
+        else
+	        @cd tests; ../tools/testharness.py -l short -p serial -e zoltan
+        endif
 else
-	@cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan nozoltan"
-endif
-ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l short -p serial -t zoltan
-else
-	@cd tests; ../tools/testharness.py -l short -p serial -t nozoltan
+        ifeq (@ZOLTAN@,yes)
+	        @cd tests; ../tools/testharness.py -l short -p serial -e 2dadapt
+        else
+	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan"
+        endif
 endif
 
 adjtest:
 	@cd tests; ../tools/testharness.py -l any -t adjoint -p serial
 
 mediumtest:
-	@cd tests; ../tools/testharness.py -l medium -e "zoltan nozoltan"
+ifeq (@ZOLTAN@,yes)
+	@cd tests; ../tools/testharness.py -l medium
+else
+	@cd tests; ../tools/testharness.py -l medium -e zoltan
+endif
+
+mediumzoltantest:
 ifeq (@ZOLTAN@,yes)
 	@cd tests; ../tools/testharness.py -l medium -t zoltan
 else
-	@cd tests; ../tools/testharness.py -l medium -t nozoltan
+	@echo "Warning: build did not have zoltan enabled, make mediumzoltantest will not run"
 endif
 
 setuputs: 
