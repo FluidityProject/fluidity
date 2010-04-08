@@ -150,7 +150,7 @@ contains
 
           all_consistent_interpolation = all_consistent_interpolation &
             .and. have_option(trim(complete_field_path( &
-               field_s%option_path, stat)) // "/consistent_interpolation")
+               field_v%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_v, 1)
           all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
@@ -166,7 +166,7 @@ contains
 
           all_consistent_interpolation = all_consistent_interpolation &
             .and. have_option(trim(complete_field_path( &
-               field_s%option_path, stat)) // "/consistent_interpolation")
+               field_t%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_t, 1)
           all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
