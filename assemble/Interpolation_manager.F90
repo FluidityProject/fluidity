@@ -154,7 +154,7 @@ contains
           
           field_shape => ele_shape(field_v, 1)
           all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
-          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
+          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_v)
         end if
       end do
 
@@ -170,7 +170,7 @@ contains
           
           field_shape => ele_shape(field_t, 1)
           all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
-          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
+          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_t)
         end if
       end do
 
