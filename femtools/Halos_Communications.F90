@@ -32,7 +32,6 @@ module halos_communications
   use fields_allocates
   use fields_data_types
   use fields_base
-  use fields_manipulation
   use fldebug
   use futils
   use halo_data_types
@@ -48,7 +47,7 @@ module halos_communications
   
   private
   
-  public :: halo_update, halo_max, halo_verifies, element_halo_verifies
+  public :: halo_update, halo_max, halo_verifies
   
   interface zero_halo_receives
     module procedure zero_halo_receives_array_integer, &
@@ -72,10 +71,6 @@ module halos_communications
     module procedure halo_verifies_array_integer, halo_verifies_array_real, &
       & halo_verifies_scalar, halo_verifies_vector_dim, halo_verifies_vector
   end interface halo_verifies
-  
-  interface element_halo_verifies
-    module procedure element_halo_verifies_vector
-  end interface element_halo_verifies
 
 contains
 
@@ -650,8 +645,7 @@ contains
     integer, dimension(:), intent(in) :: integer_array
     
     logical :: verifies
-    
-    
+        
 #ifdef DDEBUG
     integer :: i, j, receive
 #endif
@@ -662,14 +656,14 @@ contains
     
     call halo_update(halo, linteger_array)
     
-    verifies = all(integer_array - linteger_array == 0)
+    verifies = all(integer_array == linteger_array)
 #ifdef DDEBUG
     if(.not. verifies) then
       do i = 1, halo_proc_count(halo)
         do j = 1, halo_receive_count(halo, i)
           receive = halo_receive(halo, i, j)
           if(integer_array(receive) /= linteger_array(receive)) then
-            ewrite(0, *) "Warning: Halo receive ", receive, " failed verification"
+            ewrite(0, *) "Warning: Halo receive ", receive, " for halo " // halo_name(halo) // " failed verification"
             ewrite(0, *) "Reference = ", integer_array(receive)
             ewrite(0, *) "Value in verification array = ", linteger_array(receive)
           end if
@@ -678,7 +672,7 @@ contains
       
       do i = 1, size(integer_array)
         if(integer_array(i) /= linteger_array(i)) then
-          ewrite(0, *) "Warning: Reference index ", i, " failed verification"
+          ewrite(0, *) "Warning: Reference index ", i, " for halo " // halo_name(halo) // " failed verification"
           ewrite(0, *) "Reference = ", integer_array(i)
           ewrite(0, *) "Value in verification array = ", linteger_array(i)
         end if
@@ -721,7 +715,7 @@ contains
           receive = halo_receive(halo, i, j)
           if(abs(real_array(receive) - lreal_array(receive)) >= 10000.0&
                &*max(spacing(real_array(receive)), epsilon(real_array(receive)))) then 
-            ewrite(0, *) "Warning: Halo receive ", receive, " failed verification"
+            ewrite(0, *) "Warning: Halo receive ", receive, " for halo " // halo_name(halo) // " failed verification"
             ewrite(0, *) "Reference = ", real_array(receive)
             ewrite(0, *) "Value in verification array = ", lreal_array(receive)
           end if
@@ -731,7 +725,7 @@ contains
       do i = 1, size(real_array)
         if(abs(real_array(i) - lreal_array(i)) >= 10000.0&
                &*max(spacing(real_array(i)), epsilon(real_array(i)))) then
-          ewrite(0, *) "Warning: Reference index ", i, " failed verification"
+          ewrite(0, *) "Warning: Reference index ", i, " for halo " // halo_name(halo) // " failed verification"
           ewrite(0, *) "Reference = ", real_array(i)
           ewrite(0, *) "Value in verification array = ", lreal_array(i)
         end if
@@ -792,29 +786,5 @@ contains
     end do
     
   end function halo_verifies_vector
-  
-  function element_halo_verifies_vector(halo, vfield) result(verifies)
-    !!< Verify the supplied element halo against the supplied vector field
-    
-    type(halo_type), intent(in) :: halo
-    type(vector_field), intent(in) :: vfield
-    
-    logical :: verifies
-    
-    type(mesh_type) :: pwc_mesh
-    type(vector_field) :: lvfield
-    
-    assert(halo_data_type(halo) == HALO_TYPE_ELEMENT)
-    
-    pwc_mesh = piecewise_constant_mesh(vfield%mesh, name = "ElementHaloVerificationMesh")
-    call allocate(lvfield, vfield%dim, pwc_mesh, name = "ElementHaloVerificationField")
-    call deallocate(pwc_mesh)
-    call remap_field(vfield, lvfield)
-    
-    verifies = halo_verifies(halo, lvfield)
-    
-    call deallocate(lvfield)
-    
-  end function element_halo_verifies_vector
 
 end module halos_communications

@@ -29,14 +29,17 @@
 
 module halos_registration
 
+  use fields_allocates
   use fields_base
   use fields_data_types
+  use fields_manipulation
   use fldebug
   use futils
   use halo_data_types
   use halos_allocates
   use halos_base
   use halos_debug
+  use halos_communications
   use halos_derivation
   use halos_ownership
   use halos_numbering
@@ -111,10 +114,14 @@ module halos_registration
       integer :: chalo_writer_write
     end function chalo_writer_write
   end interface
+
+  interface read_halos
+    module procedure read_halos_mesh, read_halos_positions
+  end interface read_halos
     
 contains
   
-  subroutine read_halos(filename, mesh, communicator)
+  subroutine read_halos_mesh(filename, mesh, communicator)
     character(len = *), intent(in) :: filename
     type(mesh_type), intent(inout) :: mesh
     integer, optional, intent(in) :: communicator
@@ -187,7 +194,49 @@ contains
     FLAbort("read_halos cannot be called without MPI support")
 #endif
     
-  end subroutine read_halos
+  end subroutine read_halos_mesh
+
+  subroutine read_halos_positions(filename, positions, communicator)
+    character(len = *), intent(in) :: filename
+    type(vector_field), intent(inout) :: positions
+    integer, optional, intent(in) :: communicator
+
+#ifdef DDEBUG
+    integer :: i, nhalos
+    type(mesh_type) :: pwc_mesh
+    type(vector_field) :: positions_ele
+#endif
+
+    call read_halos(filename, positions%mesh, communicator = communicator)
+
+#ifdef DDEBUG
+    ! Node halo verification
+    nhalos = halo_count(positions)
+    do i = 1, nhalos
+      if(.not. serial_storage_halo(positions%mesh%halos(i))) then
+        assert(halo_verifies(positions%mesh%halos(i), positions))
+      end if
+    end do
+
+    ! Element halo verification
+    nhalos = element_halo_count(positions)
+    if(nhalos > 0) then
+      if(.not. all(serial_storage_halo(positions%mesh%element_halos))) then
+        pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantMesh")
+        call allocate(positions_ele, positions%dim, pwc_mesh, positions%name)
+        call deallocate(pwc_mesh)
+        call remap_field(positions, positions_ele)
+        do i = 1, nhalos
+          if(.not. serial_storage_halo(positions%mesh%element_halos(i))) then
+            assert(halo_verifies(positions%mesh%element_halos(i), positions_ele))
+          end if
+        end do
+        call deallocate(positions_ele)
+      end if
+    end if
+#endif
+
+  end subroutine read_halos_positions
   
   subroutine write_halos(filename, mesh)
     character(len = *), intent(in) :: filename

@@ -35,6 +35,7 @@ module halos_numbering
   use halo_data_types
   use halos_allocates
   use halos_base
+  use halos_communications
   use halos_debug
   use mpi_interfaces
   use parallel_tools
@@ -48,7 +49,7 @@ module halos_numbering
     & has_global_to_universal_numbering, universal_numbering_count, &
     & halo_universal_number, halo_universal_numbers, get_universal_numbering, &
     & get_universal_numbering_inverse, set_halo_universal_number, &
-    & ewrite_universal_numbers
+    & ewrite_universal_numbers, valid_global_to_universal_numbering
 
   interface halo_universal_number
      module procedure halo_universal_number, halo_universal_number_vector
@@ -85,6 +86,12 @@ contains
       case default
         FLAbort("Unrecognised halo ordering scheme")
     end select
+
+#ifdef DDEBUG
+    if(.not. present_and_true(local_only)) then
+      assert(valid_global_to_universal_numbering(halo))
+    end if
+#endif
 
   end subroutine create_global_to_universal_numbering
 
@@ -338,6 +345,21 @@ contains
 #endif
     
   end subroutine create_global_to_universal_numbering_order_trailing_receives
+
+  function valid_global_to_universal_numbering(halo) result(valid)
+    !!< Return whether the global to universal numbering cache for the supplied
+    !!< halo is valid
+
+    type(halo_type), intent(in) :: halo
+
+    logical :: valid
+
+    integer, dimension(node_count(halo)) :: unns
+
+    call get_universal_numbering(halo, unns)
+    valid = halo_verifies(halo, unns)
+
+  end function valid_global_to_universal_numbering
   
   function has_global_to_universal_numbering(halo) result(has_gnn_to_unn)
     !!< Return whether the supplied halo has global to universal node numbering

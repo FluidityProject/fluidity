@@ -79,8 +79,8 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   end if
   
   cg_coordinate = read_triangle_files(trianglename, quad_degree = quad_degree)
+  if(isparallel()) call read_halos(trianglename, cg_coordinate)
   cg_mesh => cg_coordinate%mesh
-  if(isparallel()) call read_halos(trianglename, cg_mesh)
 
   do i = 1, scalar_field_count(dg_state)
     dg_s_field => extract_scalar_field(dg_state, i)

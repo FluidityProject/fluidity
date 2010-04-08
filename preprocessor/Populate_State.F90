@@ -312,7 +312,7 @@ contains
               end do
               mesh = position%mesh
             else
-              call read_halos(mesh_file_name, position%mesh)
+              call read_halos(mesh_file_name, position)
               call reorder_element_numbering(position)
               mesh = position%mesh
             end if

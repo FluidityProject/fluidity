@@ -47,7 +47,7 @@ subroutine test_halo_io
   mesh_2 = make_mesh(positions%mesh)
 
   call report_test("[No halos]", halo_count(positions) /= 0, .false., "Coordinate field has halos")
-  call read_halos("data/cube-parallel", positions%mesh)
+  call read_halos("data/cube-parallel", positions)
   call report_test("[Halos]", halo_count(positions) == 0, .false., "Coordinate field has no halos")
   call report_test("[2 halos]", halo_count(positions) /= 2, .false., "Coordinate field has incorrect number of halos")
   
@@ -86,7 +86,7 @@ subroutine test_halo_io
   
   ! Check that test output was overwritten
   call report_test("[No halos]", halo_count(positions_2) /= 0, .false., "Coordinate field has halos")
-  call read_halos("data/test_halo_io_out", positions_2%mesh)
+  call read_halos("data/test_halo_io_out", positions_2)
   call report_test("[Halos]", halo_count(positions_2) == 0, .false., "Coordinate field has no halos")
   call report_test("[2 halos]", halo_count(positions_2) /= 2, .false., "Coordinate field has incorrect number of halos")
   do i = 1, 2
@@ -115,7 +115,7 @@ subroutine test_halo_io
   
   ! Check the test output
   call report_test("[No halos]", halo_count(positions_2) /= 0, .false., "Coordinate field has halos")
-  call read_halos("data/test_halo_io_out", positions_2%mesh)
+  call read_halos("data/test_halo_io_out", positions_2)
   call report_test("[Halos]", halo_count(positions_2) == 0, .false., "Coordinate field has no halos")
   call report_test("[2 halos]", halo_count(positions_2) /= 2, .false., "Coordinate field has incorrect number of halos")
   do i = 1, 2

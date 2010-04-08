@@ -93,7 +93,7 @@ subroutine test_strip_level_2_halo
   integer :: nscatter
 
   mesh_field = read_triangle_files("data/cube-parallel_0", quad_degree = 1) 
-  call read_halos("data/cube-parallel", mesh_field%mesh)
+  call read_halos("data/cube-parallel", mesh_field)
   assert(halo_count(mesh_field) > 0)
   halo => mesh_field%mesh%halos(1)
 

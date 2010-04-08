@@ -155,7 +155,7 @@ program pseudo_supermesh_parallel
     character(len=255), intent(in) :: filename
 
     if (nprocs > 1) then
-      call read_halos(filename(1:len_trim(filename)), positions%mesh)   
+      call read_halos(filename(1:len_trim(filename)), positions)   
     end if
   end subroutine halo_business
 

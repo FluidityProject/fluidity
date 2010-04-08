@@ -63,8 +63,8 @@ subroutine derive_mesh(input_filename, input_filename_len, output_filename, outp
   ewrite(2, *) "Mesh is continuous? ", cont == 0
   
   base_positions = read_triangle_files(trim(input_filename), quad_degree = 1)
+  if(isparallel()) call read_halos(trim(input_filename), base_positions)
   base_mesh => base_positions%mesh
-  if(isparallel()) call read_halos(trim(input_filename), base_mesh)
   
   base_shape => ele_shape(base_mesh, 1)
   derived_shape = make_element_shape(base_shape, degree = degree)

@@ -64,6 +64,10 @@ module halos_base
   interface node_count
     module procedure node_count_halo
   end interface node_count
+
+  interface serial_storage_halo 
+    module procedure serial_storage_halo_single, serial_storage_halo_multiple
+  end interface serial_storage_halo
   
 contains
   
@@ -721,7 +725,7 @@ contains
     
   end function max_halo_node
   
-  function serial_storage_halo(halo) result(serial)
+  function serial_storage_halo_single(halo) result(serial)
     !!< Return whether this halo is used to store parallel data in serial. This
     !!< should be used (rather than a .not. isparallel()) for future proofing.
     
@@ -735,6 +739,21 @@ contains
     serial = .true.
 #endif
     
-  end function serial_storage_halo
+  end function serial_storage_halo_single
+
+  function serial_storage_halo_multiple(halos) result(serial)
+    !!< Return whether these halos are used to store parallel data in serial. This
+    !!< should be used (rather than a .not. isparallel()) for future proofing.
+    
+    type(halo_type), dimension(:), intent(in) :: halos
+
+    integer :: i
+    logical, dimension(size(halos)) :: serial
+    
+    do i = 1, size(halos)
+      serial(i) = serial_storage_halo(halos(i))
+    end do
+    
+  end function serial_storage_halo_multiple
 
 end module halos_base

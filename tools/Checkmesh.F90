@@ -32,7 +32,7 @@ subroutine checkmesh(filename, filename_len)
 
   print "(a)", "Reading in triangle mesh with base name " // trim(filename)
   positions = read_triangle_files(filename, quad_degree = 4)    
-  if(isparallel()) call read_halos(filename, positions%mesh)
+  if(isparallel()) call read_halos(filename, positions)
   print "(a)", "Read successful"
 
   call mesh_stats(positions%mesh, elements = global_ele, nodes = global_nodes, surface_elements = global_sele)
