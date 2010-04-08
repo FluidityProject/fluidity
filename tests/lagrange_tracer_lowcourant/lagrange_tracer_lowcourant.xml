@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>lagrange_tracer</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l lagrange_tracer.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="detector_locx_0" language="python">from fluidity_tools import stat_parser as stat
+detector_locx_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][0][1]</variable>
+    <variable name="detector_locy_0" language="python">from fluidity_tools import stat_parser as stat
+detector_locy_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][1][1]</variable>
+    <variable name="detected_field_value" language="python">from fluidity_tools import stat_parser as stat
+detected_field_value = stat("lagrange_tracer.detectors")["Dummy"]["Field"]["DummyArray_1"][1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="correct_x" language="python">assert(abs(detector_locx_0-0.6) &lt; 1.e-9)</test>
+    <test name="correct_y" language="python">assert(abs(detector_locy_0-0.4) &lt; 1.e-9)</test>
+    <test name="correct_field_value" language="python">assert(abs(detected_field_value-1.0) &lt; 1.e-9)</test>
+  </pass_tests>
+</testproblem>
