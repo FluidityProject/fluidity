@@ -79,10 +79,7 @@ contains
     type(scalar_field), pointer :: field_s, p_field_s
     type(vector_field), pointer :: field_v, field_v_2, p_field_v
     type(tensor_field), pointer :: field_t, p_field_t
-    type(vector_field) :: p_coordinate
-    type(vector_field), pointer :: up_coordinate
     integer :: field
-    character(len=OPTION_PATH_LEN) :: path
 
     character(len=255), dimension(4), parameter :: algorithms = (/&
                        & "consistent_interpolation ", &
@@ -96,7 +93,8 @@ contains
     type(ilist), dimension(:), allocatable :: map_BA
     integer :: ele
 
-    logical :: all_consistent_interpolation, all_linear_meshes
+    logical :: all_consistent_interpolation, all_linear_meshes, &
+      any_periodic_meshes
     type(element_type), pointer :: field_shape
 
     integer :: no_fields
@@ -121,6 +119,7 @@ contains
 
     all_consistent_interpolation = .true.
     all_linear_meshes = .true.
+    any_periodic_meshes = .false.
 
     consistent_linear_state_loop: do state=1,state_cnt
       do field=1,scalar_field_count(states_old(state))
@@ -128,15 +127,13 @@ contains
         ! If the field has no option path, assume consistent interpolation
         if(len_trim(field_s%option_path) /= 0) then
           assert(have_option(trim(field_s%option_path)//"/prognostic").or.have_option(trim(field_s%option_path)//"/prescribed").or.have_option(trim(field_s%option_path)//"/diagnostic"))
-          if (.not. have_option(trim(complete_field_path(field_s%option_path, stat)) // &
-                   & "/consistent_interpolation")) then
-            all_consistent_interpolation = .false.
-          end if
+          all_consistent_interpolation = all_consistent_interpolation &
+            .and. have_option(trim(complete_field_path(  &
+               field_s%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_s, 1)
-          if(field_shape%degree /= 1 .or. mesh_periodic(field_s)) then
-            all_linear_meshes = .false.
-          end if
+          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
+          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
         end if
       end do
 
@@ -151,15 +148,13 @@ contains
           end if
           assert(have_option(trim(field_v%option_path)//"/prognostic").or.have_option(trim(field_v%option_path)//"/prescribed"))
 
-          if (.not. have_option(trim(complete_field_path(field_v%option_path, stat)) // &
-                   & "/consistent_interpolation")) then
-            all_consistent_interpolation = .false.
-          end if
+          all_consistent_interpolation = all_consistent_interpolation &
+            .and. have_option(trim(complete_field_path( &
+               field_s%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_v, 1)
-          if(field_shape%degree /= 1 .or. mesh_periodic(field_v)) then
-            all_linear_meshes = .false.
-          end if
+          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
+          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
         end if
       end do
 
@@ -169,22 +164,20 @@ contains
         if(len_trim(field_t%option_path) /= 0) then
           assert(have_option(trim(field_t%option_path)//"/prognostic").or.have_option(trim(field_t%option_path)//"/prescribed"))
 
-          if (.not. have_option(trim(complete_field_path(field_t%option_path, stat)) // &
-                   & "/consistent_interpolation")) then
-            all_consistent_interpolation = .false.
-          end if
+          all_consistent_interpolation = all_consistent_interpolation &
+            .and. have_option(trim(complete_field_path( &
+               field_s%option_path, stat)) // "/consistent_interpolation")
           
           field_shape => ele_shape(field_t, 1)
-          if(field_shape%degree /= 1 .or. mesh_periodic(field_t)) then
-            all_linear_meshes = .false.
-          end if
+          all_linear_meshes = all_linear_meshes .and. (field_shape%degree == 1)
+          any_periodic_meshes = any_periodic_meshes .or. mesh_periodic(field_s)
         end if
       end do
 
-      if(.not. all_consistent_interpolation .and. .not. all_linear_meshes) exit consistent_linear_state_loop
     end do consistent_linear_state_loop
     
-    if(all_consistent_interpolation .and. all_linear_meshes) then
+    if(all_consistent_interpolation &
+      .and. all_linear_meshes .and. .not. any_periodic_meshes) then
       ewrite(2, *) "All fields are on linear meshes and use consistent interpolation"
 
       call tictoc_clear(TICTOC_ID_INTERPOLATION)
@@ -207,7 +200,10 @@ contains
 
     ewrite(2, *) "Not all fields are on linear meshes and use consistent interpolation"
     ewrite(2, *) "Gathering fields for more general interpolation"
-
+    
+    old_pos = extract_vector_field(states_old(1), "Coordinate")
+    new_pos = extract_vector_field(states_new(1), "Coordinate")
+    
     ! OK! So we have some work to do.
     ! First, let's organise the fields according to what mesh
     ! they are on.
@@ -234,6 +230,8 @@ contains
         do field=1,vector_field_count(states_old(state))
           field_v => extract_vector_field(states_old(state), field)
           if (trim(field_v%mesh%name) == trim(mesh_name)) then
+            
+            if (field_v%name=="Coordinate" .or. field_v%name==trim(mesh_name)//"Coordinate") cycle
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
             ! to try to pull this out of state by its name!
@@ -268,12 +266,16 @@ contains
 
       new_mesh => extract_mesh(states_new(1), trim(mesh_name))
       call insert(meshes_new(mesh), new_mesh, "Mesh")
+      
+      call insert(meshes_old(mesh), old_pos, "Coordinate")
+      call insert(meshes_new(mesh), new_pos, "Coordinate")
 
-      if (mesh_periodic(old_mesh)) then
+      if (mesh_periodic(new_mesh)) then
+
         ! Nice work, soldier! Now if the mesh is periodic we need to expand the mesh in the plane,
-        ! as if we've adapted the domain edges won't match up, will they? We also need to unwrap all the 
-        ! meshes and such.
-
+        ! as if we've adapted the domain edges won't match up, will they?
+        
+        ! first we keep a copy of meshes_new
         do field=1,scalar_field_count(meshes_new(mesh))
           field_s => extract_scalar_field(meshes_new(mesh), field)
           call insert(periodic_new(mesh), field_s, trim(field_s%name))
@@ -289,49 +291,17 @@ contains
           call insert(periodic_new(mesh), field_t, trim(field_t%name))
         end do
 
-        ! The following routine unwraps and expands the mesh in the plane for meshes_old, 
-        ! and just unwraps for meshes_new
-
-        up_coordinate => extract_vector_field(states_old(1), trim(old_mesh%name) // 'Coordinate', stat=stat)
-        if (stat /= 0) then
-          up_coordinate => extract_vector_field(states_old(1), "Coordinate")
-        end if
-        assert(up_coordinate%dim == old_mesh%shape%dim)
-        call allocate(p_coordinate, up_coordinate%dim, old_mesh, "Coordinate")
-        call remap_field(up_coordinate, p_coordinate, stat=stat)
-        path = p_coordinate%mesh%option_path
-        p_coordinate%mesh%option_path = trim(periodic_boundary_option_path(up_coordinate%dim))
-        call postprocess_periodic_mesh(up_coordinate%mesh, up_coordinate, p_coordinate%mesh, p_coordinate)
-        p_coordinate%mesh%option_path = path
-        call insert(meshes_old(mesh), p_coordinate, "Coordinate")
-        call deallocate(p_coordinate)
-
-        up_coordinate => extract_vector_field(states_new(1), trim(new_mesh%name) // 'Coordinate', stat=stat)
-        if (stat /= 0) then
-          up_coordinate => extract_vector_field(states_new(1), "Coordinate")
-        end if
-        call allocate(p_coordinate, up_coordinate%dim, new_mesh, "Coordinate")
-        call remap_field(up_coordinate, p_coordinate, stat=stat)
-        path = p_coordinate%mesh%option_path
-        p_coordinate%mesh%option_path = trim(periodic_boundary_option_path(up_coordinate%dim))
-        call postprocess_periodic_mesh(up_coordinate%mesh, up_coordinate, p_coordinate%mesh, p_coordinate)
-        p_coordinate%mesh%option_path = path
-        call insert(meshes_new(mesh), p_coordinate, "Coordinate")
-        call deallocate(p_coordinate)
-
+        ! create an expanded, non-periodic version of meshes_old
+        ! and a non-periodic version of meshes_new, and remap all fields
+        ! to it
         call prepare_periodic_states_for_interpolation(meshes_old(mesh), meshes_new(mesh))
-      else
-        call insert(meshes_old(mesh), extract_vector_field(states_old(1), "Coordinate"), "Coordinate")
-        call insert(meshes_new(mesh), extract_vector_field(states_new(1), "Coordinate"), "Coordinate")
       end if
+      
     end do
 
     ! Great! Now let's loop over the fields associated with each mesh
     ! and group them by algorithm.
-
-    old_pos = extract_vector_field(states_old(1), "Coordinate")
-    new_pos = extract_vector_field(states_new(1), "Coordinate")
-   
+    
     ! Do we need an element intersection map?
     if(.not. all_consistent_interpolation) then
       allocate(map_BA(ele_count(new_pos)))
@@ -459,14 +429,15 @@ contains
 
     end do alg_loop
     
-    do mesh=1,mesh_cnt
-      call get_option("/geometry/mesh["//int2str(mesh-1)//"]/name", mesh_name)
-      old_mesh => extract_mesh(states_old(1), trim(mesh_name))
+    if (any_periodic_meshes) then
+      do mesh=1,mesh_cnt
+        call get_option("/geometry/mesh["//int2str(mesh-1)//"]/name", mesh_name)
+        old_mesh => extract_mesh(states_old(1), trim(mesh_name))
 
-      ! If we are periodic, we have interpolated the unwrapped version
-      ! So let's remap to the periodic one we actually need
-      if (mesh_periodic(old_mesh)) then
+        if (.not. mesh_periodic(old_mesh)) cycle
 
+        ! If we are periodic, we have interpolated the unwrapped version
+        ! So let's remap to the periodic one we actually need
         do field=1,scalar_field_count(meshes_new(mesh))
           field_s => extract_scalar_field(meshes_new(mesh), field)
           p_field_s => extract_scalar_field(periodic_new(mesh), trim(field_s%name))
@@ -490,7 +461,10 @@ contains
         end do
 
         call deallocate(periodic_new(mesh))
-      end if
+      end do
+    end if
+    
+    do mesh=1, mesh_cnt
       call deallocate(meshes_old(mesh))
       call deallocate(meshes_new(mesh))
     end do
@@ -768,11 +742,14 @@ contains
   subroutine prepare_periodic_states_for_interpolation(mesh_old, mesh_new)
     type(state_type), intent(inout) :: mesh_old, mesh_new
 
-    type(vector_field), pointer :: positions_new_periodic
-    type(vector_field) :: positions_new_unperiodic
+    type(vector_field), pointer :: positions_new
+    type(mesh_type), pointer :: new_mesh
+    type(mesh_type) :: new_mesh_unperiodic
 
-    type(vector_field), pointer :: positions_old_periodic
-    type(vector_field) :: positions_old_unperiodic
+    type(vector_field) :: expanded_positions
+    type(vector_field), pointer :: positions_old
+    type(mesh_type), pointer :: old_mesh
+    type(mesh_type) :: old_mesh_unperiodic, old_mesh_expanded
 
     integer :: field
     type(scalar_field), pointer :: p_field_s, u_field_s
@@ -781,13 +758,10 @@ contains
     type(vector_field) :: field_v
     type(tensor_field), pointer :: p_field_t, u_field_t
     type(tensor_field) :: field_t
+      
+    type(element_type), pointer :: x_shape, mesh_shape
 
-    integer :: multiple, j, bc, no_bcs, ele, node, total_multiple
-    type(mesh_type) :: expanded_mesh
-    type(vector_field) :: expanded_positions
-
-    character(len=OPTION_PATH_LEN) :: periodic_mapping_python, inverse_periodic_mapping_python
-    real, dimension(:, :), allocatable :: forward_mapped_nodes, inverse_mapped_nodes
+    integer :: j, node, total_multiple
 
     type(state_type) :: unwrapped_state
 
@@ -796,17 +770,25 @@ contains
     ! Easiest first. Unwrap the coordinate of mesh_new, reallocate all the fields,
     ! and remap periodic -> nonperiodic.
 
-    positions_new_periodic => extract_vector_field(mesh_new, "Coordinate")
-    dim = positions_new_periodic%dim
-    positions_new_unperiodic = make_mesh_unperiodic_from_options(positions_new_periodic, trim(periodic_boundary_option_path(dim)))
-    positions_new_unperiodic%name = "Coordinate"
-
-    call insert(mesh_new, positions_new_unperiodic, "Coordinate")
-    call insert(mesh_new, positions_new_unperiodic%mesh, "Mesh")
-
+    positions_new => extract_vector_field(mesh_new, "Coordinate")
+    new_mesh => extract_mesh(mesh_new, "Mesh")
+    dim = positions_new%dim
+    
+    x_shape => positions_new%mesh%shape
+    mesh_shape => new_mesh%shape
+    if (mesh_shape%degree/=x_shape%degree .or. &
+      continuity(new_mesh)/=0) then
+      ! make a non-periodic version of the mesh
+      new_mesh_unperiodic = make_mesh(positions_new%mesh, mesh_shape, &
+        continuity=continuity(new_mesh), name=trim(new_mesh%name)//"Unperiodic")
+    else
+      new_mesh_unperiodic = positions_new%mesh
+      call incref(new_mesh_unperiodic)
+    end if
+    
     do field=1,scalar_field_count(mesh_new)
       p_field_s => extract_scalar_field(mesh_new, field)
-      call allocate(field_s, positions_new_unperiodic%mesh, trim(p_field_s%name))
+      call allocate(field_s, new_mesh_unperiodic, trim(p_field_s%name))
       call remap_field(p_field_s, field_s)
       call insert(mesh_new, field_s, trim(mesh_new%scalar_names(field)))
       call deallocate(field_s)
@@ -817,7 +799,7 @@ contains
       if (trim(p_field_v%name) == "Coordinate") then
         cycle
       end if
-      call allocate(field_v, p_field_v%dim, positions_new_unperiodic%mesh, trim(p_field_v%name))
+      call allocate(field_v, p_field_v%dim, new_mesh_unperiodic, trim(p_field_v%name))
       call remap_field(p_field_v, field_v)
       call insert(mesh_new, field_v, trim(mesh_new%vector_names(field)))
       call deallocate(field_v)
@@ -825,27 +807,47 @@ contains
 
     do field=1,tensor_field_count(mesh_new)
       p_field_t => extract_tensor_field(mesh_new, field)
-      call allocate(field_t, positions_new_unperiodic%mesh, trim(p_field_t%name))
+      call allocate(field_t, new_mesh_unperiodic, trim(p_field_t%name))
       call remap_field(p_field_t, field_t)
       call insert(mesh_new, field_t, trim(mesh_new%tensor_names(field)))
       call deallocate(field_t)
     end do
 
-    call deallocate(positions_new_unperiodic)
+    ! replace mesh with non-periodic version:
+    call insert(mesh_new, new_mesh_unperiodic, "Mesh")
+    call deallocate(new_mesh_unperiodic)
 
     ! OK. Let's do the same for the old fields, with the additional twist
     ! that we duplicate the mesh on either side of the periodic boundary.
     ! Since the boundaries of the new domain don't match up with the old one,
     ! this is necessary so the new domain can find the relevant information.
 
-    positions_old_periodic => extract_vector_field(mesh_old, "Coordinate")
-    positions_old_unperiodic = make_mesh_unperiodic_from_options(positions_old_periodic, trim(periodic_boundary_option_path(dim)))
-
+    positions_old => extract_vector_field(mesh_old, "Coordinate")
+    old_mesh => extract_mesh(mesh_old, "Mesh")
+    dim = positions_old%dim
+    
+    x_shape => positions_old%mesh%shape
+    mesh_shape => old_mesh%shape
+    if (mesh_shape%degree/=x_shape%degree .or. &
+      continuity(old_mesh)/=0) then
+      ! make a non-periodic version of the mesh
+      old_mesh_unperiodic = make_mesh(positions_old%mesh, mesh_shape, &
+        continuity=continuity(old_mesh), name=trim(old_mesh%name)//"Unperiodic")
+    else
+      old_mesh_unperiodic = positions_old%mesh
+      call incref(old_mesh_unperiodic)
+    end if
+    
+    call expand_periodic_mesh(positions_old, old_mesh_unperiodic, &
+      expanded_positions, old_mesh_expanded)
+    
+    total_multiple = element_count(old_mesh_expanded)/element_count(old_mesh_unperiodic)
+    assert(element_count(old_mesh_expanded) == total_multiple*element_count(old_mesh_unperiodic))
+        
     ! Let's unwrap everything and put it into the unwrapped_state.
-
     do field=1,scalar_field_count(mesh_old)
       p_field_s => extract_scalar_field(mesh_old, field)
-      call allocate(field_s, positions_old_unperiodic%mesh, trim(p_field_s%name))
+      call allocate(field_s, old_mesh_unperiodic, trim(p_field_s%name))
       call remap_field(p_field_s, field_s)
       call insert(unwrapped_state, field_s, trim(p_field_s%name))
       call deallocate(field_s)
@@ -853,7 +855,7 @@ contains
 
     do field=1,vector_field_count(mesh_old)
       p_field_v => extract_vector_field(mesh_old, field)
-      call allocate(field_v, p_field_v%dim, positions_old_unperiodic%mesh, trim(p_field_v%name))
+      call allocate(field_v, p_field_v%dim, old_mesh_unperiodic, trim(p_field_v%name))
       call remap_field(p_field_v, field_v)
       call insert(unwrapped_state, field_v, trim(p_field_v%name))
       call deallocate(field_v)
@@ -861,71 +863,19 @@ contains
 
     do field=1,tensor_field_count(mesh_old)
       p_field_t => extract_tensor_field(mesh_old, field)
-      call allocate(field_t, positions_old_unperiodic%mesh, trim(p_field_t%name))
+      call allocate(field_t, old_mesh_unperiodic, trim(p_field_t%name))
       call remap_field(p_field_t, field_t)
       call insert(unwrapped_state, field_t, trim(p_field_t%name))
       call deallocate(field_t)
     end do
 
-    ! Now let's expand the old mesh around itself.
-
-    no_bcs = option_count(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions')
-    total_multiple = 1
-    do bc=0,no_bcs-1
-
-      ! figure out how many copies to make
-      multiple = 2 ! for the current mesh, as well as the one under the forward periodic mapping
-      if (have_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
-        multiple = multiple + 1 ! plus the inverse periodic mapping, if we have it
-      end if
-      total_multiple = total_multiple * multiple
-
-      call allocate(expanded_mesh, multiple * node_count(positions_old_unperiodic), multiple * ele_count(positions_old_unperiodic), &
-                 &  positions_old_unperiodic%mesh%shape, trim(positions_old_unperiodic%mesh%name))
-      do ele=1,ele_count(positions_old_unperiodic)
-        do j=0,multiple-1
-          call set_ele_nodes(expanded_mesh, ele + j*ele_count(positions_old_unperiodic), ele_nodes(positions_old_unperiodic, ele) + j*node_count(positions_old_unperiodic))
-        end do
-      end do
-
-      call allocate(expanded_positions, positions_old_periodic%dim, expanded_mesh, trim(positions_old_periodic%name))
-      call deallocate(expanded_mesh)
-
-      do node=1,node_count(positions_old_unperiodic)
-        call set(expanded_positions, node, node_val(positions_old_unperiodic, node))
-      end do
-
-      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/coordinate_map', periodic_mapping_python)
-      allocate(forward_mapped_nodes(positions_old_periodic%dim, node_count(positions_old_unperiodic)))
-      call set_from_python_function(forward_mapped_nodes, periodic_mapping_python, positions_old_unperiodic, time=0.0)
-      do node=1,node_count(positions_old_unperiodic)
-        call set(expanded_positions, node + node_count(positions_old_unperiodic), forward_mapped_nodes(:, node))
-      end do
-      deallocate(forward_mapped_nodes)
-
-      if (have_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
-        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map', inverse_periodic_mapping_python)
-        allocate(inverse_mapped_nodes(positions_old_periodic%dim, node_count(positions_old_unperiodic)))
-        call set_from_python_function(inverse_mapped_nodes, inverse_periodic_mapping_python, positions_old_unperiodic, time=0.0)
-        do node=1,node_count(positions_old_unperiodic)
-          call set(expanded_positions, node + 2*node_count(positions_old_unperiodic), inverse_mapped_nodes(:, node))
-        end do
-        deallocate(inverse_mapped_nodes)
-      end if
-
-      call deallocate(positions_old_unperiodic)
-      positions_old_unperiodic = expanded_positions
-    end do
-
-    ! And re-allocate all the fields ...
-
-    call insert(mesh_old, positions_old_unperiodic, "Coordinate")
-    call insert(mesh_old, positions_old_unperiodic%mesh, "Mesh")
-
+    ! now copy the unwrapped fields into expanded versions, and put them
+    ! in mesh_old states
+    
     do field=1,scalar_field_count(mesh_old)
       p_field_s => extract_scalar_field(mesh_old, field)
       u_field_s => extract_scalar_field(unwrapped_state, trim(p_field_s%name))
-      call allocate(field_s, positions_old_unperiodic%mesh, trim(p_field_s%name))
+      call allocate(field_s, old_mesh_expanded, trim(p_field_s%name))
       do node=1,node_count(u_field_s)
         do j=0,total_multiple-1
           call set(field_s, node + j*node_count(u_field_s), node_val(u_field_s, node))
@@ -941,7 +891,7 @@ contains
         cycle
       end if
       u_field_v => extract_vector_field(unwrapped_state, trim(p_field_v%name))
-      call allocate(field_v, p_field_v%dim, positions_old_unperiodic%mesh, trim(p_field_v%name))
+      call allocate(field_v, p_field_v%dim, old_mesh_expanded, trim(p_field_v%name))
       do node=1,node_count(u_field_v)
         do j=0,total_multiple-1
           call set(field_v, node + j*node_count(u_field_v), node_val(u_field_v, node))
@@ -954,7 +904,7 @@ contains
     do field=1,tensor_field_count(mesh_old)
       p_field_t => extract_tensor_field(mesh_old, field)
       u_field_t => extract_tensor_field(unwrapped_state, trim(p_field_t%name))
-      call allocate(field_t, positions_old_unperiodic%mesh, trim(p_field_t%name))
+      call allocate(field_t, old_mesh_expanded, trim(p_field_t%name))
       do node=1,node_count(u_field_t)
         do j=0,total_multiple-1
           call set(field_t, node + j*node_count(u_field_t), node_val(u_field_t, node))
@@ -963,10 +913,115 @@ contains
       call insert(mesh_old, field_t, trim(mesh_old%tensor_names(field)))
       call deallocate(field_t)
     end do
-
-    call deallocate(positions_old_unperiodic)
+      
+    ! replace mesh and positions with expanded non-periodic version:
+    call insert(mesh_old, old_mesh_expanded, "Mesh")
+    call insert(mesh_old, expanded_positions, "Coordinate")
+    
+    ! debugging vtus:
+    !call insert(unwrapped_state, old_mesh_unperiodic, "Mesh")
+    !call vtk_write_state("unwrapped", 0, model="Mesh", state=(/unwrapped_state/))
+    !call vtk_write_state("mesh_new", 0, model="Mesh", state=(/mesh_new/))
+    !call vtk_write_state("mesh_old", 0, model="Mesh", state=(/mesh_old/))
+      
+    call deallocate(old_mesh_unperiodic)
+    call deallocate(old_mesh_expanded)
+    call deallocate(expanded_positions)
     call deallocate(unwrapped_state)
 
   end subroutine prepare_periodic_states_for_interpolation
+    
+  subroutine expand_periodic_mesh(positions_in, mesh_in, &
+    expanded_positions, expanded_mesh)
+    ! creates an expanded version of the provided positions_in field
+    ! and the (possibly different) mesh_in, adding periodic copies 
+    ! by applying the periodic (inverse) maps
+    type(vector_field), intent(in):: positions_in
+    type(mesh_type), intent(in):: mesh_in
+    type(vector_field), intent(out):: expanded_positions
+    type(mesh_type), intent(out):: expanded_mesh
+    
+    type(vector_field) :: positions
+    type(mesh_type) :: mesh, expanded_x_mesh
+    character(len=OPTION_PATH_LEN) :: periodic_mapping_python, inverse_periodic_mapping_python
+    real, dimension(:, :), allocatable :: forward_mapped_nodes, inverse_mapped_nodes
+    integer :: multiple, j, bc, no_bcs, ele, node, total_multiple
+    integer :: dim
+    
+    dim = positions_in%dim
+    
+    no_bcs = option_count(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions')
+    total_multiple = 1
+    
+    positions = positions_in
+    mesh = mesh_in
+    call incref(positions)
+    call incref(mesh)
+    
+    do bc=0,no_bcs-1
+
+      ! figure out how many copies to make
+      multiple = 2 ! for the current mesh, as well as the one under the forward periodic mapping
+      if (have_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
+        multiple = multiple + 1 ! plus the inverse periodic mapping, if we have it
+      end if
+      total_multiple = total_multiple * multiple
+
+      ! expand the coordinate mesh
+      call allocate(expanded_x_mesh, multiple * node_count(positions), multiple * ele_count(positions), &
+                 &  positions%mesh%shape, positions%mesh%name)
+      do ele=1,ele_count(positions)
+        do j=0,multiple-1
+          call set_ele_nodes(expanded_x_mesh, ele + j*ele_count(positions), ele_nodes(positions, ele) + j*node_count(positions))
+        end do
+      end do
+      
+      ! do the same for the provided 'mesh_in'
+      if (positions_in%mesh==mesh_in) then
+        expanded_mesh = expanded_x_mesh
+        call incref(expanded_mesh)
+      else        
+        call allocate(expanded_mesh, multiple * node_count(mesh), multiple * ele_count(mesh), &
+                 &  mesh%shape, mesh%name)
+        expanded_mesh%continuity=mesh%continuity
+        do ele=1,ele_count(mesh)
+          do j=0,multiple-1
+            call set_ele_nodes(expanded_mesh, ele + j*ele_count(mesh), ele_nodes(mesh, ele) + j*node_count(mesh))
+          end do
+        end do        
+      end if
+      
+      call allocate(expanded_positions, dim, expanded_x_mesh, positions%name)
+      call deallocate(expanded_x_mesh)
+
+      do node=1, node_count(positions)
+        call set(expanded_positions, node, node_val(positions, node))
+      end do
+
+      call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/coordinate_map', periodic_mapping_python)
+      allocate(forward_mapped_nodes(dim, node_count(positions)))
+      call set_from_python_function(forward_mapped_nodes, periodic_mapping_python, positions, time=0.0)
+      do node=1, node_count(positions)
+        call set(expanded_positions, node + node_count(positions), forward_mapped_nodes(:, node))
+      end do
+      deallocate(forward_mapped_nodes)
+
+      if (have_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map')) then
+        call get_option(trim(periodic_boundary_option_path(dim)) // '/from_mesh/periodic_boundary_conditions['//int2str(bc)//']/inverse_coordinate_map', inverse_periodic_mapping_python)
+        allocate(inverse_mapped_nodes(dim, node_count(positions)))
+        call set_from_python_function(inverse_mapped_nodes, inverse_periodic_mapping_python, positions, time=0.0)
+        do node=1,node_count(positions)
+          call set(expanded_positions, node + 2*node_count(positions), inverse_mapped_nodes(:, node))
+        end do
+        deallocate(inverse_mapped_nodes)
+      end if
+
+      call deallocate(mesh)
+      call deallocate(positions)
+      positions = expanded_positions
+      mesh = expanded_mesh
+    end do
+
+  end subroutine expand_periodic_mesh
 
 end module interpolation_manager
