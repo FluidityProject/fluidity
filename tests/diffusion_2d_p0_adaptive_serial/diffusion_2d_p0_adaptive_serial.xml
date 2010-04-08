@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>heat_2d_dg</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l heat.flml </command_line>
+    <!-- Two dimensional diffusion only problem. -->
+  </problem_definition>
+  <variables>
+    <variable name="tracer_integral0" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer_integral0 = s["Water"]["Tracer"]["integral"][0]
+    </variable>
+    <variable name="tracer_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer_integral = s["Water"]["Tracer"]["integral"][-1]
+    </variable>
+    <variable name="tracer_error0" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer_error0 = s["Water"]["ScalarAbsoluteDifference"]["max"][0]
+    </variable>
+    <variable name="tracer_error" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="tracer integral is intially 1.0" language="python">
+assert abs(tracer_integral0 - 1.0) &lt; 1e-3
+    </test>
+    <test name="tracer integral is 1.0" language="python">
+assert abs(tracer_integral - 1.0) &lt; 1e-6
+    </test>
+    <test name="tracer error is initially less than 0.01" language="python">
+assert tracer_error0 &lt; 0.01 
+    </test>
+    <test name="tracer error less than 0.01" language="python">
+assert tracer_error &lt; 0.01 
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
