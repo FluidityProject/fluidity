@@ -102,10 +102,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -125,32 +125,6 @@
     </gravity>
   </physical_parameters>
   <material_phase name="BoussinesqFluid">
-    <equation_of_state>
-      <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-          <temperature_dependency replaces="BOUSIN, EQNSTA=0">
-            <reference_temperature replaces="TEMINI">
-              <real_value rank="0">0.0</real_value>
-            </reference_temperature>
-            <thermal_expansion_coefficient replaces="DENGAM">
-              <real_value rank="0">142857.0</real_value>
-            </thermal_expansion_coefficient>
-          </temperature_dependency>
-          <salinity_dependency replaces="BOUSIN, EQNSTA=1">
-            <reference_salinity replaces="S0 if from .dat file?, GAMDE3(1) if from gem">
-              <real_value rank="0">0.0</real_value>
-            </reference_salinity>
-            <saline_contraction_coefficient replaces="DENGAM_SAL if from .dat file?, GAMDE2(1) if from gem">
-              <real_value rank="0">79365.0</real_value>
-            </saline_contraction_coefficient>
-          </salinity_dependency>
-          <subtract_out_hydrostatic_level replaces="BHOUT"/>
-        </linear>
-      </fluids>
-    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
