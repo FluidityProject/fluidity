@@ -263,8 +263,9 @@ Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
 Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
   Halos_Debug.o Reference_Counting.o
 Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o MPI_Interfaces.o
-Halos_Communications.o: Fields_Base.o Fields_Data_Types.o Futils.o Halos_Allocates.o \
-  Halos_Base.o Halo_Data_Types.o Halos_Debug.o
+Halos_Communications.o: Fields_Base.o Fields_Data_Types.o Futils.o \
+  Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
+  MPI_Interfaces.o Parallel_Tools.o Linked_Lists.o qsortd.o
 Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
 Halos_Derivation.o: Fields_Data_Types.o Fields_Allocates.o Fields_Base.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
@@ -361,8 +362,9 @@ Fields_Data_Types.o: Global_Parameters.o Picker_Data_Types.o \
 
 Multigrid.o: Sparse_Tools.o Petsc_Tools.o Parallel_Tools.o 
 
-Parallel_fields.o : Fields_Base.o Halos_Ownership.o Halos_Communications.o \
-  Halos_Numbering.o 
+Parallel_fields.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o \
+  Parallel_Tools.o Halos_Communications.o Halos_Ownership.o Halos_Numbering.o \
+  Halo_Data_Types.o Halos_Base.o Fields_Manipulation.o MPI_Interfaces.o
 
 Field_derivatives.o: Vector_set.o Parallel_fields.o Node_boundary.o State.o
 
