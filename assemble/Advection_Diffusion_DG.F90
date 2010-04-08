@@ -223,6 +223,7 @@ contains
     else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/diffusion_scheme&
          &/interior_penalty")) then
+       remove_penalty_fluxes = .false.
        diffusion_scheme=IP
        CDG_penalty = .false.
        call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&

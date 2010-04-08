@@ -742,7 +742,7 @@ contains
     ! x_neigh/=t_neigh only on periodic boundaries.
     x_neigh=>ele_neigh(X, ele)
 
-    discontinuity_option = 2
+    discontinuity_option = 1
 
     select case(discontinuity_option)
 
