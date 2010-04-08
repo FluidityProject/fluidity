@@ -71,6 +71,7 @@
    return coords</string_value>
         </python>
       </detector_array>
+      <binary_output/>
     </detectors>
   </io>
   <timestepping>
