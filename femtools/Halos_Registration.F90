@@ -130,7 +130,7 @@ contains
     integer :: error_count, i, lcommunicator, nowned_nodes, nprocs, procno
     integer, dimension(:), allocatable :: nreceives, nsends, receives, sends
    
-    ewrite(1, *) "In read_halos"
+    ewrite(1, *) "In read_halos_mesh"
 
     assert(continuity(mesh) == 0)
     assert(.not. associated(mesh%halos))
@@ -181,7 +181,7 @@ contains
     
     call chalo_reader_reset()
     
-    if(serial_storage_halo(mesh%halos(2))) then
+    if(all(serial_storage_halo(mesh%halos))) then
       allocate(mesh%element_halos(0))
     else
       allocate(mesh%element_halos(2))
@@ -189,9 +189,9 @@ contains
         & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
     end if
 
-    ewrite(1, *) "Exiting read_halos"
+    ewrite(1, *) "Exiting read_halos_mesh"
 #else
-    FLAbort("read_halos cannot be called without MPI support")
+    FLAbort("read_halos_mesh cannot be called without MPI support")
 #endif
     
   end subroutine read_halos_mesh

@@ -29,7 +29,6 @@
 
 module halos_communications
 
-  use fields_allocates
   use fields_data_types
   use fields_base
   use fldebug
