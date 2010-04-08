@@ -262,7 +262,7 @@ Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o
 Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
   Halos_Debug.o Reference_Counting.o
-Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o MPI_Interface
+Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o MPI_Interface.o
 Halos_Communications.o: Fields_Data_Types.o Futils.o Halos_Allocates.o \
   Halos_Base.o Halo_Data_Types.o Halos_Debug.o
 Halos_Debug.o: Halo_Data_Types.o Halos_Base.o
