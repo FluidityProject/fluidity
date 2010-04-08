@@ -5,7 +5,7 @@
   <name>diffusion-dg</name>
   <owner userid="colin"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>fluidity diffusion_dg_A.flml -v3 -l; fluidity diffusion_dg_B.flml -v3 -l; fluidity diffusion_dg_C.flml -v3 -l; fluidity diffusion_dg_D.flml -v3 -l; fluidity diffusion_dg_E.flml -v3 -l;</command_line>
   </problem_definition>
   <variables>
