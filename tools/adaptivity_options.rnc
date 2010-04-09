@@ -1211,6 +1211,10 @@ interpolation_algorithm_vector =
                     }
                     
                  ),
+                 ## Solver options for the decomposition
+                 element solver {
+                    linear_solver_options_sym
+                 },
                  comment
               }|
               ## Interpolate the boundary values using consistent interpolation and

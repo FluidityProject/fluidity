@@ -1446,6 +1446,10 @@ residual</a:documentation>
                     <ref name="comment"/>
                   </element>
                 </choice>
+                <element name="solver">
+                  <a:documentation>Solver options for the decomposition</a:documentation>
+                  <ref name="linear_solver_options_sym"/>
+                </element>
                 <ref name="comment"/>
               </element>
               <element name="interpolate_boundary">

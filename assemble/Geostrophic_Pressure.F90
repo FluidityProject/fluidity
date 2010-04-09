@@ -1755,11 +1755,12 @@ contains
     
   end subroutine derive_interpolated_p_dirichlet_multiple
   
-  subroutine decompose_p_mean_single(matrices, base_p, positions, ps, bc_p)
+  subroutine decompose_p_mean_single(matrices, base_p, positions, ps, solver_path, bc_p)
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(in) :: base_p
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(2), intent(inout) :: ps
+    character(len = *), intent(in) :: solver_path
     type(scalar_field), optional, intent(inout) :: bc_p
     
     type(scalar_field), dimension(1) :: lbase_ps, lbc_ps
@@ -1769,9 +1770,9 @@ contains
     lps(1, :) = ps
     if(present(bc_p)) then  
       lbc_ps(1) = bc_p
-      call decompose_p_mean(matrices, lbase_ps, positions, lps, bc_ps = lbc_ps)
+      call decompose_p_mean(matrices, lbase_ps, positions, lps, solver_path, bc_ps = lbc_ps)
     else
-      call decompose_p_mean(matrices, lbase_ps, positions, lps)
+      call decompose_p_mean(matrices, lbase_ps, positions, lps, solver_path)
     end if
     ps = lps(1, :)
     if(present(bc_p)) then
@@ -1780,13 +1781,14 @@ contains
     
   end subroutine decompose_p_mean_single
   
-  subroutine decompose_p_mean_double(matrices, base_p_1, base_p_2, positions, ps_1, ps_2, bc_p_1, bc_p_2)
+  subroutine decompose_p_mean_double(matrices, base_p_1, base_p_2, positions, ps_1, ps_2, solver_path, bc_p_1, bc_p_2)
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(in) :: base_p_1
     type(scalar_field), intent(in) :: base_p_2
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(2), intent(inout) :: ps_1
     type(scalar_field), dimension(2), intent(inout) :: ps_2
+    character(len = *), intent(in) :: solver_path
     type(scalar_field), optional, intent(inout) :: bc_p_1
     type(scalar_field), optional, intent(inout) :: bc_p_2
     
@@ -1801,9 +1803,9 @@ contains
       assert(present(bc_p_2))
       lbc_ps(1) = bc_p_1
       lbc_ps(2) = bc_p_2
-      call decompose_p_mean(matrices, lbase_ps, positions, lps, bc_ps = lbc_ps)
+      call decompose_p_mean(matrices, lbase_ps, positions, lps, solver_path, bc_ps = lbc_ps)
     else
-      call decompose_p_mean(matrices, lbase_ps, positions, lps)
+      call decompose_p_mean(matrices, lbase_ps, positions, lps, solver_path)
     end if
     ps_1 = lps(1, :)
     ps_2 = lps(2, :)
@@ -1815,7 +1817,7 @@ contains
     
   end subroutine decompose_p_mean_double
     
-  subroutine decompose_p_mean_multiple(matrices, base_ps, positions, ps, bc_ps)
+  subroutine decompose_p_mean_multiple(matrices, base_ps, positions, ps, solver_path, bc_ps)
     !!< Decompose a conservative potential into a part constant on the
     !!< boundary and a residual, by taking a mean on the boundary
   
@@ -1823,6 +1825,7 @@ contains
     type(scalar_field), dimension(:), intent(inout) :: base_ps 
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(size(base_ps), 2), intent(inout) :: ps
+    character(len = *), intent(in) :: solver_path
     !! Adds strong dirichlet bcs to these fields to impose the constant value
     !! on the boundary used to decompose base_ps
     type(scalar_field), dimension(size(base_ps)), optional, intent(inout) :: bc_ps
@@ -1889,7 +1892,7 @@ contains
         
       ! Compute the part constant on the boundary
       call apply_cmc_boundary_value(matrices, rhs, surface_means(i))
-      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs)   
+      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs, option_path = solver_path)   
       call cmc_solve_finalise(matrices)
     end do
     call deallocate(rhs)
@@ -1949,11 +1952,12 @@ contains
     
   end subroutine decompose_p_mean_multiple
   
-  subroutine decompose_p_optimal_single(matrices, base_p, positions, ps, bc_p)
+  subroutine decompose_p_optimal_single(matrices, base_p, positions, ps, solver_path, bc_p)
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(in) :: base_p
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(2), intent(inout) :: ps
+    character(len = *), intent(in) :: solver_path
     type(scalar_field), optional, intent(inout) :: bc_p
     
     type(scalar_field), dimension(1) :: lbase_ps, lbc_ps
@@ -1963,9 +1967,9 @@ contains
     lps(1, :) = ps
     if(present(bc_p)) then  
       lbc_ps(1) = bc_p
-      call decompose_p_optimal(matrices, lbase_ps, positions, lps, bc_ps = lbc_ps)
+      call decompose_p_optimal(matrices, lbase_ps, positions, lps, solver_path, bc_ps = lbc_ps)
     else
-      call decompose_p_optimal(matrices, lbase_ps, positions, lps)
+      call decompose_p_optimal(matrices, lbase_ps, positions, lps, solver_path)
     end if
     ps = lps(1, :)
     if(present(bc_p)) then
@@ -1974,13 +1978,14 @@ contains
     
   end subroutine decompose_p_optimal_single
   
-  subroutine decompose_p_optimal_double(matrices, base_p_1, base_p_2, positions, ps_1, ps_2, bc_p_1, bc_p_2)
+  subroutine decompose_p_optimal_double(matrices, base_p_1, base_p_2, positions, ps_1, ps_2, solver_path, bc_p_1, bc_p_2)
     type(cmc_matrices), intent(inout) :: matrices
     type(scalar_field), intent(in) :: base_p_1
     type(scalar_field), intent(in) :: base_p_2
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(2), intent(inout) :: ps_1
     type(scalar_field), dimension(2), intent(inout) :: ps_2
+    character(len = *), intent(in) :: solver_path
     type(scalar_field), optional, intent(inout) :: bc_p_1
     type(scalar_field), optional, intent(inout) :: bc_p_2
     
@@ -1995,9 +2000,9 @@ contains
       assert(present(bc_p_2))
       lbc_ps(1) = bc_p_1
       lbc_ps(2) = bc_p_2
-      call decompose_p_optimal(matrices, lbase_ps, positions, lps, bc_ps = lbc_ps)
+      call decompose_p_optimal(matrices, lbase_ps, positions, lps, solver_path, bc_ps = lbc_ps)
     else
-      call decompose_p_optimal(matrices, lbase_ps, positions, lps)
+      call decompose_p_optimal(matrices, lbase_ps, positions, lps, solver_path)
     end if
     ps_1 = lps(1, :)
     ps_2 = lps(2, :)
@@ -2009,7 +2014,7 @@ contains
     
   end subroutine decompose_p_optimal_double
   
-  subroutine decompose_p_optimal_multiple(matrices, base_ps, positions, ps, bc_ps)
+  subroutine decompose_p_optimal_multiple(matrices, base_ps, positions, ps, solver_path, bc_ps)
     !!< Decompose a conservative potential into a part constant on the
     !!< boundary and a residual, by minimising the L2 norm of the residual
   
@@ -2017,6 +2022,7 @@ contains
     type(scalar_field), dimension(:), intent(inout) :: base_ps 
     type(vector_field), intent(inout) :: positions
     type(scalar_field), dimension(size(base_ps), 2), intent(inout) :: ps
+    character(len = *), intent(in) :: solver_path
     !! Adds strong dirichlet bcs to these fields to impose the constant value
     !! on the boundary used to decompose base_ps
     type(scalar_field), dimension(size(base_ps)), optional, intent(inout) :: bc_ps
@@ -2070,18 +2076,17 @@ contains
     
       ! Compute the part zero on the boundary
       call apply_cmc_boundary_value(matrices, rhs, 0.0)
-      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs)   
+      call petsc_solve(ps(i, 1), matrices%cmc_m, rhs, option_path = solver_path)   
       call cmc_solve_finalise(matrices)
     end do
     
     call allocate(p_1, mesh, "ZeroBoundaryOne")
     call zero(p_1)
-    p_1%option_path = base_ps(1)%option_path
     call zero(rhs)
     
     ! Compute the part one on the boundary and zero elsewhere
     call apply_cmc_boundary_value(matrices, rhs, 1.0)
-    call petsc_solve(p_1, matrices%cmc_m, rhs)   
+    call petsc_solve(p_1, matrices%cmc_m, rhs, option_path = solver_path)   
     call cmc_solve_finalise(matrices)
     call deallocate(rhs)
     
@@ -2394,18 +2399,20 @@ contains
       
         old_aux_p_decomp(1) = old_aux_p
         call allocate(old_aux_p_decomp(2), old_p_mesh, trim(old_aux_p%name) // gi_p_decomp_postfix)
-        old_aux_p_decomp(2)%option_path = old_p%option_path
+        old_aux_p_decomp(2)%option_path = old_aux_p%option_path
         
         new_aux_p_decomp(1) = new_aux_p
         call allocate(new_aux_p_decomp(2), new_p_mesh, trim(new_aux_p%name) // gi_p_decomp_postfix)
-        new_aux_p_decomp(2)%option_path = new_p%option_path
+        new_aux_p_decomp(2)%option_path = new_aux_p%option_path
         
         if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
           call decompose_p_mean(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
-            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
+            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1), &
+            & solver_path = trim(base_path) // "/conservative_potential/decompose")
         else if(have_option(trim(base_path) // "/conservative_potential/decompose/l2_minimised_residual")) then
           call decompose_p_optimal(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
-            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
+            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1), &
+            & solver_path = trim(base_path) // "/conservative_potential/decompose")
         else
           FLAbort("Unable to determine conservative potential decomposition type")
         end if
@@ -2417,10 +2424,12 @@ contains
       else
         if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
           call decompose_p_mean(matrices, old_p, old_positions, old_p_decomp, &
-            & bc_p = new_p_decomp(1))
+            & bc_p = new_p_decomp(1), &
+            & solver_path = trim(base_path) // "/conservative_potential/decompose")
         else if(have_option(trim(base_path) // "/conservative_potential/decompose/l2_minimised_residual")) then
           call decompose_p_optimal(matrices, old_p, old_positions, old_p_decomp, &
-            & bc_p = new_p_decomp(1))
+            & bc_p = new_p_decomp(1), &
+            & solver_path = trim(base_path) // "/conservative_potential/decompose")
         else
           FLAbort("Unable to determine conservative potential decomposition type")
         end if
