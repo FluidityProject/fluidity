@@ -1313,8 +1313,29 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
       </element>
       <element name="geostrophic_interpolation">
         <a:documentation>Helmholtz decomposed projection of the Coriolis force. Suitable only
-for Velocity fields.
-&lt;b&gt;FOR TESTING ONLY - NOT FOR PRODUCTION USE&lt;/b&gt;</a:documentation>
+for Velocity fields. This interpolation happens in three stages:
+
+  1. Computation of Coriolis and its Helmholtz decomposition
+  2. Interpolation of the Helmholtz decomposition
+  3. Formation of Coriolis from the decomposition and inversion for velocity
+
+Notes for balance preserving interpolants:
+
+The spatial discretisation options for the conservative potential
+must match those used for Pressure.
+
+With weak boundary conditions for the conservative potential, if
+no-normal-flow is satisfied on the boundary this must be preserved by
+the interpolation. For 2D domains this can be achieved by using
+consistent interpolation for the conservative potential or, for more
+general interpolants, by performing a further decomposition of the
+conservative potential (see
+geostrophic_interpolation/conservative_potential/decompose).
+
+For shallow-water modelling the interpolants for layer thickness and
+the conservative potential must be identical and degree one
+homogenenous (see
+geostrophic_interpolation/conservative_potential/project_pressure).</a:documentation>
         <element name="conservative_potential">
           <a:documentation>Options relating to the conservative potential component of the
 Helmholtz decomposition</a:documentation>
@@ -1434,7 +1455,9 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
 on the boundary, and a residual.
 
 If interpolating Pressure, a similar decomposition is applied
-to the Pressure projection.</a:documentation>
+to the Pressure projection.
+
+This requires the domain to be 2D and simply connected.</a:documentation>
                 <choice>
                   <element name="l2_minimised_residual">
                     <a:documentation>Choose a boundary value that minimises the l2 norm of the

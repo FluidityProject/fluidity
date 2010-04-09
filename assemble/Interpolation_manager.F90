@@ -212,6 +212,10 @@ contains
       do state=1,state_cnt
         do field=1,scalar_field_count(states_old(state))
           field_s => extract_scalar_field(states_old(state), field)
+          if(.not. has_scalar_field(states_new(state), field_s%name)) then
+            ewrite(0, *) "Warning: Cannot interpolate field " // trim(field_s%name) // " - no target"
+            cycle
+          end if
           if (trim(field_s%mesh%name) == trim(mesh_name)) then
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
@@ -227,8 +231,11 @@ contains
 
         do field=1,vector_field_count(states_old(state))
           field_v => extract_vector_field(states_old(state), field)
+          if(.not. has_vector_field(states_new(state), field_v%name)) then
+            ewrite(0, *) "Warning: Cannot interpolate field " // trim(field_v%name) // " - no target"
+            cycle
+          end if
           if (trim(field_v%mesh%name) == trim(mesh_name)) then
-            
             if (field_v%name=="Coordinate" .or. field_v%name==trim(mesh_name)//"Coordinate") cycle
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
@@ -244,6 +251,10 @@ contains
 
         do field=1,tensor_field_count(states_old(state))
           field_t => extract_tensor_field(states_old(state), field)
+          if(.not. has_tensor_field(states_new(state), field_t%name)) then
+            ewrite(0, *) "Warning: Cannot interpolate field " // trim(field_t%name) // " - no target"
+            cycle
+            end if
           if (trim(field_t%mesh%name) == trim(mesh_name)) then
             ! we need to append the state name here to make this safe for
             ! multi-material_phase/state... let's just hope you aren't going
