@@ -1531,7 +1531,7 @@ calculation</a:documentation>
                 <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
-                <ref name="continuous_discontinuous_projection"/>
+                <ref name="continuous_projection"/>
                 <optional>
                   <ref name="supermesh_conservation"/>
                 </optional>

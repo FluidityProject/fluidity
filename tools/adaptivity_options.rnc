@@ -1288,7 +1288,7 @@ interpolation_algorithm_vector =
               ## non-bounded. The most accurate choice, in the sense of minimising
               ## the L2 norm of the residual
               element galerkin_projection {
-                continuous_discontinuous_projection,
+                continuous_projection,
                 supermesh_conservation?,
                 comment
               }|
