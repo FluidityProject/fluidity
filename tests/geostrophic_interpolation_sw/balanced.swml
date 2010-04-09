@@ -289,7 +289,28 @@
         </mean_layer_thickness>
         <output/>
         <stat/>
-        <consistent_interpolation/>
+        <galerkin_projection>
+          <continuous>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="eisenstat"/>
+              <relative_error>
+                <real_value rank="0">1.0e-16</real_value>
+              </relative_error>
+              <absolute_error>
+                <real_value rank="0">1.0e-16</real_value>
+              </absolute_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+          <honour_strong_boundary_conditions/>
+        </galerkin_projection>
       </prognostic>
     </scalar_field>
     <scalar_field name="Div" rank="0">

@@ -234,6 +234,7 @@
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
               </max_iterations>
+              <remove_null_space/>
               <never_ignore_solver_failures/>
               <diagnostics>
                 <monitors/>
@@ -267,6 +268,9 @@
               <discontinuous/>
             </galerkin_projection>
           </residual>
+          <debug>
+            <write_debug_vtus/>
+          </debug>
         </geostrophic_interpolation>
       </prognostic>
     </vector_field>

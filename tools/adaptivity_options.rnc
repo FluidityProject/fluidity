@@ -1164,15 +1164,29 @@ interpolation_algorithm_vector =
            element solver {
               linear_solver_options_sym
            },
-           ## Galerkin projection. By default, conservative, non-dissipative and
-           ## non-bounded. The most accurate choice, in the sense of minimising
-           ## the L2 norm of the residual
-           element galerkin_projection {
-             galerkin_projection_honour_strong_bcs,
-             continuous_projection,
-             supermesh_conservation?,
-             comment
-           },
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                galerkin_projection_honour_strong_bcs,
+                continuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              ## Basis function interpolation.
+              ## The standard algorithm. It is quick
+              ## and bounded, but non-conservative and dissipative.
+              ## All other algorithms require construction of a supermesh.
+              element consistent_interpolation {
+                comment
+              }|
+              ## Grandy interpolation. Conservative, but highly diffusive.
+              ## See doi:10.1006/jcph.1998.6125 .
+              element grandy_interpolation {
+                empty
+              }
+           ),
            ## Additionally project the Pressure field
            element project_pressure {
               attribute name { xsd:string },
@@ -1214,14 +1228,28 @@ interpolation_algorithm_vector =
         ## Options relating to the non-conservative residual component of the
         ## Helmholz decomposition
         element residual {
-           ## Galerkin projection. By default, conservative, non-dissipative and
-           ## non-bounded. The most accurate choice, in the sense of minimising
-           ## the L2 norm of the residual
-           element galerkin_projection {
-             continuous_discontinuous_projection,
-             supermesh_conservation?,
-             comment
-           },
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                continuous_discontinuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              ## Basis function interpolation.
+              ## The standard algorithm. It is quick
+              ## and bounded, but non-conservative and dissipative.
+              ## All other algorithms require construction of a supermesh.
+              element consistent_interpolation {
+                comment
+              }|
+              ## Grandy interpolation. Conservative, but highly diffusive.
+              ## See doi:10.1006/jcph.1998.6125 .
+              element grandy_interpolation {
+                empty
+              }
+           ),
            ## Enforce divergence free after the projection
            element enforce_solenoidal {
              comment
@@ -1255,14 +1283,28 @@ interpolation_algorithm_vector =
            element solver {
               linear_solver_options_sym
            },
-           ## Galerkin projection. By default, conservative, non-dissipative and
-           ## non-bounded. The most accurate choice, in the sense of minimising
-           ## the L2 norm of the residual
-           element galerkin_projection {
-             continuous_projection,
-             supermesh_conservation?,
-             comment
-           }
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                continuous_discontinuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              ## Basis function interpolation.
+              ## The standard algorithm. It is quick
+              ## and bounded, but non-conservative and dissipative.
+              ## All other algorithms require construction of a supermesh.
+              element consistent_interpolation {
+                comment
+              }|
+              ## Grandy interpolation. Conservative, but highly diffusive.
+              ## See doi:10.1006/jcph.1998.6125 .
+              element grandy_interpolation {
+                empty
+              }
+           )
         }?,
         ## Debug options
         element debug {

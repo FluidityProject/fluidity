@@ -1393,17 +1393,31 @@ Automatic when not using P1P1.</a:documentation>
             <a:documentation>Solver options for the conservative potential calculation</a:documentation>
             <ref name="linear_solver_options_sym"/>
           </element>
-          <element name="galerkin_projection">
-            <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
+          <choice>
+            <element name="galerkin_projection">
+              <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
-            <ref name="galerkin_projection_honour_strong_bcs"/>
-            <ref name="continuous_projection"/>
-            <optional>
-              <ref name="supermesh_conservation"/>
-            </optional>
-            <ref name="comment"/>
-          </element>
+              <ref name="galerkin_projection_honour_strong_bcs"/>
+              <ref name="continuous_projection"/>
+              <optional>
+                <ref name="supermesh_conservation"/>
+              </optional>
+              <ref name="comment"/>
+            </element>
+            <element name="consistent_interpolation">
+              <a:documentation>Basis function interpolation.
+The standard algorithm. It is quick
+and bounded, but non-conservative and dissipative.
+All other algorithms require construction of a supermesh.</a:documentation>
+              <ref name="comment"/>
+            </element>
+            <element name="grandy_interpolation">
+              <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+              <empty/>
+            </element>
+          </choice>
           <optional>
             <element name="project_pressure">
               <a:documentation>Additionally project the Pressure field</a:documentation>
@@ -1450,16 +1464,30 @@ to the Pressure projection.</a:documentation>
         <element name="residual">
           <a:documentation>Options relating to the non-conservative residual component of the
 Helmholz decomposition</a:documentation>
-          <element name="galerkin_projection">
-            <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
+          <choice>
+            <element name="galerkin_projection">
+              <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
-            <ref name="continuous_discontinuous_projection"/>
-            <optional>
-              <ref name="supermesh_conservation"/>
-            </optional>
-            <ref name="comment"/>
-          </element>
+              <ref name="continuous_discontinuous_projection"/>
+              <optional>
+                <ref name="supermesh_conservation"/>
+              </optional>
+              <ref name="comment"/>
+            </element>
+            <element name="consistent_interpolation">
+              <a:documentation>Basis function interpolation.
+The standard algorithm. It is quick
+and bounded, but non-conservative and dissipative.
+All other algorithms require construction of a supermesh.</a:documentation>
+              <ref name="comment"/>
+            </element>
+            <element name="grandy_interpolation">
+              <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+              <empty/>
+            </element>
+          </choice>
           <optional>
             <element name="enforce_solenoidal">
               <a:documentation>Enforce divergence free after the projection</a:documentation>
@@ -1498,16 +1526,30 @@ functions.</a:documentation>
 calculation</a:documentation>
               <ref name="linear_solver_options_sym"/>
             </element>
-            <element name="galerkin_projection">
-              <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
+            <choice>
+              <element name="galerkin_projection">
+                <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
-              <ref name="continuous_projection"/>
-              <optional>
-                <ref name="supermesh_conservation"/>
-              </optional>
-              <ref name="comment"/>
-            </element>
+                <ref name="continuous_discontinuous_projection"/>
+                <optional>
+                  <ref name="supermesh_conservation"/>
+                </optional>
+                <ref name="comment"/>
+              </element>
+              <element name="consistent_interpolation">
+                <a:documentation>Basis function interpolation.
+The standard algorithm. It is quick
+and bounded, but non-conservative and dissipative.
+All other algorithms require construction of a supermesh.</a:documentation>
+                <ref name="comment"/>
+              </element>
+              <element name="grandy_interpolation">
+                <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+                <empty/>
+              </element>
+            </choice>
           </element>
         </optional>
         <optional>

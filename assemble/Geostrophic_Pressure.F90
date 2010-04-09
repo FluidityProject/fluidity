@@ -71,7 +71,8 @@ module geostrophic_pressure
     & geostrophic_pressure_check_options
     
   public :: projection_decomposition, geopressure_decomposition, &
-    & geostrophic_velocity, geostrophic_interpolation
+    & geostrophic_velocity, initialise_geostrophic_interpolation, &
+    & finalise_geostrophic_interpolation
   public :: cmc_matrices, allocate, deallocate, add_cmc_matrix, &
     & add_geopressure_matrices, correct_velocity, compute_conservative, &
     & compute_divergence
@@ -164,6 +165,28 @@ module geostrophic_pressure
   interface decompose_p_optimal
     module procedure decompose_p_optimal_single, decompose_p_optimal_double, decompose_p_optimal_multiple
   end interface decompose_p_optimal
+
+  character(len = *), parameter :: gi_prefix = "GeostrophicInterpolation"
+  character(len = *), parameter :: gi_res_name = gi_prefix // "CoriolisNonConservativeResidual"
+  character(len = *), parameter :: gi_conservative_potential_name = gi_prefix // "CoriolisConservativePotential"
+  character(len = *), parameter :: gi_gp_conservative_potential_name = gi_prefix // "CoriolisGeopressureConservativePotential"
+  character(len = *), parameter :: gi_w_name = gi_prefix // "VerticalVelocity"
+  character(len = *), parameter :: gi_p_decomp_postfix = "Imbalanced"
+
+  interface insert_for_interpolation
+    module procedure insert_for_interpolation_scalar, &
+      & insert_for_interpolation_vector
+  end interface insert_for_interpolation
+
+  interface initialise_geostrophic_interpolation
+    module procedure initialise_geostrophic_interpolation_states, &
+      & initialise_geostrophic_interpolation_velocity
+  end interface initialise_geostrophic_interpolation
+
+  interface finalise_geostrophic_interpolation
+    module procedure finalise_geostrophic_interpolation_states, &
+      & finalise_geostrophic_interpolation_velocity
+  end interface finalise_geostrophic_interpolation
     
 contains
   
@@ -2136,26 +2159,77 @@ contains
     end subroutine add_inner_products_ele
   
   end subroutine decompose_p_optimal_multiple
+
+  subroutine initialise_geostrophic_interpolation_states(old_states, new_states)
+    !!< Set up a state for geostrophic interpolation
+
+    type(state_type), dimension(:), intent(inout) :: old_states
+    type(state_type), dimension(size(old_states)), intent(inout) :: new_states
+    
+    integer :: i, j, stat
+    type(vector_field), pointer :: new_velocity, old_velocity
+
+    do i = 1, size(new_states)
+      do j = 1, vector_field_count(old_states(i))
+        new_velocity => extract_vector_field(new_states(i), j)
+        if(have_option(trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation")) then
+          old_velocity => extract_vector_field(old_states(i), new_velocity%name)
+          call initialise_geostrophic_interpolation(old_states(i), old_velocity, new_states(i), new_velocity)
+        end if
+      end do
+    end do
+    
+  end subroutine initialise_geostrophic_interpolation_states
+
+  subroutine insert_for_interpolation_scalar(old_state, old_field)
+    !!< Insert a field for interpolation, and deallocate the field. This checks
+    !!< for namespace clashes.
   
-  subroutine geostrophic_interpolation(old_state, old_velocity, new_state, new_velocity, map_BA)
-    !!< Perform a Helmholz decomposed projection of the Coriolis force, and
-    !!< invert for the new velocity
-    
     type(state_type), intent(inout) :: old_state
-    type(vector_field), target, intent(inout) :: old_velocity
+    type(scalar_field), intent(inout) :: old_field
+
+    if(has_scalar_field(old_state, old_field%name)) then
+      ewrite(-1, *) "For scalar field with name: " // trim(old_field%name)
+      ewrite(-1, *) "Field already exists in state"
+      FLAbort("Unable to insert field for interpolation")
+    end if
+    call insert(old_state, old_field, old_field%name)
+    call deallocate(old_field)
+
+  end subroutine insert_for_interpolation_scalar
+
+  subroutine insert_for_interpolation_vector(old_state, old_field)
+    !!< Insert a field for interpolation, and deallocate the field. This checks
+    !!< for namespace clashes.
+  
+    type(state_type), intent(inout) :: old_state
+    type(vector_field), intent(inout) :: old_field
+
+    if(has_vector_field(old_state, old_field%name)) then
+      ewrite(-1, *) "For vector field with name: " // trim(old_field%name)
+      ewrite(-1, *) "Field already exists in state"
+      FLAbort("Unable to insert field for interpolation")
+    end if
+    call insert(old_state, old_field, old_field%name)
+    call deallocate(old_field)
+
+  end subroutine insert_for_interpolation_vector
+  
+  subroutine initialise_geostrophic_interpolation_velocity(old_state, old_velocity, new_state, new_velocity)
+    !!< Set up a state for geostrophic interpolation
+
+    type(state_type), intent(inout) :: old_state
+    type(vector_field), target, intent(in) :: old_velocity
     type(state_type), intent(inout) :: new_state
-    type(vector_field), target, intent(inout) :: new_velocity
-    type(ilist), dimension(:), optional, intent(in) :: map_BA
-    
+    type(vector_field), target, intent(in) :: new_velocity
+
     character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
     integer :: dim, stat
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
-    type(scalar_field) :: new_p, old_w, old_p, new_w, res_p
-    type(state_type), dimension(3) :: new_proj_state, old_proj_state
+    type(scalar_field) :: new_p, old_w, old_p, new_w
     type(vector_field) :: coriolis, conserv, new_res, old_res
-    type(vector_field), pointer :: new_positions, &
-      & old_positions
+    type(vector_field), pointer :: new_positions, old_positions
 
     logical :: gp
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
@@ -2164,7 +2238,6 @@ contains
             
     logical :: aux_p
     character(len = OPTION_PATH_LEN) :: aux_p_name
-    type(scalar_field) :: lold_aux_p, lnew_aux_p
     type(scalar_field), pointer :: new_aux_p, old_aux_p
     
     logical :: decompose_p
@@ -2174,13 +2247,15 @@ contains
     logical :: debug_vtus
     integer, save :: vtu_index = 0
     type(scalar_field) :: div
-    
-    ewrite(1, *) "In geostrophic_interpolation"
+
+    ewrite(1, *) "In initialise_geostrophic_interpolation_velocity"
+    ewrite(2, *) "Input field: " // trim(new_velocity%name)
+    ewrite(2, *) "In state: " // trim(new_state%name)
 
     base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
     ewrite(2, *) "Option path: " // trim(base_path)
     debug_vtus = have_option(trim(base_path) // "/debug/write_debug_vtus")
-    
+
     call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
     old_u_mesh => old_velocity%mesh
     old_p_mesh => extract_mesh(old_state, p_mesh_name)
@@ -2191,38 +2266,32 @@ contains
     new_positions => extract_vector_field(new_state, "Coordinate")
     dim = old_positions%dim
     assert(any(dim == (/2, 3/)))
-            
-    ! Step 1: Compute the old Coriolis
+
+    ! Compute the old Coriolis
                 
     call allocate(coriolis, dim, old_u_mesh, "Coriolis")
     coriolis%option_path = old_velocity%option_path
     call coriolis_from_velocity(old_state, old_velocity, coriolis)
         
-    call allocate(old_p, old_p_mesh, "CoriolisConservativePotential")
+    call allocate(old_p, old_p_mesh, gi_conservative_potential_name)
     old_p%option_path = trim(base_path) // "/conservative_potential"
-    call allocate(old_res, dim, old_u_mesh, "CoriolisNonConservativeResidual")
+    call allocate(old_res, dim, old_u_mesh, gi_res_name)
     old_res%option_path = trim(base_path) // "/residual"
     aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")
     if(aux_p) then
       call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
       old_aux_p => extract_scalar_field(old_state, aux_p_name)
-      call allocate(lold_aux_p, old_p_mesh, old_aux_p%name)
-      call set(lold_aux_p, old_aux_p)
-      lold_aux_p%option_path = old_p%option_path
       new_aux_p => extract_scalar_field(new_state, aux_p_name)
-      call allocate(lnew_aux_p, new_p_mesh, new_aux_p%name)
-      call set(lnew_aux_p, new_aux_p)
-      lnew_aux_p%option_path = old_p%option_path
       
       ! Use the Pressure field as an initial guess for the conservative
       ! potential
-      call remap_field(lold_aux_p, old_p)
+      call remap_field(old_aux_p, old_p)
     else
       ! Use zero guess for the conservative potential
       call zero(old_p)
     end if
     
-    ! Step 2: Perform a Helmholz decomposition of the old Coriolis
+    ! Perform a Helmholz decomposition of the old Coriolis
 
     gp = have_option(trim(base_path) // "/geopressure")
     if(gp) then
@@ -2230,10 +2299,10 @@ contains
       old_gp_mesh => extract_mesh(old_state, gp_mesh_name)
       new_gp_mesh => extract_mesh(new_state, gp_mesh_name)
 
-      call allocate(old_gp, old_gp_mesh, "CoriolisGeopressureConservativePotential")
+      call allocate(old_gp, old_gp_mesh, gi_gp_conservative_potential_name)
       ! Use the Pressure field as an initial guess for the conservative
       ! potential
-      call remap_field(lold_aux_p, old_gp)
+      call remap_field(old_aux_p, old_gp)
       old_gp%option_path = trim(base_path) // "/geopressure"
 
       call geopressure_decomposition(old_state, coriolis, old_gp)
@@ -2271,34 +2340,16 @@ contains
         
     call deallocate(coriolis)
     
-    ! Step 3: Galerkin project the decomposition
-        
-    ! Insert the Coordinate field and the meshes
-        
-    call insert(old_proj_state, old_positions, old_positions%name)
-    call insert(old_proj_state, old_positions%mesh, old_positions%mesh%name)
-    call insert(new_proj_state, new_positions, new_positions%name)
-    call insert(new_proj_state, new_positions%mesh, new_positions%mesh%name)
-    call insert(old_proj_state(1), old_u_mesh, old_u_mesh%name)
-    call insert(new_proj_state(1), new_u_mesh, new_u_mesh%name)    
-    call insert(old_proj_state(2), old_p_mesh, old_p_mesh%name)
-    call insert(new_proj_state(2), new_p_mesh, new_p_mesh%name)
-    if(gp) then
-      call insert(old_proj_state(3), old_gp_mesh, old_gp_mesh%name)
-      call insert(new_proj_state(3), new_gp_mesh, new_gp_mesh%name)
-    end if
-    
     ! Insert the horizontal Velocity residual    
     
     call allocate(new_res, dim, new_u_mesh, old_res%name)
     new_res%option_path = old_res%option_path
-    
-    call insert(old_proj_state(1), old_res, old_res%name)
-    call insert(new_proj_state(1), new_res, new_res%name)
-    call deallocate(old_res)
+
+    call insert_for_interpolation(old_state, old_res)
+    call insert_for_interpolation(new_state, new_res)
     if(dim == 3) then
       ! Insert the vertical Velocity
-      call allocate(old_w, old_u_mesh, "VerticalVelocity")
+      call allocate(old_w, old_u_mesh, gi_w_name)
       old_w%option_path = old_res%option_path
       call set(old_w, old_velocity, W_)
       ewrite_minmax(old_w%val)
@@ -2307,9 +2358,8 @@ contains
       new_w%option_path = new_res%option_path
       call zero(new_w)
       
-      call insert(old_proj_state(1), old_w, old_w%name)
-      call insert(new_proj_state(1), new_w, new_w%name)
-      call deallocate(old_w)
+      call insert_for_interpolation(old_state, old_w)
+      call insert_for_interpolation(new_state, new_w)
     end if
       
     ! Insert the conservative potential 
@@ -2318,58 +2368,52 @@ contains
       call allocate(new_gp, new_gp_mesh, old_gp%name)
       new_gp%option_path = old_gp%option_path
 
-      call insert(old_proj_state(3), old_gp, old_gp%name)
-      call insert(new_proj_state(3), new_gp, new_gp%name)
-      call deallocate(old_gp)
+      call insert_for_interpolation(old_state, old_gp)
+      call insert_for_interpolation(new_state, new_gp)
     end if
     
     call allocate(new_p, new_p_mesh, old_p%name)
     new_p%option_path = old_p%option_path   
-    
+
     decompose_p = have_option(trim(base_path) // "/conservative_potential/decompose")
     if(decompose_p) then
       ! Decompose the conservative potential
       
-      call allocate(old_p_decomp(1), old_p_mesh, trim(old_p%name) // "Balanced")
+      call allocate(old_p_decomp(1), old_p_mesh, old_p%name)
       call set(old_p_decomp(1), old_p)
-      call allocate(old_p_decomp(2), old_p_mesh, trim(old_p%name) // "Imbalanced")
+      call allocate(old_p_decomp(2), old_p_mesh, trim(old_p%name) // gi_p_decomp_postfix)
       old_p_decomp%option_path = old_p%option_path
       
       new_p_decomp(1) = new_p
-      call allocate(new_p_decomp(2), new_p_mesh, trim(old_p%name) // "Imbalanced")
-      new_p_decomp(2)%option_path = old_p%option_path
-      
+      call incref(new_p_decomp(1))
+      call allocate(new_p_decomp(2), new_p_mesh, trim(old_p%name) // gi_p_decomp_postfix)
+      new_p_decomp(2)%option_path = new_p%option_path
+
       if(aux_p) then
         ! Decompose the Pressure
       
-        call allocate(old_aux_p_decomp(1), old_p_mesh, trim(lold_aux_p%name) // "Balanced")
-        call set(old_aux_p_decomp(1), lold_aux_p)
-        call allocate(old_aux_p_decomp(2), old_p_mesh, trim(lold_aux_p%name) // "Imbalanced")
-        old_aux_p_decomp%option_path = lold_aux_p%option_path
+        old_aux_p_decomp(1) = old_aux_p
+        call allocate(old_aux_p_decomp(2), old_p_mesh, trim(old_aux_p%name) // gi_p_decomp_postfix)
+        old_aux_p_decomp(2)%option_path = old_p%option_path
         
-        new_aux_p_decomp(1) = lnew_aux_p
-        call allocate(new_aux_p_decomp(2), new_p_mesh, trim(lnew_aux_p%name) // "Imbalanced")
-        new_aux_p_decomp(2)%option_path = lnew_aux_p%option_path
+        new_aux_p_decomp(1) = new_aux_p
+        call allocate(new_aux_p_decomp(2), new_p_mesh, trim(new_aux_p%name) // gi_p_decomp_postfix)
+        new_aux_p_decomp(2)%option_path = new_p%option_path
         
         if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
-          call decompose_p_mean(matrices, old_p, lold_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
+          call decompose_p_mean(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
             & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
         else if(have_option(trim(base_path) // "/conservative_potential/decompose/l2_minimised_residual")) then
-          call decompose_p_optimal(matrices, old_p, lold_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
+          call decompose_p_optimal(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
             & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1))
         else
           FLAbort("Unable to determine conservative potential decomposition type")
         end if
-              
-        call insert(old_proj_state(2), old_aux_p_decomp(1), old_aux_p_decomp(1)%name)
-        call insert(old_proj_state(2), old_aux_p_decomp(2), old_aux_p_decomp(2)%name)
-        call deallocate(old_aux_p_decomp(1))
-        call deallocate(old_aux_p_decomp(2))
-        
-        call insert(new_proj_state(2), new_aux_p_decomp(1), new_aux_p_decomp(1)%name)
-        call insert(new_proj_state(2), new_aux_p_decomp(2), new_aux_p_decomp(2)%name)
-        
-        call deallocate(lold_aux_p)
+
+        old_aux_p = old_aux_p_decomp(1)
+        call insert_for_interpolation(old_state, old_aux_p_decomp(2))
+        new_aux_p = new_aux_p_decomp(1)
+        call insert_for_interpolation(new_state, new_aux_p_decomp(2))
       else
         if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
           call decompose_p_mean(matrices, old_p, old_positions, old_p_decomp, &
@@ -2389,51 +2433,168 @@ contains
         end if
       end if
       
-      call insert(old_proj_state(2), old_p_decomp(1), old_p_decomp(1)%name)
-      call insert(old_proj_state(2), old_p_decomp(2), old_p_decomp(2)%name)
-      call deallocate(old_p_decomp(1))
-      call deallocate(old_p_decomp(2))
-      
-      call insert(new_proj_state(2), new_p_decomp(1), new_p_decomp(1)%name)
-      call insert(new_proj_state(2), new_p_decomp(2), new_p_decomp(2)%name)
+      call insert_for_interpolation(old_state, old_p_decomp(1))
+      call insert_for_interpolation(old_state, old_p_decomp(2))
+      call insert_for_interpolation(new_state, new_p_decomp(1))
+      call insert_for_interpolation(new_state, new_p_decomp(2))
       
       call deallocate(old_p)
+      call deallocate(new_p)
     else          
       if(have_option(trim(base_path) // "/conservative_potential/interpolate_boundary")) then
         ! Interpolate boundary conditions
         if(aux_p) then
-          call derive_interpolated_p_dirichlet(old_p, lold_aux_p, old_positions, new_p, lnew_aux_p, new_positions)
+          call derive_interpolated_p_dirichlet(old_p, old_aux_p, old_positions, new_p, new_aux_p, new_positions)
         else
           call derive_interpolated_p_dirichlet(old_p, old_positions, new_p, new_positions)
         end if
       end if
     
-      call insert(old_proj_state(2), old_p, old_p%name)
-      call insert(new_proj_state(2), new_p, new_p%name)
-      call deallocate(old_p)
-      
-      if(aux_p) then
-        ! Insert the Pressure
-        call insert(old_proj_state(2), lold_aux_p, lold_aux_p%name)
-        call insert(new_proj_state(2), lnew_aux_p, lnew_aux_p%name)
-        call deallocate(lold_aux_p)
-      end if
+      call insert_for_interpolation(old_state, old_p)
+      call insert_for_interpolation(new_state, new_p)
     end if
-    
-    call interpolation_galerkin(old_proj_state, new_proj_state, map_BA = map_BA)
-    
-    call deallocate(old_proj_state)
-    call deallocate(new_proj_state)
     
     call deallocate(matrices)
     
-    ! Step 4: Form the new Coriolis from the decomposition and invert for
-    ! Velocity
+    if(debug_vtus) vtu_index = vtu_index + 1
+
+    ewrite(1, *) "Exiting initialise_geostrophic_interpolation_velocity"
+
+  end subroutine initialise_geostrophic_interpolation_velocity
+
+  subroutine finalise_geostrophic_interpolation_states(new_states)
+    !!< Finalise a state set up for geostrophic interpolation
     
+    type(state_type), dimension(:), intent(inout) :: new_states
+
+#ifdef DDEBUG
+    type(vector_field), pointer :: new_velocity_2
+#endif
+    integer :: i, j, stat
+    type(vector_field), pointer :: new_velocity
+
+    do i = 1, size(new_states)
+      ! Confusing note: finalise_geostrophic_interpolation removes vector
+      ! fields, but these are guaranteed to appear *after* any interpolated
+      ! fields. Hence we loop with a do while and not a for.
+      j = 1
+      do while(j <= vector_field_count(new_states(i)))
+        new_velocity => extract_vector_field(new_states(i), j)
+        if(have_option(trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation")) then
+          call finalise_geostrophic_interpolation(new_states(i), new_velocity)
+#ifdef DDEBUG
+          ! Check that finalise_geostrophic_interpolation hasn't removed
+          ! any vector fields that appear *before* the interpolated field
+          new_velocity_2 => extract_vector_field(new_states(i), j)
+          assert(new_velocity%name == new_velocity_2%name)
+#endif
+        end if
+        j = j + 1
+      end do
+    end do
+    
+  end subroutine finalise_geostrophic_interpolation_states
+
+  function extract_interpolated_scalar(new_state, name) result(field)
+    !!< Extract an interpolated field from state, and remove it from state
+  
+    type(state_type), intent(inout) :: new_state
+    character(len = *), intent(in) :: name
+
+    type(scalar_field) :: field
+
+    field = extract_scalar_field(new_state, name)
+    call incref(field)
+    call remove_scalar_field(new_state, name)
+
+  end function extract_interpolated_scalar
+
+  function extract_interpolated_vector(new_state, name) result(field)
+    !!< Extract an interpolated field from state, and remove it from state
+    
+    type(state_type), intent(inout) :: new_state
+    character(len = *), intent(in) :: name
+
+    type(vector_field) :: field
+
+    field = extract_vector_field(new_state, name)
+    call incref(field)
+    call remove_vector_field(new_state, name)
+
+  end function extract_interpolated_vector
+
+  subroutine finalise_geostrophic_interpolation_velocity(new_state, new_velocity)
+    !!< Finalise a state set up for geostrophic interpolation
+  
+    type(state_type), intent(inout) :: new_state
+    type(vector_field), target, intent(inout) :: new_velocity
+
+    character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
+    integer :: dim, stat
+    type(cmc_matrices) :: matrices
+    type(mesh_type), pointer :: new_p_mesh, new_u_mesh
+    type(scalar_field) :: res_p
+    type(scalar_field) :: new_p, new_w
+    type(vector_field) :: conserv, coriolis, new_res
+    type(vector_field), pointer :: new_positions
+
+    logical :: gp
+    type(scalar_field) :: new_gp
+            
+    logical :: aux_p
+    character(len = OPTION_PATH_LEN) :: aux_p_name
+    type(scalar_field), pointer :: new_aux_p
+    
+    logical :: decompose_p
+    type(scalar_field) :: new_p_decomp
+    type(scalar_field) :: new_aux_p_decomp
+        
+    logical :: debug_vtus
+    integer, save :: vtu_index = 0
+    type(scalar_field) :: div
+
+    ewrite(1, *) "In finalise_geostrophic_interpolation_velocity"
+    ewrite(2, *) "Input field: " // trim(new_velocity%name)
+    ewrite(2, *) "In state: " // trim(new_state%name)
+
+    base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
+    ewrite(2, *) "Option path: " // trim(base_path)
+    debug_vtus = have_option(trim(base_path) // "/debug/write_debug_vtus")
+    
+    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
+    new_u_mesh => new_velocity%mesh
+    new_p_mesh => extract_mesh(new_state, p_mesh_name)
+    
+    new_positions => extract_vector_field(new_state, "Coordinate")
+    dim = new_positions%dim
+    assert(any(dim == (/2, 3/)))
+
+    new_p = extract_interpolated_scalar(new_state, gi_conservative_potential_name)
+    new_res = extract_interpolated_vector(new_state, gi_res_name)  
+    if(dim == 3) then
+      new_w = extract_interpolated_scalar(new_state, gi_w_name)
+    end if
+    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")    
+    if(aux_p) then
+      call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
+      new_aux_p => extract_scalar_field(new_state, aux_p_name)
+    end if
+    gp = have_option(trim(base_path) // "/geopressure")
+    if(gp) then
+      new_gp = extract_interpolated_scalar(new_state, gi_gp_conservative_potential_name)
+    end if    
+    decompose_p = have_option(trim(base_path) // "/conservative_potential/decompose")
+    if(decompose_p) then
+      new_p_decomp = extract_interpolated_scalar(new_state, gi_conservative_potential_name // gi_p_decomp_postfix)
+      if(aux_p) then
+        new_aux_p_decomp = extract_interpolated_scalar(new_state, trim(new_aux_p%name) // gi_p_decomp_postfix)
+      end if
+    end if
+
     call allocate(coriolis, dim, new_u_mesh, "Coriolis")
     
     ! Add the solenoidal component
-        
+    
     call copy_bcs(new_velocity, new_res)
     call set(coriolis, new_res)
     if(have_option(trim(base_path) // "/residual/enforce_solenoidal")) then
@@ -2447,7 +2608,7 @@ contains
     else
       call allocate(matrices, new_state, new_res, new_p, add_cmc = .false.)
     end if
-    
+
     ! Add the conservative component  
         
     call allocate(conserv, dim, new_u_mesh, name = "CoriolisConservative")
@@ -2455,24 +2616,24 @@ contains
       call add_geopressure_matrices(new_state, new_gp%mesh, matrices)
       call compute_conservative(matrices, conserv, new_gp, geopressure = .true.)
       call addto(coriolis, conserv)
-    end if    
+    end if  
     
     if(decompose_p) then   
       if(debug_vtus) then
         call vtk_write_fields("p_decomp_new", index = vtu_index, position = new_positions, model = new_p_mesh, &
-          & sfields = (/new_p_decomp(1), new_p_decomp(2)/), stat = stat)        
+          & sfields = (/new_p, new_p_decomp/), stat = stat)        
         if(stat /= 0) then
           ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
         end if
       end if
       
-      call addto(new_p, new_p_decomp(2))
-      call deallocate(new_p_decomp(2))
+      call addto(new_p, new_p_decomp)
+      call deallocate(new_p_decomp)
     end if
     call compute_conservative(matrices, conserv, new_p)  
     call addto(coriolis, conserv)  
     
-    ! Step 5: Invert for the new Velocity
+    ! Invert for the new Velocity
     
     call velocity_from_coriolis(new_state, coriolis, new_velocity)    
     if(dim == 3) then
@@ -2505,24 +2666,22 @@ contains
     if(aux_p) then      
       ! Construct the new Pressure
       if(decompose_p) then
-        call addto(lnew_aux_p, new_aux_p_decomp(2))
-        call deallocate(new_aux_p_decomp(2))
+        call addto(new_aux_p, new_aux_p_decomp)
+        call deallocate(new_aux_p_decomp)
       end if
-      call set(new_aux_p, lnew_aux_p)
-      call deallocate(lnew_aux_p)
     end if
-    
+
     call deallocate(coriolis)
     call deallocate(matrices)
-    call deallocate(new_res)   
-    if(gp) call deallocate(new_gp)
     call deallocate(new_p)
+    call deallocate(new_res)
+    if(gp) call deallocate(new_gp)
     
     if(debug_vtus) vtu_index = vtu_index + 1
+
+    ewrite(1, *) "Exiting finalise_geostrophic_interpolation_velocity"
     
-    ewrite(1, *) "Exiting geostrophic_interpolation"
-    
-  end subroutine geostrophic_interpolation
+  end subroutine finalise_geostrophic_interpolation_velocity
   
   subroutine compute_balanced_velocity_diagnostics(state, u_imbal, u_bal_out)
     type(state_type), intent(inout) :: state

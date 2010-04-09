@@ -42,9 +42,9 @@ module interpolation_manager
   use linked_lists
   use boundary_conditions_from_options
   use tictoc
-  use geostrophic_pressure
   use populate_state_module
   use vtk_interfaces
+  use geostrophic_pressure
   
   implicit none
   
@@ -77,15 +77,14 @@ contains
     character(len=FIELD_NAME_LEN) :: mesh_name
 
     type(scalar_field), pointer :: field_s, p_field_s
-    type(vector_field), pointer :: field_v, field_v_2, p_field_v
+    type(vector_field), pointer :: field_v, p_field_v
     type(tensor_field), pointer :: field_t, p_field_t
     integer :: field
 
-    character(len=255), dimension(4), parameter :: algorithms = (/&
-                       & "consistent_interpolation ", &
-                       & "interpolation_galerkin   ", &
-                       & "geostrophic_interpolation", &
-                       & "grandy_interpolation     " /)
+    character(len=255), dimension(3), parameter :: algorithms = (/&
+                       & "consistent_interpolation", &
+                       & "interpolation_galerkin  ", &
+                       & "grandy_interpolation    " /)
     integer :: alg_cnt, alg
 
     type(mesh_type), pointer :: old_mesh, new_mesh
@@ -102,6 +101,8 @@ contains
     integer :: stat
 
     ewrite(1, *) "In interpolate"
+
+    call initialise_geostrophic_interpolation(states_old, states_new)
 
     mesh_cnt = option_count("/geometry/mesh")
     allocate(meshes_old(mesh_cnt))
@@ -126,7 +127,6 @@ contains
         field_s => extract_scalar_field(states_old(state), field)
         ! If the field has no option path, assume consistent interpolation
         if(len_trim(field_s%option_path) /= 0) then
-          assert(have_option(trim(field_s%option_path)//"/prognostic").or.have_option(trim(field_s%option_path)//"/prescribed").or.have_option(trim(field_s%option_path)//"/diagnostic"))
           all_consistent_interpolation = all_consistent_interpolation &
             .and. have_option(trim(complete_field_path(  &
                field_s%option_path, stat)) // "/consistent_interpolation")
@@ -146,8 +146,7 @@ contains
               cycle
             end if
           end if
-          assert(have_option(trim(field_v%option_path)//"/prognostic").or.have_option(trim(field_v%option_path)//"/prescribed"))
-
+          
           all_consistent_interpolation = all_consistent_interpolation &
             .and. have_option(trim(complete_field_path( &
                field_v%option_path, stat)) // "/consistent_interpolation")
@@ -162,8 +161,7 @@ contains
         field_t => extract_tensor_field(states_old(state), field)
         ! If the field has no option path, assume consistent interpolation
         if(len_trim(field_t%option_path) /= 0) then
-          assert(have_option(trim(field_t%option_path)//"/prognostic").or.have_option(trim(field_t%option_path)//"/prescribed"))
-
+        
           all_consistent_interpolation = all_consistent_interpolation &
             .and. have_option(trim(complete_field_path( &
                field_t%option_path, stat)) // "/consistent_interpolation")
@@ -376,21 +374,6 @@ contains
             call deallocate(alg_old(mesh))
             call deallocate(alg_new(mesh))
           end do
-        case("geostrophic_interpolation")
-          ! this needs to be changed to work with periodic adaptivity
-          ! it should be passing on the expanded fields from meshes_old/new
-          ! and not touch anything in states_old/new
-          do state = 1, state_cnt
-            do field = 1, vector_field_count(states_old(state))
-              field_v_2 => extract_vector_field(states_old(state), field)
-              if(.not. interpolate_field_geostrophic(field_v_2%option_path)) cycle
-              if(field_v_2%name == "Coordinate") cycle
-              field_v => extract_vector_field(states_new(state), field_v_2%name)
-              call geostrophic_interpolation(states_old(state), field_v_2, &
-                & states_new(state), field_v, &
-                & map_BA = map_BA)
-            end do
-          end do
         case("grandy_interpolation")
           do mesh = 1, mesh_cnt
             call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
@@ -451,10 +434,6 @@ contains
         do field=1,vector_field_count(meshes_new(mesh))
           field_v => extract_vector_field(meshes_new(mesh), field)
           if (trim(field_v%name) == "Coordinate") cycle
-          if (interpolate_field_geostrophic(field_v%option_path)) then
-            ewrite(0,*) "Warning: geostrophic_interpolation only works with prescribed periodic adaptivity"
-            cycle
-          end if
           p_field_v => extract_vector_field(periodic_new(mesh), trim(field_v%name))
           assert(trim(field_v%name) == trim(p_field_v%name))
           call remap_field(field_v, p_field_v, stat=stat)
@@ -489,6 +468,8 @@ contains
       end do
       deallocate(map_BA)
     end if
+
+    call finalise_geostrophic_interpolation(states_new)
     
     ewrite(1, *) "Exiting interpolate"
 
@@ -498,11 +479,13 @@ contains
     character(len = *), intent(in) :: option_path
 
     logical :: interpolate
+    
+    integer :: stat
   
     interpolate = .false.
     if(len_trim(option_path) == 0) then
       interpolate = .true.
-    else if(have_option(trim(complete_field_path(option_path)) // "/consistent_interpolation")) then
+    else if(have_option(trim(complete_field_path(option_path, stat = stat)) // "/consistent_interpolation")) then
       interpolate = .true.
     end if
     
@@ -514,11 +497,12 @@ contains
     logical :: interpolate
     
     character(len = OPTION_PATH_LEN) :: base_path
+    integer :: stat
    
     interpolate = .false.
     if(len_trim(option_path) == 0) return
 
-    base_path = trim(complete_field_path(option_path))
+    base_path = trim(complete_field_path(option_path, stat = stat))
     
     interpolate = have_option(trim(base_path) // "/galerkin_projection") &
       & .and. .not. have_option(trim(base_path) // "/galerkin_projection/supermesh_free")
@@ -531,30 +515,15 @@ contains
     logical :: interpolate
     
     character(len = OPTION_PATH_LEN) :: base_path
+    integer :: stat
    
     interpolate = .false.
     if(len_trim(option_path) == 0) return
 
-    base_path = trim(complete_field_path(option_path))
+    base_path = trim(complete_field_path(option_path, stat = stat))
     
     interpolate = have_option(trim(base_path) // "/grandy_interpolation")
   end function interpolate_field_grandy_interpolation
-  
-  function interpolate_field_geostrophic(option_path) result(interpolate)
-    character(len = *), intent(in) :: option_path
-
-    logical :: interpolate
-    
-    character(len = OPTION_PATH_LEN) :: base_path
-   
-    interpolate = .false.
-    if(len_trim(option_path) == 0) return
-
-    base_path = trim(complete_field_path(option_path))
-    
-    interpolate = have_option(trim(base_path) // "/geostrophic_interpolation")
-    
-  end function interpolate_field_geostrophic
   
   function interpolate_field_galerkin_projection_cg_supermesh_free(option_path) result(interpolate)
     character(len = *), intent(in) :: option_path
@@ -562,11 +531,12 @@ contains
     logical :: interpolate
     
     character(len = OPTION_PATH_LEN) :: base_path
+    integer :: stat
     
     interpolate = .false.
     if(len_trim(option_path) == 0) return
 
-    base_path = trim(complete_field_path(option_path))
+    base_path = trim(complete_field_path(option_path, stat = stat))
     
     interpolate = have_option(trim(base_path) // "/galerkin_projection/continuous") &
       & .and. have_option(trim(base_path) // "/galerkin_projection/supermesh_free")
@@ -585,11 +555,12 @@ contains
     logical :: interpolate
     
     character(len = OPTION_PATH_LEN) :: base_path
+    integer :: stat
     
     interpolate = .false.
     if(len_trim(option_path) == 0) return
 
-    base_path = trim(complete_field_path(option_path))
+    base_path = trim(complete_field_path(option_path, stat = stat))
     
     interpolate = have_option(trim(base_path) // "/galerkin_projection/discontinuous") &
       & .and. have_option(trim(base_path) // "/galerkin_projection/supermesh_free")
