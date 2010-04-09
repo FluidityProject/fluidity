@@ -166,6 +166,7 @@ module geostrophic_pressure
     module procedure decompose_p_optimal_single, decompose_p_optimal_double, decompose_p_optimal_multiple
   end interface decompose_p_optimal
 
+  character(len = *), parameter :: temp_solver_path = "/temporary/solver/path"
   character(len = *), parameter :: gi_prefix = "GeostrophicInterpolation"
   character(len = *), parameter :: gi_res_name = gi_prefix // "CoriolisNonConservativeResidual"
   character(len = *), parameter :: gi_conservative_potential_name = gi_prefix // "CoriolisConservativePotential"
@@ -2326,7 +2327,8 @@ contains
     
     if(debug_vtus) then
       call allocate(div, old_p_mesh, trim(old_velocity%name) // "Divergence")
-      div%option_path = trim(old_p%option_path) // "/galerkin_projection/continuous"
+      call set_solver_options(temp_solver_path, ksptype = "cg", pctype = "sor", rtol = 0.0, atol = epsilon(0.0), max_its = 10000)
+      div%option_path = temp_solver_path
       call zero(div)
       call compute_divergence(old_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
       if(gp) then
@@ -2339,6 +2341,7 @@ contains
       if(stat /= 0) then
         ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
       end if
+      call delete_option(div%option_path)
       call deallocate(div)
     end if
     call deallocate(conserv)
@@ -2655,7 +2658,8 @@ contains
     
     if(debug_vtus) then
       call allocate(div, new_p_mesh, trim(new_velocity%name) // "Divergence")
-      div%option_path = trim(new_p%option_path) // "/galerkin_projection/continuous"
+      call set_solver_options(temp_solver_path, ksptype = "cg", pctype = "sor", rtol = 0.0, atol = epsilon(0.0), max_its = 10000)
+      div%option_path = temp_solver_path
       call zero(div)
       call compute_divergence(new_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
       if(gp) then
@@ -2668,6 +2672,7 @@ contains
       if(stat /= 0) then
         ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
       end if
+      call delete_option(div%option_path)
       call deallocate(div)
     end if
     call deallocate(conserv)
@@ -2946,7 +2951,8 @@ contains
       end do
     
       ewrite(2, *) "Finished checking GeostrophicPressure options"
-    else if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
+    end if
+    if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
       FLExit("BalancePressure has been removed - switch to GeostrophicPressure")
     end if
 
@@ -2954,6 +2960,10 @@ contains
       & have_option("/material_phase/vector_field/diagnostic/geostrophic_interpolation") .or. &
       & have_option("/material_phase/vector_field/prognostic/geostrophic_interpolation")) then
       ewrite(2, *) "Checking geostrophic interpolation options"
+
+      if(.not. have_option("/physical_parameters/coriolis")) then
+        FLExit("Geostrophic interpolation requires Coriolis")
+      end if
       
       do i = 0, option_count("/material_phase") - 1
         mat_phase_path = "/material_phase[" // int2str(i) // "]"      
@@ -2971,10 +2981,10 @@ contains
           
             if(have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/project_pressure")) then
               call get_option(trim(path) // "/geostrophic_interpolation/conservative_potential/project_pressure/name", aux_p_name)
-              if(have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // trim(aux_p_name))) // "/no_interpolation")) then
+              if(have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // trim(aux_p_name), stat = stat)) // "/no_interpolation")) then
                 ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
                 ewrite(-1, *) "Pressure field: " // trim(aux_p_name)
-                FLExit("project_pressure selected for geostrophic_interpolation, but pressure field has interpolation disabled")
+                FLExit("project_pressure selected, but pressure field has interpolation disabled")
               end if
             end if
             
