@@ -116,6 +116,12 @@ module momentum_DG
   
   real :: gravity_magnitude
 
+  ! CDG stuff
+  real, dimension(:), pointer :: switch_g => null()
+  logical :: CDG_switch_in
+  logical :: CDG_penalty
+  logical :: remove_penalty_fluxes
+
 contains
 
   subroutine construct_momentum_dg(u, p, rho, x, &
@@ -361,12 +367,47 @@ contains
          &discontinuous_galerkin/viscosity_scheme/bassi_rebay")) then
        viscosity_scheme=BASSI_REBAY
     else if (have_option(trim(U%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/viscosity_scheme&
+         &/compact_discontinuous_galerkin")) then
+       !=================Compact Discontinuous Galerkin
+       viscosity_scheme=CDG
+       !Set the switch vector
+       if(associated(switch_g)) deallocate(switch_g)
+       allocate(switch_g(mesh_dim(U)))
+       switch_g = 0.
+       switch_g(1) = exp(sin(3.0+exp(1.0)))
+       if(mesh_dim(U)>1) switch_g(2) = (cos(exp(3.0)/sin(2.0)))**2.0
+       if(mesh_dim(U)>2) switch_g(3) = sin(cos(sin(cos(3.0))))
+       switch_g = switch_g/sqrt(sum(switch_g**2))
+       !switch_g = 1.0/(sqrt(1.0*mesh_dim(U)))
+
+       remove_penalty_fluxes = .true.
+       interior_penalty_parameter = 0.0
+       if(have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/&
+            &discontinuous_galerkin/viscosity_scheme&
+            &/compact_discontinuous_galerkin/penalty_parameter")) then
+          remove_penalty_fluxes = .false.
+          edge_length_power = 0.0
+          call get_option(trim(U%option_path)//&
+               &"/prognostic/spatial_discretisation/&
+               &discontinuous_galerkin/viscosity_scheme&
+               &/compact_discontinuous_galerkin/penalty_parameter"&
+               &,Interior_Penalty_Parameter)
+       end if
+
+       CDG_penalty = .true.
+       edge_length_option = USE_FACE_INTEGRALS
+
+    else if (have_option(trim(U%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/viscosity_scheme/arbitrary_upwind")) then
        viscosity_scheme=ARBITRARY_UPWIND
     else if (have_option(trim(U%option_path)//&
          &"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/viscosity_scheme/interior_penalty")) then
+       remove_penalty_fluxes = .false.
        viscosity_scheme=IP
+       CDG_penalty = .false.
        call get_option(trim(U%option_path)//&
             &"/prognostic/spatial_discretisation/&
             &discontinuous_galerkin/viscosity_scheme&
@@ -542,7 +583,11 @@ contains
          & ele_loc(Viscosity,ele)) :: Viscosity_ele
     real, dimension(x%dim, ele_loc(x,ele)) :: x_val, x_val_2
     real, dimension(u%dim, ele_loc(u,ele)) :: u_val
-    
+
+     ! \Int_{ele} N_i kappa N_j dV, used for CDG fluxes
+    real, dimension(mesh_dim(U),mesh_dim(U), &
+         & ele_loc(U,ele),ele_loc(U,ele)) :: kappa_mat
+   
     ! Local assembly matrices.
     real, dimension(ele_loc(U,ele)) :: l_MassLump, l_move_masslump
 
@@ -602,18 +647,6 @@ contains
     ! In parallel, we only assemble the mass terms for the halo elements. All
     ! other terms are only assembled on elements we own.
     logical :: owned_element
-
-    ! Matrix for assembling primal fluxes
-    ! Note that this assumes same order polys in each element
-    ! Code will need reorganising for p-refinement
-    real, dimension(2,face_loc(U,1),ele_loc(U,ele)) ::&
-         & primal_fluxes_mat
-
-    ! Matrix for assembling penalty fluxes
-    ! Note that this assumes same order polys in each element
-    ! Code will need reorganising for p-refinement
-    real, dimension(2,face_loc(U,1),face_loc(U,1)) ::&
-         & penalty_fluxes_mat
 
     ! element centre and neighbour centre
     ! for IP parameters
@@ -954,7 +987,7 @@ contains
     ! Viscosity.
     Viscosity_mat=0
     if(have_viscosity.and.owned_element) then
-       if(primal) then
+       if (primal) then
           do dim = 1, u%dim
              Viscosity_mat(dim,:loc,:loc)= &
                   dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
@@ -974,6 +1007,12 @@ contains
                      ele2grad_mat(i,:,:))
              end do
 
+          end if
+
+         !get kappa mat for CDG
+          if(viscosity_scheme==CDG) then
+             kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei, &
+                  & ele_val_at_quad(Viscosity,ele))
           end if
 
        else
@@ -1031,9 +1070,6 @@ contains
         ! for local stack variables of the right size in
         ! construct_momentum_interface_dg.
   
-        primal_fluxes_mat = 0.0
-        penalty_fluxes_mat = 0.0
-
         ele_2=neigh(ni)
         
         ! Note that although face is calculated on field U, it is in fact
@@ -1092,14 +1128,9 @@ contains
                 & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                 & velocity_bc, velocity_bc_type, &
                 & pressure_bc, pressure_bc_type, &
-                & primal_fluxes_mat, ele2grad_mat,viscosity, &
-                & penalty_fluxes_mat)
+                & ele2grad_mat, kappa_mat, inverse_mass_mat, &
+                & viscosity, viscosity_mat)
       
-          select case(viscosity_scheme)
-          case(IP)
-             call local_assembly_ip_face
-          end select
-
         else
 
            call construct_momentum_interface_dg(ele, face, face_2, ni,&
@@ -1131,7 +1162,7 @@ contains
          end select
         
         if (boundary_element) then
-            ! Weak application of dirichlet conditions on diffusion term.
+            ! Weak application of dirichlet conditions on viscosity term.
             ! Note that this necessitates per dimenson Viscosity matrices as
             ! the boundary condition may vary between dimensions.
   
@@ -1260,125 +1291,7 @@ contains
     end if
   
   contains
-    
-    subroutine local_assembly_ip_face
-    implicit none
-    
-    integer :: j, d1
-    integer :: nfele, nele
-    integer, dimension(face_loc(U,face)) :: U_face_loc
-    !type(vector_boundary_condition), pointer :: bc
-    
-    nfele = face_loc(U,face)
-    nele = ele_loc(U,ele)
-    U_face_loc=face_local_nodes(U, face) 
-
-    do d1 = 1, mesh_dim(U)
-       
-       if (ele_2<0) then
-          
-          if (velocity_bc_type(d1,face)==1) then
-
-             !!These terms are not included on Neumann integrals
-             
-             !! Internal Degrees of Freedom
-             
-             !primal fluxes
-             
-             Viscosity_mat(d1,U_face_loc,1:nele) = &
-                  Viscosity_mat(d1,U_face_loc,1:nele) + &
-                  primal_fluxes_mat(1,:,:)
-          
-             do j = 1, size(U_face_loc)
-                Viscosity_mat(d1,1:nele,U_face_loc(j)) = &
-                     Viscosity_mat(d1,1:nele,U_face_loc(j)) + &
-                     primal_fluxes_mat(1,j,:) 
-             end do
-             
-             !The above code could be replaced by the below if the compiler
-             !doesn't segfault
-             
-             !Viscosity_mat(d1,1:nele,u_face_loc) = &
-             !     Viscosity_mat(d1,1:nele,u_face_loc) + &
-             !     transpose(primal_fluxes_mat(1,:,:)) 
-             
-             !penalty flux
-             
-             Viscosity_mat(d1,u_face_loc,u_face_loc) = &
-                  Viscosity_mat(d1,u_face_loc,u_face_loc) + &
-                  penalty_fluxes_mat(1,:,:)
-             
-             !! External Degrees of Freedom
-             
-             !primal fluxes
-             
-             !Viscosity_mat(d1,start:finish,1:nele) = &
-             !     Viscosity_mat(d1,start:finish,1:nele) + &
-             !     primal_fluxes_mat(2,:,:)
-             
-             Viscosity_mat(d1,1:nele,start:finish) = &
-               Viscosity_mat(d1,1:nele,start:finish) + &
-               transpose(primal_fluxes_mat(2,:,:)) 
-             
-             !!penalty fluxes
-             
-             Viscosity_mat(d1,u_face_loc,start:finish) = &
-                  Viscosity_mat(d1,u_face_loc,start:finish) + &
-                  penalty_fluxes_mat(2,:,:)
-          
-          end if
-       else
-          
-          !! Internal Degrees of Freedom
-          
-          !primal fluxes
-          
-          Viscosity_mat(d1,u_face_loc,1:nele) = &
-               Viscosity_mat(d1,u_face_loc,1:nele) + &
-               primal_fluxes_mat(1,:,:)
-       
-          do j = 1, size(u_face_loc)
-             Viscosity_mat(d1,1:nele,u_face_loc(j)) = &
-                  Viscosity_mat(d1,1:nele,u_face_loc(j)) + &
-                  primal_fluxes_mat(1,j,:) 
-          end do
-
-          !The above code could be replaced by the below if the compiler
-          !doesn't segfault
-       
-          !Viscosity_mat(d1,1:nele,u_face_loc) = &
-          !     Viscosity_mat(d1,1:nele,u_face_loc) + &
-          !     transpose(primal_fluxes_mat(1,:,:)) 
-          
-          !penalty flux
-       
-          Viscosity_mat(d1,u_face_loc,u_face_loc) = &
-            Viscosity_mat(d1,u_face_loc,u_face_loc) + &
-            penalty_fluxes_mat(1,:,:)
-          
-          !! External Degrees of Freedom
-          
-          !primal fluxes
-          
-          Viscosity_mat(d1,start:finish,1:nele) = &
-            Viscosity_mat(d1,start:finish,1:nele) + &
-            primal_fluxes_mat(2,:,:)
-
-          Viscosity_mat(d1,1:nele,start:finish) = &
-               Viscosity_mat(d1,1:nele,start:finish) + &
-               transpose(primal_fluxes_mat(2,:,:))
-          
-          !!penalty fluxes
-          
-          Viscosity_mat(d1,u_face_loc,start:finish) = &
-               Viscosity_mat(d1,u_face_loc,start:finish) + &
-               penalty_fluxes_mat(2,:,:)
-
-       end if
-    end do
-
-  end subroutine local_assembly_ip_face
-
+ 
     subroutine local_assembly_arbitrary_upwind
       integer :: d3
 
@@ -1440,8 +1353,8 @@ contains
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
-       & primal_fluxes_mat, ele2grad_mat,viscosity, &
-       & penalty_fluxes_mat)
+       & ele2grad_mat, kappa_mat, inverse_mass_mat, &
+       & viscosity, viscosity_mat)
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
@@ -1466,9 +1379,39 @@ contains
 
     !! Computation of primal fluxes and penalty fluxes
     real, intent(in), optional, dimension(:,:,:) :: ele2grad_mat
-    real, intent(inout), optional, dimension(:,:,:) :: primal_fluxes_mat
+
+    !! \Int_{ele} N_i kappa N_j dV, used for CDG fluxes
+    real, dimension(:,:,:,:), intent(in), optional :: kappa_mat
+
+    !! Inverse element mass matrix.
+    real, dimension(:,:), intent(in), optional :: inverse_mass_mat
+
     type(tensor_field), intent(in), optional :: viscosity
-    real, intent(inout), optional, dimension(:,:,:) :: penalty_fluxes_mat
+
+    !! Local viscosity matrix for assembly.
+    real, intent(inout), dimension(:,:,:), optional :: viscosity_mat
+
+    ! Matrix for assembling primal fluxes
+    ! Note that this assumes same order polys in each element
+    ! Code will need reorganising for p-refinement
+    real, dimension(2,face_loc(U,face),ele_loc(U,ele)) ::&
+         & primal_fluxes_mat
+
+    ! Matrix for assembling penalty fluxes
+    ! Note that this assumes same order polys in each element
+    ! Code will need reorganising for p-refinement
+    real, dimension(2,face_loc(U,face),face_loc(U,face)) ::&
+         & penalty_fluxes_mat
+
+    ! \Int_{s_ele} N_iN_j n ds, used for CDG fluxes
+    real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: &
+         & normal_mat
+
+    ! \Int_{s_ele} N_iN_j kappa.n ds, used for CDG fluxes
+    ! Note that this assumes same order polys in each element
+    ! Code will need reorganising for p-refinement
+    real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)) :: &
+         & kappa_normal_mat
 
     ! Face objects and numberings.
     type(element_type), pointer :: u_shape, u_shape_2, p_shape, q_shape
@@ -1492,9 +1435,8 @@ contains
     real, dimension(face_loc(U,face),face_loc(U,face_2)) :: nnAdvection_in
     real, dimension(1,mesh_dim(U), face_loc(P,face),face_loc(U,face)) :: mnCT
     
-    !Diffusion values on face (used for CDG and IP fluxes)
+    !Viscosity values on face (used for CDG and IP fluxes)
     real, dimension(:,:,:), allocatable :: kappa_gi
-    logical :: do_primal_fluxes
 
     ! surfacetension stuff
     real, dimension(u%dim, u%dim, face_ngi(u_nl, face)) :: tension_q
@@ -1512,18 +1454,7 @@ contains
     
     p0=(element_degree(u,ele)==0)
 
-    do_primal_fluxes = present(primal_fluxes_mat)
-    if(do_primal_fluxes.and..not.present(ele2grad_mat)) then
-       FLAbort('need ele2grad mat to compute primal fluxes')
-    end if
-    if(do_primal_fluxes.and..not.present(viscosity)) then
-       FLAbort('Need viscosity to compute primal fluxes')
-    end if
-    if(viscosity_scheme==IP.and..not.do_primal_fluxes) then
-       FLAbort('Primal fluxes needed for IP')
-    end if
-
-    if(do_primal_fluxes) then
+    if(present(viscosity)) then
        allocate( kappa_gi(Viscosity%dim, Viscosity%dim, &
             face_ngi(Viscosity,face)) )
        kappa_gi = face_val_at_quad(Viscosity, face)
@@ -1692,9 +1623,22 @@ contains
        case (BASSI_REBAY)
           call bassi_rebay_viscosity
        case (IP)
+          primal_fluxes_mat = 0.0
+          penalty_fluxes_mat = 0.0
           call primal_fluxes
           call interior_penalty
+          call local_assembly_ip_face
+       case (CDG)
+          primal_fluxes_mat = 0.0
+          penalty_fluxes_mat = 0.0
+          call primal_fluxes
+          if(.not.remove_penalty_fluxes) call interior_penalty
+          call get_normal_mat
+          call local_assembly_primal_face
+          call local_assembly_cdg_face
+          call local_assembly_ip_face
        end select
+
     end if
 
     if(have_surfacetension.and.integrate_surfacetension_by_parts) then
@@ -1702,6 +1646,7 @@ contains
       rhs_addto(:,u_face_l) = rhs_addto(:,u_face_l) + shape_tensor_dot_vector_rhs(u_shape, tension_q, normal, detwei)
     end if
     
+
     !----------------------------------------------------------------------
     ! Perform global assembly.
     !----------------------------------------------------------------------
@@ -1778,67 +1723,139 @@ contains
       end do
 
     end subroutine bassi_rebay_viscosity
-   
-    subroutine primal_fluxes
 
-      !! Ripped from Advection_Diffusion_DG.F90 == cjc
+    subroutine get_normal_mat
+      !!< We assemble
+      !!< \int_e N_i N_j n dS
+      !!< where n is the normal
+      !!< indices are (dim1, loc1, loc2)
 
-      !! We assemble 
+      integer :: d1,d2
 
-      !! -Int_e [u]{kappa grad v} + [v]{kappa grad u}
+      normal_mat = shape_shape_vector(U_shape,U_shape,detwei,normal)
+      
+      !!< We assemble
+      !!< \int_e N_i N_j kappa.n dS
+      !!< where n is the normal
+      !!< indices are (dim1, loc1, loc2)
 
-      !! = -Int_e 1/2(u^+n^+ + u^-n^-).(kappa^+ grad v^+ + kappa^- grad v^-)
-      !!  -Int_e 1/2(v^+n^+ + v^-n^-).(kappa^+ grad u^+ + kappa^- grad u^-)
+      kappa_normal_mat = 0
+      do d1 = 1, mesh_dim(U)
+         do d2 = 1, mesh_dim(U)
+            kappa_normal_mat(d1,:,:) = kappa_normal_mat(d1,:,:) + &
+                 & shape_shape(U_shape,U_shape,detwei* &
+                 & kappa_gi(d1,d2,:)*normal(d2,:))
+         end do
+      end do
 
-      !! Where + is the ele side, and - is the ele_2 side, and e is the edge
+    end subroutine get_normal_mat
 
-      !!Computing grad u (and v) requires a element transform to physical
-      !!so we only assemble the + parts here, and the minus parts of the grad
-      !!will be assembled when we visit that element 
+     subroutine primal_fluxes
 
-      !!So we assemble
+      !!< Notes for primal fluxes which are present in the interior penalty
+      !!< and CDG methods (and, I believe, the LDG method when written in
+      !! primal form)
 
-      !!  -Int_e 1/2 (u^+ - u^-)n^+.kappa^+ grad v^+
-      !! -Int_e 1/2 (v^+ - v^-)n^+.kappa^+ grad u^+
+      !!< We assemble 
 
-      !!Actually we won't even do that, we'll just assemble the second
-      !!line, and apply the transpose operator
+      !!< -Int_e [u]{kappa grad v} + [v]{kappa grad u}
 
-      !!Note that grad v is obtained in element ele from ele2grad_mat
+      !!< = -Int_e 1/2(u^+n^+ + u^-n^-).(kappa^+ grad v^+ + kappa^- grad v^-)
+      !!<  -Int_e 1/2(v^+n^+ + v^-n^-).(kappa^+ grad u^+ + kappa^- grad u^-)
 
-      !!On the (Dirichlet) boundary we are assembling 
+      !!< Where + is the ele side, and - is the ele_2 side, and e is the edge
 
-      !! -Int_e (v n. kappa grad u + u n. kappa grad v)
+      !!<Computing grad u (and v) requires a element transform to physical
+      !!<so we only assemble the + parts here, and the minus parts of the grad
+      !!<will be assembled when we visit that element 
 
-      !! In practise we'll assemble it everywhere and only 
-      !! add it on if we have a Dirichlet boundary
+      !!<So we assemble
 
-      !! primal_fluxes_mat(1,:,:) maps from ele degrees of freedom
-      !!                                 to internal face dof
-      !! primal_fluxes_mat(2,:,:) maps from ele degrees of freedom
-      !!                                 to external face dof
-      !!                                 or face boundary conditions
+      !!<  -Int_e 1/2 (u^+ - u^-)n^+.kappa^+ grad v^+
+      !!< -Int_e 1/2 (v^+ - v^-)n^+.kappa^+ grad u^+
+
+      !!<Actually we won't even do that, we'll just assemble the second
+      !!<line, and apply the transpose operator
+
+      !!<Note that grad v is obtained in element ele from ele2grad_mat
+
+      !!<On the (Dirichlet) boundary we are assembling 
+
+      !!< -Int_e (v n. kappa grad u + u n. kappa grad v)
+
+      !!< In practise we'll assemble it everywhere and only 
+      !!< add it on if we have a Dirichlet boundary
+
+      !!< primal_fluxes_mat(1,:,:) maps from ele degrees of freedom
+      !!<                                 to internal face dof
+      !!< primal_fluxes_mat(2,:,:) maps from ele degrees of freedom
+      !!<                                 to external face dof
+      !!<                                 or face boundary conditions
+
+      !!< For the extra CDG term, we assemble 
+
+      !!< -Int_e (C_{12}.[u][kappa grad v] + C_{12}.[v][kappa grad u]
+
+      !!<=-Int C_{12}.(u^+n^+ + u^-n^-)((kappa^+ grad v^+).n^+ +(kappa^- grad v^-).n^-)
+      !!<=-Int C_{12}.(v^+n^+ + v^-n^-)((kappa^+ grad u^+).n^+ +(kappa^- grad u^-).n^-)
+      !!< Where + is the ele side, and - is the ele_2 side, and e is the
+      !! edge
+
+      !!< C_{12} = either (1/2)n^+ or (1/2)n^-
+      !!< Take (1/2)n^+ if switch_g . n^+>
+
+      !!<Computing grad u (and v) requires a element transform to physical
+      !!<so we only assemble the + parts here, and the minus parts of the grad
+      !!<will be assembled when we visit that element 
+
+      !!<So we assemble
+
+      !!< - or + Int_e 1/2 (u^+ - u^-) (kappa^+ grad v^+).n^+
+      !!< - or + Int_e 1/2 (v^+ - v^-) (kappa^+ grad u^+).n^+
+
+      !! Compare with the primal flux term
+
+      !!<  -Int_e 1/2 (u^+ - u^-)n^+.kappa^+ grad v^+
+      !!< -Int_e 1/2 (v^+ - v^-)n^+.kappa^+ grad u^+
+
+      !!< where we take the minus if switch_g.n^+>0 and plus otherwise
+
+      !!< Note that this means that it cancels the primal term if 
+      !!<switch_g.n^+<0 and doubles it otherwise
 
       integer :: d1, d2
+      real :: flux_factor
+
+      if(viscosity_scheme==CDG) then
+         flux_factor = 0.0
+         CDG_switch_in = (sum(switch_g*sum(normal,2)/size(normal,2))>0)
+         if(CDG_switch_in) flux_factor = 1.0
+      else
+         flux_factor = 0.5
+         CDG_switch_in = .true.
+      end if
 
       do d1 = 1, mesh_dim(U)
          do d2 = 1, mesh_dim(U)
+            !  -Int_e 1/2 (u^+ - u^-)n^+.kappa^+ grad v^+
             if(.not.boundary) then
                ! Internal face.
-               primal_fluxes_mat(1,:,:) =&
-                    primal_fluxes_mat(1,:,:)&
-                    -0.5*matmul( &
-                    shape_shape(u_shape,u_shape, &
-                    & detwei * normal(d1,:) * kappa_gi(d1,d2,:)), &
-                    ele2grad_mat(d2,U_face_l,:))
-
-               ! External face.
-               primal_fluxes_mat(2,:,:) =&
-                    primal_fluxes_mat(2,:,:)&
-                    +0.5*matmul( &
-                    shape_shape(u_shape,u_shape, &
-                    & detwei * normal(d1,:) * kappa_gi(d1,d2,:)), &
-                    ele2grad_mat(d2,U_face_l,:))
+               if(CDG_switch_in) then
+                  primal_fluxes_mat(1,:,:) =&
+                       primal_fluxes_mat(1,:,:)&
+                       -flux_factor*matmul( &
+                       shape_shape(U_shape,U_shape, &
+                       & detwei * normal(d1,:) * kappa_gi(d1,d2,:)), &
+                       ele2grad_mat(d2,U_face_l,:))
+                  
+                  ! External face.
+                  primal_fluxes_mat(2,:,:) =&
+                       primal_fluxes_mat(2,:,:)&
+                       +flux_factor*matmul( &
+                       shape_shape(U_shape,U_shape, &
+                       & detwei * normal(d1,:) * kappa_gi(d1,d2,:)), &
+                       ele2grad_mat(d2,U_face_l,:))
+               end if
             else
                !If a Dirichlet boundary, we add these terms, otherwise not.
                      
@@ -1846,23 +1863,23 @@ contains
                primal_fluxes_mat(1,:,:) =&
                     primal_fluxes_mat(1,:,:)&
                     -matmul( &
-                    shape_shape(u_shape,u_shape, &
+                    shape_shape(U_shape,U_shape, &
                     & detwei * normal(d1,:) * kappa_gi(d1,d2,:)), &
-                    ele2grad_mat(d2,u_face_l,:))
+                    ele2grad_mat(d2,U_face_l,:))
                
                !There is also a corresponding boundary condition integral
                !on the RHS
                primal_fluxes_mat(2,:,:) =&
                     primal_fluxes_mat(2,:,:)&
                     +matmul( &
-                    shape_shape(u_shape,u_shape, &
+                    shape_shape(U_shape,U_shape, &
                     & detwei * normal(d1,:) * kappa_gi(d1,d2,:)), &
-                    ele2grad_mat(d2,u_face_l,:))
+                    ele2grad_mat(d2,U_face_l,:))
             end if
          end do
       end do
 
-    end subroutine primal_fluxes
+    end subroutine primal_fluxes  
 
     subroutine interior_penalty
 
@@ -1920,8 +1937,12 @@ contains
          if(mesh_dim(U)==3) h0 = sqrt(h0) 
       end if
 
-      C_h = Interior_Penalty_Parameter*h0**edge_length_power
-
+      if(cdg_penalty) then
+         C_h = Interior_Penalty_Parameter
+      else
+         C_h = Interior_Penalty_Parameter*(h0**edge_length_power)
+      end if
+ 
       !If a dirichlet boundary then we add these terms, otherwise not
 
       penalty_fluxes_mat(1,:,:) =&
@@ -1935,6 +1956,314 @@ contains
       C_h*shape_shape(U_shape,U_shape,detwei*kappa_n)
 
     end subroutine interior_penalty
+
+    subroutine local_assembly_ip_face
+      implicit none
+
+      integer :: d
+      integer :: nfele, nele
+      integer, dimension(face_loc(U,face)) :: U_face_loc
+
+      nfele = face_loc(U,face)
+      nele = ele_loc(U,ele)
+      u_face_loc=face_local_nodes(U, face)
+
+
+      if (boundary) then
+         do d=1,U%dim
+            if(dirichlet(dim)) then
+               !!These terms are not included on Neumann integrals
+
+               !! Internal Degrees of Freedom
+               
+               !penalty flux
+               
+               Viscosity_mat(d,u_face_loc,u_face_loc) = &
+                    Viscosity_mat(d,u_face_loc,u_face_loc) + &
+                    penalty_fluxes_mat(1,:,:)
+
+               !! External Degrees of Freedom
+               
+               !!penalty fluxes
+
+               Viscosity_mat(d,u_face_loc,start:finish) = &
+                    Viscosity_mat(d,u_face_loc,start:finish) + &
+                    penalty_fluxes_mat(2,:,:)
+               
+            end if
+         end do
+      else
+         do d=1,U%dim
+            !! Internal Degrees of Freedom
+            
+            !penalty flux
+            
+            Viscosity_mat(d,u_face_loc,u_face_loc) = &
+                 Viscosity_mat(d,u_face_loc,u_face_loc) + &
+                 penalty_fluxes_mat(1,:,:)
+            
+            !! External Degrees of Freedom
+            
+            !!penalty fluxes
+            
+            Viscosity_mat(d,u_face_loc,start:finish) = &
+                 Viscosity_mat(d,u_face_loc,start:finish) + &
+                 penalty_fluxes_mat(2,:,:)
+
+         end do
+      end if
+
+    end subroutine local_assembly_ip_face
+
+    subroutine local_assembly_primal_face
+      implicit none
+
+      integer :: j,d
+      integer :: nele
+      integer, dimension(face_loc(U,face)) :: U_face_loc
+
+      nele = ele_loc(U,ele)
+      u_face_loc=face_local_nodes(U, face)
+
+
+      if (boundary) then
+         if(dirichlet(dim)) then
+            do d=1,U%dim
+               !!These terms are not included on Neumann integrals
+               
+               !! Internal Degrees of Freedom
+
+               !primal fluxes
+               
+               Viscosity_mat(d,u_face_loc,1:nele) = &
+                    Viscosity_mat(d,u_face_loc,1:nele) + &
+                    primal_fluxes_mat(1,:,:)
+               
+               do j = 1, size(u_face_loc)
+                  Viscosity_mat(d,1:nele,u_face_loc(j)) = &
+                       Viscosity_mat(d,1:nele,u_face_loc(j)) + &
+                       primal_fluxes_mat(1,j,:) 
+               end do
+
+               !primal fluxes
+
+               Viscosity_mat(d,1:nele,start:finish) = &
+                    Viscosity_mat(d,1:nele,start:finish) + &
+                    transpose(primal_fluxes_mat(2,:,:)) 
+               
+            end do
+         end if
+      else
+         do d=1,U%dim
+            !! Internal Degrees of Freedom
+            
+            !primal fluxes
+            
+            Viscosity_mat(d,u_face_loc,1:nele) = &
+                 Viscosity_mat(d,u_face_loc,1:nele) + &
+                 primal_fluxes_mat(1,:,:)
+            
+            do j = 1, size(u_face_loc)
+               Viscosity_mat(d,1:nele,u_face_loc(j)) = &
+                    Viscosity_mat(d,1:nele,u_face_loc(j)) + &
+                    primal_fluxes_mat(1,j,:) 
+            end do
+            
+            !! External Degrees of Freedom
+            
+            !primal fluxes
+            
+            Viscosity_mat(d,start:finish,1:nele) = &
+              Viscosity_mat(d,start:finish,1:nele) + &
+              primal_fluxes_mat(2,:,:)
+            
+            Viscosity_mat(d,1:nele,start:finish) = &
+                 Viscosity_mat(d,1:nele,start:finish) + &
+                 transpose(primal_fluxes_mat(2,:,:))
+            
+         end do
+      end if
+      
+    end subroutine local_assembly_primal_face
+
+    subroutine local_assembly_cdg_face
+      implicit none
+      !!< This code assembles the cdg fluxes involving the r_e and l_e lifting
+      !!< operators.
+
+      !!< We assemble the operator
+      !!< \int (r^e([v]) + l^e(C_{12}.[v]) + r^e_D(v).\kappa.
+      !!< (r^e([u]) + l^e(C_{12}.[u]) + r^e_D(u))dV (*)
+      !!< This is done by forming the operator R:
+      !!< \int v R(u)dV  = \int v (r^e([u]) + l^e(C_{12}.[u]) + r^e_D(u)) dV
+      !!< and then constructing
+      !!< \int R(v).\kappa.R(u) dV
+
+      !!< The lifting operator r^e is defined by
+      !!< \int_E \tau . r^e([u]) dV = - \int_e {\tau}.[u] dS
+      !!< = -\frac{1}{2} \int_e {\tau^+ + \tau^-}.(u^+n^+ + u^-n^-) dS
+      !!< = -\frac{1}{2} \int_e {\tau^+ + \tau^-}.n^+(u^+ - u^-) dS
+
+      !!< Where + is the ele side, and - is the ele_2 side, and e is the edge
+
+      !!< The lifting operator l^e is defined by
+      !!< \int_E \tau . l^e(C_{12}.[u])dV = - \int_e C_{12}.[u][\tau] dS
+      !!< = -\int C_{12}.(u^+n^+ + u^-n^-)(\tau^+.n^+ +\tau^-n^-) dS
+
+      !!< C_{12} = either (1/2)n^+ or (1/2)n^-
+      !!< Take (1/2)n^+ if switch_g . n^+> 0
+
+      !!becomes
+      !!< = \int_e (- or +)(u^+ - u^-)n^+.(\tau^+ - \tau^-) dS
+      !!< with minus sign if switch_g  n^+ > 0
+
+      !!< So adding r^e and l^e gives
+
+      !!< = -\frac{1}{2} \int_e {\tau^+ + \tau^-}.n^+(u^+ - u^-) dS
+      !!<     + \int_e (- or +)(u^+ - u^-)n^+.(\tau^+ - \tau^-) dS
+
+      !!< = -\int_e \tau^+.n^+(u^+ - u^-) dS if switch_g n^+ > 0
+      !!< = -\int_e \tau^-.n^+(u^+ - u^-) dS otherwise
+
+      !!< so definition of r^e+l^e operator is
+      !!< \int_E \tau.R(u) dV = -\int_e \tau^+.n^+(u^+ - u^-) dS if switch > 0
+      !!< \int_E \tau.R(u) dV = -\int_e \tau^-.n^+(u^+ - u^-) dS if switch < 0
+
+      !!< we are doing DG so the basis functions which are non-zero in E are
+      !!< zero outside E, so \tau^- vanishes in this formula, so we get
+      !!< \int_E \tau.R(u) dV = -\int_e \tau.n^+(u^+ - u^-) dS if switch > 0
+      !!< and R(u) = 0 otherwise.
+
+      !!< finally the boundary lifting operator r^e_D
+      !!< \int_E \tau.r^e_D(u) dV =  -\int_e u\tau.n dS
+
+      !!< We assemble the binary form (*) locally with
+      !!< B(u,v) = p^TR^T.K.Rq, where p is the vector of coefficients of u in
+      !!< element E plus the coefficients of u on the face e on the other side
+      !!< K is the matrix obtained from the bilinear form
+      !!< \int_E N_i \kappa N_j dV where \kappa is the viscosity tensor and
+      !! N_i are the basis functions with support in element E
+
+      !!< The matrix R maps from the coefficients of a scalar field  on both sides of face e
+      !!< to the coefficients of a vector field with inside element E
+      !!< i.e. size (dim x loc(E),2 x loc(e))
+      !!< because of symmetry we just store (dim x loc(E), loc(e)) values
+      !!< The matrix K maps from vector fields inside element E to vector
+      !!< fields inside element E
+      !!< i.e. size (dim x loc(E), dim x loc(E))
+      !!< Hence, R^TKR maps from the coefficients of a scalar field on both
+      !!< sides of face e to themselves
+      !!< i.e. size (2 x loc(E), 2 x 
+      !!< It can be thus interpreted as a fancy penalty term for
+      !!< discontinuities, a useful one because it is scale invariant
+
+      !!< The matrix R can be formed by constructing the bilinear form matrix
+      !!< for r^e, l^e and r^e_D, and then dividing by the elemental mass
+      !!<  matrix on E
+
+      !!< we place R^TKR into Viscosity_mat which maps from u
+      !!< coefficients in element E plus those on the other side of face e
+      !!< to themselves, hence it has size (loc(E) + loc(e), loc(E) + loc(e))
+
+      !!< R^TKR is stored in add_mat which has size(2 x loc(e), 2 x loc(e))
+
+      !!< we are using a few other pre-assembled local matrices
+      !!< normal_mat is \int_e \tau.(un) dS (has size (dim x loc(e),loc(e))
+      !!< normal_kappa_mat is \int_e \tau.\kappa.(un) dS
+      !!< has size (dim x loc(e), loc(e))
+      !!< inverse_mass_mat is the inverse mass in E
+
+      integer :: i,j,d1,d2,nele,face1,face2,d
+      integer, dimension(face_loc(U,face)) :: U_face_loc    
+      real, dimension(mesh_dim(U),ele_loc(U,ele),face_loc(U,face)) :: R_mat
+      real, dimension(2,2,face_loc(U,face),face_loc(U,face)) :: add_mat
+
+      nele = ele_loc(U,ele)
+      u_face_loc=face_local_nodes(U, face)
+
+      R_mat = 0.
+      do d1 = 1, mesh_dim(U)
+         do i = 1, ele_loc(U,ele)
+            do j = 1, face_loc(U,face)
+               R_mat(d1,i,j) = &
+                    &sum(inverse_mass_mat(i,u_face_loc)*normal_mat(d1,:,j))
+            end do
+         end do
+      end do
+
+      do d=1,U%dim
+
+         add_mat = 0.0
+         if(boundary) then
+            if (dirichlet(dim)) then
+               !Boundary case
+               ! R(/tau,u) = -\int_e \tau.n u  dS
+               !do d1 = 1, mesh_dim(U)
+               !   do d2 = 1, mesh_dim(U)
+               !      add_mat(1,1,:,:) = add_mat(1,1,:,:) + &
+               !           matmul(transpose(R_mat(d1,:,:)), &
+               !           &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
+               !      add_mat(2,2,:,:) = add_mat(2,2,:,:) + &
+               !           matmul(transpose(R_mat(d1,:,:)), &
+               !           &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
+               !   end do
+               !end do
+               
+               do face1 = 1, 2
+                  do face2 = 1, 2
+                     do d1 = 1, mesh_dim(U)
+                        do d2 = 1, mesh_dim(U)
+                           add_mat(face1,face2,:,:) = add_mat(face1,face2,:,:) + &
+                                &(-1.)**(face1+face2)*matmul(transpose(R_mat(d1,:,:)), &
+                                &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
+                        end do
+                     end do
+                  end do
+               end do
+               
+            end if
+         else if(CDG_switch_in) then
+            ! interior case
+            ! R(\tau,u) = -\int_e \tau.n^+(u^+ - u^-) dS
+            do face1 = 1, 2
+               do face2 = 1, 2
+                  do d1 = 1, mesh_dim(U)
+                     do d2 = 1, mesh_dim(U)
+                        add_mat(face1,face2,:,:) = add_mat(face1,face2,:,:) + &
+                             &(-1.)**(face1+face2)*matmul(transpose(R_mat(d1,:,:)), &
+                             &matmul(kappa_mat(d1,d2,:,:),R_mat(d2,:,:)))
+                     end do
+                  end do
+               end do
+            end do
+         end if
+
+         !face1 = 1, face2 = 1
+         
+         Viscosity_mat(d,u_face_loc,u_face_loc) = &
+              &Viscosity_mat(d,u_face_loc,u_face_loc) + &
+              &add_mat(1,1,:,:)
+         
+         !face1 = 1, face2 = 2
+         
+         Viscosity_mat(d,u_face_loc,start:finish) = &
+              &Viscosity_mat(d,u_face_loc,start:finish) + &
+              &add_mat(1,2,:,:)
+         
+         !face1 = 2, face2 = 1
+         
+         Viscosity_mat(d,start:finish,u_face_loc) = &
+              Viscosity_mat(d,start:finish,u_face_loc) + &
+              &add_mat(2,1,:,:)
+         
+         !face1 = 2, face2 = 2
+         
+         Viscosity_mat(d,start:finish,start:finish) = &
+              &Viscosity_mat(d,start:finish,start:finish) + &
+              &add_mat(2,2,:,:)
+      end do
+
+    end subroutine local_assembly_cdg_face
 
   end subroutine construct_momentum_interface_dg
     

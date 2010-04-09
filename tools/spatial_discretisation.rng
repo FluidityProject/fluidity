@@ -159,43 +159,6 @@ scaled by C_0</a:documentation>
                     <ref name="real"/>
                   </element>
                 </optional>
-                <optional>
-                  <element name="debug">
-                    <a:documentation>Switch on debugging output</a:documentation>
-                    <element name="gradient_test_bound">
-                      <a:documentation>Bound for testing element gradient matrix</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <optional>
-                      <element name="remove_element_integral">
-                        <a:documentation>Remove the elemental integral:
-Int grad u.kappa.grad v dV</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="remove_primal_fluxes">
-                        <a:documentation>Remove the primal fluxes</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="remove_cdg_fluxes">
-                        <a:documentation>Remove the CDG fluxes</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="edge_length_power">
-                        <a:documentation>When present, the penalty term
-Int [u][v] dS on element boundaries is
-scaled by C = C_0 h**p This option
-specifies p.</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
               </element>
               <element name="arbitrary_upwind">
                 <a:documentation>Scheme in which upwinding is applied in

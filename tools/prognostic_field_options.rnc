@@ -416,6 +416,16 @@ prognostic_velocity_field =
                }?,
                element viscosity_scheme {
                   (
+                     ## Compact discontinuous Galerkin scheme.
+                     ## (Peraire and Persson SIAM J. Sci. Comput. 30, p1806)
+                     element compact_discontinuous_galerkin {
+                        ## Penalty_parameter
+                        ## Add penalty term Int [u][v] dS on element boundaries
+                        ## scaled by C_0
+                        element penalty_parameter {
+                           real
+                        }?
+                     }|
                      ## Classical scheme from Bassi and Rebay 
                      ## (JCP 131 267-179 1997)
                      element bassi_rebay {

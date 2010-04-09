@@ -170,7 +170,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin replaces="DISOPT">
             <viscosity_scheme>
-              <bassi_rebay/>
+              <compact_discontinuous_galerkin/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

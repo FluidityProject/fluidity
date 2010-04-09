@@ -512,6 +512,18 @@ a discontinuous velocity field for this to work!</a:documentation>
           </optional>
           <element name="viscosity_scheme">
             <choice>
+              <element name="compact_discontinuous_galerkin">
+                <a:documentation>Compact discontinuous Galerkin scheme.
+(Peraire and Persson SIAM J. Sci. Comput. 30, p1806)</a:documentation>
+                <optional>
+                  <element name="penalty_parameter">
+                    <a:documentation>Penalty_parameter
+Add penalty term Int [u][v] dS on element boundaries
+scaled by C_0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </optional>
+              </element>
               <element name="bassi_rebay">
                 <a:documentation>Classical scheme from Bassi and Rebay 
 (JCP 131 267-179 1997)</a:documentation>

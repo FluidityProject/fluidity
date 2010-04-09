@@ -140,33 +140,6 @@ spatial_discretisation_options =
                      ## scaled by C_0
                      element penalty_parameter {
                         real
-                     }?,
-                     ## Switch on debugging output
-                     element debug {
-                        ## Bound for testing element gradient matrix
-                        element gradient_test_bound {
-                           real
-                        },
-                        ## Remove the elemental integral:
-                        ## Int grad u.kappa.grad v dV
-                        element remove_element_integral {
-                           empty
-                        }?,
-                        ## Remove the primal fluxes
-                        element remove_primal_fluxes {
-                           empty
-                        }?,
-                        ## Remove the CDG fluxes
-                        element remove_cdg_fluxes {
-                           empty
-                        }?,
-                        ## When present, the penalty term
-                        ## Int [u][v] dS on element boundaries is
-                        ## scaled by C = C_0 h**p This option
-                        ## specifies p.
-                        element edge_length_power {
-                           real
-                        }?
                      }?
                   }|
                   ## Scheme in which upwinding is applied in
