@@ -2908,6 +2908,8 @@ contains
     character(len = OPTION_PATH_LEN) :: mat_phase_path, path, &
       & geostrophic_pressure_option
     integer :: i, j, reference_node, stat
+
+    character(len = OPTION_PATH_LEN) :: aux_p_name, p_mesh_name
     
     if(option_count("/material_phase/scalar_field::" // gp_name) > 0) then
       ewrite(2, *) "Checking GeostrophicPressure options"
@@ -2946,6 +2948,59 @@ contains
       ewrite(2, *) "Finished checking GeostrophicPressure options"
     else if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
       FLExit("BalancePressure has been removed - switch to GeostrophicPressure")
+    end if
+
+    if(have_option("/material_phase/vector_field/prescribed/geostrophic_interpolation") .or. & 
+      & have_option("/material_phase/vector_field/diagnostic/geostrophic_interpolation") .or. &
+      & have_option("/material_phase/vector_field/prognostic/geostrophic_interpolation")) then
+      ewrite(2, *) "Checking geostrophic interpolation options"
+      
+      do i = 0, option_count("/material_phase") - 1
+        mat_phase_path = "/material_phase[" // int2str(i) // "]"      
+        do j = 0, option_count(trim(mat_phase_path) // "/vector_field") - 1
+          path = "/material_phase[" // int2str(i) // "]/vector_field[" // int2str(j) // "]"
+          call get_option(trim(path) // "/name", field_name)
+          path = complete_field_path(path, stat = stat)
+          
+          if(have_option(trim(path) // "/geostrophic_interpolation")) then
+            call get_option(trim(path) // "/geostrophic_interpolation/conservative_potential/mesh/name", p_mesh_name)
+            if(option_count("/geometry/mesh::" // trim(p_mesh_name)) == 0) then
+              ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+              FLExit("Conservative potential mesh " // trim(p_mesh_name) // " is not defined")
+            end if
+          
+            if(have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/project_pressure")) then
+              call get_option(trim(path) // "/geostrophic_interpolation/conservative_potential/project_pressure/name", aux_p_name)
+              if(have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // trim(aux_p_name))) // "/no_interpolation")) then
+                ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+                ewrite(-1, *) "Pressure field: " // trim(aux_p_name)
+                FLExit("project_pressure selected for geostrophic_interpolation, but pressure field has interpolation disabled")
+              end if
+            end if
+            
+            if(have_option(trim(path) // "/geostrophic_interpolation/geopressure")) then
+              call get_option(trim(path) // "/geostrophic_interpolation/geopressure/mesh/name", p_mesh_name)
+              if(option_count("/geometry/mesh::" // trim(p_mesh_name)) == 0) then
+                ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+                FLExit("Geopressure mesh " // trim(p_mesh_name) // " is not defined")
+              end if
+            
+              call get_option(trim(path) // "/geostrophic_interpolation/geopressure/reference_node", reference_node, stat = stat)
+              if(stat /= SPUD_NO_ERROR) then
+                if(.not. have_option(trim(path) // "/geostrophic_interpolation/geopressure/solver/remove_null_space")) then
+                  ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+                  FLExit("Geopressure requires either a reference node or null space removal in the solver")
+                end if
+              else if(reference_node <= 0) then
+                ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+                FLExit("Geopressure reference node must be positive")
+              end if
+            end if
+          end if
+        end do
+      end do
+
+      ewrite(2, *) "Finished checking geostrophic interpolation options"
     end if
   
   end subroutine geostrophic_pressure_check_options
