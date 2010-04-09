@@ -463,8 +463,6 @@ contains
           limiter=LIMITER_MINIMAL
        case("FPN")
           limiter=LIMITER_FPN
-       case("Vertex_Based")
-          limiter=LIMITER_VB
        case default
           FLAbort('No such limiter')
        end select
@@ -883,7 +881,7 @@ contains
          & ele_loc(T,ele),ele_loc(T,ele)) :: kappa_mat
 
     ! \Int_{s_ele} N_iN_j n ds, used for CDG fluxes
-    real, dimension(mesh_dim(T),face_loc(T,1),face_loc(T,1)) :: &
+    real, dimension(mesh_dim(T),ele_loc(T,ele),ele_loc(T,ele)) :: &
          & normal_mat
     ! \Int_{s_ele} N_iN_j kappa.n ds, used for CDG fluxes
     ! Note that this assumes same order polys in each element
