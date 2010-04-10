@@ -204,7 +204,7 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <from_file file_name="src/balanced_1.vtu">
+          <from_file file_name="src/balanced_0.vtu">
             <format name="vtu">
               <field_name>
                 <string_value lines="1">Bal</string_value>
