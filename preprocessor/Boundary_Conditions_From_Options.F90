@@ -50,7 +50,8 @@ implicit none
   private
   public populate_boundary_conditions, set_boundary_conditions_values, &
        apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node
-  public :: populate_vector_boundary_conditions
+  public :: populate_scalar_boundary_conditions, &
+    & populate_vector_boundary_conditions
 
   interface apply_dirichlet_conditions_inverse_mass
      module procedure apply_dirichlet_conditions_inverse_mass_vector, &
@@ -1776,7 +1777,6 @@ contains
     !type(mesh_type)                   :: input_mesh
     type(mesh_type)                   :: keps_surface_mesh
     type(mesh_type), pointer          :: input_mesh, surface_mesh
-    character(len=FIELD_NAME_LEN)     :: input_mesh_name
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(2)             :: shape_option
     integer                           :: stat

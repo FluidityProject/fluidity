@@ -2306,9 +2306,14 @@ contains
       new_gp_mesh => extract_mesh(new_state, gp_mesh_name)
 
       call allocate(old_gp, old_gp_mesh, gi_gp_conservative_potential_name)
-      ! Use the Pressure field as an initial guess for the conservative
-      ! potential
-      call remap_field(old_aux_p, old_gp)
+      if(aux_p) then
+        ! Use the Pressure field as an initial guess for the conservative
+        ! potential
+        call remap_field(old_aux_p, old_gp)
+      else
+        ! Use zero guess for the conservative potential
+        call zero(old_gp)
+      end if
       old_gp%option_path = trim(base_path) // "/geopressure"
 
       call geopressure_decomposition(old_state, coriolis, old_gp)
@@ -2582,19 +2587,29 @@ contains
     assert(any(dim == (/2, 3/)))
 
     new_p = extract_interpolated_scalar(new_state, gi_conservative_potential_name)
+    ! Make sure strong Dirichlet bcs are applied
+    call set_dirichlet_consistent(new_p)
     new_res = extract_interpolated_vector(new_state, gi_res_name)  
     if(dim == 3) then
       new_w = extract_interpolated_scalar(new_state, gi_w_name)
     end if
-    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")    
+    
+    aux_p = have_option(trim(base_path) // "/conservative_potential/project_pressure")   
     if(aux_p) then
       call get_option(trim(base_path) // "/conservative_potential/project_pressure/name", aux_p_name)
       new_aux_p => extract_scalar_field(new_state, aux_p_name)
+      ! Make sure strong Dirichlet bcs are applied
+      call set_dirichlet_consistent(new_aux_p)
+      ! Restore any pressure bcs
+      call clear_boundary_conditions(new_aux_p)
+      call populate_scalar_boundary_conditions(new_aux_p, trim(new_aux_p%option_path) // "/prognostic/boundary_conditions", new_positions)
     end if
+    
     gp = have_option(trim(base_path) // "/geopressure")
     if(gp) then
       new_gp = extract_interpolated_scalar(new_state, gi_gp_conservative_potential_name)
     end if    
+    
     decompose_p = have_option(trim(base_path) // "/conservative_potential/decompose")
     if(decompose_p) then
       new_p_decomp = extract_interpolated_scalar(new_state, gi_conservative_potential_name // gi_p_decomp_postfix)
