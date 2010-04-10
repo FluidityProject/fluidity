@@ -5,6 +5,7 @@ include "../tools/mesh_options.rnc"
 include "../tools/input_output.rnc"
 include "../tools/prognostic_field_options.rnc"
 include "../tools/prescribed_field_options.rnc"
+include "../tools/diagnostic_algorithms.rnc"
 include "../tools/spatial_discretisation.rnc"
 include "../tools/temporal_discretisation.rnc"
 include "../tools/stabilisation.rnc"
@@ -73,6 +74,11 @@ start =
                ## interpolated for VTK output.
                element output_mesh {
                   attribute name { "StreamfunctionMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
+                  attribute name { "VelocityMesh" }
                }|
                ## The mesh on to which all the fields will be
                ## interpolated for VTK output.
@@ -150,7 +156,19 @@ start =
                      prescribed_scalar_field
                   }
                )
-            }
+            },
+            element vector_field {
+               attribute rank { "0" },
+               attribute name { "BackgroundVelocity" },
+               ## Field type
+                  element prescribed {
+                     element mesh {
+                        attribute name { "VelocityMesh" }
+                     },
+                     prescribed_values_vector_field
+                  }
+
+            }?
          },
          mesh_adaptivity_options?
       }
@@ -233,6 +251,19 @@ prognostic_buoyancy_field =
          element prescribed {
             prescribed_values_dim_minus_one_tensor_field
          }
+      }?,
+      ## source term
+      element scalar_field {
+         attribute name { "Source" },
+         attribute rank { "0" },
+         (
+            element diagnostic {
+               element mesh {
+                  attribute name { "VelocityMesh" }
+               },
+               scalar_python_diagnostic_algorithm
+            }
+         )
       }?
    )
 

@@ -7,6 +7,7 @@
   <include href="input_output.rng"/>
   <include href="prognostic_field_options.rng"/>
   <include href="prescribed_field_options.rng"/>
+  <include href="diagnostic_algorithms.rng"/>
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
   <include href="stabilisation.rng"/>
@@ -95,6 +96,13 @@ interpolated for VTK output.</a:documentation>
 interpolated for VTK output.</a:documentation>
             <attribute name="name">
               <value>StreamfunctionMesh</value>
+            </attribute>
+          </element>
+          <element name="output_mesh">
+            <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+            <attribute name="name">
+              <value>VelocityMesh</value>
             </attribute>
           </element>
           <element name="output_mesh">
@@ -192,6 +200,25 @@ then this is the initial time step size.</a:documentation>
             </element>
           </choice>
         </element>
+        <optional>
+          <element name="vector_field">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>BackgroundVelocity</value>
+            </attribute>
+            <element name="prescribed">
+              <a:documentation>Field type</a:documentation>
+              <element name="mesh">
+                <attribute name="name">
+                  <value>VelocityMesh</value>
+                </attribute>
+              </element>
+              <ref name="prescribed_values_vector_field"/>
+            </element>
+          </element>
+        </optional>
       </element>
       <optional>
         <ref name="mesh_adaptivity_options"/>
@@ -298,6 +325,25 @@ then this is the initial time step size.</a:documentation>
         </attribute>
         <element name="prescribed">
           <ref name="prescribed_values_dim_minus_one_tensor_field"/>
+        </element>
+      </element>
+    </optional>
+    <optional>
+      <element name="scalar_field">
+        <a:documentation>source term</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <element name="diagnostic">
+          <element name="mesh">
+            <attribute name="name">
+              <value>VelocityMesh</value>
+            </attribute>
+          </element>
+          <ref name="scalar_python_diagnostic_algorithm"/>
         </element>
       </element>
     </optional>
