@@ -3,6 +3,7 @@ module pv_inversion
   use state_module
   use boundary_conditions_from_options
   use fields
+  use fields_base
   use fields_manipulation
   use SPUD
   use FLdebug
@@ -31,9 +32,11 @@ contains
     !! streamfunction
     type(scalar_field), pointer :: streamfunction
     !! velocity and coordinates
-    type(vector_field), pointer :: velocity, X
+    type(vector_field), pointer :: velocity, bg_velocity, X
+    !! component of background velocity
+    type(scalar_field) :: bg_comp
     !! element index
-    integer :: ele
+    integer :: ele, stat, i
 
     ! Get streamfunction, coordinate, velocity
     streamfunction => extract_scalar_field(state,'Streamfunction')
@@ -46,15 +49,22 @@ contains
     ! loop over elements
     element_loop: do ele = 1, element_count(streamfunction)
        ! construct velocity on this element
-       call streamfunction2velocity_ele(state,streamfunction,X,velocity,ele)
+       call streamfunction2velocity_ele(streamfunction, X, velocity, ele)
     end do element_loop
+
+    bg_velocity => extract_vector_field(state,'BackgroundVelocity', stat)
+    if(stat==0) then
+       do i=1,mesh_dim(X)-1
+          bg_comp = extract_scalar_field(bg_velocity, i, stat)
+          call addto(velocity, i, bg_comp)
+       end do
+    end if
 
   end subroutine streamfunction2velocity
 
-  subroutine streamfunction2velocity_ele(state,streamfunction,X,velocity,ele)
+  subroutine streamfunction2velocity_ele(streamfunction, X, &
+    velocity, ele)
     !!< Compute the velocity from the streamfunction for a single element
-    !! state variable
-    type(state_type), intent(in) :: state
     !! streamfunction to be converted to velocity
     type(scalar_field), intent(in) :: streamfunction
     !! velocity to be converted from streamfunction
@@ -76,7 +86,7 @@ contains
     ! node and shape pointers
     integer, dimension(:), pointer :: streamfunction_ele, v_ele
     type(element_type), pointer :: streamfunction_shape, v_shape
-    real, dimension(mesh_dim(velocity), &
+    real, dimension(velocity%dim, &
          ele_loc(velocity,ele)) :: V_loc
     real, dimension(ele_ngi(streamfunction,ele),mesh_dim(velocity)) :: &
          sfn_grad_quad
@@ -104,11 +114,23 @@ contains
     call invert(vmass_mat_loc)
     ! gradients of stream function
     sfn_grad_quad=ele_grad_at_quad(streamfunction, ele,dstreamfunction)
-    V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(:,2))
-    V_loc(1,:) = matmul(vmass_mat_loc,V_loc(1,:))
-    V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
-    V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
-    if(mesh_dim(velocity)==3) then
+    ! z-component of velocity is zero. If we're 3d then this is component 3.
+    ! If we're 2d, check for presence of N to see if we're (x,y) or (x,z)
+    if(velocity%dim==2) then
+       V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(:,2))
+       V_loc(1,:) = matmul(vmass_mat_loc,V_loc(1,:))
+       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
+       V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
+    else if(have_option("/physical_parameters/buoyancy_frequency")) then
+       V_loc(1,:) = 0.
+       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
+       V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
+       V_loc(3,:) = 0.
+    else
+       V_loc(1,:) = -shape_rhs(v_shape,detwei*sfn_grad_quad(:,2))
+       V_loc(1,:) = matmul(vmass_mat_loc,V_loc(1,:))
+       V_loc(2,:) =  shape_rhs(v_shape,detwei*sfn_grad_quad(:,1))
+       V_loc(2,:) = matmul(vmass_mat_loc,V_loc(2,:))
        V_loc(3,:) = 0.
     end if
     !adding velocity values into velocity field
@@ -151,7 +173,7 @@ contains
     call zero(streamfunction)
 
     ewrite(1,*) "Entering streamfunction solve"
-    call petsc_solve(streamfunction,streamfunction_mat,RHS)
+    call petsc_solve(streamfunction, streamfunction_mat, RHS)
 
     call deallocate(streamfunction_mat)
     call deallocate(streamfunction_sparsity)
@@ -186,7 +208,7 @@ contains
 
   end subroutine construct_streamfunction_qg
 
-  subroutine construct_streamfunction_qg_element(ele,streamfunction_mat, &
+  subroutine construct_streamfunction_qg_element(ele, streamfunction_mat, &
        RHS, PV, streamfunction, X, beta)
     !!< construct the matrix-vector equation for PV inversion for one element
     !! matrix for PV inversion equation
@@ -249,10 +271,16 @@ contains
     !lengthscales in operator
     lengthscale_mat_quad = 0.
     lengthscale_mat_quad(1,1,:) = 1.
-    lengthscale_mat_quad(2,2,:) = 1.
-    if(mesh_dim(streamfunction)==3) then
-       call get_option("/physical_parameters/buoyancy_frequency",N)
+    call get_option("/physical_parameters/buoyancy_frequency",N, stat)
+    ! If N present, check whether we're 2d x-z or 3d. If N not present then
+    ! we're 2d x-y
+    if(stat==0 .and. mesh_dim(streamfunction)==2) then
+       lengthscale_mat_quad(2,2,:) = f*f/N/N
+    else if(stat==0 .and. mesh_dim(streamfunction)==3) then
+       lengthscale_mat_quad(2,2,:) = 1.
        lengthscale_mat_quad(3,3,:) = f*f/N/N
+    else
+       lengthscale_mat_quad(2,2,:) = 1.
     end if
 
     streamfunction_mat_loc = dshape_tensor_dshape(dstreamfunction, &
@@ -282,34 +310,37 @@ contains
     type(vector_field), intent(in) :: positions
 
     type(scalar_field), pointer :: buoyancy
-    type(scalar_boundary_condition), pointer :: this_bc
     integer, dimension(:), pointer :: surface_element_list
     type(element_type), pointer:: streamfn_face_shape
     ! note that we assume all shapes to be the same in each element
     real, dimension(face_ngi(positions,1)) :: detwei_face
     real, dimension(face_loc(streamfunction,1)) :: bc_val
     real, dimension(face_loc(streamfunction,1), face_loc(streamfunction,1)) :: face_mat
+    real :: f
     integer, dimension(face_loc(streamfunction,1)) :: streamfn_face_nodes
-    integer :: ele, face, i
-    character(len=FIELD_NAME_LEN) :: bc_name
+    integer :: ele, face, i, stat
+    character(len=FIELD_NAME_LEN) :: bc_name, bc_type
 
-    ! If there are no boundary conditions, return.
-    if (get_boundary_condition_count(streamfunction)==0) return
+    ! If there are no buoyancy boundary conditions, return.
+    if (.not.(has_boundary_condition(streamfunction, "buoyancy"))) return
 
-    bcloop: do i=1,size(streamfunction%bc%boundary_condition) 
-       this_bc=>streamfunction%bc%boundary_condition(i)
+    call get_option("/physical_parameters/coriolis/f_plane/f",f, stat)
+    if(stat/=0) then
+       call get_option("/physical_parameters/coriolis/beta_plane/f_0",f)
+    end if
 
-       if (this_bc%type/="buoyancy") cycle bcloop
+    bcloop: do i=1, get_boundary_condition_count(streamfunction) 
 
-       bc_name=this_bc%name
+       ! Get bc info
+       call get_boundary_condition(streamfunction, i, name=bc_name,&
+            type=bc_type, surface_element_list=surface_element_list)
+
+       if (bc_type/="buoyancy") cycle bcloop
+
        ewrite(1,*) "applying buoyancy boundary condition: ", trim(bc_name)
 
        buoyancy=>extract_surface_field(streamfunction, bc_name, &
             "value")
-
-       ! Get list of surface elements on which to apply bc
-       call get_boundary_condition(streamfunction, bc_name,&
-            surface_element_list=surface_element_list)
 
        ! Loop over elements in surface mesh
        do ele=1, ele_count(buoyancy)
