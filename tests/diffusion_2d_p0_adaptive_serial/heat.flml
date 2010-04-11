@@ -53,7 +53,7 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period_in_timesteps>
-      <integer_value rank="0">1</integer_value>
+      <integer_value rank="0">10</integer_value>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>
@@ -66,7 +66,7 @@
       <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">1000.0</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters/>
@@ -156,11 +156,8 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">0</real_value>
-          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
@@ -264,7 +261,7 @@
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
-        <integer_value rank="0">2</integer_value>
+        <integer_value rank="0">1</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">5000</integer_value>
