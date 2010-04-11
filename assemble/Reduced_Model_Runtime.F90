@@ -398,9 +398,9 @@ contains
   end subroutine addto_pod_rhs_velocity
 
   subroutine addto_pod_rhs_pressure(POD_state,  pod_u, pod_rhs, j, value)
-    type(pod_rhs_type), intent(inout) :: pod_rhs
+    type(pod_rhs_type), intent(inout)          :: pod_rhs
     type(state_type), dimension(:), intent(in) :: POD_state
-    type(vector_field), pointer, intent(in) :: POD_u
+    type(vector_field), pointer                :: POD_u
 
     integer, intent(in) :: j 
     real :: value

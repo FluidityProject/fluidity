@@ -705,12 +705,12 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
     ! Loop over surface elements to construct a surface mass matrix.
     ! Lump the mass matrix to diagonalise it, then simply solve the system for epsilon.
 
-    type(scalar_field), pointer, intent(inout)    :: kk
+    type(scalar_field), pointer                   :: kk
     type(vector_field), intent(in)                :: positions
     type(scalar_field), intent(inout)             :: rhs_vector
     type(petsc_csr_matrix), intent(inout)         :: lumped_mass
     integer, intent(in)                           :: ele, sele
-    integer, dimension(:), pointer, intent(in)    :: surface_node_list
+    integer, dimension(:), pointer                :: surface_node_list
 
     type(element_type)                            :: shape_kk, fshape_kk, augmented_shape
     integer                                       :: i, j, snloc, quad, n
