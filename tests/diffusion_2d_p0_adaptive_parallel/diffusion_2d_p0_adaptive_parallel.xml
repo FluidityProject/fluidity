@@ -10,6 +10,16 @@
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>
+    <variable name="finish_time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+finish_time = s["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="no_nodes" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+no_nodes = s["CoordinateMesh"]["nodes"]
+    </variable>
     <variable name="tracer_integral" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
@@ -22,8 +32,18 @@ tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"]
     </variable>
   </variables>
   <pass_tests>
+    <test name="finish time is 10000" language="python">
+assert abs(finish_time - 10000) &lt; 1e-9
+    </test>
+    <test name="no. nodes is initially 220" language="python">
+assert abs(no_nodes[0] - 220) &lt; 1e-9
+    </test>
+    <test name="no. nodes is constant" language="python">
+import numpy
+assert(numpy.all(abs(no_nodes[1:] - no_nodes[0]) &lt; 1e-9))
+    </test>
     <test name="tracer integral is initially 1.0" language="python">
-assert abs(tracer_integral[0] - 1.0) &lt; 1e-6
+assert abs(tracer_integral[0] - 1.0) &lt; 1e-9
     </test>
     <test name="tracer integral is constant" language="python">
 import numpy
