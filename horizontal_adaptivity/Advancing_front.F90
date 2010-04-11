@@ -623,7 +623,7 @@ module hadapt_advancing_front
     ! values(ordering) should be ordered
     integer, dimension(:), intent(inout):: ordering
   
-    real:: eps0, eps, eps_old, diff, value1, value2
+    real:: eps0, eps_old, diff, value1, value2
     integer:: i, it1, it2
     logical:: too_close
     
