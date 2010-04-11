@@ -10,6 +10,7 @@ module hadapt_metric_based_extrude
   use metric_tools
   use vector_tools
   use meshdiagnostics
+  use halos
   implicit none
 
   public :: metric_based_extrude, combine_z_meshes, combine_r_meshes
@@ -91,7 +92,19 @@ module hadapt_metric_based_extrude
   
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
+    integer, dimension(:), allocatable:: no_hanging_nodes
     integer:: column, total_out_nodes, total_out_elements, z_elements, last_seen
+    
+    allocate(no_hanging_nodes(1:node_count(h_mesh)))
+    no_hanging_nodes=0
+    do column=1, size(z_meshes)
+      if (node_owned(h_mesh, column)) then
+        no_hanging_nodes(column)=ele_count(z_meshes(column))
+      end if
+    end do
+    if (associated(h_mesh%mesh%halos)) then
+      call halo_update(h_mesh%mesh%halos(2), no_hanging_nodes)
+    end if
     
     total_out_nodes = 0
     ! For each column,
@@ -99,7 +112,7 @@ module hadapt_metric_based_extrude
     ! to compute the number of elements the extrusion routine will produce
     total_out_elements = 0
     do column=1, size(z_meshes)
-      z_elements = ele_count(z_meshes(column))
+      z_elements = no_hanging_nodes(column)
       total_out_nodes = total_out_nodes + z_elements + 1
       assert(associated(h_mesh%mesh%adj_lists))
       assert(associated(h_mesh%mesh%adj_lists%nelist))
@@ -124,15 +137,124 @@ module hadapt_metric_based_extrude
 
     last_seen = 0
     do column=1,node_count(h_mesh)
-      call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
+      if (node_owned(h_mesh, column)) then
+        call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
+      else
+        ! for non-owned columns we reserve node numbers, 
+        ! but don't fill in out_mesh positions yet
+        ! note that in this way out_mesh will obtain the same halo ordering
+        ! convention as h_mesh
+        out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(column)+1) = column
+        last_seen = last_seen + no_hanging_nodes(column)+1
+      end if
     end do
       
     call create_columns_sparsity(out_columns, out_mesh%mesh)
+    
+    if (associated(h_mesh%mesh%halos)) then
+      ! derive l2 node halo for the out_mesh
+      call derive_extruded_l2_node_halo(h_mesh%mesh, out_mesh%mesh, out_columns)
+      ! positions in the non-owned columns can now simply be halo-updated
+      call halo_update(out_mesh)
+    end if
+      
     call generate_layered_mesh(out_mesh, h_mesh)
     call deallocate(out_columns)
     
   end subroutine combine_z_meshes
+    
+  subroutine derive_extruded_l2_node_halo(h_mesh, out_mesh, columns)
+    ! derive the l2 node halo for the extruded mesh
+    type(mesh_type), intent(in):: h_mesh
+    type(mesh_type), intent(inout):: out_mesh
+    type(csr_sparsity), intent(in):: columns
+    
+    integer, dimension(:), allocatable:: nsends, nreceives, sends, receives
+    integer:: proc_count, nowned_nodes
+    integer:: i, j, l, node, proc
+    
+    assert(halo_count(h_mesh) == 2)
+    assert(halo_valid_for_communication(h_mesh%halos(1)))
+    assert(halo_valid_for_communication(h_mesh%halos(2)))
+    
+    assert(halo_count(out_mesh) == 0)
+    assert(size(columns,1)==node_count(h_mesh))
+    assert(size(columns,2)==node_count(out_mesh))
+    
+    ! this is easy, ownership of a node is determined by ownership
+    ! of the column it is in, where columns correspond to nodes in h_mesh
+    allocate(out_mesh%halos(2))    
+    
+    nowned_nodes = 0
+    do i=1, node_count(h_mesh)
+      if (node_owned(h_mesh%halos(2), i)) then
+        nowned_nodes = nowned_nodes + row_length(columns, i)
+      end if
+    end do
+    
+    proc_count = halo_proc_count(h_mesh%halos(2))
+    allocate(nsends(proc_count), nreceives(proc_count))
+    do proc=1, proc_count
 
+      nsends(proc) = 0
+      do i=1, halo_send_count(h_mesh%halos(2), proc)
+        node = halo_send(h_mesh%halos(2), proc, i)
+        nsends(proc) = nsends(proc) + row_length(columns, node)
+      end do
+      
+      nreceives(proc) = 0
+      do i=1, halo_receive_count(h_mesh%halos(2), proc)
+        node = halo_receive(h_mesh%halos(2), proc, i)
+        nreceives(proc) = nreceives(proc) + row_length(columns, node)
+      end do
+    end do
+    
+    call allocate(out_mesh%halos(2), &
+                  nsends = nsends, &
+                  nreceives = nreceives, &
+                  name = trim(out_mesh%name) // "Level2Halo", &
+                  communicator = halo_communicator(h_mesh%halos(2)), &
+                  nowned_nodes = nowned_nodes, &
+                  data_type = halo_data_type(h_mesh%halos(2)), &
+                  ordering_scheme = halo_ordering_scheme(h_mesh%halos(2)))
+                  
+    do proc=1, proc_count
+
+      allocate( sends(1:nsends(proc)) )
+      j=1
+      do i=1, halo_send_count(h_mesh%halos(2), proc)
+        node = halo_send(h_mesh%halos(2), proc, i)
+        l = row_length(columns, node)
+        sends(j:j+l-1) = row_m(columns, node)
+        j=j+l
+      end do
+      assert( j==nsends(proc)+1 )
+      call set_halo_sends(out_mesh%halos(2), proc, sends)
+      deallocate(sends)
+        
+      allocate( receives(1:nreceives(proc)) )
+      j=1
+      do i=1, halo_receive_count(h_mesh%halos(2), proc)
+        node = halo_receive(h_mesh%halos(2), proc, i)
+        l = row_length(columns, node)
+        receives(j:j+l-1) = row_m(columns, node)
+        j=j+l
+      end do
+      assert( j==nreceives(proc)+1 )
+      call set_halo_receives(out_mesh%halos(2), proc, receives)
+      deallocate(receives)
+      
+    end do
+    
+    assert(halo_valid_for_communication(out_mesh%halos(2)))
+    
+    deallocate( nsends, nreceives )
+    
+    call create_global_to_universal_numbering(out_mesh%halos(2))
+    call create_ownership(out_mesh%halos(2))    
+    
+  end subroutine derive_extruded_l2_node_halo
+  
   subroutine combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
     full_shape, mesh_name, option_path)
   !! Given the shell_mesh and a r_mesh under each node of it combines these

@@ -12,6 +12,7 @@ module hadapt_extrude
   use sparse_tools
   use hadapt_advancing_front
   use hadapt_metric_based_extrude
+  use vtk_interfaces
   implicit none
 
   private
@@ -83,6 +84,8 @@ module hadapt_extrude
     ! create a 1d vertical mesh under each surface node
     do column=1, size(z_meshes)
       
+      if (.not. node_owned(h_mesh, column)) cycle
+      
       if(.not.depth_is_constant) then
         tmp_pos(:,1) = node_val(h_mesh, column)
         call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
@@ -112,9 +115,13 @@ module hadapt_extrude
        full_shape, mesh_name, option_path)
        
     do column=1, node_count(h_mesh)
+      if (.not. node_owned(h_mesh, column)) cycle
       call deallocate(z_meshes(column))
     end do
     call deallocate(full_shape)
+    
+    !call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh)
+    !call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
 
   end subroutine extrude
 

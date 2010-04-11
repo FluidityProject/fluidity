@@ -8,8 +8,9 @@ module hadapt_advancing_front
   use adjacency_lists
   use meshdiagnostics
   use data_structures
-  use vtk_interfaces
   use spud
+  use halos
+  use halos_derivation
   implicit none
 
   contains
@@ -20,8 +21,10 @@ module hadapt_advancing_front
     type(vector_field), intent(inout) :: mesh
     type(vector_field), intent(inout) :: h_mesh
 
+    type(mesh_type) :: in_mesh
     type(csr_sparsity) :: columns
     type(ilist), dimension(node_count(h_mesh)) :: chains
+    type(integer_hash_table):: old2new_ele
 
     ! node_count(mesh) - node_count(h_mesh) == number of nodes hanging in chains off horizontal mesh
     ! the heights act as priorities in a priority queue, while the indices
@@ -49,12 +52,14 @@ module hadapt_advancing_front
     integer :: faces_seen
     integer :: bottom_count, top_count
 
+    integer, dimension(:), allocatable:: unn, unn_hanging_nodes, halo_level
     real :: vol
     type(integer_set) :: bottom_nodes, top_nodes
     type(csr_sparsity), pointer :: nelist
-    integer, dimension(:), pointer :: nodes, faces
+    integer, dimension(:), pointer :: nodes, faces, neigh
     integer :: top_surface_id, bottom_surface_id
     integer, dimension(1) :: other_node
+    logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
 
     dim = mesh_dim(mesh)
 
@@ -92,11 +97,32 @@ module hadapt_advancing_front
       end do
     end do
       
-    ! bored with it now
-    call deallocate(columns)
-
     ! Sort the chains by height
     call qsort(heights, sorted)
+    
+    if (associated(h_mesh%mesh%halos)) then
+      allocate(unn(1:node_count(mesh)), unn_hanging_nodes(size(heights)))
+      call get_universal_numbering(mesh%mesh%halos(2), unn)
+      i = 1
+      do h_node=1,node_count(h_mesh)
+        chain_len = row_length(columns, h_node)
+        chain_ptr => row_m_ptr(columns, h_node)
+        ! Note: c_node loops from 2 to skip the node in the chain on the horizontal mesh
+        do c_node=2,chain_len
+          unn_hanging_nodes(i) = unn(chain_ptr(c_node))
+          i = i + 1
+        end do
+      end do
+      assert( i==size(heights)+1 )
+      call enforce_consistent_parallel_ordering(heights, sorted, unn_hanging_nodes)
+      deallocate(unn, unn_hanging_nodes)
+      
+      assert(has_faces(h_mesh%mesh)) ! needed for halo1 element recognition
+      allocate(halo_level(1:element_count(mesh)))
+    end if
+
+    ! bored with it now
+    call deallocate(columns)
 
     ! The main loop.
 
@@ -106,8 +132,7 @@ module hadapt_advancing_front
       assert( snloc==face_loc(h_mesh,1)+1 )
     end if
 
-    ele = 1
-    ndglno_ptr => ele_nodes(mesh, ele)
+    ele = 0
     do i=1,size(sorted)
       ! Get the chain we're dealing with.
       chain = indices(sorted(i))
@@ -134,6 +159,8 @@ module hadapt_advancing_front
 
         ! So now we know the heads of the chains next to us.
         ! Let's form the element! Quick! quick!
+        ele = ele + 1
+        ndglno_ptr => ele_nodes(mesh, ele)
 
         ndglno_ptr(1) = chains(chain)%firstnode%value
         ndglno_ptr(2) = chains(chain)%firstnode%next%value
@@ -152,9 +179,13 @@ module hadapt_advancing_front
         ! if the horizontal element has any surface faces, add them to the extruded surface mesh
         if (has_faces(h_mesh%mesh)) then
           faces => ele_faces(h_mesh, h_ele)
+          neigh => ele_neigh(h_mesh, h_ele)
+          adjacent_to_owned_element=.false.
+          adjacent_to_owned_column=.false.
           do k=1, size(faces)
-            if (faces(k)<=surface_element_count(h_mesh)) then
-              if (.not. any(chain == face_global_nodes(h_mesh, faces(k)))) cycle
+            ! whether this horizontal face is above a face of our new element
+            shared_face = any(chain == face_global_nodes(h_mesh, faces(k)))
+            if (shared_face .and. faces(k)<=surface_element_count(h_mesh)) then
               faces_seen = faces_seen + 1
               element_owners(faces_seen) = ele
               boundary_ids(faces_seen) = surface_element_id(h_mesh, faces(k))
@@ -167,15 +198,34 @@ module hadapt_advancing_front
                 nodes(3) = chains(other_node(1))%firstnode%value
               end if
             end if
+            ! grab the opportunity to see whether this is a halo1 or halo2 element
+            if (neigh(k)>0) then
+              if (element_owned(h_mesh%mesh, neigh(k))) then
+                adjacent_to_owned_column = .true.
+                if (shared_face) then
+                  adjacent_to_owned_element = .true.
+                end if
+              end if
+            end if
           end do
         end if
-
-
-        ! Get ready to process the next element
-
-        ele = ele + 1
-        if (ele <= ele_count(mesh)) then
-          ndglno_ptr => ele_nodes(mesh, ele)
+        
+        if (associated(h_mesh%mesh%halos)) then
+          if(element_owned(h_mesh%mesh, h_ele)) then
+            ! element ownership (based on the process with lowest rank 
+            ! owning any node in the element), nicely transfers to the columns
+            halo_level(ele)=0
+          else if (adjacent_to_owned_element) then
+            ! this is not true for halo1 - only those that directly face owned elements
+            halo_level(ele)=1
+          else if (adjacent_to_owned_column) then
+            ! extruded halo2 elements are necessarily in a column under 
+            ! a halo1 element
+            halo_level(ele)=2
+          else
+            ! misc elements - not owned, not in any receive lists
+            halo_level(ele)=3
+          end if
         end if
 
       end do
@@ -183,6 +233,42 @@ module hadapt_advancing_front
       ! And advance down the chain ..
       k = pop(chains(chain))
     end do
+      
+    assert(ele==element_count(mesh))
+    
+    if (associated(h_mesh%mesh%halos)) then
+      ! now reorder the elements according to halo level
+    
+      ! preserve %ndglno on in_mesh
+      in_mesh = mesh%mesh
+      ! get a new one for mesh
+      allocate(mesh%mesh%ndglno(size(in_mesh%ndglno)))
+      call allocate( old2new_ele )
+      
+      ! first the owned elements
+      ele = 0 ! new element nr. in mesh
+      do i=0, 3
+        ! loop over old element nrs j:
+        do j=1, element_count(in_mesh)
+          if (halo_level(j)==i) then
+            ele = ele + 1 ! new nr.
+            call set_ele_nodes(mesh%mesh, ele, ele_nodes(in_mesh, j))
+            call insert(old2new_ele, j, ele)
+          end if
+        end do
+      end do
+        
+      deallocate(in_mesh%ndglno)
+      deallocate(halo_level)
+    
+      ! renumber element ownership of faces
+      do i=1, faces_seen
+        element_owners(i) = fetch(old2new_ele, element_owners(i))
+      end do
+      call deallocate(old2new_ele)
+      
+      call derive_other_extruded_halos(h_mesh%mesh, mesh%mesh)
+    end if
 
     call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/top_surface_id', top_surface_id, default=0)
     call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/bottom_surface_id', bottom_surface_id, default=0)
@@ -215,8 +301,7 @@ module hadapt_advancing_front
 
     call deallocate(top_nodes)
     call deallocate(bottom_nodes)
-
-
+    
     do h_node=1,node_count(h_mesh)
       call deallocate(chains(h_node))
     end do
@@ -468,4 +553,147 @@ module hadapt_advancing_front
     
   end subroutine create_columns_sparsity
     
+  subroutine enforce_consistent_parallel_ordering(values, ordering, unn)
+    ! for a sorted array values(ordering) on the local nodes of a mesh
+    ! (owned and halos nodes) make sure the ordering is consistent 
+    ! between processes, i.e. if a pair of nodes is seen by more processes, 
+    ! on each of those processes the pair comes in the same order in 
+    ! their local values(ordering). For values that are "close" the ordering
+    ! is done via the universal node numbering
+    ! unsorted values
+    real, dimension(:), intent(in):: values
+    ! values(ordering) should be ordered locally already
+    integer, dimension(:), intent(inout):: ordering
+    ! unn(ordering) gives the universal node numbers
+    integer, dimension(:), intent(in):: unn
+    
+    real:: eps, value1, value2, diff
+    integer:: i, i1
+    
+    ! first we need to come up with a definition of what is
+    ! "sufficiently close" such that we can consider 2 values equal
+    eps = find_separating_eps(values, ordering)
+    
+    value1 = values(ordering(1))
+    i1 = 1
+    do i=2, size(ordering)
+      value2 = values(ordering(i))
+      diff = abs(value2-value1)
+      if (diff>eps) then
+        ! end of sequence of close values
+        if (i1<i-1) then
+          ! reorder entries i1 to i-1 according to unn
+          call order_subsequence_on_unn(i1, i-1)
+        end if
+        ! start new sequence
+        value1 = value2
+        i1 = i
+      end if
+    end do
+    if (i1<i-1) then
+      ! reorder entries i1 to i-1 according to unn
+      call order_subsequence_on_unn(i1, i-1)
+    end if
+      
+    contains
+    
+    subroutine order_subsequence_on_unn(i1, i2)
+      integer, intent(in):: i1, i2
+      
+      integer, dimension(i2-i1+1):: new_order
+      
+      call qsort(unn(ordering(i1:i2)), new_order)
+      ! the returned new_order, starts from 1 but should start from i1
+      new_order = new_order+i1-1
+      ! now unn(ordering(new_order)) is sorted
+      ! so replace this section of the input ordering
+      ordering(i1:i2) = ordering(new_order)
+      
+    end subroutine order_subsequence_on_unn
+    
+  end subroutine enforce_consistent_parallel_ordering
+    
+  function find_separating_eps(values, ordering) result (eps)
+    ! find a global epsilon such that for each pair of values in values
+    ! either |values(i)-values(j)|<0.9*eps
+    ! or |values(i)-values(j)|>1.1*eps
+    ! this means we can do local comparisons that are consistent between 2 processes
+    real:: eps
+    real, dimension(:), intent(in):: values
+    ! values(ordering) should be ordered
+    integer, dimension(:), intent(inout):: ordering
+  
+    real:: eps0, eps, eps_old, diff, value1, value2
+    integer:: i, it1, it2
+    logical:: too_close
+    
+    ! initial guess:
+    eps0 = 100.0*epsilon(maxval(values)-minval(values))
+    call allmax(eps0)
+    
+    ! now if any 2 subsequent values have 0.9*eps<|x_{i+1}-x_i|<1.1*eps
+    ! then processes could still disagree about them being equal
+    
+    ! this is all a bit hideous - please feel free to think of a better
+    ! way to do this
+    eps = eps0
+    eps_old = eps0
+    do it1=1, 1000
+      ! check whether this eps 
+      do it2=1, 1000
+        too_close = .false.
+        value1 = values(ordering(1))
+        do i=2, size(ordering)
+          value2 = values(ordering(i))
+          diff = abs(value2-value1)
+          if (diff>eps) then
+            ! different values with a safe distance, move on
+            value1 = value2
+          else if (diff>0.9*eps) then
+            too_close = .true.
+            exit
+          end if
+        end do
+        if (.not. too_close) exit
+        ! try a bigger eps
+        eps = eps + eps0
+      end do
+      if (it2>1000) then
+        FLAbort("Could not find a suitable epsilon for ordering values")
+      end if      
+      call allmax(eps)
+      ! if eps has not changed we're fine - otherwise we have to
+      ! check the new value of eps
+      ! (note we're comparing global eps with previously agreed global eps
+      !  so this branch should be safe)
+      if (eps==eps_old) exit
+      eps_old=eps
+    end do
+    if (it1>1000) then
+      FLAbort("Could not find a suitable epsilon for ordering values")
+    end if
+    ewrite(2,*) "Processes agreed on epsilon to use for ordering:"
+    ewrite(2,*) "eps, it1, it2 =", eps, it1, it2
+    
+  end function find_separating_eps
+    
+  subroutine derive_other_extruded_halos(h_mesh, out_mesh)
+    ! after having derived the 2nd node halo before,
+    ! now derive 1st nodal halo and the element halos
+    type(mesh_type), intent(in):: h_mesh
+    type(mesh_type), intent(inout):: out_mesh
+    
+    call derive_l1_from_l2_halo(out_mesh, &
+      ordering_scheme=halo_ordering_scheme(h_mesh%halos(2)))
+    assert(halo_valid_for_communication(out_mesh%halos(1)))
+    
+    allocate(out_mesh%element_halos(2))
+    call derive_element_halo_from_node_halo(out_mesh, &
+      ordering_scheme=halo_ordering_scheme(h_mesh%halos(2)))
+    
+    assert(halo_valid_for_communication(out_mesh%element_halos(1)))
+    assert(halo_valid_for_communication(out_mesh%element_halos(2)))
+    
+  end subroutine derive_other_extruded_halos
+  
 end module hadapt_advancing_front
