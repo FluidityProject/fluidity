@@ -13,6 +13,7 @@ module hadapt_extrude
   use hadapt_advancing_front
   use hadapt_metric_based_extrude
   use vtk_interfaces
+  use linked_lists
   implicit none
 
   private
@@ -144,6 +145,7 @@ module hadapt_extrude
     logical :: is_constant
     real :: constant_value
 
+    type(rlist):: depths
     type(mesh_type) :: mesh
     type(element_type) :: oned_shape
     type(quadrature_type) :: oned_quad
@@ -172,22 +174,25 @@ module hadapt_extrude
       FLAbort("Need to supply either sizing or sizing_function")
     end if
 
-    ! First work out number of nodes/elements:
+    ! Start the mesh at z=0 and work down to z=-depth.
     z=0.0
-    node=2
+    ! first size(xy) coordinates remain fixed, 
+    ! the last entry will be replaced with the appropriate depth
     xyz(1:size(xy))=xy
+    call insert(depths, z)
     do
       xyz(size(xy)+1)=z
       delta_h = get_delta_h( xyz, is_constant, constant_value, py_func)
       z=z - delta_h
       if (z<-depth+MIN_BOTTOM_LAYER_FRAC*delta_h) exit
-      node=node+1
-      if (node>MAX_VERTICAL_NODES) then
+      call insert(depths, z)
+      if (depths%length>MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
         FLAbort("Maximum number of vertical layers reached")
       end if
     end do
-    elements=node-1
+    call insert(depths, -depth)
+    elements=depths%length-1
 
     call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
     call deallocate(oned_shape)
@@ -198,16 +203,10 @@ module hadapt_extrude
     call allocate(z_mesh, 1, mesh, "ZMeshCoordinates")
     call deallocate(mesh)
 
-    ! Start the mesh at z=0 and work down to z=-depth.
-    ! Someone else can refine this later.
-    ! Have fun!
     call set(z_mesh, 1, (/0.0/))
-    do node=2,elements
-      xyz(size(xy)+1:)=node_val(z_mesh, node-1)
-      delta_h = get_delta_h(xyz, is_constant, constant_value, py_func)
-      call set(z_mesh, node,  (/ xyz(size(xy)+1) - delta_h /) )
+    do node=1, elements+1
+      call set(z_mesh, node,  (/ pop(depths) /))
     end do
-    call set(z_mesh, elements+1, (/-depth/))
 
     ! For pathological sizing functions the mesh might have gotten inverted at the last step.
     ! If you encounter this, make this logic smarter.

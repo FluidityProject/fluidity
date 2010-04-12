@@ -31,8 +31,22 @@ module linked_lists
      TYPE(edgenode), POINTER :: lastnode => null()
   END TYPE elist
 
+  ! <skramer> I need a linked list for reals
+  ! I'm adding it here - sigh, templates anyone?
+
+  type rnode
+     real :: value
+     type (rnode), pointer :: next=>null() ! next node
+  end type rnode
+  
+  type rlist
+     integer :: length=0
+     type (rnode), pointer :: firstnode=>null()
+     type(rnode), pointer ::  lastnode => null()
+  end type rlist
+  
   interface insert_ascending
-     module procedure iinsert_ascending 
+     module procedure iinsert_ascending
   end interface
 
   interface has_value
@@ -40,15 +54,15 @@ module linked_lists
   end interface
 
   interface deallocate
-    module procedure flush_ilist, flush_elist, flush_ilist_v
+    module procedure flush_ilist, flush_elist, flush_ilist_v, flush_rlist
   end interface
 
   interface insert
-     module procedure einsert, iinsert
+     module procedure einsert, iinsert, rinsert
   end interface
 
   interface flush_list
-     module procedure flush_ilist, flush_elist
+     module procedure flush_ilist, flush_elist, flush_rlist
   end interface
   
   interface flush_lists
@@ -56,7 +70,7 @@ module linked_lists
   end interface flush_lists
   
   interface pop
-     module procedure ipop, epop_fn
+     module procedure ipop, epop_fn, rpop
   end interface
 
   interface fetch
@@ -68,7 +82,7 @@ module linked_lists
   end interface
 
   interface list2vector
-     module procedure ilist2vector
+     module procedure ilist2vector, rlist2vector
   end interface
 
   interface pop_last
@@ -571,5 +585,84 @@ contains
     end do
 
   end function copy_ilist_array
+  
+    subroutine rinsert(list, value)
+    type(rlist), intent(inout) :: list
+    real, intent(in) :: value
+    type(rnode), pointer :: node
+    
+    ! Special case for zero length lists.
+    if (list%length==0) then
+       allocate(list%firstnode)
+
+       list%firstnode%value=value
+       ! The following should not be necessary
+       list%firstnode%next=>null()
+       
+       list%length=1
+       list%lastnode => list%firstnode
+       return
+    end if
+       
+    node => list%lastnode
+    allocate(node%next)
+    node%next%value = value
+
+    ! The following should not be necessary
+    node%next%next => null()
+          
+    list%length = list%length+1
+    list%lastnode => node%next
+    
+  end subroutine rinsert
+
+  subroutine flush_rlist(list)
+    ! Remove all entries from a list.
+    type(rlist), intent(inout) ::list
+
+    integer :: i, tmp
+
+    do i=1,list%length
+       tmp=pop(list)
+    end do
+
+  end subroutine flush_rlist
+
+  function rpop(list)
+    ! Pop the first value off list.
+    real :: rpop
+    type(rlist), intent(inout) :: list
+    
+    type(rnode), pointer :: firstnode
+    
+    rpop=list%firstnode%value
+    
+    firstnode=>list%firstnode
+    
+    list%firstnode=>firstnode%next
+
+    deallocate(firstnode)
+
+    list%length=list%length-1
+
+  end function rpop
+
+  function rlist2vector(list) result (vector)
+    ! Return a vector containing the contents of rlist
+    type(rlist), intent(in) :: list
+    real, dimension(list%length) :: vector
+    
+    type(rnode), pointer :: this_node
+    integer :: i
+
+    this_node=>list%firstnode
+
+    do i=1, list%length
+       vector(i)=this_node%value
+       
+       this_node=>this_node%next
+    end do
+
+  end function rlist2vector
 
 end module linked_lists
