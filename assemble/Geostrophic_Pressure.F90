@@ -2385,6 +2385,7 @@ contains
     
     if(gp) then
       call allocate(new_gp, new_gp_mesh, old_gp%name)
+      call zero(new_gp)
       new_gp%option_path = old_gp%option_path
 
       call insert_for_interpolation(old_state, old_gp)
