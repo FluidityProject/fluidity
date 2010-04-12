@@ -214,7 +214,11 @@
                 </solver>
               </continuous>
             </galerkin_projection>
-            <project_pressure name="LayerThickness"/>
+            <project_pressure name="LayerThickness">
+              <scale_factor>
+                <real_value rank="0">10.0</real_value>
+              </scale_factor>
+            </project_pressure>
             <decompose>
               <l2_minimised_residual/>
               <solver>

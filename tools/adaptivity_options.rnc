@@ -1121,7 +1121,7 @@ interpolation_algorithm_vector =
       ## For shallow-water modelling the interpolants for layer thickness and
       ## the conservative potential must be identical and degree one
       ## homogenenous (see
-      ## geostrophic_interpolation/conservative_potential/project_pressure).
+      ## geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).
       element geostrophic_interpolation {
         ## Options relating to the conservative potential component of the
         ## Helmholtz decomposition
@@ -1208,9 +1208,21 @@ interpolation_algorithm_vector =
                 empty
               }
            ),
-           ## Additionally project the Pressure field
+           ## Additionally project the Pressure field. This also enables better
+           ## initial guesses for the decomposition solvers.
            element project_pressure {
               attribute name { xsd:string },
+              ## Scale the pressure field by some factor before interpolation,
+              ## and apply the inverse after interpolation. This should be set
+              ## if pressure field is divided by some reference value
+              ## e.g., in a shallow water with gravity magnitude g, this should
+              ## take the value g. This enables better initial guesses for the
+              ## decomposition solvers, and means that non degree one
+              ## homonogeneous interpolants can be used for the conservative
+              ## potential and pressure, while still being balance preserving.
+              element scale_factor {
+                 real
+              }?,
               comment
            }?,
            (

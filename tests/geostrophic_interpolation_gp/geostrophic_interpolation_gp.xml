@@ -37,7 +37,7 @@ imbalanceVelocityL2Norm = s["Fluid"]["Imbal%magnitude"]["l2norm"]</variable>
 assert abs(deltaU) &lt; 5.0e-3</test>
     <test name="VelocityDivergence" language="python">maxval = abs(velocityDivergenceMax).max()
 print maxval
-assert maxval &lt; 2.0e-6</test>
+assert maxval &lt; 3.0e-5</test>
     <test name="ImbalancedVelocity" language="python">maxval = abs(imbalanceVelocityL2Norm).max()
 print maxval
 assert maxval &lt; 1.0e2</test>

@@ -1335,7 +1335,7 @@ geostrophic_interpolation/conservative_potential/decompose).
 For shallow-water modelling the interpolants for layer thickness and
 the conservative potential must be identical and degree one
 homogenenous (see
-geostrophic_interpolation/conservative_potential/project_pressure).</a:documentation>
+geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).</a:documentation>
         <element name="conservative_potential">
           <a:documentation>Options relating to the conservative potential component of the
 Helmholtz decomposition</a:documentation>
@@ -1441,10 +1441,24 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
           </choice>
           <optional>
             <element name="project_pressure">
-              <a:documentation>Additionally project the Pressure field</a:documentation>
+              <a:documentation>Additionally project the Pressure field. This also enables better
+initial guesses for the decomposition solvers.</a:documentation>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
+              <optional>
+                <element name="scale_factor">
+                  <a:documentation>Scale the pressure field by some factor before interpolation,
+and apply the inverse after interpolation. This should be set
+if pressure field is divided by some reference value
+e.g., in a shallow water with gravity magnitude g, this should
+take the value g. This enables better initial guesses for the
+decomposition solvers, and means that non degree one
+homonogeneous interpolants can be used for the conservative
+potential and pressure, while still being balance preserving.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
               <ref name="comment"/>
             </element>
           </optional>

@@ -2242,6 +2242,7 @@ contains
             
     logical :: aux_p
     character(len = OPTION_PATH_LEN) :: aux_p_name
+    real :: aux_p_scale
     type(scalar_field), pointer :: new_aux_p, old_aux_p
     
     logical :: decompose_p
@@ -2287,12 +2288,11 @@ contains
       old_aux_p => extract_scalar_field(old_state, aux_p_name)
       new_aux_p => extract_scalar_field(new_state, aux_p_name)
       
-      ! Use the Pressure field as an initial guess for the conservative
-      ! potential
-      call remap_field(old_aux_p, old_p)
-    else
-      ! Use zero guess for the conservative potential
-      call zero(old_p)
+      call get_option(trim(base_path) // "/conservative_potential/project_pressure/scale_factor", aux_p_scale, stat = stat)
+      if(stat == SPUD_NO_ERROR) then
+        ewrite(2, *) "Applying pressure scale factor: ", aux_p_scale
+        call scale(old_aux_p, aux_p_scale)
+      end if
     end if
     
     ! Perform a Helmholz decomposition of the old Coriolis
@@ -2315,6 +2315,22 @@ contains
       old_gp%option_path = trim(base_path) // "/geopressure"
 
       call geopressure_decomposition(old_state, coriolis, old_gp)
+    end if
+    
+    ! Set up initial guesses
+    if(aux_p) then
+      ! Use the Pressure field as an initial guess for the conservative
+      ! potential
+      if(gp) then
+        call remap_field(old_aux_p, old_gp)
+        call zero(old_p)
+      else
+        call remap_field(old_aux_p, old_p)
+      end if
+    else
+      ! Use zero initial guess
+      if(gp) call zero(old_gp)
+      call zero(old_p)
     end if
     
     call copy_bcs(old_velocity, coriolis)
@@ -2558,6 +2574,7 @@ contains
             
     logical :: aux_p
     character(len = OPTION_PATH_LEN) :: aux_p_name
+    real :: aux_p_scale
     type(scalar_field), pointer :: new_aux_p
     
     logical :: decompose_p
@@ -2695,6 +2712,11 @@ contains
       if(decompose_p) then
         call addto(new_aux_p, new_aux_p_decomp)
         call deallocate(new_aux_p_decomp)
+      end if
+      call get_option(trim(base_path) // "/conservative_potential/project_pressure/scale_factor", aux_p_scale, stat = stat)
+      if(stat == SPUD_NO_ERROR) then
+        ewrite(2, *) "Applying pressure scale factor: ", 1.0 / aux_p_scale
+        call scale(new_aux_p, 1.0 / aux_p_scale)
       end if
     end if
 
