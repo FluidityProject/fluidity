@@ -2304,14 +2304,6 @@ contains
       new_gp_mesh => extract_mesh(new_state, gp_mesh_name)
 
       call allocate(old_gp, old_gp_mesh, gi_gp_conservative_potential_name)
-      if(aux_p) then
-        ! Use the Pressure field as an initial guess for the conservative
-        ! potential
-        call remap_field(old_aux_p, old_gp)
-      else
-        ! Use zero guess for the conservative potential
-        call zero(old_gp)
-      end if
       old_gp%option_path = trim(base_path) // "/geopressure"
 
       call geopressure_decomposition(old_state, coriolis, old_gp)
