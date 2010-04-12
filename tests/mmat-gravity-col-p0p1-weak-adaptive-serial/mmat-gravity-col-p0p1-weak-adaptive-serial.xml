@@ -31,6 +31,10 @@ minpressure = fluidity_tools.stat_parser("column_under_gravity.stat")['Material1
 import fluidity_tools
 velocity = fluidity_tools.stat_parser("column_under_gravity.stat")['Material1']['Velocity%magnitude']['max']
     </variable>    
+    <variable name="mixing" language="python">
+import fluidity_tools
+mixing = fluidity_tools.stat_parser("column_under_gravity.stat")['Material2']['MaterialVolumeFraction']['mixing_bins%vfrac']
+    </variable>
     <variable name = "solvers_converged" language = "python">
 import os
 files = os.listdir("./")
@@ -38,8 +42,8 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
    </variables>
     <pass_tests>  
-    <test name="finish time is 10" language="python">
-assert abs(finish_time - 10) &lt; 0.001
+    <test name="finish time is 1" language="python">
+assert abs(finish_time - 1) &lt; 0.001
     </test>
 <!--    <test name="no. nodes is initially 229" language="python">
 assert abs(no_nodes[0] - 229) &lt; 1e-9
@@ -72,6 +76,46 @@ print abs(velocity[1:]-velocity[0]).max()
 import numpy
 assert numpy.all(abs(velocity[1:]-velocity[0]) &lt; 1e-9)
     </test>    
+    <test name="check initial mixing 1" language="python">
+assert abs(mixing[0][0]-0.5) &lt; 1e-6
+    </test>
+    <test name="check initial mixing 2" language="python">
+assert abs(mixing[1][0]) &lt; 1e-6
+    </test>
+    <test name="check initial mixing 3" language="python">
+assert abs(mixing[2][0]) &lt; 1e-6
+    </test>
+    <test name="check initial mixing 4" language="python">
+assert abs(mixing[3][0]) &lt; 1e-6
+    </test>
+    <test name="check initial mixing 5" language="python">
+assert abs(mixing[4][0]-0.5) &lt; 1e-6
+    </test>
+    <test name="check mixing 1 is constant" language="python">
+print abs(mixing[0][1:]-mixing[0][0]).max()
+import numpy
+assert numpy.all(abs(mixing[0][1:]-mixing[0][0]) &lt; 1e-9)
+    </test>
+    <test name="check mixing 2 is constant" language="python">
+print abs(mixing[1][1:]-mixing[1][0]).max()
+import numpy
+assert numpy.all(abs(mixing[1][1:]-mixing[1][0]) &lt; 1e-9)
+    </test>
+    <test name="check mixing 3 is constant" language="python">
+print abs(mixing[2][1:]-mixing[2][0]).max()
+import numpy
+assert numpy.all(abs(mixing[2][1:]-mixing[2][0]) &lt; 1e-9)
+    </test>
+    <test name="check mixing 4 is constant" language="python">
+print abs(mixing[3][1:]-mixing[3][0]).max()
+import numpy
+assert numpy.all(abs(mixing[3][1:]-mixing[3][0]) &lt; 1e-9)
+    </test>
+    <test name="check mixing 5 is constant" language="python">
+print abs(mixing[4][1:]-mixing[4][0]).max()
+import numpy
+assert numpy.all(abs(mixing[4][1:]-mixing[4][0]) &lt; 1e-9)
+    </test>
     <test name = "Solvers converged" language = "python">
 assert(solvers_converged)
     </test>
