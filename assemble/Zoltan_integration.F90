@@ -1897,6 +1897,11 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     subroutine set_zoltan_parameters
       integer(zoltan_int) :: ierr
 
+      if (debug_level()>1) then
+         ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
+      else         
+         ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
+      end if
       ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
       if (iteration == 1) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
@@ -1909,7 +1914,6 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       ierr = Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1"); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Param(zz, "EDGE_WEIGHT_DIM", "1"); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL"); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
 
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_NUM_OBJ_FN_TYPE, zoltan_cb_owned_node_count);      assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_LIST_FN_TYPE, zoltan_cb_get_owned_nodes);      assert(ierr == ZOLTAN_OK)
