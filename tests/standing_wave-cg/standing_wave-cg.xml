@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
   <name>Standing free surface wave in channel.</name>
   <owner userid="skramer"/>
@@ -9,80 +7,51 @@
     <command_line>fluidity -v3 -l  standing_wave.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="halfway_free_surface" language="python">
-import vtktools
-import numpy
-# read in the .vtu after a half period
-u=vtktools.vtu("standing_wave_1.vtu")
-# get corner values
-xyz=u.GetLocations()
-loc1=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
-loc2=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 999.0)
-loc3=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
-loc4=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 999.0)
-p=u.GetField("Pressure")
-# in each location multiple nodes will be found (DG!), take the first one of each
+    <variable name="max_pressure_diff_left" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+plb=det['water']['Pressure']['LeftBottom']
+plt=det['water']['Pressure']['LeftTop']
 g=10.0
-halfway_free_surface=numpy.array([p.compress(loc1)[0],p.compress(loc2)[0], p.compress(loc3)[0], p.compress(loc4)[0]])/g
-    </variable>
-    <variable name="final_free_surface" language="python">
-import vtktools
-import numpy
-# read in the final .vtu
-u=vtktools.vtu("standing_wave_2.vtu")
-xyz=u.GetLocations()
-loc1=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
-loc2=(xyz[:,0]&lt; 1.0) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 999.0)
-loc3=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&lt; 1.0)
-loc4=(xyz[:,0]&gt; 0.999e6) &amp; (xyz[:,1]&lt; 1.0) &amp; (xyz[:,2]&gt; 999.0)
-p=u.GetField("Pressure")
-# in each location multiple nodes will be found (DG!), take the first one of each
+max_pressure_diff_left=abs(plb-plt).max()/g</variable>
+    <variable name="max_pressure_diff_right" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+prb=det['water']['Pressure']['RightBottom']
+prt=det['water']['Pressure']['RightTop']
 g=10.0
-final_free_surface=numpy.array([p.compress(loc1)[0],p.compress(loc2)[0], p.compress(loc3)[0], p.compress(loc4)[0]])/g
-    </variable>
+max_pressure_diff_right=abs(prt-prb).max()/g</variable>
+    <variable name="max_pressure_diff_middle" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+pmb=det['water']['Pressure']['MiddleBottom']
+pmt=det['water']['Pressure']['MiddleTop']
+g=10.0
+max_pressure_diff_middle=abs(pmt-pmb).max()/g</variable>
+    <variable name="fs_left" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+fsl=det['water']['FreeSurface']['LeftTop']
+t=det['ElapsedTime']['value']
+fs_left={}
+fs_left['min']=fsl.min()
+fs_left['min_time']=t[fsl.argmin()]
+fs_left['end_value']=fsl[-1]</variable>
+    <variable name="fs_right" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+fsr=det['water']['FreeSurface']['RightTop']
+t=det['ElapsedTime']['value']
+fs_right={}
+fs_right['max']=fsr.max()
+fs_right['max_time']=t[fsr.argmax()]
+fs_right['end_value']=fsr[-1]</variable>
   </variables>
   <pass_tests>
-    <test name="Correct amplitude left halfway" language="python">
-# pressure after a half period should be close to -1.0
-import fluidity_tools
-fluidity_tools.compare_variable(halfway_free_surface[1], -1.0, 0.03)
-    </test>
-    <test name="Correct amplitude right halfway" language="python">
-# pressure after a half period should be close to 1.0
-import fluidity_tools
-fluidity_tools.compare_variable(halfway_free_surface[3], 1.0, 0.03)
-  </test>
-    <test name="Correct bottom pressure left halfway" language="python">
-# pressure at the top should be the same as on the bottom
-import fluidity_tools
-fluidity_tools.compare_variable(halfway_free_surface[0], halfway_free_surface[1], 0.01)
-    </test>
-    <test name="Correct bottom pressure right halfway" language="python">
-# pressure at the top should be the same as on the bottom
-import fluidity_tools
-fluidity_tools.compare_variable(halfway_free_surface[2], halfway_free_surface[3], 0.01)
-    </test>
-    <test name="Correct amplitude left" language="python">
-# pressure after one period should be close to 1.0 again
-import fluidity_tools
-fluidity_tools.compare_variable(final_free_surface[1], 1.0, 0.02)
-</test>
-    <test name="Correct amplitude right" language="python">
-# pressure after one period should be close to -1.0 again
-import fluidity_tools
-fluidity_tools.compare_variable(final_free_surface[3], -1.0, 0.02)
-  </test>
-    <test name="Correct bottom pressure left" language="python">
-# pressure at the top should be the same as on the bottom
-import fluidity_tools
-fluidity_tools.compare_variable(final_free_surface[0], final_free_surface[1], 0.01)
-</test>
-    <test name="Correct bottom pressure right" language="python">
-# pressure at the top should be the same as on the bottom
-import fluidity_tools
-fluidity_tools.compare_variable(final_free_surface[2], final_free_surface[3], 0.01)
-    </test>
+    <test name="pressure_diff_left" language="python">assert(max_pressure_diff_left&lt;0.005)</test>
+    <test name="pressure_diff_right" language="python">assert(max_pressure_diff_right&lt;0.005)</test>
+    <test name="pressure_diff_middle" language="python">assert(max_pressure_diff_middle&lt;0.005)</test>
+    <test name="fs_left_min" language="python">assert(fs_left['min']&lt;-0.95)</test>
+    <test name="fs_left_min_time" language="python">assert abs(fs_left['min_time']-1e4)&lt;200</test>
+    <test name="fs_end_value" language="python">assert abs(fs_left['end_value']-1.0)&lt;0.2</test>
+    <test name="fs_right_max" language="python">assert(fs_right['max']&gt;-0.95)</test>
+    <test name="fs_right_max_time" language="python">assert abs(fs_right['max_time']-1e4)&lt;200</test>
+    <test name="fs_end_value" language="python">assert abs(fs_right['end_value']+1.0)&lt;0.2</test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>
