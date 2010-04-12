@@ -57,6 +57,38 @@
     </dump_period>
     <output_mesh name="VelocityMesh"/>
     <stat/>
+    <detectors>
+      <static_detector name="LeftBottom">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">1. 5e4 10.</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="LeftTop">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">1 5e4 990</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="RightBottom">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">0.999e6 5e4 10</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="RightTop">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">0.999e6 5e4 990</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="MiddleBottom">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">5e5 5e4 10</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="MiddleTop">
+        <location>
+          <real_value shape="3" dim1="dim" rank="1">5e5 5e4 990</real_value>
+        </location>
+      </static_detector>
+    </detectors>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
@@ -74,10 +106,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">10.0</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="whole_mesh">
@@ -153,28 +185,13 @@
           <include_in_convergence/>
         </convergence>
         <detectors>
-          <exclude_from_detectors/>
+          <include_in_detectors/>
         </detectors>
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="whole_mesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
