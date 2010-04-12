@@ -511,18 +511,6 @@ contains
            call calculate_div_t_fe(state(i), v_field)
          end if
        end if
-
-       v_field => extract_vector_field(state(i), "ImbalancedVelocity", stat)
-       if (stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           other_v_field => extract_vector_field(state(i), "BalancedVelocity", stat)
-           if (stat == 0) then
-             call compute_balanced_velocity_diagnostics(state(i), v_field, other_v_field)
-           else
-             call compute_balanced_velocity_diagnostics(state(i), v_field)
-           end if
-         end if
-       end if
        
        ! Start of vorticity diagnostics
        v_field => extract_vector_field(state(i), "Vorticity", stat)

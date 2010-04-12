@@ -7690,59 +7690,6 @@ algorithm option).</a:documentation>
           <ref name="diagnostic_vector_field"/>
         </element>
       </element>
-      <element name="vector_field">
-        <a:documentation>Compute the imbalanced component of velocity,
-that is,
-u - u_bal
-where u_bal is the velocity that puts the state in geostrophic
-balance.
-Note: if your velocity mesh is continuous, then the solver option
-is necessary.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>ImbalancedVelocity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <element name="solver">
-              <ref name="linear_solver_options_sym"/>
-            </element>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Compute the balanced component of velocity,
-that is, the velocity that puts the state in geostrophic
-balance.
-This diagnostic depends on ImbalancedVelocity.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>BalancedVelocity</value>
-        </attribute>
-        <attribute name="depends">
-          <value>ImbalancedVelocity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
     </choice>
     <!--
       Insert new diagnostic vector field here using the template:

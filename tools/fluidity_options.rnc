@@ -5933,49 +5933,6 @@ vector_field_choice =
                   diagnostic_vector_field
                }
             )
-         }|
-         ## Compute the imbalanced component of velocity,
-         ## that is,
-         ## u - u_bal
-         ## where u_bal is the velocity that puts the state in geostrophic
-         ## balance.
-         ## Note: if your velocity mesh is continuous, then the solver option
-         ## is necessary.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "ImbalancedVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  element solver {
-                  linear_solver_options_sym
-                  },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Compute the balanced component of velocity,
-         ## that is, the velocity that puts the state in geostrophic
-         ## balance.
-         ## This diagnostic depends on ImbalancedVelocity.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "BalancedVelocity" },
-            attribute depends { "ImbalancedVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
          }
 
 # Insert new diagnostic vector field here using the template:
