@@ -2305,8 +2305,6 @@ contains
 
       call allocate(old_gp, old_gp_mesh, gi_gp_conservative_potential_name)
       old_gp%option_path = trim(base_path) // "/geopressure"
-
-      call geopressure_decomposition(old_state, coriolis, old_gp)
     end if
     
     ! Set up initial guesses
@@ -2323,12 +2321,13 @@ contains
       ! Use zero initial guess
       if(gp) call zero(old_gp)
       call zero(old_p)
-    end if
+    end if      
     
     call copy_bcs(old_velocity, coriolis)
     call set(old_res, coriolis)
     call allocate(conserv, dim, old_u_mesh, name = "CoriolisConservative")
     if(gp) then
+      call geopressure_decomposition(old_state, coriolis, old_gp)
       call projection_decomposition(old_state, coriolis, old_p, matrices = matrices, gp = old_gp) 
       call correct_velocity(matrices, old_res, old_p, conserv = conserv, gp = old_gp)
     else
@@ -2385,7 +2384,6 @@ contains
     
     if(gp) then
       call allocate(new_gp, new_gp_mesh, old_gp%name)
-      call zero(new_gp)
       new_gp%option_path = old_gp%option_path
 
       call insert_for_interpolation(old_state, old_gp)
