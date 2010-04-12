@@ -47,6 +47,48 @@
         <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">1</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">2</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
   </geometry>
   <io>
     <dump_format>
@@ -95,13 +137,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep replaces="DT">
-      <real_value rank="0">1000.0</real_value>
+      <real_value rank="0">200.0</real_value>
     </timestep>
     <finish_time replaces="LTIME">
       <real_value rank="0">2.0e+4</real_value>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
-      <integer_value rank="0">1</integer_value>
+      <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
@@ -325,7 +367,14 @@
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <surface_integral type="value" name="horizontal_integral">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+              <comment>Integrate over bottom so we get a horizontal integral.</comment>
+            </surface_ids>
+          </surface_integral>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -338,30 +387,4 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
-  <mesh_adaptivity>
-    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
-      <free_surface>
-        <move_surface_nodes/>
-      </free_surface>
-      <vector_field name="GridVelocity" rank="1">
-        <diagnostic>
-          <algorithm name="Internal" material_phase_support="multiple"/>
-          <mesh name="CoordinateMesh"/>
-          <output/>
-          <stat>
-            <include_in_stat/>
-          </stat>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-        </diagnostic>
-      </vector_field>
-    </mesh_movement>
-  </mesh_adaptivity>
 </fluidity_options>

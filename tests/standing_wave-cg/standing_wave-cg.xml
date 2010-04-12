@@ -41,6 +41,15 @@ fs_right={}
 fs_right['max']=fsr.max()
 fs_right['max_time']=t[fsr.argmax()]
 fs_right['end_value']=fsr[-1]</variable>
+    <variable name="fs_integral_max" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('standing_wave.stat');
+fsi=stat['water']['FreeSurface']['surface_integral%horizontal_integral']
+fs_integral_max=abs(fsi).max()<comment>Horizontal integral of free surface should be zero</comment></variable>
+    <variable name="volume_integral_change" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('standing_wave.stat');
+volume=-stat['water']['GravityDirection%3']['integral']
+volume_integral_change=abs(volume-1.e14).max()
+</variable>
   </variables>
   <pass_tests>
     <test name="pressure_diff_left" language="python">assert(max_pressure_diff_left&lt;0.005)</test>
@@ -52,6 +61,8 @@ fs_right['end_value']=fsr[-1]</variable>
     <test name="fs_right_max" language="python">assert(fs_right['max']&gt;-0.95)</test>
     <test name="fs_right_max_time" language="python">assert abs(fs_right['max_time']-1e4)&lt;200</test>
     <test name="fs_end_value" language="python">assert abs(fs_right['end_value']+1.0)&lt;0.2</test>
+    <test name="fs_integral_max_zero" language="python">assert fs_integral_max&lt;5e-3</test>
+    <test name="volume_integral_change_zero" language="python">assert volume_integral_change&lt;1000<comment>This is around machine precision</comment></test>
   </pass_tests>
   <warn_tests/>
 </testproblem>
