@@ -321,24 +321,27 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="TotalPressure" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_sum" source_field_1_name="Pressure" source_field_2_name="GeostrophicPressure" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="GeostrophicPressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="ImbalancedVelocity" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="BalancedVelocity" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="CoordinateMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
         <output/>
         <stat>
           <include_in_stat/>
@@ -354,9 +357,13 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field depends="ImbalancedVelocity" name="BalancedVelocity" rank="1">
+    <vector_field name="BalancedVelocity" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm depends="Velocity" source_field_type="scalar" material_phase_support="single" name="geostrophic_velocity" source_field_name="TotalPressure">
+          <mass>
+            <lump_mass/>
+          </mass>
+        </algorithm>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat>

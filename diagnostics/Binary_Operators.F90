@@ -52,7 +52,7 @@ contains
     source_field_1 => scalar_source_field(state, s_field, index = 1)
     source_field_2 => scalar_source_field(state, s_field, index = 2)
   
-    call set(s_field, source_field_1)
+    call remap_field(source_field_1, s_field)
     call addto(s_field, source_field_2)
   
   end subroutine calculate_scalar_sum
@@ -66,7 +66,7 @@ contains
     source_field_1 => scalar_source_field(state, s_field, index = 1)
     source_field_2 => scalar_source_field(state, s_field, index = 2)
   
-    call set(s_field, source_field_1)
+    call remap_field(source_field_1, s_field)
     call addto(s_field, source_field_2, scale = -1.0)
   
   end subroutine calculate_scalar_difference
@@ -80,7 +80,7 @@ contains
     source_field_1 => vector_source_field(state, v_field, index = 1)
     source_field_2 => vector_source_field(state, v_field, index = 2)
   
-    call set(v_field, source_field_1)
+    call remap_field(source_field_1, v_field)
     call addto(v_field, source_field_2, scale = -1.0)
   
   end subroutine calculate_vector_difference
