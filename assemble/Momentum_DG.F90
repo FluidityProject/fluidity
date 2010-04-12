@@ -1627,6 +1627,7 @@ contains
           penalty_fluxes_mat = 0.0
           call primal_fluxes
           call interior_penalty
+          call local_assembly_primal_face
           call local_assembly_ip_face
        case (CDG)
           primal_fluxes_mat = 0.0
