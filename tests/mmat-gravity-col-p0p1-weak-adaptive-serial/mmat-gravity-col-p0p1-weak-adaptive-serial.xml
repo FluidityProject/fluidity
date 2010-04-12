@@ -54,7 +54,7 @@ assert abs(pressure[0]-5005) &lt; 1e-6
     <test name="check maximum pressure is constant" language="python">
 print abs(pressure[1:]-pressure[0]).max()
 import numpy
-assert numpy.all(abs(pressure[1:]-pressure[0]) &lt; 1e-9)
+assert numpy.all(abs(pressure[1:]-pressure[0]) &lt; 1e-8)
     </test>    
     <test name="check initial minimum pressure is 0.0" language="python">
 assert abs(minpressure[0]) &lt; 1e-6
