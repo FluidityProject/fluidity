@@ -4,9 +4,9 @@
 <testproblem>
   <name>Control volume, multi-material surface integral pressure check</name>
   <owner userid="cwilson"/>
-  <tags>flml zoltan</tags>
+  <tags>flml</tags>
     <problem_definition length="special" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l column_under_gravity.flml</command_line>
+    <command_line>fluidity -v2 -l column_under_gravity.flml</command_line>
   </problem_definition>  
   <variables>  
     <variable name="finish_time" language="python">
@@ -54,7 +54,7 @@ assert abs(pressure[0]-5005) &lt; 1e-6
     <test name="check maximum pressure is constant" language="python">
 print abs(pressure[1:]-pressure[0]).max()
 import numpy
-assert numpy.all(abs(pressure[1:]-pressure[0]) &lt; 1e-8)
+assert numpy.all(abs(pressure[1:]-pressure[0]) &lt; 1e-9)
     </test>    
     <test name="check initial minimum pressure is 0.0" language="python">
 assert abs(minpressure[0]) &lt; 1e-6

@@ -38,8 +38,8 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
    </variables>
     <pass_tests>  
-    <test name="finish time is 10" language="python">
-assert abs(finish_time - 10) &lt; 0.001
+    <test name="finish time is 10000" language="python">
+assert abs(finish_time - 10000) &lt; 1e-9
     </test>
 <!--    <test name="no. nodes is initially 229" language="python">
 assert abs(no_nodes[0] - 229) &lt; 1e-9
@@ -49,18 +49,17 @@ import numpy
 assert(numpy.all(abs(no_nodes[1:] - no_nodes[0]) &lt; 1e-9))
     </test>
     <test name="check maximum initial pressure is 10.0" language="python">
-assert abs(pressure[0]-5005) &lt; 1e-6
+assert abs(pressure[0]-1e+1) &lt; 1e-6
     </test>    
     <test name="check maximum pressure is constant" language="python">
 print abs(pressure[1:]-pressure[0]).max()
 import numpy
-assert numpy.all(abs(pressure[1:]-pressure[0]) &lt; 1e-8)
+assert numpy.all(abs(pressure[1:]-pressure[0]) &lt; 1e-9)
     </test>    
     <test name="check initial minimum pressure is 0.0" language="python">
 assert abs(minpressure[0]) &lt; 1e-6
     </test>    
     <test name="check minimum pressure is constant" language="python">
-print abs(minpressure[1:]-minpressure[0]).max()
 import numpy
 assert numpy.all(abs(minpressure[1:]-minpressure[0]) &lt; 1e-9)
     </test>    
@@ -70,7 +69,7 @@ assert abs(velocity[0]) &lt; 1e-6
     <test name="check maximum speed is constant" language="python">
 print abs(velocity[1:]-velocity[0]).max()
 import numpy
-assert numpy.all(abs(velocity[1:]-velocity[0]) &lt; 1e-9)
+assert numpy.all(abs(velocity[1:]-velocity[0]) &lt; 1e-8)
     </test>    
     <test name = "Solvers converged" language = "python">
 assert(solvers_converged)
