@@ -910,16 +910,16 @@ produce:
     -2.4
   \end{bmatrix}
 \end{equation}
-Which is our continuous linear approximation to the gradient of $F$. Figure
-\ref{fig:1dpointdfdxgalerkin}\ shows $\dvec{g}$ in green. The difference
-between the green line and the black pointwise gradient is the error in the
-approximation which is caused by projecting the discontinuous pointwise
-gradient into the space of continuous piecewise linear functions. This
-projection, which is performed by the inversion of the mass matrix $M$ onto
-the right hand side vector $r$ is known as the \emph{Galerkin}\ projection
-and is the basis of the finite element method. The magnitude of the error in
-the projection is affected by the mesh resolution, the function spaces
-involved and the function being approximated. An exploration of these
+$\dvec{g}$ is our continuous linear approximation to the gradient of $F$.
+Figure \ref{fig:1dpointdfdxgalerkin}\ shows $\dvec{g}$ in green. The
+difference between the green line and the black pointwise gradient is the
+error in the approximation which is caused by projecting the discontinuous
+pointwise gradient into the space of continuous piecewise linear functions.
+This projection, which is performed by the inversion of the mass matrix $M$
+onto the right hand side vector $r$ is known as the \emph{Galerkin}\
+projection and is the basis of the finite element method. The magnitude of
+the error in the projection is affected by the mesh resolution, the function
+spaces involved and the function being approximated. An exploration of these
 possibilities, however, depends on first getting a computer to do the
 assembly for us.
 \begin{figure}[t]
@@ -1061,7 +1061,7 @@ In most circumstances, it does not matter whether copies of field
 descriptors are made and to which copy reference is made. Most operations
 which modify data objects act on the data space which is always
 shared. Similarly, reference counting applies to the data space, not to the
-object descriptors and copies of oject descriptors can typically be
+object descriptors and copies of object descriptors can typically be
 discarded when no longer needed without any impact on memory or data
 integrity.
 
@@ -1104,9 +1104,36 @@ following weights and positions:
 
 \chapter{Elements}
 
-The element data structure holds quadrature and shape function information
-for a single specimen element. 
+The \elementtype\ data structure holds shape function information for a
+single specimen element. The \elementtype\ holds a reference to a particular
+\quadraturetype\ object and stores the shape function information with
+respect to that quadrature object.
 
+\section{Shape functions at quadrature points}
+
+Finite element operations (that is, the evaluation of integrals over an
+element) only require the shape functions and their derivatives to be
+evaluated at the quadrature points. To enable the efficient evaluation of
+these integrals, the element objects directly store the value of each shape
+function on the element at each quadrature point on the element. For
+example, a quadratic triangle element has six basis functions. If the
+four-point quadrature rule shown in chapter \ref{chap:quadrature}\ is
+employed then the \elementtype\ corresponding to this element will store the
+following matrix:
+\begin{equation}
+  \mat{N}=
+  \begin{bmatrix}
+    
+  \end{bmatrix}
+
+\end{equation}
+
+\section{Evaluating shape functions at arbitrary points}
+
+\section{Local node numbering}
+
+
+\section{Changing coordinates}
 
 
 
