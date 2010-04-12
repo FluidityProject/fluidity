@@ -242,6 +242,16 @@ Donea and Huerta (2003) "Finite elements for flow problems".</a:documentation>
           <optional>
             <choice>
               <element name="slope_limiter">
+                <a:documentation>Vertex-based slope limiter from D. Kuzmin, "A
+vertex-based hierarchical slope limiter for
+p-adaptive discontinuous Galerkin methods",
+J. Comp Appl. Math. 233/12 (2010)
+DOI: 10.1016/j.cam.2009.05.028</a:documentation>
+                <attribute name="name">
+                  <value>Vertex_Based</value>
+                </attribute>
+              </element>
+              <element name="slope_limiter">
                 <attribute name="name">
                   <value>Cockburn_Shu</value>
                 </attribute>

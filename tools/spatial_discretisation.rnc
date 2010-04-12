@@ -210,6 +210,14 @@ spatial_discretisation_options =
                empty
             }?,
             (
+               ## Vertex-based slope limiter from D. Kuzmin, "A
+               ## vertex-based hierarchical slope limiter for
+               ## p-adaptive discontinuous Galerkin methods",
+               ## J. Comp Appl. Math. 233/12 (2010)
+               ## DOI: 10.1016/j.cam.2009.05.028
+               element slope_limiter {                  
+                  attribute name { "Vertex_Based" }
+               }|
                element slope_limiter {
                   attribute name { "Cockburn_Shu" },
                   ## TVB tolerance parameter, below this value (scaled by

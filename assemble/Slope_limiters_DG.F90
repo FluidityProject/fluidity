@@ -32,9 +32,11 @@ use state_module
 use ieee_arithmetic
 use fldebug_parameters
 use spud
+use elements
 use eventcounter
 use state_fields_module
 use bound_field_module
+use vtk_interfaces
 implicit none
 
 private
@@ -44,8 +46,10 @@ integer, parameter :: LIMITER_MINIMAL=1
 integer, parameter :: LIMITER_COCKBURN=2
 integer, parameter :: LIMITER_HERMITE_WENO=3
 integer, parameter :: LIMITER_FPN=4
+integer, parameter :: LIMITER_VB=5
 
-public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO, LIMITER_FPN
+public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO,&
+     & LIMITER_FPN, LIMITER_VB
 
 !!CockburnShuLimiter stuff
 real :: TVB_factor=5.0
@@ -72,6 +76,7 @@ logical :: leave_out_hermite_polynomials
 logical :: has_discontinuity_detector_field
 type(scalar_field), pointer :: discontinuity_detector_field
 integer :: limit_count
+integer :: limiter_vtu_index = 0
 
 contains
 
@@ -204,8 +209,15 @@ contains
        T%val = T_limit%val
        call deallocate(T_limit)
 
+    case (LIMITER_VB)
+       call limit_VB(state, T)
+
     case (LIMITER_FPN)
-      call limit_fpn(state, T)
+       call limit_fpn(state, T)      
+
+    case default
+       ewrite(-1,*) 'limiter = ', limiter
+       FLAbort('no such limiter exists')
     end select
 
     ewrite(2,*) 'END subroutiune limit_slope_dg'
@@ -742,7 +754,7 @@ contains
     ! x_neigh/=t_neigh only on periodic boundaries.
     x_neigh=>ele_neigh(X, ele)
 
-    discontinuity_option = 1
+    discontinuity_option = 2
 
     select case(discontinuity_option)
 
@@ -775,9 +787,17 @@ contains
           !ewrite(3,*) T_val
           !ewrite(3,*) T_val_2
 
-          if(face_max>max(ele_mean,ele_mean_2)) limit_slope = .true.
-          if(face_min<min(ele_mean,ele_mean_2)) limit_slope = .true.
+          if(face_max>max(ele_mean,ele_mean_2)+disc_tol) limit_slope = .true.
+          if(face_min<min(ele_mean,ele_mean_2)-disc_tol) limit_slope = .true.
 
+          if(has_discontinuity_detector_field) then
+             if(limit_slope) then
+                ewrite(3,*) 'cjc limit_slope', ele
+                ones = 1.0
+                T_ele=>ele_nodes(Discontinuity_Detector_field,ele)
+                call set(Discontinuity_detector_field,T_ele,ones)
+             end if
+          end if
        end do
 
     case (2)
@@ -1334,6 +1354,111 @@ contains
     end select
     
   end function get_H
+
+  subroutine limit_vb(state, t)
+    !Vertex-based (not Victoria Bitter) limiter from
+    !Kuzmin, J. Comp. Appl. Math., 2010
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: t
+    !
+    ! This is the limited version of the field, we have to make a copy
+    type(scalar_field) :: T_limit, T_max, T_min
+    ! counters
+    integer :: ele, node, i, ele2
+    ! local numbers
+    integer, dimension(:), pointer :: T_ele,X_ele, T_max_ele, T_min_ele
+    !Coordinates field 
+    type(vector_field), pointer :: X
+    !Node-element list for coordinates
+    type(csr_sparsity), pointer :: NElist_X
+    !A pointer to a row in this list
+    integer, dimension(:), pointer :: ele_list
+    ! gradient scaling factor
+    real :: alpha
+    !local field values
+    real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
+    real :: Tbar, Tbar2
+    !max and mins
+    real :: uimax, uimin
+    integer :: stat
+
+    !Allocate copy of field
+    call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
+    T_limit%val = T%val
+
+    !Get coordinates
+    X=>extract_vector_field(state, "Coordinate")
+
+    assert(X%mesh%shape%degree==1)
+    assert(T%mesh%shape%degree==1)
+
+    call allocate(T_max,X%mesh,trim(T%name)//"LimitMax")
+    call allocate(T_min,X%mesh,trim(T%name)//"LimitMin")
+ 
+    T_max%val = -huge(0.0)
+    T_min%val = huge(0.0)
+
+    !Construct max and mins
+    do ele = 1, ele_count(T)
+       T_ele=>ele_nodes(T,ele)
+       X_ele=>ele_nodes(X,ele)
+       T_val = ele_val(T,ele)
+       Tbar = sum(T_val)/size(T_val)
+       T_max_ele=>ele_nodes(T_max,ele)
+       T_min_ele=>ele_nodes(T_min,ele)
+       !do maxes
+       T_val_max = ele_val(T_max,ele)
+       do node = 1, size(T_val)
+          T_val_max(node) = max(T_val_max(node),Tbar)
+       end do
+       call set(T_max,T_max_ele,T_val_max)
+       !do mins
+       T_val_min = ele_val(T_min,ele)
+       do node = 1, size(T_val)
+          T_val_min(node) = min(T_val_min(node),Tbar)
+       end do
+       call set(T_min,T_min_ele,T_val_min)
+    end do
+
+    !Loop over elements
+    do ele = 1, ele_count(T)
+       !Set slope factor to 1
+       alpha = 1.
+       !Get local node lists
+       T_ele=>ele_nodes(T,ele)
+       X_ele=>ele_nodes(X,ele)
+       T_val = ele_val(T,ele)
+       Tbar = sum(T_val)/size(T_val)
+       T_val_slope = T_val - Tbar
+       T_val_max = ele_val(T_max,ele)
+       T_val_min = ele_val(T_min,ele)
+
+       !loop over nodes, adjust alpha
+       do node = 1, size(T_val)
+          if(T_val(node)>Tbar*(1.0+1.0e-3)) then
+             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+          else if(T_val(node)<Tbar*(1.0-1.0e-3)) then
+             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
+          end if
+       end do
+       ewrite(3,*) 'cjc alpha', alpha
+       T_limit%val(T_ele) = Tbar + alpha*T_val_slope
+    end do
+
+    !call vtk_write_fields("Limiter_debugging", limiter_vtu_index, &
+    !     X, model = T%mesh, & 
+    !     & sfields = (/T,T_limit,T_max,T_min/), &
+    !     & stat = stat)
+    !if(stat /= 0) then
+    !   ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+    !end if
+    !limiter_vtu_index = limiter_vtu_index + 1
+
+    !Deallocate copy of field
+    T%val = T_limit%val
+    call deallocate(T_limit)
+    
+  end subroutine limit_vb
 
   subroutine limit_fpn(state, t)
     type(state_type), intent(inout) :: state
