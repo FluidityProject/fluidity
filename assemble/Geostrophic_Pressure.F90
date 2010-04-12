@@ -2790,6 +2790,18 @@ contains
                 ewrite(-1, *) "Pressure field: " // trim(aux_p_name)
                 FLExit("project_pressure selected, but pressure field has interpolation disabled")
               end if
+
+              if(have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // aux_p_name)) // "/galerkin_projection") .and. &
+                & have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/galerkin_projection") .and. &
+                & (have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/decompose") .or. &
+                & have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/interpolate_boundary")) .and. .not. &
+                & have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // aux_p_name)) // "/galerkin_projection/honour_strong_boundary_conditions")) then
+                ewrite(0, *) "For geostrophic interpolation of field: " // trim(field_name)
+                ewrite(0, *) "Warning: Conservative potential decompose or boundary_interpolation selected,"
+                ewrite(0, *) "with project_pressure and galerkin_projection for the conservative potential"
+                ewrite(0, *) "and pressure, but honour_strong_boundary_conditions has not been selected for"
+                ewrite(0, *) "pressure"
+              end if
             end if
             
             if(have_option(trim(path) // "/geostrophic_interpolation/geopressure")) then
