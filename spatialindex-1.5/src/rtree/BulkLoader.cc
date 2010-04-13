@@ -379,7 +379,7 @@ void BulkLoader::createLevel(
 	uint64_t P = static_cast<uint64_t>(std::ceil(static_cast<double>(es->getTotalEntries()) / static_cast<double>(b)));
 	uint64_t S = static_cast<uint64_t>(std::ceil(std::sqrt(static_cast<double>(P))));
 
-	if (S == 1 || dimension == pTree->m_dimension - 1)
+	if (S == 1 || dimension == pTree->m_dimension - 1 || S * b == es->getTotalEntries())
 	{
 		std::vector<ExternalSorter::Record*> node;
 		ExternalSorter::Record* r;
@@ -419,19 +419,12 @@ void BulkLoader::createLevel(
 			ExternalSorter::Record* pR;
 			Tools::SmartPointer<ExternalSorter> es3 = Tools::SmartPointer<ExternalSorter>(new ExternalSorter(pageSize, numberOfPages));
 			
-			if(S * b > 0)
+			for (uint64_t i = 0; i < S * b; ++i)
 			{
-			  for (uint64_t i = 0; i < S * b; ++i)
-			  {
-				  try { pR = es->getNextRecord(); }
-				  catch (Tools::EndOfStreamException) { bMore = false; break; }
-				  pR->m_s = dimension + 1;
-				  es3->insert(pR);
-			  }
-			}
-			else
-			{
-			  bMore = false;
+				try { pR = es->getNextRecord(); }
+				catch (Tools::EndOfStreamException) { bMore = false; break; }
+				pR->m_s = dimension + 1;
+				es3->insert(pR);
 			}
 			es3->sort();
 			createLevel(pTree, es3, dimension + 1, bleaf, bindex, level, es2, pageSize, numberOfPages);
