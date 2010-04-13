@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>diffusion-dg-stretched</name>
+  <owner userid="colin"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>for layer in 5 10 20 30; do ./generate_mesh $layer 1000; fluidity diffusion-dg-stretched.flml; cp diffusion-dg-stretched.stat stretched-$layer.stat; cp diffusion-dg-stretched_1.vtu stretched-$layer.vtu; done</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="convergenceBR" language="python">import numpy
+from fluidity_tools import stat_parser
+layers = numpy.array([5,10,20,30])
+dxs=1.0/layers
+errorBR=[]
+for layer in layers:
+        s=stat_parser("stretched-"+`layer`+".stat")
+        errorBR.append((s["MyState"]['BR_error']['l2norm'][-1]))
+
+errorBR=numpy.array(errorBR)
+convergenceBR=numpy.log(errorBR[:-1]/errorBR[1:])/numpy.log((1.0*layers[1:])/(1.0*layers[:-1]))
+print errorBR
+    </variable>
+    <variable name="convergenceCDG" language="python">import numpy
+from fluidity_tools import stat_parser
+layers = numpy.array([5,10,20,30])
+dxs=1.0/layers
+errorCDG=[]
+for layer in layers:
+        s=stat_parser("stretched-"+`layer`+".stat")
+        errorCDG.append((s["MyState"]['CDG_error']['l2norm'][-1]))
+
+errorCDG=numpy.array(errorCDG)
+convergenceCDG=numpy.log(errorCDG[:-1]/errorCDG[1:])/numpy.log((1.0*layers[1:])/(1.0*layers[:-1]))
+print errorCDG
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="CDGConvergesToSecondOrder" language="python">
+import numpy
+assert(numpy.all(convergenceCDG &gt;1.9))</test>
+  </pass_tests>
+  <pass_tests>
+    <test name="BRConvergesToSecondOrder" language="python">
+import numpy
+assert(numpy.all(convergenceBR &gt;1.9))</test>
+  </pass_tests>
+</testproblem>
