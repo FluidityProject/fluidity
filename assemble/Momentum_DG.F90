@@ -1972,7 +1972,7 @@ contains
 
       if (boundary) then
          do d=1,U%dim
-            if(dirichlet(dim)) then
+            if(dirichlet(d)) then
                !!These terms are not included on Neumann integrals
 
                !! Internal Degrees of Freedom
@@ -2028,12 +2028,12 @@ contains
 
 
       if (boundary) then
-         if(dirichlet(dim)) then
-            do d=1,U%dim
+         do d=1,U%dim
+            if(dirichlet(d)) then
                !!These terms are not included on Neumann integrals
                
                !! Internal Degrees of Freedom
-
+               
                !primal fluxes
                
                Viscosity_mat(d,u_face_loc,1:nele) = &
@@ -2052,8 +2052,8 @@ contains
                     Viscosity_mat(d,1:nele,start:finish) + &
                     transpose(primal_fluxes_mat(2,:,:)) 
                
-            end do
-         end if
+            end if
+         end do
       else
          do d=1,U%dim
             !! Internal Degrees of Freedom
@@ -2196,7 +2196,7 @@ contains
 
          add_mat = 0.0
          if(boundary) then
-            if (dirichlet(dim)) then
+            if (dirichlet(d)) then
                !Boundary case
                ! R(/tau,u) = -\int_e \tau.n u  dS
                !do d1 = 1, mesh_dim(U)
