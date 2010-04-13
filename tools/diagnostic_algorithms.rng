@@ -627,6 +627,16 @@ using a pressure projection method</a:documentation>
           <ref name="anystring"/>
         </element>
       </optional>
+      <optional>
+        <element name="bc_field">
+          <a:documentation>Use boundary conditions from this vector field, instead of the
+source field.</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+      </optional>
       <element name="spatial_discretisation">
         <a:documentation>Spatial discretisation options</a:documentation>
         <element name="mass">

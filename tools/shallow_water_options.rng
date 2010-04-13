@@ -5135,56 +5135,20 @@ less accurate but faster and might give smoother result.                  </a:do
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Compute the imbalanced component of velocity,
-that is,
-u - u_bal
-where u_bal is the velocity that puts the state in geostrophic
-balance.
-Note: if your VelocityMesh is continuous, then the solver option
-is necessary.</a:documentation>
+        <a:documentation>Projects the Coriolis term onto the mesh of this diagnostic field.
+Note that multiple projection methods are available (under the
+algorithm option).</a:documentation>
         <attribute name="rank">
           <value>1</value>
         </attribute>
         <attribute name="name">
-          <value>ImbalancedVelocity</value>
+          <value>Coriolis</value>
         </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <optional>
-              <element name="solver">
-                <ref name="linear_solver_options_sym"/>
-              </element>
-            </optional>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Compute the balanced component of velocity,
-that is, the velocity that puts the state in geostrophic
-balance.
-This diagnostic depends on ImbalancedVelocity.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>BalancedVelocity</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
+        <element name="diagnostic">
+          <ref name="coriolis_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
       </element>
     </choice>
     <!--

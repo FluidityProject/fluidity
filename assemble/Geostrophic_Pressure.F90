@@ -682,7 +682,7 @@ contains
   
   end subroutine subtract_given_geostrophic_pressure_gradient_element
           
-  subroutine allocate_cmc_matrices(matrices, state, field, p, option_path, gp, add_cmc)
+  subroutine allocate_cmc_matrices(matrices, state, field, p, option_path, bcfield, gp, add_cmc)
     !!< Allocate cmc_matrices. By default, this assembles the divergence C^T
     !!< and Laplacian C^T M^-1 C matrices.
   
@@ -691,6 +691,7 @@ contains
     type(vector_field), target, intent(inout) :: field
     type(scalar_field), target, intent(inout) :: p
     character(len = *), optional, intent(in) :: option_path
+    type(vector_field), optional, target, intent(in) :: bcfield
     !! If present, additionally assembles geopressure preconditioner matrices
     type(scalar_field), optional, intent(inout) :: gp
     !! If present and .false., do not assemble CMC itself
@@ -701,10 +702,16 @@ contains
     type(csr_sparsity) :: mass_sparsity
     type(csr_sparsity), pointer :: ct_sparsity
     type(scalar_field) :: inverse_masslump
-    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: lbcfield, positions
     
     ewrite(1, *) "In allocate_cmc_matrices"
-    
+
+    if(present(bcfield)) then
+      assert(bcfield%mesh == field%mesh)
+      lbcfield => bcfield
+    else
+      lbcfield => field
+    end if
     if(present(option_path)) then
       matrices%option_path = option_path
     else
@@ -722,6 +729,7 @@ contains
     ewrite(2, *) "Decomposed field: ", trim(field%name)
     ewrite(2, *) "On mesh: ", trim(matrices%u_mesh%name)
     ewrite(2, *) "Scalar potential mesh: ", trim(matrices%p_mesh%name)
+    ewrite(2, *) "Boundary conditions field: ", trim(lbcfield%name)
     
     ct_sparsity => get_csr_sparsity_firstorder(state, matrices%p_mesh, matrices%u_mesh)
     call allocate(matrices%ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
@@ -768,7 +776,7 @@ contains
     if(matrices%lump_mass) then
       call allocate(inverse_masslump, matrices%u_mesh, "InverseLumpedMass")    
       call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
-                                         test_mesh = matrices%p_mesh, field = field, &
+                                         test_mesh = matrices%p_mesh, field = lbcfield, &
                                          grad_mass_lumped = inverse_masslump, option_path = matrices%option_path)
       
       call invert(inverse_masslump)
@@ -778,10 +786,10 @@ contains
       end do
       call deallocate(inverse_masslump)
       
-      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_masslump_v, field)
+      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_masslump_v, lbcfield)
     else
       call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
-                                         test_mesh = matrices%p_mesh, field = field, &
+                                         test_mesh = matrices%p_mesh, field = lbcfield, &
                                          option_path = matrices%option_path)
 
       mass_sparsity = make_sparsity_dg_mass(matrices%u_mesh)  
@@ -796,7 +804,7 @@ contains
       do i = 2, dim
         matrices%inverse_mass_b%val(i, i)%ptr = inverse_mass%val
       end do
-      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_mass_b, field)
+      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_mass_b, lbcfield)
     end if
     
     if(present(gp)) then
@@ -1108,7 +1116,7 @@ contains
   end subroutine deallocate_cmc_matrices
           
   subroutine projection_decomposition(state, field, p, gp, option_path, &
-    & matrices)   
+    & bcfield, matrices)   
     !!< Perform a Helmholz decomposition of the supplied vector field using
     !!< a pressure projection solve.
   
@@ -1117,6 +1125,7 @@ contains
     type(scalar_field), target, intent(inout) :: p
     type(scalar_field), optional, intent(inout) :: gp
     character(len = *), optional, intent(in) :: option_path
+    type(vector_field), optional, intent(in) :: bcfield
     type(cmc_matrices), optional, intent(out) :: matrices
     
     type(cmc_matrices) :: lmatrices
@@ -1124,7 +1133,7 @@ contains
         
     ewrite(1, *) "In projection_decomposition"
   
-    call allocate(lmatrices, state, field, p, option_path = option_path, gp = gp, add_cmc = .true.)
+    call allocate(lmatrices, state, field, p, option_path = option_path, bcfield = bcfield, gp = gp, add_cmc = .true.)
     
     call allocate(cmc_rhs, lmatrices%p_mesh, "CMCRHS")
     call assemble_cmc_rhs(field, lmatrices, cmc_rhs, gp = gp)
@@ -1566,31 +1575,6 @@ contains
     end subroutine solve_coriolis_ele
     
   end subroutine coriolis_from_velocity
-    
-  subroutine copy_bcs(donor, target, bcname)
-    type(vector_field), intent(in) :: donor
-    type(vector_field), intent(inout) :: target
-    character(len = *), optional, intent(in) :: bcname
-    
-    character(len = FIELD_NAME_LEN) :: lbcname, bctype
-    integer :: i
-    integer, dimension(:), pointer:: surface_element_list
-    logical, dimension(donor%dim):: applies
-    
-    ewrite(2, *) "Bc count for field " // trim(donor%name), get_boundary_condition_count(donor)
-    do i = 1, get_boundary_condition_count(donor)
-      call get_boundary_condition(donor, i, name = lbcname, type = bctype, &
-        & surface_element_list = surface_element_list, applies = applies)
-      if(present(bcname)) then
-        if(.not. lbcname == bcname) cycle
-      end if
-         
-      ewrite(2, *), "Copying bc " // trim(lbcname)
-      call add_boundary_condition_surface_elements(target, lbcname, bctype,&
-        & surface_element_list, applies = applies)            
-    end do
-  
-  end subroutine copy_bcs
   
   subroutine interpolate_boundary_values(fields_a, positions_a, fields_b, positions_b, b_mesh, surface_element_list, b_fields)  
     !!< Consistently interpolate the values on the surface of fields_a onto the
@@ -2323,15 +2307,14 @@ contains
       call zero(old_p)
     end if      
     
-    call copy_bcs(old_velocity, coriolis)
     call set(old_res, coriolis)
     call allocate(conserv, dim, old_u_mesh, name = "CoriolisConservative")
     if(gp) then
       call geopressure_decomposition(old_state, coriolis, old_gp)
-      call projection_decomposition(old_state, coriolis, old_p, matrices = matrices, gp = old_gp) 
+      call projection_decomposition(old_state, coriolis, old_p, bcfield = old_velocity, matrices = matrices, gp = old_gp) 
       call correct_velocity(matrices, old_res, old_p, conserv = conserv, gp = old_gp)
     else
-      call projection_decomposition(old_state, coriolis, old_p, matrices = matrices) 
+      call projection_decomposition(old_state, coriolis, old_p, bcfield = old_velocity, matrices = matrices) 
       call correct_velocity(matrices, old_res, old_p, conserv = conserv)
     end if
     
@@ -2628,18 +2611,17 @@ contains
     
     ! Add the solenoidal component
     
-    call copy_bcs(new_velocity, new_res)
     call set(coriolis, new_res)
     if(have_option(trim(base_path) // "/residual/enforce_solenoidal")) then
       ! Project the interpolated residual to guarantee solenoidal
       call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
       res_p%option_path = new_p%option_path
       call zero(res_p)
-      call projection_decomposition(new_state, new_res, res_p, matrices = matrices)
+      call projection_decomposition(new_state, new_res, res_p, bcfield = new_velocity, matrices = matrices)
       call correct_velocity(matrices, coriolis, res_p)
       call deallocate(res_p)
     else
-      call allocate(matrices, new_state, new_res, new_p, add_cmc = .false.)
+      call allocate(matrices, new_state, new_res, new_p, bcfield = new_velocity, add_cmc = .false.)
     end if
 
     ! Add the conservative component  
@@ -2810,6 +2792,7 @@ contains
                 & have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/interpolate_boundary")) .and. .not. &
                 & have_option(trim(complete_field_path(trim(mat_phase_path) // "/scalar_field::" // aux_p_name)) // "/galerkin_projection/honour_strong_boundary_conditions")) then
                 ewrite(0, *) "For geostrophic interpolation of field: " // trim(field_name)
+                ewrite(0, *) "Pressure field: " // trim(aux_p_name)
                 ewrite(0, *) "Warning: Conservative potential decompose or boundary_interpolation selected,"
                 ewrite(0, *) "with project_pressure and galerkin_projection for the conservative potential"
                 ewrite(0, *) "and pressure, but honour_strong_boundary_conditions has not been selected for"

@@ -478,6 +478,12 @@ projection_scalar_potential_algorithm =
            attribute source_field_2_type { "scalar" },
            anystring
          }?,
+         ## Use boundary conditions from this vector field, instead of the
+         ## source field.
+         element bc_field {
+            attribute name { xsd:string },
+            comment
+         }?,
          ## Spatial discretisation options
          element spatial_discretisation {
             ## Options relating to the mass matrix

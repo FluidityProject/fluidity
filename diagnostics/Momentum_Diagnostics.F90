@@ -346,21 +346,28 @@ contains
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
 
-    character(len = OPTION_PATH_LEN) :: path
+    character(len = OPTION_PATH_LEN) :: bcfield_name, path
     type(scalar_field), pointer :: gp
-    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: bcfield, source_field
 
     source_field => vector_source_field(state, s_field, index = 1)
     
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+
+    if(have_option(trim(path) // "/bc_field")) then
+      call get_option(trim(path) // "/bc_field/name", bcfield_name)
+      bcfield => extract_vector_field(state, bcfield_name)
+    else
+      bcfield => source_field
+    end if
     
     if(have_option(trim(path) // "/source_field_2_name")) then
       gp => scalar_source_field(state, s_field, index = 2)
-      call projection_decomposition(state, source_field, s_field, gp = gp, &
-        & option_path = path)
+      call projection_decomposition(state, source_field, s_field, &
+        & bcfield = bcfield, gp = gp, option_path = path)
     else
       call projection_decomposition(state, source_field, s_field, &
-        & option_path = path)
+        & bcfield = bcfield, option_path = path)
     end if
 
   end subroutine calculate_projection_scalar_potential

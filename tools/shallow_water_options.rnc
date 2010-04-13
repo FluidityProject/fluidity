@@ -4212,45 +4212,17 @@ vector_field_choice =
                }
             )
          }|
-         ## Compute the imbalanced component of velocity,
-         ## that is,
-         ## u - u_bal
-         ## where u_bal is the velocity that puts the state in geostrophic
-         ## balance.
-         ## Note: if your VelocityMesh is continuous, then the solver option
-         ## is necessary.
+         ## Projects the Coriolis term onto the mesh of this diagnostic field.
+         ## Note that multiple projection methods are available (under the
+         ## algorithm option).
          element vector_field {
             attribute rank { "1" },
-            attribute name { "ImbalancedVelocity" },
+            attribute name { "Coriolis" },
             (
                element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  element solver {
-                  linear_solver_options_sym
-                  }?,
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Compute the balanced component of velocity,
-         ## that is, the velocity that puts the state in geostrophic
-         ## balance.
-         ## This diagnostic depends on ImbalancedVelocity.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "BalancedVelocity" },
-            (
-               element diagnostic {
-                  internal_algorithm,
+                  coriolis_algorithm,
                   velocity_mesh_choice,
                   diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
                }
             )
          }
