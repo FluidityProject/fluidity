@@ -87,10 +87,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">0.71E+3</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -203,17 +203,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin replaces="DISOPT">
             <viscosity_scheme>
-              <interior_penalty>
-                <penalty_parameter>
-                  <real_value rank="0">10</real_value>
-                </penalty_parameter>
-                <edge_length_power>
-                  <real_value rank="0">-1</real_value>
-                </edge_length_power>
-                <edge_length_option>
-                  <use_face_integral/>
-                </edge_length_option>
-              </interior_penalty>
+              <compact_discontinuous_galerkin/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

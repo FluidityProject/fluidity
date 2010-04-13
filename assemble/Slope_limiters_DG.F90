@@ -1432,12 +1432,14 @@ contains
        T_val_slope = T_val - Tbar
        T_val_max = ele_val(T_max,ele)
        T_val_min = ele_val(T_min,ele)
+       T_val_max = max(Tbar,T_val_max)
+       T_val_min = min(Tbar,T_val_min)
 
        !loop over nodes, adjust alpha
        do node = 1, size(T_val)
-          if(T_val(node)>Tbar*(1.0+1.0e-3)) then
+          if(T_val(node)>Tbar+1.0e-12) then
              alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
-          else if(T_val(node)<Tbar*(1.0-1.0e-3)) then
+          else if(T_val(node)<Tbar*-1.0e-12) then
              alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
           end if
        end do
