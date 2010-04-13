@@ -376,8 +376,9 @@ contains
     type(vector_field), pointer:: position
     character(len = FIELD_NAME_LEN) :: mesh_name
     character(len = OPTION_PATH_LEN) :: mesh_path, mesh_filename
-    integer :: i, n_meshes
+    integer :: i, n_meshes, stat1, stat2
     type(mesh_type), pointer :: mesh
+    logical :: from_file, extruded
     
     assert(len_trim(prefix) > 0)
 
@@ -385,7 +386,11 @@ contains
     do i = 0, n_meshes - 1
       ! Dump each mesh listed under /geometry/mesh that is from_file
       mesh_path = "/geometry/mesh[" // int2str(i) // "]"
-      if(have_option(trim(mesh_path) // "/from_file")) then
+      
+      from_file = have_option(trim(mesh_path) // "/from_file")
+      extruded = have_option(trim(mesh_path) // "/from_mesh/extrude")
+      
+      if(from_file .or. extruded) then
         ! Find the mesh (looking in first state)
         call get_option(trim(mesh_path) // "/name", mesh_name)
         mesh => extract_mesh(state(1), trim(mesh_name))
@@ -398,8 +403,19 @@ contains
         if(present_and_nonempty(postfix)) mesh_filename = trim(mesh_filename) // "_" // trim(postfix)
 
         ! Update the options tree (required for options tree checkpointing)
-        call set_option_attribute(trim(mesh_path) // "/from_file/format/name", "triangle")
-        call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
+        if (from_file) then
+          call set_option_attribute(trim(mesh_path) // "/from_file/format/name", "triangle")
+          call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
+        else if (extruded) then
+          !call add_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file", stat=stat)
+          !call add_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format", stat=stat)
+          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", "triangle", stat=stat1)
+          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
+          if ((stat1/=SPUD_NO_ERROR .and. stat1/=SPUD_NEW_KEY_WARNING) .or. &
+             & (stat2/=SPUD_NO_ERROR .and. stat2/=SPUD_NEW_KEY_WARNING)) then
+            FLAbort("Failed to modify extrude options for checkpointing.")
+          end if
+        end if
 
         if(get_active_nparts(ele_count(mesh)) > 1) then
           ! Write out the mesh

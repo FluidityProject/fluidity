@@ -298,6 +298,11 @@ module hadapt_advancing_front
 
       call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), element_owner=element_owners(1:faces_seen), boundary_ids=boundary_ids(1:faces_seen))
     end if
+    
+    if (associated(h_mesh%mesh%halos)) then
+      ! make sure we obey zoltan's ordering convention
+      call reorder_element_numbering(mesh)
+    end if
 
     call deallocate(top_nodes)
     call deallocate(bottom_nodes)

@@ -40,7 +40,7 @@ subroutine triangle2vtu(filename, filename_len)
   
   integer :: stat
   type(vector_field), target :: positions
-  type(scalar_field) :: mapA, mapB
+  type(scalar_field) :: mapA, mapB, regions
 
   positions=read_triangle_files(filename, quad_degree=3, no_faces=.true.)
 
@@ -56,8 +56,11 @@ subroutine triangle2vtu(filename, filename_len)
     call vtk_write_fields(filename, position=positions, &
          model=positions%mesh, sfields=(/mapA, mapB/), vfields=(/positions/))
   else
+    regions=piecewise_constant_field(positions%mesh, name="Regions")
+    regions%val=float(positions%mesh%region_ids)
     call vtk_write_fields(filename, position=positions, &
-         model=positions%mesh, vfields=(/positions/))
+         model=positions%mesh, vfields=(/positions/), sfields=(/ regions /))
+    call deallocate(regions)
   end if
   
   call deallocate(positions)

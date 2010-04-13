@@ -162,11 +162,12 @@ contains
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
-         & mesh_file_format
+         & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
+    logical :: from_file, extruded
     integer :: dim, loc
     integer :: quad_family
     integer :: nprocs
@@ -184,19 +185,26 @@ contains
        ! Save mesh path
        mesh_path="/geometry/mesh["//int2str(i)//"]"
 
-       if(have_option(trim(mesh_path)//"/from_file")) then
+       from_file_path = trim(mesh_path) // "/from_file"
+       from_file = have_option(from_file_path)
+       if (.not. from_file) then
+         from_file_path = trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file"
+         extruded = have_option(from_file_path)
+       end if
+      
+       if(from_file .or. extruded) then
 
           ! Get file format
           ! Can remove stat test when mesh format data backwards compatibility is removed
-          call get_option(trim(mesh_path)//"/from_file/format/name", mesh_file_format, stat)
+          call get_option(trim(from_file_path)//"/format/name", mesh_file_format, stat)
           ! Can remove following when mesh format data backwards compatibility is removed
           if(stat /= 0) then
              ewrite(0, *) "Warning: Mesh format name attribute missing for mesh " // trim(mesh_path)
-             call get_option(trim(mesh_path)//"/from_file/format", mesh_file_format)
+             call get_option(trim(from_file_path)//"/format", mesh_file_format)
           end if
 
           ! Get filename for mesh, and other options
-          call get_option(trim(mesh_path)//"/from_file/file_name", mesh_file_name)
+          call get_option(trim(from_file_path)//"/file_name", mesh_file_name)
           call get_option("/geometry/quadrature/degree", quad_degree)
           quad_family = get_quad_family()
 
@@ -326,13 +334,6 @@ contains
             call get_coplanar_ids(mesh, position, coplanar_ids)
           end if
           
-          ! Insert mesh and position field into states(1) and
-          ! alias it to all the others
-          call insert(states, mesh, mesh%name)
-          call insert(states, position, position%name)
-         
-          mesh%option_path=mesh_path
-          
           if (.not. have_option(trim(mesh_path)//'/exclude_from_mesh_adaptivity')) then
             ! We register this as the topology mesh
             ! this is the mesh used by adaptivity for error measures and such
@@ -344,9 +345,25 @@ contains
           end if
                     
           call surface_id_stats(mesh, position)
-
+          
+        end if
+        
+        if (from_file) then
+          
+          ! Insert mesh and position field into states(1) and
+          ! alias it to all the others
+          call insert(states, mesh, mesh%name)
+          call insert(states, position, position%name)
           call deallocate(position)
-       end if
+          
+        else if (extruded) then
+          
+          ! This will be picked up by insert_derived_meshes and changed
+          ! appropriately
+          call insert(states, position, "AdaptedExtrudedPositions")
+          call deallocate(position)
+          
+        end if
 
     end do external_mesh_loop
     

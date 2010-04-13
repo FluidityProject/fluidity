@@ -99,6 +99,23 @@ mesh_info =
             ## surface_id to assign to the bottom of the extruded mesh
             element bottom_surface_id {
                integer
+            }?,
+            ## This is an internal option used by checkpointing. The 
+            ## option is switched on automatically in writing a 
+            ## checkpoint, so that when starting from the checkpoint .flml
+            ## fluidity picks up the extruded mesh from file. After the next
+            ## adapt the extrusion is again done as specified in the other
+            ## extrusion options and under the adaptivity options.
+            element checkpoint_from_file {
+               element format {
+                  ## Triangle mesh format.
+                  ##
+                  ## Enter the base name without the .edge .ele, .face or
+                  ## .node extensions, and without process numbers.
+                  attribute name { "triangle" }
+               },
+               attribute file_name { xsd:string },
+               comment
             }?
          }?,
          derived_mesh_stat_options,
