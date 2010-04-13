@@ -1600,6 +1600,13 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
               <element name="write_debug_vtus">
                 <a:documentation>If enabled, pre and post interpolation decomposition vtus are
 written</a:documentation>
+                <optional>
+                  <element name="max_vtu_count">
+                    <a:documentation>Maximum number of debug vtus that will be written before
+over-writing existing vtus</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                </optional>
                 <ref name="comment"/>
               </element>
             </optional>

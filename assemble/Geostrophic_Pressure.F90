@@ -2234,6 +2234,7 @@ contains
     type(scalar_field), dimension(2) :: new_aux_p_decomp, old_aux_p_decomp
         
     logical :: debug_vtus
+    integer :: max_vtu_count
     integer, save :: vtu_index = 0
     type(scalar_field) :: div
 
@@ -2461,7 +2462,11 @@ contains
     
     call deallocate(matrices)
     
-    if(debug_vtus) vtu_index = vtu_index + 1
+    if(debug_vtus) then
+      vtu_index = vtu_index + 1
+      call get_option(trim(base_path) // "/debug/write_debug_vtus/max_vtu_count", max_vtu_count, stat = stat)
+      if(stat == SPUD_NO_ERROR) vtu_index = modulo(vtu_index, max_vtu_count)
+    end if
 
     ewrite(1, *) "Exiting initialise_geostrophic_interpolation_velocity"
 
@@ -2556,6 +2561,7 @@ contains
     type(scalar_field) :: new_aux_p_decomp
         
     logical :: debug_vtus
+    integer :: max_vtu_count
     integer, save :: vtu_index = 0
     type(scalar_field) :: div
 
@@ -2699,7 +2705,11 @@ contains
     call deallocate(new_res)
     if(gp) call deallocate(new_gp)
     
-    if(debug_vtus) vtu_index = vtu_index + 1
+    if(debug_vtus) then
+      vtu_index = vtu_index + 1
+      call get_option(trim(base_path) // "/debug/write_debug_vtus/max_vtu_count", max_vtu_count, stat = stat)
+      if(stat == SPUD_NO_ERROR) vtu_index = modulo(vtu_index, max_vtu_count)
+    end if
 
     ewrite(1, *) "Exiting finalise_geostrophic_interpolation_velocity"
     

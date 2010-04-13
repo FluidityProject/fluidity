@@ -1350,6 +1350,11 @@ interpolation_algorithm_vector =
            ## If enabled, pre and post interpolation decomposition vtus are
            ## written
            element write_debug_vtus {
+              ## Maximum number of debug vtus that will be written before
+              ## over-writing existing vtus
+              element max_vtu_count {
+                 integer
+              }?,
               comment
            }?,
            comment
