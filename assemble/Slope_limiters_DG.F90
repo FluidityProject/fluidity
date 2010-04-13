@@ -1457,7 +1457,9 @@ contains
     !Deallocate copy of field
     T%val = T_limit%val
     call deallocate(T_limit)
-    
+    call deallocate(T_max)
+    call deallocate(T_min)
+
   end subroutine limit_vb
 
   subroutine limit_fpn(state, t)
