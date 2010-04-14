@@ -806,6 +806,18 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="element_ownership_algorithm">
+    <element name="algorithm">
+      <a:documentation>The element halo ownership. Requires a degree 0 mesh. Sets the field
+equal to one for owner elements, and zero elsewhere.</a:documentation>
+      <attribute name="name">
+        <value>element_ownership</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="element_universal_numbering_algorithm">
     <element name="algorithm">
       <a:documentation>The element halo universal numbering. Requires a degree 0 mesh.</a:documentation>
@@ -1000,6 +1012,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="element_halo_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="element_ownership_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="element_universal_numbering_algorithm"/>

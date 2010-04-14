@@ -11,7 +11,7 @@ module parallel_diagnostics
   private
   
   public :: calculate_node_halo, calculate_element_halo, &
-    & calculate_element_universal_numbering
+    & calculate_element_ownership, calculate_element_universal_numbering
 
 contains
 
@@ -51,6 +51,32 @@ contains
     end do
     
   end subroutine calculate_element_halo
+
+  subroutine calculate_element_ownership(s_field)
+    type(scalar_field), intent(inout) :: s_field
+
+    integer :: i, nhalos
+    type(element_type), pointer :: shape
+    type(halo_type), pointer :: ele_halo
+
+    assert(ele_count(s_field) > 0)
+    shape => ele_shape(s_field, 1)
+    if(shape%degree /= 0) then
+      FLAbort("element_halo_ownership diagnostic requires a degree 0 mesh")
+    end if
+    assert(node_count(s_field) == ele_count(s_field))
+
+    nhalos = element_halo_count(s_field)
+    if(nhalos > 0) then
+      ele_halo => s_field%mesh%element_halos(nhalos)
+      do i = 1, node_count(s_field)
+        call set(s_field, i, float(halo_node_owner(ele_halo, i)))
+      end do
+    else
+      call set(s_field, 1.0)
+    end if
+    
+  end subroutine calculate_element_ownership
 
   subroutine calculate_element_universal_numbering(s_field)
     type(scalar_field), intent(inout) :: s_field
