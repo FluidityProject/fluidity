@@ -262,6 +262,15 @@ for example:
           assert(type == "string")
           if value == "binary":
             binaryFormat = True
+       
+      nColumns = 0  
+      for field in parsed.getElementsByTagName("field"):
+        components = field.getAttribute("components")
+        if components:
+          nColumns += int(components)
+        else:
+          nColumns += 1
+      columns = [[] for i in range(nColumns)]
 
       if binaryFormat:           
         for ele in constantEles:
@@ -283,17 +292,8 @@ for example:
             if not integer_size == 4:
               raise Exception("Unexpected integer size: " + str(real_size))
        
-        nColumns = 0  
-        for field in parsed.getElementsByTagName("field"):
-          components = field.getAttribute("components")
-          if components:
-            nColumns += int(components)
-          else:
-            nColumns += 1
-       
         statDatFile = file(filename + ".dat", "rb")
         
-        columns = [[] for i in range(nColumns)]
         while True:
           values = array.array(realFormat)
           try:
@@ -310,13 +310,6 @@ for example:
         
         statDatFile.close()
       else:
-        # Grab the first data line.
-        columns=[]
-        line=statfile.readline()
-        for entry in line.split():
-          columns.append([float(entry)])
-
-        # Now subsequent data lines:
         lineNo = 0
         for line in statfile:
           entries = map(float, line.split())
