@@ -190,6 +190,8 @@ contains
        if (.not. from_file) then
          from_file_path = trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file"
          extruded = have_option(from_file_path)
+       else
+         extruded = .false.
        end if
       
        if(from_file .or. extruded) then
