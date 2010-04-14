@@ -340,6 +340,8 @@ contains
       assert(trailing_receives_consistent(node_halo))
     end if
 #endif
+
+    call create_ownership(node_halo)
     
   end subroutine reorder_halo_from_element_halo
   
