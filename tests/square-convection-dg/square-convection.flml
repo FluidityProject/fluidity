@@ -203,7 +203,17 @@
         <spatial_discretisation>
           <discontinuous_galerkin replaces="DISOPT">
             <viscosity_scheme>
-              <compact_discontinuous_galerkin/>
+              <interior_penalty>
+                <penalty_parameter>
+                  <real_value rank="0">10</real_value>
+                </penalty_parameter>
+                <edge_length_power>
+                  <real_value rank="0">-1</real_value>
+                </edge_length_power>
+                <edge_length_option>
+                  <use_face_integral/>
+                </edge_length_option>
+              </interior_penalty>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -252,7 +262,6 @@
             <integer_value shape="4" rank="1">2 3 4 5</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
