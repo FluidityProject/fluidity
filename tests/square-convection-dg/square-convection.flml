@@ -87,10 +87,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude>
+      <magnitude replaces="GRAVTY">
         <real_value rank="0">0.71E+3</real_value>
       </magnitude>
-      <vector_field name="GravityDirection" rank="1">
+      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -262,6 +262,7 @@
             <integer_value shape="4" rank="1">2 3 4 5</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
