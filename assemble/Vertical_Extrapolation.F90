@@ -306,6 +306,12 @@ subroutine VerticalExtrapolationMultiple(from_fields, to_fields, &
              face_val( from_fields(i), face ) ))
      end do
   end do
+    
+  if (IsParallel()) then
+    do i=1, size(to_fields)
+      call halo_update(to_fields(i))
+    end do
+  end if
   
   if (.not. present(surface_name)) then
     call remove_boundary_condition(positions, "TempSurfaceName")
