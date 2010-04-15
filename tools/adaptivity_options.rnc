@@ -1098,8 +1098,8 @@ interpolation_algorithm_vector =
       element grandy_interpolation {
         empty
       }|
-      ## Helmholtz decomposed projection of the Coriolis force. Suitable only
-      ## for Velocity fields. This interpolation happens in three stages:
+      ## Helmholtz decomposed projection of the Coriolis acceleration. Suitable
+      ## only for Velocity fields. This interpolation happens in three stages:
       ##
       ##   1. Computation of Coriolis and its Helmholtz decomposition
       ##   2. Interpolation of the Helmholtz decomposition
@@ -1123,6 +1123,46 @@ interpolation_algorithm_vector =
       ## homogenenous (see
       ## geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).
       element geostrophic_interpolation {
+        element coriolis {
+           (
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { "VelocityMesh" }
+               }|
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { "PressureMesh" }
+               }|
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { "CoordinateMesh" }
+               }|
+               ## The mesh used for the Coriolis acceleration. Defaults to the
+               ## Velocity mesh if not supplied.
+               element mesh {
+                  attribute name { string }
+               }
+            )?,
+            ## Options relating to the mass matrix used in computing the
+            ## Coriolis acceleration from velocity, and velocity from the
+            ## Coriolis acceleration.
+            element mass {
+#               (
+#                  ## Solver options. Required for a continuous consistent mass
+#                  ## projection.
+#                  element solver {
+#                     solver_options_sym
+#                  }|
+#                  ## Lump the mass matrix
+#                  element lump_mass {
+#                  }
+#               )?,
+               comment
+            }
+        },
         ## Options relating to the conservative potential component of the
         ## Helmholtz decomposition
         element conservative_potential {

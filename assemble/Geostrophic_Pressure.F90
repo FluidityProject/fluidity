@@ -2211,13 +2211,13 @@ contains
     type(state_type), intent(inout) :: new_state
     type(vector_field), target, intent(in) :: new_velocity
 
-    character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
+    character(len = OPTION_PATH_LEN) :: base_path, u_mesh_name, p_mesh_name
     integer :: dim, stat
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w
     type(vector_field) :: coriolis, conserv, new_res, old_res
-    type(vector_field), pointer :: new_positions, old_positions
+    type(vector_field), pointer :: lold_velocity, new_positions, old_positions
 
     logical :: gp
     character(len = OPTION_PATH_LEN) :: gp_mesh_name
@@ -2245,23 +2245,37 @@ contains
     base_path = trim(complete_field_path(new_velocity%option_path, stat = stat)) // "/geostrophic_interpolation"
     ewrite(2, *) "Option path: " // trim(base_path)
     debug_vtus = have_option(trim(base_path) // "/debug/write_debug_vtus")
-
-    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
-    old_u_mesh => old_velocity%mesh
-    old_p_mesh => extract_mesh(old_state, p_mesh_name)
-    new_u_mesh => new_velocity%mesh
-    new_p_mesh => extract_mesh(new_state, p_mesh_name)
     
     old_positions => extract_vector_field(old_state, "Coordinate")
     new_positions => extract_vector_field(new_state, "Coordinate")
     dim = old_positions%dim
     assert(any(dim == (/2, 3/)))
 
+    call get_option(trim(base_path) // "/coriolis/mesh/name", u_mesh_name, stat = stat)
+    if(stat == SPUD_NO_ERROR) then
+      old_u_mesh => extract_mesh(old_state, u_mesh_name)
+      new_u_mesh => extract_mesh(new_state, u_mesh_name)
+      allocate(lold_velocity)
+      call allocate(lold_velocity, old_velocity%dim, old_u_mesh, old_velocity%name)
+      lold_velocity%option_path = old_velocity%option_path
+      call remap_field(old_velocity, lold_velocity)
+      call populate_vector_boundary_conditions(lold_velocity, trim(complete_field_path(lold_velocity%option_path)) // "/boundary_conditions", old_positions)
+    else
+      old_u_mesh => old_velocity%mesh
+      new_u_mesh => new_velocity%mesh
+      allocate(lold_velocity)
+      lold_velocity = old_velocity
+      call incref(lold_velocity)
+    end if
+    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
+    old_p_mesh => extract_mesh(old_state, p_mesh_name)
+    new_p_mesh => extract_mesh(new_state, p_mesh_name)
+
     ! Compute the old Coriolis
                 
     call allocate(coriolis, dim, old_u_mesh, "Coriolis")
-    coriolis%option_path = old_velocity%option_path
-    call coriolis_from_velocity(old_state, old_velocity, coriolis)
+    coriolis%option_path = lold_velocity%option_path
+    call coriolis_from_velocity(old_state, lold_velocity, coriolis)
         
     call allocate(old_p, old_p_mesh, gi_conservative_potential_name)
     old_p%option_path = trim(base_path) // "/conservative_potential"
@@ -2312,25 +2326,25 @@ contains
     call allocate(conserv, dim, old_u_mesh, name = "CoriolisConservative")
     if(gp) then
       call geopressure_decomposition(old_state, coriolis, old_gp)
-      call projection_decomposition(old_state, coriolis, old_p, bcfield = old_velocity, matrices = matrices, gp = old_gp) 
+      call projection_decomposition(old_state, coriolis, old_p, bcfield = lold_velocity, matrices = matrices, gp = old_gp) 
       call correct_velocity(matrices, old_res, old_p, conserv = conserv, gp = old_gp)
     else
-      call projection_decomposition(old_state, coriolis, old_p, bcfield = old_velocity, matrices = matrices) 
+      call projection_decomposition(old_state, coriolis, old_p, bcfield = lold_velocity, matrices = matrices) 
       call correct_velocity(matrices, old_res, old_p, conserv = conserv)
     end if
     
     if(debug_vtus) then
-      call allocate(div, old_p_mesh, trim(old_velocity%name) // "Divergence")
+      call allocate(div, old_p_mesh, trim(lold_velocity%name) // "Divergence")
       call set_solver_options(temp_solver_path, ksptype = "cg", pctype = "sor", rtol = 0.0, atol = epsilon(0.0), max_its = 10000)
       div%option_path = temp_solver_path
       call zero(div)
-      call compute_divergence(old_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
+      call compute_divergence(lold_velocity, matrices%ct_m, get_mass_matrix(old_state, old_p_mesh), div)  
       if(gp) then
         call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-          & sfields = (/old_p, old_gp, div/), vfields = (/old_velocity, coriolis, conserv, old_res/), stat = stat)
+          & sfields = (/old_p, old_gp, div/), vfields = (/lold_velocity, coriolis, conserv, old_res/), stat = stat)
       else
         call vtk_write_fields("geostrophic_interpolation_old", vtu_index, old_positions, model = old_u_mesh, &
-          & sfields = (/old_p, div/), vfields = (/old_velocity, coriolis, conserv, old_res/), stat = stat)
+          & sfields = (/old_p, div/), vfields = (/lold_velocity, coriolis, conserv, old_res/), stat = stat)
       end if
       if(stat /= 0) then
         ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
@@ -2353,7 +2367,7 @@ contains
       ! Insert the vertical Velocity
       call allocate(old_w, old_u_mesh, gi_w_name)
       old_w%option_path = old_res%option_path
-      call set(old_w, old_velocity, W_)
+      call set(old_w, lold_velocity, W_)
       ewrite_minmax(old_w%val)
       
       call allocate(new_w, new_u_mesh, old_w%name)
@@ -2461,6 +2475,8 @@ contains
     end if
     
     call deallocate(matrices)
+    call deallocate(lold_velocity)
+    deallocate(lold_velocity)
     
     if(debug_vtus) then
       vtu_index = vtu_index + 1
@@ -2539,14 +2555,14 @@ contains
     type(state_type), intent(inout) :: new_state
     type(vector_field), target, intent(inout) :: new_velocity
 
-    character(len = OPTION_PATH_LEN) :: base_path, p_mesh_name
+    character(len = OPTION_PATH_LEN) :: base_path, u_mesh_name, p_mesh_name
     integer :: dim, stat
     type(cmc_matrices) :: matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh
     type(scalar_field) :: res_p
     type(scalar_field) :: new_p, new_w
     type(vector_field) :: conserv, coriolis, new_res
-    type(vector_field), pointer :: new_positions
+    type(vector_field), pointer :: lnew_velocity, new_positions
 
     logical :: gp
     type(scalar_field) :: new_gp
@@ -2573,13 +2589,26 @@ contains
     ewrite(2, *) "Option path: " // trim(base_path)
     debug_vtus = have_option(trim(base_path) // "/debug/write_debug_vtus")
     
-    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
-    new_u_mesh => new_velocity%mesh
-    new_p_mesh => extract_mesh(new_state, p_mesh_name)
-    
     new_positions => extract_vector_field(new_state, "Coordinate")
     dim = new_positions%dim
     assert(any(dim == (/2, 3/)))
+    
+    call get_option(trim(base_path) // "/coriolis/mesh/name", u_mesh_name, stat = stat)
+    if(stat == SPUD_NO_ERROR) then
+      new_u_mesh => extract_mesh(new_state, u_mesh_name)
+      allocate(lnew_velocity)
+      call allocate(lnew_velocity, new_velocity%dim, new_u_mesh, new_velocity%name)
+      lnew_velocity%option_path = new_velocity%option_path
+      call remap_field(new_velocity, lnew_velocity)
+      call populate_vector_boundary_conditions(lnew_velocity, trim(complete_field_path(lnew_velocity%option_path)) // "/boundary_conditions", new_positions)
+    else
+      new_u_mesh => new_velocity%mesh
+      allocate(lnew_velocity)
+      lnew_velocity = new_velocity
+      call incref(lnew_velocity)
+    end if
+    call get_option(trim(base_path) // "/conservative_potential/mesh/name", p_mesh_name)
+    new_p_mesh => extract_mesh(new_state, p_mesh_name)
 
     new_p = extract_interpolated_scalar(new_state, gi_conservative_potential_name)
     ! Make sure strong Dirichlet bcs are applied
@@ -2623,11 +2652,11 @@ contains
       call allocate(res_p, new_p_mesh, trim(new_res%name) // "ConservativePotential")
       res_p%option_path = new_p%option_path
       call zero(res_p)
-      call projection_decomposition(new_state, new_res, res_p, bcfield = new_velocity, matrices = matrices)
+      call projection_decomposition(new_state, new_res, res_p, bcfield = lnew_velocity, matrices = matrices)
       call correct_velocity(matrices, coriolis, res_p)
       call deallocate(res_p)
     else
-      call allocate(matrices, new_state, new_res, new_p, bcfield = new_velocity, add_cmc = .false.)
+      call allocate(matrices, new_state, new_res, new_p, bcfield = lnew_velocity, add_cmc = .false.)
     end if
 
     ! Add the conservative component  
@@ -2656,27 +2685,27 @@ contains
     
     ! Invert for the new Velocity
     
-    call velocity_from_coriolis(new_state, coriolis, new_velocity)    
+    call velocity_from_coriolis(new_state, coriolis, lnew_velocity)    
     if(dim == 3) then
       ! Recover the vertical velocity
-      ewrite_minmax(new_velocity%val(W_)%ptr)
-      call set(new_velocity, W_, new_w)
-      ewrite_minmax(new_velocity%val(W_)%ptr)
+      ewrite_minmax(lnew_velocity%val(W_)%ptr)
+      call set(lnew_velocity, W_, new_w)
+      ewrite_minmax(lnew_velocity%val(W_)%ptr)
       call deallocate(new_w)
     end if
     
     if(debug_vtus) then
-      call allocate(div, new_p_mesh, trim(new_velocity%name) // "Divergence")
+      call allocate(div, new_p_mesh, trim(lnew_velocity%name) // "Divergence")
       call set_solver_options(temp_solver_path, ksptype = "cg", pctype = "sor", rtol = 0.0, atol = epsilon(0.0), max_its = 10000)
       div%option_path = temp_solver_path
       call zero(div)
-      call compute_divergence(new_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
+      call compute_divergence(lnew_velocity, matrices%ct_m, get_mass_matrix(new_state, new_p_mesh), div)    
       if(gp) then
         call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-          & sfields = (/new_p, new_gp, div/), vfields = (/new_velocity, coriolis, conserv, new_res/), stat = stat)
+          & sfields = (/new_p, new_gp, div/), vfields = (/lnew_velocity, coriolis, conserv, new_res/), stat = stat)
       else
         call vtk_write_fields("geostrophic_interpolation_new", vtu_index, new_positions, model = new_u_mesh, &
-          & sfields = (/new_p, div/), vfields = (/new_velocity, coriolis, conserv, new_res/), stat = stat)
+          & sfields = (/new_p, div/), vfields = (/lnew_velocity, coriolis, conserv, new_res/), stat = stat)
       end if
       if(stat /= 0) then
         ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
@@ -2704,6 +2733,8 @@ contains
     call deallocate(new_p)
     call deallocate(new_res)
     if(gp) call deallocate(new_gp)
+    call deallocate(lnew_velocity)
+    deallocate(lnew_velocity)
     
     if(debug_vtus) then
       vtu_index = vtu_index + 1
@@ -2723,7 +2754,7 @@ contains
       & geostrophic_pressure_option
     integer :: i, j, reference_node, stat
 
-    character(len = OPTION_PATH_LEN) :: aux_p_name, p_mesh_name
+    character(len = OPTION_PATH_LEN) :: aux_p_name, mesh_name
     
     if(option_count("/material_phase/scalar_field::" // gp_name) > 0) then
       ewrite(2, *) "Checking GeostrophicPressure options"
@@ -2781,11 +2812,19 @@ contains
           call get_option(trim(path) // "/name", field_name)
           path = complete_field_path(path, stat = stat)
           
-          if(have_option(trim(path) // "/geostrophic_interpolation")) then
-            call get_option(trim(path) // "/geostrophic_interpolation/conservative_potential/mesh/name", p_mesh_name)
-            if(option_count("/geometry/mesh::" // trim(p_mesh_name)) == 0) then
+          if(have_option(trim(path) // "/geostrophic_interpolation")) then 
+            call get_option(trim(path) // "/geostrophic_interpolation/coriolis/mesh/name", mesh_name, stat = stat)
+            if(stat == SPUD_NO_ERROR) then
+              if(option_count("/geometry/mesh::" // trim(mesh_name)) == 0) then
+                ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+                FLExit("Coriolis mesh " // trim(mesh_name) // " is not defined")
+              end if
+            end if
+                     
+            call get_option(trim(path) // "/geostrophic_interpolation/conservative_potential/mesh/name", mesh_name)
+            if(option_count("/geometry/mesh::" // trim(mesh_name)) == 0) then
               ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
-              FLExit("Conservative potential mesh " // trim(p_mesh_name) // " is not defined")
+              FLExit("Conservative potential mesh " // trim(mesh_name) // " is not defined")
             end if
           
             if(have_option(trim(path) // "/geostrophic_interpolation/conservative_potential/project_pressure")) then
@@ -2811,10 +2850,10 @@ contains
             end if
             
             if(have_option(trim(path) // "/geostrophic_interpolation/geopressure")) then
-              call get_option(trim(path) // "/geostrophic_interpolation/geopressure/mesh/name", p_mesh_name)
-              if(option_count("/geometry/mesh::" // trim(p_mesh_name)) == 0) then
+              call get_option(trim(path) // "/geostrophic_interpolation/geopressure/mesh/name", mesh_name)
+              if(option_count("/geometry/mesh::" // trim(mesh_name)) == 0) then
                 ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
-                FLExit("Geopressure mesh " // trim(p_mesh_name) // " is not defined")
+                FLExit("Geopressure mesh " // trim(mesh_name) // " is not defined")
               end if
             
               call get_option(trim(path) // "/geostrophic_interpolation/geopressure/reference_node", reference_node, stat = stat)

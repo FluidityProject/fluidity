@@ -1312,8 +1312,8 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
         <empty/>
       </element>
       <element name="geostrophic_interpolation">
-        <a:documentation>Helmholtz decomposed projection of the Coriolis force. Suitable only
-for Velocity fields. This interpolation happens in three stages:
+        <a:documentation>Helmholtz decomposed projection of the Coriolis acceleration. Suitable
+only for Velocity fields. This interpolation happens in three stages:
 
   1. Computation of Coriolis and its Helmholtz decomposition
   2. Interpolation of the Helmholtz decomposition
@@ -1336,6 +1336,58 @@ For shallow-water modelling the interpolants for layer thickness and
 the conservative potential must be identical and degree one
 homogenenous (see
 geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).</a:documentation>
+        <element name="coriolis">
+          <optional>
+            <choice>
+              <element name="mesh">
+                <a:documentation>The mesh used for the Coriolis acceleration. Defaults to the
+Velocity mesh if not supplied.</a:documentation>
+                <attribute name="name">
+                  <value>VelocityMesh</value>
+                </attribute>
+              </element>
+              <element name="mesh">
+                <a:documentation>The mesh used for the Coriolis acceleration. Defaults to the
+Velocity mesh if not supplied.</a:documentation>
+                <attribute name="name">
+                  <value>PressureMesh</value>
+                </attribute>
+              </element>
+              <element name="mesh">
+                <a:documentation>The mesh used for the Coriolis acceleration. Defaults to the
+Velocity mesh if not supplied.</a:documentation>
+                <attribute name="name">
+                  <value>CoordinateMesh</value>
+                </attribute>
+              </element>
+              <element name="mesh">
+                <a:documentation>The mesh used for the Coriolis acceleration. Defaults to the
+Velocity mesh if not supplied.</a:documentation>
+                <attribute name="name">
+                  <data type="string" datatypeLibrary=""/>
+                </attribute>
+              </element>
+            </choice>
+          </optional>
+          <element name="mass">
+            <a:documentation>Options relating to the mass matrix used in computing the
+Coriolis acceleration from velocity, and velocity from the
+Coriolis acceleration.</a:documentation>
+            <!--
+                            (
+                               ## Solver options. Required for a continuous consistent mass
+                               ## projection.
+                               element solver {
+                                  solver_options_sym
+                               }|
+                               ## Lump the mass matrix
+                               element lump_mass {
+                               }
+                            )?,
+            -->
+            <ref name="comment"/>
+          </element>
+        </element>
         <element name="conservative_potential">
           <a:documentation>Options relating to the conservative potential component of the
 Helmholtz decomposition</a:documentation>

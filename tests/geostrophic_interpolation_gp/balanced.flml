@@ -238,6 +238,9 @@
           <include_in_steady_state/>
         </steady_state>
         <geostrophic_interpolation>
+          <coriolis>
+            <mass/>
+          </coriolis>
           <conservative_potential>
             <mesh name="CoordinateMesh"/>
             <spatial_discretisation>
@@ -365,7 +368,7 @@
     </vector_field>
     <scalar_field name="Div" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="finite_element_divergence">
+        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="eisenstat"/>
@@ -424,7 +427,7 @@
     </vector_field>
     <vector_field name="Imbal" rank="1">
       <diagnostic>
-        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="Bal" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="Bal" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat>
@@ -446,7 +449,7 @@
     <prescribed_adaptivity>
       <adapt_interval>
         <python>
-          <string_value type="python" lines="20">def val(t):
+          <string_value lines="20" type="python">def val(t):
 	if "timestep_count" in persistent:
 		persistent["timestep_count"] += 1
 	else:
@@ -457,7 +460,7 @@
       <mesh>
         <name>
           <python>
-            <string_value type="python" lines="20">def val(t):
+            <string_value lines="20" type="python">def val(t):
 	meshes = ["basin", "first_timestep_adapted_mesh"]
 	if "mesh_count" in persistent:
 		persistent["mesh_count"] +=1 

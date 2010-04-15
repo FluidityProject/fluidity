@@ -166,6 +166,9 @@
           <include_in_steady_state/>
         </steady_state>
         <geostrophic_interpolation>
+          <coriolis>
+            <mass/>
+          </coriolis>
           <conservative_potential>
             <mesh name="PressureMesh"/>
             <spatial_discretisation>
