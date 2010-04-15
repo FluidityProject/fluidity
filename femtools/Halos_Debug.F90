@@ -42,6 +42,10 @@ module halos_debug
   public :: valid_serial_halo, pending_communication, valid_halo_communicator, &
     & valid_halo_node_counts, halo_valid_for_communication, &
     & trailing_receives_consistent, print_halo
+
+  interface pending_communication
+    module procedure pending_communication_halo
+  end interface pending_communication
   
 contains
 
@@ -54,31 +58,21 @@ contains
     
   end function valid_serial_halo
 
-  function pending_communication(halo) result(pending)
+  function pending_communication_halo(halo) result(pending)
     !!< Return whether there is a pending communication for the supplied halo.
     
     type(halo_type), intent(in) :: halo
     
     logical :: pending
     
-#ifdef HAVE_MPI
-    integer :: ierr, ipending
-    
+#ifdef HAVE_MPI    
     assert(valid_halo_communicator(halo))
-    call mpi_iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, halo_communicator(halo), ipending, MPI_STATUS_IGNORE, ierr)
-    assert(ierr == MPI_SUCCESS)
-    
-    pending = (ipending /= 0)
-
-    ! Note - removing this mpi_barrier could result in a false
-    ! positive on another process.
-    call mpi_barrier(halo_communicator(halo), ierr)
-    assert(ierr == MPI_SUCCESS)
+    pending = pending_communication(communicator = halo_communicator(halo))
 #else
     pending = .false.
 #endif  
     
-  end function pending_communication
+  end function pending_communication_halo
 
   function valid_halo_communicator(halo) result(valid)
     !!< Return whether the communicator for the supplied halo corresponds to

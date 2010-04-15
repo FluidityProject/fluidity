@@ -41,7 +41,7 @@ module parallel_tools
   public :: allor, alland, allmax, allmin, allsum, allmean, allsumv, allfequals,&
        get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
        isparallel, parallel_filename, parallel_filename_len, &
-       valid_communicator, next_mpi_tag
+       pending_communication, valid_communicator, next_mpi_tag
   
   interface allmax
     module procedure allmax_integer, allmax_real
@@ -69,6 +69,10 @@ module parallel_tools
     module procedure parallel_filename_no_extension, &
       & parallel_filename_with_extension
   end interface
+
+  interface pending_communication
+    module procedure pending_communication_communicator
+  end interface pending_communication
 
 contains
 
@@ -570,6 +574,39 @@ contains
 #endif
 
   end subroutine HalgetNB_simple
+
+  function pending_communication_communicator(communicator) result(pending)
+    !!< Return whether there is a pending communication for the supplied communicator.
+    
+    integer, optional, intent(in) :: communicator
+
+    logical :: pending
+
+    integer :: lcommunicator
+
+#ifdef HAVE_MPI
+    integer :: ierr, ipending
+    
+    if(present(communicator)) then
+      lcommunicator = communicator
+    else
+      lcommunicator = MPI_COMM_WORLD
+    end if    
+
+    call mpi_iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, lcommunicator, ipending, MPI_STATUS_IGNORE, ierr)
+    assert(ierr == MPI_SUCCESS)
+    
+    pending = (ipending /= 0)
+
+    ! Note - removing this mpi_barrier could result in a false
+    ! positive on another process.
+    call mpi_barrier(lcommunicator, ierr)
+    assert(ierr == MPI_SUCCESS)
+#else
+    pending = .false.
+#endif
+    
+  end function pending_communication_communicator
   
   function valid_communicator(communicator) result(valid)
     !!< Return whether the supplied MPI communicator is valid
