@@ -63,12 +63,72 @@ def convergence(dx):
             
     return error
 
+def convergence(dx):
+
+    error = numpy.zeros(dx.size)
+
+    binary="../../bin/shallow_water"
+
+    dt=0.0125
+    for x in enumerate(dx):
+        generate_meshfile("square",x[1])
+
+        last_error=1.e100
+        while True:
+            print "Simulation with dx="+`x[1]`+" and dt="+`dt`
+            
+            os.system("spud-set inertia_gravity.swml /timestepping/timestep "+str(dt))
+            
+            os.system(binary+" inertia_gravity.swml")
+            
+            s=stat_parser("inertia_gravity.stat")
+            this_error=s["Fluid"]['LayerThicknessError']['l2norm'][-1]
+
+            if numpy.abs((this_error-last_error)/this_error) <0.01:
+                # Set dt to twice the current level so that the next stage
+                # has some chance to converge at the same dt.
+                dt=dt*2
+
+                print "converged! dx="+`x[1]`+" and dt="+`dt`
+                print "this error="+`this_error`+" last_error="+`last_error`
+
+                error[x[0]]=this_error
+                break
+
+            last_error=this_error
+            dt=dt*.5
+            
+    return error
+
+def convergence_constant_dt(dx):
+
+    error = numpy.zeros(dx.size)
+
+    binary="../../bin/shallow_water"
+
+    dt=0.003125
+    for x in enumerate(dx):
+        generate_meshfile("square",x[1])
+
+        last_error=1.e100
+        print "Simulation with dx="+`x[1]`+" and dt="+`dt`
+        
+        os.system("spud-set inertia_gravity.swml /timestepping/timestep "+str(dt))
+            
+        os.system(binary+" inertia_gravity.swml")
+            
+        s=stat_parser("inertia_gravity.stat")
+        this_error=s["Fluid"]['LayerThicknessError']['l2norm'][-1]
+        
+        error[x[0]]=this_error
+            
+    return error
 
 
 g=1
 H=1
 c=(g*H)**0.5
-f=1
+f=0.0
 
 k=numpy.array([1,2])
 phi=0.01
