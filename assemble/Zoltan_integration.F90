@@ -141,7 +141,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
 !   elements with quality greater than this value are ok
 !   those with element quality below it need to be adapted
-    integer, parameter :: quality_tolerance = 0.6
+    real, parameter :: quality_tolerance = 0.6
     integer :: count
     integer :: node, i, j, nnode
     integer :: head
