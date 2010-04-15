@@ -337,6 +337,23 @@ will get cut off by final_timestep</comment>
         <do_not_recalculate/>
       </prescribed>
     </scalar_field>
+    <scalar_field name="NodeOwner" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <material_phase name="Material2">
     <scalar_field name="Density" rank="0">
@@ -583,8 +600,10 @@ will get cut off by final_timestep</comment>
         </anisotropic_symmetric>
       </tensor_field>
       <debug>
+        <write_metric_stages/>
         <write_adapted_mesh/>
         <write_adapted_state/>
+        <checkpoint/>
       </debug>
     </hr_adaptivity>
   </mesh_adaptivity>
