@@ -43,10 +43,8 @@ import diamond.schema as schema
 debug.SetDebugLevel(0)
 
 class DiamondValidator:
-  def __init__(self, rootDir, testDir, depth):
+  def __init__(self, rootDir):
     self._rootDir = rootDir
-    self._testDir = os.path.join(rootDir, testDir)
-    self._depth = depth
     self.Reset()
     
     return
@@ -57,9 +55,9 @@ class DiamondValidator:
     
     return
     
-  def TestXmlFiles(self):
+  def TestXmlFiles(self, testDir, depth):
     debug.dprint("Checking xml files:", 0)
-    for filename in self._TestFiles("xml"):
+    for filename in self._TestFiles("xml", testDir, depth):
       try:
         xmlParse = xml.dom.minidom.parse(filename)
         debug.dprint(filename + " : Pass", 0)
@@ -70,7 +68,7 @@ class DiamondValidator:
     
     return
     
-  def ValidateOptionsFiles(self, schemafile, extension = None, xmlRootNode = None):
+  def ValidateOptionsFiles(self, schemafile, testDir, depth, extension = None, xmlRootNode = None):
     debug.dprint("Validating options file against schema: " + schemafile, 0)
   
     schemafile = os.path.join(self._rootDir, schemafile)
@@ -78,7 +76,7 @@ class DiamondValidator:
 
     if not extension is None:
       debug.dprint("Testing files with extension: " + extension, 0)
-      for filename in self._TestFiles(extension): 
+      for filename in self._TestFiles(extension, testDir, depth): 
         optionsTree = sch.read(filename)
         lost_eles, added_eles = sch.read_errors()
         if len(lost_eles) + len(added_eles) == 0 and optionsTree.valid:
@@ -90,7 +88,7 @@ class DiamondValidator:
           
     if not xmlRootNode is None:
       debug.dprint("Testing xml files with root node: " + xmlRootNode, 0)
-      for filename in self._TestFiles("xml"):
+      for filename in self._TestFiles("xml", testDir, depth):
         try:
           xmlParse = xml.dom.minidom.parse(filename)
         except xml.parsers.expat.ExpatError:
@@ -109,10 +107,10 @@ class DiamondValidator:
     
     return
     
-  def _TestFiles(self, extension):
+  def _TestFiles(self, extension, testDir, depth):
     filenames = []
-    baseDir = self._testDir
-    for i in range(self._depth + 1):
+    baseDir = os.path.join(self._rootDir, testDir)
+    for i in range(depth + 1):
       filenames += glob.glob(os.path.join(baseDir, "*." + extension))
       baseDir = os.path.join(baseDir, "*")
     
@@ -124,12 +122,18 @@ class DiamondValidator:
   def OptionErrors(self):
     return self._optionErrors
 
-validator = DiamondValidator(rootDir = os.path.join(os.path.pardir, os.path.pardir), testDir = "tests", depth = 2)
-validator.TestXmlFiles()
-validator.ValidateOptionsFiles(os.path.join("tools", "test_options.rng"), xmlRootNode = "testproblem")
-validator.ValidateOptionsFiles(os.path.join("tools", "fluidity_options.rng"), extension = "flml", xmlRootNode = "fluidity_options")
-validator.ValidateOptionsFiles(os.path.join("tools", "shallow_water_options.rng"), extension = "swml")
-#validator.ValidateOptionsFiles(os.path.join("qg_strat", "qg_strat_options.rng"), extension = "qgml")
+validator = DiamondValidator(rootDir = os.path.join(os.path.pardir, os.path.pardir))
+
+# Fluidity
+validator.TestXmlFiles(testDir = "tests", depth = 2)
+validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "test_options.rng"), testDir = "tests", depth = 2, xmlRootNode = "testproblem")
+validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "fluidity_options.rng"), testDir = "tests", depth = 2, extension = "flml", xmlRootNode = "fluidity_options")
+validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "shallow_water_options.rng"), testDir = "tests", depth = 2, extension = "swml")
+
+# QG
+#validator.TestXmlFiles(testDir = os.path.join("qg_strat", "test"), depth = 1)
+#validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "test_options.rng"), testDir = testDir = os.path.join("qg_strat", "test"), depth = 1, xmlRootNode = "testproblem")
+#validator.ValidateOptionsFiles(schemafile = os.path.join("qg_strat", "qg_strat_options.rng"), testDir = os.path.join("qg_strat", "test"), depth = 1, extension = "qgml")
     
 passes = validator.Passes()
 optionErrors = validator.OptionErrors()
