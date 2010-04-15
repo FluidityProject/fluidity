@@ -36,11 +36,11 @@ print errorCDG
   <pass_tests>
     <test name="CDGConvergesToSecondOrder" language="python">
 import numpy
-assert(numpy.all(convergenceCDG &gt;1.9))</test>
-  </pass_tests>
-  <pass_tests>
+assert(numpy.all(convergenceCDG &gt;1.9))
+    </test>
     <test name="BRConvergesToSecondOrder" language="python">
 import numpy
-assert(numpy.all(convergenceBR &gt;1.9))</test>
+assert(numpy.all(convergenceBR &gt;1.9))
+    </test>
   </pass_tests>
 </testproblem>
