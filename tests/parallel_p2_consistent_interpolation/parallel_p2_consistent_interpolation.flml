@@ -114,6 +114,7 @@
           </absolute_measure>
         </adaptivity_options>
         <consistent_interpolation/>
+        <do_not_recalculate/>
       </prescribed>
     </vector_field>
   </material_phase>
