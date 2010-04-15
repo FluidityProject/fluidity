@@ -1455,10 +1455,10 @@ contains
       select case(cont)
         case(0)
           if(.not. present(solver_path)) then
-            if(.not. lump_mass .and. .not. have_option(trim(complete_field_path(velocity%option_path, stat = stat)) // "/solver")) then
+            if(.not. have_option(trim(complete_field_path(velocity%option_path, stat = stat)) // "/solver")) then
               FLExit("Must lump mass or supply solver options for continuous velocity_from_coriolis")
             end if
-          else if(.not. lump_mass .and. .not. have_option(trim(solver_path) // "/solver")) then
+          else if(.not. have_option(trim(solver_path) // "/solver")) then
             FLExit("Must lump mass or supply solver options for continuous velocity_from_coriolis")
           end if
           mass => get_mass_matrix(state, velocity%mesh)
@@ -1566,10 +1566,10 @@ contains
       select case(cont)
         case(0)
           if(.not. present(solver_path)) then
-            if(.not. lump_mass .and. .not. have_option(trim(complete_field_path(coriolis%option_path, stat = stat)) // "/solver")) then
+            if(.not. have_option(trim(complete_field_path(coriolis%option_path, stat = stat)) // "/solver")) then
               FLExit("Must lump mass or supply solver options for continuous coriolis_from_velocity")
             end if
-          else if(.not. lump_mass .and. .not. have_option(trim(solver_path) // "/solver")) then
+          else if(.not. have_option(trim(solver_path) // "/solver")) then
             FLExit("Must lump mass or supply solver options for continuous coriolis_from_velocity")
           end if
           mass => get_mass_matrix(state, coriolis%mesh)
