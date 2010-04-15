@@ -310,7 +310,7 @@
     </scalar_field>
     <scalar_field name="ElementOwner" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm name="element_ownership" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>

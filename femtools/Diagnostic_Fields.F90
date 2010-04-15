@@ -229,9 +229,6 @@ contains
       case("NodeOwner")
         call calculate_node_owner(d_field)
 
-      case("ElementOwner")
-        call calculate_element_owner(d_field)
-
       case default
         if(present(stat)) then
           stat = 1
@@ -3155,42 +3152,6 @@ contains
      end if
 
    end subroutine calculate_node_owner
-
-   subroutine calculate_element_owner(field)
-     !!< Output the element owning each element in field. Clearly this
-     !!< is primarily of interest for debugging.
-     !!<
-     !!< Note that this will produce garbage unless field is discontinuous
-     !!< as nodes in continuous fields belong to multiple elements.
-     type(scalar_field) :: field
-     
-     integer i
-     type(halo_type) :: halo
-
-     if(.not.isparallel()) then
-        do i=1, node_count(field)
-           call set(field, i, real(i))
-        end do
-
-     else
-        halo=field%mesh%element_halos(2)
-
-
-        do i=1, element_count(field)
-           
-           if (element_owned(field, i)) then
-              call set(field, ele_nodes(field,i), 0.0*ele_nodes(field,i)&
-                   &+getrank())
-              
-           else
-              call set(field, ele_nodes(field,i), 0.0*ele_nodes(field,i))
-
-           end if
-        end do
-     
-     end if
-
-   end subroutine calculate_element_owner
    
    subroutine calculate_galerkin_projection_tensor(state, field, solver_path)
      type(state_type), intent(in) :: state

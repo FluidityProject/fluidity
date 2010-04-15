@@ -37,9 +37,6 @@
     <mesh name="PressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>

@@ -42,6 +42,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="P0Mesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">4</integer_value>
@@ -73,9 +89,9 @@
     </final_timestep>
   </timestepping>
   <physical_parameters>
-    <coriolis replaces="OPTOME">
-      <f_plane replaces="OPTOME = 0">
-        <f replaces="OMEGA">
+    <coriolis>
+      <f_plane>
+        <f>
           <real_value rank="0">1.0</real_value>
         </f>
       </f_plane>
@@ -327,8 +343,8 @@
     </scalar_field>
     <scalar_field name="ElementOwner" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <algorithm name="element_ownership" material_phase_support="single"/>
+        <mesh name="P0Mesh"/>
         <output/>
         <stat/>
         <convergence>

@@ -386,11 +386,6 @@ contains
           call calculate_diagnostic_variable(state(i), "NodeOwner", s_field)
        end if
 
-       s_field => extract_scalar_field(state(i), "ElementOwner", stat)
-       if(stat == 0) then
-          call calculate_diagnostic_variable(state(i), "ElementOwner", s_field)
-       end if
-
        ! end of fields that can be called through the generic calculate_diagnostic_variable
        ! interface, i.e. - those that only require things available in f90modules
 

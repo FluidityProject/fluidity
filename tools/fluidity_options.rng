@@ -6939,25 +6939,6 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Output the processors which own the elements of the mesh on which this field is based.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ElementOwner</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Primary production of Phytoplankton. This is calculated by
 the ocean biology module and will not be calculated unless
 ocean biology is being simulated.</a:documentation>

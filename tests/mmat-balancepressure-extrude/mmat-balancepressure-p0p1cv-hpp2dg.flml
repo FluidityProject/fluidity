@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">mmat-balancepressure-p0p1cv-gpp2</string_value>
+    <string_value lines="1">mmat-balancepressure-p0p1cv-hpp2dg</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">multimaterial</string_value>
@@ -11,12 +11,30 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="2d_square">
-        <format name="triangle"/>
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <extrude>
+          <bottom_depth>
+            <constant>
+              <real_value rank="0">1.0</real_value>
+            </constant>
+          </bottom_depth>
+          <sizing_function>
+            <constant>
+              <real_value rank="0">0.05</real_value>
+            </constant>
+          </sizing_function>
+          <top_surface_id>
+            <integer_value rank="0">8</integer_value>
+          </top_surface_id>
+          <bottom_surface_id>
+            <integer_value rank="0">6</integer_value>
+          </bottom_surface_id>
+        </extrude>
         <stat>
           <include_in_stat/>
         </stat>
-      </from_file>
+      </from_mesh>
     </mesh>
     <mesh name="VelocityMesh">
       <from_mesh>
@@ -42,7 +60,7 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="GeostrophicPressureMesh">
+    <mesh name="HydrostaticPressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
@@ -50,10 +68,21 @@
             <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
       </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="line">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
     </mesh>
     <quadrature>
       <degree replaces="NGI">
@@ -63,6 +92,48 @@
         <integer_value rank="0">1</integer_value>
       </controlvolume_surface_degree>
     </quadrature>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">8</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">6</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
   </geometry>
   <io>
     <dump_format>
@@ -71,7 +142,7 @@
     <dump_period_in_timesteps>
       <integer_value rank="0">10</integer_value>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="HydrostaticPressureMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -93,10 +164,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">9.8</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -141,7 +212,7 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.E-10</real_value>
           </relative_error>
@@ -247,13 +318,13 @@
         </boundary_conditions>
         <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="rightside">
           <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
         <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="leftside">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -329,7 +400,7 @@
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-   if((X[1]&lt;-0.25)):
+   if((X[1]&lt;-0.75)):
       return 1.0
    else:
       return 0.0</string_value>
@@ -366,31 +437,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field replaces="IDENT = -2003" name="GeostrophicPressure" rank="0">
+    <scalar_field name="HydrostaticPressure" rank="0">
       <prognostic>
-        <mesh name="GeostrophicPressureMesh"/>
-        <spatial_discretisation>
-          <geostrophic_pressure_option replaces="GEOBAL">
-            <string_value>include_buoyancy</string_value>
-          </geostrophic_pressure_option>
-        </spatial_discretisation>
-        <reference_node name="node_1">
-          <integer_value shape="1" rank="0">1</integer_value>
-        </reference_node>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.E-10</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
+        <mesh name="HydrostaticPressureMesh"/>
+        <spatial_discretisation/>
+        <exclude_from_checkpointing/>
         <output/>
         <stat/>
         <convergence>
@@ -421,6 +472,36 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
+    </scalar_field>
+    <scalar_field name="ConstantElementalField" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="ConstantNodalField" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
     </scalar_field>
   </material_phase>
   <material_phase name="Air">

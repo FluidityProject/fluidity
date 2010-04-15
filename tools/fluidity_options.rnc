@@ -5322,21 +5322,6 @@ scalar_field_choice =
                }
             )
          }|
-         ## Output the processors which own the elements of the mesh on which this field is based.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "ElementOwner" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Primary production of Phytoplankton. This is calculated by
          ## the ocean biology module and will not be calculated unless
          ## ocean biology is being simulated.

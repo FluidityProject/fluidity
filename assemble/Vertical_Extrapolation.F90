@@ -1167,7 +1167,9 @@ subroutine subtract_hydrostatic_pressure_gradient(mom_rhs, state)
   end do
   
   do i = 1, ele_count(mom_rhs)
-    call subtract_given_hydrostatic_pressure_gradient_element(i, positions,hp, mom_rhs)
+    if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
+      call subtract_given_hydrostatic_pressure_gradient_element(i, positions,hp, mom_rhs)
+    end if
   end do
   
   do i = 1, mom_rhs%dim
