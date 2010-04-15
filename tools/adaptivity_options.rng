@@ -1372,19 +1372,21 @@ Velocity mesh if not supplied.</a:documentation>
           <element name="mass">
             <a:documentation>Options relating to the mass matrix used in computing the
 Coriolis acceleration from velocity, and velocity from the
-Coriolis acceleration.</a:documentation>
-            <!--
-                            (
-                               ## Solver options. Required for a continuous consistent mass
-                               ## projection.
-                               element solver {
-                                  solver_options_sym
-                               }|
-                               ## Lump the mass matrix
-                               element lump_mass {
-                               }
-                            )?,
-            -->
+Coriolis acceleration. If the Coriolis acceleration mesh is
+continuous you must select solver options or lump_mass here.</a:documentation>
+            <optional>
+              <choice>
+                <element name="solver">
+                  <a:documentation>Solver options. Required for a continuous consistent mass
+projection.</a:documentation>
+                  <ref name="linear_solver_options_sym"/>
+                </element>
+                <element name="lump_mass">
+                  <a:documentation>Lump the mass matrix</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </choice>
+            </optional>
             <ref name="comment"/>
           </element>
         </element>

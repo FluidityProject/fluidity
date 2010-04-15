@@ -239,7 +239,9 @@
         </steady_state>
         <geostrophic_interpolation>
           <coriolis>
-            <mass/>
+            <mass>
+              <lump_mass/>
+            </mass>
           </coriolis>
           <conservative_potential>
             <mesh name="CoordinateMesh"/>

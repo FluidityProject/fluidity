@@ -1148,18 +1148,20 @@ interpolation_algorithm_vector =
             )?,
             ## Options relating to the mass matrix used in computing the
             ## Coriolis acceleration from velocity, and velocity from the
-            ## Coriolis acceleration.
+            ## Coriolis acceleration. If the Coriolis acceleration mesh is
+            ## continuous you must select solver options or lump_mass here.
             element mass {
-#               (
-#                  ## Solver options. Required for a continuous consistent mass
-#                  ## projection.
-#                  element solver {
-#                     solver_options_sym
-#                  }|
-#                  ## Lump the mass matrix
-#                  element lump_mass {
-#                  }
-#               )?,
+               (
+                  ## Solver options. Required for a continuous consistent mass
+                  ## projection.
+                  element solver {
+                     linear_solver_options_sym
+                  }|
+                  ## Lump the mass matrix
+                  element lump_mass {
+                     comment
+                  }
+               )?,
                comment
             }
         },

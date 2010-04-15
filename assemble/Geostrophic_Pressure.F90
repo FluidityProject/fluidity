@@ -1420,34 +1420,68 @@ contains
     
   end subroutine geostrophic_velocity
   
-  subroutine velocity_from_coriolis(state, coriolis, velocity)
+  subroutine velocity_from_coriolis(state, coriolis, velocity, lump_mass, solver_path)
     type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: coriolis
     type(vector_field), intent(inout) :: velocity
+    logical, optional, intent(in) :: lump_mass
+    character(len = *), optional, intent(in) :: solver_path
   
-    integer :: i
+    integer :: cont, i, stat
+    logical :: llump_mass
+    type(csr_matrix), pointer :: mass
     type(scalar_field), pointer :: masslump
+    type(vector_field) :: rhs
     type(vector_field), pointer :: positions
     
+    cont = continuity(velocity)
+    if(present(lump_mass)) then
+      llump_mass = lump_mass
+    else
+      llump_mass = (cont == 0)
+    end if
+    
     positions => extract_vector_field(state, "Coordinate")
-    select case(continuity(velocity))
-      case(-1)
-        do i = 1, ele_count(velocity)
-          call solve_velocity_ele(i, positions, coriolis, velocity)
-        end do
-      case(0)
-        masslump => get_lumped_mass(state, velocity%mesh)
-        call zero(velocity)
-        do i = 1, ele_count(velocity)
-          call assemble_velocity_ele(i, positions, coriolis, velocity)
-        end do
-        do i = 1, coriolis%dim
-          velocity%val(i)%ptr = velocity%val(i)%ptr / masslump%val
-        end do
-      case default
-        ewrite(-1, *) "For mesh continuity: ", continuity(coriolis)
-        FLAbort("Unrecognised mesh continuity")
-    end select
+    if(llump_mass) then
+      masslump => get_lumped_mass(state, velocity%mesh)
+      call zero(velocity)
+      do i = 1, ele_count(velocity)
+        call assemble_velocity_ele(i, positions, coriolis, velocity)
+      end do
+      do i = 1, coriolis%dim
+        velocity%val(i)%ptr = velocity%val(i)%ptr / masslump%val
+      end do
+    else
+      select case(cont)
+        case(0)
+          if(.not. present(solver_path)) then
+            if(.not. lump_mass .and. .not. have_option(trim(complete_field_path(velocity%option_path, stat = stat)) // "/solver")) then
+              FLExit("Must lump mass or supply solver options for continuous velocity_from_coriolis")
+            end if
+          else if(.not. lump_mass .and. .not. have_option(trim(solver_path) // "/solver")) then
+            FLExit("Must lump mass or supply solver options for continuous velocity_from_coriolis")
+          end if
+          mass => get_mass_matrix(state, velocity%mesh)
+          call allocate(rhs, velocity%dim, velocity%mesh, "RHS")
+          call zero(rhs)
+          do i = 1, ele_count(rhs)
+            call assemble_velocity_ele(i, positions, coriolis, rhs)
+          end do
+          call petsc_solve(velocity, mass, rhs, option_path = solver_path)
+          call deallocate(rhs)
+        case(-1)
+          do i = 1, ele_count(velocity)
+            call solve_velocity_ele(i, positions, coriolis, velocity)
+          end do
+        case default
+          ewrite(-1, *) "For mesh continuity: ", cont
+          FLAbort("Unrecognised mesh continuity")
+        end select
+    end if
+    
+    do i = 1, velocity%dim
+      ewrite_minmax(velocity%val(i)%ptr)
+    end do
 
   contains
 
@@ -1497,34 +1531,64 @@ contains
     
   end subroutine velocity_from_coriolis
   
-  subroutine coriolis_from_velocity(state, velocity, coriolis)
+  subroutine coriolis_from_velocity(state, velocity, coriolis, lump_mass, solver_path)
     type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: velocity
     type(vector_field), intent(inout) :: coriolis
+    logical, optional, intent(in) :: lump_mass
+    character(len = *), optional, intent(in) :: solver_path
   
-    integer :: i
+    integer :: cont, i, stat
+    logical :: llump_mass
+    type(csr_matrix), pointer :: mass
     type(scalar_field), pointer :: masslump
+    type(vector_field) :: rhs
     type(vector_field), pointer :: positions
     
+    cont = continuity(coriolis)
+    if(present(lump_mass)) then
+      llump_mass = lump_mass
+    else
+      llump_mass = (cont == 0)
+    end if
+    
     positions => extract_vector_field(state, "Coordinate")
-    select case(continuity(coriolis))
-      case(-1)
-        do i = 1, ele_count(coriolis)
-          call solve_coriolis_ele(i, positions, velocity, coriolis)
-        end do
-      case(0)
-        masslump => get_lumped_mass(state, coriolis%mesh)
-        call zero(coriolis)
-        do i = 1, ele_count(coriolis)
-          call assemble_coriolis_ele(i, positions, velocity, coriolis)
-        end do
-        do i = 1, coriolis%dim
-          coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
-        end do
-      case default
-        ewrite(-1, *) "For mesh continuity: ", continuity(coriolis)
-        FLAbort("Unrecognised mesh continuity")
-    end select
+    if(llump_mass) then
+      masslump => get_lumped_mass(state, coriolis%mesh)
+      call zero(coriolis)
+      do i = 1, ele_count(coriolis)
+        call assemble_coriolis_ele(i, positions, velocity, coriolis)
+      end do
+      do i = 1, coriolis%dim
+        coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
+      end do
+    else
+      select case(cont)
+        case(0)
+          if(.not. present(solver_path)) then
+            if(.not. lump_mass .and. .not. have_option(trim(complete_field_path(coriolis%option_path, stat = stat)) // "/solver")) then
+              FLExit("Must lump mass or supply solver options for continuous coriolis_from_velocity")
+            end if
+          else if(.not. lump_mass .and. .not. have_option(trim(solver_path) // "/solver")) then
+            FLExit("Must lump mass or supply solver options for continuous coriolis_from_velocity")
+          end if
+          mass => get_mass_matrix(state, coriolis%mesh)
+          call allocate(rhs, coriolis%dim, coriolis%mesh, "RHS")
+          call zero(rhs)
+          do i = 1, ele_count(rhs)
+            call assemble_coriolis_ele(i, positions, velocity, rhs)
+          end do
+          call petsc_solve(coriolis, mass, rhs, option_path = solver_path)
+          call deallocate(rhs)
+        case(-1)
+          do i = 1, ele_count(coriolis)
+            call solve_coriolis_ele(i, positions, velocity, coriolis)
+          end do
+        case default
+          ewrite(-1, *) "For mesh continuity: ", cont
+          FLAbort("Unrecognised mesh continuity")
+        end select
+    end if
     
     do i = 1, coriolis%dim
       ewrite_minmax(coriolis%val(i)%ptr)
@@ -2277,7 +2341,10 @@ contains
                 
     call allocate(coriolis, dim, old_u_mesh, "Coriolis")
     coriolis%option_path = old_velocity%option_path
-    call coriolis_from_velocity(old_state, old_velocity, coriolis)
+    call zero(coriolis)
+    call coriolis_from_velocity(old_state, old_velocity, coriolis, &
+      & lump_mass = have_option(trim(base_path) // "/coriolis/mass/lump_mass"), &
+      & solver_path = trim(base_path) // "/coriolis/mass")
         
     call allocate(old_p, old_p_mesh, gi_conservative_potential_name)
     old_p%option_path = trim(base_path) // "/conservative_potential"
@@ -2700,7 +2767,9 @@ contains
     
     ! Invert for the new Velocity
     
-    call velocity_from_coriolis(new_state, coriolis, new_velocity)    
+    call velocity_from_coriolis(new_state, coriolis, new_velocity, &
+      & lump_mass = have_option(trim(base_path) // "/coriolis/mass/lump_mass"), &
+      & solver_path = trim(base_path) // "/coriolis/mass")  
     if(dim == 3) then
       ! Recover the vertical velocity
       ewrite_minmax(new_velocity%val(W_)%ptr)
