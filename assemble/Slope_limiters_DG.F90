@@ -76,7 +76,6 @@ logical :: leave_out_hermite_polynomials
 logical :: has_discontinuity_detector_field
 type(scalar_field), pointer :: discontinuity_detector_field
 integer :: limit_count
-integer :: limiter_vtu_index = 0
 
 contains
 
@@ -1381,10 +1380,16 @@ contains
     !max and mins
     real :: uimax, uimin
     integer :: stat
+    integer :: limiter_vtu_index = 0
+    ! Debug
+!!$    type(scalar_field) :: alpha_field, tbar_field
+!!$
+!!$    call allocate(alpha_field, T%mesh,trim(T%name)//"Alpha")
+!!$    call allocate(tbar_field, T%mesh,trim(T%name)//"ElementMean")
 
     !Allocate copy of field
     call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
-    T_limit%val = T%val
+    call set(T_limit, T)
 
     !Get coordinates
     X=>extract_vector_field(state, "Coordinate")
@@ -1395,8 +1400,8 @@ contains
     call allocate(T_max,X%mesh,trim(T%name)//"LimitMax")
     call allocate(T_min,X%mesh,trim(T%name)//"LimitMin")
  
-    T_max%val = -huge(0.0)
-    T_min%val = huge(0.0)
+    call set(T_max, -huge(0.0))
+    call set(T_min, huge(0.0))
 
     !Construct max and mins
     do ele = 1, ele_count(T)
@@ -1418,6 +1423,7 @@ contains
           T_val_min(node) = min(T_val_min(node),Tbar)
        end do
        call set(T_min,T_min_ele,T_val_min)
+!!$       call set(Tbar_field, T_ele, 0*T_val+Tbar)
     end do
 
     !Loop over elements
@@ -1432,35 +1438,36 @@ contains
        T_val_slope = T_val - Tbar
        T_val_max = ele_val(T_max,ele)
        T_val_min = ele_val(T_min,ele)
-       T_val_max = max(Tbar,T_val_max)
-       T_val_min = min(Tbar,T_val_min)
 
        !loop over nodes, adjust alpha
        do node = 1, size(T_val)
-          if(T_val(node)>Tbar+1.0e-12) then
+          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
              alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
-          else if(T_val(node)<Tbar*-1.0e-12) then
+          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
              alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
           end if
        end do
        ewrite(3,*) 'cjc alpha', alpha
-       T_limit%val(T_ele) = Tbar + alpha*T_val_slope
+       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
+!!$       call set(alpha_field, T_ele, T_val_slope*0.0+alpha)
     end do
 
-    !call vtk_write_fields("Limiter_debugging", limiter_vtu_index, &
-    !     X, model = T%mesh, & 
-    !     & sfields = (/T,T_limit,T_max,T_min/), &
-    !     & stat = stat)
-    !if(stat /= 0) then
-    !   ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
-    !end if
-    !limiter_vtu_index = limiter_vtu_index + 1
+!!$    call vtk_write_fields("Limiter_debugging", limiter_vtu_index, &
+!!$         X, model = T%mesh, & 
+!!$         & sfields = (/T,T_limit,T_max,T_min,alpha_field,tbar_field/), &
+!!$         & stat = stat)
+!!$    if(stat /= 0) then
+!!$       ewrite(0, *) "WARNING: Error returned by vtk_write_fields: ", stat
+!!$    end if
+!!$    limiter_vtu_index = limiter_vtu_index + 1
 
     !Deallocate copy of field
-    T%val = T_limit%val
+    call set(T, T_limit)
     call deallocate(T_limit)
     call deallocate(T_max)
     call deallocate(T_min)
+!!$    call deallocate(alpha_field)
+!!$    call deallocate(tbar_field)
 
   end subroutine limit_vb
 
