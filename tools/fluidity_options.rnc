@@ -5338,8 +5338,24 @@ scalar_field_choice =
                   generic_aliased_field
                }
             )
-         }
-                  
+         }|
+         ## An estimate of the edge wieghts whilst adapting using Zoltan
+         ## Note: you *must* turn on inteprolation otherwise this field
+         ## will be emptied by an adapt.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "MaxEdgeWeightOnNodes" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+        }               
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {
 #            attribute rank { "0" },

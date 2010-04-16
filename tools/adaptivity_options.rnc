@@ -907,6 +907,42 @@ hr_adaptivity =
               }?
            }?
          }?,
+         ## Zoltan Options
+         ##
+         ## Set up some Zoltan options, including which partitioner to use
+         ## Only works if you have the --with-zoltan option in your configure
+         ##
+         ## Note that Zoltan will become the default (replacing sam at some point)
+         ## and these options are currently here only for development and testing
+         ## purposes. They are subject to change and may not be in the final "release"
+         element zoltan_options {
+            ## Select which partitioner to use
+            element partitioner {
+                element phg {
+                    empty
+                }|
+                element metis {
+                    empty
+                }|
+                element hypergraph {
+                    empty
+                }
+            }?,
+            ## Element quality cut off. 
+            ## Elements with a quality greater than this will be liable to be
+            ## on the parition boundary. Below this, they will be free to be adapted
+            ## and improved. Range is 0 to 1, with default 0.6
+            element element_quality_cutoff {
+                real
+            }?,
+            ## Print out a dump file of the edge weights.
+            ## This permits a visualisation of how the edge weights are distributed.
+            ## Dump is to the current directory, in a file called edge_weights.dat
+            ## Will get overwritten at each adapt
+            element dump_edge_weights {
+                empty
+            }?
+         }?,
          ## Select the adaptivity library used by hr-adaptivity. If disabled,
          ## the defaults are:
          ##   In 3D: libadaptivity

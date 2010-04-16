@@ -1096,6 +1096,52 @@ This will give a columnar mesh, but not a layered one.</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="zoltan_options">
+          <a:documentation>Zoltan Options
+
+Set up some Zoltan options, including which partitioner to use
+Only works if you have the --with-zoltan option in your configure
+
+Note that Zoltan will become the default (replacing sam at some point)
+and these options are currently here only for development and testing
+purposes. They are subject to change and may not be in the final "release"</a:documentation>
+          <optional>
+            <element name="partitioner">
+              <a:documentation>Select which partitioner to use</a:documentation>
+              <choice>
+                <element name="phg">
+                  <empty/>
+                </element>
+                <element name="metis">
+                  <empty/>
+                </element>
+                <element name="hypergraph">
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="element_quality_cutoff">
+              <a:documentation>Element quality cut off. 
+Elements with a quality greater than this will be liable to be
+on the parition boundary. Below this, they will be free to be adapted
+and improved. Range is 0 to 1, with default 0.6</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="dump_edge_weights">
+              <a:documentation>Print out a dump file of the edge weights.
+This permits a visualisation of how the edge weights are distributed.
+Dump is to the current directory, in a file called edge_weights.dat
+Will get overwritten at each adapt</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
         <element name="adaptivity_library">
           <a:documentation>Select the adaptivity library used by hr-adaptivity. If disabled,
 the defaults are:

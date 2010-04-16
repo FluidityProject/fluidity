@@ -61,6 +61,12 @@ module zoltan_integration
 
   type(scalar_field), save :: element_quality, node_quality
   integer, save :: max_coplanar_id
+  type(scalar_field), pointer :: max_edge_weight_on_node
+  logical :: output_edge_weights = .false.
+!   elements with quality greater than this value are ok
+!   those with element quality below it need to be adapted
+  real, save :: quality_tolerance
+
 
   public :: zoltan_drive
   private
@@ -138,14 +144,11 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), intent(in) :: wgt_dim
     real(zoltan_float), intent(out), dimension(*) :: ewgts
     integer(zoltan_int), intent(out) :: ierr 
-
-!   elements with quality greater than this value are ok
-!   those with element quality below it need to be adapted
-    real, parameter :: quality_tolerance = 0.6
     integer :: count
     integer :: node, i, j, nnode
     integer :: head
     integer, dimension(:), pointer :: neighbours
+    
 
 !   variables for recording various element quality functional values 
     real(zoltan_float) :: quality, min_quality
@@ -158,6 +161,9 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     integer :: ele, total_num_edges
 
+    real :: value
+
+    
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
@@ -235,6 +241,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       end do
 
       call deallocate(nelistA)
+      value = maxval(ewgts(head:head+size(neighbours)-1))
+      if (output_edge_weights) call set(max_edge_weight_on_node,local_ids(node),value)
       head = head + size(neighbours)
    end do
 
@@ -252,6 +260,15 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
          ewgts(i) = total_num_edges + 1
       end if
    end do
+
+   if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/dump_edge_weights")) then
+      open(666, file = 'edge_weights.dat')
+      do i=1,head
+         write(666,*) ewgts(i)
+      end do
+      close(666)
+   end if
+
    
    ierr = ZOLTAN_OK
  end subroutine zoltan_cb_get_edge_list
@@ -1786,7 +1803,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     end subroutine are_we_keeping_or_sending_nodes
 
     subroutine setup_module_variables
-      integer :: nhalos
+      integer :: nhalos, stat
       integer, dimension(:), allocatable :: owned_nodes
       integer :: i, j, floc, eloc
       integer, dimension(:), allocatable :: sndgln
@@ -1797,6 +1814,23 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       integer, dimension(:), allocatable :: interleaved_surface_ids
 
       !call find_mesh_to_adapt(states(1), zz_mesh)
+
+      max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
+      if (stat == 0) then
+          output_edge_weights = .true.
+      end if
+
+      ! set quality_tolerance
+      if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff")) then
+          call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", quality_tolerance)
+          ! check that the value is reasonable
+          if (quality_tolerance < 0. .or. quality_tolerance > 1.) then
+              FLExit("element_quality_cutoff should be between 0 and 1. Deault is 0.6")
+          end if
+      else
+          quality_tolerance = 0.6
+      end if
+
       zz_mesh = get_external_mesh(states)
       call incref(zz_mesh)
       if (zz_mesh%name=="CoordinateMesh") then
@@ -1903,11 +1937,24 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
       end if
       ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+      ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+      ierr = Zoltan_Set_Param(zz, "PARMETIS_OUTPUT_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
+      ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+
       if (iteration == 1) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+!       chosen to match what Sam uses
+!        ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
       else
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
+!       chosen to match what Sam uses
+!        ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
       end if
+
+!     set this at the maximum of the recommended scale (100 - 1000)
+!     else number of nodes per partition is seen my the partitioner as more
+!     important than edge-weights and hence the adapting process breaks
+!      ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "1"); assert(ierr == ZOLTAN_OK)
 
       ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
