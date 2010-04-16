@@ -3,7 +3,6 @@
   <simulation_name>
     <string_value lines="1">kelvin_wave</string_value>
   </simulation_name>
-  <debug/>
   <geometry>
     <dimension replaces="NDIM">
       <integer_value rank="0">2</integer_value>
@@ -175,10 +174,10 @@
           <theta replaces="THETA">
             <real_value rank="0">0.5</real_value>
           </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0">1.</real_value>
+          </relaxation>
         </temporal_discretisation>
-        <relaxation replaces="ITHETA">
-          <real_value rank="0">0.5</real_value>
-        </relaxation>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -225,4 +224,9 @@
       </prognostic>
     </scalar_field>
   </material_phase>
+  <debug>
+    <check_inverse_coriolis_matrix/>
+    <check_wave_matrix/>
+    <check_solution/>
+  </debug>
 </shallow_water_options>

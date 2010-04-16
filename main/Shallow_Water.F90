@@ -120,7 +120,7 @@
          &ic/spatial_discretisation/discontinuous_galerkin/advection_scheme/&
          &none")
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
-         &gnostic/relaxation",itheta)
+         &gnostic/temporal_discretisation/relaxation",itheta)
     ! Geostrophic balanced initial condition, if required    
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced")) then       
@@ -321,8 +321,11 @@
          call mult(delta_u, big_mat, u_rhs)
          
          !Check the equation was solved correctly
-         !call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
-         !     &,h_mass_mat, coriolis_mat,div_mat)
+         if(have_option("/debug/check_solution")) then
+            call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
+                 &,h_mass_mat, coriolis_mat,div_mat)
+         end if
+
 
          call addto(u,delta_u)
          call addto(d,delta_d)

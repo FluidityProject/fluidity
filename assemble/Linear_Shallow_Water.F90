@@ -458,11 +458,6 @@ contains
       call addto(coriolis_mat,u_ele,u_ele, &
               shape_shape(u_shape,u_shape,detwei*f_gi))
 
-      !if(present(inverse_big_mat)) then
-      !   do dim1 = 1, dim
-      !      call addto(inverse_big_mat,dim1,dim1,shape_shape(u_shape,
-      !end if
-
       l_div_mat = dshape_shape(dm_t,u_shape,detwei)
 
       do dim1 = 1, dim

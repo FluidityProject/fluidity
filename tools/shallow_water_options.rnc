@@ -16,15 +16,6 @@ start =
          element simulation_name {
             anystring
          },
-         ## Debugging options
-         element debug {
-            element check_inverse_coriolis_matrix {
-               empty
-            }?,
-            element check_wave_matrix {
-               empty
-            }?
-         },
          ## Options dealing with the specification of geometry
          element geometry {
             ## Dimension of the problem.
@@ -325,7 +316,19 @@ start =
              hr_adaptivity|
              prescribed_adaptivity
           )
-        }?
+        }?,
+         ## Debugging options
+         element debug {
+            element check_inverse_coriolis_matrix {
+               empty
+            }?,
+            element check_wave_matrix {
+               empty
+            }?,
+            element check_solution {
+               empty
+            }?
+         }?
       }
    )      
 
@@ -791,15 +794,15 @@ prognostic_layerthickness_field =
          element theta {
             attribute replaces {"THETA"},
             real
+         },
+         ## Non-linear relaxation term
+         ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
+         ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
+         ##  0. < ITHETA < 1.
+         element relaxation {
+            attribute replaces {"ITHETA"},
+            real
          }
-      },
-      ## Non-linear relaxation term
-      ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
-      ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
-      ##  0. < ITHETA < 1.
-      element relaxation {
-         attribute replaces {"ITHETA"},
-         real
       },
       ## Solver
       element solver {
@@ -6387,3 +6390,4 @@ represcribe_before_interpolation =
     element represcribe_before_interpolation {
       empty
     }
+
