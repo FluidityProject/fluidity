@@ -153,15 +153,12 @@ contains
     type(tensor_field), intent(inout) :: metric
     logical, optional, intent(out) :: remesh
 
-    type(vector_field), pointer :: velocity_field
-
     logical :: debug_metric
     integer, save :: adapt_count = 0
     type(scalar_field) :: edge_len
     type(vector_field), pointer :: position_field
     
     debug_metric = have_option("/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages")
-    velocity_field => extract_vector_field(state(1), "Velocity")
 
     call assemble_metric(state, metric)
 

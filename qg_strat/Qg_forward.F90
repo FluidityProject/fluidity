@@ -19,10 +19,12 @@ module qg_forward
   use advection_diffusion_cg
   use advection_diffusion_dg
   use vtk_interfaces
-  use global_parameters, only:FIELD_NAME_LEN, global_debug_level
+  use global_parameters, only:FIELD_NAME_LEN, global_debug_level, &
+       topology_mesh_name
   use pv_inversion
   use timeloop_utilities
   use diagnostic_fields_new
+  use qmesh_module
   implicit none
 
 CONTAINS
@@ -35,9 +37,8 @@ CONTAINS
     real :: dt
     real :: dump_period
     real :: tdump
-    real :: adapt_period
-    real :: tadapt
     integer :: dump_count=1
+    integer :: timestep, stat
     !
     type(scalar_field), pointer :: PV, PV_Old, streamfunction, time
     type(scalar_field), pointer :: buoyancy, buoyancy_old
@@ -46,9 +47,9 @@ CONTAINS
     type(csr_sparsity), pointer :: pv_sparsity
     type(csr_sparsity), pointer :: buoyancy_sparsity
     type(mesh_type), pointer :: mesh
-    type(tensor_field) :: metric
+    type(tensor_field) :: metric_tensor
 
-    integer :: nstages, stage, stat
+    real :: f, N
     integer :: i, n_buoyancy_bcs
     integer, dimension(2) :: shape_option
 
@@ -58,27 +59,37 @@ CONTAINS
 
     call get_option("/simulation_name",filename)
 
+    ! timestep counter
+    timestep=0
+
     ! Get timestepping options
     call get_option("/timestepping/current_time", t)
     call get_option("/timestepping/timestep", dt)
     call get_option("/io/dump_period", dump_period)
 
+
+    call initialise_qmesh
     call populate_state(state)
 
-    call allocate_and_insert_auxilliary_qg_fields(state(1))
-
     ! Setup adaptivity if used
-    if(have_option("/mesh_adaptivity")) then
-       mesh => extract_mesh(state(1), "CoordinateMesh")
-       call allocate(metric, mesh, "ErrorMetric")
+    if (have_option("/mesh_adaptivity/hr_adaptivity")) then
+
+       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name),&
+            "ErrorMetric")
     end if
 
-    if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) &
-         then
+    ! Check if we're adapting at the first timestep
+    if(have_option("/mesh_adaptivity/hr_adaptivity/&
+         adapt_at_first_timestep")) then
+
        ewrite(1,*) "adapting mesh at first timestep"
-       call assemble_metric(state, metric)
-       call adapt_state(state, metric)
+       call adapt_state_first_timestep(state)
        call allocate_and_insert_auxilliary_qg_fields(state(1))
+
+    else
+
+       call allocate_and_insert_auxilliary_qg_fields(state(1))
+
     end if
 
     PV => extract_scalar_field(state(1), 'PotentialVorticity')
@@ -110,7 +121,9 @@ CONTAINS
     call streamfunction2velocity(state(1))
 
     ! Put up-to-date velocity in boundary condition states:
-    call update_state_for_boundary_conditions(state(1), bc_states)
+    if(n_buoyancy_bcs>0) then
+       call update_state_for_boundary_conditions(state(1), bc_states)
+    end if
 
     ! We have now allocated, inserted and calculated all fields so can
     ! write out state at t=0
@@ -122,7 +135,10 @@ CONTAINS
     tdump = 0.
 
     timestep_loop: do
-       if(simulation_completed(t)) exit
+
+       timestep = timestep+1
+
+       if(simulation_completed(t, timestep)) exit timestep_loop
 
        t = t + dt
        !update time in options dictionary
@@ -132,7 +148,6 @@ CONTAINS
        call set(time, t)
 
        tdump = tdump + dt
-       tadapt = tadapt + dt
 
        ! for time dependent prescribed fields
        if(have_option("/material_phase[0]/scalar_field::Streamfunction&
@@ -142,15 +157,17 @@ CONTAINS
        end if
 
        ! Adapt mesh if required
-       if(have_option("/mesh_adaptivity").and.tadapt>=adapt_period) then
+       if(do_adapt_mesh(t, timestep)) then
+
           ewrite(1,*) "adapting mesh"
-          mesh => extract_mesh(state(1), "CoordinateMesh")
-          call allocate(metric, mesh, "ErrorMetric")
-          call assemble_metric(state, metric)
-          call adapt_state(state, metric)
+          call allocate(metric_tensor, extract_mesh(state(1), &
+               topology_mesh_name), "ErrorMetric")
+          call qmesh(state, metric_tensor)
+          call adapt_state(state, metric_tensor)
+
           ! Reallocate and insert stuff into state:
           call allocate_and_insert_auxilliary_qg_fields(state(1))
-          tadapt=0.
+
           ! Re-extract fields and recalculate velocity from streamfunction
           PV => extract_scalar_field(state(1), 'PotentialVorticity')
           PV_Old => extract_scalar_field(state(1), 'OldPotentialVorticity')

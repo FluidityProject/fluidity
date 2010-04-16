@@ -613,8 +613,9 @@ contains
     logical function recalculate(option_path)
       character(len=*) :: option_path
       
-      recalculate = ((.not.present_and_true(exclude_nonrecalculated)).or. &
-                     (.not.do_not_recalculate(option_path)))
+      recalculate = (have_option(trim(option_path)//"/diagnostic").and.&
+           ((.not.present_and_true(exclude_nonrecalculated)).or. &
+           (.not.do_not_recalculate(option_path))))
     
     end function recalculate
 

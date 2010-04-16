@@ -1,15 +1,15 @@
 include "spud_base.rnc"
-include "../tools/solvers.rnc"
-include "../tools/adaptivity_options.rnc"
-include "../tools/mesh_options.rnc"
-include "../tools/input_output.rnc"
-include "../tools/prognostic_field_options.rnc"
-include "../tools/prescribed_field_options.rnc"
-include "../tools/diagnostic_algorithms.rnc"
-include "../tools/spatial_discretisation.rnc"
-include "../tools/temporal_discretisation.rnc"
-include "../tools/stabilisation.rnc"
-include "../tools/physical_parameters.rnc"
+include "../../tools/solvers.rnc"
+include "../../tools/adaptivity_options.rnc"
+include "../../tools/mesh_options.rnc"
+include "../../tools/input_output.rnc"
+include "../../tools/prognostic_field_options.rnc"
+include "../../tools/prescribed_field_options.rnc"
+include "../../tools/diagnostic_algorithms.rnc"
+include "../../tools/spatial_discretisation.rnc"
+include "../../tools/temporal_discretisation.rnc"
+include "../../tools/stabilisation.rnc"
+include "../../tools/physical_parameters.rnc"
 
 start =
    (
@@ -44,6 +44,18 @@ start =
                mesh_info
             }?,
             element mesh {
+               attribute name { "VelocityMesh" },
+               ## Make mesh from existing mesh. 
+               element from_mesh {
+                  mesh_choice,
+                  element mesh_continuity {
+                     element string_value{
+                        "discontinuous"
+                     }
+                  }
+               }
+            },
+            element mesh {
                attribute name { xsd:string },
                mesh_info
             }*,
@@ -68,6 +80,11 @@ start =
                ## The mesh on to which all the fields will be
                ## interpolated for VTK output.
                element output_mesh {
+                  attribute name { "CoordinateMesh" }
+               }|
+               ## The mesh on to which all the fields will be
+               ## interpolated for VTK output.
+               element output_mesh {
                   attribute name { "PotentialVorticityMesh" }
                }|
                ## The mesh on to which all the fields will be
@@ -79,11 +96,6 @@ start =
                ## interpolated for VTK output.
                element output_mesh {
                   attribute name { "VelocityMesh" }
-               }|
-               ## The mesh on to which all the fields will be
-               ## interpolated for VTK output.
-               element output_mesh {
-                  attribute name { "CoordinateMesh" }
                }|
                ## The mesh on to which all the fields will be
                ## interpolated for VTK output.
@@ -225,7 +237,8 @@ prognostic_PV_field =
             prescribed_scalar_field_no_adapt
          }
       }?,
-      adaptivity_options_scalar_field
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar
    )
 
 prognostic_buoyancy_field =

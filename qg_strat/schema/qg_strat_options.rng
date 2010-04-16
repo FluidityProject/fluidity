@@ -58,6 +58,20 @@
             <ref name="mesh_info"/>
           </element>
         </optional>
+        <element name="mesh">
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+          <element name="from_mesh">
+            <a:documentation>Make mesh from existing mesh. </a:documentation>
+            <ref name="mesh_choice"/>
+            <element name="mesh_continuity">
+              <element name="string_value">
+                <value>discontinuous</value>
+              </element>
+            </element>
+          </element>
+        </element>
         <zeroOrMore>
           <element name="mesh">
             <attribute name="name">
@@ -88,6 +102,13 @@ A value of 0.0 indicates that there would be a dump at every timestep.</a:docume
             <a:documentation>The mesh on to which all the fields will be
 interpolated for VTK output.</a:documentation>
             <attribute name="name">
+              <value>CoordinateMesh</value>
+            </attribute>
+          </element>
+          <element name="output_mesh">
+            <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+            <attribute name="name">
               <value>PotentialVorticityMesh</value>
             </attribute>
           </element>
@@ -103,13 +124,6 @@ interpolated for VTK output.</a:documentation>
 interpolated for VTK output.</a:documentation>
             <attribute name="name">
               <value>VelocityMesh</value>
-            </attribute>
-          </element>
-          <element name="output_mesh">
-            <a:documentation>The mesh on to which all the fields will be
-interpolated for VTK output.</a:documentation>
-            <attribute name="name">
-              <value>CoordinateMesh</value>
             </attribute>
           </element>
           <element name="output_mesh">
@@ -293,7 +307,8 @@ then this is the initial time step size.</a:documentation>
         </element>
       </element>
     </optional>
-    <ref name="adaptivity_options_scalar_field"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="prognostic_buoyancy_field">
     <element name="equation">

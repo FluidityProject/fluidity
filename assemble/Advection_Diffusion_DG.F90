@@ -51,6 +51,7 @@ module advection_diffusion_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
+  use global_parameters, only : FIELD_NAME_LEN
 
   implicit none
 
@@ -120,19 +121,33 @@ module advection_diffusion_DG
 
 contains
 
-  subroutine solve_advection_diffusion_dg(field_name, state)
+  subroutine solve_advection_diffusion_dg(field_name, state, velocity_name)
     !!< Construct and solve the advection-diffusion equation for the given
-    !!< field unsing discontinuous elements.
+    !!< field using discontinuous elements.
 
     !! Name of the field to be solved for.
     character(len=*), intent(in) :: field_name
     !! Collection of fields defining system state.
     type(state_type), intent(inout) :: state
+    character(len=*), optional, intent(in) :: velocity_name
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T
 
+    !! Local velocity name.
+    character(len=FIELD_NAME_LEN) :: lvelocity_name
+
+    ewrite(1,*) "In solve_advection_diffusion_dg"
+    ewrite(1,*) "Solving advection-diffusion equation for field " // &
+         trim(field_name) // " in state " // trim(state%name)
     T=>extract_scalar_field(state, field_name)
+
+    ! Set local velocity name:
+    if(present(velocity_name)) then
+       lvelocity_name=velocity_name
+    else
+       lvelocity_name="NonlinearVelocity"
+    end if
 
     call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &conservative_advection", beta)
@@ -270,18 +285,18 @@ contains
     if (have_option(trim(T%option_path)//&
          "/prognostic/temporal_discretisation/discontinuous_galerkin/&
          &/number_advection_subcycles")) then
-       call solve_advection_diffusion_dg_subcycle(field_name, state)
+       call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else if (have_option(trim(T%option_path)//&
          "/prognostic/temporal_discretisation/discontinuous_galerkin/&
          &/maximum_courant_number_per_subcycle")) then
-       call solve_advection_diffusion_dg_subcycle(field_name, state)
+       call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else
-       call solve_advection_diffusion_dg_theta(field_name, state)
+       call solve_advection_diffusion_dg_theta(field_name, state, lvelocity_name)
     end if
 
   end subroutine solve_advection_diffusion_dg
 
-  subroutine solve_advection_diffusion_dg_theta(field_name, state)
+  subroutine solve_advection_diffusion_dg_theta(field_name, state, velocity_name)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field unsing discontinuous elements.
     
@@ -289,7 +304,8 @@ contains
     character(len=*), intent(in) :: field_name
     !! Collection of fields defining system state.
     type(state_type), intent(inout) :: state
-
+    !! Name of advecting velocity field
+    character(len=*), intent(in) :: velocity_name
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T, T_old
@@ -331,7 +347,8 @@ contains
     delta_T%option_path = T%option_path
     call allocate(rhs, T%mesh, trim(field_name)//"RHS")
     
-    call construct_advection_diffusion_dg(matrix, rhs, field_name, state) 
+    call construct_advection_diffusion_dg(matrix, rhs, field_name, state,&
+         velocity_name=velocity_name) 
 
     
     ! Apply strong dirichlet boundary conditions.
@@ -351,7 +368,7 @@ contains
 
   end subroutine solve_advection_diffusion_dg_theta
 
-  subroutine solve_advection_diffusion_dg_subcycle(field_name, state)
+  subroutine solve_advection_diffusion_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field unsing discontinuous elements.
     
@@ -359,12 +376,14 @@ contains
     character(len=*), intent(in) :: field_name
     !! Collection of fields defining system state.
     type(state_type), intent(inout) :: state
+    !! Optional velocity name
+    character(len = *), intent(in) :: velocity_name
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T, T_old, s_field
 
     !! Coordinate field
-    type(vector_field), pointer :: X,U_nl
+    type(vector_field), pointer :: X, U_nl
 
     !! Change in T over one timestep.
     type(scalar_field) :: delta_T
@@ -418,7 +437,8 @@ contains
     call allocate(rhs_diff, T%mesh, trim(field_name)//" Diffusion RHS")
    
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state, &
-         mass, matrix_diff, rhs_diff, semidiscrete=.true.)
+         mass, matrix_diff, rhs_diff, semidiscrete=.true., &
+         velocity_name=velocity_name)
 
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
@@ -471,7 +491,7 @@ contains
        
     end if
 
-    U_nl=>extract_vector_field(state, "NonlinearVelocity")
+    U_nl=>extract_vector_field(state, velocity_name)
 
     do i=1, subcycles
        
@@ -519,7 +539,7 @@ contains
   end subroutine solve_advection_diffusion_dg_subcycle  
 
   subroutine construct_advection_diffusion_dg(big_m, rhs, field_name,&
-       & state, mass, diffusion_m, diffusion_rhs, semidiscrete) 
+       & state, mass, diffusion_m, diffusion_rhs, semidiscrete, velocity_name) 
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     !!< 
@@ -551,6 +571,8 @@ contains
     type(csr_matrix), intent(inout), optional :: diffusion_m
     !! Corresponding right hand side vector
     type(scalar_field), intent(inout), optional :: diffusion_rhs
+    !! Optional velocity name
+    character(len = *), intent(in), optional :: velocity_name
 
     !! Flag for whether to construct semidiscrete form of the equation.
     logical, intent(in), optional :: semidiscrete
@@ -565,6 +587,9 @@ contains
 
     !! Source and absorption
     type(scalar_field) :: Source, Absorption
+
+    !! Local velocity name
+    character(len = FIELD_NAME_LEN) :: lvelocity_name
 
     !! Element index
     integer :: ele
@@ -603,7 +628,6 @@ contains
     ! These names are based on the CGNS SIDS.
     T=extract_scalar_field(state, field_name)
     X=extract_vector_field(state, "Coordinate")
-    U=extract_vector_field(state, "Velocity")
 
     semi_discrete=present_and_true(semidiscrete)
     
@@ -624,14 +648,24 @@ contains
        rhs_diff=rhs
     end if
 
+    if(present(velocity_name)) then
+      lvelocity_name = velocity_name
+    else
+      lvelocity_name = "NonlinearVelocity"
+    end if
+
     if (.not.have_option(trim(T%option_path)//"/prognostic&
          &/spatial_discretisation/discontinuous_galerkin&
          &/advection_scheme/none")) then
-       U_nl_backup=extract_vector_field(state, "NonlinearVelocity")
+       U_nl_backup=extract_vector_field(state, lvelocity_name)
        call incref(U_nl_backup)
        include_advection=.true.
     else
        ! Forcing a zero NonlinearVelocity will disable advection.
+       U=extract_vector_field(state, "Velocity", stat)
+       if (stat/=0) then 
+          FLAbort("Oh dear, no velocity field")
+       end if
        call allocate(U_nl_backup, U%dim,  U%mesh, "BackupNonlinearVelocity", &
             FIELD_TYPE_CONSTANT)
        call zero(U_nl_backup)
