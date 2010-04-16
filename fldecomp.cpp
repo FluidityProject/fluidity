@@ -576,7 +576,9 @@ int main(int argc, char **argv){
     cout<<"Reading "<<filename_face<<endl;
 
   fstream face_file;
+  
   face_file.open(filename_face.c_str(), ios::in);
+  
   if(!face_file.is_open()){
     cerr<<"ERROR: Triangle file, "<<filename_face
         <<", cannot be opened. Does it exist? Have you read permission?\n";
@@ -584,13 +586,15 @@ int main(int argc, char **argv){
   }
   
   deque< vector<int> > SENList;
+  deque< vector<int> > columnSENList;
   vector<int> topSENList;
   // Set the boundary id of the extruded surface -- default 1.
   int bid = 1;
   if(flArgs.count('t'))
     bid = atoi(flArgs['t'].c_str());
   vector<int> boundaryIds;
-  int nsele, snloc, snnodes=0;
+  int nsele, snloc, snnodes;
+  int max_snnodes=0, min_snnodes=0;
   {
     int natt, id;
     face_file>>nsele>>natt;
@@ -609,31 +613,48 @@ int main(int argc, char **argv){
       exit(-1);
     }
     SENList.resize(nsele);
+    columnSENList.resize(nsele);
     if(natt>1){
       cerr<<"ERROR: Don't know what to do with more than 1 attribute.\n";
       exit(-1);
     }
     if(natt)
       boundaryIds.resize(nsele);
+    
     for(int i=0;i<nsele;i++){
       vector<int> facet(snloc);
+      vector<int> facet_columns(snloc);
       face_file>>id;
-      for(int j=0;j<snloc;j++)
+      for(int j=0;j<snloc;j++){
         face_file>>facet[j];
-      SENList[i] = facet;
+        if(surface_nids.size())
+          facet_columns[j]=surface_nids[facet[j]-1];
+      }     
+      SENList[i] = facet;     
+      if(surface_nids.size())
+        columnSENList[i] = facet_columns;     
       if(natt){
         face_file>>boundaryIds[i];
         if(boundaryIds[i]==bid){
           for(int j=0;j<snloc;j++){
-            topSENList.push_back(SENList[i][j]);
-            snnodes=max(snnodes, SENList[i][j]);
+            if(surface_nids.size()){
+              topSENList.push_back(columnSENList[i][j]);
+              max_snnodes=max(max_snnodes, columnSENList[i][j]);
+              min_snnodes=min(min_snnodes, columnSENList[i][j]);
+              snnodes=max_snnodes-min_snnodes+1;
+            }else{
+              topSENList.push_back(SENList[i][j]);
+              max_snnodes=max(max_snnodes, SENList[i][j]);
+              min_snnodes=min(min_snnodes, SENList[i][j]);
+              snnodes=max_snnodes-min_snnodes+1;
+            }
           }
         }
       }
     }
   }
   face_file.close();
-
+  
   vector<int> decomp;
   int partition_method = -1;
   
@@ -668,9 +689,13 @@ int main(int argc, char **argv){
     edgecut = partition(topSENList, 2, snloc, snnodes, npartitions, partition_method, decomp);
     topSENList.clear();
     decomp.resize(nnodes);
-    for(int i=snnodes;i<nnodes;i++){
-      decomp[i] = decomp[surface_nids[i]-1];
+    vector<int> decomp_temp;
+    decomp_temp.resize(nnodes);
+    for(int i=0;i<nnodes;i++){
+      decomp_temp[i] = decomp[surface_nids[i]-1]; // surface_nids=column number
     }
+    decomp=decomp_temp;
+    decomp_temp.clear();
   }else{
     // Partition the mesh
     if(verbose)
