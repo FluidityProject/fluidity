@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+    <name>forcing</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>fluidity time_in_vtus.flml</command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="FinalTime" language="python">
+import vtktools
+u=vtktools.vtu("time_in_vtus_4.vtu")
+Time = u.GetScalarField('Time')
+FinalTime = Time[0]
+    </variable>
+  
+  </variables>    
+
+  <pass_tests> 
+    <test name="Final time is 1440 seconds" language="python">
+assert FinalTime == 1440 
+    </test>
+
+  </pass_tests>
+</testproblem>

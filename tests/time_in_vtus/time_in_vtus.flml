@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">time_in_vtus</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">oceans</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="column">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">3</integer_value>
+      </degree>
+    </quadrature>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">38</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">39</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period replaces="TIMDUM">
+      <real_value rank="0">360.0</real_value>
+    </dump_period>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+      <time_units date="seconds since 1970-07-05 12:00:0.0"/>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">360.0</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">1440</real_value>
+      <comment>31536000.0 - 1 year
+360000 - 12 hours (i.e. 2 forcing steps)</comment>
+    </finish_time>
+    <nonlinear_iterations replaces="ITINOI">
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">9.8</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+    <coriolis>
+      <f_plane>
+        <f>
+          <real_value rank="0">1.0e-4</real_value>
+        </f>
+      </f_plane>
+    </coriolis>
+  </physical_parameters>
+  <material_phase name="Fluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+  </material_phase>
+</fluidity_options>
