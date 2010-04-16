@@ -653,6 +653,7 @@ int main(int argc, char **argv){
       }
     }
   }
+  columnSENList.clear();
   face_file.close();
   
   vector<int> decomp;
