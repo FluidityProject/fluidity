@@ -1415,11 +1415,34 @@ Velocity mesh if not supplied.</a:documentation>
               </element>
             </choice>
           </optional>
-          <element name="mass">
-            <a:documentation>Options relating to the mass matrix used in computing the
-Coriolis acceleration from velocity, and velocity from the
-Coriolis acceleration. If the Coriolis acceleration mesh is
-continuous you must select solver options or lump_mass here.</a:documentation>
+          <element name="velocity_to_coriolis">
+            <a:documentation>Options relating to the diagnostic solve for Coriolis from
+Velocity on the donor mesh.</a:documentation>
+            <optional>
+              <choice>
+                <element name="solver">
+                  <a:documentation>Solver options. Required for a continuous consistent mass
+projection.</a:documentation>
+                  <ref name="linear_solver_options_sym"/>
+                </element>
+                <element name="lump_mass">
+                  <a:documentation>Lump the mass matrix</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </choice>
+            </optional>
+            <optional>
+              <element name="lump_rhs">
+                <a:documentation>Lump the RHS term. Cannot be used when lumping the mass
+matrix.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+            <ref name="comment"/>
+          </element>
+          <element name="coriolis_to_velocity">
+            <a:documentation>Options relating to the diagnostic solve for Velocity from
+Coriolis on the target mesh.</a:documentation>
             <optional>
               <choice>
                 <element name="solver">
@@ -1435,6 +1458,7 @@ projection.</a:documentation>
             </optional>
             <ref name="comment"/>
           </element>
+          <ref name="comment"/>
         </element>
         <element name="conservative_potential">
           <a:documentation>Options relating to the conservative potential component of the

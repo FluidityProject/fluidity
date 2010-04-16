@@ -1182,11 +1182,30 @@ interpolation_algorithm_vector =
                   attribute name { string }
                }
             )?,
-            ## Options relating to the mass matrix used in computing the
-            ## Coriolis acceleration from velocity, and velocity from the
-            ## Coriolis acceleration. If the Coriolis acceleration mesh is
-            ## continuous you must select solver options or lump_mass here.
-            element mass {
+            ## Options relating to the diagnostic solve for Coriolis from
+            ## Velocity on the donor mesh.
+            element velocity_to_coriolis {
+               (
+                  ## Solver options. Required for a continuous consistent mass
+                  ## projection.
+                  element solver {
+                     linear_solver_options_sym
+                  }|
+                  ## Lump the mass matrix
+                  element lump_mass {
+                     comment
+                  }
+               )?,
+               ## Lump the RHS term. Cannot be used when lumping the mass
+               ## matrix.
+               element lump_rhs {
+                  comment
+               }?,
+               comment
+            },
+            ## Options relating to the diagnostic solve for Velocity from
+            ## Coriolis on the target mesh.
+            element coriolis_to_velocity {
                (
                   ## Solver options. Required for a continuous consistent mass
                   ## projection.
@@ -1199,7 +1218,8 @@ interpolation_algorithm_vector =
                   }
                )?,
                comment
-            }
+            },
+            comment
         },
         ## Options relating to the conservative potential component of the
         ## Helmholtz decomposition

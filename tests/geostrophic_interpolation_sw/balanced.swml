@@ -167,7 +167,8 @@
         </steady_state>
         <geostrophic_interpolation>
           <coriolis>
-            <mass/>
+            <velocity_to_coriolis/>
+            <coriolis_to_velocity/>
           </coriolis>
           <conservative_potential>
             <mesh name="PressureMesh"/>

@@ -239,9 +239,12 @@
         </steady_state>
         <geostrophic_interpolation>
           <coriolis>
-            <mass>
+            <velocity_to_coriolis>
               <lump_mass/>
-            </mass>
+            </velocity_to_coriolis>
+            <coriolis_to_velocity>
+              <lump_mass/>
+            </coriolis_to_velocity>
           </coriolis>
           <conservative_potential>
             <mesh name="CoordinateMesh"/>
