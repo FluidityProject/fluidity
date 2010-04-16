@@ -181,6 +181,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
 !   loop over the nodes you own
     do node=1,count
+
 !      find nodes neighbours
        neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
 
@@ -247,7 +248,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
    end do
 
    assert(head == sum(num_edges(1:num_obj))+1)
-   
+  
 !  calculate the local maximum edge weight
    max_weight = maxval(ewgts(1:head))
 
@@ -1937,9 +1938,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
       end if
       ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Param(zz, "PARMETIS_OUTPUT_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
-      ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+      !ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+      !ierr = Zoltan_Set_Param(zz, "PARMETIS_OUTPUT_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
+      !ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+
 
       if (iteration == 1) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
@@ -1952,7 +1954,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       end if
 
 !     set this at the maximum of the recommended scale (100 - 1000)
-!     else number of nodes per partition is seen my the partitioner as more
+!     else number of nodes per partition is seen by the partitioner as more
 !     important than edge-weights and hence the adapting process breaks
 !      ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "1"); assert(ierr == ZOLTAN_OK)
 
