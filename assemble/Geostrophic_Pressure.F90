@@ -1655,9 +1655,9 @@ contains
 
       if(lump_rhs) then
         little_masslump = sum(shape_shape(shape, shape, detwei), 2)
-        little_rhs = spread(little_masslump, 1, rhs%dim) * z_cross_u(ele_val(velocity, ele))
+        little_rhs = spread(little_masslump, 1, rhs%dim) * (-z_cross_u(ele_val(velocity, ele)))
       else
-        little_rhs = shape_vector_rhs(shape, z_cross_u(ele_val_at_quad(velocity, ele)), detwei)
+        little_rhs = shape_vector_rhs(shape, -z_cross_u(ele_val_at_quad(velocity, ele)), detwei)
       end if
 
       nodes => ele_nodes(rhs, ele)
@@ -1710,9 +1710,9 @@ contains
 
       if(lump_rhs) then
         little_masslump = sum(shape_shape(shape, shape, detwei), 2)
-        little_rhs = spread(little_masslump, 2, coriolis%dim) * transpose(z_cross_u(ele_val(velocity, ele)))
+        little_rhs = spread(little_masslump, 2, coriolis%dim) * transpose(-z_cross_u(ele_val(velocity, ele)))
       else
-        little_rhs = transpose(shape_vector_rhs(shape, z_cross_u(ele_val_at_quad(velocity, ele)), detwei))
+        little_rhs = transpose(shape_vector_rhs(shape, -z_cross_u(ele_val_at_quad(velocity, ele)), detwei))
       end if
       
       call solve(little_matrix, little_rhs)
