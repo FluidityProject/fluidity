@@ -2355,7 +2355,7 @@ contains
     !!< Set up a state for geostrophic interpolation
 
     type(state_type), intent(inout) :: old_state
-    type(vector_field), target, intent(in) :: old_velocity
+    type(vector_field), target, intent(inout) :: old_velocity
     type(state_type), intent(inout) :: new_state
     type(vector_field), target, intent(in) :: new_velocity
 
@@ -2532,13 +2532,13 @@ contains
     call insert_for_interpolation(new_state, new_res)
     if(dim == 3) then
       ! Insert the vertical Velocity
-      call allocate(old_w, old_u_mesh, gi_w_name)
-      old_w%option_path = old_res%option_path
+      call allocate(old_w, old_velocity%mesh, gi_w_name)
+      old_w%option_path = trim(base_path) // "/vertical_velocity"
       call set(old_w, old_velocity, W_)
       ewrite_minmax(old_w%val)
       
-      call allocate(new_w, new_u_mesh, old_w%name)
-      new_w%option_path = new_res%option_path
+      call allocate(new_w, old_velocity%mesh, old_w%name)
+      new_w%option_path = old_w%option_path
       call zero(new_w)
       
       call insert_for_interpolation(old_state, old_w)
@@ -2932,7 +2932,7 @@ contains
     character(len = FIELD_NAME_LEN) :: field_name
     character(len = OPTION_PATH_LEN) :: mat_phase_path, path, &
       & geostrophic_pressure_option
-    integer :: i, j, reference_node, stat
+    integer :: dim, i, j, reference_node, stat
 
     character(len = OPTION_PATH_LEN) :: aux_p_name, mesh_name, mesh_name_2
     
@@ -3061,6 +3061,15 @@ contains
               else if(reference_node <= 0) then
                 ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
                 FLExit("Geopressure reference node must be positive")
+              end if
+            end if
+            
+            call get_option("/geometry/dimension", dim, stat = stat)
+            if(stat == SPUD_NO_ERROR) then
+              if(dim == 3) then
+                if(.not. have_option(trim(path) // "/geostrophic_interpolation/vertical_velocity")) then
+                  FLExit("Vertical velocity options are required in 3D")
+                end if
               end if
             end if
           end if

@@ -1443,6 +1443,32 @@ interpolation_algorithm_vector =
               }
            )
         }?,
+        ## Options relating to the vertical velocity. Required in 3D.
+        element vertical_velocity {
+           (
+              ## Galerkin projection. By default, conservative, non-dissipative and
+              ## non-bounded. The most accurate choice, in the sense of minimising
+              ## the L2 norm of the residual
+              element galerkin_projection {
+                continuous_discontinuous_projection,
+                supermesh_conservation?,
+                comment
+              }|
+              ## Basis function interpolation.
+              ## The standard algorithm. It is quick
+              ## and bounded, but non-conservative and dissipative.
+              ## All other algorithms require construction of a supermesh.
+              element consistent_interpolation {
+                comment
+              }|
+              ## Grandy interpolation. Conservative, but highly diffusive.
+              ## See doi:10.1006/jcph.1998.6125 .
+              element grandy_interpolation {
+                empty
+              }
+           ),
+           comment
+        }?,
         ## Debug options
         element debug {
            ## If enabled, pre and post interpolation decomposition vtus are
