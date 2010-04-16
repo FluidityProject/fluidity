@@ -531,7 +531,8 @@ contains
        
        s_field => extract_scalar_field(state(i), "PotentialVorticity", stat)
        if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
+         diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+         if(diagnostic .and. recalculate(trim(s_field%option_path))) then
            call calculate_potential_vorticity(state(i), s_field)
          end if
        end if
@@ -613,9 +614,8 @@ contains
     logical function recalculate(option_path)
       character(len=*) :: option_path
       
-      recalculate = (have_option(trim(option_path)//"/diagnostic").and.&
-           ((.not.present_and_true(exclude_nonrecalculated)).or. &
-           (.not.do_not_recalculate(option_path))))
+      recalculate = ((.not.present_and_true(exclude_nonrecalculated)).or. &
+           (.not.do_not_recalculate(option_path)))
     
     end function recalculate
 
