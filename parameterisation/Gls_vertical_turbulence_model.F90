@@ -55,7 +55,7 @@ module gls
   type(scalar_field), save :: tke_old, ll
   type(scalar_field), save :: MM2, NN2, eps, Fwall, S_H, S_M
   type(scalar_field), save :: K_H, K_M, density, P, B
-  real, save               :: eps_min = 1e-12, psi_min, k_min
+  real, save               :: eps_min = 1e-10, psi_min, k_min
   real, save               :: cm0, cde
   !  the a_i's for the ASM
   real, save               :: a1,a2,a3,a4,a5
@@ -592,9 +592,9 @@ subroutine gls_diffusivity(state)
     do i=1,nNodes
         x = sqrt(node_val(KK,i))*node_val(ll,i)
         ! momentum
-        call set(K_M,i, node_val(S_M,i)*x)
+        call set(K_M,i, min(7.0,node_val(S_M,i)*x))
         ! tracer
-        call set(K_H,i, node_val(S_H,i)*x)
+        call set(K_H,i, min(7.0,node_val(S_H,i)*x))
     end do
 
 
@@ -681,6 +681,7 @@ subroutine gls_adapt_mesh(state)
     if (calculate_bcs) then
         call gls_init_surfaces(state) ! re-do the boundaries
     end if
+
     ! bit complicated here - we need to repopulate the fields internal to this
     ! module, post adapt. We need the diffusivity for the first iteration to
     ! calculate the TKE src/abs terms, but for diffusivity, we need stability
@@ -691,6 +692,11 @@ subroutine gls_adapt_mesh(state)
     call gls_diffusivity(state) ! gets us epsilon, but K_H and K_M are wrong
     call gls_stability_function(state) ! requires espilon, but sets S_H and S_M
     call gls_diffusivity(state) ! sets K_H, K_M to correct values
+    ! calling these two, sets the source/abs correctly
+    call gls_tke(state)
+    call gls_psi(state)
+    ! and this one sets up the diagnostic fields again
+    call gls_output_fields(state)
 
 end subroutine gls_adapt_mesh
 
@@ -946,14 +952,14 @@ subroutine gls_buoyancy(state)
     call allocate(NU_averaged, velocity%mesh, "NU_averaged")    
     call allocate(NV_averaged, velocity%mesh, "NV_averaged")   
     call allocate(pert_rho_averaged, velocity%mesh, "pert_rho_averaged")   
-
+    
     average = .true.
     if (average) then
         call allocate(inverse_lumpedmass, velocity%mesh, "InverseLumpedMass")
         mass => get_mass_matrix(state, velocity%mesh)
         lumpedmass => get_lumped_mass(state, velocity%mesh)
         call invert(lumpedmass, inverse_lumpedmass)
-        call mult( pert_rho_averaged, mass, pert_rho )
+        call mult( pert_rho_averaged, mass, pert_rho)
         call scale(pert_rho_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
         call mult( NU_averaged, mass, extract_scalar_field(velocity, 1) )
         call scale(NU_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
@@ -1186,38 +1192,57 @@ subroutine gls_psi_bc(state, bc_type)
 
     select case(bc_type)
     case("neumann")
-        do i=1,NNodes_sur
-            value = (-gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.))/sigma_psi      &
-                       *(u_taus_squared(i)/(cm0**2))**(gls_m+0.5)*(z0s(i)+z0s(i))**gls_n
-            call set(top_surface_values,i,value)
-        end do
+        if (fix_surface_values) then
+            do i=1,NNodes_sur
+                value = (-gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.))/sigma_psi      &
+                           *(u_taus_squared(i)/(cm0**2))**(gls_m+0.5)*(z0s(i)+z0s(i))**gls_n
+                call set(top_surface_values,i,value)
+            end do
+            do i=1,NNodes_bot
+                value = - gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.)/sigma_psi      &
+                           *(u_taub_squared(i)/(cm0**2))**(gls_m+0.5)*(z0b(i)+z0b(i))**gls_n
+                call set(bottom_surface_values,i,value)
+            end do
+        else
+            do i=1,NNodes_sur
+                value = (-gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.))/sigma_psi      &
+                           *node_val(top_surface_kk_values,i)**(gls_m+0.5)*(z0s(i)+z0s(i))**gls_n
+                call set(top_surface_values,i,value)
+            end do
+            do i=1,NNodes_bot
+                value = - gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.)/sigma_psi      &
+                           *node_val(bottom_surface_kk_values,i)**(gls_m+0.5)*(z0b(i)+z0b(i))**gls_n
+                call set(bottom_surface_values,i,value)
+            end do
+        end if
     case("dirichlet")
-        do i=1,NNodes_sur
-            value = cm0**gls_p*kappa**gls_n*(node_val(top_surface_kk_values,i))**gls_m * &
+        if (fix_surface_values) then
+            do i=1,NNodes_sur
+                value = cm0**gls_p*kappa**gls_n*(u_taus_squared(i)/(cm0**2))**gls_m * &
                     (z0s(i)+z0s(i))**gls_n
-            call set(top_surface_values,i,value)
-        end do
-    case default
-        FLAbort('Unknown surface BC for Psi')
-    end select
-
-    ! bottom boundary - assume it the same type as the top...
-    select case(bc_type)
-    case("neumann")
-        do i=1,NNodes_bot
-            value = - gls_n*cm0**(gls_p+1.)*kappa**(gls_n+1.)/sigma_psi      &
-                       *node_val(bottom_surface_kk_values,i)**(gls_m+0.5)*(z0b(i)+z0b(i))**gls_n
-            call set(bottom_surface_values,i,value)
-        end do
-    case("dirichlet")
-        do i=1,NNodes_bot
-            value = cm0**gls_p*kappa**gls_n*(node_val(bottom_surface_kk_values,i))**gls_m * &
+                call set(top_surface_values,i,value)
+            end do
+            do i=1,NNodes_bot
+                value = cm0**gls_p*kappa**gls_n*(u_taub_squared(i)/(cm0**2))**gls_m * &
                     (z0b(i)+z0b(i))**gls_n
-            call set(bottom_surface_values,i,value)
-        end do
+                call set(bottom_surface_values,i,value)
+            end do            
+        else
+            do i=1,NNodes_sur
+                value = cm0**gls_p*kappa**gls_n*(node_val(top_surface_kk_values,i))**gls_m * &
+                    (z0s(i)+z0s(i))**gls_n
+                call set(top_surface_values,i,value)
+            end do
+            do i=1,NNodes_bot
+                value = cm0**gls_p*kappa**gls_n*(node_val(bottom_surface_kk_values,i))**gls_m * &
+                    (z0b(i)+z0b(i))**gls_n
+                call set(bottom_surface_values,i,value)
+            end do
+        end if
     case default
-        FLAbort('Unknown bottom BC for Psi')
-    end select    
+        FLAbort('Unknown boundary type for Psi')
+    end select
+  
     
     deallocate(z0s)
     deallocate(z0b)
