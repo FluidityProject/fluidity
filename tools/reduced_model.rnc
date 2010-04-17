@@ -18,6 +18,10 @@ reduced_model =
          ## Number of POD basis to be calculated
          element pod_basis_count {
             integer
+         },
+         ## pod_basis perturbation coefficient
+         element pod_basis_perturb_coef {
+            real
          }
       }
    }

@@ -22,6 +22,10 @@ E.g. 1 for every dump, 10 for every tenth dump. </a:documentation>
           <a:documentation>Number of POD basis to be calculated</a:documentation>
           <ref name="integer"/>
         </element>
+        <element name="pod_basis_perturb_coef">
+          <a:documentation>pod_basis perturbation coefficient</a:documentation>
+          <ref name="real"/>
+        </element>
       </element>
     </element>
   </define>
