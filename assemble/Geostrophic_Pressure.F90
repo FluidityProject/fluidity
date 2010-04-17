@@ -2357,7 +2357,7 @@ contains
     type(state_type), intent(inout) :: old_state
     type(vector_field), target, intent(inout) :: old_velocity
     type(state_type), intent(inout) :: new_state
-    type(vector_field), target, intent(in) :: new_velocity
+    type(vector_field), target, intent(inout) :: new_velocity
 
     character(len = OPTION_PATH_LEN) :: base_path, u_mesh_name, p_mesh_name
     integer :: dim, stat
@@ -2537,9 +2537,8 @@ contains
       call set(old_w, old_velocity, W_)
       ewrite_minmax(old_w%val)
       
-      call allocate(new_w, old_velocity%mesh, old_w%name)
+      call allocate(new_w, new_velocity%mesh, old_w%name)
       new_w%option_path = old_w%option_path
-      call zero(new_w)
       
       call insert_for_interpolation(old_state, old_w)
       call insert_for_interpolation(new_state, new_w)

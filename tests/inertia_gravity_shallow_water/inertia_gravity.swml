@@ -3,7 +3,6 @@
   <simulation_name>
     <string_value lines="1">inertia_gravity</string_value>
   </simulation_name>
-  <debug/>
   <geometry>
     <dimension replaces="NDIM">
       <integer_value rank="0">2</integer_value>
@@ -122,7 +121,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time replaces="LTIME">
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">1</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -159,7 +158,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -211,10 +210,10 @@ val=inertia_gravity.velocity_solution(inertia_gravity.k)</string_value>
           <theta replaces="THETA">
             <real_value rank="0">0.5</real_value>
           </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
         </temporal_discretisation>
-        <relaxation replaces="ITHETA">
-          <real_value rank="0">0.5</real_value>
-        </relaxation>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -223,7 +222,7 @@ val=inertia_gravity.velocity_solution(inertia_gravity.k)</string_value>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
+            <real_value rank="0">1e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -240,7 +239,7 @@ val=inertia_gravity.height_solution(inertia_gravity.k)</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">1.0</real_value>
+          <real_value rank="0">1</real_value>
         </mean_layer_thickness>
         <output/>
         <stat/>
@@ -289,4 +288,5 @@ for n in range(field.node_count):
       </diagnostic>
     </scalar_field>
   </material_phase>
+  <debug/>
 </shallow_water_options>

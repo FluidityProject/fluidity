@@ -15,19 +15,6 @@ name, e.g. [simulation_name]_0.vtu. Non-standard
 characters in the simulation name should be avoided.</a:documentation>
         <ref name="anystring"/>
       </element>
-      <element name="debug">
-        <a:documentation>Debugging options</a:documentation>
-        <optional>
-          <element name="check_inverse_coriolis_matrix">
-            <empty/>
-          </element>
-        </optional>
-        <optional>
-          <element name="check_wave_matrix">
-            <empty/>
-          </element>
-        </optional>
-      </element>
       <element name="geometry">
         <a:documentation>Options dealing with the specification of geometry</a:documentation>
         <element name="dimension">
@@ -444,6 +431,26 @@ usually only the y-component of beta is non-zero</a:documentation>
             <ref name="hr_adaptivity"/>
             <ref name="prescribed_adaptivity"/>
           </choice>
+        </element>
+      </optional>
+      <optional>
+        <element name="debug">
+          <a:documentation>Debugging options</a:documentation>
+          <optional>
+            <element name="check_inverse_coriolis_matrix">
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_wave_matrix">
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_solution">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
     </element>
@@ -998,16 +1005,16 @@ conservative_advection below).</a:documentation>
         </attribute>
         <ref name="real"/>
       </element>
-    </element>
-    <element name="relaxation">
-      <a:documentation>Non-linear relaxation term
+      <element name="relaxation">
+        <a:documentation>Non-linear relaxation term
  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
  0. &lt; ITHETA &lt; 1.</a:documentation>
-      <attribute name="replaces">
-        <value>ITHETA</value>
-      </attribute>
-      <ref name="real"/>
+        <attribute name="replaces">
+          <value>ITHETA</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>

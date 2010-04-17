@@ -1182,8 +1182,8 @@ interpolation_algorithm_vector =
                   attribute name { string }
                }
             )?,
-            ## Options relating to the diagnostic solve for Coriolis from
-            ## Velocity on the donor mesh.
+            ## Options relating to the diagnostic solve for the Coriolis
+            ## acceleration from Velocity on the donor mesh.
             element velocity_to_coriolis {
                (
                   ## Solver options. Required for a continuous consistent mass
@@ -1196,15 +1196,16 @@ interpolation_algorithm_vector =
                      comment
                   }
                )?,
-               ## Lump the RHS term. Cannot be used when lumping the mass
-               ## matrix.
+               ## Lump the RHS term. Requires Velocity and the Coriolis 
+               ## acceleration to be on the same mesh. Cannot be used when
+               ## lumping the mass matrix.
                element lump_rhs {
                   comment
                }?,
                comment
             },
             ## Options relating to the diagnostic solve for Velocity from
-            ## Coriolis on the target mesh.
+            ## the Coriolis acceleration on the target mesh.
             element coriolis_to_velocity {
                (
                   ## Solver options. Required for a continuous consistent mass

@@ -1416,8 +1416,8 @@ Velocity mesh if not supplied.</a:documentation>
             </choice>
           </optional>
           <element name="velocity_to_coriolis">
-            <a:documentation>Options relating to the diagnostic solve for Coriolis from
-Velocity on the donor mesh.</a:documentation>
+            <a:documentation>Options relating to the diagnostic solve for the Coriolis
+acceleration from Velocity on the donor mesh.</a:documentation>
             <optional>
               <choice>
                 <element name="solver">
@@ -1433,8 +1433,9 @@ projection.</a:documentation>
             </optional>
             <optional>
               <element name="lump_rhs">
-                <a:documentation>Lump the RHS term. Cannot be used when lumping the mass
-matrix.</a:documentation>
+                <a:documentation>Lump the RHS term. Requires Velocity and the Coriolis 
+acceleration to be on the same mesh. Cannot be used when
+lumping the mass matrix.</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
@@ -1442,7 +1443,7 @@ matrix.</a:documentation>
           </element>
           <element name="coriolis_to_velocity">
             <a:documentation>Options relating to the diagnostic solve for Velocity from
-Coriolis on the target mesh.</a:documentation>
+the Coriolis acceleration on the target mesh.</a:documentation>
             <optional>
               <choice>
                 <element name="solver">
