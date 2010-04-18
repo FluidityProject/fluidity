@@ -20,7 +20,7 @@ reduced_model =
             integer
          },
          ## pod_basis perturbation coefficient
-         element pod_basis_perturb_coef {
+         element pod_basis_perturbation_coefficient {
             real
          }
       }
