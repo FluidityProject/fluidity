@@ -872,7 +872,7 @@ contains
 
     write(steady_state_unit, '(a)') "<header>"
 
-    call initialise_constant_diagnostics(diag_unit)
+    call initialise_constant_diagnostics(steady_state_unit)
 
     ! Initial columns are elapsed time, dt and global iteration
     column=1
