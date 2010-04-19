@@ -173,13 +173,11 @@ contains
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
       masslump => get_lumped_mass(state, s_field%mesh)
-      call allocate(rhs, s_field%mesh, "CurlRHS")
-      call zero(rhs)
+      call zero(s_field)
       do i = 1, ele_count(rhs)
-        call assemble_curl_ele(i, positions, source_field, rhs)
+        call assemble_curl_ele(i, positions, source_field, s_field)
       end do
-      call set_all(s_field, rhs%val / masslump%val)
-      call deallocate(rhs)
+      s_field%val = s_field%val / masslump%val
     else
       select case(continuity(s_field))
         case(0)
@@ -283,15 +281,13 @@ contains
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
       masslump => get_lumped_mass(state, v_field%mesh)
-      call allocate(rhs, v_field%dim, v_field%mesh, "CurlRHS")
-      call zero(rhs)
+      call zero(v_field)
       do i = 1, ele_count(rhs)
-        call assemble_curl_ele(i, positions, source_field, rhs)
+        call assemble_curl_ele(i, positions, source_field, v_field)
       end do
       do i = 1, v_field%dim
-        call set_all(v_field, i, rhs%val(i)%ptr / masslump%val)
+        v_field%val(i)%ptr = v_field%val(i)%ptr / masslump%val
       end do
-      call deallocate(rhs)
     else
       select case(continuity(v_field))
         case(0)

@@ -102,6 +102,16 @@ internal_algorithm =
          attribute material_phase_support { "multiple" }
       }
    )
+legacy_internal_algorithm =
+   (
+      ## This diagnostic is deprecated - i.e. it has been replaced by an
+      ## equivalent diagnostic algorithm.
+      element algorithm {
+         attribute name { "Internal" },
+         attribute material_phase_support { "multiple" },
+         attribute legacy { "true" }
+      }
+   )
 internal_velocity_source_algorithm =
    (
       ## Some code paths (e.g. porous media and the traffic model)

@@ -145,6 +145,21 @@ wrappers.</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="legacy_internal_algorithm">
+    <element name="algorithm">
+      <a:documentation>This diagnostic is deprecated - i.e. it has been replaced by an
+equivalent diagnostic algorithm.</a:documentation>
+      <attribute name="name">
+        <value>Internal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
+      <attribute name="legacy">
+        <value>true</value>
+      </attribute>
+    </element>
+  </define>
   <define name="internal_velocity_source_algorithm">
     <element name="algorithm">
       <a:documentation>Some code paths (e.g. porous media and the traffic model)

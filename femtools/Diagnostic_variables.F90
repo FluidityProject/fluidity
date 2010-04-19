@@ -63,10 +63,10 @@ module diagnostic_variables
 
   private
 
-  public :: initialise_diagnostics, initialise_convergence, field_tag, &
-       & write_diagnostics, test_and_write_convergence, &
-       & initialise_detectors, write_detectors, &
-       & test_steady_state, steady_state_field, convergence_field, &
+  public :: initialise_diagnostics, initialise_convergence, &
+       & initialise_steady_state, field_tag, write_diagnostics, &
+       & test_and_write_convergence, initialise_detectors, write_detectors, &
+       & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options
 
@@ -98,11 +98,15 @@ module diagnostic_variables
 
   !! Output unit for diagnostics file.
   !! (assumed non-opened as long these are 0)
-  integer, save :: diag_unit=0, conv_unit=0, detector_unit=0, detector_checkpoint_unit=0, detector_file_unit=0 
+  integer, save :: diag_unit=0, conv_unit=0, steady_state_unit=0, &
+    & detector_unit=0, detector_checkpoint_unit=0, detector_file_unit=0 
   logical, save :: binary_detector_output = .false.
 
   !! Are we writing to a convergence file?
   logical, save :: write_convergence_file=.false.
+  
+  !! Are we writing to a steady state file?
+  logical, save :: write_steady_state_file=.false.
 
   !! Are we continuing from a detector checkpoint file?
   logical, save :: detectors_checkpoint_done = .false.
@@ -833,6 +837,92 @@ contains
     write(conv_unit, '(a)') "</header>"
 
   end subroutine initialise_convergence
+  
+  subroutine initialise_steady_state(filename, state)
+    !!< Set up the steady state file headers.
+
+    character(len=*) :: filename
+    type(state_type), dimension(:), intent(in) :: state
+
+    ! Idempotency variable
+    logical, save :: initialised=.false.
+
+    integer :: column, i, j, phase
+    character(len = 254) :: buffer, material_phase_name
+    type(scalar_field) :: vfield_comp
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+
+    ! Idempotency check
+    if (initialised) return
+    initialised=.true.
+
+    if(have_option("/timestepping/steady_state/steady_state_file")) then
+       write_steady_state_file = .true.
+    else
+       write_steady_state_file = .false.
+       return
+    end if
+
+    ! Only the first process should write convergence information
+    if(getprocno() /= 1) return
+    
+    steady_state_unit=free_unit()
+    open(unit=steady_state_unit, file=trim(filename)//'.steady_state', action="write")
+
+    write(steady_state_unit, '(a)') "<header>"
+
+    call initialise_constant_diagnostics(diag_unit)
+
+    ! Initial columns are elapsed time, dt and global iteration
+    column=1
+    buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
+    write(steady_state_unit, '(a)') trim(buffer)
+    column=column+1
+    buffer=field_tag(name="dt", column=column, statistic="value")
+    write(steady_state_unit, '(a)') trim(buffer)
+
+    phaseloop: do phase=1,size(state)
+       material_phase_name = state(phase)%name
+
+       do i = 1, scalar_field_count(state(phase))
+          sfield => extract_scalar_field(state(phase), i)
+          if(.not. convergence_field(sfield)) cycle
+          ! Scalar fields
+
+          column=column+1
+          buffer=field_tag(name=sfield%name, column=column, statistic="error", material_phase_name=material_phase_name)
+          write(steady_state_unit, '(a)') trim(buffer)
+       end do
+
+       do i = 1, vector_field_count(state(phase))
+         vfield => extract_vector_field(state(phase), i)
+         if(.not. convergence_field(vfield)) cycle         
+         ! Vector fields
+         
+         column = column + 1
+         buffer = field_tag(name=trim(vfield%name) // "%magnitude", column=column, &
+           & statistic="error", material_phase_name=material_phase_name)
+         write(steady_state_unit, '(a)') trim(buffer)
+
+         if(.not. convergence_field(vfield, test_for_components = .true.)) cycle         
+         ! Vector field components
+         
+         do j = 1, mesh_dim(vfield%mesh)
+           vfield_comp = extract_scalar_field(vfield, j)
+
+           column = column + 1
+           buffer=field_tag(name=vfield_comp%name, column=column, statistic="error", &
+             & material_phase_name=material_phase_name)
+           write(steady_state_unit, '(a)') trim(buffer)
+         end do
+       end do
+
+    end do phaseloop
+
+    write(steady_state_unit, '(a)') "</header>"
+
+  end subroutine initialise_steady_state
   
   subroutine initialise_detectors(filename, state)
     !!< Set up the detector file headers. This has the same syntax as the
@@ -1837,7 +1927,7 @@ contains
 
   end subroutine test_and_write_convergence
 
-  subroutine test_steady_state(state, maxchange)
+  subroutine test_and_write_steady_state(state, maxchange)
     !!< Test whether a steady state has been reached.
 
     type(state_type), dimension(:), intent(in) :: state
@@ -1853,8 +1943,12 @@ contains
     
     type(vector_field), pointer :: coordinates
     integer :: convergence_norm
+    
+    character(len = *), parameter :: format = "(e15.6e3)"
+    integer :: procno
+    real :: elapsed_time
 
-    ewrite(1,*) 'Entering test_steady_state'
+    ewrite(1, *) "Entering test_and_write_steady_state"
 
     maxchange = 0.0
 
@@ -1864,16 +1958,19 @@ contains
     coordinates => extract_vector_field(state(1), "Coordinate")
     convergence_norm = convergence_norm_integer("/timestepping/steady_state/tolerance")
 
-    phaseloop: do phase=1,size(state)
+    procno = getprocno()
+    if(write_steady_state_file .and. procno == 1) then    
+      call get_option("/timestepping/current_time", elapsed_time)
+      write(steady_state_unit, format, advance="no") elapsed_time
+      write(steady_state_unit, format, advance="no") dt
+    end if
 
-       do i=1, size(sfield_list(phase)%ptr)
+    phaseloop: do phase = 1, size(state)
+       do i = 1, scalar_field_count(state(phase))
           ! Test steady state information for each scalar field.
-          sfield=>extract_scalar_field(state(phase), &
-               &                       sfield_list(phase)%ptr(i))
-
-          if(.not. steady_state_field(sfield)) then
-            cycle
-          end if
+          sfield=>extract_scalar_field(state(phase), i)
+          if(.not. steady_state_field(sfield)) cycle
+          ! Scalar fields
 
           oldsfield=>extract_scalar_field(state(phase), &
                                        "Old"//trim(sfield_list(phase)%ptr(i)))
@@ -1881,20 +1978,18 @@ contains
           call field_con_stats(sfield, oldsfield, change, &
                                convergence_norm, coordinates)
           if(acceleration) change = change/dt
-          ewrite(2,*) trim(sfield_list(phase)%ptr(i)), change
+          ewrite(2, *) trim(sfield%name), change
           maxchange = max(maxchange, change)
 
+          if(write_steady_state_file .and. procno == 1) then
+            write(steady_state_unit, format, advance = "no") change
+          end if
        end do
 
-       do i = 1, size(vfield_list(phase)%ptr)
-         ! Test steady state information for each vector field
-
-         vfield => extract_vector_field(state(phase), &
-           & vfield_list(phase)%ptr(i))
-
-         if(.not. steady_state_field(vfield)) then
-           cycle
-         end if
+       do i = 1, vector_field_count(state(phase))
+         vfield => extract_vector_field(state(phase), i)
+         if(.not. steady_state_field(vfield)) cycle
+         ! Vector fields
 
          oldvfield => extract_vector_field(state(phase), &
            & "Old"//vfield_list(phase)%ptr(i))
@@ -1902,13 +1997,15 @@ contains
          call field_con_stats(vfield, oldvfield, change, &
                               convergence_norm, coordinates)
          if(acceleration) change = change/dt
-         ewrite(2,*) trim(vfield_list(phase)%ptr(i)), change
+         ewrite(2, *) trim(vfield%name), change
          maxchange = max(maxchange, change)
 
-
-         if(.not. steady_state_field(vfield, test_for_components = .true.)) then
-           cycle
+         if(write_steady_state_file .and. procno == 1) then
+           write(steady_state_unit, format, advance = "no") change
          end if
+
+         if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle
+         ! Vector field components
 
          do j = 1, mesh_dim(vfield%mesh)
            vfield_comp = extract_scalar_field(vfield, j)
@@ -1917,18 +2014,27 @@ contains
            call field_con_stats(vfield_comp, oldvfield_comp, change, &
                                 convergence_norm, coordinates)
            if(acceleration) change = change/dt
-           ewrite(2,*) trim(vfield_list(phase)%ptr(i)), j, change
+           ewrite(2, *) trim(vfield%name), j, change
            maxchange = max(maxchange, change)
-
+           
+           if(write_steady_state_file .and. procno == 1) then
+            write(steady_state_unit, format, advance = "no") change
+           end if
          end do
-
        end do
 
     end do phaseloop
+    
+    if(write_convergence_file .and. procno == 1) then
+      ! Output end of line
+      write(steady_state_unit,'(a)') ""
+      flush(steady_state_unit)
+    end if
 
-    ewrite(1,*) 'maxchange = ', maxchange
+    ewrite(1, *) "maxchange = ", maxchange
+    ewrite(1, *) "Exiting test_and_write_steady_state"
 
-  end subroutine test_steady_state
+  end subroutine test_and_write_steady_state
 
   subroutine write_detectors(state, time, dt, not_to_move_det_yet)
     !!< Write the field values at detectors to the previously opened detectors file.
@@ -3297,6 +3403,13 @@ contains
        if (stat/=0) then
           ewrite(0,*) "Warning: failed to close .convergence file"
        end if
+    end if
+    
+    if(steady_state_unit /= 0) then
+      close(steady_state_unit, iostat = stat)
+      if(stat /= 0) then
+        ewrite(0, *) "Warning: failed to close .steady_state file"
+      end if
     end if
 
     if (detector_unit/=0) then

@@ -598,6 +598,13 @@ directly to the change in the field.</a:documentation>
                 <empty/>
               </element>
             </optional>
+            <optional>
+              <element name="steady_state_file">
+                <a:documentation>Write out the changes in the tested fields to a .steady_state
+file.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
           </element>
         </optional>
       </element>
@@ -5428,7 +5435,7 @@ and electrochemical problems
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
@@ -5483,7 +5490,7 @@ the finite element C^T matrix.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <attribute name="field_name">
               <data type="string" datatypeLibrary=""/>
             </attribute>
@@ -6393,7 +6400,7 @@ of this field is continuous.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <element name="source_field_name">
               <data type="string" datatypeLibrary=""/>
             </element>
@@ -6910,7 +6917,7 @@ ocean biology is being simulated.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <ref name="mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
@@ -6929,7 +6936,7 @@ ocean biology is being simulated.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <ref name="mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
@@ -7130,7 +7137,7 @@ Field must be in this material_phase.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <attribute name="field_name">
               <data type="string" datatypeLibrary=""/>
             </attribute>
@@ -7184,7 +7191,7 @@ Field must be in this material_phase.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <attribute name="field_name">
               <data type="string" datatypeLibrary=""/>
             </attribute>
@@ -7629,7 +7636,7 @@ of this field is continuous.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <ref name="legacy_internal_algorithm"/>
             <element name="source_field_name">
               <data type="string" datatypeLibrary=""/>
             </element>

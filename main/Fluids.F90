@@ -326,6 +326,7 @@ contains
     
     call initialise_diagnostics(filename, state)
     call initialise_convergence(filename, state)
+    call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
     if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
     
@@ -703,7 +704,7 @@ contains
 
        if(have_option("/timestepping/steady_state")) then
 
-          call test_steady_state(state, change)
+          call test_and_write_steady_state(state, change)
           if(change<steady_state_tolerance) then
              ewrite(0,*)  "* Steady state has been attained, exiting the timestep loop"
              exit timestep_loop

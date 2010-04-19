@@ -465,6 +465,11 @@ start =
                ## directly to the change in the field.
                element acceleration_form {
                   empty
+               }?,
+               ## Write out the changes in the tested fields to a .steady_state
+               ## file.
+               element steady_state_file {
+                  comment
                }?
             }?
          },
@@ -4122,7 +4127,7 @@ scalar_field_choice =
             attribute replaces { "IDENT = -143" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field
                }|
@@ -4168,7 +4173,7 @@ scalar_field_choice =
             attribute name { "FiniteElementDivergence" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   attribute field_name { string },
                   velocity_mesh_choice,
                   element integrate_divergence_by_parts {
@@ -4900,7 +4905,7 @@ scalar_field_choice =
             attribute name { "GalerkinProjection" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   element source_field_name { string },
                   mesh_choice,
                   ## Lump the mass matrix of the galerkin projection
@@ -5298,7 +5303,7 @@ scalar_field_choice =
             attribute name { "UniversalNumber" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   mesh_choice,
                   diagnostic_scalar_field
                }|
@@ -5313,7 +5318,7 @@ scalar_field_choice =
             attribute name { "NodeOwner" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   mesh_choice,
                   diagnostic_scalar_field
                }|
@@ -5484,7 +5489,7 @@ vector_field_choice =
             attribute name { "Gradient" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   attribute field_name { string },
                   mesh_choice,
                   diagnostic_scalar_field
@@ -5526,7 +5531,7 @@ vector_field_choice =
             attribute name { "FiniteElementDivergenceTransposed" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   attribute field_name { string },
                   mesh_choice,
                   element integrate_divergence_by_parts {
@@ -5885,7 +5890,7 @@ vector_field_choice =
             attribute name { "GalerkinProjection" },
             (
                element diagnostic {
-                  internal_algorithm,
+                  legacy_internal_algorithm,
                   element source_field_name { string },
                   mesh_choice,
                   ## Lump the mass matrix of the galerkin projection

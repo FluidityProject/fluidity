@@ -972,8 +972,12 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
           field_path = trim(state_path) // "/" // trim(field_type_path) // "[" // int2str(k) // "]"
           if(.not. have_option(trim(field_path) // "/diagnostic")) cycle
           call get_option(trim(field_path) // "/name", field_name, default = "UnknownField")
-                       
+                                              
           field_path = complete_field_path(field_path)
+          
+          if(have_option(trim(field_path) // "/algorithm/legacy")) then
+            call field_warning(state_name, field_name, "Diagnostic field is deprecated")
+          end if
                              
           do l = 1, size(depend_paths)
             call get_option(trim(field_path) // "/" // depend_paths(l), dependency, stat = stat)
@@ -1011,6 +1015,16 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
     ewrite(2, *) "Finished checking diagnostic fields related options"
     
   contains
+    
+    subroutine field_warning(state_name, field_name, msg)
+      character(len = *), intent(in) :: state_name
+      character(len = *), intent(in) :: field_name
+      character(len = *), intent(in) :: msg
+      
+      ewrite(0, *) "For field " // trim(field_name) // " in state " // trim(state_name)
+      ewrite(0, *) "Warning: " // trim(msg)
+    
+    end subroutine field_warning
     
     subroutine field_error(state_name, field_name, msg)
       character(len = *), intent(in) :: state_name
