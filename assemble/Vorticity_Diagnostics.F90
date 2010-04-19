@@ -40,7 +40,7 @@ module vorticity_diagnostics
   
   private
   
-  public :: calculate_planetary_vorticity, &
+  public :: calculate_vorticity, calculate_planetary_vorticity, &
     & calculate_absolute_vorticity, calculate_potential_vorticity, &
     & calculate_relative_potential_vorticity
   
