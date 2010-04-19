@@ -67,6 +67,7 @@
         <real_value rank="0">1.0e-7</real_value>
         <infinity_norm/>
       </tolerance>
+      <steady_state_file/>
     </steady_state>
   </timestepping>
   <physical_parameters/>

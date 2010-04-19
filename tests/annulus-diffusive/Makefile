@@ -12,7 +12,7 @@ clean-mesh:
 	rm -f $(MESH)_?*.ele $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node decomp.log decomp_err.log
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
-	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
+	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat $(FLMLMODEL).steady_state tmpf*
 	rm -f fluidity.err-?* fluidity.log-?*
 	rm -f matrixdump matrixdump.info
 	rm -f $(FLMLMODEL)_?*_checkpoint.flml
