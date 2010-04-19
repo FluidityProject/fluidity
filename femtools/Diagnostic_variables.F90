@@ -2025,7 +2025,7 @@ contains
 
     end do phaseloop
     
-    if(write_convergence_file .and. procno == 1) then
+    if(write_steady_state_file .and. procno == 1) then
       ! Output end of line
       write(steady_state_unit,'(a)') ""
       flush(steady_state_unit)
