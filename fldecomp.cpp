@@ -230,7 +230,6 @@ void write_partitions(bool verbose, string filename, string file_format,
     // Map from global node numbering (numbered from one) to partition node 
     // numbering (numbered from one)
     for(size_t j=0;j<nodes.size();j++){
-      // assert(renumber[nodes[j]]==-1);
       renumber[part].insert(renumber[part].end(), pair<int, int>(nodes[j], j+1));
     }
     
@@ -256,8 +255,7 @@ void write_partitions(bool verbose, string filename, string file_format,
     for(vector<int>::const_iterator iter=elements.begin();iter!=elements.end();iter++){
       for(int j=0;j<nloc;j++){
         int nid = ENList[*iter*nloc+j];
-        assert(renumber[part][nid]!=-1);
-        int gnid = renumber[part][nid];
+        int gnid = renumber[part].find(nid)->second;
         partENList.push_back(gnid);
         partNodesToEid[gnid].insert(ecnt);
       }
@@ -275,13 +273,14 @@ void write_partitions(bool verbose, string filename, string file_format,
       // In order for a global surface element to be a partition surface
       // element, all of its nodes must be attached to at least one partition
       // volume element
-      if(SENList[j].size()==0 or renumber[part][SENList[j][0]]==-1 or
-         partNodesToEid[renumber[part][SENList[j][0]]].empty()){
+      if(SENList[j].size()==0 or
+         renumber[part].find(SENList[j][0])==renumber[part].end() or
+         partNodesToEid[renumber[part].find(SENList[j][0])->second].empty()){
         continue;
       }
       
       bool SEOwned=false;
-      set<int> &lpartNodesToEid = partNodesToEid[renumber[part][SENList[j][0]]];
+      set<int> &lpartNodesToEid = partNodesToEid[renumber[part].find(SENList[j][0])->second];
       for(set<int>::const_iterator iter=lpartNodesToEid.begin();iter!=lpartNodesToEid.end();iter++){
         SEOwned=true;
         set<int> VENodes;
@@ -289,7 +288,8 @@ void write_partitions(bool verbose, string filename, string file_format,
           VENodes.insert(partENList[k]);
         }
         for(size_t k=1;k<SENList[j].size();k++){
-          if(renumber[part][SENList[j][k]]==-1 or VENodes.count(renumber[part][SENList[j][k]])==0){
+          if(renumber[part].find(SENList[j][k])==renumber[part].end() or 
+             VENodes.count(renumber[part].find(SENList[j][k])->second)==0){
             SEOwned=false;
             break;
           }
@@ -303,8 +303,7 @@ void write_partitions(bool verbose, string filename, string file_format,
         vector<int> elm(SENList[j].size());
         
         for(size_t k=0;k<SENList[j].size();k++){
-          assert(renumber[part][SENList[j][k]]!=-1);
-          elm[k]=renumber[part][SENList[j][k]];
+          elm[k]=renumber[part].find(SENList[j][k])->second;
         }
 #ifndef NDEBUG
         assert(surf_elms.find(elm)==surf_elms.end());
