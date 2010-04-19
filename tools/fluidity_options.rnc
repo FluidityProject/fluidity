@@ -4599,8 +4599,8 @@ scalar_field_choice =
             attribute name { "Vorticity2D" },
             (
                element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
+                  vorticity_2d_algorithm,
+                  velocity_mesh_choice,
                   diagnostic_scalar_field
                }|
                element aliased {
@@ -5546,13 +5546,7 @@ vector_field_choice =
             attribute name { "Vorticity" },
             (
                element diagnostic {
-                  internal_algorithm,
-                  ### Relative vorticity
-                  #element algorithm {
-                  #   attribute name { "curl" },
-                  #   attribute material_phase_support { "single" },
-                  #   attribute source_field_name { "Velocity" }
-                  #},
+                  vorticity_algorithm,
                   velocity_mesh_choice,
                   diagnostic_vector_field
                }|

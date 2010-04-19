@@ -63,8 +63,7 @@ module diagnostic_fields
 
   private
 
-  public :: insert_diagnostic_field, calculate_diagnostic_variable, &
-    & diagnostic_fields_check_options
+  public :: insert_diagnostic_field, calculate_diagnostic_variable
   public :: calculate_cfl_number, calculate_galerkin_projection
   
   interface calculate_diagnostic_variable
@@ -201,9 +200,6 @@ contains
         
       case("VelocityDivergence")
         call calculate_velocity_divergence(state, d_field, stat)
-
-      case("Vorticity2D")
-        call calculate_vorticity_2d(state, d_field, stat)
 
       case("Speed")
         call calculate_speed(state, d_field, stat)
@@ -1222,169 +1218,6 @@ contains
     call curl(v_field, positions, curl_field = vort_field)
 
   end subroutine calculate_dg_mapped_cg_vorticity
-
-  subroutine calculate_vorticity_2d(state, vorticity, stat)
-    !!< The vorticity of a 2D field is a very different creature as it's the
-    !!< scalar:
-    !!<            du   dv
-    !!<   omega =  -- - --
-    !!<            dx   dy
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: vorticity
-    integer, intent(out), optional :: stat
-    
-    type(vector_field), pointer :: positions, v_field
-
-    integer :: i
-
-    do i = 1, 2
-      select case(i)
-        case(1)
-          positions => extract_vector_field(state, "Coordinate", stat)
-        case(2)
-          v_field => extract_vector_field(state, "Velocity", stat)
-        case default
-          FLAbort("Invalid loop index")
-      end select
-      if(present_and_nonzero(stat)) then
-        return
-      end if
-    end do
-
-    assert(v_field%mesh%continuity==vorticity%mesh%continuity)
-
-    select case(v_field%mesh%continuity)
-    case(0)
-       call vorticity_2d_cg(state, vorticity, positions, v_field)
-    case (-1)
-       call vorticity_2d_dg(vorticity, positions, v_field)
-    case default
-       ewrite(0,*) v_field%mesh%continuity
-       FLAbort("Unsupported continuity")
-    end select
-
-  contains
-    
-    subroutine vorticity_2d_dg(vorticity, positions, v_field)
-      type(scalar_field), intent(inout) :: vorticity
-      type(vector_field), intent(in) :: positions, v_field
-      
-      integer :: ele
-      
-      call zero(vorticity)
-
-      do ele=1, element_count(vorticity)
-         
-         call vorticity_ele_2d_dg(vorticity, ele, positions, v_field)
-
-      end do
-      
-    end subroutine vorticity_2d_dg
-
-    subroutine vorticity_ele_2d_dg(vorticity, ele, X, U)
-      type(scalar_field), intent(inout) :: vorticity
-      type(vector_field), intent(in) :: X,U
-      integer, intent(in) :: ele
-
-      real, dimension(ele_loc(vorticity, ele), ele_loc(vorticity, ele)) ::&
-           & Mass
-      ! Transformed gradient function for velocity.
-      real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
-      
-      ! Local vorticity_matrix
-      real, dimension(2, ele_loc(vorticity, ele), ele_loc(U, ele)) ::&
-           & lvorticity_mat
-      ! Local vorticity
-      real, dimension(ele_loc(vorticity, ele)) :: lvorticity
-
-      integer :: i
-      
-      type(element_type), pointer :: vort_shape
-
-      ! Variable transform times quadrature weights.
-      real, dimension(ele_ngi(U,ele)) :: detwei
-
-      vort_shape=>ele_shape(vorticity, ele)
-
-      ! Transform U derivatives and weights into physical space.
-      call transform_to_physical(X,ele, ele_shape(U,ele), &
-           dshape=du_t, detwei=detwei)
-
-      lvorticity_mat=shape_curl_shape_2d(vort_shape, du_t, detwei)
-      
-      lvorticity=0.0
-      do i=1,2
-         lvorticity=lvorticity &
-              +matmul(lvorticity_mat(i,:,:), ele_val(U, i, ele))
-      end do
-      
-      mass=shape_shape(vort_shape, vort_shape, detwei)
-      call invert(mass)
-      
-      call addto(vorticity, ele_nodes(vorticity, ele), &
-           matmul(mass, lvorticity))
-
-    end subroutine vorticity_ele_2d_dg
-    
-    subroutine vorticity_2d_cg(state, vorticity, positions, v_field)
-      type(state_type), intent(inout) :: state
-      type(scalar_field), intent(inout) :: vorticity
-      type(vector_field), intent(in) :: positions, v_field
-      
-      integer :: ele
-      type(scalar_field), pointer :: masslump
-      
-      masslump => get_lumped_mass(state, vorticity%mesh)
-      
-      call zero(vorticity)
-      do ele=1, element_count(vorticity)
-         call vorticity_ele_2d_cg(vorticity, ele, positions, v_field)
-      end do
-      
-      vorticity%val = vorticity%val / masslump%val
-      
-    end subroutine vorticity_2d_cg
-
-    subroutine vorticity_ele_2d_cg(vorticity, ele, X, U)
-      type(scalar_field), intent(inout) :: vorticity
-      type(vector_field), intent(in) :: X,U
-      integer, intent(in) :: ele
-
-      ! Transformed gradient function for velocity.
-      real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
-      
-      ! Local vorticity_matrix
-      real, dimension(2, ele_loc(vorticity, ele), ele_loc(U, ele)) ::&
-           & lvorticity_mat
-      ! Local vorticity
-      real, dimension(ele_loc(vorticity, ele)) :: lvorticity
-
-      integer :: i
-      
-      type(element_type), pointer :: vort_shape
-
-      ! Variable transform times quadrature weights.
-      real, dimension(ele_ngi(U,ele)) :: detwei
-
-      vort_shape=>ele_shape(vorticity, ele)
-
-      ! Transform U derivatives and weights into physical space.
-      call transform_to_physical(X, ele, ele_shape(U,ele), dshape=du_t,&
-           & detwei=detwei)
-
-      lvorticity_mat=-shape_curl_shape_2d(vort_shape, du_t, detwei)
-      lvorticity=0.0
-      do i=1,2
-         lvorticity=lvorticity &
-              +matmul(lvorticity_mat(i,:,:), ele_val(U, i, ele))
-      end do
-      
-      call addto(vorticity, ele_nodes(vorticity, ele), &
-           lvorticity)
-
-    end subroutine vorticity_ele_2d_cg
-
-  end subroutine calculate_vorticity_2d
 
   subroutine calculate_speed(state, speed_field, stat)
     !!< Calculate the speed field
@@ -3276,88 +3109,5 @@ contains
     call remap_field(coordinate, field)
    
    end subroutine calculate_diagnostic_coordinate_field
-   
-   subroutine diagnostic_fields_check_options
-     !!< Checks diagnostic fields related options
-     
-     character(len = OPTION_PATH_LEN) :: dependencies, field_name, field_path, state_name, state_path
-     character(len = OPTION_PATH_LEN), dimension(:), allocatable :: split
-     integer :: i, j, k, stat
-     
-     if(option_count("/material_phase/scalar_field/diagnostic") + &
-       & option_count("/material_phase/vector_field/diagnostic") + &
-       & option_count("/material_phase/tensor_field/diagnostic") == 0) then
-       ! Nothing to check
-       return
-     end if
-     
-     ewrite(2, *) "Checking diagnostic fields related options"
-     
-     ! Dependency checking
-     do i = 0, option_count("/material_phase")
-       state_path = "/material_phase[" // int2str(i) // "]"
-       call get_option(trim(state_path) // "/name", state_name, default = "UnknownState")
-       
-       do j = 0, option_count(trim(state_path) // "/scalar_field")
-         field_path = trim(state_path) // "/scalar_field[" // int2str(j) // "]"
-         if(.not. have_option(trim(field_path) // "/diagnostic")) cycle
-         call get_option(trim(field_path) // "/name", field_name, default = "UnknownField")
-         
-         call get_option(trim(field_path) // "/depends", dependencies, stat)
-         if(stat /= SPUD_NO_ERROR) cycle
-         
-         call tokenize(trim(dependencies), split, ",")
-         do k = 1, size(split)
-           if(option_count(trim(state_path) // "/scalar_field::" // trim(split(k))) &
-             & + option_count(trim(state_path) // "/vector_field::" // trim(split(k))) &
-             & + option_count(trim(state_path) // "/tensor_field::" // trim(split(k))) == 0) then
-             FLExit("Field " // trim(field_name) // " in state " // trim(state_name) // " depends on field " // trim(split(k)))
-           end if
-         end do
-         deallocate(split)
-       end do
-       
-       do j = 0, option_count(trim(state_path) // "]/vector_field")
-         field_path = trim(state_path) // "/vector_field[" // int2str(j) // "]"
-         if(.not. have_option(trim(field_path) // "/diagnostic")) cycle
-         call get_option(trim(field_path) // "/name", field_name, default = "UnknownField")
-         
-         call get_option(trim(field_path) // "/depends", dependencies, stat)
-         if(stat /= SPUD_NO_ERROR) cycle
-         
-         call tokenize(trim(dependencies), split, ",")
-         do k = 1, size(split)
-           if(option_count(trim(state_path) // "/scalar_field::" // trim(split(k))) &
-             & + option_count(trim(state_path) // "/vector_field::" // trim(split(k))) &
-             & + option_count(trim(state_path) // "/tensor_field::" // trim(split(k))) == 0) then
-             FLExit("Field " // trim(field_name) // " in state " // trim(state_name) // " depends on field " // trim(split(k)))
-           end if
-         end do
-         deallocate(split)
-       end do
-       
-       do j = 0, option_count(trim(state_path) // "/tensor_field")
-         field_path = trim(state_path) // "/tensor_field[" // int2str(j) // "]"
-         if(.not. have_option(trim(field_path) // "/diagnostic")) cycle
-         call get_option(trim(field_path) // "/name", field_name, default = "UnknownField")
-         
-         call get_option(trim(field_path) // "/depends", dependencies, stat)
-         if(stat /= SPUD_NO_ERROR) cycle
-         
-         call tokenize(trim(dependencies), split, ",")
-         do k = 1, size(split)
-           if(option_count(trim(state_path) // "/scalar_field::" // trim(split(k))) &
-             & + option_count(trim(state_path) // "/vector_field::" // trim(split(k))) &
-             & + option_count(trim(state_path) // "/tensor_field::" // trim(split(k))) == 0) then
-             FLExit("Field " // trim(field_name) // " in state " // trim(state_name) // " depends on field " // trim(split(k)))
-           end if
-         end do
-         deallocate(split)
-       end do
-     end do
-     
-     ewrite(2, *) "Finished checking diagnostic fields related options"
-   
-   end subroutine diagnostic_fields_check_options
    
 end module diagnostic_fields

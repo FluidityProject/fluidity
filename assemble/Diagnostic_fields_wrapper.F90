@@ -73,7 +73,7 @@ contains
 
     integer :: i,stat
     type(scalar_field), pointer :: s_field
-    type(vector_field), pointer :: v_field, other_v_field
+    type(vector_field), pointer :: v_field
     logical :: diagnostic
     
     ewrite(1, *) "In calculate_diagnostic_variables"
@@ -252,23 +252,6 @@ contains
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
            call calculate_diagnostic_variable(state(i), "HorizontalStreamFunction", s_field)
-         end if
-       end if
-
-       s_field => extract_scalar_field(state(i), "Vorticity2D", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "Vorticity2D", s_field)
-         end if
-       end if
-
-       s_field => extract_scalar_field(state(i), "VorticityZ", stat)
-       if(stat == 0) then
-         if(recalculate(trim(s_field%option_path))) then
-           call allocate(v_field,3,s_field%mesh,'Vorticity')
-           call calculate_diagnostic_variable(state(i), "Vorticity", v_field)
-           s_field%val = v_field%val(3)%ptr
-           call deallocate(v_field)
          end if
        end if
        
@@ -506,15 +489,7 @@ contains
            call calculate_div_t_fe(state(i), v_field)
          end if
        end if
-       
-       ! Start of vorticity diagnostics
-       v_field => extract_vector_field(state(i), "Vorticity", stat)
-       if(stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           call calculate_vorticity(state(i), v_field)
-         end if
-       end if
-       
+              
        v_field => extract_vector_field(state(i), "PlanetaryVorticity", stat)
        if(stat == 0) then
          if(recalculate(trim(v_field%option_path))) then

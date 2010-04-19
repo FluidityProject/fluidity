@@ -48,9 +48,9 @@ module differential_operator_diagnostics
   
   private
   
-  public :: calculate_grad, calculate_div, &
+  public :: calculate_grad, calculate_div, calculate_curl, calculate_curl_2d, &
     & calculate_finite_element_divergence, &
-    & calculate_finite_element_divergence_transpose, calculate_curl, &
+    & calculate_finite_element_divergence_transpose, &
     & calculate_scalar_advection, calculate_scalar_laplacian, &
     & calculate_vector_advection, calculate_vector_laplacian
   
@@ -146,17 +146,228 @@ contains
     
   end subroutine calculate_finite_element_divergence_transpose
 
-  subroutine calculate_curl(state, v_field)
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: v_field
+  subroutine calculate_curl_2d(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
     
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i
+    type(csr_matrix), pointer :: mass
+    type(scalar_field), pointer :: masslump
+    type(scalar_field) :: rhs
     type(vector_field), pointer :: positions, source_field
     
+    ewrite(1, *) "In calculate_curl_2d"
+        
+    source_field => vector_source_field(state, s_field)
+    ewrite(2, *) "Calculating curl of field: " // trim(source_field%name)
+    ewrite(2, *) "On mesh: " // trim(source_field%mesh%name)
+    ewrite(2, *) "Diagnostic field: " // trim(s_field%name)
+    ewrite(2, *) "On mesh: " // trim(s_field%mesh%name)
+        
+    if(source_field%dim /= 2) then
+      FLAbort("Can only calculate 2D curl in 2D")
+    end if
+    
+    positions => extract_vector_field(state, "Coordinate")    
+    path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
+    if(have_option(trim(path) // "/lump_mass")) then
+      masslump => get_lumped_mass(state, s_field%mesh)
+      call allocate(rhs, s_field%mesh, "CurlRHS")
+      call zero(rhs)
+      do i = 1, ele_count(rhs)
+        call assemble_curl_ele(i, positions, source_field, rhs)
+      end do
+      call set_all(s_field, rhs%val / masslump%val)
+      call deallocate(rhs)
+    else
+      select case(continuity(s_field))
+        case(0)
+          if(.not. have_option(trim(path) // "/solver")) then
+            FLExit("For continuous curl, must supply solver options when not lumping mass")
+          end if
+          mass => get_mass_matrix(state, s_field%mesh)
+          call allocate(rhs, s_field%mesh, "CurlRHS")
+          call zero(rhs)
+          do i = 1, ele_count(rhs)
+            call assemble_curl_ele(i, positions, source_field, rhs)
+          end do
+          call petsc_solve(s_field, mass, rhs, option_path = path)
+          call deallocate(rhs)
+        case(-1)
+          do i = 1, ele_count(s_field)
+            call solve_curl_ele(i, positions, source_field, s_field)
+          end do
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(s_field)
+          FLAbort("Unrecognised mesh continuity")
+      end select
+    end if
+    
+    ewrite_minmax(s_field%val)
+    
+    ewrite(1, *) "Exiting calculate_curl_2d"
+    
+  contains
+  
+    subroutine assemble_curl_ele(ele, positions, source, rhs)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(scalar_field), intent(inout) :: rhs
+      
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(source, ele), ele_ngi(source, ele), positions%dim) :: dshape
+      
+      call transform_to_physical(positions, ele, ele_shape(source, ele), &
+        & dshape = dshape, detwei = detwei)
+      
+      call addto(rhs, ele_nodes(rhs, ele), &
+        & shape_rhs(ele_shape(rhs, ele), &
+        & ele_2d_curl_at_quad(source, ele, dshape) * detwei))
+    
+    end subroutine assemble_curl_ele
+    
+    subroutine solve_curl_ele(ele, positions, source, curl)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(scalar_field), intent(inout) :: curl
+      
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(curl, ele)) :: little_rhs
+      real, dimension(ele_loc(curl, ele), ele_loc(curl, ele)) :: little_mass
+      real, dimension(ele_loc(source, ele), ele_ngi(source, ele), positions%dim) :: dshape
+      type(element_type), pointer :: shape
+      
+      call transform_to_physical(positions, ele, ele_shape(source, ele), &
+        & dshape = dshape, detwei = detwei)
+      
+      shape => ele_shape(curl, ele)
+      
+      little_mass = shape_shape(shape, shape, detwei)
+      little_rhs = shape_rhs(shape, ele_2d_curl_at_quad(source, ele, dshape) * detwei)
+        
+      call solve(little_mass, little_rhs)
+      
+      call set(curl, ele_nodes(curl, ele), little_rhs)
+      
+    end subroutine solve_curl_ele
+    
+  end subroutine calculate_curl_2d
+
+  subroutine calculate_curl(state, v_field)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    
+    character(len = OPTION_PATH_LEN) :: path
+    integer :: i
+    type(csr_matrix), pointer :: mass
+    type(scalar_field), pointer :: masslump
+    type(vector_field) :: rhs
+    type(vector_field), pointer :: positions, source_field
+    
+    ewrite(1, *) "In calculate_curl"
+    
     source_field => vector_source_field(state, v_field)
+    ewrite(2, *) "Calculating curl of field: " // trim(source_field%name)
+    ewrite(2, *) "On mesh: " // trim(source_field%mesh%name)
+    ewrite(2, *) "Diagnostic field: " // trim(v_field%name)
+    ewrite(2, *) "On mesh: " // trim(v_field%mesh%name)
     
-    positions => extract_vector_field(state, "Coordinate")
+    if(source_field%dim /= 3) then
+      FLAbort("Can only calculate curl in 3D")
+    end if
     
-    call curl(source_field, positions, curl_field = v_field)
+    positions => extract_vector_field(state, "Coordinate")    
+    path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
+    if(have_option(trim(path) // "/lump_mass")) then
+      masslump => get_lumped_mass(state, v_field%mesh)
+      call allocate(rhs, v_field%dim, v_field%mesh, "CurlRHS")
+      call zero(rhs)
+      do i = 1, ele_count(rhs)
+        call assemble_curl_ele(i, positions, source_field, rhs)
+      end do
+      do i = 1, v_field%dim
+        call set_all(v_field, i, rhs%val(i)%ptr / masslump%val)
+      end do
+      call deallocate(rhs)
+    else
+      select case(continuity(v_field))
+        case(0)
+          if(.not. have_option(trim(path) // "/solver")) then
+            FLExit("For continuous curl, must supply solver options when not lumping mass")
+          end if
+          mass => get_mass_matrix(state, v_field%mesh)
+          call allocate(rhs, v_field%dim, v_field%mesh, "CurlRHS")
+          call zero(rhs)
+          do i = 1, ele_count(rhs)
+            call assemble_curl_ele(i, positions, source_field, rhs)
+          end do
+          call petsc_solve(v_field, mass, rhs, option_path = path)
+          call deallocate(rhs)
+        case(-1)
+          do i = 1, ele_count(v_field)
+            call solve_curl_ele(i, positions, source_field, v_field)
+          end do
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(v_field)
+          FLAbort("Unrecognised mesh continuity")
+      end select
+    end if
+    
+    do i = 1, v_field%dim
+      ewrite_minmax(v_field%val(i)%ptr)
+    end do
+    
+    ewrite(1, *) "Exiting calculate_curl"
+    
+  contains
+  
+    subroutine assemble_curl_ele(ele, positions, source, rhs)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(vector_field), intent(inout) :: rhs
+      
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(source, ele), ele_ngi(source, ele), positions%dim) :: dshape
+      
+      call transform_to_physical(positions, ele, ele_shape(source, ele), &
+        & dshape = dshape, detwei = detwei)
+      
+      call addto(rhs, ele_nodes(rhs, ele), &
+        & shape_vector_rhs(ele_shape(rhs, ele), &
+        & ele_curl_at_quad(source, ele, dshape), detwei))
+    
+    end subroutine assemble_curl_ele
+    
+    subroutine solve_curl_ele(ele, positions, source, curl)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(vector_field), intent(in) :: source
+      type(vector_field), intent(inout) :: curl
+      
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(curl, ele), curl%dim) :: little_rhs
+      real, dimension(ele_loc(curl, ele), ele_loc(curl, ele)) :: little_mass
+      real, dimension(ele_loc(source, ele), ele_ngi(source, ele), positions%dim) :: dshape
+      type(element_type), pointer :: shape
+      
+      call transform_to_physical(positions, ele, ele_shape(source, ele), &
+        & dshape = dshape, detwei = detwei)
+      
+      shape => ele_shape(curl, ele)
+      
+      little_mass = shape_shape(shape, shape, detwei)
+      little_rhs = transpose(shape_vector_rhs(shape, &
+        & ele_curl_at_quad(source, ele, dshape), detwei))
+        
+      call solve(little_mass, little_rhs)
+      
+      call set(curl, ele_nodes(curl, ele), transpose(little_rhs))
+      
+    end subroutine solve_curl_ele
     
   end subroutine calculate_curl
 

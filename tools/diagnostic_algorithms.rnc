@@ -336,14 +336,48 @@ grad_algorithm =
         scalar_source_field
       }
    )
-
+curl_2d_algorithm =
+   (
+      ## [curl (source field)]_z. Valid in 2D only.
+      element algorithm {
+         attribute name { "curl_2d" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+vorticity_2d_algorithm =
+   (
+      ## [curl (source field)]_z. Valid in 2D only.
+      element algorithm {
+         attribute name { "curl_2d" },
+         attribute material_phase_support { "single" },
+         attribute source_field_name { "Velocity" },
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
 curl_algorithm =
    (
-      ## curl (source field)
+      ## curl (source field). Valid in 3D only.
       element algorithm {
-        attribute name { "curl" },
-        attribute material_phase_support { "single" },
-        vector_source_field
+         attribute name { "curl" },
+         attribute material_phase_support { "single" },
+         vector_source_field,
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
+vorticity_algorithm =
+   (
+      ## curl (source field). Valid in 3D only.
+      element algorithm {
+         attribute name { "curl" },
+         attribute material_phase_support { "single" },
+         attribute source_field_name { "Velocity" },
+         galerkin_projection_mass_options?,
+         comment
       }
    )
 scalar_advection_algorithm =
@@ -429,16 +463,7 @@ coriolis_algorithm =
             }|
             ## Galerkin project Coriolis onto this mesh
             element galerkin_projection {
-               (
-                  ## Consistent mass Galerkin projection. Requires solver options.
-                  element solver {
-                     linear_solver_options_sym
-                  }|
-                  ## Lumped mass Galerkin projection.
-                  element lump_mass {
-                     comment
-                  }
-               ),
+               galerkin_projection_mass_options,
                comment
             }
          )
@@ -759,6 +784,7 @@ vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= grad_algorithm
 vector_diagnostic_algorithms |= finite_element_divergence_transpose_algorithm
+vector_diagnostic_algorithms |= curl_2d_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm

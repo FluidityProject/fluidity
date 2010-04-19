@@ -6017,8 +6017,8 @@ div velocity
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="mesh_choice"/>
+            <ref name="vorticity_2d_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -7211,17 +7211,8 @@ Field must be in this material_phase.</a:documentation>
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <!--
-              element algorithm {
-                attribute name { "curl" },
-                attribute material_phase_support { "single" },
-                attribute source_field_name { "Velocity" }
-              },
-            -->
-            <ref name="velocity_mesh_choice">
-              <a:documentation>Relative vorticity</a:documentation>
-            </ref>
+            <ref name="vorticity_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_vector_field"/>
           </element>
           <element name="aliased">

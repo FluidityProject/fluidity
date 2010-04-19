@@ -448,9 +448,43 @@ elements.</a:documentation>
       <ref name="scalar_source_field"/>
     </element>
   </define>
+  <define name="curl_2d_algorithm">
+    <element name="algorithm">
+      <a:documentation>[curl (source field)]_z. Valid in 2D only.</a:documentation>
+      <attribute name="name">
+        <value>curl_2d</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+      <optional>
+        <ref name="galerkin_projection_mass_options"/>
+      </optional>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="vorticity_2d_algorithm">
+    <element name="algorithm">
+      <a:documentation>[curl (source field)]_z. Valid in 2D only.</a:documentation>
+      <attribute name="name">
+        <value>curl_2d</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="source_field_name">
+        <value>Velocity</value>
+      </attribute>
+      <optional>
+        <ref name="galerkin_projection_mass_options"/>
+      </optional>
+      <ref name="comment"/>
+    </element>
+  </define>
   <define name="curl_algorithm">
     <element name="algorithm">
-      <a:documentation>curl (source field)</a:documentation>
+      <a:documentation>curl (source field). Valid in 3D only.</a:documentation>
       <attribute name="name">
         <value>curl</value>
       </attribute>
@@ -458,6 +492,28 @@ elements.</a:documentation>
         <value>single</value>
       </attribute>
       <ref name="vector_source_field"/>
+      <optional>
+        <ref name="galerkin_projection_mass_options"/>
+      </optional>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="vorticity_algorithm">
+    <element name="algorithm">
+      <a:documentation>curl (source field). Valid in 3D only.</a:documentation>
+      <attribute name="name">
+        <value>curl</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="source_field_name">
+        <value>Velocity</value>
+      </attribute>
+      <optional>
+        <ref name="galerkin_projection_mass_options"/>
+      </optional>
+      <ref name="comment"/>
     </element>
   </define>
   <define name="scalar_advection_algorithm">
@@ -566,16 +622,7 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
         </element>
         <element name="galerkin_projection">
           <a:documentation>Galerkin project Coriolis onto this mesh</a:documentation>
-          <choice>
-            <element name="solver">
-              <a:documentation>Consistent mass Galerkin projection. Requires solver options.</a:documentation>
-              <ref name="linear_solver_options_sym"/>
-            </element>
-            <element name="lump_mass">
-              <a:documentation>Lumped mass Galerkin projection.</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </choice>
+          <ref name="galerkin_projection_mass_options"/>
           <ref name="comment"/>
         </element>
       </choice>
@@ -1041,6 +1088,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="finite_element_divergence_transpose_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="curl_2d_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="curl_algorithm"/>

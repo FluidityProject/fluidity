@@ -489,3 +489,16 @@ generic_solver_options =
          }
       }
    )
+ 
+galerkin_projection_mass_options =  
+   (
+      ## Solver options. Required for a continuous consistent mass
+      ## projection.
+      element solver {
+         linear_solver_options_sym
+      }|
+      ## Lump the mass matrix
+      element lump_mass {
+         comment
+      }
+   )

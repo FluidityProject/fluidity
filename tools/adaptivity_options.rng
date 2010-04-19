@@ -1419,17 +1419,7 @@ Velocity mesh if not supplied.</a:documentation>
             <a:documentation>Options relating to the diagnostic solve for the Coriolis
 acceleration from Velocity on the donor mesh.</a:documentation>
             <optional>
-              <choice>
-                <element name="solver">
-                  <a:documentation>Solver options. Required for a continuous consistent mass
-projection.</a:documentation>
-                  <ref name="linear_solver_options_sym"/>
-                </element>
-                <element name="lump_mass">
-                  <a:documentation>Lump the mass matrix</a:documentation>
-                  <ref name="comment"/>
-                </element>
-              </choice>
+              <ref name="galerkin_projection_mass_options"/>
             </optional>
             <optional>
               <element name="lump_rhs">
@@ -1445,17 +1435,7 @@ lumping the mass matrix.</a:documentation>
             <a:documentation>Options relating to the diagnostic solve for Velocity from
 the Coriolis acceleration on the target mesh.</a:documentation>
             <optional>
-              <choice>
-                <element name="solver">
-                  <a:documentation>Solver options. Required for a continuous consistent mass
-projection.</a:documentation>
-                  <ref name="linear_solver_options_sym"/>
-                </element>
-                <element name="lump_mass">
-                  <a:documentation>Lump the mass matrix</a:documentation>
-                  <ref name="comment"/>
-                </element>
-              </choice>
+              <ref name="galerkin_projection_mass_options"/>
             </optional>
             <ref name="comment"/>
           </element>

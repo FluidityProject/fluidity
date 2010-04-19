@@ -314,7 +314,7 @@
     </scalar_field>
     <scalar_field name="Vorticity2D" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm material_phase_support="single" name="curl_2d" source_field_name="Velocity"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
