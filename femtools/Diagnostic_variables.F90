@@ -1403,10 +1403,11 @@ contains
 
   end function constant_tag
   
-  subroutine write_diagnostics(state, time, dt)
+  subroutine write_diagnostics(state, time, dt, not_to_move_det_yet)
     !!< Write the diagnostics to the previously opened diagnostics file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
+    logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
     integer :: i, j, k, phase, stat
@@ -1587,7 +1588,7 @@ contains
 
     ! Now output any detectors.
     
-    call write_detectors(state, time, dt)
+    call write_detectors(state, time, dt, not_to_move_det_yet)
   
     call profiler_toc("I/O")
 
@@ -1929,10 +1930,11 @@ contains
 
   end subroutine test_steady_state
 
-  subroutine write_detectors(state, time, dt)
+  subroutine write_detectors(state, time, dt, not_to_move_det_yet)
     !!< Write the field values at detectors to the previously opened detectors file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
+    logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len=10) :: format_buffer
     integer :: i, j, phase
@@ -1965,12 +1967,12 @@ contains
 
     do i = 1, detector_list%length
       
-!      ewrite(1,*) "DETECTOR number:", node%id_number
-!
-!      ewrite(1,*) "name this detector is:", node%name
-!      ewrite(1,*) "position this detector is:", node%position
-!
-!      ewrite(1,*) "DETECTOR element:", node%element
+      ewrite(1,*) "DETECTOR number:", node%id_number
+
+      ewrite(1,*) "name this detector is:", node%name
+      ewrite(1,*) "position this detector is:", node%position
+
+      ewrite(1,*) "DETECTOR element:", node%element
 
       if (node%element<0) then
 
@@ -2016,7 +2018,11 @@ contains
 
     if (any_lagrangian) then
 
-       call move_detectors_bisection_method(state, dt) 
+       ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
+
+       if (.not.present(not_to_move_det_yet))  call move_detectors_bisection_method(state, dt)
+
+!       call move_detectors_bisection_method(state, dt) 
 
      ! The positions have changed so we need to do this again.
       !! call search_for_detectors(detector_list, xfield)
@@ -2088,8 +2094,8 @@ contains
                        format_buffer=reals_format(1)
                        write(detector_unit, format_buffer, advance="no") value
                     end if
-                
-                 end if
+                   
+                end if
 
                  node => node%next
 
@@ -2216,7 +2222,9 @@ contains
           cycle
 
        end if
-       
+
+       ewrite(1,*) "SHOULD BE MOVING LAG. DETECTOR", this_det%id_number
+
        dt_temp=0.0
 !      dt_var=dt
        this_det%dt=dt          
@@ -2250,13 +2258,20 @@ contains
 
           call check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation)
-  
+
           if (this_det%type==STATIC_DETECTOR) exit
 
           this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-               
+
           dt_temp=dt_temp+this_det%dt
           this_det%dt=dt-dt_temp;
+
+          if (this_det%dt<1.0e-3*dt) then
+
+             this_det%element=previous_element
+             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position) 
+
+          end if
 
        end do 
        !do_until_dt_reached

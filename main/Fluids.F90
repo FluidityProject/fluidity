@@ -133,6 +133,8 @@ contains
 
     integer :: i, it, its
 
+    logical :: not_to_move_det_yet
+
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
@@ -325,7 +327,7 @@ contains
     call initialise_diagnostics(filename, state)
     call initialise_convergence(filename, state)
     call initialise_advection_convergence(state)
-    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt)
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
     
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
@@ -721,13 +723,13 @@ contains
 
              call qmesh(state, metric_tensor)
 
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
              
              call adapt_state(state, metric_tensor)
              call update_state_post_adapt(state, metric_tensor, dt)
              
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
@@ -735,13 +737,13 @@ contains
               
               call pre_adapt_tasks()
       
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt)             
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)             
              call run_diagnostics(state)
              
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt)
              
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
           end if
        end if

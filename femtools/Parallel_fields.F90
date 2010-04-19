@@ -46,7 +46,7 @@ module parallel_fields
 
   private
 
-  public :: halo_communicator, element_owned, node_owned, assemble_ele, &
+  public :: halo_communicator, element_owned, element_owner, node_owned, assemble_ele, &
     & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
@@ -58,8 +58,13 @@ module parallel_fields
 
   interface element_owned
     module procedure element_owned_mesh, element_owned_scalar, &
-      & element_owned_vector
+      & element_owned_vector, element_owned_tensor
   end interface element_owned
+
+  interface element_owner
+    module procedure element_owner_mesh, element_owner_scalar, &
+      & element_owner_vector, element_owner_tensor
+  end interface element_owner
   
   interface assemble_ele
     module procedure assemble_ele_mesh, assemble_ele_scalar, &
@@ -254,6 +259,81 @@ contains
     owned = element_owned(v_field%mesh, element_number)
 
   end function element_owned_vector
+
+  function element_owned_tensor(t_field, element_number) result(owned)
+    !!< Return whether the supplied element in the mesh of the given tensor
+    !!< field is owned by this process
+
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: element_number
+
+    logical :: owned
+
+    owned = element_owned(t_field%mesh, element_number)
+
+  end function element_owned_tensor
+
+  function element_owner_mesh(mesh, element_number) result(owner)
+  !!< Return number of processor that owns the supplied element in the
+  !given mesh
+
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: element_number
+
+    integer :: nhalos
+    integer :: owner
+
+    assert(element_number > 0)
+    assert(element_number <= ele_count(mesh))
+
+    nhalos = element_halo_count(mesh)
+
+    if(nhalos == 0) then
+      owner=getprocno()
+    else
+      owner = halo_node_owner(mesh%element_halos(nhalos), element_number)
+    end if
+
+  end function element_owner_mesh
+
+  function element_owner_scalar(s_field, element_number) result(owner)
+    !!< Return the processor that owns the supplied element in the mesh of the given scalar
+    !!< field 
+
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: element_number
+
+    integer :: owner
+
+    owner = element_owner(s_field%mesh, element_number)
+
+  end function element_owner_scalar
+
+  function element_owner_vector(v_field, element_number) result(owner)
+    !!< Return the processor that owns the supplied element in the mesh of the given vector
+    !!< field 
+
+    type(vector_field), intent(in) :: v_field
+    integer, intent(in) :: element_number
+
+    integer :: owner
+
+    owner = element_owner(v_field%mesh, element_number)
+
+  end function element_owner_vector
+
+  function element_owner_tensor(t_field, element_number) result(owner)
+    !!< Return the processor that owns the supplied element in the mesh of the given tensor
+    !!< field 
+
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: element_number
+    
+    integer :: owner
+
+    owner = element_owner(t_field%mesh, element_number)
+  
+  end function element_owner_tensor
   
   function assemble_ele_mesh(mesh, ele) result(assemble)
     !!< Return whether the supplied element for the supplied mesh should be
