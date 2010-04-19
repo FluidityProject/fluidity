@@ -530,14 +530,14 @@ solution to be compared with each iteration</a:documentation>
   </define>
   <define name="galerkin_projection_mass_options">
     <choice>
+      <element name="lump_mass">
+        <a:documentation>Lump the mass matrix</a:documentation>
+        <ref name="comment"/>
+      </element>
       <element name="solver">
         <a:documentation>Solver options. Required for a continuous consistent mass
 projection.</a:documentation>
         <ref name="linear_solver_options_sym"/>
-      </element>
-      <element name="lump_mass">
-        <a:documentation>Lump the mass matrix</a:documentation>
-        <ref name="comment"/>
       </element>
     </choice>
   </define>
