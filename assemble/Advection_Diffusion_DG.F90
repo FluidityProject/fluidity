@@ -87,6 +87,11 @@ module advection_diffusion_DG
   integer, parameter :: BASSI_REBAY=2
   integer, parameter :: CDG=3
   integer, parameter :: IP=4
+  ! Discretisation to use for advective flux.
+  integer :: flux_scheme
+  integer, parameter :: UPWIND_FLUX=1
+  integer, parameter :: LAX_FRIEDRICHS_FLUX=2
+  
   ! Boundary condition types:
   ! (the numbers should match up with the order in the 
   !  get_entire_boundary_condition call)
@@ -419,10 +424,22 @@ contains
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
 
-    sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
+    sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
 
     call allocate(matrix, sparsity) ! Add data space to the sparsity
     ! pattern.
+
+    select case(diffusion_scheme)
+    case(CDG)
+       ! This is bigger than we need for CDG
+       sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
+       !sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
+    case(IP)
+       sparsity => get_csr_sparsity_compactdgdouble(state, T%mesh)
+    case default
+       sparsity => get_csr_sparsity_secondorder(state, T%mesh, T%mesh)
+    end select
+
     ! Ditto for diffusion
     call allocate(matrix_diff, sparsity)
    
@@ -471,6 +488,11 @@ contains
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
        
+       ! Note unsafe for mixed element meshes
+       if (element_degree(T,1)==0) then
+          FLExit("Slope limiters make no sense for degree 0 fields")
+       end if
+
        call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
             &discontinuous_galerkin/slope_limiter/name",limiter_name)
 
@@ -670,6 +692,13 @@ contains
             FIELD_TYPE_CONSTANT)
        call zero(U_nl_backup)
        include_advection=.false.
+    end if
+
+    flux_scheme=UPWIND_FLUX
+    if (have_option(trim(T%option_path)//"/prognostic&
+         &/spatial_discretisation/discontinuous_galerkin&
+         &/advection_scheme/lax_friedrichs")) then
+       flux_scheme=LAX_FRIEDRICHS_FLUX
     end if
 
     call allocate(U_nl, U_nl_backup%dim, U_nl_backup%mesh, "LocalNonlinearVelocity")
@@ -1831,6 +1860,11 @@ contains
 
     logical :: p0_vel
 
+    ! Lax-Friedrichs flux parameter
+    real :: C
+
+    integer :: i
+
     do_primal_fluxes = present(primal_fluxes_mat)
     if(do_primal_fluxes.and..not.present(ele2grad_mat)) then
        FLAbort('need ele2grad mat to compute primal fluxes')
@@ -1884,8 +1918,8 @@ contains
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
 
-    if (include_advection) then
-
+    if (include_advection.and.(flux_scheme==UPWIND_FLUX)) then
+       
        ! Advecting velocity at quadrature points.
        u_f_q = face_val_at_quad(U_nl, face)
        u_f2_q = face_val_at_quad(U_nl, face_2)
@@ -1955,6 +1989,52 @@ contains
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
             &                       outer_advection_integral * detwei) 
        
+    else if (include_advection.and.(flux_scheme==LAX_FRIEDRICHS_FLUX)) then
+
+!!$       if(p0_vel) then
+!!$          FLAbort("Haven't worked out Lax-Friedrichs for P0 yet")
+!!$       end if
+
+       if(move_mesh) then
+          FLExit("Haven't worked out Lax-Friedrichs with moving mesh yet")
+       end if
+
+       if (X%mesh%shape%degree/=1) then
+          FLExit("Haven't worked out Lax-Friedrichs for bendy elements yet")
+       end if
+
+       if(integrate_conservation_term_by_parts) then
+          FLExit("Haven't worked out integration of conservation for Lax-Friedrichs.")
+       end if
+
+       if(.not.integrate_by_parts_once) then
+          FLExit("Haven't worked out integration by parts twice for Lax-Friedrichs.")
+       end if
+       
+       C=0.0
+       do i=1,size(t_face)
+          C=max(C,abs(dot_product(normal(:,1),node_val(U_nl,t_face(i)))))
+       end do
+       do i=1,size(t_face_2)
+          C=max(C,abs(dot_product(normal(:,1),node_val(U_nl,t_face_2(i)))))
+       end do
+
+
+       ! Velocity over interior face:
+       inner_advection_integral=&
+            0.5*(sum(face_val_at_quad(U_nl, face)*normal,1)+C)
+
+       nnAdvection_out=shape_shape(T_shape, T_shape,  &
+            &                     inner_advection_integral * detwei) 
+
+       ! Velocity over exterior face:
+       outer_advection_integral=&
+            0.5*(sum(face_val_at_quad(U_nl, face_2)*normal,1)-C)
+
+       nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+            &                       outer_advection_integral * detwei) 
+
+
     end if
     if (include_diffusion) then
        

@@ -48,6 +48,10 @@ spatial_discretisation_options =
                   element upwind {
                      empty
                   }|
+                  ## Modified Lax-Friedrichs flux.
+                  element lax_friedrichs {
+                     empty
+                  }|
                   ## Disable advection
                   element none {
                      empty

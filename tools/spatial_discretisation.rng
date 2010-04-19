@@ -62,6 +62,10 @@ stabilisation parameter, and stabilisation parameter
 scale factor 0.5.</a:documentation>
                 <empty/>
               </element>
+              <element name="lax_friedrichs">
+                <a:documentation>Modified Lax-Friedrichs flux.</a:documentation>
+                <empty/>
+              </element>
               <element name="none">
                 <a:documentation>Disable advection</a:documentation>
                 <empty/>
