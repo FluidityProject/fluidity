@@ -920,7 +920,12 @@ contains
 
     end do phaseloop
 
+    column = column + 1
+    buffer = field_tag(name = "MaxChange", column=column, statistic="error")
+    write(steady_state_unit, '(a)') trim(buffer)
+
     write(steady_state_unit, '(a)') "</header>"
+    flush(steady_state_unit)
 
   end subroutine initialise_steady_state
   
@@ -2025,13 +2030,16 @@ contains
 
     end do phaseloop
     
+    ewrite(1, *) "maxchange = ", maxchange
+    
     if(write_steady_state_file .and. procno == 1) then
+      write(steady_state_unit, format, advance = "no") maxchange
+    
       ! Output end of line
       write(steady_state_unit,'(a)') ""
       flush(steady_state_unit)
     end if
 
-    ewrite(1, *) "maxchange = ", maxchange
     ewrite(1, *) "Exiting test_and_write_steady_state"
 
   end subroutine test_and_write_steady_state
