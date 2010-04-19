@@ -864,7 +864,7 @@ contains
        return
     end if
 
-    ! Only the first process should write convergence information
+    ! Only the first process should write steady state information
     if(getprocno() /= 1) return
     
     steady_state_unit=free_unit()
@@ -887,7 +887,7 @@ contains
 
        do i = 1, scalar_field_count(state(phase))
           sfield => extract_scalar_field(state(phase), i)
-          if(.not. convergence_field(sfield)) cycle
+          if(.not. steady_state_field(sfield)) cycle
           ! Scalar fields
 
           column=column+1
@@ -897,7 +897,7 @@ contains
 
        do i = 1, vector_field_count(state(phase))
          vfield => extract_vector_field(state(phase), i)
-         if(.not. convergence_field(vfield)) cycle         
+         if(.not. steady_state_field(vfield)) cycle         
          ! Vector fields
          
          column = column + 1
@@ -905,7 +905,7 @@ contains
            & statistic="error", material_phase_name=material_phase_name)
          write(steady_state_unit, '(a)') trim(buffer)
 
-         if(.not. convergence_field(vfield, test_for_components = .true.)) cycle         
+         if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle         
          ! Vector field components
          
          do j = 1, mesh_dim(vfield%mesh)
