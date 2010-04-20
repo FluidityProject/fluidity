@@ -75,7 +75,7 @@ def pznd(state, parameters):
         De_P=mu_P*P_n*P_n/(P_n+1)
 
         # Death rate of zooplankton.
-        De_Z=mu_Z*Z_n**2
+        De_Z=mu_Z*Z_n**3
 
         # Detritus remineralisation.
         De_D=mu_D*D_n
