@@ -14,10 +14,14 @@ module fefields
   interface add_source_to_rhs
     module procedure add_source_to_rhs_scalar, add_source_to_rhs_vector
   end interface add_source_to_rhs
+
+  interface project_field
+     module procedure project_scalar_field, project_vector_field
+  end interface
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
-            compute_lumped_mass_on_submesh
+            compute_lumped_mass_on_submesh, project_field
 
 contains
 
@@ -232,6 +236,205 @@ contains
     end subroutine projection_matrix_element
 
   end function compute_projection_matrix
+
+  subroutine project_scalar_field(from_field, to_field, X)
+    !!< Project from_field onto to_field. If to_field is discontinuous then
+    !!< this will be calculated using the full mass matrix locally.
+    !!< Otherwise, the mass will be lumped.
+    type(scalar_field), intent(in) :: from_field
+    type(scalar_field), intent(inout) :: to_field    
+    type(vector_field), intent(in) :: X
+
+    type(scalar_field) ::  masslump
+    integer :: ele
+
+
+    if(from_field%mesh==to_field%mesh) then
+       
+       call set(to_field, from_field)
+       
+    else
+
+       if (to_field%mesh%continuity<0) then
+          ! DG case
+
+          do ele=1,element_count(to_field)
+             call dg_projection_ele(ele, from_field, to_field, X)
+          end do
+
+       else
+          ! CG case
+
+          call zero(to_field)
+          
+          call allocate(masslump, to_field%mesh, "MassLump")
+
+          call zero(masslump)
+
+          do ele=1,element_count(to_field)
+             call cg_projection_ele(ele, from_field, to_field, masslump, X)
+          end do
+
+          masslump%val=1./masslump%val
+
+          call scale(to_field, masslump)
+          
+          call deallocate(masslump)
+          
+       end if
+
+    end if
+
+  contains
+
+    subroutine dg_projection_ele(ele, from_field, to_field, X)
+      integer :: ele
+      type(scalar_field), intent(in) :: from_field
+      type(scalar_field), intent(inout) :: to_field    
+      type(vector_field), intent(in) :: X
+      
+      real, dimension(ele_loc(to_field,ele), ele_loc(to_field,ele)) :: mass
+      real, dimension(ele_ngi(to_field,ele)) :: detwei
+      type(element_type), pointer :: to_shape
+
+      call transform_to_physical(X, ele, detwei)
+
+      to_shape=>ele_shape(to_field, ele)
+
+      mass=shape_shape(to_shape, to_shape, detwei) 
+      
+      call invert(mass)
+
+      call set(to_field, ele_nodes(to_field, ele), &
+           matmul(mass, &
+           shape_rhs(to_shape, ele_val(from_field, ele)*detwei)))
+
+    end subroutine dg_projection_ele
+
+    subroutine cg_projection_ele(ele, from_field, to_field, masslump, X)
+      integer :: ele
+      type(scalar_field), intent(in) :: from_field
+      type(scalar_field), intent(inout) :: to_field, masslump
+      type(vector_field), intent(in) :: X
+      
+      real, dimension(ele_ngi(to_field,ele)) :: detwei
+      type(element_type), pointer :: to_shape
+
+      to_shape=>ele_shape(to_field, ele)
+
+      call transform_to_physical(X, ele, detwei)
+
+      call addto(masslump, ele_nodes(to_field, ele), &
+           shape_rhs(to_shape, detwei))
+
+      call addto(to_field, ele_nodes(to_field, ele), &
+           shape_rhs(to_shape, ele_val(from_field, ele)*detwei))
+
+    end subroutine cg_projection_ele
+
+  end subroutine project_scalar_field
+  
+  subroutine project_vector_field(from_field, to_field, X)
+    !!< Project from_field onto to_field. If to_field is discontinuous then
+    !!< this will be calculated using the full mass matrix locally.
+    !!< Otherwise, the mass will be lumped.
+    type(vector_field), intent(in) :: from_field
+    type(vector_field), intent(inout) :: to_field    
+    type(vector_field), intent(in) :: X
+
+    type(scalar_field) ::  masslump
+    integer :: ele
+
+    
+    if(from_field%mesh==to_field%mesh) then
+       
+       call set(to_field, from_field)
+       
+    else
+
+       if (to_field%mesh%continuity<0) then
+          ! DG case
+
+          do ele=1,element_count(to_field)
+             call dg_projection_ele(ele, from_field, to_field, X)
+          end do
+
+       else
+          ! CG case
+
+          call zero(to_field)
+          
+          call allocate(masslump, to_field%mesh, "MassLump")
+
+          call zero(masslump)
+
+          do ele=1,element_count(to_field)
+             call cg_projection_ele(ele, from_field, to_field, masslump, X)
+          end do
+
+          masslump%val=1./masslump%val
+
+          call scale(to_field, masslump)
+          
+          call deallocate(masslump)
+          
+       end if
+
+    end if
+
+  contains
+
+    subroutine dg_projection_ele(ele, from_field, to_field, X)
+      integer :: ele
+      type(vector_field), intent(in) :: from_field
+      type(vector_field), intent(inout) :: to_field    
+      type(vector_field), intent(in) :: X
+      
+      real, dimension(ele_loc(to_field,ele), ele_loc(to_field,ele)) :: mass
+      real, dimension(ele_ngi(to_field,ele)) :: detwei
+      type(element_type), pointer :: to_shape
+
+      integer :: dim
+
+      call transform_to_physical(X, ele, detwei)
+
+      to_shape=>ele_shape(to_field, ele)
+
+      mass=shape_shape(to_shape, to_shape, detwei) 
+      
+      call invert(mass)
+
+      do dim=1,to_field%dim
+         call set(to_field, dim, ele_nodes(to_field, ele), &
+              matmul(mass, &
+              shape_rhs(to_shape, ele_val_at_quad(from_field, dim, ele)*detwei)))
+      end do
+
+    end subroutine dg_projection_ele
+
+    subroutine cg_projection_ele(ele, from_field, to_field, masslump, X)
+      integer :: ele
+      type(vector_field), intent(in) :: from_field
+      type(vector_field), intent(inout) :: to_field
+      type(scalar_field), intent(inout) :: masslump
+      type(vector_field), intent(in) :: X
+      
+      real, dimension(ele_ngi(to_field,ele)) :: detwei
+      type(element_type), pointer :: to_shape
+
+      to_shape=>ele_shape(to_field, ele)
+
+      call transform_to_physical(X, ele, detwei)
+
+      call addto(masslump, ele_nodes(to_field, ele), &
+           shape_rhs(to_shape, detwei))
+
+      call addto(to_field, ele_nodes(to_field, ele), &
+           shape_vector_rhs(to_shape, ele_val_at_quad(from_field, ele), detwei))
+
+    end subroutine cg_projection_ele
+
+  end subroutine project_vector_field
   
   subroutine add_source_to_rhs_scalar(rhs, source, positions)
     !!< Add in a source field to the rhs of a FE equation, 
