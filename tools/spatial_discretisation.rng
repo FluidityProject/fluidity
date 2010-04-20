@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <define name="spatial_discretisation_options">
     <element name="spatial_discretisation">
       <choice>
@@ -71,6 +71,19 @@ scale factor 0.5.</a:documentation>
                 <empty/>
               </element>
             </choice>
+            <optional>
+              <element name="project_velocity_to_continuous">
+                <a:documentation>Project the advecting velocity to continuous
+space. This is useful for obtaining bounded
+advection schemes.</a:documentation>
+                <element name="mesh">
+                  <a:documentation>The mesh to which the projection should occur.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+              </element>
+            </optional>
             <element name="integrate_advection_by_parts">
               <a:documentation>Integrate the advection terms of the
 advection-diffusion equation by parts.

@@ -34,6 +34,7 @@ module advection_diffusion_DG
   use fetools
   use dgtools
   use fields
+  use fefields
   use state_module
   use shape_functions
   use global_numbering
@@ -140,7 +141,14 @@ contains
     type(scalar_field), pointer :: T
 
     !! Local velocity name.
-    character(len=FIELD_NAME_LEN) :: lvelocity_name
+    character(len=FIELD_NAME_LEN) :: lvelocity_name, pvelocity_name, pmesh_name
+
+    !! Projected velocity field for them as needs it. 
+    type(vector_field) :: pvelocity
+    !! Nonlinear velocity field.
+    type(vector_field), pointer :: U_nl, X
+    !! Mesh for projeced velocity.
+    type(mesh_type), pointer :: pmesh
 
     ewrite(1,*) "In solve_advection_diffusion_dg"
     ewrite(1,*) "Solving advection-diffusion equation for field " // &
@@ -153,6 +161,33 @@ contains
     else
        lvelocity_name="NonlinearVelocity"
     end if
+
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation&
+         &/discontinuous_galerkin/advection_scheme&
+         &/project_velocity_to_continuous")) then
+
+       call get_option(trim(T%option_path)&
+            //"/prognostic/spatial_discretisation&
+            &/discontinuous_galerkin/advection_scheme&
+            &/project_velocity_to_continuous/mesh/name",pmesh_name) 
+
+       U_nl=>extract_vector_field(state, lvelocity_name)
+       pmesh=>extract_mesh(state, pmesh_name)
+       X=>extract_vector_field(state, "Coordinate")
+
+       lvelocity_name=trim(lvelocity_name)//"Projected"
+
+       call allocate(pvelocity, U_nl%dim, pmesh, lvelocity_name)
+       
+       call project_field(U_nl, pvelocity, X)
+
+       call insert(state, pvelocity, lvelocity_name)
+
+       ! Discard the additional reference.
+       call deallocate(pvelocity)
+
+    end if
+
 
     call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &conservative_advection", beta)
@@ -297,6 +332,13 @@ contains
        call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else
        call solve_advection_diffusion_dg_theta(field_name, state, lvelocity_name)
+    end if
+
+    ! Clean up any projected velocity field.
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation&
+         &/discontinuous_galerkin/advection_scheme&
+         &/project_velocity_to_continuous")) then
+       call remove_vector_field(state, lvelocity_name)
     end if
 
   end subroutine solve_advection_diffusion_dg
@@ -1833,6 +1875,8 @@ contains
     type(element_type), pointer :: T_shape, T_shape_2, q_shape
     integer, dimension(face_loc(T,face)) :: T_face, T_face_l
     integer, dimension(face_loc(T,face_2)) :: T_face_2
+    integer, dimension(face_loc(U_nl,face)) :: U_face
+    integer, dimension(face_loc(U_nl,face_2)) :: U_face_2
     ! This has to be a pointer to work around a stupid gcc bug.
     integer, dimension(:), pointer :: q_face_l
 
@@ -2011,12 +2055,15 @@ contains
           FLExit("Haven't worked out integration by parts twice for Lax-Friedrichs.")
        end if
        
+       u_face=face_global_nodes(U_nl, face)
+       u_face_2=face_global_nodes(U_nl, face_2)
+
        C=0.0
-       do i=1,size(t_face)
-          C=max(C,abs(dot_product(normal(:,1),node_val(U_nl,t_face(i)))))
+       do i=1,size(u_face)
+          C=max(C,abs(dot_product(normal(:,1),node_val(U_nl,u_face(i)))))
        end do
-       do i=1,size(t_face_2)
-          C=max(C,abs(dot_product(normal(:,1),node_val(U_nl,t_face_2(i)))))
+       do i=1,size(u_face_2)
+          C=max(C,abs(dot_product(normal(:,1),node_val(U_nl,u_face_2(i)))))
        end do
 
 
