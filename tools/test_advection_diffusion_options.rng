@@ -2,7 +2,6 @@
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <include href="spud_base.rng"/>
   <include href="diagnostic_algorithms.rng"/>
-  <include href="prescribed_adaptivity.rng"/>
   <include href="stabilisation.rng"/>
   <start>
     <element name="fluidity_options">

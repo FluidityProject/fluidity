@@ -1,7 +1,6 @@
 include "spud_base.rnc"
 
 include "diagnostic_algorithms.rnc"
-include "prescribed_adaptivity.rnc"
 include "stabilisation.rnc"
 
 start =
