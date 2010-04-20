@@ -4131,7 +4131,7 @@ scalar_field_choice =
             attribute replaces { "IDENT = -143" },
             (
                element diagnostic {
-                  legacy_internal_algorithm,
+                  internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field
                }|

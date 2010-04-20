@@ -5441,7 +5441,7 @@ and electrochemical problems
         </attribute>
         <choice>
           <element name="diagnostic">
-            <ref name="legacy_internal_algorithm"/>
+            <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
