@@ -78,6 +78,10 @@
     !! U momentum matrix 
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
+    
+    !! Flag for the debug with Helmholtz equation option.
+    logical :: helmholtz
+    
 #ifdef HAVE_MPI
     call mpi_init(ierr)
 #endif
@@ -97,6 +101,10 @@
     call get_option('/simulation_name',simulation_name)
     Call initialise_diagnostics(trim(simulation_name),state)
 
+    if (has_vector_field(state(1),"VelocityInitialCondition")) then
+       call project_velocity(state(1))
+    end if
+
     call get_parameters()
 
     ! No support for multiphase or multimaterial at this stage.
@@ -109,6 +117,7 @@
     call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
          h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
          dt,theta,D0,g,f0,beta)
+
     call get_option("/timestepping/nonlinear_iterations"&
          &,nonlinear_iterations)
     exclude_pressure_advection = &
@@ -131,6 +140,9 @@
     ! Always output the initial conditions.
     call output_state(state)
 
+    !! Helmholtz operator test.
+    helmholtz=have_option("/material_phase::Fluid/scalar_field::HelmholtzRHS")
+
     timestep=0
     timestep_loop: do 
        timestep=timestep+1
@@ -144,14 +156,18 @@
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
 
-       call execute_timestep(state(1), dt)
+       if (helmholtz) then
+          call execute_helmholtz(state(1))
+       else
+          call execute_timestep(state(1), dt)
+       end if
 
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
 
-       if (simulation_completed(current_time, timestep)) exit timestep_loop     
+       if (simulation_completed(current_time, timestep).or.helmholtz) exit timestep_loop     
 
        call advance_current_time(current_time, dt)
 
@@ -159,7 +175,7 @@
           call output_state(state)
        end if
 
-       call write_diagnostics(state,timestep*dt,dt)
+       call write_diagnostics(state,current_time,dt)
        
        if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
          if(do_adapt_state_prescribed(current_time)) then              
@@ -182,6 +198,8 @@
 
     ! One last dump
     call output_state(state)
+
+    call write_diagnostics(state,current_time,dt)
 
     call deallocate(h_mass_mat)
     call deallocate(u_mass_mat)
@@ -351,6 +369,28 @@
 
     end subroutine execute_timestep
 
+    subroutine execute_helmholtz(state)
+      type(state_type), intent(inout) :: state
+      
+      type(scalar_field),pointer :: RHS,D
+      type(vector_field),pointer :: X
+
+      type(scalar_field) :: D_RHS
+
+      RHS=>extract_scalar_field(state, "HelmholtzRHS")
+      D=>extract_scalar_field(state, "LayerThickness")
+      X=>extract_vector_field(state, "Coordinate")
+
+      call allocate(D_RHS, D%mesh, "LayerThickness_RHS")
+
+      call mult(D_RHS, h_mass_mat, RHS)
+
+      call petsc_solve(D, wave_mat, D_RHS)
+      
+      call deallocate(D_RHS)
+
+    end subroutine execute_helmholtz
+
     subroutine get_energy(u,d,d0,g,u_mass_mat,h_mass_mat)
       type(scalar_field), intent(inout) :: d
       type(vector_field), intent(inout) :: u
@@ -412,6 +452,61 @@
       call zero(old_u)
 
     end subroutine execute_timestep_setup
+
+    subroutine project_velocity(state)
+      !!< Project the quadratic continuous VelocityInitialCondition into
+      !!< the velocity space.
+      !!< 
+      !!< This is a hack to attempt to get third order convergence for wave
+      !!< problems.
+      type(state_type), intent(inout) :: state
+
+      type(vector_field), pointer :: X, U, U_in
+
+      integer :: ele
+
+      X=>extract_vector_field(state, "Coordinate")
+      U=>extract_vector_field(state, "Velocity")
+      U_in=>extract_vector_field(state, "VelocityInitialCondition")
+
+      do ele=1, element_count(U)
+         
+         call project_velocity_ele(ele, X, U, U_in)
+
+      end do
+
+
+    end subroutine project_velocity
+
+    subroutine project_velocity_ele(ele, X, U, U_in)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: X
+      type(vector_field), intent(inout) :: U
+      type(vector_field), intent(in) :: U_in
+
+      real, dimension(ele_ngi(U,ele)) :: detwei
+      real, dimension(ele_loc(U,ele), ele_loc(U,ele)) :: mass
+
+      real, dimension(U%dim, ele_loc(U,ele)) :: rhs
+
+      type(element_type), pointer :: U_shape
+      integer :: d
+
+      call transform_to_physical(X, ele, detwei=detwei)
+
+      U_shape=>ele_shape(U,ele)
+
+      mass=shape_shape(U_shape, U_shape, detwei)
+
+      call invert(mass)
+
+      rhs=shape_vector_rhs(U_shape, ele_val_at_quad(U_in,ele), detwei)
+
+      do d=1,U%dim
+         call set(U, d, ele_nodes(U,ele), matmul(mass,rhs(d,:)))
+      end do
+
+    end subroutine project_velocity_ele
 
     subroutine advance_current_time(current_time, dt)
       implicit none
