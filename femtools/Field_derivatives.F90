@@ -43,7 +43,7 @@ module field_derivatives
 
     private
 
-    public :: differentiate_field, grad, compute_hessian, &
+    public :: strain_rate, differentiate_field, grad, compute_hessian, &
       domain_is_2d, patch_type, get_patch_ele, get_patch_node, get_quadratic_fit_qf, curl, &
       get_quadratic_fit_eqf, div, u_dot_nabla, get_cubic_fit_cf, differentiate_field_lumped
 
@@ -258,6 +258,45 @@ module field_derivatives
       end do
 
     end subroutine grad_vector
+
+    subroutine strain_rate(infield,positions,t_field)
+      !!< This routine computes the strain rate of an infield vector field
+      type(vector_field), intent(in) :: infield
+      type(vector_field), intent(in) :: positions
+      type(tensor_field), intent(inout) :: t_field
+
+      type(scalar_field), dimension(infield%dim) :: pardiff
+      type(scalar_field) :: component
+
+      real, dimension(t_field%dim,t_field%dim) :: t
+      logical, dimension(infield%dim) :: derivatives
+      integer :: i, j, dim
+      integer :: node
+
+      dim = infield%dim
+
+      do j=1,infield%dim
+
+        component = extract_scalar_field(infield, j)
+
+        do i=1,dim
+          pardiff(i) = extract_scalar_field(t_field,i,j)
+        end do
+
+        derivatives = .true.
+
+        call differentiate_field(component, positions, derivatives, pardiff)
+
+      end do
+      
+      ! Computing the final strain rate tensor
+      
+      do node=1,node_count(t_field)
+           t=node_val(t_field, node)
+           call set(t_field, node, (t+transpose(t))/2) 
+      end do 
+ 
+    end subroutine strain_rate
 
     subroutine differentiate_field_qf(infield, positions, derivatives, pardiff)
     !!< This routine computes the derivative using the QF (quadratic-fit)

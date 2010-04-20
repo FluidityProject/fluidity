@@ -105,6 +105,14 @@ contains
         call calculate_diagnostic_variable(state, istate, vfield)
       end if
     end if
+
+    tfield => extract_tensor_field(state(istate),'VelocityStrainRate',stat)
+    if (stat==0) then
+      diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
+      if(diagnostic) then
+        call calculate_diagnostic_variable(state, istate, tfield)
+      end if
+    end if
     
     tfield => extract_tensor_field(state(istate),'Viscosity',stat)
     if (stat==0) then

@@ -428,6 +428,17 @@ vector_laplacian_algorithm =
          vector_source_field
       }
    )
+strain_rate_algorithm =
+   (
+      ## algorithm for the strain rate of a vector field
+       element algorithm {
+         attribute name { "strain_rate" },
+         attribute material_phase_support { "single "},
+         vector_source_field
+      }
+   )
+
+
    
 # Surface diagnostics
 grad_normal_algorithm =
@@ -630,7 +641,7 @@ imposed_material_velocity_absorption_algorithm =
           }?
        }
    )
-   
+
 # Parallel diagnostics
 node_halo_diagnostic_algorithm =
    (
@@ -806,3 +817,4 @@ vector_diagnostic_algorithms |= vector_difference_algorithm
 tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
+tensor_diagnostic_algorithms |= strain_rate_algorithm

@@ -32,6 +32,7 @@ module momentum_diagnostics
   use boundary_conditions
   use coriolis_module, only : two_omega => coriolis
   use diagnostic_source_fields
+  use field_derivatives
   use field_options
   use fields
   use fldebug
@@ -48,13 +49,27 @@ module momentum_diagnostics
   
   private
   
-  public :: calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
             calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_vector_potential, calculate_geostrophic_velocity
+            calculate_vector_potential, calculate_geostrophic_velocity 
+           
   
 contains
+
+  subroutine calculate_strain_rate(state, t_field)
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+
+    type(vector_field), pointer :: positions, velocity
+
+    positions => extract_vector_field(state, "Coordinate")
+    velocity => extract_vector_field(state, "Velocity")
+
+    call strain_rate(velocity, positions, t_field)
+
+  end subroutine calculate_strain_rate
   
   subroutine calculate_bulk_viscosity(states, t_field)
     type(state_type), dimension(:), intent(inout) :: states
