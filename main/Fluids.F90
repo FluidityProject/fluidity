@@ -133,8 +133,6 @@ contains
 
     integer :: i, it, its
 
-    logical :: not_to_move_det_yet
-
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
@@ -414,6 +412,7 @@ contains
        ! NOTE ALSO: this must come before the enforcement of discrete properties
        ! to ensure those properties are satisfied on the new mesh not the old one.
        call move_mesh_imposed_velocity(state)
+       call move_mesh_pseudo_lagrangian(state)
 
        call enforce_discrete_properties(state, only_prescribed=.true., &
             exclude_interpolated=.true., &

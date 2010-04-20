@@ -1007,7 +1007,7 @@ type(vector_field), target, intent(in):: positions, vertical_normal
   
   do i=1, element_count(mesh)
      ! elements adjacent to element i
-     ! this is a row (column indeces) in the mesh%faces%face_list matrix
+     ! this is a row (column indices) in the mesh%faces%face_list matrix
      neigh => ele_neigh(mesh, i)
      ! the surrounding faces
      ! this is a row (integer values) in the mesh%faces%face_list matrix
@@ -1378,7 +1378,7 @@ type(scalar_field), dimension(:), optional, intent(in):: rhs
         end do
      end do
   end do
-    
+  
   call deallocate(face_normal_gravity)
   
 end subroutine vertical_integration_multiple

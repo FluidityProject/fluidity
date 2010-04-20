@@ -1,0 +1,99 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Shearing volume fraction</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length ="medium" nprocs = "1">
+    <command_line>fluidity -v2 -l  hyperc-shear-input.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="finish_time" language="python"> 
+from fluidity_tools import stat_parser as stat
+finish_time = stat("hyperc-shear.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="tracerbeta1_int_0" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_int_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["integral"][0]
+    </variable>
+    <variable name="tracerbeta1_int_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_int_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["integral"][-1]
+    </variable>
+    <variable name="tracerbeta1_max_0" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_max_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["max"][0]
+    </variable>
+    <variable name="tracerbeta1_max_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_max_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["max"][-1]
+    </variable>
+    <variable name="tracerbeta1_min_0" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_min_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["min"][0]
+    </variable>
+    <variable name="tracerbeta1_min_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta1_min_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta1"]["min"][-1]
+    </variable>
+    <variable name="tracerbeta0_int_0" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta0_int_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["integral"][0]
+    </variable>
+    <variable name="tracerbeta0_int_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta0_int_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["integral"][-1]
+    </variable>
+    <variable name="tracerbeta0_max_0" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta0_max_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["max"][0]
+    </variable>
+    <variable name="tracerbeta0_max_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta0_max_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["max"][-1]
+    </variable>
+    <variable name="tracerbeta0_min_0" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta0_min_0 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["min"][0]
+    </variable>
+    <variable name="tracerbeta0_min_1" language="python"> 
+from fluidity_tools import stat_parser as stat
+tracerbeta0_min_1 = stat("hyperc-shear.stat")["Material1"]["TracerBeta0"]["min"][-1]
+    </variable>
+    <variable name="divergence_max" language="python"> 
+from fluidity_tools import stat_parser as stat
+divergence_max = max(abs(stat("hyperc-shear.stat")["Material1"]["ControlVolumeDivergence"]["min"].min()), stat("hyperc-shear.stat")["Material1"]["ControlVolumeDivergence"]["max"].max())
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="check finish time reached" language="python">
+assert finish_time &gt; 1.
+    </test>
+    <test name="check tracerbeta0 integral was conserved" language="python">
+print 'mass loss = ', abs(tracerbeta0_int_1-tracerbeta0_int_0)
+assert abs(tracerbeta0_int_1-tracerbeta0_int_0) &lt; 1.e-9
+    </test>
+    <test name="check tracerbeta1 max was conserved" language="python">
+print 'max change = ', abs(tracerbeta1_max_1-tracerbeta1_max_0)
+assert abs(tracerbeta1_max_1-tracerbeta1_max_0) &lt; 1.e-9
+    </test>
+    <test name="check tracerbeta1 min was conserved" language="python">
+print 'min change = ', abs(tracerbeta1_min_1-tracerbeta1_min_0)
+assert abs(tracerbeta1_min_1-tracerbeta1_min_0) &lt; 1.e-9
+    </test>
+    <test name="check tracerbeta1 integral was conserved" language="python">
+print 'mass loss = ', abs(tracerbeta1_int_1-tracerbeta1_int_0)
+assert abs(tracerbeta1_int_1-tracerbeta1_int_0) &lt; 1.e-9
+    </test>
+    <test name="check tracerbeta0 max was conserved" language="python">
+print 'max change = ', abs(tracerbeta0_max_1-tracerbeta0_max_0)
+assert abs(tracerbeta0_max_1-tracerbeta0_max_0) &lt; 1.e-9
+    </test>
+    <test name="check tracerbeta0 min was conserved" language="python">
+print 'min change = ', abs(tracerbeta0_min_1-tracerbeta0_min_0)
+assert abs(tracerbeta0_min_1-tracerbeta0_min_0) &lt; 1.e-9
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

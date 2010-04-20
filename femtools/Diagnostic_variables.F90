@@ -2165,7 +2165,7 @@ contains
 
        ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
 
-       if (.not.present(not_to_move_det_yet))  call move_detectors_bisection_method(state, dt)
+       if (.not.present_and_true(not_to_move_det_yet))  call move_detectors_bisection_method(state, dt)
 
 !       call move_detectors_bisection_method(state, dt) 
 

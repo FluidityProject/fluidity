@@ -1739,6 +1739,21 @@ mesh_adaptivity_options =
             element imposed_grid_velocity {
                empty
             }|
+            ## Enable movement of mesh by the Velocity.
+            ## Note that this is only pseudo-lagrangian as the
+            ## Velocity and GridVelocity only match at the beginning of
+            ## the timestep.  Therefore the advection terms are still
+            ## present and evaluated.
+            element pseudo_lagrangian {
+               ## Specify the material phase from which to extract the Velocity
+               ## field.  Defaults to state(1) if unspecified.  Note that this
+               ## doesn't necessarily correspond to the first material_phase
+               ## in a flml file!
+               element velocity_material_phase {
+                 attribute material_phase_name { xsd:string },
+                 empty
+               }?
+            }|
             ## enable full ale movement of mesh
             element explicit_ale {
                element number_of_linesearch_pts {integer},
@@ -1813,6 +1828,9 @@ mesh_adaptivity_options =
                    attribute name {  "CoordinateMesh" }
                  },
                  prescribed_vector_field_no_adapt
+               }|
+               element aliased {
+                 generic_aliased_field
                }
             )
          }               

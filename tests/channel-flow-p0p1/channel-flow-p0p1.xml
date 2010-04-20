@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>channel-flow-dg</name>
+  <owner userid="cwilson"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>for layers in 16 32 64; do ./generate_mesh $layers; fluidity channel_viscous.flml; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; cp fluidity.log-0 fluidity-$layers.log-0; cp fluidity.err-0 fluidity-$layers.err-0; done</command_line>
+<!--     <command_line>for layers in 16 32 64; do ./generate_mesh $layers; ../../bin/periodise channel_viscous.flml; mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 channel_viscous_periodised channel_viscous_parallel; mpiexec -n 4 ../../bin/fluidity channel_viscous_parallel.flml; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; done</command_line> -->
+  </problem_definition>
+  <variables>
+    <variable name="convergence" language="python">import numpy
+from fluidity_tools import stat_parser
+layers=numpy.array([16, 32, 64])
+error=[]
+for layer in layers:
+        s=stat_parser("channel-flow-dg-"+`layer`+".stat")
+        error.append((s["Water"]['AnalyticUVelocitySolutionError']['l2norm'][-1],
+        s["Water"]['AnalyticPressureSolutionError']['l2norm'][-1]))
+
+error=numpy.array(error)
+convergence=numpy.log(error[:-1,:]/error[1:,:])/numpy.log(numpy.matrix(layers[1:]/layers[:-1]).T*numpy.matrix([1,1]))</variable>
+  </variables>
+  <pass_tests>
+    <test name="VelocityConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,1]&gt;0.9))</test>
+    <test name="PressureConvergesToSecondOrder" language="python">import numpy
+assert(numpy.all(convergence[:,0]&gt;0.9))</test>
+  </pass_tests>
+</testproblem>

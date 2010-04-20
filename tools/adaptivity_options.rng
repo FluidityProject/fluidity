@@ -2086,6 +2086,25 @@ geometry.</a:documentation>
 Requires a prescribed GridVelocity field (see below).</a:documentation>
               <empty/>
             </element>
+            <element name="pseudo_lagrangian">
+              <a:documentation>Enable movement of mesh by the Velocity.
+Note that this is only pseudo-lagrangian as the
+Velocity and GridVelocity only match at the beginning of
+the timestep.  Therefore the advection terms are still
+present and evaluated.</a:documentation>
+              <optional>
+                <element name="velocity_material_phase">
+                  <a:documentation>Specify the material phase from which to extract the Velocity
+field.  Defaults to state(1) if unspecified.  Note that this
+doesn't necessarily correspond to the first material_phase
+in a flml file!</a:documentation>
+                  <attribute name="material_phase_name">
+                    <data type="string"/>
+                  </attribute>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
             <element name="explicit_ale">
               <a:documentation>enable full ale movement of mesh</a:documentation>
               <element name="number_of_linesearch_pts">
@@ -2240,6 +2259,9 @@ Please specify a scalar field</a:documentation>
                   </attribute>
                 </element>
                 <ref name="prescribed_vector_field_no_adapt"/>
+              </element>
+              <element name="aliased">
+                <ref name="generic_aliased_field"/>
               </element>
             </choice>
           </element>

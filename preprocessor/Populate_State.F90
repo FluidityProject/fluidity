@@ -1282,6 +1282,25 @@ contains
 
     ! grid velocity
     if (have_option('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity')) then
+    
+       ! Save path to field
+       path="/mesh_adaptivity/mesh_movement/vector_field::GridVelocity"
+
+       ! If field is aliased, find which field it is aliased to, extract that field from the correct state and insert into state(1)
+       is_aliased=have_option(trim(path)//"/aliased")
+       if(is_aliased) then
+           call get_option(trim(path)//"/name", field_name)
+           call get_option(trim(path)//"/aliased/material_phase_name", state_name)
+           call get_option(trim(path)//"/aliased/field_name", aliased_field_name)
+
+           k=get_state_index(states, trim(state_name))
+           vfield=extract_vector_field(states(k), trim(aliased_field_name))
+           vfield%name = trim(field_name)  ! this seems to be necessary to preserve the aliased field's original name
+           vfield%aliased = .true.
+           call insert(states(1), vfield, trim(field_name))
+
+       end if
+    
        vfield=extract_vector_field(states(1), 'GridVelocity')
        vfield%aliased = .true.
        do i = 1,nstates-1
@@ -1492,7 +1511,7 @@ contains
     character(len=*), optional, intent(in):: field_name
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
-    logical :: is_prognostic, is_prescribed, is_diagnostic
+    logical :: is_prognostic, is_prescribed, is_diagnostic, is_aliased
     ! paths for options and child fields
     character(len=OPTION_PATH_LEN) :: path, adapt_path
     ! Strings for names
@@ -1500,6 +1519,9 @@ contains
     type(scalar_field) :: field
     type(mesh_type), pointer :: mesh
     logical :: backward_compatibility, is_constant
+
+    is_aliased=have_option(trim(option_path)//"/aliased")
+    if(is_aliased) return
 
     ! Save option_path
     path=trim(option_path)
@@ -1625,7 +1647,7 @@ contains
     logical, intent(in), optional :: dont_allocate_prognostic_value_spaces
     
     integer :: dim
-    logical :: is_prognostic, is_prescribed, is_diagnostic
+    logical :: is_prognostic, is_prescribed, is_diagnostic, is_aliased
     ! paths for options and child fields
     character(len=OPTION_PATH_LEN) :: path, adapt_path
     ! strings for names
@@ -1634,6 +1656,9 @@ contains
     type(vector_field) :: field
     logical :: backward_compatibility, is_constant
 
+    is_aliased=have_option(trim(option_path)//"/aliased")
+    if(is_aliased) return
+    
     ! Save option_path
     path=trim(option_path)
 
@@ -1749,12 +1774,15 @@ contains
     character(len=*), intent(in), optional :: parent_name
     logical, intent(in), optional :: dont_allocate_prognostic_value_spaces
 
-    logical :: backward_compatibility, is_prescribed, is_diagnostic, is_constant
+    logical :: backward_compatibility, is_prescribed, is_diagnostic, is_constant, is_aliased
     ! paths for options and child fields
     character(len=OPTION_PATH_LEN) :: path, adapt_path
     character(len=OPTION_PATH_LEN) :: field_name, mesh_name
     type(tensor_field) :: field
     type(mesh_type), pointer:: mesh
+
+    is_aliased=have_option(trim(option_path)//"/aliased")
+    if(is_aliased) return
 
     ! Save option_path
     path=trim(option_path)
@@ -2403,9 +2431,7 @@ contains
           prescribed=have_option(trim(sfield%option_path)//"/prescribed")
           diagnostic=have_option(trim(sfield%option_path)//"/diagnostic")
 
-          if(prognostic&
-             .or.(prescribed.and.(trim(field_name)==trim(sfield%name)))&
-             .or.(diagnostic.and.(trim(field_name)==trim(sfield%name)))) then
+          if(prognostic.or.prescribed.or.diagnostic) then
 
             do p2 = 1, size(states)
               write(state_path, '(a,i0,a)') "/material_phase[",p2-1,"]"
@@ -2464,9 +2490,7 @@ contains
             FLAbort("vector_field aliased but could not find to which material_phase")
           end if
 
-          if(prognostic&
-             .or.(prescribed.and.(trim(field_name)==trim(vfield%name)))&
-             .or.(diagnostic.and.(trim(field_name)==trim(vfield%name)))) then
+          if(prognostic.or.prescribed.or.diagnostic) then
 
             aux_vfield=extract_vector_field(states(p2), "Old"//trim(field_name))
             aux_vfield%name = "Old"//trim(vfield%name)
