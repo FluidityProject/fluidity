@@ -5319,6 +5319,44 @@ Requires a continuous mesh.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <a:documentation>Chlorophyll</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Chlorophyll</value>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Ammonium</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>Ammonium</value>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+          <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>PhaseVolumeFraction:
 Required in porous_media problem type</a:documentation>
         <attribute name="rank">
@@ -8591,6 +8629,43 @@ This option is generally only useful for testing. </a:documentation>
         </element>
         <element name="lagrangian_ensemble">
           <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
+          <choice>
+            <element name="biology_algorithm">
+              <a:documentation>Python code specifying the biology model. This takes
+in velocity and light and outputs Phytoplankton, if
+those fields exist.</a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <element name="disable_biology">
+              <a:documentation>Do not calculate biology
+This option is generally only useful for testing. </a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>PhotosyntheticRadiation</value>
+              </attribute>
+              <choice>
+                <element name="prognostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prognostic_photosynthetic_radiation"/>
+                </element>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+        </element>
+        <element name="lobster_model">
+          <a:documentation>LOBSTER biology model</a:documentation>
           <choice>
             <element name="biology_algorithm">
               <a:documentation>Python code specifying the biology model. This takes

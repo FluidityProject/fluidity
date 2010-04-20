@@ -44,12 +44,14 @@ module biology
   private
   public calculate_biology_terms, biology_check_options
 
-  character(len=FIELD_NAME_LEN), dimension(4), parameter ::&
+  character(len=FIELD_NAME_LEN), dimension(6), parameter ::&
        & biology_fields = (/ &
-       "Phytoplankton", &
-       "Zooplankton  ", &
-       "Nutrient     ", &
-       "Detritus     " /)
+       "Phytoplankton           ", &
+       "Zooplankton             ", &
+       "Nutrient                ", &
+       "Detritus                ", &
+       "Chlorophyll             ", &
+       "Ammonium                "/)
 
   ! Boundary condition types:
   ! (the numbers should match up with the order in the 
@@ -77,6 +79,9 @@ contains
     else if (have_option("/ocean_biology/lagrangian_ensemble")) then
        prefix="/ocean_biology/lagrangian_ensemble"
        algorithm="/biology_algorithm"
+    else if (have_option("/ocean_biology/lobster_model")) then
+       prefix="/ocean_biology/pczdna"
+       algorithm="/source_and_sink_algorithm"
     else
        FLExit("Unknown biology algorithm")
     end if
@@ -492,7 +497,8 @@ contains
     integer :: itmp, stat
 
     ! Don't do biology if it's not included in the model!
-    if (.not.have_option("/ocean_biology/pznd")) return
+    if (.not.have_option("/ocean_biology/pznd") .or.  &
+        .not.have_option("/ocean_biology/pczdna")) return
 
     call get_option("/problem_type", buffer)
     if (buffer/="oceans") then
@@ -505,6 +511,13 @@ contains
     end if
 
     if (have_option("/ocean_biology/pznd/scalar_field&
+         &::PhotosyntheticRadiation/prognostic/solver/&
+         &preconditioner::sor")) then
+       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&
+            &on"
+       ewrite(0, *) "Consider using ilu as a preconditioner instead."
+    end if
+    if (have_option("/ocean_biology/pczdna/scalar_field&
          &::PhotosyntheticRadiation/prognostic/solver/&
          &preconditioner::sor")) then
        ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&
