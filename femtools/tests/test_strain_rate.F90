@@ -3,15 +3,15 @@ subroutine test_strain_rate
   use fields
   use field_derivatives
   use vtk_interfaces
+  use read_triangle
   use state_module
   use unittest_tools
   implicit none
 
   type(vector_field) :: field
   type(tensor_field) :: strain_rate_field, solution_field, diff_field
-  type(state_type) :: state
   type(mesh_type), pointer :: mesh
-  type(vector_field), pointer :: positions
+  type(vector_field), target :: positions
   logical :: fail
 
   interface
@@ -25,9 +25,9 @@ subroutine test_strain_rate
     end function
   end interface
 
-  call vtk_read_state("data/cube_unstructured_0.vtu", state)
-  mesh => extract_mesh(state, "Mesh")
-  positions => extract_vector_field(state, "Coordinate")
+  positions=read_triangle_files("data/cube.3", quad_degree=4)
+  mesh => positions%mesh
+  
   call allocate(field, 3, mesh, "Field")
   call allocate(strain_rate_field, mesh, "StrainRate")
   call allocate(solution_field, mesh, "Solution")
