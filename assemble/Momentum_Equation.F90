@@ -52,7 +52,7 @@
     use petsc_solve_state_module
     use Profiler
     use geostrophic_pressure
-    use vertical_extrapolation_module
+    use hydrostatic_pressure
     use oceansurfaceforcing
     use drag_module
     use parallel_tools

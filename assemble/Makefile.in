@@ -75,7 +75,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Sam_integration.o Solenoidal_interpolation.o \
         Interpolation_manager.o  Discrete_Properties.o Free_Surface.o  \
 	Surface_Id_Interleaving.o \
-	Geostrophic_Pressure.o \
+	Geostrophic_Pressure.o Hydrostatic_Pressure.o \
 	Adapt_Integration.o Node_Locking.o Mba3d_Integration.o \
 	Adapt_State.o Adapt_State_Prescribed.o Adapt_State_Unittest.o \
 	Upwind_Stabilisation.o \
@@ -147,7 +147,7 @@ Geostrophic_Pressure.o: Petsc_Solve_State.o \
   Assemble_CMC.o Divergence_Matrix_CG.o Momentum_CG.o Momentum_DG.o
 Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
    Assemble_CMC.o Divergence_Matrix_CV.o Compressible_Projection.o \
-   Drag.o Geostrophic_Pressure.o Vertical_Extrapolation.o OceanSurfaceForcing.o \
+   Drag.o Geostrophic_Pressure.o Hydrostatic_Pressure.o Vertical_Extrapolation.o OceanSurfaceForcing.o \
    Petsc_Solve_State.o State_Matrices.o Reduced_Model_Runtime.o
 Compressible_Projection.o: Multimaterials.o Upwind_Stabilisation.o
 Free_Surface.o: Vertical_Extrapolation.o
