@@ -31,7 +31,7 @@ fluidity_tools.compare_variable(abs(nu), 1.0, 1.0e-2)</test>
 
 s = fluidity_tools.stat_parser("annulus.steady_state")
 
-maxchange = s["MaxChange"]["error"][-1]
+maxchange = s["MaxChange"]["value"][-1]
 print maxchange
 assert(maxchange &lt; 1.0e-7)
 

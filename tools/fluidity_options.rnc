@@ -469,6 +469,10 @@ start =
                ## Write out the changes in the tested fields to a .steady_state
                ## file.
                element steady_state_file {
+                  ## Enable to write steady state output in binary format
+                  element binary_output {
+                     comment
+                  }?,
                   comment
                }?
             }?

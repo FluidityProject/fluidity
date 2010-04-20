@@ -98,15 +98,17 @@ module diagnostic_variables
 
   !! Output unit for diagnostics file.
   !! (assumed non-opened as long these are 0)
-  integer, save :: diag_unit=0, conv_unit=0, steady_state_unit=0, &
+  integer, save :: diag_unit=0, conv_unit=0, &
     & detector_unit=0, detector_checkpoint_unit=0, detector_file_unit=0 
   logical, save :: binary_detector_output = .false.
 
   !! Are we writing to a convergence file?
   logical, save :: write_convergence_file=.false.
   
+  integer, save :: steady_state_unit = 0
   !! Are we writing to a steady state file?
   logical, save :: write_steady_state_file=.false.
+  logical, save :: binary_steady_state_output = .false.
 
   !! Are we continuing from a detector checkpoint file?
   logical, save :: detectors_checkpoint_done = .false.
@@ -857,13 +859,10 @@ contains
     if (initialised) return
     initialised=.true.
 
-    if(have_option("/timestepping/steady_state/steady_state_file")) then
-       write_steady_state_file = .true.
-    else
-       write_steady_state_file = .false.
-       return
-    end if
-
+    write_steady_state_file = have_option("/timestepping/steady_state/steady_state_file")
+    if(.not. write_steady_state_file) return
+    binary_steady_state_output = have_option("/timestepping/steady_state/steady_state_file/binary_output")
+    
     ! Only the first process should write steady state information
     if(getprocno() /= 1) return
     
@@ -872,7 +871,7 @@ contains
 
     write(steady_state_unit, '(a)') "<header>"
 
-    call initialise_constant_diagnostics(steady_state_unit)
+    call initialise_constant_diagnostics(steady_state_unit, binary_format = binary_steady_state_output)
 
     ! Initial columns are elapsed time, dt and global iteration
     column=1
@@ -921,11 +920,22 @@ contains
     end do phaseloop
 
     column = column + 1
-    buffer = field_tag(name = "MaxChange", column=column, statistic="error")
+    buffer = field_tag(name = "MaxChange", column=column, statistic="value")
     write(steady_state_unit, '(a)') trim(buffer)
 
     write(steady_state_unit, '(a)') "</header>"
     flush(steady_state_unit)
+    
+    if(binary_steady_state_output) then
+        close(steady_state_unit)
+
+#ifdef STREAM_IO
+      open(unit = steady_state_unit, file = trim(filename) // '.steady_state.dat', &
+        & action = "write", access = "stream", form = "unformatted", status = "replace")
+#else
+      FLAbort("No stream I/O support")
+#endif
+    end if
 
   end subroutine initialise_steady_state
   
@@ -1966,8 +1976,13 @@ contains
     procno = getprocno()
     if(write_steady_state_file .and. procno == 1) then    
       call get_option("/timestepping/current_time", elapsed_time)
-      write(steady_state_unit, format, advance="no") elapsed_time
-      write(steady_state_unit, format, advance="no") dt
+      if(binary_steady_state_output) then
+        write(steady_state_unit) elapsed_time
+        write(steady_state_unit) dt
+      else
+        write(steady_state_unit, format, advance="no") elapsed_time
+        write(steady_state_unit, format, advance="no") dt
+      end if
     end if
 
     phaseloop: do phase = 1, size(state)
@@ -1987,7 +2002,11 @@ contains
           maxchange = max(maxchange, change)
 
           if(write_steady_state_file .and. procno == 1) then
-            write(steady_state_unit, format, advance = "no") change
+            if(binary_steady_state_output) then
+              write(steady_state_unit) change
+            else
+              write(steady_state_unit, format, advance = "no") change
+            end if
           end if
        end do
 
@@ -2006,7 +2025,11 @@ contains
          maxchange = max(maxchange, change)
 
          if(write_steady_state_file .and. procno == 1) then
-           write(steady_state_unit, format, advance = "no") change
+           if(binary_steady_state_output) then
+             write(steady_state_unit) change
+           else
+             write(steady_state_unit, format, advance = "no") change
+           end if
          end if
 
          if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle
@@ -2023,7 +2046,11 @@ contains
            maxchange = max(maxchange, change)
            
            if(write_steady_state_file .and. procno == 1) then
-            write(steady_state_unit, format, advance = "no") change
+             if(binary_steady_state_output) then
+               write(steady_state_unit) change
+             else
+               write(steady_state_unit, format, advance = "no") change
+             end if
            end if
          end do
        end do
@@ -2033,10 +2060,14 @@ contains
     ewrite(1, *) "maxchange = ", maxchange
     
     if(write_steady_state_file .and. procno == 1) then
-      write(steady_state_unit, format, advance = "no") maxchange
-    
-      ! Output end of line
-      write(steady_state_unit,'(a)') ""
+      if(binary_steady_state_output) then
+        write(steady_state_unit) maxchange
+      else
+        write(steady_state_unit, format, advance = "no") maxchange      
+        ! Output end of line
+        write(steady_state_unit,'(a)') ""
+      end if
+      
       flush(steady_state_unit)
     end if
 
@@ -3505,6 +3536,10 @@ contains
 #ifndef STREAM_IO
     if(have_option("/io/detectors/binary_output")) then
       FLExit("Cannot use binary detector output format - no stream I/O support")
+    end if
+    
+    if(have_option("/timestepping/steady_state/steady_state_file/binary_output")) then
+      FLExit("Cannot use binary steady state output format - no stream I/O support")
     end if
 #endif
 

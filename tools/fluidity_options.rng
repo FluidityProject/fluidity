@@ -602,6 +602,12 @@ directly to the change in the field.</a:documentation>
               <element name="steady_state_file">
                 <a:documentation>Write out the changes in the tested fields to a .steady_state
 file.</a:documentation>
+                <optional>
+                  <element name="binary_output">
+                    <a:documentation>Enable to write steady state output in binary format</a:documentation>
+                    <ref name="comment"/>
+                  </element>
+                </optional>
                 <ref name="comment"/>
               </element>
             </optional>
