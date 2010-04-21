@@ -314,7 +314,7 @@ for i in range(field.node_count):
         visc = numpy.zeros((3, 3))
         for j in range(3):
                 visc[j][j] = diagVisc
-        field.set_val_at_node(i, visc)
+        field.set(i, visc)
 \end{lstlisting}
 \caption{A tensor python diagnostic algorithm defining a temperature varying
          viscosity used in a baroclinic annulus simulation, configured
