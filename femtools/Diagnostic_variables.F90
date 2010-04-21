@@ -105,9 +105,10 @@ module diagnostic_variables
   !! Are we writing to a convergence file?
   logical, save :: write_convergence_file=.false.
   
+  !! Output unit for .steady_state file (assumed non-opened as long as == 0)
   integer, save :: steady_state_unit = 0
   !! Are we writing to a steady state file?
-  logical, save :: write_steady_state_file=.false.
+  logical, save :: write_steady_state_file = .false.
   logical, save :: binary_steady_state_output = .false.
 
   !! Are we continuing from a detector checkpoint file?
@@ -861,7 +862,13 @@ contains
 
     write_steady_state_file = have_option("/timestepping/steady_state/steady_state_file")
     if(.not. write_steady_state_file) return
-    binary_steady_state_output = have_option("/timestepping/steady_state/steady_state_file/binary_output")
+    if(have_option("/timestepping/steady_state/steady_state_file/binary_output")) then
+      binary_steady_state_output = .true.
+    else if(have_option("/timestepping/steady_state/steady_state_file/plain_text_output")) then
+      binary_steady_state_output = .false.
+    else
+      FLAbort("Unable to determine steady state output format")
+    end if
     
     ! Only the first process should write steady state information
     if(getprocno() /= 1) return
@@ -3345,12 +3352,7 @@ contains
     
     if(detector%element>0) then
        if(detector%element > 0) then
-          s_shape=>ele_shape(sfield, detector%element)
-          s_val=ele_val(sfield, detector%element)
-          
-          do i=1, s_shape%loc
-             value=value+s_val(i)*eval_shape(s_shape, i, detector%local_coords)
-          end do
+         value = eval_field(detector%element, sfield, detector%local_coords)
        end if
     end if
 
@@ -3372,12 +3374,7 @@ contains
     
     if(detector%element>0) then
       if(detector%element > 0) then
-        v_shape=>ele_shape(vfield, detector%element)
-        v_val=ele_val(vfield, detector%element)
-        
-        do i=1, v_shape%loc
-           value=value+v_val(:,i)*eval_shape(v_shape, i, detector%local_coords)
-        end do
+        value = eval_field(detector%element, vfield, detector%local_coords)
       end if
     end if
 
