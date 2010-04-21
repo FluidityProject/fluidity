@@ -897,7 +897,9 @@ contains
     integer :: nstates ! number of states
     integer :: ncars   ! number of vehicles
     character(len=255) :: tmp ! temporary string to make life a little easier
-
+    type(scalar_field), pointer :: fshistory_sfield
+    integer :: fshistory_levels 
+    
     nstates=option_count("/material_phase")
 
     ! Loop over states for the first time to get prognostic, prescribed and diagnostic fields.
@@ -990,6 +992,21 @@ contains
                                               field_name='Electrochemical['//int2str(i-1)//']')
       end if
     end do
+
+    ! Harmonic Analysis History fields
+    if (has_scalar_field(states(1),'FreeSurfaceHistory') ) then
+      fshistory_sfield => extract_scalar_field(states(1), 'FreeSurfaceHistory')
+      ! levels: the number of levels which will be saved. Too old levels will be overwritten by new ones.
+      if (have_option(trim(complete_field_path(fshistory_sfield%option_path)) // "/algorithm/levels")) then
+        call get_option(trim(complete_field_path(fshistory_sfield%option_path)) // "/algorithm/levels", fshistory_levels)
+        fshistory_levels=max(fshistory_levels,0)
+      else
+        fshistory_levels=50
+      end if
+      do i=1,fshistory_levels
+          call allocate_and_insert_scalar_field('', states(1), parent_mesh='VelocityMesh', field_name='harmonic'//int2str(i))
+      end do
+    end if
 
     ! insert miscellaneous fields
     do i=1, size(field_locations)

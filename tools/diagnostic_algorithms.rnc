@@ -773,6 +773,207 @@ eigenvalues_symmetric_algorithm =
       }
    )
 
+# Tidal Harmonic Analysis algorithms
+free_surface_history_algorithm = 
+   (
+      ## Needed for the tidal harmonic algorithm.
+      ## Implemented as a queue data structure.
+      element algorithm {
+         attribute name { "free_surface_history" },
+         attribute material_phase_support { "single" },
+         attribute depends {"FreeSurface" },
+         ## levels: Number of levels which should be saved in the history. Default value: 50
+         element levels { 
+                integer
+         }?,
+         ## stride: number of timelvel skips before saving the next free surface field in the history. Default value: 5
+         element stride { 
+                integer 
+         }?,
+         ## spin_up time: Default value: 0
+         element spin_up_time { 
+                real
+         }?,
+         ## Internal use only
+         element saved_snapshots_times {
+            real_vector
+         }?,
+         ## Internal use only
+         element timestep_counter {
+            integer
+         }?
+      }
+   )
+
+tidal_harmonic_algorithm =
+   (
+      ## Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on in order to calculate the harmonics successfully. 
+      ##
+      ## By setting averageFSLevel to ForceToZero, C0 is set to zero. Recommended is "Calculate"
+      element algorithm {
+       attribute name { "tidal_harmonics" },
+       attribute material_phase_support { "single" },
+       attribute depends {"FreeSurfaceHistory" },
+       attribute target { "Amplitude" | "Phase" },
+       attribute averageFSLevel { "ForceToZero" | "Calculate" },
+       (
+       ## Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True. 
+       element constituent {
+        attribute name { "C0" },
+        element real_value {
+         attribute rank { "0" },
+         attribute shape { "1" },
+         "0.0"
+         },
+         comment
+        }|
+        ## M2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "M2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.40519E-04"
+          },
+          comment
+        }|
+        ## S2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "S2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.45444E-04"
+          },
+          comment
+        }|
+        ## N2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "N2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.3788E-04"
+          },
+          comment
+        }|
+        ## K2 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "K2" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "1.45842E-04"
+          },
+          comment
+        }|
+        ## K1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "K1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.72921E-04"
+          },
+          comment
+        }|
+        ## O1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "O1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.67598E-04"
+          },
+          comment
+        }|
+        ## P1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "P1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.72523E-04"
+          },
+          comment
+        }|
+        ## Q1 constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Q1" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.64959E-04"
+          },
+          comment
+        }|
+        ## Mf constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Mf" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.053234E-04"
+          },
+          comment
+        }|
+        ## Mm constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Mm" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.026392E-04"
+          },
+          comment
+        }|
+        ## Ssa constituent.
+        ## Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+        ## No. 1 pp. 243--268, 1980
+        element constituent {
+         attribute name { "Ssa" },
+         element real_value {
+          attribute rank { "0" },
+          attribute shape { "1" },
+          "0.003982E-04"
+          },
+          comment
+        }|
+        ## The constituent Residual calculates the residual free surface amplitude after substracting the calculated constituents. The target must be set to Amplitude.
+        element constituent {
+        attribute name { "Residual" },
+        comment
+        }|
+        ## Custom defined frequencies.
+        element constituent {
+          attribute name { "custom"},
+          real
+        }
+        )
+      }
+   )
+
+
 # Misc
 
 # l2norm diagnostic algorithm
@@ -808,6 +1009,7 @@ scalar_diagnostic_algorithms |= element_universal_numbering_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
 scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_difference_algorithm
+scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 
 vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm

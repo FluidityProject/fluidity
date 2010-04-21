@@ -1036,6 +1036,310 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
       <ref name="tensor_source_field"/>
     </element>
   </define>
+  <!-- Tidal Harmonic Analysis algorithms -->
+  <define name="free_surface_history_algorithm">
+    <element name="algorithm">
+      <a:documentation>Needed for the tidal harmonic algorithm.
+Implemented as a queue data structure.</a:documentation>
+      <attribute name="name">
+        <value>free_surface_history</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="depends">
+        <value>FreeSurface</value>
+      </attribute>
+      <optional>
+        <element name="levels">
+          <a:documentation>levels: Number of levels which should be saved in the history. Default value: 50</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="stride">
+          <a:documentation>stride: number of timelvel skips before saving the next free surface field in the history. Default value: 5</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="spin_up_time">
+          <a:documentation>spin_up time: Default value: 0</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="saved_snapshots_times">
+          <a:documentation>Internal use only</a:documentation>
+          <ref name="real_vector"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="timestep_counter">
+          <a:documentation>Internal use only</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="tidal_harmonic_algorithm">
+    <element name="algorithm">
+      <a:documentation>Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on in order to calculate the harmonics successfully. 
+
+By setting averageFSLevel to ForceToZero, C0 is set to zero. Recommended is "Calculate"</a:documentation>
+      <attribute name="name">
+        <value>tidal_harmonics</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <attribute name="depends">
+        <value>FreeSurfaceHistory</value>
+      </attribute>
+      <attribute name="target">
+        <choice>
+          <value>Amplitude</value>
+          <value>Phase</value>
+        </choice>
+      </attribute>
+      <attribute name="averageFSLevel">
+        <choice>
+          <value>ForceToZero</value>
+          <value>Calculate</value>
+        </choice>
+      </attribute>
+      <choice>
+        <element name="constituent">
+          <a:documentation>Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True. </a:documentation>
+          <attribute name="name">
+            <value>C0</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.0</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>M2 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>M2</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>1.40519E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>S2 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>S2</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>1.45444E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>N2 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>N2</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>1.3788E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>K2 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>K2</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>1.45842E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>K1 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>K1</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.72921E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>O1 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>O1</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.67598E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>P1 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>P1</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.72523E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>Q1 constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>Q1</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.64959E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>Mf constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>Mf</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.053234E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>Mm constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>Mm</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.026392E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>Ssa constituent.
+Taken from E.W. Schwiderski - Rev. Geophys. Space Phys. Vol. 18
+No. 1 pp. 243--268, 1980</a:documentation>
+          <attribute name="name">
+            <value>Ssa</value>
+          </attribute>
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="shape">
+              <value>1</value>
+            </attribute>
+            <value>0.003982E-04</value>
+          </element>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>The constituent Residual calculates the residual free surface amplitude after substracting the calculated constituents. The target must be set to Amplitude.</a:documentation>
+          <attribute name="name">
+            <value>Residual</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="constituent">
+          <a:documentation>Custom defined frequencies.</a:documentation>
+          <attribute name="name">
+            <value>custom</value>
+          </attribute>
+          <ref name="real"/>
+        </element>
+      </choice>
+    </element>
+  </define>
   <!-- Misc -->
   <!-- l2norm diagnostic algorithm -->
   <define name="l2norm_algorithm">
@@ -1115,6 +1419,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_difference_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="tidal_harmonic_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_python_diagnostic_algorithm"/>
