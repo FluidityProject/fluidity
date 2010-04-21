@@ -56,7 +56,6 @@ contains
     integer, intent(in) :: istate
     
     type(scalar_field), pointer :: bulk_density, buoyancy_density
-    type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     
@@ -106,14 +105,6 @@ contains
       end if
     end if
 
-    tfield => extract_tensor_field(state(istate),'VelocityStrainRate',stat)
-    if (stat==0) then
-      diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
-      if(diagnostic) then
-        call calculate_diagnostic_variable(state, istate, tfield)
-      end if
-    end if
-    
     tfield => extract_tensor_field(state(istate),'Viscosity',stat)
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
