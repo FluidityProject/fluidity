@@ -593,6 +593,18 @@ boundaries.</a:documentation>
       <ref name="vector_source_field"/>
     </element>
   </define>
+  <define name="tensor_second_invariant_algorithm">
+    <element name="algorithm">
+      <a:documentation>algorithm for the second invariant of a tensor field</a:documentation>
+      <attribute name="name">
+        <value>tensor_second_invariant</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
+      </attribute>
+      <ref name="tensor_source_field"/>
+    </element>
+  </define>
   <!-- Surface diagnostics -->
   <define name="grad_normal_algorithm">
     <element name="algorithm">
@@ -1040,6 +1052,9 @@ eigenvalues are sorted from lowest to highest.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="scalar_python_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="tensor_second_invariant_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_copy_algorithm"/>

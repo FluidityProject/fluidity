@@ -437,7 +437,15 @@ strain_rate_algorithm =
          vector_source_field
       }
    )
-
+tensor_second_invariant_algorithm =
+   (
+      ## algorithm for the second invariant of a tensor field
+       element algorithm {
+         attribute name { "tensor_second_invariant" },
+         attribute material_phase_support { "single "},
+         tensor_source_field
+      }
+   )
 
    
 # Surface diagnostics
@@ -779,6 +787,7 @@ l2norm_algorithm =
    )
    
 scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
+scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
