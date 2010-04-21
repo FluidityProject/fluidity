@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>harmonic_analysis_simple</name>
+  <owner userid="sf1409"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity harmonic_analysis_simple.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="C0" language="python">from fluidity_tools import stat_parser
+s = stat_parser("harmonic_analysis_simple.stat")
+C0=s["water"]["C0"]["max"][-1]</variable>
+    <variable name="Residual" language="python">from fluidity_tools import stat_parser
+s = stat_parser("harmonic_analysis_simple.stat")
+Residual=s["water"]["Residual"]["max"][-1]</variable>
+    <variable name="lover4Ampl" language="python">from fluidity_tools import stat_parser
+s = stat_parser("harmonic_analysis_simple.stat")
+lover4Ampl=s["water"]["1over4Ampl"]["max"][-1]</variable>
+    <variable name="lover4Phase" language="python">from fluidity_tools import stat_parser
+s = stat_parser("harmonic_analysis_simple.stat")
+lover4Phase=s["water"]["1over4Phase"]["max"][-1]</variable>
+    <variable name="lover9Ampl" language="python">from fluidity_tools import stat_parser
+s = stat_parser("harmonic_analysis_simple.stat")
+lover9Ampl=s["water"]["1over9Ampl"]["max"][-1]</variable>
+    <variable name="lover9Phase" language="python">from fluidity_tools import stat_parser
+s = stat_parser("harmonic_analysis_simple.stat")
+lover9Phase=s["water"]["1over9Phase"]["max"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="C0" language="python">assert abs(C0-0.1)&lt;1e-7</test>
+    <test name="Residual" language="python">assert abs(Residual)&lt;1e-7</test>
+    <test name="1over4Ampl" language="python">assert abs(lover4Ampl-0.01)&lt;1e-7</test>
+    <test name="1over4Phase" language="python">assert abs(lover4Phase)&lt;1e-7</test>
+    <test name="1over9Ampl" language="python">assert abs(lover9Ampl-0.05)&lt;1e-7</test>
+    <test name="1over9Phase" language="python">assert abs(lover9Phase+3.1415926536)&lt;1e-7</test>
+  </pass_tests>
+</testproblem>
