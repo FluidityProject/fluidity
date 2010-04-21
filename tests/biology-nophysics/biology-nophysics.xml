@@ -5,7 +5,7 @@
   <name>biology-nophysics</name>
   <owner userid="jhill1"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity test1.flml</command_line>
     <!-- PZND model running in a water column with imposed diffusivity and not solving for any physics. -->
   </problem_definition>
