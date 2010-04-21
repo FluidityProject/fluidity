@@ -78,6 +78,8 @@
     !! U momentum matrix 
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
+    type(scalar_field) :: aux_sfield
+    type(mesh_type), pointer :: x_mesh
     
     !! Flag for the debug with Helmholtz equation option.
     logical :: helmholtz
@@ -94,6 +96,16 @@
     call read_command_line()
 
     call populate_state(state)
+
+    ! Disgusting and vomitous hack to ensure that time is output in
+    ! vtu files.
+    x_mesh => extract_mesh(state, "CoordinateMesh")
+    call allocate(aux_sfield, x_mesh, "Time", field_type=FIELD_TYPE_CONSTANT)
+    call get_option("/timestepping/current_time", current_time)
+    call set(aux_sfield, current_time)
+    aux_sfield%option_path = ""
+    call insert(state, aux_sfield, trim(aux_sfield%name))
+    call deallocate(aux_sfield)
 
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
@@ -234,8 +246,8 @@
             call get_option("/physical_parameters/coriolis/f_plane/f",f0)
             beta = 0.0
          else if(have_option("/physical_parameters/coriolis/beta_plane")) then
-            call get_option("/physical_parameters/coriolis/f_plane/f_0",f0)
-            call get_option("/physical_parameters/coriolis/f_plane/beta",beta)
+            call get_option("/physical_parameters/coriolis/beta_plane/f_0",f0)
+            call get_option("/physical_parameters/coriolis/beta_plane/beta",beta)
          else
             FLAbort('Your chosen Coriolis option is not supported')
          end if
@@ -515,6 +527,7 @@
       ! Adaptive timestepping could go here.
 
       current_time=current_time + dt
+      call set_option("/timestepping/current_time", current_time)
 
     end subroutine advance_current_time
 
