@@ -3030,7 +3030,7 @@ contains
     !!< local_coord of element ele.
   
     integer, intent(in) :: ele
-    type(scalar_field), intent(inout) :: s_field
+    type(scalar_field), intent(in) :: s_field
     real, dimension(:), intent(in) :: local_coord
     
     real :: val
@@ -3067,7 +3067,7 @@ contains
     !!< local_coord of element ele.
   
     integer, intent(in) :: ele
-    type(vector_field), intent(inout) :: v_field
+    type(vector_field), intent(in) :: v_field
     real, dimension(:), intent(in) :: local_coord
     
     real, dimension(v_field%dim) :: val
