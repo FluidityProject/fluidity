@@ -196,7 +196,6 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
 
     ignoretimestep=.false.
     ! Find free_surface_history diagonstic field
-    assert(has_scalar_field(state,'FreeSurfaceHistory')) ! The diagnostic dependency algorithm takes care of that.
     fshistory_sfield => extract_scalar_field(state, 'FreeSurfaceHistory')
     free_surface_history_path = trim(complete_field_path(fshistory_sfield%option_path)) // '/algorithm/'
 
