@@ -174,6 +174,7 @@ HaloReadError Fluidity::ReadHalos(const string& filename, int& process, int& npr
 }
 
 int Fluidity::WriteHalos(const string& filename, const unsigned int& process, const unsigned int& nprocs, const map<int, int>& npnodes, const map<int, vector<vector<int> > >& send, const map<int, vector<vector<int> > >& recv){
+#ifdef DDEBUG
   // Input check
   assert(process < nprocs);
   assert(send.size() == recv.size());
@@ -182,6 +183,7 @@ int Fluidity::WriteHalos(const string& filename, const unsigned int& process, co
     assert(npnodes.count(sendIter->first) != 0);
     assert(sendIter->second.size() == recvIter->second.size());
   }
+#endif
   
   TiXmlDocument doc;
   
@@ -296,7 +298,7 @@ extern "C"{
     int errorCount = 0;
     if(ret == HALO_READ_FILE_NOT_FOUND){
       if(*process == 0){
-        cerr << "Error reading halo file " << buffer << "\n"
+        cerr << "Error reading halo file " << buffer.str() << "\n"
              << "Zero process file not found" << endl;
         errorCount++;
       }else{
@@ -307,7 +309,7 @@ extern "C"{
         readHaloData->recv.clear();
       }
     }else if(ret != HALO_READ_SUCCESS){
-      cerr << "Error reading halo file " << buffer << "\n";
+      cerr << "Error reading halo file " << buffer.str() << "\n";
       switch(ret){
         case(HALO_READ_FILE_INVALID):
           cerr << "Invalid .halo file" << endl;
@@ -319,11 +321,13 @@ extern "C"{
       }
       errorCount++;
     }else if(readHaloData->process != *process){
-      cerr << "Error reading halo file " << buffer << "\n"
+      cerr << "Error reading halo file " << buffer.str() << "\n"
            << "Unexpected process number in .halo file" << endl;
       errorCount++;
     }else if(readHaloData->nprocs > *nprocs){
-      cerr << "Error reading halo file " << buffer << "\n"
+      cerr << "Error reading halo file " << buffer.str() << "\n"
+           << "Number of processes in .halo file: " << readHaloData->nprocs << "\n"
+           << "Number of running processes: " << *nprocs << "\n"
            << "Number of processes in .halo file exceeds number of running processes" << endl;
       errorCount++;
     }
