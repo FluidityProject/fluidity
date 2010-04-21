@@ -36,7 +36,7 @@ subroutine test_strain_rate
   ! set our input velocity
   call set_from_function(field, velocity, positions)
   ! compute the strain rate
-  !call strain_rate(field, positions, strain_rate_field)
+  call strain_rate(field, positions, strain_rate_field)
   ! now compute the expected solution
   call set_from_function(solution_field, solution, positions)
   
@@ -46,7 +46,7 @@ subroutine test_strain_rate
   call vtk_write_fields("data/strain_rate_out", 0, positions, mesh, &
      vfields=(/ field/), tfields=(/ strain_rate_field, solution_field, diff_field /))
   
-  fail = maxval( abs( diff_field%val ))< 1e-10
+  fail = maxval( abs( diff_field%val ))> 1e-10
   call report_test("[strain_rate]", fail, .false., "strain_rate different than expected")
 
 end subroutine test_strain_rate
