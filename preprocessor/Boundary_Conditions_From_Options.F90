@@ -485,39 +485,6 @@ contains
           end if
           call deallocate(bc_position)
 
-       case ("k_epsilon_boundary")
-
-          bc_type_path=trim(bc_path_i)//"/type[0]/k_epsilon_boundary"
-
-          ! map the coordinate field onto this mesh
-          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
-               surface_element_list=surface_element_list)
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
-
-          if (have_option(bc_type_path)) then
-
-             call allocate(normal, field%dim, surface_mesh, name="normal")
-             bc_component_path=trim(bc_type_path)//"/normal_direction"
-             if (have_option(bc_component_path)) then
-                call initialise_field(normal, bc_component_path, bc_position)
-             else
-                call zero(normal)
-             end if
-             call insert_surface_field(field, i+1, normal)
-
-             debugging_mode=.false.
-             if (have_option(trim(bc_type_path)//"/debugging_mode")) debugging_mode=.true.
-            
-             ! calculate the normal on every boundary node
-             
-             call initialise_rotated_bcs(surface_element_list, &
-                  position, debugging_mode, normal)
-             call deallocate(normal)
-            
-          end if
-          call deallocate(bc_position)
-
        case default
           ! nothing to do for other bcs
        end select
@@ -1789,22 +1756,13 @@ contains
     eps => extract_scalar_field(state, "TurbulentDissipation",stat)
     if(stat/=0) FLAbort("Need TurbulentDissipation field")
 
-    ! Get velocity field
-    velocity => extract_vector_field(state, "Velocity")
     positions => extract_vector_field(state, "Coordinate")
-
-    ! Check that we have a no-slip boundary condition for the velocity field
-    if(.not. have_option(trim(velocity%option_path)//&
-             "/prognostic/boundary_conditions::NoSlip")) then
-        FLAbort("You have not specified a no-slip boundary condition for the velocity field. See manual.")
-    end if
 
     ! Use the TurbulentKineticEnergy mesh for the 2 fields. Must have the same surface ids in flml!
     ewrite(1,*) "Getting input mesh for k-epsilon fields"
     input_mesh => extract_velocity_mesh(state)
 
-    ! Use the velocity no-slip BC to get surface elements.
-    ! Set a separate velocity BC on each surface to ensure that epsilon bc works.
+    ! Set a separate BC on each surface to ensure that epsilon bc works.
     do bc = 1, get_boundary_condition_count(tke)
 
         call get_boundary_condition(tke, bc, name=bc_name, type=bc_type, &
@@ -1821,26 +1779,14 @@ contains
             bc_path   = trim(tke%option_path)//"/prognostic/boundary_conditions"
             bc_path_i = trim(bc_path)//"["//int2str(bc-1)//"]"
 
-            ! Get surface ids from options
-            ! (we shouldn't have BC options specified for eps! We create them.)
+            ! Get surface ids from tke options. We shouldn't have BCs specified for eps!
             shape_option=option_shape(trim(bc_path_i)//"/surface_ids")
             allocate(surface_ids(1:shape_option(1)))
             call get_option(trim(bc_path)//"["//int2str(bc-1)//"]/surface_ids", surface_ids)
 
-            ! Add BCs to the TurbulentKineticEnergy field.
-            ! Hard-coded to Dirichlet. Set on each surface separately.
             ewrite(1,*) "shape option: ", shape_option
-            !ewrite(1,*) "Adding bc to k-field on surface ids: ", surface_ids
 
-            !call add_boundary_condition(tke, 'tke_boundary', 'Dirichlet', surface_ids)
-            !call get_boundary_condition(tke, 'tke_boundary', surface_mesh=surface_mesh)
-            !call allocate(scalar_surface_field, surface_mesh, name="value")
-            !call insert_surface_field(tke, 'tke_boundary', scalar_surface_field)
-            !call deallocate(scalar_surface_field)
-
-            ! Add BCs to the TurbulentDissipation field.
-            ! Hard-coded to Dirichlet. Set on each surface separately.
-
+            ! Add BCs to the TurbulentDissipation field. Hard-coded to Dirichlet.
             ewrite(1,*) "Adding bcs to epsilon-field on surfaces: ", surface_ids
 
             call add_boundary_condition(eps, 'eps_boundary', 'Dirichlet', surface_ids)

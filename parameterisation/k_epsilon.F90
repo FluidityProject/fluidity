@@ -54,13 +54,13 @@ module k_epsilon
 
   private
 
-  ! old turbulent kinetic energy, lengthscale, eddy viscosity, eddy diffusivity
-  type(scalar_field), save :: tke_old, ll, EV, ED
+  ! old turbulent kinetic energy, lengthscale, eddy viscosity, production
+  type(scalar_field), save :: tke_old, ll, EV, P
   !type(scalar_field), save :: surface_kk_values, surface_eps_values
   ! Minimum values of 2 fields to initialise, and empirical constants from flml
-  real, save               :: eps_min, k_min, c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
-  integer, save            :: nNodes, count_rhs, count_mass, index
-  logical, save            :: initialised, calculate_bcs
+  real, save               :: eps_init, k_init, ll_max, c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, fields_min
+  integer, save            :: nnodes, count_rhs, count_mass, index
+  logical, save            :: calculate_bcs
 
   ! The following are the public subroutines
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_adapt_mesh, keps_check_options
@@ -81,15 +81,16 @@ module k_epsilon
 contains
 
 !----------
-!    - check we have the right fields (if not abort)
 !    - initialise parameters based on options
-!    - allocate space for optional fields, which are module level variables (to save passing them around)
 !----------
 
 subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
     type(scalar_field), pointer     :: scalarField
+    type(vector_field), pointer     :: positions
+    real, dimension(:), pointer     :: x, y, z
+    real                            :: dx, dy, dz
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
 
@@ -104,8 +105,26 @@ subroutine keps_init(state)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_mu',          C_mu, default = 0.09)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_1',    c_eps_1, default = 1.44)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_2',    c_eps_2, default = 1.92)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_k',     sigma_k, default = 1.0)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_eps', sigma_eps, default = 1.3)
+    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_k',    sigma_k, default = 1.0)
+    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_eps',sigma_eps, default = 1.3)
+  
+    ! initialise fields (k, epsilon) with minimum values
+    scalarField => extract_scalar_field(state, "TurbulentKineticEnergy")
+    call get_option(trim(scalarField%option_path)// &
+                    "/prognostic/initial_condition::WholeMesh/constant", k_init)
+    call set(scalarField, k_init)
+
+    ! initialise other fields
+    ll_max = 1.   ! hard coded to size of backward facing step inlet
+    fields_min = 1.e-12
+
+    call set( ll, ll_max )
+    !eps_init = k_init**1.5 / ll_max   ! make eps_init a dependent variable
+    scalarField => extract_scalar_field(state, "TurbulentDissipation")
+    call get_option(trim(scalarField%option_path)// &
+                    "/prognostic/initial_condition::WholeMesh/constant", eps_init)
+    call set(scalarField, eps_init)
+    call set(EV, c_mu * k_init**2. / eps_init)
 
     ewrite(1,*) "k-epsilon parameters"
     ewrite(1,*) "--------------------------------------------"
@@ -114,29 +133,12 @@ subroutine keps_init(state)
     ewrite(1,*) "c_eps_2: ",  c_eps_2
     ewrite(1,*) "sigma_k: ",  sigma_k
     ewrite(1,*) "sigma_eps: ",sigma_eps
+    ewrite(1,*) "fields_min: ",fields_min
+    ewrite(1,*) "k_init: ",    k_init
+    ewrite(1,*) "eps_init: ",  eps_init
+    ewrite(1,*) "ll_max: ",   ll_max
+    ewrite(1,*) "EV_init: ",   c_mu * k_init**2. / eps_init
     ewrite(1,*) "Calculating BCs: ", calculate_bcs
-    ewrite(1,*) "--------------------------------------------"
-
-    ! Minimum values: hard-coded. Must be something small and nonzero.
-    k_min   = 1.e-9   ! used to be 7.6e-6
-    eps_min = 1.e-9
-    
-    ! initialise 2 fields (k, epsilon) with minimum values
-    scalarField => extract_scalar_field(state, "TurbulentKineticEnergy")
-    call set(scalarField,k_min)
-    scalarField => extract_scalar_field(state, "TurbulentDissipation")
-    call set(scalarField,eps_min)
-
-    ! initialise other fields
-    call set(EV,1.e-6)
-    call set(ED,1.e-6)
-    call set(ll, min(k_min**1.5/eps_min, 10.0) ) ! need to set a minimum using some sensible function
-
-    ewrite(1,*) "Internal fields initial values (minmax)"
-    ewrite(1,*) "--------------------------------------------"
-    ewrite_minmax(EV)
-    ewrite_minmax(ED)
-    ewrite_minmax(ll)
     ewrite(1,*) "--------------------------------------------"
 
 end subroutine keps_init
@@ -145,109 +147,82 @@ end subroutine keps_init
 
 subroutine keps_tke(state)
 
-    type(state_type), intent(inout)   :: state
-    type(scalar_field), pointer       :: source, absorption, kk, eps
-    type(scalar_field), pointer       :: scalarField
-    type(vector_field), pointer       :: velocity, positions
-    type(tensor_field), pointer       :: kk_diff, background_diff, visc
-    type(tensor_field)                :: DU_DX
-    type(scalar_field), dimension(1)  :: grtemp
-    type(scalar_field)                :: utemp
-    integer                           :: i, ii, j, stat, bc
-    logical, allocatable, dimension(:):: derivs
-    character(len=FIELD_NAME_LEN)     :: bc_type, bc_name
+    type(state_type), intent(inout)    :: state
+    type(scalar_field), pointer        :: source, absorption, kk, eps
+    type(scalar_field), pointer        :: scalarField
+    type(vector_field), pointer        :: positions, nu
+    type(tensor_field), pointer        :: kk_diff, background_diff, visc
+    type(tensor_field)                 :: DU_DX
+    type(scalar_field), dimension(2)   :: grtemp
+    type(scalar_field)                 :: utemp
+    type(element_type)                 :: shape_velo
+    integer                            :: i, ii, j, stat, bc, ele
+    logical, allocatable, dimension(:) :: derivs
+    character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
+    real, allocatable, dimension(:)    :: detwei
+    real, allocatable, dimension(:,:,:):: dshape_velo
+    real, allocatable, dimension(:)    :: strain_ngi
+    real, allocatable, dimension(:)    :: strain_loc
+    real                               :: epsoverkk
 
     ewrite(1,*) "In keps_tke"
 
     positions  => extract_vector_field(state, "Coordinate")
-    velocity   => extract_vector_field(state, "Velocity")
+    nu         => extract_vector_field(state, "NonlinearVelocity")
     visc       => extract_tensor_field(state, "Viscosity")
     source     => extract_scalar_field(state, "TurbulentKineticEnergySource")
     absorption => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
     kk_diff    => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
+    shape_velo  = ele_shape(nu, ele)
 
-    ! clip at k_min and eps_min. We can't have negative values now can we.
-    do i=1,nNodes
-        call set(kk, i, max(kk%val(i), k_min) )
-        call set(eps, i, max(eps%val(i), eps_min) )
+    ! Calculate TKE production using strain rate function
+    call zero(source)
+    call zero(absorption)
+
+    do ele = 1, ele_count(nu)
+
+        allocate( dshape_velo (ele_loc(nu, ele), ele_ngi(nu, ele), nu%dim) )
+        allocate( detwei (ele_ngi(nu, ele) ) )
+        allocate( strain_ngi (ele_ngi(nu, ele) ) )
+        allocate( strain_loc (ele_loc(nu, ele) ) )
+
+        call transform_to_physical( positions, ele, shape_velo, dshape=dshape_velo, detwei=detwei )
+
+        strain_ngi = double_dot_product(dshape_velo, ele_val(nu, ele) )
+        strain_loc = shape_rhs( shape_velo, detwei * strain_ngi )
+
+        ! Sum components of tensor
+        call addto(source, ele_nodes(nu, ele), abs(ele_val(EV, ele) * strain_loc) )
+
+        deallocate( dshape_velo, detwei, strain_ngi, strain_loc )
+
     end do
 
-    ! now allocate our temporary gradient fields
-    call allocate(DU_DX, visc%mesh, "DUDX")
-    allocate( derivs(velocity%dim) )
-    derivs = .false.
-
-    call zero(DU_DX)
-    do i = 1, velocity%dim
-        do j = 1, velocity%dim
-            utemp  = extract_scalar_field_from_vector_field(velocity, i)
-            grtemp = extract_scalar_field_from_tensor_field(DU_DX, i, j)
-            if (i==j) derivs(j) = .true.
-            call differentiate_field( utemp, positions, derivs, grtemp )
-            derivs = .false.
-        end do
+    ! Calculate TKE absorption
+    do i = 1, nnodes
+        epsoverkk = eps%val(i) / kk%val(i)
+        call set(absorption, i, epsoverkk)
     end do
-
-    ewrite(1,*) "In kinetic energy production term loop"
-    do ii = 1, nNodes
-        do i = 1, velocity%dim
-            do j = 1, velocity%dim
-                call addto(source, ii, EV%val(ii) * ( DU_DX%val(i,j,ii) + DU_DX%val(j,i,ii) ) &
-                * DU_DX%val(i,j,ii) )
-            end do
-        end do
-        call set(absorption, ii, eps%val(ii) / kk%val(ii))
-    end do
-
-    call deallocate(DU_DX)
-    deallocate(derivs)
 
     ! set diffusivity for KK - copied from Jon's update 28 Feb revision 12719
     call zero(kk_diff)
-    background_diff => extract_tensor_field(state, "BackgroundDiffusivity")
-    call set(kk_diff, kk_diff%dim, kk_diff%dim, EV, scale=1. / sigma_k)
-    call addto(KK_diff, background_diff)
-
-    ! puts the BC boundary values in surface_kk_values (module level variable):
-    if (calculate_bcs) then
-
-        do bc = 1, get_boundary_condition_count(kk)
-
-            call get_boundary_condition(kk, bc, name=bc_name, type=bc_type)
-            ewrite(1,*) "tke bc type: ", bc_type
-            ewrite(1,*) "tke bc name: ", bc_name
-            ewrite(1,*) "bc count: ", bc
-
-            if (bc_name=='tke_boundary') then
-
-                call tke_bc(state, bc)   ! (almost) zero Dirichlet BC: sets to k_min
-
-            end if
-
-        end do
-
-    end if
-    
-    ! finally, we need a copy of the old TKE for eps, so grab it before we solve.
-    do i=1,nNodes
-        call set(tke_old, i, kk%val(i) )
+    do i = 1, kk_diff%dim
+        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
     end do
 
-    ewrite_minmax(source%val(:))
-    ewrite_minmax(absorption%val(:))
+    ! finally, we need a copy of the old TKE and source for eps, so grab it before we solve.
+    do i=1,nnodes
+        call set(tke_old, i, max(kk%val(i), fields_min) )
+        call set(P, i, source%val(i))
+    end do
 
-    ! set source and absorption terms in optional output fields
-    ! TKE source and absorption are ready for the solve (see Fluids.F90)
-    scalarField => extract_scalar_field(state, "Source1", stat)
-    if(stat == 0) then
-       call set(scalarField, source)  
-    end if
-    scalarField => extract_scalar_field(state, "Absorption1", stat)
-    if(stat == 0) then
-       call set(scalarField, absorption)  
-    end if
+    ewrite_minmax(tke_old)
+    ewrite_minmax(kk)
+    ewrite_minmax(eps)
+    ewrite_minmax(EV)
+    ewrite_minmax(ll)
 
 end subroutine keps_tke
 
@@ -268,8 +243,7 @@ subroutine keps_eps(state)
 
     real                             :: prod, diss, EpsOverTke, &
                                         & h, normal_size_node, ll_limit
-    real, dimension(:), pointer      :: x, z
-    integer                          :: i, j, bc, stat, ele, sele, nele
+    integer                          :: i, j, k, bc, stat, ele, sele, nele
     integer, dimension(:), pointer   :: surface_elements, surface_node_list
     character(len=FIELD_NAME_LEN)    :: bc_type, bc_name
 
@@ -277,32 +251,31 @@ subroutine keps_eps(state)
 
     positions  => extract_vector_field(state, "Coordinate")
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
-    kksource   => extract_scalar_field(state, "TurbulentKineticEnergySource")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
     source     => extract_scalar_field(state, "TurbulentDissipationSource")
     absorption => extract_scalar_field(state, "TurbulentDissipationAbsorption")
     eps_diff   => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
-    x => positions%val(1)%ptr  
-    z => positions%val(2)%ptr
 
-    do i = 1, NNodes    ! clip at k_min: it may be < 0 after solve
+    ! IMPORTANT! USE OLD VALUES OF EVERYTHING FOR CONSISTENCY
+    do i = 1, nnodes
 
-        call set(kk, i, max(kk%val(i), k_min))    ! re-construct eps at "old" timestep
-        call set(eps, i, max((tke_old%val(i)**1.5) / ll%val(i), eps_min) )
+        ! re-construct eps at "old" timestep
+        eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
         ! compute RHS terms in epsilon equation
         EpsOverTke = eps%val(i) / tke_old%val(i)
-        prod       = c_eps_1 * EpsOverTke * kksource%val(i)   ! kk source term couples equations
+        prod       = c_eps_1 * EpsOverTke * P%val(i)   ! kk source term at old timestep
         diss       = c_eps_2 * EpsOverTke
-        call set(source, i, prod / eps%val(i) )
-        call set(absorption, i, diss)
+
+        call set(source, i, prod )
+        call set(absorption, i, diss )
 
     end do
 
-    ! Set diffusivity for Eps - copied from Jon's update 28 Feb revision 12719
+    ! Set diffusivity for Eps
     call zero(eps_diff)
-    background_diff => extract_tensor_field(state, "BackgroundDiffusivity")
-    call set(eps_diff, eps_diff%dim, eps_diff%dim, ED, scale = 1. / sigma_eps)
-    call addto(eps_diff, background_diff)
+    do i = 1, eps_diff%dim
+        call set(eps_diff, i, i, EV, scale = 1. / sigma_eps)
+    end do
 
     ! puts the BC boundary values in surface_eps_values:
     if (calculate_bcs) then
@@ -313,10 +286,11 @@ subroutine keps_eps(state)
                  surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
                  surface_element_list=surface_elements)
 
-            ewrite(1,*) "eps bc name: ", bc_name
-            ewrite(1,*) "eps bc type: ", bc_type
-
             if (bc_name /= 'inflow') then   ! nasty way of selecting just the sides. TEMPORARY
+
+                ewrite(1,*) "Calculating eps bc"
+                ewrite(1,*) "eps bc name: ", bc_name
+                ewrite(1,*) "eps bc type: ", bc_type
 
                 ! create a sparse matrix, rhs and solution vectors
                 eps_sparsity => get_csr_sparsity_firstorder( state, surface_mesh, surface_mesh )
@@ -347,46 +321,44 @@ subroutine keps_eps(state)
                 call petsc_solve( surface_eps_values, lumped_mass, rhs_vector )
 
                 ! Check for NaNs etc.
-                do i = 1, node_count(surface_eps_values)
-                    print *, i, surface_node_list(i), x(surface_node_list(i)), &
-                             z(surface_node_list(i)), node_val(surface_eps_values,i)
-                    if(ieee_is_nan(node_val(rhs_vector,i) ) ) then
+                do j = 1, node_count(surface_eps_values)
+
+                    i = surface_node_list(j)
+
+                    if(ieee_is_nan(node_val(rhs_vector,j) ) ) then
                         ewrite(1,*) "NaN in rhs_vector at: ", i
                     end if
-                end do
-
-                ! map these onto the actual BC in eps - JON - NOT REQUIRED IF NOT FIX_SURFACE_VALUES?
-                !scalar_surface => extract_surface_field(eps, 'eps_boundary', "value")
-                !call remap_field( surface_eps_values, scalar_surface )
-
-                do i = 1, node_count(surface_eps_values)
 
                     ! apply boundary condition to epsilon field
-                    call set( eps, surface_node_list(i), surface_eps_values%val(i) )
+                    ! TRY DIRICHLET BC
+                    !call set( eps, surface_node_list(i), max(surface_eps_values%val(i), eps_init) )
+                    call set( eps, i, eps_init )
 
                     ! for each node in the surface, get the elements and find the dz
                     ! average out for this (i.e. add and divide by nodes per element)
-                    current_patch = get_patch_ele(surface_mesh, i)
+                    current_patch = get_patch_ele(surface_mesh, j)
                     nele = current_patch%count
                     normal_size_node = 0.
 
-                    do j = 1, nele   ! get sizes at adjacent surface elements
-                        sele = surface_elements( current_patch%elements(j) )
+                    do k = 1, nele   ! get sizes at adjacent surface elements
+                        sele = surface_elements( current_patch%elements(k) )
                         ele = face_ele( positions, sele )
                         
-                        normal_size_node = normal_size_node + ele_size%val(j)
+                        normal_size_node = normal_size_node + ele_size%val(k)
                     end do
 
                     normal_size_node = normal_size_node / nele    ! normalise
 
                     ! Set lengthscale limit. See Yap (1987) or Craft & Launder (1996)
-                    ll_limit = max( ( 0.83 * eps%val(i)**2. / kk%val(i) * &
-                    ( kk%val(i)**1.5 / 2.5 / eps%val(i) / normal_size_node - 1. ) * &
-                    ( kk%val(i)**1.5 / 2.5 / eps%val(i) / normal_size_node )**2. ), 0. )
+                    ll_limit = 0.83 * eps%val(i)**2. / kk%val(i) * &
+                    kk%val(i)**1.5 / 2.5 / eps%val(i) / normal_size_node - 1. * &
+                    ( kk%val(i)**1.5 / 2.5 / eps%val(i) / normal_size_node )**2.
 
-                    ! limit the lengthscale at surface
-                    ll%val(i) = max( ll_limit, ll%val(i) )
-                    ewrite(1,*) "lengthscale limited at node: ", i, surface_node_list(i), ll%val(i)
+                    ! set the UPPER limit for lengthscale at surface
+                    ll%val(i) = min( max( ll_limit, fields_min), ll_max )
+                    !print *, ll_limit, ll_max, min( max( ll_limit, fields_min), ll_max )
+                    !ll%val(i) = ll_limit   ! If this is done, dissipation solve is badly affected
+                    !ewrite(1,*) "lengthscale limited at node: ", i, surface_node_list(i), ll%val(i)
                     deallocate(current_patch%elements)
 
                 end do
@@ -403,19 +375,11 @@ subroutine keps_eps(state)
 
     end if
 
-    ! TurbulentDissipation is now ready for solving (see Fluids.F90)
-    ewrite_minmax(source%val(:))
-    ewrite_minmax(absorption%val(:))
-
-    ! set source and absorption terms in optional output fields
-    scalarField => extract_scalar_field(state, "Source2", stat)
-    if(stat == 0) then
-        call set(scalarField, source)  
-    end if
-    scalarField => extract_scalar_field(state, "Absorption2", stat)
-    if(stat == 0) then
-        call set(scalarField, absorption)  
-    end if
+    ewrite_minmax(tke_old)
+    ewrite_minmax(kk)
+    ewrite_minmax(eps)
+    ewrite_minmax(EV)
+    ewrite_minmax(ll)
 
 end subroutine keps_eps
 
@@ -429,83 +393,76 @@ end subroutine keps_eps
 subroutine keps_eddyvisc(state)
 
     type(state_type), intent(inout)  :: state
-    type(tensor_field), pointer      :: eddy_visc, eddy_diff, viscosity, background_visc, background_diff
+    type(tensor_field), pointer      :: eddy_visc, eddy_diff, viscosity, background
     type(vector_field), pointer      :: positions
     type(scalar_field), pointer      :: kk, eps, scalarField
-    integer                          :: i, stat
+    integer                          :: i, j, stat
     logical                          :: on_bound
 
     ewrite(1,*) "In keps_eddyvisc"
 
-    kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
-    eps       => extract_scalar_field(state, "TurbulentDissipation")
-    positions => extract_vector_field(state, "Coordinate")
-    eddy_visc => extract_tensor_field(state, "EddyViscosity")
-    eddy_diff => extract_tensor_field(state, "EddyDiffusivity")
-    viscosity => extract_tensor_field(state, "Viscosity")
+    kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
+    eps        => extract_scalar_field(state, "TurbulentDissipation")
+    positions  => extract_vector_field(state, "Coordinate")
+    eddy_visc  => extract_tensor_field(state, "EddyViscosity")
+    viscosity  => extract_tensor_field(state, "Viscosity")
+    background => extract_tensor_field(state, "BackgroundViscosity")
 
-    do i = 1, NNodes
+    background%val = 1.e-6
+    call set(viscosity, background)
 
-        call set(eps, i, max(eps%val(i),eps_min) )   ! clip epsilon field at eps_min
+    do i = 1, nnodes
 
+        call set(kk, i, max(kk%val(i), fields_min) )   ! clip k field at fields_min
+        call set(eps, i, max(eps%val(i), fields_min) )   ! clip epsilon field at fields_min
+
+        ! IDEA: Limit lengthscale to 2x adaptivity element size tensor
+        ! (make isotropic by taking norm?)
         on_bound = node_lies_on_boundary( positions%mesh, positions, i )
         if(on_bound .eqv. .true.) then
-
             ! if lengthscale at surface node > kk**1.5/eps, change it
             if( ll%val(i) > (kk%val(i)**1.5 / eps%val(i)) ) then
-                call set(ll, i, (kk%val(i))**1.5 / eps%val(i))
-                ewrite(1,*) "lengthscale at surface node is changed: ", i, ll%val(i)
-            else
-                ewrite(1,*) "lengthscale at surface node is unchanged: ", i, ll%val(i)
+                print *, "lengthscale exploded"
+                call set(ll, i, min( kk%val(i)**1.5 / eps%val(i), ll_max ) )
             end if
-
         else   ! set lengthscale at all other nodes to kk**1.5/eps
-
-            call set(ll, i, min( (kk%val(i))**1.5 / eps%val(i), 1.0 ) )
-            ewrite(1,*) "lengthscale at volume node is: ", i, ll%val(i)
-
+            call set(ll, i, min( kk%val(i)**1.5 / eps%val(i), ll_max ) )
         end if
 
-        if(ll%val(i) > 2.0 ) then
-            ewrite(1,*) "WARNING: lengthscale at node is too big: ", i
-        end if
+        ! calculate viscosity for next step and for use in other fields
+        call set( EV, i, C_mu * (kk%val(i))**2. / eps%val(i) )       ! momentum
 
         on_bound = .false.
-
-        ! calculate viscosity and diffusivity for next step and for use in other fields
-        call set( EV, i, C_mu * sqrt(kk%val(i)) * ll%val(i) )       ! momentum
-        call set( ED, i, C_mu * sqrt(kk%val(i)) * ll%val(i) )       ! temperature etc.
 
     end do
 
     ewrite(1,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors for use in other fields"
     call zero(eddy_visc) ! zero it first as we're using an addto below
-    call zero(eddy_diff)
-    call set(eddy_visc, eddy_visc%dim, eddy_visc%dim, EV) 
-    call set(eddy_diff, eddy_diff%dim, eddy_diff%dim, ED)
 
-    background_visc => extract_tensor_field(state, "BackgroundViscosity")
-    call addto(eddy_visc, background_visc)
-    background_diff => extract_tensor_field(state, "BackgroundDiffusivity")
-    call addto(eddy_diff, background_diff)
+    do i = 1, eddy_visc%dim
+        call set(eddy_visc, i, i, EV)   !tensors are isotropic
+    end do
+
+    ewrite(1,*) "Set viscosity field"
+    viscosity%val=viscosity%val+eddy_visc%val
 
     ewrite_minmax(kk)
     ewrite_minmax(eps)
     ewrite_minmax(EV)
-    ewrite_minmax(ED)
     ewrite_minmax(ll)
-
-    ewrite(1,*) "Set viscosity field"
-    call zero(viscosity)
-    call set(viscosity,viscosity%dim,viscosity%dim,EV)
-    call addto(viscosity,background_visc)
+    do i = 1, viscosity%dim
+        do j = 1, viscosity%dim
+            if(j<i) cycle
+            ewrite_minmax(viscosity%val(i,j,:))
+        end do
+    end do
 
     ! Set output on optional fields
     scalarField => extract_scalar_field(state, "LengthScale", stat)
     if(stat == 0) then
         call set(scalarField, ll) 
     end if
-    scalarField => extract_scalar_field(state, "EddyViscosity", stat)
+    scalarField => extract_scalar_field(state, "ScalarEddyViscosity", stat)
     if(stat == 0) then
         call set(scalarField, EV)  
     end if
@@ -520,14 +477,13 @@ subroutine keps_cleanup()
 
     call deallocate(ll)
     call deallocate(EV)
-    call deallocate(ED)
     call deallocate(tke_old)
+    call deallocate(P)
 
 end subroutine keps_cleanup
 
 !---------
-! Needs to be called after an adapt to reset the fields
-! and arrays within the module
+! Needs to be called after an adapt to reset the fields and arrays within the module
 !----------
 
 subroutine keps_adapt_mesh(state)
@@ -560,7 +516,7 @@ subroutine keps_check_options
                           &scalar_field::TurbulentDissipation")) then
         FLExit("You need TurbulentDissipation field for k-epsilon")
     end if
-    ! check that the diffusivity is on for the two turbulent fields, and are they diagnostic?
+    ! check that diffusivity is on for the two turbulent fields, and diagnostic
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Diffusivity")) then
@@ -581,7 +537,7 @@ subroutine keps_check_options
                           &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Diffusivity field set to diagnostic/internal")
     end if
-    ! source terms...similarly, not sure I need these set in my flml?
+    ! source terms
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Source")) then
@@ -623,15 +579,6 @@ subroutine keps_check_options
                           &tensor_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
     end if
-    ! background diffusivities also needed?
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                          &tensor_field::BackgroundDiffusivity/prescribed")) then
-        FLExit("You need BackgroundDiffusivity tensor field for k-epsilon")
-    end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                          &tensor_field::BackgroundViscosity/prescribed")) then
-        FLExit("You need BackgroundViscosity tensor field for k-epsilon")
-    end if
     ! check for velocity
     if (.not.have_option("/material_phase[0]/vector_field::Velocity")) then
         FLExit("You need Velocity field for k-epsilon")
@@ -640,10 +587,6 @@ subroutine keps_check_options
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
                           &tensor_field::EddyViscosity")) then
         FLExit("You need EddyViscosity field for k-epsilon")
-    end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                          &tensor_field::EddyDiffusivity")) then
-        FLExit("You need EddyDiffusivity field for k-epsilon")
     end if
     ! check there's a viscosity somewhere
     if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
@@ -684,7 +627,7 @@ subroutine tke_bc(state, bc)
     call allocate(surface_kk_values, surface_mesh, name="SurfaceValuesTKE")
 
     do i = 1, size(surface_node_list)
-        call set( surface_kk_values, i, k_min )   ! not zero, that causes NaNs
+        call set( surface_kk_values, i, fields_min )   ! not zero, that causes NaNs
         call set( kk, surface_node_list(i), surface_kk_values%val(i) )
     end do
 
@@ -725,14 +668,12 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
 
     real, dimension(positions%dim, positions%dim, ele_ngi(kk, sele))     :: invJ
     real, dimension(positions%dim, positions%dim, face_ngi(kk, sele))    :: invJ_face
-    real, dimension(ele_loc(kk, sele), ele_ngi(kk, sele), positions%dim) :: dshape_kk
+    real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim)   :: dshape_kk
     real, dimension(ele_loc(kk, ele), face_ngi(kk, sele), positions%dim) :: fdshape_kk
     real, dimension(positions%dim, face_ngi(positions, sele))            :: normal_bdy
     real, dimension(face_loc(positions,sele))                            :: rhs
     real, dimension(face_loc(positions,sele), face_ngi(positions,sele))  :: dkdn
     real, dimension(face_loc(positions,sele), face_loc(positions,sele))  :: mass
-
-    ewrite(1,*) "In eps_bc"
 
     ! Get ids and shape functions
     quad      = face_ngi(kk, sele)    ! no. of gauss points in surface element
@@ -750,14 +691,12 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
             end if
         end do
     end do
-    ewrite(1,*) "nodes_bdy: ", nodes_bdy
 
-    if(new_node_list(1) > new_node_list(2)) then   ! inelegant solution to the problem of
-        n = size(new_node_list)   ! nodes_bdy having descending indices, so that in above
-        new_node_list = new_node_list(n:1:-1)   ! loop 2nd index comes first
-        ewrite(1,*) "node list order reversed: ", new_node_list
-    else
-        ewrite(1,*) "new node list: ", new_node_list
+    ! inelegant solution to the problem of nodes_bdy having descending
+    ! indices, so that in above loop 2nd index comes first
+    if(new_node_list(1) > new_node_list(2)) then
+        n = size(new_node_list)
+        new_node_list = new_node_list(n:1:-1)
     end if
     index = index - 1
 
@@ -802,18 +741,12 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
         dkdn_contracted(j) = ( dkdn_contracted(j) ) ** 2.0
     end do
 
-    ewrite(1,*) "dk/dn array: ", dkdn
-    ewrite(1,*) "contracted dk/dn array: ", dkdn_contracted
-
     ! get scalar field values at quadrature points: matmul( 1*snloc, snloc*sngi )
     fields_quad = 2.0 * face_val_at_quad(kk, sele) * face_val_at_quad(EV, sele)
     ! Perform rhs surface integral at node sele
     rhs = shape_rhs( fshape_kk, detwei_bdy * dkdn_contracted * fields_quad )
     ! block to add to mass matrix diagonal
     mass = shape_shape( fshape_kk, fshape_kk, detwei_bdy )
-
-    ewrite(1,*) "rhs: ", rhs
-    ewrite(1,*) "mass: ", mass
 
     ! Add contributions to RHS and lumped mass matrix
     call addto( rhs_vector, new_node_list, rhs )
@@ -830,18 +763,16 @@ subroutine keps_allocate_fields(state)
     ewrite(1,*) "In keps_allocate_fields"
 
     vectorField => extract_vector_field(state, "Velocity")
-    nNodes = node_count(vectorField)
+    nnodes = node_count(vectorField)
 
     ! allocate some space for the fields we need for calculations, but are optional in the model
     call allocate(ll,      vectorField%mesh, "LengthScale")
-    call allocate(EV,      vectorField%mesh, "EddyVisc")
-    call allocate(ED,      vectorField%mesh, "EddyDiff")
+    call allocate(EV,      vectorField%mesh, "ScalarEddyViscosity")
     call allocate(tke_old, vectorField%mesh, "Old_TKE")
+    call allocate(P,       vectorField%mesh, "Production")
 
 end subroutine keps_allocate_fields
 
-!------------------------------------------------------------------------------------------
-! not currently used
 !------------------------------------------------------------------------------------------
 
 function get_normal_element_size(ele, sele, positions, kk) result (h)
@@ -876,6 +807,42 @@ function get_normal_element_size(ele, sele, positions, kk) result (h)
     hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
     h  = hb(1,1) 
 end function get_normal_element_size
+
+function double_dot_product(du_t, nu)
+    !! Computes the strain rate for the LES model 
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    real, dimension(:,:), intent(in):: nu     ! nonlinear velocity (dim x nloc)
+    real, dimension( size(du_t,2) )            :: double_dot_product
+    real, dimension(size(du_t,3),size(du_t,3)) :: S, T
+    integer dim, ngi, nloc
+    integer gi, loc, i, j
+
+    nloc=size(du_t,1)
+    ngi=size(du_t,2)
+    dim=size(du_t,3)
+
+    do gi=1, ngi
+
+       s = matmul( nu, du_t(:,gi,:) )
+       T = S
+       S = S + transpose(S)
+       double_dot_product = 0.
+
+       ! double-dot product results in a scalar:
+       ! t:s = [ t11s11 + t12s21 + t13s31
+       !       + t21s12 + t22s22 + t23s32
+       !       + t31s13 + t32s23 + t33s33 ]
+
+       do i = 1, dim
+           do j = 1, dim
+               double_dot_product(gi) = double_dot_product(gi) + T(i,j) * S(j,i)
+           end do
+       end do
+
+    end do
+
+end function double_dot_product
 
 end module k_epsilon
 
