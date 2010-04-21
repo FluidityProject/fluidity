@@ -69,7 +69,14 @@ function solution(pos)
   real :: x,y,z
   x = pos(1); y = pos(2); z = pos(3)
 
-  solution(1,1)=0
-  !...
+  solution(1,1)=1
+  solution(1,2)=3
+  solution(1,3)=5
+  solution(2,1)=3
+  solution(2,2)=5
+  solution(2,3)=7
+  solution(3,1)=5
+  solution(3,2)=7
+  solution(3,3)=9
   
 end function solution
