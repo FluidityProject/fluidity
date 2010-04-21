@@ -78,8 +78,6 @@
     !! U momentum matrix 
     type(block_csr_matrix) :: big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
-    type(scalar_field) :: aux_sfield
-    type(mesh_type), pointer :: x_mesh
     
     !! Flag for the debug with Helmholtz equation option.
     logical :: helmholtz
@@ -96,22 +94,13 @@
     call read_command_line()
 
     call populate_state(state)
-
-    ! Disgusting and vomitous hack to ensure that time is output in
-    ! vtu files.
-    x_mesh => extract_mesh(state, "CoordinateMesh")
-    call allocate(aux_sfield, x_mesh, "Time", field_type=FIELD_TYPE_CONSTANT)
-    call get_option("/timestepping/current_time", current_time)
-    call set(aux_sfield, current_time)
-    aux_sfield%option_path = ""
-    call insert(state, aux_sfield, trim(aux_sfield%name))
-    call deallocate(aux_sfield)
+    call insert_time_in_state(state)
 
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
     call get_option('/simulation_name',simulation_name)
-    Call initialise_diagnostics(trim(simulation_name),state)
+    call initialise_diagnostics(trim(simulation_name),state)
 
     if (has_vector_field(state(1),"VelocityInitialCondition")) then
        call project_velocity(state(1))
@@ -190,7 +179,7 @@
        call write_diagnostics(state,current_time,dt)
        
        if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
-         if(do_adapt_state_prescribed(current_time)) then              
+         if(do_adapt_state_prescribed(current_time)) then                       
             call adapt_state_prescribed(state, current_time)
 
             call deallocate(h_mass_mat)
@@ -203,6 +192,7 @@
             call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
                  h_mass_mat,u_mass_mat,coriolis_mat,div_mat,wave_mat,big_mat, &
                  dt,theta,D0,g,f0,beta)
+            call insert_time_in_state(state)
          end if
        end if
 
@@ -265,6 +255,24 @@
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
            &rognostic/mean_layer_thickness",D0)
     end subroutine get_parameters
+    
+    subroutine insert_time_in_state(state)
+      type(state_type), dimension(:), intent(inout) :: state
+      
+      type(scalar_field) :: aux_sfield
+      type(mesh_type), pointer :: x_mesh
+      
+      ! Disgusting and vomitous hack to ensure that time is output in
+      ! vtu files.
+      x_mesh => extract_mesh(state, "CoordinateMesh")
+      call allocate(aux_sfield, x_mesh, "Time", field_type=FIELD_TYPE_CONSTANT)
+      call get_option("/timestepping/current_time", current_time)
+      call set(aux_sfield, current_time)
+      aux_sfield%option_path = ""
+      call insert(state, aux_sfield, trim(aux_sfield%name))
+      call deallocate(aux_sfield)
+    
+    end subroutine insert_time_in_state
 
     subroutine execute_timestep(state, dt)
       implicit none

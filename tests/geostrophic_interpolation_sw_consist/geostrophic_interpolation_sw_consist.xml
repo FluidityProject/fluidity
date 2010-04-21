@@ -43,7 +43,7 @@ s = fluidity_tools.stat_parser("balanced.stat")
 imbalanceVelocityL2Norm = s["Fluid"]["Imbal%magnitude"]["l2norm"]</variable>
   </variables>
   <pass_tests>
-    <test name="SimulationCompleted" language="python">assert(timesteps == 100)</test>
+    <test name="SimulationCompleted" language="python">assert(timesteps == 101)</test>
     <test name="SolversConverged" language="python">assert(solversConverged)</test>
     <test name="DeltaUs" language="python">maxval = abs(deltaUs).max()
 print maxval
