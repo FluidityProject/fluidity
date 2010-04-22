@@ -14,7 +14,7 @@ module interpolation_error
     !!< and its interpolant field.
     interface
       function solution(pos)
-        real, dimension(:) :: pos
+        real, dimension(:), intent(in) :: pos
         real :: solution
       end function solution
     end interface
@@ -34,7 +34,7 @@ module interpolation_error
 
     do ele=1,element_count(field)
       call transform_to_physical(positions, ele, detwei=detwei)
-      ele_int = dot_product((abs(function_val_at_quad(solution, positions, ele) - ele_val_at_quad(field, ele)))**2, detwei)
+      ele_int = dot_product((abs(function_val_at_quad_scalar(solution, positions, ele) - ele_val_at_quad(field, ele)))**2, detwei)
       debug%val(ele) = ele_int
       l2 = l2 + ele_int
     end do
@@ -49,7 +49,7 @@ module interpolation_error
     !!< and its interpolant field.
     interface
       function solution(pos)
-        real, dimension(:) :: pos
+        real, dimension(:), intent(in) :: pos
         real :: solution
       end function solution
     end interface
@@ -65,7 +65,7 @@ module interpolation_error
     maxn = 0.0
 
     do ele=1,element_count(field)
-      current_max = maxval(abs(function_val_at_quad(solution, positions, ele) - ele_val_at_quad(field, ele)))
+      current_max = maxval(abs(function_val_at_quad_scalar(solution, positions, ele) - ele_val_at_quad(field, ele)))
       debug%val(ele) = current_max
       maxn = max(maxn, current_max)
     end do
@@ -79,7 +79,7 @@ module interpolation_error
     !!< and its interpolant field.
     interface
       function gradsoln(pos)
-        real, dimension(:) :: pos
+        real, dimension(:), intent(in) :: pos
         real, dimension(size(pos)) :: gradsoln
       end function gradsoln
     end interface
