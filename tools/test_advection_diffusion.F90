@@ -44,7 +44,7 @@ program test_advection_diffusion
 #endif
 
   type(state_type), dimension(:), pointer :: state
-  real :: current_time, dt
+  real :: dt
   integer :: timestep
   integer :: ierr
 
