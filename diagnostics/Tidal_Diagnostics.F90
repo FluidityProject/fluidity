@@ -65,10 +65,9 @@ subroutine calculate_free_surface_history(state, s_field)
     type(scalar_field), pointer :: hist_fs_field
     type(scalar_field), pointer :: fs_field
     character(len=OPTION_PATH_LEN) :: base_path
-    integer :: stride,i, new_snapshot_index, harmonic_counter=0, total_counter=0, levels, stat, timestep_counter
+    integer :: stride, new_snapshot_index, levels, stat, timestep_counter
     real :: spin_up_time, current_time, timestep
     real, dimension(:), allocatable :: saved_snapshots_times
-    integer, dimension(1) :: test
 !
     ewrite(3,*),'in free_surface_history_diagnostics'
 !
@@ -156,7 +155,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
    type(scalar_field), intent(in) :: s_field ! Will not be used!
    type(harmonic_field), save, dimension(100) :: harmonic_fields ! Dimension could be automatically determined but 100 harmonic constiuent fields should be enough. 
    real, dimension(50), save :: sigma ! Dimension could be automatically determined but 50 frequencies should be enough. 
-   integer, save :: last_update,nohfs, M
+   integer, save :: last_update=-1, nohfs=-1, M=-1
    logical :: ignoretimestep
    real, dimension(:), allocatable :: saved_snapshots_times
    integer :: i, current_snapshot_index
@@ -168,7 +167,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
       call getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_times, current_snapshot_index)
       if (.not. ignoretimestep) then
          ! Initialize the harmonic fields and frequencies if not already done.
-         if (nohfs==0) then
+         if (nohfs==-1) then
            call getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
          end if
          ewrite(4,*), 'Frequencies to analyse:'
@@ -190,8 +189,8 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
     real, dimension(:), allocatable, intent(out) :: saved_snapshots_times
     logical, intent(out) :: ignoretimestep
     integer, intent(out) :: current_snapshot_index
-    character(len = OPTION_PATH_LEN) :: free_surface_history_path, base_path, lalgorithm
-    integer :: ii, timestep_counter, stride, levels
+    character(len = OPTION_PATH_LEN) :: free_surface_history_path
+    integer :: timestep_counter, stride, levels
     type(scalar_field), pointer :: fshistory_sfield
 
     ignoretimestep=.false.
@@ -290,7 +289,6 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
    if ( M .le. 0 ) then
       FLAbort("Internal error in calculate_tidal_harmonics(). No harmonic constituents were found in option tree.")
    end if
-
 ! check which constituent we want to calculate
 !   call update_harmonic_analysis(state, levels, current_snapshot_index, saved_snapshots_times, sigma, M, s_field, myconstituent_id, target)
 end subroutine getHarmonicFields
@@ -302,7 +300,7 @@ subroutine  update_harmonic_fields(state, snapshots_times, N, current_snapshot_i
     real, dimension(:), intent(in) :: sigma, snapshots_times
     real, dimension(:,:), allocatable :: harmonic_A  ! for solving Ax=b system
     real, dimension(:), allocatable :: harmonic_x, harmonic_b, harmonic_time_series_vals_at_node
-    integer :: i, ii, stat, node, nonodes, MM ! MM = iteration index over sigma
+    integer :: i, ii, stat, node, nonodes
     logical :: forceC0toZero
     real :: residual
     type(scalar_field), pointer :: harmonic_current
@@ -392,7 +390,7 @@ end subroutine save_harmonic_x_in_fields
     real, intent(inout) :: harmonic_A(:,:),harmonic_x(:),harmonic_b(:)
     integer, intent(in) :: M,N
     logical, optional, intent(in) :: forceC0toZero
-    real :: C_k, S_k, CC_jk, SS_jk, SC_jk, CS_kj, phase
+    real :: C_k, S_k, CC_jk, SS_jk, SC_jk, CS_kj
     real :: pi = 3.141592654
     integer :: i, j, k, stat
 
