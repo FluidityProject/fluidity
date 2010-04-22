@@ -502,3 +502,22 @@ galerkin_projection_mass_options =
          linear_solver_options_sym
       }
    )
+
+galerkin_projection_mass_options_submesh =  
+   (
+      ## Lump the mass matrix
+      element lump_mass {
+         ## Lump on the submesh.
+         ## This only works for simplex meshes and is only
+         ## strictly valid on 2d meshes.
+         element use_submesh {
+            comment
+         }?,
+         comment
+      }|
+      ## Solver options. Required for a continuous consistent mass
+      ## projection.
+      element solver {
+         linear_solver_options_sym
+      }
+   )

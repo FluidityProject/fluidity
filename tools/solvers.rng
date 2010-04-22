@@ -541,4 +541,25 @@ projection.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="galerkin_projection_mass_options_submesh">
+    <choice>
+      <element name="lump_mass">
+        <a:documentation>Lump the mass matrix</a:documentation>
+        <optional>
+          <element name="use_submesh">
+            <a:documentation>Lump on the submesh.
+This only works for simplex meshes and is only
+strictly valid on 2d meshes.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <ref name="comment"/>
+      </element>
+      <element name="solver">
+        <a:documentation>Solver options. Required for a continuous consistent mass
+projection.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </choice>
+  </define>
 </grammar>
