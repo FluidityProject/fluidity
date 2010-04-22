@@ -15,35 +15,35 @@ subroutine test_conservative_interpolation_sa
 
   interface
     function field_func_const(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface
 
   interface
     function field_func_linear(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface
 
   interface
     function field_func_quadratic(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface
 
   interface
     function field_func_cubic(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface
 
   interface
     function field_func_exp(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface

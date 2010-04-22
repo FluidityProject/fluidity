@@ -11,7 +11,7 @@ subroutine test_galerkin_projection_diagnostic
 
   interface
     function field_func_tensor(pos) result(solution)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real, dimension(size(pos), size(pos)) :: solution
     end function
   end interface

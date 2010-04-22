@@ -17,7 +17,7 @@ subroutine test_curl
 
   interface
     function solution(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface

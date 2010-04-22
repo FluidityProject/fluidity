@@ -16,7 +16,7 @@ subroutine test_trace
 
   interface
     function solution(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real, dimension(size(pos), size(pos)) :: solution
     end function
   end interface

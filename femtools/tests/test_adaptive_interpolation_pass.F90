@@ -17,7 +17,7 @@ subroutine test_adaptive_interpolation_pass
 
   interface
     function field_func(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface

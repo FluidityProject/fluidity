@@ -216,7 +216,7 @@ contains
        allocate(switch_g(mesh_dim(T)))
        switch_g = 0.
        switch_g(1) = exp(sin(3.0+exp(1.0)))
-       if(mesh_dim(T)>1) switch_g(2) = (cos(exp(3.0)/sin(2.0)))**2.0
+       if(mesh_dim(T)>1) switch_g(2) = (cos(exp(3.0)/sin(2.0)))**2
        if(mesh_dim(T)>2) switch_g(3) = sin(cos(sin(cos(3.0))))
        switch_g = switch_g/sqrt(sum(switch_g**2))
        !switch_g = 1.0/(sqrt(1.0*mesh_dim(T)))

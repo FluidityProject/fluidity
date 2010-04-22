@@ -19,7 +19,7 @@ subroutine test_metric_based_extrusion
 
   interface                                                                                                                                                  
     function metric_func(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real, dimension(size(pos), size(pos)) :: metric_func
     end function
   end interface

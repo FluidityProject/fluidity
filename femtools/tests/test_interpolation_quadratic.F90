@@ -21,7 +21,7 @@ subroutine test_interpolation_quadratic
 
   interface
     function solution(pos)
-      real, dimension(:) :: pos
+      real, dimension(:), intent(in) :: pos
       real :: solution
     end function
   end interface
