@@ -425,8 +425,14 @@ contains
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
 
+    ewrite(1, *) "In initialise_diagnostics"
+
     ! Idempotency check
-    if (initialised) return
+    if(initialised) then
+      ewrite(2, *) "Diagnostics already initialised"
+      ewrite(1, *) "Exiting initialise_diagnostics"
+      return
+    end if
     initialised=.true.
     
     ! All processes must assemble the mesh and field lists
@@ -676,6 +682,8 @@ contains
     end if
 
     call initialise_detectors(filename, state)
+    
+    ewrite(1, *) "Exiting initialise_diagnostics"
 
   end subroutine initialise_diagnostics
 
@@ -2119,12 +2127,12 @@ contains
 
     do i = 1, detector_list%length
       
-      ewrite(1,*) "DETECTOR number:", node%id_number
-
-      ewrite(1,*) "name this detector is:", node%name
-      ewrite(1,*) "position this detector is:", node%position
-
-      ewrite(1,*) "DETECTOR element:", node%element
+!      ewrite(1,*) "DETECTOR number:", node%id_number
+!
+!      ewrite(1,*) "name this detector is:", node%name
+!      ewrite(1,*) "position this detector is:", node%position
+!
+!      ewrite(1,*) "DETECTOR element:", node%element
 
       if (node%element<0) then
 
@@ -3344,12 +3352,7 @@ contains
     type(scalar_field), intent(in) :: sfield
     type(detector_type), intent(in) :: detector
 
-    type(element_type), pointer :: s_shape
-    real, dimension(ele_loc(sfield, detector%element)) :: s_val
-    integer :: i
-
     value=0.0
-    
     if(detector%element>0) then
        if(detector%element > 0) then
          value = eval_field(detector%element, sfield, detector%local_coords)
@@ -3366,12 +3369,7 @@ contains
     type(detector_type), intent(in) :: detector
     real, dimension(vfield%dim) :: value
 
-    type(element_type), pointer :: v_shape
-    real, dimension(vfield%dim,ele_loc(vfield, detector%element)) :: v_val
-    integer :: i
-
-    value=0.0
-    
+    value=0.0    
     if(detector%element>0) then
       if(detector%element > 0) then
         value = eval_field(detector%element, vfield, detector%local_coords)
