@@ -128,7 +128,7 @@ contains
 
     call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no)  
     if(have_option("/io/detectors")) then
-      call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
+      call checkpoint_detectors(lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
     if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel
@@ -138,10 +138,9 @@ contains
     
   end subroutine checkpoint_simulation
 
-  subroutine checkpoint_detectors(state, prefix, postfix, cp_no)
+  subroutine checkpoint_detectors(prefix, postfix, cp_no)
     !!< Checkpoint detectors
 
-    type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: prefix
     !! Default value "checkpoint"
     character(len = *), optional, intent(in) :: postfix

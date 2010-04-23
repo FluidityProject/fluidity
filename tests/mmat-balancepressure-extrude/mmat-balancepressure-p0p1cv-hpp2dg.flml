@@ -440,7 +440,9 @@
     <scalar_field name="HydrostaticPressure" rank="0">
       <prognostic>
         <mesh name="HydrostaticPressureMesh"/>
-        <spatial_discretisation/>
+        <spatial_discretisation>
+          <discontinuous_galerkin/>
+        </spatial_discretisation>
         <exclude_from_checkpointing/>
         <output/>
         <stat/>

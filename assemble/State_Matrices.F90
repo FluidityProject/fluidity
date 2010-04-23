@@ -58,7 +58,8 @@ module state_matrices_module
   
   private
   public :: get_divergence_matrix_cv, get_pressure_poisson_matrix, &
-            get_pressure_stabilisation_matrix, get_velocity_divergence_matrix
+            get_pressure_stabilisation_matrix, get_velocity_divergence_matrix, &
+            get_hydrostatic_pressure_cg_matrix
 
 contains
 
@@ -300,5 +301,46 @@ contains
     last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
   
   end function get_velocity_divergence_matrix_multiple_states
+  
+  function get_hydrostatic_pressure_cg_matrix(state, assemble_matrix) result(matrix)
+    !!< extracts the continuous hydrostatic pressure matrix from state, 
+    !!< if it fails to find it it returns assemble_matrix=.true. to indicate that it needs assembling
+    type(csr_matrix), pointer :: matrix
+    type(state_type), intent(inout) :: state
+    logical, intent(inout), optional :: assemble_matrix
+    
+    integer :: stat
+    type(scalar_field), pointer :: hp
+    type(csr_sparsity), pointer :: matrix_sparsity
+    type(csr_matrix) :: temp_matrix
+    
+    integer, save :: last_mesh_movement = -1
+    
+    if(present(assemble_matrix)) assemble_matrix = .false.
+    matrix => extract_csr_matrix(state, "HydrostaticPressureCGMatrix", stat)
+    
+    if(stat/=0) then
+      if(present(assemble_matrix)) assemble_matrix = .true.
+    
+      hp => extract_scalar_field(state, "HydrostaticPressure")
+      
+      matrix_sparsity => get_csr_sparsity_firstorder(state, hp%mesh, hp%mesh)
+      
+      call allocate(temp_matrix, matrix_sparsity, name="HydrostaticPressureCGMatrix")
+      call insert(state, temp_matrix, name="HydrostaticPressureCGMatrix")
+      call deallocate(temp_matrix)
+      
+      matrix => extract_csr_matrix(state, "HydrostaticPressureCGMatrix")
+    else
+      ! We found it in state so the only thing that will affect if we need to assemble it
+      ! is whether the mesh has moved since we last called this subroutine.
+      ! The actual assembly doesn't take place here though so we don't need to do anything
+      ! else yet.
+      if(present(assemble_matrix)) assemble_matrix = (eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)
+    end if
+    
+    last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+  
+  end function get_hydrostatic_pressure_cg_matrix
 
 end module state_matrices_module

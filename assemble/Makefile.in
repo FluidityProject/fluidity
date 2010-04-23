@@ -143,7 +143,8 @@ Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
 State_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o
 Vorticity_Diagnostics.o: Coriolis.o
-Hydrostatic_Pressure.o: Vertical_Extrapolation.o
+Hydrostatic_Pressure.o: Vertical_Extrapolation.o State_Matrices.o \
+  Upwind_Stabilisation.o
 Geostrophic_Pressure.o: Petsc_Solve_State.o \
   Assemble_CMC.o Divergence_Matrix_CG.o Momentum_CG.o Momentum_DG.o
 Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \

@@ -419,7 +419,6 @@ contains
             exclude_nonreprescribed=.true.)
 
        ! nonlinear_iterations=maximum no of iterations within a time step
-       ! NB TEMPT is T from previous iteration.
        nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
 
           ewrite(1,*)'###################'

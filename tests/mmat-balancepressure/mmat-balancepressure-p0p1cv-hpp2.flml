@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">mmat-balancepressure-p0p1cv-hpp2dg</string_value>
+    <string_value lines="1">mmat-balancepressure-p0p1cv-hpp2</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">multimaterial</string_value>
@@ -51,7 +51,7 @@
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
-          <string_value>discontinuous</string_value>
+          <string_value>continuous</string_value>
         </mesh_continuity>
         <stat>
           <exclude_from_stat/>
@@ -415,8 +415,38 @@
       <prognostic>
         <mesh name="HydrostaticPressureMesh"/>
         <spatial_discretisation>
-          <discontinuous_galerkin/>
+          <continuous_galerkin>
+            <stabilisation>
+              <streamline_upwind_petrov_galerkin replaces="DISOTT = 3">
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind_petrov_galerkin>
+            </stabilisation>
+            <do_not_integrate_gradient_by_parts/>
+          </continuous_galerkin>
         </spatial_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="eisenstat"/>
+          <relative_error>
+            <real_value rank="0">1.E-15</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <cache_solver_context/>
+          <diagnostics>
+            <print_norms/>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <exclude_from_checkpointing/>
         <output/>
         <stat/>

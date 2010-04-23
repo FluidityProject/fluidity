@@ -962,7 +962,6 @@ contains
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     
-    integer :: ele
     integer, dimension(face_loc(t, face)) :: face_nodes
     real, dimension(face_ngi(t, face)) :: detwei
     real, dimension(mesh_dim(t), face_ngi(t, face)) :: normal
@@ -978,8 +977,6 @@ contains
 
     matrix_addto = 0.0
     rhs_addto = 0.0
-
-    ele = face_ele(t, face)
     
     ! Step 1: Transform
     

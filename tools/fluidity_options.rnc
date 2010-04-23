@@ -2407,18 +2407,36 @@ prognostic_vertical_balance_pressure_field =
    (
       ## Spatial discretisation options
       element spatial_discretisation {
-        # we don't have any yet
-        empty
+        (
+          ## Uses an advancing front technique to integrate
+          ## downwards through the mesh.
+          ##
+          ## Requires a discontinuous mesh!
+          element discontinuous_galerkin {
+            empty
+          }|
+          ## Solves a continuous steady state equation.
+          ##
+          ## Requires a continuous mesh and solver options below.
+          element continuous_galerkin {
+            advection_stabilisation_options,
+            ## By default when the gradient of the HydrostaticPressure is
+            ## subtracted from the rhs of the momentum equation, it is 
+            ## integrated by parts.  This is the most general case as the
+            ## HydrostaticPressure can be discontinuous.
+            ## Use this option to turn off this behaviour, which will
+            ## be valid for a continuous HydrostaticPressure.
+            element do_not_integrate_gradient_by_parts {
+              empty
+            }?
+          }
+        )
       },
-      # Temporal_discretisation doesn`t apply to balance pressure
-      # (there`s no time derivative). Exception again
-      # no solver block as we don't do a PETSc solve
-      # Alas, no initial_condition either...
-      # boundary conditions are fixed (p=0 on top)
-      # no Diffusivity tensor_field
-      # no Source scalar_field
-      # no Absorption scalar_field
-      # no adaptive time-stepping
+      ## Solver
+      ## Only required for continuous_galerkin spatial_discretisations!
+      element solver {
+         linear_solver_options_asym
+      }?,
       ## Disables checkpointing of this field
       element exclude_from_checkpointing {
         comment
@@ -3749,7 +3767,6 @@ scalar_field_choice =
             attribute name { "HydrostaticPressure" },
             (
                element prognostic {
-                  ## This needs to be a DG mesh
                   mesh_choice,
                   prognostic_vertical_balance_pressure_field
                }

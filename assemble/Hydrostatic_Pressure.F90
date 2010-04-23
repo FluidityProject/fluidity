@@ -41,6 +41,10 @@ module hydrostatic_pressure
   use spud
   use boundary_conditions
   use vertical_extrapolation_module
+  use state_matrices_module
+  use upwind_stabilisation
+  use profiler
+  use solvers
   implicit none
 
   public calculate_hydrostatic_pressure, &
@@ -48,22 +52,64 @@ module hydrostatic_pressure
 
   character(len = *), parameter, public :: hp_name = "HydrostaticPressure"
 
+  ! Stabilisation schemes
+  integer, parameter :: STABILISATION_NONE = 0, &
+    & STABILISATION_STREAMLINE_UPWIND = 1, STABILISATION_SUPG = 2
+  
+  ! Stabilisation scheme
+  integer :: stabilisation_scheme
+  integer :: nu_bar_scheme
+  real :: nu_bar_scale
+
   contains
 
   subroutine calculate_hydrostatic_pressure(state)
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     
     integer :: stat
+    type(scalar_field), pointer :: hp
+    
+    hp => extract_scalar_field(state, hp_name, stat = stat)
+    if(stat /= 0) return
+    
+    if(have_option(trim(hp%option_path)//&
+       & "/prognostic/spatial_discretisation/discontinuous_galerkin")) then
+      if(continuity(hp) > 0) then
+        FLExit("HydrostaticPressure with discontinuous_galerkin requires a discontinuous mesh")
+      end if
+      
+      call calculate_hydrostatic_pressure_dg(state, hp)
+    
+    else if(have_option(trim(hp%option_path)//&
+       & "/prognostic/spatial_discretisation/continuous_galerkin")) then
+      if(continuity(hp) < 0) then
+        FLExit("HydrostaticPressure with continuous_galerkin requires a continuous mesh")
+      end if
+      
+      call calculate_hydrostatic_pressure_cg(state, hp)
+
+    else
+      FLAbort("Unknown spatial_discretisation option for HydrostaticPressure")
+    end if
+
+    ewrite_minmax(hp%val)
+
+  end subroutine calculate_hydrostatic_pressure
+
+  subroutine calculate_hydrostatic_pressure_dg(state, hp)
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: hp
+    
     integer, dimension(:), pointer :: surface_element_list
     real :: gravity_magnitude
     type(mesh_type) :: from_hp_mesh
     type(mesh_type), pointer :: surface_mesh
     type(scalar_field) :: lbuoyancy, from_hp
-    type(scalar_field), pointer :: buoyancy, hp, topdis
+    type(scalar_field), pointer :: buoyancy, topdis
     type(vector_field), pointer :: positions, gravity
     
-    hp => extract_scalar_field(state, hp_name, stat = stat)
-    if(stat /= 0) return
+    ewrite(1,*) 'In calculate_hydrostatic_pressure_dg'
+    
     if(.not. continuity(hp) == -1) then
       FLExit("HydrostaticPressure requires a discontinuous mesh")
     end if
@@ -94,9 +140,291 @@ module hydrostatic_pressure
     call deallocate(from_hp)
     call deallocate(lbuoyancy)
     
-    ewrite_minmax(hp%val)
+  end subroutine calculate_hydrostatic_pressure_dg
 
-  end subroutine calculate_hydrostatic_pressure
+  subroutine calculate_hydrostatic_pressure_cg(state, hp)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: hp
+
+    type(csr_matrix), pointer :: matrix
+    type(scalar_field) :: rhs
+    logical :: assemble_matrix
+        
+    ewrite(1,*) 'In calculate_hydrostatic_pressure_cg'
+
+    matrix => get_hydrostatic_pressure_cg_matrix(state, assemble_matrix=assemble_matrix)
+    call allocate(rhs, hp%mesh, "HydrostaticPressureCGRHS")
+    
+    ewrite(2,*) 'assembling matrix: ', assemble_matrix
+    
+    call profiler_tic(hp, "assembly")
+    call assemble_hydrostatic_pressure_cg(state, hp, matrix, rhs, assemble_matrix)
+    call profiler_toc(hp, "assembly")
+    
+    call petsc_solve(hp, matrix, rhs)
+    
+    call deallocate(rhs)
+
+  end subroutine calculate_hydrostatic_pressure_cg
+  
+  subroutine assemble_hydrostatic_pressure_cg(state, hp, matrix, rhs, assemble_matrix)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: hp
+    type(csr_matrix), intent(inout) :: matrix
+    type(scalar_field), intent(inout) :: rhs
+    logical, intent(in) :: assemble_matrix
+   
+    real :: gravity_magnitude
+    type(scalar_field), pointer :: buoyancy, topdis
+    type(vector_field), pointer :: coordinate, gravity
+    type(scalar_field) :: lbuoyancy
+    
+    integer :: i, ele, face
+
+    integer, dimension(:), pointer :: surface_element_list
+
+    ewrite(1,*) 'In assemble_hydrostatic_pressure_cg'
+
+    coordinate => extract_vector_field(state, "Coordinate")
+    assert(coordinate%dim == mesh_dim(hp))
+    assert(ele_count(coordinate) == ele_count(hp))
+    
+    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+    buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
+    assert(ele_count(buoyancy) == ele_count(hp))
+    ewrite_minmax(buoyancy%val)
+    call allocate(lbuoyancy, buoyancy%mesh, "HydrostaticPressureCGBuoyancy")
+    call set(lbuoyancy, buoyancy)
+    call scale(lbuoyancy, gravity_magnitude)
+    
+    gravity => extract_vector_field(state, "GravityDirection")
+    assert(gravity%dim == mesh_dim(hp))
+    assert(ele_count(gravity) == ele_count(hp))
+
+    if(have_option(trim(hp%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind")) then
+      ewrite(2, *) "Streamline upwind stabilisation"
+      stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
+      call get_upwind_options(trim(hp%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind", &
+          & nu_bar_scheme, nu_bar_scale)
+    else if(have_option(trim(hp%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin")) then
+      ewrite(2, *) "SUPG stabilisation"
+      stabilisation_scheme = STABILISATION_SUPG
+      call get_upwind_options(trim(hp%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
+          & nu_bar_scheme, nu_bar_scale)
+    else
+      ewrite(2, *) "No stabilisation"
+      stabilisation_scheme = STABILISATION_NONE
+    end if
+    
+    if(assemble_matrix) call zero(matrix)
+    call zero(rhs)
+    
+    do ele = 1, element_count(hp)
+      call assemble_hydrostatic_pressure_cg_element(matrix, rhs, &
+                                 hp, coordinate, lbuoyancy, gravity, &
+                                 ele, assemble_matrix)
+    end do
+    
+    if(assemble_matrix) then
+      topdis => extract_scalar_field(state, "DistanceToTop")
+      call get_boundary_condition(topdis, 1, surface_element_list = surface_element_list) 
+
+      do i = 1, size(surface_element_list)
+        face=surface_element_list(i)
+        call assemble_hydrostatic_pressure_cg_facet(matrix, &
+                                                      hp, coordinate, gravity, &
+                                                      face)
+      end do
+    end if
+    
+    ewrite_minmax(rhs%val)
+    
+    call deallocate(lbuoyancy)
+    
+  end subroutine assemble_hydrostatic_pressure_cg
+
+  subroutine assemble_hydrostatic_pressure_cg_element(matrix, rhs, &
+                                   hp, coordinate, buoyancy, gravity, &
+                                   ele, assemble_matrix)
+    type(csr_matrix), intent(inout) :: matrix
+    type(scalar_field), intent(inout) :: rhs
+    
+    type(scalar_field), intent(in) :: hp
+    type(vector_field), intent(in) :: coordinate
+    type(scalar_field), intent(in) :: buoyancy
+    type(vector_field), intent(in) :: gravity
+    
+    integer, intent(in) :: ele
+    logical, intent(in) :: assemble_matrix
+
+    integer, dimension(:), pointer :: element_nodes
+    real, dimension(ele_ngi(hp, ele)) :: detwei
+    real, dimension(ele_loc(hp, ele), ele_ngi(hp, ele), mesh_dim(hp)) :: dhp_t
+    real, dimension(mesh_dim(hp), mesh_dim(hp), ele_ngi(hp, ele)) :: j_mat 
+    type(element_type) :: test_function
+    type(element_type), pointer :: hp_shape
+
+    ! What we will be adding to the matrix and RHS - assemble these as we
+    ! go, so that we only do the calculations we really need
+    real, dimension(ele_loc(hp, ele)) :: rhs_addto
+    real, dimension(ele_loc(hp, ele), ele_loc(hp, ele)) :: matrix_addto
+    
+#ifdef DDEBUG
+    assert(ele_ngi(coordinate, ele) == ele_ngi(hp, ele))
+    assert(ele_ngi(gravity, ele) == ele_ngi(hp, ele))
+    assert(ele_ngi(buoyancy, ele) == ele_ngi(hp, ele))
+#endif    
+  
+    matrix_addto = 0.0
+    rhs_addto = 0.0
+    
+    hp_shape => ele_shape(hp, ele)
+  
+    if(any(stabilisation_scheme == (/STABILISATION_STREAMLINE_UPWIND, STABILISATION_SUPG/))) then
+      call transform_to_physical(coordinate, ele, hp_shape, &
+                                 dshape=dhp_t, detwei=detwei, j=j_mat)
+    else
+      call transform_to_physical(coordinate, ele, hp_shape, &
+                                 dshape=dhp_t, detwei=detwei)
+    end if
+
+    select case(stabilisation_scheme)
+      case(STABILISATION_SUPG)
+        test_function = make_supg_shape(hp_shape, dhp_t, ele_val_at_quad(gravity, ele), j_mat, &
+          & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+      case default
+        test_function = hp_shape
+        call incref(test_function)
+    end select
+    ! Important note: with SUPG the test function derivatives have not been
+    ! modified - i.e. dhp_t is currently used everywhere. This is fine for P1,
+    ! but is not consistent for P>1.
+
+    if(assemble_matrix) then
+      call add_matrix_element_cg(ele, test_function, hp, &
+                                          gravity, &
+                                          dhp_t, detwei, j_mat, &
+                                          matrix_addto)
+    end if
+    
+    call add_buoyancy_element_cg(ele, test_function, hp, &
+                                 buoyancy, detwei, rhs_addto)
+
+    element_nodes => ele_nodes(hp, ele)
+    if(assemble_matrix) call addto(matrix, element_nodes, element_nodes, matrix_addto)
+    call addto(rhs, element_nodes, rhs_addto)
+
+    call deallocate(test_function)
+
+  end subroutine assemble_hydrostatic_pressure_cg_element
+
+  subroutine add_matrix_element_cg(ele, test_function, hp, &
+                                gravity, &
+                                dhp_t, detwei, j_mat, &
+                                matrix_addto)
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: hp
+    type(vector_field), intent(in) :: gravity
+    real, dimension(ele_loc(hp, ele), ele_ngi(hp, ele), mesh_dim(hp)), intent(in) :: dhp_t
+    real, dimension(ele_ngi(hp, ele)), intent(in) :: detwei
+    real, dimension(mesh_dim(hp), mesh_dim(hp), ele_ngi(hp, ele)), intent(in) :: j_mat 
+    real, dimension(ele_loc(hp, ele), ele_loc(hp, ele)), intent(inout) :: matrix_addto
+    
+    real, dimension(ele_loc(hp, ele), ele_loc(hp,ele)) :: advection_mat
+    real, dimension(gravity%dim, ele_ngi(gravity, ele)) :: gravity_at_quad
+    type(element_type), pointer :: hp_shape
+        
+    hp_shape => ele_shape(hp, ele)
+    
+    gravity_at_quad = ele_val_at_quad(gravity, ele)
+            
+    ! element advection matrix
+    !  /                           
+    !  | N_A (grav dot grad N_B) dV
+    !  /                           
+    advection_mat = shape_vector_dot_dshape(test_function, gravity_at_quad, dhp_t, detwei)
+
+    ! Stabilisation
+    select case(stabilisation_scheme)
+      case(STABILISATION_STREAMLINE_UPWIND)
+        advection_mat = advection_mat + &
+          & element_upwind_stabilisation(hp_shape, dhp_t, gravity_at_quad, j_mat, detwei, &
+          & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+    end select
+      
+    matrix_addto = matrix_addto + advection_mat
+    
+  end subroutine add_matrix_element_cg
+
+  subroutine add_buoyancy_element_cg(ele, test_function, &
+                                     hp, buoyancy, detwei, rhs_addto)
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: hp
+    type(scalar_field), intent(in) :: buoyancy
+    real, dimension(ele_ngi(hp, ele)), intent(in) :: detwei
+    real, dimension(ele_loc(hp, ele)), intent(inout) :: rhs_addto
+   
+    rhs_addto = rhs_addto + shape_rhs(test_function, detwei * ele_val_at_quad(buoyancy, ele))
+    
+  end subroutine add_buoyancy_element_cg
+
+  subroutine assemble_hydrostatic_pressure_cg_facet(matrix, &
+                                                      hp, coordinate, gravity, &
+                                                      face)
+    type(csr_matrix), intent(inout) :: matrix
+    
+    type(scalar_field), intent(in) :: hp
+    type(vector_field), intent(in) :: coordinate
+    type(vector_field), intent(in) :: gravity
+    
+    integer, intent(in) :: face
+
+    ! What we will be adding to the matrix - assemble these as we
+    ! go, so that we only do the calculations we really need
+    real, dimension(face_loc(hp, face), face_loc(hp, face)) :: matrix_addto
+
+    integer, dimension(face_loc(hp, face)) :: face_nodes
+    real, dimension(face_ngi(hp, face)) :: detwei
+    real, dimension(mesh_dim(hp), face_ngi(hp, face)) :: normal
+
+    assert(face_ngi(coordinate, face) == face_ngi(hp, face))
+    assert(face_ngi(gravity, face) == face_ngi(hp, face))
+    
+    matrix_addto = 0.0
+  
+    call transform_facet_to_physical(coordinate, face, &
+        & detwei_f = detwei, normal = normal)
+        
+    call add_matrix_face_cg(face, hp, gravity, detwei, normal, matrix_addto)
+        
+    face_nodes = face_global_nodes(hp, face)
+    call addto(matrix, face_nodes, face_nodes, matrix_addto)
+    
+  end subroutine assemble_hydrostatic_pressure_cg_facet
+
+  subroutine add_matrix_face_cg(face, hp, gravity, detwei, normal, matrix_addto)
+    integer, intent(in) :: face
+    type(scalar_field), intent(in) :: hp
+    type(vector_field), intent(in) :: gravity
+    real, dimension(face_ngi(hp, face)), intent(in) :: detwei
+    real, dimension(mesh_dim(hp), face_ngi(hp, face)), intent(in) :: normal
+    real, dimension(face_loc(hp, face), face_loc(hp, face)), intent(inout) :: matrix_addto
+    
+    real, dimension(gravity%dim, face_ngi(gravity, face)) :: gravity_at_quad
+    real, dimension(face_loc(hp, face), face_loc(hp,face)) :: advection_mat
+    type(element_type), pointer :: hp_shape
+    
+    hp_shape => face_shape(hp, face)
+    
+    gravity_at_quad = face_val_at_quad(gravity, face)
+      
+    advection_mat = shape_shape(hp_shape, hp_shape, detwei * sum(gravity_at_quad * normal, 1))
+      
+    matrix_addto = matrix_addto - advection_mat
+    
+  end subroutine add_matrix_face_cg
 
   subroutine subtract_hydrostatic_pressure_gradient(mom_rhs, state)
     !!< Subtract the HydrostaticPressure gradient from the momentum equation
@@ -108,6 +436,8 @@ module hydrostatic_pressure
     integer :: i
     type(vector_field), pointer :: positions
     type(scalar_field), pointer :: hp
+    
+    logical :: dg
     
     ewrite(1, *) "In subtract_hydrostatic_pressure_gradient"
             
@@ -124,11 +454,24 @@ module hydrostatic_pressure
       ewrite_minmax(mom_rhs%val(i)%ptr)
     end do
     
-    do i = 1, ele_count(mom_rhs)
-      if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
-        call subtract_given_hydrostatic_pressure_gradient_element(i, positions,hp, mom_rhs)
-      end if
-    end do
+    if(have_option(trim(hp%option_path)// &
+       "/prognostic/spatial_discretisation/continuous_galerkin/do_not_integrate_gradient_by_parts")) then
+      ewrite(2,*) 'not integrating gradient by parts'
+      do i = 1, ele_count(mom_rhs)
+        if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
+          call subtract_given_hydrostatic_pressure_gradient_element(i, positions,hp, mom_rhs)
+        end if
+      end do
+    else
+      dg = (continuity(mom_rhs)==-1)
+      ewrite(2,*) 'integrating gradient by parts, dg = ', dg
+      do i = 1, ele_count(mom_rhs)
+        if((.not.dg).or.(element_owned(mom_rhs, i))) then
+          call subtract_given_hydrostatic_pressure_gradient_element_ibp(i, positions,hp, mom_rhs, dg)
+        end if
+      end do
+    
+    end if
     
     do i = 1, mom_rhs%dim
       ewrite_minmax(mom_rhs%val(i)%ptr)
@@ -146,7 +489,7 @@ module hydrostatic_pressure
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: hp
     type(vector_field), intent(inout) :: mom_rhs
-    
+
     real, dimension(ele_ngi(positions, ele)) :: detwei
     real, dimension(ele_loc(hp, ele), ele_ngi(hp, ele), mom_rhs%dim) :: dn_t
         
@@ -162,5 +505,86 @@ module hydrostatic_pressure
     call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(hp, ele, dn_t)), detwei))
 
   end subroutine subtract_given_hydrostatic_pressure_gradient_element
+
+  subroutine subtract_given_hydrostatic_pressure_gradient_element_ibp(ele, positions, hp, mom_rhs, dg)
+    !!< Subtract the element-wise contribution of the HydrostaticPressure
+    !!< gradient from the momentum equation RHS
+
+    integer, intent(in) :: ele
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in) :: hp
+    type(vector_field), intent(inout) :: mom_rhs
+    logical, intent(in) :: dg
+        
+    real, dimension(ele_ngi(positions, ele)) :: detwei
+    real, dimension(ele_loc(hp, ele), ele_ngi(hp, ele), mom_rhs%dim) :: dn_s
+    
+    integer, dimension(:), pointer :: neigh
+    integer :: ele_2, face, face_2, ni
+    logical :: p0
+    
+    assert(ele_ngi(positions, ele) == ele_ngi(mom_rhs, ele))
+    assert(ele_ngi(hp, ele) == ele_ngi(mom_rhs, ele))
+    
+    p0 =(element_degree(mom_rhs,ele)==0)
+    
+    if(.not.p0) then
+      call transform_to_physical(positions, ele, ele_shape(mom_rhs, ele), &
+        & dshape = dn_s, detwei = detwei)
+        
+      ! /
+      ! | -N_A grad gp dV
+      ! /
+      call addto(mom_rhs, ele_nodes(mom_rhs, ele), dshape_rhs(dn_s, detwei*ele_val_at_quad(hp, ele)))
+    end if
+    
+    neigh=>ele_neigh(hp, ele)
+    neighbourloop: do ni = 1, size(neigh)
+      ele_2 = neigh(ni)
+      if((ele_2>0).or.dg) then
+        face = ele_face(hp, ele, ele_2)
+        if(ele_2>0) then
+          face_2=ele_face(hp, ele_2, ele)
+        else
+          ! the boundary case
+          face_2=face
+        end if
+        
+        call subtract_given_hydrostatic_pressure_gradient_face_ibp(face, face_2, positions, hp, mom_rhs, dg)
+        
+      end if
+    end do neighbourloop
+    
+  end subroutine subtract_given_hydrostatic_pressure_gradient_element_ibp
+  
+  subroutine subtract_given_hydrostatic_pressure_gradient_face_ibp(face, face_2, positions, hp, mom_rhs, dg)
+    integer, intent(in) :: face, face_2
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in) :: hp
+    type(vector_field), intent(inout) :: mom_rhs
+    logical, intent(in) :: dg
+
+    real, dimension(face_ngi(hp, face)) :: detwei
+    real, dimension(mesh_dim(hp), face_ngi(hp, face)) :: normal
+    
+    real, dimension(face_ngi(hp, face)) :: hp_at_quad
+    
+    if(face==face_2) then
+      ! boundary case - should be the only case we end up here with cg
+      hp_at_quad = face_val_at_quad(hp, face)
+    else if(dg) then
+      hp_at_quad = 0.5*face_val_at_quad(hp, face)+0.5*face_val_at_quad(hp, face_2)
+    else
+      FLAbort("Huh?")
+    end if
+  
+    call transform_facet_to_physical(positions, face, &
+                                    detwei_f = detwei, normal = normal)
+  
+    call addto(mom_rhs, face_global_nodes(mom_rhs, face), &
+              -shape_vector_rhs(face_shape(mom_rhs, face), normal, &
+                  hp_at_quad*detwei))
+  
+  end subroutine subtract_given_hydrostatic_pressure_gradient_face_ibp
 
 end module hydrostatic_pressure
