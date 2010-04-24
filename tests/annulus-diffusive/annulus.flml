@@ -19,22 +19,6 @@
         </stat>
       </from_file>
     </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PressureMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree replaces="NGI">
         <integer_value rank="0">2</integer_value>
@@ -49,7 +33,9 @@
     <dump_period_in_timesteps>
       <integer_value rank="0">20</integer_value>
     </dump_period_in_timesteps>
-    <output_mesh name="VelocityMesh"/>
+    <disable_dump_at_start/>
+    <disable_dump_at_end/>
+    <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -97,7 +83,7 @@
     </equation_of_state>
     <vector_field name="Velocity" rank="1">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
@@ -116,7 +102,7 @@
     </vector_field>
     <scalar_field replaces="IDENT = -1" name="Temperature" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -142,11 +128,10 @@
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0">30</integer_value>
-              <comment>Not in original gemfile - Taking suggested value (30)</comment>
+              <integer_value rank="0">100</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="eisenstat"/>
           <relative_error>
             <real_value rank="0">1.0E-7</real_value>
           </relative_error>
@@ -154,6 +139,7 @@
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
+          <cache_solver_context/>
           <diagnostics>
             <monitors/>
           </diagnostics>
@@ -193,11 +179,16 @@
                 </constant>
               </isotropic>
             </value>
-            <output/>
+            <output>
+              <exclude_from_vtu/>
+            </output>
           </prescribed>
         </tensor_field>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat>
+          <exclude_from_stat/>
           <surface_integral type="gradient_normal" name="InnerH">
             <surface_ids>
               <integer_value shape="1" rank="1">1</integer_value>
@@ -220,10 +211,10 @@
           </surface_integral>
         </stat>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
         <steady_state>
           <include_in_steady_state/>
