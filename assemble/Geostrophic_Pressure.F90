@@ -38,7 +38,7 @@ module geostrophic_pressure
   use elements
   use fields
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
   use petsc_solve_state_module
   use pickers
   use solvers
@@ -106,12 +106,16 @@ module geostrophic_pressure
     !! Pressure mesh
     type(mesh_type) :: p_mesh
     !! Pressure option path
-    character(len = OPTION_PATH_LEN) :: option_path
+    character(len = OPTION_PATH_LEN) :: p_option_path
+    !! Mass option path
+    character(len = OPTION_PATH_LEN) :: mass_option_path
     !! Divergence matrix
     type(block_csr_matrix) :: ct_m
     !! RHS terms from integrating the divergence operator by parts
     type(scalar_field) :: ct_rhs
-    !! Inverse mass matrix. Only used when not lumping mass.
+    !! Mass matrix. Only used when not lumping mass for continuous u_mesh.
+    type(block_csr_matrix) :: mass_b
+    !! Inverse mass matrix. Only used when not lumping mass for discontinuous u_mesh.
     type(block_csr_matrix) :: inverse_mass_b
     !! Inverse lumped mass matrix. Only used when lumping mass.
     type(vector_field) :: inverse_masslump_v
@@ -700,7 +704,7 @@ contains
     logical, optional, intent(in) :: add_cmc
     
     integer :: dim, i, stat
-    type(csr_matrix) :: inverse_mass
+    type(csr_matrix) :: inverse_mass, mass
     type(csr_sparsity) :: mass_sparsity
     type(csr_sparsity), pointer :: ct_sparsity
     type(scalar_field) :: inverse_masslump
@@ -715,11 +719,11 @@ contains
       lbcfield => field
     end if
     if(present(option_path)) then
-      matrices%option_path = option_path
+      matrices%p_option_path = option_path
     else
-      matrices%option_path = complete_field_path(p%option_path, stat = stat)
+      matrices%p_option_path = complete_field_path(p%option_path, stat = stat)
     end if
-    ewrite(2, *) "Option path: " // trim(matrices%option_path)
+    ewrite(2, *) "Option path: " // trim(matrices%p_option_path)
     
     dim = field%dim
     matrices%u_mesh = field%mesh
@@ -738,14 +742,16 @@ contains
     call allocate(matrices%ct_rhs, matrices%p_mesh, "CTRHS")
     
     ! Options
-    if(have_option(trim(matrices%option_path) // &
+    if(have_option(trim(matrices%p_option_path) // &
            & "/spatial_discretisation/mass")) then
-      matrices%lump_mass = have_option(trim(matrices%option_path) // &
+      matrices%lump_mass = have_option(trim(matrices%p_option_path) // &
              & "/spatial_discretisation/mass/lump_mass")
-    else if(have_option(trim(matrices%option_path) // &
+      matrices%mass_option_path = trim(matrices%p_option_path) // "/spatial_discretisation/mass"
+    else if(have_option(trim(matrices%p_option_path) // &
            & "/mass")) then
-      matrices%lump_mass = have_option(trim(matrices%option_path) // &
+      matrices%lump_mass = have_option(trim(matrices%p_option_path) // &
              & "/mass/lump_mass")
+      matrices%mass_option_path = trim(matrices%p_option_path) // "/mass"
     else
       ! Choose sensible defaults if mass options are not supplied
       select case(continuity(field))
@@ -757,21 +763,17 @@ contains
           ewrite(-1, *) "For mesh continuity: ", continuity(field)
           FLAbort("Unrecognised mesh continuity")
       end select
+      matrices%mass_option_path = empty_path
     end if
-    matrices%integrate_by_parts = have_option(trim(matrices%option_path) // &
+    matrices%integrate_by_parts = have_option(trim(matrices%p_option_path) // &
            & "/spatial_discretisation/continuous_galerkin/integrate_divergence_by_parts") &
-      & .or. have_option(trim(matrices%option_path) // &
+      & .or. have_option(trim(matrices%p_option_path) // &
            & "/continuous_galerkin/integrate_divergence_by_parts") &
-      & .or. have_option(trim(matrices%option_path) // &
+      & .or. have_option(trim(matrices%p_option_path) // &
            & "/integrate_divergence_by_parts")         
     
     ewrite(2, *) "Lump mass? ", matrices%lump_mass
     ewrite(2, *) "Integrate divergence by parts? ", matrices%integrate_by_parts
-    if(continuity(matrices%u_mesh) == 0 .and. .not. matrices%lump_mass) then
-      ewrite(-1, *) "Decomposed field: ", trim(field%name)
-      ewrite(-1, *) "On mesh: ", trim(matrices%u_mesh%name)
-      FLExit("Must lump mass with continuous decomposed field")
-    end if
      
     ! Assemble the matrices
      
@@ -779,7 +781,7 @@ contains
       call allocate(inverse_masslump, matrices%u_mesh, "InverseLumpedMass")    
       call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
                                          test_mesh = matrices%p_mesh, field = lbcfield, &
-                                         grad_mass_lumped = inverse_masslump, option_path = matrices%option_path)
+                                         grad_mass_lumped = inverse_masslump, option_path = matrices%p_option_path)
       
       call invert(inverse_masslump)
       call allocate(matrices%inverse_masslump_v, dim, inverse_masslump%mesh, "InverseLumpedMass")
@@ -790,23 +792,38 @@ contains
       
       call apply_dirichlet_conditions_inverse_mass(matrices%inverse_masslump_v, lbcfield)
     else
-      call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
-                                         test_mesh = matrices%p_mesh, field = lbcfield, &
-                                         option_path = matrices%option_path)
-
-      mass_sparsity = make_sparsity_dg_mass(matrices%u_mesh)  
-      call allocate(matrices%inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
-      call deallocate(mass_sparsity)
-      assert(dim > 0)
       positions => extract_vector_field(state, "Coordinate")
-      inverse_mass = block(matrices%inverse_mass_b, 1, 1)
-      do i = 1, ele_count(field)
-        call assemble_mass_ele(i, matrices%u_mesh, positions, inverse_mass = inverse_mass)
-      end do
-      do i = 2, dim
-        matrices%inverse_mass_b%val(i, i)%ptr = inverse_mass%val
-      end do
-      call apply_dirichlet_conditions_inverse_mass(matrices%inverse_mass_b, lbcfield)
+      call assemble_divergence_matrix_cg(matrices%ct_m, state, ct_rhs = matrices%ct_rhs, &
+                                             test_mesh = matrices%p_mesh, field = lbcfield, &
+                                             option_path = matrices%p_option_path)
+                                             
+      select case(continuity(matrices%u_mesh))
+        case(0)
+          mass_sparsity = get_csr_sparsity_firstorder(state, matrices%u_mesh, matrices%u_mesh)
+          call allocate(matrices%mass_b,mass_sparsity,  (/dim, dim/), diagonal = .true., name = "Mass")
+          mass = block(matrices%mass_b, 1, 1)
+          call compute_mass(positions, matrices%u_mesh, mass)
+          do i = 2, dim
+            matrices%mass_b%val(i, i)%ptr = mass%val
+          end do
+          !call apply_dirichlet_conditions_mass(matrices%mass_b, lbcfield)
+        case(-1)
+          mass_sparsity = make_sparsity_dg_mass(matrices%u_mesh)  
+          call allocate(matrices%inverse_mass_b, mass_sparsity, (/dim, dim/), diagonal = .true., name = "InverseMass")
+          call deallocate(mass_sparsity)
+          assert(dim > 0)
+          inverse_mass = block(matrices%inverse_mass_b, 1, 1)
+          do i = 1, ele_count(field)
+            call assemble_mass_ele(i, matrices%u_mesh, positions, inverse_mass = inverse_mass)
+          end do
+          do i = 2, dim
+            matrices%inverse_mass_b%val(i, i)%ptr = inverse_mass%val
+          end do
+          call apply_dirichlet_conditions_inverse_mass(matrices%inverse_mass_b, lbcfield)
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(matrices%u_mesh)
+          FLAbort("Unrecognised mesh continuity")
+      end select
     end if
     
     if(present(gp)) then
@@ -882,7 +899,7 @@ contains
     p_shape => ele_shape(matrices%p_mesh, 1)
     apply_kmk = continuity(matrices%p_mesh) == 0 .and. p_shape%degree == 1 .and. ele_numbering_family(p_shape) == FAMILY_SIMPLEX &
         & .and. continuity(matrices%u_mesh) == 0 .and. u_shape%degree == 1 .and. ele_numbering_family(u_shape) == FAMILY_SIMPLEX &
-        & .and. .not. have_option(trim(matrices%option_path) // &
+        & .and. .not. have_option(trim(matrices%p_option_path) // &
            & "/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")
 
     ewrite(2, *) "KMK stabilisation? ", apply_kmk
@@ -893,7 +910,13 @@ contains
     if(matrices%lump_mass) then
       call assemble_masslumped_cmc(matrices%cmc_m, matrices%ct_m, matrices%inverse_masslump_v, matrices%ct_m)
     else
-      call assemble_cmc_dg(matrices%cmc_m, matrices%ct_m, matrices%ct_m, matrices%inverse_mass_b)
+      select case(continuity(matrices%u_mesh))
+        case(-1)
+          call assemble_cmc_dg(matrices%cmc_m, matrices%ct_m, matrices%ct_m, matrices%inverse_mass_b)
+        case(0)
+          ewrite(-1, *) "Decomposed field on mesh: " // trim(matrices%u_mesh%name)
+          FLExit("Must lump mass with continuous decomposed field")
+      end select
     end if
     
     if(apply_kmk) then      
@@ -993,7 +1016,13 @@ contains
     if(matrices%lump_mass) then
       call assemble_masslumped_cmc(matrices%cmc_gp_m, matrices%ct_m, matrices%inverse_masslump_v, matrices%ct_gp_m)
     else
-      call assemble_cmc_dg(matrices%cmc_gp_m, matrices%ct_gp_m, matrices%ct_m, matrices%inverse_mass_b)
+      select case(continuity(matrices%u_mesh))
+        case(-1)
+          call assemble_cmc_dg(matrices%cmc_gp_m, matrices%ct_gp_m, matrices%ct_m, matrices%inverse_mass_b)
+        case(0)
+          ewrite(-1, *) "Decomposed field on mesh: " // trim(matrices%u_mesh%name)
+          FLExit("Must lump mass with continuous decomposed field")
+      end select
     end if
     
     matrices%have_geopressure = .true.
@@ -1039,7 +1068,7 @@ contains
     
     assert(matrices%have_cmc_m)
     
-    call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = matrices%option_path)
+    call impose_reference_pressure_node(matrices%cmc_m, cmc_rhs, option_path = matrices%p_option_path)
   
   end subroutine apply_cmc_reference_node
   
@@ -1098,7 +1127,15 @@ contains
     if(matrices%lump_mass) then
       call deallocate(matrices%inverse_masslump_v)
     else
-      call deallocate(matrices%inverse_mass_b)
+      select case(continuity(matrices%u_mesh))
+        case(0)
+          call deallocate(matrices%mass_b)
+        case(-1)
+          call deallocate(matrices%inverse_mass_b)
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(matrices%u_mesh)
+          FLAbort("Unrecognised mesh continuity")
+      end select
     end if
     call deallocate(matrices%ct_m)
     call deallocate(matrices%ct_rhs)
@@ -1141,7 +1178,7 @@ contains
     call assemble_cmc_rhs(field, lmatrices, cmc_rhs, gp = gp)
     
     call apply_cmc_reference_node(lmatrices, cmc_rhs)
-    call petsc_solve(p, lmatrices%cmc_m, cmc_rhs, option_path = lmatrices%option_path)
+    call petsc_solve(p, lmatrices%cmc_m, cmc_rhs, option_path = lmatrices%p_option_path)
     call cmc_solve_finalise(lmatrices)
     
     call deallocate(cmc_rhs)
@@ -1301,13 +1338,31 @@ contains
         call scale(conserv_comp, extract_scalar_field(matrices%inverse_masslump_v, i))
       end do
     else
-      call allocate(ct_m_p, conserv%mesh, "CTxp")
-      do i = 1, conserv%dim
-        conserv_comp = extract_scalar_field(conserv, i)
-        call mult_t(ct_m_p, block(ct_m, 1, i), p)
-        call mult(conserv_comp, block(matrices%inverse_mass_b, i, i), ct_m_p)
-      end do
-      call deallocate(ct_m_p)
+      select case(continuity(matrices%u_mesh))
+        case(0)
+          if(.not. have_option(trim(matrices%mass_option_path) // "/solver")) then
+            FLExit("Must lump mass or supply solver options for continuous compute_conservative")
+          end if
+          call allocate(ct_m_p, conserv%mesh, "CTxp")
+          do i = 1, conserv%dim
+            conserv_comp = extract_scalar_field(conserv, i)
+            call mult_t(ct_m_p, block(ct_m, 1, i), p)
+            call zero(conserv_comp)
+            call petsc_solve(conserv_comp, block(matrices%mass_b, i, i), ct_m_p, option_path = matrices%mass_option_path)
+          end do
+          call deallocate(ct_m_p)
+        case(-1)
+          call allocate(ct_m_p, conserv%mesh, "CTxp")
+          do i = 1, conserv%dim
+            conserv_comp = extract_scalar_field(conserv, i)
+            call mult_t(ct_m_p, block(ct_m, 1, i), p)
+            call mult(conserv_comp, block(matrices%inverse_mass_b, i, i), ct_m_p)
+          end do
+          call deallocate(ct_m_p)
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(matrices%u_mesh)
+          FLAbort("Unrecognised mesh continuity")
+      end select
     end if
     call scale(conserv, -1.0)
     call halo_update(conserv)
@@ -1401,11 +1456,14 @@ contains
     
   end function velocity_from_coriolis_val_multiple
 
-  subroutine geostrophic_velocity(matrices, state, velocity, p)  
+  subroutine geostrophic_velocity(matrices, state, velocity, p, lump_mass, solver_path)  
     type(cmc_matrices), intent(in) :: matrices
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
+    !! Whether to lump mass in the projection of Coriolis for Velocity
+    logical, optional, intent(in) :: lump_mass
+    character(len = *), optional, intent(in) :: solver_path
     
     type(vector_field) :: coriolis
             
@@ -1415,7 +1473,8 @@ contains
     call allocate(coriolis, velocity%dim, matrices%u_mesh, "Coriolis")
     call compute_conservative(matrices, coriolis, p)
     
-    call velocity_from_coriolis(state, coriolis, velocity)
+    call velocity_from_coriolis(state, coriolis, velocity, &
+      & lump_mass = lump_mass, solver_path = solver_path)
     call deallocate(coriolis)
     
   end subroutine geostrophic_velocity
@@ -1562,9 +1621,9 @@ contains
         ewrite(-1, *) "Velocity mesh: " // trim(velocity%mesh%name)
         FLAbort("Velocity and Coriolis must be on the same mesh when lumping RHS")
       end if
-    end if
-    if(llump_mass .and. llump_rhs) then
-      FLAbort("Cannot lump mass and RHS")
+      if(llump_mass) then
+        FLAbort("Cannot lump mass and RHS")
+      end if
     end if
     
     positions => extract_vector_field(state, "Coordinate")
@@ -1675,15 +1734,21 @@ contains
 
       integer, dimension(:), pointer :: nodes
       real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(coriolis, ele)) :: little_masslump
+      real, dimension(coriolis%dim, ele_loc(coriolis, ele)) :: little_rhs
       type(element_type), pointer :: shape
 
       call transform_to_physical(positions, ele, &
         & detwei = detwei)
         
       shape => ele_shape(rhs, ele)
+      
+      little_masslump = sum(shape_shape(shape, shape, detwei), 2)
+      little_rhs = shape_vector_rhs(shape, z_cross_u(ele_val_at_quad(velocity, ele)), detwei)
+      
       nodes => ele_nodes(rhs, ele)
-      call addto(masslump, nodes, sum(shape_shape(shape, shape, detwei), 2))
-      call addto(rhs, nodes, shape_vector_rhs(shape, coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei))
+      call addto(masslump, nodes, little_masslump)
+      call addto(rhs, nodes, little_rhs)
 
     end subroutine assemble_coriolis_lumped_ele
 
