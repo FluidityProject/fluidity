@@ -541,12 +541,15 @@ module hydrostatic_pressure
     neigh=>ele_neigh(hp, ele)
     neighbourloop: do ni = 1, size(neigh)
       ele_2 = neigh(ni)
-      if((ele_2>0).or.dg) then
+      if((ele_2<0).or.dg) then
+        ! get in here if it's an external face with a cg test space
+        ! or always for a dg test space
         face = ele_face(hp, ele, ele_2)
         if(ele_2>0) then
+          ! internal face... should only be here with dg
           face_2=ele_face(hp, ele_2, ele)
         else
-          ! the boundary case
+          ! the boundary case... get here with dg and cg
           face_2=face
         end if
         
@@ -571,11 +574,15 @@ module hydrostatic_pressure
     
     if(face==face_2) then
       ! boundary case - should be the only case we end up here with cg
+      ! but we'll end up here with dg too
       hp_at_quad = face_val_at_quad(hp, face)
     else if(dg) then
+      ! if we're here then we have a dg test space and this is an internal face
       hp_at_quad = 0.5*face_val_at_quad(hp, face)+0.5*face_val_at_quad(hp, face_2)
     else
-      FLAbort("Huh?")
+      ! should never get here... if we are then we're on an internal face with a cg
+      ! test space.  Put in a bug trap until this is tested with a cg test space.
+      FLAbort("Huh? Ended up at an internal face with a cg test spacce.")
     end if
   
     call transform_facet_to_physical(positions, face, &
