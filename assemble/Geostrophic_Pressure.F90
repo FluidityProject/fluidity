@@ -1744,7 +1744,7 @@ contains
       shape => ele_shape(rhs, ele)
       
       little_masslump = sum(shape_shape(shape, shape, detwei), 2)
-      little_rhs = shape_vector_rhs(shape, z_cross_u(ele_val_at_quad(velocity, ele)), detwei)
+      little_rhs = shape_vector_rhs(shape, coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei)
       
       nodes => ele_nodes(rhs, ele)
       call addto(masslump, nodes, little_masslump)
