@@ -1021,17 +1021,17 @@ the radial and azimuthal direction as described in \citet{farnell1975}. The
 configuration uses an adaptive timestep targetting a CFL number of 1.0, and is
 integrated for 600\s[] on 8 processes.
 
-The test has a runtime of approximately 28 hours on cx1.
+The test has a runtime of approximately 20 hours on cx1.
 
 \subsection{Results}
 
 At simulation end it is tested that a dominant mode three wave has developed,
 although it is not expected that this wave will have equilibrated after this
-length of simulated time. The heat transport of this system is compared against the experimental
-value from \citet{read2003}. Other properties of the system, including the integrated
-temperature, the velocity \Ltwo norm and the dominant mode amplitude
-are also measured and compared against previous simulations
-for regression testing purposes.
+length of simulated time. The heat transport of this system is compared against
+the experimental value from \citet{read2003}. Other properties of the system,
+including the integrated temperature, the temperature \Ltwo norm, the dominant
+mode amplitude and the dominant mode drift rate are also measured and compared
+against previous simulations for regression testing purposes.
 
 \begin{figure}[ht]
   \centering
@@ -1039,7 +1039,6 @@ for regression testing purposes.
   \caption{Vertical and horizontal cuts through the final temperature field
            for the baroclinic annulus test case. Normalised temperature
            $\bar{T} = T / \Delta T$.}
-  \label{fig:lock_exchange}
 \end{figure}
 
 \begin{figure}[ht]
@@ -1049,7 +1048,6 @@ for regression testing purposes.
   \caption{Left: Hovm\"uller plot of the mid-radius mid-height temperature field
            for the baroclinic annulus test case. Right: FFT of left, showing
            growth of the baroclinic modes and a final dominant mode three wave.}
-  \label{fig:lock_exchange}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

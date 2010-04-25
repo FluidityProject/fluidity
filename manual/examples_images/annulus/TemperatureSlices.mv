@@ -1,0 +1,171 @@
+### DataVizManagers ###
+2
+### 1. DataVizManager ###
+### VtkXMLDataReader ###
+VtkXMLDataReader
+annulus_114.pvtu
+Temperature
+Velocity
+
+vtkXMLPUnstructuredGridReader
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetFileName', 'annulus_114.pvtu'), ('SetProgress', 1.0), ('SetTimeStep', 0), ('SetTimeStepRange', (0, -1))]
+### End of VtkXMLDataReader ###
+### ModuleManagers ###
+2
+### 1. ModuleManager ###
+### Scalar Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': (0.0, 1.0), 'reverse_lut_var': 0, 'base_file_name': u'/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/TemperatureSlices.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetTableRange': (0.0, 1.0), 'SetVectorComponent': 0, 'SetRange': (0.0, 1.0)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetOrientation': 0, 'SetHeight': 0.14000000000000001, 'SetTextPosition': 1, 'SetLabelFormat': '%-#6.1f', 'SetTextureGridWidth': 10.0, 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 11, 'SetVisibility': 1, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'Normalised Temperature', 'SetUseOpacity': 0}}, 'file_name': '', 'lut_var': 1}
+### End of Scalar Lookup Table ###
+### Vector Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': [0.0, 0.38790298631619785], 'reverse_lut_var': 0, 'base_file_name': u'/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/TemperatureSlices.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetTableRange': (0.0, 0.38790298631619785), 'SetVectorComponent': 0, 'SetRange': (0.0, 0.38790298631619785)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetOrientation': 0, 'SetHeight': 0.14000000000000001, 'SetTextPosition': 1, 'SetLabelFormat': '%-#6.3g', 'SetTextureGridWidth': 10.0, 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'Velocity', 'SetUseOpacity': 0}}, 'file_name': '', 'lut_var': 1}
+### End Vector Lookup Table ###
+### Filters ###
+1
+### 2. CutPlane ###
+CutPlane
+0, 10, 0.197491
+vtkPlane
+[('SetDebug', 0), ('SetNormal', (0.0, 0.0, 1.0)), ('SetOrigin', (0.0, 0.0, 7.0000000000000018))]
+vtkCutter
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGenerateCutScalars', 0), ('SetReleaseDataFlag', 0), ('SetSortBy', 0), ('SetNumberOfContours', 1), ('SetProgress', 1.0)]
+### End of 2. CutPlane ###
+### End of Filters ###
+### Modules ###
+2
+### 1. SurfaceMap ###
+SurfaceMap
+0, 11, 0.000000, 1.000000
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 11), ('SetProgress', 1.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 1), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyPolygonOffsetFaces', 1), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 1.0))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetShading', 0), ('SetInterpolation', 1), ('SetRepresentation', 2), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (0.0, 0.0, 0.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 1. SurfaceMap ###
+### 2. SurfaceMap ###
+SurfaceMap
+1, 32, 0.000000, 1.000000
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 32), ('SetProgress', 1.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 0), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyPolygonOffsetFaces', 1), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 1.0))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetShading', 0), ('SetInterpolation', 1), ('SetRepresentation', 1), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (0.0, 0.0, 0.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 2. SurfaceMap ###
+### End of Modules ###
+### End of 1. ModuleManager ###
+### 2. ModuleManager ###
+### Scalar Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': (0.0, 1.0), 'reverse_lut_var': 0, 'base_file_name': u'/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/TemperatureSlices.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetTableRange': (0.0, 1.0), 'SetVectorComponent': 0, 'SetRange': (0.0, 1.0)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetOrientation': 0, 'SetHeight': 0.14000000000000001, 'SetTextPosition': 1, 'SetLabelFormat': '%-#6.3g', 'SetTextureGridWidth': 10.0, 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'Temperature', 'SetUseOpacity': 0}}, 'file_name': '', 'lut_var': 1}
+### End of Scalar Lookup Table ###
+### Vector Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': [0.0, 0.53414681236145789], 'reverse_lut_var': 0, 'base_file_name': u'/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/TemperatureSlices.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetTableRange': (0.0, 0.53414681236145789), 'SetVectorComponent': 0, 'SetRange': (0.0, 0.53414681236145789)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetOrientation': 0, 'SetHeight': 0.14000000000000001, 'SetTextPosition': 1, 'SetLabelFormat': '%-#6.3g', 'SetTextureGridWidth': 10.0, 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'Velocity', 'SetUseOpacity': 0}}, 'file_name': '', 'lut_var': 1}
+### End Vector Lookup Table ###
+### Filters ###
+1
+### 1. CutPlane ###
+CutPlane
+0, 10, 0.197491
+vtkPlane
+[('SetDebug', 0), ('SetNormal', (1.0, 0.0, 6.1230317691118863e-17)), ('SetOrigin', (0.0, 0.0, 7.0000000000000018))]
+vtkCutter
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGenerateCutScalars', 0), ('SetReleaseDataFlag', 0), ('SetSortBy', 0), ('SetNumberOfContours', 1), ('SetProgress', 1.0)]
+### End of 1. CutPlane ###
+### End of Filters ###
+### Modules ###
+2
+### 1. SurfaceMap ###
+SurfaceMap
+0, 10, 0.000000, 1.000000
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 1), ('SetProgress', 0.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 1), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyPolygonOffsetFaces', 1), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 1.0))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetShading', 0), ('SetInterpolation', 1), ('SetRepresentation', 2), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (0.0, 0.0, 0.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 1. SurfaceMap ###
+### 2. SurfaceMap ###
+SurfaceMap
+1, 32, 0.000000, 1.000000
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 32), ('SetProgress', 1.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 0), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyPolygonOffsetFaces', 1), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 1.0))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetShading', 0), ('SetInterpolation', 1), ('SetRepresentation', 1), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (0.0, 0.0, 0.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 1.0), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 2. SurfaceMap ###
+### End of Modules ###
+### End of 2. ModuleManager ###
+### End of ModuleManagers ###
+### End of 1. DataVizManager ###
+### 2. DataVizManager ###
+### VtkXMLDataReader ###
+VtkXMLDataReader
+annulus-structured-tanh-23x64.vtu
+IDs
+
+
+vtkXMLUnstructuredGridReader
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetFileName', '/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/annulus-structured-tanh-23x64.vtu'), ('SetProgress', 1.0), ('SetTimeStep', 0), ('SetTimeStepRange', (0, -1))]
+### End of VtkXMLDataReader ###
+### ModuleManagers ###
+1
+### 1. ModuleManager ###
+### Scalar Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': (0.0, 4.0), 'reverse_lut_var': 0, 'base_file_name': u'/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/TemperatureSlices.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 0.070000000000000007, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetTableRange': (0.0, 4.0), 'SetVectorComponent': 0, 'SetRange': (0.0, 4.0)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetOrientation': 0, 'SetHeight': 0.14000000000000001, 'SetTextPosition': 1, 'SetLabelFormat': '%-#6.3g', 'SetTextureGridWidth': 10.0, 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetTitle': 'IDs', 'SetUseOpacity': 0}}, 'file_name': '', 'lut_var': 1}
+### End of Scalar Lookup Table ###
+### Vector Lookup Table ###
+{'v_range_on_var': 0, 'sc_bar_pos_config': {'vtkCoordinate': {'SetValue': (0.10000000000000001, 0.01, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_pos2_config': {'vtkCoordinate': {'SetValue': (0.80000000000000004, 0.14000000000000001, 0.0), 'SetDebug': 0, 'SetCoordinateSystem': 3}}, 'sc_bar_prop_config': {'vtkProperty2D': {'SetPointSize': 1.0, 'SetLineStippleRepeatFactor': 1, 'SetColor': (0.0, 0.0, 0.0), 'SetOpacity': 1.0, 'SetLineStipplePattern': 65535, 'SetDebug': 0, 'SetLineWidth': 1.0, 'SetDisplayLocation': 1}}, 'visible_data_range': [0.0, 1.0], 'reverse_lut_var': 0, 'base_file_name': u'/home/james/build/fluidity/trunk-dev/manual/examples_images/annulus/TemperatureSlices.mv', 'rel_file_name': '', 'range_on_var': 0, 'lut_config': {'vtkLookupTable': {'SetVectorMode': 1, 'SetHueRange': (0.66700000000000004, 0.0), 'SetScale': 0, 'SetNumberOfTableValues': 256, 'SetSaturationRange': (1.0, 1.0), 'SetAlphaRange': (1.0, 1.0), 'SetRamp': 2, 'SetAlpha': 1.0, 'SetDebug': 0, 'SetValueRange': (1.0, 1.0), 'SetNumberOfColors': 256, 'SetTableRange': (0.0, 1.0), 'SetVectorComponent': 0, 'SetRange': (0.0, 1.0)}}, 'sc_bar_config': {'vtkScalarBarActor': {'SetOrientation': 0, 'SetHeight': 0.14000000000000001, 'SetTextPosition': 1, 'SetLabelFormat': '%-#6.3g', 'SetTextureGridWidth': 10.0, 'SetDragable': 1, 'SetMaximumNumberOfColors': 64, 'SetPosition2': (0.80000000000000004, 0.14000000000000001), 'SetLayerNumber': 0, 'SetDebug': 0, 'SetNumberOfLabels': 8, 'SetVisibility': 0, 'SetPickable': 1, 'SetPosition': (0.10000000000000001, 0.01), 'SetWidth': 0.80000000000000004, 'SetUseOpacity': 0}}, 'file_name': '', 'lut_var': 1}
+### End Vector Lookup Table ###
+### Filters ###
+0
+### End of Filters ###
+### Modules ###
+1
+### 1. SurfaceMap ###
+SurfaceMap
+0, 10, 0.000000, 4.000000
+vtkContourFilter
+[('SetAbortExecute', 0), ('SetComputeGradients', 0), ('SetComputeNormals', 1), ('SetComputeScalars', 1), ('SetDebug', 0), ('SetReleaseDataFlag', 0), ('SetUseScalarTree', 0), ('SetArrayComponent', 0), ('SetNumberOfContours', 10), ('SetProgress', 1.0)]
+vtkDataSetMapper
+[('SetAbortExecute', 0), ('SetDebug', 0), ('SetGlobalImmediateModeRendering', 0), ('SetImmediateModeRendering', 0), ('SetInterpolateScalarsBeforeMapping', 0), ('SetReleaseDataFlag', 0), ('SetScalarVisibility', 0), ('SetStatic', 0), ('SetUseLookupTableScalarRange', 0), ('SetColorMode', 0), ('SetResolveCoincidentTopology', 0), ('SetScalarMaterialMode', 0), ('SetScalarMode', 0), ('SetProgress', 1.0), ('SetRenderTime', 0.0), ('SetResolveCoincidentTopologyPolygonOffsetFaces', 1), ('SetResolveCoincidentTopologyZShift', 0.01), ('SetScalarRange', (0.0, 4.0))]
+vtkOpenGLActor
+[('SetDebug', 0), ('SetDragable', 1), ('SetPickable', 1), ('SetVisibility', 1), ('SetOrientation', (0.0, -0.0, 0.0)), ('SetOrigin', (0.0, 0.0, 0.0)), ('SetPosition', (0.0, 0.0, 0.0)), ('SetScale', (1.0, 1.0, 1.0))]
+vtkOpenGLProperty
+[('SetBackfaceCulling', 0), ('SetDebug', 0), ('SetEdgeVisibility', 0), ('SetFrontfaceCulling', 0), ('SetShading', 0), ('SetInterpolation', 1), ('SetRepresentation', 2), ('SetAmbient', 0.0), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetColor', (0.0, 0.0, 0.0)), ('SetDiffuse', 1.0), ('SetDiffuseColor', (0.0, 0.0, 0.0)), ('SetEdgeColor', (0.0, 0.0, 0.0)), ('SetLineStipplePattern', 65535), ('SetLineStippleRepeatFactor', 1), ('SetLineWidth', 2.0), ('SetOpacity', 0.050000000000000003), ('SetPointSize', 1.0), ('SetSpecular', 0.0), ('SetSpecularColor', (0.0, 0.0, 0.0)), ('SetSpecularPower', 1.0)]
+### End of 1. SurfaceMap ###
+### End of Modules ###
+### End of 1. ModuleManager ###
+### End of ModuleManagers ###
+### End of 2. DataVizManager ###
+### End of DataVizManagers ###
+### RenderWindow ###
+vtkOpenGLRenderer
+[('SetAutomaticLightCreation', 1), ('SetBackingStore', 0), ('SetDebug', 0), ('SetDraw', 1), ('SetErase', 1), ('SetGradientBackground', False), ('SetInteractive', 1), ('SetLightFollowCamera', 1), ('SetTwoSidedLighting', 1), ('SetUseDepthPeeling', 0), ('SetAllocatedRenderTime', 10000.0), ('SetAmbient', (1.0, 1.0, 1.0)), ('SetAspect', (1.1745495495495495, 1.0)), ('SetBackground', (1.0, 1.0, 1.0)), ('SetBackground2', (0.20000000000000001, 0.20000000000000001, 0.20000000000000001)), ('SetDisplayPoint', (300.0, 272.5, 0.74116299841058297)), ('SetLayer', 0), ('SetMaximumNumberOfPeels', 4), ('SetNearClippingPlaneTolerance', 0.001), ('SetOcclusionRatio', 0.0), ('SetPixelAspect', (1.0, 1.0)), ('SetViewPoint', (0.0, 0.0036832412523020259, 0.74116299841058297)), ('SetViewport', (0.0, 0.0, 1.0, 1.0)), ('SetWorldPoint', (0.66323181579988988, 0.79432473840321383, 5.5424434457969038, 1.0))]
+vtkOpenGLCamera
+[('SetDebug', 0), ('SetParallelProjection', 0), ('SetUseHorizontalViewAngle', 0), ('SetClippingRange', (22.310126734672096, 83.230177460181991)), ('SetDistance', 49.227725813617425), ('SetEyeAngle', 2.0), ('SetFocalDisk', 1.0), ('SetFocalPoint', (0.70369377741930694, 0.83478670002263067, 5.4615195225580901)), ('SetLeftEye', 1), ('SetParallelScale', 11.313708498984761), ('SetPosition', (29.12533452750441, 29.256427450107747, 33.883160272643202)), ('SetRoll', -120.00000000000001), ('SetThickness', 60.920050725509896), ('SetViewAngle', 30.0), ('SetViewPlaneNormal', (0.57735026918962562, 0.57735026918962595, 0.57735026918962573)), ('SetViewShear', (0.0, 0.0, 1.0)), ('SetViewUp', (0.0, 0.0, 1.0)), ('SetWindowCenter', (0.0, 0.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 1), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 6.1230317691118863e-17, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+vtkOpenGLLight
+[('SetDebug', 0), ('SetPositional', 0), ('SetSwitch', 0), ('SetLightType', 2), ('SetAmbientColor', (0.0, 0.0, 0.0)), ('SetAttenuationValues', (1.0, 0.0, 0.0)), ('SetColor', (1.0, 1.0, 1.0)), ('SetConeAngle', 30.0), ('SetDiffuseColor', (1.0, 1.0, 1.0)), ('SetExponent', 1.0), ('SetFocalPoint', (0.0, 0.0, 0.0)), ('SetIntensity', 1.0), ('SetPosition', (0.0, 0.0, 1.0)), ('SetSpecularColor', (1.0, 1.0, 1.0))]
+### End of RenderWindow ###
