@@ -156,11 +156,7 @@ bool MeshDataStream::hasNext()
   return index < nelements;
 }
 
-#ifdef EXPERIMENTAL_SPATIALINDEX
 uint32_t MeshDataStream::size()
-#else
-size_t MeshDataStream::size()
-#endif
 {
   return nelements;
 }

@@ -1391,8 +1391,7 @@ Optional Features:
   --enable-dp=flag        compile with 64 bit floating point numbers (default)
   --enable-profiling      enable gprof profiling
   --enable-spatialindex-version
-                          Select required version of spatialindex library:
-                          1.3.2 or 1.5
+                          Select required version of spatialindex library: 1.5
   --enable-vtk            Only use to disable vtk
   --enable-2d-adaptivity  Link against 2D adaptivity library (GPL license)
   --enable-mba3d          Enabled libmba3d 3D adaptivity library
@@ -14518,11 +14517,6 @@ cat confdefs.h | grep F77_FUNC >> libvtkfortran/confdefs.h
 cat confdefs.h | grep VTK >> libvtkfortran/confdefs.h
 cat confdefs.h | grep MPI >> libvtkfortran/confdefs.h
 cat confdefs.h | grep "^#[dua][enl][fdl][ieo][nfw]" > include/confdefs.h
-
-if test "$enable_spatialindex_version" = "1.5"
-then
-  echo "#define EXPERIMENTAL_SPATIALINDEX 1" >> include/confdefs.h
-fi
 
 # Check whether --enable-2d-adaptivity was given.
 if test "${enable_2d_adaptivity+set}" = set; then :

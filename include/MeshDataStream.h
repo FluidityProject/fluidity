@@ -52,11 +52,7 @@ namespace Fluidity{
     
     virtual SpatialIndex::IData* getNext();
     virtual bool hasNext();
-#ifdef EXPERIMENTAL_SPATIALINDEX
     virtual uint32_t size();
-#else
-    virtual size_t size();
-#endif
     virtual void rewind();
 
     virtual int getPredicateCount();
