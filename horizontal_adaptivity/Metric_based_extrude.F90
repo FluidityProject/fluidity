@@ -371,14 +371,14 @@ module hadapt_metric_based_extrude
     assert(elements > 0)
   end function get_expected_elements
 
-  subroutine adapt_1d(back_mesh, sizing, oned_shape, z_mesh)
+  subroutine adapt_1d(back_mesh, sizing, oned_shape, z_mesh, preserve_regions)
     type(vector_field), intent(in) :: back_mesh
     type(scalar_field), intent(in) :: sizing
     type(vector_field), intent(inout) :: z_mesh
     type(element_type), intent(inout) :: oned_shape
+    logical, intent(in), optional :: preserve_regions
 
     integer :: elements
-    integer :: nodes
     integer :: node
     integer :: back_node
     real :: step
@@ -390,54 +390,225 @@ module hadapt_metric_based_extrude
     ! is an integer mulitple of total depth, the bottom layer needs
     ! to have at least this fraction of the layer depth above it:
     real, parameter:: MIN_BOTTOM_LAYER_FRAC=1e-3
+    
+    logical :: l_preserve_regions
+    integer, dimension(:), allocatable :: nodes_per_region, tmp_region_bdy_nodes, region_bdy_nodes
+    integer, dimension(:), allocatable :: tmp_region_ids, region_ids
+    integer :: ele, ele_2, ni, no_region_bdys, face, region_bdy
+    integer :: total_nodes, node_counter, tmp_size
+    integer, dimension(:), pointer :: neigh
+    integer, dimension(1) :: node_array
+    
+    ewrite(1,*) 'Entering adapt_1d'
+
+    l_preserve_regions = present_and_true(preserve_regions)
+
+    ! don't make the decision to preserve regions based on
+    ! the options tree because then it would happen during
+    ! mesh extrusion as well as 1d adaptivity, which would
+    ! be a wasted effort (also region ids might not be available)
+    if(l_preserve_regions) then
+      assert(associated(back_mesh%mesh%region_ids))
+      
+      ! let's hope the region ids don't go too high!
+      ! needs to have a minimum length of 2 (for both of the ends)
+      ! but we're probably going to overestimate the size here
+      ! (especially as we're catering for the possibility of negative
+      !  region ids which may not even be possible!)
+      tmp_size = abs(minval(back_mesh%mesh%region_ids)) + &
+                 abs(maxval(back_mesh%mesh%region_ids)) + 2
+      allocate(tmp_region_bdy_nodes(tmp_size))
+      tmp_region_bdy_nodes = 0
+      
+      allocate(tmp_region_ids(tmp_size))
+      tmp_region_ids = -1
+      
+      ! find the depths of the boundaries between region ids
+      no_region_bdys = 0
+      do ele = 1, ele_count(back_mesh)
+        neigh => ele_neigh(back_mesh, ele)
+        do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if (ele_2>0) then
+            ! Internal faces only.
+            if(back_mesh%mesh%region_ids(ele)/=back_mesh%mesh%region_ids(ele_2)) then
+              face=ele_face(back_mesh, ele, ele_2)
+              node_array=face_global_nodes(back_mesh, face)
+              if(.not.(any(node_array(1)==tmp_region_bdy_nodes))) then
+                ! only include this node if we haven't visited it from
+                ! another element
+                no_region_bdys = no_region_bdys + 1
+                tmp_region_bdy_nodes(no_region_bdys) = node_array(1) ! remember if we've visited this node
+                
+                ! always take the region_id from the region higher up
+                if((0.5*sum(ele_val(back_mesh, 1, ele)))>(0.5*sum(ele_val(back_mesh, 1, ele_2)))) then
+                  tmp_region_ids(no_region_bdys) = back_mesh%mesh%region_ids(ele)
+                else
+                  tmp_region_ids(no_region_bdys) = back_mesh%mesh%region_ids(ele_2)
+                end if
+                
+              end if
+            end if
+          else
+            ! External faces get added too but they're easier - they definitely get counted as region_bdys
+            face = ele_face(back_mesh, ele, ele_2)
+            node_array=face_global_nodes(back_mesh, face)
+            ! should be no need to check if we've visited this face already
+            no_region_bdys = no_region_bdys + 1
+            tmp_region_bdy_nodes(no_region_bdys) = node_array(1)
+            tmp_region_ids(no_region_bdys) = back_mesh%mesh%region_ids(ele)
+          end if          
+        end do
+      end do
+      
+      ! check the region bdys have been found at the ends of the domain
+      ! (this uses the assumption that the back_mesh is coordinate ordered)
+      assert(maxval(tmp_region_bdy_nodes)==node_count(back_mesh))
+      assert(no_region_bdys>1)
+      
+      ! take off 1 region bdy for the first node
+      no_region_bdys = no_region_bdys - 1 
+            
+      allocate(region_bdy_nodes(0:no_region_bdys))
+      region_bdy_nodes = 0
+      region_bdy_nodes(0) = 1 ! include the first node
+      
+      ! there's a region id for every bdy except the first node (index 0 in region_bdy_nodes)
+      ! these ids correspond to the region_id from the region higher up than the boundary
+      ! (i.e. we ditch a region_id from tmp_region_ids from the top node)
+      allocate(region_ids(no_region_bdys))
+      region_ids = -1
+      
+      ! sort the region bdy nodes into increasing order (corresponds to decreasing depth order)
+      do region_bdy = no_region_bdys, 1, -1
+        node_array = maxloc(tmp_region_bdy_nodes)
+        if(tmp_region_bdy_nodes(node_array(1))>0) then
+          region_bdy_nodes(region_bdy) = tmp_region_bdy_nodes(node_array(1))
+          tmp_region_bdy_nodes(node_array(1)) = 0 ! blank it so we don't find it again
+          ! assign the region id to this boundary from the region higher up
+          region_ids(region_bdy) = tmp_region_ids(node_array(1))
+        end if
+      end do
+      ! check the region bdys have been found at the ends of the domain
+      ! (this uses the assumption that the back_mesh is coordinate ordered)
+      assert(maxval(tmp_region_bdy_nodes)==1) ! should only be the first node remaining (everything else should be 0)
+      assert(maxval(region_bdy_nodes)==node_count(back_mesh))
+      assert(minval(region_bdy_nodes)==1)
+      assert(all(region_bdy_nodes>0))
+      assert(all(region_ids>=0))
+            
+      deallocate(tmp_region_bdy_nodes)
+      deallocate(tmp_region_ids)
+      
+      ewrite(2,*) 'region_ids = ', region_ids
+    
+    else
+      no_region_bdys = 1
+      allocate(region_bdy_nodes(0:no_region_bdys))
+      region_bdy_nodes(0) = 1 ! include the first node
+      region_bdy_nodes(no_region_bdys) = node_count(back_mesh)
+    end if
+    
+    ewrite(2,*) 'no_region_bdys = ', no_region_bdys
+    ewrite(2,*) 'region_bdy_nodes = ', region_bdy_nodes
 
     ! First we need to see how many nodes we will have.
     ! I do this by basically doing the work twice.
     ! You could be more clever and record the steps and positions,
     ! but I don't have dynamically-sized arrays :-(
 
-    nodes = 1
-    step = node_val(sizing, 1)
+    allocate(nodes_per_region(0:no_region_bdys))
+    nodes_per_region = 0
+    
+    ! the first node
+    nodes_per_region(0) = 1 
+    ! and it's position
+    current_pos = node_val(back_mesh, 1, region_bdy_nodes(0)) 
+
+    step = node_val(sizing, region_bdy_nodes(0))
     back_node = 2
-    current_pos = node_val(back_mesh, 1, 1)
-    depth = node_val(back_mesh, 1, node_count(back_mesh))
-    do 
-      current_pos = current_pos - step
+        
+    do region_bdy = 1, no_region_bdys
+      depth = node_val(back_mesh, 1, region_bdy_nodes(region_bdy))
+      do 
+        current_pos = current_pos - step
 
-      if (current_pos <= depth + MIN_BOTTOM_LAYER_FRAC*step) then
-        exit
-      end if
-      nodes = nodes + 1
+        if (current_pos <= depth + MIN_BOTTOM_LAYER_FRAC*step) then
+          exit
+        end if
+        nodes_per_region(region_bdy) = nodes_per_region(region_bdy) + 1
 
-      do while (current_pos < node_val(back_mesh, 1, back_node))
-        back_node = back_node + 1
+        do while (current_pos < node_val(back_mesh, 1, back_node))
+          back_node = back_node + 1
+        end do
+        step = compute_step(current_pos, back_mesh, back_node, sizing)
       end do
-      step = compute_step(current_pos, back_mesh, back_node, sizing)
+      
+      ! include the bottom node in this region (but not the top node)
+      nodes_per_region(region_bdy) = nodes_per_region(region_bdy) + 1
+      current_pos = depth
+      step = node_val(sizing, region_bdy_nodes(region_bdy))
+      
     end do
-    nodes = nodes + 1
 
-    elements = nodes - 1
-    call allocate(mesh, nodes, elements, oned_shape, "Mesh")
+    total_nodes = sum(nodes_per_region)
+    elements = total_nodes - 1
+    call allocate(mesh, total_nodes, elements, oned_shape, "Mesh")
+    if(l_preserve_regions) then
+      allocate(mesh%region_ids(elements))
+      mesh%region_ids = 0
+    end if
     call allocate(z_mesh, 1, mesh, "AdaptedZMesh")
+    call set(z_mesh, (/huge(0.0)/)) ! a bug catcher
     call deallocate(mesh)
 
-    call set(z_mesh, 1, node_val(back_mesh, 1))
-    step = node_val(sizing, 1)
+    step = node_val(sizing, region_bdy_nodes(0))
     back_node = 2
+    call set(z_mesh, region_bdy_nodes(0), node_val(back_mesh, 1, region_bdy_nodes(0)))
 
-    do node=2,elements
-      call set(z_mesh, node, (/node_val(z_mesh, 1, node-1) - step/))
+    do region_bdy = 1, no_region_bdys
+      node_counter = sum(nodes_per_region(0:region_bdy-1))
 
-      ! Now we need to compute the next step:
-      do while (node_val(z_mesh, 1, node) < node_val(back_mesh, 1, back_node))
-        back_node = back_node + 1
+      do node=1,nodes_per_region(region_bdy)-1
+        node_counter = node_counter + 1
+        
+        if(l_preserve_regions) then
+          ! here we assume that the elements are also ordered
+          ! this subroutine doesn't take care of the node to element list
+          ! so anything that does will have to reorder the region_id list as
+          ! well if it doesn't have the same assumption
+          z_mesh%mesh%region_ids(node_counter-1) = region_ids(region_bdy)
+        end if
+        
+        call set(z_mesh, node_counter, (/node_val(z_mesh, 1, node_counter-1) - step/))
+
+        ! Now we need to compute the next step:
+        do while (node_val(z_mesh, 1, node_counter) < node_val(back_mesh, 1, back_node))
+          back_node = back_node + 1
+        end do
+        step = compute_step(node_val(z_mesh, 1, node_counter), back_mesh, back_node, sizing)
       end do
-      step = compute_step(node_val(z_mesh, 1, node), back_mesh, back_node, sizing)
+      
+      ! include the bottom node in this depth (but not the top node)
+      node_counter = node_counter + 1
+      call set(z_mesh, node_counter, (/node_val(back_mesh, 1, region_bdy_nodes(region_bdy))/))
+      if(l_preserve_regions) then
+        ! here we assume that the elements are also ordered
+        ! this subroutine doesn't take care of the node to element list
+        ! so anything that does will have to reorder the region_id list as
+        ! well if it doesn't have the same assumption
+        z_mesh%mesh%region_ids(node_counter-1) = region_ids(region_bdy)
+      end if
+      step = node_val(sizing, region_bdy_nodes(region_bdy))
+      assert(node_val(z_mesh, 1, node_counter-1) > node_val(z_mesh, 1, node_counter))
     end do
 
-    ! and set the depth to be the constant, taken from the last node of back_mesh
-    call set(z_mesh, nodes, node_val(back_mesh, node_count(back_mesh)))
-    assert(node_val(z_mesh, 1, nodes-1) > node_val(z_mesh, 1, nodes))
+    ewrite_minmax(z_mesh%val(1)%ptr)
+    if(l_preserve_regions) then
+      ewrite_minmax(z_mesh%mesh%region_ids)
+    end if
+
+    ewrite(1,*) 'Leaving adapt_1d'
 
     contains
       function compute_step(current_pos, back_mesh, back_node, sizing) result(step)

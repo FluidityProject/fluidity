@@ -57,7 +57,7 @@ implicit none
   call test_vertical_integration_from_file("data/cube_unstructured", &
     PYTHON_FUNCTION2, python_function_derivative=PYTHON_FUNCTION_DERIVATIVE, &
     l2error=l2error)
-  fail= l2error>1e-3
+  fail= l2error>5e-3
   call report_test("[test_vertical_integration_unstructured_gradient]", fail, .false., &
     "Too large error in vertical integration on unstructured mesh.")
   

@@ -64,9 +64,6 @@ contains
     preserve_regions = have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions") .or. &
       & present_and_true(force_preserve_regions)
       
-    if(preserve_regions) then
-      ewrite(-1, *) "Warning: Region preservation is not supported by 1D adaptivity"
-    end if
     if(halo_count(old_positions) > 0) then
       FLAbort("1D adaptivity does not work in parallel")
     end if
@@ -89,7 +86,7 @@ contains
     assert(descending_coordinate_ordered(old_positions))
     
     call tic(TICTOC_ID_SERIAL_ADAPT)
-    call adapt_1d(old_positions, sizing, shape, new_positions)
+    call adapt_1d(old_positions, sizing, shape, new_positions, preserve_regions=preserve_regions)
     call toc(TICTOC_ID_SERIAL_ADAPT)
 
     call deallocate(sizing)
@@ -101,6 +98,11 @@ contains
     do i = 1, ele_count(new_positions)
       call set_ele_nodes(new_positions%mesh, i, (/i, i + 1/))
     end do  
+    ! note that adapt_1d has already allocated and inserted the region_ids
+    ! if they were meant to be preserved
+    ! HOWEVER adapt_1d does assume that the elements as well as the nodes
+    ! are ordered so if this assumption changes here then 
+    ! new_positions%mesh%region_ids will have to be reordered too!
     assert(surface_element_count(old_positions) == 2)
     call add_faces(new_positions%mesh, sndgln = (/1, node_count(new_positions)/), boundary_ids = old_positions%mesh%faces%boundary_ids)
     new_positions%name = old_positions%name
@@ -193,7 +195,7 @@ contains
     integer, dimension(node_count(new_positions)), intent(in) :: node_ownership
     
     integer :: i
-    real, parameter :: tol = 100.0 * epsilon(0.0)
+    real, parameter :: tol = 1000.0 * epsilon(0.0)
     
     do i = 1, node_count(new_positions)
       call verify_node_ownership_node(node_ownership(i), i, old_positions, new_positions)

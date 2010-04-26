@@ -1,0 +1,825 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">landslide_benchmark</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">multimaterial</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="InputMesh"/>
+        <extrude>
+          <bottom_depth>
+            <python>
+              <string_value lines="20" type="python">def val(X,t):
+   if(X[0]&lt;6000):
+      return X[0]+400.0
+   elif(X[0]&gt;10000):
+      return -X[0]+10000.0+6400.0
+   else:
+      return 6400.0</string_value>
+            </python>
+          </bottom_depth>
+          <sizing_function>
+            <constant>
+              <real_value rank="0">50.0</real_value>
+            </constant>
+          </sizing_function>
+          <top_surface_id>
+            <integer_value rank="0">8</integer_value>
+          </top_surface_id>
+          <bottom_surface_id>
+            <integer_value rank="0">6</integer_value>
+          </bottom_surface_id>
+        </extrude>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="InputMesh">
+      <from_file file_name="tank">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+      <controlvolume_surface_degree>
+        <integer_value rank="0">1</integer_value>
+      </controlvolume_surface_degree>
+    </quadrature>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">8</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">6</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output>
+            <exclude_from_vtu/>
+          </output>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+          <convergence>
+            <exclude_from_convergence/>
+          </convergence>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+          <steady_state>
+            <exclude_from_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output>
+            <exclude_from_vtu/>
+          </output>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+          <convergence>
+            <exclude_from_convergence/>
+          </convergence>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+          <steady_state>
+            <exclude_from_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <integer_value rank="0">5</integer_value>
+    </dump_period_in_timesteps>
+    <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">100</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
+    <stat>
+      <output_at_start/>
+      <output_before_adapts/>
+      <output_after_adapts/>
+    </stat>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">0.001</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">1000.0</real_value>
+    </finish_time>
+    <final_timestep>
+      <integer_value rank="0">55</integer_value>
+    </final_timestep>
+    <nonlinear_iterations replaces="ITINOI">
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">9.8</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="2" dim1="dim" rank="1">0.0 -1.0</real_value>
+            </constant>
+          </value>
+          <output>
+            <exclude_from_vtu/>
+          </output>
+          <stat>
+            <exclude_from_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="Water">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1000.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <control_volumes replaces="NCOLOP = X1XXXXX -&gt; INTERF, NOFILT"/>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution replaces="POISON">
+            <string_value lines="1">never</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method replaces="PROJEC"/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <no_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="LinearMomentum"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin replaces="DISOPT">
+            <mass_terms>
+              <lump_mass_matrix/>
+            </mass_terms>
+            <viscosity_scheme>
+              <bassi_rebay/>
+            </viscosity_scheme>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <once/>
+              </integrate_advection_by_parts>
+              <integrate_conservation_term_by_parts/>
+            </advection_scheme>
+          </discontinuous_galerkin>
+          <conservative_advection replaces="BETA">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="THETA">
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">6</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="RightWall">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="LeftWall">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <coupled_cv>
+            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
+              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+                <reflect_off_domain_boundaries/>
+                <bound_projected_value_locally/>
+                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+              </project_upwind_value_from_point>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </face_value>
+            <parent_sum>
+              <target_maximum>
+                <real_value rank="0">1.0</real_value>
+              </target_maximum>
+              <target_minimum>
+                <real_value rank="0">0.0</real_value>
+              </target_minimum>
+            </parent_sum>
+          </coupled_cv>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">0.0</real_value>
+          </theta>
+          <control_volumes>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.25</real_value>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </maximum_courant_number_per_subcycle>
+            <pivot_theta>
+              <real_value rank="0">0.0</real_value>
+            </pivot_theta>
+          </control_volumes>
+        </temporal_discretisation>
+        <explicit/>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+   if (X[1] &lt;=-2400):
+      return 1.0
+   else:
+      return 0.0</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <adaptivity_options>
+          <absolute_measure replaces="ADOPTT = 0">
+            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value rank="0">0.1</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat/>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+          </absolute_measure>
+        </adaptivity_options>
+        <galerkin_projection>
+          <continuous>
+            <bounded name="Diffuse">
+              <boundedness_iterations>
+                <integer_value rank="0">1000</integer_value>
+                <tolerance>
+                  <real_value rank="0">1.E-5</real_value>
+                </tolerance>
+              </boundedness_iterations>
+              <bounds>
+                <upper_bound>
+                  <real_value rank="0">1.0</real_value>
+                  <coupled/>
+                </upper_bound>
+                <lower_bound>
+                  <real_value rank="0">0.0</real_value>
+                </lower_bound>
+              </bounds>
+              <repair_deviations>
+                <tolerance>
+                  <real_value rank="0">1.E-10</real_value>
+                </tolerance>
+              </repair_deviations>
+            </bounded>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.E-10</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">10000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
+        <priority>
+          <integer_value rank="0">2</integer_value>
+        </priority>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="ControlVolumeDivergence" rank="0">
+      <diagnostic field_name="Velocity">
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ConstantField" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Landslide">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">2000.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="Water" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <coupled_cv>
+            <face_value name="PotentialUltraC">
+              <target_maximum>
+                <real_value rank="0">1.0</real_value>
+              </target_maximum>
+              <target_minimum>
+                <real_value rank="0">0.0</real_value>
+              </target_minimum>
+              <switch_to_hyperc/>
+              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+                <reflect_off_domain_boundaries/>
+                <bound_projected_value_locally/>
+                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+              </project_upwind_value_from_point>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </face_value>
+            <parent_sum>
+              <target_maximum>
+                <real_value rank="0">1.0</real_value>
+              </target_maximum>
+              <target_minimum>
+                <real_value rank="0">0.0</real_value>
+              </target_minimum>
+            </parent_sum>
+          </coupled_cv>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">0.0</real_value>
+          </theta>
+          <control_volumes>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.25</real_value>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </maximum_courant_number_per_subcycle>
+            <pivot_theta>
+              <real_value rank="0">0.0</real_value>
+            </pivot_theta>
+          </control_volumes>
+        </temporal_discretisation>
+        <explicit/>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+   if (X[1] &lt;=-400) and (X[0] &lt;= 1000):
+      return 1.0
+   else:
+      return 0.0</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adaptivity_options>
+          <absolute_measure replaces="ADOPTT = 0">
+            <scalar_field replaces="ADWEIT" name="InterpolationErrorBound" rank="0">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value rank="0">0.1</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat/>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+          </absolute_measure>
+        </adaptivity_options>
+        <galerkin_projection>
+          <continuous>
+            <bounded name="Diffuse">
+              <boundedness_iterations>
+                <integer_value rank="0">10000</integer_value>
+                <tolerance>
+                  <real_value rank="0">1.E-5</real_value>
+                </tolerance>
+              </boundedness_iterations>
+              <bounds>
+                <upper_bound>
+                  <real_value rank="0">1.0</real_value>
+                  <coupled/>
+                </upper_bound>
+                <lower_bound>
+                  <real_value rank="0">0.0</real_value>
+                </lower_bound>
+              </bounds>
+              <repair_deviations>
+                <tolerance>
+                  <real_value rank="0">1.E-10</real_value>
+                </tolerance>
+              </repair_deviations>
+            </bounded>
+            <solver>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1.E-10</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">10000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+          </continuous>
+        </galerkin_projection>
+        <priority>
+          <integer_value rank="0">1</integer_value>
+        </priority>
+      </prognostic>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Air">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="Water" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field name="MaterialVolumeFraction" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity replaces="ADMESH">
+      <period_in_timesteps>
+        <integer_value rank="0">10</integer_value>
+      </period_in_timesteps>
+      <maximum_number_of_nodes replaces="MXNODS">
+        <integer_value rank="0">15000</integer_value>
+      </maximum_number_of_nodes>
+      <anisotropic_gradation>
+        <tensor_field name="Gamma">
+          <anisotropic_symmetric>
+            <constant>
+              <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0 0.0 0.0 1.0</real_value>
+            </constant>
+          </anisotropic_symmetric>
+        </tensor_field>
+      </anisotropic_gradation>
+      <metric_advection>
+        <spatial_discretisation>
+          <control_volumes>
+            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+          </control_volumes>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <maximum_courant_number_per_subcycle>
+            <real_value rank="0">2.5</real_value>
+            <courant_number name="ControlVolumeCFLNumber"/>
+          </maximum_courant_number_per_subcycle>
+          <scale_advection_time>
+            <real_value rank="0">1.5</real_value>
+          </scale_advection_time>
+          <control_volumes>
+            <pivot_theta>
+              <real_value rank="0">0.5</real_value>
+            </pivot_theta>
+          </control_volumes>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+      </metric_advection>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">25.0 0.0 0.0 25.0</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">6000.0 0.0 0.0 3000.0</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <adapt_at_first_timestep>
+        <number_of_adapts>
+          <integer_value rank="0">10</integer_value>
+        </number_of_adapts>
+      </adapt_at_first_timestep>
+      <preserve_mesh_regions/>
+      <vertically_structured_adaptivity/>
+    </hr_adaptivity>
+  </mesh_adaptivity>
+</fluidity_options>
