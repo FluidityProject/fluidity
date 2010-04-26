@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>turbine_dirichlet_3d</name>
+  <owner userid="sf1409"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity turbine_dirichlet_3d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="velocity_block1" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_3d.detectors")
+velocity_block1=s["Water"]["Velocity"]["right_block1"][0]
+</variable>
+    <variable name="velocity_block2" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_3d.detectors")
+velocity_block2=s["Water"]["Velocity"]["left_block2"][0]
+</variable>
+    <variable name="area_block1" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_3d.stat")
+fs = s["Water"]["FreeSurface"]["min"]+s["Water"]["FreeSurface"]["max"]
+#area_block1 = fs + 1
+area_block1 =  1.0
+</variable>
+    <variable name="area_block2" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_3d.stat")
+area_block2=1.0
+</variable>
+    <variable name="time" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_3d.stat")
+time=s["ElapsedTime"]["value"]
+</variable>
+    <variable name="dt" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_3d.stat")
+dt=s["dt"]["value"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="flux_conservation" language="python">assert(all(abs(area_block1*velocity_block1-area_block2*velocity_block2)&lt;1e-10))</test>
+    <test name="time" language="python">from math import cos
+turbine_flux=velocity_block2
+head=[]
+# Note: the dirichlet turbine model is an explicit method! 
+for t in time:
+   head.append(cos(3.1415*(t-dt))*0.05)
+defined_flux=[]
+for h in head:
+   if abs(h)&lt;0.02:
+       defined_flux.append(0.0)
+   else:         
+       defined_flux.append(-h*10)
+assert(all(abs(defined_flux+velocity_block2)&lt;1e-5))</test>
+  </pass_tests>
+</testproblem>

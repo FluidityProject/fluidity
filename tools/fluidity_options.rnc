@@ -1507,7 +1507,46 @@ start =
             element output_drag{empty}?,
             element output_particle_vtus{empty}?         
          }?,
-
+   
+         ## turbine model
+         element turbine_model {
+           ## specifies a turbine
+           element turbine {
+             attribute name {xsd:string},
+             ## Model type
+               (
+                  ## Enforces the turbine model by using the dirichlet condition.
+                  element dirichlet {
+                     ## Name of the upstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.
+                     element boundary_condition_name_1 {
+                       attribute name {xsd:string}
+                     },
+                     ## Name of the downstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.
+                     element boundary_condition_name_2 {
+                       attribute name {xsd:string}
+                     },
+                     ## These coordinates define the upstream point where the free surface will be evaluated in order to calculate the head.
+                     element free_surface_point_1 {
+                       real_dim_vector
+                     },
+                     ## These coordinate define the downstream point where the free surface will be evaluated in order to calculate the head.
+                     element free_surface_point_2 {
+                       real_dim_vector
+                     },
+                     ## Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s) for a specific head. A return value 
+                     ## of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries.
+                     element head_flux {
+                       python_code
+                     }
+                  }|
+                  ## Enforces the turbine model by using the fluxes from the discontinues galerkin model.
+                  element dgflux {
+                     attribute name {xsd:string}
+                  }
+               )
+           }*
+         }?, 
+  
          ## traffic model
          element traffic_model {
             ## number of vehicles to be modelled

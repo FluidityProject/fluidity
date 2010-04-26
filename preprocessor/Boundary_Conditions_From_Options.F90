@@ -36,7 +36,7 @@ use state_module
 use sparse_tools_petsc
 use boundary_conditions
 use initialise_fields_module
-use global_parameters, only: OPTION_PATH_LEN, pi, current_debug_level
+use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN, pi, current_debug_level
 use tidal_module
 use SampleNetCDF
 use coordinates
@@ -44,6 +44,7 @@ use synthetic_bc
 use spud
 use vector_tools
 use vtk_interfaces
+use pickers_inquire
 
 implicit none
 
@@ -556,6 +557,10 @@ contains
 
     if (have_option('/ocean_forcing')) then
         call set_ocean_forcings_boundary_conditions(states(1))
+    end if
+
+    if (have_option('/turbine_model')) then
+        call set_turbine_model_boundary_conditions(states(1))
     end if
 
   end subroutine set_boundary_conditions_values
@@ -1564,6 +1569,107 @@ contains
     deallocate(d5)
 
   end subroutine set_ocean_forcings_boundary_conditions
+
+  subroutine set_turbine_model_boundary_conditions(state)
+    type(state_type), intent(in) :: state
+    type(vector_field), pointer :: vel_field,  coord_field
+    type(vector_field), pointer :: surface_field
+    type(vector_field) :: bc_positions
+    type(scalar_field) :: surface_field_normal
+    type(scalar_field), pointer :: fs_field
+
+    integer :: notur, i, j,ele
+    character(len=FIELD_NAME_LEN) :: turbine_path
+    character(len=FIELD_NAME_LEN), dimension(2) ::  bc_name
+    character(len=PYTHON_FUNC_LEN) :: func
+    real, dimension(3) :: picker
+    real,dimension(:),allocatable :: local_coord
+    real, dimension(2) :: fs_val, surface_area
+    real :: flux
+    integer, dimension(:), pointer :: surface_element_list
+    real :: time
+    ewrite(1,*) "In turbine model"
+
+    ! We made sure in populate_boundary_conditions that FreeSurface exists.
+    vel_field => extract_vector_field(state, "Velocity")
+    fs_field => extract_scalar_field(state, "FreeSurface")
+    coord_field => extract_vector_field(state, "Coordinate")
+    allocate(local_coord(coord_field%dim+1))
+
+    ! loop through turbines
+    notur = option_count("/turbine_model/turbine")
+    do i=0, notur-1
+       turbine_path="/turbine_model/turbine["//int2str(i)//"]"
+       if (.not. have_option(trim(turbine_path)//"/dirichlet")) then
+         cycle
+       end if
+       do j=1,2
+         call get_option(trim(turbine_path)//"/dirichlet/boundary_condition_name_"//int2str(j)//"/name", bc_name(j))
+       end do
+
+       call get_option("/timestepping/current_time", time)
+       print *, "time", time
+
+       ! Get free surface values at the user specified points
+       do j=1,2
+         call get_option(trim(turbine_path)//"/dirichlet/free_surface_point_"//int2str(j), picker(1:coord_field%dim))
+         if (coord_field%dim==1) then
+             call picker_inquire(coord_field, coordx=picker(1), ele=ele, local_coord=local_coord, global=.true.)
+         elseif (coord_field%dim==2) then
+             call picker_inquire(coord_field, coordx=picker(1), coordy=picker(2), ele=ele, local_coord=local_coord, global=.true.)
+         elseif (coord_field%dim==3) then
+             call picker_inquire(coord_field, picker(1), picker(2), picker(3), ele, local_coord, global=.true.)
+         end if
+         if (ele<0) then
+             FLAbort("The point defined in "//trim(turbine_path)//"/free_surface_point_"//int2str(j)//" is not located in a mesh element")
+         end if
+         fs_val(j) = eval_field_scalar(ele, fs_field, local_coord)
+       end do
+       ! Function head -> outflow
+       call get_option(trim(turbine_path)//"/dirichlet/head_flux", func)
+       call real_from_python(func, fs_val(1)-fs_val(2), flux)
+
+       ! Get surface areas of the boundaries
+       ! This could be done only once if no free surface mesh movement is performed.
+       do j=1,2
+           surface_field => extract_surface_field(vel_field, bc_name(j), name="value")
+           call get_boundary_condition(vel_field, bc_name(j), surface_element_list=surface_element_list)
+           ! Map the coord_field field to the surface mesh
+           call allocate(bc_positions, coord_field%dim, surface_field%mesh)
+           call remap_field_to_surface(coord_field, bc_positions, surface_element_list)
+           surface_area(j)=get_surface_area(bc_positions)
+           call deallocate(bc_positions)
+       end do
+
+       ! Overwrite the normal component of the dichilet boundaries
+       do j=1,2
+         surface_field => extract_surface_field(vel_field, bc_name(j), name="value")
+         ! Extract the scalar normal component
+         surface_field_normal = extract_scalar_field(surface_field, 1)
+         ! speed = outflow/area
+         ewrite(3,*) "Surface area of boundary ", trim(bc_name(j)), ": ",  surface_area(j)
+         ewrite(3,*) "Setting normal flow speed at boundary ", trim(bc_name(j)), " to: ", flux/surface_area(j)
+         call set(surface_field_normal, (-1)**j*flux/surface_area(j))
+       end do
+    end do
+    ! Tidying up
+    deallocate(local_coord)
+    ewrite(3,*) "Out turbine model."
+  end subroutine set_turbine_model_boundary_conditions
+
+  ! Calculates the surface area by integrating the unit function over the domain defined by "positions"
+  function get_surface_area(positions) result(surface_area)
+       type(vector_field), intent(in) :: positions
+       integer :: i
+       real :: surface_area
+       real, dimension(1:ele_ngi(positions%mesh,1)):: detwei
+
+       surface_area=0.0
+       do i=1, element_count(positions)
+          call transform_to_physical(positions, i, detwei)
+          surface_area=surface_area+sum(detwei)
+       end do
+   end function get_surface_area
 
 
   subroutine initialise_rotated_bcs(surface_element_list, x, & 

@@ -2103,6 +2103,55 @@ optimal size)</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="turbine_model">
+          <a:documentation>turbine model</a:documentation>
+          <zeroOrMore>
+            <element name="turbine">
+              <a:documentation>specifies a turbine</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <choice>
+                <a:documentation>Model type</a:documentation>
+                <element name="dirichlet">
+                  <a:documentation>Enforces the turbine model by using the dirichlet condition.</a:documentation>
+                  <element name="boundary_condition_name_1">
+                    <a:documentation>Name of the upstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                  <element name="boundary_condition_name_2">
+                    <a:documentation>Name of the downstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                  <element name="free_surface_point_1">
+                    <a:documentation>These coordinates define the upstream point where the free surface will be evaluated in order to calculate the head.</a:documentation>
+                    <ref name="real_dim_vector"/>
+                  </element>
+                  <element name="free_surface_point_2">
+                    <a:documentation>These coordinate define the downstream point where the free surface will be evaluated in order to calculate the head.</a:documentation>
+                    <ref name="real_dim_vector"/>
+                  </element>
+                  <element name="head_flux">
+                    <a:documentation>Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s) for a specific head.</a:documentation>
+                    <ref name="python_code"/>
+                  </element>
+                </element>
+                <element name="dgflux">
+                  <a:documentation>Enforces the turbine model by using the fluxes from the discontinues galerkin model.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+              </choice>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
+      <optional>
         <element name="traffic_model">
           <a:documentation>traffic model</a:documentation>
           <element name="number_of_vehicles">

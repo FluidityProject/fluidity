@@ -84,7 +84,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Porous_Media.o Spontaneous_Potentials.o LES_viscosity.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Sediment_Diagnostics.o Linear_Shallow_Water.o Zoltan_integration.o \
-        Diagnostic_Children.o Reduced_Model_Runtime.o
+        Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
