@@ -1486,12 +1486,11 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                   <a:documentation>[UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
 Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
 in order to close momentum equations.
-If calculate_boundaries is selected, Dirichlet BCs for the 2 scalar fields are imposed
-on the same surface ids as the no-slip BC. Must be used with a no-slip velocity BC.
-This will be modified to include wall functions and other more sophisticated BCs for the fields later.</a:documentation>
+Generates a fictitious 'eddy viscosity', added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field.</a:documentation>
                   <element name="scalar_field">
-                    <a:documentation>Turbulent kinetic energy (k). COMPULSORY OPTIONS:
-1. DO NOT specify a boundary condition (done internally; hard-coded to Dirichlet).
+                    <a:documentation>Turbulent kinetic energy (k). INSTRUCTIONS:
+1. Specify boundary conditions here. They are not done internally.
 2. Turn on diffusivity, source and absorption diagnostic fields.
 3. Use VelocityMesh.</a:documentation>
                     <attribute name="rank">
@@ -1511,8 +1510,8 @@ This will be modified to include wall functions and other more sophisticated BCs
                     </choice>
                   </element>
                   <element name="scalar_field">
-                    <a:documentation>TurbulentDissipation (epsilon). COMPULSORY OPTIONS:
-1. DO NOT specify a boundary condition (done internally; hard-coded to Dirichlet).
+                    <a:documentation>TurbulentDissipation (epsilon). INSTRUCTIONS:
+1. Specify boundary conditions here, or internally by selecting calculate_boundaries.
 2. Turn on diffusivity, source and absorption diagnostic fields.
 3. Use VelocityMesh.</a:documentation>
                     <attribute name="rank">
@@ -1532,18 +1531,19 @@ This will be modified to include wall functions and other more sophisticated BCs
                     </choice>
                   </element>
                   <element name="tensor_field">
-                    <a:documentation>Eddy viscosity (turbulent diffusion of velocity)</a:documentation>
+                    <a:documentation>Set the value of the normal viscosity field here.
+Make it small to see the influence of the eddy viscosity.
+IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                     <attribute name="rank">
                       <value>2</value>
                     </attribute>
                     <attribute name="name">
-                      <value>EddyViscosity</value>
+                      <value>BackgroundViscosity</value>
                     </attribute>
                     <choice>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
+                      <element name="prescribed">
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
+                        <ref name="prescribed_tensor_field"/>
                       </element>
                       <element name="aliased">
                         <ref name="generic_aliased_field"/>
@@ -1551,12 +1551,14 @@ This will be modified to include wall functions and other more sophisticated BCs
                     </choice>
                   </element>
                   <element name="tensor_field">
-                    <a:documentation>Background viscosity</a:documentation>
+                    <a:documentation>Eddy viscosity (turbulent diffusion of velocity)
+This is a fictitious viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field.</a:documentation>
                     <attribute name="rank">
                       <value>2</value>
                     </attribute>
                     <attribute name="name">
-                      <value>BackgroundViscosity</value>
+                      <value>EddyViscosity</value>
                     </attribute>
                     <choice>
                       <element name="diagnostic">
@@ -1592,7 +1594,7 @@ This will be modified to include wall functions and other more sophisticated BCs
                   </optional>
                   <optional>
                     <element name="scalar_field">
-                      <a:documentation>Scalar eddy viscosity (a diagnostic)</a:documentation>
+                      <a:documentation>Scalar eddy viscosity (diagnostic field)</a:documentation>
                       <attribute name="rank">
                         <value>0</value>
                       </attribute>
@@ -1612,11 +1614,43 @@ This will be modified to include wall functions and other more sophisticated BCs
                     </element>
                   </optional>
                   <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Ratio of TurbulentKineticEnergy to TurbulentDissipation (diagnostic field)</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>TKEOverEpsilon</value>
+                      </attribute>
+                      <choice>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                        <element name="aliased">
+                          <ref name="generic_aliased_field"/>
+                        </element>
+                      </choice>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="calculate_boundaries">
-                      <a:documentation>If calculate_boundaries is selected, Dirichlet BCs for the 2 scalar fields are imposed
-on the same surface ids as the no-slip BC. Must be used with a no-slip velocity BC.
+                      <a:documentation>If calculate_boundaries is selected, BCs for the epsilon field are imposed
+inside the code on the same surface ids as those for the k field.
 More sophisticated BCs for Epsilon (turbulentDissipation) will be included soon:
 eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.</a:documentation>
+                      <optional>
+                        <element name="string_value">
+                          <empty/>
+                        </element>
+                      </optional>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="limit_length">
+                      <a:documentation>If limit_length is selected, the lengthscale is limited on the same surfaces as
+k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).</a:documentation>
                       <optional>
                         <element name="string_value">
                           <empty/>

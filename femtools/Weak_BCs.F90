@@ -67,7 +67,7 @@
       integer                       :: nbcs, i, j, ele, sele, stat
       integer, dimension(:), pointer:: surface_element_list, surface_node_list
       integer, dimension(:), allocatable:: out_ele !, u_nodes_bdy
-      character(len=OPTION_PATH_LEN):: bc_type, bc_path_i
+      character(len=OPTION_PATH_LEN):: bc_type, bc_path_i, bc_name
 
       real:: tolerance, Cb, Cf, theta
 
@@ -93,10 +93,12 @@
            theta)
 
       nbcs=option_count(trim(velocity%option_path)//'/prognostic/boundary_conditions')
+      print *, nbcs
       do i=1, nbcs
-         call get_boundary_condition(velocity, i, type=bc_type, &
+         call get_boundary_condition(velocity, i, name=bc_name, type=bc_type, &
               surface_element_list=surface_element_list)
 
+         print *, trim(bc_name), i
          bc_path_i = &
               trim(velocity%option_path)//"/prognostic/boundary_conditions"//"["//int2str(i-1)//"]"
 
