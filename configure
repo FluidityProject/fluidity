@@ -12577,7 +12577,7 @@ fi
 
 
 
-PETSC_LINK_LIBS=`make -f petsc_makefile getlinklibs`
+PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$LIBS $PETSC_LINK_LIBS"
 
 PETSC_INCLUDE_FLAGS=`make -f petsc_makefile getincludedirs`
