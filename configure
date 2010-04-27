@@ -12580,7 +12580,7 @@ fi
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$LIBS $PETSC_LINK_LIBS"
 
-PETSC_INCLUDE_FLAGS=`make -f petsc_makefile getincludedirs`
+PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
 FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
 
