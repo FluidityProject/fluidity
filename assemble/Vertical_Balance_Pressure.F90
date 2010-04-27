@@ -66,8 +66,6 @@ module vertical_balance_pressure
     vbp => extract_scalar_field(state, vbp_name, stat = stat)
     if(stat /= 0) return
     
-    FLAbort("Sorry, VerticalBalancePressure not working yet.")
-    
     ewrite(1,*) 'In calculate_vertical_balance_pressure'
     if(continuity(vbp) < 0) then
       FLExit("VerticalBalancePressure requires a continuous mesh")
@@ -98,13 +96,11 @@ module vertical_balance_pressure
     logical, intent(in) :: assemble_matrix
    
     real :: gravity_magnitude
-    type(scalar_field), pointer :: buoyancy, topdis
+    type(scalar_field), pointer :: buoyancy
     type(vector_field), pointer :: coordinate, gravity
     type(scalar_field) :: lbuoyancy
     
     integer :: ele
-
-    integer, dimension(:), pointer :: surface_node_list
 
     ewrite(1,*) 'In assemble_vertical_balance_pressure'
 
@@ -133,14 +129,9 @@ module vertical_balance_pressure
                                  ele, assemble_matrix)
     end do
     
-    ewrite_minmax(rhs%val)
-    
     ! boundary condition stuff
-    topdis => extract_scalar_field(state, "DistanceToTop")
-    call get_boundary_condition(topdis, 1, surface_node_list = surface_node_list) 
-    if(assemble_matrix) call set_inactive(matrix, surface_node_list)
-    call zero(rhs, surface_node_list)
-    
+    call apply_dirichlet_conditions(matrix, rhs, vbp)
+
     ewrite_minmax(rhs%val)
     
     call deallocate(lbuoyancy)

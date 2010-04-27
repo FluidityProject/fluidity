@@ -463,8 +463,7 @@
       call zero(ct_rhs)
       call profiler_toc(u, "assembly")
       
-      if(has_scalar_field(state(istate), "BalancePressure") .or. &
-        & has_scalar_field(state(istate), gp_name)) then
+      if(has_scalar_field(state(istate), gp_name)) then
         call calculate_geostrophic_pressure_options(state(istate))
       end if
 

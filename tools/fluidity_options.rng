@@ -3383,6 +3383,27 @@ requires a distinct name for the options dictionary.</a:documentation>
         </element>
       </choice>
     </zeroOrMore>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Apply a strong dirichlet boundary condition to GeostrophicPressure.
+If applied, this would normally be a homogeneous bc on the top but
+this only makes sense when excluding coriolis.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="type">
+          <a:documentation>Type</a:documentation>
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <ref name="input_choice_real_plus_boundary_forcing"/>
+        </element>
+      </element>
+    </zeroOrMore>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>
@@ -3403,6 +3424,26 @@ requires a distinct name for the options dictionary.</a:documentation>
       <a:documentation>Solver</a:documentation>
       <ref name="linear_solver_options_sym"/>
     </element>
+    <oneOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Apply a strong dirichlet boundary condition to VerticalBalancePressure.
+This is normally be a homogeneous bc on the top surface.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="type">
+          <a:documentation>Type</a:documentation>
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <ref name="input_choice_real_plus_boundary_forcing"/>
+        </element>
+      </element>
+    </oneOrMore>
     <element name="exclude_from_checkpointing">
       <a:documentation>Disables checkpointing of this field</a:documentation>
       <ref name="comment"/>
@@ -5109,7 +5150,8 @@ for hp.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
-        <a:documentation>NOT WORKING YET!!!  DO NOT USE
+        <a:documentation>**UNDER TESTING**
+
 If enabled, decomposes Pressure so that VerticalBalancePressure balances against the density.
 Solves:
 

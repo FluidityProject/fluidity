@@ -2454,6 +2454,21 @@ prognostic_geostrophic_pressure_field =
             input_choice_initial_condition_real
          }
       )*,
+      ## Apply a strong dirichlet boundary condition to GeostrophicPressure.
+      ## If applied, this would normally be a homogeneous bc on the top but
+      ## this only makes sense when excluding coriolis.
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## Type
+         element type {
+            attribute name { "dirichlet" },
+            input_choice_real_plus_boundary_forcing
+         }
+      }*,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,
@@ -2472,6 +2487,20 @@ prognostic_vertical_balance_pressure_field =
       element solver {
          linear_solver_options_sym
       },
+      ## Apply a strong dirichlet boundary condition to VerticalBalancePressure.
+      ## This is normally be a homogeneous bc on the top surface.
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## Type
+         element type {
+            attribute name { "dirichlet" },
+            input_choice_real_plus_boundary_forcing
+         }
+      }+,      
       ## Disables checkpointing of this field
       element exclude_from_checkpointing {
         comment
@@ -3863,7 +3892,8 @@ scalar_field_choice =
                }
             )
          }|
-         ## NOT WORKING YET!!!  DO NOT USE
+         ## **UNDER TESTING**
+         ##
          ## If enabled, decomposes Pressure so that VerticalBalancePressure balances against the density.
          ## Solves:
          ##

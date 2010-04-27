@@ -1742,7 +1742,7 @@ contains
     !!< conditions are applied in rate of change form.
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(scalar_field), optional, intent(in) :: field
+    type(scalar_field), intent(in) :: field
     real, optional, intent(in) :: dt
     
     type(scalar_field), pointer:: surface_field

@@ -294,7 +294,7 @@ contains
     ! Step 2: Assemble
     select case(continuity(gp))
       case(0)
-        call assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
+        call assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m, gp)
       case(-1)
         FLAbort("DG GeostrophicPressure is not available")
       case default
@@ -384,12 +384,13 @@ contains
     
   end subroutine initialise_geostrophic_pressure
   
-  subroutine assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m)
+  subroutine assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m, gp)
     !!< Assemble the elliptic equation for GeostrophicPressure
     
     type(scalar_field), intent(inout) :: gp_rhs
     type(state_type), intent(inout) :: state
     type(csr_matrix), intent(inout) :: gp_m
+    type(scalar_field), intent(in) :: gp
     
     integer :: i, stat
     real :: gravity_magnitude
@@ -478,6 +479,9 @@ contains
     ! process (should be called by all processes though). This needs to be done
     ! every time, to zero the rhs.
     call set_geostrophic_pressure_reference_node(gp_m, gp_rhs)
+    
+    ! Set any strong dirichlet bc specified
+    call apply_dirichlet_conditions(gp_m, gp_rhs, gp)
     
     ewrite_minmax(gp_rhs%val)
     
@@ -3018,17 +3022,26 @@ contains
             
             call get_option(trim(path) // "/reference_node", reference_node, stat = stat)
             if(stat /= SPUD_NO_ERROR) then
-              if(.not. have_option(trim(path) // "/solver/remove_null_space")) then
-                FLExit("GeostrophicPressure requires either a reference node or null space removal in the solver")
+              if(.not. (have_option(trim(path) // "/solver/remove_null_space") .or. have_option(trim(path) // "/boundary_conditions"))) then
+                FLExit("GeostrophicPressure requires either a reference node, a boundary condition or null space removal in the solver")
               end if
             else if(reference_node <= 0) then
               FLExit("GeostrophicPressure reference node must be positive")
+            else
+              if(have_option(trim(path) // "/boundary_conditions")) then
+                FLExit("Shouldn't specify a reference node and a boundary condition for GeostrophicPressure")
+              end if
             end if
             
             call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
             if(geostrophic_pressure_option == "include_buoyancy" .and. &
               & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressure") > 0) then
               FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressure")
+            end if
+            if(geostrophic_pressure_option /= "exclude_coriolis" .and. &
+              & have_option("/physical_parameters/coriolis") .and. &
+              & have_option(trim(path) // "/boundary_conditions")) then
+              FLExit("Boundary conditions for GeostrophicPressure only make sense when excluding coriolis.")
             end if
           end if
         end do
