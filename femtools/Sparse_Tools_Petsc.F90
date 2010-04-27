@@ -49,6 +49,7 @@ module sparse_tools_petsc
   use petscis
   use petscmg
 #endif
+#endif
   implicit none
 #ifdef HAVE_PETSC_MODULES
 #if PETSC_VERSION_MINOR==0
