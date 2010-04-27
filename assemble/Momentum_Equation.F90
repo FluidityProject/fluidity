@@ -53,6 +53,7 @@
     use Profiler
     use geostrophic_pressure
     use hydrostatic_pressure
+    use vertical_balance_pressure
     use oceansurfaceforcing
     use drag_module
     use parallel_tools
@@ -492,6 +493,11 @@
       if(has_scalar_field(state(istate), hp_name)) then
         call calculate_hydrostatic_pressure(state(istate))
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
+      end if
+      
+      if(has_scalar_field(state(istate), vbp_name)) then
+        call calculate_vertical_balance_pressure(state(istate))
+        call subtract_vertical_balance_pressure_gradient(mom_rhs, state(istate))
       end if
       
       call profiler_tic(u, "assembly")

@@ -2174,7 +2174,7 @@ contains
     integer, intent(in) :: ele_number
     real, dimension(ele_loc(field,ele_number), &
          &          ele_ngi(field,ele_number),&
-         &          mesh_dim(field)),                   intent(in) :: dn
+         &          mesh_dim(field)), intent(in) :: dn
     real, dimension(field%mesh%shape%ngi, mesh_dim(field)) :: quad_grad
     
     integer :: i

@@ -2444,6 +2444,28 @@ prognostic_geostrophic_pressure_field =
 # removing all options that don't apply (mainly advection related)
 prognostic_vertical_balance_pressure_field =
    (
+      ## Solver
+      element solver {
+         linear_solver_options_sym
+      },
+      ## Disables checkpointing of this field
+      element exclude_from_checkpointing {
+        comment
+      },
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      scalar_convergence_options,
+      prognostic_detector_options,
+      scalar_steady_state_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar,
+      discrete_properties_algorithm_scalar?
+   )
+   
+# Hydrostatic pressure field, this is a copy of prognostic_scalar_field above
+# removing all options that don't apply (mainly advection related)
+prognostic_hydrostatic_pressure_field =
+   (
       ## Spatial discretisation options
       element spatial_discretisation {
         (
@@ -3801,11 +3823,35 @@ scalar_field_choice =
                }
             )
          }|
+         ## If enabled, decomposes Pressure so that HydrostaticPressure balances against the density.
+         ## Solves:
+         ##
+         ## grav_direction dot grad hp = grav*density
+         ##
+         ## for hp.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "HydrostaticPressure" },
             (
                element prognostic {
+                  mesh_choice,
+                  prognostic_hydrostatic_pressure_field
+               }
+            )
+         }|
+         ## NOT WORKING YET!!!  DO NOT USE
+         ## If enabled, decomposes Pressure so that VerticalBalancePressure balances against the density.
+         ## Solves:
+         ##
+         ## (grav_direction dot grad) (grav_direction dot grad) vbp = (grav_direction dot grad) grav*density
+         ##
+         ## for vbp.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "VerticalBalancePressure" },
+            (
+               element prognostic {
+                  ## This needs to be a continuous field!
                   mesh_choice,
                   prognostic_vertical_balance_pressure_field
                }

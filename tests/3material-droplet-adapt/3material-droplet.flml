@@ -44,7 +44,7 @@
     </mesh>
     <quadrature>
       <degree replaces="NGI">
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">2</integer_value>
       </degree>
       <controlvolume_surface_degree>
         <integer_value rank="0">1</integer_value>

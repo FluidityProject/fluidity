@@ -29,6 +29,7 @@
 module free_surface_module
 use fields
 use state_module
+use sparse_tools
 use sparse_matrices_fields
 use boundary_conditions
 use spud
@@ -87,6 +88,7 @@ contains
       integer, dimension(:), pointer:: surface_element_list
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
+      logical:: addto_cmc
       
       real, save :: coef_old = 0.0
       
@@ -132,6 +134,9 @@ contains
       
       alpha=1.0/g/rho0/dt
       coef = alpha/(theta**2*dt)
+      addto_cmc = .false. ! assume we don't need to add to cmc
+      ! but it will be set to true if we have adaptive timestepping turned
+      ! on and that results in a different coefficient
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
            surface_element_list=surface_element_list)
@@ -139,11 +144,20 @@ contains
           if (grav_stat/=0) then
              FLAbort("For a free surface you need gravity")
           end if
+          ! only add to cmc if we're reassembling it (get_cmc = .true.)
+          ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
+          addto_cmc = get_cmc.or.&
+                      (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
           do j=1, size(surface_element_list)
             call add_free_surface_element(surface_element_list(j))
           end do
         end if
       end do
+      if(addto_cmc) then
+        ! cmc has been modified (most likely by changing the timestep)
+        ! therefore we need to invalidate the solver context
+        call destroy_solver_cache(cmc)        
+      end if
       
       ! save the coefficient with the current timestep for the next time round
       coef_old = coef
@@ -174,7 +188,7 @@ contains
       end if
       
       mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
-      if (coef/=coef_old) then
+      if (addto_cmc) then
         ! we consider the projection equation to solve for 
         ! phi=theta^2 dt dp, so that the f.s. integral
         ! alpha M_fs dp=alpha M_fs phi/(theta^2 dt)

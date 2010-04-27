@@ -1503,40 +1503,14 @@ contains
     ! an optional argument to specify on which surface ids the normal should be calculated
     integer, dimension(:), intent(in), optional :: surface_ids
 
-    integer :: ele, sele, iloc, k
-    integer, dimension(:), allocatable :: nodes_bdy
-    real, dimension(:,:), allocatable :: x_ele_bdy, x_ele, normal_bdy
-
-    type(cv_faces_type) :: cvfaces
-    type(quadrature_type) :: bdyquad
-    type(element_type) :: bdyshape
+    integer :: sele, iloc, k
+    integer, dimension(face_loc(mesh,1)) :: nodes_bdy
+    real, dimension(x%dim,face_ngi(x,1)) :: normal_bdy
+    real, dimension(face_ngi(x, 1))      :: detwei_bdy
 
     logical, dimension(:), allocatable :: field_bc_type
 
     real :: normnormal
-
-    if(mesh%shape%degree==0) then
-      bdyquad = make_quadrature(vertices=face_vertices(mesh, 1), dim=(mesh_dim(mesh)-1), &
-                                degree=1)
-      bdyshape = make_element_shape(vertices=face_vertices(mesh,1), dim=(mesh_dim(mesh)-1), &
-                                    degree=x%mesh%faces%shape%degree, quad=bdyquad)
-    else
-      cvfaces=find_cv_faces(vertices=ele_vertices(mesh,1), &
-                            dimension=mesh_dim(mesh), &
-                            polydegree=mesh%shape%degree, &
-                            quaddegree=1)
-      bdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape%degree)
-    end if
-    
-    allocate(normal_bdy(mesh_dim(mesh), bdyshape%ngi))
-    allocate(x_ele(mesh_dim(x),ele_loc(x,1)), &
-             x_ele_bdy(mesh_dim(x),face_loc(x,1)))
-    allocate(nodes_bdy(face_loc(mesh,1)))
-
-    ! temporary hack
-    assert(size(nodes_bdy)==size(normal_bdy, 2))  ! check that the no. of gauss pts. == no. of nodes
-                                                  ! this should be guaranteed by quaddegree=1
-                                                  ! but might break down for some elements
 
     allocate(field_bc_type(surface_element_count(mesh)))
     call get_periodic_boundary_condition(mesh, field_bc_type)
@@ -1550,26 +1524,15 @@ contains
         if(.not.any(surface_ids==surface_element_id(mesh, sele))) cycle
       end if
 
-      ele = face_ele(x, sele)
-      x_ele = ele_val(x, ele)
-      x_ele_bdy = face_val(x, sele)
-
       nodes_bdy=face_global_nodes(normals, sele)
 
       on_boundary(nodes_bdy) = .true.
-
-      if(mesh%shape%degree==0) then
-        ! work out the normals at the gauss points of the face
-        call transform_facet_to_physical(x, sele, normal=normal_bdy)
-      else
-        ! work out the normals at the gauss points of the face
-        call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
-                              bdyshape, normal_bdy)
-      end if
-
-      ! here's where the temporary hack happens...
-      ! add the gauss pt. normals to the nodes (they need to be the same length)
-      call addto(normals, nodes_bdy, normal_bdy)
+      
+      call transform_facet_to_physical(x, sele, &
+            detwei_f=detwei_bdy, normal=normal_bdy)
+      
+      call addto(normals, nodes_bdy, &
+                shape_vector_rhs(face_shape(normals, sele), normal_bdy, detwei_bdy))
 
     end do ! sele
 
@@ -1577,7 +1540,7 @@ contains
     do iloc = 1, node_count(normals)
     
       if(.not.on_boundary(iloc)) cycle
-
+      
       normnormal = 0.0
       do k = 1, mesh_dim(normals)
         normnormal = normnormal + node_val(normals, k, iloc)**2
@@ -1587,13 +1550,6 @@ contains
       call set(normals, iloc, node_val(normals,iloc)/max(normnormal, tolerance))
 
     end do ! iloc
-
-    if(mesh%shape%degree==0) then
-      call deallocate(bdyquad)
-    else
-      call deallocate(cvfaces)
-    end if
-    call deallocate(bdyshape)
 
   end subroutine calculate_boundary_normals
 

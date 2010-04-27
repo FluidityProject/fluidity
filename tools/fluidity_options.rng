@@ -2136,7 +2136,8 @@ optimal size)</a:documentation>
                     <ref name="real_dim_vector"/>
                   </element>
                   <element name="head_flux">
-                    <a:documentation>Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s) for a specific head.</a:documentation>
+                    <a:documentation>Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s) for a specific head. A return value 
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries.</a:documentation>
                     <ref name="python_code"/>
                   </element>
                 </element>
@@ -3364,6 +3365,30 @@ requires a distinct name for the options dictionary.</a:documentation>
     removing all options that don't apply (mainly advection related)
   -->
   <define name="prognostic_vertical_balance_pressure_field">
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_sym"/>
+    </element>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!--
+    Hydrostatic pressure field, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_hydrostatic_pressure_field">
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
       <choice>
@@ -5032,6 +5057,12 @@ mesh than the velocity mesh&lt;/b&gt;</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
+        <a:documentation>If enabled, decomposes Pressure so that HydrostaticPressure balances against the density.
+Solves:
+
+grav_direction dot grad hp = grav*density
+
+for hp.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -5040,6 +5071,27 @@ mesh than the velocity mesh&lt;/b&gt;</a:documentation>
         </attribute>
         <element name="prognostic">
           <ref name="mesh_choice"/>
+          <ref name="prognostic_hydrostatic_pressure_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>NOT WORKING YET!!!  DO NOT USE
+If enabled, decomposes Pressure so that VerticalBalancePressure balances against the density.
+Solves:
+
+(grav_direction dot grad) (grav_direction dot grad) vbp = (grav_direction dot grad) grav*density
+
+for vbp.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>VerticalBalancePressure</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice">
+            <a:documentation>This needs to be a continuous field!</a:documentation>
+          </ref>
           <ref name="prognostic_vertical_balance_pressure_field"/>
         </element>
       </element>

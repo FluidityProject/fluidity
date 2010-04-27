@@ -424,6 +424,15 @@ contains
                 & ) * detwei(gi)
            end forall
         end do
+      case(1)
+        do gi=1,ngi
+           forall(iloc=1:loc1,jloc=1:loc2)
+              r(iloc,jloc)=r(iloc,jloc) &
+                & + ( &
+                  & (dshape1(iloc,gi,1) * dshape2(jloc,gi,1)) &
+                & ) * detwei(gi)
+           end forall
+        end do
       case default
         do gi=1,ngi
            forall(iloc=1:loc1,jloc=1:loc2)
