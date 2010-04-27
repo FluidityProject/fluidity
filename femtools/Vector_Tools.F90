@@ -394,7 +394,10 @@ contains
     integer :: info, i, j, dim
     real, dimension(3 * size(M,1)) :: work
     real, dimension(size(M,1) * (size(M, 1)+1)/2) :: AP
-
+    
+    
+    real, dimension(:), pointer:: x, y
+    
     interface
 #ifdef DOUBLEP
       SUBROUTINE DSPEV( JOBZ, UPLO, N, AP, W, Z, LDZ, WORK, INFO )
@@ -406,7 +409,7 @@ contains
         REAL               AP(N*(N+1)/2), W(N), WORK(3*N), Z(LDZ, N)
       END SUBROUTINE
     end interface
-
+      
     if(present(stat)) stat = 0
 
     dim = size(M, 1)

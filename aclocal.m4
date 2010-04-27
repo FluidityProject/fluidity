@@ -410,135 +410,173 @@ AC_REQUIRE([ACX_LAPACK])
 LAPACK_LIBS="$LAPACK_LIBS $BLAS_LIBS"
 AC_PATH_XTRA
 
-# Set variables...
-AC_ARG_WITH(
-	[PETSc],
-	[  --with-PETSc=PFX        Prefix where PETSc is installed (use =no to disable)],
-	[PETSc="$withval"],
-	[if test ! -z "$PETSC_DIR"; then
-		PETSc="$PETSC_DIR"
-		echo "note: assuming PETSc library is in $PETSc (/lib,/include) as specified by environment variable PETSC_DIR"
-	else
-		PETSc="/usr/local"
-		echo "note: assuming PETSc library is in /usr/local (/lib,/include)"
-	fi])
-AC_ARG_WITH(
-	[PETSc_ARCH],
-	[  --with-PETSc_ARCH=VAL   PETSc hardware architecture (optional)],
-	[PETSc_ARCH="$withval"],
-	[if test ! -z "$PETSC_ARCH"; then
-		PETSc_ARCH="$PETSC_ARCH"
-		echo "note: assuming PETSc hardware architecture to be $PETSc_ARCH as specified by environment variable PETSC_ARCH"
-	else
-		PETSc_ARCH=""
-		echo "note: PETSC_ARCH is not set. This may be valid for some PETSc 3 installations."
-	fi])
-        
-# PETSC_LIBS may be provided by user to explicitly set LIBS flags for petsc
-if test "x$PETSC_LIBS" == "x" ; then
-  # logic to work out the PETSc libs path
-  PETSc_LIBS_PATH="$PETSc/lib/$PETSc_ARCH"
-  # this is the right order for PETSc 3:
-  PETSc3_LIBS_PATH="$PETSc/$PETSc_ARCH/lib"
-  # Check we can physically find the library
-  if test -e $PETSc_LIBS_PATH/libpetsc.a || test -e $PETSc_LIBS_PATH/libpetsc.so; then
-        echo "note: using $PETSc_LIBS_PATH/libpetsc (.a/.so)"
-  elif test -e $PETSc3_LIBS_PATH/libpetsc.a || test -e $PETSc3_LIBS_PATH/libpetsc.so; then
-        PETSc_LIBS_PATH="$PETSc3_LIBS_PATH"
-        echo "note: using $PETSc_LIBS_PATH/libpetsc (.a/.so)"
-  else
-        AC_MSG_ERROR( [Could not physically find PETSc library... exiting] )
-  fi
+if test "x$PETSC_DIR" == "x"; then
+  AC_MSG_WARN( [No PETSC_DIR set - do you need to load a petsc module?] )
+  AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
 
 
 
-# logic to work out the PETSc include path
-PETSc_INCLUDES_PATH="$PETSc/include"
-if test -e $PETSc_INCLUDES_PATH/petsc.h; then
-	echo "note: using $PETSc_INCLUDES_PATH/petsc.h"
-else
-	AC_MSG_ERROR( [Could not physically find PETSc header file... exiting] )
+PETSC_LINK_LIBS=`make -f petsc_makefile getlinklibs`
+LIBS="$LIBS $PETSC_LINK_LIBS"
+
+PETSC_INCLUDE_FLAGS=`make -f petsc_makefile getincludedirs`
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
+
+# Horrible hacks needed for cx1
+# Somehow /apps/intel/ict/mpi/3.1.038/lib64/apps/intel/ict/mpi/3.1.038/lib/64 gets given as 
+# maybe the directory got moved after building petsc? Anyhow next time we
+# request a new petsc package on cx1, this hack can be removed - and we
+# can check if the new packages passes the test without any hacks.
+fixedLIBS=`echo $LIBS |sed 's@/apps/intel/ict/mpi/3.1.038/lib/64@/apps/intel/ict/mpi/3.1.038/lib64@g'`
+
+if test ! "$LIBS" == "$fixedLIBS"; then
+  # more fixes needed:
+  # also -lmpichcxx got mangled to -lmpichxx
+  LIBS=`echo $fixedLIBS |sed 's@mpichxx@mpichcxx@g'`
+  # remove -lPEPCF90, -lpromfei and -lprometheus
+  LIBS=`echo $LIBS |sed 's@-lPEPCF90@@g'`
+  LIBS=`echo $LIBS |sed 's@-lpromfei@@g'`
+  LIBS=`echo $LIBS |sed 's@-lprometheus@@g'`
 fi
 
-# now see if we can find petsc modules:
-if test -e "$PETSc_INCLUDES_PATH/petsc.mod"; then
-  AC_MSG_NOTICE( [Using fortran modules found in $PETSc/include/] )
-  HAVE_PETSC_MODULES=1
-# petsc fortran modules are sometimes stored in a different include/ directory
-elif test -e "$PETSc/$PETSC_ARCH/inc
-lude/petsc.mod"; then
-  FCFLAGS="$FCFLAGS -I$PETSc/$PETSc_ARCH/include/"
-  FFLAGS="$FFLAGS -I$PETSc/$PETSc_ARCH/include/"
-  HAVE_PETSC_MODULES=1
-  AC_MSG_NOTICE( [Using fortran modules found in $PETSc/$PETSc_ARCH/include/] )
-else
-  AC_MSG_NOTICE( [Did not find fortran modules] )
-fi
+AC_LANG(Fortran)
+# F90 (capital F) to invoke preprocessing
+# it's only 20 years ago now!
+ac_ext=F90
+# now try if the petsc fortran modules work:
+AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM([],[[
+                        use petsc
+                        print*, "hello petsc"
+                        ]])],
+        [
+            AC_MSG_NOTICE([PETSc modules are working.])
+            AC_DEFINE(HAVE_PETSC_MODULES,1,[Define if you have petsc fortran modules.] )
+        ],
+        [
+            AC_MSG_NOTICE([PETSc modules don't work, using headers instead.])
+            unset HAVE_PETSC_MODULES
+        ])
 
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-AC_LANG_SAVE
-AC_LANG_C
-if test "x$PETSC_LIBS" == "x" ; then
-  LIBS="-L$PETSc_LIBS_PATH $MPI_LIBS_PATHS $MPI_LIBS $LAPACK_LIBS $LIBS -lm"
-else
-  LIBS="$PETSC_LIBS $MPI_LIBS_PATHS $MPI_LIBS $LAPACK_LIBS $LIBS -lm"
-fi
-CPPFLAGS="-I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH $CPPFLAGS"
-FFLAGS="$FFLAGS -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
-FCFLAGS="$FCFLAGS -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
-AC_CHECK_LIB(
-	[petsc],
-	[PetscInitializePackage],
-	[AC_DEFINE(HAVE_PETSC,1,[Define if you have PETSc library.])],
-	[AC_CHECK_LIB(
-    [craypetsc],
-    [PetscInitializePackage],
-    [CRAYPETSC=1; AC_DEFINE(HAVE_PETSC,1,[Define if you have PETSc library.])],
-    [AC_MSG_ERROR( [Could not link in the PETSc library... exiting] )] )])
-# petsc.h needs mpi.h so we have to precompile with mpicc
-tmpCPP=$CPP
-CPP="$CC -c"
-AC_CHECK_HEADER(
-	[petsc.h],
-	[AC_DEFINE( 
-		[HAVE_PETSc_H],,
-		[Define to 1 if you have the <petsc.h> header file.])],
-	[AC_MSG_ERROR( [Could not compile in the PETSc headers... exiting] )] )
-CPP=$tmpCPP
-if test "x$PETSC_LIBS" == "x" ; then
-  if test -z "$CRAYPETSC"; then
-    PETSC_LIBS="-L$PETSc_LIBS_PATH -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lparmetis -lmetis"
-  else
-    PETSC_LIBS="-L$PETSc_LIBS_PATH -lcraypetsc"
-  fi
-else
-  AC_MSG_NOTICE([Using user provided PETSC_LIBS])
-fi
-if test "x$HAVE_PETSC_MODULES" == "x1" ; then
-  # now try if the module files actually work:
-  AC_LANG_FORTRAN77
-  AC_LINK_IFELSE(
-          [AC_LANG_PROGRAM([],[[
-                          use petsc
-                          print*, "hello petsc"
-                          ]])],
-          [
-              AC_MSG_NOTICE([PETSc modules are working.])
-              AC_DEFINE(HAVE_PETSC_MODULES,1,[Define if you have petsc fortran modules.] )
-          ],
-          [
-              AC_MSG_NOTICE([PETSc modules don't work, using headers instead.])
-          ])
-fi
+# now try a more realistic program, it's a stripped down
+# petsc tutorial - using the headers in the same way as we do in the code
+AC_LINK_IFELSE(
+[AC_LANG_SOURCE([
+program test
+#include "petscversion.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#if PETSC_VERSION_MINOR==0
+  use petscvec 
+  use petscmat 
+  use petscksp 
+  use petscpc
+#endif
+#endif
+implicit none
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petscvecdef.h"
+#include "finclude/petscmatdef.h"
+#include "finclude/petsckspdef.h"
+#include "finclude/petscpcdef.h"
+#else
+#include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
+#include "finclude/petscvec.h"
+#include "finclude/petscmat.h"
+#include "finclude/petscksp.h"
+#include "finclude/petscpc.h"
+#endif
+#endif
+      double precision  norm
+      PetscInt  i,j,II,JJ,m,n,its
+      PetscInt  Istart,Iend,ione
+      PetscErrorCode ierr
+      PetscTruth  flg
+      PetscScalar v,one,neg_one
+      Vec         x,b,u
+      Mat         A 
+      KSP         ksp
+
+      call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
+      m = 3
+      n = 3
+      one  = 1.0
+      neg_one = -1.0
+      ione    = 1
+      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+
+      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
+      call MatSetFromOptions(A,ierr)
+
+      call MatGetOwnershipRange(A,Istart,Iend,ierr)
+      
+      do 10, II=Istart,Iend-1
+        v = -1.0
+        i = II/n
+        j = II - i*n  
+        if (i.gt.0) then
+          JJ = II - n
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        if (i.lt.m-1) then
+          JJ = II + n
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        if (j.gt.0) then
+          JJ = II - 1
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        if (j.lt.n-1) then
+          JJ = II + 1
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        v = 4.0
+        call  MatSetValues(A,ione,II,ione,II,v,INSERT_VALUES,ierr)
+ 10   continue
+
+      call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
+
+      call VecCreateMPI(PETSC_COMM_WORLD,PETSC_DECIDE,m*n,u,ierr)
+      call VecSetFromOptions(u,ierr)
+      call VecDuplicate(u,b,ierr)
+      call VecDuplicate(b,x,ierr)
+
+      call VecSet(u,one,ierr)
+      call MatMult(A,u,b,ierr)
+
+      call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
+      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetFromOptions(ksp,ierr)
+
+      call KSPSolve(ksp,b,x,ierr)
+
+      call VecAXPY(x,neg_one,u,ierr)
+      call VecNorm(x,NORM_2,norm,ierr)
+      call KSPGetIterationNumber(ksp,its,ierr)
+
+      call KSPDestroy(ksp,ierr)
+      call VecDestroy(u,ierr)
+      call VecDestroy(x,ierr)
+      call VecDestroy(b,ierr)
+      call MatDestroy(A,ierr)
+
+      call PetscFinalize(ierr)
+end program test
+])],
+[
+AC_MSG_NOTICE([PETSc program succesfully compiled and linked.])
+],
+[
+cp conftest.F90 test.F90
+AC_MSG_FAILURE([Failed to compile and link PETSc program.])])
+
 AC_LANG_RESTORE
-# now add on to the relevant flags:
-# (FCFLAGS and FFLAGS were set already above)
-tmpCPPFLAGS="$tmpCPPFLAGS -DHAVE_PETSC -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
-CPPFLAGS=$tmpCPPFLAGS
-LIBS="$PETSC_LIBS $tmpLIBS"
 
 # finally check we have the right petsc version
 AC_COMPUTE_INT(PETSC_VERSION_MAJOR, "PETSC_VERSION_MAJOR", [#include "petscversion.h"], 
@@ -549,6 +587,8 @@ else
   AC_MSG_NOTICE([Detected PETSc version "$PETSC_VERSION_MAJOR"])
   AC_MSG_ERROR([Fluidity needs PETSc version 3])
 fi
+
+AC_DEFINE(HAVE_PETSC,1,[Define if you have the PETSc library.])
 
 ])dnl ACX_PETSc
 

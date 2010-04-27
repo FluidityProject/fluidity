@@ -42,7 +42,6 @@ module sparse_tools
   
   implicit none
   
-#ifdef HAVE_PETSC
 #ifdef HAVE_PETSC_MODULES
 #include "finclude/petsckspdef.h"
 #else
@@ -50,11 +49,6 @@ module sparse_tools
 #include "finclude/petscksp.h"
 #include "finclude/petscsys.h"
 #endif
-#else
-#define KSP integer
-#define PETSC_NULL_OBJECT 0
-#endif
-
 
   private
   
@@ -1534,7 +1528,6 @@ END SUBROUTINE POSINM_COLOUR
       FLAbort("Deallocating non-allocated or damaged csr matrix")
     end if
     
-#ifdef HAVE_PETSC
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
@@ -1546,7 +1539,6 @@ END SUBROUTINE POSINM_COLOUR
         FLAbort("Error from KSPDestroy in deallocate_csr_matrix")
       end if
     end if
-#endif
     deallocate(matrix%ksp)
     
 42  if (present(stat)) then
@@ -1742,7 +1734,6 @@ END SUBROUTINE POSINM_COLOUR
     if (.not. associated(matrix%ksp)) then
       FLAbort("Deallocating non-allocated or damaged csr matrix")
     end if
-#ifdef HAVE_PETSC
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
@@ -1754,7 +1745,6 @@ END SUBROUTINE POSINM_COLOUR
         FLAbort("Error from KSPDestroy in deallocate_csr_matrix")
       end if
     end if
-#endif
     deallocate(matrix%ksp)
     
     if (associated(matrix%ival)) then

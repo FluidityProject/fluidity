@@ -182,8 +182,7 @@ then
         export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
       fi
 	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-	    FLIBS="$FLIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-            CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
 	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
             CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
         fi
@@ -257,8 +256,6 @@ if test "$found_blas" = "no"
 fi
 ACX_LAPACK([],[AC_MSG_ERROR("Cannot identify LAPACK. Check that it is installed.")])
 AC_LANG_POP([Fortran 77])
-
-FLIBS=`echo $FLIBS | sed 's/)//g'` 
 
 # Check for standard libraries
 AC_LANG_PUSH([C])
@@ -769,33 +766,15 @@ if test "$enable_mpi" != "no"
      fi
     fi
 fi
-# various synonyms accepted for disabling PETSc
-if test "$enable_PETSc" = no ; then with_PETSc=no; fi
-if test "$enable_petsc" = no ; then with_PETSc=no; fi
-if test "$with_petsc" = no ; then with_PETSc=no; fi
-if test "$with_PETSc" != "no" # -a -n "$with_PETSc"
-    then
-    AC_MSG_NOTICE([Checking for PETSc automagic.])
-    AC_LANG_PUSH([Fortran 77])
-    AC_LINK_IFELSE(
-	[AC_LANG_PROGRAM([],[[
-			use petsc
-			print*, "hello petsc"
-			]])],
-	[
-	    AC_MSG_NOTICE([PETSc automagic works.])
-	    CPPFLAGS="$CPPFLAGS -DHAVE_PETSC -DHAVE_PETSC_MODULES -DHAVE_HYPRE"],
-	[
-            AC_MSG_NOTICE([No PETSc automagic.])
-	    search_for_petsc=yes	    
-	])
-    AC_LANG_POP([Fortran 77])
-fi
 
-if test "x$search_for_petsc" == "xyes" ; then
-    AC_MSG_NOTICE([Searching for PETSc.])
-    ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_WARN(["PETSc not found"])])
-    ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
+ACX_PETSc([AC_MSG_NOTICE(["PETSc found, enabling scalable solver"])], [AC_MSG_ERR(["PETSc not found"])])
+ACX_hypre([AC_MSG_NOTICE(["hypre found, enabling hypre preconditioners"])], [AC_MSG_WARN(["hypre not found"])])
+CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
+if test "$HAVE_PETSC_MODULES" == "1"; then
+  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
+fi
+if test "$HAVE_HYPRE" == "1"; then
+  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
 fi
 
 # Double precision.

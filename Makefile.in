@@ -50,8 +50,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
 LINKER  = @LINKER@ @LDFLAGS@
 
-# Some enteries are duplicated on purpose because of the insane way some linkers resolve symbols
-LIBS    = -L./lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
+LIBS    = -L./lib -l@FLUIDITY@ @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
            @LIBS@
 

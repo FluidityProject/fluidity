@@ -1,5 +1,6 @@
 #include "confdefs.h"
 #include "fdebug.h"
+#include "petscversion.h"
 !! Little program that reads in a matrix equation from a file called 
 !! 'matrixdump' in the current directory containing a matrix, rhs vector and 
 !! initial guess, written in PETSc binary format. It then subsequently solves 
@@ -25,7 +26,6 @@
 !!     solver: put PETSc options -ksp_type preonly and -pc_type lu. Although
 !!     for ill-conditioned matrices its accuracy may be limited.
 subroutine petsc_readnsolve
-#ifdef HAVE_PETSC
 use quadrature
 use elements
 use fields
@@ -43,7 +43,26 @@ use spud
 use populate_state_module
 use field_options
 use halos_registration
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#if PETSC_VERSION_MINOR==0
+  use petscvec 
+  use petscmat 
+  use petscksp 
+  use petscpc 
+  use petscis 
+  use petscmg  
+#endif
+#endif
 implicit none
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petscvecdef.h"
+#include "finclude/petscmatdef.h"
+#include "finclude/petsckspdef.h"
+#include "finclude/petscpcdef.h"
+#include "finclude/petscviewerdef.h"
+#include "finclude/petscisdef.h"
+#else
 #include "finclude/petsc.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscvec.h"
@@ -53,7 +72,7 @@ implicit none
 #include "finclude/petscmg.h"
 #include "finclude/petscis.h"
 #include "finclude/petscsys.h"
-
+#endif
   ! options read from command-line (-prns_... options)
   character(len=4096) filename, flml, read_solution, write_solution
   character(len=FIELD_NAME_LEN):: field
@@ -664,8 +683,13 @@ contains
        
     ! redistribute matrix by asking for owned rows and all columns
     ! n is number of local columns
+#if PETSC_VERSION_MINOR==0    
     call MatGetSubMatrix(matrix, row_indexset, col_indexset, n, &
        MAT_INITIAL_MATRIX, new_matrix, ierr)
+#else
+    call MatGetSubMatrix(matrix, row_indexset, col_indexset, &
+       MAT_INITIAL_MATRIX, new_matrix, ierr)
+#endif
     ! destroy the old read-in matrix and replace by the new one
     call MatDestroy(matrix, ierr)
     matrix=new_matrix
@@ -745,6 +769,6 @@ contains
     end if
       
   end subroutine petsc_readnsolve_options
-#endif
+  
 end subroutine petsc_readnsolve
 

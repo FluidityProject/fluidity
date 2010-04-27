@@ -29,7 +29,7 @@ module sparse_tools_petsc
   !!< This module is an extension to the sparse_tools module that 
   !!< implements a csr matrix type 'petsc_csr_matrix' that directly
   !!< stores the matrix in petsc format.
-#ifdef HAVE_PETSC
+#include "petscversion.h"
   use FLDebug
   use Sparse_Tools
   use Reference_Counting
@@ -41,6 +41,7 @@ module sparse_tools_petsc
   use petsc_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc
+#if PETSC_VERSION_MINOR==0
   use petscvec
   use petscmat
   use petscksp
@@ -49,8 +50,8 @@ module sparse_tools_petsc
   use petscmg
 #endif
   implicit none
-#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvecdef.h"
 #include "finclude/petscmatdef.h"
 #include "finclude/petsckspdef.h"
@@ -58,13 +59,18 @@ module sparse_tools_petsc
 #include "finclude/petscviewerdef.h"
 #include "finclude/petscisdef.h"
 #else
+#include "finclude/petscdef.h"
+#endif
+#else
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
 #include "finclude/petscviewer.h"
 #include "finclude/petscis.h"
+#endif
 #endif
 
   private
@@ -1095,5 +1101,4 @@ contains
     end subroutine dump_matrix
   
 #include "Reference_count_petsc_csr_matrix.F90"
-#endif
 end module sparse_tools_petsc

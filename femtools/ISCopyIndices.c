@@ -1,4 +1,3 @@
-#ifdef HAVE_PETSC
 #include "confdefs.h"
 #include "petsc.h"
 #include "petscfix.h"
@@ -50,5 +49,3 @@ void PETSC_STDCALL petscobjectreference_(PetscObject obj, int *__ierr ){
 *__ierr = PetscObjectReference(
    (PetscObject)PetscToPointer((obj) ));
 }
-
-#endif

@@ -2,7 +2,6 @@
 !! This module contains multigrid related subroutines, such as the smoothed
 !! aggregation preconditioner.
 module multigrid
-#ifdef HAVE_PETSC
 use Petsc_Tools
 use Sparse_tools
 use FLDebug
@@ -1157,5 +1156,5 @@ Vec, intent(out):: eigvec
   call VecDestroy(x_k, ierr)  
   
 end subroutine PowerMethod
-#endif
+
 end module multigrid

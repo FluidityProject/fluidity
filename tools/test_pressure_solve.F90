@@ -19,11 +19,14 @@
     use FLDebug
     implicit none
 
+#include "petscversion.h"
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
+#endif
 
     type(state_type) :: state
     type(vector_field), target:: positions, vertical_normal
@@ -311,10 +314,12 @@
     real, intent(out) :: eps0
 
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
+#endif
 
     PetscTruth :: flag
     PetscErrorCode :: ierr

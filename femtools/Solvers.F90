@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-
+#include "petscversion.h"
 module solvers
   use FLDebug
   use elements
@@ -50,7 +50,7 @@ module solvers
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 
-#ifdef HAVE_PETSC
+#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
 #include "finclude/petscvecdef.h"
 #include "finclude/petscmatdef.h"
@@ -63,21 +63,13 @@ module solvers
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
 #endif
-#else
-#define PetscReal real
-#define PetscInt integer
-#define KSPGMRES "gmres"
-#define PCSOR "sor"
-#endif
 
-#ifdef HAVE_PETSC
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
   Vec :: petsc_monitor_exact
   Vec :: petsc_monitor_x
   real, dimension(:), pointer :: petsc_monitor_error => null()
   PetscLogDouble, dimension(:), pointer :: petsc_monitor_flops => null()
   integer :: petsc_monitor_iteration = 0
-#endif
     
 private
 
@@ -126,7 +118,6 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   !! internal smoothing option
   integer, intent(in), optional :: internal_smoothing_option
 
-#ifdef HAVE_PETSC
   KSP ksp
   Mat A
   Vec y, b
@@ -179,10 +170,6 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, exact, &
        & error_filename)
   
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-  
 end subroutine petsc_solve_scalar
 
 subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
@@ -193,7 +180,6 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
   type(csr_matrix), intent(in) :: matrix
   character(len=*), optional, intent(in) :: option_path
 
-#ifdef HAVE_PETSC
   KSP ksp
   Mat A
   Vec y, b
@@ -241,10 +227,6 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
   
-#else  
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-  
 end subroutine petsc_solve_scalar_multiple
 
 subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
@@ -257,7 +239,6 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
   !! deallocate the matrix after it's been copied
   logical, intent(in), optional :: deallocate_matrix
 
-#ifdef HAVE_PETSC
   KSP ksp
   Mat A
   Vec y, b
@@ -342,10 +323,6 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
     call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
   end if
   
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-  
 end subroutine petsc_solve_vector
   
 subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
@@ -357,7 +334,6 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
   type(csr_matrix), intent(in) :: matrix
   character(len=*), optional, intent(in) :: option_path
 
-#ifdef HAVE_PETSC
   KSP ksp
   Mat A
   Vec y, b
@@ -413,10 +389,6 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
   
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-  
 end subroutine petsc_solve_vector_components
 
 subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
@@ -434,7 +406,6 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
 
-#ifdef HAVE_PETSC
   KSP ksp
   Vec y, b
 
@@ -469,10 +440,6 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy_petsc_csr(y, b, ksp)
-    
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
   
 end subroutine petsc_solve_scalar_petsc_csr
 
@@ -484,7 +451,6 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
   type(petsc_csr_matrix), intent(inout) :: matrix
   character(len=*), optional, intent(in) :: option_path
 
-#ifdef HAVE_PETSC
   KSP ksp
   Vec y, b
 
@@ -518,10 +484,6 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
   
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy_petsc_csr(y, b, ksp)
-    
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
   
 end subroutine petsc_solve_vector_petsc_csr
 
@@ -537,7 +499,6 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
   logical, optional, intent(in):: symmetric
   character(len=*), optional, intent(in) :: option_path
 
-#ifdef HAVE_PETSC
   KSP ksp
   Mat A
   Vec y, b
@@ -621,10 +582,6 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
   ! destroy all PETSc objects and the petsc_numbering
   call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
   
-#else
-  FLAbort("Petsc_solve called while not configured with PETSc")
-#endif
-  
 end subroutine petsc_solve_tensor_components
   
 function complete_solver_option_path(option_path)
@@ -648,7 +605,6 @@ character(len=OPTION_PATH_LEN):: complete_solver_option_path
   
 end function complete_solver_option_path
 
-#ifdef HAVE_PETSC
 subroutine petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
   solver_option_path, startfromzero, &
   matrix, block_matrix, sfield, vfield, tfield, &
@@ -1436,10 +1392,8 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   end if
   
 end subroutine ConvergenceCheck
-#endif
 
-#ifdef HAVE_PETSC
-  subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &       
+subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &       
        startfromzero_in, &
        prolongator,surface_node_list, matrix_csr, exact, &
        internal_smoothing_option)
@@ -1767,9 +1721,8 @@ end subroutine ConvergenceCheck
     ewrite(2, *) 'startfromzero:', .not. flag
     
   end subroutine ewrite_ksp_options
-#endif
 
-subroutine set_solver_options_with_path(field_option_path, &
+  subroutine set_solver_options_with_path(field_option_path, &
     ksptype, pctype, atol, rtol, max_its, &
     start_from_zero, petsc_options)
   character(len=*), intent(in):: field_option_path
@@ -1919,7 +1872,6 @@ subroutine set_solver_options_tensor(field, &
 
 end subroutine set_solver_options_tensor
 
-#ifdef HAVE_PETSC
 subroutine petsc_solve_callback_setup(exact,max_its)
   !! sets up call back function to be called each iteration of a solve
   type(scalar_field), intent(in) :: exact
@@ -2025,6 +1977,5 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   ierr=0
   
 end subroutine MyKSPMonitor
-#endif
 
 end module solvers

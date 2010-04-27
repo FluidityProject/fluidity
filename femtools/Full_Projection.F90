@@ -42,33 +42,36 @@
     use Multigrid
 
 #ifdef HAVE_PETSC_MODULES
+#include "petscversion.h"
     use petsc
+#if PETSC_VERSION_MINOR==0
     use petscvec
     use petscmat
     use petscksp
     use petscpc
 #endif
+#endif
 
     implicit none
     ! Module to provide solvers, preconditioners etc... for full_projection Solver.
     ! Not this is currently tested for Full CMC solves and Stokes flow:
-#ifdef HAVE_PETSC
 #ifdef HAVE_PETSC_MODULES
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvecdef.h"
 #include "finclude/petscmatdef.h"
 #include "finclude/petsckspdef.h"
 #include "finclude/petscpcdef.h"
 #else
+#include "finclude/petscdef.h"
+#endif
+#else
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
 #endif
-#include "petscversion.h"
-#else
-#define PetscReal real
-#define PetscInt integer
 #endif
     
     private
@@ -96,7 +99,6 @@
       type(csr_matrix), pointer :: kmk_matrix
 
 
-#ifdef HAVE_PETSC
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
       Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
@@ -145,15 +147,11 @@
       ewrite(2,*) 'Destroying all PETSc objects'
       ! Destroy all PETSc objects and the petsc_numbering:
       call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
-#else
-      FLAbort("PETSc_solve_Full_Projection called while not configured with PETSc")
-#endif
       
       ewrite(2,*) 'Leaving PETSc_solve_setup_full_projection'
       
     end subroutine petsc_solve_full_projection
 
-#ifdef HAVE_PETSC
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          inner_solver_option_path,lstartfromzero,inner_m,div_matrix_comp, &
@@ -270,10 +268,18 @@
       ! Build Schur complement:
       ewrite(2,*) 'Building Schur complement'                
       if(associated(kmk_matrix)) then
+#if PETSC_VERSION_MINOR==0
          call MatCreateSchurComplement(inner_M%M,G,G_t_comp,S,A,ierr)
+#else
+         call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
+#endif
       else
          myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
+#if PETSC_VERSION_MINOR==0
          call MatCreateSchurComplement(inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
+#else
+         call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
+#endif
          if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
            FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
          end if
@@ -314,8 +320,6 @@
       ! petsc_numbering_p is passed back and destroyed there      
 
     end subroutine petsc_solve_setup_full_projection
-
-#endif
 
   end module Full_Projection
   

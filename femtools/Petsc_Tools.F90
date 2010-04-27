@@ -26,7 +26,7 @@
 !    USA
 #include "fdebug.h"
 module Petsc_Tools
-#ifdef HAVE_PETSC
+#include "petscversion.h"
   use FLDebug
   use Sparse_Tools
   use parallel_tools
@@ -40,6 +40,7 @@ module Petsc_Tools
   use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
+#if PETSC_VERSION_MINOR==0
   use petscvec 
   use petscmat 
   use petscksp 
@@ -47,9 +48,11 @@ module Petsc_Tools
   use petscis 
   use petscmg  
 #endif
+#endif
   implicit none
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvecdef.h"
 #include "finclude/petscmatdef.h"
 #include "finclude/petsckspdef.h"
@@ -57,13 +60,18 @@ module Petsc_Tools
 #include "finclude/petscviewerdef.h"
 #include "finclude/petscisdef.h"
 #else
+#include "finclude/petscdef.h"
+#endif
+#else
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
 #include "finclude/petscviewer.h"
 #include "finclude/petscis.h"
+#endif
 #endif
 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
@@ -1485,17 +1493,17 @@ contains
   end subroutine Initialize_Petsc
   
 #include "Reference_count_petsc_numbering_type.F90"
-#endif
 end module Petsc_Tools
 
-#ifdef HAVE_PETSC
 ! this is a wrapper routine around MatGetInfo as it appears PETSc
 ! provides the wrong explicit interface for it. By putting it outside
 ! the module (and only including petsc headers and not use petsc modules)
 ! this routine calls MatGetInfo with an implicit interface.
 subroutine myMatGetInfo(A, flag, info, ierr)
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscmat.h"
+#endif
 Mat, intent(in):: A
 MatInfoType, intent(in):: flag
 double precision, dimension(:), intent(out):: info
@@ -1504,4 +1512,3 @@ PetscErrorCode, intent(out):: ierr
   call MatGetInfo(A, flag, info, ierr)
   
 end subroutine myMatGetInfo
-#endif

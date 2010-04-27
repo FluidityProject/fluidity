@@ -732,8 +732,6 @@ with_netcdf
 with_ParMetis
 with_zoltan
 with_x
-with_PETSc
-with_PETSc_ARCH
 enable_dp
 enable_profiling
 enable_spatialindex_version
@@ -1412,8 +1410,6 @@ Optional Packages:
   --with-ParMetis=PFX        Prefix where ParMetis is installed
   --with-zoltan=prefix        Prefix where zoltan is installed
   --with-x                use the X Window System
-  --with-PETSc=PFX        Prefix where PETSc is installed (use =no to disable)
-  --with-PETSc_ARCH=VAL   PETSc hardware architecture (optional)
   --with-arpack-lib[=<lib>]
                           specify arpack library
 
@@ -2179,93 +2175,6 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
 
 } # ac_fn_c_check_func
-
-# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
-# -------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
-# accordingly.
-ac_fn_c_check_header_mongrel ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
-  $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
-else
-  ac_header_compiler=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
-  yes:no: )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if { as_var=$3; eval "test \"\${$as_var+set}\" = set"; }; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-fi
-  eval $as_lineno_stack; test "x$as_lineno_stack" = x && { as_lineno=; unset as_lineno;}
-
-} # ac_fn_c_check_header_mongrel
 
 # ac_fn_fc_try_link LINENO
 # ------------------------
@@ -6725,8 +6634,7 @@ See \`config.log' for more details." "$LINENO" 5; }
         export PYTHON_EXTRA_LDFLAGS=$(echo $PYTHON_EXTRA_LDFLAGS | sed -e 's/-O1/-O0/g' -e 's/-O2/-O0/g' -e 's/-O3/-O0/g')
       fi
 	    LIBS="$LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-	    FLIBS="$FLIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
-            CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
+	    CXXFLAGS="$CXXFLAGS $PYTHON_CPPFLAGS"
 	    CPPFLAGS="$CPPFLAGS $PYTHON_CPPFLAGS"
             CFLAGS="$CFLAGS $PYTHON_CPPFLAGS"
         fi
@@ -10024,8 +9932,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-FLIBS=`echo $FLIBS | sed 's/)//g'`
-
 # Check for standard libraries
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -11780,53 +11686,8 @@ echo $LIBS
      fi
     fi
 fi
-# various synonyms accepted for disabling PETSc
-if test "$enable_PETSc" = no ; then with_PETSc=no; fi
-if test "$enable_petsc" = no ; then with_PETSc=no; fi
-if test "$with_petsc" = no ; then with_PETSc=no; fi
-if test "$with_PETSc" != "no" # -a -n "$with_PETSc"
-    then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: Checking for PETSc automagic." >&5
-$as_echo "$as_me: Checking for PETSc automagic." >&6;}
-    ac_ext=f
-ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'
-ac_link='$F77 -o conftest$ac_exeext $FFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_f77_compiler_gnu
 
-    cat > conftest.$ac_ext <<_ACEOF
-      program main
-
-			use petsc
-			print*, "hello petsc"
-
-      end
-_ACEOF
-if ac_fn_f77_try_link "$LINENO"; then :
-
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc automagic works." >&5
-$as_echo "$as_me: PETSc automagic works." >&6;}
-	    CPPFLAGS="$CPPFLAGS -DHAVE_PETSC -DHAVE_PETSC_MODULES -DHAVE_HYPRE"
-else
-
-            { $as_echo "$as_me:${as_lineno-$LINENO}: No PETSc automagic." >&5
-$as_echo "$as_me: No PETSc automagic." >&6;}
-	    search_for_petsc=yes
-
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-    ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-fi
-
-if test "x$search_for_petsc" == "xyes" ; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: Searching for PETSc." >&5
-$as_echo "$as_me: Searching for PETSc." >&6;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for X" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for X" >&5
 $as_echo_n "checking for X... " >&6; }
 
 
@@ -12708,260 +12569,58 @@ fi
 fi
 
 
-# Set variables...
-
-# Check whether --with-PETSc was given.
-if test "${with_PETSc+set}" = set; then :
-  withval=$with_PETSc; PETSc="$withval"
-else
-  if test ! -z "$PETSC_DIR"; then
-		PETSc="$PETSC_DIR"
-		echo "note: assuming PETSc library is in $PETSc (/lib,/include) as specified by environment variable PETSC_DIR"
-	else
-		PETSc="/usr/local"
-		echo "note: assuming PETSc library is in /usr/local (/lib,/include)"
-	fi
-fi
-
-
-# Check whether --with-PETSc_ARCH was given.
-if test "${with_PETSc_ARCH+set}" = set; then :
-  withval=$with_PETSc_ARCH; PETSc_ARCH="$withval"
-else
-  if test ! -z "$PETSC_ARCH"; then
-		PETSc_ARCH="$PETSC_ARCH"
-		echo "note: assuming PETSc hardware architecture to be $PETSc_ARCH as specified by environment variable PETSC_ARCH"
-	else
-		PETSc_ARCH=""
-		echo "note: PETSC_ARCH is not set. This may be valid for some PETSc 3 installations."
-	fi
-fi
-
-
-# PETSC_LIBS may be provided by user to explicitly set LIBS flags for petsc
-if test "x$PETSC_LIBS" == "x" ; then
-  # logic to work out the PETSc libs path
-  PETSc_LIBS_PATH="$PETSc/lib/$PETSc_ARCH"
-  # this is the right order for PETSc 3:
-  PETSc3_LIBS_PATH="$PETSc/$PETSc_ARCH/lib"
-  # Check we can physically find the library
-  if test -e $PETSc_LIBS_PATH/libpetsc.a || test -e $PETSc_LIBS_PATH/libpetsc.so; then
-        echo "note: using $PETSc_LIBS_PATH/libpetsc (.a/.so)"
-  elif test -e $PETSc3_LIBS_PATH/libpetsc.a || test -e $PETSc3_LIBS_PATH/libpetsc.so; then
-        PETSc_LIBS_PATH="$PETSc3_LIBS_PATH"
-        echo "note: using $PETSc_LIBS_PATH/libpetsc (.a/.so)"
-  else
-        as_fn_error "Could not physically find PETSc library... exiting " "$LINENO" 5
-  fi
+if test "x$PETSC_DIR" == "x"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No PETSC_DIR set - do you need to load a petsc module? " >&5
+$as_echo "$as_me: WARNING: No PETSC_DIR set - do you need to load a petsc module? " >&2;}
+  as_fn_error "You need to set PETSC_DIR to point at your PETSc installation... exiting " "$LINENO" 5
 fi
 
 
 
-# logic to work out the PETSc include path
-PETSc_INCLUDES_PATH="$PETSc/include"
-if test -e $PETSc_INCLUDES_PATH/petsc.h; then
-	echo "note: using $PETSc_INCLUDES_PATH/petsc.h"
-else
-	as_fn_error "Could not physically find PETSc header file... exiting " "$LINENO" 5
+PETSC_LINK_LIBS=`make -f petsc_makefile getlinklibs`
+LIBS="$LIBS $PETSC_LINK_LIBS"
+
+PETSC_INCLUDE_FLAGS=`make -f petsc_makefile getincludedirs`
+CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
+FCFLAGS="$FCFLAGS $PETSC_INCLUDE_FLAGS"
+
+# Horrible hacks needed for cx1
+# Somehow /apps/intel/ict/mpi/3.1.038/lib64/apps/intel/ict/mpi/3.1.038/lib/64 gets given as
+# maybe the directory got moved after building petsc? Anyhow next time we
+# request a new petsc package on cx1, this hack can be removed - and we
+# can check if the new packages passes the test without any hacks.
+fixedLIBS=`echo $LIBS |sed 's@/apps/intel/ict/mpi/3.1.038/lib/64@/apps/intel/ict/mpi/3.1.038/lib64@g'`
+
+if test ! "$LIBS" == "$fixedLIBS"; then
+  # more fixes needed:
+  # also -lmpichcxx got mangled to -lmpichxx
+  LIBS=`echo $fixedLIBS |sed 's@mpichxx@mpichcxx@g'`
+  # remove -lPEPCF90, -lpromfei and -lprometheus
+  LIBS=`echo $LIBS |sed 's@-lPEPCF90@@g'`
+  LIBS=`echo $LIBS |sed 's@-lpromfei@@g'`
+  LIBS=`echo $LIBS |sed 's@-lprometheus@@g'`
 fi
 
-# now see if we can find petsc modules:
-if test -e "$PETSc_INCLUDES_PATH/petsc.mod"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Using fortran modules found in $PETSc/include/ " >&5
-$as_echo "$as_me: Using fortran modules found in $PETSc/include/ " >&6;}
-  HAVE_PETSC_MODULES=1
-# petsc fortran modules are sometimes stored in a different include/ directory
-elif test -e "$PETSc/$PETSC_ARCH/inc
-lude/petsc.mod"; then
-  FCFLAGS="$FCFLAGS -I$PETSc/$PETSc_ARCH/include/"
-  FFLAGS="$FFLAGS -I$PETSc/$PETSc_ARCH/include/"
-  HAVE_PETSC_MODULES=1
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Using fortran modules found in $PETSc/$PETSc_ARCH/include/ " >&5
-$as_echo "$as_me: Using fortran modules found in $PETSc/$PETSc_ARCH/include/ " >&6;}
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Did not find fortran modules " >&5
-$as_echo "$as_me: Did not find fortran modules " >&6;}
-fi
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-if test "x$PETSC_LIBS" == "x" ; then
-  LIBS="-L$PETSc_LIBS_PATH $MPI_LIBS_PATHS $MPI_LIBS $LAPACK_LIBS $LIBS -lm"
-else
-  LIBS="$PETSC_LIBS $MPI_LIBS_PATHS $MPI_LIBS $LAPACK_LIBS $LIBS -lm"
-fi
-CPPFLAGS="-I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH $CPPFLAGS"
-FFLAGS="$FFLAGS -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
-FCFLAGS="$FCFLAGS -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for PetscInitializePackage in -lpetsc" >&5
-$as_echo_n "checking for PetscInitializePackage in -lpetsc... " >&6; }
-if test "${ac_cv_lib_petsc_PetscInitializePackage+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpetsc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char PetscInitializePackage ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return PetscInitializePackage ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_petsc_PetscInitializePackage=yes
-else
-  ac_cv_lib_petsc_PetscInitializePackage=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_petsc_PetscInitializePackage" >&5
-$as_echo "$ac_cv_lib_petsc_PetscInitializePackage" >&6; }
-if test "x$ac_cv_lib_petsc_PetscInitializePackage" = x""yes; then :
-
-$as_echo "#define HAVE_PETSC 1" >>confdefs.h
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for PetscInitializePackage in -lcraypetsc" >&5
-$as_echo_n "checking for PetscInitializePackage in -lcraypetsc... " >&6; }
-if test "${ac_cv_lib_craypetsc_PetscInitializePackage+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcraypetsc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char PetscInitializePackage ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return PetscInitializePackage ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_craypetsc_PetscInitializePackage=yes
-else
-  ac_cv_lib_craypetsc_PetscInitializePackage=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_craypetsc_PetscInitializePackage" >&5
-$as_echo "$ac_cv_lib_craypetsc_PetscInitializePackage" >&6; }
-if test "x$ac_cv_lib_craypetsc_PetscInitializePackage" = x""yes; then :
-  CRAYPETSC=1;
-$as_echo "#define HAVE_PETSC 1" >>confdefs.h
-
-else
-  as_fn_error "Could not link in the PETSc library... exiting " "$LINENO" 5
-fi
-
-fi
-
-# petsc.h needs mpi.h so we have to precompile with mpicc
-tmpCPP=$CPP
-CPP="$CC -c"
-ac_fn_c_check_header_mongrel "$LINENO" "petsc.h" "ac_cv_header_petsc_h" "$ac_includes_default"
-if test "x$ac_cv_header_petsc_h" = x""yes; then :
-
-$as_echo "#define HAVE_PETSc_H /**/" >>confdefs.h
-
-else
-  as_fn_error "Could not compile in the PETSc headers... exiting " "$LINENO" 5
-fi
-
-
-CPP=$tmpCPP
-if test "x$PETSC_LIBS" == "x" ; then
-  if test -z "$CRAYPETSC"; then
-    PETSC_LIBS="-L$PETSc_LIBS_PATH -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lparmetis -lmetis"
-  else
-    PETSC_LIBS="-L$PETSc_LIBS_PATH -lcraypetsc"
-  fi
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Using user provided PETSC_LIBS" >&5
-$as_echo "$as_me: Using user provided PETSC_LIBS" >&6;}
-fi
-if test "x$HAVE_PETSC_MODULES" == "x1" ; then
-  # now try if the module files actually work:
-  ac_ext=f
-ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'
-ac_link='$F77 -o conftest$ac_exeext $FFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_f77_compiler_gnu
-
-  cat > conftest.$ac_ext <<_ACEOF
+# F90 (capital F) to invoke preprocessing
+# it's only 20 years ago now!
+ac_ext=F90
+# now try if the petsc fortran modules work:
+cat > conftest.$ac_ext <<_ACEOF
       program main
 
-                          use petsc
-                          print*, "hello petsc"
+                        use petsc
+                        print*, "hello petsc"
 
       end
 _ACEOF
-if ac_fn_f77_try_link "$LINENO"; then :
+if ac_fn_fc_try_link "$LINENO"; then :
 
-              { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules are working." >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules are working." >&5
 $as_echo "$as_me: PETSc modules are working." >&6;}
 
 $as_echo "#define HAVE_PETSC_MODULES 1" >>confdefs.h
@@ -12969,24 +12628,146 @@ $as_echo "#define HAVE_PETSC_MODULES 1" >>confdefs.h
 
 else
 
-              { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules don't work, using headers instead." >&5
+            { $as_echo "$as_me:${as_lineno-$LINENO}: PETSc modules don't work, using headers instead." >&5
 $as_echo "$as_me: PETSc modules don't work, using headers instead." >&6;}
+            unset HAVE_PETSC_MODULES
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+
+# now try a more realistic program, it's a stripped down
+# petsc tutorial - using the headers in the same way as we do in the code
+cat > conftest.$ac_ext <<_ACEOF
+
+program test
+#include "petscversion.h"
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#if PETSC_VERSION_MINOR==0
+  use petscvec
+  use petscmat
+  use petscksp
+  use petscpc
+#endif
+#endif
+implicit none
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petscvecdef.h"
+#include "finclude/petscmatdef.h"
+#include "finclude/petsckspdef.h"
+#include "finclude/petscpcdef.h"
+#else
+#include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
+#include "finclude/petscvec.h"
+#include "finclude/petscmat.h"
+#include "finclude/petscksp.h"
+#include "finclude/petscpc.h"
+#endif
+#endif
+      double precision  norm
+      PetscInt  i,j,II,JJ,m,n,its
+      PetscInt  Istart,Iend,ione
+      PetscErrorCode ierr
+      PetscTruth  flg
+      PetscScalar v,one,neg_one
+      Vec         x,b,u
+      Mat         A
+      KSP         ksp
+
+      call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
+      m = 3
+      n = 3
+      one  = 1.0
+      neg_one = -1.0
+      ione    = 1
+      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',m,flg,ierr)
+      call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',n,flg,ierr)
+
+      call MatCreate(PETSC_COMM_WORLD,A,ierr)
+      call MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m*n,m*n,ierr)
+      call MatSetFromOptions(A,ierr)
+
+      call MatGetOwnershipRange(A,Istart,Iend,ierr)
+
+      do 10, II=Istart,Iend-1
+        v = -1.0
+        i = II/n
+        j = II - i*n
+        if (i.gt.0) then
+          JJ = II - n
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        if (i.lt.m-1) then
+          JJ = II + n
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        if (j.gt.0) then
+          JJ = II - 1
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        if (j.lt.n-1) then
+          JJ = II + 1
+          call MatSetValues(A,ione,II,ione,JJ,v,INSERT_VALUES,ierr)
+        endif
+        v = 4.0
+        call  MatSetValues(A,ione,II,ione,II,v,INSERT_VALUES,ierr)
+ 10   continue
+
+      call MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY,ierr)
+      call MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY,ierr)
+
+      call VecCreateMPI(PETSC_COMM_WORLD,PETSC_DECIDE,m*n,u,ierr)
+      call VecSetFromOptions(u,ierr)
+      call VecDuplicate(u,b,ierr)
+      call VecDuplicate(b,x,ierr)
+
+      call VecSet(u,one,ierr)
+      call MatMult(A,u,b,ierr)
+
+      call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
+      call KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN,ierr)
+      call KSPSetFromOptions(ksp,ierr)
+
+      call KSPSolve(ksp,b,x,ierr)
+
+      call VecAXPY(x,neg_one,u,ierr)
+      call VecNorm(x,NORM_2,norm,ierr)
+      call KSPGetIterationNumber(ksp,its,ierr)
+
+      call KSPDestroy(ksp,ierr)
+      call VecDestroy(u,ierr)
+      call VecDestroy(x,ierr)
+      call VecDestroy(b,ierr)
+      call MatDestroy(A,ierr)
+
+      call PetscFinalize(ierr)
+end program test
+
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: PETSc program succesfully compiled and linked." >&5
+$as_echo "$as_me: PETSc program succesfully compiled and linked." >&6;}
+
+else
+
+cp conftest.F90 test.F90
+{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error "Failed to compile and link PETSc program.
+See \`config.log' for more details." "$LINENO" 5; }
 fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-# now add on to the relevant flags:
-# (FCFLAGS and FFLAGS were set already above)
-tmpCPPFLAGS="$tmpCPPFLAGS -DHAVE_PETSC -I$PETSc_INCLUDES_PATH -I$PETSc/bmake/$PETSc_ARCH"
-CPPFLAGS=$tmpCPPFLAGS
-LIBS="$PETSC_LIBS $tmpLIBS"
 
 # finally check we have the right petsc version
 if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
@@ -13003,6 +12784,10 @@ else
 $as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\"" >&6;}
   as_fn_error "Fluidity needs PETSc version 3" "$LINENO" 5
 fi
+
+
+$as_echo "#define HAVE_PETSC 1" >>confdefs.h
+
 
 
 
@@ -13072,6 +12857,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 
+CPPFLAGS="$CPPFLAGS -DHAVE_PETSC"
+if test "$HAVE_PETSC_MODULES" == "1"; then
+  CPPFLAGS="$CPPFLAGS -DHAVE_PETSC_MODULES"
+fi
+if test "$HAVE_HYPRE" == "1"; then
+  CPPFLAGS="$CPPFLAGS -DHAVE_HYPRE"
 fi
 
 # Double precision.
