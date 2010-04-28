@@ -32,7 +32,7 @@ PSFILES=$(addsuffix .pdftex_t, $(IMAGES)) \
 	dvips -o $@ $^ 
 
 %.pdf: %.tex
-	pdflatex $^
+	pdflatex -shell-escape $<
 	if fgrep "Rerun to" $*.log; then $(MAKE) --assume-new $^ $@;fi
 ifndef NOBIBTEX
 	if fgrep "There were undefined"  $*.log;\

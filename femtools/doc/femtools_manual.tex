@@ -18,6 +18,7 @@
 \newboolean{HTLatex}
 \setboolean{HTLatex}{false}
 \newcommand{\ifhtlatex}[2]{\ifthenelse{\boolean{HTLatex}}{#1}{#2}}
+\newcommand{\onlypdf}[1]{\ifthenelse{\boolean{HTLatex}}{}{#1}}
 \newcommand{\targetlabel}[1]{\hypertarget{#1}{}\label{#1}}
 \newcommand{\xfig}[1]{
   \ifhtlatex{
@@ -52,6 +53,19 @@
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{1ex}
+
+\usepackage{pdftricks}
+\usepackage{pstricks}
+\usepackage{pst-node}
+\begin{psinputs}
+  \usepackage{listings}
+  \usepackage{palatino}
+  \usepackage{color}
+  \usepackage{pst-node,pst-tree}
+  \psset{framearc=.2} 
+  \newcommand{\typebox}[2]{\psframebox{\parbox{4cm}{\centering #1\\(\lstinline!#2!)}}}
+\end{psinputs}
+
 
 \begin{document}
 \maketitle
@@ -986,7 +1000,7 @@ in this case zero over the face opposite that vertex.
 
 \section{Integration over an element}\label{sec:quadrature}
 
-Integeration over an element in two or three dimensions is achieved using
+Integration over an element in two or three dimensions is achieved using
 numerical quadrature in a manner similar to equation \eqref{eq:1dquad}. That
 is to say, if we have a function:
 \begin{equation}
@@ -1031,6 +1045,42 @@ which reduces to the previous one-dimensional case.
 \part{Key data structures}
 
 \chapter{Common data structure features}
+
+\section{The  Femtools data structure heirarchy}
+
+\begin{figure}[ht]
+  \centering
+  \onlypdf{\begin{pdfdisplay}}
+    \begin{psmatrix}[rowsep=1.0cm,colsep=0.5cm]
+    [name=scalar]\typebox{Scalar field}{scalar\_field}&
+    [name=vector]\typebox{Vector field}{vector\_field}&
+    [name=tensor]\typebox{Tensor field}{tensor\_field}\\
+    &[name=mesh]\typebox{Mesh}{mesh\_type}&
+    [name=val]\typebox{Nodal values}{field\%val}\\
+    &[name=element]\typebox{Shape functions}{element\_type} &
+    [name=ndglno]\typebox{Node element list}{mesh\%ndglno}\\
+    &[name=quadrature]\typebox{Quadrature information}{quadrature\_type}&
+    [name=numbering]\typebox{Local node numbering}{ele_numbering_type}
+    \ncline{scalar}{mesh}
+    \ncline{vector}{mesh}
+    \ncline{tensor}{mesh}
+    \ncline{scalar}{val}
+    \ncline{vector}{val}
+    \ncline{tensor}{val}
+    \ncline{mesh}{ndglno}
+    \ncline{mesh}{element}
+    \ncline{element}{quadrature}
+    \ncline{element}{numbering}    
+  \end{psmatrix}
+  \onlypdf{\end{pdfdisplay}}
+\caption{The dependency heirarchy of the field data structures in
+  Femtools. From the top, field data types associciate a mesh (function
+  space) with the nodal values of the field. In turn, the mesh has a
+  specimen element and a list of the global node numbers associated with
+  each element. In turn, the element shape functions depend on a quadrature
+  rule and a local node numbering convention.}
+  \label{fig:type_heirarchy}
+\end{figure}
 
 \section{Object descriptors vs. data space}
 
@@ -1665,7 +1715,7 @@ and current memory usage.
 
 \chapter{General principles for procedures}
 
-Much of femtools is designed in an essentially object-oriented manner and
+Much of Femtools is designed in an essentially object-oriented manner and
 many of the procedures in the library should be understood as methods
 belonging to the data objects on which they act. In keeping with widespread
 practice, the first argument of a method is the data object on which it
