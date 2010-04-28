@@ -465,25 +465,25 @@ assert abs(volfracend_p1dgp2_rhop1dg_vfracp1cv-volfrac0_p1dgp2_rhop1dg_vfracp1cv
    assert max(abs(maxdivergence_p1dgp2_rhop1dg_vfracp1cv), abs(mindivergence_p1dgp2_rhop1dg_vfracp1cv)) &lt; 1e-9
     </test>
     <test name="check maximum pressure_p0p1cv_vbpp2 is 0.0" language="python">
-   assert abs(pressure_p0p1cv_vbpp2 - 9800.00) &lt; 10
+   assert abs(pressure_p0p1cv_vbpp2) &lt; 1e-6
     </test>
     <test name="check minimum pressure_p0p1cv_vbpp2 0.0" language="python">
    assert abs(minpressure_p0p1cv_vbpp2) &lt; 1e-6
     </test>
     <test name="check minimum geopressure_p0p1cv_vbpp2" language="python">
-   assert abs(mingeopressure_p0p1cv_vbpp2 +7587.5 ) &lt; 10
+   assert abs(mingeopressure_p0p1cv_vbpp2) &lt; 1e-9
     </test>
     <test name="check maximum geopressure_p0p1cv_vbpp2" language="python">
-   assert abs(geopressure_p0p1cv_vbpp2) &lt; 1e-6
+   assert abs(geopressure_p0p1cv_vbpp2 - 2212.5) &lt; 10
     </test>
     <test name="check maximum xspeed_p0p1cv_vbpp2 is zero" language="python">
-   assert abs(velocityx_p0p1cv_vbpp2) &lt; 1e-5
+   assert abs(velocityx_p0p1cv_vbpp2) &lt; 1e-8
     </test>
     <test name="check maximum yspeed_p0p1cv_vbpp2 is zero" language="python">
-   assert abs(velocityy_p0p1cv_vbpp2) &lt; 1e-5
+   assert abs(velocityy_p0p1cv_vbpp2) &lt; 1e-8
     </test>
     <test name="check maximum speed_p0p1cv_vbpp2 is zero" language="python">
-   assert abs(velocity_p0p1cv_vbpp2) &lt; 1e-5
+   assert abs(velocity_p0p1cv_vbpp2) &lt; 1e-8
     </test>
     <test name="check volume fraction_p0p1cv_vbpp2 conserved" language="python">
 print 'mass loss = ', abs(volfracend_p0p1cv_vbpp2-volfrac0_p0p1cv_vbpp2)

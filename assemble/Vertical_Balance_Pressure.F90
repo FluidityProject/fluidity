@@ -155,11 +155,12 @@ module vertical_balance_pressure
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(vbp, ele)) :: detwei
     real, dimension(ele_loc(vbp, ele), ele_ngi(vbp, ele), mesh_dim(vbp)) :: dvbp_t
-    real, dimension(ele_loc(buoyancy, ele), ele_ngi(buoyancy, ele), mesh_dim(buoyancy)) :: dbuoy_t
     type(element_type), pointer :: vbp_shape
-    type(element_type), pointer :: buoy_shape
     real, dimension(gravity%dim, ele_ngi(gravity, ele)) :: gravity_at_quad
 
+    integer :: gi
+    real, dimension(ele_loc(vbp, ele), ele_ngi(vbp, ele), 1) :: dvbp_z
+    
     ! What we will be adding to the matrix and RHS - assemble these as we
     ! go, so that we only do the calculations we really need
     real, dimension(ele_loc(vbp, ele)) :: rhs_addto
@@ -175,26 +176,27 @@ module vertical_balance_pressure
     rhs_addto = 0.0
     
     vbp_shape => ele_shape(vbp, ele)
-    buoy_shape => ele_shape(buoyancy, ele)
   
-    call transform_to_physical(coordinate, ele, buoy_shape, &
-                                dshape=dbuoy_t, detwei=detwei)
+    call transform_to_physical(coordinate, ele, vbp_shape, &
+                               dshape=dvbp_t, detwei=detwei)
 
     gravity_at_quad = ele_val_at_quad(gravity, ele)
 
+    ! convert the full gradient of the shape function into a vertical
+    ! derivative only using the gravity direction
+    do gi = 1, size(gravity_at_quad, 2)
+      dvbp_z(:,gi,1) = matmul(dvbp_t(:,gi,:), gravity_at_quad(:,gi))
+    end do
+            
     if(assemble_matrix) then
-      call transform_to_physical(coordinate, ele, vbp_shape, &
-                                  dshape=dvbp_t)
                                   
       call add_matrix_element(ele, vbp, &
-                              gravity, gravity_at_quad, &
-                              dvbp_t, detwei, &
+                              dvbp_z, detwei, &
                               matrix_addto)
     end if
     
-    call add_buoyancy_element(ele, vbp_shape, vbp, &
-                                 buoyancy, gravity, gravity_at_quad, &
-                                 dbuoy_t, detwei, rhs_addto)
+    call add_buoyancy_element(ele, vbp, &
+                                 buoyancy, dvbp_z, detwei, rhs_addto)
 
     element_nodes => ele_nodes(vbp, ele)
     if(assemble_matrix) call addto(matrix, element_nodes, element_nodes, matrix_addto)
@@ -203,24 +205,14 @@ module vertical_balance_pressure
   end subroutine assemble_vertical_balance_pressure_element
 
   subroutine add_matrix_element(ele, vbp, &
-                                gravity, gravity_at_quad, &
-                                dvbp_t, detwei, &
+                                dvbp_z, detwei, &
                                 matrix_addto)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: vbp
-    type(vector_field), intent(in) :: gravity
-    real, dimension(gravity%dim, ele_ngi(gravity, ele)), intent(in) :: gravity_at_quad
-    real, dimension(ele_loc(vbp, ele), ele_ngi(vbp, ele), mesh_dim(vbp)), intent(in) :: dvbp_t
+    real, dimension(ele_loc(vbp, ele), ele_ngi(vbp, ele), 1), intent(in) :: dvbp_z
     real, dimension(ele_ngi(vbp, ele)), intent(in) :: detwei
     real, dimension(ele_loc(vbp, ele), ele_loc(vbp, ele)), intent(inout) :: matrix_addto
     
-    integer :: gi
-    real, dimension(ele_loc(vbp, ele), ele_ngi(vbp, ele), 1) :: dvbp_z
-    
-    do gi = 1, size(gravity_at_quad, 2)
-      dvbp_z(:,gi,1) = matmul(dvbp_t(:,gi,:), gravity_at_quad(:,gi))
-    end do
-            
     ! element matrix
     !  /                           
     !  | (grav dot grad N_A) (grav dot grad N_B) dV
@@ -229,30 +221,21 @@ module vertical_balance_pressure
 
   end subroutine add_matrix_element
 
-  subroutine add_buoyancy_element(ele, test_function, &
-                                  vbp, buoyancy, gravity, gravity_at_quad, &
-                                  dbuoy_t, detwei, rhs_addto)
+  subroutine add_buoyancy_element(ele, &
+                                  vbp, buoyancy, &
+                                  dvbp_z, detwei, rhs_addto)
     integer, intent(in) :: ele
-    type(element_type), intent(in) :: test_function
     type(scalar_field), intent(in) :: vbp
     type(scalar_field), intent(in) :: buoyancy
-    type(vector_field), intent(in) :: gravity
-    real, dimension(gravity%dim, ele_ngi(gravity, ele)), intent(in) :: gravity_at_quad
-    real, dimension(ele_loc(buoyancy, ele), ele_ngi(buoyancy, ele), mesh_dim(buoyancy)), intent(in) :: dbuoy_t
+    real, dimension(ele_loc(vbp, ele), ele_ngi(vbp, ele), 1), intent(in) :: dvbp_z
     real, dimension(ele_ngi(vbp, ele)), intent(in) :: detwei
     real, dimension(ele_loc(vbp, ele)), intent(inout) :: rhs_addto
    
-    real, dimension(ele_ngi(buoyancy, ele), mesh_dim(buoyancy)) :: buoyancy_grad_at_quad
-    real, dimension(ele_ngi(buoyancy, ele)) :: buoyancy_gradz_at_quad
-    integer :: gi
+    real, dimension(1, ele_ngi(buoyancy, ele)) :: buoyancy_at_quad
 
-    buoyancy_grad_at_quad = ele_grad_at_quad(buoyancy, ele, dbuoy_t)
+    buoyancy_at_quad(1, :) = ele_val_at_quad(buoyancy, ele)
    
-    do gi = 1, size(buoyancy_gradz_at_quad)
-      buoyancy_gradz_at_quad(gi) = sum(buoyancy_grad_at_quad(gi,:)*gravity_at_quad(:,gi))
-    end do
-   
-    rhs_addto = rhs_addto - shape_rhs(test_function, detwei * buoyancy_gradz_at_quad)
+    rhs_addto = rhs_addto + dshape_dot_vector_rhs(dvbp_z, buoyancy_at_quad, detwei)
     
   end subroutine add_buoyancy_element
 

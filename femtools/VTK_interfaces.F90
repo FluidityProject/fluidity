@@ -855,9 +855,7 @@ contains
         ewrite(-1,*) 'a continuous non-periodic to a continuous periodic mesh.'
         ewrite(-1,*) 'This suggests that the output_mesh requested is periodic,'
         ewrite(-1,*) 'which generally produces strange vtus.'
-        ewrite(-1,*) 'Best to switch to a non-periodic output_mesh or if you can'
-        ewrite(-1,*) "think of a reason why it's a good idea to allow it then delete"
-        ewrite(-1,*) "this check (and maybe some that follow) or convert to a warning."
+        ewrite(-1,*) "Please switch to a non-periodic output_mesh."
         FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
       end if
     end if
