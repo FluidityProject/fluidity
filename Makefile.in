@@ -188,6 +188,11 @@ fltools: fluidity_library
 	@echo "    MAKE climatology"
 	@cd climatology; $(MAKE)
 
+.PHONY:manual
+
+manual:
+	@cd manual; $(MAKE)
+
 python_build:
 ifeq (@HAVE_PYTHON@,yes)
 	@echo "    MAKE python"
