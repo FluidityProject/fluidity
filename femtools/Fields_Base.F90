@@ -58,15 +58,23 @@ module fields_base
 
   interface ele_neigh
      module procedure ele_neigh_mesh, ele_neigh_scalar, ele_neigh_vector, &
-          & ele_neigh_tensor
+          & ele_neigh_tensor, ele_neigh_i_mesh, ele_neigh_i_scalar, &
+          & ele_neigh_i_vector, ele_neigh_i_tensor
   end interface
 
   interface ele_faces
-     module procedure ele_faces_mesh, ele_faces_vector, ele_faces_scalar
+     module procedure ele_faces_mesh, ele_faces_vector, ele_faces_scalar, &
+          & ele_faces_tensor
   end interface
     
   interface node_neigh
-     module procedure node_neigh_mesh, node_neigh_vector, node_neigh_scalar
+     module procedure node_neigh_mesh, node_neigh_vector, node_neigh_scalar, &
+          & node_neigh_tensor
+  end interface
+
+  interface face_neigh
+     module procedure face_neigh_mesh, face_neigh_scalar, face_neigh_vector, &
+          & face_neigh_tensor
   end interface
 
   interface ele_face
@@ -911,7 +919,7 @@ contains
        & (ele_neigh)
     !!< Return the neigh_numberth neighbour of ele_number.
     integer :: ele_neigh
-    type(vector_field), intent(in) :: field
+    type(scalar_field), intent(in) :: field
     integer, intent(in) :: ele_number, neigh_number
     
     ele_neigh=ele_neigh_i_mesh(field%mesh, ele_number, neigh_number)
@@ -933,7 +941,7 @@ contains
        & (ele_neigh)
     !!< Return the neigh_numberth neighbour of ele_number.
     integer :: ele_neigh
-    type(vector_field), intent(in) :: field
+    type(tensor_field), intent(in) :: field
     integer, intent(in) :: ele_number, neigh_number
     
     ele_neigh=ele_neigh_i_mesh(field%mesh, ele_number, neigh_number)
@@ -981,6 +989,102 @@ contains
 
     node_neigh => node_neigh_mesh(field%mesh, node_number)
   end function node_neigh_tensor
+
+  ! Returns the neighbouring face of a given face. The incoming face number is returned if no neighbour face exists.
+  function face_neigh_mesh(mesh, face) result(face_neigh)
+   integer, intent(in) :: face
+   type(mesh_type), intent(in) :: mesh
+   integer :: face_neigh
+   integer :: ele, ele2, i
+   integer, dimension(:), pointer :: ele_neighs
+
+   ele=face_ele(mesh, face)
+   ele_neighs=>ele_neigh(mesh, ele)
+
+   face_neigh=face
+   ! Search for a neighbour which shares the same face
+   do i=1, size(ele_neighs)
+        ele2=ele_neighs(i)
+        if (ele2.le.0) then
+             continue
+        elseif (ele_face(mesh, ele, ele2)==face) then
+            face_neigh=ele_face(mesh, ele2, ele)
+            exit
+        end if
+   end do
+ end function face_neigh_mesh
+
+  ! Returns the neighbouring face of a given face. The incoming face number is returned if no neighbour face exists.
+  function face_neigh_scalar(field, face) result(face_neigh)
+   integer, intent(in) :: face
+   type(scalar_field), intent(in) :: field
+   integer :: face_neigh
+   integer :: ele, ele2, i
+   integer, dimension(:), pointer :: ele_neighs
+
+   ele=face_ele(field%mesh, face)
+   ele_neighs=>ele_neigh(field%mesh, ele)
+
+   face_neigh=face
+   ! Search for a neighbour which shares the same face
+   do i=1, size(ele_neighs)
+        ele2=ele_neighs(i)
+        if (ele2.le.0) then
+             continue
+        elseif (ele_face(field%mesh, ele, ele2)==face) then
+            face_neigh=ele_face(field%mesh, ele2, ele)
+            exit
+        end if
+   end do
+ end function face_neigh_scalar
+
+  ! Returns the neighbouring face of a given face. The incoming face number is returned if no neighbour face exists.
+  function face_neigh_vector(field, face) result(face_neigh)
+   integer, intent(in) :: face
+   type(vector_field), intent(in) :: field
+   integer :: face_neigh
+   integer :: ele, ele2, i
+   integer, dimension(:), pointer :: ele_neighs
+
+   ele=face_ele(field%mesh, face)
+   ele_neighs=>ele_neigh(field%mesh, ele)
+
+   face_neigh=face
+   ! Search for a neighbour which shares the same face
+   do i=1, size(ele_neighs)
+        ele2=ele_neighs(i)
+        if (ele2.le.0) then
+             continue
+        elseif (ele_face(field%mesh, ele, ele2)==face) then
+            face_neigh=ele_face(field%mesh, ele2, ele)
+            exit
+        end if
+   end do
+ end function face_neigh_vector
+
+  ! Returns the neighbouring face of a given face. The incoming face number is returned if no neighbour face exists.
+  function face_neigh_tensor(field, face) result(face_neigh)
+   integer, intent(in) :: face
+   type(tensor_field), intent(in) :: field
+   integer :: face_neigh
+   integer :: ele, ele2, i
+   integer, dimension(:), pointer :: ele_neighs
+
+   ele=face_ele(field%mesh, face)
+   ele_neighs=>ele_neigh(field%mesh, ele)
+
+   face_neigh=face
+   ! Search for a neighbour which shares the same face
+   do i=1, size(ele_neighs)
+        ele2=ele_neighs(i)
+        if (ele2.le.0) then
+             continue
+        elseif (ele_face(field%mesh, ele, ele2)==face) then
+            face_neigh=ele_face(field%mesh, ele2, ele)
+            exit
+        end if
+   end do
+ end function face_neigh_tensor
 
   pure function ele_face_count_mesh(mesh, ele_number) result (face_count)
     !!< Return the number of faces associated with ele_number.
@@ -2174,7 +2278,7 @@ contains
     integer, intent(in) :: ele_number
     real, dimension(ele_loc(field,ele_number), &
          &          ele_ngi(field,ele_number),&
-         &          mesh_dim(field)), intent(in) :: dn
+         &          mesh_dim(field)),                   intent(in) :: dn
     real, dimension(field%mesh%shape%ngi, mesh_dim(field)) :: quad_grad
     
     integer :: i
