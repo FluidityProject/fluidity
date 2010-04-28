@@ -353,7 +353,7 @@ curl_2d_algorithm =
          attribute name { "curl_2d" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         galerkin_projection_mass_options_submesh?,
+         galerkin_projection_mass_options?,
          comment
       }
    )
@@ -364,7 +364,7 @@ vorticity_2d_algorithm =
          attribute name { "curl_2d" },
          attribute material_phase_support { "single" },
          attribute source_field_name { "Velocity" },
-         galerkin_projection_mass_options_submesh?,
+         galerkin_projection_mass_options?,
          comment
       }
    )
@@ -375,7 +375,7 @@ curl_algorithm =
          attribute name { "curl" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         galerkin_projection_mass_options_submesh?,
+         galerkin_projection_mass_options?,
          comment
       }
    )
@@ -386,7 +386,7 @@ vorticity_algorithm =
          attribute name { "curl" },
          attribute material_phase_support { "single" },
          attribute source_field_name { "Velocity" },
-         galerkin_projection_mass_options_submesh?,
+         galerkin_projection_mass_options?,
          comment
       }
    )

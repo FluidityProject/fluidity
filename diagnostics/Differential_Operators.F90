@@ -172,11 +172,7 @@ contains
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
-      if(have_option(trim(path) // "/lump_mass/use_submesh")) then
-        masslump => get_lumped_mass_on_submesh(state, s_field%mesh)
-      else
-        masslump => get_lumped_mass(state, s_field%mesh)
-      end if
+      masslump => get_lumped_mass(state, s_field%mesh)
       call zero(s_field)
       do i = 1, ele_count(s_field)
         call assemble_curl_ele(i, positions, source_field, s_field)
@@ -284,11 +280,7 @@ contains
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
-      if(have_option(trim(path) // "/lump_mass/use_submesh")) then
-        masslump => get_lumped_mass_on_submesh(state, v_field%mesh)
-      else
-        masslump => get_lumped_mass(state, v_field%mesh)
-      end if
+      masslump => get_lumped_mass(state, v_field%mesh)
       call zero(v_field)
       do i = 1, ele_count(v_field)
         call assemble_curl_ele(i, positions, source_field, v_field)

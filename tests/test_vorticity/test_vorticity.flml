@@ -224,29 +224,6 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="P2Lumped" rank="1">
-      <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single" name="curl" source_field_name="Velocity">
-          <lump_mass>
-            <use_submesh/>
-          </lump_mass>
-        </algorithm>
-        <mesh name="P2Mesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <exclude_from_convergence/>
-        </convergence>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <steady_state>
-          <exclude_from_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
     <vector_field name="P2DG" rank="1">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl" source_field_name="Velocity"/>
