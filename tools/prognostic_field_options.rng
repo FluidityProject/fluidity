@@ -113,6 +113,34 @@ Only applicable to control volume spatial discretisations.</a:documentation>
             </attribute>
             <empty/>
           </element>
+          <element name="type">
+            <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
+turbulence model. Can be used on TurbulentKineticEnergy (k)
+and TurbulentDissipation (epsilon) fields.
+Use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
+            <attribute name="name">
+              <value>k_epsilon</value>
+            </attribute>
+            <optional>
+              <element name="apply_weakly">
+                <a:documentation>Apply the dirichlet bc weakly. Available
+automatically with discontinuous_galerkin and
+control_volume spatial_discretisations.
+If not selected boundary conditions are applied strongly.</a:documentation>
+                <optional>
+                  <element name="boundary_overwrites_initial_condition">
+                    <a:documentation>If the initial condition and boundary conditions
+differ, setting this option will cause the initial
+condition on the boundary to be overwritten with
+the boundary condition. Since you are applying the
+boundary condition weakly, you probably do *not*
+want this.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
+          </element>
         </choice>
       </element>
     </zeroOrMore>
