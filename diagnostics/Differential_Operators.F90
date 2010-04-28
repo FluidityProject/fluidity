@@ -178,7 +178,7 @@ contains
         masslump => get_lumped_mass(state, s_field%mesh)
       end if
       call zero(s_field)
-      do i = 1, ele_count(rhs)
+      do i = 1, ele_count(s_field)
         call assemble_curl_ele(i, positions, source_field, s_field)
       end do
       s_field%val = s_field%val / masslump%val
@@ -286,7 +286,7 @@ contains
     if(have_option(trim(path) // "/lump_mass")) then
       masslump => get_lumped_mass(state, v_field%mesh)
       call zero(v_field)
-      do i = 1, ele_count(rhs)
+      do i = 1, ele_count(v_field)
         call assemble_curl_ele(i, positions, source_field, v_field)
       end do
       do i = 1, v_field%dim
