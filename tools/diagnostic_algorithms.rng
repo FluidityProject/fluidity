@@ -1382,6 +1382,9 @@ No. 1 pp. 243--268, 1980</a:documentation>
     <ref name="div_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="curl_2d_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="finite_element_divergence_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -1437,9 +1440,6 @@ No. 1 pp. 243--268, 1980</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="finite_element_divergence_transpose_algorithm"/>
-  </define>
-  <define name="vector_diagnostic_algorithms" combine="choice">
-    <ref name="curl_2d_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="curl_algorithm"/>

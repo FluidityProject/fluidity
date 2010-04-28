@@ -110,7 +110,7 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field name="P1" rank="1">
+    <scalar_field name="P1" rank="0">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity">
           <solver>
@@ -133,9 +133,7 @@
         </algorithm>
         <mesh name="CoordinateMesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
@@ -147,16 +145,14 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="P1Lumped" rank="1">
+    <scalar_field name="P1Lumped" rank="0">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity">
           <lump_mass/>
         </algorithm>
         <mesh name="CoordinateMesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
@@ -168,14 +164,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="P1DG" rank="1">
+    <scalar_field name="P1DG" rank="0">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity"/>
         <mesh name="P1DGMesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
@@ -187,7 +181,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="P2" rank="1">
+    <scalar_field name="P2" rank="0">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity">
           <solver>
@@ -210,9 +204,7 @@
         </algorithm>
         <mesh name="P2Mesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
@@ -224,7 +216,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="P2Lumped" rank="1">
+    <scalar_field name="P2Lumped" rank="0">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity">
           <lump_mass>
@@ -233,9 +225,7 @@
         </algorithm>
         <mesh name="P2Mesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
@@ -247,14 +237,12 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="P2DG" rank="1">
+    <scalar_field name="P2DG" rank="0">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity"/>
         <mesh name="P2DGMesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <exclude_from_convergence/>
         </convergence>
