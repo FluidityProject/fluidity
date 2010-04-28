@@ -1146,12 +1146,11 @@ interpolation_algorithm_vector =
       ## The spatial discretisation options for the conservative potential
       ## must match those used for Pressure.
       ##
-      ## With weak boundary conditions for the conservative potential, if
-      ## no-normal-flow is satisfied on the boundary this must be preserved by
-      ## the interpolation. For 2D domains this can be achieved by using
-      ## consistent interpolation for the conservative potential or, for more
-      ## general interpolants, by performing a further decomposition of the
-      ## conservative potential (see
+      ## With weak boundary conditions for Velociity, if no-normal-flow is
+      ## satisfied on the boundary this must be preserved by the interpolation.
+      ## For 2D domains this can be achieved by using consistent interpolation
+      ## for the conservative potential or, for more general interpolants, by
+      ## performing a further decomposition of the conservative potential (see
       ## geostrophic_interpolation/conservative_potential/decompose).
       ##
       ## For shallow-water modelling the interpolants for layer thickness and

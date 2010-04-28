@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>test_vorticity</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>make clean-run; fluidity test_vorticity.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="vtu" language="python">import vtktools
+
+vtu = vtktools.vtu("test_vorticity_0.vtu")</variable>
+  </variables>
+  <pass_tests>
+    <test name="Vorticity" language="python">import fluidity_tools
+
+for fieldName in ["P1", "P1Lumped", "P1DG", "P2", "P2DG"]:
+  field = vtu.GetVectorField(fieldName)
+
+  print fieldName, field.min(), field.max()
+  fluidity_tools.compare_variable(field.min(), 1.0, 1.0e-12)
+  fluidity_tools.compare_variable(field.max(), 1.0, 1.0e-12)</test>
+  </pass_tests>
+</testproblem>

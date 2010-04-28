@@ -508,7 +508,7 @@ elements.</a:documentation>
       </attribute>
       <ref name="vector_source_field"/>
       <optional>
-        <ref name="galerkin_projection_mass_options"/>
+        <ref name="galerkin_projection_mass_options_submesh"/>
       </optional>
       <ref name="comment"/>
     </element>
@@ -526,7 +526,7 @@ elements.</a:documentation>
         <value>Velocity</value>
       </attribute>
       <optional>
-        <ref name="galerkin_projection_mass_options"/>
+        <ref name="galerkin_projection_mass_options_submesh"/>
       </optional>
       <ref name="comment"/>
     </element>

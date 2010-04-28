@@ -375,7 +375,7 @@ curl_algorithm =
          attribute name { "curl" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         galerkin_projection_mass_options?,
+         galerkin_projection_mass_options_submesh?,
          comment
       }
    )
@@ -386,7 +386,7 @@ vorticity_algorithm =
          attribute name { "curl" },
          attribute material_phase_support { "single" },
          attribute source_field_name { "Velocity" },
-         galerkin_projection_mass_options?,
+         galerkin_projection_mass_options_submesh?,
          comment
       }
    )
