@@ -73,11 +73,12 @@ subroutine test_fldecomp_wrappers
       integer :: read_mesh
     end function read_mesh
     
-    function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnodes, enlist, region_ids, nelements, nloc, senlist, boundary_ids, snelements, snloc)
+    function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, no_coords, nnodes, enlist, region_ids, nelements, nloc, senlist, boundary_ids, snelements, snloc)
       implicit none
       integer, intent(in) :: filename_len
       integer, intent(in) :: meshtype_len
       integer, intent(in) :: dim
+      integer, intent(in) :: no_coords
       integer, intent(in) :: nnodes
       integer, intent(in) :: nelements
       integer, intent(in) :: nloc
@@ -85,7 +86,7 @@ subroutine test_fldecomp_wrappers
       integer, intent(in) :: snloc
       character(len = filename_len), intent(in) :: filename
       character(len = meshtype_len), intent(in) :: meshtype
-      real, dimension(nnodes * dim), intent(in) :: x
+      real, dimension(nnodes * no_coords), intent(in) :: x
       integer, dimension(nelements * nloc), intent(in) :: enlist
       integer, dimension(nelements), intent(in) :: region_ids
       integer, dimension(snelements * snloc), target, intent(in) :: senlist
@@ -136,7 +137,7 @@ subroutine test_fldecomp_wrappers
   ! Write the mesh
   call report_test("[write_mesh]", &
     & write_mesh(trim(filename), len_trim(filename), trim(meshtype), len_trim(meshtype), &
-    & x, dim, nnodes, enlist, region_ids, nelements, nloc, senlist, boundary_ids, snelements, snloc) /= 0, &
+    & x, dim, dim, nnodes, enlist, region_ids, nelements, nloc, senlist, boundary_ids, snelements, snloc) /= 0, &
     & .false., "Failed to write mesh")
   
   ! Query the written mesh
