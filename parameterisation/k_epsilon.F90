@@ -154,12 +154,15 @@ subroutine keps_tke(state)
     type(vector_field), pointer        :: positions, nu
     type(tensor_field), pointer        :: kk_diff, visc
     type(element_type)                 :: shape_velo
-    integer                            :: i, ele
+    integer                            :: i, ele, bc
     real, allocatable, dimension(:)    :: detwei
     real, allocatable, dimension(:,:,:):: dshape_velo
     real, allocatable, dimension(:)    :: strain_ngi
     real, allocatable, dimension(:)    :: strain_loc
     real                               :: epsovertke
+    integer, dimension(:), pointer   :: surface_elements, surface_node_list
+    character(len=FIELD_NAME_LEN)    :: bc_type, bc_name
+    type(mesh_type), pointer         :: surface_mesh
 
     ewrite(1,*) "In keps_tke"
 
@@ -201,6 +204,27 @@ subroutine keps_tke(state)
         epsovertke = eps%val(i) / kk%val(i)
         call set(absorption, i, epsovertke)
     end do
+
+    ! puts the BC boundary values in surface_eps_values:
+    if (calculate_bcs) then    ! do I need this any more?
+
+        do bc = 1, get_boundary_condition_count(kk)   ! use kk bcs for eps
+
+            call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
+                 surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
+                 surface_element_list=surface_elements)
+
+            if (bc_name == 'k_epsilon') then
+
+                ewrite(1,*) "Calculating k bc: ", bc_name
+                ! what goes in here? Lacasse and Lew set a Dirichlet BC using wall stress.
+                call tke_bc(state, bc, surface_node_list)
+
+            end if
+
+        end do
+
+    end if
 
     ! set diffusivity for KK - copied from Jon's update 28 Feb revision 12719
     call zero(kk_diff)
@@ -274,17 +298,15 @@ subroutine keps_eps(state)
     ! puts the BC boundary values in surface_eps_values:
     if (calculate_bcs) then
 
-        do bc = 1, get_boundary_condition_count(kk)   ! use kk bcs for eps
+        do bc = 1, get_boundary_condition_count(eps)   ! use kk bcs for eps
 
-            call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
+            call get_boundary_condition(eps, bc, name=bc_name, type=bc_type, &
                  surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
                  surface_element_list=surface_elements)
 
-            if (bc_name /= 'inflow') then   ! nasty way of selecting just the sides. TEMPORARY
+            if (bc_name == 'k_epsilon') then
 
-                ewrite(1,*) "Calculating eps bc"
-                ewrite(1,*) "eps bc name: ", bc_name
-                ewrite(1,*) "eps bc type: ", bc_type
+                ewrite(1,*) "Calculating eps bc: ", bc_name
 
                 ! create a sparse matrix, rhs and solution vectors
                 eps_sparsity => get_csr_sparsity_firstorder( state, surface_mesh, surface_mesh )
@@ -586,6 +608,27 @@ end subroutine keps_allocate_fields
 
 !------------------------------------------------------------------------------------------
 
+subroutine tke_bc(state, bc, surface_node_list)
+
+    type(state_type), intent(in)     :: state
+    type(scalar_field), pointer      :: kk
+    type(mesh_type), pointer         :: surface_mesh
+    character(len=FIELD_NAME_LEN)    :: bc_type, bc_name
+    integer                          :: i
+    integer, intent(in)              :: bc
+    integer, dimension(:), pointer, intent(in)   :: surface_node_list
+
+    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
+
+    ! Lacasse and Lew set a Dirichlet BC using wall stress.
+    do i = 1, size(surface_node_list)
+        call set( kk, surface_node_list(i), fields_min )
+    end do
+
+end subroutine tke_bc
+
+!------------------------------------------------------------------------------------------
+
 subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumped_mass)
 
     ! 05/03/10: Chris Pain suggests a good idea.
@@ -716,36 +759,39 @@ subroutine limit_lengthscale(state)
              surface_node_list=surface_node_list, surface_mesh=sur_mesh, &
              surface_element_list=surface_element_list)
 
-        ! for each node in the surface, get the elements and find the normal
-        ! distance, then average (add and divide by nodes per element)
+        if (bc_type = 'k_epsilon') then
+            ! for each node in the surface, get the elements and find the normal
+            ! distance, then average (add and divide by nodes per element)
 
-        do i = 1, size(surface_node_list)
+            do i = 1, size(surface_node_list)
 
-            k = surface_node_list(i)
-            current_patch = get_patch_ele(sur_mesh, i)
-            nele = current_patch%count
-            h = 0.
+                k = surface_node_list(i)
+                current_patch = get_patch_ele(sur_mesh, i)
+                nele = current_patch%count
+                h = 0.
 
-            do j = 1, nele    ! sum over local elements
-                sele = surface_element_list(current_patch%elements(j))
-                ele = face_ele(positions, sele)
-                h = h + get_normal_element_size(ele, sele, positions, kk)
+                do j = 1, nele    ! sum over local elements
+                    sele = surface_element_list(current_patch%elements(j))
+                    ele = face_ele(positions, sele)
+                    h = h + get_normal_element_size(ele, sele, positions, kk)
+                end do
+
+                h = h / nele    ! normalise
+
+                ! Set lengthscale limit. See Yap (1987) or Craft & Launder (1996)
+                ll_limit = 0.83 * eps%val(k)**2. / kk%val(k) * &
+                kk%val(k)**1.5 / 2.5 / eps%val(k) / h - 1. * &
+                ( kk%val(k)**1.5 / 2.5 / eps%val(k) / h )**2.
+
+                ! set the UPPER limit for lengthscale at surface
+                ll%val(k) = min( max( ll_limit, fields_min), ll_max )
+                !print *, ll_limit, ll_max, min( max( ll_limit, fields_min), ll_max )
+
+                deallocate(current_patch%elements)
+
             end do
 
-            h = h / nele    ! normalise
-
-            ! Set lengthscale limit. See Yap (1987) or Craft & Launder (1996)
-            ll_limit = 0.83 * eps%val(k)**2. / kk%val(k) * &
-            kk%val(k)**1.5 / 2.5 / eps%val(k) / h - 1. * &
-            ( kk%val(k)**1.5 / 2.5 / eps%val(k) / h )**2.
-
-            ! set the UPPER limit for lengthscale at surface
-            ll%val(k) = min( max( ll_limit, fields_min), ll_max )
-            !print *, ll_limit, ll_max, min( max( ll_limit, fields_min), ll_max )
-
-            deallocate(current_patch%elements)
-
-        end do
+        end if
 
     end do
     
