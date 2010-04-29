@@ -14368,7 +14368,7 @@ else
   fi
 fi
 
-ac_config_files="$ac_config_files Makefile debug/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile decomp/Makefile decomp/tests/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile adjoint/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile gallopede/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile decomp/Makefile decomp/tests/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile adjoint/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile gallopede/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15056,6 +15056,7 @@ do
     "include/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "debug/Makefile") CONFIG_FILES="$CONFIG_FILES debug/Makefile" ;;
+    "bathymtery/Makefile") CONFIG_FILES="$CONFIG_FILES bathymtery/Makefile" ;;
     "ocean_forcing/Makefile") CONFIG_FILES="$CONFIG_FILES ocean_forcing/Makefile" ;;
     "ocean_forcing/tests/Makefile") CONFIG_FILES="$CONFIG_FILES ocean_forcing/tests/Makefile" ;;
     "femtools/Makefile") CONFIG_FILES="$CONFIG_FILES femtools/Makefile" ;;

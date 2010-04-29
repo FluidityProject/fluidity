@@ -51,6 +51,24 @@ input_choice_real_plus_file =
       }
    )
 
+input_choice_real_plus_map =
+   (
+      input_choice_real_contents|
+      ## Set the depth from a bathymetry map
+      element from_map {
+         attribute file_name { xsd:string }
+      }
+   )
+
+input_choice_real_plus_list =
+   (
+      input_choice_real_contents|
+      ## Manually enter the spacing between each layer
+      element list {
+         real_vector
+      }
+   )
+
 input_choice_real_contents =
    ## Constant value
    element constant {

@@ -79,6 +79,26 @@ be set to use this option.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="input_choice_real_plus_map">
+    <choice>
+      <ref name="input_choice_real_contents"/>
+      <element name="from_map">
+        <a:documentation>Set the depth from a bathymetry map</a:documentation>
+        <attribute name="file_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
+  <define name="input_choice_real_plus_list">
+    <choice>
+      <ref name="input_choice_real_contents"/>
+      <element name="list">
+        <a:documentation>Manually enter the spacing between each layer</a:documentation>
+        <ref name="real_vector"/>
+      </element>
+    </choice>
+  </define>
   <define name="input_choice_real_contents">
     <choice>
       <element name="constant">

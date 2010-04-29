@@ -117,19 +117,20 @@ contains
     type(vector_field), intent(in):: field
     
     character(len = 7 + int2str_len(huge(0)) + real_format_len(padding = 1)) :: format_buffer
-    integer unit, nodes, dim, i
+    integer unit, nodes, dim, no_coords, i
     
     unit=free_unit()
     
     nodes=node_count(field)
     dim=mesh_dim(field)
+    no_coords=field%dim
     
     open(unit=unit, file=trim(filename)//'.node', action='write', err=41)
     
     ! header line: nodes, dim, no attributes, no boundary markers
     write(unit, *, err=42) nodes, dim, 0, 0
     
-    format_buffer = "(i0,a," // int2str(dim) // real_format(padding = 1) // ")"
+    format_buffer = "(i0,a," // int2str(no_coords) // real_format(padding = 1) // ")"
     do i=1, nodes
        write(unit, trim(format_buffer), err=42) i, " ", node_val(field, i)
     end do

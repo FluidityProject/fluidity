@@ -78,12 +78,13 @@ void usage(char *binary){
       <<"bisection (METIS PartGraphRecursive). This is the default if num partitions "
       <<"is less or equal to 8.\n"
       <<"\t-t,--terreno [boundary id]\n\t\tRecognise as a Terreno output that is extruded in the Z direction. By default the boundary id of the extruded plane is 1.\n"
+      <<"\t-s,--shell\n\t\tRecognise the input as a spherical shell mesh.\n"
       <<"\t-v,--verbose\n\t\tVerbose mode\n";
   exit(-1);
 }
 
 void write_partitions(bool verbose, string filename, string file_format,
-                      int nparts, int nnodes, int dim,
+                      int nparts, int nnodes, int dim, int no_coords,
                       const vector<double>&x, const vector<int>& decomp,
                       int nloc, const vector<int>& ENList, const vector<int>& regionIds, 
                       int snloc, const deque< vector<int> >& SENList, const vector<int>& boundaryIds){
@@ -234,10 +235,10 @@ void write_partitions(bool verbose, string filename, string file_format,
     }
     
     // Coordinate data
-    vector<double> partX(nodes.size()*dim);
+    vector<double> partX(nodes.size()*no_coords);
     for(size_t j=0;j<nodes.size();j++){
-      for(int k=0;k<dim;k++){
-        partX[j * dim + k] = x[(nodes[j] - 1) * dim + k];
+      for(int k=0;k<no_coords;k++){
+        partX[j * no_coords + k] = x[(nodes[j] - 1) * no_coords + k];
       }
     }
 
@@ -320,7 +321,7 @@ void write_partitions(bool verbose, string filename, string file_format,
     if(verbose)
       cout<<"Writing out triangle mesh for partition "<<part<<" to files with base name "<<buffer.str()<<"\n";
 
-    if(WriteMesh(buffer.str(), file_format, partX, dim,
+    if(WriteMesh(buffer.str(), file_format, partX, dim, no_coords,
                  partENList, partRegionIds, nloc, partSENList, partBoundaryIds, snloc)){
       cerr<<"ERROR: failed to write mesh file with base name "<<buffer.str()<<endl;
       exit(-1);
@@ -389,6 +390,7 @@ int main(int argc, char **argv){
     {"nparts", 0, 0, 'n'},
     {"recursive", 0, 0, 'r'},
     {"terreno", optional_argument, 0, 't'},
+    {"shell", 0, 0, 's'},
     {"verbose", 0, 0, 'v'},
     {0, 0, 0, 0}
   };
@@ -400,9 +402,9 @@ int main(int argc, char **argv){
   map<char, string> flArgs;
   while (true){
 #ifndef _AIX
-    c = getopt_long(argc, argv, "c:df:hkn:rt::v", longOptions, &optionIndex);
+    c = getopt_long(argc, argv, "c:df:hkn:rt:s::v", longOptions, &optionIndex);
 #else
-    c = getopt(argc, argv, "c:df:hkn:rt::v");
+    c = getopt(argc, argv, "c:df:hkn:rt:s::v");
 #endif
     if (c == -1) break;
 
@@ -485,6 +487,8 @@ int main(int argc, char **argv){
     cout<<"Reading in extrusion information\n";
   }
 
+  bool shell = (flArgs.find('s')!=flArgs.end());
+
   string filename_node = filename+".node";
   if(verbose)
     cout<<"Reading "<<filename_node<<endl;
@@ -506,7 +510,14 @@ int main(int argc, char **argv){
     }
   }
   
-  vector<double> x(nnodes*dim);
+  int no_coords; // The number of coordinates
+  if(shell){
+    no_coords=dim+1; // Shell meshes have and x, y and z coordinate.
+  }else{
+    no_coords=dim;
+  }
+
+  vector<double> x(nnodes*no_coords);
   vector<int> surface_nids;
   if(extruded||(natt==1))
     surface_nids.resize(nnodes);
@@ -515,7 +526,7 @@ int main(int argc, char **argv){
     int id, pos=0;
     for(int i=0;i<nnodes;i++){
       node_file>>id;
-      for(int j=0;j<dim;j++)
+      for(int j=0;j<no_coords;j++)
         node_file>>x[pos++];
       if(natt)
         node_file>>surface_nids[i];
@@ -716,7 +727,7 @@ int main(int argc, char **argv){
     cout<<"Processing the mesh partitions\n";
   
   write_partitions(verbose, filename, file_format,
-                   nparts, nnodes, dim,
+                   nparts, nnodes, dim, no_coords,
                    x, decomp,
                    nloc, ENList, regionIds,
                    snloc, SENList, boundaryIds);

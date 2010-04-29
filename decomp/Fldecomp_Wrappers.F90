@@ -160,7 +160,7 @@ function read_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnode
 
 end function read_mesh
 
-function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnodes, enlist, region_ids, nelements, nloc, senlist, boundary_ids, snelements, snloc)
+function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, no_coords, nnodes, enlist, region_ids, nelements, nloc, senlist, boundary_ids, snelements, snloc)
   !!< A wrapper to enable fldecomp to write meshes without needing to port code to C++
   
   use fields
@@ -172,6 +172,7 @@ function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnod
   integer, intent(in) :: filename_len
   integer, intent(in) :: meshtype_len
   integer, intent(in) :: dim
+  integer, intent(in) :: no_coords
   integer, intent(in) :: nnodes
   integer, intent(in) :: nelements
   integer, intent(in) :: nloc
@@ -180,7 +181,7 @@ function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnod
   
   character(len = filename_len), intent(in) :: filename
   character(len = meshtype_len), intent(in) :: meshtype
-  real, dimension(nnodes * dim), intent(in) :: x
+  real, dimension(nnodes * no_coords), intent(in) :: x
   integer, dimension(nelements * nloc), intent(in) :: enlist
   integer, dimension(nelements), intent(in) :: region_ids
   integer, dimension(snelements * snloc), intent(in) :: senlist
@@ -201,11 +202,11 @@ function write_mesh(filename, filename_len, meshtype, meshtype_len, x, dim, nnod
   quad = make_quadrature(nloc, dim, degree = 1)
   shape = make_element_shape(nloc, dim, 1, quad)
   call allocate(mesh, nnodes, nelements, shape, name = filename)
-  call allocate(mesh_field, dim, mesh, "Coordinate")
+  call allocate(mesh_field, no_coords, mesh, "Coordinate")
 
   ! Copy data into mesh
   do i = 1, nnodes
-    call set(mesh_field, i, x((i - 1) * dim + 1:i * dim))
+    call set(mesh_field, i, x((i - 1) * no_coords + 1:i * no_coords))
   end do
   mesh_field%mesh%ndglno = enlist
   allocate(mesh_field%mesh%region_ids(size(region_ids)))

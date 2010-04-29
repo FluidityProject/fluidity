@@ -109,14 +109,14 @@ parallel periodic boundary conditions.</a:documentation>
               <a:documentation>Depth over which to extrude
 top will be at z=0
 bottom will be at z=-bottom_depth</a:documentation>
-              <ref name="input_choice_real"/>
+              <ref name="input_choice_real_plus_map"/>
             </element>
             <element name="sizing_function">
               <a:documentation>Constant or function to specify the depth of the
 layers. The function is a function of all coordinates
 (so in 2+1D: x,y and z) to specify a layer depth that
 varies both in the horizontal as in the vertical.</a:documentation>
-              <ref name="input_choice_real"/>
+              <ref name="input_choice_real_plus_list"/>
             </element>
             <optional>
               <element name="top_surface_id">

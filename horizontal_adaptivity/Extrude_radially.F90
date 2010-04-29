@@ -33,18 +33,22 @@ module hadapt_extrude_radially
     !!< The full extruded 3D mesh.
     type(vector_field), intent(out) :: out_mesh
 
-    character(len=FIELD_NAME_LEN):: mesh_name    
+    character(len=FIELD_NAME_LEN):: mesh_name, file_name 
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field), dimension(node_count(shell_mesh)) :: r_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     logical:: sizing_is_constant, depth_is_constant
     real:: constant_sizing, depth
+    real, dimension(:), allocatable :: sizing_vector
     integer:: stat, shell_dim, column, quadrature_degree
     real:: r_shell
     
     real, dimension(1) :: tmp_depth
-    real, dimension(mesh_dim(shell_mesh), 1) :: tmp_pos
+    real, dimension(mesh_dim(shell_mesh)+1, 1) :: tmp_pos
+
+
+    write(*,*) 'In extrude_radially'
 
     !! We assume that for the extrusion operation,
     !! the layer configuration is independent of phi and theta.
@@ -65,6 +69,8 @@ module hadapt_extrude_radially
        depth_is_constant = .false.
        call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python', &
           depth_function, stat=stat)
+       if (stat /= 0) call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map/file_name', &
+          file_name, stat=stat)
        if (stat /= 0) then
          FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
        end if
@@ -79,17 +85,31 @@ module hadapt_extrude_radially
        call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/python', &
           sizing_function, stat=stat)
        if (stat/=0) then
+          allocate(sizing_vector(100))
+          call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/list', &
+          sizing_vector, stat=stat)
+       end if
+       if (stat/=0) then
          FLAbort("Unknown way of specifying sizing function in mesh extrusion")
        end if       
     end if
   
+    write (*,*) 'pos1'
+
     ! create a 1d radial mesh under each surface node
     do column=1, size(r_meshes)
       
       if(.not.depth_is_constant) then
         tmp_pos(:,1) = node_val(shell_mesh, column)
-        call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
-        depth = tmp_depth(1)
+        if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python')) then
+          call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+          depth = tmp_depth(1)
+        else if  (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map')) then
+          call set_from_map(file_name, tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
+          depth = tmp_depth(1)
+        else
+          FLAbort("Error with options path")
+        end if
       end if
       
       if (sizing_is_constant) then
@@ -101,6 +121,8 @@ module hadapt_extrude_radially
       end if
     end do
       
+    write (*,*) 'pos2'
+
     ! Now the tiresome business of making a shape function.
     shell_dim = mesh_dim(shell_mesh)
     call get_option("/geometry/quadrature/degree", quadrature_degree)
@@ -110,19 +132,23 @@ module hadapt_extrude_radially
 
     call get_option(trim(option_path)//'/name', mesh_name)
       
+    write (*,*) 'pos3'
+
     ! combine the 1d radial meshes into a full mesh
     call combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
        full_shape, mesh_name, option_path)
-    ! vtk_write_state(filename, index, model, state, write_region_ids, stat)
-    call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
+
+    write (*,*) 'pos4'
+
+!     vtk_write_state(filename, index, model, state, write_region_ids, stat)
+!     call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
 !     call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
+!     call write_triangle_files("test_mesh", out_mesh)
        
     do column=1, node_count(shell_mesh)
       call deallocate(r_meshes(column))
     end do
     call deallocate(full_shape)
-
-!    call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
         
   end subroutine extrude_radially
 
@@ -158,12 +184,6 @@ module hadapt_extrude_radially
     real :: thetanew, phinew
     character(len=PYTHON_FUNC_LEN) :: py_func
 
-    ! Review this bit
-!     call get_option("/geometry/quadrature/degree", quadrature_degree)
-!     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
-!     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
-!     call deallocate(oned_quad)
-
     call get_option("/geometry/quadrature/degree", quadrature_degree)
     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
@@ -178,7 +198,7 @@ module hadapt_extrude_radially
       constant_value=-1.0
       py_func = sizing_function
     else
-      FLAbort("Need to supply either sizing or sizing_function")
+      FLAbort("Need to supply either sizing, sizing_function")
     end if
 
     ! First work out number of nodes/elements:

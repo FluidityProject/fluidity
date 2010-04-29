@@ -1387,6 +1387,7 @@ fi
 
 AC_OUTPUT(Makefile
           debug/Makefile
+          bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile

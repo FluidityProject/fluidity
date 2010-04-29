@@ -122,18 +122,18 @@ namespace Fluidity{
     return ret;
   }
 
-  int WriteMesh(const string& filename, const string& meshType, const vector<double>& x, const int& dim,
+  int WriteMesh(const string& filename, const string& meshType, const vector<double>& x, const int& dim, const int& no_coords,
                 const vector<int>& ENList, const vector<int>& regionIds, const int& nloc, const vector<int>& SENList, const vector<int>& boundaryIds, const int& snloc){
 
     // Extract mesh information so that memory can be allocated
-    int NNodes = x.size() / dim;
+    int NNodes = x.size() / no_coords;
     int NElements = regionIds.size();
     assert((int)ENList.size() == NElements * nloc);
     int SNElements = boundaryIds.size();
     assert((int)SENList.size() == SNElements * snloc);
         
     // Allocate memory to write the mesh
-    double* x_handle = (double*)malloc(NNodes*dim*sizeof(double));
+    double* x_handle = (double*)malloc(NNodes*no_coords*sizeof(double));
     int* ENList_handle = (int*)malloc(NElements*nloc*sizeof(int));
     int* regionIds_handle = (int*)malloc(NElements*sizeof(int));
     int* SENList_handle = (int*)malloc(SNElements*snloc*sizeof(int));
@@ -149,7 +149,7 @@ namespace Fluidity{
     }
 
     // Copy the mesh out of STL data structures  
-    for(int i = 0;i < NNodes * dim;i++){
+    for(int i = 0;i < NNodes * no_coords;i++){
       x_handle[i] = x[i];
     }
     for(int i = 0;i < NElements * nloc;i++){
@@ -171,7 +171,7 @@ namespace Fluidity{
     int meshType_len;
     meshType_len = meshType.size();
     int ret = write_mesh(filename.c_str(), &filename_len, meshType.c_str(), &meshType_len,
-                         x_handle, &dim, &NNodes,
+                         x_handle, &dim, &no_coords, &NNodes,
                          ENList_handle, regionIds_handle, &NElements, &nloc,
                          SENList_handle, boundaryIds_handle, &SNElements, &snloc);
 
@@ -185,7 +185,7 @@ namespace Fluidity{
     return ret;
   }
 
-  int WriteMesh(const string& filename, const string& meshType, const vector<double>& x, const int& dim,
+  int WriteMesh(const string& filename, const string& meshType, const vector<double>& x, const int& dim, const int& no_coords,
                 const vector<int>& ENList, const vector<int>& regionIds, const int& nloc, const deque<vector<int> >& SENList, const vector<int>& boundaryIds, const int& snloc){
 
     size_t SNElements = boundaryIds.size();
@@ -201,7 +201,7 @@ namespace Fluidity{
       }
     }
     
-    return WriteMesh(filename, meshType, x, dim,
+    return WriteMesh(filename, meshType, x, dim, no_coords,
                       ENList, regionIds, nloc, SENList_handle, boundaryIds, snloc);
   }
   

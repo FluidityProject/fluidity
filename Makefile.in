@@ -220,6 +220,8 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@cd libwm; $(MAKE)
 	@echo "    MAKE femtools"
 	@cd femtools;	$(MAKE)
+	@echo "    MAKE bathymetry"
+	@cd bathymetry; $(MAKE)
 	@echo "    MAKE ocean_forcing"
 	@cd ocean_forcing; $(MAKE)
 	@echo "    MAKE forward_interfaces"
@@ -333,6 +335,8 @@ clean-light:
 	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
+	@echo "    CLEAN bathymetry"
+	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
 	@cd ocean_forcing;  $(MAKE) clean
 	@cd ocean_forcing/tests;   $(MAKE) clean

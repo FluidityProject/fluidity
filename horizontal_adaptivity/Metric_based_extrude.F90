@@ -268,8 +268,20 @@ module hadapt_metric_based_extrude
   
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
+    integer, dimension(:), allocatable:: no_hanging_nodes
     integer:: column, total_out_nodes, total_out_elements, r_elements, last_seen
     
+    allocate(no_hanging_nodes(1:node_count(shell_mesh)))
+    no_hanging_nodes=0
+    do column=1, size(r_meshes)
+      if (node_owned(shell_mesh, column)) then
+        no_hanging_nodes(column)=ele_count(r_meshes(column))
+      end if
+    end do
+    if (associated(shell_mesh%mesh%halos)) then
+      call halo_update(shell_mesh%mesh%halos(2), no_hanging_nodes)
+    end if
+
     total_out_nodes = 0
     ! For each column,
     ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
@@ -298,13 +310,34 @@ module hadapt_metric_based_extrude
     out_mesh%mesh%option_path=option_path
     out_mesh%option_path=""
     out_mesh%mesh%periodic = mesh_periodic(shell_mesh) ! Leave this here for now
+
+    write (*,*) 'Pos3.1'
     
     last_seen = 0
     do column=1,node_count(shell_mesh)
-      call append_to_structures_radial(column, r_meshes(column), shell_mesh, out_mesh, last_seen)
+      if (node_owned(shell_mesh, column)) then
+        call append_to_structures_radial(column, r_meshes(column), shell_mesh, out_mesh, last_seen)
+      else
+        ! for non-owned columns we reserve node numbers, 
+        ! but don't fill in out_mesh positions yet
+        ! note that in this way out_mesh will obtain the same halo ordering
+        ! convention as h_mesh
+        out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(column)+1) = column
+        last_seen = last_seen + no_hanging_nodes(column)+1
+      end if
     end do
+
+    write (*,*) 'Pos3.2'
       
     call create_columns_sparsity(out_columns, out_mesh%mesh)
+
+    if (associated(shell_mesh%mesh%halos)) then
+      ! derive l2 node halo for the out_mesh
+      call derive_extruded_l2_node_halo(shell_mesh%mesh, out_mesh%mesh, out_columns)
+      ! positions in the non-owned columns can now simply be halo-updated
+      call halo_update(out_mesh)
+    end if
+
     call generate_radially_layered_mesh(out_mesh, shell_mesh)
     call deallocate(out_columns)
     

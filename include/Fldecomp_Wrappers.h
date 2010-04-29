@@ -49,7 +49,7 @@ namespace Fluidity{
   int WriteMesh(const std::string& filename, const std::string& meshType, const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& z,
                  const std::vector<int>& ENList, const std::vector<int>& regionIds, const int& nloc, const std::vector<int>& SENList, const std::vector<int>& boundaryIds, const int& snloc);
                  
-  int WriteMesh(const std::string& filename, const std::string& meshType, const std::vector<double>& x, const int& dim,
+  int WriteMesh(const std::string& filename, const std::string& meshType, const std::vector<double>& x, const int& dim, const int& no_coords,
                  const std::vector<int>& ENList, const std::vector<int>& regionIds, const int& nloc, const std::deque<std::vector<int> >& SENList, const std::vector<int>& boundaryIds, const int& snloc);
 }
 
@@ -67,7 +67,7 @@ extern "C"{
 
 #define write_mesh F77_FUNC(write_mesh, WRITE_MESH)
   int write_mesh(const char* filename, const int* filename_len, const char* meshtype, const int* meshtype_len,
-                 const double* x, const int* dim, const int* nnodes,
+                 const double* x, const int* dim, const int* no_coords, const int* nnodes,
                  const int* enlist, const int* region_ids, const int* nelements, const int* nloc,
                  const int* senlist, const int* boundary_ids, const int* snelements, const int* snloc);
 

@@ -313,14 +313,16 @@ module hadapt_advancing_front
 
   end subroutine generate_layered_mesh
 
-    subroutine generate_radially_layered_mesh(mesh, shell_mesh)
+  subroutine generate_radially_layered_mesh(mesh, shell_mesh)
     !! Given a radially columnar mesh with the positions
     !! nodes, fill in the elements. 
     type(vector_field), intent(inout) :: mesh
     type(vector_field), intent(inout) :: shell_mesh
 
+    type(mesh_type) :: in_mesh
     type(csr_sparsity) :: columns
     type(ilist), dimension(node_count(shell_mesh)) :: chains
+    type(integer_hash_table):: old2new_ele
 
     ! node_count(mesh) - node_count(shell_mesh) == number of nodes below the outer shell.
     ! The radial coordinate act as priorities in a priority queue, while the indices
@@ -348,12 +350,14 @@ module hadapt_advancing_front
     integer :: faces_seen
     integer :: bottom_count, top_count
 
+    integer, dimension(:), allocatable:: unn, unn_hanging_nodes, halo_level
     real :: vol
     type(integer_set) :: bottom_nodes, top_nodes
     type(csr_sparsity), pointer :: nelist
-    integer, dimension(:), pointer :: nodes, faces
+    integer, dimension(:), pointer :: nodes, faces, neigh
     integer :: top_surface_id, bottom_surface_id
     integer, dimension(1) :: other_node
+    logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
 
     dim = mesh_dim(mesh)
 
@@ -385,18 +389,38 @@ module hadapt_advancing_front
       chain_ptr => row_m_ptr(columns, shell_node)
       ! Note: c_node loops from 2 to skip the node in the chain on the shell mesh
       do c_node=2,chain_len
-!         heights(i) = abs(node_val(mesh, dim, chain_ptr(c_node)))
         radius(i) = norm2(node_val(mesh, chain_ptr(c_node)))
         indices(i) = shell_node
         i = i + 1
       end do
     end do
+
+    ! Sort the chains by height
+    call qsort(radius, sorted)
+    
+    if (associated(shell_mesh%mesh%halos)) then
+      allocate(unn(1:node_count(mesh)), unn_hanging_nodes(size(radius)))
+      call get_universal_numbering(mesh%mesh%halos(2), unn)
+      i = 1
+      do shell_node=1,node_count(shell_mesh)
+        chain_len = row_length(columns, shell_node)
+        chain_ptr => row_m_ptr(columns, shell_node)
+        ! Note: c_node loops from 2 to skip the node in the chain on the horizontal mesh
+        do c_node=2,chain_len
+          unn_hanging_nodes(i) = unn(chain_ptr(c_node))
+          i = i + 1
+        end do
+      end do
+      assert( i==size(radius)+1 )
+      call enforce_consistent_parallel_ordering(radius, sorted, unn_hanging_nodes)
+      deallocate(unn, unn_hanging_nodes)
+      
+      assert(has_faces(shell_mesh%mesh)) ! needed for halo1 element recognition
+      allocate(halo_level(1:element_count(mesh)))
+    end if
       
     ! bored with it now
     call deallocate(columns)
-
-    ! Sort the chains by radius
-    call qsort(radius, sorted)
 
     ! The main loop.
 
@@ -406,8 +430,8 @@ module hadapt_advancing_front
       assert( snloc==face_loc(shell_mesh,1)+1 )
     end if
 
-    ele = 1
-    ndglno_ptr => ele_nodes(mesh, ele)
+    ele = 0
+!     ndglno_ptr => ele_nodes(mesh, ele)
     do i=1,size(sorted)
       ! Get the chain we're dealing with.
       chain = indices(sorted(i))
@@ -434,6 +458,8 @@ module hadapt_advancing_front
 
         ! So now we know the heads of the chains next to us.
         ! Let's form the element! Quick! quick!
+        ele = ele + 1
+        ndglno_ptr => ele_nodes(mesh, ele)
 
         ndglno_ptr(1) = chains(chain)%firstnode%value
         ndglno_ptr(2) = chains(chain)%firstnode%next%value
@@ -452,9 +478,13 @@ module hadapt_advancing_front
         ! if the horizontal element has any surface faces, add them to the extruded surface mesh
         if (has_faces(shell_mesh%mesh)) then
           faces => ele_faces(shell_mesh, shell_ele)
+          neigh => ele_neigh(shell_mesh, shell_ele)
+          adjacent_to_owned_element=.false.
+          adjacent_to_owned_column=.false.
           do k=1, size(faces)
-            if (faces(k)<=surface_element_count(shell_mesh)) then
-              if (.not. any(chain == face_global_nodes(shell_mesh, faces(k)))) cycle
+            ! whether this horizontal face is above a face of our new element
+            shared_face = any(chain == face_global_nodes(shell_mesh, faces(k)))
+            if (shared_face .and. faces(k)<=surface_element_count(shell_mesh)) then
               faces_seen = faces_seen + 1
               element_owners(faces_seen) = ele
               boundary_ids(faces_seen) = surface_element_id(shell_mesh, faces(k))
@@ -467,14 +497,34 @@ module hadapt_advancing_front
                 nodes(3) = chains(other_node(1))%firstnode%value
               end if
             end if
+            ! grab the opportunity to see whether this is a halo1 or halo2 element
+            if (neigh(k)>0) then
+              if (element_owned(shell_mesh%mesh, neigh(k))) then
+                adjacent_to_owned_column = .true.
+                if (shared_face) then
+                  adjacent_to_owned_element = .true.
+                end if
+              end if
+            end if
           end do
         end if
-
-        ! Get ready to process the next element
-
-        ele = ele + 1
-        if (ele <= ele_count(mesh)) then
-          ndglno_ptr => ele_nodes(mesh, ele)
+        
+        if (associated(shell_mesh%mesh%halos)) then
+          if(element_owned(shell_mesh%mesh, shell_ele)) then
+            ! element ownership (based on the process with lowest rank 
+            ! owning any node in the element), nicely transfers to the columns
+            halo_level(ele)=0
+          else if (adjacent_to_owned_element) then
+            ! this is not true for halo1 - only those that directly face owned elements
+            halo_level(ele)=1
+          else if (adjacent_to_owned_column) then
+            ! extruded halo2 elements are necessarily in a column under 
+            ! a halo1 element
+            halo_level(ele)=2
+          else
+            ! misc elements - not owned, not in any receive lists
+            halo_level(ele)=3
+          end if
         end if
 
       end do
@@ -482,6 +532,42 @@ module hadapt_advancing_front
       ! And advance down the chain ..
       k = pop(chains(chain))
     end do
+
+    assert(ele==element_count(mesh))
+    
+    if (associated(shell_mesh%mesh%halos)) then
+      ! now reorder the elements according to halo level
+    
+      ! preserve %ndglno on in_mesh
+      in_mesh = mesh%mesh
+      ! get a new one for mesh
+      allocate(mesh%mesh%ndglno(size(in_mesh%ndglno)))
+      call allocate( old2new_ele )
+      
+      ! first the owned elements
+      ele = 0 ! new element nr. in mesh
+      do i=0, 3
+        ! loop over old element nrs j:
+        do j=1, element_count(in_mesh)
+          if (halo_level(j)==i) then
+            ele = ele + 1 ! new nr.
+            call set_ele_nodes(mesh%mesh, ele, ele_nodes(in_mesh, j))
+            call insert(old2new_ele, j, ele)
+          end if
+        end do
+      end do
+        
+      deallocate(in_mesh%ndglno)
+      deallocate(halo_level)
+    
+      ! renumber element ownership of faces
+      do i=1, faces_seen
+        element_owners(i) = fetch(old2new_ele, element_owners(i))
+      end do
+      call deallocate(old2new_ele)
+      
+      call derive_other_extruded_halos(shell_mesh%mesh, mesh%mesh)
+    end if
 
     call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/top_surface_id', top_surface_id, default=0)
     call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/bottom_surface_id', bottom_surface_id, default=0)
@@ -512,9 +598,13 @@ module hadapt_advancing_front
       call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), element_owner=element_owners(1:faces_seen), boundary_ids=boundary_ids(1:faces_seen))
     end if
 
+    if (associated(shell_mesh%mesh%halos)) then
+      ! make sure we obey zoltan's ordering convention
+      call reorder_element_numbering(mesh)
+    end if
+
     call deallocate(top_nodes)
     call deallocate(bottom_nodes)
-
 
     do shell_node=1,node_count(shell_mesh)
       call deallocate(chains(shell_node))
