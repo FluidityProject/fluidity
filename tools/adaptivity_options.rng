@@ -1109,14 +1109,16 @@ purposes. They are subject to change and may not be in the final "release"</a:do
             <element name="partitioner">
               <a:documentation>Select which partitioner to use</a:documentation>
               <choice>
-                <element name="phg">
-                  <empty/>
-                </element>
                 <element name="metis">
                   <empty/>
                 </element>
-                <element name="hypergraph">
-                  <empty/>
+                <element name="zoltan">
+                  <element name="method">
+                    <choice>
+                      <value>graph</value>
+                      <value>hypergraph</value>
+                    </choice>
+                  </element>
                 </element>
               </choice>
             </element>
@@ -1370,11 +1372,12 @@ Notes for balance preserving interpolants:
 The spatial discretisation options for the conservative potential
 must match those used for Pressure.
 
-With weak boundary conditions for Velociity, if no-normal-flow is
-satisfied on the boundary this must be preserved by the interpolation.
-For 2D domains this can be achieved by using consistent interpolation
-for the conservative potential or, for more general interpolants, by
-performing a further decomposition of the conservative potential (see
+With weak boundary conditions for the conservative potential, if
+no-normal-flow is satisfied on the boundary this must be preserved by
+the interpolation. For 2D domains this can be achieved by using
+consistent interpolation for the conservative potential or, for more
+general interpolants, by performing a further decomposition of the
+conservative potential (see
 geostrophic_interpolation/conservative_potential/decompose).
 
 For shallow-water modelling the interpolants for layer thickness and
