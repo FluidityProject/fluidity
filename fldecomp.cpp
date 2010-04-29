@@ -402,9 +402,9 @@ int main(int argc, char **argv){
   map<char, string> flArgs;
   while (true){
 #ifndef _AIX
-    c = getopt_long(argc, argv, "c:df:hkn:rt:s::v", longOptions, &optionIndex);
+    c = getopt_long(argc, argv, "c:df:hkn:rt::s::v", longOptions, &optionIndex);
 #else
-    c = getopt(argc, argv, "c:df:hkn:rt:s::v");
+    c = getopt(argc, argv, "c:df:hkn:rt::s::v");
 #endif
     if (c == -1) break;
 
