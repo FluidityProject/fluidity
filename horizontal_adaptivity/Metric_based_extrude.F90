@@ -310,8 +310,6 @@ module hadapt_metric_based_extrude
     out_mesh%mesh%option_path=option_path
     out_mesh%option_path=""
     out_mesh%mesh%periodic = mesh_periodic(shell_mesh) ! Leave this here for now
-
-    write (*,*) 'Pos3.1'
     
     last_seen = 0
     do column=1,node_count(shell_mesh)
@@ -326,8 +324,6 @@ module hadapt_metric_based_extrude
         last_seen = last_seen + no_hanging_nodes(column)+1
       end if
     end do
-
-    write (*,*) 'Pos3.2'
       
     call create_columns_sparsity(out_columns, out_mesh%mesh)
 

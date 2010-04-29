@@ -41,11 +41,14 @@ module hadapt_extrude_radially
     logical:: sizing_is_constant, depth_is_constant
     real:: constant_sizing, depth
     real, dimension(:), allocatable :: sizing_vector
-    integer:: stat, shell_dim, column, quadrature_degree
-    real:: r_shell
+    integer :: stat, shell_dim, column, quadrature_degree
+    real :: r_shell
     
     real, dimension(1) :: tmp_depth
     real, dimension(mesh_dim(shell_mesh)+1, 1) :: tmp_pos
+
+    logical :: have_min_depth=.false.
+    real :: min_depth
 
 
     write(*,*) 'In extrude_radially'
@@ -75,6 +78,11 @@ module hadapt_extrude_radially
          FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
        end if
     end if
+
+    if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map/min_depth')) then
+      have_min_depth=.true.
+      call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map/min_depth',min_depth)
+    end if
     
     call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/constant', &
        constant_sizing, stat=stat)
@@ -93,8 +101,6 @@ module hadapt_extrude_radially
          FLAbort("Unknown way of specifying sizing function in mesh extrusion")
        end if       
     end if
-  
-    write (*,*) 'pos1'
 
     ! create a 1d radial mesh under each surface node
     do column=1, size(r_meshes)
@@ -107,6 +113,9 @@ module hadapt_extrude_radially
         else if  (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map')) then
           call set_from_map(file_name, tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
           depth = tmp_depth(1)
+          if (have_min_depth) then
+            if (depth > min_depth) depth=min_depth
+          end if
         else
           FLAbort("Error with options path")
         end if
@@ -120,8 +129,6 @@ module hadapt_extrude_radially
           sizing_function=sizing_function)
       end if
     end do
-      
-    write (*,*) 'pos2'
 
     ! Now the tiresome business of making a shape function.
     shell_dim = mesh_dim(shell_mesh)
@@ -131,14 +138,10 @@ module hadapt_extrude_radially
     call deallocate(quad)
 
     call get_option(trim(option_path)//'/name', mesh_name)
-      
-    write (*,*) 'pos3'
 
     ! combine the 1d radial meshes into a full mesh
     call combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
        full_shape, mesh_name, option_path)
-
-    write (*,*) 'pos4'
 
 !     vtk_write_state(filename, index, model, state, write_region_ids, stat)
 !     call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))

@@ -56,7 +56,10 @@ input_choice_real_plus_map =
       input_choice_real_contents|
       ## Set the depth from a bathymetry map
       element from_map {
-         attribute file_name { xsd:string }
+         attribute file_name { xsd:string },
+         element min_depth {
+           real
+         }?
       }
    )
 

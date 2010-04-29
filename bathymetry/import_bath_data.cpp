@@ -60,7 +60,7 @@ extern "C" {
 void set_from_map_fc(const char* filename, double *x, double *y, double *z, double *depth){
 
         string file=string(filename);
-        SampleNetCDF2 map("/data/maps/gridone.grd");
+        SampleNetCDF2 map(filename);
         double longitude, latitude, depth_tmp;
         get_lldepth(*x, *y, *z, longitude, latitude, depth_tmp);
         if(map.HasPoint(longitude, latitude)){

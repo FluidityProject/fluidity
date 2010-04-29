@@ -87,6 +87,11 @@ be set to use this option.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
+        <optional>
+          <element name="min_depth">
+            <ref name="real"/>
+          </element>
+        </optional>
       </element>
     </choice>
   </define>
