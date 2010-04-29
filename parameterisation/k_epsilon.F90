@@ -759,7 +759,7 @@ subroutine limit_lengthscale(state)
              surface_node_list=surface_node_list, surface_mesh=sur_mesh, &
              surface_element_list=surface_element_list)
 
-        if (bc_type = 'k_epsilon') then
+        if (bc_type == 'k_epsilon') then
             ! for each node in the surface, get the elements and find the normal
             ! distance, then average (add and divide by nodes per element)
 
