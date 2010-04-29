@@ -80,7 +80,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Checkpoint.o Surface_Integrals.o\
   python_state.o python_statec.o Dynamic_Bin_Sort.o \
   Supermesh.o Supermesh_Assembly.o Conservative_interpolation.o \
-  Interpolation.o Pseudo_2D.o DG_interpolation.o \
+  Interpolation.o Pseudo_Consistent_Interpolation.o Pseudo_2D.o DG_interpolation.o \
   Halo_Data_Types.o Halos.o Halos_Allocates.o Halos_Base.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
@@ -176,6 +176,8 @@ Node_Ownership.o: Adjacency_Lists.o Fields.o Linked_Lists.o \
 Interpolation.o: Fields.o Superconvergence.o Field_derivatives.o State.o \
   Sparse_Tools.o Supermesh.o Futils.o Transform_elements.o MeshDiagnostics.o \
   Node_Ownership.o
+Pseudo_Consistent_Interpolation.o: Data_structures.o Field_Options.o Fields.o \
+  Node_Owner_Finder_Fortran.o Pickers.o State.o
 DG_interpolation.o: Conservative_interpolation.o VTK_interfaces.o
 
 Sparsity_Patterns.o: Elements.o Fields.o Linked_Lists.o

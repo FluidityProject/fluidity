@@ -1299,6 +1299,18 @@ system state.</a:documentation>
       <ref name="comment"/>
     </element>
   </define>
+  <define name="pseudo_consistent_interpolation">
+    <element name="pseudo_consistent_interpolation">
+      <a:documentation>Basis function pseudo-interpolation, with averaging for nodes on
+element boundaries. This can accept a discontinuous input, but always
+gives a continuous output. It is strong recommended that you &lt;b&gt;use
+interpolation_galerkin&lt;/b&gt; instead of this interpolation method.
+
+The distance in ideal space from the boundary where averaging is
+applied is currently hard coded to 1.0e3 * epsilon(0.0).</a:documentation>
+      <ref name="comment"/>
+    </element>
+  </define>
   <define name="interpolation_algorithm_disabled">
     <element name="no_interpolation">
       <a:documentation>Disable interpolation</a:documentation>
@@ -1314,6 +1326,7 @@ and bounded, but non-conservative and dissipative.
 All other algorithms require construction of a supermesh.</a:documentation>
         <empty/>
       </element>
+      <ref name="pseudo_consistent_interpolation"/>
       <element name="galerkin_projection">
         <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
@@ -1348,6 +1361,7 @@ and bounded, but non-conservative and dissipative.
 All other algorithms require construction of a supermesh.</a:documentation>
         <ref name="comment"/>
       </element>
+      <ref name="pseudo_consistent_interpolation"/>
       <element name="galerkin_projection">
         <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
 non-bounded. The most accurate choice, in the sense of minimising
@@ -1540,6 +1554,7 @@ and bounded, but non-conservative and dissipative.
 All other algorithms require construction of a supermesh.</a:documentation>
               <ref name="comment"/>
             </element>
+            <ref name="pseudo_consistent_interpolation"/>
             <element name="grandy_interpolation">
               <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
 See doi:10.1006/jcph.1998.6125 .</a:documentation>
@@ -1630,6 +1645,7 @@ and bounded, but non-conservative and dissipative.
 All other algorithms require construction of a supermesh.</a:documentation>
               <ref name="comment"/>
             </element>
+            <ref name="pseudo_consistent_interpolation"/>
             <element name="grandy_interpolation">
               <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
 See doi:10.1006/jcph.1998.6125 .</a:documentation>
@@ -1692,6 +1708,7 @@ and bounded, but non-conservative and dissipative.
 All other algorithms require construction of a supermesh.</a:documentation>
                 <ref name="comment"/>
               </element>
+              <ref name="pseudo_consistent_interpolation"/>
               <element name="grandy_interpolation">
                 <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
 See doi:10.1006/jcph.1998.6125 .</a:documentation>
@@ -1721,6 +1738,7 @@ and bounded, but non-conservative and dissipative.
 All other algorithms require construction of a supermesh.</a:documentation>
                 <ref name="comment"/>
               </element>
+              <ref name="pseudo_consistent_interpolation"/>
               <element name="grandy_interpolation">
                 <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
 See doi:10.1006/jcph.1998.6125 .</a:documentation>

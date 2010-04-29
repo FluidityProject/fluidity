@@ -45,6 +45,7 @@ module interpolation_manager
   use populate_state_module
   use vtk_interfaces
   use geostrophic_pressure
+  use pseudo_consistent_interpolation
   
   implicit none
   
@@ -81,10 +82,11 @@ contains
     type(tensor_field), pointer :: field_t, p_field_t
     integer :: field
 
-    character(len=255), dimension(3), parameter :: algorithms = (/&
-                       & "consistent_interpolation", &
-                       & "interpolation_galerkin  ", &
-                       & "grandy_interpolation    " /)
+    character(len=255), dimension(4), parameter :: algorithms = (/&
+                       & "consistent_interpolation       ", &
+                       & "pseudo_consistent_interpolation", &
+                       & "interpolation_galerkin         ", &
+                       & "grandy_interpolation           " /)
     integer :: alg_cnt, alg
 
     type(mesh_type), pointer :: old_mesh, new_mesh
@@ -356,6 +358,28 @@ contains
             call deallocate(alg_old(mesh))
             call deallocate(alg_new(mesh))
           end do
+        case("pseudo_consistent_interpolation")
+          do mesh = 1, mesh_cnt
+            call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
+            old_mesh => extract_mesh(states_old(1), trim(mesh_name))
+            new_mesh => extract_mesh(states_new(1), trim(mesh_name))
+            old_pos = extract_vector_field(meshes_old(mesh), "Coordinate")
+            new_pos = extract_vector_field(meshes_new(mesh), "Coordinate")
+            
+            call insert(alg_old(mesh), old_mesh, "Mesh")
+            call insert(alg_new(mesh), new_mesh, "Mesh")
+            call insert(alg_old(mesh), old_pos, "Coordinate")
+            call insert(alg_new(mesh), new_pos, "Coordinate")
+            
+            call collect_fields_to_interpolate(interpolate_field_pseudo_consistent, meshes_new(mesh), meshes_old(mesh), alg_new(mesh), alg_old(mesh))
+          
+            if(field_count(alg_old(mesh)) > 1) then    
+              call pseudo_consistent_interpolate(alg_old(mesh), alg_new(mesh))
+            end if
+          
+            call deallocate(alg_old(mesh))
+            call deallocate(alg_new(mesh))
+          end do
         case("interpolation_galerkin")
           do mesh = 1, mesh_cnt
             call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
@@ -501,6 +525,22 @@ contains
     end if
     
   end function interpolate_field_consistent
+  
+  function interpolate_field_pseudo_consistent(option_path) result(interpolate)
+    character(len = *), intent(in) :: option_path
+
+    logical :: interpolate
+    
+    integer :: stat
+  
+    interpolate = .false.
+    if(len_trim(option_path) == 0) then
+      interpolate = .true.
+    else if(have_option(trim(complete_field_path(option_path, stat = stat)) // "/pseudo_consistent_interpolation")) then
+      interpolate = .true.
+    end if
+    
+  end function interpolate_field_pseudo_consistent
   
   function interpolate_field_galerkin_projection(option_path) result(interpolate)
     character(len = *), intent(in) :: option_path

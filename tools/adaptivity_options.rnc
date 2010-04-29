@@ -1077,6 +1077,20 @@ prescribed_adaptivity =
       }
    )
    
+pseudo_consistent_interpolation =
+   (
+      ## Basis function pseudo-interpolation, with averaging for nodes on
+      ## element boundaries. This can accept a discontinuous input, but always
+      ## gives a continuous output. It is strong recommended that you <b>use
+      ## interpolation_galerkin</b> instead of this interpolation method.
+      ##
+      ## The distance in ideal space from the boundary where averaging is
+      ## applied is currently hard coded to 1.0e3 * epsilon(0.0).
+      element pseudo_consistent_interpolation {
+         comment
+      }
+   )
+   
 interpolation_algorithm_disabled =
    (
       ## Disable interpolation
@@ -1094,6 +1108,7 @@ interpolation_algorithm_scalar =
       element consistent_interpolation {
         empty
       }|
+      pseudo_consistent_interpolation|
       ## Galerkin projection. By default, conservative, non-dissipative and
       ## non-bounded. The most accurate choice, in the sense of minimising
       ## the L2 norm of the residual
@@ -1122,6 +1137,7 @@ interpolation_algorithm_vector =
       element consistent_interpolation {
         comment
       }|
+      pseudo_consistent_interpolation|
       ## Galerkin projection. By default, conservative, non-dissipative and
       ## non-bounded. The most accurate choice, in the sense of minimising
       ## the L2 norm of the residual
@@ -1280,6 +1296,7 @@ interpolation_algorithm_vector =
               element consistent_interpolation {
                 comment
               }|
+              pseudo_consistent_interpolation|
               ## Grandy interpolation. Conservative, but highly diffusive.
               ## See doi:10.1006/jcph.1998.6125 .
               element grandy_interpolation {
@@ -1361,6 +1378,7 @@ interpolation_algorithm_vector =
               element consistent_interpolation {
                 comment
               }|
+              pseudo_consistent_interpolation|
               ## Grandy interpolation. Conservative, but highly diffusive.
               ## See doi:10.1006/jcph.1998.6125 .
               element grandy_interpolation {
@@ -1416,6 +1434,7 @@ interpolation_algorithm_vector =
               element consistent_interpolation {
                 comment
               }|
+              pseudo_consistent_interpolation|
               ## Grandy interpolation. Conservative, but highly diffusive.
               ## See doi:10.1006/jcph.1998.6125 .
               element grandy_interpolation {
@@ -1441,6 +1460,7 @@ interpolation_algorithm_vector =
               element consistent_interpolation {
                 comment
               }|
+              pseudo_consistent_interpolation|
               ## Grandy interpolation. Conservative, but highly diffusive.
               ## See doi:10.1006/jcph.1998.6125 .
               element grandy_interpolation {

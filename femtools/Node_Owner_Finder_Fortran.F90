@@ -38,8 +38,10 @@ module node_owner_finder
   
   private
   
-  public :: node_owner_finder_reset, node_owner_finder_set_input, &
-    & node_owner_finder_find
+  public :: node_owner_finder_reset, cnode_owner_finder_set_input, &
+    & cnode_owner_finder_find, cnode_owner_finder_query_output, &
+    & cnode_owner_finder_get_output
+  public :: node_owner_finder_set_input, node_owner_finder_find
   public :: ownership_predicate
     
   !! If a test node is more than this distance (in ideal space) outside of a
@@ -232,10 +234,9 @@ contains
           end if
         end do
 
-        if(ele_ids(i) < 0) then
-          ! We didn't find an owner, so choose the element with the closest miss
-          ele_ids(i) = closest_ele_id
-        end if
+        ! We didn't find an owner, so choose the element with the closest miss
+        ele_ids(i) = closest_ele_id
+          
       end do positions_loop
 
     end subroutine find_serial
@@ -274,10 +275,9 @@ contains
           end if
         end do
 
-        if(ele_ids(i) < 0) then
-          ! We didn't find an owner, so choose the element with the closest miss
-          ele_ids(i) = closest_ele_id
-        end if
+        ! We didn't find an owner, so choose the element with the closest miss
+        ele_ids(i) = closest_ele_id
+          
       end do positions_loop
     
       ! Find which processes have the smallest miss for each coordinate
