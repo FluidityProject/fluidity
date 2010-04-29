@@ -280,6 +280,8 @@ contains
     
     call deallocate(new_position)
     
+    call halo_update(new_state)
+    
     ewrite(1, *) "Exiting pseudo_consistent_interpolate_state"
   
   end subroutine pseudo_consistent_interpolate_state
