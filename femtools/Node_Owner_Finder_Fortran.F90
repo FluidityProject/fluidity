@@ -42,12 +42,15 @@ module node_owner_finder
     & cnode_owner_finder_find, cnode_owner_finder_query_output, &
     & cnode_owner_finder_get_output
   public :: node_owner_finder_set_input, node_owner_finder_find
+  public :: out_of_bounds_tolerance, rtree_tolerance
   public :: ownership_predicate
     
   !! If a test node is more than this distance (in ideal space) outside of a
   !! test element in ownership tests, then the test element cannot own the test
   !! node
   real, parameter :: out_of_bounds_tolerance = 0.1
+  !! Factor by which element bounding boxes are expanded in setting up the rtree
+  real, parameter :: rtree_tolerance = 0.1
   
   interface node_owner_finder_reset
     subroutine cnode_owner_finder_reset(id)

@@ -53,14 +53,22 @@ module pseudo_consistent_interpolation
 
 contains
 
-  subroutine find_node_ownership_tolerance(positions_a, positions_b, map)
+  subroutine find_node_ownership_tolerance(positions_a, positions_b, map, ownership_tolerance)
+    !!< Find all elements in positions_a within ownership_tolerance of nodes
+    !!< in positions_b
+  
     type(vector_field), intent(inout) :: positions_a
     type(vector_field), intent(in) :: positions_b
     type(integer_set), dimension(node_count(positions_b)), intent(out) :: map
+    real, intent(in) :: ownership_tolerance
   
     integer :: dim, i, j, nele_ids, picker_id, possible_ele_id
   
     ewrite(1, *) "In find_node_ownership_tolerance"
+  
+    ! Elements will be missed by the rtree query if ownership_tolerance is too
+    ! big
+    assert(ownership_tolerance < rtree_tolerance)
   
     call allocate(map)
     
@@ -216,7 +224,7 @@ contains
     allocate(shape_fns(ele_loc(old_mesh, 1)))
 
     allocate(map(node_count(new_mesh)))
-    call find_node_ownership_tolerance(old_position, new_position, map)
+    call find_node_ownership_tolerance(old_position, new_position, map, ownership_tolerance)
 
     ! Loop over the nodes of the new mesh.
 
@@ -242,7 +250,7 @@ contains
           do i=1,ele_loc(old_mesh, ele)
             val_s = val_s + node_val(old_fields_s(field_s), node_list(i)) * shape_fns(i)
           end do
-          call set(new_fields_s(field_s), new_node, val_s / float(neles))
+          call addto(new_fields_s(field_s), new_node, val_s / float(neles))
         end do
 
         do field_v=1,field_count_v
@@ -251,7 +259,7 @@ contains
           do i=1,ele_loc(old_mesh, ele)
             val_v = val_v + node_val(old_fields_v(field_v), node_list(i)) * shape_fns(i)
           end do
-          call set(new_fields_v(field_v), new_node, val_v / float(neles))
+          call addto(new_fields_v(field_v), new_node, val_v / float(neles))
         end do
 
         do field_t=1,field_count_t
@@ -260,7 +268,7 @@ contains
           do i=1,ele_loc(old_mesh, ele)
             val_t = val_t + node_val(old_fields_t(field_t), node_list(i)) * shape_fns(i)
           end do
-          call set(new_fields_t(field_t), new_node, val_t / float(neles))
+          call addto(new_fields_t(field_t), new_node, val_t / float(neles))
         end do
       end do
     end do
