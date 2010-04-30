@@ -353,6 +353,8 @@
         poisson_p = .true.
       case ("only first timestep")
         poisson_p = at_first_timestep
+        call set_option(trim(p%option_path)//&
+          "/prognostic/scheme/poisson_pressure_solution", "never")
       case default
         FLExit(trim(poisson_scheme)//" is not a legal poisson_pressure_solution") 
       end select

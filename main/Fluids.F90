@@ -199,6 +199,10 @@ contains
        call relax_to_nonlinear(state)
        
        call enforce_discrete_properties(state)
+
+       ! Ensure that checkpoints do not adapt at first timestep.
+       call delete_option(&
+            "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
     else
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
