@@ -93,7 +93,7 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   ! Step 2: Set up the options
   
   mesh_path = "/geometry/mesh::ExtrudedCoordinateMesh"
-  base_path = trim(mesh_path) // "/from_mesh/extrude"
+  base_path = trim(mesh_path) // "/from_mesh/extrude/regions[0]"
   call set_option("/geometry/quadrature/degree", quad_degree, stat)
   assert(stat == SPUD_NEW_KEY_WARNING)
   call set_option(trim(base_path) // "/bottom_depth/constant", top - bottom, stat)

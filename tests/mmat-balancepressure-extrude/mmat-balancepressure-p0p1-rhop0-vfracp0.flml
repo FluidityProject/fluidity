@@ -14,22 +14,24 @@
       <from_mesh>
         <mesh name="InputMesh"/>
         <extrude>
-          <bottom_depth>
-            <constant>
-              <real_value rank="0">1.0</real_value>
-            </constant>
-          </bottom_depth>
-          <sizing_function>
-            <constant>
-              <real_value rank="0">0.05</real_value>
-            </constant>
-          </sizing_function>
-          <top_surface_id>
-            <integer_value rank="0">8</integer_value>
-          </top_surface_id>
-          <bottom_surface_id>
-            <integer_value rank="0">6</integer_value>
-          </bottom_surface_id>
+          <regions name="WholeMesh">
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">0.05</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">8</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">6</integer_value>
+            </bottom_surface_id>
+          </regions>
         </extrude>
         <stat>
           <include_in_stat/>

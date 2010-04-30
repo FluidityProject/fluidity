@@ -44,63 +44,114 @@ module hadapt_extrude
     
     real, dimension(1) :: tmp_depth
     real, dimension(mesh_dim(h_mesh), 1) :: tmp_pos
-
-    !! We assume that for the extrusion operation,
-    !! the layer configuration is independent of x and y.
-    !! (i.e. the layers are the same everywhere.)
+    
+    integer :: n_regions, r, rs
+    integer, dimension(2) :: shape_option
+    integer, dimension(:), allocatable :: region_ids
+    logical :: apply_region_ids
+    integer, dimension(:), pointer :: eles
+    integer, dimension(node_count(h_mesh)) :: visited
+    logical :: node_in_region
 
     !! Checking linearity of h_mesh.
     assert(h_mesh%mesh%shape%degree == 1)
     assert(h_mesh%mesh%continuity >= 0)
 
     call add_nelist(h_mesh%mesh)
-
-    ! get the extrusion options
-    call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/constant', &
-       depth, stat=stat)
-    if (stat==0) then
-       depth_is_constant = .true.
-    else
-       depth_is_constant = .false.
-       call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python', &
-          depth_function, stat=stat)
-       if (stat /= 0) then
-         FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
-       end if
-    end if
     
-    call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/constant', &
-       constant_sizing, stat=stat)
-    if (stat==0) then
-       sizing_is_constant=.true.
-    else
-       sizing_is_constant=.false.
-       call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/python', &
-          sizing_function, stat=stat)
-       if (stat/=0) then
-         FLAbort("Unknown way of specifying sizing function in mesh extrusion")
-       end if       
-    end if
-       
-    ! create a 1d vertical mesh under each surface node
-    do column=1, size(z_meshes)
-      
-      if (.not. node_owned(h_mesh, column)) cycle
-      
-      if(.not.depth_is_constant) then
-        tmp_pos(:,1) = node_val(h_mesh, column)
-        call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
-        depth = tmp_depth(1)
+    n_regions = option_count(trim(option_path)//'/from_mesh/extrude/regions')
+    apply_region_ids = (n_regions>1)
+    visited = 0 ! a little debugging check - can be removed later
+    
+    do r = 0, n_regions-1
+    
+      if(apply_region_ids) then
+        shape_option=option_shape(trim(option_path)//"/from_mesh/extrude/regions["//int2str(r)//"]/region_ids")
+        allocate(region_ids(1:shape_option(1)))
+        call get_option(trim(option_path)//"/from_mesh/extrude/regions["//int2str(r)//"]/region_ids", region_ids)
       end if
-      
-      if (sizing_is_constant) then
-        call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
-          sizing=constant_sizing)
+
+      ! get the extrusion options
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/bottom_depth/constant', &
+                      depth, stat=stat)
+      if (stat==0) then
+        depth_is_constant = .true.
       else
-        call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
-          sizing_function=sizing_function)
+        depth_is_constant = .false.
+        call get_option(trim(option_path)//&
+                        '/from_mesh/extrude/regions['//int2str(r)//&
+                        ']/bottom_depth/python', &
+                         depth_function, stat=stat)
+        if (stat /= 0) then
+          FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
+        end if
       end if
+      
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/sizing_function/constant', &
+                      constant_sizing, stat=stat)
+      if (stat==0) then
+        sizing_is_constant=.true.
+      else
+        sizing_is_constant=.false.
+        call get_option(trim(option_path)//&
+                        '/from_mesh/extrude/regions['//int2str(r)//&
+                        ']/sizing_function/python', &
+                        sizing_function, stat=stat)
+        if (stat/=0) then
+          FLAbort("Unknown way of specifying sizing function in mesh extrusion")
+        end if       
+      end if
+        
+      ! create a 1d vertical mesh under each surface node
+      do column=1, size(z_meshes)
+      
+        if (.not. node_owned(h_mesh, column)) cycle
+
+        ! need to work out here if this column is in one of the current region ids!
+        ! this is a bit arbitrary since nodes belong to multiple regions... therefore
+        ! the extrusion depth had better be continuous across region id boundaries!
+        if(apply_region_ids) then
+          eles => node_neigh(h_mesh, column)
+          node_in_region = .false.
+          region_id_loop: do rs=1, size(region_ids)
+            if(any(region_ids(rs)==h_mesh%mesh%region_ids(eles))) then
+              node_in_region = .true.
+              exit region_id_loop
+            end if
+          end do region_id_loop
+          if(.not. node_in_region) cycle
+          visited(column) = visited(column) + 1
+        end if
+        
+        if(.not.depth_is_constant) then
+          tmp_pos(:,1) = node_val(h_mesh, column)
+          call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+          depth = tmp_depth(1)
+        end if
+        
+        if (sizing_is_constant) then
+          call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
+            sizing=constant_sizing)
+        else
+          call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
+            sizing_function=sizing_function)
+        end if
+      end do
+      
+      if(apply_region_ids) deallocate(region_ids)
+    
     end do
+    
+#ifdef DDEBUG
+    if(apply_region_ids) then
+      assert(minval(visited)>0)
+      ewrite(2,*) "Maximum number of times a node was visited: ", maxval(visited)
+    end if
+#endif
       
     ! Now the tiresome business of making a shape function.
     h_dim = mesh_dim(h_mesh)
@@ -245,7 +296,7 @@ module hadapt_extrude
   ! hadapt_extrude options checking
   subroutine hadapt_extrude_check_options
 
-    integer :: nmeshes, m
+    integer :: nmeshes, m, nregions, r
     character(len=OPTION_PATH_LEN) :: mesh_path
 
     ! Extruding along bathymetry currently only works with radial extrusions on the sphere.
@@ -253,12 +304,15 @@ module hadapt_extrude
     nmeshes=option_count("/geometry/mesh")
     do m = 0, nmeshes-1
       mesh_path="/geometry/mesh["//int2str(m)//"]"
-      if ((have_option(trim(mesh_path)//'/from_mesh/extrude/bottom_depth/from_map')).and. &
-        (.not.have_option('/geometry/spherical_earth'))) then
-        ewrite(-1,*) "Extruding along bathymetry currently only works with radial extrusions on the sphere."
-        ewrite(-1,*) "Please turn on the geometry/spherical_earth option."
-        FLExit("Using extrude/from_map requires the gemoetry/spherical_earth option to be enabled.")
-      end if
+      nregions=option_count(trim(mesh_path)//'/from_mesh/extrude/regions')
+      do r = 0, nregions-1
+        if ((have_option(trim(mesh_path)//'/from_mesh/extrude/regions['//int2str(r)//']/bottom_depth/from_map')).and. &
+          (.not.have_option('/geometry/spherical_earth'))) then
+          ewrite(-1,*) "Extruding along bathymetry currently only works with radial extrusions on the sphere."
+          ewrite(-1,*) "Please turn on the geometry/spherical_earth option."
+          FLExit("Using extrude/from_map requires the gemoetry/spherical_earth option to be enabled.")
+        end if
+      end do
     end do
 
   end subroutine hadapt_extrude_check_options

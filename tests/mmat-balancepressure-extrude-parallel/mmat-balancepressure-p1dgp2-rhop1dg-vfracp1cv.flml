@@ -14,6 +14,7 @@
       <from_mesh>
         <mesh name="InputMesh"/>
         <extrude>
+          <regions name="WholeMesh">
           <bottom_depth>
             <constant>
               <real_value rank="0">1.0</real_value>
@@ -30,6 +31,7 @@
           <bottom_surface_id>
             <integer_value rank="0">6</integer_value>
           </bottom_surface_id>
+          </regions>
         </extrude>
         <stat>
           <include_in_stat/>

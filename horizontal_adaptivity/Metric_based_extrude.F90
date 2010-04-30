@@ -428,8 +428,6 @@ module hadapt_metric_based_extrude
     integer, dimension(:), pointer :: neigh
     integer, dimension(1) :: node_array
     
-    ewrite(1,*) 'Entering adapt_1d'
-
     l_preserve_regions = present_and_true(preserve_regions)
 
     ! don't make the decision to preserve regions based on
@@ -529,6 +527,9 @@ module hadapt_metric_based_extrude
       deallocate(tmp_region_bdy_nodes)
       deallocate(tmp_region_ids)
       
+      ewrite(2,*) 'in adapt_1d'
+      ewrite(2,*) 'no_region_bdys = ', no_region_bdys
+      ewrite(2,*) 'region_bdy_nodes = ', region_bdy_nodes
       ewrite(2,*) 'region_ids = ', region_ids
     
     else
@@ -538,9 +539,6 @@ module hadapt_metric_based_extrude
       region_bdy_nodes(no_region_bdys) = node_count(back_mesh)
     end if
     
-    ewrite(2,*) 'no_region_bdys = ', no_region_bdys
-    ewrite(2,*) 'region_bdy_nodes = ', region_bdy_nodes
-
     ! First we need to see how many nodes we will have.
     ! I do this by basically doing the work twice.
     ! You could be more clever and record the steps and positions,
@@ -636,8 +634,6 @@ module hadapt_metric_based_extrude
     if(l_preserve_regions) then
       ewrite_minmax(z_mesh%mesh%region_ids)
     end if
-
-    ewrite(1,*) 'Leaving adapt_1d'
 
     contains
       function compute_step(current_pos, back_mesh, back_node, sizing) result(step)

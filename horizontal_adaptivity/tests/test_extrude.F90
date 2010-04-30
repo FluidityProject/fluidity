@@ -16,10 +16,10 @@ subroutine test_extrude
   integer :: stat
 
   call set_option("/geometry/quadrature/degree", 4, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/bottom_depth/constant", 1.0, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/sizing_function/constant", 0.1, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/bottom_surface_id", 4, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/top_surface_id", 5, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/bottom_depth/constant", 1.0, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 0.1, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/bottom_surface_id", 4, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/top_surface_id", 5, stat=stat)
     
   h_mesh=read_triangle_files('data/square-2d_A', quad_degree=QUAD_DEGREE)
   

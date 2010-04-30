@@ -50,6 +50,13 @@ module hadapt_extrude_radially
     logical :: have_min_depth=.false.
     real :: min_depth
 
+    integer :: n_regions, r, rs
+    integer, dimension(2) :: shape_option
+    integer, dimension(:), allocatable :: region_ids
+    logical :: apply_region_ids
+    integer, dimension(:), pointer :: eles
+    integer, dimension(node_count(shell_mesh)) :: visited
+    logical :: node_in_region
 
     write(*,*) 'In extrude_radially'
 
@@ -63,72 +70,136 @@ module hadapt_extrude_radially
 
     call add_nelist(shell_mesh%mesh)
 
-    ! get the extrusion options
-    call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/constant', &
-       depth, stat=stat)
-    if (stat==0) then
-       depth_is_constant = .true.
-    else
-       depth_is_constant = .false.
-       call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python', &
-          depth_function, stat=stat)
-       if (stat /= 0) call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map/file_name', &
-          file_name, stat=stat)
-       if (stat /= 0) then
-         FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
-       end if
-    end if
-
-    if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map/min_depth')) then
-      have_min_depth=.true.
-      call get_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map/min_depth',min_depth)
-    end if
+    n_regions = option_count(trim(option_path)//'/from_mesh/extrude/regions')
+    apply_region_ids = (n_regions>1)
+    visited = 0 ! a little debugging check - can be removed later
     
-    call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/constant', &
-       constant_sizing, stat=stat)
-    if (stat==0) then
-       sizing_is_constant=.true.
-    else
-       sizing_is_constant=.false.
-       call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/python', &
-          sizing_function, stat=stat)
-       if (stat/=0) then
-          allocate(sizing_vector(100))
-          call get_option(trim(option_path)//'/from_mesh/extrude/sizing_function/list', &
-          sizing_vector, stat=stat)
-       end if
-       if (stat/=0) then
-         FLAbort("Unknown way of specifying sizing function in mesh extrusion")
-       end if       
-    end if
+    do r = 0, n_regions-1
+    
+      if(apply_region_ids) then
+        shape_option=option_shape(trim(option_path)//"/from_mesh/extrude/regions["//int2str(r)//"]/region_ids")
+        allocate(region_ids(1:shape_option(1)))
+        call get_option(trim(option_path)//"/from_mesh/extrude/regions["//int2str(r)//"]/region_ids", region_ids)
+      end if
 
-    ! create a 1d radial mesh under each surface node
-    do column=1, size(r_meshes)
-      
-      if(.not.depth_is_constant) then
-        tmp_pos(:,1) = node_val(shell_mesh, column)
-        if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python')) then
-          call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
-          depth = tmp_depth(1)
-        else if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map')) then
-          call set_from_map(file_name, tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
-          depth = tmp_depth(1)
-          if (have_min_depth) then
-            if (depth > min_depth) depth=min_depth
-          end if
-        else
-          FLAbort("Error with options path")
+      ! get the extrusion options
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/bottom_depth/constant', &
+                      depth, stat=stat)
+      if (stat==0) then
+        depth_is_constant = .true.
+      else
+        depth_is_constant = .false.
+        call get_option(trim(option_path)//&
+                        '/from_mesh/extrude/regions['//int2str(r)//&
+                        ']/bottom_depth/python', &
+                         depth_function, stat=stat)
+        if (stat /= 0) call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(r)//&
+                                       ']/bottom_depth/from_map/file_name', &
+            file_name, stat=stat)
+        if (stat /= 0) then
+          FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
         end if
       end if
       
-      if (sizing_is_constant) then
-        call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-          sizing=constant_sizing) ! Return r_shell, will be needed for working out face id's later
+      if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(r)//&
+                                         ']/bottom_depth/from_map/min_depth')) then
+        have_min_depth=.true.
+        call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(r)//&
+                                           ']/bottom_depth/from_map/min_depth',min_depth)
+      end if
+      
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/sizing_function/constant', &
+                      constant_sizing, stat=stat)
+      if (stat==0) then
+        sizing_is_constant=.true.
       else
-        call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-          sizing_function=sizing_function)
+        sizing_is_constant=.false.
+        call get_option(trim(option_path)//&
+                        '/from_mesh/extrude/regions['//int2str(r)//&
+                        ']/sizing_function/python', &
+                        sizing_function, stat=stat)
+        if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
+                                      int2str(r)//"]/sizing_function/list")) then
+            shape_option=option_shape(trim(option_path)//"/from_mesh/extrude/regions["//&
+                                      int2str(r)//"]/sizing_function/list")
+            allocate(sizing_vector(1:shape_option(1)))
+            call get_option(trim(option_path)//'/from_mesh/extrude/regions['//&
+                                      int2str(r)//']/sizing_function/list', &
+                                      sizing_vector, stat=stat)
+        end if
+        if (stat/=0) then
+          FLAbort("Unknown way of specifying sizing function in mesh extrusion")
+        end if       
+      end if
+      
+      ! create a 1d radial mesh under each surface node
+      do column=1, size(r_meshes)
+      
+        if (.not. node_owned(shell_mesh, column)) cycle
+        
+        ! need to work out here if this column is in one of the current region ids!
+        ! this is a bit arbitrary since nodes belong to multiple regions... therefore
+        ! the extrusion depth had better be continuous across region id boundaries!
+        if(apply_region_ids) then
+          eles => node_neigh(shell_mesh, column)
+          node_in_region = .false.
+          region_id_loop: do rs=1, size(region_ids)
+            if(any(region_ids(rs)==shell_mesh%mesh%region_ids(eles))) then
+              node_in_region = .true.
+              exit region_id_loop
+            end if
+          end do region_id_loop
+          if(.not. node_in_region) cycle
+          visited(column) = visited(column) + 1
+        end if
+        
+        if(.not.depth_is_constant) then
+          tmp_pos(:,1) = node_val(shell_mesh, column)
+          if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//&
+                                      int2str(r)//']/bottom_depth/python')) then
+            call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+            depth = tmp_depth(1)
+          else if  (have_option(trim(option_path)//'/from_mesh/extrude/regions['//&
+                                      int2str(r)//']/bottom_depth/from_map')) then
+            call set_from_map(file_name, tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
+            depth = tmp_depth(1)
+            if (have_min_depth) then
+              if (depth > min_depth) depth=min_depth
+            end if
+          else
+            FLAbort("Error with options path")
+          end if
+        end if
+        
+        if (sizing_is_constant) then
+          call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+            sizing=constant_sizing) ! Return r_shell, will be needed for working out face id's later
+        else
+          call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
+            sizing_function=sizing_function)
+        end if
+        
+      end do
+      
+      if(apply_region_ids) then
+        deallocate(region_ids)
+        if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
+                                int2str(r)//"]/sizing_function/list")) then
+          deallocate(sizing_vector)
+        end if
       end if
     end do
+
+#ifdef DDEBUG
+    if(apply_region_ids) then
+      assert(minval(visited)>0)
+      ewrite(2,*) "Maximum number of times a node was visited: ", maxval(visited)
+    end if
+#endif
 
     ! Now the tiresome business of making a shape function.
     shell_dim = mesh_dim(shell_mesh)

@@ -20,8 +20,8 @@ subroutine test_generate_layered_mesh_2d
   type(vector_field) :: out_mesh
 
   call set_option("/geometry/quadrature/degree", 4, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/bottom_depth", 1.0, stat=stat)
-  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/sizing_function/constant", 0.5, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/bottom_depth", 1.0, stat=stat)
+  call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 0.5, stat=stat)
 
   call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), sizing=0.5)
   call vtk_write_fields("data/layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))

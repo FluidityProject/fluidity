@@ -50,17 +50,24 @@ module hadapt_advancing_front
     integer, dimension(ele_count(mesh) * ele_loc(mesh, 1)) :: element_owners, boundary_ids
     integer, dimension(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)), target :: sndgln
     integer :: faces_seen
-    integer :: bottom_count, top_count
 
     integer, dimension(:), allocatable:: unn, unn_hanging_nodes, halo_level
     real :: vol
-    type(integer_set) :: bottom_nodes, top_nodes
     type(csr_sparsity), pointer :: nelist
     integer, dimension(:), pointer :: nodes, faces, neigh
-    integer :: top_surface_id, bottom_surface_id
     integer, dimension(1) :: other_node
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
-
+    
+    ! stuff to do with region ids
+    logical, dimension(node_count(h_mesh)) :: chain_at_top
+    integer :: top_surface_id, bottom_surface_id
+    integer, dimension(ele_count(h_mesh)) :: bottom_surface_ids, top_surface_ids
+    logical :: top_element, bottom_element
+    integer, dimension(:), allocatable :: region_ids
+    integer :: n_regions, r
+    logical :: apply_region_ids
+    integer, dimension(2) :: shape_option
+    
     dim = mesh_dim(mesh)
 
     ! Step 0. Generate the data structures necessary:
@@ -70,9 +77,6 @@ module hadapt_advancing_front
     ! 0.1 From the node to column map, create a column to node map
     call create_columns_sparsity(columns, mesh%mesh)
 
-    call allocate(bottom_nodes)
-    call allocate(top_nodes)
-
     ! 0.2 The linked lists representing the chains.
     do h_node=1,node_count(h_mesh)
       chain_len = row_length(columns, h_node)
@@ -80,8 +84,6 @@ module hadapt_advancing_front
       do c_node=1,chain_len
         call insert(chains(h_node), chain_ptr(c_node))
       end do
-      call insert(top_nodes, chain_ptr(1))
-      call insert(bottom_nodes, chain_ptr(chain_len))
     end do
 
     ! 0.3 The heights and indices of the hanging nodes.
@@ -124,6 +126,43 @@ module hadapt_advancing_front
     ! bored with it now
     call deallocate(columns)
 
+    ! get the region id information (if any) plus the top and bottom surface ids
+
+    n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/regions')
+    apply_region_ids = (n_regions>1)
+
+    do r = 0, n_regions-1
+    
+      if(apply_region_ids) then
+        shape_option=option_shape(trim(mesh%mesh%option_path)//&
+                                  "/from_mesh/extrude/regions["//int2str(r)//&
+                                  "]/region_ids")
+        allocate(region_ids(1:shape_option(1)))
+        call get_option(trim(mesh%mesh%option_path)//&
+                        "/from_mesh/extrude/regions["//int2str(r)//&
+                        "]/region_ids", region_ids)
+      end if
+      
+      call get_option(trim(mesh%mesh%option_path)// &
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/top_surface_id', top_surface_id, default=0)
+      call get_option(trim(mesh%mesh%option_path)// &
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/bottom_surface_id', bottom_surface_id, default=0)
+                      
+      do h_ele = 1, size(top_surface_ids)
+        if(apply_region_ids) then
+          if(.not. any(h_mesh%mesh%region_ids(h_ele)==region_ids)) cycle
+        end if
+        
+        top_surface_ids(h_ele) = top_surface_id
+        bottom_surface_ids(h_ele) = bottom_surface_id
+      end do
+      
+      if(apply_region_ids) deallocate(region_ids)
+      
+    end do
+
     ! The main loop.
 
     faces_seen = 0
@@ -132,6 +171,8 @@ module hadapt_advancing_front
       assert( snloc==face_loc(h_mesh,1)+1 )
     end if
 
+    chain_at_top=.true.
+    
     ele = 0
     do i=1,size(sorted)
       ! Get the chain we're dealing with.
@@ -150,9 +191,12 @@ module hadapt_advancing_front
         ! Get the chains in sele that are NOT the current chain.
         h_ndglno => ele_nodes(h_mesh, h_ele)
         l = 1
+        top_element = all(chain_at_top(h_ndglno))
+        bottom_element = chains(chain)%length==2
         do k=1,size(h_ndglno)
           if (h_ndglno(k) /= chain) then
             other_chain_heads(l) = chains(h_ndglno(k))%firstnode%value
+            bottom_element = bottom_element .and. chains(h_ndglno(k))%length==1
             l = l + 1
           end if
         end do
@@ -178,6 +222,24 @@ module hadapt_advancing_front
 
         ! if the horizontal element has any surface faces, add them to the extruded surface mesh
         if (has_faces(h_mesh%mesh)) then
+          ! first the top and bottom faces
+          if (top_element) then
+            faces_seen = faces_seen + 1
+            element_owners(faces_seen) = ele
+            boundary_ids(faces_seen) = top_surface_ids(h_ele)
+            nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+            nodes(1) = chains(chain)%firstnode%value
+            nodes(2:dim) = other_chain_heads
+          end if
+          if (bottom_element) then
+            faces_seen = faces_seen + 1
+            element_owners(faces_seen) = ele
+            boundary_ids(faces_seen) = bottom_surface_ids(h_ele)
+            nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+            nodes(1) = chains(chain)%firstnode%next%value
+            nodes(2:dim) = other_chain_heads
+          end if
+
           faces => ele_faces(h_mesh, h_ele)
           neigh => ele_neigh(h_mesh, h_ele)
           adjacent_to_owned_element=.false.
@@ -232,6 +294,7 @@ module hadapt_advancing_front
 
       ! And advance down the chain ..
       k = pop(chains(chain))
+      chain_at_top(chain)=.false.
     end do
       
     assert(ele==element_count(mesh))
@@ -270,32 +333,8 @@ module hadapt_advancing_front
       call derive_other_extruded_halos(h_mesh%mesh, mesh%mesh)
     end if
 
-    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/top_surface_id', top_surface_id, default=0)
-    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/bottom_surface_id', bottom_surface_id, default=0)
-
     if (has_faces(h_mesh%mesh)) then
       ! Add the top faces, and the bottom ones:
-
-      do ele=1,ele_count(mesh)
-        nodes => ele_nodes(mesh, ele)
-        bottom_count = count(has_value(bottom_nodes, nodes))
-        top_count = count(has_value(top_nodes, nodes))
-
-        if (bottom_count == ele_loc(mesh, ele) - 1) then
-          faces_seen = faces_seen + 1
-          element_owners(faces_seen) = ele
-          boundary_ids(faces_seen) = bottom_surface_id
-          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(bottom_nodes, nodes))
-        end if
-
-        if (top_count == ele_loc(mesh, ele) - 1) then
-          faces_seen = faces_seen + 1
-          element_owners(faces_seen) = ele
-          boundary_ids(faces_seen) = top_surface_id
-          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(top_nodes, nodes))
-        end if
-      end do
-
       call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), element_owner=element_owners(1:faces_seen), boundary_ids=boundary_ids(1:faces_seen))
     end if
     
@@ -304,9 +343,6 @@ module hadapt_advancing_front
       call reorder_element_numbering(mesh)
     end if
 
-    call deallocate(top_nodes)
-    call deallocate(bottom_nodes)
-    
     do h_node=1,node_count(h_mesh)
       call deallocate(chains(h_node))
     end do
@@ -348,16 +384,23 @@ module hadapt_advancing_front
     integer, dimension(ele_count(mesh) * ele_loc(mesh, 1)) :: element_owners, boundary_ids
     integer, dimension(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)), target :: sndgln
     integer :: faces_seen
-    integer :: bottom_count, top_count
 
     integer, dimension(:), allocatable:: unn, unn_hanging_nodes, halo_level
     real :: vol
-    type(integer_set) :: bottom_nodes, top_nodes
     type(csr_sparsity), pointer :: nelist
     integer, dimension(:), pointer :: nodes, faces, neigh
-    integer :: top_surface_id, bottom_surface_id
     integer, dimension(1) :: other_node
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
+
+    ! stuff to do with region ids
+    logical, dimension(node_count(shell_mesh)) :: chain_at_top
+    integer :: top_surface_id, bottom_surface_id
+    integer, dimension(ele_count(shell_mesh)) :: bottom_surface_ids, top_surface_ids
+    logical :: top_element, bottom_element
+    integer, dimension(:), allocatable :: region_ids
+    integer :: n_regions, r
+    logical :: apply_region_ids
+    integer, dimension(2) :: shape_option
 
     dim = mesh_dim(mesh)
 
@@ -368,9 +411,6 @@ module hadapt_advancing_front
     ! 0.1 From the node to column map, create a column to node map
     call create_columns_sparsity(columns, mesh%mesh)
 
-    call allocate(bottom_nodes) ! checkcheck
-    call allocate(top_nodes)   
-
     ! 0.2 The linked lists representing the chains.
     do shell_node=1,node_count(shell_mesh)
       chain_len = row_length(columns, shell_node)
@@ -378,8 +418,6 @@ module hadapt_advancing_front
       do c_node=1,chain_len
         call insert(chains(shell_node), chain_ptr(c_node))
       end do
-      call insert(top_nodes, chain_ptr(1)) ! checkcheck
-      call insert(bottom_nodes, chain_ptr(chain_len))
     end do
 
     ! 0.3 The radii and indices of the hanging nodes.
@@ -422,6 +460,43 @@ module hadapt_advancing_front
     ! bored with it now
     call deallocate(columns)
 
+    ! get the region id information (if any) plus the top and bottom surface ids
+
+    n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/regions')
+    apply_region_ids = (n_regions>1)
+
+    do r = 0, n_regions-1
+    
+      if(apply_region_ids) then
+        shape_option=option_shape(trim(mesh%mesh%option_path)//&
+                                  "/from_mesh/extrude/regions["//int2str(r)//&
+                                  "]/region_ids")
+        allocate(region_ids(1:shape_option(1)))
+        call get_option(trim(mesh%mesh%option_path)//&
+                        "/from_mesh/extrude/regions["//int2str(r)//&
+                        "]/region_ids", region_ids)
+      end if
+      
+      call get_option(trim(mesh%mesh%option_path)// &
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/top_surface_id', top_surface_id, default=0)
+      call get_option(trim(mesh%mesh%option_path)// &
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/bottom_surface_id', bottom_surface_id, default=0)
+                      
+      do shell_ele = 1, size(top_surface_ids)
+        if(apply_region_ids) then
+          if(.not. any(shell_mesh%mesh%region_ids(shell_ele)==region_ids)) cycle
+        end if
+        
+        top_surface_ids(shell_ele) = top_surface_id
+        bottom_surface_ids(shell_ele) = bottom_surface_id
+      end do
+      
+      if(apply_region_ids) deallocate(region_ids)
+      
+    end do
+
     ! The main loop.
 
     faces_seen = 0
@@ -430,6 +505,8 @@ module hadapt_advancing_front
       assert( snloc==face_loc(shell_mesh,1)+1 )
     end if
 
+    chain_at_top=.true.
+    
     ele = 0
 !     ndglno_ptr => ele_nodes(mesh, ele)
     do i=1,size(sorted)
@@ -449,9 +526,12 @@ module hadapt_advancing_front
         ! Get the chains in sele that are NOT the current chain.
         shell_ndglno => ele_nodes(shell_mesh, shell_ele)
         l = 1
+        top_element = all(chain_at_top(shell_ndglno))
+        bottom_element = chains(chain)%length==2
         do k=1,size(shell_ndglno)
           if (shell_ndglno(k) /= chain) then
             other_chain_heads(l) = chains(shell_ndglno(k))%firstnode%value
+            bottom_element = bottom_element .and. chains(shell_ndglno(k))%length==1
             l = l + 1
           end if
         end do
@@ -477,6 +557,24 @@ module hadapt_advancing_front
 
         ! if the horizontal element has any surface faces, add them to the extruded surface mesh
         if (has_faces(shell_mesh%mesh)) then
+          ! first the top and bottom faces
+          if (top_element) then
+            faces_seen = faces_seen + 1
+            element_owners(faces_seen) = ele
+            boundary_ids(faces_seen) = top_surface_ids(shell_ele)
+            nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+            nodes(1) = chains(chain)%firstnode%value
+            nodes(2:dim) = other_chain_heads
+          end if
+          if (bottom_element) then
+            faces_seen = faces_seen + 1
+            element_owners(faces_seen) = ele
+            boundary_ids(faces_seen) = bottom_surface_ids(shell_ele)
+            nodes => sndgln((faces_seen-1)*snloc+1:faces_seen*snloc)
+            nodes(1) = chains(chain)%firstnode%next%value
+            nodes(2:dim) = other_chain_heads
+          end if
+
           faces => ele_faces(shell_mesh, shell_ele)
           neigh => ele_neigh(shell_mesh, shell_ele)
           adjacent_to_owned_element=.false.
@@ -531,6 +629,7 @@ module hadapt_advancing_front
 
       ! And advance down the chain ..
       k = pop(chains(chain))
+      chain_at_top(chain)=.false.
     end do
 
     assert(ele==element_count(mesh))
@@ -569,32 +668,7 @@ module hadapt_advancing_front
       call derive_other_extruded_halos(shell_mesh%mesh, mesh%mesh)
     end if
 
-    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/top_surface_id', top_surface_id, default=0)
-    call get_option(trim(mesh%mesh%option_path) //'/from_mesh/extrude/bottom_surface_id', bottom_surface_id, default=0)
-
     if (has_faces(shell_mesh%mesh)) then
-      ! Add the top faces, and the bottom ones:
-
-      do ele=1,ele_count(mesh)
-        nodes => ele_nodes(mesh, ele)
-        bottom_count = count(has_value(bottom_nodes, nodes))
-        top_count = count(has_value(top_nodes, nodes))
-
-        if (bottom_count == ele_loc(mesh, ele) - 1) then
-          faces_seen = faces_seen + 1
-          element_owners(faces_seen) = ele
-          boundary_ids(faces_seen) = bottom_surface_id
-          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(bottom_nodes, nodes))
-        end if
-
-        if (top_count == ele_loc(mesh, ele) - 1) then
-          faces_seen = faces_seen + 1
-          element_owners(faces_seen) = ele
-          boundary_ids(faces_seen) = top_surface_id
-          sndgln((faces_seen-1)*snloc+1:faces_seen*snloc) = pack(nodes, has_value(top_nodes, nodes))
-        end if
-      end do
-
       call add_faces(mesh%mesh, sndgln=sndgln(1:faces_seen*snloc), element_owner=element_owners(1:faces_seen), boundary_ids=boundary_ids(1:faces_seen))
     end if
 
@@ -602,9 +676,6 @@ module hadapt_advancing_front
       ! make sure we obey zoltan's ordering convention
       call reorder_element_numbering(mesh)
     end if
-
-    call deallocate(top_nodes)
-    call deallocate(bottom_nodes)
 
     do shell_node=1,node_count(shell_mesh)
       call deallocate(chains(shell_node))

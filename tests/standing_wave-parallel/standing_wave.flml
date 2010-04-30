@@ -14,6 +14,7 @@
       <from_mesh>
         <mesh name="HorizontalMesh"/>
         <extrude>
+          <regions name="WholeMesh">
           <bottom_depth>
             <constant>
               <real_value rank="0">1e3</real_value>
@@ -32,6 +33,7 @@
           <bottom_surface_id>
             <integer_value rank="0">2</integer_value>
           </bottom_surface_id>
+          </regions>
         </extrude>
         <stat>
           <exclude_from_stat/>

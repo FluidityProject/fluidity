@@ -79,27 +79,27 @@ mesh_info =
          }*,
          ## Extrude a horizontal (1D or 2D) mesh in the vertical
          element extrude {
-            ## Depth over which to extrude
-            ## top will be at z=0
-            ## bottom will be at z=-bottom_depth
-            element bottom_depth {
-               input_choice_real_plus_map
-            },
-            ## Constant or function to specify the depth of the
-            ## layers. The function is a function of all coordinates
-            ## (so in 2+1D: x,y and z) to specify a layer depth that
-            ## varies both in the horizontal as in the vertical.
-            element sizing_function {
-               input_choice_real_plus_list
-            },
-            ## surface_id to assign to the top of the extruded mesh
-            element top_surface_id {
-               integer
-            }?,
-            ## surface_id to assign to the bottom of the extruded mesh
-            element bottom_surface_id {
-               integer
-            }?,
+            (
+              ## Extrusion options for WholeMesh
+              ##
+              ## Only specify one set of parameters if not using mesh regions.
+              ## Otherwise select other regions option, specify region_ids
+              ## and distinct names.  Then add extra regions for other regions.
+              element regions {
+                attribute name { "WholeMesh" },
+                extrusion_options
+              }|
+              ## Multiple extrusion options are allowed if specifying
+              ## different values in different
+              ## regions of the mesh (defined by region_ids).  In this case
+              ## each set of options
+              ## requires a distinct name for the options dictionary.
+              element regions {
+                attribute name { string },
+                region_ids,
+                extrusion_options
+              }
+            )+,
             ## This is an internal option used by checkpointing. The 
             ## option is switched on automatically in writing a 
             ## checkpoint, so that when starting from the checkpoint .flml
@@ -107,15 +107,15 @@ mesh_info =
             ## adapt the extrusion is again done as specified in the other
             ## extrusion options and under the adaptivity options.
             element checkpoint_from_file {
-               element format {
+                element format {
                   ## Triangle mesh format.
                   ##
                   ## Enter the base name without the .edge .ele, .face or
                   ## .node extensions, and without process numbers.
                   attribute name { "triangle" }
-               },
-               attribute file_name { xsd:string },
-               comment
+                },
+                attribute file_name { xsd:string },
+                comment
             }?
          }?,
          derived_mesh_stat_options,
@@ -166,4 +166,29 @@ derived_mesh_stat_options =
       element stat {
          mesh_stat_options_disabled_default
       }
+   )
+
+extrusion_options = 
+   (
+      ## Depth over which to extrude
+      ## top will be at z=0
+      ## bottom will be at z=-bottom_depth
+      element bottom_depth {
+          input_choice_real_plus_map
+      },
+      ## Constant or function to specify the depth of the
+      ## layers. The function is a function of all coordinates
+      ## (so in 2+1D: x,y and z) to specify a layer depth that
+      ## varies both in the horizontal as in the vertical.
+      element sizing_function {
+          input_choice_real_plus_list
+      },
+      ## surface_id to assign to the top of the extruded mesh
+      element top_surface_id {
+          integer
+      }?,
+      ## surface_id to assign to the bottom of the extruded mesh
+      element bottom_surface_id {
+          integer
+      }?
    )

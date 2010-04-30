@@ -15,22 +15,24 @@
       <from_mesh>
         <mesh name="HorizontalMesh"/>
         <extrude>
-          <bottom_depth>
-            <constant>
-              <real_value rank="0">2000.0</real_value>
-            </constant>
-          </bottom_depth>
-          <sizing_function>
-            <constant>
-              <real_value rank="0">500.0</real_value>
-            </constant>
-          </sizing_function>
-          <top_surface_id>
-            <integer_value rank="0">1</integer_value>
-          </top_surface_id>
-          <bottom_surface_id>
-            <integer_value rank="0">2</integer_value>
-          </bottom_surface_id>
+          <regions name="WholeMesh">
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">2000.0</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">500.0</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">2</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">1</integer_value>
+            </bottom_surface_id>
+          </regions>
         </extrude>
         <stat>
           <exclude_from_stat/>
@@ -148,10 +150,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">9.8</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -169,9 +171,9 @@
         </prescribed>
       </vector_field>
     </gravity>
-    <coriolis replaces="OPTOME">
-      <sine_of_latitude replaces="OPTOME = 2">
-        <omega replaces="OMEGA">
+    <coriolis>
+      <sine_of_latitude>
+        <omega>
           <real_value rank="0">7.27e-5</real_value>
         </omega>
         <R_earth>
