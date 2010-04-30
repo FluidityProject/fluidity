@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Periodic 2+1 parallel</name>
+  <owner userid="am2008"/>
+  <tags>flml zoltan</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+    no_proc=2
+    filename='periodic_2plus1_parallel';
+    flml_2D=${filename}'_2D';
+    mesh='MMS_B';
+    periodic_mesh='PeriodicMesh';
+    
+    #make the periodic 2D flml from the periodic 2plus1 flml
+    ../../scripts/make_periodic_2D_flml ${filename}.flml;
+    
+    #periodise the 2D flml
+    ../../bin/periodise ${flml_2D}.flml;
+    
+    #flredecomp the 2D flml
+    mpiexec -n 2 ../../bin/flredecomp -i 1 -o $no_proc ${flml_2D}_periodised ${flml_2D}_periodised_flredecomp;
+    
+    #periodise the 2plus1 flml
+    ../../bin/periodise ${filename}.flml;
+    
+    #make the 2plus1 flredecomp flml
+    mv ${filename}_periodised.flml ${filename}_periodised_forcedflredecomp.flml;
+    
+    #change mesh to 2D parallel mesh    
+    new_mesh_name=${flml_2D}'_periodised_flredecomp_'${periodic_mesh};
+    old_mesh_name=${mesh}'_periodic';
+    sed -i 's/'${old_mesh_name}'/'${new_mesh_name}'/' ${filename}_periodised_forcedflredecomp.flml;
+    
+    #run
+    mpiexec -n 2 ../../bin/fluidity -v3 -l ${filename}_periodised_forcedflredecomp.flml 
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="consistent_max" language="python">
+import fluidity_tools
+s = fluidity_tools.stat_parser("periodic_2plus1_parallel.stat")
+consistent_max = s['Main']['PrognosticFieldConsistent']['max'][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="completion" language="python">import fluidity_tools
+stat = fluidity_tools.stat_parser("periodic_2plus1_parallel.stat")
+assert stat['ElapsedTime']['value'][-1] == 20.0</test>
+    <test name="references" language="python">assert "There are no references left" in open("fluidity.log-0").read()</test>
+    <test name="consistent_max" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(consistent_max, 1.0, 1.0e-10)
+    </test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
+
+
+
+
+
