@@ -110,7 +110,7 @@ module hadapt_extrude_radially
         if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/python')) then
           call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
           depth = tmp_depth(1)
-        else if  (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map')) then
+        else if (have_option(trim(option_path)//'/from_mesh/extrude/bottom_depth/from_map')) then
           call set_from_map(file_name, tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
           depth = tmp_depth(1)
           if (have_min_depth) then

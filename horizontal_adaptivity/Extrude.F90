@@ -18,7 +18,7 @@ module hadapt_extrude
 
   private
   
-  public :: extrude, compute_z_nodes
+  public :: extrude, compute_z_nodes, hadapt_extrude_check_options
 
   contains
 
@@ -241,6 +241,27 @@ module hadapt_extrude
       end function get_delta_h
       
   end subroutine compute_z_nodes
+
+  ! hadapt_extrude options checking
+  subroutine hadapt_extrude_check_options
+
+    integer :: nmeshes, m
+    character(len=OPTION_PATH_LEN) :: mesh_path
+
+    ! Extruding along bathymetry currently only works with radial extrusions on the sphere.
+    ! If bottom_depth/from_map is selected check also that /geometry/spherical_earth is enabled.
+    nmeshes=option_count("/geometry/mesh")
+    do m = 0, nmeshes-1
+      mesh_path="/geometry/mesh["//int2str(m)//"]"
+      if ((have_option(trim(mesh_path)//'/from_mesh/extrude/bottom_depth/from_map')).and. &
+        (.not.have_option('/geometry/spherical_earth'))) then
+        ewrite(-1,*) "Extruding along bathymetry currently only works with radial extrusions on the sphere."
+        ewrite(-1,*) "Please turn on the geometry/spherical_earth option."
+        FLExit("Using extrude/from_map requires the gemoetry/spherical_earth option to be enabled.")
+      end if
+    end do
+
+  end subroutine hadapt_extrude_check_options
 
     
 end module hadapt_extrude
