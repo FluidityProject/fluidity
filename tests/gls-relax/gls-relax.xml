@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>gls-relax</name>
+  <owner userid="jhill1"/>
+  <tags>flml gls</tags>
+    <problem_definition length="short" nprocs="1">
+        <command_line>fluidity -v3 -l gls-relax.flml;
+        </command_line>
+  </problem_definition>  
+  <variables>     
+      <variable name="NormalVertDiffStart" language="python">
+import fluidity_tools
+NormalVertDiffStart = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalDiffusivity']['max'][0]
+    </variable>     
+    <variable name="NormalVertDiffEnd" language="python">
+import fluidity_tools
+NormalVertDiffEnd = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalDiffusivity']['max'][-1]
+    </variable>    
+      <variable name="NormalVertViscStart" language="python">
+import fluidity_tools
+NormalVertViscStart = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalViscosity']['max'][0]
+    </variable>     
+    <variable name="NormalVertViscEnd" language="python">
+import fluidity_tools
+NormalVertViscEnd = fluidity_tools.stat_parser("gls-MixedLayer-ke_checkpoint.stat")['Fluid']['GLSVerticalViscosity']['max'][-1]
+    </variable>     
+    <variable name="RelaxVertDiffEnd" language="python">
+import fluidity_tools
+RelaxVertDiffEnd = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalDiffusivity']['max'][-1]
+    </variable>  
+    <variable name="RelaxVertViscEnd" language="python">
+import fluidity_tools
+RelaxVertViscEnd = fluidity_tools.stat_parser("gls-relax.stat")['Fluid']['GLSVerticalViscosity']['max'][-1]
+    </variable>
+</variables>
+
+  <pass_tests> 
+    <test name ="Relaxed diffusivity is half value of normal" language="python">
+assert ( (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)-0.000005 &lt; RelaxVertDiffEnd &lt; (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)+0.000005 )
+    </test>
+    <test name ="Relaxed Viscosity is half value of normal" language="python">
+assert ( (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)-0.000005 &lt; RelaxVertViscEnd &lt; (0.5*NormalVertDiffEnd+0.5*NormalVertDiffStart)+0.000005 )
+    </test>
+
+  </pass_tests>
+</testproblem>

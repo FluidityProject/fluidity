@@ -65,6 +65,7 @@ module gls
   real, save               :: cc2,cc3,cc4,cc5,cc6
   real, save               :: ct2,ct3,ct4,ct5
   real, save               :: cPsi1,cPsi2,cPsi3,cPsi3_plus,cPsi3_minus
+  real, save               :: relaxation
 
   ! these are the fields and variables for the surface values
   type(scalar_field), save             :: top_surface_values, bottom_surface_values ! these are used to populate the bcs
@@ -117,6 +118,9 @@ subroutine gls_init(state)
     calc_fwall = .false.
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                     &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", k_min, stat)
+
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity", relaxation, default=0.0)
+
     
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", gls_option)    
     ! Check the model used - we have four choices - then set the parameters appropriately
@@ -592,9 +596,9 @@ subroutine gls_diffusivity(state)
     do i=1,nNodes
         x = sqrt(node_val(KK,i))*node_val(ll,i)
         ! momentum
-        call set(K_M,i, min(7.0,node_val(S_M,i)*x))
+        call set(K_M,i, min(7.0,relaxation*node_val(K_M,i) + (1-relaxation)*node_val(S_M,i)*x))
         ! tracer
-        call set(K_H,i, min(7.0,node_val(S_H,i)*x))
+        call set(K_H,i, min(7.0,relaxation*node_val(K_H,i) + (1-relaxation)*node_val(S_H,i)*x))
     end do
 
 
@@ -704,7 +708,8 @@ subroutine gls_check_options
     
     character(len=FIELD_NAME_LEN) :: buffer
     integer                       :: stat
-    real                          :: min_tke
+    real                          :: min_tke, relax
+
 
     ! Don't do GLS if it's not included in the model!
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) return
@@ -866,7 +871,21 @@ subroutine gls_check_options
         ewrite(-1,*)("WARNING: Priorities for the GLS fields are set internally. Setting them in the FLML might mess things up")
     end if
 
+   ! check the relax option is valid
+   if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity")) then
+       call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity", relax)
+       if (relax < 0 .or. relax >= 1.0) then
+           FLExit("The GLS diffusivity relaxation value should be greater than or equal to zero, but less than 1.0")
+       end if
+       if (.not. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSVerticalViscosity/")) then
+           FLExit("You will need to switch on the GLSVerticalViscosity field when using relaxation")
+       end if
+       if (.not. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSVerticalDiffusivity/")) then
+           FLExit("You will need to switch on the GLSVerticalDiffusivity field when using relaxation")
+       end if
+   end if
    
+
 
 
   end subroutine gls_check_options

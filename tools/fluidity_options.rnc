@@ -739,6 +739,16 @@ start =
                         empty
                      }?
                   }?,
+                  ## Perform relaxation of the diffusivity and viscosity in the GLS model.
+                  ## Value should be >=0 and < 1. 0 is no relaxation (i.e. always use the
+                  ## most up-to-date value) and 0.9 would represent making the current value
+                  ## be 0.9*old_value + 0.1*new_value
+                  ## If being used with adaptivity, ensure you switch on interpolation of the 
+                  ## GLSVerticalDiffusivity and GLSVerticalViscosity fields. You will seg fault
+                  ## otherwise.
+                  element relax_diffusivity {
+                     real
+                  }?,
                   ## Turbulent kinetic energy. Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.
                   element scalar_field {
                      attribute rank { "0" },

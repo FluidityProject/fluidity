@@ -1116,6 +1116,13 @@ can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model
 \option{\ldots/calculate\_boundaries} is recommended. You must also enable 
 \option{/geometry/ocean\_boundaries}. Finally, you can enable a number of optional diagnostic fields.
 
+The user can also choose to relax the diffusivity and viscosity calculated by switching on the
+\option{\ldots/relax\_diffusivity}. The value specified must be between 0 and 1.0. A value of 0 indicates
+no relaxation, 1.0 would indicate no changes to be made. If this option is activated, the diagnostic fields
+\option{GLSTurbulentVerticalDiffusivity} and \option{GLSTurbulentVerticalViscosity} must also
+be activated. In addition, if adaptivity is enabled, these two fields must have an interpolation
+method set, e.g. \option{\ldots/GLSVerticalViscosity/diagnostic/consistent\_interpolation}.
+
 For each field that will be effected by the subgrid scale parameterisations, 
 you must enable the correct diffusivity. This
 is done by specifying \option{\ldots/subgridscale\_parameterisation} in the
