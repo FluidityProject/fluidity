@@ -149,7 +149,7 @@
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">100000</integer_value>
+            <integer_value rank="0">10000</integer_value>
           </max_iterations>
           <remove_null_space/>
           <never_ignore_solver_failures/>

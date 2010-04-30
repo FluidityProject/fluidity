@@ -3,13 +3,13 @@
   <name>channel-flow-dg</name>
   <owner userid="cwilson"/>
   <problem_definition length="special" nprocs="1">
-    <command_line>for layers in 16 32 64 128 256; do ./generate_mesh $layers; fluidity -v2 -l channel_viscous.flml; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; cp fluidity.log-0 fluidity-$layers.log-0; cp fluidity.err-0 fluidity-$layers.err-0; done</command_line>
+    <command_line>for layers in 16 32 64; do ./generate_mesh $layers; fluidity channel_viscous.flml; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; cp fluidity.log-0 fluidity-$layers.log-0; cp fluidity.err-0 fluidity-$layers.err-0; done</command_line>
 <!--     <command_line>for layers in 16 32 64; do ./generate_mesh $layers; ../../bin/periodise channel_viscous.flml; mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 channel_viscous_periodised channel_viscous_parallel; mpiexec -n 4 ../../bin/fluidity channel_viscous_parallel.flml; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; done</command_line> -->
   </problem_definition>
   <variables>
     <variable name="convergence" language="python">import numpy
 from fluidity_tools import stat_parser
-layers=numpy.array([16, 32, 64, 128, 256])
+layers=numpy.array([16, 32, 64])
 error=[]
 for layer in layers:
         s=stat_parser("channel-flow-dg-"+`layer`+".stat")
