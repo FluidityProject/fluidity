@@ -57,11 +57,15 @@ for i in range(len(root[geo_count].getchildren())):
 
 #locate where periodic boundaries are applied
 #locate mesh that has been extruded
+todeletefield2=[]
 for i in range(len(root[geo_count].getchildren())):
+  if (root[geo_count][i].tag != 'mesh') and (root[geo_count][i].tag != 'dimension') and (root[geo_count][i].tag != 'quadrature'):
+    todeletefield2.append(root[geo_count][i])
   for j in range(len(root[geo_count][i].getchildren())):
     for k in range(len(root[geo_count][i][j].getchildren())):
       if (root[geo_count][i][j][k].tag == 'extrude'):
-	extrude_loc = [i,j,k]
+	#extrude_loc = [i,j,k]
+	todeletefield2.append(root[geo_count][i])
       if (root[geo_count][i][j][k].tag == 'periodic_boundary_conditions'):
 	if (root[geo_count][i][j][0].get('name')==mesh_file):
 	  periodic_bd_loc = [i,j,k]
@@ -71,9 +75,10 @@ for i in range(len(root[geo_count].getchildren())):
 	    if (root[geo_count][i][j][k][m].tag=='coordinate_map'):
 	      coordinate_map=root[geo_count][i][j][k][m][0].text
 
-#only compatible for one extrude (can easily ammended to remove multiple extudes by looping through array extrude_loc; but is thought to be unesscessary)
-field = root[geo_count].getchildren()[extrude_loc[0]]	  
-root[geo_count].remove(field) 
+#field = root[geo_count].getchildren()[extrude_loc[0]]	  
+#remove unwanted fields in geometry
+for field in todeletefield2:
+  root[geo_count].remove(field) 
  
 #remove all material phase fields
 for field in todeletefield:
