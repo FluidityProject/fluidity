@@ -90,7 +90,8 @@ contains
     type(scalar_field), intent(inout) :: s_field
     
     character(len = OPTION_PATH_LEN) :: path
-    type(block_csr_matrix) :: CT_m
+    integer :: stat
+    type(block_csr_matrix) :: ct_m
     type(csr_sparsity), pointer :: divergence_sparsity
     type(csr_matrix), pointer :: mass
     type(scalar_field) :: ctfield, ct_rhs
@@ -98,21 +99,29 @@ contains
     type(vector_field), pointer :: positions, source_field
     
     source_field => vector_source_field(state, s_field)
-    
-    positions => extract_vector_field(state, "Coordinate")
-
-    call allocate(ctfield, s_field%mesh, name="CTField")
-
-    divergence_sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, source_field%mesh)
-    call allocate(CT_m, divergence_sparsity, (/1, source_field%dim/), name="DivergenceMatrix" )
-    call allocate(ct_rhs, s_field%mesh, name="CTRHS")
-
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
-    call assemble_divergence_matrix_cg(CT_m, state, ct_rhs=ct_rhs, &
-                                       test_mesh=s_field%mesh, field=source_field, &
-                                       option_path=path)
+    
+    ct_m = extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix", stat = stat)
+    if(stat == 0) then
+      ct_rhs = extract_scalar_field(state, trim(s_field%name) // "DivergenceRHS")
+      call incref(ct_m)
+      call incref(ct_rhs)
+    else
+      positions => extract_vector_field(state, "Coordinate")
+    
+      divergence_sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, source_field%mesh)
+      call allocate(ct_m, divergence_sparsity, (/1, source_field%dim/), name = "DivergenceMatrix" )
+      call allocate(ct_rhs, s_field%mesh, name = "CTRHS")
+    
+      call assemble_divergence_matrix_cg(ct_m, state, ct_rhs = ct_rhs, &
+                                       & test_mesh = s_field%mesh, field = source_field, &
+                                       & option_path = path)
+      call insert(state, ct_m, trim(s_field%name) // "DivergenceMatrix")
+      call insert(state, ct_rhs, trim(s_field%name) // "DivergenceRHS")
+    end if
 
-    call mult(ctfield, CT_m, source_field)
+    call allocate(ctfield, s_field%mesh, name = "CTField")
+    call mult(ctfield, ct_m, source_field)
     call addto(ctfield, ct_rhs, -1.0)
     call deallocate(ct_rhs)
     
@@ -124,7 +133,7 @@ contains
       call petsc_solve(s_field, mass, ctfield, option_path = path)
     end if
 
-    call deallocate(CT_m)
+    call deallocate(ct_m)
     call deallocate(ctfield)
     
   end subroutine calculate_finite_element_divergence
