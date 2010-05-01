@@ -150,9 +150,9 @@ contains
         this_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
         if(this_mesh_movement /= last_mesh_movement) then
           last_mesh_movement = this_mesh_movement
-          use_cache = .true.
-        else
           use_cache = .false.
+        else
+          use_cache = .true.
         end if
       else
         use_cache = .false.
