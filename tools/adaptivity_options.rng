@@ -1299,6 +1299,15 @@ system state.</a:documentation>
       <ref name="comment"/>
     </element>
   </define>
+  <define name="consistent_interpolation">
+    <element name="consistent_interpolation">
+      <a:documentation>Basis function interpolation.
+The standard algorithm. It is quick
+and bounded, but non-conservative and dissipative.
+All other algorithms require construction of a supermesh.</a:documentation>
+      <empty/>
+    </element>
+  </define>
   <define name="pseudo_consistent_interpolation">
     <element name="pseudo_consistent_interpolation">
       <a:documentation>Basis function pseudo-interpolation, with averaging for nodes on
@@ -1311,6 +1320,13 @@ applied is currently hard coded to 1.0e3 * epsilon(0.0).</a:documentation>
       <ref name="comment"/>
     </element>
   </define>
+  <define name="grandy_interpolation">
+    <element name="grandy_interpolation">
+      <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
+See doi:10.1006/jcph.1998.6125 .</a:documentation>
+      <empty/>
+    </element>
+  </define>
   <define name="interpolation_algorithm_disabled">
     <element name="no_interpolation">
       <a:documentation>Disable interpolation</a:documentation>
@@ -1319,13 +1335,7 @@ applied is currently hard coded to 1.0e3 * epsilon(0.0).</a:documentation>
   </define>
   <define name="interpolation_algorithm_scalar">
     <choice>
-      <element name="consistent_interpolation">
-        <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-        <empty/>
-      </element>
+      <ref name="consistent_interpolation"/>
       <ref name="pseudo_consistent_interpolation"/>
       <element name="galerkin_projection">
         <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
@@ -1333,11 +1343,7 @@ non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
         <ref name="galerkin_projection_scalar"/>
       </element>
-      <element name="grandy_interpolation">
-        <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
-See doi:10.1006/jcph.1998.6125 .</a:documentation>
-        <empty/>
-      </element>
+      <ref name="grandy_interpolation"/>
     </choice>
   </define>
   <define name="interpolation_algorithm_scalar_full">
@@ -1354,13 +1360,7 @@ See doi:10.1006/jcph.1998.6125 .</a:documentation>
   </define>
   <define name="interpolation_algorithm_vector">
     <choice>
-      <element name="consistent_interpolation">
-        <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-        <ref name="comment"/>
-      </element>
+      <ref name="consistent_interpolation"/>
       <ref name="pseudo_consistent_interpolation"/>
       <element name="galerkin_projection">
         <a:documentation>Galerkin projection. By default, conservative, non-dissipative and
@@ -1368,11 +1368,7 @@ non-bounded. The most accurate choice, in the sense of minimising
 the L2 norm of the residual</a:documentation>
         <ref name="galerkin_projection_vector"/>
       </element>
-      <element name="grandy_interpolation">
-        <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
-See doi:10.1006/jcph.1998.6125 .</a:documentation>
-        <empty/>
-      </element>
+      <ref name="grandy_interpolation"/>
       <element name="geostrophic_interpolation">
         <a:documentation>Helmholtz decomposed projection of the Coriolis acceleration. Suitable
 only for Velocity fields. This interpolation happens in three stages:
@@ -1547,19 +1543,8 @@ the L2 norm of the residual</a:documentation>
               </optional>
               <ref name="comment"/>
             </element>
-            <element name="consistent_interpolation">
-              <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-              <ref name="comment"/>
-            </element>
-            <ref name="pseudo_consistent_interpolation"/>
-            <element name="grandy_interpolation">
-              <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
-See doi:10.1006/jcph.1998.6125 .</a:documentation>
-              <empty/>
-            </element>
+            <ref name="consistent_interpolation"/>
+            <ref name="grandy_interpolation"/>
           </choice>
           <optional>
             <element name="project_pressure">
@@ -1638,19 +1623,9 @@ the L2 norm of the residual</a:documentation>
               </optional>
               <ref name="comment"/>
             </element>
-            <element name="consistent_interpolation">
-              <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-              <ref name="comment"/>
-            </element>
+            <ref name="consistent_interpolation"/>
             <ref name="pseudo_consistent_interpolation"/>
-            <element name="grandy_interpolation">
-              <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
-See doi:10.1006/jcph.1998.6125 .</a:documentation>
-              <empty/>
-            </element>
+            <ref name="grandy_interpolation"/>
           </choice>
           <optional>
             <element name="enforce_solenoidal">
@@ -1701,19 +1676,9 @@ the L2 norm of the residual</a:documentation>
                 </optional>
                 <ref name="comment"/>
               </element>
-              <element name="consistent_interpolation">
-                <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-                <ref name="comment"/>
-              </element>
+              <ref name="consistent_interpolation"/>
               <ref name="pseudo_consistent_interpolation"/>
-              <element name="grandy_interpolation">
-                <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
-See doi:10.1006/jcph.1998.6125 .</a:documentation>
-                <empty/>
-              </element>
+              <ref name="grandy_interpolation"/>
             </choice>
           </element>
         </optional>
@@ -1731,19 +1696,9 @@ the L2 norm of the residual</a:documentation>
                 </optional>
                 <ref name="comment"/>
               </element>
-              <element name="consistent_interpolation">
-                <a:documentation>Basis function interpolation.
-The standard algorithm. It is quick
-and bounded, but non-conservative and dissipative.
-All other algorithms require construction of a supermesh.</a:documentation>
-                <ref name="comment"/>
-              </element>
+              <ref name="consistent_interpolation"/>
               <ref name="pseudo_consistent_interpolation"/>
-              <element name="grandy_interpolation">
-                <a:documentation>Grandy interpolation. Conservative, but highly diffusive.
-See doi:10.1006/jcph.1998.6125 .</a:documentation>
-                <empty/>
-              </element>
+              <ref name="grandy_interpolation"/>
             </choice>
             <ref name="comment"/>
           </element>

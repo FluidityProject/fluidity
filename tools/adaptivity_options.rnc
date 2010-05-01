@@ -1076,7 +1076,17 @@ prescribed_adaptivity =
          comment
       }
    )
-   
+
+consistent_interpolation =
+   (
+      ## Basis function interpolation.
+      ## The standard algorithm. It is quick
+      ## and bounded, but non-conservative and dissipative.
+      ## All other algorithms require construction of a supermesh.
+      element consistent_interpolation {
+        empty
+      }
+   )   
 pseudo_consistent_interpolation =
    (
       ## Basis function pseudo-interpolation, with averaging for nodes on
@@ -1090,6 +1100,14 @@ pseudo_consistent_interpolation =
          comment
       }
    )
+grandy_interpolation =
+   (
+      ## Grandy interpolation. Conservative, but highly diffusive.
+      ## See doi:10.1006/jcph.1998.6125 .
+      element grandy_interpolation {
+        empty
+      }
+   )
    
 interpolation_algorithm_disabled =
    (
@@ -1101,13 +1119,7 @@ interpolation_algorithm_disabled =
 
 interpolation_algorithm_scalar =
     (
-      ## Basis function interpolation.
-      ## The standard algorithm. It is quick
-      ## and bounded, but non-conservative and dissipative.
-      ## All other algorithms require construction of a supermesh.
-      element consistent_interpolation {
-        empty
-      }|
+      consistent_interpolation|
       pseudo_consistent_interpolation|
       ## Galerkin projection. By default, conservative, non-dissipative and
       ## non-bounded. The most accurate choice, in the sense of minimising
@@ -1115,11 +1127,7 @@ interpolation_algorithm_scalar =
       element galerkin_projection {
         galerkin_projection_scalar
       }|
-      ## Grandy interpolation. Conservative, but highly diffusive.
-      ## See doi:10.1006/jcph.1998.6125 .
-      element grandy_interpolation {
-        empty
-      }
+      grandy_interpolation
     )
     
 interpolation_algorithm_scalar_full = interpolation_algorithm_scalar
@@ -1130,13 +1138,7 @@ interpolation_algorithm_vector_full |= interpolation_algorithm_disabled
     
 interpolation_algorithm_vector =
     (
-      ## Basis function interpolation.
-      ## The standard algorithm. It is quick
-      ## and bounded, but non-conservative and dissipative.
-      ## All other algorithms require construction of a supermesh.
-      element consistent_interpolation {
-        comment
-      }|
+      consistent_interpolation|
       pseudo_consistent_interpolation|
       ## Galerkin projection. By default, conservative, non-dissipative and
       ## non-bounded. The most accurate choice, in the sense of minimising
@@ -1144,11 +1146,7 @@ interpolation_algorithm_vector =
       element galerkin_projection {
         galerkin_projection_vector
       }|
-      ## Grandy interpolation. Conservative, but highly diffusive.
-      ## See doi:10.1006/jcph.1998.6125 .
-      element grandy_interpolation {
-        empty
-      }|
+      grandy_interpolation|
       ## Helmholtz decomposed projection of the Coriolis acceleration. Suitable
       ## only for Velocity fields. This interpolation happens in three stages:
       ##
@@ -1289,19 +1287,8 @@ interpolation_algorithm_vector =
                 supermesh_conservation?,
                 comment
               }|
-              ## Basis function interpolation.
-              ## The standard algorithm. It is quick
-              ## and bounded, but non-conservative and dissipative.
-              ## All other algorithms require construction of a supermesh.
-              element consistent_interpolation {
-                comment
-              }|
-              pseudo_consistent_interpolation|
-              ## Grandy interpolation. Conservative, but highly diffusive.
-              ## See doi:10.1006/jcph.1998.6125 .
-              element grandy_interpolation {
-                empty
-              }
+              consistent_interpolation|
+              grandy_interpolation
            ),
            ## Additionally project the Pressure field. This also enables better
            ## initial guesses for the decomposition solvers.
@@ -1371,19 +1358,9 @@ interpolation_algorithm_vector =
                 supermesh_conservation?,
                 comment
               }|
-              ## Basis function interpolation.
-              ## The standard algorithm. It is quick
-              ## and bounded, but non-conservative and dissipative.
-              ## All other algorithms require construction of a supermesh.
-              element consistent_interpolation {
-                comment
-              }|
+              consistent_interpolation|
               pseudo_consistent_interpolation|
-              ## Grandy interpolation. Conservative, but highly diffusive.
-              ## See doi:10.1006/jcph.1998.6125 .
-              element grandy_interpolation {
-                empty
-              }
+              grandy_interpolation
            ),
            ## Enforce divergence free after the projection
            element enforce_solenoidal {
@@ -1427,19 +1404,9 @@ interpolation_algorithm_vector =
                 supermesh_conservation?,
                 comment
               }|
-              ## Basis function interpolation.
-              ## The standard algorithm. It is quick
-              ## and bounded, but non-conservative and dissipative.
-              ## All other algorithms require construction of a supermesh.
-              element consistent_interpolation {
-                comment
-              }|
+              consistent_interpolation|
               pseudo_consistent_interpolation|
-              ## Grandy interpolation. Conservative, but highly diffusive.
-              ## See doi:10.1006/jcph.1998.6125 .
-              element grandy_interpolation {
-                empty
-              }
+              grandy_interpolation
            )
         }?,
         ## Options relating to the vertical velocity. Required in 3D.
@@ -1453,19 +1420,9 @@ interpolation_algorithm_vector =
                 supermesh_conservation?,
                 comment
               }|
-              ## Basis function interpolation.
-              ## The standard algorithm. It is quick
-              ## and bounded, but non-conservative and dissipative.
-              ## All other algorithms require construction of a supermesh.
-              element consistent_interpolation {
-                comment
-              }|
+              consistent_interpolation|
               pseudo_consistent_interpolation|
-              ## Grandy interpolation. Conservative, but highly diffusive.
-              ## See doi:10.1006/jcph.1998.6125 .
-              element grandy_interpolation {
-                empty
-              }
+              grandy_interpolation
            ),
            comment
         }?,
