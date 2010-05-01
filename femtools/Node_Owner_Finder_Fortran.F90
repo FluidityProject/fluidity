@@ -29,6 +29,7 @@
 
 module node_owner_finder
 
+  use data_structures
   use fields
   use fldebug
   use global_parameters, only : real_4, real_8
@@ -94,7 +95,11 @@ module node_owner_finder
   interface node_owner_finder_find
     module procedure node_owner_finder_find_single_position, &
       & node_owner_finder_find_multiple_positions, &
-      & node_owner_finder_find_node, node_owner_finder_find_nodes
+      & node_owner_finder_find_single_position_tolerance, &
+      & node_owner_finder_find_multiple_positions_tolerance, &
+      & node_owner_finder_find_node, node_owner_finder_find_nodes, &
+      & node_owner_finder_find_node_tolerance, &
+      & node_owner_finder_find_nodes_tolerance
   end interface node_owner_finder_find
     
   interface cnode_owner_finder_query_output
@@ -313,6 +318,60 @@ contains
     end subroutine find_parallel
     
   end subroutine node_owner_finder_find_multiple_positions
+ 
+  subroutine node_owner_finder_find_single_position_tolerance(id, positions_a, position, ele_ids, ownership_tolerance)
+    !!< For the node owner finder with ID id corresponding to positions
+    !!< positions_a, find the element ID owning the given position using an
+    !!< ownership tolerance. This performs a strictly local (this process)
+    !!< ownership test.
+  
+    integer, intent(in) :: id
+    type(vector_field), intent(in) :: positions_a
+    real, dimension(:), intent(in) :: position
+    type(integer_set), intent(out) :: ele_ids
+    real, intent(in) :: ownership_tolerance
+
+    type(integer_set), dimension(1) :: lele_ids
+
+    call node_owner_finder_find(id, positions_a, spread(position, 2, 1), lele_ids, ownership_tolerance = ownership_tolerance)
+    ele_ids = lele_ids(1)
+
+  end subroutine node_owner_finder_find_single_position_tolerance
+
+  subroutine node_owner_finder_find_multiple_positions_tolerance(id, positions_a, positions, ele_ids, ownership_tolerance)
+    !!< For the node owner finder with ID id corresponding to positions
+    !!< positions_a, find the element IDs owning the given positions using an
+    !!< ownership tolerance. This performs a strictly local (this process)
+    !!< ownership test.
+    
+    integer, intent(in) :: id
+    type(vector_field), intent(in) :: positions_a
+    real, dimension(:, :), intent(in) :: positions
+    type(integer_set), dimension(size(positions, 2)), intent(out) :: ele_ids
+    real, intent(in) :: ownership_tolerance
+    
+    integer ::  i, j, nele_ids, possible_ele_id
+
+    ! Elements will be missed by the rtree query if ownership_tolerance is too
+    ! big
+    assert(ownership_tolerance <= rtree_tolerance)
+
+    call allocate(ele_ids)
+    positions_loop: do i = 1, size(positions, 2)
+      call cnode_owner_finder_find(id, positions(:, i), size(positions, 1))
+      call cnode_owner_finder_query_output(id, nele_ids)
+
+      do j = 1, nele_ids
+        call cnode_owner_finder_get_output(id, possible_ele_id, j)
+        if(ownership_predicate(positions_a, possible_ele_id, positions(:, i), ownership_tolerance)) then
+          ! We've found an owner
+          call insert(ele_ids(i), possible_ele_id)
+        end if
+      end do
+        
+    end do positions_loop
+
+  end subroutine node_owner_finder_find_multiple_positions_tolerance
   
   subroutine node_owner_finder_find_node(id, positions_a, positions_b, ele_a, node_b, global)
     !!< For the node owner finder with ID id corresponding to positions
@@ -363,8 +422,52 @@ contains
     deallocate(lpositions)
 
   end subroutine node_owner_finder_find_nodes
+  
+  subroutine node_owner_finder_find_node_tolerance(id, positions_a, positions_b, eles_a, node_b, ownership_tolerance)
+    !!< For the node owner finder with ID id corresponding to positions
+    !!< positions_a, find the element ID owning the given node in positions_b
+    !!< using an ownership tolerance. This performs a strictly local (this
+    !!< process) ownership test.
+    
+    integer, intent(in) :: id
+    type(vector_field), intent(in) :: positions_a
+    type(vector_field), intent(in) :: positions_b
+    type(integer_set), intent(out) :: eles_a
+    integer, intent(in) :: node_b
+    real, intent(in) :: ownership_tolerance
+    
+    call node_owner_finder_find(id, positions_a, node_val(positions_b, node_b), eles_a, ownership_tolerance = ownership_tolerance)
+    
+  end subroutine node_owner_finder_find_node_tolerance
 
-  function ownership_predicate_position(positions_a, ele_a, position, ownership_tolerance, miss) result(owned)
+  subroutine node_owner_finder_find_nodes_tolerance(id, positions_a, positions_b, eles_a, ownership_tolerance)
+    !!< For the node owner finder with ID id corresponding to positions
+    !!< positions_a, find the element ID owning the nodes in positions_b
+    !!< using an ownership tolerance. This performs a strictly local (this
+    !!< process) ownership test.
+    
+    integer, intent(in) :: id
+    type(vector_field), intent(in) :: positions_a
+    type(vector_field), intent(in) :: positions_b
+    type(integer_set), dimension(node_count(positions_b)), intent(out) :: eles_a
+    real, intent(in) :: ownership_tolerance
+
+    integer :: node_b
+    real, dimension(:, :), allocatable :: lpositions
+
+    allocate(lpositions(positions_b%dim, node_count(positions_b)))
+
+    do node_b = 1, node_count(positions_b)
+      lpositions(:, node_b) = node_val(positions_b, node_b)
+    end do
+
+    call node_owner_finder_find(id, positions_a, lpositions, eles_a, ownership_tolerance = ownership_tolerance)
+
+    deallocate(lpositions)
+
+  end subroutine node_owner_finder_find_nodes_tolerance
+
+  function ownership_predicate_position(positions_a, ele_a, position, ownership_tolerance, miss, l_coords) result(owned)
     !!< Node ownership predicate. Returns .true. if the given position is
     !!< contained within element ele_a of positions_a to within tolerance
     !!< ownership_tolerance.
@@ -376,19 +479,22 @@ contains
     !!< Return the "miss" - the distance (in ideal space) of the test position
     !!< from the test element
     real, optional, intent(out) :: miss
+    !!< Return the coordinate (in ideal space) of the test position
+    !!< in the test element
+    real, dimension(positions_a%dim + 1), optional, intent(out) :: l_coords
     
     logical :: owned
     
     real :: lmiss
-    real, dimension(positions_a%dim+1) :: l_coords
+    real, dimension(positions_a%dim + 1) :: ll_coords
    
     assert(ownership_tolerance >= 0.0)
 
-    l_coords = local_coords(positions_a, ele_a, position)
+    ll_coords = local_coords(positions_a, ele_a, position)
     
     assert(ele_numbering_family(positions_a, ele_a) == FAMILY_SIMPLEX)
-    if(any(l_coords < 0.0)) then
-      lmiss = -minval(l_coords)
+    if(any(ll_coords < 0.0)) then
+      lmiss = -minval(ll_coords)
       if(lmiss < ownership_tolerance) then
         owned = .true.
       else
@@ -399,10 +505,12 @@ contains
       owned = .true.
       if(present(miss)) miss = 0.0
     end if
+
+    if(present(l_coords)) l_coords = ll_coords
     
   end function ownership_predicate_position
 
-  function ownership_predicate_node(positions_a, positions_b, ele_a, node_b, ownership_tolerance, miss) result(owned)
+  function ownership_predicate_node(positions_a, positions_b, ele_a, node_b, ownership_tolerance, miss, l_coords) result(owned)
     !!< Node ownership predicate. Returns .true. if the given node in
     !!< positions_b is contained within element ele_a of positions_a to within
     !!< tolerance ownership_tolerance.
@@ -415,10 +523,14 @@ contains
     !!< Return the "miss" - the distance (in ideal space) of the test position
     !!< from the test element
     real, optional, intent(out) :: miss
+    !!< Return the coordinate (in ideal space) of the test position
+    !!< in the test element
+    real, dimension(positions_a%dim + 1), optional, intent(out) :: l_coords
     
     logical :: owned
     
-    owned = ownership_predicate(positions_a, ele_a, node_val(positions_b, node_b), ownership_tolerance, miss = miss)
+    owned = ownership_predicate(positions_a, ele_a, node_val(positions_b, node_b), ownership_tolerance, &
+      & miss = miss, l_coords = l_coords)
     
   end function ownership_predicate_node
 

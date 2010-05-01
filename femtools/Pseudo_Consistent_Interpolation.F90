@@ -33,8 +33,7 @@ module pseudo_consistent_interpolation
   use field_options
   use fields
   use fldebug
-  use node_owner_finder
-  use pickers
+  use node_ownership
   use state_module
 
   implicit none
@@ -52,48 +51,6 @@ module pseudo_consistent_interpolation
   real, parameter :: ownership_tolerance = 1.0e3 * epsilon(0.0)
 
 contains
-
-  subroutine find_node_ownership_tolerance(positions_a, positions_b, map, ownership_tolerance)
-    !!< Find all elements in positions_a within ownership_tolerance of nodes
-    !!< in positions_b
-  
-    type(vector_field), intent(inout) :: positions_a
-    type(vector_field), intent(in) :: positions_b
-    type(integer_set), dimension(node_count(positions_b)), intent(out) :: map
-    real, intent(in) :: ownership_tolerance
-  
-    integer :: dim, i, j, nele_ids, picker_id, possible_ele_id
-  
-    ewrite(1, *) "In find_node_ownership_tolerance"
-  
-    ! Elements will be missed by the rtree query if ownership_tolerance is too
-    ! big
-    assert(ownership_tolerance < rtree_tolerance)
-  
-    call allocate(map)
-    
-    dim = positions_b%dim
-    call initialise_picker(positions_a)
-    picker_id = positions_a%picker%ptr%picker_id
-    
-    call node_owner_finder_set_input(picker_id, positions_a)    
-    do i = 1, node_count(positions_b)
-      call cnode_owner_finder_find(picker_id, node_val(positions_b, i), dim)
-      call cnode_owner_finder_query_output(picker_id, nele_ids)
-      do j = 1, nele_ids
-        call cnode_owner_finder_get_output(picker_id, possible_ele_id, j)
-        if(ownership_predicate(positions_a, possible_ele_id, node_val(positions_b, i), ownership_tolerance)) then
-          call insert(map(i), possible_ele_id)
-        end if
-      end do
-    end do
-    
-    ewrite(2, *) "Min. elements: ", minval(key_count(map))
-    ewrite(2, *) "Max. elements: ", maxval(key_count(map))
-    
-    ewrite(1, *) "Exiting find_node_ownership_tolerance"
-  
-  end subroutine find_node_ownership_tolerance
 
   subroutine pseudo_consistent_interpolate_state(old_state, new_state)
     type(state_type), intent(in) :: old_state
@@ -224,7 +181,7 @@ contains
     allocate(shape_fns(ele_loc(old_mesh, 1)))
 
     allocate(map(node_count(new_mesh)))
-    call find_node_ownership_tolerance(old_position, new_position, map, ownership_tolerance)
+    call find_node_ownership(old_position, new_position, map, ownership_tolerance = ownership_tolerance)
 
     ! Loop over the nodes of the new mesh.
 
@@ -280,7 +237,15 @@ contains
     
     call deallocate(new_position)
     
-    call halo_update(new_state)
+    do field_s = 1, field_count_s
+      call halo_update(new_fields_s(field_s))
+    end do
+    do field_v = 1, field_count_v
+      call halo_update(new_fields_v(field_v))
+    end do
+    do field_t = 1, field_count_t
+      call halo_update(new_fields_t(field_t))
+    end do
     
     ewrite(1, *) "Exiting pseudo_consistent_interpolate_state"
   

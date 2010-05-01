@@ -30,6 +30,7 @@
 module node_ownership
 
   use adjacency_lists
+  use data_structures
   use fields
   use fldebug
   use linked_lists
@@ -48,10 +49,14 @@ module node_ownership
   real, parameter, public :: default_ownership_tolerance = 1.0e2 * epsilon(0.0)
   
   interface find_node_ownership
-    ! Use the rtree version, as this is (currently) the only method robust
-    ! against precision errors
-    module procedure find_node_ownership_rtree
+    module procedure find_node_ownership_rtree_no_tolerance, &
+      & find_node_ownership_rtree_tolerance
   end interface find_node_ownership
+
+  interface find_node_ownership_rtree
+    module procedure find_node_ownership_rtree_no_tolerance, &
+      & find_node_ownership_rtree_tolerance
+  end interface find_node_ownership_rtree
   
 contains
 
@@ -90,7 +95,7 @@ contains
   
   end subroutine find_node_ownership_brute_force
 
-  subroutine find_node_ownership_rtree(positions_a, positions_b, map)
+  subroutine find_node_ownership_rtree_no_tolerance(positions_a, positions_b, map)
     !!< Find the elements in positions_a containing the nodes in positions_b.
     !!< Uses an rtree algorithm.
     !!< This does not use ownership tolerances - instead, it determines the
@@ -101,13 +106,34 @@ contains
     type(vector_field), intent(in) :: positions_b
     integer, dimension(node_count(positions_b)), intent(out) :: map
     
-    ewrite(1, *) "In find_node_ownership_rtree"
+    ewrite(1, *) "In find_node_ownership_rtree_no_tolerance"
        
     call picker_inquire(positions_a, positions_b, map, global = .false.)  
     
-    ewrite(1, *) "Exiting find_node_ownership_rtree"
+    ewrite(1, *) "Exiting find_node_ownership_rtree_no_tolerance"
     
-  end subroutine find_node_ownership_rtree
+  end subroutine find_node_ownership_rtree_no_tolerance
+
+  subroutine find_node_ownership_rtree_tolerance(positions_a, positions_b, map, ownership_tolerance)
+    !!< Find all elements in positions_a within ownership_tolerance of nodes
+    !!< in positions_b.
+    !!< Uses an rtree algorithm.
+  
+    type(vector_field), intent(inout) :: positions_a
+    type(vector_field), intent(in) :: positions_b
+    type(integer_set), dimension(node_count(positions_b)), intent(out) :: map
+    real, intent(in) :: ownership_tolerance
+  
+    ewrite(1, *) "In find_node_ownership_rtree_tolerance"
+
+    call picker_inquire(positions_a, positions_b, map, ownership_tolerance = ownership_tolerance)
+    
+    ewrite(2, *) "Min. elements: ", minval(key_count(map))
+    ewrite(2, *) "Max. elements: ", maxval(key_count(map))
+    
+    ewrite(1, *) "Exiting find_node_ownership_rtree_tolerance"
+  
+  end subroutine find_node_ownership_rtree_tolerance
 
   subroutine find_node_ownership_af(positions_a, positions_b, map, ownership_tolerance, seed_b)
     !!< Find the elements in positions_a containing the nodes in positions_b.

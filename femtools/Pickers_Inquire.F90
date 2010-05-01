@@ -28,7 +28,8 @@
 #include "fdebug.h"
 
 module pickers_inquire
-  
+
+  use data_structures
   use detector_data_types
   use fields
   use fldebug
@@ -46,8 +47,11 @@ module pickers_inquire
   interface picker_inquire
     module procedure picker_inquire_single_position, &
       & picker_inquire_single_position_xyz, picker_inquire_multiple_positions, &
+      & picker_inquire_single_position_tolerance, &
+      & picker_inquire_multiple_positions_tolerance, &
       & picker_inquire_multiple_positions_xyz, picker_inquire_node, &
-      & picker_inquire_nodes
+      & picker_inquire_nodes, picker_inquire_node_tolerance, &
+      & picker_inquire_nodes_tolerance
   end interface picker_inquire
 
 contains
@@ -168,9 +172,7 @@ contains
     
     integer :: i
    
-#ifdef DDEBUG
     assert(size(coords, 1) == positions%dim)
-#endif
 
     call initialise_picker(positions)
    
@@ -188,6 +190,36 @@ contains
     end if
 
   end subroutine picker_inquire_multiple_positions
+
+  subroutine picker_inquire_single_position_tolerance(positions, coord, ele, ownership_tolerance)
+    !!< Find the owning elements in positions of the supplied coordinate
+    !!< using an ownership tolerance
+  
+    type(vector_field), intent(inout) :: positions
+    real, dimension(positions%dim), intent(in) :: coord
+    type(integer_set), intent(out) :: ele
+    real, intent(in) :: ownership_tolerance
+   
+    call initialise_picker(positions)
+    call node_owner_finder_find(positions%picker%ptr%picker_id, positions, coord, ele, ownership_tolerance = ownership_tolerance)
+        
+  end subroutine picker_inquire_single_position_tolerance
+
+  subroutine picker_inquire_multiple_positions_tolerance(positions, coords, eles, ownership_tolerance)
+    !!< Find the owning elements in positions of the supplied coordinates
+    !!< using an ownership tolerance
+
+    type(vector_field), intent(inout) :: positions
+    real, dimension(:, :), intent(in) :: coords
+    type(integer_set), dimension(size(coords, 2)), intent(out) :: eles
+    real, intent(in) :: ownership_tolerance
+   
+    assert(size(coords, 1) == positions%dim)
+
+    call initialise_picker(positions)
+    call node_owner_finder_find(positions%picker%ptr%picker_id, positions, coords, eles, ownership_tolerance = ownership_tolerance)
+
+  end subroutine picker_inquire_multiple_positions_tolerance
 
   subroutine picker_inquire_node(positions_a, positions_b, ele_a, node_b, local_coord, global)
     !!< Find the owning element in positions_a of a node in positions_b
@@ -243,13 +275,53 @@ contains
     deallocate(lpositions)
 
   end subroutine picker_inquire_nodes
+
+  subroutine picker_inquire_node_tolerance(positions_a, positions_b, ele_a, node_b, ownership_tolerance)
+    !!< Find the owning element in positions_a of a node in positions_b
+    !!< using an ownership tolerance
+
+    type(vector_field), intent(inout) :: positions_a
+    type(vector_field), intent(in) :: positions_b
+    type(integer_set), intent(out) :: ele_a
+    integer, intent(in) :: node_b
+    real, intent(in) :: ownership_tolerance
+
+    assert(positions_a%dim == positions_b%dim)
+
+    call picker_inquire(positions_a, node_val(positions_b, node_b), ele_a, ownership_tolerance = ownership_tolerance)
+    
+  end subroutine picker_inquire_node_tolerance
+
+  subroutine picker_inquire_nodes_tolerance(positions_a, positions_b, ele_as, ownership_tolerance)
+    !!< Find the owning elements in positions_a of the nodes in positions_b
+    !!< using an ownership tolerance
+  
+    type(vector_field), intent(inout) :: positions_a
+    type(vector_field), intent(in) :: positions_b
+    type(integer_set), dimension(node_count(positions_b)), intent(out) :: ele_as
+    real, intent(in) :: ownership_tolerance
+
+    integer :: i
+    real, dimension(:, :), allocatable :: lpositions
+
+    assert(positions_a%dim == positions_b%dim)
+
+    allocate(lpositions(positions_b%dim, node_count(positions_b)))
+    do i = 1, node_count(positions_b)
+      lpositions(:, i) = node_val(positions_b, i)
+    end do
+
+    call picker_inquire(positions_a, lpositions, ele_as, ownership_tolerance = ownership_tolerance)
+
+    deallocate(lpositions)
+
+  end subroutine picker_inquire_nodes_tolerance
   
   subroutine search_for_detectors(detectors, positions)
     !!< This subroutine establishes on which processor, in which element and at
     !!< which local coordinates each detector is to be found. A negative element
     !!< value indicates that no element could be found for that node.
     
-!   type(detector_type), dimension(:), intent(inout) :: detectors
     type(vector_field), intent(inout) :: positions
     
     type(detector_linked_list), intent(inout) :: detectors

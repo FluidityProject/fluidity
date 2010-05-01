@@ -170,14 +170,15 @@ Element_Intersection.o: ../include/Element_Intersection.h
 ../include/Node_Owner_Finder.h: ../include/Element_Intersection.h \
   ../include/MeshDataStream.h ../include/Precision.h
 Node_Owner_Finder.o: ../include/Node_Owner_Finder.h
-Node_Owner_Finder_Fortran.o: Fields.o Global_Parameters.o MPI_Interfaces.o 
-Node_Ownership.o: Adjacency_Lists.o Fields.o Linked_Lists.o \
+Node_Owner_Finder_Fortran.o: Data_structures.o Fields.o Global_Parameters.o \
+  MPI_Interfaces.o 
+Node_Ownership.o: Adjacency_Lists.o Data_structures.o Fields.o Linked_Lists.o \
  Node_Owner_Finder_Fortran.o Pickers.o Sparse_Tools.o
 Interpolation.o: Fields.o Superconvergence.o Field_derivatives.o State.o \
   Sparse_Tools.o Supermesh.o Futils.o Transform_elements.o MeshDiagnostics.o \
   Node_Ownership.o
 Pseudo_Consistent_Interpolation.o: Data_structures.o Field_Options.o Fields.o \
-  Node_Owner_Finder_Fortran.o Pickers.o State.o
+  Node_Ownership.o State.o
 DG_interpolation.o: Conservative_interpolation.o VTK_interfaces.o
 
 Sparsity_Patterns.o: Elements.o Fields.o Linked_Lists.o
@@ -230,8 +231,9 @@ Pickers_Allocates.o: Elements.o EventCounter.o Fields_Base.o \
 Pickers_Base.o: Picker_Data_Types.o
 Pickers_Deallocates.o: Fields_Data_Types.o Global_Parameters.o \
   Picker_Data_Types.o Pickers_Base.o Reference_Counting.o
-Pickers_Inquire.o: Detector_Data_Types.o Fields.o Node_Owner_Finder_Fortran.o \
-  Picker_Data_Types.o Pickers_Allocates.o Pickers_Base.o
+Pickers_Inquire.o: Data_structures.o Detector_Data_Types.o Fields.o \
+  Node_Owner_Finder_Fortran.o Picker_Data_Types.o Pickers_Allocates.o \
+  Pickers_Base.o
 
 Fields.o: Fields_Base.o Fields_Allocates.o Fields_Calculations.o \
    Fields_Data_Types.o Fields_Manipulation.o
@@ -264,7 +266,7 @@ Halos.o: Halo_Data_Types.o Halos_Allocates.o Halos_Base.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o
 Halos_Allocates.o: Global_Parameters.o Halos_Base.o Halo_Data_Types.o \
   Halos_Debug.o Reference_Counting.o
-Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o Parallel_Tools.o MPI_Interfaces.o
+Halos_Base.o: Halo_Data_Types.o qsortd.o Parallel_Tools.o MPI_Interfaces.o
 Halos_Communications.o: Fields_Base.o Fields_Data_Types.o Futils.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Base.o Halos_Debug.o \
   MPI_Interfaces.o Parallel_Tools.o Linked_Lists.o qsortd.o
