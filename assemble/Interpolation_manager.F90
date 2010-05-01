@@ -312,12 +312,6 @@ contains
 
     ! Great! Now let's loop over the fields associated with each mesh
     ! and group them by algorithm.
-    
-    ! Do we need an element intersection map?
-    if(.not. all_consistent_interpolation) then
-      allocate(map_BA(ele_count(new_pos)))
-      map_BA = intersection_finder(new_pos, old_pos)
-    end if
 
     alg_loop: do alg = 1, alg_cnt
       ewrite(2, *) "  Considering algorithm " // trim(algorithms(alg))
@@ -381,6 +375,11 @@ contains
             call deallocate(alg_new(mesh))
           end do
         case("interpolation_galerkin")
+          if(.not. allocated(map_BA)) then
+            allocate(map_BA(ele_count(new_pos)))
+            map_BA = intersection_finder(new_pos, old_pos)
+          end if
+        
           do mesh = 1, mesh_cnt
             call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
             old_mesh => extract_mesh(states_old(1), trim(mesh_name))
@@ -410,6 +409,11 @@ contains
             call deallocate(alg_new(mesh))
           end do
         case("grandy_interpolation")
+          if(.not. allocated(map_BA)) then
+            allocate(map_BA(ele_count(new_pos)))
+            map_BA = intersection_finder(new_pos, old_pos)
+          end if
+          
           do mesh = 1, mesh_cnt
             call get_option("/geometry/mesh[" // int2str(mesh - 1) // "]/name", mesh_name)
             old_mesh => extract_mesh(states_old(1), trim(mesh_name))
@@ -498,9 +502,7 @@ contains
     deallocate(alg_new)
 
     if(allocated(map_BA)) then
-      do ele=1,size(map_BA)
-        call deallocate(map_BA(ele))
-      end do
+      call deallocate(map_BA)
       deallocate(map_BA)
     end if
 
