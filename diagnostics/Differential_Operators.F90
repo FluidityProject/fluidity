@@ -31,6 +31,7 @@ module differential_operator_diagnostics
 
   use diagnostic_source_fields
   use divergence_matrix_cg
+  use eventcounter
   use field_derivatives
   use field_options
   use fields
@@ -90,7 +91,6 @@ contains
     type(scalar_field), intent(inout) :: s_field
     
     character(len = OPTION_PATH_LEN) :: path
-    integer :: stat
     type(block_csr_matrix) :: ct_m
     type(csr_sparsity), pointer :: divergence_sparsity
     type(csr_matrix), pointer :: mass
@@ -101,10 +101,10 @@ contains
     source_field => vector_source_field(state, s_field)
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     
-    ct_m = extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix", stat = stat)
-    if(stat == 0) then
-      ct_rhs = extract_scalar_field(state, trim(s_field%name) // "DivergenceRHS")
+    if(use_divergence_matrix_cache(state)) then
+      ct_m = extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")
       call incref(ct_m)
+      ct_rhs = extract_scalar_field(state, trim(s_field%name) // "DivergenceRHS")
       call incref(ct_rhs)
     else
       positions => extract_vector_field(state, "Coordinate")
@@ -135,6 +135,30 @@ contains
 
     call deallocate(ct_m)
     call deallocate(ctfield)
+
+  contains
+
+    function use_divergence_matrix_cache(state) result(use_cache)
+      type(state_type), intent(in) :: state
+      
+      logical :: use_cache
+
+      integer :: this_mesh_movement
+      integer, save :: last_mesh_movement = -1
+
+      if(has_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")) then
+        this_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+        if(this_mesh_movement /= last_mesh_movement) then
+          last_mesh_movement = this_mesh_movement
+          use_cache = .true.
+        else
+          use_cache = .false.
+        end if
+      else
+        use_cache = .false.
+      end if
+
+    end function use_divergence_matrix_cache
     
   end subroutine calculate_finite_element_divergence
   
