@@ -91,25 +91,10 @@ prognostic_scalar_field =
             }|
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
-            ## and TurbulentDissipation (epsilon) fields.
-            ## Use a Dirichlet BC on inlets and k_epsilon on walls.
+            ## and/or TurbulentDissipation (epsilon) fields.
+            ## e.g. use a Dirichlet BC on inlets and k_epsilon on walls.
             element type {
-               attribute name { "k_epsilon" },
-               ## Apply the dirichlet bc weakly. Available
-               ## automatically with discontinuous_galerkin and
-               ## control_volume spatial_discretisations.
-               ## If not selected boundary conditions are applied strongly.
-               element apply_weakly {
-                  ## If the initial condition and boundary conditions
-                  ## differ, setting this option will cause the initial
-                  ## condition on the boundary to be overwritten with
-                  ## the boundary condition. Since you are applying the
-                  ## boundary condition weakly, you probably do *not*
-                  ## want this.
-                  element boundary_overwrites_initial_condition {
-                     empty
-                  }?
-               }?
+               attribute name { "k_epsilon" }
             }
          )
       }*,
