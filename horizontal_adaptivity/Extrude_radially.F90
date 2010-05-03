@@ -58,6 +58,8 @@ module hadapt_extrude_radially
     integer, dimension(node_count(shell_mesh)) :: visited
     logical :: node_in_region
 
+    logical, dimension(node_count(shell_mesh)) :: column_visited
+
     write(*,*) 'In extrude_radially'
 
     !! We assume that for the extrusion operation,
@@ -73,7 +75,9 @@ module hadapt_extrude_radially
     n_regions = option_count(trim(option_path)//'/from_mesh/extrude/regions')
     apply_region_ids = (n_regions>1)
     visited = 0 ! a little debugging check - can be removed later
-    
+
+    column_visited = .false.
+
     do r = 0, n_regions-1
     
       if(apply_region_ids) then
@@ -145,6 +149,7 @@ module hadapt_extrude_radially
         ! this is a bit arbitrary since nodes belong to multiple regions... therefore
         ! the extrusion depth had better be continuous across region id boundaries!
         if(apply_region_ids) then
+          if(column_visited(column)) cycle
           eles => node_neigh(shell_mesh, column)
           node_in_region = .false.
           region_id_loop: do rs=1, size(region_ids)
@@ -154,6 +159,7 @@ module hadapt_extrude_radially
             end if
           end do region_id_loop
           if(.not. node_in_region) cycle
+          column_visited(column) = .true.
           visited(column) = visited(column) + 1
         end if
         

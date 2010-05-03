@@ -52,6 +52,8 @@ module hadapt_extrude
     integer, dimension(:), pointer :: eles
     integer, dimension(node_count(h_mesh)) :: visited
     logical :: node_in_region
+    
+    logical, dimension(node_count(h_mesh)) :: column_visited
 
     !! Checking linearity of h_mesh.
     assert(h_mesh%mesh%shape%degree == 1)
@@ -62,6 +64,8 @@ module hadapt_extrude
     n_regions = option_count(trim(option_path)//'/from_mesh/extrude/regions')
     apply_region_ids = (n_regions>1)
     visited = 0 ! a little debugging check - can be removed later
+    
+    column_visited = .false.
     
     do r = 0, n_regions-1
     
@@ -115,6 +119,7 @@ module hadapt_extrude
         ! this is a bit arbitrary since nodes belong to multiple regions... therefore
         ! the extrusion depth had better be continuous across region id boundaries!
         if(apply_region_ids) then
+          if(column_visited(column)) cycle
           eles => node_neigh(h_mesh, column)
           node_in_region = .false.
           region_id_loop: do rs=1, size(region_ids)
@@ -124,6 +129,7 @@ module hadapt_extrude
             end if
           end do region_id_loop
           if(.not. node_in_region) cycle
+          column_visited(column) = .true.
           visited(column) = visited(column) + 1
         end if
         

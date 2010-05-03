@@ -630,8 +630,8 @@ module hadapt_metric_based_extrude
       assert(node_val(z_mesh, 1, node_counter-1) > node_val(z_mesh, 1, node_counter))
     end do
 
-    ewrite_minmax(z_mesh%val(1)%ptr)
     if(l_preserve_regions) then
+      ewrite_minmax(z_mesh%val(1)%ptr)
       ewrite_minmax(z_mesh%mesh%region_ids)
     end if
 
