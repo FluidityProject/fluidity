@@ -475,6 +475,7 @@ subroutine keps_adapt_mesh(state)
 
     ewrite(1,*) "In keps_adapt_mesh"
     call keps_allocate_fields(state)   ! reallocate everything
+    call keps_eddyvisc(state)
     call keps_tke(state)
     call keps_eps(state)
     call keps_eddyvisc(state)
