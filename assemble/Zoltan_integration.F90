@@ -1826,7 +1826,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
           call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", quality_tolerance)
           ! check that the value is reasonable
           if (quality_tolerance < 0. .or. quality_tolerance > 1.) then
-              FLExit("element_quality_cutoff should be between 0 and 1. Deault is 0.6")
+              FLExit("element_quality_cutoff should be between 0 and 1. Default is 0.6")
           end if
       else
           quality_tolerance = 0.6
@@ -1931,32 +1931,56 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     subroutine set_zoltan_parameters
       integer(zoltan_int) :: ierr
+      character (len = FIELD_NAME_LEN) :: method
 
       if (debug_level()>1) then
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
       else         
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
       end if
-      ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-      !ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-      !ierr = Zoltan_Set_Param(zz, "PARMETIS_OUTPUT_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
-      !ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+
+      if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
+
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+             ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+             ! turn off graph checking as this was filling the error file with Zoltan warnings
+             ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+          end if
+
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan")) then
+
+             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan/method", method)
+
+             if (trim(method) == "graph") then
+                ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             else if (trim(method) == "hypergraph") then
+                ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
+                ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+             end if
+
+          end if
+      else
+         ! Use the Zoltan graph partitioner by default
+         ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+         ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+      end if     
 
 
       if (iteration == 1) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
-!       chosen to match what Sam uses
-!        ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
+        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+           ! chosen to match what Sam uses
+           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
+        end if
       else
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-!       chosen to match what Sam uses
-!        ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
+        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+           ! chosen to match what Sam uses
+           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
+        end if
       end if
-
-!     set this at the maximum of the recommended scale (100 - 1000)
-!     else number of nodes per partition is seen by the partitioner as more
-!     important than edge-weights and hence the adapting process breaks
-!      ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "1"); assert(ierr == ZOLTAN_OK)
 
       ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
