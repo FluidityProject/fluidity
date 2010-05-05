@@ -1099,21 +1099,28 @@ This will give a columnar mesh, but not a layered one.</a:documentation>
         <element name="zoltan_options">
           <a:documentation>Zoltan Options
 
-Set up some Zoltan options, including which partitioner to use
-Only works if you have the --with-zoltan option in your configure
+Set up some Zoltan options, including which partitioner to use.
+Only works if you have the --with-zoltan option in your configure.
 
-Note that Zoltan will become the default (replacing sam at some point)
+Note that Zoltan will become the default (replacing Sam at some point)
 and these options are currently here only for development and testing
-purposes. They are subject to change and may not be in the final "release"</a:documentation>
+purposes. They are subject to change and may not be in the final "release".</a:documentation>
           <optional>
             <element name="partitioner">
-              <a:documentation>Select which partitioner to use</a:documentation>
+              <a:documentation>Select which partitioner to use. Graph partitioners available are ParMETIS
+and Zoltan PHG. The Zoltan PHG hypergraph partitoner is also available.</a:documentation>
               <choice>
                 <element name="metis">
+                  <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
+closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
                 <element name="zoltan">
+                  <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
                   <element name="method">
+                    <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+Currently hypergraph partitioning is the simplest implementation
+and can produce non-contiguous partitions for certain problems.</a:documentation>
                     <choice>
                       <value>graph</value>
                       <value>hypergraph</value>

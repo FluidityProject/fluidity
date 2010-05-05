@@ -909,19 +909,26 @@ hr_adaptivity =
          }?,
          ## Zoltan Options
          ##
-         ## Set up some Zoltan options, including which partitioner to use
-         ## Only works if you have the --with-zoltan option in your configure
+         ## Set up some Zoltan options, including which partitioner to use.
+         ## Only works if you have the --with-zoltan option in your configure.
          ##
-         ## Note that Zoltan will become the default (replacing sam at some point)
+         ## Note that Zoltan will become the default (replacing Sam at some point)
          ## and these options are currently here only for development and testing
-         ## purposes. They are subject to change and may not be in the final "release"
+         ## purposes. They are subject to change and may not be in the final "release".
          element zoltan_options {
-            ## Select which partitioner to use
+            ## Select which partitioner to use. Graph partitioners available are ParMETIS
+            ## and Zoltan PHG. The Zoltan PHG hypergraph partitoner is also available.
             element partitioner {
+                ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
+                ## closely as possible the setup used previously by Sam.
                 element metis {
                     empty
                 }|
+                ## Use the Zoltan PHG partitioner.
                 element zoltan {
+                    ## Select the partitioning method you would like used by Zoltan PHG.
+                    ## Currently hypergraph partitioning is the simplest implementation
+                    ## and can produce non-contiguous partitions for certain problems.
                     element method {
                     "graph"|"hypergraph"
                     }
