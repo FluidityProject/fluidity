@@ -1928,7 +1928,7 @@ contains
 
         if (bc_type == 'k_epsilon') then
 
-            ewrite(1,*) "Epsilon noundary condition: ", trim(bc_name), ", ", bc_type
+            ewrite(1,*) "Epsilon boundary condition: ", trim(bc_name), ", ", bc_type
             ewrite(1,*) "Number of surface elements: ", size(surface_element_list)
 
             call create_surface_mesh(keps_surface_mesh, surface_nodes, &

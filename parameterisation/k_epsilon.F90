@@ -214,7 +214,7 @@ subroutine keps_tke(state)
                  surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
                  surface_element_list=surface_elements)
 
-            if (bc_name == 'k_epsilon') then
+            if (bc_type == 'k_epsilon') then
 
                 ewrite(1,*) "Calculating k bc: ", bc_name
                 ! what goes in here? Lacasse and Lew set a Dirichlet BC using wall stress.
@@ -304,7 +304,7 @@ subroutine keps_eps(state)
                  surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
                  surface_element_list=surface_elements)
 
-            if (bc_name == 'k_epsilon') then
+            if (bc_type == 'k_epsilon') then
 
                 ewrite(1,*) "Calculating eps bc: ", bc_name
 
@@ -401,10 +401,6 @@ subroutine keps_eddyvisc(state)
         ! calculate ratio of fields (a diagnostic)
         call set( tkeovereps, i, kk%val(i) / eps%val(i) )
 
-        if(ieee_is_nan(node_val(tkeovereps, i) ) ) then
-            ewrite(1,*) "NaN in tkeovereps at: ", i
-        end if
-
     end do
 
     ! Limit the lengthscale on surfaces
@@ -465,9 +461,9 @@ subroutine keps_cleanup()
 
 end subroutine keps_cleanup
 
-!---------
-! Needs to be called after an adapt to reset the fields and arrays within the module
-!----------
+!------------------------------------------------------------------------------------!
+! Needs to be called after an adapt to reset the fields and arrays within the module !
+!------------------------------------------------------------------------------------!
 
 subroutine keps_adapt_mesh(state)
 
@@ -477,8 +473,8 @@ subroutine keps_adapt_mesh(state)
     call keps_allocate_fields(state)   ! reallocate everything
     call keps_eddyvisc(state)
     call keps_tke(state)
-    call keps_eps(state)
-    call keps_eddyvisc(state)
+    !call keps_eps(state)
+    !call keps_eddyvisc(state)
 
 end subroutine keps_adapt_mesh
 
