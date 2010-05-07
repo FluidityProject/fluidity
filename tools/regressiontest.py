@@ -144,7 +144,7 @@ class TestProblem:
       logs = glob.glob("fluidity.log*")
       errLogs = glob.glob("fluidity.err*")
       
-      if nLogLines > 0:
+      if nLogLines is None or nLogLines > 0:
         for filename in logs:
           log = open(filename, "r").read().split("\n")
           if not nLogLines is None:

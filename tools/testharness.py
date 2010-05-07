@@ -257,9 +257,9 @@ class TestHarness:
           for t in self.tests:
             os.chdir(t[0])
             if self.length == "long":
-              test.fl_logs(nLogLines = 20)
+              t[1].fl_logs(nLogLines = 20)
             else:
-              test.fl_logs(nLogLines = 0)
+              t[1].fl_logs(nLogLines = 0)
             self.teststatus += t[1].test()
             os.chdir(os.pardir)
             self.completed_tests += [t[1]]
