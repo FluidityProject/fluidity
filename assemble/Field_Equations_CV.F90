@@ -210,9 +210,25 @@ contains
       equation_type=equation_type_index(trim(option_path))
       select case(equation_type)
       case(FIELD_EQUATION_ADVECTIONDIFFUSION)
+
         ! density not needed so use a constant field for assembly
         tdensity=>dummydensity
         oldtdensity=>dummydensity
+
+        if (have_option(trim(option_path)//'/prognostic/equation[0]/density[0]')) then
+           call get_option(trim(option_path)//'/prognostic/equation[0]/density[0]/name', &
+                           tmpstring)
+           ! density needed so extract the type specified in the input
+           ! ?? are there circumstances where this should be "Iterated"... need to be
+           ! careful with priority ordering
+           tdensity=>extract_scalar_field(state(1), trim(tmpstring))
+           ewrite_minmax(tdensity%val)
+           ! halo exchange? - not currently necessary when suboptimal halo exchange if density
+           ! is solved for with this subroutine and the correct priority ordering.
+           oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
+           ewrite_minmax(oldtdensity%val)
+        end if
+
       case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, &
            FIELD_EQUATION_INTERNALENERGY )
         call get_option(trim(option_path)//'/prognostic/equation[0]/density[0]/name', &

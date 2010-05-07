@@ -991,6 +991,38 @@ Works for all discretisation types.</a:documentation>
         <attribute name="name">
           <value>AdvectionDiffusion</value>
         </attribute>
+        <optional>
+          <choice>
+            <element name="density">
+              <a:documentation>ONLY WORKS WITH CONTROL VOLUMES 
+
+Select density to use in the Advection Diffusion Equation
+Use the MaterialDensity - useful for multimaterial simulations
+Clearly this requires a MaterialDensity field to be present</a:documentation>
+              <attribute name="name">
+                <value>MaterialDensity</value>
+              </attribute>
+            </element>
+            <element name="density">
+              <a:documentation>ONLY WORKS WITH CONTROL VOLUMES 
+
+Select density to use in the Advection Diffusion Equation
+Use the bulk Density
+Clearly this requires a Density field to be present</a:documentation>
+              <attribute name="name">
+                <value>Density</value>
+              </attribute>
+            </element>
+            <element name="density">
+              <a:documentation>ONLY WORKS WITH CONTROL VOLUMES 
+
+Select density to use in the Advection Diffusion Equation</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
+          </choice>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>***UNDER TESTING***

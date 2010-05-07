@@ -556,6 +556,12 @@ start =
                                  attribute replaces { "EQNSTA = 2 if switched on" },
                                  empty
                               }?
+                           }|
+                           ## UNDER DEVELOPMENT - DO NOT USE THIS !!!
+                           ##
+                           ## Python defined equation of state
+                           element python_state_function {
+                                 scalar_python_diagnostic_algorithm
                            }
                         )
                      }|

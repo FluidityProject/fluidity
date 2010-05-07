@@ -727,6 +727,12 @@ approximation</a:documentation>
                         </element>
                       </optional>
                     </element>
+                    <element name="python_state_function">
+                      <a:documentation>UNDER DEVELOPMENT - DO NOT USE THIS !!!
+
+Python defined equation of state</a:documentation>
+                      <ref name="scalar_python_diagnostic_algorithm"/>
+                    </element>
                   </choice>
                 </element>
                 <element name="compressible">
