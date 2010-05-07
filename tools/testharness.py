@@ -168,15 +168,14 @@ class TestHarness:
             #     sys.exit(1)
                 
             return flucmd
-      
-        print "Error: Failed to locate Fluidity binary"
-        sys.exit(1)
+              
+        return None
 
     def modify_command_line(self):
       flucmd = self.decide_fluidity_command()
 
       def f(s):
-        if flucmd != "fluidity":
+        if not flucmd in [None, "fluidity"]:
           s = s.replace('fluidity ', flucmd + ' ')
 
         if self.valgrind:
@@ -191,6 +190,15 @@ class TestHarness:
     def log(self, str):
         if self.verbose == True:
             print str
+
+    def clean(self):
+      self.log(" ")
+      for t in self.tests:
+        os.chdir(t[0])
+        t[1].clean()
+        os.chdir(os.pardir)
+
+      return
 
     def run(self):
         self.log(" ")
@@ -224,6 +232,10 @@ class TestHarness:
                   test = t[1]
                   os.chdir(t[0])
                   if t[1].is_finished():
+                      if self.length == "long":
+                        test.fl_logs(nLogLines = 20)
+                      else:
+                        test.fl_logs(nLogLines = 0)
                       try:
                         self.teststatus += t[1].test()
                       except:
@@ -244,6 +256,10 @@ class TestHarness:
         else:
           for t in self.tests:
             os.chdir(t[0])
+            if self.length == "long":
+              test.fl_logs(nLogLines = 20)
+            else:
+              test.fl_logs(nLogLines = 0)
             self.teststatus += t[1].test()
             os.chdir(os.pardir)
             self.completed_tests += [t[1]]
@@ -285,6 +301,7 @@ if __name__ == "__main__":
     parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default="")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
     parser.add_option("-v", "--valgrind", action="store_true", dest="valgrind")
+    parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
     (options, args) = parser.parse_args()
@@ -332,6 +349,8 @@ if __name__ == "__main__":
 
     if options.justlist:
       testharness.list()
+    elif options.clean:
+      testharness.clean()
     else:
       print "-" * 80
       which = os.popen("which %s" % testharness.decide_fluidity_command()).read()

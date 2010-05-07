@@ -354,7 +354,7 @@ clean-light:
 	@cd qg_strat/unittests; $(MAKE) clean
 	@rm -fr bin/* lib
 
-clean: clean-light python_clean
+clean: clean-light clean-test python_clean
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
@@ -375,6 +375,10 @@ clean: clean-light python_clean
 	@rm -fr doc include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
+
+clean-test:      
+	@echo "    CLEAN tests"
+	@cd tests; ../tools/testharness.py --clean
 
 test: fltools bin/@FLUIDITY@ serialtest
 

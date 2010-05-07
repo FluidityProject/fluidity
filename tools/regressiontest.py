@@ -6,6 +6,7 @@ import random
 import xml.dom.minidom
 import traceback
 import time
+import glob
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
@@ -102,6 +103,18 @@ class TestProblem:
         else:
             return True
 
+    def clean(self):
+        self.log("Cleaning")
+
+        try:
+          os.stat("Makefile")
+          self.log("Calling 'make clean':")
+          ret = os.system("make clean")
+          if not ret == 0:
+            self.log("No clean target")
+        except OSError:
+          self.log("No Makefile, not calling make")
+
     def run(self):
         self.log("Running")
 
@@ -126,6 +139,27 @@ class TestProblem:
           run_time=time.clock()-start_time
 
         return run_time
+        
+    def fl_logs(self, nLogLines = None):
+      logs = glob.glob("fluidity.log*")
+      errLogs = glob.glob("fluidity.err*")
+      
+      if nLogLines > 0:
+        for filename in logs:
+          log = open(filename, "r").read().split("\n")
+          if not nLogLines is None:
+            log = log[-nLogLines:]
+          self.log("Log: " + filename)
+          for line in log:
+            self.log(line)
+          
+      for filename in errLogs:
+        self.log("Log: " + filename)
+        log = open(filename, "r").read().split("\n")
+        for line in log:
+          self.log(line)
+      
+      return
 
     def test(self):
         def Trim(string):
