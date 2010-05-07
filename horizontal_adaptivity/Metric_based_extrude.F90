@@ -130,7 +130,7 @@ module hadapt_metric_based_extrude
       call allocate(out_mesh, mesh_dim(h_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
     end if
     call deallocate(mesh)
-
+    
     out_mesh%mesh%option_path=option_path
     out_mesh%option_path=""
     out_mesh%mesh%periodic = mesh_periodic(h_mesh)
@@ -162,7 +162,91 @@ module hadapt_metric_based_extrude
     call deallocate(out_columns)
     
   end subroutine combine_z_meshes
+  
+  subroutine combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
+    full_shape, mesh_name, option_path)
+  !! Given the shell_mesh and a r_mesh under each node of it combines these
+  !! into a full layered mesh
+  type(vector_field), intent(inout):: shell_mesh
+  type(vector_field), dimension(:), intent(in):: r_meshes
+  type(vector_field), intent(out):: out_mesh
+  type(element_type), intent(in):: full_shape
+  !! the name of the topol. mesh to be created, not the coordinate field
+  character(len=*), intent(in):: mesh_name, option_path
+  
+    type(csr_sparsity):: out_columns
+    type(mesh_type):: mesh
+    integer, dimension(:), allocatable:: no_hanging_nodes
+    integer:: column, total_out_nodes, total_out_elements, r_elements, last_seen
     
+    allocate(no_hanging_nodes(1:node_count(shell_mesh)))
+    no_hanging_nodes=0
+    do column=1, size(r_meshes)
+      if (node_owned(shell_mesh, column)) then
+        no_hanging_nodes(column)=ele_count(r_meshes(column))
+      end if
+    end do
+    if (associated(shell_mesh%mesh%halos)) then
+      call halo_update(shell_mesh%mesh%halos(2), no_hanging_nodes)
+    end if
+
+    total_out_nodes = 0
+    ! For each column,
+    ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
+    ! to compute the number of elements the extrusion routine will produce
+    total_out_elements = 0
+    do column=1, size(r_meshes)
+      r_elements = no_hanging_nodes(column)
+      total_out_nodes = total_out_nodes + r_elements + 1
+      assert(associated(shell_mesh%mesh%adj_lists))
+      assert(associated(shell_mesh%mesh%adj_lists%nelist))
+      total_out_elements = total_out_elements + r_elements * row_length(shell_mesh%mesh%adj_lists%nelist, column)
+    end do
+
+    call allocate(mesh, total_out_nodes, total_out_elements, &
+      full_shape, mesh_name)
+    ! allocate mapping between extruded nodes to surface node (column number)
+    ! it lies under
+    allocate(mesh%columns(total_out_nodes))
+    if (mesh_name=="CoordinateMesh") then
+      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, "Coordinate")
+    else
+      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
+    end if
+    call deallocate(mesh)
+
+    out_mesh%mesh%option_path=option_path
+    out_mesh%option_path=""
+    out_mesh%mesh%periodic = mesh_periodic(shell_mesh) ! Leave this here for now
+    
+    last_seen = 0
+    do column=1,node_count(shell_mesh)
+      if (node_owned(shell_mesh, column)) then
+        call append_to_structures_radial(column, r_meshes(column), out_mesh, last_seen)
+      else
+        ! for non-owned columns we reserve node numbers, 
+        ! but don't fill in out_mesh positions yet
+        ! note that in this way out_mesh will obtain the same halo ordering
+        ! convention as h_mesh
+        out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(column)+1) = column
+        last_seen = last_seen + no_hanging_nodes(column)+1
+      end if
+    end do
+      
+    call create_columns_sparsity(out_columns, out_mesh%mesh)
+
+    if (associated(shell_mesh%mesh%halos)) then
+      ! derive l2 node halo for the out_mesh
+      call derive_extruded_l2_node_halo(shell_mesh%mesh, out_mesh%mesh, out_columns)
+      ! positions in the non-owned columns can now simply be halo-updated
+      call halo_update(out_mesh)
+    end if
+
+    call generate_radially_layered_mesh(out_mesh, shell_mesh)
+    call deallocate(out_columns)
+    
+  end subroutine combine_r_meshes
+
   subroutine derive_extruded_l2_node_halo(h_mesh, out_mesh, columns)
     ! derive the l2 node halo for the extruded mesh
     type(mesh_type), intent(in):: h_mesh
@@ -254,90 +338,6 @@ module hadapt_metric_based_extrude
     call create_ownership(out_mesh%halos(2))    
     
   end subroutine derive_extruded_l2_node_halo
-  
-  subroutine combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
-    full_shape, mesh_name, option_path)
-  !! Given the shell_mesh and a r_mesh under each node of it combines these
-  !! into a full layered mesh
-  type(vector_field), intent(inout):: shell_mesh
-  type(vector_field), dimension(:), intent(in):: r_meshes
-  type(vector_field), intent(out):: out_mesh
-  type(element_type), intent(in):: full_shape
-  !! the name of the topol. mesh to be created, not the coordinate field
-  character(len=*), intent(in):: mesh_name, option_path
-  
-    type(csr_sparsity):: out_columns
-    type(mesh_type):: mesh
-    integer, dimension(:), allocatable:: no_hanging_nodes
-    integer:: column, total_out_nodes, total_out_elements, r_elements, last_seen
-    
-    allocate(no_hanging_nodes(1:node_count(shell_mesh)))
-    no_hanging_nodes=0
-    do column=1, size(r_meshes)
-      if (node_owned(shell_mesh, column)) then
-        no_hanging_nodes(column)=ele_count(r_meshes(column))
-      end if
-    end do
-    if (associated(shell_mesh%mesh%halos)) then
-      call halo_update(shell_mesh%mesh%halos(2), no_hanging_nodes)
-    end if
-
-    total_out_nodes = 0
-    ! For each column,
-    ! add (number of nodes hanging off (== number of 1d elements)) * (element connectivity of chain)
-    ! to compute the number of elements the extrusion routine will produce
-    total_out_elements = 0
-    do column=1, size(r_meshes)
-      r_elements = ele_count(r_meshes(column))
-      total_out_nodes = total_out_nodes + r_elements + 1
-      assert(associated(shell_mesh%mesh%adj_lists))
-      assert(associated(shell_mesh%mesh%adj_lists%nelist))
-      total_out_elements = total_out_elements + r_elements * row_length(shell_mesh%mesh%adj_lists%nelist, column)
-    end do
-
-    call allocate(mesh, total_out_nodes, total_out_elements, &
-      full_shape, mesh_name)
-    ! allocate mapping between extruded nodes to surface node (column number)
-    ! it lies under
-    allocate(mesh%columns(total_out_nodes))
-    if (mesh_name=="CoordinateMesh") then
-      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, "Coordinate")
-    else
-      call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, trim(mesh_name)//"Coordinate")
-    end if
-    call deallocate(mesh)
-
-    out_mesh%mesh%option_path=option_path
-    out_mesh%option_path=""
-    out_mesh%mesh%periodic = mesh_periodic(shell_mesh) ! Leave this here for now
-    
-    last_seen = 0
-    do column=1,node_count(shell_mesh)
-      if (node_owned(shell_mesh, column)) then
-        call append_to_structures_radial(column, r_meshes(column), shell_mesh, out_mesh, last_seen)
-      else
-        ! for non-owned columns we reserve node numbers, 
-        ! but don't fill in out_mesh positions yet
-        ! note that in this way out_mesh will obtain the same halo ordering
-        ! convention as h_mesh
-        out_mesh%mesh%columns(last_seen+1:last_seen+no_hanging_nodes(column)+1) = column
-        last_seen = last_seen + no_hanging_nodes(column)+1
-      end if
-    end do
-      
-    call create_columns_sparsity(out_columns, out_mesh%mesh)
-
-    if (associated(shell_mesh%mesh%halos)) then
-      ! derive l2 node halo for the out_mesh
-      call derive_extruded_l2_node_halo(shell_mesh%mesh, out_mesh%mesh, out_columns)
-      ! positions in the non-owned columns can now simply be halo-updated
-      call halo_update(out_mesh)
-    end if
-
-    call generate_radially_layered_mesh(out_mesh, shell_mesh)
-    call deallocate(out_columns)
-    
-  end subroutine combine_r_meshes
 
   subroutine get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, z_mesh, sizing)
     integer, intent(in) :: column
@@ -676,18 +676,17 @@ module hadapt_metric_based_extrude
     
   end subroutine append_to_structures
 
-  subroutine append_to_structures_radial(column, r_mesh, shell_mesh, out_mesh, last_seen)
+  subroutine append_to_structures_radial(column, r_mesh, out_mesh, last_seen)
     integer, intent(in) :: column
-    type(vector_field), intent(in) :: r_mesh, shell_mesh
+    type(vector_field), intent(in) :: r_mesh
     type(vector_field), intent(inout) :: out_mesh
     integer, intent(inout) :: last_seen
 
     integer :: j
-    integer :: shell_dim, r_dim
+    integer :: r_dim
 
     real, dimension(mesh_dim(out_mesh)) :: pos
 
-    shell_dim = mesh_dim(shell_mesh)+1 ! This is the number of coordinates and not the topological dimesnion
     r_dim = mesh_dim(out_mesh)
 
     do j=1,node_count(r_mesh)

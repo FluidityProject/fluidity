@@ -14,6 +14,7 @@ module hadapt_extrude_radially
   use hadapt_metric_based_extrude
   use vector_tools
   use vtk_interfaces
+  use linked_lists
   implicit none
 
   private
@@ -33,7 +34,7 @@ module hadapt_extrude_radially
     !!< The full extruded 3D mesh.
     type(vector_field), intent(out) :: out_mesh
 
-    character(len=FIELD_NAME_LEN):: mesh_name, file_name 
+    character(len=FIELD_NAME_LEN):: mesh_name, file_name
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field), dimension(node_count(shell_mesh)) :: r_meshes
@@ -171,7 +172,7 @@ module hadapt_extrude_radially
             depth = tmp_depth(1)
           else if  (have_option(trim(option_path)//'/from_mesh/extrude/regions['//&
                                       int2str(r)//']/bottom_depth/from_map')) then
-            call set_from_map(file_name, tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
+            call set_from_map(trim(file_name), tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
             depth = tmp_depth(1)
             if (have_min_depth) then
               if (depth > min_depth) depth=min_depth
@@ -226,6 +227,7 @@ module hadapt_extrude_radially
 !     call write_triangle_files("test_mesh", out_mesh)
        
     do column=1, node_count(shell_mesh)
+      if (.not. node_owned(shell_mesh, column)) cycle
       call deallocate(r_meshes(column))
     end do
     call deallocate(full_shape)
