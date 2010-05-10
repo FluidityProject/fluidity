@@ -203,7 +203,7 @@ contains
     integer :: stat
 
     !! Mesh for auxiliary variable
-    type(mesh_type), save :: q_mesh, turb_conn_mesh
+    type(mesh_type), save :: q_mesh, turbine_conn_mesh
 
     integer :: dim, dim2
     
@@ -472,7 +472,7 @@ contains
 
     ! the turbine connectivity mesh is only needed if one of the boundaries is a turbine.
     if (any(velocity_bc_type==4) .or. any(velocity_bc_type==5)) then
-        turb_conn_mesh=get_periodic_mesh(state, u%mesh)
+        turbine_conn_mesh=get_periodic_mesh(state, u%mesh)
     end if
 
     ! same for pressure
@@ -489,7 +489,7 @@ contains
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
-            & inverse_mass=inverse_mass, inverse_masslump=inverse_masslump, mass=mass, turb_conn_mesh=turb_conn_mesh)
+            & inverse_mass=inverse_mass, inverse_masslump=inverse_masslump, mass=mass, turbine_conn_mesh=turbine_conn_mesh)
        
     end do element_loop
 
@@ -522,8 +522,6 @@ contains
     call deallocate(buoyancy)
     call deallocate(gravity)
     
-    contains 
-
   end subroutine construct_momentum_dg
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
@@ -531,7 +529,7 @@ contains
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
-       &inverse_mass, inverse_masslump, mass, turb_conn_mesh)
+       &inverse_mass, inverse_masslump, mass, turbine_conn_mesh)
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -543,7 +541,7 @@ contains
     type(vector_field), intent(inout) :: rhs
     !! Auxiliary variable mesh
     type(mesh_type), intent(in) :: q_mesh
-    type(mesh_type), intent(in), optional :: turb_conn_mesh
+    type(mesh_type), intent(in), optional :: turbine_conn_mesh
 
     !! Position, velocity and source fields.
     type(scalar_field) :: buoyancy
@@ -1094,7 +1092,7 @@ contains
             face_2=ele_face(U, ele_2, ele)
         ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
         elseif (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then  
-            face_2=face_neigh(turb_conn_mesh, face)
+            face_2=face_neigh(turbine_conn_mesh, face)
             turbine_face=.true.
         else 
            ! External face.
@@ -1224,7 +1222,7 @@ contains
                         Viscosity_mat(dim,:,start:finish)=0.0
                     ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
                     elseif (velocity_bc_type(dim,face)==4 .or. velocity_bc_type(dim,face)==5) then  
-                         face=face_neigh(turb_conn_mesh, face)
+                         face=face_neigh(turbine_conn_mesh, face)
                     end if
                   end if               
                   start=start+face_loc(U, face)
