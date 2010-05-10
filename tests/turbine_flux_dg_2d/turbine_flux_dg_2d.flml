@@ -104,6 +104,46 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="water">
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin/>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution replaces="POISON">
+            <string_value lines="1">every timestep</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method replaces="PROJEC"/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">500</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <no_interpolation/>
+      </prognostic>
+    </scalar_field>
     <scalar_field name="Density" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
