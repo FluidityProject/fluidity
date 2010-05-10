@@ -137,7 +137,7 @@ module interpolation_metric
     call collapse_state(weights_state, weights_list)
 
     if (size(fields_list) == 0) then
-      ewrite(0,*) "Interpolation metric doing nothing"
+      ewrite(1,*) "Interpolation metric doing nothing"
       return
     end if
 
