@@ -231,38 +231,38 @@ class TestHarness:
                   if t is None: continue
                   test = t[1]
                   os.chdir(t[0])
-                  if t[1].is_finished():
-                      if self.length == "long":
+                  if test.is_finished():
+                      if test.length == "long":
                         test.fl_logs(nLogLines = 20)
                       else:
                         test.fl_logs(nLogLines = 0)
                       try:
-                        self.teststatus += t[1].test()
+                        self.teststatus += test.test()
                       except:
                         self.log("Error: %s raised an exception while testing:" % test.filename)
                         lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
                         for line in lines:
                             self.log(line)
                         self.teststatus += ['F']
-                        t[1].pass_status = ['F']
-                      self.completed_tests += [t[1]]
+                        test.pass_status = ['F']
+                      self.completed_tests += [test]
                       t = None
                       count -= 1
                   os.chdir(os.pardir)
 
               if count == 0: break
-              time.sleep(60)
-                  
+              time.sleep(60)                  
         else:
           for t in self.tests:
+            test = t[1]
             os.chdir(t[0])
             if self.length == "long":
-              t[1].fl_logs(nLogLines = 20)
+              test.fl_logs(nLogLines = 20)
             else:
-              t[1].fl_logs(nLogLines = 0)
-            self.teststatus += t[1].test()
+              test.fl_logs(nLogLines = 0)
+            self.teststatus += test.test()
             os.chdir(os.pardir)
-            self.completed_tests += [t[1]]
+            self.completed_tests += [test]
 
         self.passcount = self.teststatus.count('P')
         self.failcount = self.teststatus.count('F')
