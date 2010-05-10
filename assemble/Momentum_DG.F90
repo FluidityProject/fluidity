@@ -52,6 +52,8 @@ module momentum_DG
   use halos
   use sparsity_patterns
   use petsc_tools
+  use turbine
+
   implicit none
 
   ! Buffer for output messages.
@@ -201,7 +203,7 @@ contains
     integer :: stat
 
     !! Mesh for auxiliary variable
-    type(mesh_type), save :: q_mesh
+    type(mesh_type), save :: q_mesh, turb_conn_mesh
 
     integer :: dim, dim2
     
@@ -462,9 +464,16 @@ contains
     ! weakdirichlet=1, free_surface=2
     allocate(velocity_bc_type(U%dim, surface_element_count(U)))
     call get_entire_boundary_condition(U, (/ &
-      "weakdirichlet ", &
-      "free_surface  ", &
-      "no_normal_flow" /), velocity_bc, velocity_bc_type)
+      "weakdirichlet       ", &
+      "free_surface        ", &
+      "no_normal_flow      ", &
+      "turbine_flux_penalty", &
+      "turbine_flux_dg     " /), velocity_bc, velocity_bc_type)
+
+    ! the turbine connectivity mesh is only needed if one of the boundaries is a turbine.
+    if (any(velocity_bc_type==4) .or. any(velocity_bc_type==5)) then
+        turb_conn_mesh=get_periodic_mesh(state, u%mesh)
+    end if
 
     ! same for pressure
     allocate(pressure_bc_type(surface_element_count(P)))
@@ -480,7 +489,7 @@ contains
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
-            & inverse_mass=inverse_mass, inverse_masslump=inverse_masslump, mass=mass)
+            & inverse_mass=inverse_mass, inverse_masslump=inverse_masslump, mass=mass, turb_conn_mesh=turb_conn_mesh)
        
     end do element_loop
 
@@ -512,6 +521,8 @@ contains
     call deallocate(surfacetension)
     call deallocate(buoyancy)
     call deallocate(gravity)
+    
+    contains 
 
   end subroutine construct_momentum_dg
 
@@ -520,7 +531,7 @@ contains
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
-       &inverse_mass, inverse_masslump, mass)
+       &inverse_mass, inverse_masslump, mass, turb_conn_mesh)
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -532,6 +543,7 @@ contains
     type(vector_field), intent(inout) :: rhs
     !! Auxiliary variable mesh
     type(mesh_type), intent(in) :: q_mesh
+    type(mesh_type), intent(in), optional :: turb_conn_mesh
 
     !! Position, velocity and source fields.
     type(scalar_field) :: buoyancy
@@ -633,7 +645,7 @@ contains
     ! Whether the velocity field is continuous and if it is piecewise constant.
     logical :: dg, p0
     integer :: i 
-    logical :: boundary_element
+    logical :: boundary_element, turbine_face
 
     ! What we will be adding to the matrix and RHS - assemble these as we
     ! go, so that we only do the calculations we really need
@@ -653,6 +665,7 @@ contains
 
     real, dimension(mesh_dim(U)) :: ele_centre, neigh_centre, &
          & face_centre, face_centre_2
+    real :: turbine_fluxfac
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -1054,7 +1067,7 @@ contains
       neigh=>ele_neigh(U, ele)
       ! x_neigh/=t_neigh only on periodic boundaries.
       x_neigh=>ele_neigh(X, ele)
-
+      
       ! Local node map counter.
       start=loc+1
       ! Flag for whether this is a boundary element.
@@ -1065,7 +1078,7 @@ contains
         !----------------------------------------------------------------------
         ! Find the relevant faces.
         !----------------------------------------------------------------------
-        
+        turbine_face=.false.
         ! These finding routines are outside the inner loop so as to allow
         ! for local stack variables of the right size in
         ! construct_momentum_interface_dg.
@@ -1079,10 +1092,14 @@ contains
         if (ele_2>0) then
             ! Internal faces.
             face_2=ele_face(U, ele_2, ele)
-        else
-            ! External face.
-            face_2=face
-            boundary_element=.true.
+        ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
+        elseif (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then  
+            face_2=face_neigh(turb_conn_mesh, face)
+            turbine_face=.true.
+        else 
+           ! External face.
+           face_2=face
+           boundary_element=.true.
         end if
 
         !Compute distance between cell centre and neighbouring cell centre
@@ -1120,26 +1137,32 @@ contains
             local_glno(start:finish)=face_global_nodes(U, face_2)
         end if
   
+        ! Turbine face
+        if (turbine_face) then
+           call construct_turbine_interface(turbine_fluxfac, theta, dt, ele, face, face_2, ni, &
+                    & big_m_tensor_addto, rhs_addto, X, U, velocity_bc, velocity_bc_type)
+        end if
+
         if(primal) then
-
-           call construct_momentum_interface_dg(ele, face, face_2, ni,&
-                & big_m_tensor_addto, &
-                & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
-                & velocity_bc, velocity_bc_type, &
-                & pressure_bc, pressure_bc_type, &
-                & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-                & viscosity, viscosity_mat)
-      
+            if(.not. turbine_face .or. turbine_fluxfac>=0) then
+                   call construct_momentum_interface_dg(ele, face, face_2, ni,&
+                        & big_m_tensor_addto, &
+                        & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
+                        & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
+                        & velocity_bc, velocity_bc_type, &
+                        & pressure_bc, pressure_bc_type, &
+                        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
+                        & viscosity, viscosity_mat)
+           end if
         else
-
-           call construct_momentum_interface_dg(ele, face, face_2, ni,&
-                & big_m_tensor_addto, &
-                & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
-                & velocity_bc, velocity_bc_type, &
-                & pressure_bc, pressure_bc_type)
-
+            if(.not. turbine_face .or. turbine_fluxfac>=0) then
+                   call construct_momentum_interface_dg(ele, face, face_2, ni,&
+                        & big_m_tensor_addto, &
+                        & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
+                        & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
+                        & velocity_bc, velocity_bc_type, &
+                        & pressure_bc, pressure_bc_type)
+            end if
         end if
 
         if (dg) then
@@ -1180,12 +1203,9 @@ contains
                     ! Interior face - we need the neighbouring face to
                     ! calculate the new start
                     face=ele_face(U, ele_2, ele)
-                    
-                  else
-                    ! Boundary face
-  
-                     face=ele_face(U, ele, ele_2)
-              
+                  else   
+                  ! Boundary face
+                    face=ele_face(U, ele, ele_2)
                     if (velocity_bc_type(dim,face)==1) then
                         ! Dirichlet condition.
                         
@@ -1202,11 +1222,11 @@ contains
                     
                         ! Ensure it is not used again.
                         Viscosity_mat(dim,:,start:finish)=0.0
-  
+                    ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
+                    elseif (velocity_bc_type(dim,face)==4 .or. velocity_bc_type(dim,face)==5) then  
+                         face=face_neigh(turb_conn_mesh, face)
                     end if
-                    
-                  end if
-                  
+                  end if               
                   start=start+face_loc(U, face)
               
               end do boundary_neighbourloop
@@ -1496,7 +1516,6 @@ contains
     !----------------------------------------------------------------------
     ! Change of coordinates on face.
     !----------------------------------------------------------------------
-
     call transform_facet_to_physical(X, face,&
          &                          detwei_f=detwei,&
          &                          normal=normal) 
@@ -2268,7 +2287,32 @@ contains
 
   end subroutine construct_momentum_interface_dg
     
-  subroutine allocate_big_m_dg(big_m, u)
+  ! The Coordinate and Solution fields of a turbine simulation live on a non-periodic mesh (that is with option remove-periodicity). 
+  ! This function takes such a field's mesh and returns the periodic mesh from which it is derived.
+  recursive function get_periodic_mesh(state, mesh) result(periodic_mesh)
+    type(state_type), intent(in) :: state
+    type(mesh_type), intent(in) :: mesh
+    type(mesh_type) :: periodic_mesh
+    character(len=OPTION_PATH_LEN) :: option_path
+    character(len=4096) :: derived_meshname
+    integer :: stat
+
+    option_path=mesh%option_path
+    if (have_option(trim(mesh%option_path) // '/from_mesh')) then
+     call get_option(trim(mesh%option_path) // '/from_mesh/mesh/name', derived_meshname, stat)
+     assert(stat==0)
+     if (have_option(trim(mesh%option_path) // '/from_mesh/periodic_boundary_conditions/remove_periodicity')) then
+      periodic_mesh=extract_mesh(state, derived_meshname, stat)
+     else 
+      periodic_mesh=get_periodic_mesh(state, extract_mesh(state, derived_meshname, stat))
+     end if
+     assert(stat==0)
+    else
+     FLAbort("A periodic mesh with remove_periodicity has to be used in combination with the turbine model.")
+    end if
+  end function get_periodic_mesh
+
+  subroutine allocate_big_m_dg(state, big_m, u)
     !!< This routine allocates big_m as a petsc_csr_matrix without explicitly
     !!< constructing a sparsity, but only working the number of local and non-local
     !!< nonzero entries per row. As this should be a reasonably cheap operation this
@@ -2277,19 +2321,21 @@ contains
     !!< - contiguous numbering of owned nodes and elements
     !!< - number of nodes per element is the same
     !!< - both test and trial space are discontinuous
+    type(state_type) :: state
     type(petsc_csr_matrix), intent(out):: big_m
     type(vector_field), intent(in):: u
-      
+
     !! NOTE: use_element_blocks only works if all element have the same number of nodes
     logical:: use_element_blocks
       
     type(halo_type), pointer:: halo
     integer, dimension(:), pointer:: neighbours, neighbours2, nodes
     integer, dimension(:), allocatable:: dnnz, onnz
-    logical:: compact_stencil, have_viscosity, have_coriolis, have_advection
+    logical:: compact_stencil, have_viscosity, have_coriolis, have_advection, have_turbine
     integer:: rows_per_dim, rows, nonods, elements
     integer:: owned_neighbours, foreign_neighbours, coupled_components
     integer:: i, j, dim, ele, nloc
+    type(mesh_type) :: neigh_mesh
       
     assert( continuity(u)<0 )
     
@@ -2305,16 +2351,25 @@ contains
     ! NOTE: this only sets the local have_viscosity, have_advection and have_coriolis
     have_viscosity = have_option(trim(u%option_path)//&
           &"/prognostic/tensor_field::Viscosity")
-    have_advection = .not. have_option(trim(U%option_path)//"/prognostic&
+    have_advection = .not. have_option(trim(u%option_path)//"/prognostic&
          &/spatial_discretisation/discontinuous_galerkin&
          &/advection_scheme/none")
     have_coriolis = have_option("/physical_parameters/coriolis")
+
+    ! It would be enough to set this variable to true only if there is a flux turbine. 
+    ! However, for performance reasons, this is done whenever a turbine model is in use.
+    have_turbine = have_option("/turbine_model")
     
     ! petsc block matrix doesn't support eisenstat
     use_element_blocks = .not. (have_option(trim(u%option_path)// &
       &"/prognostic/solver/preconditioner::eisenstat") .or. &
       compact_stencil)
-    
+
+    if (have_turbine) then
+         neigh_mesh=get_periodic_mesh(state, u%mesh)
+    else
+         neigh_mesh=u%mesh      
+    end if
     if (associated(u%mesh%halos)) then
        halo => u%mesh%halos(1)
        rows_per_dim=halo_nowned_nodes(halo)
@@ -2351,7 +2406,7 @@ contains
       
       if (have_viscosity .or. have_advection) then
         ! start with first order
-        neighbours => ele_neigh(u, ele)
+        neighbours => ele_neigh(neigh_mesh, ele)
         do i=1, size(neighbours)
           ! skip boundaries
           if (neighbours(i)<=0) cycle
@@ -2369,7 +2424,7 @@ contains
           ! skip boundaries
           if (neighbours(i)<=0) cycle
           
-          neighbours2 => ele_neigh(u, neighbours(i))
+          neighbours2 => ele_neigh(neigh_mesh, neighbours(i))
           do j=1, size(neighbours2)
             ! skip boundaries:
             if (neighbours2(j)<=0) cycle
@@ -2548,5 +2603,7 @@ contains
     end do state_loop
 
   end subroutine momentum_DG_check_options
-  
+
+
+
 end module momentum_DG

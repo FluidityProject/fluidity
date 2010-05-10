@@ -154,6 +154,9 @@ contains
        end if
 
     end if
+    if (have_option('/turbine_model')) then
+       call populate_flux_turbine_boundary_conditions(states(1))
+    end if
     ! N.B. k-epsilon turbulence model DOES NOT use ocean boundaries, unlike GLS.
     if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/calculate_boundaries')) then
        call populate_kepsilon_boundary_conditions(states(1))
@@ -567,7 +570,8 @@ contains
     end if
 
     if (have_option('/turbine_model')) then
-        call set_turbine_model_boundary_conditions(states(1))
+        call set_dirichlet_turbine_boundary_conditions(states(1))
+        call set_flux_turbine_boundary_conditions(states(1))
     end if
 
   end subroutine set_boundary_conditions_values
@@ -1584,7 +1588,7 @@ contains
 
   end subroutine set_ocean_forcings_boundary_conditions
 
-  subroutine set_turbine_model_boundary_conditions(state)
+  subroutine set_dirichlet_turbine_boundary_conditions(state)
     type(state_type), intent(in) :: state
     type(vector_field), pointer :: vel_field,  coord_field
     type(vector_field), pointer :: surface_field
@@ -1602,7 +1606,7 @@ contains
     real :: flux
     integer, dimension(:), pointer :: surface_element_list
     real :: time
-    ewrite(1,*) "In turbine model"
+    ewrite(1,*) "In dirichlet turbine model"
 
     ! We made sure in populate_boundary_conditions that FreeSurface exists.
     vel_field => extract_vector_field(state, "Velocity")
@@ -1614,15 +1618,12 @@ contains
     notur = option_count("/turbine_model/turbine")
     do i=0, notur-1
        turbine_path="/turbine_model/turbine["//int2str(i)//"]"
-       if (.not. have_option(trim(turbine_path)//"/dirichlet")) then
-         cycle
-       end if
+       if (.not. have_option(trim(turbine_path)//"/dirichlet")) cycle
        do j=1,2
          call get_option(trim(turbine_path)//"/dirichlet/boundary_condition_name_"//int2str(j)//"/name", bc_name(j))
        end do
 
        call get_option("/timestepping/current_time", time)
-       print *, "time", time
 
        ! Get free surface values at the user specified points
        do j=1,2
@@ -1668,9 +1669,9 @@ contains
     end do
     ! Tidying up
     deallocate(local_coord)
-    ewrite(3,*) "Out turbine model."
-  end subroutine set_turbine_model_boundary_conditions
+    ewrite(3,*) "Out dirichlet turbine model."
 
+  contains 
   ! Calculates the surface area by integrating the unit function over the domain defined by "positions"
   function get_surface_area(positions) result(surface_area)
        type(vector_field), intent(in) :: positions
@@ -1684,6 +1685,132 @@ contains
           surface_area=surface_area+sum(detwei)
        end do
    end function get_surface_area
+
+  end subroutine set_dirichlet_turbine_boundary_conditions
+
+  subroutine set_flux_turbine_boundary_conditions(state)
+    type(state_type), intent(in) :: state
+    type(vector_field), pointer :: vel_field,  coord_field, surface_field
+    type(scalar_field) :: scalar_surface_field
+
+    integer :: notur, i, j
+    character(len=FIELD_NAME_LEN) :: turbine_path, turbine_type
+    character(len=FIELD_NAME_LEN), dimension(2) ::  bc_name
+    character(len=PYTHON_FUNC_LEN) :: func
+    real :: flux, h
+    logical :: active
+
+    ewrite(1,*) "In flux turbine model"
+    vel_field => extract_vector_field(state, "Velocity")
+    coord_field => extract_vector_field(state, "Coordinate")
+
+    ! loop through turbines
+    notur = option_count("/turbine_model/turbine")
+    do i=0, notur-1
+       turbine_path="/turbine_model/turbine["//int2str(i)//"]"
+       if (.not. have_option(trim(turbine_path)//"/flux")) cycle
+       if (have_option(trim(turbine_path)//"/flux/penalty")) then
+          turbine_type="penalty"
+       else
+          turbine_type="dg"
+       end if
+       do j=1,2
+         call get_option(trim(turbine_path)//"/flux/boundary_condition_name_"//int2str(j)//"/name", bc_name(j))
+       end do
+       ! TODO: Set h to pressure jump or free surface jump?
+       h=1.0
+       call get_option(trim(turbine_path)//"/flux/"//trim(turbine_type)//"/factor", func)
+       call real_from_python(func, h, flux) 
+
+       ! Set the turbine dg fluxes
+       do j=1,2
+         surface_field => extract_surface_field(vel_field, trim(bc_name(j))//"_turbine", name="value")
+         scalar_surface_field = extract_scalar_field(surface_field, 1)
+         !scalar_surface_field => extract_scalar_surface_field(vel_field, trim(bc_name(j))//"_dgflux", name="value")
+         call set(scalar_surface_field, flux)
+       end do
+
+       ! Decide if turbine is active or not
+       if (have_option(trim(turbine_path)//"/flux/always_on")) then
+           active=.true.
+       elseif (have_option(trim(turbine_path)//"/flux/always_off")) then
+           active=.false.
+       end if
+
+       ! De/Activate the Dirichlet conditions and turbine boundary condition by changing their "applied" flag
+       if (active) then
+         do j=1,2
+            call set_boundary_condition_applies_flag(vel_field, trim(bc_name(j))//"_turbine", (/.true., .true., .true./))
+            call set_boundary_condition_applies_flag(vel_field, trim(bc_name(j)), (/.false., .false., .false./))
+         end do
+       else
+         do j=1,2
+            call set_boundary_condition_applies_flag(vel_field, trim(bc_name(j))//"_turbine", (/.false., .false., .false./))
+            call set_boundary_condition_applies_flag_from_options_path(vel_field, trim(bc_name(j))) 
+         end do
+       end if
+    end do
+    ewrite(3,*) "Out flux turbine model."
+
+
+   contains 
+   subroutine set_boundary_condition_applies_flag(field, name, applies)
+     type(vector_field), intent(in):: field
+     ! Name of the boundary condition
+     character(len=*), intent(in):: name
+     logical, dimension(3):: applies
+     integer i
+     do i=1, size(field%bc%boundary_condition)
+       if (field%bc%boundary_condition(i)%name==name) then
+         field%bc%boundary_condition(i)%applies=applies
+         return
+       end if
+     end do
+     FLExit("Internal Error: Field "//trim(field%name)//" does not have boundary condition of name "//trim(name))
+   end subroutine set_boundary_condition_applies_flag
+
+   ! Sets the "applies" flags according to the option path.
+   subroutine set_boundary_condition_applies_flag_from_options_path(field, name)
+     type(vector_field), intent(in):: field
+     ! Name of the boundary condition
+     character(len=*), intent(in):: name
+     logical, dimension(3):: applies
+     logical :: bc_found
+     integer i, j
+     character(len=OPTION_PATH_LEN) bc_path, bc_component_path
+     character(len=OPTION_PATH_LEN), dimension(3) :: components
+
+     do i=1, size(field%bc%boundary_condition)
+       if (field%bc%boundary_condition(i)%name==name) then
+         bc_path=field%bc%boundary_condition(i)%option_path
+         bc_found=.true.
+         exit
+       end if
+     end do
+     if (.not. bc_found) FLExit("Internal Error: Field "//trim(field%name)//" does not have boundary condition of name "//trim(name))
+     bc_path=trim(bc_path)//"/type"
+     if(have_option(trim(bc_path)//"/align_bc_with_cartesian")) then
+             bc_path=trim(bc_path)//"/align_bc_with_cartesian"
+             components=(/ &
+                "x_component", &
+                "y_component", &
+                "z_component" /)
+     else
+             bc_path=trim(bc_path)//"/align_bc_with_surface"
+             components=(/ &
+                "normal_component   ", &
+                "tangent_component_1", &
+                "tangent_component_2" /)
+     end if
+     do j=1,3
+             bc_component_path=trim(bc_path)//"/"//trim(components(j))
+             applies(j)=have_option(trim(bc_component_path))
+     end do
+     ! Finally set the "applies" flags
+     field%bc%boundary_condition(i)%applies=applies
+   end subroutine set_boundary_condition_applies_flag_from_options_path
+
+  end subroutine set_flux_turbine_boundary_conditions
 
 
   subroutine initialise_rotated_bcs(surface_element_list, x, & 
@@ -1852,6 +1979,62 @@ contains
     
   end subroutine populate_gls_boundary_conditions
 
+
+  subroutine populate_flux_turbine_boundary_conditions(state)
+    type(state_type), intent(in) :: state
+    
+    type(vector_field), pointer :: velocity
+    character(len=OPTION_PATH_LEN) :: bc_path_i 
+    character(len=FIELD_NAME_LEN) :: bc_name_ij, turbine_type
+    integer :: i, j, nbtur
+ 
+    ewrite(1,*) "Populate flux turbine boundaries"
+    velocity => extract_vector_field(state, "Velocity")
+    nbtur=option_count("/turbine_model/turbine")
+  
+    do i=0, nbtur-1
+      bc_path_i="/turbine_model/turbine["//int2str(i)//"]"
+      if (.not. have_option(trim(bc_path_i)//"/flux"))  cycle
+      if (have_option(trim(bc_path_i)//"/flux/penalty")) then 
+          turbine_type="penalty"
+      else 
+          turbine_type="dg" 
+      end if
+      do j=1,2
+          call get_option(trim(bc_path_i)//"/flux/boundary_condition_name_"//int2str(j)//"/name", bc_name_ij)
+          call insert_flux_turbine_boundary_condition(velocity, bc_name_ij, turbine_type)
+      end do 
+    end do
+
+    contains 
+    subroutine insert_flux_turbine_boundary_condition(field, bc_name, turbine_type)
+       character(len=FIELD_NAME_LEN), intent(in) :: bc_name 
+       type(vector_field), pointer :: field
+       integer, dimension(:), allocatable:: surface_ids
+       character(len=FIELD_NAME_LEN) :: bc_type, turbine_type ! turbine type is either "dg" or "penalty"
+       character(len=OPTION_PATH_LEN) :: option_path
+       integer, dimension(2) :: shape_option
+       !type(scalar_field) :: scalar_surface_field
+       type(vector_field) :: surface_field
+       type(mesh_type), pointer :: surface_mesh
+
+       bc_type="turbine_flux_"//trim(turbine_type)
+       call get_boundary_condition(field, bc_name, option_path=option_path)
+       shape_option=option_shape(trim(option_path)//"/surface_ids")
+       allocate(surface_ids(1:shape_option(1)))
+       call get_option(trim(option_path)//"/surface_ids", surface_ids)
+       call add_boundary_condition(velocity, trim(bc_name)//"_turbine", bc_type, surface_ids)     
+       deallocate(surface_ids)
+ 
+       call get_boundary_condition(field, trim(bc_name)//"_turbine", surface_mesh=surface_mesh)
+       call allocate(surface_field, field%dim, surface_mesh, name="value")
+       call insert_surface_field(field, trim(bc_name)//"_turbine", surface_field)
+       call deallocate(surface_field)
+       !call allocate(scalar_surface_field, surface_mesh, name="value")
+       !call insert_surface_field(field, trim(bc_name)//"_flux", scalar_surface_field)
+       !call deallocate(scalar_surface_field)
+    end subroutine insert_flux_turbine_boundary_condition
+  end subroutine populate_flux_turbine_boundary_conditions
 
 
   subroutine populate_kepsilon_boundary_conditions(state)

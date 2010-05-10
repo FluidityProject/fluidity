@@ -129,7 +129,7 @@ Advection_Diffusion_CG.o: Upwind_Stabilisation.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
 reduced_model.o: Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
-Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o
+Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o 
 Assemble_CMC.o: Multimaterials.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o

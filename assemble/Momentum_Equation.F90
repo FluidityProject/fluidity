@@ -444,14 +444,13 @@
       call profiler_tic(u, "assembly")
       ! allocation of big_m
       if(dg) then
-        call allocate_big_m_dg(big_m, u)
+        call allocate_big_m_dg(state(istate), big_m, u)
       else
         ! create a sparsity if necessary or pull it from state:
         u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
         ! and then allocate
         call allocate(big_m, u_sparsity, (/u%dim, u%dim/), diagonal=diagonal,&
             & name="BIG_m")
-        
       end if
 
       call zero(big_m)

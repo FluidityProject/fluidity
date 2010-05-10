@@ -2188,16 +2188,54 @@ optimal size)</a:documentation>
                     <ref name="real_dim_vector"/>
                   </element>
                   <element name="head_flux">
-                    <a:documentation>Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s) for a specific head. A return value 
+                    <a:documentation>Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s). A return value 
 of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries.</a:documentation>
                     <ref name="python_code"/>
                   </element>
                 </element>
-                <element name="dgflux">
-                  <a:documentation>Enforces the turbine model by using the fluxes from the discontinues galerkin model.</a:documentation>
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
+                <element name="flux">
+                  <a:documentation>Implements the turbine model by using the fluxes from the discontinues galerkin model. Works only if dg is used. </a:documentation>
+                  <choice>
+                    <a:documentation>Model type</a:documentation>
+                    <element name="penalty">
+                      <element name="factor">
+                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value 
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries 
+while a factor of +INF represents a connected domain.</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                    </element>
+                    <element name="dg">
+                      <element name="factor">
+                        <a:documentation>Python function val(h) takes the pressure jump h and returns the flux factor between 0 and 1. A return value 
+of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries 
+while a factor of 1 represents a connected domain.</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                    </element>
+                  </choice>
+                  <element name="boundary_condition_name_1">
+                    <a:documentation>Name of the upstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                  <element name="boundary_condition_name_2">
+                    <a:documentation>Name of the downstream (weak or strong) dirichlet boundary condition where the turbine model shall be applied to.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                  <choice>
+                    <element name="always_on">
+                      <a:documentation>The turbine is always running. This is mainly used for debugging purposes.</a:documentation>
+                      <empty/>
+                    </element>
+                    <element name="always_off">
+                      <a:documentation>The turbine is never running. This is mainly used for debugging purposes.</a:documentation>
+                      <empty/>
+                    </element>
+                  </choice>
                 </element>
               </choice>
             </element>
