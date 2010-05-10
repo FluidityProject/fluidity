@@ -556,12 +556,6 @@ start =
                                  attribute replaces { "EQNSTA = 2 if switched on" },
                                  empty
                               }?
-                           }|
-                           ## UNDER DEVELOPMENT - DO NOT USE THIS !!!
-                           ##
-                           ## Python defined equation of state
-                           element python_state_function {
-                                 scalar_python_diagnostic_algorithm
                            }
                         )
                      }|
@@ -1868,7 +1862,15 @@ prognostic_density_field =
             element control_volumes {
               spatial_control_volume_options
             }
-         )
+         ),
+         ## Conservative discretisation of field advection equation
+         ##  TBETA=1. -- conservative (divergence form)
+         ##  TBETA=0. -- non-conservative
+         ##  0. < TBETA < 1.
+         element conservative_advection {
+           attribute replaces {"TBETA, DEFALT (TBETA = 0.0)"},
+           real
+         }
       },
       element temporal_discretisation {
          ## Implicit/explicit control (TTHETA)

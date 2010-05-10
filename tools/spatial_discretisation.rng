@@ -480,6 +480,17 @@ implement P0 advection-diffusion.</a:documentation>
     <element name="control_volumes">
       <a:documentation>Use a pure control volume discretisations.
 Follows a new control volume code path.</a:documentation>
+      <optional>
+        <element name="mass_terms">
+          <a:documentation>Options dealing with the mass terms in the equation.</a:documentation>
+          <optional>
+            <element name="exclude_mass_terms">
+              <a:documentation>Exclude the mass terms from the advection-diffusion type equation.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
       <ref name="spatial_control_volume_options"/>
       <choice>
         <element name="diffusion_scheme">
@@ -595,6 +606,13 @@ income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order downwinding is unconditionally unstable</a:documentation>
         <attribute name="name">
           <value>FirstOrderDownwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>No face value - i.e. no advection!</a:documentation>
+        <attribute name="name">
+          <value>None</value>
         </attribute>
         <empty/>
       </element>

@@ -36,7 +36,8 @@ module cv_options
 
   implicit none
 
-  integer, parameter, public :: CV_FACEVALUE_FIRSTORDERUPWIND=1, &
+  integer, parameter, public :: CV_FACEVALUE_NONE=0, &
+                                CV_FACEVALUE_FIRSTORDERUPWIND=1, &
                                 CV_FACEVALUE_TRAPEZOIDAL=2, &
                                 CV_FACEVALUE_FINITEELEMENT=3, &
                                 CV_FACEVALUE_HYPERC=4, &
@@ -44,7 +45,8 @@ module cv_options
                                 CV_FACEVALUE_POTENTIALULTRAC=6, &
                                 CV_FACEVALUE_FIRSTORDERDOWNWIND=7
 
-  integer, parameter, public :: CV_DIFFUSION_BASSIREBAY=1, &
+  integer, parameter, public :: CV_DIFFUSION_NONE=0, &
+                                CV_DIFFUSION_BASSIREBAY=1, &
                                 CV_DIFFUSION_ELEMENTGRADIENT=2
 
   integer, parameter, public :: CV_DOWNWIND_PROJECTION_NODE=1, &
@@ -112,12 +114,12 @@ contains
     ! spatial discretisation options
     call get_option(trim(complete_cv_field_path(option_path))//&
                         "/face_value[0]/name", &
-                        tmpstring, default="FirstOrderUpwind")
+                        tmpstring)
     cv_options%facevalue = cv_facevalue_integer(tmpstring)
 
     call get_option(trim(complete_cv_field_path(option_path))//&
                         "/diffusion_scheme[0]/name", &
-                        tmpstring, default="ElementGradient")
+                        tmpstring, default="None")
     cv_options%diffusionscheme = cv_diffusionscheme_integer(tmpstring)
 
     cv_options%limit_facevalue = have_option(trim(complete_cv_field_path(option_path))//&
@@ -153,7 +155,7 @@ contains
                         &/control_volumes/limit_theta")
     call get_option(trim(complete_field_path(option_path, stat))//&
                         "/temporal_discretisation&
-                        &/theta", cv_options%theta, default=1.0)
+                        &/theta", cv_options%theta)
     call get_option(trim(complete_field_path(option_path, stat))//&
                         "/temporal_discretisation&
                         &/control_volumes/pivot_theta", &
@@ -161,7 +163,7 @@ contains
     call get_option(trim(complete_field_path(option_path, stat))//&
                         "/spatial_discretisation&
                         &/conservative_advection", &
-                        cv_options%beta, default=1.0)
+                        cv_options%beta)
     call get_option(trim(complete_cv_field_path(option_path))//&
                     '/face_value[0]/limit_face_value/limiter[0]/slopes&
                     &/lower', cv_options%limiter_slopes(1), default=1.0)
@@ -192,6 +194,8 @@ contains
       cv_facevalue_integer = CV_FACEVALUE_POTENTIALULTRAC
     case ("FirstOrderDownwind")
       cv_facevalue_integer = CV_FACEVALUE_FIRSTORDERDOWNWIND
+    case ("None")
+      cv_facevalue_integer = CV_FACEVALUE_NONE
     case default
       FLAbort("Unknown control volume face value scheme.")
     end select
@@ -207,6 +211,8 @@ contains
       cv_diffusionscheme_integer = CV_DIFFUSION_BASSIREBAY
     case ("ElementGradient")
       cv_diffusionscheme_integer = CV_DIFFUSION_ELEMENTGRADIENT
+    case ("None")
+      cv_diffusionscheme_integer = CV_DIFFUSION_NONE
     case default
       FLAbort("Unknown control volume diffusion scheme.")
     end select

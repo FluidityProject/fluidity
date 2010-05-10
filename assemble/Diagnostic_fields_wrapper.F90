@@ -44,9 +44,7 @@ module diagnostic_fields_wrapper
                                   calculate_bulk_material_pressure, &
                                   calculate_sum_material_volume_fractions, &
                                   calculate_material_volume
-  use field_equations_cv, only: calculate_auxiliary_gradient
   use free_surface_module, only: calculate_diagnostic_free_surface
-  use advection_diffusion_dg, only: calculate_auxiliary_gradient_dg
   use field_options, only: do_not_recalculate
   use vorticity_diagnostics
   use diagnostic_fields_matrices
@@ -314,22 +312,6 @@ contains
            call calculate_diagnostic_variable(state(i), "DiagnosticCoordinate", v_field)
          end if
        end if
-
-      ! temporarily moving these
-       v_field => extract_vector_field(state(i), "ControlVolumeAuxiliaryGradient", stat)
-       if(stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           call calculate_auxiliary_gradient(state(i), v_field)
-         end if
-       end if
-
-       v_field => extract_vector_field(state(i), "DGAuxiliaryGradient", stat)
-       if(stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           call calculate_auxiliary_gradient_dg(state(i), v_field)
-         end if
-       end if
-       ! ugly temporary move
 
        v_field => extract_vector_field(state(i), "BedShearStress", stat)  
        if(stat == 0) then  

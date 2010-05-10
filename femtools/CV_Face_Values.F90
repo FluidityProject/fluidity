@@ -58,7 +58,6 @@ contains
                       field_ele, old_field_ele, &
                       upwind_values, old_upwind_values, &
                       inflow, cfl_ele, &
-                      udotn, &
                       cv_options, save_pos)
 
     ! given a discretisation type calculate the face value for a field
@@ -74,14 +73,13 @@ contains
     type(csr_matrix), intent(in) :: upwind_values, old_upwind_values
     logical, intent(in) :: inflow
     real, dimension(:), intent(in) :: cfl_ele
-    real, intent(in) :: udotn
     type(cv_options_type), intent(in) :: cv_options ! a wrapper type to pass in all the options for control volumes
     integer, intent(inout), optional :: save_pos
 
     ! local memory:
     real :: upwind_val, donor_val, downwind_val
     real :: old_upwind_val, old_donor_val, old_downwind_val
-    real :: cfl_donor, hdc
+    real :: cfl_donor
     real :: potential, old_potential
     real :: target_upwind, old_target_upwind, target_downwind, old_target_downwind
     real :: income=0.0

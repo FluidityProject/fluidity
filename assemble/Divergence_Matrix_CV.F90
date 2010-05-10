@@ -582,7 +582,6 @@ contains
                                          dens_ele, olddens_ele, &
                                          dens_upwind, olddens_upwind, &
                                          inflow, cfl_ele, &
-                                         udotn, &
                                          dens_options)
 
                   dens_theta_val=theta_val(iloc, oloc, &
@@ -956,12 +955,14 @@ contains
       call zero(summatvfrac_bc)
       dummyvfrac_bc_type=0
 
-      vfrac_option_path = ""
+      vfrac_option_path = " "
       do i = 1, size(state)
 
         matvfrac=>extract_scalar_field(state(i), "MaterialVolumeFraction", stat=vstat)
         if(vstat==0) then
           if((.not.aliased(matvfrac)).and.(.not.have_option(trim(matvfrac%option_path)//"/diagnostic"))) then
+
+            vfrac_option_path = trim(matvfrac%option_path)
 
             if(need_upwind_values(trim(matvfrac%option_path))) then
               oldmatvfrac=>extract_scalar_field(state(i), "OldMaterialVolumeFraction")
@@ -971,9 +972,6 @@ contains
               summatvfrac_upwind%val=summatvfrac_upwind%val+matvfrac_upwind%val
 
               sumoldmatvfrac_upwind%val=sumoldmatvfrac_upwind%val+oldmatvfrac_upwind%val
-
-              vfrac_option_path = trim(matvfrac%option_path)
-
             end if
 
             allocate(matvfrac_bc_type(surface_element_count(matvfrac)))
@@ -1061,9 +1059,13 @@ contains
 
           end if
 
-          ! get all the relevent options for material density
+          ! get all the relevent options for material volume fraction
           ! handily wrapped in a new type...
-          matvfrac_options = get_cv_options(vfrac_option_path, matvfrac%mesh%shape%numbering%family)
+          if((size(state)>1)) then
+            ! only possible if we have more than 1 state (since with 1 state the volume fraction won't
+            ! be prognostic and won't have the relevant options)
+            matvfrac_options = get_cv_options(vfrac_option_path, matvfrac%mesh%shape%numbering%family)
+          end if
 
           ! get the normalisation field (if we need one)
           if(norm_stat==0) then
@@ -1125,15 +1127,18 @@ contains
 
                      case default
 
-
-                        call evaluate_face_val(matvfrac_face_val, oldmatvfrac_face_val, & 
-                                                iloc, oloc, ggi, x_nodes, &
-                                                p_cvshape, &
-                                                matvfrac_ele, oldmatvfrac_ele, &
-                                                matvfrac_upwind, oldmatvfrac_upwind, &
-                                                inflow, cfl_ele, &
-                                                udotn, &
-                                                matvfrac_options)
+                        if(size(state)>1) then
+                          call evaluate_face_val(matvfrac_face_val, oldmatvfrac_face_val, & 
+                                                  iloc, oloc, ggi, x_nodes, &
+                                                  p_cvshape, &
+                                                  matvfrac_ele, oldmatvfrac_ele, &
+                                                  matvfrac_upwind, oldmatvfrac_upwind, &
+                                                  inflow, cfl_ele, &
+                                                  matvfrac_options)
+                        else
+                          matvfrac_face_val = matvfrac_ele(iloc)
+                          oldmatvfrac_face_val = oldmatvfrac_ele(iloc)
+                        end if
 
                       end select
 
@@ -1143,16 +1148,19 @@ contains
                                              matdens_ele, oldmatdens_ele, &
                                              matdens_upwind, oldmatdens_upwind, &
                                              inflow, cfl_ele, &
-                                             udotn, &
                                              matdens_options)
 
-                      matvfrac_theta_val=theta_val(iloc, oloc, &
-                                                    matvfrac_face_val, &
-                                                    oldmatvfrac_face_val, &
-                                                    matvfrac_options%theta, dt, udotn, &
-                                                    x_ele, matvfrac_options%limit_theta, &
-                                                    matvfrac_ele, oldmatvfrac_ele)
-
+                      if(size(state)>1) then
+                        matvfrac_theta_val=theta_val(iloc, oloc, &
+                                                      matvfrac_face_val, &
+                                                      oldmatvfrac_face_val, &
+                                                      matvfrac_options%theta, dt, udotn, &
+                                                      x_ele, matvfrac_options%limit_theta, &
+                                                      matvfrac_ele, oldmatvfrac_ele)
+                      else
+                        matvfrac_theta_val = matvfrac_face_val
+                      end if
+                      
                       matdens_theta_val=theta_val(iloc, oloc, &
                                                     matdens_face_val, &
                                                     oldmatdens_face_val, &

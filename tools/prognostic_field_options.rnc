@@ -801,30 +801,7 @@ scalar_equation_choice =
          ## Works for all discretisation types.
          element equation { 
             attribute name { "AdvectionDiffusion" },
-            (
-               ## ONLY WORKS WITH CONTROL VOLUMES 
-               ##
-               ## Select density to use in the Advection Diffusion Equation
-               ## Use the MaterialDensity - useful for multimaterial simulations
-               ## Clearly this requires a MaterialDensity field to be present
-               element density {
-                  attribute name { "MaterialDensity" }
-               }|
-               ## ONLY WORKS WITH CONTROL VOLUMES 
-               ##
-               ## Select density to use in the Advection Diffusion Equation
-               ## Use the bulk Density
-               ## Clearly this requires a Density field to be present
-               element density {
-                  attribute name { "Density" }
-               }|
-               ## ONLY WORKS WITH CONTROL VOLUMES 
-               ##
-               ## Select density to use in the Advection Diffusion Equation
-               element density {
-                  attribute name { string }
-               }
-            )?  
+            empty
          }|
          ## ***UNDER TESTING***
          ##

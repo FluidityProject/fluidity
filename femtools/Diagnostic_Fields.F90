@@ -2281,7 +2281,6 @@ contains
                                              matdens_ele, oldmatdens_ele, &
                                              matdens_upwind, oldmatdens_upwind, &
                                              inflow, cfl_ele, &
-                                             udotn, &
                                              matdens_options)
 
                   end select

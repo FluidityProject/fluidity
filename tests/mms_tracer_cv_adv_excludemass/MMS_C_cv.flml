@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">MMS_C_cv</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="MMS_C">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">5</integer_value>
+      </degree>
+      <controlvolume_surface_degree>
+        <integer_value rank="0">5</integer_value>
+      </controlvolume_surface_degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period replaces="TIMDUM">
+      <real_value rank="0">1000.0</real_value>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">0.0020631993150867218</real_value>
+      <comment>0.0020631993150867218 gives a cv cfl number of 0.5</comment>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">5.0</real_value>
+    </finish_time>
+    <steady_state>
+      <tolerance replaces="STEDER">
+        <real_value rank="0">1.E-10</real_value>
+        <infinity_norm/>
+      </tolerance>
+      <acceleration_form/>
+    </steady_state>
+  </timestepping>
+  <material_phase name="Burgers">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(XX, t):
+   from math import sin,cos
+   x = XX[0];
+   y = XX[1];
+   x2 = x*x;
+   y2 = y*y;
+   u = sin(5*(x2+y2));
+   v = cos(3*(x2-y2));
+   return (u, v)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="NumericalSolution" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <control_volumes>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
+            <diffusion_scheme name="BassiRebay"/>
+          </control_volumes>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+            <real_value rank="0">1.0</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.E-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">350</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="sides">
+          <surface_ids>
+            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <python>
+              <string_value lines="20" type="python">def val(XX, t):
+   from math import sin,cos,sqrt
+   omega = 0.0;
+   x = XX[0];
+   y = XX[1];
+   x4 = x*x*x*x;
+   y2 = y*y;
+   u = sin(25*x*y+omega*t)-2*y/(sqrt(x));
+   return u</string_value>
+            </python>
+          </type>
+        </boundary_conditions>
+        <scalar_field replaces="ZSOT" name="Source" rank="0">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="python">def val(XX, t):
+   from math import sin,cos,sqrt
+   omega = 0.0;
+   x = XX[0];
+   y = XX[1];
+   x2 = x*x;
+   y2 = y*y;
+   xp5 = sqrt(x)
+   x1p5 = xp5*x
+   S = (25*y*cos(25*x*y) + 1.0*y/x1p5)*sin(5*(y2 + x2)) + (25*x*cos(25*x*y) - 2/xp5)*cos(3*(x2 - y2));
+   return S</string_value>
+              </python>
+            </value>
+            <output/>
+            <stat/>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </scalar_field>
+        <output>
+          <include_previous_time_step/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="AnalyticalSolution" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(XX, t):
+   from math import sin,cos,sqrt
+   omega = 0.0;
+   x = XX[0];
+   y = XX[1];
+   u = sin(25*x*y + omega*t) - 2*y/(sqrt(x));
+   return u</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="AbsoluteDifference" rank="0">
+      <diagnostic field_name_b="NumericalSolution" field_name_a="AnalyticalSolution">
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+</fluidity_options>

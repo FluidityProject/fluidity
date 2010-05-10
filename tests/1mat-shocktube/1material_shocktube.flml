@@ -149,6 +149,9 @@
           <control_volumes>
             <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 0,1" name="FirstOrderUpwind"/>
           </control_volumes>
+          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">

@@ -727,12 +727,6 @@ approximation</a:documentation>
                         </element>
                       </optional>
                     </element>
-                    <element name="python_state_function">
-                      <a:documentation>UNDER DEVELOPMENT - DO NOT USE THIS !!!
-
-Python defined equation of state</a:documentation>
-                      <ref name="scalar_python_diagnostic_algorithm"/>
-                    </element>
                   </choice>
                 </element>
                 <element name="compressible">
@@ -2612,6 +2606,16 @@ parts.</a:documentation>
           <ref name="spatial_control_volume_options"/>
         </element>
       </choice>
+      <element name="conservative_advection">
+        <a:documentation>Conservative discretisation of field advection equation
+ TBETA=1. -- conservative (divergence form)
+ TBETA=0. -- non-conservative
+ 0. &lt; TBETA &lt; 1.</a:documentation>
+        <attribute name="replaces">
+          <value>TBETA, DEFALT (TBETA = 0.0)</value>
+        </attribute>
+        <ref name="real"/>
+      </element>
     </element>
     <element name="temporal_discretisation">
       <element name="theta">

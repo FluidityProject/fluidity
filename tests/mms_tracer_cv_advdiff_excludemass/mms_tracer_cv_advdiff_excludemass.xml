@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>p1cv advection-diffusion equation spatial convergence test using p1cvp1cv bassi-rebay diffusion</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; mv Burgers__NumericalSolution.convergence MMS_A_cv.convergence; fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; mv Burgers__NumericalSolution.convergence MMS_B_cv.convergence; fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; mv Burgers__NumericalSolution.convergence MMS_C_cv.convergence; fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; mv Burgers__NumericalSolution.convergence MMS_D_cv.convergence; fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log; mv Burgers__NumericalSolution.convergence MMS_E_cv.convergence</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+a_error = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print a_error
+print b_error
+
+print a_error_inf
+print b_error_inf
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+ab_convergence_gal_stat = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+
+b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print b_error
+print c_error
+
+print b_error_inf
+print c_error_inf
+
+bc_ratio = b_error / c_error
+bc_ratio_inf = b_error_inf / c_error_inf
+bc_convergence_gal_stat = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+d_error = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+
+c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+d_error_inf = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print c_error
+print d_error
+
+print c_error_inf
+print d_error_inf
+
+cd_ratio = c_error / d_error
+cd_ratio_inf = c_error_inf / d_error_inf
+cd_convergence_gal_stat = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
+    </variable>
+    <variable name="de_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+d_error = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+e_error = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+
+d_error_inf = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+e_error_inf = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print d_error
+print e_error
+
+print d_error_inf
+print e_error_inf
+
+de_ratio = d_error / e_error
+de_ratio_inf = d_error_inf / e_error_inf
+de_convergence_gal_stat = [log(de_ratio, 2), log(de_ratio_inf, 2)]
+    </variable>
+<!--    <variable name="ef_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+e_error = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+f_error = stat("MMS_F_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+
+e_error_inf = stat("MMS_E_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+f_error_inf = stat("MMS_F_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print e_error
+print f_error
+
+print e_error_inf
+print f_error_inf
+
+ef_ratio = e_error / f_error
+ef_ratio_inf = e_error_inf / f_error_inf
+ef_convergence_gal_stat = [log(ef_ratio, 2), log(ef_ratio_inf, 2)]
+    </variable>-->
+    <variable name="a_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+a_finish_time = stat("MMS_A_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="b_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+b_finish_time = stat("MMS_B_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="c_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+c_finish_time = stat("MMS_C_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="d_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+d_finish_time = stat("MMS_D_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="e_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+e_finish_time = stat("MMS_E_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+<!--    <variable name="f_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+f_finish_time = stat("MMS_F_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>-->
+    <variable name="a_max_adv_it" language="python">
+from fluidity_tools import stat_parser as stat
+a_max_adv_it = max(stat("MMS_A_cv.convergence")["AdvectionIteration"]["value"])
+    </variable>
+    <variable name="b_max_adv_it" language="python">
+from fluidity_tools import stat_parser as stat
+b_max_adv_it = max(stat("MMS_B_cv.convergence")["AdvectionIteration"]["value"])
+    </variable>
+    <variable name="c_max_adv_it" language="python">
+from fluidity_tools import stat_parser as stat
+c_max_adv_it = max(stat("MMS_C_cv.convergence")["AdvectionIteration"]["value"])
+    </variable>
+    <variable name="d_max_adv_it" language="python">
+from fluidity_tools import stat_parser as stat
+d_max_adv_it = max(stat("MMS_D_cv.convergence")["AdvectionIteration"]["value"])
+    </variable>
+    <variable name="e_max_adv_it" language="python">
+from fluidity_tools import stat_parser as stat
+e_max_adv_it = max(stat("MMS_E_cv.convergence")["AdvectionIteration"]["value"])
+    </variable>
+<!--    <variable name="f_max_adv_it" language="python">
+from fluidity_tools import stat_parser as stat
+f_max_adv_it = max(stat("MMS_F_cv.convergence")["AdvectionIteration"]["value"])
+    </variable>-->
+  </variables>
+  <pass_tests>
+    <test name="ab_convergence_stat: L2 order in [1.8,2.2]" language="python">
+assert(abs(ab_convergence_gal_stat[0]-2.0) &lt; 0.2)
+    </test>
+    <test name="bc_convergence_stat: L2 order in [1.8,2.2]" language="python">
+assert(abs(bc_convergence_gal_stat[0]-2.0) &lt; 0.2)
+    </test>
+    <test name="cd_convergence_stat: L2 order in [1.8,2.2]" language="python">
+assert(abs(cd_convergence_gal_stat[0]-2.0) &lt; 0.2)
+    </test>
+    <test name="de_convergence_stat: L2 order in [1.8,2.2]" language="python">
+assert(abs(de_convergence_gal_stat[0]-2.0) &lt; 0.2)
+    </test>
+<!--    <test name="ef_convergence_stat: L2 order in [1.8,2.2]" language="python">
+assert(abs(ef_convergence_gal_stat[0]-2.0) &lt; 0.2)
+    </test>-->
+    <test name="checking A finished in less than 1.0" language="python">
+assert(a_finish_time-1.0 &lt; 1.E-10)
+    </test>
+    <test name="checking B finished in less than 1.0" language="python">
+assert(b_finish_time-1.0 &lt; 1.E-10)
+    </test>
+    <test name="checking C finished in less than 1.0" language="python">
+assert(c_finish_time-1.0 &lt; 1.E-10)
+    </test>
+    <test name="checking D finished in less than 1.0" language="python">
+assert(d_finish_time-1.0 &lt; 1.E-10)
+    </test>
+    <test name="checking E finished in less than 1.0" language="python">
+assert(e_finish_time-1.0 &lt; 1.E-10)
+    </test>
+<!--    <test name="checking F finished in less than 1.0" language="python">
+assert(f_finish_time-1.0 &lt; 1.E-10)
+    </test>-->
+    <test name="checking A performed less than 20 advection iterations per timestep" language="python">
+assert(a_max_adv_it &lt; 20) 
+    </test>
+    <test name="checking B performed less than 20 advection iterations per timestep" language="python">
+assert(b_max_adv_it &lt; 20)
+    </test>
+    <test name="checking C performed less than 20 advection iterations per timestep" language="python">
+assert(c_max_adv_it &lt; 20)
+    </test>
+    <test name="checking D performed less than 20 advection iterations per timestep" language="python">
+assert(d_max_adv_it &lt; 20)
+    </test>
+    <test name="checking E performed less than 20 advection iterations per timestep" language="python">
+assert(e_max_adv_it &lt; 20)
+    </test>
+<!--    <test name="checking F performed less than 20 advection iterations per timestep" language="python">
+assert(f_max_adv_it &lt; 20)
+    </test>-->
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
