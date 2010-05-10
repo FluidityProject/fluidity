@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>turbine_flux_dg_2d</name>
+  <owner userid="sf1409"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity turbine_flux_dg_2d.flml; fluidity onedomain_2d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ElapsedTime_Turbine" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_flux_dg_2d.detectors")
+ElapsedTime_Turbine=s["ElapsedTime"]["value"]</variable>
+    <variable name="DetectorArray_Turbine" language="python">from fluidity_tools import stat_parser
+s = stat_parser("turbine_flux_dg_2d.detectors")
+DetectorArray_Turbine = s["water"]["Velocity"]</variable>
+    <variable name="ElapsedTime_Onedomain" language="python">from fluidity_tools import stat_parser
+s = stat_parser("onedomain_2d.detectors")
+ElapsedTime_Onedomain=s["ElapsedTime"]["value"]</variable>
+    <variable name="DetectorArray_Onedomain" language="python">from fluidity_tools import stat_parser
+s = stat_parser("onedomain_2d.detectors")
+DetectorArray_Onedomain = s["water"]["Velocity"]</variable>
+    <variable name="Detectors_Turbine" language="python">from fluidity_tools import stat_parser
+Detectors_Turbine = stat_parser("turbine_flux_dg_2d.detectors")</variable>
+    <variable name="Detectors_Onedomain" language="python">from fluidity_tools import stat_parser
+Detectors_Onedomain = stat_parser("onedomain_2d.detectors")</variable>
+  </variables>
+  <pass_tests>
+    <test name="ElapsedTimeComparison" language="python">assert(len(ElapsedTime_Turbine)==len(ElapsedTime_Onedomain))
+assert(all(ElapsedTime_Turbine-ElapsedTime_Onedomain==0.0))</test>
+    <test name="DetectorArray_Comparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
+maxerr=-1.0
+maxerrkey=""
+tol=1e-4
+for key in DetectorArray_Turbine.iterkeys():
+  for i in range(0,len(DetectorArray_Onedomain[key])):
+    err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i]
+    if max(err)&gt;maxerr:
+       maxerr=max(err)
+       maxerrkey=key
+print "Maximal relative error at position", 
+print Detectors_Turbine[maxerrkey]["position"][0][0], 
+print "x",
+print Detectors_Turbine[maxerrkey]["position"][1][0],
+print ": ", maxerr
+assert(maxerr&lt;tol)<comment>This calculates the absolute error over all timesteps.</comment></test>
+    <test name="DetectorPosition_Comparison" language="python">for key in Detectors_Turbine.iterkeys():
+  if "det_" in key:
+      for i in range(0,len(Detectors_Turbine[key]["position"])):
+         err=abs(Detectors_Turbine[key]["position"][i]-Detectors_Onedomain[key]["position"][i])
+         assert(max(err)==0)</test>
+    <test name="DetectorArray_RelativeComparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
+maxerr=-1.0
+maxerrkey=""
+tol=0.015
+lind=len(Detectors_Onedomain["dt"]["value"])-1
+
+for key in DetectorArray_Turbine.iterkeys():
+  for i in range(0,len(DetectorArray_Onedomain[key])):
+    err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i][lind]/DetectorArray_Onedomain[key][i][lind]
+    if err&gt;maxerr:
+       maxerr=err
+       maxerrkey=key
+print "Maximal relative error at position ", 
+print Detectors_Turbine[maxerrkey]["position"][0][lind], 
+print "x",
+print Detectors_Turbine[maxerrkey]["position"][1][lind],
+print ": ", maxerr,
+print " (Detector ", maxerrkey, ")"
+assert(maxerr&lt;tol)<comment>This tests the relative error at the last timestep!</comment></test>
+  </pass_tests>
+</testproblem>
