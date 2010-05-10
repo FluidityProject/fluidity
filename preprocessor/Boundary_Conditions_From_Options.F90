@@ -1596,7 +1596,7 @@ contains
     type(scalar_field) :: surface_field_normal
     type(scalar_field), pointer :: fs_field
 
-    integer :: notur, i, j,ele
+    integer :: notur, i, j,ele, stat
     character(len=FIELD_NAME_LEN) :: turbine_path
     character(len=FIELD_NAME_LEN), dimension(2) ::  bc_name
     character(len=PYTHON_FUNC_LEN) :: func
@@ -1606,11 +1606,14 @@ contains
     real :: flux
     integer, dimension(:), pointer :: surface_element_list
     real :: time
+    logical :: have_fs
     ewrite(1,*) "In dirichlet turbine model"
 
+    have_fs=.False.
     ! We made sure in populate_boundary_conditions that FreeSurface exists.
     vel_field => extract_vector_field(state, "Velocity")
-    fs_field => extract_scalar_field(state, "FreeSurface")
+    fs_field => extract_scalar_field(state, "FreeSurface", stat)
+    if(stat==0) have_fs = .True.
     coord_field => extract_vector_field(state, "Coordinate")
     allocate(local_coord(coord_field%dim+1))
 
@@ -1619,6 +1622,8 @@ contains
     do i=0, notur-1
        turbine_path="/turbine_model/turbine["//int2str(i)//"]"
        if (.not. have_option(trim(turbine_path)//"/dirichlet")) cycle
+       ! We need a FreeSurface field for the dirchlet turbine model.
+       if (.not. have_fs) FLExit("Turbine error: No FreeSurface field found.")
        do j=1,2
          call get_option(trim(turbine_path)//"/dirichlet/boundary_condition_name_"//int2str(j)//"/name", bc_name(j))
        end do
@@ -1636,7 +1641,7 @@ contains
              call picker_inquire(coord_field, picker(1), picker(2), picker(3), ele, local_coord, global=.true.)
          end if
          if (ele<0) then
-             FLAbort("The point defined in "//trim(turbine_path)//"/free_surface_point_"//int2str(j)//" is not located in a mesh element")
+             FLExit("Turbine error: The point defined in "//trim(turbine_path)//"/free_surface_point_"//int2str(j)//" is not located in a mesh element")
          end if
          fs_val(j) = eval_field_scalar(ele, fs_field, local_coord)
        end do
