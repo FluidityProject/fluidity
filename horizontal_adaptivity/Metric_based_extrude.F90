@@ -409,22 +409,21 @@ module hadapt_metric_based_extrude
 
     integer :: elements
     integer :: node
-    integer :: back_node
-    real :: step
-    real :: current_pos
-    real :: depth
 
     type(mesh_type) :: mesh
-    ! to prevent infinitesimally thin bottom layer if sizing function
-    ! is an integer mulitple of total depth, the bottom layer needs
-    ! to have at least this fraction of the layer depth above it:
-    real, parameter:: MIN_BOTTOM_LAYER_FRAC=1e-3
+
+    real, dimension(:), allocatable :: metric_step_length
+    real, dimension(element_count(back_mesh)) :: desired_ele_lengths
+    real, dimension(element_count(back_mesh)) :: metric_ele_lengths
+    integer :: old_node_counter, new_node_counter
+    real :: old_metric_back, old_metric_front, new_metric_back, new_metric_front
+    real :: new_node_position, real_step_length
     
     logical :: l_preserve_regions
     integer, dimension(:), allocatable :: nodes_per_region, tmp_region_bdy_nodes, region_bdy_nodes
     integer, dimension(:), allocatable :: tmp_region_ids, region_ids
     integer :: ele, ele_2, ni, no_region_bdys, face, region_bdy
-    integer :: total_nodes, node_counter, tmp_size
+    integer :: total_nodes, tmp_size
     integer, dimension(:), pointer :: neigh
     integer, dimension(1) :: node_array
     
@@ -536,7 +535,7 @@ module hadapt_metric_based_extrude
       no_region_bdys = 1
       allocate(region_bdy_nodes(0:no_region_bdys))
       region_bdy_nodes(0) = 1 ! include the first node
-      region_bdy_nodes(no_region_bdys) = node_count(back_mesh)
+      region_bdy_nodes(no_region_bdys) = node_count(back_mesh) ! include the last node
     end if
     
     ! First we need to see how many nodes we will have.
@@ -548,34 +547,24 @@ module hadapt_metric_based_extrude
     nodes_per_region = 0
     
     ! the first node
-    nodes_per_region(0) = 1 
-    ! and it's position
-    current_pos = node_val(back_mesh, 1, region_bdy_nodes(0)) 
+    nodes_per_region(0) = 1
+    
+    allocate(metric_step_length(no_region_bdys))
+    metric_step_length = 1.0
 
-    step = node_val(sizing, region_bdy_nodes(0))
-    back_node = 2
-        
     do region_bdy = 1, no_region_bdys
-      depth = node_val(back_mesh, 1, region_bdy_nodes(region_bdy))
-      do 
-        current_pos = current_pos - step
-
-        if (current_pos <= depth + MIN_BOTTOM_LAYER_FRAC*step) then
-          exit
-        end if
-        nodes_per_region(region_bdy) = nodes_per_region(region_bdy) + 1
-
-        do while (current_pos < node_val(back_mesh, 1, back_node))
-          back_node = back_node + 1
-        end do
-        step = compute_step(current_pos, back_mesh, back_node, sizing)
+      do node = region_bdy_nodes(region_bdy-1), region_bdy_nodes(region_bdy)-1
+        ! project the sizing function to an array over the old elements
+        desired_ele_lengths(node) = 0.5*(node_val(sizing, node)+node_val(sizing, node+1))
+        ! translate the current element lengths into metric space by dividing by the desired elemental length
+        metric_ele_lengths(node) = (abs(node_val(back_mesh, 1, node)-node_val(back_mesh, 1, node+1))) &
+                                    /desired_ele_lengths(node)
       end do
-      
-      ! include the bottom node in this region (but not the top node)
-      nodes_per_region(region_bdy) = nodes_per_region(region_bdy) + 1
-      current_pos = depth
-      step = node_val(sizing, region_bdy_nodes(region_bdy))
-      
+      ! work out the number of nodes in this region by summing the metric lengths (then rounding up to ensure an integer value)
+      nodes_per_region(region_bdy) = ceiling(sum(metric_ele_lengths(region_bdy_nodes(region_bdy-1):(region_bdy_nodes(region_bdy)-1))))
+      ! work out the step length in metric space (ideal is 1 but this will be less than that due to rounding up on previous line)
+      metric_step_length(region_bdy) = (sum(metric_ele_lengths(region_bdy_nodes(region_bdy-1):(region_bdy_nodes(region_bdy)-1)))) &
+                                        /nodes_per_region(region_bdy)
     end do
 
     total_nodes = sum(nodes_per_region)
@@ -588,67 +577,99 @@ module hadapt_metric_based_extrude
     call allocate(z_mesh, 1, mesh, "AdaptedZMesh")
     call set(z_mesh, (/huge(0.0)/)) ! a bug catcher
     call deallocate(mesh)
-
-    step = node_val(sizing, region_bdy_nodes(0))
-    back_node = 2
+    
     call set(z_mesh, region_bdy_nodes(0), node_val(back_mesh, 1, region_bdy_nodes(0)))
 
     do region_bdy = 1, no_region_bdys
-      node_counter = sum(nodes_per_region(0:region_bdy-1))
+      ! the node at the start of this region in the old mesh
+      old_node_counter = region_bdy_nodes(region_bdy-1)
+      ! the front and back positions of the next old element 
+      ! (in metric space and relative to the start of this region)
+      old_metric_back = 0.0
+      old_metric_front = metric_ele_lengths(old_node_counter)
 
-      do node=1,nodes_per_region(region_bdy)-1
-        node_counter = node_counter + 1
+      ! the node at the start of this region in the new mesh
+      new_node_counter = sum(nodes_per_region(0:region_bdy-1))
+      
+      ! the last new node position (in real space at the start of this region)
+      new_node_position = node_val(back_mesh, 1, old_node_counter)
+      
+      ! the front and back positions of the next new element 
+      ! (in metric space and relative to the start of this region)
+      new_metric_back = 0.0
+      new_metric_front = metric_step_length(region_bdy)
+      
+      do node = 1, nodes_per_region(region_bdy)-1
+        new_node_counter = new_node_counter + 1
+        
+        real_step_length = 0.0
         
         if(l_preserve_regions) then
           ! here we assume that the elements are also ordered
           ! this subroutine doesn't take care of the node to element list
           ! so anything that does will have to reorder the region_id list as
           ! well if it doesn't have the same assumption
-          z_mesh%mesh%region_ids(node_counter-1) = region_ids(region_bdy)
+          z_mesh%mesh%region_ids(new_node_counter-1) = region_ids(region_bdy)
         end if
         
-        call set(z_mesh, node_counter, (/node_val(z_mesh, 1, node_counter-1) - step/))
+        do while (old_metric_front < new_metric_front)
+          ! add an increment of real space to the position 
+          ! (this equals the desired edge length times the metric step length)
+          if((old_metric_front-old_metric_back)>(old_metric_front-new_metric_back)) then
+            ! in this case the new element straddles an element boundary in the old mesh
+            real_step_length = real_step_length + &
+                              desired_ele_lengths(old_node_counter)*(old_metric_front-new_metric_back)
+          else
+            ! in this case the old element falls entirely within an element of the new mesh
+            real_step_length = real_step_length + &
+                              desired_ele_lengths(old_node_counter)*(old_metric_front-old_metric_back)
+          end if
 
-        ! Now we need to compute the next step:
-        do while (node_val(z_mesh, 1, node_counter) < node_val(back_mesh, 1, back_node))
-          back_node = back_node + 1
+          ! move the back of the old element to the current position of the front
+          old_metric_back = old_metric_front
+          ! and then move the front on to the next element (i.e. step through the old elements)
+          old_node_counter = old_node_counter + 1
+          old_metric_front = old_metric_front + metric_ele_lengths(old_node_counter)
         end do
-        step = compute_step(node_val(z_mesh, 1, node_counter), back_mesh, back_node, sizing)
-      end do
+        
+        ! so now the old_metric_front is ahead of the new_metric_front, we need to know by how much
+        ! so we can add in that contribution to the new element edge length
+        if((new_metric_front-new_metric_back)>(new_metric_front-old_metric_back)) then
+          ! in this case the new element straddles an element boundary in the old mesh
+          real_step_length = real_step_length + &
+                             desired_ele_lengths(old_node_counter)*(new_metric_front-old_metric_back)
+        else
+          ! in this case the new element falls entirely within an old element
+          real_step_length = real_step_length + &
+                             desired_ele_lengths(old_node_counter)*(new_metric_front-new_metric_back)
+        end if
+
+        new_node_position = new_node_position - real_step_length
+        
+        call set(z_mesh, new_node_counter, (/new_node_position/))
+        
+        new_metric_back = new_metric_front
+        new_metric_front = new_metric_front+metric_step_length(region_bdy)
       
+      end do
+
       ! include the bottom node in this depth (but not the top node)
-      node_counter = node_counter + 1
-      call set(z_mesh, node_counter, (/node_val(back_mesh, 1, region_bdy_nodes(region_bdy))/))
+      new_node_counter = new_node_counter + 1
+      call set(z_mesh, new_node_counter, (/node_val(back_mesh, 1, region_bdy_nodes(region_bdy))/))
       if(l_preserve_regions) then
         ! here we assume that the elements are also ordered
         ! this subroutine doesn't take care of the node to element list
         ! so anything that does will have to reorder the region_id list as
         ! well if it doesn't have the same assumption
-        z_mesh%mesh%region_ids(node_counter-1) = region_ids(region_bdy)
+        z_mesh%mesh%region_ids(new_node_counter-1) = region_ids(region_bdy)
       end if
-      step = node_val(sizing, region_bdy_nodes(region_bdy))
-      assert(node_val(z_mesh, 1, node_counter-1) > node_val(z_mesh, 1, node_counter))
+
     end do
 
     if(l_preserve_regions) then
       ewrite_minmax(z_mesh%val(1)%ptr)
       ewrite_minmax(z_mesh%mesh%region_ids)
     end if
-
-    contains
-      function compute_step(current_pos, back_mesh, back_node, sizing) result(step)
-        real, intent(in) :: current_pos
-        type(vector_field), intent(in) :: back_mesh
-        integer, intent(in) :: back_node
-        type(scalar_field), intent(in) :: sizing
-
-        real :: step
-        real :: local_coord
-        ! Compute the local coordinate of the point we're currently at in back_ele.
-        local_coord = (current_pos - node_val(back_mesh, 1, back_node - 1)) / &
-                      (node_val(back_mesh, 1, back_node) - node_val(back_mesh, 1, back_node - 1))
-        step = node_val(sizing, back_node - 1) + (node_val(sizing, back_node) - node_val(sizing, back_node - 1)) * local_coord
-      end function compute_step
 
   end subroutine adapt_1d
 
