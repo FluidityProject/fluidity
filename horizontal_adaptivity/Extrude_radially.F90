@@ -47,6 +47,8 @@ module hadapt_extrude_radially
     
     real, dimension(1) :: tmp_depth
     real, dimension(mesh_dim(shell_mesh)+1, 1) :: tmp_pos
+    real, dimension(:,:), allocatable :: tmp_pos_vector
+    real, dimension(:), allocatable :: depth_vector
 
     logical :: have_min_depth=.false.
     real :: min_depth
@@ -140,6 +142,21 @@ module hadapt_extrude_radially
           FLAbort("Unknown way of specifying sizing function in mesh extrusion")
         end if       
       end if
+
+      if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(r)//&
+                                         ']/bottom_depth/from_map/')) then
+
+        allocate (tmp_pos_vector(mesh_dim(shell_mesh)+1,size(r_meshes)), depth_vector(size(r_meshes)))
+
+        do column=1, size(r_meshes)
+          tmp_pos_vector(:,column) = node_val(shell_mesh, column)
+        end do
+
+        call set_from_map(trim(file_name), tmp_pos_vector(1,:), tmp_pos_vector(2,:), tmp_pos_vector(3,:), depth_vector, size(r_meshes))
+
+        deallocate (tmp_pos_vector)
+
+      end if
       
       ! create a 1d radial mesh under each surface node
       do column=1, size(r_meshes)
@@ -172,10 +189,9 @@ module hadapt_extrude_radially
             depth = tmp_depth(1)
           else if  (have_option(trim(option_path)//'/from_mesh/extrude/regions['//&
                                       int2str(r)//']/bottom_depth/from_map')) then
-            call set_from_map(trim(file_name), tmp_pos(1,1), tmp_pos(2,1), tmp_pos(3,1), tmp_depth)
-            depth = tmp_depth(1)
+            depth = depth_vector(column) 
             if (have_min_depth) then
-              if (depth > min_depth) depth=min_depth
+              if (depth < min_depth) depth=min_depth
             end if
           else
             FLAbort("Error with options path")
@@ -200,6 +216,13 @@ module hadapt_extrude_radially
         end if
       end if
     end do
+
+    if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(r)//&
+                                         ']/bottom_depth/from_map/')) then
+
+      deallocate (depth_vector)
+
+    end if
 
 #ifdef DDEBUG
     if(apply_region_ids) then
