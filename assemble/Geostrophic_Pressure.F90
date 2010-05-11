@@ -888,6 +888,7 @@ contains
     type(element_type), pointer :: p_shape, u_shape
     
     type(scalar_field) :: dummy_p
+    type(scalar_field), pointer :: masslump
     type(state_type) :: lstate
     type(vector_field) :: dummy_u
     type(vector_field), pointer :: positions
@@ -933,6 +934,9 @@ contains
       call insert(lstate, dummy_u, "Velocity")
       call deallocate(dummy_p)
       call deallocate(dummy_u)
+      
+      masslump => get_lumped_mass(state, dummy_p%mesh)
+      call insert(lstate, masslump, trim(dummy_p%mesh%name) // "LumpedMass")
       
       call assemble_kmk_matrix(lstate, matrices%u_mesh, positions, theta_pg = 1.0)    
       call add_kmk_matrix(lstate, matrices%cmc_m)

@@ -187,22 +187,29 @@ contains
     type(state_type), intent(in) :: state
     type(vector_field), intent(inout) :: v_field
     
-    integer :: i
+    integer :: i, stat
     real :: gravity_magnitude
     type(scalar_field) :: buoyancy_density_remap
     type(scalar_field), pointer :: buoyancy_density
     type(vector_field), pointer :: gravity
   
     ewrite(1, *) "In calculate_buoyancy"
-  
-    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
-    ewrite(2, *) "Gravity magnitude = ", gravity_magnitude
-    buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity")
+    
+    buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity", stat = stat)
+    if(stat /= 0) then
+      ewrite(0, *) "Warning: Cannot calculate buoyancy without VelocityBuoyancyDensity field"
+      call zero(v_field)
+      ewrite(1, *) "Exiting calculate_buoyancy"
+      return
+    end if    
     ewrite_minmax(buoyancy_density%val)
+    
     gravity => extract_vector_field(state, "GravityDirection")
     do i = 1, gravity%dim
       ewrite_minmax(gravity%val(i)%ptr)
-    end do
+    end do  
+    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+    ewrite(2, *) "Gravity magnitude = ", gravity_magnitude
     
     if(.not. v_field%mesh == buoyancy_density%mesh) then
       ewrite(-1, *) "VelocityBuoyancyDensity mesh: " // trim(buoyancy_density%mesh%name)
