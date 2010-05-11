@@ -43,11 +43,11 @@ subroutine test_metric_based_extrusion
   call vtk_write_fields("data/metric_based_extrusion", 0, adapted_mesh, adapted_mesh%mesh)
 
   ! .. and check some statistics
-  fail = (node_count(adapted_mesh) /= 7)
-  call report_test("[adapted mesh node count]", fail, .false., "Should be 7")
+  fail = (node_count(adapted_mesh) /= 5)
+  call report_test("[adapted mesh node count]", fail, .false., "Should be 5")
 
-  fail = (ele_count(adapted_mesh) /= 5)
-  call report_test("[adapted mesh ele count]", fail, .false., "Should be 5")
+  fail = (ele_count(adapted_mesh) /= 3)
+  call report_test("[adapted mesh ele count]", fail, .false., "Should be 3")
   
 end subroutine test_metric_based_extrusion
 
