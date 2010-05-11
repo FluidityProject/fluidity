@@ -932,11 +932,12 @@ contains
       call insert(lstate, positions, "Coordinate")
       call insert(lstate, dummy_p,  "Pressure")
       call insert(lstate, dummy_u, "Velocity")
-      call deallocate(dummy_p)
-      call deallocate(dummy_u)
       
       masslump => get_lumped_mass(state, dummy_p%mesh)
       call insert(lstate, masslump, trim(dummy_p%mesh%name) // "LumpedMass")
+      
+      call deallocate(dummy_p)
+      call deallocate(dummy_u)
       
       call assemble_kmk_matrix(lstate, matrices%u_mesh, positions, theta_pg = 1.0)    
       call add_kmk_matrix(lstate, matrices%cmc_m)
