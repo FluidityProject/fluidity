@@ -10104,13 +10104,12 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for utInit in -ludunits" >&5
-$as_echo_n "checking for utInit in -ludunits... " >&6; }
-if test "${ac_cv_lib_udunits_utInit+set}" = set; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing utInit" >&5
+$as_echo_n "checking for library containing utInit... " >&6; }
+if test "${ac_cv_search_utInit+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ludunits  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -10145,23 +10144,35 @@ return utInit ();
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_udunits_utInit=yes
-else
-  ac_cv_lib_udunits_utInit=no
+for ac_lib in '' udunits udunits2; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_utInit=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if test "${ac_cv_search_utInit+set}" = set; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_udunits_utInit" >&5
-$as_echo "$ac_cv_lib_udunits_utInit" >&6; }
-if test "x$ac_cv_lib_udunits_utInit" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBUDUNITS 1
-_ACEOF
+done
+if test "${ac_cv_search_utInit+set}" = set; then :
 
-  LIBS="-ludunits $LIBS"
+else
+  ac_cv_search_utInit=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_utInit" >&5
+$as_echo "$ac_cv_search_utInit" >&6; }
+ac_res=$ac_cv_search_utInit
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 fi
 
@@ -15056,7 +15067,7 @@ do
     "include/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "debug/Makefile") CONFIG_FILES="$CONFIG_FILES debug/Makefile" ;;
-    "bathymtery/Makefile") CONFIG_FILES="$CONFIG_FILES bathymtery/Makefile" ;;
+    "bathymetry/Makefile") CONFIG_FILES="$CONFIG_FILES bathymetry/Makefile" ;;
     "ocean_forcing/Makefile") CONFIG_FILES="$CONFIG_FILES ocean_forcing/Makefile" ;;
     "ocean_forcing/tests/Makefile") CONFIG_FILES="$CONFIG_FILES ocean_forcing/tests/Makefile" ;;
     "femtools/Makefile") CONFIG_FILES="$CONFIG_FILES femtools/Makefile" ;;
