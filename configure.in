@@ -262,7 +262,7 @@ AC_LANG_PUSH([C])
 AC_CHECK_LIB(stdc++,main,,)
 AC_CHECK_LIB(m,main,,)
 AC_CHECK_LIB(pthread,main,,)
-AC_SEARCH_LIBS(utInit,[udunits udunits2],,)
+AC_CHECK_LIB(udunits,utInit,,)
 
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
 
