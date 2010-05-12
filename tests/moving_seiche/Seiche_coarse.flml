@@ -211,26 +211,6 @@
                 <consistent_interpolation></consistent_interpolation>
             </prognostic>
         </scalar_field>
-        <scalar_field name="Density" rank="0">
-            <prescribed>
-                <mesh name="VelocityMesh"></mesh>
-                <value name="WholeMesh">
-                    <constant>
-                        <real_value rank="0">1</real_value>
-                        <comment>Normalised</comment>
-                    </constant>
-                </value>
-                <output>
-                    <exclude_from_vtu></exclude_from_vtu>
-                </output>
-                <stat>
-                    <exclude_from_stat></exclude_from_stat>
-                </stat>
-                <detectors>
-                    <exclude_from_detectors></exclude_from_detectors>
-                </detectors>
-            </prescribed>
-        </scalar_field>
         <vector_field name="Velocity" rank="1">
             <prognostic>
                 <mesh name="VelocityMesh"></mesh>
