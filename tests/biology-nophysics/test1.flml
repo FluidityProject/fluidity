@@ -86,10 +86,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">9.8</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -161,21 +161,6 @@ def val(X,t):
         </tensor_field>
       </prescribed_diffusivity>
     </subgridscale_parameterisations>
-    <scalar_field name="Density" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>

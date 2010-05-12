@@ -71,67 +71,6 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Water">
-    <scalar_field name="Pressure" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <spatial_discretisation>
-          <continuous_galerkin/>
-        </spatial_discretisation>
-        <reference_node replaces="NDPSET">
-          <integer_value rank="0">1</integer_value>
-        </reference_node>
-        <scheme>
-          <poisson_pressure_solution replaces="POISON">
-            <string_value lines="1">only first timestep</string_value>
-          </poisson_pressure_solution>
-          <use_projection_method replaces="PROJEC"/>
-        </scheme>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <absolute_error>
-            <real_value rank="0">0</real_value>
-          </absolute_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
