@@ -98,6 +98,8 @@ contains
     type(scalar_field), pointer :: masslump
     type(vector_field), pointer :: positions, source_field
     
+    integer, parameter :: CACHE_STAT_USE = 0, CACHE_STAT_ALLOCATE = 1, CACHE_STAT_CALCULATE = 2
+    
     source_field => vector_source_field(state, s_field)
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     
@@ -143,19 +145,19 @@ contains
       
       logical :: use_cache
 
-      integer :: this_mesh_movement
       integer, save :: last_mesh_movement = -1
 
       if(has_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")) then
-        this_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
-        if(this_mesh_movement /= last_mesh_movement) then
-          last_mesh_movement = this_mesh_movement
-          use_cache = .false.
-        else
-          use_cache = .true.
-        end if
+        use_cache = (last_mesh_movement == eventcount(EVENT_MESH_MOVEMENT))
       else
         use_cache = .false.
+      end if
+      
+      if(use_cache) then
+        ewrite(2, *) "Using cached divergence matrix"
+      else
+        ewrite(2, *) "Not using cached divergence matrix"
+        last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
       end if
 
     end function use_divergence_matrix_cache
@@ -166,14 +168,23 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: v_field
     
+    character(len = FIELD_NAME_LEN) :: bcfield_name
     character(len = OPTION_PATH_LEN) :: path
     type(cmc_matrices) :: matrices
     type(scalar_field), pointer :: source_field
+    type(vector_field), pointer :: bcfield
     
     source_field => scalar_source_field(state, v_field)
     
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
-    call allocate(matrices, state, v_field, source_field, option_path = path, add_cmc = .false.)
+    if(have_option(trim(path) // "/bc_field")) then
+      call get_option(trim(path) // "/bc_field/name", bcfield_name)
+      bcfield => extract_vector_field(state, bcfield_name)
+      call allocate(matrices, state, v_field, source_field, bcfield = bcfield, option_path = path, add_cmc = .false.)
+    else
+      call allocate(matrices, state, v_field, source_field, option_path = path, add_cmc = .false.)
+    end if
+    
     call compute_conservative(matrices, v_field, source_field)
     call deallocate(matrices)
     

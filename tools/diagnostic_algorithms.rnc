@@ -235,7 +235,21 @@ scalar_difference_algorithm =
          attribute name { "scalar_difference" },
          attribute material_phase_support { "single" },
          scalar_source_field_1,
-         scalar_source_field_2
+         scalar_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element absolute_difference {
+            comment
+         }?
+      }
+   )
+vector_sum_algorithm =
+   (
+      ## Sum of two vector fields
+      element algorithm {
+         attribute name { "vector_sum" },
+         attribute material_phase_support { "single" },
+         vector_source_field_1,
+         vector_source_field_2
       }
    )
 vector_difference_algorithm =
@@ -245,7 +259,11 @@ vector_difference_algorithm =
          attribute name { "vector_difference" },
          attribute material_phase_support { "single" },
          vector_source_field_1,
-         vector_source_field_2
+         vector_source_field_2,
+         ## If enabled, the absolute value of the difference is taken
+         element absolute_difference {
+            comment
+         }?
       }
    )
 
@@ -330,6 +348,11 @@ finite_element_divergence_transpose_algorithm =
          attribute name { "finite_element_divergence_transpose" },
          attribute material_phase_support { "single" },
          vector_source_field,
+         ## Use boundary conditions from this vector field
+         element bc_field {
+            attribute name { xsd:string },
+            comment
+         }?,
          ## Integrate the divergence operator by parts
          element integrate_divergence_by_parts {
             comment
@@ -656,6 +679,14 @@ node_halo_diagnostic_algorithm =
       ## Paints the node halo.
       element algorithm {
          attribute name { "node_halo" },
+         attribute material_phase_support { "single" }
+      }
+   )
+universal_numbering_diagnostic_algorithm =
+   (
+      ## The nodal universal numbering.
+      element algorithm {
+         attribute name { "universal_numbering" },
          attribute material_phase_support { "single" }
       }
    )
@@ -1004,6 +1035,7 @@ scalar_diagnostic_algorithms |= scalar_potential_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= grad_normal_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
+scalar_diagnostic_algorithms |= universal_numbering_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= element_ownership_algorithm
 scalar_diagnostic_algorithms |= element_universal_numbering_algorithm
@@ -1023,6 +1055,7 @@ vector_diagnostic_algorithms |= vector_laplacian_algorithm
 vector_diagnostic_algorithms |= vector_potential_algorithm
 vector_diagnostic_algorithms |= geostrophic_velocity_algorithm
 vector_diagnostic_algorithms |= eigenvalues_symmetric_algorithm
+vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_difference_algorithm
 
 tensor_diagnostic_algorithms = tensor_python_diagnostic_algorithm

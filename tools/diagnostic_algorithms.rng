@@ -319,6 +319,25 @@ this option to these these internal algorithms.</a:documentation>
       </attribute>
       <ref name="scalar_source_field_1"/>
       <ref name="scalar_source_field_2"/>
+      <optional>
+        <element name="absolute_difference">
+          <a:documentation>If enabled, the absolute value of the difference is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="vector_sum_algorithm">
+    <element name="algorithm">
+      <a:documentation>Sum of two vector fields</a:documentation>
+      <attribute name="name">
+        <value>vector_sum</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="vector_source_field_1"/>
+      <ref name="vector_source_field_2"/>
     </element>
   </define>
   <define name="vector_difference_algorithm">
@@ -332,6 +351,12 @@ this option to these these internal algorithms.</a:documentation>
       </attribute>
       <ref name="vector_source_field_1"/>
       <ref name="vector_source_field_2"/>
+      <optional>
+        <element name="absolute_difference">
+          <a:documentation>If enabled, the absolute value of the difference is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
     </element>
   </define>
   <!-- Time aggregated diagnostics -->
@@ -442,6 +467,15 @@ elements.</a:documentation>
         <value>single</value>
       </attribute>
       <ref name="vector_source_field"/>
+      <optional>
+        <element name="bc_field">
+          <a:documentation>Use boundary conditions from this vector field</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+      </optional>
       <optional>
         <element name="integrate_divergence_by_parts">
           <a:documentation>Integrate the divergence operator by parts</a:documentation>
@@ -875,6 +909,17 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       <a:documentation>Paints the node halo.</a:documentation>
       <attribute name="name">
         <value>node_halo</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="universal_numbering_diagnostic_algorithm">
+    <element name="algorithm">
+      <a:documentation>The nodal universal numbering.</a:documentation>
+      <attribute name="name">
+        <value>universal_numbering</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
@@ -1406,6 +1451,9 @@ No. 1 pp. 243--268, 1980</a:documentation>
     <ref name="node_halo_diagnostic_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="universal_numbering_diagnostic_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="element_halo_diagnostic_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -1458,6 +1506,9 @@ No. 1 pp. 243--268, 1980</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="eigenvalues_symmetric_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="vector_sum_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="vector_difference_algorithm"/>

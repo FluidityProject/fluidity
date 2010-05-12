@@ -189,7 +189,6 @@ contains
     
     integer :: i, stat
     real :: gravity_magnitude
-    type(scalar_field) :: buoyancy_density_remap
     type(scalar_field), pointer :: buoyancy_density
     type(vector_field), pointer :: gravity
   
@@ -197,17 +196,24 @@ contains
     
     buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity", stat = stat)
     if(stat /= 0) then
-      ewrite(0, *) "Warning: Cannot calculate buoyancy without VelocityBuoyancyDensity field"
+      ewrite(0, *) "Warning: Cannot calculate Buoyancy without VelocityBuoyancyDensity field"
       call zero(v_field)
       ewrite(1, *) "Exiting calculate_buoyancy"
       return
     end if    
     ewrite_minmax(buoyancy_density%val)
     
-    gravity => extract_vector_field(state, "GravityDirection")
+    gravity => extract_vector_field(state, "GravityDirection", stat = stat)
+    if(stat /= 0) then
+      ewrite(0, *) "Warning: Cannot calculate Buoyancy without GravityDirection field"
+      call zero(v_field)
+      ewrite(1, *) "Exiting calculate_buoyancy"
+      return
+    end if    
     do i = 1, gravity%dim
       ewrite_minmax(gravity%val(i)%ptr)
     end do  
+    
     call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     ewrite(2, *) "Gravity magnitude = ", gravity_magnitude
     
@@ -216,19 +222,9 @@ contains
       FLExit("Buoyancy must be on the VelocityBuoyancyDensity mesh")
     end if
     
-    if(v_field%mesh == buoyancy_density%mesh) then
-      buoyancy_density_remap = buoyancy_density
-      call incref(buoyancy_density_remap)
-    else
-      call allocate(buoyancy_density_remap, v_field%mesh, buoyancy_density%name)
-      call remap_field(buoyancy_density, buoyancy_density_remap)
-    end if
-    
     do i = 1, node_count(v_field)
-      call set(v_field, i, node_val(gravity, i) * node_val(buoyancy_density_remap, i) * gravity_magnitude)
+      call set(v_field, i, node_val(gravity, i) * node_val(buoyancy_density, i) * gravity_magnitude)
     end do
-    
-    call deallocate(buoyancy_density_remap)
     
     ewrite(1, *) "Exiting calculate_buoyancy"
   

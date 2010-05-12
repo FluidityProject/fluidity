@@ -10,8 +10,9 @@ module parallel_diagnostics
   
   private
   
-  public :: calculate_node_halo, calculate_element_halo, &
-    & calculate_element_ownership, calculate_element_universal_numbering
+  public :: calculate_node_halo, calculate_universal_numbering, &
+    & calculate_element_halo, calculate_element_ownership, &
+    & calculate_element_universal_numbering
 
 contains
 
@@ -29,6 +30,26 @@ contains
     end do
     
   end subroutine calculate_node_halo
+  
+  subroutine calculate_universal_numbering(s_field)
+    type(scalar_field), intent(inout) :: s_field
+    
+    integer :: i, nhalos
+    type(halo_type), pointer :: halo
+    
+    nhalos = halo_count(s_field)
+    if(nhalos > 0) then
+      halo => s_field%mesh%halos(nhalos)
+      do i = 1, node_count(s_field)
+        call set(s_field, i, float(halo_universal_number(halo, i)))
+      end do
+    else
+      do i = 1, node_count(s_field)
+        call set(s_field, i, float(i))
+      end do
+    end if
+  
+  end subroutine calculate_universal_numbering
 
   subroutine calculate_element_halo(s_field)
     type(scalar_field), intent(inout) :: s_field
