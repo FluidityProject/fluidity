@@ -1323,10 +1323,6 @@ start =
                      velocity_mesh_choice,
                      diagnostic_scalar_field
                   }|
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_scalar_field
-                  }|
                   element prognostic {
                      pressure_mesh_choice,
                      prognostic_density_field,
