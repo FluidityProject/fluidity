@@ -4373,6 +4373,22 @@ scalar_field_choice =
             )
          }|
          ## Diffusive dissipation
+         ##
+         ## Only coded for 2D
+         ##
+         ##   -g*drho/dy
+         ##
+         ## where rho is the Density scalar field
+         ##
+         ## BE AWARE OF WHAT THE DENSITY SCALAR FIELD IS
+         ##
+         ##   Note the actual diffusive dissipation = -2*g*kappa*drho/dy so need
+         ##   to multiply by kappa in post-processing (2 subject to definition) where
+         ##   drho/dt + u.grad(rho) = kappa grad^2(rho)
+         ##   This assumes kappa is isotropic and constant
+         ##   For a linear equation of state kappa = diffusivity (thermal or haline)
+         ##
+         ## c.f. Winters 1995, Journal of Fluid Mechanics and B Martin's thesis
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DiffusiveDissipation" },
@@ -4388,6 +4404,18 @@ scalar_field_choice =
             )
          }|
          ## Viscous dissipation
+         ##   For Boussinesq fluid with isotropic viscosity (see below)
+         ##
+         ## Only coded for 2D
+         ##
+         ##   (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
+         ##
+         ##   The actual viscous dissipation for a BOUSSINESQ fluid with
+         ##   ISOTROPIC viscosity is nu*rho_0*(grad u):(grad u)
+         ##   where rho_0 is the reference density in the equation of state
+         ##   and nu is the viscosity so need to multiply by these when post-processing
+         ##
+         ## c.f. Winters 1995, Journal of Fluid Mechanics
          element scalar_field {
             attribute rank { "0" },
             attribute name { "ViscousDissipation" },
@@ -4803,12 +4831,18 @@ scalar_field_choice =
          
          ## Kinetic energy density:
          ##
-         ##  1/2 rho_0*|u|^2
+         ##  1/2 rho*|u|^2
          ##
-         ## where rho_0 is the (reference) density 
+         ## where rho is the Density scalar field
          ##
-         ## Limitations:
-         ##  - The Density, PerturbationDensity, KineticEnergyDensity and Velocity fields must be on the same mesh.
+         ## BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
+         ##
+         ## In the Boussinesq approximation 
+         ## rho -> rho_0 (reference density)
+         ## to get this use the square of the 
+         ## L2norm of the velocity field
+         ## from the stat file and multiply by
+         ## 1/2*rho_0 in post-processing
          element scalar_field {
             attribute rank { "0" },
             attribute name { "KineticEnergyDensity" },
@@ -4826,13 +4860,16 @@ scalar_field_choice =
          
          ## Gravitational potential energy density:
          ##
-         ## rho_0*(1.0 + rho')*(g dot (r - r_0))
+         ## rho*(g dot (r - r_0))
          ##
-         ## where rho_0 is the (reference) density, rho' is the perturbation density and r_0 is the potential energy zero point.
+         ## where rho is the Density scalar field
+         ## r_0 is the potential energy zero point.
+         ##
+         ## BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
          ##
          ## Limitations:
          ##  - Requires a constant gravity direction.
-         ##  - The Density, PerturbationDensity and GravitationalPotentialEnergyDensity fields must be on the same mesh.
+         ##  - The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "GravitationalPotentialEnergyDensity" },
@@ -4852,15 +4889,18 @@ scalar_field_choice =
             )
          }|
          ## Isopycnal coordinate
+         ## Not parallelised
          ##
          ##  z_star(x,t) = 1/A int_V' H(rho(x',t)-rho(x,t)) dV'
          ##
-         ## where rho is the density, A is the width/area of the domain
+         ## where rho is the Density scalar field, A is the width/area of the domain
+         ##
+         ## BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
          ##
          ## Limitations:
-         ##  - You need to specify a (fine) mesh to redistribute the PerturbationDensity onto
+         ##  - You need to specify a (fine) mesh to redistribute the Density onto
          ##  - Requires a constant gravity direction.
-         ##  - The Density, PerturbationDensity and GravitationalPotentialEnergyDensity fields must be on the same mesh.
+         ##  - The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "IsopycnalCoordinate" },
@@ -4883,13 +4923,17 @@ scalar_field_choice =
          ##
          ## PE_b = rho*z_star
          ##
-         ## where rho is the density, z_star is the isopycnal coordinate
+         ## where rho is the Density scalar field and
+         ## z_star is the isopycnal coordinate. 
+         ##
+         ## Requires the diagnostic IsopycnalCoordinate diagnostic field.
+         ##
+         ## BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
          ##
          ## Limitations:
          ##  - Requires a constant gravity direction.
-         ##  - The Density, PerturbationDensity and
-         ##  GravitationalPotentialEnergyDensity fields must be on the
-         ##  same mesh.
+         ##  - The Density and GravitationalPotentialEnergyDensity
+         ##  fields must be on the same mesh.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "BackgroundPotentialEnergyDensity" },

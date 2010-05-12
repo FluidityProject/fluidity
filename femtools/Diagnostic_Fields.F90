@@ -652,16 +652,13 @@ contains
     integer :: i
     type(scalar_field), pointer :: rho_field
     type(vector_field), pointer :: vel_field
-    type(scalar_field), pointer :: pert_rho_field
 
-    do i = 1, 3
+    do i = 1, 2
       select case(i)
         case(1)
           rho_field => extract_scalar_field(state, "Density", stat)
         case(2)
           vel_field => extract_vector_field(state, "Velocity", stat)
-        case(3)
-          pert_rho_field => extract_scalar_field(state, "PerturbationDensity", stat)
         case default
           FLAbort("Invalid loop index")
       end select
@@ -671,21 +668,18 @@ contains
     end do
 
     if(present(stat) .and. (.not. rho_field%mesh == ke_density_field%mesh &
-      & .or. .not. vel_field%mesh == ke_density_field%mesh .or. .not. &     
-      & pert_rho_field%mesh == ke_density_field%mesh )) then
+      & .or. .not. vel_field%mesh == ke_density_field%mesh)) then
       stat = 1
       return
     else
       assert(rho_field%mesh == ke_density_field%mesh)
       assert(vel_field%mesh == ke_density_field%mesh)
-      assert(pert_rho_field%mesh == ke_density_field%mesh)
     end if
 
     call zero(ke_density_field)
     do i = 1, node_count(ke_density_field)
       call set(ke_density_field, i, &
-        & 0.5 * node_val(rho_field, i) * (1.0 + node_val(pert_rho_field, &
-        & i))* norm2(node_val(vel_field, i))**2)
+        & 0.5 * node_val(rho_field, i) * norm2(node_val(vel_field, i))**2)
     end do
 
   end subroutine calculate_ke_density
@@ -702,10 +696,10 @@ contains
     integer :: i
     real :: g
     real, dimension(mesh_dim(pe_density_field)) :: g_direction, zero_point
-    type(scalar_field), pointer :: pert_rho_field, rho_field
+    type(scalar_field), pointer :: rho_field
     type(vector_field), pointer :: positions, positions_remap
 
-    do i = 1, 6
+    do i = 1, 5
       select case(i)
         case(1)
           call get_option("/physical_parameters/gravity/magnitude", g, stat)
@@ -727,9 +721,6 @@ contains
           positions => extract_vector_field(state, "Coordinate", stat)
         case(5)
           rho_field => extract_scalar_field(state, "Density", stat)
-        case(6)
-          pert_rho_field => extract_scalar_field(state, &
-            & "PerturbationDensity", stat)
         case default
           FLAbort("Invalid loop index")
       end select
@@ -738,13 +729,11 @@ contains
       end if
     end do
 
-    if(present(stat) .and. (.not. rho_field%mesh == pe_density_field%mesh &
-      & .or. .not. pert_rho_field%mesh == pe_density_field%mesh)) then
+    if(present(stat) .and. (.not. rho_field%mesh == pe_density_field%mesh)) then
       stat = 1
       return
     else
       assert(rho_field%mesh == pe_density_field%mesh)
-      assert(pert_rho_field%mesh == pe_density_field%mesh)
     end if
 
     if(positions%mesh == pe_density_field%mesh) then
@@ -761,8 +750,7 @@ contains
     call zero(pe_density_field)
     do i = 1, node_count(pe_density_field)
       call set(pe_density_field, i, node_val(rho_field, i) * (-1.0) * &
-        & (1.0 + node_val(pert_rho_field, i)) * g * &
-        & dot_product(g_direction, node_val(positions_remap, i) - zero_point))
+        g * dot_product(g_direction, node_val(positions_remap, i) - zero_point))
     end do
 
     if(.not. positions%mesh == pe_density_field%mesh) then
@@ -786,37 +774,30 @@ contains
     integer, dimension(:), allocatable :: index, index2
     integer :: i, j, k, lstat
     real :: z_star, volume, volume_k, volume_rho
-    type(scalar_field), pointer :: pert_rho_field
+    type(scalar_field), pointer :: rho_field
     type(scalar_field) :: lumped_mass, lumped_mass_depth
     type(vector_field), pointer :: Xfield
     type(vector_field) :: Xfield_depth
     type(mesh_type), pointer :: mesh
     character(len = FIELD_NAME_LEN) :: fine_mesh_name
 
-    pert_rho_field => extract_scalar_field(state, "PerturbationDensity", lstat)
-    if (lstat /= 0) then
-      if (present(stat)) then
-        stat = lstat
-      else
-        FLAbort("Need perturbation density")
-      end if
-    end if
+    rho_field => extract_scalar_field(state, "Density", lstat)
     
     Xfield => extract_vector_field(state, "Coordinate")
     call get_option(trim(isopycnal_coordinate%option_path)//"/diagnostic/fine_mesh/name",fine_mesh_name)
     mesh => extract_mesh(state,fine_mesh_name)
     Xfield_depth = get_coordinate_field(state, mesh)
     
-    allocate(index(1:node_count(pert_rho_field)))    
+    allocate(index(1:node_count(rho_field)))    
     allocate(index2(1:node_count(Xfield_depth)))
     
     ! reorder density from smallest to largest
-    call qsort(pert_rho_field%val, index)
+    call qsort(rho_field%val, index)
     
     ! reorder vertical coordinate
     call qsort(Xfield_depth%val(Xfield_depth%dim)%ptr, index2)
     
-    call allocate(lumped_mass, pert_rho_field%mesh, name="LumpedMass")
+    call allocate(lumped_mass, rho_field%mesh, name="LumpedMass")
     call allocate(lumped_mass_depth, mesh, name="LumpedMassDepth")
     
     call zero(lumped_mass)
@@ -829,7 +810,7 @@ contains
     j = 1
     volume = 0.0
     z_star = 0.0
-    do i=node_count(pert_rho_field),1,-1
+    do i=node_count(rho_field),1,-1
       volume_rho = node_val(lumped_mass,index(i))
       do k = j, node_count(Xfield_depth)
         if (volume > volume_rho) exit
@@ -874,15 +855,6 @@ contains
       end if
     end if
 
-    pert_rho_field => extract_scalar_field(state, "PerturbationDensity", lstat)
-    if (lstat /= 0) then
-      if (present(stat)) then
-        stat = lstat
-      else
-        FLAbort("Need perturbation density")
-      end if
-    end if
-
     isopycnal_coordinate => extract_scalar_field(state, "IsopycnalCoordinate", lstat)
     if (lstat /= 0) then
       if (present(stat)) then
@@ -904,8 +876,7 @@ contains
     call zero(back_pe_density_field)
     do i = 1, node_count(back_pe_density_field)
       call set(back_pe_density_field, i, node_val(rho_field, i) * &
-        & (1.0 + node_val(pert_rho_field, i)) * g *&
-        & node_val(isopycnal_coordinate,i))
+        & g * node_val(isopycnal_coordinate,i))
     end do
 
   end subroutine calculate_back_pe_density
@@ -1260,11 +1231,11 @@ contains
     
     integer :: i
     real :: g
-    type(scalar_field), pointer :: pert_rho_field
+    type(scalar_field), pointer :: rho_field
     type(vector_field), pointer :: positions
     type(scalar_field), dimension(1) :: drho_dy
     
-    pert_rho_field => extract_scalar_field(state, "PerturbationDensity", stat)
+    rho_field => extract_scalar_field(state, "Density", stat)
     positions => extract_vector_field(state, "Coordinate", stat)
       
     if(present_and_nonzero(stat)) then
@@ -1273,9 +1244,9 @@ contains
     
     call get_option("/physical_parameters/gravity/magnitude", g, stat)
 
-    call allocate(drho_dy(1), pert_rho_field%mesh, "DRhoDy")
+    call allocate(drho_dy(1), rho_field%mesh, "DRhoDy")
     
-    call differentiate_field(pert_rho_field, &
+    call differentiate_field(rho_field, &
      & positions, (/.false., .true./), drho_dy)
     
     call zero(diffusive_dissipation_field)
@@ -1326,14 +1297,12 @@ contains
      & positions, (/.false., .true./), du_dy)
     call differentiate_field(extract_scalar_field(vel_field, 2), &
      & positions, (/.false., .true./), dv_dy)
-
     
     call zero(viscous_dissipation_field)
     do i = 1, node_count(viscous_dissipation_field)
       call set(viscous_dissipation_field, i, node_val(du_dx(1),i)**2   &
        & + node_val(dv_dx(1),i)**2 + node_val(du_dy(1),i)**2 + node_val(dv_dy(1),i)**2)
     end do  
-    
     
     call deallocate(du_dx(1))
     call deallocate(dv_dx(1))
