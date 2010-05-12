@@ -134,7 +134,7 @@ finalSigmaX /= finalTSum
 finalSigmaX = math.pow(finalSigmaX, 0.5)
 print "Final standard deviation = ", finalSigmaX
 
-fluidity_tools.compare_variable(initialSigmaX, finalSigmaX, 0.09)
+fluidity_tools.compare_variable(initialSigmaX, finalSigmaX, 0.04)
     </test>
   </pass_tests>
   <warn_tests>

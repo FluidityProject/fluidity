@@ -253,11 +253,7 @@
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">120</integer_value>
       </maximum_number_of_nodes>
-      <enable_gradation>
-        <gradation_parameter>
-          <real_value rank="0">1.05</real_value>
-        </gradation_parameter>
-      </enable_gradation>
+      <enable_gradation/>
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>

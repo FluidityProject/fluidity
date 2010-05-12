@@ -60,7 +60,7 @@ assert(max_t &lt; 1.15)
     </test>
     <test name = "Conservative" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variables(t_integrals[1:], [t_integrals[0] for i in range(len(t_integrals) - 1)], 5.0e-9)
+fluidity_tools.compare_variables(t_integrals[1:], [t_integrals[0] for i in range(len(t_integrals) - 1)], 5.0e-8)
     </test>
     <test name = "Advected velocity" language = "python">
 import fluidity_tools
@@ -90,7 +90,7 @@ vel = (finalX - initialX) / (times[-1] - times[0])
 vel = float(vel)
 print "Mean velocity = ", vel
 
-fluidity_tools.compare_variable(vel, (1.0 / 40.0) * 0.125, 0.02)
+fluidity_tools.compare_variable(vel, (1.0 / 40.0) * 0.125, 0.03)
     </test>
     <test name = "Standard deviation" language = "python">
 import math
@@ -132,7 +132,7 @@ finalSigmaX /= finalTSum
 finalSigmaX = math.pow(finalSigmaX, 0.5)
 print "Final standard deviation = ", finalSigmaX
 
-fluidity_tools.compare_variable(initialSigmaX, finalSigmaX, 0.03)
+fluidity_tools.compare_variable(initialSigmaX, finalSigmaX, 0.08)
     </test>
   </pass_tests>
   <warn_tests>
