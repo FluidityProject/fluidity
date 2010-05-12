@@ -678,9 +678,11 @@ contains
     type(scalar_field), intent(inout) :: materialmass
   
     ! local
+    integer :: stat
     type(scalar_field) :: lumpedmass
     type(scalar_field), pointer :: volumefraction, materialdensity
     type(vector_field), pointer :: coordinates
+    real :: rho_0
   
     coordinates=>extract_vector_field(state, "Coordinate")
   
@@ -688,11 +690,19 @@ contains
     call zero(lumpedmass)
   
     call compute_lumped_mass(coordinates, lumpedmass)
-  
-    materialdensity=>extract_scalar_field(state,"MaterialDensity")
+
     volumefraction=>extract_scalar_field(state,"MaterialVolumeFraction")
+    call set(materialmass, volumefraction)
+    call scale(materialmass, lumpedmass)
   
-    materialmass%val=volumefraction%val*materialdensity%val*lumpedmass%val
+    materialdensity=>extract_scalar_field(state,"MaterialDensity", stat=stat)
+    if(stat==0) then
+      call scale(materialmass, materialdensity)
+    else
+      call get_option("/material_phase::"//trim(state%name)&
+                      //"/equation_of_state/fluids/linear/reference_density", rho_0)
+      call scale(materialmass, rho_0)
+    end if
   
     call deallocate(lumpedmass)
 

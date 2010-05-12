@@ -5244,8 +5244,7 @@ simulation or solves for all the volume fractions based on
 the SumMaterialVolumeFractions field.
 
 A diagnostic MaterialVolumeFraction field is currently required for
-compressible multimaterial simulations (even if only 1 material).
-Generally also requires a MaterialDensity field.</a:documentation>
+compressible multimaterial simulations (even if only 1 material).</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -5287,8 +5286,8 @@ Generally also requires a MaterialDensity field.</a:documentation>
         <a:documentation>MaterialDensity field:
 
 Field for the density of this material.
-Required in multimaterial simulations.
- - prescribed if an incompressible simulation
+Required in compressible multimaterial simulations.
+Can be:
  - diagnostic if using a linear equation of state
  - prognostic if a compressible simulation
 (note that if you set a multimaterial
@@ -5312,10 +5311,6 @@ the equation of state)</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="prescribed">
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prescribed_scalar_field"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
@@ -6059,7 +6054,8 @@ volume of a material (requires a MaterialVolumeFraction)</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>add a MaterialMass scalar_field to calculate the spatially varying 
-mass of a material (requires a MaterialVolumeFraction and a MaterialDensity)</a:documentation>
+mass of a material (requires a MaterialVolumeFraction and either a
+MaterialDensity field or a reference_density in a linear eos)</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -6078,7 +6074,7 @@ mass of a material (requires a MaterialVolumeFraction and a MaterialDensity)</a:
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Calculates the MaterialDensity based on the bulk Pressure
+        <a:documentation>Calculates the material density based on the bulk Pressure
 (and MaterialInternalEnergy if appropriate) for the equation
 of state of this material.</a:documentation>
         <attribute name="rank">

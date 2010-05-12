@@ -3979,7 +3979,6 @@ scalar_field_choice =
          ## 
          ## A diagnostic MaterialVolumeFraction field is currently required for
          ## compressible multimaterial simulations (even if only 1 material).
-         ## Generally also requires a MaterialDensity field.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MaterialVolumeFraction" },
@@ -4009,8 +4008,8 @@ scalar_field_choice =
          ## MaterialDensity field:
          ##
          ## Field for the density of this material.
-         ## Required in multimaterial simulations.
-         ##  - prescribed if an incompressible simulation
+         ## Required in compressible multimaterial simulations.
+         ## Can be:
          ##  - diagnostic if using a linear equation of state
          ##  - prognostic if a compressible simulation
          ## (note that if you set a multimaterial
@@ -4031,10 +4030,6 @@ scalar_field_choice =
                   internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field
-               }|
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
                }|
                element aliased {
                   generic_aliased_field
@@ -4645,7 +4640,8 @@ scalar_field_choice =
             )
          }|
          ## add a MaterialMass scalar_field to calculate the spatially varying 
-         ## mass of a material (requires a MaterialVolumeFraction and a MaterialDensity)
+         ## mass of a material (requires a MaterialVolumeFraction and either a
+         ## MaterialDensity field or a reference_density in a linear eos)
          element scalar_field {
             attribute rank { "0" },
             attribute name { "MaterialMass" },
@@ -4660,7 +4656,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## Calculates the MaterialDensity based on the bulk Pressure
+         ## Calculates the material density based on the bulk Pressure
          ## (and MaterialInternalEnergy if appropriate) for the equation
          ## of state of this material.
          element scalar_field {
