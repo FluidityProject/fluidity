@@ -89,6 +89,15 @@ will get cut off by final_timestep</comment>
   </timestepping>
   <physical_parameters/>
   <material_phase name="Material1">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -285,21 +294,6 @@ will get cut off by final_timestep</comment>
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <scalar_field name="ControlVolumeDivergence" rank="0">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -339,7 +333,7 @@ will get cut off by final_timestep</comment>
     </scalar_field>
     <scalar_field name="NodeOwner" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
@@ -356,6 +350,15 @@ will get cut off by final_timestep</comment>
     </scalar_field>
   </material_phase>
   <material_phase name="Material2">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <aliased material_phase_name="Material1" field_name="Density"/>
     </scalar_field>
@@ -379,23 +382,17 @@ will get cut off by final_timestep</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
   </material_phase>
   <material_phase name="Material3">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <aliased material_phase_name="Material1" field_name="Density"/>
     </scalar_field>
@@ -511,21 +508,6 @@ will get cut off by final_timestep</comment>
           </continuous>
         </galerkin_projection>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
     <scalar_field name="ScalarAbsoluteDifference" rank="0">
       <diagnostic field_name_b="MaterialVolumeFraction" field_name_a="InitialMaterialVolumeFraction">

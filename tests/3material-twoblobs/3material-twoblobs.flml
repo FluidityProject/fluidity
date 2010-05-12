@@ -65,8 +65,16 @@
       <comment>0.3</comment>
     </finish_time>
   </timestepping>
-  <physical_parameters/>
   <material_phase name="Water">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">10.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -197,21 +205,6 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">10.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <scalar_field name="SumMaterialVolumeFractions" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -231,9 +224,15 @@
     </scalar_field>
   </material_phase>
   <material_phase name="Droplet">
-    <scalar_field name="Density" rank="0">
-      <aliased material_phase_name="Water" field_name="Density"/>
-    </scalar_field>
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">20.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
@@ -323,23 +322,17 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">20.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
   </material_phase>
   <material_phase name="Air">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <aliased material_phase_name="Water" field_name="Density"/>
     </scalar_field>
@@ -362,21 +355,6 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
   </material_phase>
 </fluidity_options>

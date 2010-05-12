@@ -81,6 +81,15 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Water">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1000</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <vector_field name="Velocity" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -212,21 +221,6 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="whole_mesh">
-          <constant>
-            <real_value rank="0">1000</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <scalar_field name="Regions" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -297,6 +291,15 @@
     </tensor_field>
   </material_phase>
   <material_phase name="Air">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
@@ -316,21 +319,6 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="value1">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
     <tensor_field name="MaterialViscosity" rank="2">
       <prescribed>

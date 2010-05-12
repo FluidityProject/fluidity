@@ -121,6 +121,15 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="Oil">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.5</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
@@ -348,21 +357,6 @@
         </surface_tension>
       </prognostic>
     </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.5</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <scalar_field name="ControlVolumeCFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -399,6 +393,15 @@
     </scalar_field>
   </material_phase>
   <material_phase name="Water">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">0.5</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <aliased material_phase_name="Oil" field_name="Pressure"/>
     </scalar_field>
@@ -424,21 +427,6 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.5</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
   </material_phase>
 </fluidity_options>

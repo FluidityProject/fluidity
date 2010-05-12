@@ -119,28 +119,6 @@ vtufile=vtktools.vtu('region_id_0.vtu')
 uamatvis=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialViscosity')
 uamatvisxx=uamatvis[0,0,0]
     </variable>
-    <variable name="lwmatdensmx" language="python">
-import vtktools
-from numpy import concatenate, arange, newaxis, ones, array
-colx=array([[0.25]])
-coly=array([[0.5]])
-colz=array([[0.0]])
-coordinates=concatenate((colx,coly,colz),1)
-vtufile=vtktools.vtu('region_id_0.vtu')
-matdens=vtktools.vtu.ProbeData(vtufile,coordinates,'Water::MaterialDensity')
-lwmatdensmx=matdens[0,0]
-    </variable>
-    <variable name="lamatdensmx" language="python">
-import vtktools
-from numpy import concatenate, arange, newaxis, ones, array
-colx=array([[0.25]])
-coly=array([[0.5]])
-colz=array([[0.0]])
-coordinates=concatenate((colx,coly,colz),1)
-vtufile=vtktools.vtu('region_id_0.vtu')
-matdens=vtktools.vtu.ProbeData(vtufile,coordinates,'Air::MaterialDensity')
-lamatdensmx=matdens[0,0]
-    </variable>
     <variable name="region35" language="python">
 import vtktools
 from numpy import concatenate, arange, newaxis, ones, array
@@ -224,12 +202,6 @@ nodesend = stat("region_id.stat")["CoordinateMesh"]["nodes"][-1]
     </test>
     <test name="check upper mesh xx air material viscosity" language="python">
    assert abs(uamatvisxx+1.0) &lt; 1e-12
-    </test>
-    <test name="check water material density max" language="python">
-   assert abs(lwmatdensmx-1000.0) &lt; 1e-12
-    </test>
-    <test name="check air material density max" language="python">
-   assert abs(lamatdensmx-1.0) &lt; 1e-12
     </test>
     <test name="check region id 35 is preserved" language="python">
    assert abs(region35-35.0) &lt; 1.0
