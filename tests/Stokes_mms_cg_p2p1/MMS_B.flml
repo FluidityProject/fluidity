@@ -95,6 +95,15 @@
   </timestepping>
   <physical_parameters/>
   <material_phase name="NS">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
@@ -162,19 +171,21 @@
       </prognostic>
     </scalar_field>
     <scalar_field name="Density" rank="0">
-      <prescribed>
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
         <output/>
         <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <detectors>
-          <exclude_from_detectors/>
+          <include_in_detectors/>
         </detectors>
-      </prescribed>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
@@ -393,7 +404,7 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
     </scalar_field>
     <scalar_field name="FiniteElementDivergence" rank="0">
       <diagnostic field_name="Velocity">
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <solver>
           <iterative_method name="cg"/>

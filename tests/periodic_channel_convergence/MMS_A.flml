@@ -97,9 +97,9 @@
     </steady_state>
   </timestepping>
   <physical_parameters>
-    <coriolis replaces="OPTOME">
-      <f_plane replaces="OPTOME = 0">
-        <f replaces="OMEGA">
+    <coriolis>
+      <f_plane>
+        <f>
           <real_value rank="0">1.0</real_value>
         </f>
       </f_plane>
@@ -154,25 +154,10 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="LinearMomentum"/>
+        <equation name="Boussinesq"/>
         <spatial_discretisation>
           <discontinuous_galerkin replaces="DISOPT">
             <viscosity_scheme>
@@ -329,7 +314,7 @@
     </scalar_field>
     <scalar_field name="FiniteElementDivergence" rank="0">
       <diagnostic field_name="Velocity">
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <integrate_divergence_by_parts/>
         <solver>
