@@ -187,7 +187,17 @@ else:
   if options.end_vtu == None : options.end_vtu = len(filelist)
   for vtufile in filelist[options.start_vtu:options.end_vtu+1]:
     data = vtktools.vtu(vtufile)
-    time.append(data.GetScalarField("Time")[0])
+    found_time = False
+    for fieldname in data.GetFieldNames():
+      if(fieldname.endswith("Time")):
+        if(found_time):
+          print "Found two Time fields."
+          sys.exit(1)
+        found_time = True
+        time.append(data.GetScalarField(fieldname)[0])
+    if(not found_time):
+      print "Couldn't find a Time field."
+      sys.exit(1)
     edge_lengths_all.append(GetEdgeLengths(data))
 
     time_log.write(str(time[-1])+'\n')
