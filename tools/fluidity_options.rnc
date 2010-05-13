@@ -2328,6 +2328,16 @@ prognostic_pressure_field =
                      empty
                    }|
                    ## Specify the preconditioner matrix to use on the schur complement.
+                   ##
+                   ## Pressure Mass Matrix, scaled with the inverse of viscosity. This is
+                   ## shown to be spectrally equivalent to the Schur complement.
+                   ## Note that this currently only works with isoviscous and/or isotropic
+                   ## viscosity tensors.
+                   element preconditioner_matrix {
+                     attribute name { "ScaledPressureMassMatrix" },
+                     empty
+                   }|
+                   ## Specify the preconditioner matrix to use on the schur complement.
                    element preconditioner_matrix {
                      attribute name { "NoPreconditionerMatrix" },
                      empty

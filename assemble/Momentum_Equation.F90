@@ -64,6 +64,7 @@
     use rotated_boundary_conditions
     use Weak_BCs
     use reduced_model_runtime
+    use state_fields_module
 
     implicit none
 
@@ -147,8 +148,15 @@
       type(petsc_csr_matrix), target :: big_m
       ! Pointer to matrix for full projection solve:
       type(petsc_csr_matrix), pointer :: inner_m
+      ! Pointer to preconditioner matrix for full projection solve:
+      type(csr_matrix), pointer :: full_projection_preconditioner
       ! Are we going to form the Diagonal Schur complement preconditioner?
       logical get_diag_schur
+      ! Do we need the scaled pressure mass matrix?
+      logical get_scaled_pressure_mass_matrix
+      ! Scaled pressure mass matrix - used for preconditioning full projection solve:
+      type(csr_matrix), target :: scaled_pressure_mass_matrix
+      type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity      
       ! compressible pressure gradient operator/left hand matrix of cmc
       type(block_csr_matrix), pointer :: ctp_m
       ! the lumped mass matrix (may vary per component as absorption could be included)
@@ -363,6 +371,8 @@
       if (reduced_model) get_cmc_m=.false.
 
       get_diag_schur = .false.
+      get_scaled_pressure_mass_matrix = .false.
+
       full_schur = have_option(trim(p%option_path)//&
           &"/prognostic/scheme&
           &/use_projection_method/full_schur_complement")
@@ -374,12 +384,23 @@
          select case(pressure_pmat)
          case("LumpedSchurComplement")
             get_diag_schur = .false.
+            get_scaled_pressure_mass_matrix = .false.
+            full_projection_preconditioner => cmc_m
          case("DiagonalSchurComplement")
             if(.not.poisson_p) get_cmc_m = .false.
             get_diag_schur = .true.
+            get_scaled_pressure_mass_matrix = .false.
+            full_projection_preconditioner => cmc_m
+         case("ScaledPressureMassMatrix")
+            if(.not.poisson_p) get_cmc_m = .false.
+            get_diag_schur = .false.
+            get_scaled_pressure_mass_matrix = .true.
+            full_projection_preconditioner => scaled_pressure_mass_matrix
          case("NoPreconditionerMatrix")
             if(.not.poisson_p) get_cmc_m = .false.
             get_diag_schur = .false.
+            get_scaled_pressure_mass_matrix = .false.
+            full_projection_preconditioner => cmc_m
          case default
             FLAbort("Unknown Matrix Type for Full_Projection")
          end select
@@ -679,6 +700,15 @@
            end if
         end if
 
+        if(get_scaled_pressure_mass_matrix) then
+           ! Assemble scaled pressure mass matrix which will later be used as a 
+           ! preconditioner in the full projection solve:
+           scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
+           call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
+                name="scaled_pressure_mass_matrix")
+           call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
+        end if
+
         if (apply_kmk) then
            call add_kmk_rhs(state(istate), kmk_rhs, p_theta, dt)
         end if
@@ -812,7 +842,8 @@
               else
                   nullify(kmk_matrix)
               end if
-              call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs,cmc_m,kmk_matrix)
+              call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
+                   full_projection_preconditioner,kmk_matrix)
             else
               call petsc_solve(delta_p, cmc_m, projec_rhs, state(istate))
             end if
@@ -862,6 +893,11 @@
             call deallocate(kmk_rhs)
             call deallocate(projec_rhs)
             call deallocate(delta_p)
+
+            if(get_scaled_pressure_mass_matrix) then
+               ! Deallocate scaled pressure mass matrix:
+               call deallocate(scaled_pressure_mass_matrix)
+            end if
 
             if(use_compressible_projection) then
               call deallocate(ctp_m)
@@ -949,6 +985,7 @@
 
       integer :: i, nmat
       character(len=FIELD_NAME_LEN) :: schur_scheme
+      character(len=FIELD_NAME_LEN) :: schur_preconditioner
 
       ewrite(1,*) 'Checking momentum discretisation options'
 
@@ -1023,6 +1060,43 @@
           end if
 
         end if
+
+        if(have_option("/material_phase["//int2str(i)//&
+             "]/vector_field::Velocity/prognostic&
+             &/tensor_field::Viscosity/prescribed/value&
+             &/anisotropic_symmetric").or.&
+           have_option("/material_phase["//int2str(i)//&
+             "]/vector_field::Velocity/prognostic&
+             &/tensor_field::Viscosity/prescribed/value&
+             &/anisotropic_asymmetric")) then
+
+          if(have_option("/material_phase["//int2str(i)//&
+               "]/scalar_field::Pressure/prognostic&                                                                                                                                              
+               &/scheme/use_projection_method")) then
+
+             if(have_option("/material_phase["//int2str(i)//&
+                  "]/scalar_field::Pressure/prognostic&                                                                                                                                            
+                  &/scheme/use_projection_method&                                                                                                                                                  
+                  &/full_schur_complement")) then
+
+                call get_option("/material_phase["//int2str(i)//&
+                     "]/scalar_field::Pressure/prognostic&                                                                                                                                              
+                     &/scheme/use_projection_method&                                                                                                                                                    
+                     &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
+
+                select case(schur_preconditioner)
+                case("ScaledPressureMassMatrix")
+                   ewrite(-1,*) "At present, the viscosity scaling for the pressure mass matrix is only"
+                   ewrite(-1,*) "valid for isotropic viscosity tensors. Please use another preconditioner"
+                   ewrite(-1,*) "for the Full Projection solve"
+                   FLExit("Sorry!")
+                end select
+
+             end if
+
+          end if
+
+       end if
 
         if(have_option("/material_phase["//int2str(i)//&
                             "]/vector_field::Velocity/prognostic&

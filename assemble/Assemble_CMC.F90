@@ -35,6 +35,8 @@ module assemble_CMC
   use sparse_tools_petsc
   use spud
   use fields
+  use fields_base
+  use fefields
   use sparse_matrices_fields
   use multimaterial_module, only: extract_prognostic_pressure
   use global_parameters, only: OPTION_PATH_LEN
@@ -46,7 +48,7 @@ module assemble_CMC
   
   public :: assemble_cmc_dg, assemble_masslumped_cmc, &
             assemble_masslumped_ctm, repair_stiff_nodes, zero_stiff_nodes, &
-            assemble_diagonal_schur
+            assemble_diagonal_schur, assemble_scaled_pressure_mass_matrix
 
 contains
 
@@ -146,18 +148,73 @@ contains
       ! (i.e. DiagonalSchurComplement):
       type(vector_field) :: inner_m_diagonal   
 
+      integer :: i
+
       ewrite(1,*) 'Entering assemble_diagonal_schur'
 
       call zero(schur_diagonal_matrix)
       call allocate(inner_m_diagonal,u%dim,u%mesh,"Diagonal_inner_m")
       call zero(inner_m_diagonal)
       call extract_diagonal(inner_m,inner_m_diagonal)
+
+      do i = 1, inner_m_diagonal%dim
+         ewrite_minmax(inner_m_diagonal%val(i)%ptr)
+      end do
+
       call mult_div_invvector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
       ewrite_minmax(schur_diagonal_matrix%val)
       call deallocate(inner_m_diagonal)
 
     end subroutine assemble_diagonal_schur
 
+    subroutine assemble_scaled_pressure_mass_matrix(state,scaled_pressure_mass_matrix)
+
+      ! This routine assembles the scaled_pressure_mass_matrix. It is scaled
+      ! by the inverse of viscosity.
+
+      type(state_type), intent(in) :: state   
+
+      ! Scaled pressure mass matrix - already allocated in Momentum_Eq:
+      type(csr_matrix), intent(inout) :: scaled_pressure_mass_matrix
+
+      ! Pressure field:
+      type(scalar_field), pointer :: pressure
+      ! Viscosity tensor:
+      type(tensor_field), pointer :: viscosity     
+      ! Viscosity component:
+      type(scalar_field) :: viscosity_component
+      ! Inverse of Viscosity component
+      type(scalar_field) :: inverse_viscosity_component
+      ! Positions:
+      type(vector_field), pointer :: positions
+      
+      ! Positions:
+      positions => extract_vector_field(state, "Coordinate")
+
+      ! Get the pressure field:
+      pressure=>extract_scalar_field(state, "Pressure")
+ 
+      ! Extract viscosity tensor from state:
+      viscosity => extract_tensor_field(state,'Viscosity')
+
+      ! Extract first component of viscosity tensor from full tensor:
+      viscosity_component = extract_scalar_field(viscosity,1,1)
+
+      ! Allocate memory for inverse viscosity component scalar field:
+      call allocate(inverse_viscosity_component, viscosity_component%mesh, name="inverse_viscosity_component")
+
+      ! Invert viscosity:
+      call invert(viscosity_component,inverse_viscosity_component)
+
+      ! Compute pressure mass matrix, scaled by inverse viscosity - note that the
+      ! inverse viscosity is supplied as density here:
+      call compute_mass(positions,pressure%mesh,scaled_pressure_mass_matrix,density=inverse_viscosity_component)
+
+      ! Deallocate inverse viscosity component scalar field:
+      call deallocate(inverse_viscosity_component)
+
+    end subroutine assemble_scaled_pressure_mass_matrix
+      
     subroutine repair_stiff_nodes(cmc_m, stiff_nodes_list)
     
       type(csr_matrix), intent(inout) :: cmc_m

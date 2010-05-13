@@ -3186,7 +3186,9 @@ contains
 
     ! Check options for Stokes flow simulations.
 
-    character(len=OPTION_PATH_LEN) velocity_path, pressure_path
+    integer :: i
+    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path
+    character(len=FIELD_NAME_LEN) :: schur_preconditioner      
 
     velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
     if (have_option(trim(velocity_path))) then
@@ -3201,6 +3203,44 @@ contains
        if(.not.have_option(trim(velocity_path)//'/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms')) then
           ewrite(0,*) "Advection terms are invalid for a Stokes flow problem"
           FLExit("For Stokes problems you need to exclude the advection terms.")    
+       end if
+
+       ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
+        if(have_option("/material_phase["//int2str(i)//&
+             "]/vector_field::Velocity/prognostic&
+             &/tensor_field::Viscosity/prescribed/value&
+             &/anisotropic_symmetric").or.&
+           have_option("/material_phase["//int2str(i)//&
+             "]/vector_field::Velocity/prognostic&
+             &/tensor_field::Viscosity/prescribed/value&
+             &/anisotropic_asymmetric")) then
+
+          if(have_option("/material_phase["//int2str(i)//&
+               "]/scalar_field::Pressure/prognostic&
+               &/scheme/use_projection_method")) then
+
+             if(have_option("/material_phase["//int2str(i)//&
+                  "]/scalar_field::Pressure/prognostic&
+                  &/scheme/use_projection_method&
+                  &/full_schur_complement")) then
+
+                call get_option("/material_phase["//int2str(i)//&
+                     "]/scalar_field::Pressure/prognostic&
+                     &/scheme/use_projection_method&
+                     &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
+
+                select case(schur_preconditioner)
+                case("ScaledPressureMassMatrix")
+                   ewrite(-1,*) "At present, the viscosity scaling for the pressure mass matrix is only"
+                   ewrite(-1,*) "valid for isotropic viscosity tensors. Please use another preconditioner"
+                   ewrite(-1,*) "for the Full Projection solve"
+                   FLExit("Sorry!")
+                end select
+
+             end if
+
+          end if
+
        end if
 
     end if

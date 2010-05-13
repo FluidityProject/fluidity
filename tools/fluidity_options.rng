@@ -3210,6 +3210,18 @@ DiagonalSchurComplement = C_P^T * [(Big_m)_diagonal]^-1 * C</a:documentation>
                   <empty/>
                 </element>
                 <element name="preconditioner_matrix">
+                  <a:documentation>Specify the preconditioner matrix to use on the schur complement.
+
+Pressure Mass Matrix, scaled with the inverse of viscosity. This is
+shown to be spectrally equivalent to the Schur complement.
+Note that this currently only works with isoviscous and/or isotropic
+viscosity tensors.</a:documentation>
+                  <attribute name="name">
+                    <value>ScaledPressureMassMatrix</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="preconditioner_matrix">
                   <a:documentation>Specify the preconditioner matrix to use on the schur complement.</a:documentation>
                   <attribute name="name">
                     <value>NoPreconditionerMatrix</value>

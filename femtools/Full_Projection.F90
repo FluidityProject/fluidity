@@ -93,7 +93,8 @@
       ! Fluidity Preconditioner matrix. If preconditioner matrix is set as LumpedSchurComplement, this array comes in as
       ! CMC where M is the inverse_lumped mass (ideal for Full_CMC solve). However, if preconditioner matrix is specified 
       ! as DiagonalSchurComplement, this comes in as C(Big_m_id)C, where Big_M_id is the inverse diagonal of the full 
-      ! momentum matrix:
+      ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
+      ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat 
       ! p1-p1 stabilization matrix:
       type(csr_matrix), pointer :: kmk_matrix
@@ -121,8 +122,8 @@
       ! Build Schur complement and set KSP.
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
-           inner_solver_option_path,lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat,rhs, &
-           kmk_matrix)
+           inner_solver_option_path,lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
+           rhs,kmk_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:

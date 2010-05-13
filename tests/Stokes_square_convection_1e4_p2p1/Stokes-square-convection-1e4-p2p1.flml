@@ -183,7 +183,7 @@
                   </diagnostics>
                 </solver>
               </inner_matrix>
-              <preconditioner_matrix name="DiagonalSchurComplement"/>
+              <preconditioner_matrix name="ScaledPressureMassMatrix"/>
             </full_schur_complement>
           </use_projection_method>
         </scheme>
@@ -475,7 +475,7 @@
     </scalar_field>
     <scalar_field name="FiniteElementDivergence" rank="0">
       <diagnostic field_name="Velocity">
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
         <solver>
           <iterative_method name="cg"/>
