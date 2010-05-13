@@ -348,27 +348,23 @@ discretised in a domain $\Omega\subset\mathbb{R}^3$ to yield a
 finite element numerical ocean model,
 %
 \begin{subeqnarray}
-\frac{\pp\bmu}{\pp t} + (\bmu -\hat{\bmu})\cdot\nabla \bmu + 2 \bmOmega \times \bmu
-&=& - \nabla p - g\nabla\eta - \rho g \bmk + \nabla\cdot \tautens + \bmF,
+\frac{\pp\bmu}{\pp t} + \bmu\cdot\nabla \bmu + 2 \bmOmega \times \bmu
+&=& - \nabla p - g\nabla\eta - \rho' g \bmk + \nabla\cdot \tautens + \bmF,
 \slabel{mtm}\\
 \nabla\cdot {\bmu}&=&0,\slabel{conty}\\
-\frac{\pp T}{\pp t} + (\bmu-\hat{\bmu})\cdot\nabla  T  &=&
+\frac{\pp T}{\pp t} + \bmu\cdot\nabla  T  &=&
 \nabla . \left ( \kaptens_T  \nabla T\right),\slabel{heat}\\
-\frac{\pp S}{\pp t} + (\bmu-\hat{\bmu})\cdot\nabla  S  &=&
+\frac{\pp S}{\pp t} + \bmu\cdot\nabla  S  &=&
 \nabla . \left ( \kaptens_S  \nabla S\right),\slabel{salt}\\
-\rho &=& -\alpha(T-T_0)+\beta (S-S_0).\slabel{state}
+\rho' &=& -\alpha(T-T_0)+\beta (S-S_0).\slabel{state}
 \label{boussinesq}
 \end{subeqnarray}
 %
 Here, $\bmu$ is the three-dimensional velocity vector,
-$\hat{\bmu}$ is a term used to account for a moving reference
-frame, for example in this work it takes the form of node velocities
-for numerical discretisations on moving meshes (\eg to account for a moving free surface).
-$t$ represents time, $p$ is the
+$p$ is the
 perturbation pressure, $g$ is the acceleration due to gravity,
-$\rho$ is the perturbation density,
-$T$ is the temperature and $S$ is salinity. In this work $T,S$ and hence $\rho$ are all
-constant. $\eta$ is the free surface height, whose evolution is described in a section below.
+$\rho'=(\rho-\rho_0)/\rho_0$ is the perturbation density,
+$T$ is the temperature and $S$ is salinity. $\eta$ is the free surface height, whose evolution is described in a section below.
 $\tautens,\kaptens_T,\kaptens_S$ are the viscosity, thermal diffusivity and saline
 diffusivity tensors respectively. $\alpha$ is the thermal expansion coefficient
 and $\beta$ is the saline contraction coefficient.

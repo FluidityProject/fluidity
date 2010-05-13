@@ -1060,27 +1060,52 @@ Options to give extra information for each iteration of the the solve. Note that
 \section{Equation of State (EoS)}\label{Sect:ConfigEOS}
 \index{equation of state!options}
 
-Setting the equation of state is optional.  If unset the material is assumed to be incompressible (see section~\ref{sect:equation_of_state}).  There are two ``fluids'' equations of state available and one ``multimaterial'' EOS:
+The equation of state is a relation between state 
+variables. For incompressible flows it is used to derive the density
+from other variables such as temperature and salinity. For compressible
+flows it can be a more general relation between the state variables
+including density and pressure.
+
+There are two ``fluids'' equations of state available and one ``multimaterial'' EOS:
 
 \begin{description}
-\item\option{\ldots/equation\_of\_state/fluids/linear} Is a simple linear equation of state for quasi-incompressible materials, where density is a function of temperature and salinity (or any other compositional volume fraction).
+\item\option{\ldots/equation\_of\_state/fluids/linear} 
+Is a simple linear equation of state,
+where density is a function of temperature and salinity.
+
 \item\option{\ldots/equation\_of\_state/fluids/ocean\_pade\_approximation} Is a complex EOS for ocean modelling where density is a function of temperature, salinity and pressure.
 \item\option{\ldots/equation\_of\_state/multimaterial/miegrunneisen} Is simple compressible material EOS.
 \end{description}
 
 \subsubsection{Linear fluid EOS}
 \index{equation of state!linear}
-This EOS (\option{\ldots/equation\_of\_state/linear}) can be used when simulating incompressible flow to account for the effect on buoyancy of small changes in density caused by variations in temperature and/or salinity (for more details see section~\ref{Sect:IncompressibleFlow}).
-
+The density is a linear function of temperature and salinity:
+\begin{equation}
+  \rho=\rho_0 \left(1-\alpha(T-T_0)+\beta (S-S_0)\right),
+\end{equation}
+where $\rho_0, \alpha, T_0, \beta$ and $S_0$ are set by the following 
+options:
 \begin{description}
-\item\option{\ldots/linear/reference\_density} Specifies the reference density of the fluid in SI units. If only this option is set the fluid is incompressible.
-\item\option{\ldots/linear/temperature\_dependency} Activate this option to make the fluid density depend on temperature.
-\item\option{\ldots/linear/temperature\_dependency/reference\_temperature} Defines the reference (or background) temperature of the fluid $T_0$; \ie in the absence of any other influence, the temperature at which $\rho=\rho_0$.
-\item\option{\ldots/linear/temperature\_dependency/thermal\_expansion\_coefficient} Specifies the volumetric thermal expansion coefficient (Eq.~\ref{thermalexpansioncoeff}) $\alpha$, controlling the change in density for a given change in temperature.
-\item\option{\ldots/linear/salinity\_dependency} Activate this option to make the fluid density depend on salinity.
-\item\option{\ldots/linear/salinity\_dependency/reference\_salinity} Defines the reference (or background) salinity of the fluid $S_0$; \ie in the absence of any other influence, the salinity at which $\rho=\rho_0$.
-\item\option{\ldots/linear/salinity\_dependency/saline\_contraction\_coefficient} Specifies the saline contraction coefficient $\beta$, controlling the change in density for a given change in salinity.
+\item \option{\ldots/linear/reference\_density} sets $\rho_0$
+\item \option{\ldots/linear/temperature\_dependency/thermal\_expansion\_coefficient} sets $\alpha$
+\item \option{\ldots/linear/temperature\_dependency/reference\_temperature} sets $T_0$
+\item \option{\ldots/linear/salinity\_dependency/salinity\_contraction\_coefficient} sets $\beta$
+\item \option{\ldots/linear/salinity\_dependency/reference\_salinity} sets $S_0$
 \end{description}
+Note that for Boussinesq the reference density does not 
+influence any of the terms in the 
+momentum equation (see \eqref{boussinesq}). It may influence the outcome
+of diagnostic fields depending on density.
+
+The option \option{subtract\_out\_hydrostatic\_level} only changes 
+the buoyancy term. For LinearMomentum it changes to 
+$g(\rho-\rho_0)$ and does not affect the density in the $Du/Dt$ term. For
+Boussinesq it changes to 
+$g\rho'=g(\rho-\rho_0)/\rho_0$ (again see \eqref{boussinesq}), 
+and this option should always be used.
+In both cases the diagnostic
+``Density'' field and all other diagnostic fields depending on density
+still represent the full density.
 
 \subsubsection{Pade ocean EOS}
 \index{equation of state!Pade approximation}
