@@ -475,7 +475,7 @@
           <string_value lines="20" type="python">def val(h):
         if abs(h)&lt;0.02:
                 return 0.0
-        return -h*10</string_value>
+        return h*10</string_value>
         </head_flux>
       </dirichlet>
     </turbine>

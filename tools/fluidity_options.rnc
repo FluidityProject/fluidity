@@ -1563,8 +1563,9 @@ start =
                      element free_surface_point_2 {
                        real_dim_vector
                      },
-                     ## Python function val(h) takes the head h and returns the total flux through turbine (in m^3/s). A return value 
+                     ## Python function val(h) takes the head h (=free_surface_point_1-free_surface_point_2) and returns the total flux through turbine (in m^3/s). A return value 
                      ## of 0.0 will deactivate the turbine model which results in the dirichlet conditions prescribed at these boundaries.
+                     ## A flux value will be outflow for boundary_condition_name_1 and inflow for boundary_condition_name_2 and therefore sign(h)==sign(val(h)) should be true to achieve stability.
                      element head_flux {
                        python_code
                      }

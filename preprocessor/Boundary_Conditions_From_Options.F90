@@ -1669,7 +1669,7 @@ contains
          ! speed = outflow/area
          ewrite(3,*) "Surface area of boundary ", trim(bc_name(j)), ": ",  surface_area(j)
          ewrite(3,*) "Setting normal flow speed at boundary ", trim(bc_name(j)), " to: ", flux/surface_area(j)
-         call set(surface_field_normal, (-1)**j*flux/surface_area(j))
+         call set(surface_field_normal, (-1)**(j+1)*flux/surface_area(j))
        end do
     end do
     ! Tidying up
