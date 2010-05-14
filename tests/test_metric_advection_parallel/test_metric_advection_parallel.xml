@@ -1,0 +1,61 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Metric advection test, parallel</name>
+  <owner userid="hhiester"/>
+  <tags>flml</tags>
+  <problem_definition length = "medium" nprocs = "1">
+    <command_line>mpiexec -n 4 ../../bin/fluidity -v3 -l test_metric_advection_parallel.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "end_times" language = "python">
+    
+from lxml import etree
+
+################################################################################################
+
+def not_comment(x):
+# function to filter stream for use in Getflmlvalue
+  return not 'comment' in x.tag
+
+################################################################################################
+
+
+def Getflmlvalue(flml_name, xpath):
+
+# We will be filtering the children of the elements later,
+# to remove comments.
+
+# The spud file to modify
+  filename = flml_name
+
+# The path to the node in the tree - xpath
+
+# Open it up
+  tree = etree.parse(open(filename))
+
+  node = tree.xpath(xpath)[0]
+
+  child = filter(not_comment, node.getchildren())[0]
+
+  return child.text
+
+################################################################################################
+    
+    
+from fluidity_tools import stat_parser
+stat = stat_parser('test_metric_advection_parallel.stat')
+end_times = [stat["ElapsedTime"]["value"][-1]]
+end_times.append(float(Getflmlvalue('test_metric_advection_parallel.flml','/fluidity_options/timestepping/finish_time')))
+
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "check run completed" language = "python">
+    assert end_times[1]-end_times[0] &lt; 1.E-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
