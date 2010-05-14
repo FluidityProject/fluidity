@@ -338,12 +338,24 @@ contains
     type(halo_type), intent(in) :: halo
     type(scalar_field), intent(inout) :: s_field
     
+    integer, dimension(:), allocatable :: buffer
+
     ewrite(2, *) "Updating halo " // trim(halo%name) // " for field " // trim(s_field%name)
 
     select case(s_field%field_type)
       case(FIELD_TYPE_NORMAL)
         assert(associated(s_field%val))
-        call halo_update(halo, s_field%val)
+        if(s_field%val_stride == 1) then
+          call halo_update(halo, s_field%val)
+        else
+          ! A stride argument should be passed to halo_update_real_array. For
+          ! now just use a buffer.
+          allocate(buffer(node_count(s_field)))
+          buffer = s_field%val
+          call halo_update(halo, buffer)
+          s_field%val = buffer
+          deallocate(buffer)
+        end if 
       case(FIELD_TYPE_CONSTANT)
       case default
         ewrite(-1, "(a,i0)") "For field type ", s_field%field_type
@@ -394,8 +406,7 @@ contains
         assert(associated(t_field%val))
         do i = 1, size(t_field%val, 1)
            do j = 1, size(t_field%val, 2)
-              ! We need an explicit array temporary here as mpi can't handle
-              ! non-contiguous arrays.
+              ! Should supply MPI with a stride. For now use a buffer.
               val=t_field%val(i, j, :)
               call halo_update(halo, val)
               t_field%val(i, j, :)=val

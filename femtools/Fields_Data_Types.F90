@@ -119,6 +119,8 @@ module fields_data_types
   type scalar_field 
      !! Field value at points.
      real, dimension(:), pointer :: val
+     !! Stride of val
+     integer :: val_stride = 1
      !! Flag for whether val is allocated
      logical :: wrapped=.true.
      !! The data source to be used

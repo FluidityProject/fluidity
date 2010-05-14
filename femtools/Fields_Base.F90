@@ -2762,6 +2762,7 @@ contains
     ! borrowed field reference.
     sfield%mesh = tfield%mesh
     sfield%val  => tfield%val(dim1, dim2, :)
+    sfield%val_stride = dim1 * dim2
     sfield%field_type = tfield%field_type
     write(sfield%name, '(a, 2i0)') trim(tfield%name) // "%", (dim1-1) * tfield%dim + dim2
 
