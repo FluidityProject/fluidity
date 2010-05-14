@@ -242,7 +242,7 @@ module hadapt_metric_based_extrude
       call halo_update(out_mesh)
     end if
 
-    call generate_radially_layered_mesh(out_mesh, shell_mesh)
+    call generate_layered_mesh(out_mesh, shell_mesh)
     call deallocate(out_columns)
     
   end subroutine combine_r_meshes
