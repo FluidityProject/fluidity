@@ -8,7 +8,9 @@ subroutine test_matrix_conversions
   
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscmat.h"
+#endif
   Mat M
 #endif
   type(dynamic_csr_matrix):: R, S
