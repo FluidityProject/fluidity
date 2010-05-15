@@ -1421,8 +1421,8 @@ module field_derivatives
 
     integer :: i
     type(scalar_field) :: out_field_comp
-        
-    do i = 1, 3
+
+    do i = 1, v_field%dim
       out_field_comp = extract_scalar_field(out_field, i)
       call u_dot_nabla(v_field, &
         & extract_scalar_field(in_field, i), positions, &
