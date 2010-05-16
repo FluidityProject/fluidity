@@ -444,7 +444,7 @@
          old_u,old_d,delta_d,delta_u,state)
       implicit none
       type(state_type), intent(inout) :: state
-      type(scalar_field), intent(inout), pointer :: D
+      type(scalar_field), pointer :: D
       type(scalar_field), intent(inout) :: D_rhs, delta_d, old_d
       type(vector_field), intent(inout), pointer :: U,X
       type(vector_field), intent(inout) :: U_rhs, delta_u, advecting_u, old_u
