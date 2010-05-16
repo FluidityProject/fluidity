@@ -92,7 +92,6 @@ contains
     type(mesh_type), pointer :: old_mesh, new_mesh
     type(vector_field) :: old_pos, new_pos
     type(ilist), dimension(:), allocatable :: map_BA
-    integer :: ele
 
     logical :: all_consistent_interpolation, all_linear_meshes, &
       any_periodic_meshes
@@ -536,9 +535,7 @@ contains
     integer :: stat
   
     interpolate = .false.
-    if(len_trim(option_path) == 0) then
-      interpolate = .true.
-    else if(have_option(trim(complete_field_path(option_path, stat = stat)) // "/pseudo_consistent_interpolation")) then
+    if(have_option(trim(complete_field_path(option_path, stat = stat)) // "/pseudo_consistent_interpolation")) then
       interpolate = .true.
     end if
     
