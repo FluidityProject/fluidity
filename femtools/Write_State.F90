@@ -4,7 +4,8 @@
 
 module write_state_module
   !!< Data output routines
-
+  
+  use embed_python
   use fields
   use FLDebug
   use spud
@@ -29,6 +30,8 @@ module write_state_module
   real, save :: last_dump_time
   real, save :: last_dump_cpu_time
   real, save :: last_dump_wall_time
+  real, save :: real_dump_period
+  integer, save :: int_dump_period
 
 contains
 
@@ -49,8 +52,10 @@ contains
     
     logical :: do_write_state
     
-    integer :: int_dump_period, i, stat
-    real :: current_cpu_time, current_wall_time, real_dump_period
+    character(len = OPTION_PATH_LEN) :: func
+    
+    integer ::  i, stat
+    real :: current_cpu_time, current_wall_time
     
     do_write_state = .false.
     
@@ -63,17 +68,34 @@ contains
             exit
           end if
         case(2)
-          call get_option("/io/dump_period", real_dump_period, stat)
-          if(stat == SPUD_NO_ERROR) then
+          if(have_option("/io/dump_period")) then
             if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period)) then
+              if(have_option("/io/dump_period/constant")) then
+                 call get_option("/io/dump_period/constant", real_dump_period)
+              elseif (have_option("/io/dump_period/python")) then
+                 call get_option("/io/dump_period/python", func)
+                 call real_from_python(func, current_time, real_dump_period)
+              END IF  
+              If(real_dump_period < 0.0) then
+                 FLExit("Dump period cannot be negative")
+              END IF
               do_write_state = .true.
               exit
-            end if
+            END IF
           end if
-        case(3)
-          call get_option("/io/dump_period_in_timesteps", int_dump_period, stat)
-          if(stat == SPUD_NO_ERROR) then
+        case(3) 
+          if(have_option("/io/dump_period_in_timesteps")) then
             if(int_dump_period == 0 .or. mod(timestep, int_dump_period) == 0) then
+              if(have_option("/io/dump_period_in_timesteps/constant")) then
+                call get_option("/io/dump_period_in_timesteps/constant", int_dump_period)
+              elseif (have_option("/io/dump_period_in_timesteps/python")) then
+                call get_option("/io/dump_period_in_timesteps/python", func)
+                call integer_from_python(func, current_time, int_dump_period)
+              END IF
+              PRINT*, 'int_dump_period', int_dump_period, 'current_time', current_time
+              If(int_dump_period < 0) then
+                FLExit("Dump period cannot be negative")
+              END If
               do_write_state = .true.
               exit
             end if
@@ -129,6 +151,7 @@ contains
   
   subroutine update_dump_times
     !!< Update the last_dump_*time variables.
+    character(len = OPTION_PATH_LEN) :: func
     
     last_times_initialised = .true.
     call get_option("/timestepping/current_time", last_dump_time)
@@ -136,6 +159,28 @@ contains
     call allmax(last_dump_cpu_time)
     last_dump_wall_time = wall_time()
     call allmax(last_dump_wall_time)
+    if(have_option("/io/dump_period/constant")) then
+       call get_option("/io/dump_period/constant", real_dump_period)
+    elseif (have_option("/io/dump_period/python")) then
+       call get_option("/io/dump_period/python", func)
+       call real_from_python(func, last_dump_time, real_dump_period)
+       If(real_dump_period < 0.0) then
+         FLExit("Dump period cannot be negative")
+       END IF       
+    else
+       real_dump_period = -666.0
+    END IF  
+    if(have_option("/io/dump_period_in_timesteps/constant")) then
+       call get_option("/io/dump_period_in_timesteps/constant", int_dump_period)
+    elseif (have_option("/io/dump_period_in_timesteps/python")) then
+       call get_option("/io/dump_period_in_timesteps/python", func)
+       call integer_from_python(func, last_dump_time, int_dump_period)
+       If(int_dump_period < 0) then
+         FLExit("Dump period cannot be negative")
+       END IF
+    else
+       int_dump_period = -666
+    END IF
   
   end subroutine update_dump_times
 
@@ -554,7 +599,7 @@ contains
   subroutine write_state_module_check_options
     !!< Check output related options
 
-    character(len = OPTION_PATH_LEN) :: dump_format, output_mesh_name
+    character(len = OPTION_PATH_LEN) :: dump_format, output_mesh_name, func
     integer :: int_dump_period, max_dump_file_count, stat
     real :: real_dump_period
 
@@ -576,22 +621,41 @@ contains
       FLExit("Dump format must be specified")
     end if
     
-    call get_option("/io/dump_period", real_dump_period, stat)
-    if(stat == SPUD_NO_ERROR) then
-      if(real_dump_period < 0.0) then
-        FLExit("Dump period cannot be negative")
-      end if
-    else
-      call get_option("/io/dump_period_in_timesteps", int_dump_period, stat)
+    
+    If(have_option("/io/dump_period/constant")) then
+      call get_option("/io/dump_period/constant", real_dump_period, stat)
+      if(stat == SPUD_NO_ERROR) then
+        if(real_dump_period < 0.0) then
+          FLExit("Dump period cannot be negative")
+        end if
+      END IF
+    elseIF(have_option("/io/dump_period/python")) then
+      call get_option("/io/dump_period/python", func)
+      call real_from_python(func, current_time, real_dump_period, STAT)
+      if(stat == SPUD_NO_ERROR) then
+        if(real_dump_period < 0.0) then
+          FLExit("Dump period cannot be negative")
+        end if
+      END IF
+    ELSEIf(have_option("/io/dump_period_in_timesteps/constant")) then
+      call get_option("/io/dump_period_in_timesteps/constant", int_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(int_dump_period < 0) then
           FLExit("Dump period cannot be negative")
         end if
-      else
-        FLExit("Dump period must be specified (in either simulated time or timesteps)")
-      end if
+      END IF
+    elseIF(have_option("/io/dump_period_in_timesteps/python")) then
+      call get_option("/io/dump_period_in_timesteps/python", func)
+      call integer_from_python(func, current_time, int_dump_period, stat)
+      if(stat == SPUD_NO_ERROR) then
+        if(int_dump_period < 0) then
+          FLExit("Dump period cannot be negative")
+        end if
+      END IF
+    ELSE      
+      FLExit("Dump period must be specified (in either simulated time or timesteps)")
     end if
-    
+      
     call get_option("/io/cpu_dump_period", real_dump_period, stat)
     if(stat == SPUD_NO_ERROR) then
       if(real_dump_period < 0.0) then

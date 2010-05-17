@@ -78,8 +78,10 @@
         <dump_format>
             <string_value>vtk</string_value>
         </dump_format>
-        <dump_period replaces="TIMDUM">
-            <real_value rank="0">3600</real_value>
+        <dump_period>
+          <constant replaces="TIMDUM">
+              <real_value rank="0">3600</real_value>
+          </constant>
             <comment>1 hour</comment>
         </dump_period>
         <output_mesh name="CoordinateMesh"></output_mesh>

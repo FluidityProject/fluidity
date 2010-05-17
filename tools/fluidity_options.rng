@@ -58,17 +58,48 @@ characters in the simulation name should be avoided.</a:documentation>
 
 Specifies the period between each dump of the solution to disk.
 A value of 0.0 indicates that there would be a dump at every timestep.</a:documentation>
-            <attribute name="replaces">
-              <value>TIMDUM</value>
-            </attribute>
-            <ref name="real"/>
+            <choice>
+              <element name="constant">
+                <attribute name="replaces">
+                  <value>TIMDUM</value>
+                </attribute>
+                <ref name="real"/>
+              </element>
+              <element name="python">
+                <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+                <attribute name="replaces">
+                  <value>TIMDUM</value>
+                </attribute>
+                <ref name="python_code"/>
+              </element>
+            </choice>
           </element>
           <element name="dump_period_in_timesteps">
             <a:documentation>Dump period, in timesteps.
 
 Specifies the number of timesteps between each dump of the solution to disk.
 A value of 0 indicates a dump at every timestep.</a:documentation>
-            <ref name="integer"/>
+            <choice>
+              <element name="constant">
+                <ref name="integer"/>
+              </element>
+              <element name="python">
+                <a:documentation>Python function prescribing integer input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+                <ref name="python_code"/>
+              </element>
+            </choice>
           </element>
         </choice>
         <optional>

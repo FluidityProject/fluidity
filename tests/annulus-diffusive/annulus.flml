@@ -31,7 +31,9 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period_in_timesteps>
-      <integer_value rank="0">20</integer_value>
+      <constant>
+        <integer_value rank="0">20</integer_value>
+      </constant>
     </dump_period_in_timesteps>
     <disable_dump_at_start/>
     <disable_dump_at_end/>

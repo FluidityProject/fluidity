@@ -56,7 +56,9 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period_in_timesteps>
-      <integer_value rank="0">10</integer_value>
+      <constant>
+        <integer_value rank="0">10</integer_value>
+      </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
     <checkpointing>

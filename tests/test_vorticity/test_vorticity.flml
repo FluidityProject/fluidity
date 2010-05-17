@@ -68,8 +68,10 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period replaces="TIMDUM">
-      <real_value rank="0">1</real_value>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">1</real_value>
+      </constant>
     </dump_period>
     <disable_dump_at_start/>
     <output_mesh name="P2DGMesh"/>

@@ -89,8 +89,10 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period replaces="TIMDUM">
-      <real_value rank="0">43200</real_value>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">43200</real_value>
+      </constant>
       <comment>86400.0 - day
 43200 - 0.5 days</comment>
     </dump_period>
