@@ -160,7 +160,7 @@
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution replaces="POISON">
-            <string_value lines="1">every timestep</string_value>
+            <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
           <use_projection_method replaces="PROJEC"/>
         </scheme>
@@ -275,30 +275,6 @@
             <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="left_block1">
-          <surface_ids>
-            <integer_value shape="1" rank="1">550</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">1</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
         <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="wallblock1">
           <surface_ids>
             <integer_value shape="3" rank="1">62 63 64</integer_value>
@@ -459,7 +435,6 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
-  <mesh_adaptivity/>
   <turbine_model>
     <turbine name="turbine1">
       <dirichlet>
