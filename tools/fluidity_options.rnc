@@ -1746,6 +1746,13 @@ start =
                ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
                element cp_expo {real}?
             }?
+         }?,
+         ## UNDER DEVELOPMENT - DO NOT USE
+         ##
+         ## Implict Solids
+         element implicit_solids {
+              ## mesh name
+              element mesh_name{ xsd:string } 
          }?
       }
    )      

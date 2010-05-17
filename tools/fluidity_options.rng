@@ -2458,6 +2458,17 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
           </optional>
         </element>
       </optional>
+      <optional>
+        <element name="implicit_solids">
+          <a:documentation>UNDER DEVELOPMENT - DO NOT USE
+
+Implict Solids</a:documentation>
+          <element name="mesh_name">
+            <a:documentation>mesh name</a:documentation>
+            <data type="string"/>
+          </element>
+        </element>
+      </optional>
     </element>
   </start>
   <define name="sediment">
