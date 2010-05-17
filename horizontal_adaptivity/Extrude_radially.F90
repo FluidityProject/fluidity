@@ -76,6 +76,18 @@ module hadapt_extrude_radially
     call add_nelist(shell_mesh%mesh)
 
     n_regions = option_count(trim(option_path)//'/from_mesh/extrude/regions')
+    if(n_regions==0) then
+      ewrite(-1,*) "Since r13369 it has been possible to extrude using different parameters"
+      ewrite(-1,*) "in each region id of a shell mesh.  This means that the extrusion parameters"
+      ewrite(-1,*) "must be included under geometry/mesh::MeshNameHere/from_mesh/extrude/regions."
+      ewrite(-1,*) "This is necessary even if you want to use the same parameters"
+      ewrite(-1,*) "for the whole mesh (using a single regions option and no region_ids)."
+      ewrite(-1,*) "I've been told to extrude but have found no regions options."
+      ewrite(-1,*) "Have you updated your flml since r13369?"
+      FLExit("No regions options found under extrude.")
+    elseif(n_regions<0) then
+      FLAbort("Negative number of regions options found under extrude.")
+    end if
     apply_region_ids = (n_regions>1)
     visited = 0 ! a little debugging check - can be removed later
 
