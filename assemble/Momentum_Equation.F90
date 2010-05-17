@@ -357,8 +357,6 @@
       select case (poisson_scheme)
       case ("never")
         poisson_p = .false.
-      case("every timestep")
-        poisson_p = .true.
       case ("only first timestep")
         poisson_p = at_first_timestep
         call set_option(trim(p%option_path)//&

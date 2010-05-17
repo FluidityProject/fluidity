@@ -154,7 +154,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution replaces="POISON">
-            <string_value lines="1">every timestep</string_value>
+            <string_value lines="1">only first timestep</string_value>
           </poisson_pressure_solution>
           <use_projection_method replaces="PROJEC"/>
         </scheme>

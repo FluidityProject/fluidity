@@ -3141,7 +3141,6 @@ Manual suggests -1</a:documentation>
             </attribute>
             <choice>
               <value>never</value>
-              <value>every timestep</value>
               <value>only first timestep</value>
             </choice>
           </element>

@@ -2274,7 +2274,7 @@ prognostic_pressure_field =
                   # Lines is a hint to the gui about the size of the text box.
                   # It is not an enforced limit on string length.
                   attribute lines { "1" },
-                  ( "never" | "every timestep" | "only first timestep")
+                  ( "never" | "only first timestep")
                },
                comment
             )
