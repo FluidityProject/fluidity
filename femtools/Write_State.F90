@@ -92,7 +92,6 @@ contains
                 call get_option("/io/dump_period_in_timesteps/python", func)
                 call integer_from_python(func, current_time, int_dump_period)
               END IF
-              PRINT*, 'int_dump_period', int_dump_period, 'current_time', current_time
               If(int_dump_period < 0) then
                 FLExit("Dump period cannot be negative")
               END If
@@ -601,9 +600,11 @@ contains
 
     character(len = OPTION_PATH_LEN) :: dump_format, output_mesh_name, func
     integer :: int_dump_period, max_dump_file_count, stat
-    real :: real_dump_period
+    real :: real_dump_period, current_time
 
     ewrite(2, *) "Checking output options"
+    
+    call get_option("/timestepping/current_time", current_time)
     
     call get_option("/io/dump_format", dump_format, stat)
     if(stat == SPUD_NO_ERROR) then
