@@ -91,15 +91,44 @@ start =
                ## Specifies the period between each dump of the solution to disk.
                ## A value of 0.0 indicates that there would be a dump at every timestep.
                element dump_period {
-                  attribute replaces {"TIMDUM"},
-                  real
-               }|
+                (
+                     element constant {
+                     attribute replaces {"TIMDUM"},
+                     real
+                   }|
+                   ## Python function prescribing real input. Functions should be of the form:
+                   ##
+                   ##  def val(t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     attribute replaces {"TIMDUM"},
+                     python_code
+                   }
+                )  
+               }|                 
                ## Dump period, in timesteps.
                ## 
                ## Specifies the number of timesteps between each dump of the solution to disk.
                ## A value of 0 indicates a dump at every timestep.
                element dump_period_in_timesteps {
-                  integer
+                 (
+                     element constant {
+                     integer
+                   }|
+                   ## Python function prescribing integer input. Functions should be of the form:
+                   ##
+                   ##  def val(t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     python_code
+                   }
+                )   
                }
             ),
             # every CPUDUM seconds write results to disc.
