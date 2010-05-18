@@ -32,23 +32,30 @@ for i in range(len(flml_options)):
     if ('integer' in flml_options[i+1]):
       flml_options[i+1]='  '+flml_options[i+1]
       flml_options.insert(i+1,white_space+'  <constant>\n')
-      if ('comment' in flml_options[i+3]): 
-        flml_options[i+3] = '  '+flml_options[i+3]
-        flml_options.insert(i+4,white_space+'  </constant>\n')
+      if ('comment' in flml_options[i+3]):
+        index_insert = i+3
+        flml_options[index_insert] = '  '+flml_options[index_insert]
+        while '/comment' not in flml_options[index_insert]:
+          index_insert = index_insert+1
+          flml_options[index_insert] = flml_options[index_insert] 
+        flml_options.insert(index_insert+1,white_space+'  </constant>\n')        
       else: 
         flml_options.insert(i+3,white_space+'  </constant>\n')
     elif ('real' in flml_options[i+1]):
       flml_options[i] = flml_options[i].split(' replaces')[0]+'>\n'
       flml_options[i+1]='  '+flml_options[i+1]
       flml_options.insert(i+1,white_space+'  <constant replaces="TIMDUM">\n')
-      if ('comment' in flml_options[i+3]): 
-        flml_options[i+3] = '  '+flml_options[i+3]
-        flml_options.insert(i+4,white_space+'  </constant>\n')
+      if ('comment' in flml_options[i+3]):
+        index_insert = i+3
+        flml_options[index_insert] = '  '+flml_options[index_insert]
+        while '/comment' not in flml_options[index_insert]:
+          index_insert = index_insert+1
+          flml_options[index_insert] = flml_options[index_insert] 
+        flml_options.insert(index_insert+1,white_space+'  </constant>\n')        
       else: 
         flml_options.insert(i+3,white_space+'  </constant>\n')
-      #dump_period = float(flml_options[i+1].split('>')[-2].split('<')[0])
     else:
-      sys.stderr.write('Error: dump_period or dump_period_in_timesteps not real or integer, failed to update\n')
+      sys.stderr.write('Error: dump_period or dump_period_in_timesteps not real or integer \n or file already updated, \n failed to update\n')
       sys.exit(1)
 
 try:

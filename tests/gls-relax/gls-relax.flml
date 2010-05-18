@@ -103,8 +103,8 @@
       <constant replaces="TIMDUM">
         <real_value rank="0">0</real_value>
         <comment>86400 - 1 day
-      </constant>
 604800 - 1 week</comment>
+      </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat/>

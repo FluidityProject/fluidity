@@ -93,8 +93,8 @@
       <constant replaces="TIMDUM">
         <real_value rank="0">86400</real_value>
         <comment>86400.0 - day
-      </constant>
 43200 - 0.5 days</comment>
+      </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <checkpointing>
