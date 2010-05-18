@@ -50,10 +50,16 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">2</integer_value>
+        <integer_value rank="0">0</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">20</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat/>
   </io>
   <timestepping>
@@ -64,10 +70,10 @@
       <real_value rank="0">0.025</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">0.075</real_value>
+      <real_value rank="0">100.0</real_value>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
-      <integer_value rank="0">0</integer_value>
+      <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
@@ -143,9 +149,7 @@
           </diagnostics>
         </solver>
         <output/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -157,6 +161,23 @@
         </steady_state>
         <no_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
@@ -271,7 +292,7 @@
         </tensor_field>
         <output/>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
           <previous_time_step>
             <exclude_from_stat/>
           </previous_time_step>
@@ -293,9 +314,36 @@
             <vector_field replaces="ADWEIU ADWEIV ADWEIW" name="InterpolationErrorBound" rank="1">
               <prescribed>
                 <value name="WholeMesh">
-                  <constant>
-                    <real_value shape="2" dim1="dim" rank="1">0.001 0.001</real_value>
-                  </constant>
+                  <python>
+                    <string_value type="python" lines="20">def val(X, t):
+
+# exponential function of form p = Ae^(aq) + B, 
+# with q = q_1, p=p_1 and q = q_2, p=p_2
+# giving p = p_1 + Aexp{aq_1}(exp{a(q-q_1)} -1)
+# with A = (p_2-p_1)/(exp{aq_1}(exp{a(q_2-q_1)} -1))
+# so p = p_1 + (p_2-p_1)*(exp{a(q-q_1)} -1) /(exp{a(q_2-q_1)} -1)
+# let C = (p_2-p_1)/(exp{a(q_2-q_1)} -1)
+ 
+  import math
+  a = 100.0
+  q_1 = 0.0 
+  p_1 = 0.00001
+  q_2 = 0.05
+  p_2 = 0.001  
+
+  if(X[1]&lt;=0.05):
+    C = (p_2 - p_1)/((math.exp(a*(q_2 - q_1)))-1)
+    q = X[1]
+    p = p_1 + C*((math.exp(a*(q - q_1)))-1)
+    u_val = p
+  else:
+    C = (p_2 - p_1)/((math.exp(a*(q_2 - q_1)))-1)
+    q = 0.1-X[1]
+    p = p_1 + C*((math.exp(a*(q - q_1)))-1)
+    u_val = p
+
+  return [u_val,0.001]</string_value>
+                  </python>
                 </value>
                 <output/>
                 <stat>
@@ -319,11 +367,7 @@
           <control_volumes>
             <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
               <limit_face_value>
-                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby">
-                  <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
-                    <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
-                  </project_upwind_value_from_point>
-                </limiter>
+                <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
@@ -372,7 +416,14 @@
         </initial_condition>
         <output/>
         <stat>
-          <exclude_from_stat/>
+          <include_mixing_stats replaces="heaviside.dat file" name="cv_normalised">
+            <control_volumes>
+              <normalise/>
+            </control_volumes>
+            <mixing_bin_bounds>
+              <real_value shape="23" rank="1">-10E8 -0.49 -0.48 -0.47 -0.46 -0.45 -0.4 -0.35 -0.3 -0.2 -0.1 0.0 0.1 0.2 0.3 0.35 0.4 0.45 0.46 0.47 0.48 0.49 0.5</real_value>
+            </mixing_bin_bounds>
+          </include_mixing_stats>
         </stat>
         <convergence>
           <include_in_convergence/>
@@ -408,12 +459,16 @@
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">10</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">200000</integer_value>
       </maximum_number_of_nodes>
-      <disable_gradation/>
+      <enable_gradation>
+        <gradation_parameter>
+          <real_value rank="0">2.0</real_value>
+        </gradation_parameter>
+      </enable_gradation>
       <metric_advection>
         <spatial_discretisation>
           <control_volumes>
@@ -434,7 +489,11 @@
           <scale_advection_time>
             <real_value rank="0">3.0</real_value>
           </scale_advection_time>
-          <control_volumes/>
+          <control_volumes>
+            <pivot_theta>
+              <real_value rank="0">0.5</real_value>
+            </pivot_theta>
+          </control_volumes>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -472,7 +531,7 @@
       </tensor_field>
       <adapt_at_first_timestep>
         <number_of_adapts>
-          <integer_value rank="0">3</integer_value>
+          <integer_value rank="0">6</integer_value>
         </number_of_adapts>
       </adapt_at_first_timestep>
     </hr_adaptivity>

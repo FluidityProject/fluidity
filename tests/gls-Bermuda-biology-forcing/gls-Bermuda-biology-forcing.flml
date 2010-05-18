@@ -92,8 +92,8 @@
     <dump_period>
       <constant replaces="TIMDUM">
         <real_value rank="0">43200</real_value>
+        <comment>86400.0 - day
       </constant>
-      <comment>86400.0 - day
 43200 - 0.5 days</comment>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>

@@ -55,8 +55,8 @@
     <dump_period_in_timesteps>
       <constant>
         <integer_value rank="0">10</integer_value>
+        <comment>was 10 for test</comment>
       </constant>
-      <comment>was 10 for test</comment>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>

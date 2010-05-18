@@ -58,8 +58,8 @@
     <dump_period_in_timesteps>
       <constant>
         <integer_value rank="0">5</integer_value>
+        <comment>5</comment>
       </constant>
-      <comment>5</comment>
     </dump_period_in_timesteps>
     <output_mesh name="PressureMesh"/>
     <stat/>

@@ -81,8 +81,8 @@
         <dump_period>
           <constant replaces="TIMDUM">
               <real_value rank="0">3600</real_value>
+              <comment>1 hour</comment>
           </constant>
-            <comment>1 hour</comment>
         </dump_period>
         <output_mesh name="CoordinateMesh"></output_mesh>
         <stat></stat>

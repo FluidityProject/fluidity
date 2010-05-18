@@ -50,8 +50,8 @@
     <dump_period_in_timesteps>
       <constant>
         <integer_value rank="0">10</integer_value>
+        <comment>0.36440821846106625</comment>
       </constant>
-      <comment>0.36440821846106625</comment>
     </dump_period_in_timesteps>
     <output_mesh name="PressureMesh"/>
     <checkpointing>

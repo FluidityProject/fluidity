@@ -50,8 +50,8 @@
     <dump_period>
       <constant replaces="TIMDUM">
         <real_value rank="0">500.0</real_value>
+        <comment>500.0</comment>
       </constant>
-      <comment>500.0</comment>
     </dump_period>
     <output_mesh name="PressureMesh"/>
     <stat/>
