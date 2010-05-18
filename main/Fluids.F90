@@ -93,7 +93,8 @@ module fluids_module
                                topology_mesh_name
   use eventcounter
   use reduced_model_runtime
-  
+  use implicit_solids
+
   implicit none
 
   private
@@ -253,7 +254,8 @@ contains
        ss=0
        phaseloop: do ph = 1, size(state)
           write(option_buffer, '(a,i0,a)') "/material_phase[",ph-1,"]"
-          if(have_option(trim(option_buffer)//"/scalar_field::SolidConcentration")) then
+          if(have_option(trim(option_buffer)//"/scalar_field::SolidConcentration") &
+             .and. have_option("/imported_solids")) then
              ss = ph
              have_solids=.true.
           end if
@@ -620,6 +622,10 @@ contains
              call traffic_source(state(1),timestep)
           end if
  
+          if (have_option("/implicit_solids")) then
+             call solids(state(1))
+          end if
+
           if (have_solids) then
              ewrite(2,*) 'into solid_drag_calculation'
              call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
