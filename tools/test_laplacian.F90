@@ -448,13 +448,12 @@ contains
 
     ! Coordinate transform * quadrature weights.
     real, dimension(ele_ngi(positions,ele)) :: detwei    
-    ! Shape functions.
+    ! Offset for zero pressure node
     real, dimension(1) :: offset
 
-    ! Transform derivatives and weights into physical space.
+    ! Transform weights into physical space.
     call transform_to_physical(positions, ele, detwei=detwei)
 
-    ! Offset for zero pressure node
     offset=-solution(spread(node_val(positions,1),2,1))
     
     element_error=dot_product(detwei, &
