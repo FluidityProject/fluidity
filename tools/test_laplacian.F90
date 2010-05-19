@@ -37,7 +37,7 @@ program test_laplacian
   type(vector_field), target :: positions
   type(scalar_field), target :: psi
   type(mesh_type) :: psi_mesh
-  integer :: degree, quad_degree, dim
+  integer :: degree, quad_degree, dim, vertices
   type(quadrature_type), target :: quad
   type(element_type), target :: psi_shape
   type(state_type) :: state
@@ -78,9 +78,10 @@ program test_laplacian
 
   ! Shape functions for psi
   dim=mesh_dim(positions)
-  quad=make_quadrature(loc=dim+1, dimension=dim, degree=quad_degree)
+  vertices=dim+1
+  quad=make_quadrature(vertices, dim, degree=quad_degree)
 
-  psi_shape=make_element_shape(loc=dim+1, dimension=dim, degree=degree, quad=quad)
+  psi_shape=make_element_shape(vertices, dim, degree=degree, quad=quad)
   psi_mesh=make_mesh(model=positions%mesh, shape=psi_shape)
 
   call insert(state, psi_mesh, "Psi_Mesh")
@@ -447,19 +448,11 @@ contains
 
     ! Coordinate transform * quadrature weights.
     real, dimension(ele_ngi(positions,ele)) :: detwei    
-    ! Locations of nodes.
-    real, dimension(positions%dim,ele_loc(positions,ele)) :: X_ele
     ! Shape functions.
-    type(element_type), pointer :: shape_X
     real, dimension(1) :: offset
-    
-    shape_X=>ele_shape(positions, ele)
-
-    ! Locations of local vertices.
-    X_ele=ele_val(positions, ele)
 
     ! Transform derivatives and weights into physical space.
-    call transform_to_physical(X_ele, shape_X, detwei=detwei)
+    call transform_to_physical(positions, ele, detwei=detwei)
 
     ! Offset for zero pressure node
     offset=-solution(spread(node_val(positions,1),2,1))
