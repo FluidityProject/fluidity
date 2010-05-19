@@ -114,7 +114,7 @@ class VectorField(Field):
     if(self.dimension>=2):
       v.append(self.val2[node])
     if(self.dimension>=3):
-      v.append(self.val2[node])
+      v.append(self.val3[node])
     return numpy.array(v)
 
   def set(self, node, val):
