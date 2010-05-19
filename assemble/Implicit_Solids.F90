@@ -61,11 +61,11 @@ contains
     type(plane_type), dimension(4) :: planes_A
     integer :: stat, nintersections, i, j, k
     integer :: ntests
-    integer, dimension(:), pointer :: neighs, ele_A_nodes
-    type(vector_field) :: sm_surface, intersection
-    type(scalar_field) :: sm_colours
+    integer, dimension(:), pointer :: ele_A_nodes
+    type(vector_field) :: intersection
     real, dimension(:), allocatable :: detwei_v, detwei
-    real :: vol
+    real, dimension(:,:), allocatable :: pos_A
+    real :: vol, max_solid
 
     ewrite(3, *) "inside femdem"
 
@@ -75,9 +75,10 @@ contains
     positions => extract_vector_field(state, "Coordinate")
 
     call get_option("/implicit_solids/mesh_name", external_mesh_name)
-    external_positions = read_triangle_files(trim(external_mesh_name), quad_degree=1)
+    external_positions = &
+         read_triangle_files(trim(external_mesh_name), quad_degree=1)
 
-    assert(positions%dim == 3)
+    assert(positions%dim >= 2)
     assert(positions%dim == external_positions%dim)
 
     allocate(detwei_v(face_ngi(external_positions, 1)))
@@ -90,30 +91,35 @@ contains
        call rtree_intersection_finder_find(external_positions, ele_B)
        call rtree_intersection_finder_query_output(nintersections)
 
-       tet_B%v = ele_val(external_positions, ele_B)
-       neighs => ele_neigh(external_positions, ele_B)
-
-       do i = 1, size(neighs)
-          if (neighs(i) < 0) then
-             tet_B%colours(i) = ele_B
-          else
-             tet_B%colours(i) = 0
-          end if
-       end do
+       if (positions%dim == 3) then
+          tet_B%v = ele_val(external_positions, ele_B)
+       end if
 
        do j = 1, nintersections
 
           call rtree_intersection_finder_get_output(ele_A, j)
-          tet_A%v = ele_val(positions, ele_A)
-          planes_A = get_planes(tet_A)
 
-          call intersect_tets(tet_B, planes_A, ele_shape(external_positions, ele_B), &
-               stat=stat, output=intersection, surface_shape=face_shape(external_positions, 1), &
-               surface_positions=sm_surface, surface_colours=sm_colours)
+          if (positions%dim == 3) then
 
-          if (stat == 1) then
-             cycle
+             tet_A%v = ele_val(positions, ele_A)
+             planes_A = get_planes(tet_A)
+
+             call intersect_tets(tet_B, planes_A, &
+                  ele_shape(external_positions, ele_B), &
+                  stat=stat, output=intersection)
+
+          else
+
+             call intersector_set_dimension(positions%dim)
+             allocate(pos_A(positions%dim, ele_loc(positions, ele_A)))
+             pos_A = ele_val(positions, ele_A)
+             intersection = intersect_elements(external_positions, &
+                  ele_B, pos_A, ele_shape(positions, ele_A) )
+             deallocate(pos_A)
+
           end if
+
+          if (stat == 1) cycle
 
           vol = 0.
           do ele_C = 1, ele_count(intersection)
@@ -125,12 +131,15 @@ contains
              call addto(solid, ele_A_nodes(k), vol)
           end do
 
-          call deallocate(sm_surface)
-          call deallocate(sm_colours)
           call deallocate(intersection)
 
        end do
 
+    end do
+
+    max_solid = max( tiny(0.), maxval(solid) )
+    do i = 1, node_count(solid)
+       call set(solid, i, node_val(solid, i)/max_solid)
     end do
 
     ewrite_minmax(solid)
