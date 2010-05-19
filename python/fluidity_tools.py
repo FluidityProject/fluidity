@@ -384,9 +384,25 @@ def shell():
   if not hasattr(sys,"argv"):
     sys.argv=[]
 
-  from IPython.Shell import IPShellEmbed
+  try:
+    from IPython.Shell import IPShellEmbed
+  except ImportError:
+    sys.stderr.write(
+      """
+      *****************************************************
+      *** Failed to import IPython. This probably means ***
+      *** you don't have it installed. Please install   ***
+      *** IPython and try again.                        ***
+      *****************************************************
+      """)
+    raise
 
-  ipshell = IPShellEmbed()
+  banner = """
+  This is an IPython shell embedded in Fluidity. You can use it to examine
+  or even set variables. Press CTRL+d to exit and return to Fluidity.
+  """
+
+  ipshell = IPShellEmbed(banner=banner)
 
   return ipshell
   

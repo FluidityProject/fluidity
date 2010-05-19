@@ -193,6 +193,29 @@ under any key the user chooses.
 It is \emph{not}\ safe to store fields extracted from the states in the
 persistent dictionary. 
 
+\section{Debugging with an interactive Python session}
+
+It is possible to launch an interactive Python session at runtime from
+within \fluidity. This depends on IPython being installed on the system and
+is achieved by placing the following code in the flml file at the point
+within Python at which you wish to stop:
+\begin{lstlisting}[language=Python]
+import fluidity_tools
+fluidity_tools.shell()()
+\end{lstlisting}
+Note the double brackets \lstinline[language=Python]+()()+ after
+\lstinline[language=Python]+fluidity_tools.shell+! From within this Python
+session, you can examine or set any variables which are currently
+visible. As well as using this to debug straightforward syntax errors, you
+can trap much more complex errors by placing the commands inside an
+\lstinline[language=Python]+if+ statement or a
+\lstinline[language=Python]+try+\ldots\lstinline[language=Python]+except+ clause.
+As soon as you leave the Python shell, \fluidity\ execution will continue.
+
+It is also possible to launch an interactive Python session from within the
+simple Python interface for prescribed fields, however resuming execution
+afterwards currently causes a crash.
+
 \section{Limitations}
 
 The Python state interface is essentially driven at fields which are
