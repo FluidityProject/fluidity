@@ -31,6 +31,7 @@ module vorticity_diagnostics
 
   use coriolis_module
   use field_derivatives
+  use field_options
   use fields
   use fldebug
   use state_fields_module
@@ -68,29 +69,22 @@ contains
     type(vector_field), intent(inout) :: vort_field
 
     integer :: i
-    type(vector_field) :: positions_remap
-    type(vector_field), pointer :: positions
+    type(vector_field) :: positions
     
     if(mesh_dim(vort_field) /= 3) then
       FLAbort("PlanetaryVorticity only works in 3D")
     end if
     
-    positions => extract_vector_field(state, "Coordinate")
-    if(positions%mesh == vort_field%mesh) then
-      positions_remap = positions
-      call incref(positions_remap)
-    else
-      call allocate(positions_remap, positions%dim, vort_field%mesh, positions%name)
-      call remap_field(positions, positions_remap)
-    end if
-    
-    call zero(vort_field)
+    positions = get_nodal_coordinate_field(state, vort_field%mesh)
+   
+    call zero(vort_field, U_)
+    call zero(vort_field, V_)
     do i = 1, node_count(vort_field)
       call set(vort_field,  W_, i, &
            sum(coriolis(spread(node_val(positions, i), 2, 1)), 1))
     end do
     
-    call deallocate(positions_remap)
+    call deallocate(positions)
     
   end subroutine calculate_planetary_vorticity
   
