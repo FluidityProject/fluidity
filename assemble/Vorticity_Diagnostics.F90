@@ -55,7 +55,7 @@ contains
 
     type(vector_field), pointer :: positions, v_field
 
-    positions => extract_vector_field(state, "Coordinate")
+    positions = get_nodal_coordinate_field(state, vort_field%mesh)
     v_field => extract_vector_field(state, "Velocity")
 
     call curl(v_field, positions, curl_field = vort_field)
