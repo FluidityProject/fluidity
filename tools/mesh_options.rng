@@ -24,9 +24,9 @@ or region IDs.</a:documentation>
             <ref name="comment"/>
           </element>
           <element name="format">
-            <a:documentation>CGNS mesh format (not yet implemented)</a:documentation>
+            <a:documentation>GMSH mesh format</a:documentation>
             <attribute name="name">
-              <value>cgns</value>
+              <value>gmsh</value>
             </attribute>
             <ref name="comment"/>
           </element>

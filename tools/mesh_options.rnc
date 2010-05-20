@@ -17,9 +17,9 @@ mesh_info =
               attribute name { "vtu" },
               comment
             }|
-            ## CGNS mesh format (not yet implemented)
+            ## GMSH mesh format
             element format {
-               attribute name { "cgns" },
+               attribute name { "gmsh" },
                comment
             }
          ),
