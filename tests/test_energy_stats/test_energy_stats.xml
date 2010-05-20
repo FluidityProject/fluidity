@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>test energy stats and compare parallel and serial</name>
+  <owner userid="hhiester"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>
+    mpiexec  -np 1 ../../bin/fluidity -v3 -l lock_exchange_2d.flml &amp;&amp;
+    mpiexec -np 4 ../../bin/fluidity -v3 -l lock_exchange_2d_parallel.flml
+    </command_line> 
+  </problem_definition>
+  <variables>
+    <variable name="times" language="python">
+from fluidity_tools import stat_parser
+import glob
+
+times = []
+for statfile in glob.glob('*.stat'):
+  stat = stat_parser(statfile)
+  times.append(stat["ElapsedTime"]["value"][-1])
+  print statfile, 'end_time: ', times[-1]
+    </variable>
+    <variable name="errors" language="python">
+import vtk
+import glob
+import sys
+from lxml import etree
+import re
+import os
+import scipy.stats
+import math
+import vtktools
+import numpy
+from fluidity_tools import stat_parser
+
+################################################################################################
+
+def not_comment(x):
+# function to filter stream for use in Getflmlvalue
+  return not 'comment' in x.tag
+
+################################################################################################
+
+
+def Getflmlvalue(flml_name, xpath):
+
+# We will be filtering the children of the elements later,
+# to remove comments.
+
+# The spud file to modify
+  filename = flml_name
+
+# The path to the node in the tree - xpath
+
+# Open it up
+  tree = etree.parse(open(filename))
+
+  node = tree.xpath(xpath)[0]
+
+  child = filter(not_comment, node.getchildren())[0]
+
+  return child.text
+
+################################################################################################
+
+def SVG2PDF(fign, rmsvg = True):
+
+  subprocess.Popen(['inkscape', '-z', '--export-pdf='+fign+'.pdf', fign+'.svg'], stdout=subprocess.PIPE).communicate()[0]
+  subprocess.Popen(['pdfcrop', fign+'.pdf', fign+'.pdf'], stdout=subprocess.PIPE).communicate()[0]
+  if rmsvg == True: 
+    subprocess.Popen(['rm', fign+'.svg'], stdout=subprocess.PIPE).communicate()[0]
+
+  return
+    
+################################################################################################
+
+# extract values from flml
+
+#dt
+dt = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/timestepping/timestep'))
+#diffusivity
+try: kappa = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/scalar_field[@name="Temperature"]/prognostic/  tensor_field[@name="Diffusivity"]/prescribed/value[@name="WholeMesh"]/isotropic/constant'))
+except: kappa = 0
+
+#viscosity
+try: nu = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/vector_field[@name="Velocity"]/prognostic/tensor_field[@name="Viscosity"]/prescribed/value[@name="WholeMesh"]/isotropic/constant')); #nu = 1E-6
+except: nu = 0
+# reference density (in EOS)
+rho_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase["@name=fluid"]/equation_of_state/fluids/linear/reference_density'))
+
+energy_stats = []
+for statfile in glob.glob('*.stat'):
+  stat = stat_parser(statfile)
+
+# Time
+  time = stat["ElapsedTime"]["value"]
+
+# Potential energy
+  PE = stat["fluid"]["GravitationalPotentialEnergyDensity"]["integral"]
+  PE_t = scipy.diff(PE)/dt
+
+# Background potential energy
+# Minimum potential energy available through an adiabatic restratification of the fluid
+  try: BPE = stat["fluid"]["BackgroundPotentialEnergyDensity"]["integral"]
+  except: BPE = []
+
+# Potential energy diffused through boundaries 
+  PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
+  PEout = scipy.integrate.cumtrapz(PEflux,time)
+
+# Potential change through diffusion within the domain
+  DD = stat["fluid"]["DiffusiveDissipation"]["integral"]*2.0*kappa
+  DDtot = scipy.integrate.cumtrapz(DD,time)
+
+# Kinetic energy - taken from KineticEnergyDensity (non-Boussinesq) 
+# and Velocity (Boussinesq) for illustration
+  KE_1 = stat["fluid"]["KineticEnergyDensity"]["integral"]
+  KE_1_t = scipy.diff(KE_1)/dt
+
+  KE_2 = (stat["fluid"]["Velocity%magnitude"]["l2norm"]**2.0)*0.5*rho_0
+  KE_2_t = scipy.diff(KE_2)/dt
+
+  KE = KE_1
+  KE_t = KE_1_t
+
+# Diffusive transport of kinetic energy out of domain
+  DT = stat["fluid"]["KineticEnergyDensity"]["surface_integral%DiffusiveTransport"]*nu
+  DTtot = scipy.integrate.cumtrapz(DT,time)
+
+# Kinetic energy lost through viscous dissipation
+  VD = stat["fluid"]["ViscousDissipation"]["integral"]*nu*rho_0*-1.0
+  VDtot = scipy.integrate.cumtrapz(VD,time)
+
+# total energy change
+# subtract off initial values of KE and PE
+# as in time integration of PEout, DDtot, DTtot, VDtot 
+# have not added value at t = 0
+# so then start with totalE = 0
+
+  totalE = (KE[1:]-KE[0]) + (PE[1:]-PE[0]) - (PEout + DDtot + DTtot + VDtot)
+
+# total energy 'rate' change
+
+  E_t = PE_t + KE_t - (PEflux + DD + DT + VD)[:-1]
+
+  energy_stats.append([PE, PEflux, DD, KE, DT, VD, E_t, totalE, BPE])
+
+print 'E total difference serial first timestep, last time step: ', energy_stats[0][-2][0], energy_stats[0][-2][-1]
+print 'dE/dt difference serial first timestep, last time step: ', energy_stats[0][-3][0], energy_stats[0][-3][-1] 
+print 'E total difference parallel first timestep, last time step: ', energy_stats[1][-2][0], energy_stats[1][-2][-1]
+print 'dE/dt difference parallel first timestep, last time step: ', energy_stats[1][-3][0], energy_stats[1][-3][-1]   
+
+#########################################################
+#########################################################
+#########################################################
+
+#PE_error_1
+
+# Get error in PE for serial and parallel and BPE in serial run
+# at end of first time step
+# (stat file does not output zero time step)
+# cannot test BPE for parallel as Isopycnal Coordinate not parallelised and
+# therefore BackgroundPotentialEnergyDensity invalid in parallel
+
+# for lock-exchange 
+# PE = 0.25*g*L*H^2*(rho_1+rho_2)
+# BPE = 0.125*g*L*H^2*(rho_1+3*rho_2) where
+# g is magnitude of gravity
+# H is the height of the domain
+# L is the length of the domain
+# rho_1 is the density of the heavier fluid
+# rho_2 is the density of the lighter fluid
+# c.f. Winters 1995 JFM and Ozgokmen 2007 Ocean Modelling
+
+# Get values from flml
+g = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/physical_parameters/gravity/magnitude'))
+rho_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/reference_density'))
+alpha = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/temperature_dependency/thermal_expansion_coefficient'))
+T_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/temperature_dependency/reference_temperature'))
+
+# Domain dimensions
+H = 0.1; L = 0.8
+
+# Get PE and BPE
+rho = [rho_0*(1-alpha*(T - T_0)) for T in [-0.5,0.5]]
+
+PE = 0.25*g*L*(H**2)*(rho[0]+rho[1])
+BPE = 0.125*g*L*(H**2)*(rho[0]+(3*rho[1]))
+
+print 'PE: ', PE
+print 'PE stat serial, difference: ', energy_stats[0][0][0], ', ', abs(PE-energy_stats[0][0][0])
+print 'PE stat parallel, difference: ', energy_stats[1][0][0], ', ', abs(PE-energy_stats[1][0][0])
+print 'BPE: ', BPE
+print 'BPE stat serial, difference: ', energy_stats[0][-1][0], ', ', abs(PE-energy_stats[0][-1][0])
+
+PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-1][0])]]
+PE_error_1.append([abs(PE-energy_stats[1][0][0])])
+
+#########################################################
+#########################################################
+#########################################################
+
+#serial_parallel_err
+
+# compare serial and parallel values at end of first time step
+# (first output value) and final time
+# for all fields except BPE
+
+names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDissipation', 'dE/dt', 'total Energy']
+serial_parallel_error = [[abs(energy_stats[0][i][0] - energy_stats[1][i][0]) for i in range(len(energy_stats[0])-1)]]
+serial_parallel_error.append([abs(energy_stats[0][i][-1] - energy_stats[1][i][-1]) for i in range(len(energy_stats[0])-1)])
+for i in range(len(energy_stats)-1): 
+  print names[i]+' serial-parallel error start, end: ', serial_parallel_error[0][i], ', ', serial_parallel_error[1][i]
+  
+#########################################################
+#########################################################
+#########################################################
+
+errors = [energy_stats, serial_parallel_error, PE_error_1]
+
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="check serial and parallel have both reached same time and therefore are comparing at same time" language="python">
+      assert (times[0]-times[1]) &lt; 1.E-8
+    </test>
+    <test name="check difference in total E and E_t in serial at first time step" language="python">
+      for err in errors[0][0][-3][0], errors[0][0][-2][0]: assert abs(err) &lt; 1.E-6
+    </test>
+    <test name="check difference in total E in parallel at first and last time step" language="python">
+      for err in errors[0][1][-3][-1], errors[0][1][-2][-1]: assert abs(err) &lt; 1.E-6
+    </test>
+    <test name="check difference between parallel and serial at first time step" language="python">
+      for err in errors[1][0][:6]: print err; assert err &lt; 1.E-7
+    </test>
+    <test name="check difference between parallel and serial at end of run" language="python">
+      for err in errors[1][1][:6]: print err; assert err &lt; 1.E-7
+    </test>  
+    <test name="check error to PE in serial at first time step" language="python">
+      for err in errors[2][0]: assert err &lt; 1.E-7
+    </test>
+    <test name="check error to PE in parallel at first time step" language="python">
+      for err in errors[2][1]: assert err &lt; 1.E-7
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
