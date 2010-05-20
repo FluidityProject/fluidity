@@ -234,7 +234,7 @@ errors = [energy_stats, serial_parallel_error, PE_error_1]
       for err in errors[1][0][:6]: print err; assert err &lt; 1.E-7
     </test>
     <test name="check difference between parallel and serial at end of run" language="python">
-      for err in errors[1][1][:6]: print err; assert err &lt; 1.E-7
+      for err in errors[1][1][:6]: print err; assert err &lt; 1.E-6
     </test>  
     <test name="check error to PE in serial at first time step" language="python">
       for err in errors[2][0]: assert err &lt; 1.E-7
