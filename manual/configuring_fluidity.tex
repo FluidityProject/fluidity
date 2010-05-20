@@ -274,7 +274,7 @@ mpiexec -n [number of processors] \
    ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
 \end{lstlisting}
 
-\subsubsection{Extruded meshes}
+\subsubsection{Extruded meshes}\label{sect:extruded_meshes}
 \index{mesh!extruded}
 
 Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
@@ -1424,3 +1424,86 @@ The sediment classes can use either the Template initial concentration or set th
 
 Note: to use sediment, a linear equation of state must also be enabled \option{\ldots/equation\_of\_state/fluids/linear}
 
+\section{Ocean Simulations}
+
+This section contains advice for running a large scale ocean simulation with a large aspect ratio. This section is split into options that must be used and options that are recommended.
+
+\subsection{Options that must be switched on}
+These options are almost always recommended for large scale ocean problems.
+
+%The \option{\ldots/problem\_type} option must be set to large_ocean.
+\subsubsection{Meshes}
+
+The mesh that you use must be a two plus one mesh which is unstructured in the horizontal and structured in the vertical.  This can be made in gmsh and read into fludity, or a two-dimensional mesh can be made in gmsh and extruded within fluidity (see \ref{sect:extruded_meshes}).  
+\begin{itemize}
+\item The Velocity mesh must be discontinuous gelerkin polynomial order one, so set \\* \option{\ldots/geometry/mesh(VelocityMesh)/from\_mesh/mesh\_shape/mesh\_continuity} to discontinuous.  
+\item The Pressure mesh must be of polynomial order two, so set 
+\\* \option{\ldots/geometry/mesh(PressureMesh)/from\_mesh/mesh\_shape/polynomial\_degree}  to $2$.  
+\item The temperature and salinity are solved on a continuous galerkin, polynomial order one mesh (no special mesh options).
+\item Also under geometry, the \option{\ldots/geometry/ocean\_boundaries} option mush be switched on, with the surface id's specified.
+\end{itemize}
+
+\subsubsection{Time stepping}
+\begin{itemize}
+\item \option{\ldots/timestepping/nonlinear\_iterations} option must be more than $1$, normally $2$ is a good choice.
+\item \option{\ldots/material\_phase/equation\_of\_state/subtract\_out\_hydrostatic\_level} must be on.
+\end{itemize}
+
+\subsubsection{Velocity Options}
+The velocity is discontinuous galerkin.  The required options are listed below.
+
+\begin{itemize}
+\item \option{\ldots/equation} must be set to Boussinesq
+\item \option{\ldots/spatial\_discretisation} must be discotinuous galerkin
+\item \option{\ldots/spatial\_discretisation/advection} is upwind
+\item \option{\ldots/spatial\_discretisation/advestion/integrate\_advection\_by\_parts} is twice
+\end{itemize}
+
+\subsubsection{Temperature and Salinity options}
+The temperature and salinity are continuous galerkin. 
+
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation} must be cotinuous galerkin
+\end{itemize}
+
+\subsubsection{Pressure options}
+
+This is continuous galerkin discretisation, with a mesh of polynomial order two (already specified above).
+
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation} must be cotinuous galerkin
+\item \option{\ldots/solver/vertical\_lumping} must be on
+\end{itemize}
+
+\subsubsection{Reccomended or optional settings}
+These settings may be recommended, but this section is not intended to be a list of instructions, please feel free to ignore it.
+
+\subsubsection{Velocity options}
+
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/lump\_mass\_matrix} is \textbf{off}
+\item \option{\ldots/spatial\_discretisation/viscosity\_scheme} can be Bassi Rebay or compact discontinuous galerkin, although compact discontinuous galerkin may not work in 3d at the moment
+\item \option{\ldots/spatial\_discretisation/advection/conservative\_advection} is set to $0.0$
+\item \option{\ldots/temporal\_discretisation/theta} is $0.5$ (Crank-Nicolson), or $1$ if no advection (eg spinning up)
+\item \option{\ldots/temporal\_discretisation/conservative\_advection} is set to $0.0$
+\item \option{\ldots/solvers} normally gmres - could use cg if no advection (eg spinning up)
+\item \option{\ldots/solvers/preconditioner} eisenstat - or try mg if using compact discontinuous galerkin vorticity (which is currently untested in 3d)
+\end{itemize}
+
+
+You might want to create a Viscosity field under Velocity and set it to the required value. 
+
+An Absorption field may need to be added under Velocity to allow larger time steps to be taken, otherwise your time steps will be limited by the scale of the baroclinic waves.  This term should have a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.  The absorption term can be a constant if the background stratification is constant. Otherwise, set it with a python function.  Also turn on the \\* \option{\ldots/Absorption/include\_pressure\_correction} option.
+
+\subsubsection{Free Surface Field}
+This can be added if required.  You should also select a free surface boundary condition under Velocity.
+
+\subsubsection{Pressure options}
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation/remove\_stabilitation\_term} is switched on
+\item \option{\ldots/spatial\_discretisation/integrate\_continuity\_by\_parts} is switched on
+\item \option{\ldots/scheme/poisson\_pressure\_solution} is only first time step
+\item \option{\ldots/scheme/use\_projection\_method} is  on
+\item \option{\ldots/solver} is normally cg or gmres
+\item \option{\ldots/solver/preconditioner} is normally mg
+\end{itemize}
