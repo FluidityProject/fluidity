@@ -268,16 +268,6 @@ if test "$have_udunits" = "yes"; then
 #define HAVE_LIBUDUNITS 1
 EOF
 fi
-AC_OPENMP()
-AC_SUBST(OPENMP_CFLAGS)
-AC_LANG_PUSH([C++])
-AC_OPENMP()
-AC_SUBST(OPENMP_CXXFLAGS)
-AC_LANG_POP([C++])
-#AC_LANG_PUSH([Fortran 77])
-#AC_OPENMP()
-#AC_SUBST(OPENMP_FCFLAGS)
-#AC_LANG_POP([Fortran 77])
 
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
 
@@ -1398,6 +1388,13 @@ else
     MEMORY_STATS="yes"
     AC_SUBST(MEMORY_STATS)
   fi
+fi
+
+# Hack for CX1. The zoltan libs (scotch, parmetis, etc) need to apepar on the end of the compile
+# command or all sorts of badness happens (libraries not being found, despite being in the path).
+# ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
+if test "$with_zoltan" != "no" ; then
+	LIBS="$LIBS $ZOLTAN_DEPS"
 fi
 
 AC_OUTPUT(Makefile

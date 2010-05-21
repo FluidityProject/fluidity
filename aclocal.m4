@@ -984,7 +984,7 @@ zoltan_INCLUDES_PATH="$zoltan/include"
 tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
 tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
 fi
-tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis"
+tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
 tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 LIBS=$tmpLIBS
