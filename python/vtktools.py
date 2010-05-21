@@ -190,9 +190,15 @@ class vtu:
     for i in range(n):
       data.SetValue(i, array.reshape(n)[i])
 
-    pointdata=self.ugrid.GetPointData()
-    pointdata.AddArray(data)
-    pointdata.SetActiveVectors(name)
+    if array.shape[0]==self.ugrid.GetNumberOfPoints():
+      pointdata=self.ugrid.GetPointData()
+      pointdata.AddArray(data)
+      pointdata.SetActiveVectors(name)
+    elif array.shape[0]==self.ugrid.GetNumberOfCells():
+      celldata=self.ugrid.GetCellData()
+      celldata.AddArray(data)
+    else:
+      raise Exception("Length neither number of nodes nor number of cells")
 
   def AddField(self, name, array):
     """Adds a field with arbitrary number of components under the specified name using."""
@@ -208,8 +214,14 @@ class vtu:
     for i in range(n):
       data.SetValue(i, flatarray[i])
 
-    pointdata=self.ugrid.GetPointData()
-    pointdata.AddArray(data)
+    if sh[0]==self.ugrid.GetNumberOfPoints():
+      pointdata=self.ugrid.GetPointData()
+      pointdata.AddArray(data)
+    elif sh[0]==self.ugrid.GetNumberOfCells():
+      celldata=self.ugrid.GetCellData()
+      celldata.AddArray(data)
+    else:
+      raise Exception("Length neither number of nodes nor number of cells")
 
   def ApplyProjection(self, projection_x, projection_y, projection_z):
     """Applys a projection to the grid coordinates. This overwrites the existing values."""
@@ -546,7 +558,49 @@ class vtu:
 
   # Default multiplication is dot product
   MulFieldByField = DotFieldWithField
+  
+  def GetDerivative(self, name):
+    """
+    Returns the derivative of field 'name', a
+    vector field if 'name' is scalar, and a tensor field
+    if 'name' is a vector. The field 'name' has to be point-wise data.
+    The returned array gives a cell-wise derivative.
+    """
+    cd=vtk.vtkCellDerivatives()
+    cd.SetInput(self.ugrid)
+    pointdata=self.ugrid.GetPointData()
+    nc=pointdata.GetArray(name).GetNumberOfComponents()
+    if nc==1:
+      cd.SetVectorModeToComputeGradient()
+      cd.SetTensorModeToPassTensors()
+      pointdata.SetActiveScalars(name)
+      cd.Update()
+      vtkdata=cd.GetUnstructuredGridOutput().GetCellData().GetArray('ScalarGradient')
+      return arr([vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())])
+    else:
+      cd.SetTensorModeToComputeGradient()
+      cd.SetVectorModeToPassVectors()
+      pointdata.SetActiveVectors(name)
+      cd.Update()
+      vtkdata=cd.GetUnstructuredGridOutput().GetCellData().GetArray('VectorGradient')
+      return arr([vtkdata.GetTuple9(i) for i in range(vtkdata.GetNumberOfTuples())])
 
+  def GetVorticity(self, name):
+    """
+    Returns the vorticity of vectorfield 'name'.
+    The field 'name' has to be point-wise data.
+    The returned array gives a cell-wise derivative.
+    """
+    cd=vtk.vtkCellDerivatives()
+    cd.SetInput(self.ugrid)
+    pointdata=self.ugrid.GetPointData()
+    cd.SetVectorModeToComputeVorticity()
+    cd.SetTensorModeToPassTensors()
+    pointdata.SetActiveVectors(name)
+    cd.Update()
+    vtkdata=cd.GetUnstructuredGridOutput().GetCellData().GetArray('VectorGradient')
+    return arr([vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())])
+    
 def VtuMatchLocations(vtu1, vtu2, tolerance = 1.0e-6):
   """
   Check that the locations in the supplied vtus match, returning True if they
@@ -598,8 +652,7 @@ def VtuDiff(vtu1, vtu2, filename = None):
     else:
       resultVtu.RemoveField(fieldName)
 
-  return resultVtu
-
+  return resultVtu  
 
 def usage():
   print 'Usage:'
