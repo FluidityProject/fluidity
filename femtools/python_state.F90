@@ -37,6 +37,7 @@ module python_state
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states
   public :: python_run_string, python_run_file
+  public :: python_shell
 
   interface
     !! Python init and end
@@ -69,6 +70,10 @@ module python_state
       integer, intent(out) :: stat
     end subroutine python_run_filec
 
+  end interface
+
+  interface python_shell
+     module procedure python_shell_state, python_shell_states
   end interface
 
   interface python_add_array
@@ -364,6 +369,46 @@ module python_state
     end do
     
   end subroutine python_add_states
+
+  subroutine python_shell_state(state)
+    !!< Wrapper to allow python_shell to be called with a single state as
+    !!< an argument.
+    type(state_type), target, intent(inout) :: state
+
+    type(state_type), dimension(1) :: states    
+ 
+    states(1)=state
+
+    call python_shell_states(states)
+
+  end subroutine python_shell_state
+
+  subroutine python_shell_states(states)
+    !!< Launch a python shell with access to the current state(s) provided. This is mostly
+    !!< useful for debugging.
+  
+    type(state_type), dimension(:), target, intent(inout) :: states
+
+#ifdef HAVE_NUMPY    
+    
+
+    ! Clean up to make sure that nothing else interferes
+    call python_reset()
+    
+    call python_add_states(states)
+      
+    call python_run_string("import fluidity_tools")  
+
+    call python_run_string("fluidity_tools.shell()()")
+
+    ! Cleanup
+    call python_reset()
+#else
+    FLAbort("Python shell requires NumPy, which cannot be located.")
+#endif
+
+  end subroutine python_shell_states
+
 
   !! Wrapper procedures to add arrays to the Python interpreter
 
