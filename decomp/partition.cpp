@@ -96,6 +96,17 @@ namespace Fluidity{
       break;
     case 3:
       switch (nloc){
+      case 3:
+        // Linear triangles
+        for(int i=0;i<num_elems;i++){
+          for(int j=0;j<nloc;j++){
+            for(int k=0;k<nloc;k++){
+              if(j!=k)
+                graph[ENList[i*nloc+j]-1].insert(ENList[i*nloc+k]);
+            }
+          }
+        }
+        break;
       case 4:
         // Linear tets
         for(int i=0;i<num_elems;i++){

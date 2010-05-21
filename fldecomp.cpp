@@ -113,15 +113,15 @@ void write_partitions(bool verbose, string filename, string file_format,
     halo2[part].resize(nparts);
   }
   vector<int> npnodes(nparts, 0);
+
+#pragma omp parallel
+  {
+#pragma omp for
   for(int part=0; part<nparts; part++){
     if(verbose)
       cout<<"Making partition "<<part<<endl;
     
-    vector<int> nodes;
-    nodes.reserve(2*nnodes/nparts);
-
-    vector<int> elements;
-    elements.reserve(2*nelms/nparts);
+    deque<int> nodes, elements;
 
     vector<bool> halo_nodes(nnodes, false);
     vector<bool> more_halo_nodes(nnodes, false);
@@ -253,7 +253,7 @@ void write_partitions(bool verbose, string filename, string file_format,
     // element numbers (numbered from zero)
     vector< set<int> > partNodesToEid(nodes.size()+1);
     int ecnt=0;
-    for(vector<int>::const_iterator iter=elements.begin();iter!=elements.end();iter++){
+    for(deque<int>::const_iterator iter=elements.begin();iter!=elements.end();iter++){
       for(int j=0;j<nloc;j++){
         int nid = ENList[*iter*nloc+j];
         int gnid = renumber[part].find(nid)->second;
@@ -265,7 +265,7 @@ void write_partitions(bool verbose, string filename, string file_format,
     }
     
     // Surface element data
-    deque<vector<int> > partSENList;
+    vector<int> partSENList;
     vector<int> partBoundaryIds;
 #ifndef NDEBUG
     set< vector<int> > surf_elms;
@@ -301,32 +301,62 @@ void write_partitions(bool verbose, string filename, string file_format,
       }
       
       if(SEOwned){
-        vector<int> elm(SENList[j].size());
-        
         for(size_t k=0;k<SENList[j].size();k++){
-          elm[k]=renumber[part].find(SENList[j][k])->second;
+          partSENList.push_back(renumber[part].find(SENList[j][k])->second);
         }
-#ifndef NDEBUG
-        assert(surf_elms.find(elm)==surf_elms.end());
-        surf_elms.insert(elm);
-#endif
-        partSENList.push_back(elm);
         partBoundaryIds.push_back(boundaryIds[j]);
       }
     }
     
     // Write out the partition mesh
-    ostringstream buffer;
-    buffer<<filename<<"_"<<part;
+    ostringstream basename;
+    basename<<filename<<"_"<<part;
     if(verbose)
-      cout<<"Writing out triangle mesh for partition "<<part<<" to files with base name "<<buffer.str()<<"\n";
+      cout<<"Writing out triangle mesh for partition "<<part<<" to files with base name "<<basename.str()<<"\n";
 
-    if(WriteMesh(buffer.str(), file_format, partX, dim, no_coords,
-                 partENList, partRegionIds, nloc, partSENList, partBoundaryIds, snloc)){
-      cerr<<"ERROR: failed to write mesh file with base name "<<buffer.str()<<endl;
-      exit(-1);
+    ofstream nodefile;
+    nodefile.open(string(basename.str()+".node").c_str());
+    nodefile.precision(16);
+    nodefile<<nodes.size()<<" "<<dim<<" 0 0\n";
+    for(size_t j=0;j<nodes.size();j++){
+      nodefile<<j+1<<" ";
+      for(int k=0;k<dim;k++){
+        nodefile<<partX[j * dim + k]<<" ";
+      }
+      nodefile<<endl;
     }
-    buffer.str("");
+    nodefile<<"# Produced by: fldecomp\n";
+    nodefile.close();
+
+    ofstream elefile;
+    elefile.open(string(basename.str()+".ele").c_str());
+    elefile<<elements.size()<<" "<<nloc<<" 0\n";
+    for(int i=0;i<elements.size();i++){
+      elefile<<i+1<<" ";
+      for(int j=0;j<nloc;j++)
+        elefile<<partENList[i*nloc+j]<<" ";
+      elefile<<endl;
+    }
+    elefile<<"# Produced by: fldecomp\n";
+    elefile.close();
+
+    ofstream facefile;
+    if(snloc==2)
+      facefile.open(string(basename.str()+".edge").c_str());
+    else
+      facefile.open(string(basename.str()+".face").c_str());
+    int nfacets = partSENList.size()/snloc;
+    facefile<<nfacets<<" 1\n";
+    for(int i=0;i<nfacets;i++){
+      facefile<<i+1<<" ";
+      for(int j=0;j<snloc;j++)
+        facefile<<partSENList[i*snloc+j]<<" ";
+      facefile<<" "<<partBoundaryIds[i]<<endl;
+    }
+    facefile.close();
+
+    basename.str("");
+  }
   }
 
   const int halo1_level = 1, halo2_level = 2;
@@ -572,7 +602,9 @@ int main(int argc, char **argv){
   ele_file.close();
 
   string filename_face;
-  if(dim==3){
+  if((dim==3)&&(nloc==3)){
+    filename_face = filename+".edge";
+  }else if(dim==3){
     filename_face = filename+".face";
   }else if(dim==2){
     filename_face = filename+".edge";
