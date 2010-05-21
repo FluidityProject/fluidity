@@ -524,6 +524,7 @@ contains
   type(vector_field) positions
     
     type(vector_field), pointer:: coordinate_field
+    integer:: stat
     
     if (has_vector_field(state, trim(mesh%name)//"Coordinate")) then
       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
@@ -537,12 +538,18 @@ contains
          mesh_dim(coordinate_field)==mesh_dim(mesh)) then
          ! can remap from coordinate field
          call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
-         call remap_field(coordinate_field, positions)
+         
          if (mesh_periodic(mesh)) then
+            call remap_field(coordinate_field, positions, stat=stat)
+            if (stat/=REMAP_ERR_UNPERIODIC_PERIODIC) then
+              FLAbort("Error remapping coordinate field")
+            end if
             ! make sure the remapped coordinates adhere to the convention
             ! of storing the aliased from position in the periodic boundary nodes
             call postprocess_periodic_mesh(coordinate_field%mesh, coordinate_field, &
-              mesh, positions)
+              mesh, positions)            
+         else
+            call remap_field(coordinate_field, positions)
          end if
       else
          ewrite(0,*) "Can't find a suitable coordinate field for mesh ", &
