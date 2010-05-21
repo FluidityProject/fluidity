@@ -257,7 +257,11 @@ fldecomp: fluidity_library fldecomp.o
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD $(FLDECOMP)"
-	@$(EVAL) $(LINKER) -o $(FLDECOMP) -I./include/ fldecomp.o $(LIBS) -lmetis
+	@$(EVAL) $(LINKER) @OPENMP_CXXFLAGS@ -o $(FLDECOMP) -I./include/ fldecomp.o $(LIBS) -lmetis
+
+fldecomp.o:
+	@echo "        CXX fldecomp.o"
+	$(CXX) $(CXXFLAGS) @OPENMP_CXXFLAGS@ -c fldecomp.cpp
 
 .PHONY: doc
 
