@@ -341,7 +341,9 @@ void write_partitions(bool verbose, string filename, string file_format,
     elefile.close();
 
     ofstream facefile;
-    if(snloc==2)
+    if(snloc==1)
+      facefile.open(string(basename.str()+".bound").c_str());
+    else if(snloc==2)
       facefile.open(string(basename.str()+".edge").c_str());
     else
       facefile.open(string(basename.str()+".face").c_str());
