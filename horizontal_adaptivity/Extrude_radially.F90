@@ -164,9 +164,13 @@ module hadapt_extrude_radially
           tmp_pos_vector(:,column) = node_val(shell_mesh, column)
         end do
 
-        call set_from_map(trim(file_name), tmp_pos_vector(1,:), tmp_pos_vector(2,:), tmp_pos_vector(3,:), depth_vector, size(r_meshes))
+        call set_from_map(trim(trim(file_name)), tmp_pos_vector(1,:), tmp_pos_vector(2,:), tmp_pos_vector(3,:), depth_vector, size(r_meshes))
 
         deallocate (tmp_pos_vector)
+
+        if (associated(shell_mesh%mesh%halos)) then
+          call halo_update(shell_mesh%mesh%halos(2), depth_vector)
+        end if
 
       end if
       
