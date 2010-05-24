@@ -115,26 +115,29 @@ Adapting to this field is not recommended
 \item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \mbox{velocity}$. Uses the gravity field direction to determine the horizontal plane.  
 \item[VelocityDivergence:]Velocity divergence: $div \mbox{ velocity}$  
 \item[Vorticity2D:]Vorticity for a 2D field: $\frac{du}{dy} \frac{dv}{dx}$  
-\item[KineticEnergyDensity:]Kinetic energy density: $\frac{1}{2} \rho_0 |u|^2$ where $\rho_0$ is the (reference) density.
-	Limitations: The Density, PerturbationDensity, KineticEnergyDensity and Velocity fields must be on the same mesh.  
-\item[GravitationalPotentialEnergyDensity:]Gravitational potential energy density: $\rho_0 (1.0 + \rho') (g \cdot (r - r_0))$ where $\rho_0$ is the (reference) density, $\rho'$ is the perturbation density and $r_0$ is the potential energy zero point.
+\item[KineticEnergyDensity:]Kinetic energy density: $\frac{1}{2} \rho |u|^2$ where $\rho$ is the density. \\
+	Limitations: The Density, KineticEnergyDensity and Velocity fields must be on the same mesh.  
+\item[GravitationalPotentialEnergyDensity:]Gravitational potential energy density: $\rho(g \cdot (r - r_0))$ where $\rho$ is the density, and $r_0$ is the potential energy zero point. \\
 	Limitations: \begin{itemize}
 	\item Requires a constant gravity direction. 
-	\item The Density, PerturbationDensity and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
+	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize}
 \item[IsopycnalCoordinate:]Isopycnal coordinate
-	$z_{star(x,t)} = \frac{1}{A} \int_{V'} H(\rho(x',t)-\rho(x,t)) dV'$ where $\rho$ is the density, $A$ is the width/area of the domain.
+	$z_{star(x,t)} = \frac{1}{A} \int_{V'} H(\rho(x',t)-\rho(x,t)) dV'$ where $\rho$ is the density, $A$ is the width/area of the domain. \\
 	Limitations:
 	\begin{itemize}
-	\item You need to specify a (fine) mesh to redistribute the PerturbationDensity onto.
+	\item You need to specify a (fine) mesh to redistribute the Density onto.
 	\item Requires a constant gravity direction. 
-	\item The Density, PerturbationDensity and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
+	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize} 
-\item[BackgroundPotentialEnergyDensity:]Background potential energy density: $PE_b = \rho z_{star}$ where rho is the density, $z_{star}$ is the isopycnal coordinateLimitations: 
+\item[BackgroundPotentialEnergyDensity:]Background potential energy density: $PE_b = \rho z_{star}$ where $\rho$ is the density, $z_{star}$ is the isopycnal coordinate. \\Limitations: 
 	\begin{itemize}
 	\item Requires a constant gravity direction. 
-	\item The Density, PerturbationDensity and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
+	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize}
+\item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\frac{\partial \rho}{\partial y}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\kappa \frac{\partial \rho}{\partial y}$ (2 subject to definition) where $\frac{\partial \rho}{\partial T} + u\cdot \nabla \rho = \kappa \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
+\item[ViscousDissipation:] $\nabla u : \nabla u = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla u):(\nabla u)$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
+Limitations: Only coded for 2D
 \item[PotentialVorticity:]Ertel potential vorticity: $(f + \mbox{curl } u) \cdot \mbox{grad } \rho'$
 	Limitations: Requires a geometry dimension of 3.  
 \item[RelativePotentialVorticity:]Relative potential vorticity:  $\mbox{curl } u \cdot \mbox{grad } \rho'$  
