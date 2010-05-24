@@ -977,26 +977,28 @@ module field_derivatives
 
     subroutine compute_hessian_var(infield, positions, hessian)
     !!< This routine computes the hessian using a weak finite element formulation.
-      type(scalar_field), intent(in), target :: infield
+      type(scalar_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
-      type(tensor_field), intent(inout) :: hessian
+      type(tensor_field), intent(inout), target :: hessian
 
       type(vector_field), target :: gradient
       type(mesh_type), pointer :: mesh
 
-      real, dimension(ele_ngi(infield, 1)) :: detwei
+      real, dimension(ele_ngi(positions, 1)) :: detwei
       real, dimension(ele_loc(infield, 1), ele_ngi(infield, 1), mesh_dim(infield)) :: dt_t
-      type(element_type), pointer :: t_shape
-      real, dimension(mesh_dim(infield), ele_loc(infield, 1), ele_loc(infield, 1)) :: r
-      real, dimension(mesh_dim(infield), ele_loc(infield, 1)) :: r_grad_ele
-      real, dimension(mesh_dim(infield), mesh_dim(infield), ele_loc(infield, 1)) :: r_hess_ele
+      real, dimension(ele_loc(hessian, 1), ele_ngi(hessian, 1), mesh_dim(hessian)) :: dh_t
+      type(element_type), pointer :: t_shape, h_shape
+      real, dimension(mesh_dim(infield), ele_loc(hessian, 1), ele_loc(infield, 1)) :: r
+      real, dimension(mesh_dim(infield), ele_loc(hessian, 1)) :: r_grad_ele
+      real, dimension(mesh_dim(hessian), ele_loc(hessian, 1), ele_loc(hessian, 1)) :: r_hess
+      real, dimension(mesh_dim(hessian), mesh_dim(hessian), ele_loc(hessian, 1)) :: r_hess_ele
       type(scalar_field)  :: lumped_mass_matrix
-      real, dimension(ele_loc(infield, 1), ele_loc(infield, 1)) :: mass_matrix
+      real, dimension(ele_loc(hessian, 1), ele_loc(hessian, 1)) :: mass_matrix
       integer :: dim, i, j
       integer :: node, ele
       real, dimension(:, :), pointer :: hess_ptr
 
-      mesh => infield%mesh
+      mesh => hessian%mesh
       dim = mesh_dim(mesh)
 
       call zero(hessian)
@@ -1015,23 +1017,24 @@ module field_derivatives
       call zero(gradient)
 
       t_shape => ele_shape(infield, 1)
+      h_shape => ele_shape(hessian, 1)
 
       ! First, compute gradient and mass matrix.
       do ele=1,element_count(infield)
         ! Compute detwei.
         call transform_to_physical(positions, ele, t_shape, dshape=dt_t, detwei=detwei)
 
-        r = shape_dshape(t_shape, dt_t, detwei)
+        r = shape_dshape(h_shape, dt_t, detwei)
         r_grad_ele = tensormul(r, ele_val(infield, ele), 3)
 
-        call addto(gradient, ele_nodes(infield, ele), r_grad_ele)
+        call addto(gradient, ele_nodes(gradient, ele), r_grad_ele)
 
         ! Lump the mass matrix
-        mass_matrix = shape_shape(t_shape, t_shape, detwei)
-        call addto(lumped_mass_matrix, ele_nodes(infield, ele), sum(mass_matrix, 2))
+        mass_matrix = shape_shape(h_shape, h_shape, detwei)
+        call addto(lumped_mass_matrix, ele_nodes(lumped_mass_matrix, ele), sum(mass_matrix, 2))
       end do
 
-      do node=1,node_count(infield)
+      do node=1,node_count(gradient)
         do i=1,dim
           gradient%val(i)%ptr(node) = gradient%val(i)%ptr(node) / node_val(lumped_mass_matrix, node)
         end do
@@ -1044,15 +1047,15 @@ module field_derivatives
       !call differentiate_boundary_correction(grad_components, positions, x_shape, t_shape, dim)
 
       do ele=1,element_count(infield)
-        call transform_to_physical(positions, ele, t_shape, dshape=dt_t, detwei=detwei)
-        r = shape_dshape(t_shape, dt_t, detwei)
+        call transform_to_physical(positions, ele, h_shape, dshape=dh_t, detwei=detwei)
+        r_hess = shape_dshape(h_shape, dh_t, detwei)
         do i=1,dim
-          r_hess_ele(i, :, :) = tensormul(r, ele_val(gradient, i, ele), 3)
+          r_hess_ele(i, :, :) = tensormul(r_hess, ele_val(gradient, i, ele), 3)
         end do
-        call addto(hessian, ele_nodes(infield, ele), r_hess_ele)
+        call addto(hessian, ele_nodes(hessian, ele), r_hess_ele)
       end do
 
-      do node=1,node_count(infield)
+      do node=1,node_count(hessian)
         hess_ptr => hessian%val(:, :, node)
         hess_ptr = hess_ptr / node_val(lumped_mass_matrix, node)
          
@@ -1065,7 +1068,7 @@ module field_derivatives
         end do
       end do
 
-      call hessian_boundary_correction(hessian, positions, t_shape)
+      call hessian_boundary_correction(hessian, positions, h_shape)
 
       call deallocate(lumped_mass_matrix)
       call deallocate(gradient)
