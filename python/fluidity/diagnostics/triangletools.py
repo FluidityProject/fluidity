@@ -80,6 +80,8 @@ def ReadTriangle(baseName):
   mesh = meshes.Mesh(dim)
   
   # Read the nodes
+  debug.dprint("Reading .node file")
+  
   for line in nodeHandle.readlines():
     line = StripComment(line)
     if len(line.strip()) == 0:
@@ -90,9 +92,10 @@ def ReadTriangle(baseName):
   assert(mesh.NodeCoordsCount() == nNodes)
   nodeHandle.close()
     
-  # Read the .bound file
-  if hasBound:
-    assert(dim == 1)
+  if hasBound and dim == 1:
+    # Read the .bound file
+    debug.dprint("Reading .bound file")
+    
     boundHandle = file(baseName + ".bound", "r")
     
     # Extract the meta data
@@ -119,9 +122,10 @@ def ReadTriangle(baseName):
     assert(mesh.SurfaceElementCount() == nBounds)
     boundHandle.close()
     
-  # Read the .edge file
-  if hasEdge:
-    assert(dim == 2)
+  if hasEdge and dim == 2:
+    # Read the .edge file
+    debug.dprint("Reading .edge file")
+    
     edgeHandle = file(baseName + ".edge", "r")
     
     # Extract the meta data
@@ -148,8 +152,10 @@ def ReadTriangle(baseName):
     assert(mesh.SurfaceElementCount() == nEdges)
     edgeHandle.close()
       
-  # Read the .face file
-  if hasFace:
+  if hasFace and dim > 2:
+    # Read the .face file
+    debug.dprint("Reading .face file")
+    
     assert(dim == 3)
     faceHandle = file(baseName + ".face", "r")
     
@@ -178,6 +184,8 @@ def ReadTriangle(baseName):
     faceHandle.close()
     
   # Read the .ele file
+  debug.dprint("Reading .ele file")
+  
   if hasEle:
     eleHandle = file(baseName + ".ele", "r")
     
@@ -207,8 +215,10 @@ def ReadTriangle(baseName):
     assert(mesh.VolumeElementCount() == nEles)
     eleHandle.close()
     
-  # Read the .halo file
   if hasHalo:
+    # Read the .halo file
+    debug.dprint("Reading .halo file")
+  
     if mesh_halos.HaloIOSupport():
       halos = mesh_halos.ReadHalos(baseName + ".halo")
       mesh.SetHalos(halos)
@@ -226,8 +236,11 @@ def WriteTriangle(mesh, baseName):
     return "# Created by triangletools.WriteTriangle\n" + \
            "# Command: " + " ".join(sys.argv) + "\n" + \
            "# " + str(time.ctime()) + "\n"
+
+  debug.dprint("Writing triangle mesh with base name " + baseName)
     
   # Write the .node file
+  debug.dprint("Writing .node file")
   
   nodeHandle = file(baseName + ".node", "w")
   
@@ -240,8 +253,10 @@ def WriteTriangle(mesh, baseName):
   nodeHandle.write(FileFooter())
   nodeHandle.close()
     
-  # Write the .bound file
   if mesh.GetDim() == 1:
+    # Write the .bound file
+    debug.dprint("Writing .bound file")
+    
     boundHandle = file(baseName + ".bound", "w")
     
     # Write the meta data
@@ -259,6 +274,9 @@ def WriteTriangle(mesh, baseName):
     boundHandle.write(FileFooter())
     boundHandle.close()
   elif mesh.GetDim() == 2:
+    # Write the .edge file
+    debug.dprint("Writing .edge file")
+    
     edgeHandle = file(baseName + ".edge", "w")
     
     # Write the meta data
@@ -275,8 +293,10 @@ def WriteTriangle(mesh, baseName):
       edgeHandle.write(utils.FormLine([i + 1, utils.OffsetList(mesh.GetSurfaceElement(i).GetNodes(), 1), mesh.GetSurfaceElement(i).GetIds()]))
     edgeHandle.write(FileFooter())
     edgeHandle.close()
-  # Write the .face file
   elif mesh.GetDim() == 3:
+    # Write the .face file
+    debug.dprint("Writing .face file")
+    
     faceHandle = file(baseName + ".face", "w")
     
     # Write the meta data
@@ -295,6 +315,7 @@ def WriteTriangle(mesh, baseName):
     faceHandle.close()
     
   # Write the .ele file
+  debug.dprint("Writing .ele file")
   
   eleHandle = file(baseName + ".ele", "w")
   
@@ -317,14 +338,18 @@ def WriteTriangle(mesh, baseName):
   eleHandle.write(FileFooter())
   eleHandle.close()
   
-  # Write the .halo file
   
   halos = mesh.GetHalos()
   if halos.HaloCount() > 0:
+    # Write the .halo file
+    debug.dprint("Writing .halo file")
+    
     if mesh_halos.HaloIOSupport():
       mesh_halos.WriteHalos(halos, baseName + ".halo")
     else:
       debug.deprint("Warning: No .halo I/O support")
+
+  debug.dprint("Finished writing triangle file")
     
   return
 
