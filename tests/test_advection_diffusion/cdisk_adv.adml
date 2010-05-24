@@ -48,7 +48,7 @@
     </current_time>
     <timestep replaces="DT">
       <real_value rank="0">0.0125663706</real_value>
-      <comment>2 * pi/50 (50 steps per revolution)</comment>
+      <comment>2 * pi/500 (500 steps per revolution)</comment>
     </timestep>
     <finish_time replaces="LTIME">
       <real_value rank="0">1000</real_value>
@@ -59,6 +59,32 @@
     </final_timestep>
   </timestepping>
   <material_phase name="Fluid">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+    from numpy import matrix
+    from math import sqrt, sin, pi, cos
+    dx= matrix(X)
+    r=sqrt(dx*dx.T)
+    
+    if (r&lt;1.0):
+	return(cos(r*pi/2)*X[1],-cos(r*pi/2)*X[0]) 
+    else:
+	return (0.,0.)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
     <scalar_field replaces="IDENT = 666" name="Tracer" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
@@ -89,17 +115,6 @@
 	return 0</string_value>
           </python>
         </initial_condition>
-        <tensor_field replaces="TMUXX TMUYY TMUZZ TMUYZ TMUXZ TMUXY TALLMU TCONMU" name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.001</real_value>
-                </constant>
-              </isotropic>
-            </value>
-          </prescribed>
-        </tensor_field>
         <output/>
         <stat/>
       </prognostic>

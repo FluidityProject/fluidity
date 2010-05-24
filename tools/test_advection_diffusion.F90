@@ -166,21 +166,17 @@ contains
        
        call rk_advection_step(T_RK(4), Mass, dt, X, U, T, 1.0, T_RK(3))
        
+       call allocate(T_update, T%mesh, "T_update")
+       call zero(T_update)
+
        do i=1,4
-          call addto(rhs, T_RK(i), scale=rk_coefs(i))
+          call addto(T_update, T_RK(i), scale=rk_coefs(i))
 
           ewrite_minmax(T_RK(i)%val)
           
           call deallocate(T_RK(i))
        end do
     
-       call allocate(T_update, T%mesh, "T_update")
-       ! Ensure T_update inherits solver options from T.
-       T_update%option_path=T%option_path
-       call zero(T_update)
-       
-       call petsc_solve(T_update, Mass, rhs)
-       
        call addto(T, T_update)
        
        call deallocate(T_update)
@@ -315,13 +311,13 @@ contains
     T_ele=>ele_nodes(T, ele)
 
     call addto(rhs, T_ele, &
-         -dt* matmul((-dshape_dot_vector_shape(dt_t, U_q, t_shape, detwei)&
+         dt* matmul((dshape_dot_vector_shape(dt_t, U_q, t_shape, detwei)&
          &-shape_shape(t_shape, t_shape, U_div_q*detwei)&
          ),          T_val) &
                )
     
-!    call addto(Mass, T_ele, T_ele, shape_shape(t_shape, t_shape, detwei))
-    call addto_diag(Mass, T_ele, sum(shape_shape(t_shape, t_shape, detwei),1))
+    call addto(Mass, T_ele, T_ele, shape_shape(t_shape, t_shape, detwei))
+!    call addto_diag(Mass, T_ele, sum(shape_shape(t_shape, t_shape, detwei),1))
 
   end subroutine rk_advection_step_ele
 

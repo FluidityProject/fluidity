@@ -83,16 +83,45 @@ start =
                ## Specifies the period between each dump of the solution to disk.
                ## A value of 0.0 indicates that there would be a dump at every timestep.
                element dump_period {
+               (
+                 element constant {
+                   attribute replaces {"TIMDUM"},
+                   real
+                 }|
+                ## Python function prescribing real input. Functions should be of the form:
+                ##
+                ##  def val(t):
+                ##     # Function code
+                ##     return # Return value
+                ##
+                ##
+                element python {
                   attribute replaces {"TIMDUM"},
-                  real
-               }|
-               ## Dump period, in timesteps.
-               ## 
-               ## Specifies the number of timesteps between each dump of the solution to disk.
-               ## A value of 0 indicates a dump at every timestep.
-               element dump_period_in_timesteps {
+                  python_code
+                }
+              )
+              }|
+              ## Dump period, in timesteps.
+              ## 
+              ## Specifies the number of timesteps between each dump of the solution to disk.
+              ## A value of 0 indicates a dump at every timestep.
+              element dump_period_in_timesteps {
+              (
+                element constant {
                   integer
-               }
+                }|
+                ## Python function prescribing real input. Functions should be of the form:
+                ##
+                ##  def val(t):
+                ##     # Function code
+                ##     return # Return value
+                ##
+                ##
+                element python {
+                  python_code
+                }
+              )
+              }
             ),
             # every CPUDUM seconds write results to disc.
             ## This is usually disabled.
