@@ -2692,6 +2692,8 @@ contains
     case ("fluids")
     case ("oceans")
        call check_ocean_options
+    case ("flora_ocean_options")
+       call check_flora_ocean_options
     case ("multimaterial")
        call check_multimaterial_options
     case ("porous_media")
@@ -3089,6 +3091,33 @@ contains
     end if
 
   end subroutine check_ocean_options
+
+  subroutine check_flora_ocean_options
+  
+  
+    character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring
+    logical on_sphere, constant_gravity, new_navsto
+    
+    if (option_count('/material_phase')/=1) then
+       FLExit("The checks for problem_type oceans only work for single phase.")
+    endif
+  !
+
+    ! from now on we may assume single material/phase    
+    velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
+    if (have_option(trim(velocity_path))) then
+       !new_navsto=have_option(trim(velocity_path)//'/spatial_discretisation/continuous_galerkin') .or. &
+        !  have_option(trim(velocity_path)//'/spatial_discretisation/discontinuous_galerkin')
+       ! Check that for ocean problems with prognostic velocity the mass is lumped
+       ! in case of Continuous Galerkin:
+       str=trim(velocity_path)//'/spatial_discretisation/continuous_galerkin'
+       if (have_option(trim(str))) then
+          ewrite(0,*) "Continuous Galerkin"
+          
+          FLExit("For large scale low aspect ratio ocean problems you need discontinuous galerkin velocity.")
+       end if
+  end if
+  end subroutine check_flora_ocean_options
 
   subroutine check_multimaterial_options
 
