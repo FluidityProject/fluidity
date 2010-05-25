@@ -155,6 +155,8 @@ Momentum_Equation.o: Momentum_CG.o Momentum_DG.o Momentum_Diagnostic_Fields.o \
 Compressible_Projection.o: Multimaterials.o Upwind_Stabilisation.o
 Free_Surface.o: Vertical_Extrapolation.o
 Pseudo_supermesh.o: Adapt_State_Unittest.o
+Implicit_Solids.o: Timeloop_utilities.o
+
 Interpolation_manager.o: Geostrophic_Pressure.o
 Solenoidal_interpolation.o: Assemble_CMC.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o Momentum_CG.o Momentum_DG.o
