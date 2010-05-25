@@ -348,7 +348,7 @@ clean-light:
 	@cd climatology;  $(MAKE) clean
 	@echo "    CLEAN climatology"
 	@cd adjoint; $(MAKE) clean
-	@echo "    CLEAN main"
+	@echo "    CLEAN reduced_modelling"
 	@cd reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
@@ -430,8 +430,6 @@ setuputs:
 build_unittest: fluidity_library libfemtools setuputs
 	@echo "    UNITTEST libspud"
 	@cd libspud/src/tests; $(MAKE) test-binaries; find bin/* -maxdepth 1 -type f -exec ln -sf ../../libspud/src/tests/{} ../../../bin/tests \; 
-	@echo "    UNITTEST decomp"
-	@cd decomp/tests; $(MAKE) unittest
 	@echo "    UNITTEST error_measures"
 	@cd error_measures/tests; $(MAKE) unittest
 	@echo "    UNITTEST horizontal_adaptivity"

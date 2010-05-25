@@ -43,7 +43,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = Fldecomp_Wrappers.o Fldecomp_Wrappers_Cpp.o partition.o
+OBJS = partition.o
 
 .SUFFIXES: .f90 .F90 .c .o .a
 
@@ -60,8 +60,6 @@ OBJS = Fldecomp_Wrappers.o Fldecomp_Wrappers_Cpp.o partition.o
 default: $(OBJS)
 #	cp *.mod ../include/
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	
-Fldecomp_Wrappers_Cpp.o: ../include/Fldecomp_Wrappers.h
 
 clean:
 	rm -f *.o *.mod
