@@ -2499,6 +2499,14 @@ Implict Solids</a:documentation>
             <a:documentation>mesh name</a:documentation>
             <data type="string"/>
           </element>
+          <optional>
+            <element name="beta">
+              <a:documentation>absorption coefficient weigting factor
+
+default: beta=1.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
         </element>
       </optional>
     </element>

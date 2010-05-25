@@ -1781,7 +1781,11 @@ start =
          ## Implict Solids
          element implicit_solids {
               ## mesh name
-              element mesh_name{ xsd:string } 
+              element mesh_name{ xsd:string },
+              ## absorption coefficient weigting factor
+              ##
+              ## default: beta=1.
+              element beta{ real }? 
          }?
       }
    )      

@@ -28,7 +28,8 @@
 #include "fdebug.h"
 
 module implicit_solids
-! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+! these 5 need to be on top and in this order, 
+! so as not to confuse silly old intel compiler 
   use quadrature
   use elements
   use sparse_tools
@@ -41,7 +42,7 @@ module implicit_solids
   use tetrahedron_intersection_module
   use unify_meshes_module
   use unittest_tools
-  use global_parameters, only: FIELD_NAME_LEN, current_time
+  use global_parameters, only: FIELD_NAME_LEN, current_time, dt
   use spud
   use read_triangle
   use timeloop_utilities
@@ -58,18 +59,20 @@ contains
     type(state_type),intent(inout) :: state
     character(len=field_name_len) :: external_mesh_name
     type(vector_field), pointer :: positions
+    type(vector_field), pointer :: absorption
     type(vector_field), save :: external_positions
     type(scalar_field), pointer :: solid
     integer :: ele_A, ele_B, ele_C
     type(tet_type) :: tet_A, tet_B
     type(plane_type), dimension(4) :: planes_A
-    integer :: stat, nintersections, i, j, k
+    integer :: stat, bstat, nintersections, i, j, k
     integer :: ntests
     integer, dimension(:), pointer :: ele_A_nodes
     type(vector_field) :: intersection
     real, dimension(:,:), allocatable :: pos_A
     real, dimension(:), allocatable :: detwei
-    real :: vol, ele_A_vol
+    real :: vol, ele_A_vol, sigma
+    real, save :: beta
     logical, save :: init=.false.
 
     ewrite(3, *) "inside femdem"
@@ -83,7 +86,10 @@ contains
        call get_option("/implicit_solids/mesh_name", external_mesh_name)
        external_positions = &
             read_triangle_serial(trim(external_mesh_name), quad_degree=1)
-       
+
+       call get_option("/implicit_solids/beta", beta, bstat)
+       if (bstat/=0) beta=1.
+
        assert(positions%dim >= 2)
        assert(positions%dim == external_positions%dim)
 
@@ -145,7 +151,7 @@ contains
           do k = 1, size(ele_A_nodes)
              call addto(solid, ele_A_nodes(k), vol/ele_A_vol)
           end do
-          
+
           call deallocate(intersection)
 
        end do
@@ -157,6 +163,16 @@ contains
     end do
 
     ewrite_minmax(solid)
+
+    absorption  => extract_vector_field(state, "VelocityAbsorption")
+    call zero(absorption)
+
+    do i = 1, node_count(absorption)
+       sigma = node_val(solid, i)*beta/dt
+       do j = 1, absorption%dim
+          call set(absorption, j, i, sigma)
+       end do
+    end do
 
     if(simulation_completed(current_time)) call deallocate(external_positions)
     call finalise_tet_intersector
