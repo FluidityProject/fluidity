@@ -70,7 +70,7 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
   
   ewrite(1, *) "In project_vtu"
   
-  call set_solver_options(fields_path // "/galerkin_projection/continuous/solver", &
+  call set_solver_options(fields_path // "/galerkin_projection/continuous", &
     & ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)
       
   call vtk_read_state(trim(input_filename), input_state, quad_degree = quad_degree)
