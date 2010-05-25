@@ -28,10 +28,14 @@
 #include "fdebug.h"
 
 module implicit_solids
-
-  use state_module
-  use vtk_interfaces
+! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use quadrature
+  use elements
+  use sparse_tools
   use fields
+  use state_module
+!
+  use vtk_interfaces
   use linked_lists
   use intersection_finder_module
   use tetrahedron_intersection_module
@@ -50,7 +54,6 @@ module implicit_solids
 contains
 
   subroutine solids(state)
-    implicit none
 
     type(state_type),intent(inout) :: state
     character(len=field_name_len) :: external_mesh_name
@@ -164,8 +167,7 @@ contains
   end subroutine solids
 
   function read_triangle_serial(filename, quad_degree) result (field)
-    implicit none
-
+    
     character(len=*), intent(in) :: filename
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree

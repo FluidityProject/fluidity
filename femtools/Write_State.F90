@@ -63,7 +63,7 @@ contains
       select case(i)
         case(1)
           if(.not. last_times_initialised) then
-            ! If the last_dump*_time variables have not been initialised, assume write_state should be called
+            ! if the last_dump*_time variables have not been initialised, assume write_state should be called
             do_write_state = .true.
             exit
           end if
@@ -72,29 +72,33 @@ contains
             if(real_dump_period == 0.0 .or. dump_count_greater(current_time, last_dump_time, real_dump_period)) then
               if(have_option("/io/dump_period/constant")) then
                  call get_option("/io/dump_period/constant", real_dump_period)
-              elseif (have_option("/io/dump_period/python")) then
+              else if (have_option("/io/dump_period/python")) then
                  call get_option("/io/dump_period/python", func)
                  call real_from_python(func, current_time, real_dump_period)
-              END IF  
-              If(real_dump_period < 0.0) then
+              else
+                 FLAbort("Unable to determine dump period type")
+              end if  
+              if(real_dump_period < 0.0) then
                  FLExit("Dump period cannot be negative")
-              END IF
+              end if
               do_write_state = .true.
               exit
-            END IF
+            end if
           end if
         case(3) 
           if(have_option("/io/dump_period_in_timesteps")) then
             if(int_dump_period == 0 .or. mod(timestep, int_dump_period) == 0) then
               if(have_option("/io/dump_period_in_timesteps/constant")) then
                 call get_option("/io/dump_period_in_timesteps/constant", int_dump_period)
-              elseif (have_option("/io/dump_period_in_timesteps/python")) then
+              else if (have_option("/io/dump_period_in_timesteps/python")) then
                 call get_option("/io/dump_period_in_timesteps/python", func)
                 call integer_from_python(func, current_time, int_dump_period)
-              END IF
-              If(int_dump_period < 0) then
+              else
+                 FLAbort("Unable to determine dump period type")
+              end if
+              if(int_dump_period < 0) then
                 FLExit("Dump period cannot be negative")
-              END If
+              END if
               do_write_state = .true.
               exit
             end if
@@ -153,6 +157,9 @@ contains
     character(len = OPTION_PATH_LEN) :: func
     
     last_times_initialised = .true.
+    real_dump_period = huge(0.0)
+    int_dump_period = huge(0)
+    
     call get_option("/timestepping/current_time", last_dump_time)
     call cpu_time(last_dump_cpu_time)
     call allmax(last_dump_cpu_time)
@@ -160,26 +167,23 @@ contains
     call allmax(last_dump_wall_time)
     if(have_option("/io/dump_period/constant")) then
        call get_option("/io/dump_period/constant", real_dump_period)
-    elseif (have_option("/io/dump_period/python")) then
+    else if (have_option("/io/dump_period/python")) then
        call get_option("/io/dump_period/python", func)
        call real_from_python(func, last_dump_time, real_dump_period)
-       If(real_dump_period < 0.0) then
+       if(real_dump_period < 0.0) then
          FLExit("Dump period cannot be negative")
-       END IF       
-    else
-       real_dump_period = -666.0
-    END IF  
-    if(have_option("/io/dump_period_in_timesteps/constant")) then
+       end if       
+    else if(have_option("/io/dump_period_in_timesteps/constant")) then
        call get_option("/io/dump_period_in_timesteps/constant", int_dump_period)
-    elseif (have_option("/io/dump_period_in_timesteps/python")) then
+    else if (have_option("/io/dump_period_in_timesteps/python")) then
        call get_option("/io/dump_period_in_timesteps/python", func)
        call integer_from_python(func, last_dump_time, int_dump_period)
-       If(int_dump_period < 0) then
+       if(int_dump_period < 0) then
          FLExit("Dump period cannot be negative")
-       END IF
+       end if
     else
-       int_dump_period = -666
-    END IF
+      FLExit("Dump period must be specified (in either simulated time or timesteps)")
+    end if
   
   end subroutine update_dump_times
 
@@ -392,10 +396,10 @@ contains
       if (starts_with(field_name, 'Old')) then
         is_old_field=.true.
         field => extract_scalar_field(state(istate), field_name(4:))
-      elseif (starts_with(field_name, 'Nonlinear')) then
+      else if (starts_with(field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
         field => extract_scalar_field(state(istate), field_name(10:))
-      elseif (starts_with(field_name, 'Iterated')) then
+      else if (starts_with(field_name, 'Iterated')) then
         is_iterated_field=.true.
         field => extract_scalar_field(state(istate), field_name(9:))
       else
@@ -465,22 +469,22 @@ contains
       if (field_name=="OldCoordinate") then
         include_vector_field_in_vtu=.false.
         return
-      elseif (field_name=="IteratedCoordinate") then
+      else if (field_name=="IteratedCoordinate") then
         include_vector_field_in_vtu=.false.
         return
-      elseif (field_name=="OldGridVelocity") then
+      else if (field_name=="OldGridVelocity") then
         include_vector_field_in_vtu=.false.
         return
-      elseif (field_name=="IteratedGridVelocity") then
+      else if (field_name=="IteratedGridVelocity") then
         include_vector_field_in_vtu=.false.
         return
-      elseif (starts_with(field_name, 'Old')) then
+      else if (starts_with(field_name, 'Old')) then
         is_old_field=.true.
         field => extract_vector_field(state(istate), field_name(4:))
-      elseif (starts_with(field_name, 'Nonlinear')) then
+      else if (starts_with(field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
         field => extract_vector_field(state(istate), field_name(10:))
-      elseif (starts_with(field_name, 'Iterated')) then
+      else if (starts_with(field_name, 'Iterated')) then
         is_iterated_field=.true.
         field => extract_vector_field(state(istate), field_name(9:))
       else
@@ -550,10 +554,10 @@ contains
       if (starts_with(field_name, 'Old')) then
         is_old_field=.true.
         field => extract_tensor_field(state(istate), field_name(4:))
-      elseif (starts_with(field_name, 'Nonlinear')) then
+      else if (starts_with(field_name, 'Nonlinear')) then
         is_nonlinear_field=.true.
         field => extract_tensor_field(state(istate), field_name(10:))
-      elseif (starts_with(field_name, 'Iterated')) then
+      else if (starts_with(field_name, 'Iterated')) then
         is_iterated_field=.true.
         field => extract_tensor_field(state(istate), field_name(9:))
       else
@@ -620,40 +624,39 @@ contains
       end if
     else
       FLExit("Dump format must be specified")
-    end if
+    end if    
     
-    
-    If(have_option("/io/dump_period/constant")) then
+    if(have_option("/io/dump_period/constant")) then
       call get_option("/io/dump_period/constant", real_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(real_dump_period < 0.0) then
           FLExit("Dump period cannot be negative")
         end if
-      END IF
-    elseIF(have_option("/io/dump_period/python")) then
+      end if
+    else if(have_option("/io/dump_period/python")) then
       call get_option("/io/dump_period/python", func)
       call real_from_python(func, current_time, real_dump_period, STAT)
       if(stat == SPUD_NO_ERROR) then
         if(real_dump_period < 0.0) then
           FLExit("Dump period cannot be negative")
         end if
-      END IF
-    ELSEIf(have_option("/io/dump_period_in_timesteps/constant")) then
+      end if
+    else if(have_option("/io/dump_period_in_timesteps/constant")) then
       call get_option("/io/dump_period_in_timesteps/constant", int_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(int_dump_period < 0) then
           FLExit("Dump period cannot be negative")
         end if
-      END IF
-    elseIF(have_option("/io/dump_period_in_timesteps/python")) then
+      end if
+    else if(have_option("/io/dump_period_in_timesteps/python")) then
       call get_option("/io/dump_period_in_timesteps/python", func)
       call integer_from_python(func, current_time, int_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(int_dump_period < 0) then
           FLExit("Dump period cannot be negative")
         end if
-      END IF
-    ELSE      
+      end if
+    else      
       FLExit("Dump period must be specified (in either simulated time or timesteps)")
     end if
       
