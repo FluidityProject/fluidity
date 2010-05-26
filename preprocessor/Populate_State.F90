@@ -3096,21 +3096,20 @@ contains
   
     character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path
     logical on_sphere, constant_gravity, new_navsto
+    integer iterations
     
     if (option_count('/material_phase')/=1) then
        FLExit("The checks for problem_type oceans only work for single phase.")
     endif
     
-    ! from now on we may assume single material/phase 
     ! Velocity options checks   
     velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
     if (have_option(trim(velocity_path))) then
        str=trim(velocity_path)//'/spatial_discretisation/continuous_galerkin'
        if (have_option(trim(str))) then
-          ewrite(0,*) "Continuous Galerkin"
+          !ewrite(0,*) "Continuous Galerkin"
           FLExit("For large scale low aspect ratio ocean problems you need discontinuous galerkin velocity.")
        end if
-       
        if (.not. have_option(trim(velocity_path)//'/equation::Boussinesq')) then
           ewrite(0,*) "For ocean problems you need to set the equation type"
           ewrite(0,*) "for velocity to Boussinesq."
@@ -3123,14 +3122,29 @@ contains
        if(.not.(have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/advection_scheme/integrate_advection_by_parts/twice"))) then 
           FLExit("Should have Velocity/spatial_discretisation/advection_scheme/integrate_advection_by_parts/twice")
        end if
+       if(have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/mass_terms/lump_mass_matrix")) then
+         FLExit("Should not lump mass matrix in large-scale ocean simulations")
+       end if
+       if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/bassi_rebay")) then
+         FLExit("Should have Bassi Rebay viscosity under Velocity")
+       end if
+       if(.not.have_option(trim(velocity_path)//"tensor_field::Viscosity")) then
+         ewrite(0,*) "WARNING: you may want to add a Viscosity field under Velocity"
+       end if
+       if(.not.have_option(trim(velocity_path)//"vector_field::Absorption")) then
+         ewrite(0,*) "WARNING: you may want to add an Absorption field under Velocity"
+       end if
   end if
   
 !Timestepping options
   if(.not.(have_option("/timestepping/nonlinear_iterations"))) then
      FLExit("You should turn on timestepping/nonlinear_iterations and set to a number greater than 1")
   end if
-  if((have_option("/timestepping/nonlinear_iterations/1"))) then
-     FLExit("timestepping/nonlinear_iterations should be set to a number greater than 1")
+  if((have_option("/timestepping/nonlinear_iterations"))) then
+     call get_option(("/timestepping/nonlinear_iterations"), iterations)
+       if(iterations .lt. 2 ) then
+         FLExit("timestepping/nonlinear_iterations should be set to a number greater than 1")
+       end if
   end if
 
 ! Subtract out hydrostatic level options
@@ -3163,6 +3177,18 @@ contains
        if (.not.have_option(trim(pressure_path)//"/solver/preconditioner/vertical_lumping")) then
           FLExit("For ocean problems you should switch on pressure/vertical lumping")
        end if
+       if (.not.have_option(trim(pressure_path)//"/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")) then
+          FLExit("For ocean problems you should use remove stabilisation term")
+       end if
+       
+
+       !if (.not.(have_option(trim(pressure_path)//"spatial_discretisation/continuous_galerkin/"))) then
+       !  ewrite(0,*)("WARNING: remove stabilisation term should be switched on under pressure")
+       !end if
+
+       !if (.not.(have_option(trim(pressure_path)//"spatial_discretisation/continuous_galerkin/integrate_continuity_by_parts"))) then
+       !  ewrite(0,*)("WARNING: integrate continuity by parts should be switched on under pressure")
+       !end if
     end if
 
     ! Salinity options checks
