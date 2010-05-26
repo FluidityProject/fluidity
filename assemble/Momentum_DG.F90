@@ -207,13 +207,12 @@ contains
 
     integer :: dim, dim2
     
-    ewrite(1,*) 'entering construct_momentum_dg'
+    ewrite(1, *) "In construct_momentum_dg"
 
     assert(continuity(u)<0)
 
-    if (present(acceleration_form)) then
-       acceleration=acceleration_form
-    end if
+    acceleration= .not. present_and_false(acceleration_form)
+    ewrite(2, *) "Acceleration form? ", acceleration
 
     if(present(cg_pressure)) then
       l_cg_pressure = cg_pressure
@@ -235,6 +234,7 @@ contains
        call zero(U_nl)
        have_advection=.false.
     end if
+    ewrite(2, *) "Include advection? ", have_advection
 
     Source=extract_vector_field(state, "VelocitySource", stat)
     have_source = (stat==0)
@@ -521,6 +521,8 @@ contains
     call deallocate(surfacetension)
     call deallocate(buoyancy)
     call deallocate(gravity)
+    
+    ewrite(1, *) "Exiting construct_momentum_dg"
     
   end subroutine construct_momentum_dg
 
