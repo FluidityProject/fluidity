@@ -600,6 +600,17 @@ class vtu:
     cd.Update()
     vtkdata=cd.GetUnstructuredGridOutput().GetCellData().GetArray('VectorGradient')
     return arr([vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())])
+
+  def CellDataToPointData(self):
+    """
+    Transforms all cell-wise fields in the vtu to point-wise fields.
+    All existing fields will remain.
+    """
+    cdtpd=vtk.vtkCellDataToPointData()
+    cdtpd.SetInput(self.ugrid)
+    cdtpd.PassCellDataOn()
+    cdtpd.Update()
+    self.ugrid=cdtpd.GetUnstructuredGridOutput()
     
 def VtuMatchLocations(vtu1, vtu2, tolerance = 1.0e-6):
   """
