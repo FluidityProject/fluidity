@@ -96,7 +96,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Data_structures.o Data_structures_C.o Integer_set.o Integer_hash_table.o \
   CGAL_Tools_C.o CGAL_Tools.o \
   Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o \
-  Fields_Halos.o Profiler.o Profiler_Fortran.o
+  Fields_Halos.o Profiler.o Profiler_Fortran.o Streamfunction.o
 
 
 # objects to be included in libfemtools:
@@ -200,10 +200,14 @@ Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
    Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
    Halos.o MeshDiagnostics.o 
 
+Streamfunction.o: State.o Fields.o Transform_elements.o Sparse_Tools.o \
+	Vector_Tools.o Global_Parameters.o Sparsity_Patterns.o Solvers.o \
+	EventCounter.o Boundary_Conditions.o
+
 Diagnostic_Fields.o: FETools.o Field_derivatives.o State.o\
    CV_Shape_Functions.o CV_Face_Values.o CV_Upwind_Values.o CV_Options.o \
    Write_State.o Field_Options.o Boundary_Conditions.o Unittest_tools.o \
-   Halos.o Interpolation.o Parallel_Tools.o
+   Halos.o Interpolation.o Parallel_Tools.o Streamfunction.o
 
 State.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o Global_Parameters.o \
    Halo_Data_Types.o Halos_Allocates.o Fields_Manipulation.o Linked_Lists.o \

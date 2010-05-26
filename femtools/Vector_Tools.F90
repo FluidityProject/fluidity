@@ -43,7 +43,7 @@ module vector_tools
   private
   public blasmul, solve, norm2, cross_product, invert, inverse, cholesky_factor, &
      mat_diag_mat, eigendecomposition, eigendecomposition_symmetric, eigenrecomposition, &
-     outer_product, det, det_2, det_3, scalar_triple_product, svd
+     outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2
 
 contains
 
@@ -74,6 +74,15 @@ contains
     prod(3)=vector1(1)*vector2(2) - vector1(2)*vector2(1)
 
   end function cross_product_array
+
+  pure function cross_product2(vector1, vector2) result(prod)
+    !!< 2-dimensional cross-product analog
+    real :: prod
+    real, dimension(2), intent(in) :: vector1, vector2
+
+    prod=vector1(1)*vector2(2) - vector1(2)*vector2(1)
+
+  end function cross_product2
 
   pure function scalar_triple_product(vector1, vector2, vector3) result (prod)
     ! returns a scalar triple product
@@ -394,10 +403,7 @@ contains
     integer :: info, i, j, dim
     real, dimension(3 * size(M,1)) :: work
     real, dimension(size(M,1) * (size(M, 1)+1)/2) :: AP
-    
-    
-    real, dimension(:), pointer:: x, y
-    
+        
     interface
 #ifdef DOUBLEP
       SUBROUTINE DSPEV( JOBZ, UPLO, N, AP, W, Z, LDZ, WORK, INFO )
