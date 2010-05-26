@@ -51,6 +51,7 @@ FLDIAGNOSTICS = ../bin/fldiagnostics
 STREAMFUNCTION_2D = ../bin/streamfunction_2d
 FLREDECOMP = ../bin/flredecomp
 TEST_LAPLACIAN= ../bin/test_laplacian
+TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
 TEST_ADVECTION_DIFFUSION= ../bin/test_advection_diffusion
 VISUALISE_ELEMENTS= ../bin/visualise_elements
 TEST_LAPLACIAN_ADJOINT= ../bin/test_laplacian_adjoint
@@ -139,6 +140,9 @@ $(ANALYSE_TRIANGLE): analyse_triangle.o
 
 $(TEST_LAPLACIAN): test_laplacian.o
 	$(LINKER) -o $(TEST_LAPLACIAN) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
+
+$(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
+	$(LINKER) -o $(TEST_LAPLACIAN_VECTOR) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
 $(TEST_ADVECTION_DIFFUSION): test_advection_diffusion.o
 	$(LINKER) -o $(TEST_ADVECTION_DIFFUSION) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
