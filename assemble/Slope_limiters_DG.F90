@@ -1357,6 +1357,7 @@ contains
   subroutine limit_vb(state, t)
     !Vertex-based (not Victoria Bitter) limiter from
     !Kuzmin, J. Comp. Appl. Math., 2010
+    ! doi:10.1016/j.cam.2009.05.028
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
     !
