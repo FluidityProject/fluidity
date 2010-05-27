@@ -1093,6 +1093,24 @@ This will give a columnar mesh, but not a layered one.</a:documentation>
               </optional>
             </element>
           </optional>
+          <choice>
+            <element name="vertically_align_metric">
+              <a:documentation>Remove components from each field's metric that aren't aligned either horizontally
+or vertically.  This can help prevent the horizontal metric from becoming
+contaminated by parts of the vertical metric.
+
+NOTE: Vertical is defined using the GravityDirection field.  This is unlike some other
+parts of the vertically_structured_adaptivity and extrusion routines where vertical is defined as the
+last dimension.</a:documentation>
+              <empty/>
+            </element>
+            <element name="use_full_metric">
+              <a:documentation>When separating the horizontal metric from the vertical use the full metric.  This
+can lead to more constrained horizontal resolution due to leakage between the vertical
+and horizontal components.</a:documentation>
+              <empty/>
+            </element>
+          </choice>
           <optional>
             <element name="include_bottom_metric">
               <a:documentation>When constructing the horizontal metric incorporate the components of the 

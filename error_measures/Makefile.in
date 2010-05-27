@@ -78,6 +78,7 @@ Assemble_metric.o: Form_metric.o Edge_lengths.o Interpolation_metric.o Convectiv
                Geometric_constraints_metric.o Goals.o Goal_metric.o Metric_advection.o Limit_metric.o Anisotropic_gradation_metric.o \
                Richardson_metric.o Anisotropic_ZZ.o Reference_Meshes.o
 Interpolation_metric.o: Form_metric.o Edge_lengths.o Aspect_ratios.o Field_preprocessing.o Project_metric_to_surface.o
+Project_metric_to_surface.o: Edge_lengths.o
 Form_metric.o: Recovery_estimator.o
 Gradation_metric.o: Edge_lengths.o
 Bounding_box_metric.o: Edge_lengths.o

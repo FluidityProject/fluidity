@@ -1251,7 +1251,8 @@ contains
       
       ! include the components of the full_metric that are tangential to the bathymetry 
       ! in the surface metric
-      if(include_bottom_metric) call incorporate_bathymetric_metric(states(1), full_metric, metric)
+      ! state only required for DistanceToBottom and Coordinate so states(1) is fine
+      if(include_bottom_metric) call incorporate_bathymetric_metric(states(1), full_metric, old_positions, metric)
       
       ! apply limiting to enforce maximum number of nodes
       call limit_metric(old_positions, metric)

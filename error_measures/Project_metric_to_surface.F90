@@ -11,6 +11,8 @@ module project_metric_to_surface_module
   use hadapt_advancing_front
   use boundary_conditions
   use field_options
+  use edge_length_module
+  use vtk_interfaces
   implicit none
 
   public :: project_metric_to_surface, vertically_align_metric, incorporate_bathymetric_metric
@@ -181,9 +183,10 @@ module project_metric_to_surface_module
     
   end function vertically_align_metric_node
   
-  subroutine incorporate_bathymetric_metric(state, volume_metric, surface_metric)
+  subroutine incorporate_bathymetric_metric(state, volume_metric, surface_positions, surface_metric)
   type(state_type), intent(in) :: state
   type(tensor_field), intent(in) :: volume_metric
+  type(vector_field), intent(in) :: surface_positions ! only passed in for debugging output
   type(tensor_field), intent(inout) :: surface_metric
     
     type(scalar_field), pointer :: bottomdis
@@ -201,6 +204,9 @@ module project_metric_to_surface_module
     type(tensor_field) :: tmp_metric
     
     integer :: i, sele
+    
+    type(scalar_field) :: edge_lengths
+    integer, save :: adaptcnt=0
     
     ewrite(1,*) 'Entering incorporate_bathymetric_metric'
     
@@ -254,7 +260,25 @@ module project_metric_to_surface_module
                reduce_metric_dimension(node_val(volume_metric, base_volume_index(i)), n))
       
     end do
-    
+
+    if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
+      call allocate(edge_lengths, tmp_metric%mesh, "EdgeLengths")
+      
+      call get_edge_lengths(tmp_metric, edge_lengths)
+      call vtk_write_fields('bathymetric_metric', adaptcnt, &
+        surface_positions, surface_positions%mesh, &
+        sfields=(/ edge_lengths /), tfields=(/ tmp_metric /) )
+
+      call get_edge_lengths(surface_metric, edge_lengths)
+      call vtk_write_fields('initial_horizontal_metric', adaptcnt, &
+        surface_positions, surface_positions%mesh, &
+        sfields=(/ edge_lengths /), tfields=(/ surface_metric /) )
+        
+      adaptcnt=adaptcnt+1
+      
+      call deallocate(edge_lengths)
+    end if
+
     call merge_tensor_fields(surface_metric, tmp_metric)
 
     call deallocate(tmp_metric)

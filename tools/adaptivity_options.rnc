@@ -906,6 +906,24 @@ hr_adaptivity =
                 empty
               }?
            }?,
+           (
+            ## Remove components from each field's metric that aren't aligned either horizontally
+            ## or vertically.  This can help prevent the horizontal metric from becoming
+            ## contaminated by parts of the vertical metric.
+            ##
+            ## NOTE: Vertical is defined using the GravityDirection field.  This is unlike some other
+            ## parts of the vertically_structured_adaptivity and extrusion routines where vertical is defined as the
+            ## last dimension.
+            element vertically_align_metric {
+              empty
+            }|
+            ## When separating the horizontal metric from the vertical use the full metric.  This
+            ## can lead to more constrained horizontal resolution due to leakage between the vertical
+            ## and horizontal components.
+            element use_full_metric {
+              empty
+            }           
+           ),
            ## When constructing the horizontal metric incorporate the components of the 
            ## full metric tangential to the bottom boundary.  For example, this is useful 
            ## when horizontal contours of a field intersect the bathymetry and this information

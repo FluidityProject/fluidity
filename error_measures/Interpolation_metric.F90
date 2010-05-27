@@ -56,7 +56,7 @@ module interpolation_metric
     type(state_type) :: fields_state, weights_state
     type(scalar_field), pointer, dimension(:) :: fields_list, weights_list
     integer :: dim
-    logical :: debug_metric, vertically_structured_adaptivity
+    logical :: debug_metric, align_metric_vertically
 
     ! First let's get the fields that are actually being used.
     ! If the error is set to the special value 0.0, it means ignore that field
@@ -66,7 +66,7 @@ module interpolation_metric
     dim = error_metric%dim
     debug_metric = have_option("/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages")
     ! is this metric going to be collapsed in the vertical to do horizontal adaptivity with it?
-    vertically_structured_adaptivity = have_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
+    align_metric_vertically = have_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/vertically_align_metric")
 
     do i=1,size(state)
       do j=1,scalar_field_count(state(i))
@@ -157,7 +157,7 @@ module interpolation_metric
     call halo_update(fields_list(1))
     call compute_hessian(fields_list(1), positions, error_metric)
     
-    if (vertically_structured_adaptivity) then
+    if (align_metric_vertically) then
       ! state only used for "GravityDirection", so state(1) is fine
       call vertically_align_metric(state(1), error_metric)
     end if
@@ -187,7 +187,7 @@ module interpolation_metric
       call compute_hessian(fields_list(i), positions, tmp_tensor)
       ewrite(2,*) "++: Hessian", i, "formed"
 
-      if (vertically_structured_adaptivity) then
+      if (align_metric_vertically) then
         ! state only used for "GravityDirection", so state(1) is fine
         call vertically_align_metric(state(1), tmp_tensor)
       end if
