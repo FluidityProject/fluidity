@@ -120,108 +120,114 @@ void write_partitions(bool verbose, string filename, string file_format,
     if(verbose)
       cout<<"Making partition "<<part<<endl;
     
-    deque<int> nodes, elements;
+    deque<int> *nodes = new deque<int>;
+    deque<int> *elements = new deque<int>;
 
-    vector<bool> halo_nodes(nnodes, false);
-    vector<bool> more_halo_nodes(nnodes, false);
+    vector<bool> *halo_nodes = new vector<bool>(nnodes, false);
+    vector<bool> *more_halo_nodes = new vector<bool>(nnodes, false);
     
     // Find owned nodes 
     for(int nid=0; nid<nnodes; nid++){
       if(decomp[nid]==part)
-        nodes.push_back(nid+1);
+        nodes->push_back(nid+1);
     }
-    npnodes[part] = nodes.size();
+    npnodes[part] = nodes->size();
     if(verbose)
       cout<<"Found "<<npnodes[part]<<" owned nodes\n";
 
     // Find elements with owned nodes and halo1
-    deque< pair<int, int> > sorted_elements;
+    deque< pair<int, int> > *sorted_elements = new deque< pair<int, int> >;
     for(int eid=0;eid<nelms;eid++){
       int halo_count=0;
-      pair<int, int> owned_elm(decomp[ENList[eid*nloc] - 1], eid);
+      pair<int, int> *owned_elm = new pair<int, int>(decomp[ENList[eid*nloc] - 1], eid);
       if(decomp[ENList[eid*nloc] - 1]!=part){
         halo_count++;
       }
       
       for(int j=1;j<nloc;j++){
-        owned_elm.first = min(owned_elm.first, decomp[ENList[eid*nloc+j] - 1]);
+        owned_elm->first = min(owned_elm->first, decomp[ENList[eid*nloc+j] - 1]);
         if(decomp[ENList[eid*nloc+j] - 1]!=part){
           halo_count++;
         }
       } 
       
       if(halo_count<nloc){
-        sorted_elements.push_back(owned_elm);        
+        sorted_elements->push_back(*owned_elm);        
         if(halo_count>0){
           for(int j=0;j<nloc;j++){
             int nid = ENList[eid*nloc+j] - 1;
             if(decomp[nid]!=part){
               halo1[part][decomp[nid]].insert(nid+1);
-              halo_nodes[nid] = true;
+              (*halo_nodes)[nid] = true;
             }
           }
         }
       }
+      delete owned_elm;
     }
 
     if(verbose)
       cout<<"Found halo1 nodes\n";
 
-    for(deque< pair<int, int> >::const_iterator it=sorted_elements.begin();it!=sorted_elements.end();++it)
+    for(deque< pair<int, int> >::const_iterator it=sorted_elements->begin();it!=sorted_elements->end();++it)
       if(it->first==part)
-        elements.push_back(it->second);
-    for(deque< pair<int, int> >::const_iterator it=sorted_elements.begin();it!=sorted_elements.end();++it)
+        elements->push_back(it->second);
+    for(deque< pair<int, int> >::const_iterator it=sorted_elements->begin();it!=sorted_elements->end();++it)
       if(it->first!=part)
-        elements.push_back(it->second);
+        elements->push_back(it->second);
+    delete sorted_elements;
 
     if(verbose)
       cout<<"Sorted elements\n";
     
     // Find halo2 elements and nodes
-    set<int> halo2_elements;
+    set<int> *halo2_elements = new set<int>;
     for(int eid=0; eid<nelms; eid++){
       int owned_node_count=0;
       bool touches_halo1=false;
       for(int j=0;j<nloc;j++){
         int fnid = ENList[eid*nloc+j];
         
-        touches_halo1 = touches_halo1 || halo_nodes[fnid-1];
+        touches_halo1 = touches_halo1 || (*halo_nodes)[fnid-1];
         
         if(decomp[fnid-1]==part)
           owned_node_count++;
       }
 
       if(touches_halo1&&(owned_node_count==0)){
-        halo2_elements.insert(halo2_elements.end(), eid);
+        halo2_elements->insert(halo2_elements->end(), eid);
         for(int j=0;j<nloc;j++){
           int fnid = ENList[eid*nloc+j];
-          if(!halo_nodes[fnid-1]){
+          if(!(*halo_nodes)[fnid-1]){
             halo2[part][decomp[fnid-1]].insert(fnid);
-            more_halo_nodes[fnid-1]=true;
+            (*more_halo_nodes)[fnid-1]=true;
           }
         }
       }
     }
 
     if(verbose)
-      cout<<"Found "<<halo2_elements.size()<<" halo2 elements\n";
+      cout<<"Found "<<halo2_elements->size()<<" halo2 elements\n";
 
     for(int i=0;i<nparts;i++)
       halo2[part][i].insert(halo1[part][i].begin(), halo1[part][i].end());
     
     for(int i=0;i<nnodes;i++)
-      if(halo_nodes[i])
-        nodes.push_back(i+1);
+      if((*halo_nodes)[i])
+        nodes->push_back(i+1);
+    delete halo_nodes;
     
     for(int i=0;i<nnodes;i++)
-      if(more_halo_nodes[i])
-        nodes.push_back(i+1);
-    
-    for(set<int>::const_iterator it=halo2_elements.begin(); it!=halo2_elements.end(); ++it)
-      elements.push_back(*it);
+      if((*more_halo_nodes)[i])
+        nodes->push_back(i+1);
+    delete more_halo_nodes;
+
+    for(set<int>::const_iterator it=halo2_elements->begin(); it!=halo2_elements->end(); ++it)
+      elements->push_back(*it);
+    delete halo2_elements;
 
     if(verbose)
-      cout<<"Partition: "<<part<<", Private nodes: "<<npnodes[part]<<", Total nodes: "<<nodes.size()<<"\n";
+      cout<<"Partition: "<<part<<", Private nodes: "<<npnodes[part]<<", Total nodes: "<<nodes->size()<<"\n";
     
     // Write out data for each partition
     if(verbose)
@@ -229,67 +235,64 @@ void write_partitions(bool verbose, string filename, string file_format,
     
     // Map from global node numbering (numbered from one) to partition node 
     // numbering (numbered from one)
-    for(size_t j=0;j<nodes.size();j++){
-      renumber[part].insert(renumber[part].end(), pair<int, int>(nodes[j], j+1));
+    for(size_t j=0;j<nodes->size();j++){
+      renumber[part].insert(renumber[part].end(), pair<int, int>((*nodes)[j], j+1));
     }
     
     // Coordinate data
-    vector<double> partX(nodes.size()*no_coords);
-    for(size_t j=0;j<nodes.size();j++){
+    vector<double> *partX = new vector<double>(nodes->size()*no_coords);
+    for(size_t j=0;j<nodes->size();j++){
       for(int k=0;k<no_coords;k++){
-        partX[j * no_coords + k] = x[(nodes[j] - 1) * no_coords + k];
+        (*partX)[j * no_coords + k] = x[((*nodes)[j] - 1) * no_coords + k];
       }
     }
 
     // Volume element data
-    vector<int> partENList;
-    partENList.reserve(elements.size()*nloc);
+    vector<int> *partENList = new vector<int>;
+    partENList->reserve(elements->size()*nloc);
 
-    vector<int> partRegionIds;
-    partRegionIds.reserve(elements.size());
+    vector<int> *partRegionIds = new vector<int>;
+    partRegionIds->reserve(elements->size());
     
     // Map from partition node numbers (numbered from one) to partition
     // element numbers (numbered from zero)
-    vector< set<int> > partNodesToEid(nodes.size()+1);
+    vector< set<int> > *partNodesToEid = new vector< set<int> >(nodes->size()+1);
     int ecnt=0;
-    for(deque<int>::const_iterator iter=elements.begin();iter!=elements.end();iter++){
+    for(deque<int>::const_iterator iter=elements->begin();iter!=elements->end();iter++){
       for(int j=0;j<nloc;j++){
         int nid = ENList[*iter*nloc+j];
         int gnid = renumber[part].find(nid)->second;
-        partENList.push_back(gnid);
-        partNodesToEid[gnid].insert(ecnt);
+        partENList->push_back(gnid);
+        (*partNodesToEid)[gnid].insert(ecnt);
       }
-      partRegionIds.push_back(regionIds[*iter]);
+      partRegionIds->push_back(regionIds[*iter]);
       ecnt++;
     }
     
     // Surface element data
-    vector<int> partSENList;
-    vector<int> partBoundaryIds;
-#ifndef NDEBUG
-    set< vector<int> > surf_elms;
-#endif
+    vector<int> *partSENList = new vector<int>;
+    vector<int> *partBoundaryIds = new vector<int>;
     for(size_t j=0;j<SENList.size();j++){
       // In order for a global surface element to be a partition surface
       // element, all of its nodes must be attached to at least one partition
       // volume element
       if(SENList[j].size()==0 or
          renumber[part].find(SENList[j][0])==renumber[part].end() or
-         partNodesToEid[renumber[part].find(SENList[j][0])->second].empty()){
+         (*partNodesToEid)[renumber[part].find(SENList[j][0])->second].empty()){
         continue;
       }
       
       bool SEOwned=false;
-      set<int> &lpartNodesToEid = partNodesToEid[renumber[part].find(SENList[j][0])->second];
+      set<int> &lpartNodesToEid = (*partNodesToEid)[renumber[part].find(SENList[j][0])->second];
       for(set<int>::const_iterator iter=lpartNodesToEid.begin();iter!=lpartNodesToEid.end();iter++){
         SEOwned=true;
-        set<int> VENodes;
+        set<int> *VENodes = new set<int>;
         for(int k=(*iter)*nloc;k<(*iter)*nloc+nloc;k++){
-          VENodes.insert(partENList[k]);
+          VENodes->insert((*partENList)[k]);
         }
         for(size_t k=1;k<SENList[j].size();k++){
           if(renumber[part].find(SENList[j][k])==renumber[part].end() or 
-             VENodes.count(renumber[part].find(SENList[j][k])->second)==0){
+             VENodes->count(renumber[part].find(SENList[j][k])->second)==0){
             SEOwned=false;
             break;
           }
@@ -297,16 +300,18 @@ void write_partitions(bool verbose, string filename, string file_format,
         if(SEOwned){
           break;
         }
+        delete VENodes;
       }
-      
+
       if(SEOwned){
         for(size_t k=0;k<SENList[j].size();k++){
-          partSENList.push_back(renumber[part].find(SENList[j][k])->second);
+          partSENList->push_back(renumber[part].find(SENList[j][k])->second);
         }
-        partBoundaryIds.push_back(boundaryIds[j]);
+        partBoundaryIds->push_back(boundaryIds[j]);
       }
     }
-    
+    delete partNodesToEid;
+
     // Write out the partition mesh
     ostringstream basename;
     basename<<filename<<"_"<<part;
@@ -316,28 +321,37 @@ void write_partitions(bool verbose, string filename, string file_format,
     ofstream nodefile;
     nodefile.open(string(basename.str()+".node").c_str());
     nodefile.precision(16);
-    nodefile<<nodes.size()<<" "<<dim<<" 0 0\n";
-    for(size_t j=0;j<nodes.size();j++){
+    nodefile<<nodes->size()<<" "<<dim<<" 0 0\n";
+    for(size_t j=0;j<nodes->size();j++){
       nodefile<<j+1<<" ";
       for(int k=0;k<dim;k++){
-        nodefile<<partX[j * dim + k]<<" ";
+        nodefile<<(*partX)[j * dim + k]<<" ";
       }
       nodefile<<endl;
     }
     nodefile<<"# Produced by: fldecomp\n";
     nodefile.close();
+    delete nodes;
+    delete partX;
 
     ofstream elefile;
     elefile.open(string(basename.str()+".ele").c_str());
-    elefile<<elements.size()<<" "<<nloc<<" 0\n";
-    for(int i=0;i<elements.size();i++){
+    if(partRegionIds->size())
+      elefile<<elements->size()<<" "<<nloc<<" 1\n";
+    else
+      elefile<<elements->size()<<" "<<nloc<<" 0\n";
+    for(int i=0;i<elements->size();i++){
       elefile<<i+1<<" ";
       for(int j=0;j<nloc;j++)
-        elefile<<partENList[i*nloc+j]<<" ";
+        elefile<<(*partENList)[i*nloc+j]<<" ";
+      if(partRegionIds->size())
+        elefile<<(*partRegionIds)[i];
       elefile<<endl;
     }
     elefile<<"# Produced by: fldecomp\n";
     elefile.close();
+    delete elements;
+    delete partENList;
 
     ofstream facefile;
     if(snloc==1)
@@ -346,15 +360,17 @@ void write_partitions(bool verbose, string filename, string file_format,
       facefile.open(string(basename.str()+".edge").c_str());
     else
       facefile.open(string(basename.str()+".face").c_str());
-    int nfacets = partSENList.size()/snloc;
+    int nfacets = partSENList->size()/snloc;
     facefile<<nfacets<<" 1\n";
     for(int i=0;i<nfacets;i++){
       facefile<<i+1<<" ";
       for(int j=0;j<snloc;j++)
-        facefile<<partSENList[i*snloc+j]<<" ";
-      facefile<<" "<<partBoundaryIds[i]<<endl;
+        facefile<<(*partSENList)[i*snloc+j]<<" ";
+      facefile<<" "<<(*partBoundaryIds)[i]<<endl;
     }
     facefile.close();
+    delete partSENList;
+    delete partBoundaryIds;
 
     basename.str("");
   }
