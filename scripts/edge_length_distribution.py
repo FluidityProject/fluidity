@@ -51,7 +51,7 @@ def GetFiles(filename,vtu_type):
         return int(s.split('_')[-1].split('.')[0])
    
     list = glob.glob('./'+filename+'*.'+vtu_type)
-    list = [l for l in list if 'check' not in l]
+    list = [l for l in list if 'checkpoint.'+vtu_type not in l]
 
     return sorted(list, key=key)
 
