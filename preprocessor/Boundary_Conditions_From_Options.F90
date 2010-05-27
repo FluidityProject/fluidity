@@ -324,7 +324,7 @@ contains
              applies(j)=have_option(trim(bc_component_path))
              ! check for SEM bc:
              bc_component_path=trim(bc_component_path)//'/synthetic_eddy_method'
-             have_sem_bc=have_sem_bc .or. applies(j) .and. have_option(bc_component_path)
+             have_sem_bc=have_sem_bc .or. (applies(j) .and. have_option(bc_component_path))
           end do
           call add_sem_bc(have_sem_bc)
           
@@ -483,8 +483,7 @@ contains
              end if
              call insert_surface_field(field, i+1, tangent_2)
 
-             debugging_mode=.false.
-             if (have_option(trim(bc_type_path)//"/debugging_mode")) debugging_mode=.true.
+             debugging_mode=have_option(trim(bc_type_path)//"/debugging_mode")
             
              ! calculate the normal, tangent_1 and tangent_2 on every boundary node
              call initialise_rotated_bcs(surface_element_list, &
@@ -793,7 +792,7 @@ contains
              applies(j)=have_option(trim(bc_component_path))
              ! check for SEM bc:
              bc_component_path=trim(bc_component_path)//'/synthetic_eddy_method'
-             have_sem_bc=have_sem_bc .or. applies(j) .and. have_option(bc_component_path)
+             have_sem_bc=have_sem_bc .or. (applies(j) .and. have_option(bc_component_path))
           end do
 
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
@@ -1836,7 +1835,7 @@ contains
 
     integer                       :: i, bcnod
     integer                       :: sele
-    integer                       :: t1_max, n_max
+    integer                       :: t1_max
     real, dimension(x%dim)        :: t1, t2, t1_norm, n
     real                          :: proj1, det
 
@@ -1864,44 +1863,42 @@ contains
        call set(normal, i, n)
        if (present(tangent_1)) then
            
-       n_max=maxloc( abs(n), dim=1 )
+         t1_max=minloc( abs(n), dim=1 )
+         t1_norm=0.
+         t1_norm(t1_max)=1.
        
-       t1_max=minloc( abs(n), dim=1 )
-       t1_norm=0.
-       t1_norm(t1_max)=1.
+         proj1=dot_product(n, t1_norm)
+         t1= t1_norm - proj1 * n
        
-       proj1=dot_product(n, t1_norm)
-       t1= t1_norm - proj1 * n
-       
-       ! normalise it
-       t1=t1/sqrt(sum(t1**2))
+         ! normalise it
+         t1=t1/sqrt(sum(t1**2))
 
-       call set( tangent_1, i, t1 )
+         call set( tangent_1, i, t1 )
 
-           if (x%dim>2)then
+         if (x%dim>2)then
           
-              t2 = cross_product(n, t1)
+            t2 = cross_product(n, t1)
           
-              call set( tangent_2, i, t2 )
+            call set( tangent_2, i, t2 )
           
-              ! dump normals when debugging
-              if (debugging_mode) then
+            ! dump normals when debugging
+            if (debugging_mode) then
              
-                 call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-                 call remap_field_to_surface(x, bc_position, surface_element_list)
-                 call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
+               call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
+               call remap_field_to_surface(x, bc_position, surface_element_list)
+               call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
                      vfields=(/ normal, tangent_1, tangent_2/))
              
-                 det = abs( &
+               det = abs( &
                       n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
                       t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
                       t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
-                 if (  abs( det - 1.) > 1.e-5) then
-                    ewrite(3,*) "rotation matrix determinant", det
-                    FLExit("rotation matrix is messed up, rotated bcs have exploded...")
-                 end if
-             end if
-          end if
+               if (  abs( det - 1.) > 1.e-5) then
+                  ewrite(-1,*) "rotation matrix determinant", det
+                  FLExit("rotation matrix is messed up, rotated bcs have exploded...")
+               end if
+            end if
+         end if
        endif
     end do ! bcnod
     

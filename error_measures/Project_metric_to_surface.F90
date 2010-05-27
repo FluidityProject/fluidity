@@ -9,9 +9,11 @@ module project_metric_to_surface_module
   use quicksort
   use state_module
   use hadapt_advancing_front
+  use boundary_conditions
+  use field_options
   implicit none
 
-  public :: project_metric_to_surface, vertically_align_metric
+  public :: project_metric_to_surface, vertically_align_metric, incorporate_bathymetric_metric
   contains
 
   subroutine project_metric_to_surface(volume_metric, h_mesh, surface_metric)
@@ -63,43 +65,66 @@ module project_metric_to_surface_module
 
   end subroutine project_metric_to_surface
 
-  function reduce_metric_dimension(volume_metric) result(surface_metric)
+  function reduce_metric_dimension(volume_metric, normal) result(surface_metric)
     !! Given a (e.g.) 3D metric, squash it down to a 2D metric
-    !! by taking out the two most horizontal eigen components
     real, dimension(:, :), intent(in) :: volume_metric
-    real, dimension(size(volume_metric, 1), size(volume_metric, 1)) :: volume_evecs
-    real, dimension(size(volume_metric, 1)-1, size(volume_metric, 1)-1) :: surface_metric, surface_evecs
-    real, dimension(size(volume_metric, 1)) :: volume_evals, norms
-    real, dimension(size(volume_metric, 1)-1) :: surface_evals
-    integer, dimension(size(volume_metric, 1)) :: sorted_idx
+    real, dimension(:), intent(in), optional :: normal
+    
+    real, dimension(size(volume_metric, 1)-1, size(volume_metric, 2)-1) :: surface_metric
 
     integer :: vdim, sdim
-    integer :: i
-
+    
+    real, dimension(size(normal)) :: tangent1, tangent2, tangent1_dir
+    real :: project
+    
+    real, dimension(size(volume_metric, 1), size(volume_metric, 2)) :: rotated_metric, &
+                                                                       rotation_matrix
+    assert(size(volume_metric, 1)==size(volume_metric, 2))
+     
     vdim = size(volume_metric, 1)
     sdim = vdim - 1
 
-    call eigendecomposition_symmetric(volume_metric, volume_evecs, volume_evals)
-
-    ! We loop over the eigenvectors of the metric and project them to the surface.
-    ! We then discard the one with the smallest norm -- this is the projection of the vertical
-    ! component.
-    ! We record the infinity norm of the first sdim components of the vector.
-    do i=1,vdim
-      norms(i) = maxval(abs(volume_evecs(1:sdim, i)))
-    end do
-
-    call qsort(norms, sorted_idx)
-
-    do i=1,sdim
-      surface_evecs(:, i) = volume_evecs(1:sdim, sorted_idx(vdim - i + 1))
-      assert(norm2(surface_evecs(:, i)) > 0.0)
-      surface_evecs(:, i) = surface_evecs(:, i) / norm2(surface_evecs(:, i)) ! and normalise
-      surface_evals(i) = volume_evals(sorted_idx(vdim - i + 1))
-    end do
-
-    call eigenrecomposition(surface_metric, surface_evecs, surface_evals)
+    tangent1 = 0.0
+    tangent2 = 0.0
+    rotation_matrix = 0.0
     
+    if(present(normal)) then
+      if(vdim>1) then
+      
+        ! we want the 1st tangent to align with the x axis
+        ! which we assume is the first index
+        ! NOTE: this clearly won't work for normals that are in the x-direction
+        tangent1_dir = 0.0
+        tangent1_dir(1) = 1.0
+        
+        project = dot_product(normal, tangent1_dir)
+        tangent1 = tangent1_dir - project*normal
+        
+        tangent1 = tangent1/sqrt(sum(tangent1**2))
+        
+        rotation_matrix(:,1) = tangent1
+        
+        if(vdim>2) then
+        
+          tangent2 = cross_product(normal, tangent1)
+          ! we want the 2nd tangent to align with the y axis
+          ! which we assume is the second index
+          if(tangent2(2)<0.0) tangent2 = -tangent2
+          
+          rotation_matrix(:,2) = tangent2
+        end if
+      end if
+      
+      rotation_matrix(:,vdim) = normal
+      
+      rotated_metric = matmul(transpose(rotation_matrix), matmul(volume_metric, rotation_matrix))
+      
+    else
+      rotated_metric = volume_metric
+    end if
+
+    surface_metric = rotated_metric(1:sdim, 1:sdim)
+
   end function reduce_metric_dimension
     
   subroutine vertically_align_metric(state, error_metric)
@@ -155,5 +180,89 @@ module project_metric_to_surface_module
     projected_metric=matmul( ph, matmul(metric, ph)) + matmul( pv, matmul(metric, pv))
     
   end function vertically_align_metric_node
+  
+  subroutine incorporate_bathymetric_metric(state, volume_metric, surface_metric)
+  type(state_type), intent(in) :: state
+  type(tensor_field), intent(in) :: volume_metric
+  type(tensor_field), intent(inout) :: surface_metric
+    
+    type(scalar_field), pointer :: bottomdis
+    integer, dimension(:), pointer :: surface_element_list
+    type(mesh_type), pointer :: surface_mesh
+    type(mesh_type) :: bottom_metric_mesh
+    type(vector_field) :: normal
+
+    type(vector_field) :: coordinate
+    real, dimension(mesh_dim(volume_metric), face_ngi(volume_metric, 1)) :: normal_bdy
+    real, dimension(face_ngi(volume_metric, 1)) :: detwei_bdy
+    real, dimension(mesh_dim(volume_metric)) :: n
+    
+    integer, dimension(:), allocatable :: base_volume_index
+    type(tensor_field) :: tmp_metric
+    
+    integer :: i, sele
+    
+    ewrite(1,*) 'Entering incorporate_bathymetric_metric'
+    
+    bottomdis => extract_scalar_field(state, "DistanceToBottom")
+    call get_boundary_condition(bottomdis, 1, surface_mesh = surface_mesh, &
+                                surface_element_list = surface_element_list)
+    
+    bottom_metric_mesh = make_mesh(surface_mesh, shape = face_shape(volume_metric, 1), &
+                                   continuity = continuity(volume_metric))
+    
+    call allocate(normal, mesh_dim(volume_metric), bottom_metric_mesh, "BottomNormals")
+    call zero(normal)
+    
+    call deallocate(bottom_metric_mesh)
+
+    allocate(base_volume_index(node_count(normal)))
+    base_volume_index = 0
+    
+    coordinate = get_coordinate_field(state, volume_metric%mesh)
+    
+    do i = 1, size(surface_element_list)
+      sele = surface_element_list(i)
+      
+      call transform_facet_to_physical(coordinate, sele, &
+                                       detwei_f=detwei_bdy, normal=normal_bdy)
+                                       
+      call addto(normal, ele_nodes(normal, i), &
+                 shape_vector_rhs(ele_shape(normal, i), normal_bdy, detwei_bdy))
+                 
+      ! record the volume node numbers of each node in the bottom mesh
+      ! (this will get overwritten by the same value if continuous, as we expect)
+      base_volume_index(ele_nodes(normal, i)) = face_global_nodes(volume_metric, sele)
+    end do
+    
+    assert(all(base_volume_index > 0))
+  
+    assert(associated(volume_metric%mesh%columns))
+
+    call allocate(tmp_metric, surface_metric%mesh, "TemporarySurfaceMetric")
+    call zero(tmp_metric)
+
+    assert(node_count(tmp_metric)==node_count(normal))
+
+    do i = 1, node_count(normal)
+      ! get node normal
+      n=node_val(normal,i)
+      ! normalise it
+      n=n/sqrt(sum(n**2))
+      
+      call set(tmp_metric, volume_metric%mesh%columns(base_volume_index(i)), &
+               reduce_metric_dimension(node_val(volume_metric, base_volume_index(i)), n))
+      
+    end do
+    
+    call merge_tensor_fields(surface_metric, tmp_metric)
+
+    call deallocate(tmp_metric)
+    call deallocate(normal)
+    call deallocate(coordinate)
+
+    ewrite(2,*) 'Leaving incorporate_bathymetric_metric'
+  
+  end subroutine incorporate_bathymetric_metric
   
 end module project_metric_to_surface_module

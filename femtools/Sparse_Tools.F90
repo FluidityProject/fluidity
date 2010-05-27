@@ -329,6 +329,10 @@ module sparse_tools
           dcsr_set, dcsr_vset, dcsr_set_row, dcsr_set_col, csr_csr_set, &
           block_csr_vset, block_csr_bset, csr_rset, csr_block_csr_set
   end interface
+  
+  interface set_diag
+     module procedure csr_set_diag
+  end interface
 
   interface scale
      module procedure csr_scale
@@ -422,7 +426,7 @@ module sparse_tools
   public :: allocate, deallocate, attach_block, &
        unclone, size, block, block_size, blocks, entries, row_m, row_val, &
        & row_m_ptr, row_val_ptr, row_ival_ptr, diag_val_ptr, row_length, zero, zero_row, addto,&
-       & addto_diag, set, val, ival, dense, dense_i, wrap, matmul_T,&
+       & addto_diag, set_diag,  set, val, ival, dense, dense_i, wrap, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
        & reset_inactive, destroy_solver_cache
@@ -3991,6 +3995,34 @@ END SUBROUTINE POSINM_COLOUR
     end if
 
   end subroutine block_csr_set
+
+  subroutine csr_set_diag(matrix, i, val, save_pos)
+    !!< Set val to matrix(i,j)
+    type(csr_matrix), intent(inout) :: matrix
+    integer, intent(in) :: i
+    real, intent(in) :: val
+    integer, intent(inout), optional :: save_pos
+
+    integer :: mpos
+    
+    if(associated(matrix%sparsity%centrm)) then
+      mpos = matrix%sparsity%centrm(i)
+    else
+      mpos = pos(matrix,i,i,save_pos=save_pos)
+    end if
+
+    !In debugging mode, check that the entry actually exists.
+    assert(mpos>0)
+
+    if (associated(matrix%val)) then
+       matrix%val(mpos)=val
+    else if (associated(matrix%ival)) then
+       matrix%ival(mpos)=val
+    else
+       FLAbort("Attempting to set value in a matrix with no value space")
+    end if
+
+  end subroutine csr_set_diag
 
   function csr_val(matrix, i, j, save_pos) result(val)
     !!< Return the value at  matrix(i,j)

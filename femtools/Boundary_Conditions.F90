@@ -1804,12 +1804,12 @@ contains
        surface_field => extract_surface_field(field, i, "value")
        
        do j=1,size(surface_node_list)
-          call addto(rhs, surface_node_list(j), &
+          call set(rhs, surface_node_list(j), &
                ((node_val(surface_field, j)- &
                 node_val(field, surface_node_list(j)) &
                 ) /dt)*INFINITY)
 
-          call addto(lhs, surface_node_list(j), &
+          call set(lhs, surface_node_list(j), &
                INFINITY)
 
        end do
@@ -1850,19 +1850,25 @@ contains
           do k = 1, field%dim
             if(applies(k)) then
 
-              if(present(rhs).and.present(dt)) then
+              if(present(rhs)) then
                 rhscomponent = extract_scalar_field_from_vector_field(rhs, k)
                 bccomponent = extract_scalar_field_from_vector_field(surface_field, k)
-
-                call addto(rhscomponent, &
-                           surface_node_list(j), &
-                           ((node_val(bccomponent,j)&
-                             -node_val(field, k, surface_node_list(j)) &
-                             ) /dt)*INFINITY)
+                
+                if(present(dt)) then
+                  call set(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent,j)&
+                              -node_val(field, k, surface_node_list(j)) &
+                              ) /dt)*INFINITY)
+                else
+                  call set(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent,j)*INFINITY)
+                end if
               end if
 
               matrixcomponent = block(matrix, k, k)
-              call addto_diag(matrixcomponent, surface_node_list(j), &
+              call set_diag(matrixcomponent, surface_node_list(j), &
                               INFINITY)
             end if
           end do
@@ -1903,15 +1909,31 @@ contains
           do k = 1, field%dim
             if(applies(k)) then
 
-              if(present(rhs).and.present(dt)) then
+              if(present(rhs)) then
                 rhscomponent = extract_scalar_field_from_vector_field(rhs, k)
                 bccomponent = extract_scalar_field_from_vector_field(surface_field, k)
 
-                call addto(rhscomponent, &
-                           surface_node_list(j), &
-                           ((node_val(bccomponent,j)&
-                             -node_val(field, k, surface_node_list(j)) &
-                             ) /dt)*INFINITY)
+                if(present(dt)) then
+                  ! this is an addto because petsc_csr matrices can only
+                  ! addto at the moment... hence with time varying bc we
+                  ! end up with an average of the bcs at any node with two
+                  ! (or more) set (i.e. corner nodes with inconsistent bc
+                  ! on the sides)
+                  call addto(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent,j)&
+                              -node_val(field, k, surface_node_list(j)) &
+                              ) /dt)*INFINITY)
+                else
+                  ! this is an addto because petsc_csr matrices can only
+                  ! addto at the moment... hence with time varying bc we
+                  ! end up with an average of the bcs at any node with two
+                  ! (or more) set (i.e. corner nodes with inconsistent bc
+                  ! on the sides)
+                  call addto(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent,j)*INFINITY)
+                end if
               end if
 
               call addto(matrix, k, k, surface_node_list(j), &
@@ -1956,18 +1978,24 @@ contains
          
           if(applies(dim)) then
             
-            call addto_diag(matrix, surface_node_list(j),&
+            call set_diag(matrix, surface_node_list(j),&
                             INFINITY)
 
-            if(present(rhs).and.present(dt)) then
+            if(present(rhs)) then
               rhscomponent = extract_scalar_field_from_vector_field(rhs, dim)
               bccomponent = extract_scalar_field_from_vector_field(surface_field, dim)
 
-              call addto(rhscomponent, &
-                          surface_node_list(j), &
-                          ((node_val(bccomponent, j) &
-                            -node_val(field,dim,surface_node_list(j)) &
-                           ) /dt)*INFINITY)
+              if(present(dt)) then
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent, j) &
+                              -node_val(field,dim,surface_node_list(j)) &
+                            ) /dt)*INFINITY)
+              else
+                call set(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent, j)*INFINITY)
+              end if
 
             end if
 
@@ -2011,20 +2039,26 @@ contains
 
               lhscomponent = extract_scalar_field_from_vector_field(lhs, k)
 
-              if(present(rhs).and.present(dt)) then
+              if(present(rhs)) then
                 rhscomponent = extract_scalar_field_from_vector_field(rhs, k)
                 bccomponent = extract_scalar_field_from_vector_field(surface_field, k)
 
-                call addto(rhscomponent, &
-                          surface_node_list(j), &
-                          ((node_val(bccomponent,j)&
-                            -node_val(field,k,surface_node_list(j)) &
-                            ) /dt)*INFINITY)
+                if(present(dt)) then
+                  call set(rhscomponent, &
+                            surface_node_list(j), &
+                            ((node_val(bccomponent,j)&
+                              -node_val(field,k,surface_node_list(j)) &
+                              ) /dt)*INFINITY)
+                else
+                  call set(rhscomponent, &
+                            surface_node_list(j), &
+                            node_val(bccomponent,j)*INFINITY)
+                end if
 
               end if
 
 
-              call addto(lhscomponent, surface_node_list(j),&
+              call set(lhscomponent, surface_node_list(j),&
                          INFINITY)
             end if
          end do
@@ -2067,19 +2101,26 @@ contains
          
           if(applies(dim)) then
 
-            if(present(rhs).and.present(dt)) then
+            if(present(rhs)) then
               bccomponent = extract_scalar_field_from_vector_field(surface_field, dim)
               rhscomponent = extract_scalar_field_from_vector_field(rhs, dim)
 
-              call addto(rhscomponent, &
-                        surface_node_list(j), &
-                        ((node_val(bccomponent,j) &
-                          -node_val(field, dim, surface_node_list(j)) &
-                          ) /dt)*INFINITY)
+              if(present(dt)) then
+                call set(rhscomponent, &
+                          surface_node_list(j), &
+                          ((node_val(bccomponent,j) &
+                            -node_val(field, dim, surface_node_list(j)) &
+                            ) /dt)*INFINITY)
+              else
+                call set(rhscomponent, &
+                          surface_node_list(j), &
+                          node_val(bccomponent,j)*INFINITY)
+              
+              end if
 
             end if
 
-            call addto(lhs, surface_node_list(j),&
+            call set(lhs, surface_node_list(j),&
                         INFINITY)
           end if
        end do

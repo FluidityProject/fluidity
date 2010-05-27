@@ -1232,6 +1232,7 @@ contains
     integer, save:: adaptcnt=0
     logical :: vertically_structured_adaptivity
     logical :: vertically_inhomogenous_adaptivity
+    logical :: include_bottom_metric
 
     type(scalar_field):: edge_lengths
       
@@ -1239,12 +1240,19 @@ contains
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
     vertically_inhomogenous_adaptivity = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
+    include_bottom_metric = have_option( &
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/include_bottom_metric")
 
 
     if (vertically_structured_adaptivity) then
       ! project full mesh metric to horizontal surface mesh metric
       full_metric=metric
       call project_metric_to_surface(full_metric, old_positions, metric)
+      
+      ! include the components of the full_metric that are tangential to the bathymetry 
+      ! in the surface metric
+      if(include_bottom_metric) call incorporate_bathymetric_metric(states(1), full_metric, metric)
+      
       ! apply limiting to enforce maximum number of nodes
       call limit_metric(old_positions, metric)
       if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then

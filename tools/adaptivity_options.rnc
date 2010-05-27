@@ -905,6 +905,16 @@ hr_adaptivity =
               element adapt_in_vertical_only {
                 empty
               }?
+           }?,
+           ## When constructing the horizontal metric incorporate the components of the 
+           ## full metric tangential to the bottom boundary.  For example, this is useful 
+           ## when horizontal contours of a field intersect the bathymetry and this information
+           ## is not automatically incorporated into the horizontal metric leading to
+           ## the contact point being underresolved.
+           ##
+           ## Depends on /geometry/ocean_boundaries.
+           element include_bottom_metric {
+            empty
            }?
          }?,
          ## Zoltan Options

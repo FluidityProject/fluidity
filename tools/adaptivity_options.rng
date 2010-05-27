@@ -1093,6 +1093,18 @@ This will give a columnar mesh, but not a layered one.</a:documentation>
               </optional>
             </element>
           </optional>
+          <optional>
+            <element name="include_bottom_metric">
+              <a:documentation>When constructing the horizontal metric incorporate the components of the 
+full metric tangential to the bottom boundary.  For example, this is useful 
+when horizontal contours of a field intersect the bathymetry and this information
+is not automatically incorporated into the horizontal metric leading to
+the contact point being underresolved.
+
+Depends on /geometry/ocean_boundaries.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
