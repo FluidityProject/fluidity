@@ -194,8 +194,8 @@ contains
         call calculate_horizontal_streamfunction(state, d_field)
         
       case("StreamFunction")
-        !call calculate_stream_function_2d(state, d_field, stat)
-        call calculate_stream_function_multipath_2d(state, d_field, stat)
+        call calculate_stream_function_2d(state, d_field, stat)
+        !call calculate_stream_function_multipath_2d(state, d_field, stat)
 
       case("Time")
         call set(d_field, current_time)
