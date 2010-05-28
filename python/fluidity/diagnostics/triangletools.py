@@ -156,7 +156,6 @@ def ReadTriangle(baseName):
     # Read the .face file
     debug.dprint("Reading .face file")
     
-    assert(dim == 3)
     faceHandle = file(baseName + ".face", "r")
     
     # Extract the meta data
@@ -183,10 +182,10 @@ def ReadTriangle(baseName):
     assert(mesh.SurfaceElementCount() == nFaces)
     faceHandle.close()
     
-  # Read the .ele file
-  debug.dprint("Reading .ele file")
-  
   if hasEle:
+    # Read the .ele file
+    debug.dprint("Reading .ele file")
+    
     eleHandle = file(baseName + ".ele", "r")
     
     # Extract the meta data

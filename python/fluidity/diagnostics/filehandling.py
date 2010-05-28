@@ -93,6 +93,16 @@ def FileExists(filename):
     return True
   except OSError:
     return False
+ 
+def IsExecutable(filename):
+  """
+  Return whether the supplied file exists and is executable
+  """
+
+  if not FileExists(filename):
+    return False
+  else:
+    return os.access(filename, os.X_OK)
     
 def Isdir(path):
   """
@@ -167,7 +177,24 @@ class filehandlingUnittests(unittest.TestCase):
     Rmdir(tempDir, force = True)
     
     return
-
+    
+  def testIsExecutable(self):
+    self.assertTrue(FileExists(__file__))
+    self.assertFalse(IsExecutable(__file__))
+    
+    tempDir = tempfile.mkdtemp()
+    tempFile = os.path.join(tempDir, "test")
+    Touch(tempFile)
+    self.assertTrue(FileExists(tempFile))
+    self.assertFalse(IsExecutable(tempFile))
+    os.chmod(tempFile, stat.S_IXUSR)
+    self.assertTrue(FileExists(tempFile))
+    self.assertTrue(IsExecutable(tempFile))
+    
+    Rmdir(tempDir, force = True)
+    
+    return
+    
   def testFileExists(self): 
     self.assertTrue(FileExists(__file__))
     

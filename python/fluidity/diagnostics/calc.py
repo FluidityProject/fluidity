@@ -194,6 +194,31 @@ def Eigendecomposition(matrix, returnEigenvectors = False):
   
   return scipy.linalg.eig(a, right = returnEigenvectors)
 
+def EvalPoly(x, poly):
+  """
+  Evaluation a polynomial at the supplied point
+  """
+  
+  # Naiive implementation will do for now
+  val = 0.0
+  for i, coeff in enumerate(poly):
+    val += coeff * math.pow(x, len(poly) - i - 1)
+    
+  return val
+
+def EvalPolyRange(min, max, poly, N = 1000):
+  """
+  Evaluate a polynomial over the supplied range with supplied coefficients
+  """
+  
+  X = numpy.array([min + (max - min) * ((float(i) / float(N - 1))) for i in range(N)])
+  vals = numpy.empty(N)
+  
+  for i, x in enumerate(X):
+    vals[i] = EvalPoly(x, poly)
+  
+  return X, vals
+
 def NormalisedFft(values, divisions = None, returnPhases = False):
   """
   Perform a normalised fast Fourier transform of the supplied values.
@@ -479,19 +504,27 @@ def SSA(v, n, J = 1):
   debug.dprint("Performing eigendecomposition")
   return Eigendecomposition(theta, returnEigenvectors = True)
   
-def InterpolatedSSA(v, t, dt, n, J = 1):
+def InterpolatedSSA(v, t, N_T, n, J = 1, t0 = None, t1 = None):
   """
   Perform a singular systems analysis of the supplied non-uniform data using
   linear interpolation
   """
   
-  N_T = int((t[-1] - t[0]) / dt)
-  lt = [t[0] + i * dt for i in range(N_T)]
+  if t0 is None:
+    t0 = t[0]
+  if t1 is None:
+    t1 = t[-1]
+  
+  dt = (t1 - t0) / float(N_T)
+  debug.dprint("Interpolation dt: " + str(dt))
+  
+  lt = [t0 + i * dt for i in range(N_T)]
   lv = LinearlyInterpolateField(v, t, lt)
+  print lv, lt
     
   return SSA(lv, n, J = J)
     
-def LinearRegression(x, y, returnR):
+def LinearRegression(x, y, returnR = False):
   """
   Linear regression for x-y data
   """

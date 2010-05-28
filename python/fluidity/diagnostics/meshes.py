@@ -212,6 +212,9 @@ class Mesh(events.Evented):
     
     return
     
+  def HasHalos(self):
+    return not self._halos is None
+    
   def GetHalos(self):
     return self._halos
   
@@ -219,6 +222,13 @@ class Mesh(events.Evented):
     self._halos = halos
   
     return
+    
+  def GetNOwnedNodes(self):
+    if self.HasHalos():
+      halos = self.GetHalos()
+      return halos.GetNodeHalo(halos.GetNLevels()).GetNOwnedNodes()
+    else:
+      return self.NodeCount()
     
   def MixedSurfaceElements(self):
     if(self.SurfaceElementCount() == 0):
@@ -322,8 +332,9 @@ class Mesh(events.Evented):
     neList = [[] for i in range(self.NodeCoordsCount())]
     for i, element in enumerate(self.GetVolumeElements()):
       nodes = element.GetNodes()
-      for node in nodes:
-        neList[node].append(i)
+      for node in nodes:  
+        if not i in neList[node]:
+          neList[node].append(i)
         
     for eList in neList:
       utils.StripListDuplicates(eList)
@@ -337,10 +348,9 @@ class Mesh(events.Evented):
     for i, element in enumerate(self.GetVolumeElements()):
       nodes = element.GetNodes()
       for node in nodes:
-        eeList[i] += neList[node]
-    
-    for eList in eeList:
-      utils.StripListDuplicates(eList)
+        for ele in neList[node]:
+          if not ele == i and not ele in eeList[i]:
+            eeList[i].append(ele)
     
     return eeList
    

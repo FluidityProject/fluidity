@@ -693,6 +693,22 @@ def IsosurfaceVtuCut(inputVtu, scalarField, value):
   result.ugrid = PolyDataToUnstructuredGrid(cutUPoly)
   
   return result
+  
+def ExtractVtuGeometry(inputVtu):
+  """
+  Extract the geometry of a vtu. In 3D, this extracts the surface mesh.
+  """
+  
+  filter = vtk.vtkGeometryFilter()
+  filter.SetInput(inputVtu.ugrid)
+  filter.Update()
+  surfacePoly = filter.GetOutput()
+  
+  # Construct output
+  result = vtu()
+  result.ugrid = PolyDataToUnstructuredGrid(surfacePoly)
+  
+  return result
 
 def CopyVtu(inputVtu):
   """

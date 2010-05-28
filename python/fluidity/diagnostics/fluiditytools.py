@@ -30,14 +30,13 @@ except ImportError:
   debug.deprint("Warning: Failed to import numpy module")
 
 import fluidity.diagnostics.debug as debug
-import fluidity.diagnostics.calc as calc
-import fluidity.diagnostics.utils as utils
 
 try:
   from fluidity_tools import *
 except:
   debug.deprint("Warning: Failed to import fluidity_tools module")
   
+import fluidity.diagnostics.calc as calc
 import fluidity.diagnostics.filehandling as filehandling
 import fluidity.diagnostics.utils as utils
   
@@ -268,7 +267,7 @@ class Stat:
               
             # Add in the vector field components
             for i in range(len(s[key1])):
-              newS[str(key1) + delimiter + str(i + 1)] = [val for val in s[key1][i]]
+              newS[str(key1) + delimiter + str(i + 1)] = s[key1][i]
           else:
             try:
               # Add in this scalar
@@ -282,9 +281,14 @@ class Stat:
           
       return newS
         
+    if filehandling.FileExists(filename + ".dat"):
+      debug.dprint("Format: binary")
+    else:
+      debug.dprint("Format: plain text")
+        
     debug.dprint("Reading .stat file: " + filename)
     if subsample == 1:
-      # Handle this case separately, as its convenient to be backwards
+      # Handle this case separately, as it's convenient to be backwards
       # compatible
       statParser = stat_parser(filename)
     else:
@@ -325,8 +329,11 @@ def JoinStat(*args):
         endIndices[i] = j
         break
   debug.dprint("Time ranges:")
-  for i in range(nStat): 
-    debug.dprint((startT[i], times[i][endIndices[i] - 1]))
+  if len(times) > 0:
+    for i in range(nStat): 
+      debug.dprint((startT[i], times[i][endIndices[i] - 1]))
+  else:
+    debug.dprint("No data")  
     
   stat = stats[0]
   data = {}
@@ -478,6 +485,27 @@ def DetectorArrays(stat):
   debug.dprint(arrays.keys())
     
   return arrays
+  
+def SplitVtuFilename(filename):
+  """
+  Split the supplied vtu filename into project, ID and file extension
+  """
+  
+  first = filehandling.StripFileExtension(filename)
+  ext = filehandling.FileExtension(filename)
+  
+  id = first.split("_")[-1]
+  project = first[:-len(id) - 1]
+  id = int(id)
+  
+  return project, id, ext
+  
+def VtuFilename(project, id, ext):
+  """
+  Create a vtu filename from a project, ID and file extension
+  """
+  
+  return project + "_" + str(id) + ext
   
 def VtuFilenames(project, firstId, lastId = None, extension = ".vtu"):
   """

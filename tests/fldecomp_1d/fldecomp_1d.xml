@@ -15,12 +15,12 @@ for i in range(4):
     </variable>
   </variables>
   <pass_tests>
-    <test name = "Equal sized partitions (nodes)" language = "python">
+    <test name = "Equal sized partitions (owned nodes)" language = "python">
 import fluidity_tools
 nodeCounts = []
 for partition in partitions:
-  nodeCounts.append(partition.NodeCoordsCount())
-fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [nodeCounts[0] for i in range(len(nodeCounts) - 1)], 0.15)
+  nodeCounts.append(partition.GetNOwnedNodes())
+fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.075)
     </test>
   </pass_tests>
   <warn_tests>

@@ -106,6 +106,19 @@ class BoundingBox:
     """
     
     return [not calc.AlmostEquals(self._lbound[i], self._ubound[i], tolerance = self._dimTolerance) for i in range(self.Dim())]
+  
+  def UsedDimIndices(self):
+    """
+    Return the indices of dimensions actually used in the bounding box
+    """
+    
+    mask = self.UsedDimCoordMask()
+    indices = []
+    for i, used in enumerate(mask):
+      if used:
+        indices.append(i)
+    
+    return indices
     
 class boundsUnittests(unittest.TestCase):
   def testBoundingBox(self):

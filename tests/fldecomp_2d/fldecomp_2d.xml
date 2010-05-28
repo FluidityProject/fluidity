@@ -12,11 +12,13 @@ for i in range(4):
   partitions.append(triangletools.ReadTriangle("square_" + str(i)))</variable>
   </variables>
   <pass_tests>
-    <test name="Equal sized partitions (nodes)" language="python">import fluidity_tools
+    <test name = "Equal sized partitions (owned nodes)" language = "python">
+import fluidity_tools
 nodeCounts = []
 for partition in partitions:
-  nodeCounts.append(partition.NodeCoordsCount())
-fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.15)</test>
+  nodeCounts.append(partition.GetNOwnedNodes())
+fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.075)
+    </test>
   </pass_tests>
   <warn_tests/>
 </testproblem>

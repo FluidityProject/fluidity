@@ -61,8 +61,7 @@ def HaloIOSupport():
 
 class Halo:
   """
-  A halo. Note that this assumes that is the number of private nodes is set then
-  the halos is trailing receive ordered.
+  A halo.
   """
 
   def __init__(self, process, nProcesses, nOwnedNodes = None, sends = None, receives = None):
