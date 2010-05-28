@@ -2692,8 +2692,8 @@ contains
     case ("fluids")
     case ("oceans")
        call check_ocean_options
-    case ("flora_ocean_options")
-       call check_flora_ocean_options
+    case ("large_scale_ocean_options")
+       call check_large_scale_ocean_options
     case ("multimaterial")
        call check_multimaterial_options
     case ("porous_media")
@@ -3092,7 +3092,7 @@ contains
 
   end subroutine check_ocean_options
 
-  subroutine check_flora_ocean_options
+  subroutine check_large_scale_ocean_options
   
     character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path
     logical on_sphere, constant_gravity, new_navsto
@@ -3225,7 +3225,7 @@ contains
        FLExit("GravityDirection set incorrectly for spherical geometry.")
     end if
 
-  end subroutine check_flora_ocean_options
+  end subroutine check_large_scale_ocean_options
 
   subroutine check_multimaterial_options
 
