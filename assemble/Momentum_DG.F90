@@ -2328,6 +2328,7 @@ contains
     !! NOTE: use_element_blocks only works if all element have the same number of nodes
     logical:: use_element_blocks
       
+    character(len=FIELD_NAME_LEN):: pc
     type(halo_type), pointer:: halo
     integer, dimension(:), pointer:: neighbours, neighbours2, nodes
     integer, dimension(:), allocatable:: dnnz, onnz
@@ -2360,10 +2361,11 @@ contains
     ! However, for performance reasons, this is done whenever a turbine model is in use.
     have_turbine = have_option("/turbine_model")
     
-    ! petsc block matrix doesn't support eisenstat
-    use_element_blocks = .not. (have_option(trim(u%option_path)// &
-      &"/prognostic/solver/preconditioner::eisenstat") .or. &
-      compact_stencil)
+    ! some preconditioners do not support petsc block matrix
+    call get_option(trim(u%option_path)// &
+      &"/prognostic/solver/preconditioner/name", pc)
+    use_element_blocks = .not. (pc=="eisenstat" .or. pc=="mg" &
+      .or. compact_stencil)
 
     if (have_turbine) then
          neigh_mesh=get_periodic_mesh(state, u%mesh)
