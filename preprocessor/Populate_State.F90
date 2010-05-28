@@ -3107,12 +3107,9 @@ contains
     if (have_option(trim(velocity_path))) then
        str=trim(velocity_path)//'/spatial_discretisation/continuous_galerkin'
        if (have_option(trim(str))) then
-          !ewrite(0,*) "Continuous Galerkin"
-          FLExit("For large scale low aspect ratio ocean problems you need discontinuous galerkin velocity.")
+          FLExit("For large scale ocean problems you need discontinuous galerkin velocity.")
        end if
        if (.not. have_option(trim(velocity_path)//'/equation::Boussinesq')) then
-          ewrite(0,*) "For ocean problems you need to set the equation type"
-          ewrite(0,*) "for velocity to Boussinesq."
           FLExit("Wrong Velocity equation type - should be Boussinesq")
        end if  
        if(.not.(have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/advection_scheme/upwind")).and. &
@@ -3126,13 +3123,7 @@ contains
          FLExit("Should not lump mass matrix in large-scale ocean simulations")
        end if
        if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/bassi_rebay")) then
-         FLExit("Should have Bassi Rebay viscosity under Velocity")
-       end if
-       if(.not.have_option(trim(velocity_path)//"tensor_field::Viscosity")) then
-         ewrite(0,*) "WARNING: you may want to add a Viscosity field under Velocity"
-       end if
-       if(.not.have_option(trim(velocity_path)//"vector_field::Absorption")) then
-         ewrite(0,*) "WARNING: you may want to add an Absorption field under Velocity"
+         FLExit("Should have Bassi Rebay Viscosity under Velocity")
        end if
   end if
   
@@ -3149,7 +3140,7 @@ contains
 
 ! Subtract out hydrostatic level options
   if(.not.(have_option("material_phase/equation_of_state/fluids/linear/subtract_out_hydrostatic_level"))) then
-     FLExit("You should switch on subtract out hydrostatic level under material_phase/equation_of_state/subtract_out_hydrostatic_level")
+     FLExit("You should switch on material_phase/equation_of_state/subtract_out_hydrostatic_level")
   end if
 
 ! Geometry ocean boundaries
@@ -3166,62 +3157,49 @@ contains
        end if
        call get_option(trim(pressure_path)//"/scheme/poisson_pressure_solution", tmpstring)
        select case (tmpstring)
-       case ("never", "every timestep")
-          ewrite(0,*) ("WARNING: For ocean problems you should use the Poisson pressure solution at the first timestep only, unless this is a steady state run - then you should have 'never'.")
-       case ("only at first time step")
-         ewrite(0,*)("WARNING: If this is a steady state run you should have pressure poisson projection set to 'never' - otherwise set it to 'only at first timestep'")
+       case ("never")
+          ewrite(0,*) ("WARNING: Poisson pressure solution is set to never.")
+       case ("only first timestep")
+         ewrite(0,*)("WARNING: Poisson pressure solution is set to only first time step")
        end select
        if (.not.have_option(trim(pressure_path)//"/spatial_discretisation/continuous_galerkin")) then
           FLExit("For ocean problems you should use continuous galerkin pressure")
        end if
        if (.not.have_option(trim(pressure_path)//"/solver/preconditioner/vertical_lumping")) then
-          FLExit("For ocean problems you should switch on pressure/vertical lumping")
+          FLExit("Switch on pressure/vertical lumping")
        end if
        if (.not.have_option(trim(pressure_path)//"/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")) then
-          FLExit("For ocean problems you should use remove stabilisation term")
+          FLExit("Use remove stabilisation term under pressure")
        end if
-       
-
-       !if (.not.(have_option(trim(pressure_path)//"spatial_discretisation/continuous_galerkin/"))) then
-       !  ewrite(0,*)("WARNING: remove stabilisation term should be switched on under pressure")
-       !end if
-
-       !if (.not.(have_option(trim(pressure_path)//"spatial_discretisation/continuous_galerkin/integrate_continuity_by_parts"))) then
-       !  ewrite(0,*)("WARNING: integrate continuity by parts should be switched on under pressure")
-       !end if
+       if (.not.have_option(trim(pressure_path)//"/spatial_discretisation/continuous_galerkin/integrate_continuity_by_parts")) then
+          FLExit("Use integrate continuity by parts under pressure")
+       end if
     end if
 
     ! Salinity options checks
     salinity_path="/material_phase[0]/scalar_field::Salinity/prognostic"
     if(have_option("/material_phase[0]/scalar_field::Salinity")&
-         .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/salinity_dependency") .or.&
-                     have_option("/material_phase[0]/equation_of_state/fluids/ocean_pade_approximation")))) then
+         .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/salinity_dependency")))) then
        ewrite(0,*) "WARNING: You have a salinity field but it will not affect the density of the fluid."
     end if
-    if(have_option(trim(salinity_path)//"/spatial_discretisation/control_volumes")) then
-       ewrite(0,*)("WARNING: probably should have discontinuous galerkin or continuous galerkin spatial discretisation under salinity")
+    if(.not.have_option(trim(salinity_path)//"/spatial_discretisation/discontinuous_galerkin").and.(.not.(have_option(trim(salinity_path)//"/spatial_discretisation/continuous_galerkin")))) then
+       ewrite(0,*)("WARNING: You probably should have discontinuous galerkin or continuous galerkin spatial discretisation under salinity")
     end if
 
    ! Temperature options checks
    temperature_path="/material_phase[0]/scalar_field::Temperature/prognostic"
     if(have_option("/material_phase[0]/scalar_field::Temperature")&
-         .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/temperature_dependency") .or.&
-                     have_option("/material_phase[0]/equation_of_state/fluids/ocean_pade_approximation")))) then
+         .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/temperature_dependency") ))) then
        ewrite(0,*) "WARNING: You have a temperature field but it will not affect the density of the fluid."
-   
     end if
-    if(have_option(trim(temperature_path)//"/spatial_discretisation/control_volumes")) then
-       ewrite(0,*)("WARNING: probably should have discontinuous galerkin or continuous galerkin spatial disretisation under temperature")
+    if(.not.have_option(trim(temperature_path)//"/spatial_discretisation/discontinuous_galerkin").and.(.not.(have_option(trim(temperature_path)//"/spatial_discretisation/continuous_galerkin")))) then
+       ewrite(0,*)("WARNING: You probably should have discontinuous galerkin or continuous galerkin spatial discretisation under temperature")
     end if
    
     ! Check that the gravity field is not constant for spherical problems
     on_sphere=have_option("/geometry/spherical_earth")
     constant_gravity=have_option("/physical_parameters/gravity/vector_field::GravityDirection/prescribed/value[0]/constant")
     if(on_sphere .and. constant_gravity) then
-       ewrite(0,*) "If you are using spherical geometry you cannot have"
-       ewrite(0,*) "a constant gravity direction."
-       ewrite(0,*) "See the waterworld test case for an example of how"
-       ewrite(0,*) "to set this properly"
        FLExit("GravityDirection set incorrectly for spherical geometry.")
     end if
 
