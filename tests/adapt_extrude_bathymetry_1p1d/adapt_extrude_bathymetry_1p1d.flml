@@ -906,6 +906,7 @@
       <preserve_mesh_regions/>
       <vertically_structured_adaptivity>
         <inhomogenous_vertical_resolution/>
+        <vertically_align_metric/>
       </vertically_structured_adaptivity>
     </hr_adaptivity>
   </mesh_adaptivity>

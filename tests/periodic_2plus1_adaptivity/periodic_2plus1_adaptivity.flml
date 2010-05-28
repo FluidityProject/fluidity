@@ -92,16 +92,16 @@
         <mesh name="PeriodicMesh"/>
         <extrude>
           <regions name="WholeMesh">
-          <bottom_depth>
-            <constant>
-              <real_value rank="0">1.0</real_value>
-            </constant>
-          </bottom_depth>
-          <sizing_function>
-            <constant>
-              <real_value rank="0">0.1</real_value>
-            </constant>
-          </sizing_function>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">0.1</real_value>
+              </constant>
+            </sizing_function>
           </regions>
         </extrude>
         <stat>
@@ -274,7 +274,9 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <vertically_structured_adaptivity/>
+      <vertically_structured_adaptivity>
+        <vertically_align_metric/>
+      </vertically_structured_adaptivity>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>
