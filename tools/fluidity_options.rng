@@ -39,7 +39,7 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>multimaterial</value>
             <value>porous_media</value>
             <value>stokes</value>
-            <value>flora_ocean_options</value>
+            <value>large_scale_ocean_options</value>
           </choice>
         </element>
         <ref name="comment"/>
