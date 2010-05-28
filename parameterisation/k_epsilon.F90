@@ -284,6 +284,7 @@ subroutine keps_eps(state)
         prod       = c_eps_1 * epsovertke * P%val(i)   ! kk source term at old timestep
         diss       = c_eps_2 * epsovertke
 
+        ! Implicit form of equation
         call set(source, i, prod )
         call set(absorption, i, diss )
 
@@ -639,7 +640,8 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
     type(vector_field), intent(in)                :: positions
     type(scalar_field), intent(inout)             :: rhs_vector
     type(petsc_csr_matrix), intent(inout)         :: lumped_mass
-    type(element_type)                            :: shape_kk, fshape_kk, augmented_shape
+    type(element_type), pointer                   :: shape_kk, fshape_kk
+    type(element_type)                            :: augmented_shape
     integer, dimension(:), pointer                :: surface_node_list
     integer, intent(in)                           :: ele, sele
     integer                                       :: i, j, snloc, quad, n
@@ -660,8 +662,8 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
     ! Get ids and shape functions
     quad      = face_ngi(kk, sele)    ! no. of gauss points in surface element
     snloc     = face_loc(kk, sele)    ! no. of nodes on surface element
-    shape_kk  = ele_shape(kk, ele)    ! shape functions in element
-    fshape_kk = face_shape(kk, sele)  ! shape functions in surface element
+    shape_kk  => ele_shape(kk, ele)    ! shape functions in element
+    fshape_kk => face_shape(kk, sele)  ! shape functions in surface element
     nodes_bdy = face_global_nodes( positions, sele ) ! global node ids in surface element
 
     do i = 1, size(surface_node_list)
@@ -696,6 +698,8 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, rhs_vector, lumpe
     ! Get dshape on face. nloc x sngi x dim
     fdshape_kk = eval_volume_dshape_at_face_quad( augmented_shape, &
                             local_face_number(kk, sele), invJ_face )
+
+    call deallocate(augmented_shape)
 
     ! Get boundary normal and transformed element quadrature weights over surface
     call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
