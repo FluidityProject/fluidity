@@ -73,6 +73,29 @@ module zoltan_integration
 
   contains
 
+  subroutine print_the_metric(metric)
+      
+      type(tensor_field), intent(in) :: metric
+      integer :: nNodes,i,dims,count
+      integer, dimension(:), allocatable :: global_ids, local_ids
+      real, dimension(2,2) :: value
+      
+      dims = metric%dim
+      count = halo_nowned_nodes(zz_halo)
+      allocate(global_ids(count))
+      allocate(local_ids(count))
+      call get_owned_nodes(zz_halo, local_ids(1:count))
+      global_ids(1:count) = halo_universal_number(zz_halo, local_ids(1:count))
+      do i=1,count
+         value = node_val(metric,i)
+         !write (*,*) global_ids(i),i,value(1,1), value(1,2), value(2,1), value(2,2)
+      end do
+      deallocate(local_ids)
+      deallocate(global_ids)
+
+  end subroutine print_the_metric
+
+
   function zoltan_cb_owned_node_count(data, ierr) result(count)
     integer(zoltan_int) :: count
     integer(zoltan_int), dimension(*) :: data ! not used
@@ -777,7 +800,6 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     ! The person doing this for mixed meshes in a few years time: this is one of the things
     ! you need to change. Make it look at the loc for each element.
-
     sz = 0
 
     do state_no=1,size(source_states)
@@ -796,6 +818,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         sz = sz + ele_loc(tfield, 1) * tfield%dim**2
       end do
     end do
+
+    write(*,*) sz, ele_loc(tfield, 1) * tfield%dim**2, real_size
 
     do i=1,num_ids
       sizes(i) = sz * real_size
@@ -820,7 +844,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    integer :: old_universal_element_number, old_local_element_number
+    integer :: old_universal_element_number, old_local_element_number, dataSize
 
     ewrite(1,*) "In zoltan_cb_pack_fields"
 
@@ -853,7 +877,17 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         end do
       end do
 
-      buf(idx(i):idx(i) + (sizes(i)/real_size) - 1) = transfer(rbuf, buf(idx(i):idx(i) + (sizes(i)/real_size) - 1))
+      ! We have an issue here - buf is an assumed array - we need to let the
+      ! compiler know the dimensionality and size before we start copying bits
+      ! of memeory around into it. Because it's if a different type to rbuf, we
+      ! need to use transfer. The first argument of transfer gives the size and
+      ! type (type 1) of what we want to transfer; the second gives the type (type 2) we want to
+      ! transfer to. This returns an array of type 2, which we can then pass
+      ! onto size() to work out how many elements of the destination are
+      ! required.
+      dataSize = size(transfer(rbuf, buf(idx(i):idx(i+1))))
+      ! Now we know the size, we can copy in the right amount of data.
+      buf(idx(i):idx(i) + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
     end do
 
     ierr = ZOLTAN_OK
@@ -874,7 +908,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
-    integer :: old_universal_element_number, new_local_element_number
+    integer :: old_universal_element_number, new_local_element_number, dataSize
 
     ewrite(1,*) "In zoltan_cb_unpack_fields"
 
@@ -884,10 +918,14 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       old_universal_element_number = global_ids(i)
       new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
 
-      ! This is bugged in gfortran 4.4:
-      !rbuf = transfer(buf(idx(i):idx(i) + (sizes(i)/real_size) - 1), rbuf, size(rbuf))
-      call memcpy(rbuf, buf(idx(i):idx(i) + (sizes(i)/real_size) - 1), size(rbuf) * real_size)
-
+      ! We know how big rbuf is (see above), but buf is of type Zoltan_Int - how
+      ! many elements do I need to ask for? The next line tells me...
+      ! Note this is the *other way around* from the actual data transfer
+      ! because we need to know how many bufs == 1 rbuf.
+      dataSize = size(transfer(rbuf, buf(idx(i):idx(i)+1)))
+      ! ...then I can ask for the right amount of data
+      rbuf = transfer(buf(idx(i):idx(i) + dataSize - 1), rbuf, size(rbuf))
+      
       rhead = 1
       do state_no=1,size(target_states)
         do field_no=1,scalar_field_count(target_states(state_no))
@@ -933,6 +971,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), dimension(:), pointer :: p1_import_local_ids
     integer(zoltan_int), dimension(:), pointer :: p1_import_procs
     integer, save :: dumpno = 0
+    real :: test
 
     type(tensor_field) :: new_metric
 
@@ -942,9 +981,15 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     call setup_module_variables
 
+    !write(*,*) "-------------------- START ZOLTAN_DRIVE ---------------------------"
+    
+    !call print_the_metric(metric)
+
     call set_zoltan_parameters
 
     call zoltan_load_balance
+    !write(*,*) "-------------------- AFTER ZOLTAN LB ---------------------------"
+    !call print_the_metric(metric)
 
     if (changes .eqv. .false.) then
       ewrite(1,*) "Zoltan decided no change was necessary, exiting"
@@ -966,11 +1011,21 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     call are_we_keeping_or_sending_nodes
 
     ! Migrate here
+    write(*,*) p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+                               & p1_export_global_ids, p1_export_local_ids, p1_export_procs
     call zoltan_migration_phase_one ! for nodes I am going to own
+    write(*,*) p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+                               & p1_export_global_ids, p1_export_local_ids, p1_export_procs
     call deallocate_zoltan_lists
+    !write(*,*) p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+    !                           & p1_export_global_ids, p1_export_local_ids, p1_export_procs
     call deal_with_exports
     call zoltan_migration_phase_two ! for halo nodes those nodes depend on
+    !write(*,*) p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+    !                           & p1_export_global_ids, p1_export_local_ids, p1_export_procs
     call deallocate_my_lists
+    !write(*,*) p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+    !                           & p1_export_global_ids, p1_export_local_ids, p1_export_procs
 
     call reconstruct_enlist
     call reconstruct_senlist
@@ -980,13 +1035,20 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     ! At this point, we now have the balanced linear external mesh.
     ! Get populate_state to allocate the fields and such on this new
     ! mesh.
+    !write(*,*) "-------------------- BEFORE INIT_TRANSFER FIELDS ---------------------------"
+    !call print_the_metric(metric)
 
     call initialise_transfer
-
+    !write(*,*) "-------------------- BEFORE TRANSFER FIELDS ---------------------------"
+    !call print_the_metric(new_metric)
     ! And now transfer the field data around.
     call transfer_fields
+    !write(*,*) "-------------------- AFTER TRANSFER FIELDS ---------------------------"
+    !call print_the_metric(new_metric)
 
     call finalise_transfer
+    !write(*,*) "-------------------- AFTER FINALISE TRANSFER FIELDS ---------------------------"
+    !call print_the_metric(metric)
 
     call cleanup_basic_module_variables
     call cleanup_other_module_variables
@@ -1060,6 +1122,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       import_to_part => null()
       export_to_part => null()
 
+      !write(*,*) tensor_field_count(source_states(1)), tensor_field_count(target_states(1))
+
       ierr = Zoltan_Compute_Destinations(zz, &
        & num_export, export_global_ids, export_local_ids, export_procs, &
        & num_import, import_global_ids, import_local_ids, import_procs)
@@ -1080,6 +1144,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         assert(scalar_field_count(source_states(state_no)) == scalar_field_count(target_states(state_no)))
         assert(vector_field_count(source_states(state_no)) == vector_field_count(target_states(state_no)))
         assert(tensor_field_count(source_states(state_no)) == tensor_field_count(target_states(state_no)))
+        write(*,*) state_no, tensor_field_count(source_states(state_no)), tensor_field_count(target_states(state_no))
 
         do field_no=1,scalar_field_count(source_states(state_no))
           source_sfield => extract_scalar_field(source_states(state_no), field_no)
@@ -1158,6 +1223,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       ! Set up source_states
       do i=1,size(states)
         call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true.)
+        ! Remove the current state as we've copied the bits we need
         call deallocate(states(i))
       end do
 
@@ -1169,8 +1235,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
       allocate(source_states(mesh_count(interpolate_states(1))))
       call halo_update(interpolate_states, level=1)
+      ! Place the fields we've picked out to interpolate onto the correct meshes of source_states
       call collect_fields_by_mesh(interpolate_states, source_states)
 
+      ! Finished with interpolate_states for setting up source_states
       do i=1,size(interpolate_states)
         call deallocate(interpolate_states(i))
       end do
@@ -1179,26 +1247,32 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         new_positions%mesh%periodic = .true.
       end if
 
+      ! Start setting up states so that it can be populated with migrated fields data
+
+      ! Put the new positions mesh into states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
-
+      
+      ! Allocate a new metric field on the new positions mesh and zero it
       if (present(metric)) then
         call allocate(new_metric, new_positions%mesh, "ErrorMetric")
-        call zero(new_metric)
+        call set(new_metric,reshape([666.,666.,666.,666.],[2,2]))
       end if
 
       call deallocate(new_positions)
 
+      ! Setup meshes and fields on states
       call restore_reserved_meshes(states)
       call insert_derived_meshes(states)
       call allocate_and_insert_fields(states)
       call restore_reserved_fields(states)
 
-      ! And set up target_states
+      ! And set up target_states based on states
       do i=1,size(states)
         call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true.)
       end do
 
+      ! Metric will be interpolated too, it is zero at this point
       if (present(metric)) then
         call insert(interpolate_states(1), new_metric, "ErrorMetric")
       end if
@@ -1206,10 +1280,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       allocate(target_states(mesh_count(interpolate_states(1))))
       call collect_fields_by_mesh(interpolate_states, target_states)
 
+      ! Finished with interpolate states for setting up target_states
       do i=1,size(interpolate_states)
         call deallocate(interpolate_states(i))
       end do
 
+      ! Tell Zoltan which callback functions to use for the migration
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_OBJ_SIZE_MULTI_FN_TYPE, zoltan_cb_pack_field_sizes); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
@@ -1999,9 +2075,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     subroutine deallocate_zoltan_lists
       integer(zoltan_int) :: ierr
+      !write (*,*) "Blah!"
       ierr = Zoltan_LB_Free_Data(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
                                & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+      write(*,*) ierr, ZOLTAN_OK, ZOLTAN_WARN, ZOLTAN_FATAL, ZOLTAN_MEMERR
       assert(ierr == ZOLTAN_OK)
+      !write(*,*) "leaving"
     end subroutine deallocate_zoltan_lists
 
     subroutine cleanup_basic_module_variables
@@ -2044,10 +2123,24 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
       ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
 
+
       ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
           &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
       assert(ierr == ZOLTAN_OK)
-
+      write(*,*) "Zltan_LB"
+      write(*,*) p1_import_global_ids
+      write(*,*) "----------"
+      write(*,*) p1_import_local_ids
+      write(*,*) "----------"
+      write(*,*) p1_import_procs
+      write(*,*) "----------"
+      write(*,*) p1_export_global_ids
+      write(*,*) "----------"
+      write(*,*) p1_export_local_ids
+      write(*,*) "----------"
+      write(*,*) p1_export_procs
+      write(*,*) "----------"
+      write(*,*) p1_num_export
       do i=1,p1_num_export
         node = p1_export_local_ids(i)
         assert(node_owned(zz_halo, node))
