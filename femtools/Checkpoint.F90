@@ -44,6 +44,7 @@ module checkpoint
   use write_triangle
   use detector_data_types
   use diagnostic_variables
+  use mpi_interfaces
 
   implicit none
 
@@ -52,6 +53,8 @@ module checkpoint
   public :: do_checkpoint_simulation, checkpoint_simulation, checkpoint_detectors, checkpoint_check_options
 
   integer, parameter :: PREFIX_LEN = OPTION_PATH_LEN
+
+  integer, save :: fhdet=0
 
 contains
 
@@ -128,7 +131,7 @@ contains
 
     call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no)  
     if(have_option("/io/detectors")) then
-      call checkpoint_detectors(lprefix, postfix = lpostfix, cp_no = cp_no)
+      call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
     if(getrank() == 0) then
       ! Only rank zero should write out the options tree in parallel
@@ -138,9 +141,10 @@ contains
     
   end subroutine checkpoint_simulation
 
-  subroutine checkpoint_detectors(prefix, postfix, cp_no)
+  subroutine checkpoint_detectors(state, prefix, postfix, cp_no)
     !!< Checkpoint detectors
 
+    type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: prefix
     !! Default value "checkpoint"
     character(len = *), optional, intent(in) :: postfix
@@ -149,9 +153,15 @@ contains
     type(detector_type), pointer :: node
     character(len = OPTION_PATH_LEN) :: detectors_cp_filename, path
     character(len = PREFIX_LEN) :: lpostfix
-    integer :: det_unit, i, j 
+    integer :: det_unit, i, j, IERROR
     integer :: static_dete, lagrangian_dete, det_arrays, array_dete_lag, &
       & total_dete_lag
+    type(vector_field), pointer :: vfield
+
+    integer(KIND=MPI_OFFSET_KIND) :: location_to_write, offset, offset_to_read
+    integer, ALLOCATABLE, DIMENSION(:) :: status
+    integer :: nints, count, realsize, dimen, total_num_det, number_total_columns
+    real, dimension(:), allocatable :: buffer
 
     ewrite(1, *) "Checkpointing detectors"
 
@@ -187,6 +197,8 @@ contains
     if(present(cp_no)) detectors_cp_filename = trim(detectors_cp_filename) // "_" // int2str(cp_no)
     detectors_cp_filename = trim(detectors_cp_filename) // "_" // trim(lpostfix)
 
+!!!!! Writing of position detectors before checkpointing in serial  !!!!!
+
     if(getprocno() == 1) then
       det_unit = free_unit()
 
@@ -204,26 +216,97 @@ contains
           & name_of_detector_groups_in_read_order(i), number_det_in_each_group(i)
       end do
       close(det_unit)
-
-#ifdef STREAM_IO
-      open(unit = det_unit, &
-        & file = trim(detectors_cp_filename) // '_det.positions.dat', &
-        & action = "write", access = "stream", form = "unformatted", status = "replace")
-#else
-      FLAbort("No stream I/O support")
-#endif
-
-      node => detector_list%firstnode
-      do i = 1, detector_list%length
-        write(det_unit) node%position
-        node => node%next      
-      end do
-
-      close(det_unit)
-      
+    
     end if
 
+    !!< Writes detector last position into detectors file using MPI output 
+    ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.
+    
+    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(detectors_cp_filename) // '_det.positions.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fhdet, IERROR)
+
+    ewrite(1,*) "after openning the IERROR is:", IERROR
+
+    allocate( status(MPI_STATUS_SIZE) )
+
+    call MPI_TYPE_EXTENT(getpreal(), realsize, ierror)
+
+    vfield => extract_vector_field(state(1),"Velocity")
+
+    dimen=vfield%dim
+
+    total_num_det = 0
+
+    do i =1, size(number_det_in_each_group)
+
+      total_num_det=total_num_det+number_det_in_each_group(i)
+
+    end do
+
+    number_total_columns=total_num_det*dimen
+
+    node => detector_list%firstnode
+
+    location_to_write=0
+
+    positionloop_cp: do i=1, detector_list%length
+
+      offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
+
+      ewrite(1,*) "after file set view position IERROR is:", IERROR
+
+      if (node%initial_owner==-1) then
+                
+           if(getprocno() == 1) then
+
+                 allocate(buffer(size(node%position)))
+
+                 buffer=node%position
+                 nints=size(node%position)
+
+                 call MPI_FILE_WRITE_AT(fhdet,offset,buffer,nints,getpreal(),status,IERROR)
+
+                 ewrite(1,*) "after file write position buffer is:", buffer
+
+                 ewrite(1,*) "after file write position nints is:", nints
+
+                 ewrite(1,*) "after sync position IERROR is:", IERROR
+
+                 deallocate(buffer)
+
+                 node => node%next
+
+             else
+
+                 node => node%next
+
+             end if
+
+      else
+
+             allocate(buffer(size(node%position)))
+
+             buffer=node%position
+             nints=size(node%position)
+
+             call MPI_FILE_WRITE_AT(fhdet,offset,buffer,nints,getpreal(),status,IERROR)
+
+             ewrite(1,*) "after sync position IERROR is:", IERROR
+
+             deallocate(buffer)
+             node => node%next
+
+      end if
+
+    end do positionloop_cp
+
     call update_detectors_options(trim(detectors_cp_filename) // "_det", "binary")
+
+    if (fhdet/=0) then
+       call MPI_FILE_CLOSE(fhdet, IERROR) 
+       if (IERROR/=0) then
+          ewrite(0,*) "Warning: failed to close .detector checkpoint file open with mpi_file_open"
+       end if
+    end if
     
     ewrite(1, *) "Exiting detectors"
 

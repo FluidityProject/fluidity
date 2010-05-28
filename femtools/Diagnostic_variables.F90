@@ -1,5 +1,5 @@
 !    Copyright (C) 2006 Imperial College London and others.
-!    
+   
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
@@ -58,6 +58,21 @@ module diagnostic_variables
   use c_interfaces
 !  use checkpoint
   use memory_diagnostics
+  use data_structures
+  use unittest_tools
+  use integer_hash_table_module
+  use halo_data_types
+  use halos_allocates
+  use halos_base
+  use halos_debug
+  use halos_numbering
+  use halos_ownership
+  use halos_derivation
+  use halos_communications
+  use halos_registration
+  use mpi_interfaces
+  use parallel_tools
+  use fields_manipulation
 
   implicit none
 
@@ -70,7 +85,7 @@ module diagnostic_variables
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options
 
-  public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group
+  public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order
 
   interface stat_field
     module procedure stat_field_scalar, stat_field_vector
@@ -92,7 +107,7 @@ module diagnostic_variables
      module procedure detector_value_scalar, detector_value_vector
   end interface
 
-  interface insert
+  interface insert_det
      module procedure detector_list_insert
   end interface
 
@@ -102,9 +117,11 @@ module diagnostic_variables
     & detector_unit=0, detector_checkpoint_unit=0, detector_file_unit=0 
   logical, save :: binary_detector_output = .false.
 
+  integer, save :: fh=0, total_num_det
+
   !! Are we writing to a convergence file?
   logical, save :: write_convergence_file=.false.
-  
+
   !! Output unit for .steady_state file (assumed non-opened as long as == 0)
   integer, save :: steady_state_unit = 0
   !! Are we writing to a steady state file?
@@ -130,12 +147,14 @@ module diagnostic_variables
   type(stringlist), dimension(:), allocatable, save :: detector_sfield_list
   type(stringlist), dimension(:), allocatable, save :: detector_vfield_list
 
-  character(len = FIELD_NAME_LEN), dimension(:), allocatable, save :: name_of_detector_groups_in_read_order
+  character(len = FIELD_NAME_LEN), dimension(:), allocatable, save :: name_of_detector_groups_in_read_order, name_of_detector_in_read_order
   integer, dimension(:), allocatable, save :: number_det_in_each_group
 
 ! type(detector_type), dimension(:), allocatable, target, save :: detector_list
 
   type(detector_linked_list), target, save :: detector_list
+!  type(detector_linked_list), target, save :: send_list
+  real, dimension(:,:), allocatable, save :: array_det_info
 
   !! Recording wall time since the system start
   integer, save :: current_count, count_rate, count_max
@@ -660,7 +679,7 @@ contains
              end if
             end if
            end if
-           
+
            ! momentum conservation error calculation
            if(stat_field(vfield, state(phase))) then
             if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
@@ -682,7 +701,7 @@ contains
     end if
 
     call initialise_detectors(filename, state)
-    
+
     ewrite(1, *) "Exiting initialise_diagnostics"
 
   end subroutine initialise_diagnostics
@@ -967,7 +986,7 @@ contains
     ! Idempotency variable
     logical, save :: initialised=.false.
 
-    integer :: column, i, j, k, phase, m
+    integer :: column, i, j, k, phase, m, IERROR
     integer :: static_dete, python_functions_or_files, total_dete, total_dete_groups, lagrangian_dete
     integer :: python_dete, ndete, dim, str_size, type_det
     integer, dimension(2) :: shape_option
@@ -993,7 +1012,7 @@ contains
     python_functions_or_files = option_count("/io/detectors/detector_array")
     python_dete = 0
  
-   do i=1,python_functions_or_files
+    do i=1,python_functions_or_files
        write(buffer, "(a,i0,a)")  &
             "/io/detectors/detector_array[",i-1,"]"
        call get_option(trim(buffer)//"/number_of_detectors", j)
@@ -1001,6 +1020,7 @@ contains
     end do
    
     total_dete=static_dete+lagrangian_dete+python_dete
+    total_num_det=total_dete
 
 !    allocate(detector_list(total_dete))
     
@@ -1008,6 +1028,7 @@ contains
  
     allocate(name_of_detector_groups_in_read_order(total_dete_groups))
     allocate(number_det_in_each_group(total_dete_groups))
+    allocate(name_of_detector_in_read_order(total_dete))
     
 !   if (size(detector_list)==0) return
 
@@ -1033,125 +1054,130 @@ contains
 
     if (.not.detectors_checkpoint_done) then
 
-       do i=1,static_dete
-          write(buffer, "(a,i0,a)")  &
-            "/io/detectors/static_detector[",i-1,"]"
-      
-          allocate(node)
-          call insert(detector_list,node) 
+          do i=1,static_dete
+             write(buffer, "(a,i0,a)")  &
+               "/io/detectors/static_detector[",i-1,"]"
+         
+             allocate(node)
+             call insert_det(detector_list,node) 
 
-          call get_option(trim(buffer)//"/name", node%name)
-          shape_option=option_shape(trim(buffer)//"/location")
-          allocate(node%position(shape_option(1)))
-          call get_option(trim(buffer)//"/location", node%position)       
+             call get_option(trim(buffer)//"/name", node%name)
+             shape_option=option_shape(trim(buffer)//"/location")
+             allocate(node%position(shape_option(1)))
+             call get_option(trim(buffer)//"/location", node%position)       
 
-          node%local = .not. isparallel()
-          node%type = STATIC_DETECTOR
-          node%id_number = i
+             node%local = .not. isparallel()
+             node%type = STATIC_DETECTOR
+             node%id_number = i
+             
+       ! The arrays below contain information about the order in which detector
+       ! groups are read and how many detectors there are in each group. This is
+       ! used when checkpointing detectors. In particular, when continuing a
+       ! simulation from a checkpoint, with these arrays we make sure we read
+       ! back the detectors from the file in the same order than at the beginning
+       ! of the simulation for consistency. All the .detectors files with
+       ! detector data (position, value of variables at those positions, etc.) 
+       ! will have the information in the same order.
+
+             name_of_detector_groups_in_read_order(i)=node%name
+             number_det_in_each_group(i)=1.0
+
+             name_of_detector_in_read_order(i)=node%name
+
+             allocate(node%local_coords(local_coord_count(shape)))
+
+          end do
+
+          do i=1,lagrangian_dete
+             write(buffer, "(a,i0,a)")  &
+               "/io/detectors/lagrangian_detector[",i-1,"]"
+
+             allocate(node)
+             call insert_det(detector_list,node) 
+
+             call get_option(trim(buffer)//"/name", node%name)
+             shape_option=option_shape(trim(buffer)//"/location")
+             allocate(node%position(shape_option(1)))
+             call get_option(trim(buffer)//"/location", node%position)
           
-    ! The arrays below contain information about the order in which detector
-    ! groups are read and how many detectors there are in each group. This is
-    ! used when checkpointing detectors. In particular, when continuing a
-    ! simulation from a checkpoint, with these arrays we make sure we read
-    ! back the detectors from the file in the same order than at the beginning
-    ! of the simulation for consistency. All the .detectors files with
-    ! detector data (position, value of variables at those positions, etc.) 
-    ! will have the information in the same order.
+             node%type = LAGRANGIAN_DETECTOR
+             node%local = .true.
+             node%id_number = i+static_dete
+             
+             name_of_detector_groups_in_read_order(i+static_dete)=node%name
+             number_det_in_each_group(i+static_dete)=1.0
+             name_of_detector_in_read_order(i+static_dete)=node%name
 
-          name_of_detector_groups_in_read_order(i)=node%name
-          number_det_in_each_group(i)=1.0
+             allocate(node%local_coords(local_coord_count(shape)))
 
-          allocate(node%local_coords(local_coord_count(shape)))
+          end do
 
-       end do
+          k=static_dete+lagrangian_dete+1
 
-       do i=1,lagrangian_dete
-          write(buffer, "(a,i0,a)")  &
-            "/io/detectors/lagrangian_detector[",i-1,"]"
+          do i=1,python_functions_or_files
+             write(buffer, "(a,i0,a)")  &
+               "/io/detectors/detector_array[",i-1,"]"
 
-          allocate(node)
-          call insert(detector_list,node) 
+             call get_option(trim(buffer)//"/name", funcnam)
+             call get_option(trim(buffer)//"/number_of_detectors", ndete)
+             str_size=len_trim(int2str(ndete))
+             fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
 
-          call get_option(trim(buffer)//"/name", node%name)
-          shape_option=option_shape(trim(buffer)//"/location")
-          allocate(node%position(shape_option(1)))
-          call get_option(trim(buffer)//"/location", node%position)
-       
-          node%type = LAGRANGIAN_DETECTOR
-          node%local = .true.
-          node%id_number = i+static_dete
+             if (have_option(trim(buffer)//"/lagrangian")) then
+                  type_det=LAGRANGIAN_DETECTOR
+             else
+                  type_det=STATIC_DETECTOR
+             end if
+
+             name_of_detector_groups_in_read_order(i+static_dete+lagrangian_dete)=trim(funcnam)
+             number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
+
+             if (have_option(trim(buffer) // "/from_file")) then
+                 detectors_from_file_initially=.true.
+             else
+                 detectors_from_file_initially=.false.
+             end if
+
+             if (.not.detectors_from_file_initially) then
+
+                 ! Reading detectors from a python function
+
+                 call get_option(trim(buffer)//"/python", func)
+                 allocate(coords(dim,ndete))
+                 call set_detector_coords_from_python(coords, ndete, func, current_time)
           
-          name_of_detector_groups_in_read_order(i+static_dete)=node%name
-          number_det_in_each_group(i+static_dete)=1.0
+                 do j=1,ndete
 
-          allocate(node%local_coords(local_coord_count(shape)))
+                     allocate(node)
+                     call insert_det(detector_list,node)
 
-       end do
+                     write(node%name, fmt) trim(funcnam)//"_", j
 
-       k=static_dete+lagrangian_dete+1
+                     allocate(node%position(dim))
 
-       do i=1,python_functions_or_files
-          write(buffer, "(a,i0,a)")  &
-            "/io/detectors/detector_array[",i-1,"]"
+                     node%position=coords(:,j)
+                     node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
+                     node%type=type_det
 
-          call get_option(trim(buffer)//"/name", funcnam)
-          call get_option(trim(buffer)//"/number_of_detectors", ndete)
-          str_size=len_trim(int2str(ndete))
-          fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
+                     name_of_detector_in_read_order(k)=trim(funcnam)
 
-          if (have_option(trim(buffer)//"/lagrangian")) then
-               type_det=LAGRANGIAN_DETECTOR
-          else
-               type_det=STATIC_DETECTOR
-          end if
+                     node%id_number = k
 
-          name_of_detector_groups_in_read_order(i+static_dete+lagrangian_dete)=trim(funcnam)
-          number_det_in_each_group(i+static_dete+lagrangian_dete)=ndete
+                     allocate(node%local_coords(local_coord_count(shape)))
 
-          if (have_option(trim(buffer) // "/from_file")) then
-              detectors_from_file_initially=.true.
-          else
-              detectors_from_file_initially=.false.
-          end if
+                     k=k+1
+           
+                 end do
+                 deallocate(coords)
 
-          if (.not.detectors_from_file_initially) then
+             else
+                 ! Reading from a binary file where the user has placed the detector positions
 
-              ! Reading detectors from a python function
+                 if (getprocno() == 1) then
 
-              call get_option(trim(buffer)//"/python", func)
-              allocate(coords(dim,ndete))
-              call set_detector_coords_from_python(coords, ndete, func, current_time)
-       
-              do j=1,ndete
+                 detector_file_unit=free_unit()
 
-                  allocate(node)
-                  call insert(detector_list,node)
-
-                  write(node%name, fmt) trim(funcnam)//"_", j
-
-                  allocate(node%position(dim))
-
-                  node%position=coords(:,j)
-                  node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
-                  node%type=type_det
-
-                  node%id_number = k
-
-                  allocate(node%local_coords(local_coord_count(shape)))
-
-                  k=k+1
-        
-              end do
-              deallocate(coords)
-
-          else
-              ! Reading from a binary file where the user has placed the detector positions
-
-              if (getprocno() == 1) then
-
-              detector_file_unit=free_unit()
-
-              call get_option("io/detectors/detector_array/from_file/file_name",detector_file_filename)
+                 call get_option("io/detectors/detector_array/from_file/file_name",detector_file_filename)
 
 #ifdef STREAM_IO
       open(unit = detector_file_unit, file = trim(detector_file_filename), &
@@ -1159,55 +1185,59 @@ contains
 #else
       FLAbort("No stream I/O support")
 #endif
-              do j=1,ndete
+       
+                 do j=1,ndete
 
-                  allocate(node)
-                  call insert(detector_list,node)
+                     allocate(node)
+                     call insert_det(detector_list,node)
 
-                  write(node%name, fmt) trim(funcnam)//"_", j
+                     write(node%name, fmt) trim(funcnam)//"_", j
 
-                  allocate(node%position(dim))
-                  read(detector_file_unit) node%position
-                  node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
-                  node%type=type_det
-                  node%id_number = k
+                     allocate(node%position(dim))
+                     read(detector_file_unit) node%position
+                     node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
+                     node%type=type_det
+                     node%id_number = k
 
-                  allocate(node%local_coords(local_coord_count(shape)))
-                  k=k+1
-        
-              end do
+                     name_of_detector_in_read_order(k)=trim(funcnam)
 
-              end if
-             
-          end if
+                     allocate(node%local_coords(local_coord_count(shape)))
+                     k=k+1
+           
+                 end do
 
-       end do
-   
-    else !!If reading from checkpoint file
+                 end if
+                
+             end if
 
-    !!!First we should read the header of checkpoint_file to get the order in which the detectors were read at the beginning of the calculation
-
-        if(getprocno() /= 1) return
-
-        detector_checkpoint_unit=free_unit()
-
-        if (have_option("/io/detectors/static_detector")) then
-            call get_option("io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
-        elseif (have_option("/io/detectors/lagrangian_detector")) then 
-            call get_option("io/detectors/lagrangian_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
-        else 
-            call get_option("io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
-        end if 
-
-        open(unit=detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
-
-        do i=1, total_dete_groups  
-
-            read(detector_checkpoint_unit,'(a,i10)') name_of_detector_groups_in_read_order(i), number_det_in_each_group(i)
+          end do
+      
+    else 
     
-        end do
+       !!If reading from checkpoint file
+       !!!First we should read the header of checkpoint_file to get the order in which the detectors were read at the beginning of the calculation
 
-        close(detector_checkpoint_unit)
+        !IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET 
+
+           detector_checkpoint_unit=free_unit()
+
+           if (have_option("/io/detectors/static_detector")) then
+               call get_option("io/detectors/static_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
+           elseif (have_option("/io/detectors/lagrangian_detector")) then 
+               call get_option("io/detectors/lagrangian_detector/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
+           else 
+               call get_option("io/detectors/detector_array/from_checkpoint_file/file_name",detectors_cp_filename)  !!THIS NAME ends in _det. Need to add .groups for the name of the file with the header. The binary file with the positions is called .positions.dat
+           end if 
+
+           open(unit=detector_checkpoint_unit, file=trim(detectors_cp_filename) // '.groups', action="read") 
+
+           do i=1, total_dete_groups  
+
+               read(detector_checkpoint_unit,'(a,i10)') name_of_detector_groups_in_read_order(i), number_det_in_each_group(i)
+
+           end do
+
+           close(detector_checkpoint_unit)
 
 #ifdef STREAM_IO
       open(unit = detector_checkpoint_unit, file = trim(detectors_cp_filename) // '.positions.dat', &
@@ -1216,113 +1246,116 @@ contains
       FLAbort("No stream I/O support")
 #endif
  
-    !!!Read in order the last positions of the detectors from the binary file.
+       !!!Read in order the last positions of the detectors from the binary file.
 
-       do j=1,size(name_of_detector_groups_in_read_order)
+          do j=1,size(name_of_detector_groups_in_read_order)
 
-          do i=1,static_dete
-              write(buffer, "(a,i0,a)")  &
-            "/io/detectors/static_detector[",i-1,"]"
-              call get_option(trim(buffer)//"/name", temp_name)
-       
-              if (name_of_detector_groups_in_read_order(j)==temp_name) then
-
-                  allocate(node)
-                  call insert(detector_list,node)
-                  node%name=temp_name
-                  allocate(node%position(dim))
-                  read(detector_checkpoint_unit) node%position
-                  node%local = .not. isparallel()
-                  node%type = STATIC_DETECTOR
-                  allocate(node%local_coords(local_coord_count(shape)))   
-    
-                  node%id_number = i
-               
-              else
-                  cycle
-              end if
-          end do
-
-       end do
-
-       do j=1,size(name_of_detector_groups_in_read_order)   
-
-          do i=1,lagrangian_dete
-              write(buffer, "(a,i0,a)")  &
-            "/io/detectors/lagrangian_detector[",i-1,"]"
-              call get_option(trim(buffer)//"/name", temp_name)
-
-              if (name_of_detector_groups_in_read_order(j)==temp_name) then
-
-                  allocate(node)
-                  call insert(detector_list,node)
-                  node%name=temp_name
-                  allocate(node%position(dim))
-                  read(detector_checkpoint_unit) node%position
-                  node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
-                  node%type = LAGRANGIAN_DETECTOR
-
-                  allocate(node%local_coords(local_coord_count(shape))) 
-
-                  node%id_number = i+static_dete
- 
-              else
-                  cycle
-              end if
-          end do
-
-       end do
-
-       k=static_dete+lagrangian_dete+1
-
-       do j=1,size(name_of_detector_groups_in_read_order)  
-
-          do i=1,python_functions_or_files
-              write(buffer, "(a,i0,a)")  &
-            "/io/detectors/detector_array[",i-1,"]"
-   
-              call get_option(trim(buffer)//"/name", temp_name)
-
-              if (name_of_detector_groups_in_read_order(j)==temp_name) then
-
-                 call get_option(trim(buffer)//"/number_of_detectors", ndete)
-                 str_size=len_trim(int2str(ndete))
-                 fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
-
-                 if (have_option(trim(buffer)//"/lagrangian")) then
-                   type_det=LAGRANGIAN_DETECTOR
-                 else
-                   type_det=STATIC_DETECTOR
-                 end if
-
-                 do m=1,number_det_in_each_group(j)
-
-                   allocate(node)
-                   call insert(detector_list,node)
-
-                   write(node%name, fmt) trim(temp_name)//"_", m
-                   allocate(node%position(dim))
-                   read(detector_checkpoint_unit) node%position
-                   node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
-                   node%type=type_det
-
-                   node%id_number = k
-
-                   allocate(node%local_coords(local_coord_count(shape)))
-
-                   k=k+1
-        
-                 end do
-
-              else 
-                 
-                 cycle  
-              
-              end if
+             do i=1,static_dete
+                 write(buffer, "(a,i0,a)")  &
+               "/io/detectors/static_detector[",i-1,"]"
+                 call get_option(trim(buffer)//"/name", temp_name)
           
+                 if (name_of_detector_groups_in_read_order(j)==temp_name) then
+
+                     allocate(node)
+                     call insert_det(detector_list,node)
+                     node%name=temp_name
+                     allocate(node%position(dim))
+                     read(detector_checkpoint_unit) node%position
+                     node%local = .not. isparallel()
+                     node%type = STATIC_DETECTOR
+                     allocate(node%local_coords(local_coord_count(shape)))   
+
+                     node%id_number = i
+                  
+                 else
+                     cycle
+                 end if
+             end do
+
           end do
 
-       end do
+          do j=1,size(name_of_detector_groups_in_read_order)   
+
+             do i=1,lagrangian_dete
+                 write(buffer, "(a,i0,a)")  &
+               "/io/detectors/lagrangian_detector[",i-1,"]"
+                 call get_option(trim(buffer)//"/name", temp_name)
+
+                 if (name_of_detector_groups_in_read_order(j)==temp_name) then
+
+
+                     allocate(node)
+                     call insert_det(detector_list,node)
+                     node%name=temp_name
+                     allocate(node%position(dim))
+                     read(detector_checkpoint_unit) node%position
+                     node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
+                     node%type = LAGRANGIAN_DETECTOR
+
+                     allocate(node%local_coords(local_coord_count(shape))) 
+
+                     node%id_number = i+static_dete
+    
+                 else
+                     cycle
+                 end if
+             end do
+
+          end do
+
+          k=static_dete+lagrangian_dete+1
+
+          do j=1,size(name_of_detector_groups_in_read_order)  
+
+             do i=1,python_functions_or_files
+                 write(buffer, "(a,i0,a)")  &
+               "/io/detectors/detector_array[",i-1,"]"
+      
+                 call get_option(trim(buffer)//"/name", temp_name)
+
+                 if (name_of_detector_groups_in_read_order(j)==temp_name) then
+
+                    call get_option(trim(buffer)//"/number_of_detectors", ndete)
+                    str_size=len_trim(int2str(ndete))
+                    fmt="(a,I"//int2str(str_size)//"."//int2str(str_size)//")"
+
+                    if (have_option(trim(buffer)//"/lagrangian")) then
+                      type_det=LAGRANGIAN_DETECTOR
+                    else
+                      type_det=STATIC_DETECTOR
+                    end if
+
+                    do m=1,number_det_in_each_group(j)
+
+                      allocate(node)
+                      call insert_det(detector_list,node)
+
+                      write(node%name, fmt) trim(temp_name)//"_", m
+                      allocate(node%position(dim))
+                      read(detector_checkpoint_unit) node%position
+                      node%local = type_det == LAGRANGIAN_DETECTOR .or. .not. isparallel()
+                      node%type=type_det
+
+                      node%id_number = k
+
+                      allocate(node%local_coords(local_coord_count(shape)))
+
+                      k=k+1
+           
+                    end do
+
+                 else 
+                    
+                    cycle  
+                 
+                 end if
+             
+             end do
+
+          end do
+ 
+        !!IN PARALLEL DET CODE ALL PROC NEED TO READ ALL DET end if
 
     end if
 
@@ -1344,7 +1377,7 @@ contains
     binary_detector_output = have_option("/io/detectors/binary_output")
 
     ! Only the first process should write statistics information
-    if(getprocno() /= 1) return
+    if (getprocno() == 1) then
     
     detector_unit=free_unit()
     open(unit=detector_unit, file=trim(filename)//'.detectors', action="write")
@@ -1365,7 +1398,6 @@ contains
     write(detector_unit, '(a)') trim(buffer)
 
     ! Next columns contain the positions of all the detectors.
-
 
     node => detector_list%firstnode
 
@@ -1441,43 +1473,35 @@ contains
 
     write(detector_unit, '(a)') "</header>"
     flush(detector_unit)
-    
-    if(binary_detector_output) then
-        close(detector_unit)
 
-#ifdef STREAM_IO
-      open(unit = detector_unit, file = trim(filename) // '.detectors.dat', &
-        & action = "write", access = "stream", form = "unformatted", status = "replace")
-#else
-      FLAbort("No stream I/O support")
-#endif
+    !!!when using mpi_subroutines to write into the detectors file we need to close the file since 
+    !filename.detectors.dat needs to be open now with MPI_OPEN
+
+    if ((.not.isparallel()).and.(.not. binary_detector_output)) then
+!        close(detector_unit)
+
+!#ifdef STREAM_IO
+!      open(unit = detector_unit, file = trim(filename) // '.detectors.dat', &
+!        & action = "write", access = "stream", form = "unformatted")
+!#else
+!     FLAbort("No stream I/O support")
+!#endif
+
+    else
+    
+      close(detector_unit)
 
     end if
 
+    end if
+
+     if ((isparallel()).or.((.not.isparallel()).and.(binary_detector_output))) then
+
+    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fh, IERROR)
+
+    end if 
+
   end subroutine initialise_detectors
-
-
-  subroutine detector_list_insert(detector_list,node)
-
-  type(detector_linked_list), intent(inout) :: detector_list
-  type(detector_type), pointer :: node
-
-  if (detector_list%length == 0) then
-
-    detector_list%firstnode => node 
-    detector_list%lastnode => node 
-    detector_list%length = 1
-
-  else
-  
-    node%previous => detector_list%lastnode
-    detector_list%lastnode%next => node
-    detector_list%lastnode => node
-    detector_list%length = detector_list%length+1
-    
-  end if 
-
-  end subroutine detector_list_insert
 
   function field_tag(name, column, statistic, material_phase_name, components)
     !!< Create a field tag for the given entries.
@@ -1523,10 +1547,11 @@ contains
 
   end function constant_tag
   
-  subroutine write_diagnostics(state, time, dt, not_to_move_det_yet)
+  subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet)
     !!< Write the diagnostics to the previously opened diagnostics file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
+    integer, intent(in) :: timestep
     logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
@@ -1634,7 +1659,7 @@ contains
              write(diag_unit, trim(format), advance = "no") surface_integral
            end if
          end do
-           
+
          call deallocate(xfield)
 
        end do scalar_field_loop
@@ -1685,7 +1710,7 @@ contains
             call write_body_forces(state(phase), vfield)  
           end if
          end if
-         
+
          ! momentum conservation error calculation
          if(stat_field(vfield, state(phase))) then
           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
@@ -1708,10 +1733,10 @@ contains
 
     ! Now output any detectors.
     
-    call write_detectors(state, time, dt, not_to_move_det_yet)
-  
-    call profiler_toc("I/O")
+    call write_detectors(state, time, dt, timestep, not_to_move_det_yet)
 
+    call profiler_toc("I/O")
+  
   contains
   
     subroutine write_body_forces(state, vfield)
@@ -1746,7 +1771,7 @@ contains
       end if 
       
     end subroutine write_body_forces
-    
+
     subroutine write_momentum_conservation_error(state, v_field)
       type(state_type), intent(in) :: state
       type(vector_field), intent(inout) :: v_field
@@ -1831,7 +1856,7 @@ contains
       end do
       
     end function pressure_surface_integral_face
-    
+
   end subroutine write_diagnostics
 
   subroutine test_and_write_convergence(state, time, dt, it, maxerror)
@@ -1973,7 +1998,7 @@ contains
     
     type(vector_field), pointer :: coordinates
     integer :: convergence_norm
-    
+
     character(len = *), parameter :: format = "(e15.6e3)"
     integer :: procno
     real :: elapsed_time
@@ -2000,9 +2025,11 @@ contains
       end if
     end if
 
-    phaseloop: do phase = 1, size(state)
-       do i = 1, scalar_field_count(state(phase))
+    phaseloop: do phase=1,size(state)
+
+       do i=1, size(sfield_list(phase)%ptr)
           ! Test steady state information for each scalar field.
+
           sfield=>extract_scalar_field(state(phase), i)
           if(.not. steady_state_field(sfield)) cycle
           ! Scalar fields
@@ -2023,12 +2050,14 @@ contains
               write(steady_state_unit, format, advance = "no") change
             end if
           end if
+
        end do
 
        do i = 1, vector_field_count(state(phase))
          vfield => extract_vector_field(state(phase), i)
          if(.not. steady_state_field(vfield)) cycle
          ! Vector fields
+
 
          oldvfield => extract_vector_field(state(phase), &
            & "Old"//vfield_list(phase)%ptr(i))
@@ -2040,11 +2069,11 @@ contains
          maxchange = max(maxchange, change)
 
          if(write_steady_state_file .and. procno == 1) then
-           if(binary_steady_state_output) then
-             write(steady_state_unit) change
-           else
-             write(steady_state_unit, format, advance = "no") change
-           end if
+            if(binary_steady_state_output) then
+              write(steady_state_unit) change
+            else
+              write(steady_state_unit, format, advance = "no") change
+            end if
          end if
 
          if(.not. steady_state_field(vfield, test_for_components = .true.)) cycle
@@ -2059,7 +2088,7 @@ contains
            if(acceleration) change = change/dt
            ewrite(2, *) trim(vfield%name), j, change
            maxchange = max(maxchange, change)
-           
+
            if(write_steady_state_file .and. procno == 1) then
              if(binary_steady_state_output) then
                write(steady_state_unit) change
@@ -2068,10 +2097,11 @@ contains
              end if
            end if
          end do
+
        end do
 
     end do phaseloop
-    
+
     ewrite(1, *) "maxchange = ", maxchange
     
     if(write_steady_state_file .and. procno == 1) then
@@ -2090,125 +2120,453 @@ contains
 
   end subroutine test_and_write_steady_state
 
-  subroutine write_detectors(state, time, dt, not_to_move_det_yet)
+  subroutine write_detectors(state, time, dt, timestep, not_to_move_det_yet)
     !!< Write the field values at detectors to the previously opened detectors file.
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: time, dt
+    integer, intent(in) :: timestep
     logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len=10) :: format_buffer
-    integer :: i, j, phase
-    real :: value, every_dt
+    integer :: i, j, k, phase, ele, processor_number, num_proc, dimen, number_neigh_processors, all_send_lists_empty, current_proc, nprocs
+    real :: value
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield, xfield
 !    character(len=254), dimension(:), allocatable :: types_det
     integer, dimension(:), allocatable :: types_det
     logical :: any_lagrangian
+    integer, dimension(:), allocatable :: processor_number_array
 
-    type(detector_type), pointer :: node
+    type(detector_type), pointer :: node, temp_node
+    type(integer_hash_table) :: ihash, ihash_inverse, ihash_neigh_ele
+
+    integer, dimension(:), allocatable :: global_det_count
+
+    type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
+    integer :: len_set, target_proc_a, mapped_val_a, halo_level, communicator, nhalos, check_no_det
+
+    type(mesh_type), pointer :: mesh_ele
+
+    type(halo_type), pointer :: ele_halo, node_halo 
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
-    ! Don't actually do this if there are no detectors!
-!    if(size(detector_list)==0) then
-    if(detector_list%length==0) then
+    xfield=>extract_vector_field(state(1), "Coordinate")
+
+    check_no_det=1
+    if (detector_list%length==0) then
+       check_no_det=0
+    end if
+
+    call allmax(check_no_det)
+
+    if (check_no_det==0) then
        return
     end if
 
-    ! Calculate the location of the detectors in the mesh.
-    xfield=>extract_vector_field(state(1), "Coordinate")
+    if (detector_list%length/=0) then
 
-    !call search_for_detectors(..., ownership_tolerance = 1.0e-7)
+       node => detector_list%firstnode
 
-    call search_for_detectors(detector_list, xfield)
+       do i = 1, detector_list%length
+         
+         node => node%next
 
-    node => detector_list%firstnode
+       end do
+       
+      ! Calculate the location of the detectors in the mesh.
 
-    do i = 1, detector_list%length
-      
-!      ewrite(1,*) "DETECTOR number:", node%id_number
-! 
-!      ewrite(1,*) "name this detector is:", node%name
-!      ewrite(1,*) "position this detector is:", node%position
-! 
-!      ewrite(1,*) "DETECTOR element:", node%element
+       call search_for_detectors(detector_list, xfield)
 
-      if (node%element<0) then
+       node => detector_list%firstnode
 
-         node%type = STATIC_DETECTOR
+       do i = 1, detector_list%length
+         
+         if (node%element<0) then
+
+            node%local = .true.
+
+         else
+
+            node%initial_owner=getprocno()
+
+            node%local = .true.
+        
+         end if 
+
+         node => node%next
+
+       end do
+
+    !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED BEFORE CALLING MPI_ALL_MAX() 
+    !!! TO SOLVE THE CONFLICT OF OWNERSHIP OF THE DETECTORS.
+    !!! AFTERWARDS UPDATE THE DETECTOR_LIST BY REMOVING THE DETECTORS (NODES IN THE LIST) WHERE GETPROCNO()/=GDC(i)
+    !!! THIS IS ONLY NEEDED AT THE BEGINNING OF THE SIMULATION, at the first time step, 
+    !!! ONCE WE HAVE DISTRIBUTED INITIALLY THE DETECTORS
+    !!! AMONG THE DIFFERENT PROCESSORS, WE DON'T NEED TO DO THIS ANY MORE
+
+        if (timestep==1) then
+
+          allocate(global_det_count(detector_list%length))
+
+          node => detector_list%firstnode
+
+          do i = 1, detector_list%length
+
+            global_det_count(i)=node%initial_owner
+
+            node => node%next
+           
+          end do
+
+          node => detector_list%firstnode
+          
+          do i = 1, size(global_det_count)
+
+             call allmax(global_det_count(i))
+
+             node => node%next
+
+          end do
+
+          node => detector_list%firstnode
+
+          do i = 1, size(global_det_count)
+
+             if (global_det_count(i)/=node%initial_owner) then
+
+               temp_node => node
+              
+               if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
+               !!this checks if the current node that we are going to remove from the list is the first 
+               !!one in the list but not the only node in the list
+
+                  node%next%previous => null()
+
+                  node => node%next
+
+                  temp_node%previous => null()
+                  temp_node%next => null()
+
+                  detector_list%firstnode => node
+                  detector_list%firstnode%previous => null()
+
+                  detector_list%length = detector_list%length-1   
+
+               else 
+
+                   if ((node%id_number==size(global_det_count)).and.(associated(node%previous))) then
+                   !!this takes into account the case when the node is the last one in the list but not the only one
+
+                        node%previous%next => null()
+
+                        detector_list%lastnode => node%previous
+
+                        temp_node%previous => null()
+                        temp_node%next => null()
+
+                        detector_list%lastnode%next => null()
+
+                        detector_list%length = detector_list%length-1    
+
+                   else    
+
+                        if (detector_list%length==1) then
+                        !!!This case takes into account if the list has only one node. 
+
+                        temp_node%previous => null()
+                        temp_node%next => null()
+
+                        detector_list%firstnode => null()
+                        detector_list%lastnode => null()
+
+                        detector_list%length = detector_list%length-1    
+
+                        else
+                        !!case when the node is in the middle of the double linked list
+
+                           node%previous%next => node%next
+
+                           node%next%previous => node%previous
+
+                           node => node%next
+
+                           temp_node%previous => null()
+                           temp_node%next => null()
+
+                           detector_list%length = detector_list%length-1    
+
+                        end if 
+                   end if
+               end if
+
+             else 
+
+               node => node%next
+
+             end if
+           
+          end do   
+
+          deallocate(global_det_count)
+
+          node => detector_list%firstnode
+
+          do i = 1, detector_list%length
+
+            if (node%initial_owner==-1) then
+
+               node%type = STATIC_DETECTOR
      
-      end if 
+            end if
 
-      node => node%next
+            node => node%next
+            
+          end do
 
-    end do
+       end if
 
-!   if (any(detector_list%type==LAGRANGIAN_DETECTOR)) then
+    end if
 
-    node => detector_list%firstnode
-    allocate(types_det(detector_list%length))
+    call allocate(ihash_neigh_ele)   
+    processor_number=getprocno() 
+    num_proc=1
 
-!    ewrite(1,*) "WE ARE INSIDE WRITE_DETECTORS AND THE LENGHT OF DETECTOR_LIST IS", detector_list%length
+    vfield => extract_vector_field(state(1),"Velocity")
+    halo_level = element_halo_count(vfield%mesh)
 
-    any_lagrangian=.false.
+    do ele = 1, element_count(vfield%mesh)
 
-    do i = 1, detector_list%length
-      types_det(i) = node%type
-!      if (types_det(i)==LAGRANGIAN_DETECTOR)  then
-      if (types_det(i)==2)  then
-         any_lagrangian=.true. 
+      processor_number=element_owner(vfield%mesh,ele)
+
+      if ((processor_number/=getprocno()).and.(.not.has_key(ihash_neigh_ele, processor_number))) then
+
+         call insert(ihash_neigh_ele, processor_number, num_proc)
+
+         call fetch_pair(ihash_neigh_ele, num_proc, target_proc_a, mapped_val_a)
+
+         num_proc=num_proc+1
+
       end if
 
-!      ewrite(1,*) "DETECTOR number:", node%id_number
-! 
-!      ewrite(1,*) "DETECTOR type:", types_det(i)
-! 
-!      ewrite(1,*) "DETECTOR type FROM node%type:", node%type
-!   
-!      ewrite(1,*) "variable any_lagrangian is:", any_lagrangian
-! 
-!      ewrite(1,*) "name this detector is:", node%name
-! 
-!      ewrite(1,*) "position this detector is:", node%position
-
-      node => node%next
-      
     end do
 
-    if (any_lagrangian) then
+    number_neigh_processors=0
 
-       ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
+    call allocate(ihash) 
 
-       if (.not.present_and_true(not_to_move_det_yet))  call move_detectors_bisection_method(state, dt)
+    if (halo_level /= 0.) then
 
-!       call move_detectors_bisection_method(state, dt) 
+    ele_halo => vfield%mesh%element_halos(halo_level)
 
-     ! The positions have changed so we need to do this again.
-      !! call search_for_detectors(detector_list, xfield)
+    nprocs = halo_proc_count(ele_halo)
+
+    num_proc=1
+
+    do i = 1, nprocs 
+
+!!! An alternative and it seems better way to find out the neighbouring processors to a given processor is the following:   
+      
+      if ((halo_send_count(ele_halo, i) + halo_receive_count(ele_halo, i) > 0).and.(.not.has_key(ihash, i))) then
+
+         call insert(ihash, i, num_proc)
+
+         num_proc=num_proc+1
+
+     end if
+
+    end do
+
+    do i=1, key_count(ihash)
+
+       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
+!       ewrite(1,*) "ihash, i is", i
+!       ewrite(1,*) "ihash, pair", target_proc_a, mapped_val_a
+
+    end do
+
+    call allocate(ihash_inverse) 
+    do i=1, key_count(ihash)
+
+       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
+       call insert(ihash_inverse, mapped_val_a, target_proc_a)
+
+    end do
+
+    do i=1, key_count(ihash_inverse)
+
+       call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
+!       ewrite(1,*) "ihash_inverse, i is", i
+!       ewrite(1,*) "ihash_inverse, pair", target_proc_a, mapped_val_a
+
+    end do
+
+    call deallocate(ihash_inverse) 
+
+    do i=1, key_count(ihash_neigh_ele)
+
+       call fetch_pair(ihash_neigh_ele, i, target_proc_a, mapped_val_a)
+       ewrite(1,*) "ihash_neigh_ele, i is", i
+       ewrite(1,*) "ihash_neigh_ele, pair", target_proc_a, mapped_val_a
+
+    end do
+
+    call deallocate(ihash_neigh_ele)
+
+    number_neigh_processors=key_count(ihash)
+
     end if
 
-    ! Only the first process should write statistics information
-    
-    every_dt=1.0
-!   every_dt=2.0 for the 3d oodc
-!   every_dt=100.0 for the 2d lock_exchange
- 
-! If we do not want to write the information from the detectors every time step we need to use something like the line below, and the rest of the lines in the subroutine (up to contains) would be inside the if. 
-!    if ((mod(time/dt,every_dt)>=0.0).and.(mod(time/dt,every_dt)<0.5)) then
+    node => detector_list%firstnode
+
+    do j=1, detector_list%length
+
+       node%dt=dt
+
+       node => node%next
+
+    end do  
+
+    !do_until_all_send_lists_between_processors_are_empty
+    do  
+
+       allocate(send_list_array(number_neigh_processors))
+       allocate(receive_list_array(number_neigh_processors))
+
+       node => detector_list%firstnode
+
+       allocate(types_det(detector_list%length))
+
+       any_lagrangian=.false.
+
+       do i = 1, detector_list%length
          
-    ewrite(1,*) "In write detectors"
+         types_det(i) = node%type
+   !      if (types_det(i)==LAGRANGIAN_DETECTOR)  then
+         if (types_det(i)==2)  then
+            any_lagrangian=.true. 
+         end if
 
-    if(getprocno() == 1) then
-       if(binary_detector_output) then
-         write(detector_unit) time
-         write(detector_unit) dt
-       else
-         format_buffer=reals_format(1)
-         write(detector_unit, format_buffer, advance="no") time
-         write(detector_unit, format_buffer, advance="no") dt
+         node => node%next
+         
+       end do
+          
+       if (any_lagrangian) then
+
+         ewrite(1,*) "SHOULD BE MOVING THE DETECTORS"
+
+        if (.not.present(not_to_move_det_yet).and.(timestep/=0))  call move_detectors_bisection_method(state, dt, ihash, send_list_array) 
+
        end if
-    end if
+
+       node => detector_list%firstnode
+       do i = 1, detector_list%length
+
+         node => node%next
+         
+      end do
+
+       all_send_lists_empty=number_neigh_processors
+       do k=1, number_neigh_processors
+
+          ewrite(1,*) "number_neigh_processors:", number_neigh_processors
+
+          if (send_list_array(k)%length==0) then
+            all_send_lists_empty=all_send_lists_empty-1
+         end if
+
+       end do
+
+       ewrite(1,*) "all_send_lists_empty bef allmax. It is 0 if all list towards neigh proc. are empty:", all_send_lists_empty
+
+       call allmax(all_send_lists_empty)
+
+       ewrite(1,*) "all_send_lists_empty after allmax. It is 0 if all list towards neigh proc. are empty for all proc:", all_send_lists_empty
+
+       if (all_send_lists_empty==0) exit
+
+       node => detector_list%firstnode
+       do i = 1, detector_list%length
+
+          node => node%next
+         
+      end do
+
+       if (timestep/=0) then
+
+          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+
+       end if
+
+       node => detector_list%firstnode
+       do i = 1, detector_list%length
+
+          node => node%next
+         
+       end do
+
+       do i=1, number_neigh_processors
+
+         if  (receive_list_array(i)%length/=0) then      
+        
+            call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+
+         end if
+
+       end do
+
+       node => detector_list%firstnode
+       do i = 1, detector_list%length
+
+          node => node%next
+         
+      end do
+  
+!!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
+
+       do k=1, number_neigh_processors
+
+         if (send_list_array(k)%length/=0) then  
+
+             call flush_det(send_list_array(k))
+  
+         end if
+
+       end do
+
+       do k=1, number_neigh_processors
+
+         if (receive_list_array(k)%length/=0) then  
+
+             call flush_det(receive_list_array(k))
+ 
+         end if
+
+       end do
+
+     deallocate(send_list_array)
+     deallocate(receive_list_array)
+
+     deallocate(types_det)
+      
+    end do
+    !do_until_all_send_lists_between_processors_are_empty
+
+    call deallocate(ihash) 
+
+    if ((.not.isparallel()).and.(.not. binary_detector_output)) then
+
+       if(getprocno() == 1) then
+          if(binary_detector_output) then
+            write(detector_unit) time
+            write(detector_unit) dt
+          else
+            format_buffer=reals_format(1)
+            write(detector_unit, format_buffer, advance="no") time
+            write(detector_unit, format_buffer, advance="no") dt
+          end if
+       end if
 
        ! Next columns contain the positions of all the detectors.
       
@@ -2254,8 +2612,8 @@ contains
                        format_buffer=reals_format(1)
                        write(detector_unit, format_buffer, advance="no") value
                     end if
-                   
-                end if
+                
+                 end if
 
                  node => node%next
 
@@ -2319,10 +2677,11 @@ contains
            flush(detector_unit)
        end if
 
-!    end if
+    else
 
-! And then when we do not want to write information every dt, we need to repeat the previous lines inside another if:
-!    if ((mod(time/dt,every_dt)>99.5).and.(mod(time/dt,every_dt)<=100.0)) then
+       call write_mpi_out(state,time,dt,timestep)
+
+    end if
 
    contains
 
@@ -2336,7 +2695,354 @@ contains
 
   end subroutine write_detectors
 
-  subroutine move_detectors_bisection_method(state, dt)
+  subroutine flush_det(det_list)
+  !Removes and deallocates all the nodes in a detector list, starting from the first node.
+   
+    type(detector_linked_list), intent(inout) :: det_list
+    type(detector_type), pointer :: node
+    integer :: i
+
+    do i=1, det_list%length
+
+       node => det_list%firstnode
+
+       det_list%firstnode => node%next
+
+       if (associated(det_list%firstnode)) then
+    
+          det_list%firstnode%previous => null()
+
+       end if
+
+       node%next => null()
+
+       node%previous => null()
+
+       deallocate(node)
+
+       det_list%length = det_list%length-1  
+
+    end do
+
+  end subroutine flush_det
+
+  subroutine write_mpi_out(state,time,dt,timestep)
+    !!< Writes detector information (position, value of scalar and vector fields at that position, etc.) into detectors file using MPI output 
+    ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.       
+
+    type(state_type), dimension(:), intent(in) :: state
+    real, intent(in) :: time, dt
+    integer, intent(in) :: timestep
+
+    integer, ALLOCATABLE, DIMENSION(:) :: status
+
+    integer :: i, j, phase, IERROR, nints, number_of_dt, number_of_scalar_det_fields, count, realsize, dimen
+    integer(KIND=MPI_OFFSET_KIND) :: location_to_write, offset, offset_to_read
+    integer :: number_of_vector_det_fields, number_total_columns
+
+    real, dimension(:), allocatable :: buffer
+    real :: value
+    real, dimension(:), allocatable :: vvalue
+    type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(detector_type), pointer :: node
+
+    allocate( status(MPI_STATUS_SIZE) )
+
+    node => detector_list%firstnode
+
+    number_of_dt=timestep
+
+    ewrite(1,*) "number of timestep when starting mpi io subroutine:", number_of_dt
+
+    number_of_scalar_det_fields=0
+
+    do phase=1,size(state)
+   
+        do i=1, size(detector_sfield_list(phase)%ptr)
+           ! Output number of detector scalar fields.
+           sfield=>extract_scalar_field(state(phase), &
+                &                       detector_sfield_list(phase)%ptr(i))   
+
+           if(.not. detector_field(sfield)) then
+              cycle
+           end if
+
+           number_of_scalar_det_fields=number_of_scalar_det_fields+1
+
+        end do 
+
+    end do 
+
+    number_of_vector_det_fields=0
+
+
+    do phase=1,size(state)
+   
+        do i=1, size(detector_vfield_list(phase)%ptr)
+           ! Output number of detector vector fields.
+           vfield => extract_vector_field(state(phase), &
+                & detector_vfield_list(phase)%ptr(i))
+       
+           if(.not. detector_field(vfield)) then
+              cycle
+
+           end if
+
+           number_of_vector_det_fields=number_of_vector_det_fields+1
+
+        end do 
+
+    end do 
+
+    call MPI_TYPE_EXTENT(getpreal(), realsize, ierror)
+
+    vfield => extract_vector_field(state(1),"Velocity")
+
+    dimen=vfield%dim
+
+    number_total_columns=2+total_num_det*dimen+total_num_det*number_of_scalar_det_fields &
+                       & +total_num_det*number_of_vector_det_fields*dimen
+
+    ewrite(1,*) "total_num_det is:", total_num_det
+
+    if(have_option("/io/stat/output_at_start")) number_of_dt=number_of_dt+1
+
+    location_to_write=(number_of_dt-1)*number_total_columns*realsize
+
+    if(getprocno() == 1) then
+
+        allocate(buffer(2))
+        nints=2
+        buffer(1)=time
+        buffer(2)=dt
+
+        call MPI_FILE_WRITE_AT(fh,location_to_write,buffer,nints,getpreal(),status, IERROR)
+
+        deallocate(buffer)
+
+    end if
+    
+!   Offset write to where we start writing detectors
+    location_to_write = location_to_write + 2*realsize
+
+    node => detector_list%firstnode
+
+    positionloop: do i=1, detector_list%length
+
+        offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
+
+             if (node%initial_owner==-1) then
+
+             if(getprocno() == 1) then
+
+                 allocate(buffer(size(node%position)))
+
+                 buffer=node%position
+                 nints=size(node%position)
+
+                 call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+
+                 deallocate(buffer)
+
+                 node => node%next
+
+             else
+
+             node => node%next
+
+             end if
+
+             else
+
+                 allocate(buffer(size(node%position)))
+
+                 buffer=node%position
+                 nints=size(node%position)
+
+                 call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+
+                 deallocate(buffer)
+
+                 node => node%next
+
+             end if
+
+    end do positionloop
+
+    node => detector_list%firstnode
+
+    location_to_write = location_to_write+total_num_det*dimen*realsize
+
+    number_of_scalar_det_fields=0
+
+    phaseloop: do phase=1,size(state)
+
+        do i=1, size(detector_sfield_list(phase)%ptr)
+        ! Output statistics for each scalar field.
+        sfield=>extract_scalar_field(state(phase), &
+        &                       detector_sfield_list(phase)%ptr(i))
+
+        if(.not. detector_field(sfield)) then
+          cycle
+        end if
+
+        number_of_scalar_det_fields=number_of_scalar_det_fields+1
+
+        node => detector_list%firstnode
+
+        do j=1, detector_list%length
+
+             if (node%initial_owner==-1) then
+
+                if(getprocno() == 1) then
+
+                   offset = location_to_write+(total_num_det*(number_of_scalar_det_fields-1)+(node%id_number-1))*realsize
+
+                   value =  detector_value(sfield, node)
+
+                   allocate(buffer(1))
+
+                   buffer=value
+                   nints=1
+
+                   call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+
+                   deallocate(buffer)
+
+                   node => node%next
+
+                   else
+                
+                   node => node%next
+
+                end if
+ 
+             else
+
+                offset = location_to_write+(total_num_det*(number_of_scalar_det_fields-1)+(node%id_number-1))*realsize
+
+                value =  detector_value(sfield, node)
+
+                allocate(buffer(1))
+
+                buffer=value
+                nints=1
+
+                call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+
+                deallocate(buffer)
+
+                node => node%next
+
+             end if
+
+        end do
+
+        end do
+
+        location_to_write = location_to_write+(total_num_det*number_of_scalar_det_fields)*realsize
+
+        number_of_vector_det_fields=0
+
+        allocate(vvalue(0))
+
+        node => detector_list%firstnode
+
+        do i = 1, size(detector_vfield_list(phase)%ptr)
+           ! Output statistics for each vector field
+       
+           vfield => extract_vector_field(state(phase), &
+                & detector_vfield_list(phase)%ptr(i))
+       
+           if(.not. detector_field(vfield)) then
+              cycle
+           end if
+
+           if (size(vvalue)/=vfield%dim) then
+              deallocate(vvalue)
+              allocate(vvalue(vfield%dim))
+           end if
+
+           number_of_vector_det_fields=number_of_vector_det_fields+1
+
+           node => detector_list%firstnode
+
+           do j=1, detector_list%length
+
+              if (node%initial_owner==-1) then
+
+                 if(getprocno() == 1) then
+         
+                    vvalue =  detector_value(vfield, node)
+
+                    offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
+
+                    allocate(buffer(size(node%position)))
+
+                    buffer=vvalue
+                    nints=size(node%position)
+
+                    call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+
+                    deallocate(buffer)
+
+                    node => node%next
+
+                 else
+                
+                 node => node%next
+
+                 end if
+
+              else
+
+                 vvalue =  detector_value(vfield, node)
+  
+                 offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
+
+                 allocate(buffer(size(node%position)))
+
+                 buffer=vvalue
+                 nints=size(node%position)
+
+                 call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+
+                 deallocate(buffer)
+
+                 node => node%next
+
+              end if  
+
+           end do            
+     
+        end do
+
+        deallocate(vvalue)
+
+    end do phaseloop
+
+    call mpi_barrier(mpi_comm_world, ierror)
+   
+    number_total_columns=2+total_num_det*dimen
+
+    offset_to_read=0
+
+    allocate(buffer(number_total_columns)) 
+
+    call MPI_FILE_READ_AT(fh,offset_to_read,buffer,number_total_columns,getpreal(),status,IERROR)
+
+    call MPI_GET_COUNT(status,getpreal(),count, IERROR)
+  
+    write(*,*) "count after reading first value is (should be 2):", count
+
+    deallocate(buffer)
+
+    call mpi_barrier(mpi_comm_world, ierror)
+   
+  end subroutine write_mpi_out
+
+  subroutine move_detectors_bisection_method(state, dt, ihash, send_list_array)
     !!< Move Lagrangian detectors using a bisecting method, i.e., dividing the dt in smaller values that add to dt. 
     !Each smaller value is such that the detector is moved from its previous position to the boundary face between    
     !the element where it belonged to and the neighbouring element in the direction of the flow, through the minimum local 
@@ -2345,15 +3051,17 @@ contains
     !detector to follow the flow until the next boundary face
     type(state_type), dimension(:), intent(in) :: state
     real, intent(in) :: dt
+    type(integer_hash_table), intent(in) :: ihash
+    type(detector_linked_list), dimension(:), allocatable, intent(inout) :: send_list_array
 
-    integer :: j
+    integer :: j, number_neigh_processors
     real, dimension(:), allocatable :: vel, old_vel, old_pos
     type(vector_field), pointer :: vfield, xfield, old_vfield
     type(detector_type), pointer :: this_det
     integer, dimension(:), pointer :: ele_number_ptr
-    real :: dt_temp
-    
-    integer :: index_next_face, current_element, previous_element, cont_repeated_situation
+    real :: dt_temp, dt_var_temp, dt_temp_temp, dt_var_value
+    integer :: index_next_face, current_element, previous_element, & 
+               & cont_repeated_situation, processor_number
 
     ewrite(1,*) "Inside move_detectors_bisection_method subroutine"
 
@@ -2365,253 +3073,638 @@ contains
     allocate(old_vel(old_vfield%dim))
     allocate(old_pos(old_vfield%dim))
 
-    !do_for_each_detector: 
-
-    this_det => detector_list%firstnode
-
-    do j=1, detector_list%length
-
-       if (this_det%type /= LAGRANGIAN_DETECTOR) then
-         
-          this_det => this_det%next
-
-          cycle
-
-       end if
-
-       dt_temp=0.0
-!      dt_var=dt
-       this_det%dt=dt          
-
-       previous_element = this_det%element
-
-       cont_repeated_situation=0.0
-
-       !do_until_whole_dt_is_reached: 
-       do  
-      
-          if (this_det%dt<1.0e-3*dt) exit
+    number_neigh_processors=key_count(ihash)
           
-          vel =  detector_value(vfield, this_det)
-          old_vel = detector_value(old_vfield, this_det)
-          old_pos = this_det%position
-          current_element = this_det%element
+       !do_for_each_detector: 
 
-!         call move_detectors_subtime_step(state, this_det, xfield, dt, dt_var, dt_temp, old_pos, vel, old_vel, vfield, old_vfield,previous_element,index_next_face)
+       this_det => detector_list%firstnode
 
-          call move_detectors_subtime_step(this_det, xfield, dt, dt_temp, old_pos, vel, old_vel, vfield, old_vfield,previous_element,index_next_face)
+!       initial_length=detector_list%length
 
-!From the previous subroutine, the detector is moved until the boundary between two elements is found or this_det%dt reached dt. If the detector leaves the domain or we lose track of it, then it will be converted into a static one
+       do j=1, detector_list%length
+             
+          if (this_det%type /= LAGRANGIAN_DETECTOR) then
+            
+             this_det => this_det%next
 
-          if (this_det%type==STATIC_DETECTOR) exit
-
-          ele_number_ptr=>ele_neigh(xfield,this_det%element)
-          previous_element=this_det%element
-          this_det%element=ele_number_ptr(index_next_face) 
-
-          call check_if_det_gone_through_domain_boundary(this_det, xfield, dt, dt_temp, old_pos, &
-                                         vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation)
-
-          if (this_det%type==STATIC_DETECTOR) exit
-
-          this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
-
-          dt_temp=dt_temp+this_det%dt
-          this_det%dt=dt-dt_temp;
-
-          if (this_det%dt<1.0e-3*dt) then
-
-             this_det%element=previous_element
-             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position) 
+             cycle
 
           end if
 
+          dt_temp=0.0
+
+          previous_element = this_det%element
+
+          cont_repeated_situation=0.0
+
+          !do_until_whole_dt_is_reached or detector leaves the domain towards another processor or through an outflow: 
+          do  
+         
+             if (this_det%dt<1.0e-3*dt) exit
+             
+             vel =  detector_value(vfield, this_det)
+             old_vel = detector_value(old_vfield, this_det)
+             old_pos = this_det%position
+             current_element = this_det%element
+
+             call move_detectors_subtime_step(this_det, xfield, dt, dt_temp, old_pos, vel, old_vel, vfield, old_vfield,previous_element,index_next_face)
+
+   !From the previous subroutine, the detector is moved until the boundary between two elements is found or all smaller time steps have reached dt. If the detector leaves the domain or we lose track of it, then it will be converted into a static one
+
+             processor_number=getprocno()
+
+             if (this_det%type==STATIC_DETECTOR) exit
+
+             ele_number_ptr=>ele_neigh(xfield,this_det%element)
+             previous_element=this_det%element
+             this_det%element=ele_number_ptr(index_next_face) 
+
+             processor_number=getprocno()
+
+             call check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                            vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation,send_list_array,ihash,processor_number)
+
+             if (processor_number /= getprocno()) exit
+     
+             if (this_det%type==STATIC_DETECTOR) exit
+
+             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+   
+             dt_temp=dt_temp+this_det%dt
+             this_det%dt=dt-dt_temp;
+
+             if (this_det%dt<1.0e-3*dt) then
+
+                this_det%element=previous_element
+                this_det%local_coords=local_coords(xfield,this_det%element,this_det%position) 
+
+             end if
+
+          end do 
+          !do_until_whole_dt_is_reached or detector leaves the domain towards another processor or through an outflow: 
+
+             if (processor_number == getprocno()) then 
+             !if proc_number /= getprocno() this_det has already been made to point to this_det%next inside 
+             !in check_if_det_gone_through_domain_bound.
+
+                this_det => this_det%next
+
+             end if
+
        end do 
-       !do_until_dt_reached
-
-    this_det => this_det%next
-
-    end do 
-!do_for_each_detector
-
+       !do_for_each_detector
+   
     deallocate(vel)
     deallocate(old_vel)
     deallocate(old_pos)
 
   end subroutine move_detectors_bisection_method  
 
-  subroutine check_if_det_gone_through_domain_boundary(this_det, xfield, dt, dt_temp, old_pos, &
-                                         vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation)
+  subroutine serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+ 
+    type(state_type), dimension(:), intent(in) :: state
+    type(detector_linked_list), dimension(:), intent(inout) :: send_list_array, receive_list_array
+    integer, intent(inout) :: number_neigh_processors
+    type(integer_hash_table), intent(in) :: ihash
 
-    type(detector_type), pointer :: this_det
+    type array_ptr
+       real, dimension(:,:), pointer :: ptr
+    end type array_ptr
+
+    type(array_ptr), dimension(:), allocatable :: send_list_array_serialise, receive_list_array_serialise
+    type(detector_type), pointer :: node, node_rec
+    type(vector_field), pointer :: vfield, xfield
+    type(halo_type), pointer :: ele_halo
+    type(integer_hash_table) :: gens
+    integer :: global_ele, univ_ele, number_detectors_to_send, number_of_columns, total_data_received, number_detectors_received, number_data_to_send, target_proc, mapped_val, count, IERROR, dimen, i, j
+    integer, PARAMETER ::TAG=12
+
+    integer, ALLOCATABLE, DIMENSION(:) :: sendRequest
+    integer, ALLOCATABLE, DIMENSION(:) :: status
+    integer, ALLOCATABLE, DIMENSION(:) :: verification_arr
+ 
+    type(integer_hash_table) :: ihash_inverse
+    integer :: halo_level, gensaa, gensaaa, unn, target_proc_a, mapped_val_a
+    real :: aabb, aabba, aabbaa, aabbaaa, aabbaaaa
+
+    type(element_type), pointer :: shape
+
+    type(mesh_type) :: pwc_mesh
+    type(vector_field) :: pwc_positions
+
+    xfield => extract_vector_field(state(1),"Coordinate")
+    shape=>ele_shape(xfield,1)
+    vfield => extract_vector_field(state(1),"Velocity")
+ 
+    allocate( sendRequest(0:number_neigh_processors-1) )
+
+    allocate(send_list_array_serialise(number_neigh_processors))
+
+    halo_level = element_halo_count(vfield%mesh)
+
+    if (halo_level /= 0) then
+
+    ele_halo => vfield%mesh%element_halos(halo_level)
+
+    end if
+
+    call allocate(ihash_inverse) 
+    do i=1, key_count(ihash)
+
+       call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
+       call insert(ihash_inverse, mapped_val_a, target_proc_a)
+
+    end do
+
+    do i=1, key_count(ihash_inverse)
+
+       call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
+
+    end do
+
+    if (halo_level /= 0) then
+
+    pwc_mesh = piecewise_constant_mesh(xfield%mesh, "PiecewiseConstantMesh")
+    call allocate(pwc_positions, xfield%dim, pwc_mesh, "Coordinate")
+    call deallocate(pwc_mesh)
+    call remap_field(xfield, pwc_positions)
+    assert(halo_verifies(ele_halo, pwc_positions))
+    call deallocate(pwc_positions)
+
+    end if
+
+    do i=1, number_neigh_processors
+
+       node => send_list_array(i)%firstnode
+
+       dimen=vfield%dim
+
+       number_detectors_to_send=send_list_array(i)%length
+       number_of_columns=dimen+3
+
+       allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
+
+       do j=1, send_list_array(i)%length
+
+          global_ele=node%element
+
+          univ_ele = halo_universal_number(ele_halo, global_ele)
+
+          send_list_array_serialise(i)%ptr(j,1:dimen)=node%position
+          send_list_array_serialise(i)%ptr(j,dimen+1)=univ_ele
+          send_list_array_serialise(i)%ptr(j,dimen+2)=node%dt
+          send_list_array_serialise(i)%ptr(j,dimen+3)=node%id_number
+
+          node => node%next
+ 
+       end do
+
+       target_proc=fetch(ihash_inverse, i)
+
+       call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
+            & getpreal(), target_proc-1, TAG, MPI_COMM_WORLD, sendRequest(i-1), IERROR)
+
+       !!!getprocno() returns the rank of the processor + 1, hence, for 4 proc, we have 1,2,3,4 whereas 
+       !!!the ranks are 0,1,2,3. That is why I am using target_proc-1, so that for proc 4, it sends to 
+       !!!proc with rank 3.
+
+       ewrite(1,*) "IERROR is:", IERROR
+
+    end do
+  
+    allocate(receive_list_array_serialise(number_neigh_processors))
+
+    allocate( status(MPI_STATUS_SIZE) )
+
+    call get_universal_numbering_inverse(ele_halo, gens)
+
+    ewrite(1,*) "gens length is:", key_count(gens)    
+
+    do i=1, key_count(gens)
+
+      call fetch_pair(gens, i, gensaa, gensaaa)
+  
+    end do
+
+    do i=1, number_neigh_processors
+              
+       call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_WORLD, status(:), IERROR) 
+
+       call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
+
+       number_detectors_received=count/number_of_columns
+
+       allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,number_of_columns))
+
+       call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE, IERROR)
+
+       do j=1, number_detectors_received
+
+          univ_ele=receive_list_array_serialise(i)%ptr(j,dimen+1);
+
+          global_ele=fetch(gens,univ_ele)
+
+          allocate(node_rec)
+
+          allocate(node_rec%position(dimen))
+
+          node_rec%position=receive_list_array_serialise(i)%ptr(j,1:dimen)
+          node_rec%element=global_ele
+          node_rec%dt=receive_list_array_serialise(i)%ptr(j,dimen+2)
+          node_rec%type = LAGRANGIAN_DETECTOR
+          node_rec%local = .true. 
+          node_rec%id_number=receive_list_array_serialise(i)%ptr(j,dimen+3)
+          node_rec%initial_owner=getprocno()
+ 
+          allocate(node_rec%local_coords(local_coord_count(shape)))          
+
+          node_rec%local_coords=local_coords(xfield,node_rec%element,node_rec%position)
+
+          node_rec%name=name_of_detector_in_read_order(node_rec%id_number)
+
+          call insert_det(receive_list_array(i),node_rec) 
+          
+       end do
+
+    end do    
+
+    call MPI_WAITALL(number_neigh_processors, sendRequest, MPI_STATUSES_IGNORE, IERROR)
+
+    call deallocate(gens)
+
+    do i=1, number_neigh_processors
+
+       deallocate(send_list_array_serialise(i)%ptr)
+       deallocate(receive_list_array_serialise(i)%ptr)
+
+    end do    
+
+    deallocate(send_list_array_serialise)
+    deallocate(receive_list_array_serialise)
+    call deallocate(ihash_inverse) 
+  end subroutine serialise_lists_exchange_receive
+
+  subroutine move_det_from_receive_list_to_det_list(detector_list,receive_list)
+   
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_linked_list), intent(inout) :: receive_list
+
+    type(detector_type), pointer :: node
+    integer :: i
+
+    do i=1, receive_list%length
+
+       node => receive_list%firstnode
+
+       receive_list%firstnode => node%next
+
+       if (associated(receive_list%firstnode)) then
+    
+          receive_list%firstnode%previous => null()
+
+       end if
+
+       call insert_det(detector_list,node) 
+
+       receive_list%length = receive_list%length-1  
+
+    end do
+
+  end subroutine move_det_from_receive_list_to_det_list
+
+  subroutine check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
+                                         vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation,send_list_array,ihash,processor_number)
+
+    type(state_type), dimension(:), intent(in) :: state
+
+    type(detector_type), pointer :: this_det, node_to_send
     type(vector_field), intent(inout) :: xfield
     real, intent(in) :: dt
     real, intent(inout) :: dt_temp
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
     type(vector_field), pointer :: vfield, old_vfield
     integer, intent(inout) :: index_next_face, current_element, cont_repeated_situation
+    type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
+    type(integer_hash_table), intent(in) :: ihash
+    integer, intent(inout) :: processor_number
 
-    integer :: k,h
+    integer :: i,k,h, univ_ele, halo_level, nhalos, ele, ele_owner, node_owner, ele_owned
     real :: dt_var_temp, dt_temp_temp, dt_var_value
     integer :: old_index_minloc, cont_aaa, cont_bbb, cont_ccc, cont_ddd, cont_eee, cont_fff, & 
-               cont_ggg, cont_times_same_element
+               cont_ggg, cont_times_same_element, list_neigh_processor, processor_number_curr_ele
     integer, dimension(:), allocatable :: element_next_to_boundary
 
-          cont_aaa=0.0
-          cont_bbb=0.0
-          cont_ccc=0.0
-          cont_ddd=0.0
-          cont_eee=0.0
-          cont_fff=0.0
-          cont_ggg=0.0
+    integer, dimension(:), pointer :: nodes
 
-          cont_times_same_element=0.0
+    type(mesh_type), pointer :: mesh_ele
 
-          if (this_det%element<0.0) then
- 
-             cont_aaa=cont_aaa+1
+    type(halo_type), pointer :: ele_halo, node_halo 
 
-             cont_repeated_situation=cont_repeated_situation+1
-             if (cont_repeated_situation>99999) then
-                cont_repeated_situation=1
-             end if
-             
-             allocate(element_next_to_boundary(cont_repeated_situation))
+    cont_aaa=0.0
+    cont_bbb=0.0
+    cont_ccc=0.0
+    cont_ddd=0.0
+    cont_eee=0.0
+    cont_fff=0.0
+    cont_ggg=0.0
 
-             element_next_to_boundary(cont_repeated_situation)=current_element
+    vfield => extract_vector_field(state(1),"Velocity")
+    halo_level = element_halo_count(vfield%mesh)
 
-             this_det%element=current_element
-!            dt_var_value=dt_var
-!            dt_var=dt_var*0.6
+    if (halo_level /= 0) then
 
-             dt_var_value=this_det%dt
-             this_det%dt=this_det%dt*0.6
+    ele_halo => vfield%mesh%element_halos(halo_level)
+  
+    univ_ele = halo_universal_number(ele_halo, current_element)
 
-             call update_detector_position_bisect(this_det, xfield, old_pos, vel, old_vel)
-              
-             do
-                  
-                if ((all(this_det%local_coords>=0.0)).and.(this_det%local_coords(index_next_face)>1.0e-5)) exit
+    end if
+    
+    processor_number_curr_ele=element_owner(vfield,current_element)
 
-                this_det%dt=this_det%dt/2
-                
-                call update_detector_position_bisect(this_det, xfield, old_pos, vel, old_vel)
+    cont_times_same_element=0.0
 
-                cont_bbb=cont_bbb+1
+    ele = current_element
 
-                !If a lagrangian detector is initially in a boundary it does not work because the velocity is zero 
-                !and gets stuck in this loop
-                !Better not to put any detector in a boundary but in case it happens a check has been included so that 
-                !the code does not get stuck.
-                !The Lagrangian detector would be converted into a static one.
+    if (this_det%element<0.0) then
 
-                if ((cont_bbb>1.0e6).or.(this_det%dt<1.0e-5*dt_var_value))  exit
+       if (element_owned(vfield,current_element)) then
 
-             end do        
+          write(1,*) "CURRENT PROC OWNS the previous element:", current_element 
 
-             if ((cont_bbb>1.0e6).or.(this_det%dt<1.0e-5*dt_var_value)) then
+          !If I own the previous element where the detector was before it left the domain, it means it was not an halo element
+          !of another processor, and hence, it has left through a proper boundary (outflow) and it is converted into static.
+          !Or it can also be that by some issue in the geometry of the element for example, the detector is not being moved in the right 
+          !direction and is leaving through the wrong face.
+          !If after some checks done below, the detector is still leaving the domain through that face, it is converted into static.
 
-                cont_fff=cont_fff+1
+          !current_element is the previous element where the detector was before moving into a negative element (outside the domain)
 
-                this_det%position=old_pos
-                this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
- 
-                this_det%type=STATIC_DETECTOR
-              
-             end if 
+          cont_aaa=cont_aaa+1
 
-             !Below a check is included in case the detector keeps going back to the same element next to the boundary. 
-             !This means the velocity in that area is not moving the detector inside the domain away from the boundary 
-             !element, and the detector continuously ends up in the boundary. In this situation the code will keep 
-             !entering here to place the detector inside the same element next to the boundary and the detector 
-             !does not progress any more. 
+          cont_repeated_situation=cont_repeated_situation+1
+          if (cont_repeated_situation>99999) then
+             cont_repeated_situation=1
+          end if
+       
+          allocate(element_next_to_boundary(cont_repeated_situation))
 
-             do h=1, size(element_next_to_boundary)
- 
-                if (element_next_to_boundary(h)==current_element) then
+          element_next_to_boundary(cont_repeated_situation)=current_element 
 
-                cont_times_same_element=cont_times_same_element+1
+          this_det%element=current_element
+          dt_var_value=this_det%dt
+          this_det%dt=this_det%dt*0.6
 
-                end if
+          call update_detector_position_bisect(this_det, xfield, old_pos, vel, old_vel)
+        
+          do
+            
+            if ((all(this_det%local_coords>=0.0)).and.(this_det%local_coords(index_next_face)>1.0e-5)) exit
 
-             end do
-           
-             if ((cont_repeated_situation>50.0).and.(cont_times_same_element>50.0)) then
+            this_det%dt=this_det%dt/2
+          
+            call update_detector_position_bisect(this_det, xfield, old_pos, vel, old_vel)
 
-                cont_ggg=cont_ggg+1
+            cont_bbb=cont_bbb+1
 
-                this_det%position=old_pos
-                this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
- 
-                this_det%type=STATIC_DETECTOR
+            !If a lagrangian detector is initially in a boundary it does not work because the velocity is zero 
+            !and gets stuck in this loop
+            !Better not to put any detector in a boundary but in case it happens a check has been included so that 
+            !the code does not get stuck.
+            !The Lagrangian detector would be converted into a static one.
 
-             end if
+            if ((cont_bbb>1.0e6).or.(this_det%dt<1.0e-5*dt_var_value))  exit
 
-             if (this_det%type==STATIC_DETECTOR) return
+          end do        
 
-             vel =  detector_value(vfield, this_det)
-             old_vel = detector_value(old_vfield, this_det)
-             old_pos = this_det%position
+          if ((cont_bbb>1.0e6).or.(this_det%dt<1.0e-5*dt_var_value)) then
+
+            cont_fff=cont_fff+1
+
+            this_det%position=old_pos
+            this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+
+            this_det%type=STATIC_DETECTOR
+        
+          end if 
+
+         !Below a check is included in case the detector keeps going back to the same element next to the boundary. 
+         !This means the velocity in that area is not moving the detector inside the domain away from the boundary 
+         !element, and the detector continuously ends up in the boundary. In this situation the code will keep 
+         !entering here to place the detector inside the same element next to the boundary and the detector 
+         !does not progress any more. 
+
+         do h=1, size(element_next_to_boundary)
+
+            if (element_next_to_boundary(h)==current_element) then
+
+              cont_times_same_element=cont_times_same_element+1
+
+            end if
+
+         end do
+     
+         if ((cont_repeated_situation>50.0).and.(cont_times_same_element>50.0)) then
+
+            cont_ggg=cont_ggg+1
+
+            this_det%position=old_pos
+            this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+
+            this_det%type=STATIC_DETECTOR
+
+         end if
+
+         if (this_det%type==STATIC_DETECTOR) return
+
+         vel =  detector_value(vfield, this_det)
+         old_vel = detector_value(old_vfield, this_det)
+         old_pos = this_det%position
 
 !Next we start moving a bit the detector after placing it back into the previous element and check that this time it does not go through the same boundary and hence, ends outside the domain. If that is the case, then we make the detector static already now.             
 
-             dt_temp_temp=dt_temp+this_det%dt
-             dt_var_temp=dt-dt_temp_temp;
+         dt_temp_temp=dt_temp+this_det%dt
+         dt_var_temp=dt-dt_temp_temp;
 
 !As part of the RK second order algorithm, we move first the particle or detector using half of the current time step (dt_var_temp)
 
-             this_det%position=(vel+old_vel)/2*dt_var_temp/2+old_pos
+         this_det%position=(vel+old_vel)/2*dt_var_temp/2+old_pos
 
-             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+         this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
 
-             old_index_minloc=index_next_face
+         old_index_minloc=index_next_face
 
 !Next we check if the detector ends up having again negative local coord. through the face it came out of the domain before.
 !If so, we check then if another of the local coords. is also negative and in that case it has gone out through the element via another face or boundary, but if no other local coord is also negative, then the detector is ending in the same place as before, that was outside the domain and if this is the case we make it static.
 
-             if (this_det%local_coords(index_next_face)<0.) then
+         if (this_det%local_coords(index_next_face)<0.) then
 
-                cont_ccc=cont_ccc+1
-                 
-                do k=1, size(this_det%local_coords)
+            cont_ccc=cont_ccc+1
+           
+            do k=1, size(this_det%local_coords)
 
-                   if (k /= old_index_minloc) then
+               if (k /= old_index_minloc) then
 
-                       cont_ddd=cont_ddd+1
+                 cont_ddd=cont_ddd+1
 
-                       if (this_det%local_coords(k)<0.) then
+                 if (this_det%local_coords(k)<0.) then
 
-                       cont_eee=cont_eee+1
+                 cont_eee=cont_eee+1
 
-                       index_next_face=k
+                 index_next_face=k
 
-                       end if
+                 end if
 
-                   end if
+               end if
 
-                end do
+            end do
 
-                if (index_next_face == old_index_minloc) then
+            if (index_next_face == old_index_minloc) then
 
-                   cont_fff=cont_fff+1
+               cont_fff=cont_fff+1
 
-                   this_det%position=old_pos
-                   this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+               this_det%position=old_pos
+               this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+
+               this_det%type=STATIC_DETECTOR
+        
+            end if     
+   
+         end if 
+    
+         this_det%position=old_pos
+         this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+
+         deallocate(element_next_to_boundary)
+
+       else
+
+         !If I don't own the previous element where the detector was before it left the domain, it means it was an halo element
+         !of another processor, and hence, the detector is sent to the send list associated with that processor.
+
+         !Node in linked_list that contains this detector is removed and incorporated into the send_list 
+         !corresponding to the neighbouring processor
+
+         this_det%element=current_element 
+
+         if (halo_level /= 0) then
+  
+         univ_ele = halo_universal_number(ele_halo, current_element)
+
+         ewrite(1,*) "In check_if_det_gone_through_domain_boundary, else current proc do not own current ele"   
+         ewrite(1,*) "detector LOCAL or GLOBAL element now is current element:", this_det%element
+         ewrite(1,*) "current_element, I think this is the previous element to the one that is negative:", current_element
+         ewrite(1,*) "detector UNIVERSAL element of current element:", univ_ele
+         ewrite(1,*) "WE ARE IN PROC.:", getprocno()
+
+         end if
+
+         processor_number=element_owner(vfield,this_det%element)
+
+         this_det%position=old_pos
+         this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+
+         dt_temp=dt_temp+this_det%dt
+         this_det%dt=dt-dt_temp
+
+         list_neigh_processor=fetch(ihash,processor_number)
+
+         node_to_send => this_det
+
+         this_det => this_det%next
+
+         call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+
+      end if
+
+    end if
+
+  end subroutine check_if_det_gone_through_domain_boundary
+
+  subroutine move_det_to_send_list(detector_list,node,send_list)
+
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: node
+    type(detector_linked_list), intent(inout) :: send_list
+
+    if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
+         !!this checks if the current node that we are going to remove from the list is the first 
+         !!one in the list but not the only node in the list
+
+            node%next%previous => null()
+
+            detector_list%firstnode => node%next
+
+            detector_list%firstnode%previous => null()
  
-                   this_det%type=STATIC_DETECTOR
-              
-                end if     
-         
-             end if 
-          
-             this_det%position=old_pos
-             this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
+            detector_list%length = detector_list%length-1
 
-             deallocate(element_next_to_boundary)
+     else 
+
+          if ((.not.associated(node%next)).and.(associated(node%previous))) then
+          !!this takes into account the case when the node is the last one in the list but not the only one
+
+               node%previous%next => null()
+
+               detector_list%lastnode => node%previous
+
+               detector_list%lastnode%next => null()
+
+               detector_list%length = detector_list%length-1
+
+          else 
+
+               if (detector_list%length==1) then
+
+                  detector_list%firstnode => null()
+                  detector_list%lastnode => null()
+
+                  detector_list%length = detector_list%length-1 
+
+              else
+
+                  node%previous%next => node%next
+                  node%next%previous => node%previous
+
+                  detector_list%length = detector_list%length-1 
+
+              end if
 
           end if
 
-  end subroutine check_if_det_gone_through_domain_boundary
+     end if
+
+    call insert_det(send_list,node)  
+
+  end subroutine move_det_to_send_list            
+
+  subroutine detector_list_insert(current_list,node)
+
+    type(detector_linked_list), intent(inout) :: current_list
+    type(detector_type), pointer :: node
+
+    if (current_list%length == 0) then
+
+      current_list%firstnode => node 
+      current_list%lastnode => node 
+
+      current_list%firstnode%previous => null()
+      current_list%lastnode%next => null()
+      
+      current_list%length = 1
+
+    else
+  
+      node%previous => current_list%lastnode
+      current_list%lastnode%next => node
+      current_list%lastnode => node
+
+      current_list%lastnode%next => null()
+      
+      current_list%length = current_list%length+1
+    
+    end if 
+
+  end subroutine detector_list_insert
 
   subroutine move_detectors_subtime_step(this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, vfield, old_vfield, previous_element,index_next_face)
@@ -2622,6 +3715,8 @@ contains
   !moved using another smaller time step until the boundary of this new element, always following the direction of the flow. 
   !These steps are repeated until the sum of all the smaller time steps used to go from elemenet to element is equal to the 
   !total time step.
+!    type(state_type), dimension(:), intent(in) :: state
+
     type(detector_type), pointer :: this_det
     type(vector_field), intent(inout) :: xfield
     real, intent(in) :: dt
@@ -2632,18 +3727,12 @@ contains
     integer, intent(inout) :: index_next_face
     real,  dimension(1:size(this_det%local_coords)) :: bbb
 
-
     real :: keep_value_this_det_dt, keep_value_this_det_dt_a
-
     integer :: cont, cont_a, cont_b, cont_c, cont_d, cont_p, cont_r, &
-               cont_check, index_minloc_current, &
-               cont_check_a, &
+               cont_check, index_minloc_current, cont_check_a, &
                cont_static_det, bound_elem_iteration
 
-
-
-
-!     ewrite(1,*) "Inside move_detectors_subtime_step subroutine"
+    ewrite(1,*) "Inside move_detectors_subtime_step subroutine"
 
     cont=0
     cont_a=0
@@ -2754,9 +3843,12 @@ contains
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position)
        vel = detector_value(vfield, this_det)
        old_vel = detector_value(old_vfield, this_det)
+
        if  (cont_check_a/=0) exit
 
     end do
+
+    !dt_var=this_det%dt
 
     !In the next if, since the detector seems to have gone through the wrong face and still when returning it to its   
     !previous element and moving it with the flow, the detector does not stay in the element for a specific value of dt_var 
@@ -2773,10 +3865,10 @@ contains
     !now the detector is moved towards the appropriate face of the element.
 
     call scenario_det_gone_through_wrong_face(this_det, xfield, dt, dt_temp, old_pos, &
-                                         vel, old_vel, index_next_face, cont_check, cont_check_a, bound_elem_iteration, index_minloc_current)
+                                         vel, old_vel, index_next_face,cont_check,cont_check_a,bound_elem_iteration,index_minloc_current)
  
     !In the next if, the most straight forward scenario is dealed with, i.e., the detector previously on the boundary of an element, made to move 
-    !in the direction of the flow towards the next element across that boundary, belongs to the next element for a particular value of dt_var 
+    !in the direction of the flow towards the next element across that boundary, belongs to the next element for a particular value of dt_var
     !(next smaller time step).
 
     call scenario_det_gone_through_right_face(this_det, xfield, dt, dt_temp, old_pos, &
@@ -2805,10 +3897,7 @@ contains
   end subroutine move_detectors_subtime_step
 
   subroutine scenario_det_gone_through_element_vortex(this_det, xfield, dt, dt_temp, keep_value_this_det_dt, old_pos, &
-                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face,cont_check,cont_check_a,bound_elem_iteration)
-
-!  subroutine move_detectors_subtime_step(state, this_det, xfield, dt, dt_temp, old_pos, &
-!                                         vel, old_vel, vfield, old_vfield, previous_element,index_next_face)
+                                          vel, old_vel, vfield, old_vfield, previous_element, index_next_face,cont_check,cont_check_a,bound_elem_iteration)
   !!< Subroutine that makes sure the Lagrangian detector ends up on one of its boundary faces (within tolerance of
   !+/-10.0e-8) up to where it has reached using one of the smaller time steps (sutime step). 
   !Once the detector is on the boundary (within tolerance of +/-10.0e-8), in the subroutine that calls this one, the   
@@ -2816,6 +3905,8 @@ contains
   !moved using another smaller time step until the boundary of this new element, always following the direction of the flow. 
   !These steps are repeated until the sum of all the smaller time steps used to go from elemenet to element is equal to the 
   !total time step.
+!    type(state_type), dimension(:), intent(in) :: state
+
     type(detector_type), pointer :: this_det
     type(vector_field), intent(inout) :: xfield
     real, intent(in) :: dt, keep_value_this_det_dt
@@ -2824,18 +3915,17 @@ contains
     type(vector_field), pointer :: vfield, old_vfield
     integer, intent(in) :: previous_element, cont_check, cont_check_a
     integer, intent(inout) :: index_next_face, bound_elem_iteration
-    
-
 
     real :: maxvalue
-    integer :: i, k, cont_d, &
-               index_temp_maxvalue, cont_loop, node, current_element_number, number_of_elem, &
+    integer :: i, k, cont_d, index_temp_maxvalue, cont_loop, node, current_element_number, number_of_elem, &
                cont_elem_neg, cont_static_det, det_inside_an_ele
 
     integer, dimension(:), pointer :: nodes, elements
     type(csr_sparsity), pointer :: nelist
-    
+
     if ((cont_check /= 0).and.(cont_check_a /= 0)) then
+
+       ewrite(1,*) "Inside scenario_det_gone_through_element_vortex subroutine"
 
        this_det%position=old_pos
        this_det%local_coords=local_coords(xfield,this_det%element,this_det%position) 
@@ -2945,12 +4035,6 @@ contains
           if (all(this_det%local_coords>-10.0e-8)) exit
 
        end do
-  
-     !  if (cont_elem_neg/=0.0) then
-
-      !    this_det%type=STATIC_DETECTOR
-              
-       !end if   
 
        det_inside_an_ele=0.0
 
@@ -2984,7 +4068,7 @@ contains
                                          vel, old_vel, index_next_face, bound_elem_iteration)
   
     end if
-    
+
   end subroutine scenario_det_gone_through_element_vortex
 
   subroutine placing_det_in_boundary_between_elem(this_det, xfield, dt, dt_temp, old_pos, &
@@ -2995,15 +4079,12 @@ contains
     real, intent(in) :: dt
     real, intent(inout) :: dt_temp
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
-
     integer, intent(inout) :: index_next_face, bound_elem_iteration
-!    integer, intent(out) :: bound_elem_iteration
     
     real :: dt_var_check, dt_temp_check, dt_a, dt_b
-            
     integer :: cont_p, cont_ready_out
 
-       bound_elem_iteration=0
+    bound_elem_iteration=0
 
        do
 
@@ -3013,8 +4094,6 @@ contains
           dt_var_check=dt-dt_temp_check
 
           index_next_face=minloc(this_det%local_coords, dim=1)
-
-!           cont_apqrt=0
 
           cont_ready_out=0
 
@@ -3095,19 +4174,19 @@ contains
     type(vector_field), intent(inout) :: xfield
     real, intent(inout) :: dt_a, dt_b
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
-
     integer, intent(inout) :: bound_elem_iteration
     
             
     integer :: cont_a, cont_b, cont_c
+
+       ewrite(1,*) "Inside iterating_for_det_in_bound_elem subroutine"
+       
 
        cont_a=0
        cont_b=0
        cont_c=0
 
        this_det%dt=dt_a+((dt_b-dt_a)/2)
-
-!      i=2
 
        bound_elem_iteration=2
 
@@ -3131,15 +4210,27 @@ contains
 
        end do
 
+       ewrite(1,*) "cont_b:", cont_b
+
+       ewrite(1,*) "bound_elem_iteration:", bound_elem_iteration
+
+       ewrite(1,*) "dt_a:", dt_a
+
+       ewrite(1,*) "dt_b:", dt_b
+
        dt_b=dt_a+((dt_b-dt_a)/(bound_elem_iteration/2))
        dt_a=this_det%dt
+
+       ewrite(1,*) "dt_a:", dt_a
+
+       ewrite(1,*) "dt_b:", dt_b
 
        cont_c=cont_c+1  
 
   end subroutine iterating_for_det_in_bound_elem
 
   subroutine scenario_det_gone_through_wrong_face(this_det, xfield, dt, dt_temp, old_pos, &
-                                         vel, old_vel, index_next_face, cont_check,cont_check_a,bound_elem_iteration, index_minloc_current)
+                                         vel, old_vel, index_next_face,cont_check,cont_check_a,bound_elem_iteration, index_minloc_current)
 
     type(detector_type), pointer :: this_det
     type(vector_field), intent(inout) :: xfield
@@ -3148,19 +4239,14 @@ contains
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
     integer, intent(in) :: cont_check, cont_check_a
     integer, intent(inout) :: index_next_face, bound_elem_iteration, index_minloc_current
-    
 
-
-    real :: dt_var_check, dt_temp_check, dt_a, dt_b, &
-            minvalue
+    real :: dt_var_check, dt_temp_check, dt_a, dt_b, minvalue
     integer :: k, cont_p, &
-               cont_apq, &
-               index_temp, cont_ready
-               
-!    integer, dimension(:), pointer :: nodes, elements
-!    type(csr_sparsity), pointer :: nelist
+               cont_apq, index_temp, cont_ready
 
     if ((cont_check /= 0).and.(cont_check_a==0)) then
+
+       ewrite(1,*) "Inside scenario_det_gone_through_wrong_face subroutine"
 
        bound_elem_iteration=0
 
@@ -3200,6 +4286,8 @@ contains
           !If the detector is not on one of the element faces (within tolerance +/-10.0e-8), then it needs to keep moving in the
           !direction of the flow until it hits a face.
 
+!          cont_cont=0
+
           do
 
           !As before this loop terminates when the detector is on one of the element faces (within tolerance +/-10.0e-8) 
@@ -3207,7 +4295,6 @@ contains
           !the wrong face. Same explanations as before apply
  
              cont_ready=0
-
 
           !This loop terminates when the detector is on one of the element faces (within tolerance +/-10.0e-8) and the min local
           !coordinate occurs with respect to a different face than before when the detector left through the wrong face. 
@@ -3233,6 +4320,8 @@ contains
 
                             index_temp=k
 
+                            ewrite(1,*) "index_temp", index_temp
+
                         end if
 
                     end if
@@ -3251,16 +4340,17 @@ contains
               
                  end if
 
-             end if
+                 ewrite(1,*) "index_temp", index_temp
 
+                 ewrite(1,*) "index_next_face", index_next_face
+
+             end if
  
              if (cont_ready /= 0) exit
-
           
              dt_temp_check=dt_temp+this_det%dt
              dt_var_check=dt-dt_temp_check
                
-
              if (dt_var_check<1.0e-3*dt) exit 
 
              if (dt_b-dt_a<1.0e-8) exit
@@ -3287,10 +4377,13 @@ contains
     real, intent(in) :: dt
     real, intent(inout) :: dt_temp
     real,  dimension(:), intent(inout) :: old_pos, vel, old_vel
+!    type(vector_field), pointer :: vfield, old_vfield
     integer, intent(in) :: cont_check
     integer, intent(inout) :: index_next_face, bound_elem_iteration
     
     if (cont_check == 0) then
+
+       ewrite(1,*) "Inside scenario_det_gone_through_right_face subroutine"
 
        call placing_det_in_boundary_between_elem(this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, index_next_face, bound_elem_iteration)
@@ -3302,9 +4395,10 @@ contains
   subroutine update_detector_position_bisect(this_det, xfield, old_pos, vel, old_vel)
     !!< Moves the detector in the direction of the flow from an initial position (old_pos) during a small time step equal to dt_var 
     !(a bisection of the total time step) and updates the local coordinates 
+!    type(state_type), dimension(:), intent(in) :: state
+
     type(detector_type), pointer :: this_det
     type(vector_field), intent(inout) :: xfield
-!   real, intent(in) :: dt_var
     real,  dimension(:), intent(in) :: old_pos, vel, old_vel
 
        this_det%position=((vel+old_vel)/2.0)*this_det%dt+old_pos
@@ -3313,20 +4407,21 @@ contains
 
   end subroutine update_detector_position_bisect
 
-  function detector_value_scalar(sfield, detector) result(value)
+ function detector_value_scalar(sfield, detector) result(value)
     !!< Evaluate field at the location of the detector.
     real :: value
     type(scalar_field), intent(in) :: sfield
     type(detector_type), intent(in) :: detector
 
     value=0.0
+    
     if(detector%element>0) then
        if(detector%element > 0) then
          value = eval_field(detector%element, sfield, detector%local_coords)
        end if
     end if
 
-    if(.not. detector%local) call allsum(value)
+    if (.not. detector%local) call allsum(value)
 
   end function detector_value_scalar
 
@@ -3336,7 +4431,8 @@ contains
     type(detector_type), intent(in) :: detector
     real, dimension(vfield%dim) :: value
 
-    value=0.0    
+    value=0.0
+    
     if(detector%element>0) then
       if(detector%element > 0) then
         value = eval_field(detector%element, vfield, detector%local_coords)
@@ -3390,7 +4486,7 @@ contains
     !! Closes .stat, .convergence and .detector file (if openened)
     !! Gives a warning for iostat/=0, no point to flabort though.
 
-    integer:: stat
+    integer:: stat, IERROR
 
     if (diag_unit/=0) then
        close(diag_unit, iostat=stat)
@@ -3405,7 +4501,7 @@ contains
           ewrite(0,*) "Warning: failed to close .convergence file"
        end if
     end if
-    
+
     if(steady_state_unit /= 0) then
       close(steady_state_unit, iostat = stat)
       if(stat /= 0) then
@@ -3417,6 +4513,13 @@ contains
        close(detector_unit, iostat=stat)
        if (stat/=0) then
           ewrite(0,*) "Warning: failed to close .detector file"
+       end if
+    end if
+
+    if (fh/=0) then
+       call MPI_FILE_CLOSE(fh, IERROR) 
+       if (IERROR/=0) then
+          ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
        end if
     end if
 

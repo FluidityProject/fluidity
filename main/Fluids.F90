@@ -134,6 +134,8 @@ contains
 
     integer :: i, it, its
 
+    logical :: not_to_move_det_yet = .false.
+
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     STUFF for MEsh movement, and Solid-fluid-coupling.  ------ jem
@@ -191,6 +193,7 @@ contains
     call check_diagnostic_dependencies(state)
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
+
        call adapt_state_first_timestep(state)
    
        ! Auxilliary fields.
@@ -315,6 +318,8 @@ contains
        call calculate_biology_terms(state(1))
     end if
 
+    call initialise_diagnostics(filename, state)
+
     ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
     ! Dump at start  
@@ -328,11 +333,12 @@ contains
        call write_state(dump_no, state)
     end if
     
-    call initialise_diagnostics(filename, state)
     call initialise_convergence(filename, state)
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
-    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+    
+    not_to_move_det_yet=.false.
     
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
@@ -425,6 +431,7 @@ contains
             exclude_nonreprescribed=.true.)
 
        ! nonlinear_iterations=maximum no of iterations within a time step
+
        nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
 
           ewrite(1,*)'###################'
@@ -621,7 +628,7 @@ contains
           if (have_option("/traffic_model")) then
              call traffic_source(state(1),timestep)
           end if
- 
+
           if (have_option("/implicit_solids")) then
              call solids(state(1))
           end if
@@ -698,7 +705,7 @@ contains
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
        ! Call the modern and significantly less satanic version of study
-       call write_diagnostics(state, current_time, dt)
+       call write_diagnostics(state, current_time, dt, timestep)
 
        if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
 
@@ -731,30 +738,32 @@ contains
              call pre_adapt_tasks()
 
              call qmesh(state, metric_tensor)
-
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
              
              call adapt_state(state, metric_tensor)
              call update_state_post_adapt(state, metric_tensor, dt)
-             
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
+            
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then    
               
               call pre_adapt_tasks()
-      
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)             
+               
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)             
              call run_diagnostics(state)
              
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt)
-             
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, not_to_move_det_yet=.true.)
+            
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
           end if
+        
+       not_to_move_det_yet=.false.
+
        end if
 
     end do timestep_loop
