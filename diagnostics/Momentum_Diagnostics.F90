@@ -50,7 +50,7 @@ module momentum_diagnostics
   private
   
   public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
-            calculate_imposed_material_velocity_source, &
+            calculate_tensor_second_invariant, calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_vector_potential, calculate_geostrophic_velocity 
@@ -61,16 +61,29 @@ contains
   subroutine calculate_strain_rate(state, t_field)
     type(state_type), intent(inout) :: state
     type(tensor_field), intent(inout) :: t_field
-
-    type(vector_field), pointer :: positions, velocity
+    
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: positions
 
     positions => extract_vector_field(state, "Coordinate")
-    velocity => extract_vector_field(state, "Velocity")
+    source_field => vector_source_field(state, t_field)
 
-    call strain_rate(velocity, positions, t_field)
+    call strain_rate(source_field, positions, t_field)
 
   end subroutine calculate_strain_rate
   
+  subroutine calculate_tensor_second_invariant(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(tensor_field), pointer :: source_field
+
+    source_field => tensor_source_field(state, s_field)
+
+    call tensor_second_invariant(source_field, s_field)
+
+  end subroutine calculate_tensor_second_invariant
+
   subroutine calculate_bulk_viscosity(states, t_field)
     type(state_type), dimension(:), intent(inout) :: states
     type(tensor_field), intent(inout) :: t_field

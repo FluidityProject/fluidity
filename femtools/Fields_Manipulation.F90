@@ -56,7 +56,7 @@ implicit none
     & renumber_positions_elements, &
     & renumber_positions_elements_trailing_receives, reorder_element_numbering
   public :: get_patch_ele, get_patch_node, patch_type
-  public :: set_ele_nodes, normalise
+  public :: set_ele_nodes, normalise, tensor_second_invariant
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -75,8 +75,7 @@ implicit none
 
   interface zero
      module procedure zero_scalar, zero_vector, zero_tensor, &
-          zero_vector_dim, zero_tensor_dim_dim, zero_scalar_field_nodes, &
-          zero_vector_field_nodes, zero_tensor_field_nodes
+          zero_vector_dim, zero_tensor_dim_dim
   end interface
 
   interface set_from_function
@@ -186,6 +185,33 @@ implicit none
 
     
   contains
+
+  subroutine tensor_second_invariant(source_field,s_field)
+      !!< This routine computes the second invariant of an infield tensor field
+      type(tensor_field), intent(in):: source_field
+      type(scalar_field), intent(inout) :: s_field
+      type(scalar_field) :: component
+
+      real, dimension(source_field%dim) :: evals
+      real, dimension(source_field%dim, source_field%dim) :: evecs, t
+
+      integer, dimension(source_field%dim) :: permutation
+
+      real :: s, v1, v2, v3, a
+      integer :: node
+
+      ! Making sure the second invariant gets evaluated over the whole mesh
+      do node=1,node_count(s_field)
+             call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
+             v1 = evals(1)
+             v2 = evals(2)
+             v3 = evals(3)
+             s = (v1*v2 + v2*v3 + v3*v1)
+             call set(s_field, node, s)
+      end do
+
+  end subroutine tensor_second_invariant
+
   
   subroutine zero_scalar(field)
     !!< Set all entries in the field provided to 0.0
@@ -3653,9 +3679,10 @@ implicit none
     
     ! Now we have the nodes in a known order. However, some elements may
     ! be inverted. This is only an issue in 3D.       
+
     if(mesh_dim(mesh) == 3) then
       do ele = 1, element_count(mesh)
-        nodes => ele_nodes(mesh, ele)    
+        nodes => ele_nodes(mesh, ele)
         if(simplex_volume(positions, ele) < 0.0) then
           tmp = nodes(1)
           nodes(1) = nodes(2)
@@ -3663,24 +3690,24 @@ implicit none
         end if
       end do
     end if
-    
+
     call remove_eelist(mesh)
     if(has_faces(mesh)) then
       call update_faces(mesh, sndgln)
       deallocate(sndgln)
     end if
-      
+
   contains
-   
+
     subroutine update_faces(mesh, sndgln)
       type(mesh_type), intent(inout) :: mesh
       integer, dimension(face_loc(mesh, 1) * surface_element_count(mesh)), intent(in) :: sndgln
-      
+
       integer, dimension(surface_element_count(mesh)) :: boundary_ids
       integer, dimension(:), allocatable :: coplanar_ids, element_owners
-      
+
       assert(has_faces(mesh))
-      
+
       boundary_ids = mesh%faces%boundary_ids
       if(associated(mesh%faces%coplanar_ids)) then
         allocate(coplanar_ids(surface_element_count(mesh)))
@@ -3689,7 +3716,7 @@ implicit none
 
       allocate(element_owners((surface_element_count(mesh))))
       element_owners = mesh%faces%face_element_list(1:surface_element_count(mesh))
-      
+
       call deallocate_faces(mesh)
       call add_faces(mesh, sndgln = sndgln, element_owner=element_owners)
       mesh%faces%boundary_ids = boundary_ids
@@ -3699,9 +3726,10 @@ implicit none
         deallocate(coplanar_ids)
       end if
       deallocate(element_owners)
-        
+
     end subroutine update_faces
 
   end subroutine reorder_element_numbering
 
 end module fields_manipulation
+
