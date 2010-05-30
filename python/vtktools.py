@@ -406,12 +406,14 @@ class vtu:
     return integral
 
   def GetCellVolume(self, id):
-    Cell = self.ugrid.GetCell(id)
-    pts = Cell.GetPoints()
-    if Cell.GetNumberOfPoints() == 4:
-      return abs(Cell.ComputeVolume(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2), pts.GetPoint(3)))
-    if Cell.GetNumberOfPoints() == 3:
-      return abs(Cell.ComputeVolume(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2)))
+    cell = self.ugrid.GetCell(id)
+    pts = cell.GetPoints()
+    if isinstance(cell, vtk.vtkTriangle):
+      return cell.TriangleArea(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2))
+    elif cell.GetNumberOfPoints() == 4:
+      return abs(cell.ComputeVolume(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2), pts.GetPoint(3)))
+    elif cell.GetNumberOfPoints() == 3:
+      return abs(cell.ComputeVolume(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2)))
     else:
       raise Exception("Unexpected number of points")
 
