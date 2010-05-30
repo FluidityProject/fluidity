@@ -84,6 +84,7 @@
     
 #ifdef HAVE_MPI
     call mpi_init(ierr)
+    assert(ierr == MPI_SUCCESS)
 #endif
 
 #ifdef HAVE_PETSC
@@ -176,7 +177,7 @@
           call output_state(state)
        end if
 
-       call write_diagnostics(state,current_time,dt)
+       call write_diagnostics(state,current_time,dt, timestep)
        
        if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
          if(do_adapt_state_prescribed(current_time)) then                       
@@ -201,7 +202,7 @@
     ! One last dump
     call output_state(state)
 
-    call write_diagnostics(state,current_time,dt)
+    call write_diagnostics(state,current_time,dt,timestep)
 
     call deallocate(h_mass_mat)
     call deallocate(u_mass_mat)
@@ -222,6 +223,7 @@
 
 #ifdef HAVE_MPI
     call mpi_finalize(ierr)
+    assert(ierr == MPI_SUCCESS)
 #endif
 
   contains
