@@ -68,7 +68,7 @@ contains
     real :: dx2, c1, c2
 
     bc_count=get_boundary_condition_count(streamfunc)
-    
+       
     if(.not.(allocated(flux_face_list))) then
        allocate(flux_face_list(bc_count))
        allocate(flux_normal(2, bc_count))
@@ -90,9 +90,9 @@ contains
        end if
        
        ! We must be on a secondary boundary.
-       call get_option(trim(option_path)//"/secondary_boundary/start_point"&
+       call get_option(trim(option_path)//"/secondary_boundary/primary_point"&
             &, start) 
-       call get_option(trim(option_path)//"/secondary_boundary/end_point"&
+       call get_option(trim(option_path)//"/secondary_boundary/secondary_point"&
             &, end) 
        
        dx=start-end
@@ -188,8 +188,8 @@ contains
       face_flux=0.0
 
       do gi=1, size(detwei)
-         face_flux=face_flux+dot_product(flux_normal(:,bc_num),normal(:,gi))&
-              * dot_product(U_quad(:,gi),normal(:,gi))&
+         face_flux=face_flux+abs(dot_product(flux_normal(:,bc_num),normal(:,gi)))&
+              * dot_product(U_quad(:,gi),flux_normal(:,bc_num))&
               * detwei(gi)
       end do
 
@@ -203,13 +203,13 @@ contains
     type(scalar_field), intent(inout) :: streamfunc
     integer, intent(out), optional :: stat
     
-    integer :: i, lstat, ele, j, face
+    integer :: i, lstat, ele
     type(vector_field), pointer :: X, U
     type(csr_sparsity) :: psi_sparsity
     type(csr_matrix) :: psi_mat
     type(scalar_field) :: rhs
     real :: flux_val
-    integer, dimension(:), pointer :: surface_element_list
+    type(scalar_field), pointer :: surface_field
 
     do i = 1, 2
        select case(i)
@@ -229,13 +229,13 @@ contains
        FLExit("Streamfunction is only valid in 2d")
     end if
     ! No discontinuous stream functions.
-    if (continuity(streamfunc)>=0) then
+    if (continuity(streamfunc)<0) then
        FLExit("Streamfunction must be a continuous field")    
     end if
 
     if (last_adapt<eventcount(EVENT_ADAPTIVITY)) then
        last_adapt=eventcount(EVENT_ADAPTIVITY)
-
+       
        call find_stream_paths(X, streamfunc)
     end if
     
@@ -259,27 +259,20 @@ contains
        call calculate_streamfunc_ele(psi_mat, rhs, ele, X, U)
 
     end do
-    
+
     do i = 1, get_boundary_condition_count(streamfunc)
-       call get_boundary_condition(streamfunc, i, &
-            surface_element_list=surface_element_list)
+
+       surface_field=>extract_surface_field(streamfunc, i, "value")
 
        flux_val=boundary_value(X,U,i)
 
-       do j=1,size(surface_element_list)
-          face=surface_element_list(i)
-
-          ! Strong dirichlet condition (currently the only thing supported)
-          call addto_diag(psi_mat, &
-               face_global_nodes(rhs, face), &
-               spread(INFINITY, 1, face_loc(rhs,face)))
-
-          call addto(rhs, &
-               face_global_nodes(rhs, face), &
-               spread(INFINITY, 1, face_loc(rhs,face))*flux_val)
-       end do
+       call set(surface_field, flux_val)
 
     end do
+
+    call zero(streamfunc)
+
+    call apply_dirichlet_conditions(psi_mat, rhs, streamfunc)
 
     call petsc_solve(streamfunc, psi_mat, rhs)
 
@@ -324,8 +317,8 @@ contains
       call transform_to_physical(X, ele, psi_shape, dshape=dpsi_t)
 
       call addto(psi_mat, psi_ele, psi_ele, &
-           -dshape_dot_dshape(dpsi_t, dpsi_t, detwei))
-      
+           dshape_dot_dshape(dpsi_t, dpsi_t, detwei))
+
       lvorticity_mat=shape_curl_shape_2d(psi_shape, du_t, detwei)
       
       lvorticity=0.0
@@ -334,23 +327,8 @@ contains
               +matmul(lvorticity_mat(i,:,:), ele_val(U, i, ele))
       end do
       
-      call addto(rhs, psi_ele, lvorticity)
+      call addto(rhs, psi_ele, -lvorticity)
       
-!!$      neigh=>ele_neigh(U, ele)
-!!$      
-!!$      neighbourloop: do ni=1,size(neigh)
-!!$         ! Find boundaries.
-!!$         if (neigh(ni)<=0) then
-!!$
-!!$            face=ele_face(rhs, ele, neigh(ni))
-!!$
-!!$            ! Strong dirichlet condition (currently the only thing supported)
-!!$            call addto_diag(psi_mat, &
-!!$                 face_global_nodes(rhs, face), &
-!!$                 spread(INFINITY, 1, face_loc(rhs,face)))
-!!$         end if
-!!$      end do neighbourloop
-
     end subroutine calculate_streamfunc_ele
 
   end subroutine calculate_stream_function_multipath_2d
