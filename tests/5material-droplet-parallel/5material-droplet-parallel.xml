@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml solidity</tags>
     <problem_definition length="medium" nprocs="1">
-    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l 5material-droplet.flml &amp;&amp; ../../scripts/pvtu2vtu 5material-droplet 0 20</command_line>
+    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l 5material-droplet.flml</command_line>
   </problem_definition>  
   <variables>  
     <variable name="endtime" language="python">
@@ -105,49 +105,38 @@ mxvfracsum = max(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['
 import fluidity_tools
 mnvfracsum = min(fluidity_tools.stat_parser("5material-droplet.stat")['Water']['SumMaterialVolumeFractions']['min'])
     </variable>
-    <variable name="serial_error_10" language="python">
+    <variable name="serial_error" language="python">
 import vtktools
+import fluidity.diagnostics.vtutools as vtutools
 from numpy import array as arr
-vtup = vtktools.vtu("5material-droplet_10.vtu")
-vtus = vtktools.vtu("src/5material-droplet-serial_10.vtu")
-vtud = vtktools.VtuDiff(vtus,vtup)
-names = vtud.GetFieldNames()
-serial_error_10 = [0,0,0]
-for i in range(len(names)):
-   if((vtud.GetFieldRank(names[i])==0)and(names[i]!="Water::Pressure")and(names[i]!="Water::Density")):
-      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
-      print names[i], field_error
-      serial_error_10[0] = max(serial_error_10[0], field_error)
-   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Pressure")):
-      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
-      print names[i], field_error
-      serial_error_10[1] = max(serial_error_10[1], field_error)
-   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Density")):
-      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
-      print names[i], field_error
-      serial_error_10[2] = max(serial_error_10[2], field_error)
-    </variable>
-    <variable name="serial_error_20" language="python">
-import vtktools
-from numpy import array as arr
-vtup = vtktools.vtu("5material-droplet_20.vtu")
-vtus = vtktools.vtu("src/5material-droplet-serial_20.vtu")
-vtud = vtktools.VtuDiff(vtus,vtup)
-names = vtud.GetFieldNames()
-serial_error_20 = [0,0,0]
-for i in range(len(names)):
-   if((vtud.GetFieldRank(names[i])==0)and(names[i]!="Water::Pressure")and(names[i]!="Water::Density")):
-      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
-      print names[i], field_error
-      serial_error_20[0] = max(serial_error_20[0], field_error)
-   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Pressure")):
-      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
-      print names[i], field_error
-      serial_error_20[1] = max(serial_error_20[1], field_error)
-   if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Density")):
-      field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
-      print names[i], field_error
-      serial_error_20[2] = max(serial_error_20[2], field_error)
+filelist = ["5material-droplet_10.pvtu", "5material-droplet_20.pvtu"]
+
+pvtu = vtktools.vtu(filelist[0])
+model, oldNodeIdToNew, oldCellIdToNew = vtutools.ModelVtuFromPvtu(pvtu)
+
+serial_error = []
+for f in range(len(filelist)):
+  pvtu = vtktools.vtu(filelist[f])
+  vtup = vtutools.VtuFromPvtu(pvtu, model = model,
+                                    oldNodeIdToNew = oldNodeIdToNew,
+                                    oldCellIdToNew = oldCellIdToNew)
+  vtus = vtktools.vtu("src/serial_vtus/"+filelist[f][:-5]+".vtu")
+  vtud = vtktools.VtuDiff(vtus,vtup)
+  names = vtud.GetFieldNames()
+  serial_error.append([0,0,0])
+  for i in range(len(names)):
+     if((vtud.GetFieldRank(names[i])==0)and(names[i]!="Water::Pressure")and(names[i]!="Water::Density")):
+        field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+        print names[i], field_error
+        serial_error[f][0] = max(serial_error[f][0], field_error)
+     if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Pressure")):
+        field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+        print names[i], field_error
+        serial_error[f][1] = max(serial_error[f][1], field_error)
+     if((vtud.GetFieldRank(names[i])==0)and(names[i]=="Water::Density")):
+        field_error = max(abs(arr(vtud.GetScalarRange(names[i]))))
+        print names[i], field_error
+        serial_error[f][2] = max(serial_error[f][2], field_error)
     </variable>
   </variables>
     <pass_tests>  
@@ -215,22 +204,22 @@ assert abs(mnvfracsum) &lt; 1e-10
 assert abs(mxvfracsum-1.0) &lt; 1e-10
     </test>
     <test name="check error to serial in middle" language="python">
-assert serial_error_10[0] &lt; 1.E-6
+assert serial_error[0][0] &lt; 1.E-6
     </test>
     <test name="check error to serial at end" language="python">
-assert serial_error_20[0] &lt; 1.E-6
+assert serial_error[1][0] &lt; 1.E-6
     </test>
     <test name="check pressure error to serial in middle" language="python">
-assert serial_error_10[1] &lt; 1.E-3
+assert serial_error[0][1] &lt; 1.E-3
     </test>
     <test name="check pressure error to serial at end" language="python">
-assert serial_error_20[1] &lt; 1.E-2
+assert serial_error[1][1] &lt; 1.E-2
     </test>
     <test name="check density error to serial in middle" language="python">
-assert serial_error_10[2] &lt; 1.E-3
+assert serial_error[0][2] &lt; 1.E-3
     </test>
     <test name="check density error to serial at end" language="python">
-assert serial_error_20[2] &lt; 1.E-3
+assert serial_error[1][2] &lt; 1.E-3
     </test>
   </pass_tests>
   <warn_tests>
