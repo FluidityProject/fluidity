@@ -168,9 +168,9 @@ def PrintVtu(vtu, debugLevel = 0):
   
   return
      
-def PvtuToVtu(pvtu):
+def ModelPvtuToVtu(pvtu):
   """
-  Convert a parallel vtu to a serial vtu. Does nothing (except generate a copy)
+  Convert a parallel vtu to a serial vtu but without any fields. Does nothing (except generate a copy)
   if the supplied vtu is already a serial vtu.
   """
   
@@ -359,10 +359,31 @@ def PvtuToVtu(pvtu):
       idList.InsertNextId(nodeId)
     result.ugrid.InsertNextCell(cell.GetCellType(), idList)
   
+  return result, oldNodeIdToNew, oldCellIdToNew
+
+ModelVtuFromPvtu = ModelPvtuToVtu
+
+def PvtuToVtu(pvtu, model = None, oldNodeIdToNew = [], oldCellIdToNew = [],
+                    fieldlist = []):
+  """
+  Convert a parallel vtu to a serial vtu. Does nothing (except generate a copy)
+  if the supplied vtu is already a serial vtu.
+  """
+  
+  # Steps 1-5 are now handled by ModelPvtuToVtu (or aren't necessary if
+  # additional information is passed to PvtuToVtu)
+  if((model == None) or (len(oldNodeIdToNew) != pvtu.ugrid.GetNumberOfPoints()) 
+                     or (len(oldCellIdToNew) != pvtu.ugrid.GetNumberOfCells())):
+    result, oldNodeIdToNew, oldCellIdToNew = ModelPvtuToVtu(pvtu)
+  else:
+    result = model
+
   # Step 6: Generate the new point data
   for i in range(pvtu.ugrid.GetPointData().GetNumberOfArrays()):
     oldData = pvtu.ugrid.GetPointData().GetArray(i)
     name = pvtu.ugrid.GetPointData().GetArrayName(i)
+    if len(fieldlist) > 0 and name not in fieldlist:
+      continue
     debug.dprint("Processing point data " + name)
     components = oldData.GetNumberOfComponents()
     tuples = oldData.GetNumberOfTuples()
@@ -370,7 +391,7 @@ def PvtuToVtu(pvtu):
     newData = vtk.vtkDoubleArray()
     newData.SetName(name)
     newData.SetNumberOfComponents(components)
-    newData.SetNumberOfValues(components * tuples)
+    newData.SetNumberOfValues(result.ugrid.GetNumberOfPoints()*components)
     for nodeId in range(tuples):
       newNodeId = oldNodeIdToNew[nodeId]
       if not newNodeId is None:
@@ -382,6 +403,8 @@ def PvtuToVtu(pvtu):
   for i in range(pvtu.ugrid.GetCellData().GetNumberOfArrays()):
     oldData = pvtu.ugrid.GetCellData().GetArray(i)
     name = pvtu.ugrid.GetCellData().GetArrayName(i)
+    if len(fieldlist) > 0 and name not in fieldlist:
+      continue
     debug.dprint("Processing cell data " + name)
     if name == "vtkGhostLevels":
       debug.dprint("Skipping ghost level data")
@@ -392,7 +415,7 @@ def PvtuToVtu(pvtu):
     newData = vtk.vtkDoubleArray()
     newData.SetName(name)
     newData.SetNumberOfComponents(components)
-    newData.SetNumberOfValues(components * tuples)
+    newData.SetNumberOfValues(result.ugrid.GetNumberOfCells()*components)
     for cellId in range(tuples):
       newCellId = oldCellIdToNew[cellId]
       if not newCellId is None:
