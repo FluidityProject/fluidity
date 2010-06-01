@@ -19,11 +19,35 @@ make fltools
 inside your \fluidity\ folder.The fldecomp binary will then be created in the bin/ directory. 
 You can then decompose the initial mesh into multiple regions, one per process using the following command
 \begin{lstlisting}[language=bash]
-fldecomp -i triangle -n [PARTS] [BASENAME]
+fldecomp -n [PARTS] [BASENAME]
 \end{lstlisting}
 where BASENAME is the triangle mesh base name (excluding extensions). "-i triangle"
 instruct fldecomp to perform a triangle-to-triangle decomposition. 
 This will create PARTS partition triangle meshes together with PARTS .halo files. 
+
+\subsection{Decomposing a periodic mesh}
+
+To decompose a periodic mesh to be run on four processors simply type:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 ./myfluidity/bin/flredecomp \
+    -i 1 -o 4 foo_periodised foo_periodised_flredecomp
+\end{lstlisting}
+
+Where:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n [target number of processors] \
+   ./myfluidity/bin/flredecomp -i [input number of processors] \
+        -o [target number of processors] [input flml] [output flml]
+\end{lstlisting}
+
+The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
+\end{lstlisting}
 
 \section{Running}
 
@@ -33,3 +57,39 @@ within the mpirun or mpiexec framework. Simply prepend the normal command line w
 mpiexec -n [PROCESSES] dfluidity -l -v2 my_setup.flml
 \end{lstlisting}
 
+\subsection{Running a periodic extruded mesh}
+
+Running a periodic extruded mesh (section \ref{mesh!extruded}) in parallel, requires a number of steps to be taken in order to provide flredecomp (required to make the periodic mesh) with a 2D periodic mesh:
+
+\begin{itemize}
+\item Make the periodic 2D flml from the periodic 2plus1 flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/scripts/make_periodic_2D_flml foo.flml
+\end{lstlisting}
+\item Periodise the new 2D flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/periodise foo_2D.flml
+\end{lstlisting}
+\item Flredecomp the periodised 2D flml
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 ./myfluidity/bin/flredecomp \
+    -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
+\end{lstlisting}
+\item Periodise the 2plus1 flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/periodise foo.flml
+\end{lstlisting}
+\item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
+\item Run the parallel flml as before
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   ./myfluidity/bin/fluidity [options] foo_periodised.flml
+\end{lstlisting}
+\end{itemize}
+
+There is only one required mesh: the CoordinateMesh. Some settings, fields or other
+settings have specific mesh requirements. This are discussed under the appropriate options.
+
+\subsection{Running in paralell with debugging}
+
+\subsection{Running in the ICT Cluster}
