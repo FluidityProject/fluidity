@@ -288,6 +288,7 @@ this option enabled fluidity will then perform the specified extrusion towards t
 
 \subsubsection{Required meshes}
 \index{mesh!required}
+Only the Coordinate mesh is now required by fluidity.
 
 Only one mesh is required: the CoordinateMesh. Other meshes are strongly recommended
 when using certain features of \fluidity and are described in the appropriate sections.
@@ -568,7 +569,10 @@ Limits the number of dumps by overwriting the previous dumps after the number sp
 
 \subsubsection{Convergence}
 
+You can check certain fields for convergence during nonlinear iterations.  To do this switch on \option{/timestepping/nonlinear\_iterations} and \option{/timestepping/nonlinear\_iterations/tolerance} and switch on the convergence option under the fields that you want to check for convergence. 
 
+It is possible to enable the creation of a convergence file, giving details of the convergence of each field over the global nonlinear iteration loop. The .convergence file is in the same format as the .stat file. In order to do this, switch on 
+\option{/io/convergence}  and \option{/io/convergence/convergence\_file}.  You still need the options in the above paragraph.
 
 \subsubsection{Checkpointing}
 \index{checkpointing} Enables checkpointing, which saves sufficient
@@ -779,6 +783,7 @@ iteration. Finally, a desired $\Delta T$ can be calculated at the first time ite
 switching on the option: \option{\ldots/at\_first\_timestep}
 
 \subsubsection{Steady state}
+It is possible to run fludity until it converges to a steady state; this is sometimes useful for initialising a problem. In order to do this, switch on \option{/timestepping/steady\_state} and set a tolerance. 
 
 \subsection{Physical parameters}
 These options control global physical quantities.
