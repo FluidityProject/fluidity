@@ -692,9 +692,9 @@ basis functions and $\psi_i$ for the pressure basis functions.
 See section \ref{later} for a discussion of suitable element-pairs.
 
 The pressure gradient matrix is then simply given by
-\begin{equation*}
-  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j
-\end{equation*}
+\begin{equation}
+  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j \label{pgmatrix}
+\end{equation}
 In fact this is a vector of matrices, where each matrix corresponds
 to a derivative in $\vec\nabla$. Note that \fluidity\ only supports
 a continuous pressure discretisation so that the same 
@@ -728,6 +728,52 @@ where (again assuming CG and ignoring boundary conditions):
 \end{equation*}
 
 \section{Pressure equation for incompressible flow}
+For incompressible flow the momentum equation needs to be solved 
+in conjunction with the continuity equation 
+$\div\vec u=0$. The discretised weak form of 
+this equation, integrated by parts, is given by
+\begin{equation*}
+  \sum_j \int_\Omega \left(\grad\psi_i\right)\cdot\phi_j \vec u_j - 
+    \int_\dOmega \psi_i\phi_j \vec u_j\cdot\vec n = 0.
+\end{equation*}
+Similar to the advection equation, dirichlet boundary conditions for the 
+normal component of the velocity can be implemented by replacing
+the $\vec u\cdot\vec n$ in the boundary integral by its prescribed 
+value $g_D$. For this purpose we split up the 
+boundary $\dOmega$ into a part
+$\dOmega_D$ where we prescribe $\vec u\cdot\vec n=g_D$ and 
+$\dOmega_{\mathrm{open}}$ where the normal component is left free.
+
+Note that the test functions $\psi_i$ we use here are the 
+same as the pressure trial functions used above. As a consequence
+the first term involves a matrix that is the
+transpose of \eqref{pgmatrix}. Therefore if we redefine the pressure 
+gradient matrix as
+\begin{equation*}
+  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j 
+    -\int_{\dOmega_{\mathrm{open}}} \phi_i\psi_j \vec n,
+\end{equation*}
+we can write the continuity equation in the following matrix form:
+\begin{equation*}
+  \vec{\mat{C}}^T \dvec\bmu=
+    \vec{\mat{M}}_D ~\dvec{g}{}_D, 
+    \quad\text{ with }
+    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\phi_j\vec n
+\end{equation*}
+
+The extra surface integral over $\dOmega_{\mathrm{open}}$ in 
+$\vec{\mat{C}}$ in the momentum equation will enforce
+a $p=0$ boundary condition at this part of the boundary. An inhomogoneous 
+pressure boundary condition can also be applied by adding the corresponding
+surface integral term into the righthand side of the momentum equation.
+Using the transpose of the pressure gradient operator, including its
+boundary terms, for the continuity equation thus automatically 
+enforces the correct physical boundary conditions; If the normal 
+component of the velocity is prescribed in the continuity equation, 
+we get the usual no normal stress condition. If the normal component 
+is left free we have to prescribe a pressure instead. The boundary 
+conditions in the tangential direction (slip/no-slip) are independent of this choice.
+
 
 \subsection{Pressure correction}
 \index{pressure!correction}
