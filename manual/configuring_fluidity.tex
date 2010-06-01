@@ -1140,8 +1140,12 @@ from $k-\epsilon$, $k-kl$, $k-\omega$ and $gen$. Next, the stability functions
 can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model, then switching on the 
 \option{\ldots/calculate\_boundaries} is recommended. You must also enable 
 \option{/geometry/ocean\_boundaries}. Finally, you can enable a number of optional diagnostic fields.
+There is also an option, \option{\ldots/calculate\_boundaries/fix\_surface\_values} which imposes
+quasi-Diriclet boundary conditions on the diagnostic fields. This option is useful when using adaptivity
+and GLS.
 
-The user can also choose to relax the diffusivity and viscosity calculated by switching on the
+The user can also choose to relax the diffusivity and viscosity calculated by switching on the\linebreak
+
 \option{\ldots/relax\_diffusivity}. The value specified must be between 0 and 1.0. A value of 0 indicates
 no relaxation, 1.0 would indicate no changes to be made. If this option is activated, the diagnostic fields
 \option{GLSTurbulentVerticalDiffusivity} and \option{GLSTurbulentVerticalViscosity} must also

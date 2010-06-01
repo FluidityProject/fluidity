@@ -96,67 +96,10 @@ $F_{\mathrm{wall}}$   & Eq \ref{fwall} & 1.0          & 1.0          & 1.0      
 \label{tab:glsparams}
 \end{table}
 
-\subsection{$k-\epsilon$ model} 
-\index{k-epsilon@$k-\epsilon$ closure}
-\begin{gather}
-\frac{\partial k}{\partial t}+U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma^\epsilon_k}\frac{\partial k}{\partial z}\right) + P + B -\epsilon\\
-\frac{\partial\epsilon}{\partial t}+U_i\frac{\partial\epsilon}{\partial x_i}
-= \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\epsilon}\frac{\partial k}{\partial z}\right) + \frac{\epsilon}{k}(c_1P + c_3B -c_2\epsilon)
-\end{gather}
-
-where where $\sigma^\epsilon_k$ (1.0) is the Schmidt number for the eddy diffusivity of turbulent kinetic energy 
-and $\sigma_\epsilon$ (1.4) is the Schmidt number for the eddy diffusivity of dissipation with $c_{\epsilon1}=1.44$, 
-$c_{\epsilon1}=1.92$, and $c_{\epsilon3}$ takes a value depending on the stability function.
-
-\subsection{MY25 (and $k-kl$)}
-\index{Mellor-Yamada closure}
-
-The Mellor-Yamada level 2.5 closure scheme, denoted here by $k-kl$. To arrive at $k-kl$, set $p=0$, $m=1.0$, and $n=0$, which yields:
-
-\begin{equation}
-\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(K_Q\frac{\partial k}{\partial z}\right) + P + B - \epsilon
-\end{equation}
-and
-\begin{equation}
-\frac{\partial}{\partial t}(kl) + U_i\frac{\partial}{\partial x_i}(kl) = \frac{\partial}{\partial z}\left(K_Q\frac{\partial}{\partial z}(kl)\right) + l(c_1P + c_3B - c_2\epsilon F_{\mathrm{wall}})
-\end{equation}
-
-where 
-\begin{equation}
-K_Q=\frac{K_M}{\sigma_q}
-\end{equation}
-where $\sigma_q=2.44$ is the Schmidt number for $k$ and the wall function, $F_{\mathrm{wall}}$:
-\begin{equation}
-F_{\mathrm{wall}}=\left(1+E_2\left(\frac{l}{\kappa}\frac{d_b + d_s}{d_bd_s}\right)^2\right)
-\label{fwall}
-\end{equation} 
-The parameters $d_b$ and $d_s$ are the distances to the bottom and surface respectively, $E_2=1.33$, and $\kappa=0.41$, the von Karman's constant. For values of $d_s$ or $d_b$ less than $1.0$, the term $\left(\frac{l}{\kappa}\frac{d_b + d_s}{d_bd_s}\right)^2$ is set to $1.0$. Note there are alternative formulations of the wall functions.
-
-\subsection{$k-\omega$}
-\index{k-omega@$k-\omega$ closure}
-The parameter $\omega$ can be considered ``a frequency characteristic of the turbulence decay process'' and is related to dissipation by:
-\begin{equation}
-\omega = \frac{\epsilon}{{\left(c_\mu^0\right)}^4k}
-\end{equation}
-
-This gives the two turbulence equations:
-\begin{equation}
-\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k^\omega}\frac{\partial k}{\partial z}\right) + P + B - \epsilon
-\end{equation}
-and
-\begin{equation}
-\frac{\partial\omega}{\partial t} + U_i\frac{\partial\omega}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\omega}\frac{\partial\omega}{\partial z}\right) + \frac{\omega}{k}(c_1P + c_3B - c_2\epsilon)
-\end{equation}
-
-where $\sigma_k^\omega=2.0$ is the Schmidt number for the eddy diffusivity of turbulent kinetic energy and $\sigma_\omega=2.0$ is the Schmidt number for the eddy diffusivity of $\omega$.
-
-\subsection{\emph{gen}}
-
-The \emph{gen} model can be obtained from the GLS equations \eqref{tke_one} and \eqref{psi_one} by specifying $p=2.0$, $m=1.0$, and $n=-0.67$, which returns equations , but does not require a wall function ($F_{\mathrm{wall}}=1.0$).
 
 \subsection{Stability functions}
 
-The second-order moments is now closed, bar the definition of the stability functions, $S_M$ and $S_H$, 
+The second-order moments are now closed, bar the definition of the stability functions, $S_M$ and $S_H$, 
 which are a function of $\alpha_M$ and $\alpha_N$, defined as:
 \begin{equation*}
 \alpha_M=\frac{k^2}{\epsilon^2}M^2, \;\;\;
