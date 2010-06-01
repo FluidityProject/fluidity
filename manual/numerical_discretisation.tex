@@ -1,6 +1,7 @@
 !\chapter{Numerical discretisation}\label{chap:numerical_discretisation}
 
 \section{Discretisation of the advection diffusion equation}
+\label{Sect:ND_advection_diffusion_discretisation}
 
 The advection-diffusion equation for a scalar tracer, $T$,
 is given in conservative form by:
@@ -263,6 +264,7 @@ elements make a consistent choice for the flux between them. The choice of flux
 schemes therefore forms a critical component of the discontinuous Galerkin method.
 
 \subsection{Discontinuous Galerkin advection}
+\label{Sect:ND_discontinuous_galerkin_advection}
 
 Consider first the advection operator. 
 
@@ -325,6 +327,7 @@ more accurate as the internal outflow boundary integrals are canceled exactly.
 
 
 \section{Advective stabilisation for CG}
+\label{Sect:ND_advective_stabilisation_CG}
 \index{advection-diffusion equation!continuous Galerkin}
 \index{Galerkin!continuous!advection}
 \index{stabilisation!advection}
@@ -559,6 +562,7 @@ bounded element-wise, and hence the adjustment schemes are called
 \emph{Slope Limiters}.
 
 \subsection{Types of slope limiter}
+\label{Sect:ND_DG_slope_limiters}
 \index{slope limiters}
 There are two stages in any slope limiter. First all the elements
 which do not currently satisfy the element bounded condition must be
@@ -652,6 +656,7 @@ the efficiency of the method.
 \index{diffusion!discontinuous Galerkin!CDG}
 
 \section{Momentum Equation}
+\label{Sect:ND_momentum_equation}
 The discretisation of the momentum equation in non-conservative 
 form \eqref{nonconmom} is very similar to that of the advection 
 diffusion equation. Assuming a tensor form for viscosity, we 
@@ -728,6 +733,7 @@ where (again assuming CG and ignoring boundary conditions):
 \index{pressure!correction}
 
 \subsection{CG and mass lumping}
+\label{Sect:ND_cg_mass_lumping}
 \index{mass lumping}
 
 
@@ -740,6 +746,7 @@ where (again assuming CG and ignoring boundary conditions):
 \section{Multi-whatever}
 
 \section{Balance pressure}
+\label{Sect:balance_pressure}
 \index{pressure!balance}
 Why and how
 
