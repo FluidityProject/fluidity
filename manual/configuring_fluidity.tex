@@ -177,6 +177,18 @@ for pressure is the same as your \option{CoordinateMesh}, e.g.
 for \Poo or \Pzero\Pone, the pressure can be defined directly on
 the \option{CoordinateMesh} and no extra mesh is needed.
 
+\subsubsection{Extruded meshes}\label{sect:extruded_meshes}
+\index{mesh!extruded}
+
+Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
+by checking the extrude option under \ldots/from mesh. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
+between layers). These distances can currently be entered as a constant, a generic\_function or
+as a python function. Optionally, the user can then set the surface id given to the top and bottom surfaces. 
+
+As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file), given a pseudo 2D mesh on a spherical shell, fluidity can perform
+and extrusion in the radial direction. To perform such an extrusion simply enable the options as noted above and additionally check the geometry/spherical\_earth option. With
+this option enabled fluidity will then perform the specified extrusion towards the center of the sphere.
+
 \subsubsection{Periodic meshes}
 \index{mesh!periodic} \index{periodic domain} Periodic meshes are those that
 are ``virtually'' connected in one or more directions. To make a periodic
@@ -274,20 +286,35 @@ mpiexec -n [number of processors] \
    ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
 \end{lstlisting}
 
-\subsubsection{Extruded meshes}\label{sect:extruded_meshes}
-\index{mesh!extruded}
+Running a periodic extruded mesh (section \ref{mesh!extruded}) in parallel, requires a number of steps to be taken in order to provide flredecomp (required to make the periodic mesh) with a 2D periodic mesh:
 
-Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
-by checking the extrude option under \ldots/from mesh. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
-between layers). These distances can currently be entered as a constant, a generic\_function or
-as a python function. Optionally, the user can then set the surface id given to the top and bottom surfaces. 
+\begin{itemize}
+\item Make the periodic 2D flml from the periodic 2plus1 flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/scripts/make_periodic_2D_flml foo.flml
+\end{lstlisting}
+\item Periodise the new 2D flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/periodise foo_2D.flml
+\end{lstlisting}
+\item Flredecomp the periodised 2D flml
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 ./myfluidity/bin/flredecomp \
+    -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
+\end{lstlisting}
+\item Periodise the 2plus1 flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/periodise foo.flml
+\end{lstlisting}
+\item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
+\item Run the parallel flml as before
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   ./myfluidity/bin/fluidity [options] foo_periodised.flml
+\end{lstlisting}
+\end{itemize}
 
-As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file), given a pseudo 2D mesh on a spherical shell, fluidity can perform
-and extrusion in the radial direction. To perform such an extrusion simply enable the options as noted above and additionally check the geometry/spherical\_earth option. With
-this option enabled fluidity will then perform the specified extrusion towards the center of the sphere.
 
-\subsubsection{Required meshes}
-\index{mesh!required}
 
 There is only one required mesh: the CoordinateMesh. Some settings, fields or other
 settings have specific mesh requirements. This are discussed under the appropriate options.
