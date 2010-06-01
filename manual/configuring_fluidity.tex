@@ -1068,7 +1068,7 @@ from other variables such as temperature and salinity. For compressible
 flows it can be a more general relation between the state variables
 including density and pressure.
 
-There are two ``fluids'' equations of state available and one ``multimaterial'' EOS:
+The following EOS are available:
 
 \begin{description}
 \item\option{\ldots/equation\_of\_state/fluids/linear} 
@@ -1076,7 +1076,7 @@ Is a simple linear equation of state,
 where density is a function of temperature and salinity.
 
 \item\option{\ldots/equation\_of\_state/fluids/ocean\_pade\_approximation} Is a complex EOS for ocean modelling where density is a function of temperature, salinity and pressure.
-\item\option{\ldots/equation\_of\_state/multimaterial/miegrunneisen} Is simple compressible material EOS.
+\item\option{\ldots/equation\_of\_state/compressible/miegrunneisen} Is a simple compressible material EOS.
 \end{description}
 
 \subsubsection{Linear fluid EOS}
@@ -1122,7 +1122,7 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 
 \subsubsection{Multi-material compressible EOS}
 \index{equation of state!stiffened gas}
-\option{\ldots/equation\_of\_state/multimaterial/miegrunneisen} defines a simple compressible equation of state that can be used to describe gases, liquids and solids, known as the Mie-Gruneisen (or stiffened gas) EOS (see section~\ref{Sect:StiffenedGas}).
+\option{\ldots/equation\_of\_state/compressible/miegrunneisen} defines a simple compressible equation of state that can be used to describe gases, liquids and solids, known as the Mie-Gruneisen (or stiffened gas) EOS (see section~\ref{Sect:StiffenedGas}).
 
 \begin{description}
 \item\option{\ldots/miegrunneisen/reference\_density} Specifies the reference density of the material in SI units.
@@ -1652,5 +1652,34 @@ If enabled a `geopressure' solver is used, \ref{Sect:config_geostrophic_balance}
 REFERENCE NODE???
 
 
+\section{Compressible fluid model}
+\index{compressible fluid model}
 
+Enabling \option{\ldots/material\_phase/equation\_of\_state/compressible} allows the compressible equations described in sections 
+\ref{Sect:compressible_conservative} and \ref{Sect:compressible_nonconservative} to be solved. At the moment there is one available option for the required 
+compressible EOS: Mie-Grunneisen (see section \ref{Sect:StiffenedGas}).
+
+This section contains advice for running a compressible simulation, by describing the necessary options to set up the problem. The options required for prognostic fields are:
+
+\subsection{Pressure options}
+\begin{itemize}
+\item The value for the atmospheric pressure can be added by switching on \option{\ldots/atmospheric\_pressure}, otherwise a default of zero is used.
+\item A Poisson pressure equation should not be used to calculate a first guess, therefore \\* \option{\ldots/scheme/poisson\_pressure\_solution} should be set to $never$.
+\item \option{\ldots/scheme/use\_compressible\_projection\_method} shuold be selected, so the calculated pressure satisfies the continuity equation and the EOS.
+\end{itemize}
+
+\subsection{Density options}
+\option{\ldots/prognostic/equation} and \option{\ldots/prognostic/solver} do not need to be enabled. If the equation type is not turned on, the density will make 
+use of the pressure solve, so no solver options are needed either. By having an equation type turned on, the density is not only incorporated into the pressure solve 
+but also an Advection-Diffusion equation is solved (and solver options need to be specified).
+
+\subsection{Velocity options}
+\begin{itemize}
+\item \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
+\item For a Continuous Galerkin discretisation in order to couple the velocity components together \\* \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form} is required.
+\end{itemize}
+
+\subsection{Restrictions: discretisation options and element pairs}
+Either Continuous Galerkin or Control Volumes can be used as discretisation options for pressure and density (both fields need to have the same option). Nevertheless, 
+when using Control Volumes pressure and density have to be the same order of parent mesh.
 
