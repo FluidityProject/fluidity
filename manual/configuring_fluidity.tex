@@ -288,7 +288,9 @@ this option enabled fluidity will then perform the specified extrusion towards t
 
 \subsubsection{Required meshes}
 \index{mesh!required}
-Only the Coordinate mesh is now required by fluidity.
+
+There is only one required mesh: the CoordinateMesh. Some settings, fields or other
+settings have specific mesh requirements. This are discussed under the appropriate options.
 
 \subsection{Setting field values}\label{Sect:setting_field_values}
 \index{field!values}
@@ -529,7 +531,7 @@ The file format of used to output fields to disk. At this stage, vtu is the
 only allowed format.
 
 \subsubsection{Dump period}
-This is the interval between the state fields being output to disk. You should usually start by setting this to a rather low value (possibly as short as your timestep) for testing and then increase it for production runs once you know your configuration works.
+This is the interval between the state fields being output to disk. You should usually start by setting this to a rather low value (possibly as short as your timestep) for testing and then increase it for production runs once you know your configuration works. The value can be specified as either a constant or python function.
 
 It is possible to swap \option{/io/dump\_period} for \option{/io/dump\_period\_in\_timesteps} to specify that you wish to have a dump every fixed number of timesteps.
 
@@ -633,6 +635,8 @@ To restart from a checkpoint, specify the checkpointed FLML file as input.
 Contains additional options for handling stat files, for example outputting
 a stat file at the start (timestep zero) and outputting stat data before and
 after an adapt.
+
+There are futher options under individual fields, for example to exclude data fro mthe stat file.
 
 \subsubsection{Detectors}
 \index{detectors!options}
@@ -877,10 +881,12 @@ phase or material in the problem.
 
 Note that you must give each of your material phases a name.
 
-The following sections describe the options below the
+% NOTE: if you add anything below the Sediments sections here, change the ref...
+The following sections (\ref{config:spatial} to \ref{config:sediments}) describe the options below the
 \option{/material\_phase} option.
 
 \section{Advected quantities: momentum and tracers}
+\label{config:spatial}
 
 \subsection{Spatial discretisations}
 \index{advection-diffusion equation!discretisation options}
@@ -1430,6 +1436,7 @@ biology.pznd(state, p)
 The final thing to change is to add absorption coefficients in the photsynthetic radiation field for water and plankton concentration.
 
 \section{Sediment model}
+\label{config:sediments}
 \index{sediments}
 
 \fluidity\ contains a basic sediment model in which sediment is treated as a
