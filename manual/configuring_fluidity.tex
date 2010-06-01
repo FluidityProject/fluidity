@@ -936,7 +936,6 @@ or none. The diffusion scheme can be one of:
 
 \subsubsection{Conservative advection}
 
-
 \subsection{Temporal discretisations}
 Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation. The discontimuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
 
@@ -1508,6 +1507,10 @@ This is continuous galerkin discretisation, with a mesh of polynomial order two 
 
 \subsection{Reccomended or optional settings}
 These settings may be recommended, but this section is not intended to be a list of instructions, please feel free to ignore it.
+
+\subsubsection{Meshes}
+
+The quarature degree is usually four in this case.
 
 \subsubsection{Velocity options}
 
