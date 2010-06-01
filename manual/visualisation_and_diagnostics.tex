@@ -5,61 +5,15 @@
 %--------------------VISUALISATION--------------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\section{Visualisation}
 
-\section{Visualisation: Mayavi}
 \label{sect:mayavi}
-
-Mayavi is a visualisation program that can be used to view the vtu files output by \fluidity. There are two versions, Mayavi 1.5 and Mayavi 2.   The following instructions are for Mayavi 1.5 because  most people still prefer to use it, but please note that mayavi 1.5 is no longer supported by Linux. The following instructions relate to Mayavi 1.5, but the use of Mayavi 2 is very similar. In the examples mentioned the only difference between the two is in the layout of the buttons in the interface. Further information about both of them is available at \url{http://mayavi.sourceforge.net/}.
-
-To open a set of vtu files from the command line, type the command in Example \ref{ex:mayavi}.
-
-\begin{example}
-  \begin{lstlisting}[language=bash]
-mayavi -d run_0.vtu
-\end{lstlisting}
-  \caption{This opens mayavi and opens the set of files specified.}
-\label{ex:mayavi}
-\end{example}
-
-Once you have opened Mayavi, if you wish to visualise something in two dimensions, you should open a SurfaceMap. Click on the visualise menu, then modules, then SurfaceMap (its called Surface in Mayavi 2). Click on Configure Data at the top left of the window to change the field that is being viewed. This also allows you to change the time step that is being viewed.  The SurfaceMap can also be configured by altering the settings on the SurfaceMap window. It can be changed to show the mesh by selecting 'show wireframe', and it can also show contours. The SurfaceMap window normally appears automatically but you can open it by clicking on SurfaceMap at the bottom of the screen. 
-
-In three dimensions it is helpful to use a ScalarCutPlane or VectorCutPlane instead of a SurfaceMap. These will show a cross-section of the domain. The surface that you view can be altered in the ScalarCutPlane or VectorCutPlane window.  The IsoSurface module is also useful; it will display the surface where a specified field has a constant value. This value is altered in the IsoSurfae window.  
- 
-
-\section{Visualisation: Paraview}
 \label{sect:paraview}
-\input{paraviewman}
 
-\section{Visualisation: Making a movie}
-\label{sect:making_a_movie}
+Visualisation is implemented using paraview (\url{http://www.paraview.org/paraviewindex.html}) and/or mayavi (\url{http://mayavi.sourceforge.net/}).
+Further information on these tools and instructions on how to use them is available on our website.
 
-The first step to making a movie is creating .png files of the frames that you wish to include in the movie. The easiest way to do this is to first set up the scene in Mayavi, ie open one of your .vtus in Mayavi and open the SurfaceMap or whichever filter you want, select the field that you want to visualise and add any axes or legends that you wish to include. You then save the visualisation by clicking on "save" and then "entire visualisation". A .mv file should be saved. The .png files can now be produced using the following command. The numbers at the end are the numbers of the .vtu files at the beginning and end of the movie, so this command would produce .pngs of all the .vtus numbered between 1 and 5.
-\begin{lstlisting}[language=bash]
-xvfb-run --auto-servernum --wait=4 --server-args="-screen 0 1024x1024x24" 
-<<fluidity_source_path>>/scripts/fl_mayavi_animate.py -f <<name of your 
-.vtu files without number or extension>> -z <<name of your .mv file with 
-extension>> 1 5
-\end{lstlisting}
-Once you have the .pngs, you could use the convert command to make a .gif movie as follows.
-\begin{lstlisting}[language=bash]
-convert *.png movie.jpg
-\end{lstlisting}
-This may not play on some movie players including many windows packages, so please check it on the system you intend to play it on.
-
-If you want to produce a .avi movie that will play on windows, you can use the script  encode.bash in the scripts directory. This requires the following four arguements.
-\begin{enumerate}
-\item image file type (e.g. jpg,png,etc...)   
-\item path to folder containing images, and for movie output
-\item name of movie output file (without the file extension)
-\item OPTIONAL - enter characters here to limit the image files used as frames (e.g. 'image1' would only select images which satisfy 'image1*.jpg')
-\end{enumerate}
-So, for example, you could type this:
-\begin{lstlisting}[language=bash]
-<<fluidity source path>>/scripts/encode.bash jpg /data/movie_files my_movie 
-image002
-\end{lstlisting}
-You can change the frames per second or bitrate in the encode.bash file. Please see the file for instructions.
-
+Output files containing simulation data are managed using the Visualization Toolkit (VTK - please refer to the website \url{http://www.vtk.org/}). VTK tools adopts the .vtu file format for unstructured grids: for each N timestep dump, the simulationnameN.vtu file is created, containing the statistical output data of the simulation. When running a simulation in parallel, all the data is conveniently stored both in separate .vtu files, containing each the information for the output data regarding one particular region of the parallelized mesh, and in special .pvtu files, which contain the general output data for the whole mesh; the numbering is still ordered by timestep dump.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------ONLINE DIAGNOSTICS--------------------------%
