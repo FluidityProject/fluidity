@@ -1,44 +1,75 @@
 !\chapter{Numerical discretisation}\label{chap:numerical_discretisation}
 
 \section{Discretisation of the advection diffusion equation}
-Introductory paragraph about finite elements. References to standard books.
 
-\subsection{Weak form}
-\index{weak form}
-\index{test function}
-\index{advection diffusion equation!weak form}
-The finite element method always starts by writing the equations in 
-\emph{weak form}. Take for instance the tracer advection-diffusion 
-equation \eqref{heat}. 
-The weak form of this equation is 
-obtained by multiplying it with a suitable test 
-function $\phi$ and integrating over the domain $\Omega$
-\begin{equation*}
-  \int_\Omega \phi \left( \frac{\partial T}{\partial t} + \vec{u}\cdot\vec\nabla T + 
-    \vec\nabla\cdot\tensor{\mu}\cdot\vec{\nabla}T\right) = 0.
-\end{equation*}
-For simplicity sake let us first assume the boundaries are closed ($\vec{u}\cdot\vec{n}=0$)
-and we apply a homogeneous Neumann boundary condition everywhere: $\partial T/\partial n=0$.
-Integration by parts of the diffusion term then gives us
+The advection-diffusion equation for a scalar tracer, $T$,
+is given in conservative form by:
+\begin{equation}\label{eq:advdif}
+  \ppt{T} + \div\left(\vec{u} T\right) - \div\tensor{\mu}\cdot\grad T = 0
+\end{equation}
+
+We now define a partition of the boundary $\dOmega^{N_T}$,
+$\dOmega^{D_T}$ and impose boundary conditions on $T$:
+\begin{gather}
+  \label{eq:Tboundary}
+  \vec{n}\cdot\tensor{\mu}\cdot\grad T=g_{N_T} \quad\textrm{on}\quad \dOmega^{N_T}\\
+  T=g_{D_T} \quad\textrm{on}\quad \dOmega^{D_T}
+\end{gather}
+
+\note{This should go in the physics chapter. Unfortunately that chapter is
+  currently written in terms of an energy equation.}
+
+\subsection{Continuous Galerkin discretisation}
+
+In the continuous Galerkin method, the solution fields are constrained to be
+continuous between elements. The fields are only assumed to be $C0$
+continuous, that is to say there is no assumption that the gradient of a
+field is continuous over the element boundaries.
+
+\subsubsection{Weak form}
+\index{weak form} \index{test function} \index{advection diffusion
+  equation!weak form} The finite element method always starts by writing the
+equations in \emph{weak form}.  The weak form of the advection-diffusion
+equation is obtained by multiplying it with a suitable continuous test
+function $\phi$ and integrating over the domain $\Omega$:
+\begin{equation}
+  \int_\Omega \phi \left( \ppt{T} + \vec{u}\cdot\grad T - 
+    \div\tensor{\mu}\cdot \grad T\right) = 0.
+\end{equation}
+We now integrate the advection and diffusion terms by parts:
+\begin{equation}\label{eq:weak_adv_diff}
+  \int_\Omega 
+  \phi \ppt{T} -
+    \nabla\phi\cdot\vec{u} T +
+    \grad\phi\cdot \tensor{\mu}\cdot\vec{\nabla} T 
+    +\int_\dOmega \vec{n}\cdot \vec{u} T 
+    - \vec{n}\cdot\tensor{\mu}\cdot\grad T 
+    = 0
+\end{equation}
+For simplicity sake let us first assume the boundaries are closed
+($\vec{u}\cdot\vec{n}=0$) and we apply a homogeneous Neumann boundary
+condition everywhere: $\partial T/\partial n=0$.  Integration by parts of
+the diffusion term then gives us
 \begin{equation}\label{eq:weak_adv_diff}
   \int_\Omega \phi \frac{\partial T}{\partial t} + 
     \phi\vec{u}\cdot\vec\nabla T -
     \vec\nabla\phi\cdot \tensor{\mu}\cdot\vec{\nabla} T = 0. 
 \end{equation}
-Note that due to the Neumann boundary condition the boundary term has dropped out. The tracer 
-field $T$ is now called a \emph{weak solution} of the equations if \eqref{eq:weak_adv_diff} holds true
-for all $\phi$ in some space of test functions $V$. What is a suitable test space $V$ 
-is dependent on the equation (for more details see \citet{elman08}). 
+Note that due to the Neumann boundary condition the boundary term has
+dropped out. The tracer field $T$ is now called a \emph{weak solution} of
+the equations if \eqref{eq:weak_adv_diff} holds true for all $\phi$ in some
+space of test functions $V$. The choice of a suitable test space $V$ is dependent
+on the equation (for more details see \citet{elman08}).
 
-\index{Sobolev space}
-An important observation is that \eqref{eq:weak_adv_diff} only contains first derivatives 
-of the field $T$, so that we can now include solutions that do not have a continuous 
-second derivative. For these solutions the original equation \eqref{heat}
-would not be well-defined. All that is required is that the first derivatives of $T$ can be 
-integrated along with the test function. A more precise definition of this space, the 
-\emph{Sobolev space}, can again be found \citet{elman08}.
+\index{Sobolev space} An important observation is that
+\eqref{eq:weak_adv_diff} only contains first derivatives of the field $T$,
+so that we can now include solutions that do not have a continuous second
+derivative. For these solutions the original equation \eqref{heat} would not
+be well-defined. All that is required is that the first derivatives of $T$
+can be integrated along with the test function. A more precise definition of
+this space, the \emph{Sobolev space}, can again be found \citet{elman08}.
 
-\subsection{Finite element discretisation}
+\subsubsection{Finite element discretisation}
 \index{trial function}
 Instead of looking for a solution in the entire Sobolev space,
 in finite element methods discretisation
@@ -96,9 +127,10 @@ the functions to have a single value in each
 vertex. A set of basis functions $\phi_i$ 
 for this space is easily found by choosing the piecewise linear functions
 $\phi_i$ that satisfy:
-\begin{equation*}
-  \phi_i(x_i)=1, \phi_i(x_{j\neq i})=0,
-\end{equation*}
+\begin{gather*}
+  \phi_i(x_i)=1\\
+  \phi_i(x_{j\neq i})=0
+\end{gather*}
 where $x_i$ are the vertices in the mesh. 
 This choice of basis functions has the following useful property:
 \begin{equation*}
@@ -118,21 +150,21 @@ that the equation tested with the basis functions integrate to zero. The discret
 version of \eqref{eq:weak_adv_diff} therefore becomes
 \index{advection diffusion equation!weak form!discretised}
 \begin{equation}\label{eq:weak_adv_diff}
-  \sum_j \int_\Omega \phi_i \frac{\partial \phi_j}{\partial t} \phi_j T_j+ 
-    \phi_i\vec{u}\cdot\vec\nabla \phi_j T_j - 
-    \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j T_j = 0,
+  \sum_j \int_\Omega \phi_i \frac{\partial \phi_j}{\partial t}  T_j -
+    \grad\phi_i\cdot\vec{u}\phi_j  T_j + 
+    \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j T_j = 0,
     \quad\text{for all }\phi_i.
 \end{equation}
 where we have substituted $T=\sum_j \phi_j T_j$. From this it is readily seen that 
 we have in fact obtained a matrix equation of the following form
 \begin{equation*}
-  \mat{M} \ddt{\dvec{T}}+\mat{A}(\vec{u})\dvec{T}-\mat{K}\dvec{T}=0,
+  \mat{M} \ddt{\dvec{T}}-\mat{A}(\vec{u})\dvec{T}+\mat{K}\dvec{T}=0,
   \label{eq:cg_adv_diff_mat}
 \end{equation*}
 where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
 \begin{equation*}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
-  \mat{A}_{ij}=\int_\Omega \phi_i\vec{u}\cdot\vec{\nabla} \phi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
   \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j.
 \end{equation*}
 
@@ -168,9 +200,10 @@ integration by parts of the advection term. Let us consider a pure advection pro
     \int_{\partial\Omega} \vec{n}\cdot\vec{u}~T
     = 0.
 \end{equation*}
-The last (boundary) term can again be substituted by a weakly imposed boundary condition $T=g_D$.
-In this case however we only want to impose this on the inflow boundary, and the original term
-remains for the outflow boundary:
+The last (boundary) term can again be substituted by a weakly imposed
+boundary condition $T=g_D$.  In this case however we only want to impose
+this on the inflow boundary, and the original term remains for the outflow
+boundary:
 \begin{equation}\label{eq:adv_integrated_by_parts}  
   \int_\Omega \phi \frac{\partial T}{\partial t} -
     \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T +
@@ -181,27 +214,31 @@ remains for the outflow boundary:
 where $\partial\Omega_-$ and $\partial\Omega_+$ refer to respectively 
 the inflow and outflow boundaries.
 
-It is to be noted that when we are applying boundary conditions weakly we still consider the full 
-set of test functions, even those that don't satisfy the boundary condition. This means the discrete
-solution will not satisfy the boundary condition exactly. Instead the solution will converge 
-to the right boundary condition along with the solution in the interior as the mesh is refined.
+It is to be noted that when we are applying boundary conditions weakly we
+still consider the full set of test functions, even those that don't satisfy
+the boundary condition. This means the discrete solution will not satisfy
+the boundary condition exactly. Instead the solution will converge to the
+right boundary condition along with the solution in the interior as the mesh
+is refined.
 
-\index{boundary conditions!Dirichlet!strongly imposed}
-An alternative way of implementing boundary conditions, so called \emph{strongly imposed}
-boundary conditions, is to restrict the trial space to only those functions that satisfy 
-the boundary condition. In the discrete trial space this means 
-we no longer allow the coefficients $T_i$ that are associated with the nodes $x_i$ on the boundary,
-to vary but instead substitute the imposed Dirichlet boundary condition. As this decreases the 
-dimension of the trial space, we also need to limit the size of the test space. This is simply 
-done by removing the test function $\phi_i$ associated with the nodes $x_i$ on the boundary, from the
-test space. Although this guarantees the Dirichlet boundary condition to be satisfied exactly, 
-it does not at all mean that the discrete solution converges to the exact continuous solution 
-more quickly than it would with weakly imposed boundary conditions. Strongly imposed boundary 
-conditions may sometimes be necessary if the boundary condition needs to be imposed strictly 
-for physical reasons.
+\index{boundary conditions!Dirichlet!strongly imposed} An alternative way of
+implementing boundary conditions, so called \emph{strongly imposed} boundary
+conditions, is to restrict the trial space to only those functions that
+satisfy the boundary condition. In the discrete trial space this means we no
+longer allow the coefficients $T_i$ that are associated with the nodes $x_i$
+on the boundary, to vary but instead substitute the imposed Dirichlet
+boundary condition. As this decreases the dimension of the trial space, we
+also need to limit the size of the test space. This is simply done by
+removing the test function $\phi_i$ associated with the nodes $x_i$ on the
+boundary, from the test space. Although this guarantees that the Dirichlet
+boundary condition will be satisfied exactly, it does not at all mean that
+the discrete solution converges to the exact continuous solution more
+quickly than it would with weakly imposed boundary conditions. Strongly
+imposed boundary conditions may sometimes be necessary if the boundary
+condition needs to be imposed strictly for physical reasons.
 
-\section{Discontinuous Galerkin advection}\label{sec:NM_DG_advection}
-\index{Galerkin!discontinuous!advection}
+\subsection{Discontinuous Galerkin discretisation}\label{sec:NM_DG_advection}
+\index{Galerkin!discontinuous!advection-diffusion}
 \index{advection-diffusion equation!discontinuous Galerkin}
 Integration by parts can be used to avoid taking 
 derivatives of discontinuous functions.
@@ -213,10 +250,22 @@ a single element we may write
 \begin{equation}\label{eq:adv_integrated_by_parts}
   \int_e \phi \frac{\partial T}{\partial t} -
     \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T +
-    \int_{\partial e_-} \phi\vec{n}\cdot\vec{u}~T_- +
-    \int_{\partial e_+} \phi\vec{n}\cdot\vec{u}~T
+    \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~T} + 
+    \int_{e} \grad\psi\cdot\tensor{\mu}\cdot\grad T -
+    \int_{\partial e} \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad T}
     = 0,
 \end{equation}
+The hatted terms represent fluxes across the element facets: and therefore
+from one element to the other. Due to the discontinuous nature of the
+fields, there is no unique value for these flux terms, however the
+requirement that $T$ be a conserved quantity does demand that adjacent
+elements make a consistent choice for the flux between them. The choice of flux
+schemes therefore forms a critical component of the discontinuous Galerkin method.
+
+\subsection{Discontinuous Galerkin advection}
+
+Consider first the advection operator. 
+
 Here $\partial e_-$ and $\partial e_+$ are the inflow and outflow boundaries of this element, where
 $u$ flows in from upwind elements, and out into downwind elements. The field $T$ will be 
 discontinuous across both boundaries. On the inflow boundary we need 
