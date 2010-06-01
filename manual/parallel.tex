@@ -93,3 +93,38 @@ settings have specific mesh requirements. This are discussed under the appropria
 \subsection{Running in paralell with debugging}
 
 \subsection{Running in the ICT Cluster}
+
+ICT-HPC have now 3 platforms: CX1 (Dell PC Cluster), CX2 (SGI) and AX1 (SGI). \$HOME and \$WORK are shared between the three systems.
+
+The environment of all systems is controlled by the user using [http://modules.sourceforge.net/ environment modules]. The following configuration files are recommended and the remaining instructions assume that these files have been created:
+
+\begin{lstlisting}[language=bash]
+$HOME/.bash_profile
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+ # .bashrc
+ 
+ # Source global definitions
+ if [ -f /etc/bashrc ]; then
+   . /etc/bashrc
+ fi
+ 
+ export MODULEPATH=$MODULEPATH:$HOME/modules
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+$HOME/.bashrc
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+ # Get the aliases and functions
+ if [ -f ~/.bashrc ]; then
+ 	. ~/.bashrc
+ fi
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=bash]
+$HOME/modules/fluidity-cx1
+\end{lstlisting}
