@@ -1,1 +1,400 @@
 \chapter{External libraries}\label{chap:external}
+
+\section{Introduction}
+This chapter gives an overview of the external libraries that are required to
+build and run fluidity.
+
+Fluidity's development strategy has taken a conscious decision to employ
+external libraries wherever it is possible and beneficial to do so. This
+industry-standard approach both short-cuts the development process by making
+use of the work and expertise of external projects, and in most cases provides
+a better solution than could be implemented by the fluidity development team.
+
+A key example of this approach is the PETSc (Portable, Extensible Toolkit for
+Scientific Computation) library, developed in the Mathematics and Computer
+Science Division of Argonne National Laboratory. Using high-end computational
+resources such as the HECToR system requires that codes be maximally efficient
+so as not to waste resources, and the PETSc solvers are regarded as the
+standard solver implementation to fulfil this requirement.
+
+\section{Installing required libraries on Debian or Ubuntu}
+\label{sect:required_ḻibraries_debian}
+
+By far the easiest way to obtain all the supporting libraries and other
+software required to build and run fluidity is to make use of the fluidity
+packages available from the AMCG package repository at Imperial College. These
+are currently built and tested on Debian Unstable and Ubuntu 'Karmic' 9.10.
+Packages for Ubuntu 'Lucid' 10.04 are also available but on an unsupported
+basis.
+
+\textbf{BE AWARE:} AMCG packages are provded for use at your own risk and
+without warranty. You should ensure that any packages installed from external
+repositories are not going to adversely affect your system before installing
+them!
+
+To access the repository containing the fluidity support packages, you will
+need to add the following lines to the file
+\lstinline[language=bash]+/etc/apt/sources.list+ , replacing 'DIST' with
+'unstable', 'karmic', or 'lucid' depending on which version of Debian or Ubuntu
+you are using:
+
+\begin{lstlisting}[language=bash]
+deb http://amcg.ese.ic.ac.uk/debian DIST main contrib non-free
+deb-src http://amcg.ese.ic.ac.uk/debian DIST main contrib non-free
+\end{lstlisting}
+
+You will then need to update your system and install the fluidity-dev package,
+which depends on all the other software required for building fluidity:
+
+\begin{lstlisting}[language=bash]
+sudo apt-get update
+sudo apt-get install fluidity-dev
+\end{lstlisting}
+
+To benefit from the environment modules supplied from AMCG you may want to add
+the following lines to your \lstinline[language=bash]+/etc/bash.bashrc+ file:
+
+\begin{lstlisting}[language=bash]
+if [ -f /usr/share/Modules/init/bash ]; then
+    . /usr/share/Modules/init/bash
+fi
+\end{lstlisting}
+
+New bash shells should automatically inherit the modules environment now, and
+you should be able to type:
+
+\begin{lstlisting}[language=bash]
+module load petsc-gcc4
+\end{lstlisting}
+
+to enable use of PETSc, required for building fluidity.
+ 
+Additional notes: The version of OpenMPI supplied by the fluidity repository
+contains some fixes for bugs which have been reported upstream to the OpenMPI
+maintainers but not yet included in the Debian or Ubuntu packages. The package
+is configured slightly differently to the default Ubuntu or Debian package, and
+requires that you be able to connect using ssh from your local machine back
+into the local machine via the name reported by the
+\lstinline[language=bash]+hostname+ command. If you do not have this set up to
+connect automatically using ssh keys, some parallel fluidity jobs may report
+connection errors. Also, you may see verbose output when running fluidity in
+parallel, some of which can be suppressed by appending the file
+\lstinline[language=bash]+/etc/openmpi/openmpi-mca-params.conf+ with the line:
+
+\begin{lstlisting}[language=bash]
+btl = ^openib
+\end{lstlisting}
+
+\section{Manual install of external libraries and software}
+\label{sect:required_ḻibraries_manual_install}
+
+Competent systems administrators should find it relatively straightforward to
+install the supporting software and external libraries required by fluidity on
+most modern UNIX systems and compute clusters. The following instructions are
+intended to help with this process, offering hints and tips to speed up the
+deployment process.
+
+\subsection{Build environment}
+\label{sect:required_libraries_build_environment}
+
+The following compile instructions assume that you have set up a basic
+environment containing a few key environment variables. Set WORKING to be the
+root of your working area, then for bash:
+
+\begin{lstlisting}[language=bash]
+export WORKING="/path/to/my/data"
+
+export PATH="$WORKING/icom/bin:$PATH"
+export LD_LIBRARY_PATH="$WORKING/icom/lib"
+export CFLAGS="-L$WORKING/icom/lib"
+export FFLAGS="-L$WORKING/icom/lib"
+export CPPFLAGS="-I$WORKING/icom/include"
+export LDFLAGS="-L$WORKING/icom/lib"
+\end{lstlisting}
+
+or for csh:
+
+\begin{lstlisting}[language=bash]
+setenv WORKING /path/to/my/data
+
+setenv PATH "$WORKING/icom/bin:$PATH"
+setenv LD_LIBRARY_PATH "$WORKING/icom/lib"
+setenv CFLAGS "-L$WORKING/icom/lib"
+setenv FFLAGS "-L$WORKING/icom/lib"
+setenv CPPFLAGS "-I$WORKING/icom/include"
+setenv LDFLAGS "-L$WORKING/icom/lib"
+\end{lstlisting}
+
+\subsection{Compilers}
+\label{sect:required_libraries_compilers}
+
+The fluidity build process requires working Fortran 90 and C++ compilers.
+
+Fluidity has been tested with gfortran >= 4.3, and Intel 9.1 and 10.1, but is
+not supported for gfortran =< 4.2, Intel 9.0, Intel 10.0. These unsupported
+compilers have broken Fortran 90 implementations for which bug reports have
+been submitted and implemented in later versions where applicable. Bug reports
+have been submitted for Intel 11.x and Portland group compilers but not yet
+implemented.
+
+Fluidity has been tested with both GNU and Intel C++ compilers at corresponding
+versions to the tested and known-good Fortran 90 compilers.
+
+If you do not already have working compilers, GCC is freely available and can
+be downloaded from \url{http://gcc.gnu.org/}. 
+
+GMP (tested for fluidity with gmp-4.3.1) is needed for the GCC 4.x build if you
+do not already have it; download it from \url{http://gmplib.org/} and build it
+in the source directory with:
+
+\begin{lstlisting}[language=bash]
+./configure --enable-cxx --prefix=$WORKING/icom
+make
+make install
+\end{lstlisting}
+
+MPFR (tested for fluidity with mpfr-2.4.1) is also needed for the GCC 4.x
+build if you do not already have it; download it from
+\url{http://www.mpfr.org/mpfr-current/} and build it in the source directory
+with:
+
+\begin{lstlisting}[language=bash]
+./configure --prefix=$WORKING/icom --with-gmp=$WORKING/icom
+make
+make install
+\end{lstlisting}
+
+GCC (tested for fluidity with gcc-4.4.1) can be downloaded from the UK mirror
+at \url{http://gcc-uk.internet.bs/} Before the build, make sure that the GMP
+and MPFR libraries are on LD{\textunderscore}LIBRARY{\textunderscore}PATH or
+the stage 1 configure will fail even if --with-[gmp|mpfr] is supplied.
+
+Also note that the build needs to be in a target build directory, NOT in the
+source directory, or again the build will fail with definition conflicts
+against the system includes.
+
+Finally, the java build appears to be buggy in 4.4 and is enabled by default,
+but fluidity only needs c, c++, and fortran, so just specify those.
+
+Make a target build directory which is OUTSIDE the source tree, then build
+with:
+
+\begin{lstlisting}[language=bash]
+/path/to/gcc/source/configure --prefix=$WORKING/icom --with-gmp=$WORKING/icom
+--with-mpfr=$WORKING/icom --enable-languages=c,c++,fortran
+make
+make install
+\end{lstlisting}
+
+Finally, you'll need an MPI implementation to wrap your compiler for the ICOM build,
+which lets you spawn parallel runs. OpenMPI (tested for fluidity with tested
+openmpi-1.3.3) provides this and can be downloaded
+from \url{http://www.open-mpi.org/}. It is built in the source directory with:
+
+\begin{lstlisting}[language=bash]
+./configure --prefix=$WORKING/icom
+make
+make install
+\end{lstlisting}
+
+\subsection{VTK}
+\label{sect:required_libraries_vtk}
+
+VTK is required for fluidity data output, and currently tested to version 5.4.
+It can be download from \url{http://www.vtk.org/VTK/resources/software.html}
+
+When building VTK, it is recommended that shared libraries are enabled,
+and that VTKpython is enabled.  The fluidity configure script should be tolerant of
+local variations in terms of VTK libraries either being supported internally by
+VTK or supported with system libraries.
+
+At runtime, the environment variables VTK{\textunderscore}INCLUDE and
+VTK{\textunderscore}LIBS will need to be set to point at your VTK install.
+
+If you are building from source, VTK should be built in a separate build
+directory which is not inside the source heierarchy. In the source directory
+run:
+
+\begin{lstlisting}[language=bash]
+mkdir ../VTK-build
+cd ../VTK-build
+ccmake ../VTK/
+\end{lstlisting}
+
+Then type 'c' and edit the resulting rules screen to:
+
+\begin{lstlisting}[language=bash]
+BUILD_EXAMPLES                   OFF
+BUILD_SHARED_LIBS                ON                                     
+BUILD_TESTING                    ON
+CMAKE_BACKWARDS_COMPATIBILITY    2.4
+CMAKE_BUILD_TYPE
+CMAKE_INSTALL_PREFIX             /path/to/WORKING/icom          
+VTK_DATA_ROOT                    VTK_DATA_ROOT-NOTFOUND
+VTK_USE_GEOVIS                   OFF                                    
+VTK_USE_INFOVIS                  OFF                                    
+VTK_USE_N_WAY_ARRAYS             OFF
+VTK_USE_PARALLEL                 OFF
+VTK_USE_RENDERING                OFF                                    
+VTK_USE_VIEWS                    OFF                                    
+VTK_WRAP_JAVA                    OFF
+VTK_WRAP_PYTHON                  ON                                     
+VTK_WRAP_TCL                     OFF
+\end{lstlisting}
+
+Then:
+
+\begin{itemize}
+  \item Type 'c' a first time to configure
+  \item Type 'c' a second time to configure
+  \item Type 'g' to generate and quit
+\end{itemize}
+
+Finally, run:
+
+\begin{lstlisting}[language=bash]
+make install
+\end{lstlisting}
+
+\subsection{BLAS}
+\label{sect:required_libraries_blas}
+
+BLAS is equired for efficient linear algebra methods within fluidity, and is
+tested with the netlib, ATLAS, and MKL implementations, though any standard
+BLAS implementation should be sufficient for fluidity. BLAS can be dowloaded
+from \url{http://www.netlib.org/blas/} (for netlib BLAS),
+\url{http://sourceforge.net/projects/math-atlas/files/} (for ATLAS), or
+combined with commercially available compilers such as MKL from Intel.
+
+\subsection{LAPACK}
+\label{sect:required_libraries_lapack}
+
+LAPACK is required for efficient linear algebra methods within fluidity, and
+is tested with the netlib, ATLAS, and MKL implementations, though any standard
+LAPACK implementeation should be sufficient for fluidity. LAPACK can be
+downloaded from \url{http://www.netlib.org/lapack/} (for netlib LAPACK),
+\url{http://sourceforge.net/projects/math-atlas/files/} (for ATLAS), or
+combined with commercially available compilers such as MKL from Intel. 
+
+\subsection{XML2}
+\label{sect:required_libraries_xml2}
+
+XML2 is required for parsing fluidity's flml parameter file format, and is
+tested with version 2.6. It can be downloaded from \url{ftp://xmlsoft.org/libxml2/}
+
+\subsection{MPI2 Implementation}
+\label{sect:required_libraries_mpi2}
+
+Required for parallel fluidity running, widely available on HPC clusters.
+Workstation users can download an implementation from
+http://www.open-mpi.org/software/ompi/v1.3/
+
+Any full MPI implementation should be sufficient. Please note that
+Clustervision-supplied clusters generally ship with broken MPI C++ support and
+will need attention before fluidity can be compiled.
+
+fluidity is no longer generally supported as non-MPI code as it is assumed that
+serial runs will be precursors to large parallel runs and still build with MPI
+enabled for later use.
+
+\subsection{PETSc}
+\label{sect:required_libraries_petsc}
+
+Required for efficient solver methods within fluidity, available from
+http://www.mcs.anl.gov/petsc/petsc-2/download/index.html
+
+Currently tested with PETSc 2.3.3 and PETSc 3.0.0. Required configure options
+are with shared and mpi shared enabled, with parmetis, hypre, and prometheus,
+and with fortran interfaces. If parmetis, hypre, and prometheus are not
+otherwise installed on the system they should be downloaded and installed
+internally within PETSc.
+
+\subsection{ParMetis}
+\label{sect:required_libraries_parmetis}
+
+Required for mesh partitioning and sparse matrix operations, available from
+http://glaros.dtc.umn.edu/gkhome/metis/parmetis/download
+
+Tested with version 3.1.1 with paths configured for the local site.
+
+\subsection{ARPACK}
+\label{sect:required_libraries_arpack}
+
+Required for solving large eigenvalue problems, available from
+http://www.caam.rice.edu/software/ARPACK/
+
+Tested with version 96 with paths configured for the local site.
+
+\subsection{NetCDF}
+\label{sect:required_libraries_netcdf}
+
+Required for reading datafiles in NetCDF format, available from
+http://www.unidata.ucar.edu/downloads/netcdf/index.jsp
+
+Tested with version 4.0, and recommended configured with f77, f90, c, cxx, and
+utilities enabled.
+
+\subsection{UDUnits}
+\label{sect:required_libraries_udunits}
+
+Required for physical unit conversions, available from
+http://www.unidata.ucar.edu/downloads/udunits/index.jsp
+
+Tested with version 1.12.4. Note there is a common issue with hand-building
+this package where CPPFLAGS needs to be correctly set with a -D option for the
+relevant Fortran environment. This commonly leads to an error during the build
+when not set. See for example:
+
+http://www.unidata.ucar.edu/support/help/MailArchives/udunits/msg00137.html
+for information.
+
+\subsection{Python}
+\label{sect:required_libraries_python}
+
+Widely used within fluidity for user-defined functions and for diagnostic tools and
+problem setup. Available from http://www.python.org/download/
+
+Tested with Python up to 2.6. Supporting python extensions required are
+setuptools for fluidity builds, Python-4suite and Python-XML for options file
+parsing, and highly recommended extensions are scipy and numpy for custom
+function use within fluidity.
+
+\subsection{Trang}
+\label{sect:required_libraries_trang}
+
+Required for parsing fluidity's flml schema, available from
+http://www.thaiopensource.com/relaxng/trang.html and tested with 20030619 but
+any recent version should be sufficient.
+
+\subsection{Fortran 90 compiler}
+\label{sect:required_libraries_f90_compiler}
+
+Tested with gfortran >= 4.3, and Intel 9.1 and 10.1. Not supported for gfortran
+=< 4.2, Intel 9.0, Intel 10.0, and Intel >=11.0, all of which have broken
+Fortran 90 implementations for which bug reports have been submitted and
+implemented in later versions where applicable. Bug reports have been submitted
+for Intel 11.x and Portland group compilers but not yet implemented.
+
+GCC and gfortran are freely available from http://gcc.gnu.org/
+
+\subsection{C++ compiler}
+\label{sect:required_libraries_c++_compiler}
+
+Tested with GCC and Intel compilers; gcc is freely available from
+http://gcc.gnu.org/
+
+\subsection{Subversion (SVN)}
+\label{sect:required_libraries_svn}
+
+Recommended version 1.5 or higher, available from http://subversion.tigris.org/
+
+Note that for http-enabled subversion you will also need neon support,
+available for download from http://www.webdav.org/neon/
+
+\subsection{CGNS}
+\label{sect:required_libraries_cgns}
+
+CGNS is required when any CGNS-format datafiles are being read by fluidity, and
+is currently tested to version 2.5. It can be downloaded from 
+\url{http://cgns.sourceforge.net/download.html}.
+
