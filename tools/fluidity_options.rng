@@ -250,7 +250,7 @@ checkpoints may be overwritten.</a:documentation>
         </element>
         <optional>
           <element name="detectors">
-            <a:documentation>Specification of detectors</a:documentation>
+            <a:documentation>Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled.</a:documentation>
             <zeroOrMore>
               <choice>
                 <element name="static_detector">

@@ -1376,6 +1376,12 @@ contains
 
     binary_detector_output = have_option("/io/detectors/binary_output")
 
+    if (isparallel()) then
+
+       binary_detector_output=.true.
+
+    end if
+
     ! Only the first process should write statistics information
     if (getprocno() == 1) then
     

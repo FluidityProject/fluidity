@@ -192,7 +192,7 @@ start =
                }?,
                comment
             },
-            ## Specification of detectors
+            ## Specification of detectors. Note that when running in parallel the detector output is in binary format even if binary_output is not enabled.
             element detectors {
                (
                   ## A single static detector
