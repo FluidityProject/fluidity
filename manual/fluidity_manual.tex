@@ -118,9 +118,6 @@
 \renewcommand{\sectionmark}[1]{\renewcommand{\leftmark}{\thesection\qquad #1}}
 \renewcommand{\chaptermark}[1]{\renewcommand{\rightmark}{#1}}
 
-
-
-
 \begin{document}
 
 \bibliographystyle{plainnat}
@@ -199,22 +196,6 @@ Version 1.0 (\today)
 \renewcommand\l@section{\@dottedtocline{1}{1.5em}{2.7em}}
 \renewcommand\l@subsection{\@dottedtocline{2}{4.2em}{3.6em}}
 \renewcommand\l@subsubsection{\@dottedtocline{3}{7.8em}{4.5em}}
-
-% new command to add Word-style comments to text
-\newsavebox{\marginbox}% contains the contents of the comment environment
-\let\comment\relax% removes and previous definition of \begin{comment}
-\let\endcomment\relax% removes any previous definition of \end{comment}
-\newenvironment{comment}{
-  \begin{lrbox}{\marginbox}
-  \begin{minipage}{\marginparwidth}
-  \footnotesize
-  }{
-  \end{minipage}
-  \end{lrbox}
-  \marginpar{\usebox{\marginbox}}
-  }
-
-
 \makeatother
 
 

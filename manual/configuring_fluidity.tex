@@ -927,14 +927,16 @@ The Discontinuous Galerkin option implements the advection-diffusion algorithm d
 There are two options to set - the advection scheme and the diffusion scheme. The advection scheme can be one of upwind
 or none. The diffusion scheme can be one of:
 \begin{description}
-\item[Bassi Rebay]
-\item[Compact DG]
-\item[Arbitrary upwind]
-\item[Interior penalty]
+\item[Bassi Rebay] The classical scheme of Bassi and Rebay  [REF]
+\item[Compact DG] The compact discontinuous Galerkin scheme from Peraire and Persson [REF]
+\item[Arbitrary upwind] Scheme in which upwinding is applied in alternating directions.
+\item[Interior penalty] Classical interior penalty scheme
 \end{description}
 
 
 \subsubsection{Conservative advection}
+
+
 
 \subsection{Temporal discretisations}
 Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation. The discontimuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 

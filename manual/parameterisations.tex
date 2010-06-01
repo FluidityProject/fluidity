@@ -1,5 +1,10 @@
 \chapter{Parameterisations}\label{chap:parameterisations}
 
+Although \fluidity is capable of resolving a range of scales dynamically using 
+and adaptive mesh, it is not always feasible to resolve all process that are
+required for a simulation. This chapter introduces the subgrid-scale paramateristations
+that are available in \fluidity.
+
 \section{General length scale subgridscale parameterisation}\label{Sec:GLS}
 \index{viscosity!eddy}
 \index{diffusivity!eddy}
@@ -8,9 +13,15 @@
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-Four GLS models have been implemented in Fluidity, based on the description given in \citet{warner2005}.
-Briefly, they rely on a local, temporally varying, kinematic eddy viscosity $K_M$ that parametrises 
-turbulence (local Reynolds stresses) in terms of mean-flow quantities (vertical shear) as, along 
+The general length scale (GLS) subgridscale parameterisation is capable of simulating vertical
+turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution, 
+so is ideal for adaptive ocean-scale problems. GLS can be set-up to behave as a number of classical
+turbulence models. \fluidity has four implementations of GLS available: $k-\epsilon$, $k-kl$, $k-\omega$, 
+and an additional model based on \citet{umlauf2003}, the \emph{gen} model. 
+
+Briefly, all implementations rely on a local, temporally varying, kinematic eddy 
+viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow 
+quantities (vertical shear) as, along 
 with a buoyancy term that parameterises the kinematic eddy diffusivity, $K_H$:
 
 \begin{equation}
@@ -70,9 +81,10 @@ l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1}
 The equation for $l$ can be derived from previous equations.
 
 Choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$, $c_1$, $c_2$, $c_3$, $c_\mu^0$,
-and $F_{\mathrm{wall}}$ one can recover the exact formulation of three standard GLS models,
-$k-\epsilon$, $k-kl$, $k-\omega$, and an additional model based on \citet{umlauf2003}, 
-the \emph{gen} model (see Table \ref{tab:glsparams} for values).
+and $F_{\mathrm{wall}}$ one can recover the exact formulation of four GLS models incorporated into
+\fluidity; the three standard GLS models,
+$k-\epsilon$, $k-kl$, $k-\omega$, and the additional model based on \citet{umlauf2003}, 
+the \emph{gen} model. Table \ref{tab:glsparams} shows the values of the pertinent parameters for each model.
 
 \begin{table}[b]
 \begin{center} 
@@ -89,7 +101,6 @@ $c_2$                 & 0.5            & 1.92         & 0.833        & 1.22     
 $c_3^+$               & 1.0            & 1.0          & 1.0          & 1.0          \\
 $k_{\mathrm{min}}$    & $5.0\times10^{-6}$    & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  \\
 $\Psi_{\mathrm{min}}$ & $1.0\times10^{-8}$    & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ \\
-$F_{\mathrm{wall}}$   & Eq \ref{fwall} & 1.0          & 1.0          & 1.0          \\ \hline
 \end{tabular}
 \end{center}
 \caption{Generic length scale parameters}
@@ -99,7 +110,8 @@ $F_{\mathrm{wall}}$   & Eq \ref{fwall} & 1.0          & 1.0          & 1.0      
 
 \subsection{Stability functions}
 
-The second-order moments are now closed, bar the definition of the stability functions, $S_M$ and $S_H$, 
+Setting the parameters described above, \ie selecting which GLS model to use, closes the second-order 
+moments, bar the definition of the stability functions, $S_M$ and $S_H$, 
 which are a function of $\alpha_M$ and $\alpha_N$, defined as:
 \begin{equation*}
 \alpha_M=\frac{k^2}{\epsilon^2}M^2, \;\;\;
@@ -115,19 +127,18 @@ and
 S_H(\alpha_M,\alpha_N) = \frac{n_{b0}+n_{b1}\alpha_N+n_{b2}\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}
 \end{equation*}
 
-The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on
-the model parameters chosen
-and can be related to traditional stability functions \citep{umlauf2005}.
-
 However, using the equilibrium condition for the turbulent kinetic energy as $\frac{P+B}{\epsilon}=1$, one can write
 $\alpha_M$ and a function of $\alpha_N$, allowing elimination of $\alpha_M$ in the above equations \citep{umlauf2005}:
 \begin{equation*}
 S_M(\alpha_M,\alpha_N)\alpha_M - S_N(\alpha_M,\alpha_N)\alpha_N=1
 \end{equation*}
+elementing some of the terms. A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative. 
 
-A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative. 
+The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on
+the model parameters chosen and can be related to traditional stability functions \citep{umlauf2005}.
 
-The GLS model included in \fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}.
+\fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}, each of which can be used in conjection with any of the four
+GLS models implemented.
 
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
