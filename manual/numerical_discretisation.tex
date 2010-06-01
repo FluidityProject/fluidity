@@ -602,56 +602,11 @@ the efficiency of the method.
 \index{CDG}
 \index{diffusion!discontinuous Galerkin!CDG}
 
-
-\section{Incompressible Navier-Stokes}
-\index{Navier-Stokes equations!weak form}
-Most terms have been dealt with in
-previous sections
-
-\subsection{Weak form of the continuity equation}
-\index{continuity equation!weak form}
-In \fluidity\ it is possible to use a different set of test/trial 
-functions for pressure and velocity, a so called mixed element discretisation. 
-From this section on, we will use the notation $\phi_i$ for the velocity 
-basis functions and $\psi_i$ for the pressure basis functions.
-See section \ref{later} for a discussion of suitable element-pairs.
-
-As discussed in section \ref{somewhere} the continuity equation of the incompressible Navier 
-Stokes equations enforces the incompressibility. As will be discussed in section \ref{}
-this equation will be used to derive the pressure. For reasons that will become clear
-from this section, the continuity equation is tested with the pressure basis 
-functions. Boundary conditions are applied weakly in similar manner as 
-before. The only possible boundary conditions for this equation are a 
-Dirichlet boundary condition in the normal direction $\vec u\cdot\vec n=u_n$, 
-or a free (outflow) boundary.
-\begin{equation*}
-  \int_\Omega \psi_i \vec\nabla \cdot \vec u
-    + \int_{\partial\Omega_D} \psi_i\left(u_n-\vec u\cdot \vec n\right)
-    = 0,\quad
-    \text{for all } \psi_i,
-\end{equation*}
-or integrated by parts:
-\begin{equation*}
-  -\int_\Omega \vec\nabla\psi_i \cdot \vec u
-  + \int_{\partial\Omega_D} \psi_i u_n
-  + \int_{\partial\Omega\setminus\partial\Omega_D} \psi_i\vec n\cdot \vec u
-  = 0,\quad
-  \text{for all } \psi_i.
-\end{equation*}
-This simplifies the Dirichlet boundary integral, in particular for the common 
-case of a closed boundary where $u_n=0$. 
-
-The DG continuity equation in \fluidity\ always uses
-this integrated by parts version, as it transfers the derivatives to the continuous 
-pressure test functions (DG velocity in \fluidity\ can only be combined with CG pressure). The 
-equation could be integrated by parts again, but this would introduce boundary integrals for all
-boundaries between the elements.
-
-\subsection{Momentum equation}
+\section{Momentum Equation}
 The discretisation of the momentum equation in non-conservative 
-form \eqref{nonconmom} is very 
-similar to that of the advection diffusion equation. Assuming a 
-tensor form for viscosity, we can write it in the same matrix form as
+form \eqref{nonconmom} is very similar to that of the advection 
+diffusion equation. Assuming a tensor form for viscosity, we 
+can write it in the same matrix form as
 \eqref{eq:cg_adv_diff_mat}
 \begin{equation*}
   \mat{M} \ddt{\dvec{\vec u}}
@@ -659,20 +614,66 @@ tensor form for viscosity, we can write it in the same matrix form as
     +\vec{\mat{C}} \dvec p
     =0,
 \end{equation*}
-where now the mass matrix $\mat{M}$, advection matrix $\mat{A}$ and
-viscosity matrix $\mat{K}$ are given by
+with a mass matrix $\mat{M}$, advection matrix $\mat{A}$,
+viscosity matrix $\mat{K}$ and pressure gradient matrix $\vec{\mat{C}}$.
+For a continuous galerkin discretisation of 
+velocity and ignoring boundary conditions, $\mat{M}, \mat{A}$ and $\mat{K}$
+are given by:
 \begin{equation*}
   \mat{M}_{ij}=\int_\Omega \rho\phi_i\phi_j, \quad
   \mat{A}_{ij}=\int_\Omega \phi_i\rho\vec{u}\cdot\vec{\nabla} \phi_j, \quad
   \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j.
 \end{equation*}
-Note the introduction of the density $\rho$ in the mass and advection 
-term. For the boussinesq approximation \eqref{mtm} we simply set $\rho=1$.
-Additionaly we have the pressure gradient matrix $\vec{\mat{C}}$
-(in fact a matrix for each partial derivative in \vec\nabla)
+Dirichlet and Neuman boundary conditions are implemented by 
+surface integrals over the domain boundary in the same way 
+as for the advection diffusion equation. The discontinuous galerkin
+discretisation is again the same as that for advection diffusion 
+involving additional integrals over the faces of the elements.
+
+New is the pressure gradient term. In \fluidity\ it is possible 
+to use a different set of test/trial functions for pressure 
+and velocity, a so called mixed element discretisation. From this section 
+on, we will use the notation $\phi_i$ for the velocity 
+basis functions and $\psi_i$ for the pressure basis functions.
+See section \ref{later} for a discussion of suitable element-pairs.
+
+The pressure gradient matrix is then simply given by
 \begin{equation*}
   \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j
 \end{equation*}
+In fact this is a vector of matrices, where each matrix corresponds
+to a derivative in $\vec\nabla$. Note that \fluidity\ only supports
+a continuous pressure discretisation so that the same 
+pressure gradient matrix is well defined for a discontinuous galerkin 
+velocity.
+
+\subsection{Boussinesq approximation}
+The discretisation of the velocity equation \eqref{mtm} 
+in the Boussinesq approximation is given by simply 
+dropping the density in the mass and advection terms:
+\begin{equation*}
+  \mat{M} \ddt{\dvec{\vec u}}
+    +\mat{A}(\vec{u})\dvec{\bmu}
+    +\mat{Cor}~\dvec\bmu
+    -\mat{K}\dvec{\bmu}    
+    +\vec{\mat{C}} \dvec p
+    =\dvec{\vec b}(\rho')+\dvec{\vec F},
+\end{equation*}
+where (again assuming CG and ignoring boundary conditions):
+\begin{equation*}
+\begin{split}
+  \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \phi_i\vec{u}\cdot\vec{\nabla} \phi_j, \quad
+  \left(\mat{Cor}~\dvec{\vec u}\right)_i
+    =\sum_j\int_\Omega \phi_i \phi_j 2\vec\Omega\times\dvec{\vec{u}}_j, \\
+  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j, \quad
+  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j, \quad
+    \dvec{\vec b}_i(\rho')=\int_\Omega \phi_i\rho'g\vec k,\quad
+    \dvec{\vec F}_i=\int_\Omega \phi_i\vec F
+\end{split}
+\end{equation*}
+
+\section{Pressure equation for incompressible flow}
 
 \subsection{Pressure correction}
 \index{pressure!correction}
