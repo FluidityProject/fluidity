@@ -761,6 +761,20 @@ better approximations to those last known values for reasons of accuracy or
 stability. Unless there are reasons to do otherwise, set this value to 2.
 
 \subsubsection{Adaptive timestep}
+
+This option allows the timestep, $\Delta T$, to vary throughout the run, depending on the 
+Courant-–Friedrichs-–Lewy (CFL) number.  There are several sub-options here. The
+\option{\ldots/requested\_cfl} is the desired upper limit of the CFL. A value of 5-10 is usual
+here. \fluidity will increase the timestep if the CFL number if less than this value and decrease
+it if the CFL is greater than this. The \option{\ldots/minimum\_timestep} and 
+\option{\ldots/maximim\_timestep} options limit the timestep. The option 
+\option{\ldots/increase\_tolerance} determines
+the rate of growth in the timestep. A value of 1.5 indicates the timestep can grow by
+at most, 50\%. There is no limit on the rate of decrease. Note that if a timestep fails
+to meet the CFL limit imposed it is not re-run, but the timestep is decreased for the next
+iteration. Finally, a desired $\Delta T$ can be calculated at the first time iteration by
+switching on the option: \option{\ldots/at\_first\_timestep}
+
 \subsubsection{Steady state}
 
 \subsection{Physical parameters}
