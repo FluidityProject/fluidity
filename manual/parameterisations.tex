@@ -140,6 +140,87 @@ the model parameters chosen and can be related to traditional stability function
 \fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}, each of which can be used in conjection with any of the four
 GLS models implemented.
 
+
+
+\section{Standard $k-\epsilon$ Turbulence Model}\label{Sect:kepsilon}
+\index{viscosity!eddy}
+\index{diffusivity!eddy}
+\index{Reynolds stress}
+\index{turbulence model}
+\index{k-$\epsilon$ model}
+
+The widely-used $k-\epsilon$ turbulence model has been implemented in Fluidity based on the description given in
+\citet{mathieu2000}. It is distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see
+Section \ref{Sect:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry.
+The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equations, in which the velocity is decomposed into quasi-steady (moving average) and fluctuating (turbulent) components:
+
+\begin{equation}\label{RANS}
+\ppt[t]{u_i} + u_j \ppx[x_j]{u_i} = - \frac{1}{\rho } \ppx[x_j]{p} + \nu \frac{\partial^2 u_i}{\partial x_i \partial x_j} - \ppx[x_j]{u'_i u'_j},
+\end{equation}
+where $u_i$ are the components of the steady velocity, $u'_i$ are the fluctuating components, and $p$ is the steady pressure.
+The third term on the right, containing the Reynolds stress tensor $u'_i u'_j$, represents the effect of turbulent fluctuations on the steady flow and is modelled as:
+
+\begin{equation}\label{retens}
+u'_i u'_j = - \frac 2 3 k \delta_{ij} + \nu_T \left (\ppx[x_j]{u_i} \ppx[x_i]{u_j} \right ),
+\end{equation}
+where $k=u'_i u'_j/2$ is the turbulent kinetic energy and $\nu(\bmx,t)$ is the eddy viscosity.
+The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
+
+\begin{equation}\label{k}
+\ppt[t]{k} + u_i \ppx[x_i]{k} = \Pi - \epsilon + \ppx{} \left [ \frac{\nu_T}{\sigma_k} \ppx[x_i]{k} \right ],
+\end{equation}
+
+\begin{equation}\label{eps}
+\ppt[t]{\epsilon} + u_i \ppx[x_i]{\epsilon} = C_{\epsilon1} \frac {\epsilon}{k} \Pi - C_{\epsilon2} \frac{\epsilon^2}{k} + \ppx{} \left [ \frac{\nu_T}{\sigma_\epsilon} \ppx[x_i]{\epsilon} \right ],
+\end{equation}
+where the eddy viscosity $\nu_T$ and turbulent kinetic energy production $\Pi$ are approximated by the eddy viscosity hypothesis as:
+
+\begin{equation}\label{nut}
+\nu_T = C_\mu \frac{k^2}{\epsilon},
+\end{equation}
+
+\begin{equation}\label{Pi2}
+\Pi = \nu_T \ppx[x_j]{u_i} : \left ( \ppx[x_j]{u_i} + \ppx[x_i]{u_j} \right ),
+\end{equation}
+where $:$ denotes the double-dot product, defined for two tensors $t, s$ as:
+
+\begin{equation}\label{doubledot}
+t : s = t_{11} s_{11} + t_{12} s_{21} + t_{13} s_{31} + t_{21} s_{12} + t_{22} s_{22} + t_{23} s_{32} + t_{31} s_{13} + t_{32} s_{23} + t_{33} s_{33}.
+\end{equation}
+
+The five model coefficients are in Table \ref{tab:kepsco}.
+
+\begin{table}[hb]
+\begin{center} 
+\begin{tabular}{ll}\hline
+Coefficient & Standard value \\ \hline
+$C_\mu$ & 0.09 \\
+$C_{\epsilon1}$ & 1.44 \\
+$C_{\epsilon2}$ & 1.92 \\
+$\sigma_\epsilon$ & 1.3 \\
+$\sigma_k$ & 1.0 \\ \hline
+\end{tabular}
+\end{center}
+\caption{$k-\epsilon$ model coefficients}
+\label{tab:kepsco}
+\end{table}
+
+
+
+\subsection{Boundary Conditions}
+
+The model is valid for high Reynolds numbers, in which $\nu_T >> \nu$, although it may be used for lower Reynolds number with the following boundary conditions:
+
+\begin{eqnarray}
+\bmu &=& 0, \slabel{ubc}\\
+k &=& 0, \slabel{kbc}\\
+\epsilon &=& \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \slabel{epsbc}\\
+\end{eqnarray}
+
+In the viscous sublayer of the boundary layer this is not valid, and so boundary conditions are important. 
+
+
+
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
 \index{turbulence model}
