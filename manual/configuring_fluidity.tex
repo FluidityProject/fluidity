@@ -1570,3 +1570,128 @@ This can be added if required.  You should also select a free surface boundary c
 \item \option{\ldots/solver} is normally cg or gmres
 \item \option{\ldots/solver/preconditioner} is normally mg
 \end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% GFD problems %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Geophysical Fluid Dynamics Problems}
+
+This section contains advice for running Geophysical Fluid Dynamics (GFD) problems, such as laboratory-scale flows e.g. the lock-exchange and the annulus or smaller-scale ocean problems e.g. a density current on an incline. This section is arranged by options for the different levels of the options tree. Both continuous-Galerkin (P1-P1) [REF SECTION] and discontinuous-Galerkin (P1DG-P2) [REF SECTION] discretisations may be used and different options choices are distinguished where necessary.
+
+\subsection{Problem Type}
+
+The \option{\ldots/problem\_type} option should be set to \option{fluids} or \option{ocean}.
+
+\subsection{Geometry}
+
+For both P1-P1 and P1DG-P2 \option{\ldots/geometry/mesh::CoordinateMesh} is required. For P1-P1 this can then be used for both the Velocity and Pressure fields so \option{\ldots/geometry/mesh::VelocityMesh} and \option{\ldots/geometry/mesh::PressureMesh} do not need to be set.
+
+For P1DG-P2 the velocity mesh requires discontinuous galerkin for continuity and the pressure mesh must have polynomial order two. To do this set:
+\begin{itemize}
+\item \option{\ldots/geometry/mesh::VelocityMesh/from\_mesh/mesh::CoordinateMesh}
+\item \option{\ldots//geometry/mesh::VelocityMesh/from\_mesh/mesh\_continuity} to \option{discontinuous}
+\item \option{\ldots/geometry/mesh::PressureMesh/from\_mesh/mesh::CoordinateMesh}
+\item \option{\ldots/geometry/mesh::PressureMesh/from\_mesh/mesh\_shape/polynomial\_degree} to 2
+\end{itemize}
+
+If \option{\ldots/scalar\_field::GeostrophicPressure} is to be included [REF BELOW] then a further mesh needs to be added. This must have polynomial degree one order greater than the mesh used for \option{\ldots/material\_phase/vector\_field/Velocity}. To demonstrate call this mesh `GeostrophicPressureMesh' and assume the mesh used for \option{\ldots/material\_phase/vector\_field/Velocity} has polynomial order 1, then:
+\begin{itemize}
+\item activate \option{\ldots/geometry/mesh} and set \option{name} as \option{GeostrophicPressureMesh}
+\item set \option{\ldots/geometry/mesh::GeostrophicPressureMesh/from\_mesh/mesh\_shape/polynomial\_degree} to 2
+\end{itemize}
+
+\subsection{Timestepping}
+
+2 non-linear iterations are recommended and can be specified by setting \option{\ldots/timestepping/nonlinear\_iterations} to 2.
+
+\subsection{Material/Phase}
+
+To demonstrate, assume the \option{material\_phase} has \option{name} attribute set to \option{Fluid}.
+
+\subsubsection{Equation of state}
+
+For most problems the linear equation of state is appropriate. This is selected with \option{\ldots/material\_phase::Fluid/equation\_of\_state/fluids/linear} and other values such as the thermal contraction coefficient can be set in the options that will appear below. 
+
+\subsubsection{Pressure}
+
+\begin{itemize}
+\item \option{\ldots/material\_phase::Fluid/scalar\_field::Pressure/prognostic/spatial\_discretisation/continuous\_galerkin} is recommended for the spatial discretisation. 
+\item \option{\ldots/material\_phase::Fluid/scalar\_field::Pressure/prognostic/reference\_node} needs to be set.
+\item \option{\ldots /material\_phase::Fluid/scalar\_field::Pressure/prognostic/scheme/poisson\_pressure\_solution} is recommended to be chosen as either \option{never} or \option{only\_first\_timestep}
+\end{itemize}
+
+Note, if the normal component of the velocity is imposed on all boundaries then either \option{\ldots/material\_phase::Fluid/scalar\_field::Pressure/prognostic/reference\_node} or \option{\ldots/material\_phase::Fluid/scalar\_field::Pressure/prognostic/solver/remove\_null\_space} need to be set, see \ref{Nullspaceremove}.
+
+\subsubsection{Velocity}
+
+The equation used to solve for Velocity is set under \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/equation}. For GFD problems that require the Boussinesq approximation selecting \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/equation::Boussinesq} will ensure that this is used.
+
+A Crank-Nicolson temporal discretisation with a non-linear relaxation is recommended for the temporal discretisation [REFERENCE SECTION]. This is selected by setting:
+\begin{itemize}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/temporal\_discretisation/theta} to 0.5
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/temporal\_discretisation/relaxation} to 0.5
+\end{itemize}
+
+If using P1-P1, the following are recommended for the spatial discretisation [REF SECTIONS]:
+\begin{itemize}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative)
+\end{itemize}
+
+If using P1DG-P2, the following are recommended for the spatial discretisation [REF SECTIONS]:
+\begin{itemize}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}
+\item \option{\ldots/materia\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}
+\item \option{\ldots/material\_phase::Fluid/vector\_field::Velocity/prognostic/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative)
+\end{itemize}
+
+\subsubsection{Advected scalar fields}
+The recommended options for scalar fields are considered for P1-P1 and P1DG-P2 separately. To demonstrate assume the scalar field is `Temperature'. \\
+{\bf P1-P1} \\ 
+The mesh used should be the \option{CoordinateMesh} and the equation type \option{AdvectionDiffusion}. 
+
+For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended [REFERENCE SECTION] which are selected with the options:
+\begin{itemize}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
+\item \option{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+\end{itemize}
+To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts) [REFERENCE SECTION]. To do this activate the option:
+\begin{itemize}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}
+\end{itemize}
+An Element Gradient diffusion scheme is also generally recommended, selected under \option{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
+
+For the temporal discretisation a Crank-Nicolson scheme is recommended, with the control volume options of 3 advection iterations and limit theta [REFERENCE SECTIONS]. These are set with the options:
+\begin{itemize}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/temporal\_discretisation/theta} set to 0.5
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/temporal\_discretisation/control\_volumes/number\_advection\_iterations}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}
+\end{itemize}
+
+{\bf P1DG-P2} \\
+
+The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}. 
+
+For the spatial discretisation a discontiuous-Galerkin discretisation is recommended with a Lax-Friedrichs advection scheme, velocity projected to continuous space, advection integrated by parts once and a compact-discontinuous-Galerkin diffusion scheme with a vertex-based slope limiter [REFERENCE SECTIONS]. These options are selected with:
+\begin{itemize}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}
+\end{itemize}
+
+For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
+\begin{itemize}
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/temporal\_discretisation/theta} set to 0.5
+\item{\ldots/material\_phase::Fluid/scalar\_field::Temperature/prognostic/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.
+\end{itemize}
+
+
+\subsubsection{Geostrophic Pressure}
+
+
+
