@@ -630,7 +630,7 @@ contains
           end if
 
           if (have_option("/implicit_solids")) then
-             call solids(state(1))
+             call solids(state(1), its)
           end if
 
           if (have_solids) then

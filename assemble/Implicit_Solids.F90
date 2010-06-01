@@ -46,6 +46,8 @@ module implicit_solids
   use spud
   use read_triangle
   use timeloop_utilities
+  use fefields, only: compute_lumped_mass
+  use parallel_tools
 
   implicit none
 
@@ -54,25 +56,27 @@ module implicit_solids
 
 contains
 
-  subroutine solids(state)
+  subroutine solids(state, its)
 
     type(state_type),intent(inout) :: state
     character(len=field_name_len) :: external_mesh_name
-    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: positions, velocity
     type(vector_field), pointer :: absorption
     type(vector_field), save :: external_positions
     type(scalar_field), pointer :: solid
+    type(scalar_field) :: lumped_mass
     integer :: ele_A, ele_B, ele_C
     type(tet_type) :: tet_A, tet_B
     type(plane_type), dimension(4) :: planes_A
-    integer :: stat, bstat, nintersections, i, j, k
-    integer :: ntests
+    integer :: stat, nintersections, i, j, k
+    integer :: ntests, dat_unit, its
     integer, dimension(:), pointer :: ele_A_nodes
     type(vector_field) :: intersection
     real, dimension(:,:), allocatable :: pos_A
-    real, dimension(:), allocatable :: detwei
+    real, dimension(:), allocatable :: detwei, drag
     real :: vol, ele_A_vol, sigma
     real, save :: beta
+    integer, save :: itinoi
     logical, save :: init=.false.
 
     ewrite(3, *) "inside femdem"
@@ -87,11 +91,18 @@ contains
        external_positions = &
             read_triangle_serial(trim(external_mesh_name), quad_degree=1)
 
-       call get_option("/implicit_solids/beta", beta, bstat)
-       if (bstat/=0) beta=1.
+       call get_option("/implicit_solids/beta", beta, default=1.)
 
        assert(positions%dim >= 2)
        assert(positions%dim == external_positions%dim)
+
+       if (GetRank() == 0) then
+          dat_unit = free_unit()
+          open(dat_unit, file="drag_force", status="replace")
+          close(dat_unit)                  
+       end if
+
+       call get_option("/timestepping/nonlinear_iterations", itinoi)
 
        init=.true.
     end if
@@ -141,9 +152,7 @@ contains
           end do
 
           allocate(detwei(ele_ngi(positions, ele_A)))
-          !allocate(detwei(ele_ngi(external_positions, ele_B)))
           call transform_to_physical(positions, ele_A, detwei=detwei)
-          !call transform_to_physical(external_positions, ele_B, detwei=detwei)
           ele_A_vol = sum(detwei)
           deallocate(detwei)
 
@@ -159,12 +168,12 @@ contains
     end do
 
     do i = 1, node_count(solid)
-       call set(solid, i, min(1., node_val(solid, i)))
+       call set(solid, i, max(0., min(1., node_val(solid, i))))
     end do
 
     ewrite_minmax(solid)
 
-    absorption  => extract_vector_field(state, "VelocityAbsorption")
+    absorption => extract_vector_field(state, "VelocityAbsorption")
     call zero(absorption)
 
     do i = 1, node_count(absorption)
@@ -174,6 +183,38 @@ contains
        end do
     end do
 
+    ! total solid drag force...
+    velocity => extract_vector_field(state, "Velocity")
+
+    call allocate(lumped_mass, positions%mesh, "Lumped mass")
+    call compute_lumped_mass(positions, lumped_mass)    
+
+    allocate(drag(positions%dim))
+    drag = 0.
+
+    do i = 1, node_count(positions)
+       do j = 1, positions%dim
+          drag(j) = drag(j) + &
+               node_val(absorption, 1, i) * node_val(velocity, j, i) * &
+               node_val(lumped_mass, i)
+       end do
+    end do
+
+    call deallocate(lumped_mass)
+
+    do i = 1, positions%dim
+       call allsum(drag(i))
+    end do
+
+    if (GetRank() == 0 .and. its == itinoi) then
+       open(1453, file="drag_force", position="append")
+       write(1453, *) &
+            (drag(i), i = 1, positions%dim)
+       close(1453)
+    end if
+
+    deallocate(drag)
+
     if(simulation_completed(current_time)) call deallocate(external_positions)
     call finalise_tet_intersector
     call rtree_intersection_finder_reset(ntests)
@@ -181,6 +222,8 @@ contains
     ewrite(3, *) "leaving femdem"
 
   end subroutine solids
+
+  !----------------------------------------------------------------------------
 
   function read_triangle_serial(filename, quad_degree) result (field)
     
