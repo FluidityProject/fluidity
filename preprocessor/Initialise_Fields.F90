@@ -103,6 +103,8 @@ contains
        call get_option(trim(path)//"/generic_function", func)
        ! Set initial condition from generic function
        call set_from_generic_function(field, trim(func), position)
+    else if(have_option(trim(path)//"/internally_calculated")) then
+       continue
     else if(have_option(trim(path) // "/from_file")) then
        
        if(is_active_process) then
@@ -209,6 +211,8 @@ contains
        call get_option(trim(path)//"/generic_function", func)
        ! Python rules
        FLExit("You cannot set a vector field from a generic function. Try python instead.")
+    else if(have_option(trim(path)//"/internally_calculated")) then
+       continue
     else if(have_option(trim(path) // "/from_file")) then
       
        if(is_active_process) then
@@ -366,6 +370,8 @@ contains
           call deallocate(sfield)
        else if (have_option(trim(tpath)//"/generic_function")) then
           FLAbort("It is not yet possible to generate a tensor from a generic function")
+       else if(have_option(trim(path)//"/internally_calculated")) then
+          continue
        else
           FLAbort("Incorrect initial condition for field")
        end if
