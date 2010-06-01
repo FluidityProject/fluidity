@@ -290,9 +290,6 @@ this option enabled fluidity will then perform the specified extrusion towards t
 \index{mesh!required}
 Only the Coordinate mesh is now required by fluidity.
 
-Only one mesh is required: the CoordinateMesh. Other meshes are strongly recommended
-when using certain features of \fluidity and are described in the appropriate sections.
-
 \subsection{Setting field values}\label{Sect:setting_field_values}
 \index{field!values}
 \index{initial conditions!setting}
@@ -935,6 +932,7 @@ or none. The diffusion scheme can be one of:
 
 
 \subsection{Temporal discretisations}
+Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation. The discontimuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
 
 \subsection{Source and absorption terms}\label{Sect:Source}
 \index{source terms}
