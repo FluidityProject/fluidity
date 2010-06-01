@@ -148,9 +148,11 @@ points an assigns the surface IDs 1 and 2 to them.
 
 \subsection{Surface IDs}\label{sect:surface_ids}
 \index{surface ID}
+Numbers can be assigned to label particular surfaces in order to set boundary conditions or other parameters.  Surface IDs can be set in gmsh by adding a Physical Surface to the region that you wish to label.  Gmsh will assign a number to that surface.  You can check what the Physical Surface number is by opening the .geo file in a text editor.  This number can then be used to specify which surface a particular boundary condition should be applied to in ICOM.
 
 \subsection{Region IDs}\label{sect:region_ids}
 \index{region ID}
+These are similar to surface IDs. In general, any region (a line, surface or volume) can be labeled in gmsh.
 
 \section{gmsh}
 \index{mesh!generation!gmsh}
@@ -558,10 +560,20 @@ The \lstinline[language = Bash]+--2d+ flag can be used to instruct gmsh2triangle
 to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
 \section{fldecomp}
+This function is used to decompose a mesh into several parts in order to run in parallel.  In your fluidity directory type:
+\begin{lstlisting}[language = Bash]
+make fltools
+\end{lstlisting}
+Navigate back to the directory containing your mesh files. In order to run fldecomp, if your mesh files are called square.geo etc and you want to decompose into four parts, type:
+\begin{lstlisting}[language = Bash]
+fludity path /bin/fldecomp -n 4 square
+\end{lstlisting}
 
 \section{flredecomp}
+This is sililar to fldecomp but it runs in pararallel.
 
 \section{triangle2vtu}
+This converts triangle format files in to vtu format. It is in the fluidity tools directory.
 
 \section{Pseudo-meshing}
 
