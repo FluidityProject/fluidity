@@ -5,7 +5,7 @@ and adaptive mesh, it is not always feasible to resolve all process that are
 required for a simulation. This chapter introduces the subgrid-scale paramateristations
 that are available in \fluidity.
 
-\section{General length scale subgridscale parameterisation}\label{Sec:GLS}
+\section{General length scale subgridscale parameterisation}\label{Sect:GLS}
 \index{viscosity!eddy}
 \index{diffusivity!eddy}
 \index{Reynolds stress}
@@ -149,6 +149,8 @@ GLS models implemented.
 \index{turbulence model}
 \index{k-$\epsilon$ model}
 
+Available under \option{\ldots/subgridscale\_parameterisations/k-epsilon}.
+
 The widely-used $k-\epsilon$ turbulence model has been implemented in Fluidity based on the description given in
 \citet{mathieu2000}. It is distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see
 Section \ref{Sect:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry.
@@ -173,7 +175,7 @@ The equations are closed by solving transport equations for $k$ and the turbulen
 \begin{equation}\label{eps}
 \ppt[t]{\epsilon} + u_i \ppx[x_i]{\epsilon} = C_{\epsilon1} \frac {\epsilon}{k} \Pi - C_{\epsilon2} \frac{\epsilon^2}{k} + \ppx{} \left [ \frac{\nu_T}{\sigma_\epsilon} \ppx[x_i]{\epsilon} \right ],
 \end{equation}
-where the eddy viscosity $\nu_T$ and turbulent kinetic energy production $\Pi$ are approximated by the eddy viscosity hypothesis as:
+where the isotropic tensor eddy viscosity $\nu_T$ and turbulent kinetic energy production $\Pi$ are approximated by the eddy viscosity hypothesis as:
 
 \begin{equation}\label{nut}
 \nu_T = C_\mu \frac{k^2}{\epsilon},
@@ -187,6 +189,19 @@ where $:$ denotes the double-dot product, defined for two tensors $t, s$ as:
 \begin{equation}\label{doubledot}
 t : s = t_{11} s_{11} + t_{12} s_{21} + t_{13} s_{31} + t_{21} s_{12} + t_{22} s_{22} + t_{23} s_{32} + t_{31} s_{13} + t_{32} s_{23} + t_{33} s_{33}.
 \end{equation}
+
+A lengthscale is associated with the dissipation of turbulent kinetic energy by molecular viscosity. It is defined as:
+
+\begin{equation}\label{lengthscale}
+l = k^{1.5} / \epsilon.
+\end{equation}
+
+To ensure the correct behaviour near walls, a lengthscale limiter has been included in the model (see \citet{yap1987, craft1996}):
+
+\begin{equation}\label{yap}
+l = \text{max} \left ( 0.83 \frac{\epsilon^2}{k} \left [ \frac{k^{1.5}}{2.5 \epsilon y} -1 \right ] \left [ \frac{k^{1.5}}{2.5 \epsilon y} \right ]^2, 0 \right ),
+\end{equation}
+where $y$ is the wall-normal distance. The limiter, if switched on, operates only in the wall-adjacent elements.
 
 The five model coefficients are in Table \ref{tab:kepsco}.
 
@@ -205,21 +220,41 @@ $\sigma_k$ & 1.0 \\ \hline
 \label{tab:kepsco}
 \end{table}
 
-
-
 \subsection{Boundary Conditions}
 
-The model is valid for high Reynolds numbers, in which $\nu_T >> \nu$, although it may be used for lower Reynolds number with the following boundary conditions:
+The model may be used for low Reynolds number flows ($\nu_T \approx \nu$) with the following boundary conditions:
 
-\begin{eqnarray}
-\bmu &=& 0, \slabel{ubc}\\
-k &=& 0, \slabel{kbc}\\
-\epsilon &=& \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \slabel{epsbc}\\
-\end{eqnarray}
+\begin{align}
+\bmu &= 0, \label{ubc}\\
+k &= 0, \label{kbc}\\
+\epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \label{epsbc}
+\end{align}
 
-In the viscous sublayer of the boundary layer this is not valid, and so boundary conditions are important. 
+\eqref{epsbc} is selected under
 
+\option{\ldots/scalar\_field::TurbulentDissipation/prognostic/boundary\_conditions/k\_epsilon}.
 
+\subsection{Model Usage}
+
+The $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field is called \option{TurbulentDissipation}.
+
+The 2 fields should use the following spatial discretisation options:
+
+\option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}.
+
+Fully implicit temporal discretisation (\option{/\ldots/temporal\_discretisation/theta=1}) is recommended.
+
+Both fields must have the diffusivity, source and absorption sub-fields switched on and calculated using
+
+\option{\ldots/diagnostic/algorithm::Internal}.
+
+The eddy viscosity is available as a diagnostic tensor field, and as a diagnostic scalar field that is output to the stat file (e.g. for plotting using statplot). However, the ordinary viscosity must be prescribed under \option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}. Therefore to avoid conflict the ordinary viscosity field within the velocity field options must be set to
+
+\option{\ldots/Velocity/prognostic/tensor\_field::Viscosity/diagnostic/algorithm::Internal}.
+
+Two further diagnostic scalar fields are available within the model: LengthScale and TKEOverEpsilon. The second is a ratio of the $k$ and $\epsilon$ fields.
+
+A 'calculate boundaries' option is available to enable boundary conditions to be switched on or off for the $k$ and $\epsilon$ fields; it is possibly superfluous and may be removed.
 
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
