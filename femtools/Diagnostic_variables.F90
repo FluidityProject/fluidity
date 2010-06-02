@@ -83,7 +83,7 @@ module diagnostic_variables
        & test_and_write_convergence, initialise_detectors, write_detectors, &
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
-       & diagnostic_variables_check_options
+       & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det
 
   public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order
 
@@ -153,7 +153,6 @@ module diagnostic_variables
 ! type(detector_type), dimension(:), allocatable, target, save :: detector_list
 
   type(detector_linked_list), target, save :: detector_list
-!  type(detector_linked_list), target, save :: send_list
   real, dimension(:,:), allocatable, save :: array_det_info
 
   !! Recording wall time since the system start
@@ -2134,7 +2133,7 @@ contains
     logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len=10) :: format_buffer
-    integer :: i, j, k, phase, ele, processor_number, num_proc, dimen, number_neigh_processors, all_send_lists_empty, current_proc, nprocs
+    integer :: i, j, k, phase, ele, processor_number, num_proc, dimen, number_neigh_processors, all_send_lists_empty, current_proc, nprocs, processor_owner
     real :: value
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
@@ -2144,17 +2143,22 @@ contains
     logical :: any_lagrangian
     integer, dimension(:), allocatable :: processor_number_array
 
-    type(detector_type), pointer :: node, temp_node
+    type(detector_type), pointer :: node, temp_node, node_to_send
     type(integer_hash_table) :: ihash, ihash_inverse, ihash_neigh_ele
 
     integer, dimension(:), allocatable :: global_det_count
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
-    integer :: len_set, target_proc_a, mapped_val_a, halo_level, communicator, nhalos, check_no_det
+    integer :: len_set, target_proc_a, mapped_val_a, halo_level, communicator, nhalos, list_neigh_processor, check_no_det
 
     type(mesh_type), pointer :: mesh_ele
 
     type(halo_type), pointer :: ele_halo, node_halo 
+
+    type(integer_hash_table) :: ihash_sparsity
+    type(csr_sparsity) :: element_detector_list
+    real, dimension(:,:), allocatable :: list_into_array
+    integer :: rows, columns, entries, count
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2172,15 +2176,7 @@ contains
     end if
 
     if (detector_list%length/=0) then
-
-       node => detector_list%firstnode
-
-       do i = 1, detector_list%length
-         
-         node => node%next
-
-       end do
-       
+     
       ! Calculate the location of the detectors in the mesh.
 
        call search_for_detectors(detector_list, xfield)
@@ -2340,6 +2336,7 @@ contains
     num_proc=1
 
     vfield => extract_vector_field(state(1),"Velocity")
+    dimen=vfield%dim
     halo_level = element_halo_count(vfield%mesh)
 
     do ele = 1, element_count(vfield%mesh)
@@ -2466,13 +2463,6 @@ contains
 
        end if
 
-       node => detector_list%firstnode
-       do i = 1, detector_list%length
-
-         node => node%next
-         
-      end do
-
        all_send_lists_empty=number_neigh_processors
        do k=1, number_neigh_processors
 
@@ -2492,25 +2482,11 @@ contains
 
        if (all_send_lists_empty==0) exit
 
-       node => detector_list%firstnode
-       do i = 1, detector_list%length
-
-          node => node%next
-         
-      end do
-
        if (timestep/=0) then
 
           call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
 
        end if
-
-       node => detector_list%firstnode
-       do i = 1, detector_list%length
-
-          node => node%next
-         
-       end do
 
        do i=1, number_neigh_processors
 
@@ -2557,9 +2533,10 @@ contains
      deallocate(types_det)
       
     end do
-    !do_until_all_send_lists_between_processors_are_empty
+   !do_until_all_send_lists_between_processors_are_empty
 
-    call deallocate(ihash) 
+    deallocate(send_list_array)
+    deallocate(receive_list_array)
 
     if ((.not.isparallel()).and.(.not. binary_detector_output)) then
 
@@ -2688,6 +2665,109 @@ contains
        call write_mpi_out(state,time,dt,timestep)
 
     end if
+
+!!! at the end of write_detectors subroutine I need to loop over all the detectors in the list and check that I own them (the element where they are). If not, they need to be sent to the processor owner before adaptivity happens
+
+    if (timestep/=0) then
+
+      allocate(send_list_array(number_neigh_processors))
+      allocate(receive_list_array(number_neigh_processors))
+
+      node => detector_list%firstnode
+      do i = 1, detector_list%length
+
+          if (node%element>0) then
+
+             processor_owner=element_owner(vfield%mesh,node%element)
+
+             if (processor_owner/= getprocno()) then
+
+                list_neigh_processor=fetch(ihash,processor_owner)
+
+                node_to_send => node
+
+                node => node%next
+
+                call move_det_to_send_list(detector_list,node_to_send,send_list_array(list_neigh_processor))
+
+             else
+    
+                node => node%next
+
+             end if
+
+          else
+     
+             node => node%next
+
+          end if
+         
+      end do
+
+      all_send_lists_empty=number_neigh_processors
+      do k=1, number_neigh_processors
+
+         ewrite(1,*) "number_neigh_processors:", number_neigh_processors
+
+         if (send_list_array(k)%length==0) then
+         
+            all_send_lists_empty=all_send_lists_empty-1
+  
+         end if
+
+      end do
+
+      ewrite(1,*) "all_send_lists_empty bef allmax. It is 0 if all list towards neigh proc. are empty:", all_send_lists_empty
+
+      call allmax(all_send_lists_empty)
+
+      ewrite(1,*) "all_send_lists_empty after allmax. It is 0 if all list towards neigh proc. are empty for all proc:", all_send_lists_empty
+
+      if (all_send_lists_empty/=0) then
+
+          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+
+      end if
+
+      do i=1, number_neigh_processors
+
+         if  (receive_list_array(i)%length/=0) then      
+        
+            call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+     
+         end if
+
+      end do
+
+
+   !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
+
+       do k=1, number_neigh_processors
+
+         if (send_list_array(k)%length/=0) then  
+
+             call flush_det(send_list_array(k))
+
+         end if
+
+       end do
+
+       do k=1, number_neigh_processors
+
+         if (receive_list_array(k)%length/=0) then  
+
+             call flush_det(receive_list_array(k))
+
+         end if
+
+       end do
+
+       deallocate(send_list_array)
+       deallocate(receive_list_array)
+
+    end if
+
+    call deallocate(ihash) 
 
    contains
 
@@ -3246,7 +3326,7 @@ contains
        dimen=vfield%dim
 
        number_detectors_to_send=send_list_array(i)%length
-       number_of_columns=dimen+3
+       number_of_columns=dimen+4
 
        allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
 
@@ -3260,6 +3340,7 @@ contains
           send_list_array_serialise(i)%ptr(j,dimen+1)=univ_ele
           send_list_array_serialise(i)%ptr(j,dimen+2)=node%dt
           send_list_array_serialise(i)%ptr(j,dimen+3)=node%id_number
+          send_list_array_serialise(i)%ptr(j,dimen+4)=node%type
 
           node => node%next
  
@@ -3317,7 +3398,8 @@ contains
           node_rec%position=receive_list_array_serialise(i)%ptr(j,1:dimen)
           node_rec%element=global_ele
           node_rec%dt=receive_list_array_serialise(i)%ptr(j,dimen+2)
-          node_rec%type = LAGRANGIAN_DETECTOR
+!          node_rec%type = LAGRANGIAN_DETECTOR
+          node_rec%type = receive_list_array_serialise(i)%ptr(j,dimen+4)
           node_rec%local = .true. 
           node_rec%id_number=receive_list_array_serialise(i)%ptr(j,dimen+3)
           node_rec%initial_owner=getprocno()
@@ -3377,6 +3459,98 @@ contains
     end do
 
   end subroutine move_det_from_receive_list_to_det_list
+
+  subroutine list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
+!! This subroutine creates a hash table called ihash_sparsity and a csr_sparsity matrix called element_detector_list that we use to find out 
+!! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
+!! This array contains the information of detector_list but in an array format, each row of the array contains the information of a detector. 
+!! By accessing the array at that/those row indexes we can extract the information (position, id_number, type, etc.) of each detector present 
+!! in the element (each row index corresponds to a detector)
+
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(integer_hash_table), intent(inout) :: ihash_sparsity
+    type(csr_sparsity), intent(inout) :: element_detector_list
+    real, dimension(:,:), allocatable, intent(inout) :: list_into_array
+    integer, intent(in) :: count
+    
+    integer, dimension(:), allocatable:: detector_count ! detectors per element
+    integer, dimension(:), pointer:: detectors
+    type(detector_type), pointer :: node
+    type(vector_field), pointer :: vfield, xfield
+    integer :: dimen, i, j, ele, no_rows, rows, columns, entries, row, pos, row_in_spar_matrix, dets_in_ele, aaa, bbb, ccc, ddd
+    integer, dimension(:), pointer:: det_index_in_list_into_array
+
+    if (detector_list%length/=0) then
+   
+       node => detector_list%firstnode
+
+       dimen=size(node%position)
+
+       do i=1, detector_list%length
+
+             list_into_array(i,1:dimen)=node%position
+             list_into_array(i,dimen+1)=node%element
+             list_into_array(i,dimen+2)=node%id_number
+             list_into_array(i,dimen+3)=node%type
+
+             node => node%next
+    
+       end do
+
+       ! create map between element and rows, where each row corresponds to an element 
+       ! with one or more detectors
+    
+       ! loop over detectors: 
+       ! detector is in element ele
+
+       no_rows=count
+
+      ! count number of detectors per row
+      allocate(detector_count(1:no_rows))
+      detector_count=0
+      ! loop over detectors:
+      node => detector_list%firstnode
+
+      do i=1, detector_list%length
+
+         ele=node%element
+         if  (has_key(ihash_sparsity, ele)) then
+            row=fetch(ihash_sparsity, ele)
+            detector_count(row)=detector_count(row)+1
+         end if
+         node => node%next
+
+      end do 
+
+      ! set up %findrm, the beginning of each row in memory
+      pos=1 ! position in colm
+      do row=1, no_rows
+         element_detector_list%findrm(row)=pos
+         pos=pos+detector_count(row)
+      end do
+      element_detector_list%findrm(row)=pos
+
+      ! fill up the rows with the rom_number of the detectors in the list_into_array
+      detector_count=0
+      ! loop over detectors:
+
+      do i=1, detector_list%length
+      
+         ele=list_into_array(i,dimen+1)  
+         if  (has_key(ihash_sparsity, ele)) then
+            row=fetch(ihash_sparsity, ele)
+            detectors => row_m_ptr(element_detector_list, row)
+            detector_count(row)=detector_count(row)+1
+            detectors(detector_count(row))=i
+         end if
+
+      end do
+
+      deallocate(detector_count)
+
+    end if
+
+  end subroutine list_det_into_csr_sparsity
 
   subroutine check_if_det_gone_through_domain_boundary(state, this_det, xfield, dt, dt_temp, old_pos, &
                                          vel, old_vel, vfield, old_vfield, index_next_face, current_element, cont_repeated_situation,send_list_array,ihash,processor_number)
