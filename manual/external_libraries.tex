@@ -181,22 +181,21 @@ possible to build from source with sufficient disk space and time.
 
 GMP (tested for fluidity with gmp-4.3.1) and MPFR (tested for fluidity with
 mpfr-2.4.1) are needed for the GCC 4.x build if you do not already have them.
-Download GMP from \url{http://gmplib.org/} and build it in the source directory
-with the standard configure and make, adding
-\lstinline[language=bash]+--enable-cxx+ to the configure flags.
+Download GMP from \url{http://gmplib.org/} and build it in the source
+directory, appending \lstinline[language=bash]+--enable-cxx+ to the standard
+configure, then running the standard make and install.
 
 Once GMP has been installed, download MPFR from
-\url{http://www.mpfr.org/mpfr-current/} and build it in the source directory
-with the standard configure and make, adding
-\lstinline[language=bash]+--with-gmp=\$WORKING/icom+ to the configure flags.
+\url{http://www.mpfr.org/mpfr-current/} and build it in the source directory,
+appending \lstinline[language=bash]+--with-gmp=\$WORKING/icom+ to the standard
+configure, then running the standard make and install.
 
 \subsubsection{GCC}
 \label{sect:required_libraries_compilers_gcc}
 
 GCC (tested for fluidity with gcc-4.4.1) can be downloaded from the UK mirror
 at \url{http://gcc-uk.internet.bs/} Before the build, make sure that the GMP
-and MPFR libraries are on
-\lstinline[language=bash]+LD{\textunderscore}LIBRARY{\textunderscore}PATH+ or
+and MPFR libraries are on LD{\textunderscore}LIBRARY{\textunderscore}PATH or
 the stage 1 configure will fail even if
 \lstinline[language=bash]+--with-[gmp|mpfr]+ is supplied.
 
@@ -262,10 +261,9 @@ These can be returned to their default values after the readline build.
 Building with -fPIC shouldn't be necessary but seems to be required by the
 later Python build.
 
-Build readline in the source directory with the standard configure, make, and
-install, adding \lstinline[language=bash]+--disable-shared+ to the configure
-flags.
-
+Build readline in the source directory, appending
+\lstinline[language=bash]+--disable-shared+ to the standard configure and then
+running the standard make and install.
 
 \subsubsection{Python}
 \label{sect:required_libraries_python_python}
@@ -431,8 +429,7 @@ VTK (tested version 5.4) can be download from
 
 The following build is for a non-graphical install of fluidity - ie, one for a
 cluster, not one for a workstation expected to run diamond. In the situation
-that diamond is required,
-\lstinline[language=bash]+VTK{\textunderscore}USE{\textunderscore}RENDERING+
+that diamond is required, VTK{\textunderscore}USE{\textunderscore}RENDERING
 must be enabled and dependencies on GTK+ satisfied which are provided on the
 vast majority of modern Linux systems. A description of how to satisfy these
 dependencies from scratch is beyond the scope of this page.  When building VTK,
@@ -441,10 +438,8 @@ enabled. The fluidity configure script should be tolerant of local variations
 in terms of VTK libraries either being supported internally by VTK or supported
 with system libraries.
 
-At runtime, the environment variables
-\lstinline[language=bash]+VTK{\textunderscore}INCLUDE+ and
-\lstinline[language=bash]+VTK{\textunderscore}LIBS+ will need to be set to
-point at your VTK install.
+At runtime, the environment variables VTK{\textunderscore}INCLUDE and
+VTK{\textunderscore}LIBS will need to be set to point at your VTK install.
 
 If you are building from source, VTK should be built in a separate build
 directory which is not inside the source heierarchy. In the source directory
@@ -514,8 +509,9 @@ version 96 with paths configured for the local site. It can be downloaded from
 NetCDF is required for reading datafiles in NetCDF format, and is ested with
 version 4.0. It is recommended to be configured with f77, f90, c, cxx, and
 utilities enabled, and with \lstinline[language=bash]+--enable-shared+ added to
-the standard configure. It can be downloaded from
-\url{http://www.unidata.ucar.edu/downloads/netcdf/index.jsp}
+the standard configure. 
+
+NetCDF can be downloaded from \url{http://www.unidata.ucar.edu/downloads/netcdf/}
 
 \subsubsection{UDUnits}
 \label{sect:required_libraries_supporting_udunits}
@@ -525,8 +521,12 @@ UDUnits is required for physical unit conversions, and is tested with version
 \lstinline[language=bash]+CPPFLAGSh}+ needs to be correctly set with a -D
 option for the relevant Fortran environment. This commonly leads to an error
 during the build when not set. See for example
-\url{http://www.unidata.ucar.edu/downloads/udunits/index.jsp}.  Setting
-\lstinline[language=bash]+CPPFLAGS+ to \lstinline[language=bash]+-Df2cFortran+
+\url{http://www.unidata.ucar.edu/downloads/udunits/}.  Setting
+
+\begin{lstlisting}[language=bash]
+export CPPFLAGS=-Df2cFortran
+\end{lstlisting}
+
 should be sufficient for a GCC-based build on Linux.
 
 UDUnits can be downloaded from \url{http://www.unidata.ucar.edu/downloads/udunits/index.jsp}
