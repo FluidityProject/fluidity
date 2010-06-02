@@ -787,16 +787,15 @@ of other options will open underneath this option.
 
 \subsubsection{Continuous Galerkin}
 
-Continuous Galerkin (CG) implements the CG scheme detailed in \ref{sec:balancing_diffusion}. Once selected
-the stabilisation method used, and what is included in the advection terms and mass terms need to be selected.
+Continuous Galerkin (CG) implements the CG scheme detailed in \ref{sec:balancing_diffusion}. If stabilisation methods are needed, the user can either select streamline upwind or streamline upwind Petrov-Galerkin. Other options include integration of advection by part, lumping of the mass matrix, or direct exclusion of both advection and mass terms.
 
-\subsubsection{Control volumes}
+\subsubsection{Control Volumes}
 
-The Control Volume implements the advection scheme described in section [CROSS REF]. There are 
+The Control Volume implements the advection scheme described in section \ref{ControlVolumeAdvection}. There are 
 several options to control the face value and how diffusion is implemented. Face value can be set to one of:
 \begin{description}
 \item[First Order Upwind]
-\item[Trapizoidal] requires an optional face value limiter
+\item[Trapezoidal] requires an optional face value limiter
 \item[Finite Element] requires an optional face value limiter
 \item[HyperC] requires CFL number
 \item[UltraC] requires CFL number along with a maximum and minimum target
@@ -810,7 +809,7 @@ The Discontinuous Galerkin option implements the advection-diffusion algorithm d
 There are two options to set - the advection scheme and the diffusion scheme. The advection scheme can be one of upwind
 or none. The diffusion scheme can be one of:
 \begin{description}
-\item[Bassi Rebay] The classical scheme of Bassi and Rebay  [REF]
+\item[Bassi Rebay] The classical scheme of Bassi and Rebay \ref{BassiRebay}
 \item[Compact DG] The compact discontinuous Galerkin scheme from Peraire and Persson [REF]
 \item[Arbitrary upwind] Scheme in which upwinding is applied in alternating directions.
 \item[Interior penalty] Classical interior penalty scheme
