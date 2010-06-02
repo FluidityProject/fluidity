@@ -154,20 +154,24 @@ Numbers can be assigned to label particular surfaces in order to set boundary co
 \index{region ID}
 These are similar to surface IDs. In general, any region (a line, surface or volume) can be labeled in gmsh.
 
-\section{Extruded meshes}\label{sect:extruded_meshes}
-\index{mesh!extruded}
+\section{Mesh types}
+\subsection{Extruded meshes}
+\label{sect:extruded_meshes}
+\index{mesh!mesh types!extruded}
 
 Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
-by checking the extrude option under \ldots/from mesh. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
-between layers). These distances can currently be entered as a constant, a generic\_function or
-as a python function. Optionally, the user can then set the surface id given to the top and bottom surfaces. 
+by checking the extrude option under option{\ldots/from mesh}. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
+between layers). These distances can currently be entered as a constant, a generic\_function, a python function or by a NetCDF file (\website). Optionally, the user can then set the surface id given to the top and bottom surfaces. 
 
 As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file), given a pseudo 2D mesh on a spherical shell, fluidity can perform
 and extrusion in the radial direction. To perform such an extrusion simply enable the options as noted above and additionally check the geometry/spherical\_earth option. With
 this option enabled fluidity will then perform the specified extrusion towards the center of the sphere.
 
-\section{Periodic meshes}
-\index{mesh!periodic} \index{periodic domain} Periodic meshes are those that
+\subsection{Periodic meshes}
+\index{mesh!mesh types!periodic} 
+\index{periodic domain} 
+\label{mesh!mesh types!periodic} 
+Periodic meshes are those that
 are ``virtually'' connected in one or more directions. To make a periodic
 mesh you must first create a triangle file where the edges that are periodic
 can be mapped exactly by a simple transformation. For example, if the mesh
@@ -176,79 +180,6 @@ same height on each side. This can be easily accomplished using the
 create\_aligned\_mesh script in the scripts folder.
 
 Alternatively, if you require a more complex periodic mesh with some structure between the periodic boundaries you can create one using \lstinline[language=Python]{gmsh}. This can be done by setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh (\website)
-
-\begin{example}
-  \begin{lstlisting}[language=Python]
-
-
-// first extrude the surface
-//y
-Point(1) = {origin_x,origin_y,0,1};
-Extrude {0,domain_y,0} {
-  Point{1}; Layers{ny};
-}
-
-//z
-Extrude {0,0,domain_z,1} {
- Line{1}; Layers{nz};
-}
-
-//x
-Extrude {domain_x,0,0,1} {
-  Surface{5}; Layers{nx};
-}
-
-// Now delete all the middle entities
-Delete {
-  Volume{1};
-  Surface{26, 18, 22, 14};
-  Line{21, 12, 13, 17};
-}
-
-//Add what ever you would like in between
-//define the surfaces and lines as before
-
-// In 3D use the frontal algo to make sure that the periodic surface mesh is
-// not modified when meshing the volume
-Mesh.Algorithm3D = 4;
-
-  \end{lstlisting}
-  \caption{An example of how to produce a 3D periodic channel with a complicated middle section}
-\end{example}
-
-To specify a periodic domain in Diamond, add a new mesh under
-\option{/geometry/mesh}.  Select \onlypdf\linebreak
-\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
-on \onlypdf\\
-\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
-that is periodic. There are three fields that need to be completed: the
-surface IDs of one side, the surface IDs of the opposite side and a python
-function (\option{coordinate\_map}) which contains the necessary mapping
-function.
-
-For example, suppose that the domain is the unit square shown in figure
-\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
-designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
-\emph{aliased boundary}. We therefore enter 1 in
-\option{\ldots/physical\_boundary\_ids}\ and 2 in
-\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
-takes a point on the \emph{aliased}\ boundary to the corresponding point on
-the \emph{physical}\ boundary. In this case, the appropriate function is:
-\begin{lstlisting}[language=Python]
-def val(X,t):
-    result = list(X)
-    result[0]=result[0]-1.0
-    return result
-\end{lstlisting}
-
-\begin{figure}[ht]
-  \centering
-  \xfig{configuring_fluidity_images/periodic_domain}
-  \caption{Periodic unit square with surface IDs 1-4 shown.}
-  \label{fig:periodic}
-\end{figure}
-
-Meshes that are required to be periodic can now be derived from this periodic mesh.
 
 \subsection{Setting field values}\label{Sect:setting_field_values}
 \index{field!values}
@@ -261,13 +192,33 @@ The initial value of prognostic fields is set with the
 \option{\ldots/prognostic/initial\_condition} option while the value of
 prescribed fields is set with the \option{\ldots/prescribed/value} option.
 
-\section{Mesh generation tools}
+\section{Meshing tools}
+\index{mesh!meshing tools}
+
+\subsection{interval}
+This is a 1D mesh generator and is in the scripts directory. To use simply type:
+
+
+\begin{lstlisting}[language = Bash]
+\fluiditysourcepath/scripts/interval [options] left right name 
+\end{lstlisting}
+
+Where left and right define the range of the line. It has a number of user defined input options:
+
+\begin{itemize}
+\item - -dx = constant interval spacing
+\item - -variable\_dx = interval spacing defined with a python function
+\item - -region\_ids = python function defining the region id at each point
+\item - -reverse = reverse order of mesh
+\end{itemize}
+
 \subsection{gmsh2triangle}
+\index{mesh!meshing tools!gmsh2triangle}
 Converting msh files to triangle format. The gmsh2triangle script in the scripts
 directory converts msh files to triangle format, which is supported by Fluidity.
-If you are generating a 2 dimensional mesh, the default behaviour is to still
+If you are generating a 2D mesh, the default behaviour is to still
 output 3 dimensional positions. If you require 2d positions in this case (most
-people will) then you need to supply the --2d option to gmsh2triangle.
+people will) then you need to supply the - -2d option to gmsh2triangle.
 
 gmsh2triangle stores the entire gmsh mesh in memory before writing it out to
 triangle file. For very large meshes this is likely to be impractical,
@@ -287,8 +238,39 @@ where \lstinline[language = Bash]*input* is the input .msh file.
 The \lstinline[language = Bash]+--2d+ flag can be used to instruct gmsh2triangle\_large
 to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
+\subsection{triangle2vtu}
+\index{mesh!meshing tools!triangle2vtu}
+This converts triangle format files in to vtu format. It is in the fluidity tools directory and is used with:
+
+\begin{lstlisting}[language = Bash]
+\fluiditysourcepath/tools/triangle2vtu foo
+\end{lstlisting}
+
+Where foo is the triangle file base name (\ie foo.node etc.)
+
+\section{Decomposing meshes for parallel}
+\label{decomp_meshes_parallel}
+\index{parallel!mesh decomposition}
+
+The first step in running a \fluidity\ set-up in parallel is to create the software
+used to decompose the initial mesh into multiple parts. This can be made using:
+\begin{lstlisting}[language=bash]
+make fltools
+\end{lstlisting}
+inside your \fluidity\ folder. The following binaries will then be created in the bin/ directory (see section \ref{sect:fltools}).
+%You can then decompose the initial mesh the following command
+%\begin{lstlisting}[language=bash]
+%fluidity path /bin/fldecomp -n [PARTS] [BASENAME]
+%\end{lstlisting}
+
 \subsection{fldecomp}
-This function is used to decompose a mesh into several parts in order to run in parallel.  For more information, see \ref{decomp_meshes_parallel}.
+\index{mesh!meshing tools!fldecomp}
+This function is used to decompose a mesh into multiple regions, one per process. In order to run fldecomp, if your mesh files have the base name foo and you want to decompose into four parts, type:
+\begin{lstlisting}[language = Bash]
+\fluiditysourcepath/bin/fldecomp -n 4 foo
+\end{lstlisting}
+
+This will create partition triangle meshes together with halo files. 
 
 %In your fluidity directory type:
 %\begin{lstlisting}[language = Bash]
@@ -300,12 +282,28 @@ This function is used to decompose a mesh into several parts in order to run in 
 %\end{lstlisting}
 
 \subsection{flredecomp}
-This is sililar to fldecomp but it runs in pararallel.
+\index{mesh!meshing tools!flredecomp}
+\label{mesh!meshing tools!flredecomp}
+This is sililar to fldecomp but it runs in parallel. To use simply type, where the decomposed file has the name foo\_flredecomp.flml:
 
-\subsection{triangle2vtu}
-This converts triangle format files in to vtu format. It is in the fluidity tools directory.
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 \fluiditysourcepath/bin/flredecomp \
+    -i 1 -o 4 foo foo_flredecomp
+\end{lstlisting}
 
-\subsection{Periodise}
+Where:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n [target number of processors] \
+   \fluiditysourcepath/bin/flredecomp -i [input number of processors] \
+        -o [target number of processors] [input flml] [output flml]
+\end{lstlisting}
+
+The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_flredecomp.flml.
+
+%\subsubsection{Decomposing a periodic mesh}
+\subsection{periodise}
+\index{mesh!meshing tools!periodise}
 %\index{Zoltan}\index{parallel!periodic domains}
 %Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
 
@@ -325,61 +323,25 @@ This converts triangle format files in to vtu format. It is in the fluidity tool
 %./configure --with-zoltan
 %\end{lstlisting}
 
-To produce the periodic meshes you have to use two tools (these tools are built as part of the fltools build target (see section \ref{sect:fltools})):
+To be able to run a periodic mesh in parallel you have to use two tools (these tools are built as part of the fltools build target (see section \ref{sect:fltools})):
 
 \begin{itemize}
 \item periodise
-\item flredecomp
+\item flredecomp (\ref{mesh!meshing tools!flredecomp})
 \end{itemize}
 
 The input to periodise is your flml (in this case foo.flml), which contains the mapping for the periodic boundary as described above. Run using the command:
 
 \begin{lstlisting}[language=bash]
-./myfluidity/bin/periodise foo.flml
+\fluiditysourcepath/bin/periodise foo.flml
 \end{lstlisting}
 
-The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required.
-
-\section{Decomposing meshes for parallel}
-\label{decomp_meshes_parallel}
-\index{parallel!mesh decomposition}
-
-The first step in running a \fluidity\ set-up in parallel is to create the software
-use to decompose the initial mesh into multiple parts, fldecomp. This can be made using:
-\begin{lstlisting}[language=bash]
-make fltools
-\end{lstlisting}
-inside your \fluidity\ folder.The fldecomp binary will then be created in the bin/ directory. 
-You can then decompose the initial mesh into multiple regions, one per process using the following command
-\begin{lstlisting}[language=bash]
-fluidity path /bin/fldecomp -n [PARTS] [BASENAME]
-\end{lstlisting}
-where BASENAME is the triangle mesh base name (excluding extensions). This will create PARTS partition triangle meshes together with PARTS .halo files. 
-
-\subsubsection{Decomposing a periodic mesh}
-
-To decompose a periodic mesh to be run on four processors simply type:
-
-\begin{lstlisting}[language=bash]
-mpiexec -n 4 ./myfluidity/bin/flredecomp \
-    -i 1 -o 4 foo_periodised foo_periodised_flredecomp
-\end{lstlisting}
-
-Where:
-
-\begin{lstlisting}[language=bash]
-mpiexec -n [target number of processors] \
-   ./myfluidity/bin/flredecomp -i [input number of processors] \
-        -o [target number of processors] [input flml] [output flml]
-\end{lstlisting}
-
-The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
+The output is a new flml called  foo\_periodised.flml and the periodic meshes. Then run flredecomp (section \ref{mesh!meshing tools!flredecomp}) to decompose the mesh for the number of processors required. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n [number of processors] \
-   ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
+   \fluiditysourcepath/bin/fluidity [options] foo_periodised_flredecomp.flml
 \end{lstlisting}
-
 
 \section{Pseudo-meshing}
 
