@@ -738,12 +738,12 @@ form \eqref{nonconmom} is very similar to that of the advection
 diffusion equation. Assuming a tensor form for viscosity, we 
 can write it in the same matrix form as
 \eqref{eq:cg_adv_diff_mat}
-\begin{equation*}
+\begin{equation}\label{eq:momentum_equation}
   \mat{M} \ddt{\dvec{\vec u}}
     +\mat{A}(\vec{u})\dvec{\vec u}-\mat{K}\dvec{\vec u}
     +\vec{\mat{C}} \dvec p
     =0,
-\end{equation*}
+\end{equation}
 with a mass matrix $\mat{M}$, advection matrix $\mat{A}$,
 viscosity matrix $\mat{K}$ and pressure gradient matrix $\vec{\mat{C}}$.
 For a continuous galerkin discretisation of 
@@ -850,9 +850,53 @@ we get the usual no normal stress condition. If the normal component
 is left free we have to prescribe a pressure instead. The boundary 
 conditions in the tangential direction (slip/no-slip) are independent of this choice.
 
-
 \subsection{Pressure correction}
 \index{pressure!correction}
+
+After solving the Momentum equation \eqref{eq:momentum_equation} for the velocity using a pressure guess, the solution does not satisfy the continuity equation. A common way to enforce the continuity is to project the velocity to the set of continuity-free functions. After this projection step the continuity equation is satisfied, but in general the solution does not satisfy the momentum equation anymore, which is why the combination of momentum solve and pressure correction has to be repeated until a convergence criterium has been reached. 
+More information about pressure correction methods can be found in \cite{gresho1988}.
+
+In this section, a variable with a star annotated (i.e. $\dvec{\vec u}_*$) is an intermediate solution and the notation $\dvec{\vec u}^{n+\theta}=\theta \dvec{\vec u}^{n+1} + (1-\theta) \dvec{\vec u}^{n}$ is used.
+The derivation of the pressure-correction step starts with two variations of the Momentum equation \eqref{eq:momentum_equation}. The first one is the one which was used in the Momentum solve
+\begin{equation}\label{eqn:presscorr_1}
+\mat{M}  \frac{{\dvec{\vec u_*}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
+    +\mat{A}\dvec{\vec u}_*^{n+\theta}-\mat{K}\dvec{\vec u}_*^{n+\theta}
+    +\vec{\mat{C}} \dvec p_*^{n+1}
+    =0,
+\end{equation}
+while the second variation contains the corrected solution:
+\begin{equation}\label{eqn:presscorr_2}
+\mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
+    +\mat{A}\dvec{\vec u}_*^{n+\theta}-\mat{K}\dvec{\vec u}_*^{n+\theta}
+    +\vec{\mat{C}} \dvec p^{n+1}
+    =0,
+\end{equation}
+
+Note that $A$ depends on $u$ itself. There are two possibilities when to evaluate $A$, either $A(u^n)$ or at the latest velocity in the nonlinear loop, of which are both used in practice. (TODO: is the right?) 
+
+Substracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
+\begin{equation}\label{eqn:presscorr_substract}
+\mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}}}{\Delta t}
+    + \vec{\mat{C}} ( \dvec p^{n+1} - \dvec p_*^{n+1})
+    =0,
+\end{equation}
+
+Multipliying by $\Delta t C^TM^{-1}$ and rearranging results in:
+\begin{equation}\label{eqn:presscorr_presscorr}
+\mat{C^T} \mat{M^{-1}}\vec{\mat{C}} ( \dvec p^{n+1} -  \dvec p_*^{    n+1})
+=-\frac{\mat{C^T}  ({\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}})}{\Delta t},
+\end{equation}
+In this form the left hand side already contains the sought-after pressure correction, but the left hand side cannot be evaluated yet because $\dvec{\vec u}^{n+1}$ is unknown. The continuity equation is needed for that whose discretised form is:
+\begin{equation}\label{eqn:presscorr_continuity}
+\mat{C^T} \dvec{\vec u}^{n+1}=0
+\end{equation}
+Putting \eqref{eqn:presscorr_continuity} into \eqref{eqn:presscorr_presscorr} and some rearraging yields:
+\begin{equation*}
+ \mat{C^T} \mat{M^{-1}}\vec{\mat{C}} ( \dvec p^{n+1} -  \dvec p_*^{    n+1})
+=\frac{ \mat{C^T} \dvec{\vec u}_*^{n+1}}{\Delta t},
+\end{equation*}
+This discrete poisson equation can now be solved for $\dvec p^{n+1}$ and the solution used to update the velocity with \eqref{eqn:presscorr_substract} to $\dvec{\vec u}^{n+1}=\dvec{\vec u}^{n}+\Delta t  M^{-1} C ( \dvec p^{n+1} - \dvec p_*^{n+1})$.
+
 
 \subsection{CG and mass lumping}
 \label{Sect:ND_cg_mass_lumping}
@@ -903,8 +947,6 @@ Repeating the steps from section ??, the pressure correction equation takes the 
 
 
 Moving of free surface nodes.
-
-\section{Wetting and drying}\label{Wetting_Drying}
 
 \section{Linear solvers} \label{ND_Linear_solvers}
 \index{linear solvers}
