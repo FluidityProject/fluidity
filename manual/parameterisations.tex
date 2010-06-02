@@ -203,7 +203,7 @@ l = \text{max} \left ( 0.83 \frac{\epsilon^2}{k} \left [ \frac{k^{1.5}}{2.5 \eps
 \end{equation}
 where $y$ is the wall-normal distance. The limiter, if switched on, operates only in the wall-adjacent elements.
 
-The five model coefficients are in Table \ref{tab:kepsco}.
+The five model coefficients are in Table \ref{tab:kepsco}. These are the default values but they can be changed in Diamond.
 
 \begin{table}[hb]
 \begin{center} 
@@ -222,7 +222,7 @@ $\sigma_k$ & 1.0 \\ \hline
 
 \subsection{Boundary Conditions}
 
-The model may be used for low Reynolds number flows ($\nu_T \approx \nu$) with the following boundary conditions:
+The model may be used for low Reynolds number flows ($\nu_T \approx \nu$) with the following boundary conditions, although they work for high  Reynolds number too:
 
 \begin{align}
 \bmu &= 0, \label{ubc}\\
@@ -230,31 +230,37 @@ k &= 0, \label{kbc}\\
 \epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \label{epsbc}
 \end{align}
 
-\eqref{epsbc} is selected under
+However, $k$ should in practice be set to a very small nonzero number to prevent the code crashing.
+
+\eqref{epsbc} can be implemented by selecting the following boundary condition type:
 
 \option{\ldots/scalar\_field::TurbulentDissipation/prognostic/boundary\_conditions/k\_epsilon}.
 
+A 'calculate boundaries' option is available to enable boundary conditions to be switched on or off for the $k$ and $\epsilon$ fields; it is possibly superfluous and may be removed.
+
+\subsection{Initial Conditions}
+
+The model is sensitive to the initial conditions specified for the $k$ and $\epsilon$ fields. It is recommended that they be set to very small values with $k \approx 10^4 \times \epsilon$.
+
 \subsection{Model Usage}
 
-The $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field is called \option{TurbulentDissipation}.
+In Diamond the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
 
 The 2 fields should use the following spatial discretisation options:
 
-\option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}.
+\option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+
+with \option{\ldots/control\_volumes/diffusion\_scheme::ElementGradient}.
 
 Fully implicit temporal discretisation (\option{/\ldots/temporal\_discretisation/theta=1}) is recommended.
 
-Both fields must have the diffusivity, source and absorption sub-fields switched on and calculated using
+Both fields must have the diffusivity, source and absorption sub-fields switched on and calculated using \option{\ldots/diagnostic/algorithm::Internal}.
 
-\option{\ldots/diagnostic/algorithm::Internal}.
-
-The eddy viscosity is available as a diagnostic tensor field, and as a diagnostic scalar field that is output to the stat file (e.g. for plotting using statplot). However, the ordinary viscosity must be prescribed under \option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}. Therefore to avoid conflict the ordinary viscosity field within the velocity field options must be set to
+The eddy viscosity is available as a diagnostic tensor field, and as a diagnostic scalar field that is output to the stat file (e.g. for plotting using statplot). However, the ordinary viscosity must be prescribed under \option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}. Therefore to avoid conflict the ordinary viscosity field within the velocity options must be set to
 
 \option{\ldots/Velocity/prognostic/tensor\_field::Viscosity/diagnostic/algorithm::Internal}.
 
-Two further diagnostic scalar fields are available within the model: LengthScale and TKEOverEpsilon. The second is a ratio of the $k$ and $\epsilon$ fields.
-
-A 'calculate boundaries' option is available to enable boundary conditions to be switched on or off for the $k$ and $\epsilon$ fields; it is possibly superfluous and may be removed.
+Two further optional diagnostic scalar fields are available within the model: LengthScale and TKEOverEpsilon. The second is the ratio of the $k$ and $\epsilon$ fields.
 
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
