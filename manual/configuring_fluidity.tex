@@ -1568,6 +1568,7 @@ It is generally recommended to subtract out the hydrostatic pressure level from 
 
 The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{PressureMesh} for P1DG-P2. 
 
+For both P1-P1 and P1DG-P2
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation/continuous\_galerkin} is recommended for the spatial discretisation. 
 \item \option{\ldots/scheme/poisson\_pressure\_solution} is recommended to be chosen as either \option{never} or \option{only\_first\_timestep}, [REF SECTION]
@@ -1581,25 +1582,34 @@ The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{Press
 
 The equation used to solve for Velocity is set under \option{\ldots/equation}, cf. \ref{Sect:ND_momentum_equation}. For GFD problems that require the Boussinesq approximation selecting \option{\ldots/equation::Boussinesq} will ensure that this correct formulation used, cf, \ref{sect:boussinesq_approximation}, \ref{sect:typical_ICOM_equations}, \ref{Sect:ND_momentum_equation}.
 
-A Crank-Nicolson temporal discretisation with a non-linear relaxation is recommended for the temporal discretisation [REF SECTION]. This is selected by setting:
+The temporal discretisation recommendations are:
 \begin{itemize}
-\item \option{\ldots/temporal\_discretisation/theta} to 0.5
-\item \option{\ldots/temporal\_discretisation/relaxation} to 0.5
+\item Crank-Nicolson, [REF SECTION]: \\
+\option{\ldots/temporal\_discretisation/theta} set to 0.5
+\item with a non-linear relaxation, [REF SECTION]: \\
+\option{\ldots/temporal\_discretisation/relaxation} to 0.5
 \end{itemize}
 
-If using P1-P1, the following are recommended for the spatial discretisation:
+If using P1-P1 the spatial discretisation recommendations are:
 \begin{itemize}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}, cf. \ref{Sect:ND_advective_stabilisation_CG}
-\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}, cf. \ref{Sect:ND_cg_mass_lumping}
-\item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), [REF SECTION]
+\item no stabilisation, cf. \ref{Sect:ND_advective_stabilisation_CG}: \\ 
+\option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}
+\item lumping the mass matrix, cf. \ref{Sect:ND_cg_mass_lumping}: \\
+\option{\ldots/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}
+\item and non-conservative advection, [REF SECTION]: \\ 
+\option{\ldots/spatial\_discretisation/conservative\_advection} set to 0
 \end{itemize}
 
-If using P1DG-P2, the following are recommended for the spatial discretisation:
+If using P1DG-P2, the spatial discretisation recommendations are:
 \begin{itemize}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
-\item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), [REF SECTION]
+\item a compact discontinuous galerkin viscosity scheme, cf. \ref{sec:NM_DG_diffusion}: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}
+\item an upwinding advection scheme, cf. \ref{Sect:ND_discontinuous_galerkin_advection}: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}
+\item advection is integrated by parts twice, cf. \ref{Sect:ND_discontinuous_galerkin_advection}: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}
+\item and non-conservative advection, [REF SECTION]: \\ 
+\option{\ldots/spatial\_discretisation/conservative\_advection} set to 0
 \end{itemize}
 
 \subsubsection{Advected scalar fields}
@@ -1607,41 +1617,54 @@ The recommended options for scalar fields are considered for P1-P1 and P1DG-P2 s
 {\bf P1-P1} \\ \\
 The mesh used should be the \option{CoordinateMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
-For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended which are selected with the options [REF SECTIONS]:
+For the spatial discretisation a control-volumes discretisation is recommended with the following options [REF SECTIONS]:
 \begin{itemize}
-\item{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
-\item \option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+\item a finite-element face value discretisation: \\
+\option{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
+\item with Sweby limiter: \\
+\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+\item and an Element-Gradient diffusion scheme: \\
+\option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
 \end{itemize}
-To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts) [REFERENCE SECTION]. To do this activate the option:
+To help increase speed it is possible to store the upwind elements so they do not have to be recalculated every time step (only after adapts) [REF SECTION]. This is enable with the option:
 \begin{itemize}
-\item{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}
+\item\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}
 \end{itemize}
-An Element Gradient diffusion scheme is also generally recommended, selected under \option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
 
-For the temporal discretisation a Crank-Nicolson scheme is recommended, with the control volume options of 3 advection iterations and limit theta [REF SECTIONS]. These are set with the options:
+The temporal discretisation recommendations are:
 \begin{itemize}
-\item{\ldots/temporal\_discretisation/theta} set to 0.5
-\item{\ldots/temporal\_discretisation/control\_volumes/number\_advection\_iterations}
-\item{\ldots/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}
+\item Crank-Nicolson, [REF SECTION]: \\
+\option{\ldots/temporal\_discretisation/theta} set to 0.5
+\item with 3 control-volume advection iterations, [REF SECTION]: \\ 
+\option{\ldots/temporal\_discretisation/control\_volumes/number\_advection\_iterations}
+\item and limit theta enabled, [REF SECTION]: \\
+\option{\ldots/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}
 \end{itemize}
 
 {\bf P1DG-P2} \\
 
 The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
-For the spatial discretisation a discontiuous-Galerkin discretisation is recommended with a Lax-Friedrichs advection scheme, velocity projected to continuous space, advection integrated by parts once and a compact-discontinuous-Galerkin diffusion scheme with a vertex-based slope limiter. These options are selected with:
+The spatial discretisation recommendations are:
 \begin{itemize}
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}, cf. [REF SECTION]
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}, cf. [REF SECTION]
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}, cf. [REF SECTION]
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}, cf. \ref{Sect:ND_DG_slope_limiters}
+\item a Lax-Friedrichs advection scheme, cf. [REF SECTION]: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}
+\item velocity projected to continuous space (the CoordinateMesh for example), cf. [REF SECTION]: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}
+\item advection is integrated by parts once, cf. \ref{Sect:ND_discontinuous_galerkin_advection} [REF SECTION CHECK]: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}
+\item a compact-discontinuous-Galerkin diffusion scheme, cf. \ref{sec:NM_DG_diffusion}: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}
+\item with a vertex-based slope limiter, cf. \ref{Sect:ND_DG_slope_limiters}: \\
+\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}
 \end{itemize}
 
-For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
+The temporal discretisation recommendations are:
 \begin{itemize}
-\item{\ldots/temporal\_discretisation/theta} set to 0.5
-\item{\ldots/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.
+\item Crank-Nicolson [REF SECTION]: \\
+\option{\ldots/temporal\_discretisation/theta} set to 0.5
+\item with subcycling [REF SECTION]: \\
+\option{\ldots/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.
 \end{itemize}
 
 
