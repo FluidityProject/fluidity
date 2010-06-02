@@ -449,6 +449,11 @@ at configure-time.
 \subsection{Running Fluidity in serial}
 \label{sect:running_fluidity_in_serial}
 
+To run \fluidity in serial use the follwoing command:
+
+\begin{lstlisting}[language=bash]
+`\fluiditysourcepath'/bin/fluidity -l -v2 my_setup.flml
+\end{lstlisting}
 
 
 \subsection{Running Fluidity in parallel}
@@ -467,7 +472,8 @@ the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run o
 To run in parallel there are no further changes needed, apart from running \fluidity
 within the mpirun or mpiexec framework. Simply prepend the normal command line with mpiexec:
 \begin{lstlisting}[language=bash]
-mpiexec -n [PROCESSES] dfluidity -l -v2 my_setup.flml
+mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity \ 
+-l -v2 my_setup.flml
 \end{lstlisting}
 
 \subsection{Running a periodic extruded mesh}
@@ -478,26 +484,26 @@ Running a periodic extruded mesh (section ??) in parallel, requires a number of 
 \begin{itemize}
 \item Make the periodic 2D flml from the periodic 2plus1 flml
 \begin{lstlisting}[language=bash]
- ./myfluidity/scripts/make_periodic_2D_flml foo.flml
+ `\fluiditysourcepath'/scripts/make_periodic_2D_flml foo.flml
 \end{lstlisting}
 \item Periodise the new 2D flml
 \begin{lstlisting}[language=bash]
- ./myfluidity/periodise foo_2D.flml
+ `\fluiditysourcepath'/periodise foo_2D.flml
 \end{lstlisting}
 \item Flredecomp the periodised 2D flml
 \begin{lstlisting}[language=bash]
-mpiexec -n 4 ./myfluidity/bin/flredecomp \
+mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
     -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
 \end{lstlisting}
 \item Periodise the 2plus1 flml
 \begin{lstlisting}[language=bash]
- ./myfluidity/periodise foo.flml
+ `\fluiditysourcepath'/periodise foo.flml
 \end{lstlisting}
 \item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
 \item Run the parallel flml as before
 \begin{lstlisting}[language=bash]
 mpiexec -n [number of processors] \
-   ./myfluidity/bin/fluidity [options] foo_periodised.flml
+   `\fluiditysourcepath'/bin/fluidity [options] foo_periodised.flml
 \end{lstlisting}
 \end{itemize}
 
