@@ -177,105 +177,14 @@ for pressure is the same as your \option{CoordinateMesh}, e.g.
 for \Poo or \Pzero\Pone, the pressure can be defined directly on
 the \option{CoordinateMesh} and no extra mesh is needed.
 
-\subsubsection{Extruded meshes}\label{sect:extruded_meshes}
-\index{mesh!extruded}
-
-Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
-by checking the extrude option under \ldots/from mesh. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
-between layers). These distances can currently be entered as a constant, a generic\_function or
-as a python function. Optionally, the user can then set the surface id given to the top and bottom surfaces. 
-
-As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file), given a pseudo 2D mesh on a spherical shell, fluidity can perform
-and extrusion in the radial direction. To perform such an extrusion simply enable the options as noted above and additionally check the geometry/spherical\_earth option. With
-this option enabled fluidity will then perform the specified extrusion towards the center of the sphere.
-
-\subsubsection{Periodic meshes}
-\index{mesh!periodic} \index{periodic domain} Periodic meshes are those that
-are ``virtually'' connected in one or more directions. To make a periodic
-mesh you must first create a triangle file where the edges that are periodic
-can be mapped exactly by a simple transformation. For example, if the mesh
-is periodic in the X-direction, the two edges must have nodes at exactly the
-same height on each side. This can be easily accomplished using the
-create\_aligned\_mesh script in the scripts folder.
-
-To specify a periodic domain in Diamond, add a new mesh under
-\option{/geometry/mesh}.  Select \onlypdf\linebreak
-\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
-on \onlypdf\\
-\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
-that is periodic. There are three fields that need to be completed: the
-surface IDs of one side, the surface IDs of the opposite side and a python
-function (\option{coordinate\_map}) which contains the necessary mapping
-function.
-
-For example, suppose that the domain is the unit square shown in figure
-\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
-designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
-\emph{aliased boundary}. We therefore enter 1 in
-\option{\ldots/physical\_boundary\_ids}\ and 2 in
-\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
-takes a point on the \emph{aliased}\ boundary to the corresponding point on
-the \emph{physical}\ boundary. In this case, the appropriate function is:
-\begin{lstlisting}[language=Python]
-def val(X,t):
-    result = list(X)
-    result[0]=result[0]-1.0
-    return result
-\end{lstlisting}
-
-\begin{figure}[ht]
-  \centering
-  \xfig{configuring_fluidity_images/periodic_domain}
-  \caption{Periodic unit square with surface IDs 1-4 shown.}
-  \label{fig:periodic}
-\end{figure}
-
-Meshes that are required to be periodic can now be derived from this periodic mesh.
-
-\index{Zoltan}\index{parallel!periodic domains}
-Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
-
-\begin{lstlisting}[language=bash]
-dpkg -l libzoltan*
-\end{lstlisting}
-
-If the libaries are not present install them with:
-
-\begin{lstlisting}[language=bash]
-sudo apt-get install libzoltan-dev
-\end{lstlisting}
-
-Then configure fluidity with zoltan:
-
-\begin{lstlisting}[language=bash]
-./configure --with-zoltan
-\end{lstlisting}
-
-To produce the periodic meshes you have to use two tools (these tools are built as part of the fltools build target (see section \ref{sect:fltools})):
+\subsubsection{Mesh properties}
 
 \begin{itemize}
-\item periodise
-\item flredecomp
+\item Mesh shape
+\item Mesh Continuity
+\item Periodic boundary conditions
+\item Extrude
 \end{itemize}
-
-The input to periodise is your flml (in this case foo.flml), which contains the mapping for the periodic boundary as described above. Run using the command:
-
-\begin{lstlisting}[language=bash]
-./myfluidity/bin/periodise foo.flml
-\end{lstlisting}
-
-The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required.
-
-\subsection{Setting field values}\label{Sect:setting_field_values}
-\index{field!values}
-\index{initial conditions!setting}
-Field values must be specified by the user in two circumstances: the initial
-value of most prognostic fields and the value throughout the simulation of
-all prescribed fields. 
-
-The initial value of prognostic fields is set with the
-\option{\ldots/prognostic/initial\_condition} option while the value of
-prescribed fields is set with the \option{\ldots/prescribed/value} option.
 
 \subsubsection{Constant fields}
 \index{field!constant}
@@ -329,7 +238,7 @@ float which will be used for all the diagonal entries of the tensor at that
 point. The off-diagonal entries will be set to zero. For the anisotropic case,
 the function must return a two-dimensional array (a sequence of
 sequences). It is the user's responsibility to ensure that the tensor is
-symmetric in cases where it should be. \website
+symmetric in cases where it should be.
 
 \begin{example}
   \begin{lstlisting}[language=Python]
@@ -1568,7 +1477,6 @@ It is generally recommended to subtract out the hydrostatic pressure level from 
 
 The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{PressureMesh} for P1DG-P2. 
 
-For both P1-P1 and P1DG-P2
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation/continuous\_galerkin} is recommended for the spatial discretisation. 
 \item \option{\ldots/scheme/poisson\_pressure\_solution} is recommended to be chosen as either \option{never} or \option{only\_first\_timestep}, [REF SECTION]
@@ -1582,34 +1490,25 @@ The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{Press
 
 The equation used to solve for Velocity is set under \option{\ldots/equation}, cf. \ref{Sect:ND_momentum_equation}. For GFD problems that require the Boussinesq approximation selecting \option{\ldots/equation::Boussinesq} will ensure that this correct formulation used, cf, \ref{sect:boussinesq_approximation}, \ref{sect:typical_ICOM_equations}, \ref{Sect:ND_momentum_equation}.
 
-The temporal discretisation recommendations are:
+A Crank-Nicolson temporal discretisation with a non-linear relaxation is recommended for the temporal discretisation [REF SECTION]. This is selected by setting:
 \begin{itemize}
-\item Crank-Nicolson, [REF SECTION]: \\
-\option{\ldots/temporal\_discretisation/theta} set to 0.5
-\item with a non-linear relaxation, [REF SECTION]: \\
-\option{\ldots/temporal\_discretisation/relaxation} to 0.5
+\item \option{\ldots/temporal\_discretisation/theta} to 0.5
+\item \option{\ldots/temporal\_discretisation/relaxation} to 0.5
 \end{itemize}
 
-If using P1-P1 the spatial discretisation recommendations are:
+If using P1-P1, the following are recommended for the spatial discretisation:
 \begin{itemize}
-\item no stabilisation, cf. \ref{Sect:ND_advective_stabilisation_CG}: \\ 
-\option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}
-\item lumping the mass matrix, cf. \ref{Sect:ND_cg_mass_lumping}: \\
-\option{\ldots/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}
-\item and non-conservative advection, [REF SECTION]: \\ 
-\option{\ldots/spatial\_discretisation/conservative\_advection} set to 0
+\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/stabilisation/no\_stabilisation}, cf. \ref{Sect:ND_advective_stabilisation_CG}
+\item \option{\ldots/spatial\_discretisation/continuous\_galerkin/mass\_terms/lump\_mass\_matrix}, cf. \ref{Sect:ND_cg_mass_lumping}
+\item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), [REF SECTION]
 \end{itemize}
 
-If using P1DG-P2, the spatial discretisation recommendations are:
+If using P1DG-P2, the following are recommended for the spatial discretisation:
 \begin{itemize}
-\item a compact discontinuous galerkin viscosity scheme, cf. \ref{sec:NM_DG_diffusion}: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}
-\item an upwinding advection scheme, cf. \ref{Sect:ND_discontinuous_galerkin_advection}: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}
-\item advection is integrated by parts twice, cf. \ref{Sect:ND_discontinuous_galerkin_advection}: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}
-\item and non-conservative advection, [REF SECTION]: \\ 
-\option{\ldots/spatial\_discretisation/conservative\_advection} set to 0
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/viscosity\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/upwind}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
+\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/twice}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
+\item \option{\ldots/spatial\_discretisation/conservative\_advection} set to 0 (non-conservative), [REF SECTION]
 \end{itemize}
 
 \subsubsection{Advected scalar fields}
@@ -1617,54 +1516,41 @@ The recommended options for scalar fields are considered for P1-P1 and P1DG-P2 s
 {\bf P1-P1} \\ \\
 The mesh used should be the \option{CoordinateMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
-For the spatial discretisation a control-volumes discretisation is recommended with the following options [REF SECTIONS]:
+For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended which are selected with the options [REF SECTIONS]:
 \begin{itemize}
-\item a finite-element face value discretisation: \\
-\option{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
-\item with Sweby limiter: \\
-\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
-\item and an Element-Gradient diffusion scheme: \\
-\option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
+\item{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
+\item \option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
 \end{itemize}
-To help increase speed it is possible to store the upwind elements so they do not have to be recalculated every time step (only after adapts) [REF SECTION]. This is enable with the option:
+To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts) [REFERENCE SECTION]. To do this activate the option:
 \begin{itemize}
-\item\option{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}
+\item{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}
 \end{itemize}
+An Element Gradient diffusion scheme is also generally recommended, selected under \option{\ldots/spatial\_discretisation/control\_volumes/diffusion\_scheme::ElementGradient}
 
-The temporal discretisation recommendations are:
+For the temporal discretisation a Crank-Nicolson scheme is recommended, with the control volume options of 3 advection iterations and limit theta [REF SECTIONS]. These are set with the options:
 \begin{itemize}
-\item Crank-Nicolson, [REF SECTION]: \\
-\option{\ldots/temporal\_discretisation/theta} set to 0.5
-\item with 3 control-volume advection iterations, [REF SECTION]: \\ 
-\option{\ldots/temporal\_discretisation/control\_volumes/number\_advection\_iterations}
-\item and limit theta enabled, [REF SECTION]: \\
-\option{\ldots/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}
+\item{\ldots/temporal\_discretisation/theta} set to 0.5
+\item{\ldots/temporal\_discretisation/control\_volumes/number\_advection\_iterations}
+\item{\ldots/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}
 \end{itemize}
 
 {\bf P1DG-P2} \\
 
 The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
-The spatial discretisation recommendations are:
+For the spatial discretisation a discontiuous-Galerkin discretisation is recommended with a Lax-Friedrichs advection scheme, velocity projected to continuous space, advection integrated by parts once and a compact-discontinuous-Galerkin diffusion scheme with a vertex-based slope limiter. These options are selected with:
 \begin{itemize}
-\item a Lax-Friedrichs advection scheme, cf. [REF SECTION]: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}
-\item velocity projected to continuous space (the CoordinateMesh for example), cf. [REF SECTION]: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}
-\item advection is integrated by parts once, cf. \ref{Sect:ND_discontinuous_galerkin_advection} [REF SECTION CHECK]: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}
-\item a compact-discontinuous-Galerkin diffusion scheme, cf. \ref{sec:NM_DG_diffusion}: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}
-\item with a vertex-based slope limiter, cf. \ref{Sect:ND_DG_slope_limiters}: \\
-\option{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}, cf. \ref{Sect:ND_DG_slope_limiters}
 \end{itemize}
 
-The temporal discretisation recommendations are:
+For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
 \begin{itemize}
-\item Crank-Nicolson [REF SECTION]: \\
-\option{\ldots/temporal\_discretisation/theta} set to 0.5
-\item with subcycling [REF SECTION]: \\
-\option{\ldots/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.
+\item{\ldots/temporal\_discretisation/theta} set to 0.5
+\item{\ldots/temporal\_discretisation/discontinuous\_galerkin/maximum\_courant\_number\_per\_subcycle} set to an appropriate value.
 \end{itemize}
 
 

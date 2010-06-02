@@ -154,387 +154,115 @@ Numbers can be assigned to label particular surfaces in order to set boundary co
 \index{region ID}
 These are similar to surface IDs. In general, any region (a line, surface or volume) can be labeled in gmsh.
 
-\section{gmsh}
-\index{mesh!generation!gmsh}
-\index{gmsh}
-\label{sect:gmsh}
-\subsection{Invoking gmsh}
-Unsurprisingly, gmsh is run on the command line by typing
-\lstinline[language=Python]{gmsh}. It is also possible to run gmsh on a
-previously output .geo file.
-
-\subsection{Generating meshes}
-Before reading this section you may wish to look at the gmsh tutorial
-
-Gmsh outputs two sorts of files:
-
-\begin{itemize}
-\item .geo files: describe the geometry of the domain including both geometric and physical entity labels. 
-\item .msh files: contain the output mesh. These are converted to triangle format for input to fluidity. 
-\end{itemize}
-
-\subsection{Elementary entities and physical groups}
-\textbf{Elementary entities} are the geometric building blocks of the
-domain: points, lines, surfaces, volumes and so on. These are used by gmsh
-and are reported in the .msh file but are not used by fluidity. In contrast,
-\textbf{physical groups} attach labels to groups of elementary entities. It
-is important that all the boundaries in your mesh as well as the whole
-interior of the domain are assigned to physical groups. The physical group
-numbers are transmitted via the .msh and triangle files to fluidity. In
-fluidity the entries in the boundary surface\_id lists correspond to these
-numbers. They are therefore essential for prescribing boundary conditions to
-the problem. If any part of the domain or boundary does not belong to a
-physical group then the relevant elements will not be output to the mesh
-file and your problem will almost certainly crash.
-
-\subsection{A two dimensional example}
-This tutorial illustrates the process of meshing a square domain and specifying boundary flags on it.
-
-\subsubsection{Getting started}
-
-Run gmsh on the command line: \\
-
-gmsh
-
-The following windows appear: %figure
-
-\subsubsection{Setting up the geometry}
-
-Choose \textit{Elementary entities} then \textit{Add}, \textit{New},
-\textit{Point}
-		
-It is now possible to set points either by clicking the main window or by
-typing coordinates in the pop-up box. It is generally easier and more
-accurate to use the latter approach. After adding the points (0,0), (1,0),
-(0,1) and (1,1) we have:
-
-Now choose \textit{Straight line} and select each pair of points in turn
-until the outside lines of the square are complete. This figure illustrates
-the during the adding of the third side:
-
-Finally, we need to specify the plane surface which we will mesh. Click
-\textit{Plane surface} and then select any line. The whole edge of the
-square will be highlighted and you press \textit{e} to complete the
-selection.
-
-\subsubsection{Physical groups: boundaries and regions}
-In order to apply boundary conditions it is necessary to specify
-\textit{physical groups} to which the boundaries belong. Since gmsh will
-only export to the .msh file those elements which are associated with a
-physical entity, it is also necessary to identify the interior of the domain
-with a physical group. These physical group numbers will appear in \fluidity
-as surface IDs and region IDs. \index{surface ID}\index{region ID}
-
-Click on \textit{Geometry} to return to the first menu and then select
-\textit{Physical group}, \textit{add}, line. Now suppose that we want to run
-a driven cavity. We'll need one boundary condition on the top and, depending
-on whether we use free or no slip boundary conditions we might need one
-boundary for all the rest of the sides together or one for the sides and a
-different one for the bottom. We therefore make one physical group for the
-top of the square, one for the sides together and one for the bottom.
-
-Click on the top line and then press \textit{e} to end the selection and
-form the first physical group. Next do this for the sides. The following
-figure shows the selected sides immediately before pressing \textit{e}:
-
-Finally select the bottom of the box as a physical group. Next select
-\textit{Surface} and select the dashed cross in the centre of the figure to
-identify the interior of the domain as a physical group.
-
-\subsubsection{Editing the geometry by hand}
-
-Gmsh writes all the elementary entities and physical groups to a human-editable text file with the suffix .geo. This can be useful for cleaning up the results of using the gui, adding comments and, as we shall see later, for more complex options which are difficult or impossible to do via the GUI.
-
-Return to the first menu by clicking on \textit{Geometry}. Next select \textit{Edit} and a text editor will open containing the current geometry. In this case the file is as follows:
-
- Point(1) = {0,0,0,0.1}; \\
- Point(2) = {0,1,0,0.1}; \\ 
- Point(3) = {1,1,0,0.1}; \\
- Point(4) = {1,0,0,0.1}; \\
- Line(1) = {3,4}; \\
- Line(2) = {4,1}; \\
- Line(3) = {1,2}; \\
- Line(4) = {2,3}; \\
- Line Loop(5) = {1,2,3,4}; \\
- Plane Surface(6) = {5}; \\
- Physical Line(7) = {4}; \\
- Physical Line(8) = {3,1}; \\
- Physical Line(9) = {2}; \\
- Physical Surface(10) = {6}; \\
-
-The format is basically pretty simple. For most objects the syntax is:
-
- New\_entity(id number) = {list of component entities}
-
-So, the fifth line above says that line 1 is composed of points 3 and 4. The exception is Point the format of which is {x, y, z, dx} where dx is the mesh spacing at that point. gmsh determines the mesh spacing during mesh generation by interpolating between these points.
-
-Entity numbers are only required to be unique within that entity type - as evidenced by the reuse of the numbers 1-4 for points and lines above. Suppose we would like different boundary markers (these are the numbers we will access boundaries by in fluidity) and that we would like to double the resolution. We'll also add some comments for the benefit of our fellow creatures:
-
- Point(1) = {0,0,0,0.05}; \\
- Point(2) = {0,1,0,0.05}; \\
- Point(3) = {1,1,0,0.05}; \\
- Point(4) = {1,0,0,0.05}; \\
- Line(1) = {3,4};  \\
- Line(2) = {4,1}; \\
- Line(3) = {1,2}; \\
- Line(4) = {2,3}; \\
- Line Loop(5) = {1,2,3,4}; \\
- Plane Surface(6) = {5}; \\
- // Top of the box \\
- Physical Line(666) = {4}; \\
- // Box sides \\
- Physical Line(333) = {3,1}; \\
- // Box bottom \\
- Physical Line(444) = {2}; \\
- // This is just to ensure all the interior elements get written out. \\
- Physical Surface(10) = {6}; \\
-
-Now save the file and quit the editor. Now click \textit{Reload} to load the changes you just made into the gui. 
-
-\subsubsection{Producing a mesh}
-
-To produce the mesh simply select \textit{Mesh} from the dropdown menu and click \textit{2D}. The result looks something like this:
-
-
-Now select \textit{save mesh} from the "\textit{file} menu to save your masterpiece and you are done!
-
-\subsubsection{Converting the mesh to triangle for use in fluidity}
-
-Fluidity does not directly read gmsh output so it is necessary to convert the mesh before it can be used in fluidity. This is easily accomplished using the gmsh2triangle script. The following example assumes that your mesh is in the src directory of a test case. In other cases you'll need to adjust paths accordingly:
-
- ../../scripts/gmsh2triangle --2d src/driven\_cavity.msh
-
-In case you want to convert a 3D mesh, type:
-
- ../../scripts/gmsh2triangle src/driven\_cavity.msh
-
-\subsection{Extruding a pseudo-2D mesh}
-
-Many \fluidity\ users run pseudo-2D simulations in a very thin 3D domain.
-gmsh supports this sort of mesh using extrusion. Starting from the geometry
-above we can select "Elementary entities", "Extrude", "Translate". Set the Z
-component to the width of the extruded dimension (I chose 0.01) and click on
-the surface to extrude followed by "e".
-
-\subsubsection{Editing the extrusion}
-
-The extrusion commands above only extrude the domain. To cause the mesh
-generator to produce an extruded mesh in which the surface triangles on the
-front and back of the slice line up we have to edit the .geo file a little.
-
-The extrusion is the command:
-
- Extrude {0,0,0.01} {
-  Surface{6};
- }
-
-(your surface ID may be different). You need to change this to:
-
- Extrude {0,0,0.01} {
-  Surface{6}; Layers{1};
- }
-
-which specifies that there is 1 layer of elements in the Z direction (specifying a different number of layers works in the obvious way).
-
-\subsubsection{Setting the physical groups}
-
-For a 3d mesh, including this pseudo-2D domain, the boundaries are obviously faces and the interior is a volume. Otherwise it's just like the 2D case. Don't forget to specify the boundaries on the front and back of the domain!
-
-\subsubsection{Generating the mesh}
-
-Obviously this time you use the \textit{3D} button on the meshing menu which results in the following mesh:
-
-
-==A structured mesh==
-
-One can also use extrusion to generate a structured mesh. Rather than step through the gui, which is the same process as for the pseudo-2D mesh, we can just detail the steps:
-
-\# Set up a point at the origin.
-\# Extrude in the direction (1,0,0).
-\# Extrude in the direction (0,1,0).
-\# Extrude in the direction (0,0,1).
-\# Set the physical boundaries.
-
-This approach results in the following .geo file:
-
- Point(1) = {0,0,0,0.1};
- Extrude {1,0,0} {
-   Point{1}; Layers{5};
- }
- Extrude {0,1,0} {
-   Line{1}; Layers{5};
- }
- Extrude {0,0,0.1} {
-   Surface{5}; Layers{5};
- }
- Physical Surface(28) = {27,5};
- Physical Surface(29) = {14,22};
- Physical Surface(30) = {26};
- Physical Surface(31) = {18};
-
-and the following structured mesh:
-
-\subsubsection{Hexahedral mesh}
-To generate a hexahedral mesh the command 'Recombine' is added as a part of line and surface extrusions. Taking the structured tetrahedral example above the line and surface extrusions are edited like so:
- 
- Extrude {0,1,0} {
-   Line{1}; Layers{5}; Recombine;
- }
- Extrude {0,0,1} {
-   Surface{5}; Layers{5}; Recombine;
- }
-
-\subsection{A three dimensional structured example}
-
-The following tutorial explains how to generate a structured 3D annulus mesh using gmsh.
-
-\subsubsection{Getting started}
-
-Run gmsh on the command line:
-
-  gmsh
-
-Create a new gmsh geometry file, by selecting "New" from the "File" menu and choosing an appropriate filename.
-
-\subsubsection{Setting up the geometry: Creating a radial line}
-
-We will start by adding a radial line. In thermally driven rotating annulus experiments it is often a good idea to start with resolution concentrated towards the annulus boundaries. We will concentrate resolution towards the inner and outer walls. This can be achieved by setting the "Characteristic lengths" of points.
-
-From the gmsh control window, select "Geometry" (or press "G"). Select "Elementary entities", "Add", "New", "Point". Create three points as follows (by entering the values in the relevant boxes and clicking "Add").
-
-
-x = 2.5, y = 0.0, z = 0.0, Characteristic length = 0.1
-
-x = 5.25, y = 0.0, z = 0.0, Characteristic length = 1.0
-
-x = 8.0, y = 0.0, z = 0.0, Characteristic length = 0.1
-
-
-The snapping grid spacing can be left at 0.1 in all directions.
-
-
-[[Image:Annulus1.png|800px|center]]
-
-
-Select "Geometry", "Elementary entities", "Add", "New", "Straight line", and join the three points with two lines to form an annulus radial.
-
-
-[[Image:Annulus2.png|800px|center]]
-
-\subsubsection{Setting up the geometry: Forming an annulus with extrusions}
-
-This radial line can now be used to form an annulus, by first extruding in the vertical to form a vertical slice, and then using a rotational extusion.
-
-Select "Geometry", "Elementary entities", "Extrude", "Translate", "Line". Select the two lines forming the annulus radial, and enter the following values for the extrusion:
-
-x = 0.0, y = 0.0, z = 14.0
-
-
-Select "Geometry", "Elementary entities", "Extrude", "Rotate", "Surface". Select the two surfaces in the annulus slice, and enter the following values for the extrusion:
-
-Axis point x = 0.0, Axis point y = 0.0, Axis point z = 0.0
-Axis direction x = 0.0, Axis direction y = 0.0, Axis direction z = 1.0
-Angle = Pi/2
-
-Repeat this four times to form an annulus. Note that on the final extrusion a true annulus geometry is created (rather than an annulus with two nearby radial walls).
-
-
-[[Image:Annulus4.png|800px|center]]
-
-\subsubsection{Physical groups}
-
-As in earlier examples physical surfaces and volumes must be specified. Select "Geometry", "Physical groups", "Add", "Surface". Select the 8 surfaces comprising the top of the annulus and press "e". Repeat for the bottom of the annulus, the inner wall, and the outer wall (in order).
-
-
-Select "Geometry", "Physical groups", "Add", "Volume", select all volumes comprising the annulus and press "e".
-
-\subsubsection{Final customisation of the geometry}
-
-At this point the geometry can be used to generate a mesh. However, as we are aiming to create a structed mesh, the extusions performed earlier must be converted to layered extrusions.
-
-From the gmsh control window select "Geometry", "Edit". This will open the gmsh geometry file in a text editor. Make the alterations highlighted in red below and save the edited file.
-
-  // Gmsh project created on Fri Feb 08 14:43:37 2008
-  Point(1) = {2.5,0.0,0.0,0.1};
-  Point(2) = {5.25,0.0,0.0,1.0};
-  Point(3) = {8.0,0.0,0.0,0.1};
-  Line(1) = {1,2};
-  Line(2) = {2,3};
-  Extrude {0,0,14} {
-    Line{1,2}; <font color = "red">Layers{25};</font>
-  }
-  Extrude {{0,0,1}, {0,0,0}, Pi/2} {
-    Surface{10,6}; <font color = "red">Layers{30};</font>
-  }Extrude {{0,0,1}, {0,0,0}, Pi/2} {
-    Surface{32,54}; <font color = "red">Layers{30};</font>
-  }
-  Extrude {{0,0,1}, {0,0,0}, Pi/2} {
-    Surface{76,98}; <font color = "red">Layers{30};</font>
-  }
-  Extrude {{0,0,1}, {0,0,0}, Pi/2} {
-    Surface{120,142}; <font color = "red">Layers{30};</font>
-  }
-  <font color = "red">// Top</font>
-  Physical Surface(185) = {41,19,151,172,129,107,63,85};
-  <font color = "red">// Bottom</font>
-  Physical Surface(186) = {180,49,93,137,115,71,159,27};
-  <font color = "red">// Inner wall</font>
-  Physical Surface(187) = {53,184,141,97};
-  <font color = "red">// Outer wall</font>
-  Physical Surface(189) = {111,67,23,155};
-  Physical Volume(190) = {1,2,8,7,6,5,4,3};
-
-This converts the vertical extrusion to a layered extrusion with 25 intervals (equivalent to a "zone" command with 25 intervals in GEM) and the rotational extrusions to layered rotational extrusions with 30 intervals per pi/2 of arc. The comments before the physical surface definitions are a good idea, as the physical surface numbers in brackets, (185) - (189), are the IDs that will be entered in [[Local:Diamond | Diamond]] to assign boundary conditions.
-
-Select "Geometry", "Reload" to apply your changes. If gmsh displays an error then there is a mistake somewhere in your gmsh geometry file.
-
-\subsubsection{Producing a mesh}
-
-From the gmsh control window select "Mesh" and click "3D" to generate the mesh.
-
-
-This mesh can now be exported by selecting "Save Mesh" from the "File" menu, and can then be converted to triangle format for use with Fluidity.
-
-
-
-\subsection{Modifying a mesh}
-
-%box2incline / apply slope/ gaussian hill
-
-
-
-\section{Terreno}
-\index{mesh!generation!Terreno}
-\index{Terreno}
-Since it exerts a critical influence over the dynamics of the ocean,
-a high quality discrete
-representation of the physical domain in question is vital.
-In practice there is a trade off between how close the discretised
-domain is to reality, and how appropriate it is for numerical modelling
-with finite computational resources. Hence, the constructed computational mesh
-representing the geometry should be optimised
-to attain a specified error when compared to `reality'
-whilst using a minimum number of nodes. To achieve this methods similar to those
-presented in Section \ref{Sect:Adapt} are employed.
-
-The first stage in the construction of a computational
-domain is an approximation of the shoreline for the region of
-interest. The simplest option is to take and optimise the zero
-depth contour from the bathymetry data set. Here a distance to edge criteria is
-used where the shoreline data at highest resolution is iteratively simplified/coarsened
-so as to remain within a user-defined distance to edge criterion. Figure \ref{Fig:MedCoast}
-shows the result of this operation starting from the zero depth 2 minute GEBCO data set
-and varying the distance to edge tolerance. Figure \ref{Fig:MedVol} then shows the
-resulting unstructured mesh which again starts from the highest resolution raw data and
-coarsens to achieve a user-defined interpolation error everywhere. Anisotropic
-estimates of the error are used which results in anisotropic meshes conforming to ridges, shelf breaks,
-seamounts etc. Two approaches are compared where the user-defined
-interpolation error takes (1) a constant absolute value, and (2) a relative (to the depth of the ocean)
-interpolation error.
-
-
-
-\section{gmsh2triangle}
+\section{Extruded meshes}\label{sect:extruded_meshes}
+\index{mesh!extruded}
+
+Given a 2D mesh file in triangle format, fluidity can extrude this mesh to create a layered three dimensional mesh on which simulations can be performed. This is achieved
+by checking the extrude option under \ldots/from mesh. After checking this option, the user must specify a bottom\_depth and a sizing\_function (which specifies the separation
+between layers). These distances can currently be entered as a constant, a generic\_function or
+as a python function. Optionally, the user can then set the surface id given to the top and bottom surfaces. 
+
+As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file), given a pseudo 2D mesh on a spherical shell, fluidity can perform
+and extrusion in the radial direction. To perform such an extrusion simply enable the options as noted above and additionally check the geometry/spherical\_earth option. With
+this option enabled fluidity will then perform the specified extrusion towards the center of the sphere.
+
+\section{Periodic meshes}
+\index{mesh!periodic} \index{periodic domain} Periodic meshes are those that
+are ``virtually'' connected in one or more directions. To make a periodic
+mesh you must first create a triangle file where the edges that are periodic
+can be mapped exactly by a simple transformation. For example, if the mesh
+is periodic in the X-direction, the two edges must have nodes at exactly the
+same height on each side. This can be easily accomplished using the
+create\_aligned\_mesh script in the scripts folder.
+
+Alternatively, if you require a more complex periodic mesh with some structure between the periodic boundaries you can create one using \lstinline[language=Python]{gmsh}. This can be done by setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh (\website)
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+
+
+// first extrude the surface
+//y
+Point(1) = {origin_x,origin_y,0,1};
+Extrude {0,domain_y,0} {
+  Point{1}; Layers{ny};
+}
+
+//z
+Extrude {0,0,domain_z,1} {
+ Line{1}; Layers{nz};
+}
+
+//x
+Extrude {domain_x,0,0,1} {
+  Surface{5}; Layers{nx};
+}
+
+// Now delete all the middle entities
+Delete {
+  Volume{1};
+  Surface{26, 18, 22, 14};
+  Line{21, 12, 13, 17};
+}
+
+//Add what ever you would like in between
+//define the surfaces and lines as before
+
+// In 3D use the frontal algo to make sure that the periodic surface mesh is
+// not modified when meshing the volume
+Mesh.Algorithm3D = 4;
+
+  \end{lstlisting}
+  \caption{An example of how to produce a 3D periodic channel with a complicated middle section}
+\end{example}
+
+To specify a periodic domain in Diamond, add a new mesh under
+\option{/geometry/mesh}.  Select \onlypdf\linebreak
+\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
+on \onlypdf\\
+\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
+that is periodic. There are three fields that need to be completed: the
+surface IDs of one side, the surface IDs of the opposite side and a python
+function (\option{coordinate\_map}) which contains the necessary mapping
+function.
+
+For example, suppose that the domain is the unit square shown in figure
+\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
+designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
+\emph{aliased boundary}. We therefore enter 1 in
+\option{\ldots/physical\_boundary\_ids}\ and 2 in
+\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
+takes a point on the \emph{aliased}\ boundary to the corresponding point on
+the \emph{physical}\ boundary. In this case, the appropriate function is:
+\begin{lstlisting}[language=Python]
+def val(X,t):
+    result = list(X)
+    result[0]=result[0]-1.0
+    return result
+\end{lstlisting}
+
+\begin{figure}[ht]
+  \centering
+  \xfig{configuring_fluidity_images/periodic_domain}
+  \caption{Periodic unit square with surface IDs 1-4 shown.}
+  \label{fig:periodic}
+\end{figure}
+
+Meshes that are required to be periodic can now be derived from this periodic mesh.
+
+\subsection{Setting field values}\label{Sect:setting_field_values}
+\index{field!values}
+\index{initial conditions!setting}
+Field values must be specified by the user in two circumstances: the initial
+value of most prognostic fields and the value throughout the simulation of
+all prescribed fields. 
+
+The initial value of prognostic fields is set with the
+\option{\ldots/prognostic/initial\_condition} option while the value of
+prescribed fields is set with the \option{\ldots/prescribed/value} option.
+
+\section{Mesh generation tools}
+\subsection{gmsh2triangle}
 Converting msh files to triangle format. The gmsh2triangle script in the scripts
 directory converts msh files to triangle format, which is supported by Fluidity.
 If you are generating a 2 dimensional mesh, the default behaviour is to still
@@ -559,7 +287,7 @@ where \lstinline[language = Bash]*input* is the input .msh file.
 The \lstinline[language = Bash]+--2d+ flag can be used to instruct gmsh2triangle\_large
 to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
-\section{fldecomp}
+\subsection{fldecomp}
 This function is used to decompose a mesh into several parts in order to run in parallel.  In your fluidity directory type:
 \begin{lstlisting}[language = Bash]
 make fltools
@@ -569,11 +297,49 @@ Navigate back to the directory containing your mesh files. In order to run fldec
 fludity path /bin/fldecomp -n 4 square
 \end{lstlisting}
 
-\section{flredecomp}
+\subsection{flredecomp}
 This is sililar to fldecomp but it runs in pararallel.
 
-\section{triangle2vtu}
+\subsection{triangle2vtu}
 This converts triangle format files in to vtu format. It is in the fluidity tools directory.
+
+
+
+\subsection{Periodise}
+%\index{Zoltan}\index{parallel!periodic domains}
+%Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
+
+%\begin{lstlisting}[language=bash]
+%dpkg -l libzoltan*
+%\end{lstlisting}
+
+%If the libaries are not present install them with:
+
+%\begin{lstlisting}[language=bash]
+%sudo apt-get install libzoltan-dev
+%\end{lstlisting}
+
+%Then configure fluidity with zoltan:
+
+%\begin{lstlisting}[language=bash]
+%./configure --with-zoltan
+%\end{lstlisting}
+
+To produce the periodic meshes you have to use two tools (these tools are built as part of the fltools build target (see section \ref{sect:fltools})):
+
+\begin{itemize}
+\item periodise
+\item flredecomp
+\end{itemize}
+
+The input to periodise is your flml (in this case foo.flml), which contains the mapping for the periodic boundary as described above. Run using the command:
+
+\begin{lstlisting}[language=bash]
+./myfluidity/bin/periodise foo.flml
+\end{lstlisting}
+
+The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required.
+
 
 \section{Pseudo-meshing}
 
@@ -666,3 +432,32 @@ Numbering:
 \end{lstlisting}
 \caption{checkmesh reporting a mesh tangling error.}
 \end{example}
+
+\section{Terreno}
+\index{mesh!generation!Terreno}
+\index{Terreno}
+Since it exerts a critical influence over the dynamics of the ocean,
+a high quality discrete
+representation of the physical domain in question is vital.
+In practice there is a trade off between how close the discretised
+domain is to reality, and how appropriate it is for numerical modelling
+with finite computational resources. Hence, the constructed computational mesh
+representing the geometry should be optimised
+to attain a specified error when compared to `reality'
+whilst using a minimum number of nodes. To achieve this methods similar to those
+presented in Section \ref{Sect:Adapt} are employed.
+
+The first stage in the construction of a computational
+domain is an approximation of the shoreline for the region of
+interest. The simplest option is to take and optimise the zero
+depth contour from the bathymetry data set. Here a distance to edge criteria is
+used where the shoreline data at highest resolution is iteratively simplified/coarsened
+so as to remain within a user-defined distance to edge criterion. Figure \ref{Fig:MedCoast}
+shows the result of this operation starting from the zero depth 2 minute GEBCO data set
+and varying the distance to edge tolerance. Figure \ref{Fig:MedVol} then shows the
+resulting unstructured mesh which again starts from the highest resolution raw data and
+coarsens to achieve a user-defined interpolation error everywhere. Anisotropic
+estimates of the error are used which results in anisotropic meshes conforming to ridges, shelf breaks,
+seamounts etc. Two approaches are compared where the user-defined
+interpolation error takes (1) a constant absolute value, and (2) a relative (to the depth of the ocean)
+interpolation error.
