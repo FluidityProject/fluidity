@@ -798,9 +798,37 @@ Why and how
 
 \section{Free surface}
 \index{free surface!weak form}
-Mostly dealt with in previous physics chapter.
+
+Using the fact that the pressure is zero on the free surface and therefore $p=g\eta$, the weak form of the free surface kinematic boundary \eqref{freesurf3} condition is written:
+
+\begin{equation}\label{weakfreesurf3}
+\frac{1}{g} \int_{\Omega_{FS}} {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \vec \bmu} \quad
+  \text{for all } \psi_i,
+\end{equation}
+and $\Omega_{FS}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts} giving:
+
+\begin{equation}\label{continuity_byparts_withfs}
+  -\int_\Omega \vec\nabla\psi_i \cdot \vec u
+  + \int_{\partial\Omega_D} \psi_i u_n
+  + \frac{1}{g} \int_{\partial\Omega_{FS}}  {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n
+  + \int_{\partial\Omega\setminus\partial\Omega_D\setminus\partial\Omega_{FS}} \psi_i\vec n\cdot \vec u
+  = 0,\quad
+  \text{for all } \psi_i.
+\end{equation}
+
+Following the spatial and temporal discretisation described in section ??, the matrix form of the continuity equation now includes the free surface boundary term (compare with ??):
+\begin{equation}
+\Theta_C C^T u^{n+1} + (1-\Theta_C) C^T u^n + M_s \frac{\hat p^{n+1}-\hat p^n}{g \Delta t}=0
+\end{equation}
+Repeating the steps from section ??, the pressure correction equation takes the form:
+\begin{equation}
+(\theta_C C^T(\frac{M_u}{\Delta t})^{-1} \Theta_C C + \frac{M_s}{g(\Delta t)^2})\Delta \hat p = -\frac{\Theta_C C^T u_*^{n+1} + (1-\Theta_C)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
+\end{equation}
+
+
 Moving of free surface nodes.
-Old method??
+
+\section{Wetting and drying}\label{Wetting_Drying}
 
 \section{Linear solvers} \label{ND_Linear_solvers}
 \index{linear solvers}

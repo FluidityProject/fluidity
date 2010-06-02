@@ -631,16 +631,20 @@ term $p'/\rho_0$ is termed the perturbation pressure.
 
 \subsection{Free surface}\label{Sect:FS}
 \index{free surface}
-The free surface height $\eta\equiv\eta(x,y,t)$ measured from the rest state of the ocean
+The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
 may be modelled either via the integrated continuity equation,
 or for simplicity here by the kinematic boundary condition which simply states
 that particles on the free surface remain on it, \ie
 \begin{equation}\label{freesurf2}
-\frac{\partial \eta}{\partial t}+\left.({\bmu}_H-\hat{\bmu}_H)\right|_{z=\eta}\cdot\nabla_H \eta =\left.w\right|_{z=\eta},
+\frac{\partial \eta}{\partial t}=-\left.{\bmu}_H\right|_{z=\eta}\cdot\nabla_H \eta +\left.w\right|_{z=\eta} \quad \textrm{on}\quad \Gamma_{FS},
 \end{equation}
-where $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
-$\bmu_H$ and $\hat{\bmu}_H$ are the horizontal components of $\bmu$ and
-$\hat{\bmu}$.
+where $\Omega_{FS}\subset \partial \Omega$ is the free surface boundary, $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
+$\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal vector $\vec n$ at the free surface is $\frac{(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T}{||(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T||}$, equation \eqref{freesurf2} can be reformulated to
+\begin{equation}\label{freesurf3}
+\frac{\partial \eta}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec z},
+\end{equation}
+where $\vec z=(0,0,1)$ is the vertical standard basis vector.
+
 
 
 \subsubsection{Tidal simulations}\label{sect:tidal}
