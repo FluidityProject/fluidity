@@ -1045,7 +1045,7 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 
 \subsection{GLS}
 
-This option enables the model described in section \ref{Sec:GLS}. There are a few different 
+This option enables the model described in section \ref{Sect:GLS}. There are a few different 
 sub-options to configure. First, you must choose which GLS method to use 
 from $k-\epsilon$, $k-kl$, $k-\omega$ and $gen$. Next, the stability functions
 can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model, then switching on the 
@@ -1081,6 +1081,13 @@ to a \option{diagnostic/algotiyhm::Internal}-type field. The list of fields to s
 \end{enumerate}
 
 If these fields are not set correctly, a user error will occur.
+
+\subsection{k-epsilon}
+
+This option enables the turbulence model described in \ref{Sect:kepsilon}. It must not be confused with the
+$k-\epsilon$ option in the GLS model (see \ref{Sect:GLS}) which is only for oceans. There are only 2 sub-options,
+both of which are recommended to be on:
+\option{\ldots/calculate\_boundaries} and \option{\ldots/limit\_lengthscale}.
 
 \section{Boundary conditions}\label{Sect:BCs_configure}
 \index{boundary conditions}
