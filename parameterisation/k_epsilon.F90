@@ -284,9 +284,10 @@ subroutine keps_eps(state)
         prod       = c_eps_1 * epsovertke * P%val(i)   ! kk source term at old timestep
         diss       = c_eps_2 * epsovertke
 
-        ! Implicit form of equation
-        call set(source, i, prod )
-        call set(absorption, i, diss )
+        ! Implicit way of setting source and absorption:
+        ! Puts source into absorption. Ensures positivity of terms.
+        call set(source, i, -min(0.0, diss-prod) )
+        call set(absorption, i, max(0.0, diss-prod) )
 
     end do
 
