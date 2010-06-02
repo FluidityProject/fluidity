@@ -396,19 +396,20 @@ subroutine keps_eddyvisc(state)
         ! set lengthscale at all other nodes to kk**1.5/eps
         call set(ll, i, min( kk%val(i)**1.5 / eps%val(i), ll_max ) )
 
-        ! calculate viscosity for next step and for use in other fields
-        call set( EV, i, C_mu * (kk%val(i))**2. / eps%val(i) )
-
         ! calculate ratio of fields (a diagnostic)
         call set( tkeovereps, i, kk%val(i) / eps%val(i) )
 
     end do
 
     ! Limit the lengthscale on surfaces
-    ! IDEA: Limit lengthscale to 2x adaptivity element size tensor?
     if(limit_length) then
         call limit_lengthscale(state)
     end if
+
+    do i = 1, nnodes
+        ! calculate viscosity for next step and for use in other fields
+        call set( EV, i, C_mu * ll%val(i) * sqrt(kk%val(i)) / eps%val(i) )
+    end do
 
     ewrite(1,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors for use in other fields"
     call zero(eddy_visc)    ! zero it first as we're using an addto below
