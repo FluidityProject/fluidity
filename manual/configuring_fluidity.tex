@@ -1268,13 +1268,22 @@ confied to the upper surface.
 \subsubsection{GLS subgridscale parameterisation}\label{Sect:BCs:special:gls}
 \index{generic length scale model!boundary conditions}
 
-The GLS model (see section \ref{Sec:GLS}) requires that Neumann boundary
+The GLS model (see section \ref{Sect:GLS}) requires that Neumann boundary
 conditions are set for stability, however, the boundary conditions on the
 Generic Second Quantity ($\Psi$) depend on other modelled variables. In
 order for the boundary conditions to be set correctly, enable the \linebreak
 \option{\ldots/subgridscale\_parameterisations/GLS/calculate\_boundaries}
 option.
 
+\subsubsection{k-epsilon subgridscale parameterisation}\label{Sect:BCs:special:kepsilon}
+\index{k-epsilon model!boundary conditions}
+
+The k-epsilon turbulence model (see section \ref{Sect:kepsilon}) should apply zero Dirichlet boundary
+conditions to the TurbulentKineticEnergy ($k$) field. The TurbulentDissipation ($\epsilon$) field
+should use the special type of Dirichlet condition called \option{k\_epsilon} which is calculated in the
+k-epsilon module. To enable calculation of the boundary conditions on both fields, set the \linebreak
+\option{\ldots/subgridscale\_parameterisations/k-epsilon/calculate\_boundaries}
+option.
 
 \section{Ocean biology}
 \index{biology}
