@@ -809,15 +809,16 @@ The Discontinuous Galerkin option implements the advection-diffusion algorithm d
 There are two options to set - the advection scheme and the diffusion scheme. The advection scheme can be one of upwind
 or none. The diffusion scheme can be one of:
 \begin{description}
-\item[Bassi Rebay] The classical scheme of Bassi and Rebay \ref{BassiRebay}
-\item[Compact DG] The compact discontinuous Galerkin scheme from Peraire and Persson [REF]
+\item[Bassi Rebay] The classical scheme of Bassi and Rebay (see section \ref{BassiRebay}).
+\item[Compact DG] The compact discontinuous Galerkin scheme from Peraire and Persson (\cite{peraire2008}).
 \item[Arbitrary upwind] Scheme in which upwinding is applied in alternating directions.
-\item[Interior penalty] Classical interior penalty scheme
+\item[Interior penalty] Classical interior penalty scheme.
 \end{description}
 
 
 \subsubsection{Conservative advection}
 
+The momentum equation can be discretised conservatively by setting the BETA factor equal to 1 (corresponding to a divergence form of the equation). If BETA is set to zero, the discretisation is left non-conservative. An intermediate value can alternatively be selected. Please refer to section \ref{Sect:ND_momentum_equation} for a comprehensive discussion on the influence of this parameter.
 
 
 \subsection{Temporal discretisations}
