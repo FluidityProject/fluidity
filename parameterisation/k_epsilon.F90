@@ -408,7 +408,7 @@ subroutine keps_eddyvisc(state)
 
     do i = 1, nnodes
         ! calculate viscosity for next step and for use in other fields
-        call set( EV, i, C_mu * ll%val(i) * sqrt(kk%val(i)) / eps%val(i) )
+        call set( EV, i, C_mu * ll%val(i) * sqrt(kk%val(i)) )
     end do
 
     ewrite(1,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors for use in other fields"
