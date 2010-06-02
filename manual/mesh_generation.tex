@@ -200,7 +200,7 @@ This is a 1D mesh generator and is in the scripts directory. To use simply type:
 
 
 \begin{lstlisting}[language = Bash]
-\fluiditysourcepath/scripts/interval [options] left right name 
+`\fluiditysourcepath'/scripts/interval [options] left right name 
 \end{lstlisting}
 
 Where left and right define the range of the line. It has a number of user defined input options:
@@ -243,7 +243,7 @@ to process a 2D input .msh file. Otherwise, 3D input is assumed.
 This converts triangle format files in to vtu format. It is in the fluidity tools directory and is used with:
 
 \begin{lstlisting}[language = Bash]
-\fluiditysourcepath/tools/triangle2vtu foo
+`\fluiditysourcepath'/tools/triangle2vtu foo
 \end{lstlisting}
 
 Where foo is the triangle file base name (\ie foo.node etc.)
@@ -267,7 +267,7 @@ inside your \fluidity\ folder. The following binaries will then be created in th
 \index{mesh!meshing tools!fldecomp}
 This function is used to decompose a mesh into multiple regions, one per process. In order to run fldecomp, if your mesh files have the base name foo and you want to decompose into four parts, type:
 \begin{lstlisting}[language = Bash]
-\fluiditysourcepath/bin/fldecomp -n 4 foo
+`\fluiditysourcepath'/bin/fldecomp -n 4 foo
 \end{lstlisting}
 
 This will create partition triangle meshes together with halo files. 
@@ -287,7 +287,7 @@ This will create partition triangle meshes together with halo files.
 This is sililar to fldecomp but it runs in parallel. To use simply type, where the decomposed file has the name foo\_flredecomp.flml:
 
 \begin{lstlisting}[language=bash]
-mpiexec -n 4 \fluiditysourcepath/bin/flredecomp \
+mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
     -i 1 -o 4 foo foo_flredecomp
 \end{lstlisting}
 
@@ -295,7 +295,7 @@ Where:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n [target number of processors] \
-   \fluiditysourcepath/bin/flredecomp -i [input number of processors] \
+   `\fluiditysourcepath'/bin/flredecomp -i [input number of processors] \
         -o [target number of processors] [input flml] [output flml]
 \end{lstlisting}
 
@@ -333,14 +333,14 @@ To be able to run a periodic mesh in parallel you have to use two tools (these t
 The input to periodise is your flml (in this case foo.flml), which contains the mapping for the periodic boundary as described above. Run using the command:
 
 \begin{lstlisting}[language=bash]
-\fluiditysourcepath/bin/periodise foo.flml
+`\fluiditysourcepath'/bin/periodise foo.flml
 \end{lstlisting}
 
 The output is a new flml called  foo\_periodised.flml and the periodic meshes. Then run flredecomp (section \ref{mesh!meshing tools!flredecomp}) to decompose the mesh for the number of processors required. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n [number of processors] \
-   \fluiditysourcepath/bin/fluidity [options] foo_periodised_flredecomp.flml
+   `\fluiditysourcepath'/bin/fluidity [options] foo_periodised_flredecomp.flml
 \end{lstlisting}
 
 \section{Pseudo-meshing}
