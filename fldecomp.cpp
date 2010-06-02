@@ -324,8 +324,8 @@ void write_partitions(bool verbose, string filename, string file_format,
     nodefile<<nodes->size()<<" "<<dim<<" 0 0\n";
     for(size_t j=0;j<nodes->size();j++){
       nodefile<<j+1<<" ";
-      for(int k=0;k<dim;k++){
-        nodefile<<(*partX)[j * dim + k]<<" ";
+      for(int k=0;k<no_coords;k++){
+        nodefile<<(*partX)[j * no_coords + k]<<" ";
       }
       nodefile<<endl;
     }

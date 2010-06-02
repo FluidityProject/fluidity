@@ -259,7 +259,7 @@ fldecomp: fluidity_library fldecomp.o
 	@echo "    LD $(FLDECOMP)"
 	@$(EVAL) $(LINKER) @OPENMP_CXXFLAGS@ -o $(FLDECOMP) -I./include/ fldecomp.o $(LIBS) -lmetis
 
-fldecomp.o:
+fldecomp.o: fldecomp.cpp
 	@echo "        CXX fldecomp.o"
 	$(CXX) $(CXXFLAGS) @OPENMP_CXXFLAGS@ -c fldecomp.cpp
 
