@@ -40,25 +40,24 @@ function $\phi$ and integrating over the domain $\Omega$:
 We now integrate the advection and diffusion terms by parts:
 \begin{equation}\label{eq:weak_adv_diff}
   \int_\Omega 
-  \phi \ppt{T} -
-    \nabla\phi\cdot\vec{u} T +
-    \grad\phi\cdot \tensor{\mu}\cdot\vec{\nabla} T 
-    +\int_\dOmega \vec{n}\cdot \vec{u} T 
-    - \vec{n}\cdot\tensor{\mu}\cdot\grad T 
-    = 0
+  \phi \ppt{T} 
+  -\grad\phi\cdot\vec{u} T +
+  \grad\phi\cdot \tensor{\mu}\cdot\vec{\nabla} T 
+  +\int_\dOmega \vec{n}\cdot \vec{u} T 
+  - \vec{n}\cdot\tensor{\mu}\cdot\grad T 
+  = 0
 \end{equation}
 For simplicity sake let us first assume the boundaries are closed
 ($\vec{u}\cdot\vec{n}=0$) and we apply a homogeneous Neumann boundary
-condition everywhere: $\partial T/\partial n=0$.  Integration by parts of
-the diffusion term then gives us
-\begin{equation}\label{eq:weak_adv_diff}
+condition everywhere: $\partial T/\partial n=0$:
+\begin{equation}\label{eq:weak_adv_diff_simp}
   \int_\Omega \phi \frac{\partial T}{\partial t} + 
-    \phi\vec{u}\cdot\vec\nabla T -
+    -\grad\phi\cdot\vec{u} T + 
     \vec\nabla\phi\cdot \tensor{\mu}\cdot\vec{\nabla} T = 0. 
 \end{equation}
 Note that due to the Neumann boundary condition the boundary term has
 dropped out. The tracer field $T$ is now called a \emph{weak solution} of
-the equations if \eqref{eq:weak_adv_diff} holds true for all $\phi$ in some
+the equations if \eqref{eq:weak_adv_diff_simp} holds true for all $\phi$ in some
 space of test functions $V$. The choice of a suitable test space $V$ is dependent
 on the equation (for more details see \citet{elman05}).
 
@@ -91,7 +90,7 @@ this way represented as a vector will be denoted as $\dvec{T}$.
 \index{Galerkin!projection}
 Because the set of trial functions is now much smaller, we also need
 a much smaller set of test functions for the equation in weak 
-form \eqref{eq:weak_adv_diff} to have a unique 
+form \eqref{eq:weak_adv_diff_simp} to have a unique 
 solution. A common choice is in fact to choose the same
 test and trial space. Finite element methods that make this choice are 
 referred to as \emph{Galerkin methods} - the discretisation 
@@ -148,9 +147,9 @@ trial space. So for \PN the test functions can be an arbitrary linear combinatio
 of the same set of basis functions. To make sure that the equation we are solving 
 tested integrates to zero with all such test functions, all we have to do is make sure
 that the equation tested with the basis functions integrate to zero. The discretised 
-version of \eqref{eq:weak_adv_diff} therefore becomes
+version of \eqref{eq:weak_adv_diff_simp} therefore becomes
 \index{advection diffusion equation!weak form!discretised}
-\begin{equation}\label{eq:weak_adv_diff}
+\begin{equation}
   \sum_j \int_\Omega \phi_i \frac{\partial \phi_j}{\partial t}  T_j -
     \grad\phi_i\cdot\vec{u}\phi_j  T_j + 
     \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j T_j = 0,
@@ -248,12 +247,12 @@ neither the original advection equation, equation \eqref{eq:weak_adv_diff} with 
 nor the version \eqref{eq:adv_integrated_by_parts} integrated by parts are well-defined. 
 Within an element however the functions are continuous, and everything is well defined. So within 
 a single element we may write
-\begin{equation}\label{eq:adv_integrated_by_parts}
+\begin{equation}\label{eq:adv_diff_dg}
   \int_e \phi \frac{\partial T}{\partial t} -
-    \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T +
-    \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~T} + 
-    \int_{e} \grad\psi\cdot\tensor{\mu}\cdot\grad T -
-    \int_{\partial e} \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad T}
+    \left(\grad\cdot \phi~\vec{u}\right)~T +
+    \grad\psi\cdot\tensor{\mu}\cdot\grad T +
+    \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~T} - 
+    \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad T}
     = 0,
 \end{equation}
 The hatted terms represent fluxes across the element facets: and therefore
@@ -261,12 +260,64 @@ from one element to the other. Due to the discontinuous nature of the
 fields, there is no unique value for these flux terms, however the
 requirement that $T$ be a conserved quantity does demand that adjacent
 elements make a consistent choice for the flux between them. The choice of flux
-schemes therefore forms a critical component of the discontinuous Galerkin method.
+schemes therefore forms a critical component of the discontinuous Galerkin
+method.
 
-\subsection{Discontinuous Galerkin advection}
+The application of boundary conditions occurs in the same manner as for the
+continuous Galerkin method. The complete system of equations is formed
+by summing over all the elements. Assuming weakly applied boundary
+conditions, this results in:
+\begin{multline}
+  \sum_e \int_e \phi \frac{\partial T}{\partial t} 
+  - \left(\grad\cdot \phi~\vec{u}\right)~T 
+  + \grad\psi\cdot\tensor{\mu}\cdot\grad T\\
+  + \int_{\partial e\,\cap\dOmega^{D_T}_{-}} \phi\vec{n}\cdot\vec{u}~g_D  
+  + \int_{\partial e\,\cap\dOmega^{D_T}_{+}} \phi\vec{n}\cdot\vec{u}~T  
+  - \int_{\partial e\,\cap\dOmega^{D_T}}
+  \phi\vec{n}\cdot\tensor{\mu}\cdot\grad T\\
+  + \int_{\partial e\,\cap\dOmega^{N_T}} \phi\vec{n}\cdot\vec{u}~T 
+  - \phi\vec{n}\cdot\tensor{\mu}\cdot\grad g_N\\
+  + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~T} 
+  - \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad T}
+    = 0.      
+\end{multline}
+
+\subsubsection{Discontinuous Galerkin advection}
 \label{Sect:ND_discontinuous_galerkin_advection}
 
-Consider first the advection operator. 
+Consider first the case in which $\tensor{\mu}=0$. In this case, equation
+\eqref{eq:adv_diff_dg}\ reduces to:
+\begin{equation}\label{eq:adv_diff_dg}
+  \int_e \phi \frac{\partial T}{\partial t} -
+    \left(\grad\cdot \phi~\vec{u}\right)~T +
+    \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~T} 
+    = 0,
+\end{equation}
+and the question becomes, how do we represent the flux
+$\widehat{\vec{n}\cdot\vec{u}~T}$\ ?
+
+\fluidity\ supports two different advective fluxes for dg. Upwind and local
+Lax-Friedrichs. For each flux scheme, there are two potentially
+discontinuous fields for which a unique value must be chosen. The first is
+the advecting velocity $\vec{u}$. The default behaviour is to average the
+velocity on each side of the face. The velocity is averaged at each
+quadrature point so decisions on schemes such as upwinding are made on a
+per-quadrature point basis. The second scheme is to apply a Galerkin
+projection to project the velocity onto a continuous basis. This amounts to
+solving the following equation:
+\begin{equation}
+  \int_\Omega \vec{\hat{\psi}} \cdot\vec{\hat{u}} 
+  = \int_\Omega \vec{\hat{\psi}}\cdot \vec{u} 
+\end{equation}
+where the hatted symbols indicate that the quantity in question is
+continuous between elements. In the following sections, $\vec{\hat{u}}$ will
+be used to indicate the flux velocity, which will have been calculated with
+one of these methods.
+
+\paragraph{Upwind Flux}
+
+In this case, the value of $T$ at each quadrature point on the face 
+
 
 Here $\partial e_-$ and $\partial e_+$ are the inflow and outflow boundaries of this element, where
 $u$ flows in from upwind elements, and out into downwind elements. The field $T$ will be 
@@ -283,7 +334,7 @@ The complete DG discretisation over the whole domain is now given by summing ove
 \begin{equation}
 \begin{split}
   \sum_e \int_e \phi \frac{\partial T}{\partial t}
-    - \left(\vec{\nabla}\cdot \phi~\vec{u}\right)~T 
+    - \left(\grad\cdot \phi~\vec{u}\right)~T 
     &+ \int_{\partial e \cap\partial\Omega_D} \vec{n}\cdot\vec{u}~g_D \\
     &+ \int_{\partial e \cap\partial\Omega_N} \vec{n}\cdot\vec{u}~T_{\mathrm{int}} \\
     &+ \int_{\partial e\setminus (\partial\Omega_D\cap\partial\Omega_N)} \vec{n}\cdot\vec{u}~T_{\mathrm{upw}}.
@@ -306,7 +357,7 @@ $T_{\mathrm{upw}}$. So we obtain:
 \begin{equation}
 \begin{split}
   \sum_e \int_e \phi \frac{\partial T}{\partial t}
-    - \phi~\vec{u}\cdot\vec{\nabla} T 
+    - \phi~\vec{u}\cdot\grad T 
     +& \int_{\partial e \cap\partial\Omega_D} \vec{n}\cdot\vec{u}~(g_D -T_{\mathrm{int}}) \\
     +& \int_{\partial e_-\setminus (\partial\Omega_D\cap\partial\Omega_N)} \vec{n}\cdot\vec{u}~
       (T_{\mathrm{upw}}-T_{\mathrm{int}}).
@@ -677,8 +728,8 @@ velocity and ignoring boundary conditions, $\mat{M}, \mat{A}$ and $\mat{K}$
 are given by:
 \begin{equation*}
   \mat{M}_{ij}=\int_\Omega \rho\phi_i\phi_j, \quad
-  \mat{A}_{ij}=\int_\Omega \phi_i\rho\vec{u}\cdot\vec{\nabla} \phi_j, \quad
-  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j.
+  \mat{A}_{ij}=\int_\Omega \phi_i\rho\vec{u}\cdot\grad \phi_j, \quad
+  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
 \end{equation*}
 Dirichlet and Neuman boundary conditions are implemented by 
 surface integrals over the domain boundary in the same way 
@@ -719,10 +770,10 @@ where (again assuming CG and ignoring boundary conditions):
 \begin{equation*}
 \begin{split}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
-  \mat{A}_{ij}=\int_\Omega \phi_i\vec{u}\cdot\vec{\nabla} \phi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \phi_i\vec{u}\cdot\grad \phi_j, \quad
   \left(\mat{Cor}~\dvec{\vec u}\right)_i
     =\sum_j\int_\Omega \phi_i \phi_j 2\vec\Omega\times\dvec{\vec{u}}_j, \\
-  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\vec{\nabla} \phi_j, \quad
+  \mat{K}_{ij}=\int_\Omega \vec\nabla\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j, \quad
   \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\vec\nabla\psi_j, \quad
     \dvec{\vec b}_i(\rho')=\int_\Omega \phi_i\rho'g\vec k,\quad
     \dvec{\vec F}_i=\int_\Omega \phi_i\vec F
