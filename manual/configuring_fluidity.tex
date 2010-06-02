@@ -1083,6 +1083,8 @@ to a \option{diagnostic/algorithm::Internal}-type field. The list of fields to s
 If these fields are not set correctly, a user error will occur.
 
 \subsection{k-epsilon}
+\index{turbulence model}
+\index{k-$\epsilon$ model}
 
 This option enables the turbulence model described in \ref{Sect:kepsilon}. It must not be confused with the
 $k-\epsilon$ option in the GLS model (see \ref{Sect:GLS}) which is only for oceans. There are only 2 sub-options,
@@ -1315,6 +1317,7 @@ confied to the upper surface.
 
 \subsubsection{GLS subgridscale parameterisation}\label{Sect:BCs:special:gls}
 \index{generic length scale model!boundary conditions}
+\index{boundary conditions!generic length scale model}
 
 The GLS model (see section \ref{Sect:GLS}) requires that Neumann boundary
 conditions are set for stability, however, the boundary conditions on the
@@ -1324,7 +1327,8 @@ order for the boundary conditions to be set correctly, enable the \linebreak
 option.
 
 \subsubsection{k-epsilon subgridscale parameterisation}\label{Sect:BCs:special:kepsilon}
-\index{k-epsilon model!boundary conditions}
+\index{k-$\epsilon$ model!boundary conditions}
+\index{boundary conditions!k-$\epsilon$ model}
 
 The k-epsilon turbulence model (see section \ref{Sect:kepsilon}) should apply zero Dirichlet boundary
 conditions to the TurbulentKineticEnergy ($k$) field. The TurbulentDissipation ($\epsilon$) field
@@ -1620,6 +1624,10 @@ For the temporal discretisation a Crank-Nicolson scheme with subcycling is recom
 If enabled a `geopressure' solver is used, \ref{Sect:config_geostrophic_balance}. The specified mesh should be the \option{GeostrophicPressureMesh}, cf. \ref{sect:GFD_config_geometry}. The terms included in the right-hand side of the geopressure solver are selected under the option \option{\ldots/prognostic/spatial\_discretisation/geostrophic\_pressure\_option}.
 
 REFERENCE NODE???
+
+\section{Industrial CFD Problems}
+\label{Sect:industrial_CFD}
+
 
 
 \section{Compressible fluid model}
