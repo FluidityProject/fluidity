@@ -287,7 +287,7 @@ conditions, this results in:
 
 Consider first the case in which $\tensor{\mu}=0$. In this case, equation
 \eqref{eq:adv_diff_dg}\ reduces to:
-\begin{equation}\label{eq:adv_diff_dg}
+\begin{equation}\label{eq:adv_dg}
   \int_e \phi \frac{\partial T}{\partial t} -
     \left(\grad\cdot \phi~\vec{u}\right)~T +
     \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~T} 
@@ -312,65 +312,71 @@ solving the following equation:
 where the hatted symbols indicate that the quantity in question is
 continuous between elements. In the following sections, $\vec{\hat{u}}$ will
 be used to indicate the flux velocity, which will have been calculated with
-one of these methods.
+one of these methods. Note that using the averaging method,
+$\vec{\hat{u}}=\vec{u}$ on the interior of each method with only the inter-element
+flux differing from $\vec{u}$ while for the projection method, $\vec{\hat
+  u}$ and $\vec{u}$ may differ everywhere.
 
 \paragraph{Upwind Flux}
 
-In this case, the value of $T$ at each quadrature point on the face 
-
-
-Here $\partial e_-$ and $\partial e_+$ are the inflow and outflow boundaries of this element, where
-$u$ flows in from upwind elements, and out into downwind elements. The field $T$ will be 
-discontinuous across both boundaries. On the inflow boundary we need 
-to specify a value $T_-$ to determine what value of $T$ flows in. On the outflow boundary we have 
-chosen the value of $T$, inside the element, that is the upwind value $T_{\mathrm{upw}}$.
-To ensure conservation it is therefore a natural choice to choose the same value 
-for the inflow boundary of the downwind element. That is, we can apply this value as a 
-boundary condition $T_-=T_{\mathrm{upw}}$ for the inflow boundary of the downwind 
-element. This provides the coupling between the elements that a discontinuous method would otherwise 
-not have.
-
-The complete DG discretisation over the whole domain is now given by summing over the elements
-\begin{equation}
-\begin{split}
-  \sum_e \int_e \phi \frac{\partial T}{\partial t}
-    - \left(\grad\cdot \phi~\vec{u}\right)~T 
-    &+ \int_{\partial e \cap\partial\Omega_D} \vec{n}\cdot\vec{u}~g_D \\
-    &+ \int_{\partial e \cap\partial\Omega_N} \vec{n}\cdot\vec{u}~T_{\mathrm{int}} \\
-    &+ \int_{\partial e\setminus (\partial\Omega_D\cap\partial\Omega_N)} \vec{n}\cdot\vec{u}~T_{\mathrm{upw}}.
-      \label{eq:dg_adv_diff_integrated_once}
-\end{split}
+In this case, the value of $T$ at each quadrature point on the face is taken
+to be the upwind value. For this purpose the upwind value is as follows: if
+the flow is out of the element then it is the value on the interior side of
+the face while if the flow is into the element, it is the value on the
+exterior side of the face. If we denote the value of $T$ on the upwind side
+of the face by $T_{\mathrm{upw}}$ then equation \eqref{eq:adv_dg}\ becomes:
+\begin{equation}\label{eq:adv_dg}
+  \int_e \phi \ppt{T} -
+    \left(\grad\cdot \phi~\vec{\hat u}\right)~T +
+    \int_{\partial e} \phi\vec{n}\cdot\vec{\hat u}~T_{\mathrm{upw}} 
+    = 0,
 \end{equation}
-Here we have included the terms for element boundaries that are actually on
-the domain boundary, which has been divided up in a part $\partial\Omega_D$
-where a Dirichlet boundary condition $T=g_D$ is applied, and
-$\partial\Omega_N$ where a Neumann boundary condition is applied. The actual value of
-the Neumann boundary condition is only imposed via the viscosity term (see
-section \ref{sec:NM_DG_diffusion}). $T_{\mathrm{int}}$ refers to the value of
-$T$ on the inside of the boundary.
+Summing over all elements, including boundary conditions and writing
+$T_\mathrm{int}$ to indicate flux terms which use the value of $T$ from the
+current element only, we have:
+\begin{equation}
+  \begin{split}
+    \sum_e \int_e \phi \ppt{T}
+    - \left(\grad\cdot \phi~\vec{\hat u}\right)~T 
+    &+ \int_{\partial e \cap\partial\Omega^{D_T}_-} \vec{n}\cdot\vec{\hat u}~g_D \\
+    &+ \int_{\partial e \cap\partial\Omega^{N_T}\cap\partial\Omega^{D_T}_+} \vec{n}\cdot\vec{\hat u}~T_{\mathrm{int}} \\
+    &+ \int_{\partial e\setminus (\partial\Omega_D\cap\partial\Omega_N)}
+    \vec{n}\cdot\vec{\hat u}~T_{\mathrm{upw}}=0.
+    \label{eq:dg_adv_diff_integrated_once}
+  \end{split}
+\end{equation}
 
-In \fluidity\ the advection term is subsequently integrated by parts again within each elements. As 
-this is just a local operation on the continuous pieces of $T$ within each element, 
-the new boundary integrals take the value of the $T$ on the inside of the element. On the outflow 
-boundary of each element this means the $T_{\mathrm{int}}$ cancels against 
-$T_{\mathrm{upw}}$. So we obtain:
+\subparagraph{Second integration by parts}
+
+In \fluidity\ the advection term with upwinded flux may be subsequently
+integrated by parts again within each element. As this is just a local
+operation on the continuous pieces of $T$ within each element, the new
+boundary integrals take the value of the $T$ on the inside of the element,
+$T_{\mathrm{int}}$. On the outflow boundary of each element this means the
+$T_{\mathrm{int}}$ cancels against $T_{\mathrm{upw}}$. Writing $\partial
+e_-$ for the inflow part of the element boundary, we therefore obtain:
 \begin{equation}
 \begin{split}
-  \sum_e \int_e \phi \frac{\partial T}{\partial t}
-    - \phi~\vec{u}\cdot\grad T 
-    +& \int_{\partial e \cap\partial\Omega_D} \vec{n}\cdot\vec{u}~(g_D -T_{\mathrm{int}}) \\
-    +& \int_{\partial e_-\setminus (\partial\Omega_D\cap\partial\Omega_N)} \vec{n}\cdot\vec{u}~
-      (T_{\mathrm{upw}}-T_{\mathrm{int}}).
+  \sum_e\int_e \phi \ppt{T}
+  - \phi~\vec{\hat u}\cdot\grad T 
+    +& \int_{\partial e_- \cap\partial\Omega^{D_T}_-} \vec{n}\cdot\vec{\hat u}~(g_D -T_{\mathrm{int}}) \\
+    +& \int_{\partial e_-\setminus (\partial\Omega_D\cap\partial\Omega_N)}
+    \vec{n}\cdot\vec{\hat u}~
+      (T_{\mathrm{upw}}-T_{\mathrm{int}})=0.
     \label{eq:dg_adv_diff_integrated_twice}
 \end{split}
 \end{equation}
-The difference $T_{\mathrm{int}}-T_{\mathrm{upw}}$ on the inflow boundary remains, and is often referred 
-to as a \emph{jump condition}. Note also that the boundary terms on the Neumann domain boundary have
-disappeared. Note that \eqref{eq:dg_adv_diff_integrated_once} and 
-\eqref{eq:dg_adv_diff_integrated_twice} are completely equivalent. The advantage of the second form, 
-referred to in \fluidity\ as ``integrated-by-parts-twice'', is that the numerical evaluation of the
-integrals (quadrature), may not be exact (incomplete quadrature). For this reason the second form may be
-more accurate as the internal outflow boundary integrals are canceled exactly.
+The difference $T_{\mathrm{int}}-T_{\mathrm{upw}}$ on the inflow boundary
+remains, and is often referred to as a \emph{jump condition}. Note also that
+the boundary terms on the Neumann domain boundary and the outflow part of
+the Dirichlet boundary (really also a Neumann boundary) have disappeared.
+Note that \eqref{eq:dg_adv_diff_integrated_once} and
+\eqref{eq:dg_adv_diff_integrated_twice} are completely equivalent. The
+advantage of the second form, referred to in \fluidity\ as
+``integrated-by-parts-twice'', is that the numerical evaluation of the
+integrals (quadrature), may not be exact (incomplete quadrature). For this
+reason the second form may be more accurate as the internal outflow boundary
+integrals are canceled exactly.
 
 \section{Control volume advection}
 \label{ControlVolumeAdvection}
