@@ -288,22 +288,22 @@ The \lstinline[language = Bash]+--2d+ flag can be used to instruct gmsh2triangle
 to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
 \subsection{fldecomp}
-This function is used to decompose a mesh into several parts in order to run in parallel.  In your fluidity directory type:
-\begin{lstlisting}[language = Bash]
-make fltools
-\end{lstlisting}
-Navigate back to the directory containing your mesh files. In order to run fldecomp, if your mesh files are called square.geo etc and you want to decompose into four parts, type:
-\begin{lstlisting}[language = Bash]
-fludity path /bin/fldecomp -n 4 square
-\end{lstlisting}
+This function is used to decompose a mesh into several parts in order to run in parallel.  For more information, see \ref{decomp_meshes_parallel}.
+
+%In your fluidity directory type:
+%\begin{lstlisting}[language = Bash]
+%make fltools
+%\end{lstlisting}
+%Navigate back to the directory containing your mesh files. In order to run fldecomp, if your mesh files are called square.geo etc and you want to decompose into four parts, type:
+%\begin{lstlisting}[language = Bash]
+%fludity path /bin/fldecomp -n 4 square
+%\end{lstlisting}
 
 \subsection{flredecomp}
 This is sililar to fldecomp but it runs in pararallel.
 
 \subsection{triangle2vtu}
 This converts triangle format files in to vtu format. It is in the fluidity tools directory.
-
-
 
 \subsection{Periodise}
 %\index{Zoltan}\index{parallel!periodic domains}
@@ -339,6 +339,46 @@ The input to periodise is your flml (in this case foo.flml), which contains the 
 \end{lstlisting}
 
 The output is a new flml called  foo\_periodised.flml. Then run flredecomp (section \ref{sect:flredecomp}) to decompose the mesh for the number of processors required.
+
+\section{Decomposing meshes for parallel}
+\label{decomp_meshes_parallel}
+\index{parallel!mesh decomposition}
+
+The first step in running a \fluidity\ set-up in parallel is to create the software
+use to decompose the initial mesh into multiple parts, fldecomp. This can be made using:
+\begin{lstlisting}[language=bash]
+make fltools
+\end{lstlisting}
+inside your \fluidity\ folder.The fldecomp binary will then be created in the bin/ directory. 
+You can then decompose the initial mesh into multiple regions, one per process using the following command
+\begin{lstlisting}[language=bash]
+fluidity path /bin/fldecomp -n [PARTS] [BASENAME]
+\end{lstlisting}
+where BASENAME is the triangle mesh base name (excluding extensions). This will create PARTS partition triangle meshes together with PARTS .halo files. 
+
+\subsubsection{Decomposing a periodic mesh}
+
+To decompose a periodic mesh to be run on four processors simply type:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 ./myfluidity/bin/flredecomp \
+    -i 1 -o 4 foo_periodised foo_periodised_flredecomp
+\end{lstlisting}
+
+Where:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n [target number of processors] \
+   ./myfluidity/bin/flredecomp -i [input number of processors] \
+        -o [target number of processors] [input flml] [output flml]
+\end{lstlisting}
+
+The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_periodised\_flredecomp.flml. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   ./myfluidity/bin/fluidity [options] foo_periodised_flredecomp.flml
+\end{lstlisting}
 
 
 \section{Pseudo-meshing}

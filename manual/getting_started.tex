@@ -442,6 +442,68 @@ make install
 will install all the run-time Fluidity files into the directory you requested
 at configure-time.
 
+\section{Running Fluidity}
+\label{sect:running_fluidity}
+
+
+\subsection{Running Fluidity in serial}
+\label{sect:running_fluidity_in_serial}
+
+
+
+\subsection{Running Fluidity in parallel}
+\label{sect:running_fluidity_in_parallel}
+\index{parallel}
+
+\fluidity\ is a fully-parallel program, capable of running on thousands of processors. 
+It uses the Message Passing Interface (MPI) library to communicate information between 
+processors. Running \fluidity\ in parallel requires that MPI is available on your system
+and is properly configured. This chapter assumes that this is the case. The 
+terminology for parallel processing can sometime be confusing. Here, we use the 
+term \emph{processor} to mean one physical CPU core and \emph{process} is one part
+of a parallel instance of \fluidity. Normally, the number of processors used matches
+the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run on 256 processors.
+
+To run in parallel there are no further changes needed, apart from running \fluidity
+within the mpirun or mpiexec framework. Simply prepend the normal command line with mpiexec:
+\begin{lstlisting}[language=bash]
+mpiexec -n [PROCESSES] dfluidity -l -v2 my_setup.flml
+\end{lstlisting}
+
+\subsection{Running a periodic extruded mesh}
+\index{parallel!extruded mesh}
+%\ref{mesh!extruded}
+Running a periodic extruded mesh (section ??) in parallel, requires a number of steps to be taken in order to provide flredecomp (required to make the periodic mesh) with a 2D periodic mesh:
+
+\begin{itemize}
+\item Make the periodic 2D flml from the periodic 2plus1 flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/scripts/make_periodic_2D_flml foo.flml
+\end{lstlisting}
+\item Periodise the new 2D flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/periodise foo_2D.flml
+\end{lstlisting}
+\item Flredecomp the periodised 2D flml
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 ./myfluidity/bin/flredecomp \
+    -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
+\end{lstlisting}
+\item Periodise the 2plus1 flml
+\begin{lstlisting}[language=bash]
+ ./myfluidity/periodise foo.flml
+\end{lstlisting}
+\item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
+\item Run the parallel flml as before
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   ./myfluidity/bin/fluidity [options] foo_periodised.flml
+\end{lstlisting}
+\end{itemize}
+
+There is only one required mesh: the CoordinateMesh. Some settings, fields or other
+settings have specific mesh requirements. This are discussed under the appropriate options.
+
 \section{Running diamond}
 \label{sect:running_diamond}
 
