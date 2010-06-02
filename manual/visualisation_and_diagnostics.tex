@@ -489,67 +489,7 @@ There are three main types of offline diagnostics:
 \subsection{vtktools}
 \label{sect:diagnostics_vtk_tools}
 
-Vtktools allows you to analyse data from the vtu file using python. Initially, it will probably be easier to use the interactive interface ipython.  The script in Example \ref{ex:vtktools} imports the vtktools module into python and then reads in a  vtu file.  The information from the vtu file is now contained in the vtu object ug. Scalar and vector quantities can now be extracted. The pressure is extracted and put into a python array called p, and the velocity is put into the array uvw. 
-\begin{example}
-  \begin{lstlisting}[language=Python]
-import sys
-sys.path.append('<<fluidity_source_path>>/tools')
-import vtktools
-ug=vtktools.vtu('run_123.vtu')
-# To extract information from a list of files use the following line 
-# inside a loop
-# ug=vtktools.vtu('run_123_'+str(i)+'.vtu')
-ug.GetFieldNames()
-p=ug.GetScalarField('Pressure')
-uvw=ug.GetVectorField('Velocity')
-  \end{lstlisting}
-  \caption{A Python function to import the information from a vtu file into an object that python can handle. The pressure and valocity fields are converted into python arrays.}
-  \label{ex:vtktools}
-\end{example}
-
-It is possible to add a field to the vtu object. This is done in Example \ref{ex:vtktools2}. The final line writes over the original vtu file with a new file which also contains the new field PressureSquared. The new vtu file can now be opened in Mayavi and the new field can be viewed in the normal way.  
-\begin{example}
-  \begin{lstlisting}[language=Python]
-psq=p**2
-ug.AddScalarField('PressureSquared', psq)
-ug.Write()
-\end{lstlisting}
-  \caption{This follows on from the previous python script. It adds a new field to the vtu filed. }
-\label{ex:vtktools2}
-\end{example}
-For more information about vtktools, see the help, which is obtained as shown in Example \ref{ex:vtktools4}.
-\begin{example}
-  \begin{lstlisting}[language=Python]
-help('vtktools.vtu')  
-\end{lstlisting}
-\caption{How to get help with vtktools.}
-  \label{ex:vtktools4}
-\end{example}
-
-Vtktools will output an array with the values of all the fields at each point of the mesh that was used in the simulation. This mesh could be unstructured or adapted so the  points would not be evenly distributed in space. For some diagnostics it may be desirable to have arrays that give the values of the fields at points that are evenly distributed in space. This can be done with the script in Example \ref{ex:vtktools3}.
-\begin{example}
-  \begin{lstlisting}[language=Python]
-import sys
-sys.path.append('<<fluidity_source_path>>/tools')
-import vtktools
-u=vtktools.vtu("run_123.vtu")
-Xlist = arange(0.0,4.001,0.01)# x co-ordinates of the desired array shape
-Ylist = arange(0.0,2.001,0.01)# y co-ordinates of the desired array shape
-[X,Y] = meshgrid(Xlist,Ylist)
-Z = 0.0*X # This is 2d so z is an array of zeros.
-X = reshape(X,(size(X),))
-Y = reshape(Y,(size(Y),))
-Z = reshape(Z,(size(Z),))
-zip(X,Y,Z)
-pts = zip(X,Y,Z)
-pts = vtktools.arr(pts)
-# create arrays of velocity and temperature values at the desired points
-vel = u.ProbeData(pts, 'Velocity') 
-temperature_structured = u.ProbeData(pts, 'Temperature') 
-  \end{lstlisting}
-\caption{This creates an array of the desired shape and then creates arrays of the velocity and temperature fields at the points on that array.}
-\label{ex:vtktools3}
-\end{example}
+Vtktools allows you to analyse data from the vtu file using python. This includes the values of all the fields at each point at each dump.  Vtktools is documented on the wiki Cook Book.
  
 
 \subsection{Diagnostic output}
