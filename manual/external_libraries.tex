@@ -1,6 +1,7 @@
 \chapter{External libraries}\label{chap:external}
 
 \section{Introduction}
+
 This appendix gives an overview of the external libraries that are required to
 build and run fluidity.
 
@@ -10,13 +11,6 @@ industry-standard approach both short-cuts the development process by making
 use of the work and expertise of external projects, and in most cases provides
 a better solution than could be implemented by the fluidity development team.
 
-A key example of this approach is the PETSc (Portable, Extensible Toolkit for
-Scientific Computation) library, developed in the Mathematics and Computer
-Science Division of Argonne National Laboratory. Using high-end computational
-resources such as the HECToR system requires that codes be maximally efficient
-so as not to waste resources, and the PETSc solvers are regarded as the
-standard solver implementation to fulfil this requirement.
-
 \section{List of external libraries and software}
 \label{sect:required_ḻibraries_list}
 
@@ -24,7 +18,7 @@ Fluidity requires the following libraries and supporting software to build and
 run:
 
 \begin{itemize}
-\item VTK (tested version 5.4)
+\item Fortran 90 and C++ compiler (tested gfortran >= 4.3, Intel 9.1 and 10.1)
 \item BLAS (tested netlib, ATLAS, MKL)
 \item LAPACK (tested netlib, ATLAS, MKL)
 \item XML2 (tested version 2.6)
@@ -35,11 +29,10 @@ run:
 \item Python (tested version 2.6) 
 \item NumPy (tested version 1.3.0)
 \item Trang (tested version 20030619, any recent should work)
-\item Fortran90 compiler (tested gfortran >= 4.3, Intel 9.1 and 10.1)
-\item C++ compiler (tested GCC and Intel)
+\item VTK (tested version 5.4)
 \end{itemize}
 
-Fluidity recommends also making available the following libraries:
+Fluidity recommends also making available the following:
 
 \begin{itemize}
 \item CGNS (tested version 2.5)
@@ -49,7 +42,7 @@ Fluidity recommends also making available the following libraries:
 \end{itemize}
 
 \section{Installing required libraries on Debian or Ubuntu}
-\label{sect:required_ḻibraries_debian}
+\label{sect:required_ḻibraries_debian}\index{libraries!installing on debian and ubuntu}
 
 By far the easiest way to obtain all the supporting libraries and other
 software required to build and run fluidity is to make use of the fluidity
@@ -117,7 +110,7 @@ btl = ^openib
 \end{lstlisting}
 
 \section{Manual install of external libraries and software}
-\label{sect:required_ḻibraries_manual_install}
+\label{sect:required_ḻibraries_manual_install}\index{libraries!installing externals from source}
 
 Competent systems administrators should find it relatively straightforward to
 install the supporting software and external libraries required by fluidity on
@@ -125,12 +118,15 @@ most modern UNIX systems and compute clusters. The following instructions are
 intended to help with this process, offering hints and tips to speed up the
 deployment process.
 
+In most cases, modern Linux systems will supply some if not most of the
+required packages without needing to resort to compiling them from source.
+
 \subsection{Build environment}
 \label{sect:required_libraries_build_environment}
 
-The following compile instructions assume that you have set up a basic
-bash environment containing a few key environment variables. Set WORKING to be the
-root of your working area, then:
+The following compile instructions assume that you have set up a basic bash
+environment containing a few key environment variables. Set WORKING to be the
+root of your working area which the subsequent variables will refer to:
 
 \begin{lstlisting}[language=bash]
 export WORKING="/path/to/my/data"
@@ -159,7 +155,7 @@ Where the source directory for a package is referred to it is assumed to mean
 the root directory created when the package is uncompressed.
 
 \subsection{Compilers}
-\label{sect:required_libraries_compilers}
+\label{sect:required_libraries_compilers}\index{compilers}
 
 The fluidity build process requires working Fortran 90 and C++ compilers.
 
@@ -217,23 +213,23 @@ with the following configure:
 followed by the standard make and install.
 
 \subsubsection{OpenMPI}
-\label{sect:required_libraries_compilers_openmpi}
+\label{sect:required_libraries_compilers_openmpi}\index{OpenMPI}
 
-Finally, you'll need an MPI implementation to wrap your compiler for the fluidity
-build, which lets you spawn parallel runs. Any full MPI implementation should
-be sufficient, though fluidity is generally tested using OpenMPI. Please note
-that Clustervision-supplied clusters generally ship with broken MPI C++ support
-and will need attention before fluidity can be compiled. Fluidity is no longer
-generally supported as non-MPI code as it is assumed that serial runs will be
-precursors to large parallel runs and still build with MPI enabled for later
-use.
+Finally, you'll need an MPI implementation to wrap your compiler for the
+fluidity build, which lets you spawn parallel runs. Any full MPI implementation
+should be sufficient, though fluidity is generally tested using OpenMPI. Please
+note that Clustervision-supplied clusters generally ship with broken MPI C++
+support and will need attention before fluidity can be compiled. Fluidity is no
+longer generally supported as non-MPI code as it is assumed that serial runs
+will be precursors to large parallel runs and still build with MPI enabled for
+later use.
 
 OpenMPI (tested for fluidity with tested openmpi-1.3.3) can be downloaded from
 \url{http://www.open-mpi.org/software/ompi/v1.3/}. It is built in the source
 directory with the standard configure, make, and install.
 
 \subsection{Python}
-\label{sect:required_libraries_python}
+\label{sect:required_libraries_python}\index{Python!installing}
 
 Python is widely used within fluidity for user-defined functions and for
 diagnostic tools and problem setup, and currently tested up to Python version
@@ -287,7 +283,7 @@ sh ./setuptools-0.6c9-py2.6.egg --prefix=$WORKING/icom
 Use the appropriate filename for the python egg you have downloaded.
 
 \subsubsection{NumPy}
-\label{sect:required_libraries_python_numpy}
+\label{sect:required_libraries_python_numpy}\index{numpy}
 
 NumPy (tested version 1.3.0) can be installed through
 easy{\textunderscore}install which was provided by setuptools, using:
@@ -306,7 +302,7 @@ PETSc is required to provide matrix solvers, and ParMetis is required for mesh
 partitioning and sparse matrix operations.
 
 \subsubsection{BLAS}
-\label{sect:required_libraries_numerical_blas}
+\label{sect:required_libraries_numerical_blas}\index{BLAS}
 
 BLAS can be dowloaded from \url{http://www.netlib.org/blas/} (for netlib BLAS),
 \url{http://sourceforge.net/projects/math-atlas/files/} (for ATLAS), or
@@ -329,7 +325,7 @@ cp blas_LINUX.a $WORKING/icom/lib/libblas.a
 \end{lstlisting}
 
 \subsubsection{LAPACK}
-\label{sect:required_libraries_numerical_lapack}
+\label{sect:required_libraries_numerical_lapack}\index{LAPACK}
 
 LAPACK can be downloaded from \url{http://www.netlib.org/lapack/} (for netlib
 LAPACK), \url{http://sourceforge.net/projects/math-atlas/files/} (for ATLAS),
@@ -357,7 +353,7 @@ cp lapack_LINUX.a $WORKING/icom/lib/liblapack.a
 \end{lstlisting}
 
 \subsubsection{ParMetis}
-\label{sect:required_libraries_numerical_parmetis}
+\label{sect:required_libraries_numerical_parmetis}\index{ParMetis}
 
 ParMetis (tested for fluidity with version 3.1.1) is required for mesh
 partitioning and sparse matrix operations, available from
@@ -372,7 +368,7 @@ cp parmetis.h $WORKING/icom/include
 \end{lstlisting}
 
 \subsubsection{PETSc}
-\label{sect:required_libraries_numerical_petsc}
+\label{sect:required_libraries_numerical_petsc}\index{PETSc}
 
 PETSc (currently tested for fluidity with versions 3.0 as per the following
 instructions, although fluidity itself is also configured to work with a PETSc
@@ -412,7 +408,7 @@ NOTE: If you see problems with shared libraries not building correctly, make
 sure you have built blas and lapack with \lstinline[language=bash]+-fPIC+.
 
 \subsection{VTK and supporting software}
-\label{sect:required_libraries_vtk}
+\label{sect:required_libraries_vtk}\index{vtk!installing}
 
 VTK is required for fluidity data output, and currently tested to version 5.4.
 If you do not already have them installed, you will need Cmake (tested for
@@ -491,20 +487,20 @@ Brief details and suggestions for avoiding common problems are given here, but
 package instructions should be referred to for full build details.
 
 \subsubsection{XML2}
-\label{sect:required_libraries_supporting_xml2}
+\label{sect:required_libraries_supporting_xml2}\index{XML2}
 
 XML2 is required for parsing fluidity's flml parameter file format, and is
 tested with version 2.6. It can be downloaded from \url{ftp://xmlsoft.org/libxml2/}
 
 \subsubsection{ARPACK}
-\label{sect:required_libraries_supporting_arpack}
+\label{sect:required_libraries_supporting_arpack}\index{ARPACK}
 
 ARPACK is required for solving large eigenvalue problems, and is tested with
 version 96 with paths configured for the local site. It can be downloaded from
 \url{http://www.caam.rice.edu/software/ARPACK/}
 
 \subsubsection{NetCDF}
-\label{sect:required_libraries_supporting_netcdf}
+\label{sect:required_libraries_supporting_netcdf}\index{NetCDF}
 
 NetCDF is required for reading datafiles in NetCDF format, and is ested with
 version 4.0. It is recommended to be configured with f77, f90, c, cxx, and
@@ -514,7 +510,7 @@ the standard configure.
 NetCDF can be downloaded from \url{http://www.unidata.ucar.edu/downloads/netcdf/}
 
 \subsubsection{UDUnits}
-\label{sect:required_libraries_supporting_udunits}
+\label{sect:required_libraries_supporting_udunits}\index{UDUnits}
 
 UDUnits is required for physical unit conversions, and is tested with version
 1.12.4. Note there is a common issue with hand-building this package where
@@ -532,14 +528,14 @@ should be sufficient for a GCC-based build on Linux.
 UDUnits can be downloaded from \url{http://www.unidata.ucar.edu/downloads/udunits/index.jsp}
 
 \subsubsection{Trang}
-\label{sect:required_libraries_supporting_trang}
+\label{sect:required_libraries_supporting_trang}\index{Trang}
 
 Trang is required for parsing fluidity's flml schema, and is tested with
 20030619 but any recent version should be sufficient. Trang can be downloaded
 from \url{http://www.thaiopensource.com/relaxng/trang.html}
 
 \subsubsection{Subversion (SVN)}
-\label{sect:required_libraries_supportingsvn}
+\label{sect:required_libraries_supportingsvn}\index{subversion!installing}
 
 Subversion is recommended as a general tool for accessing the fluidity code
 repository, and recommended used with version 1.5 or higher. Subversion can be
@@ -549,7 +545,7 @@ Note that for http-enabled subversion you will also need neon support,
 available for download from \url{http://www.webdav.org/neon/}
 
 \subsubsection{CGNS}
-\label{sect:required_libraries_supporting_cgns}
+\label{sect:required_libraries_supporting_cgns}\index{CGNS}
 
 CGNS is required when any CGNS-format datafiles are being read by fluidity, and
 is currently tested to version 2.5. It can be downloaded from 
