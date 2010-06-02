@@ -1621,14 +1621,17 @@ For the temporal discretisation a Crank-Nicolson scheme with subcycling is recom
 
 \subsubsection{Geostrophic Pressure}
 \label{Sect:GFD_config_geopressure}
-If enabled a `geopressure' solver is used, \ref{Sect:config_geostrophic_balance}. The specified mesh should be the \option{GeostrophicPressureMesh}, cf. \ref{sect:GFD_config_geometry}. The terms included in the right-hand side of the geopressure solver are selected under the option \option{\ldots/prognostic/spatial\_discretisation/geostrophic\_pressure\_option}.
-
-REFERENCE NODE???
+If enabled a `geopressure' solver is used, \ref{Sect:config_geostrophic_balance}. 
+\begin{itemize}
+\item The specified mesh should be the \option{GeostrophicPressureMesh}, cf. \ref{sect:GFD_config_geometry}. 
+\item The terms included in the right-hand side of the geopressure solver are selected under: \\
+\option{\ldots/spatial\_discretisation/geostrophic\_pressure\_option}.
+\item A reference node must be set as geopressure uses Neumann boundary conditions on all boundaries (cf. \ref{Nullspaceremove}), for example:
+\option{\ldots/reference\_node::node\_1}
+\end{itemize}
 
 \section{Industrial CFD Problems}
 \label{Sect:industrial_CFD}
-
-
 
 \section{Compressible fluid model}
 \index{compressible fluid model}
