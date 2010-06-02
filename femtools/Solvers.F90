@@ -1499,10 +1499,9 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
 
     ! set max. iterations and tolerances:
     ! =======================================
-    call get_option(trim(solver_option_path)//'/relative_error', rtol, &
-      default=real(0.0, kind = kind(rtol)))
+    call get_option(trim(solver_option_path)//'/relative_error', rtol)
     call get_option(trim(solver_option_path)//'/absolute_error', atol, &
-      default=epsilon(atol))
+      default=real(0.0, kind = kind(rtol)))
     ! note that if neither is set the solve will never converge
     ! needs checking
 
