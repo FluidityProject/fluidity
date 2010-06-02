@@ -850,7 +850,7 @@ we get the usual no normal stress condition. If the normal component
 is left free we have to prescribe a pressure instead. The boundary 
 conditions in the tangential direction (slip/no-slip) are independent of this choice.
 
-\subsection{Pressure correction}
+\subsection{Pressure correction}\label{Sect:pressure_correction}
 \index{pressure!correction}
 
 After solving the Momentum equation \eqref{eq:momentum_equation} for the velocity using a pressure guess, the solution does not satisfy the continuity equation. A common way to enforce the continuity is to project the velocity to the set of continuity-free functions. After this projection step the continuity equation is satisfied, but in general the solution does not satisfy the momentum equation anymore, which is why the combination of momentum solve and pressure correction has to be repeated until a convergence criterium has been reached. 
@@ -895,8 +895,11 @@ Putting \eqref{eqn:presscorr_continuity} into \eqref{eqn:presscorr_presscorr} an
  \mat{C^T} \mat{M^{-1}}\vec{\mat{C}} ( \dvec p^{n+1} -  \dvec p_*^{    n+1})
 =\frac{ \mat{C^T} \dvec{\vec u}_*^{n+1}}{\Delta t},
 \end{equation*}
-This discrete poisson equation can now be solved for $\dvec p^{n+1}$ and the solution used to update the velocity with \eqref{eqn:presscorr_substract} to $\dvec{\vec u}^{n+1}=\dvec{\vec u}^{n}+\Delta t  M^{-1} C ( \dvec p^{n+1} - \dvec p_*^{n+1})$.
-
+This discrete poisson equation can now be solved for $\dvec p^{n+1}$ and the solution used to update the velocity with \eqref{eqn:presscorr_substract}:
+\begin{equation*}
+\dvec{\vec u}^{n+1}=\dvec{\vec u_*}^{n+1}-\Delta t  M^{-1} C ( \dvec p^{n+1} - \dvec p_*^{n+1})
+\end{equation*}
+Note that the velocity is now divergence free.
 
 \subsection{CG and mass lumping}
 \label{Sect:ND_cg_mass_lumping}
@@ -936,13 +939,13 @@ and $\Omega_{FS}$ is the boundary where the free surface is to be applied. This 
   \text{for all } \psi_i.
 \end{equation}
 
-Following the spatial and temporal discretisation described in section ??, the matrix form of the continuity equation now includes the free surface boundary term (compare with ??):
+Following the spatial and temporal discretisation described in ??, the matrix form of the continuity equation now includes the free surface boundary term (compare with ??):
 \begin{equation}
-\Theta_C C^T u^{n+1} + (1-\Theta_C) C^T u^n + M_s \frac{\hat p^{n+1}-\hat p^n}{g \Delta t}=0
+\theta C^T u^{n+1} + (1-\theta) C^T u^n + M_s \frac{\hat p^{n+1}-\hat p^n}{g \Delta t}=0
 \end{equation}
-Repeating the steps from section ??, the pressure correction equation takes the form:
+Repeating the steps from section \ref{Sect:pressure_correction}, the pressure correction equation takes the form:
 \begin{equation}
-(\theta_C C^T(\frac{M_u}{\Delta t})^{-1} \Theta_C C + \frac{M_s}{g(\Delta t)^2})\Delta \hat p = -\frac{\Theta_C C^T u_*^{n+1} + (1-\Theta_C)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
+(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C + \frac{M_s}{g(\Delta t)^2})\Delta \hat p = -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
 \end{equation}
 
 
