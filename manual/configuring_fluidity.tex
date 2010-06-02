@@ -1547,7 +1547,11 @@ For the temporal discretisation a Crank-Nicolson scheme is recommended, with the
 
 The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
-For the spatial discretisation a discontiuous-Galerkin discretisation is recommended with a Lax-Friedrichs advection scheme, velocity projected to continuous space, advection integrated by parts once and a compact-discontinuous-Galerkin diffusion scheme with a vertex-based slope limiter. These options are selected with:
+For the spatial discretisation a discontiuous-Galerkin discretisation
+is recommended with a Lax-Friedrichs advection scheme, velocity
+projected to continuous space, advection integrated by parts once and
+a compact-discontinuous-Galerkin diffusion scheme with a vertex-based
+slope limiter. These options are selected with:
 \begin{itemize}
 \item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}, cf. [REF SECTION]
 \item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}, cf. [REF SECTION]

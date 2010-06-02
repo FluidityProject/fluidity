@@ -637,6 +637,23 @@ scales the reconstructed slope (the value recommended in the paper is
 assumes an $\mathcal{O}(1)$ field, so these factors need tuning for
 other scalings.
 
+\subsubsection{Vertex-based limiter}
+This limiter, introduced in \cite{Ku2010}, works on a hierarchical
+Taylor expansion. It is only currently implemented for linear elements.
+In this case, the DG field $T$ in one element $E$ may be written as
+\[
+T = \bar{T} + T', \quad \bar{T} = \int_E T dV/Vol(E),
+\]
+and the limiter replaces $T$ with $T_L$ given by
+\[
+T = \bar{T} + \alpha T',
+\]
+finding the maximum value $\alpha>0$ such that at each vertex, $T$ is
+bounded by the maximum and minimum of the values of T at that vertex
+over all elements that share the vertex.  This limiter has no
+parameters, and is the currently recommended limiter (although not
+currently parallel-safe).
+
 \subsubsection{Hermite-WENO limiter}
 This limiter makes use of the Weighted Essentially Non-Oscillatory
 (WENO) interpolation methods, originally used to obtain high-order
