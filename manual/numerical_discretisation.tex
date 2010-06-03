@@ -139,8 +139,18 @@ This choice of basis functions has the following useful property:
 This naturally describes trial functions that are linearly 
 interpolated between the values $c_i$ in the nodes.
 Higher order polynomials can be represented using more 
-nodes in the element.
-(insert \Ptwo example figure here)
+nodes in the element (see Figure \ref{fig:cgshapefunctions}).
+
+\begin{figure}[btp]
+\begin{center}
+$\begin{array}{lr}
+\xfig{numerical_discretisation_images/P1cgshapefunction1d} & \xfig{numerical_discretisation_images/P2cgshapefunction1d} \\
+\xfig{numerical_discretisation_images/P1cgshapefunction2d} & \xfig{numerical_discretisation_images/P2cgshapefunction2d}
+\end{array}$ 
+\caption{One-dimensional (a, b) and two-dimensional (c, d) schematics of piecewise linear (a, c) and piecewise quadratic (b, d) continuous shape functions.  The shape function has value $1$ at node $A$ descending to $0$ at all surrounding nodes.  The number of nodes per element, $e$, depends on the polynomial order while the support, $s$, extends to all the elements surrounding node $A$.}
+\label{fig:cgshapefunctions}
+\end{center}
+\end{figure}
 
 As discussed previously the test space in Galerkin FEM methods is the same as the 
 trial space. So for \PN the test functions can be an arbitrary linear combination 
