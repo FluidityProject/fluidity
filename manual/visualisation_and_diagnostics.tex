@@ -148,72 +148,71 @@ Limitations: Only coded for 2D
 
 The available internal \option{vector\_field}  diagnostics are:
 
-\begin{description}
-
- \item[TemperatureGradient :] Temperature gradient    
- \item[Gradient :] Gradient of a scalar field. Field must be in this material\_phase.    
- \item[FiniteElementGradient :] Gradient of a scalar field evaluated using the C gradientmatrix constructed using finite elements.Field must be in this material\_phase.    
- \item[FiniteElementDivergenceTransposed :] Gradient of a scalar field evaluated using the transposeof the $C^T$ divergence matrix constructed using finiteelements. Field must be in this material\_phase.    
- \item[Vorticity :] Relative vorticity field - curl of the velocity field    
- \item[PlanetaryVorticity :] Planetary vorticity
-	Limitations: Requires geometry dimension of 3.    
- \item[AbsoluteVorticity :] Absolute vorticity:  $f + \mbox{curl } u$ 
-	Limitations: Requires a geometry dimension of 3.    
- \item[ControlVolumeDivergenceTransposed :] Gradient of a scalar field evaluated using the transposeof the $C^T$ matrix constructed using control volumes. Field must be in this material\_phase.    
- \item[InnerElementFullVelocity :] Full velocity in an inner element SGS treatment of momentum
-	Limitations: \begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}    
- \item[InnerElementFullVorticity :] Vorticity of the full velocity in aninner element SGS treatment of momentum
-	Limitations: \begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}     
- \item[InnerElementVorticity :] Vorticity of the SGS velocity in aninner element SGS treatment of momentum
-	Limitations: \begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}    
+\begin{description}    
+ \item[AbsoluteDifference :] Absolute Difference between two vector fields. Both fields and \option{vector\_field::AbsoluteDifference} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the \option{vector\_field::AbsoluteDifference}.  
+ \item[***AbsoluteVorticity :] Absolute vorticity:  $\vec{f} + \nabla \times \vec{u}$ 
+	Limitations: Requires a geometry dimension of 3.
+ \item[BalancedVelocity :] Compute the balanced component of velocity, that is, the velocity that puts the state in Geostrophic Balance. This diagnostic depends on \option{vector\_field::ImbalancedVelocity}.  
+ \item[***BedShearStress :] $\mbox{Bed Shear Stress} = \mbox{density}*\mbox{drag\_coeff}*|\vec{u}|*\vec{u}$. At the moment this assumes the density and drag coefficients are constants. This diagnostic vector field is only calculated over surface elements/nodes, interior nodes will have zero value.
+ \item[ControlVolumeAuxiliaryGradient :] Calculate the control volume auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::ControlVolumeAuxiliaryGradient}.    
+ \item[***ControlVolumeDivergenceTransposed :] Gradient of a scalar field evaluated using the transpose of the $C^T$ matrix constructed using control volumes. Field must be in this material\_phase.
+  \item[***Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. Projection? lump mass matrix?
+  \item[DGAuxiliaryGradient :] Calculate the discontinuous-Galerkin (Bassi Rebay) auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::DGAuxiliaryGradient}.  
  \item[DgMappedVelocity :] The continuous solution mapped to a discontinuous mesh.
 	Limitations: 
 	\begin{itemize}
 	\item Requires a geometry dimension of 3.
 	\item Requires inner element active for momentum.
-	\end{itemize}    
- \item[DgMappedVorticity :] Vorticity of the DG mapped Velocity. Note vorticity is actually calculated over a DG field.
+	\end{itemize}   
+ \item[***DgMappedVorticity :] Vorticity of the DG mapped Velocity. Note vorticity is actually calculated over a DG field.
 	Limitations:
 	\begin{itemize}
 	\item Requires a geometry dimension of 3.
 	\item Requires inner element active for momentum.
+	\end{itemize}  
+ \item[DiagnosticCoordinate :] Coordinate field remapped to the specified mesh.    
+ \item[***Displacement :] Displacement    	 
+ \item[***FiniteElementDivergenceTransposed :] Gradient of a scalar field evaluated using the transpose of the $C^T$ divergence matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementDivergenceTransposed}.   
+ \item[***FiniteElementGradient :] Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
+  \item[***FunctionalGradient :] Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
+ \item[GalerkinProjection :] Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}    
+ \item[***GeostrophicSource :] Experimental geostrophic source field to be used in combination with a free surface. Does not solve a vertical balance yet.  
+ \item[Gradient :] Gradient of a scalar field. The field must be in the same \option{material\_phase} as \option{vector\_field::Gradient}    
+ \item[ImbalancedVelocity :] Compute the imbalanced component of velocity,that is,$\vec{u} - \vec{u}_{bal}$ where $\vec{u}_{bal}$ is the velocity that puts the state in Geostrophic balance. 
+ \item[InnerElementFullVelocity :] Full velocity in an inner element SGS treatment of momentum
+	Limitations: \begin{itemize}
+	\item Requires a geometry dimension of 3.
+	\item Requires inner element active for momentum.
 	\end{itemize}    
- \item[SolidVelocity :] Solid Velocity field.  Used to generate the momentum source     
- \item[ParticleVector :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.     
- \item[ParticleForce :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.     
- \item[SolidForce :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.     
- \item[VelocityPlotForSolids :]     
- \item[FunctionalGradient :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.     
- \item[LinearMomentum :] LinearMomentum field: $p = \rho u$ (where $p$ is the linear momentum, $\rho$ the density and $u$ the velocity)    
- \item[ControlVolumeAuxiliaryGradient :] Calculate the control volume auxiliary gradient for a particular field. The related field must be a scalar field in this material\_phase.    
- \item[DGAuxiliaryGradient :] Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field. The related field must be a scalar field in this material\_phase.    
- \item[GeostrophicSource :] Experimental geostrophic source field to be used in combination witha free surface. Does not solve a vertical balance yet.    
- \item[AbsoluteDifference :] Absolute Difference between two vector fields. Both fields must be in this material\_phase. Assumes both fields are on the same mesh as the AbsoluteDifference field.    
- \item[VectorAbsoluteDifference :] Absolute Difference between two vector fields. Both fields must be in this material\_phase. Assumes both fields are on the same mesh as the AbsoluteDifference field.    
- \item[BedShearStress :] $\mbox{Bed Shear Stress} = \mbox{density}*\mbox{drag\_coeff}*|u|*u$. At the moment this assumes the density and drag coefficients are constants. This diagnostic vector field is only calculated over surface elements/nodes, interior nodes will have zero value.    
- \item[MaxBedShearStress :] Max Bed Shear Stress. Note that you need BedShearStress turned on for this to work.    
- \item[DiagnosticCoordinate :] Coordinate field remapped to the mesh of your choice.    
- \item[Displacement :] Displacement    
- \item[GalerkinProjection :] Galerkin projection of one field onto another mesh. The field must be in this material\_phase. NOTE: you need the solver options if the meshof this field is continuous.    
- \item[Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. Note that multiple projection methods are available (under the algorithm option).    
- \item[ImbalancedVelocity :] Compute the imbalanced component of velocity,that is,$u - u_{bal}$ where $u_{bal}$ is the velocity that puts the state in geostrophicbalance. Note: needs to be on the same mesh as velocity. If this mesh is continous solver options are necessary.
- \item[BalancedVelocity :] Compute the balanced component of velocity,that is, the velocity that puts the state in geostrophicbalance. This diagnostic depends on ImbalancedVelocity.    
+ \item[InnerElementFullVorticity :] Vorticity of the full velocity in an inner element SGS treatment of momentum
+	Limitations: \begin{itemize}
+	\item Requires a geometry dimension of 3.
+	\item Requires inner element active for momentum.
+	\end{itemize} 
+ \item[InnerElementVorticity :] Vorticity of the SGS velocity in aninner element SGS treatment of momentum
+	Limitations: \begin{itemize}
+	\item Requires a geometry dimension of 3.
+	\item Requires inner element active for momentum.
+	\end{itemize}
+ \item[***LinearMomentum :] LinearMomentum field: $p = \rho \vec{u}$ (where $p$ is the linear momentum, $\rho$ the density and $\vec{u}$ the velocity)
+ \item[MaxBedShearStress :] Max Bed Shear Stress. Note that you need \option{vector\_field::BedShearStress} turned on for this to work.    
+ \item[***ParticleForce :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.       
+ \item[***ParticleVector :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.   
+ \item[PlanetaryVorticity :] Planetary vorticity
+	Limitations: Requires geometry dimension of 3. 
+ \item[***SolidForce :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
+ \item[***SolidVelocity :] Solid Velocity field.  Used to generate the momentum source   
+ \item[***TemperatureGradient :] Temperature gradient  
+ \item[VectorAbsoluteDifference :] Absolute Difference between two vector fields. Assumes both fields are on the same mesh as \option{vector\_field::AbsoluteDifference}. Both fields and \option{vector\_field::AbsoluteDifference} must be in the same \option{material\_phase}.    
+ \item[***VelocityPlotForSolids :]   
+ \item[Vorticity :] (Relative vorticity field) - (curl of the velocity field)    
 \end{description}
 
 
 And the internal \option{tensor\_field}  diagnostics are:
 
 \begin{description}
-\item[FieldTolerance] From a field on a mesh, diagnose the anisotropic interpolation weight that would give the mesh back. It is computed as: $\epsilon = M^{-1} |H|$ 
+\item[***FieldTolerance :] From a field on a mesh, diagnose the anisotropic interpolation weight that would give the mesh back. It is computed as: $\epsilon = \mat{M}^{-1} |\mat{H}|$ 
 \end{description}
 
 
