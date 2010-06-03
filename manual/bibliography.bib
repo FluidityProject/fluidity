@@ -425,7 +425,7 @@
   year		= {2000}
 }
 
-@Article{	  cosh2001,
+@Article{	  cockburn2001,
   author	= {B. Cockburn and C-W. Shu},
   title		= {Runge-Kutta Discontinuous Galerkin Methods for
 		  Convection-Dominated Problems},
@@ -704,6 +704,14 @@
 		  {N}avier-{S}tokes equations},
   volume	= {7},
   year		= {1987}
+}
+
+@Article{	  gresho1988,
+  author	= {P. M. Gresho and S. T. Chan},
+  title		= {Solving the incompressible Navier-Stokes equations using consistent mass and a pressure poisson equation},
+  journal	= {ASME Symposium on recent development in CFD, Chicago 95},
+  year		= {1988},
+  pages		= {51 - 73},
 }
 
 @Article{	  gresho90,
@@ -1059,6 +1067,16 @@
 		  
 }
 
+@article{kramer2010,
+  author = {Kramer, Stephan C. and Cotter, Colin J. and Pain, Christopher C.},
+  title = { Solving the Poisson equation on small aspect ratio
+       domains using unstructured meshes },
+  journal = {Ocean Modelling},
+  year = {2010},
+  note = {Submitted, preprint at \url{http://arxiv.org/abs/0912.1976}},
+}
+
+
 @Book{		  lady69,
   author	= {O. Ladyzhenskaya},
   publisher	= {Gordon and {B}reach {S}cience {P}ublishers},
@@ -1330,6 +1348,20 @@
   year		= {1986}
 }
 
+@article{saad1993,
+ author = {Saad, Yousef},
+ title = {A flexible inner-outer preconditioned GMRES algorithm},
+ journal = {SIAM J. Sci. Comput.},
+ volume = {14},
+ number = {2},
+ year = {1993},
+ issn = {1064-8275},
+ pages = {461--469},
+ doi = {http://dx.doi.org/10.1137/0914028},
+ publisher = {Society for Industrial and Applied Mathematics},
+ address = {Philadelphia, PA, USA}
+}
+
 @Article{	  schultz69a,
   author	= {M. H. Schultz},
   journal	= sijna,
@@ -1337,6 +1369,14 @@
   title		= {${L}^{\infty}$-multivariate approximation theory},
   volume	= {6},
   year		= {1969}
+}
+
+@Unpublished{shewchuk1994,
+  title = 	 {An introduction to the conjugate gradient method
+                  without the agonizing pain},
+  author = 	 {J. R. Shewchuk},
+  URL = 	 {http://www.cs.cmu.edu/\textasciitilde quake-papers/painless-conjugate-gradient.pdf},
+  year = 	 1994
 }
 
 @Article{         schwiderski1980,
@@ -1421,11 +1461,27 @@
   year		= {1990}
 }
 
+@article{stueben2001,
+  author = {St\"uben, Klaus},
+  title = {A review of algebraic multigrid},
+  journal ={J. Comput. Appl. Math.},
+  year = {2001},
+  volume = {128},
+  pages = {281}
+}
+
 @Book{		  tennekes,
   author	= {H. Tennekes and J. L. Lumley},
   publisher	= {MIT Press, Cambridge, MA},
   title		= {A first course in turbulence},
   year		= {1972}
+}
+
+@book{trottenberg2001,
+  author	= {Ulrich Trottenberg and Cornelis Oosterlee and Anton Sch{\" u}ller},
+  publisher	= {Elsevier Academic Press},
+  title		= {Multigrid},
+  year		= {2001}
 }
 
 @Article{	  umlauf2003,
@@ -1471,6 +1527,16 @@
   author={Vallis, G.K.},
   year={2006},
   publisher={Cambridge Univ Pr}
+}
+
+@ARTICLE{vanek1996,
+  author = {Vanek, P. and Mandel, J. and Brezina, M.},
+  title = { Algebraic Multigrid by Smoothed Aggregation
+for Second and Fourth Order Elliptic Problems},
+  journal = {Computing},
+  year = {1996},
+  volume = {56}.
+  pages = {179--196}
 }
 
 @Article{	  vangenuchten,
@@ -1519,8 +1585,6 @@
   bdsk-url-1	= {http://dx.doi.org/10.1016/j.ocemod.2007.06.008}
 }
 
-
-
 @Article{	  warner2005,
   author	= {J. C. Warner and C. R. Sherwood and H. G. Arango and R. P.
 		  Signell},
@@ -1543,6 +1607,7 @@
   year =	 2003,
   url =          {http://buildbot.sourceforge.net/PyCon-2003/buildbot.html}
 }
+
 @article{winters1995,
 author = {Winters,Kraig B. and Lombard,Peter N. and Riley,James J. and D'Asaro,Eric A.},
 title = {Available potential energy and mixing in density-stratified fluids},
@@ -1556,69 +1621,9 @@ URL = {http://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=
 eprint = {http://journals.cambridge.org/article_S002211209500125X},
 }
 
-@Article{	  gresho1988,
-  author	= {P. M. Gresho and S. T. Chan},
-  title		= {Solving the incompressible Navier-Stokes equations using consistent mass and a pressure poisson equation},
-  journal	= {ASME Symposium on recent development in CFD, Chicago 95},
-  year		= {1988},
-  pages		= {51 - 73},
-}
-
 @PHDTHESIS{yap1987,
   author =    {Yap, Christopher R.},
   title =     {Turbulent Heat and Momemntum Transfer in Recirculating and Impinging Flows},
   school =    {Manchester University},
   year =      {1987}
-}
-
-@book{trottenberg2001,
-  author	= {Ulrich Trottenberg and Cornelis Oosterlee and Anton Sch{\" u}ller},
-  publisher	= {Elsevier Academic Press},
-  title		= {Multigrid},
-  year		= {2001}
-}
-@ARTICLE{vanek1996,
-  author = {Vanek, P. and Mandel, J. and Brezina, M.},
-  title = { Algebraic Multigrid by Smoothed Aggregation
-for Second and Fourth Order Elliptic Problems},
-  journal = {Computing},
-  year = {1996},
-  volume = {56}.
-  pages = {179--196}
-}
-@article{kramer2010,
-  author = {Kramer, Stephan C. and Cotter, Colin J. and Pain, Christopher C.},
-  title = { Solving the Poisson equation on small aspect ratio
-       domains using unstructured meshes },
-  journal = {Ocean Modelling},
-  year = {2010},
-  note = {Submitted, preprint at \url{http://arxiv.org/abs/0912.1976}},
-}
-@article{saad1993,
- author = {Saad, Yousef},
- title = {A flexible inner-outer preconditioned GMRES algorithm},
- journal = {SIAM J. Sci. Comput.},
- volume = {14},
- number = {2},
- year = {1993},
- issn = {1064-8275},
- pages = {461--469},
- doi = {http://dx.doi.org/10.1137/0914028},
- publisher = {Society for Industrial and Applied Mathematics},
- address = {Philadelphia, PA, USA}
-}
-@article{stueben2001,
-  author = {St\"uben, Klaus},
-  title = {A review of algebraic multigrid},
-  journal ={J. Comput. Appl. Math.},
-  year = {2001},
-  volume = {128},
-  pages = {281}
-}
-@Unpublished{shewchuk1994,
-  title = 	 {An introduction to the conjugate gradient method
-                  without the agonizing pain},
-  author = 	 {J. R. Shewchuk},
-  URL = 	 {http://www.cs.cmu.edu/\textasciitilde quake-papers/painless-conjugate-gradient.pdf},
-  year = 	 1994
 }

@@ -378,6 +378,22 @@ integrals (quadrature), may not be exact (incomplete quadrature). For this
 reason the second form may be more accurate as the internal outflow boundary
 integrals are canceled exactly.
 
+\paragraph{Local Lax-Friedrichs flux}
+
+The local Lax-Friedrichs flux formulation is defined in
+\citet[p208]{Cockburn2001}. For the
+particular case of tracer advection, this is given by:
+\begin{equation}
+  \widehat{\vec{n}\cdot\vec{u}~T}=\frac{1}{2}\vec{n}\cdot\vec{\hat u}
+  \left(T_{\mathrm{int}}+T_{\mathrm{ext}}\right)
+  -\frac{C}{2}T_{\mathrm{int}}-T_{\mathrm{ext}}
+\end{equation}
+where $T_{\mathrm{ext}}$ is the value of $T$ on the exterior side of the
+  element boundary and in which for each facet $s\subset\partial e$:
+\begin{equation}
+  C= \sup_{x\in s}|\vec{\hat u}\cdot\vec{n}|
+\end{equation}
+
 \section{Control volume advection}
 \label{ControlVolumeAdvection}
 \index{control volume!advection}
