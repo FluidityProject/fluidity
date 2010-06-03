@@ -39,6 +39,7 @@ module streamfunction
   use vector_tools
   use transform_elements
   use eventcounter
+  use sparsity_patterns_meshes
   implicit none
 
   private
@@ -197,19 +198,21 @@ contains
 
   end function boundary_value
 
-  subroutine calculate_stream_function_multipath_2d(state, streamfunc, stat)
+  subroutine calculate_stream_function_multipath_2d(state, streamfunc)
     !!< Calculate the stream function for a 
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: streamfunc
-    integer, intent(out), optional :: stat
     
-    integer :: i, lstat, ele
+    integer :: i, ele, stat
     type(vector_field), pointer :: X, U
-    type(csr_sparsity) :: psi_sparsity
+    type(csr_sparsity), pointer :: psi_sparsity
     type(csr_matrix) :: psi_mat
     type(scalar_field) :: rhs
     real :: flux_val
     type(scalar_field), pointer :: surface_field
+
+    integer :: mesh_movement
+    integer, save :: last_mesh_movement = -1
 
     do i = 1, 2
        select case(i)
@@ -239,26 +242,42 @@ contains
        call find_stream_paths(X, streamfunc)
     end if
     
-    psi_sparsity = extract_csr_sparsity(state, &
-               &                      "StreamFunctionSparsity", lstat)
-    if (lstat/=0) then
-       psi_sparsity = make_sparsity(streamfunc%mesh, streamfunc%mesh, &
-            "StreamFunctionSparsity")
-    else
-       call incref(psi_sparsity)
+    psi_mat = extract_csr_matrix(state, "StreamFunctionMatrix", stat = stat)
+    if(stat == 0) then
+      mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+      if(mesh_movement /= last_mesh_movement) then
+        stat = 1
+      end if
     end if
+    if(stat /= 0) then
+      psi_sparsity => get_csr_sparsity_firstorder(state, streamfunc%mesh, streamfunc%mesh)
     
-    call allocate(psi_mat, psi_sparsity, name="StreamFunctionMatrix")
+      call allocate(psi_mat, psi_sparsity, name="StreamFunctionMatrix")
+      call zero(psi_mat)
 
-    call zero(psi_mat)
-    call allocate(rhs, streamfunc%mesh, "StreamFunctionRHS")
-    call zero(rhs)
+      call allocate(rhs, streamfunc%mesh, "StreamFunctionRHS")
+      call zero(rhs)
 
-    do ele=1, element_count(streamfunc)
+      do ele=1, element_count(streamfunc)
        
-       call calculate_streamfunc_ele(psi_mat, rhs, ele, X, U)
+        call calculate_streamfunc_ele(rhs, ele, X, U, psi_mat = psi_mat)
 
-    end do
+      end do
+
+      call insert(state, psi_mat, psi_mat%name)
+   else
+      call incref(psi_mat)
+   
+      call allocate(rhs, streamfunc%mesh, "StreamFunctionRHS")
+      call zero(rhs)
+
+      do ele=1, element_count(streamfunc)
+       
+        call calculate_streamfunc_ele(rhs, ele, X, U)
+
+      end do
+   end if
+   last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
 
     do i = 1, get_boundary_condition_count(streamfunc)
 
@@ -278,16 +297,15 @@ contains
 
     call deallocate(rhs)
     call deallocate(psi_mat)
-    call deallocate(psi_sparsity)
 
   contains
     
-    subroutine calculate_streamfunc_ele(psi_mat, rhs, ele, X, U)
-      type(csr_matrix), intent(inout) :: psi_mat
+    subroutine calculate_streamfunc_ele(rhs, ele, X, U, psi_mat)
       type(scalar_field), intent(inout) :: rhs
       type(vector_field), intent(in) :: X,U
       integer, intent(in) :: ele
-
+      type(csr_matrix), optional, intent(inout) :: psi_mat
+      
       ! Transformed gradient function for velocity.
       real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
       ! Ditto for the stream function, psi
@@ -316,8 +334,10 @@ contains
       ! Ditto psi.
       call transform_to_physical(X, ele, psi_shape, dshape=dpsi_t)
 
-      call addto(psi_mat, psi_ele, psi_ele, &
-           dshape_dot_dshape(dpsi_t, dpsi_t, detwei))
+      if(present(psi_mat)) then
+        call addto(psi_mat, psi_ele, psi_ele, &
+             dshape_dot_dshape(dpsi_t, dpsi_t, detwei))
+      end if
 
       lvorticity_mat=shape_curl_shape_2d(psi_shape, du_t, detwei)
       

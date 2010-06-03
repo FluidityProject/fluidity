@@ -202,7 +202,7 @@ Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
 
 Streamfunction.o: State.o Fields.o Transform_elements.o Sparse_Tools.o \
 	Vector_Tools.o Global_Parameters.o Sparsity_Patterns.o Solvers.o \
-	EventCounter.o Boundary_Conditions.o
+	EventCounter.o Boundary_Conditions.o Sparsity_Patterns_Meshes.o
 
 Diagnostic_Fields.o: FETools.o Field_derivatives.o State.o\
    CV_Shape_Functions.o CV_Face_Values.o CV_Upwind_Values.o CV_Options.o \
