@@ -4,7 +4,11 @@ XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
 ./numerical_discretisation_images/P1cgshapefunction1d \
 ./numerical_discretisation_images/P2cgshapefunction1d \
 ./numerical_discretisation_images/P1cgshapefunction2d \
-./numerical_discretisation_images/P2cgshapefunction2d
+./numerical_discretisation_images/P2cgshapefunction2d \
+./numerical_discretisation_images/P1dgshapefunction1d \
+./numerical_discretisation_images/P2dgshapefunction1d \
+./numerical_discretisation_images/P1dgshapefunction2d \
+./numerical_discretisation_images/P2dgshapefunction2d
 
 IMAGES=geometry_dimension mesh_name \
 ./examples_images/lock_exchange/le_basic_0_mesh_nice \

@@ -252,7 +252,7 @@ condition needs to be imposed strictly for physical reasons.
 \index{advection-diffusion equation!discontinuous Galerkin}
 Integration by parts can be used to avoid taking 
 derivatives of discontinuous functions.
-When using discontinuous test \emph{and} trial functions however, 
+When using discontinuous test \emph{and} trial functions (see Figure \ref{fig:dgshapefunctions}) however, 
 neither the original advection equation, equation \eqref{eq:weak_adv_diff} with $\mu=0$, 
 nor the version \eqref{eq:adv_integrated_by_parts} integrated by parts are well-defined. 
 Within an element however the functions are continuous, and everything is well defined. So within 
@@ -272,6 +272,17 @@ requirement that $c$ be a conserved quantity does demand that adjacent
 elements make a consistent choice for the flux between them. The choice of flux
 schemes therefore forms a critical component of the discontinuous Galerkin
 method.
+
+\begin{figure}[tbp]
+\begin{center}
+\begin{tabular}{lr}
+\xfig{numerical_discretisation_images/P1dgshapefunction1d} & \xfig{numerical_discretisation_images/P2dgshapefunction1d} \\
+\xfig{numerical_discretisation_images/P1dgshapefunction2d} & \xfig{numerical_discretisation_images/P2dgshapefunction2d}
+\end{tabular}
+\caption{One-dimensional (a, b) and two-dimensional (c, d) schematics of piecewise linear (a, c) and piecewise quadratic (b, d) discontinuous shape functions.  The shape function has value $1$ at node $A$ descending to $0$ at all surrounding nodes.  The number of nodes per element, $e$, depends on the polynomial order while the support, $s$, covers the same area as the element, $e$.}
+\label{fig:dgshapefunctions}
+\end{center}
+\end{figure}
 
 The application of boundary conditions occurs in the same manner as for the
 continuous Galerkin method. The complete system of equations is formed
