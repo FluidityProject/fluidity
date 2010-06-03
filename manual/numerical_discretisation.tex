@@ -839,15 +839,16 @@ we can write the continuity equation in the following matrix form:
 
 The extra surface integral over $\dOmega_{\mathrm{open}}$ in 
 $\vec{\mat{C}}$ in the momentum equation will enforce
-a $p=0$ boundary condition at this part of the boundary. An inhomogoneous 
-pressure boundary condition can also be applied by adding the corresponding
+a $p=0$ boundary condition at this part of the boundary (together with the
+boundary condition of the viscosity term this will form a no normal stress 
+condition). An inhomogoneous pressure boundary condition can also 
+be applied by adding the corresponding
 surface integral term into the righthand side of the momentum equation.
 Using the transpose of the pressure gradient operator, including its
 boundary terms, for the continuity equation thus automatically 
-enforces the correct physical boundary conditions; If the normal 
-component of the velocity is prescribed in the continuity equation, 
-we get the usual no normal stress condition. If the normal component 
-is left free we have to prescribe a pressure instead. The boundary 
+enforces the correct physical boundary conditions in the normal 
+direction. 
+The boundary 
 conditions in the tangential direction (slip/no-slip) are independent of this choice.
 
 \subsection{Pressure correction}\label{Sect:pressure_correction}
@@ -963,24 +964,19 @@ where $\mat{A}$ is a matrix, $\dvec{x}$ is a vector of the values
 to solve for (typically the values at the nodes of a field $x$), 
 and $\dvec{b}$ contains all the terms that do not depend on 
 $x$. One important property of the matrices that come from 
-finite element discretisations is that they are \emph{sparse}, 
-\ie most of the entries are zero. Take for example the mass matrix
-\begin{equation*}
-  \mat{M}_{ij}=\int \phi_i \psi_j.
-\end{equation*}
-The entries $\mat{M}_{ij}$ are only nonzero if the support of the 
-test function $\phi_i$ overlaps that of the trial function 
-$\psi_j$ which for standard \PN discretisations is only the case if
-$i$ and $j$ are nodes in the same element. For the solution of large
+finite element discretisations is that they are very \emph{sparse}, 
+\ie most of the entries are zero. For the solution of large
 sparse linear systems so called iterative methods are usually employed
-\footnote{some blah about direct solver techniques} as they 
-avoid having to explicitly construct the inverse of the matrix, 
+as they 
+avoid having to explicitly construct the inverse of the matrix
+(or a suitable decomposition thereof), 
 which is generally dense and therefore costly to compute 
 (both in memory and computer time).
 
 \subsection{Iterative solvers}
 \index{linear solvers}
 \index{solvers|see{linear solvers}}
+\index{linear solvers!iterative}
 Iterative methods try to solve a linear system by a sequence 
 of approximations $\dvec{x}^k$ such that $\dvec{x}^k$ converges to
 the exact solution $\dvec{\hat x}$. In each iteration one can 
@@ -1048,6 +1044,7 @@ After some rewriting both can be written in the form of
 
 \subsubsection{Krylov subspace methods} \label{sec:krylov_subspace_methods}
 \index{Krylov subspace methods}
+\index{linear solvers!Krylov subspace methods}
 Another class of iterative methods are the so called 
 \emph{Krylov Subspace} methods. Consider the following very 
 simple iterative method
@@ -1082,7 +1079,8 @@ after reaching this maximum the corresponding coefficients are fixed
 and a new Krylov subspace is built. This typically leads to a 
 temporary decay in the convergence
 
-\index{conjugate gradients}
+\index{conjugate gradient method}
+\index{symmetric positive definite (SPD)}
 A very efficient Krylov method that only works for symmetric 
 positive definite (SPD) matrices is the Conjugate 
 Gradient (CG) method. An SPD matrix is a symmetric matrix for which
@@ -1139,16 +1137,18 @@ For SPD matrix systems solved with CG we can use a change
 of variables to keep the transformed system SPD as long as the 
 preconditioner $\mat{M}^{-1}$ is SPD as well.
 
-...List of common preconditioner choices...
-
 \subsubsection{Multigrid methods}
 \index{multigrid}
 \index{multigrid methods}
-...very short...
-
-\subsubsection{Parallel preconditioning}
-\index{parallel!preconditioners}
-...some of the issues...
+Eventhough simple preconditioners such as SOR
+will improve the conditioning of the system 
+it can be shown that they don't work very well on 
+systems in which multiple length scales are 
+present. The preconditioned iterative method will rapidly 
+reduce local variations in the error, but the larger 
+scale, smooth error only decreases slowly. Multigrid methods 
+tackle this problem by solving the system on a hierarchy of 
+fine to coarse meshes. Because 
 
 \subsection{Convergence criteria}
 \index{linear solvers!convergence criteria}
