@@ -9,20 +9,26 @@
 
 \label{sect:mayavi}
 \label{sect:paraview}
-
-Visualisation is implemented using paraview (\url{http://www.paraview.org/paraviewindex.html}) and/or mayavi (\url{http://mayavi.sourceforge.net/}).
-Further information on these tools and instructions on how to use them is available on our website.
+\index{vtu}
+\index{visualisation}
 
 Output files containing simulation data are managed using the Visualization Toolkit (VTK - please 
 refer to the website \url{http://www.vtk.org/}). VTK tools adopts the .vtu file format for 
 unstructured grids: for each N dump times, the \texttt{simulationname\_N.vtu} file is created, 
-containing the output data of the simulation. 
+containing the output data of the simulation. This file contains a snapshot of the run at the timestep
+immediately proceeding the dump time. For example, if the timestep is set to three seconds, and the
+dump period to 10 seconds, the first dump will occur at 12 seconds.
 
 When running a simulation in parallel, the data are stored both in both .vtu and .pvtu files. 
 The .vtu files contain each the output data for each partition of the parallelized mesh, with 
 the filename \texttt{simulationName\_P\_N.vtu} wheren P is the processor number and N is the 
 dump number. The .pvtu files contain the general output data for the whole mesh, with 
 numbering is still ordered by dump number.
+
+Visualisation of the .vtu and .pvtu files can be done using paraview 
+(\url{http://www.paraview.org/paraviewindex.html}) and/or mayavi (\url{http://mayavi.sourceforge.net/}).
+\website
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------ONLINE DIAGNOSTICS--------------------------%
