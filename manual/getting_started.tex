@@ -4,13 +4,13 @@
 This first chapter gives a brief guide to setting-up, running and visualising
 simulations.
 
-\section{Obtaining Fluidity}
+\section{Obtaining \fluidity}
 \label{sect:obtaining_fluidity}
 
 \subsection{Overview}
 \label{sect:obtaining_fluidity_overview}
 
-Fluidity is primarily distributed as source code, which takes the form of
+\fluidity is primarily distributed as source code, which takes the form of
 instructions that are passed through a compiler to generate binary files that
 your operating system can run. If you come from a UNIX background you will
 probably be used to this form of distribution; if however you come from a
@@ -25,15 +25,14 @@ difficult, and there is an underlying assumption that the computer you run the
 program on will be substantially the same as the computer the program was
 compiled on.
 
-For the majority of Fluidity users the disadvantages of pre-compiled binaries
+For the majority of \fluidity users the disadvantages of pre-compiled binaries
 will outweight the benefits, and distribution of source code is the best
-solution. Indeed, even if you receive a copy of Fluidity as a pre-compiled
-binary, the licence (LGPL) under which Fluidity is distributed requires that
+solution. Indeed, even if you receive a copy of \fluidity as a pre-compiled
+binary, the licence (LGPL) under which \fluidity is distributed requires that
 the original source code is also made available.
 
-Fluidity is a very actively developed code, and at present the concept of
-released versions is some way in the future. Thus, obtaining the source code to
-Fluidity requires that you obtain the latest copy, for which a tool called
+\fluidity is a very actively developed code. Thus, obtaining the source code to
+\fluidity requires that you obtain the latest copy, for which a tool called
 subversion is used. If you are not familiar with subversion you may be
 familiar with CVS (Concurrent Versions System) and in that case transitioning
 to using subversion should be a painless process as the syntax is virtually
@@ -45,27 +44,27 @@ identical.
 For experienced subversion users, the relevant information that you need to
 obtain a copy of fluidity is that it is available from
 \lstinline[language=Bash]+http://amcg.ese.ic.ac.uk/svn/fluidity/trunk+ .
-For inexperienced users, please read on to learn how to obtain a copy of Fluidity.
+For inexperienced users, please read on to learn how to obtain a copy of \fluidity.
 
 As a fluidity user you need only be aware of two modes of operation that
 subversion has. The first is checking out a copy of the source code from the
 central repository, the second is updating your copy of the code to reflect
 changes that have been made to the central repository. Think of the repository
-as a central archive of source code held on the main Fluidity servers.
+as a central archive of source code held on the main \fluidity servers.
 
 There are a few other useful features for users which subversion has which will
 be mentioned in passing.
 
-Details of how to commit changes to Fluidity back into the central repository
+Details of how to commit changes to \fluidity back into the central repository
 are outside the scope of this user manual; if you are transitioning to become a
-developer who commits changes back into Fluidity please contact an existing
-Fluidity developer to find out how to get commit privileges.
+developer who commits changes back into \fluidity please contact an existing
+\fluidity developer to find out how to get commit privileges.
 
-\subsubsection{Checking out a current copy of Fluidity}
+\subsubsection{Checking out a current copy of \fluidity}
 \index{subversion}
 \label{sect:subversion_checkout_current}
 
-To check out a copy of Fluidity from the central source code repository you
+To check out a copy of \fluidity from the central source code repository you
 will need the following command, which is given here in entirety but will be
 broken down in the subsequent discussion so you can better understand it:
 
@@ -87,12 +86,12 @@ this case, it is going to check out a copy of the code, which abbreviates to
 svn co
 \end{lstlisting}
 
-The second argument to svn describes the method used to check out Fluidity,
-where to find the repository which holds Fluidity, and where in the repository
-the up-to-date version of Fluidity is located. In this case, it uses the
+The second argument to svn describes the method used to check out \fluidity,
+where to find the repository which holds \fluidity, and where in the repository
+the up-to-date version of \fluidity is located. In this case, it uses the
 hypertext transfer protocol (http) which you will have come across being used
 to retrieve web pages, from the server 
-\lstinline[language=Bash]+amcg.ese.ic.ac.uk+ on Fluidity is in the directory
+\lstinline[language=Bash]+amcg.ese.ic.ac.uk+ on \fluidity is in the directory
 \lstinline[language=Bash]+/svn/fluidity/trunk/+ :
 
 \begin{lstlisting}[language=Bash]
@@ -100,7 +99,7 @@ svn co http://amcg.ese.ic.ac.uk/svn/fluidity/trunk/
 \end{lstlisting}
 
 This is now a valid command line, and if you ran it would check out a copy of
-Fluidity into a directory \lstinline[language=Bash]+trunk/+ in your current
+\fluidity into a directory \lstinline[language=Bash]+trunk/+ in your current
 directory. If you prefer to have the code checked out into a directory called
 \lstinline[language=Bash]+fluidity/+, append that directory name to the end of
 the command line so svn checks out the code where you want it to:
@@ -109,7 +108,7 @@ the command line so svn checks out the code where you want it to:
 svn co http://amcg.ese.ic.ac.uk/svn/fluidity/trunk/ fluidity/
 \end{lstlisting}
 
-Bear in mind that the Fluidity check out is of the order of many hundreds of
+Bear in mind that the \fluidity check out is of the order of many hundreds of
 megabytes and should be checked out onto a filesystem which has corresponding
 amounts of free space. As it checks out, subversion should print a lot of file
 listing information along the lines of:
@@ -126,10 +125,10 @@ Checked out revision 11816.
 \end{lstlisting}
 
 The revision number you get will differ from the one quoted here, and is a
-specific version (the latest, at the point of checking out) of the Fluidity
+specific version (the latest, at the point of checking out) of the \fluidity
 code.
 
-\subsubsection{Checking out an older copy of Fluidity}
+\subsubsection{Checking out an older copy of \fluidity}
 \label{sect:subversion_checkout_old}
 
 There may be occasions when you want to retrieve a version of fluidity which
@@ -146,8 +145,8 @@ argument \lstinline[language=Bash]+-r 11816+ to give:
 svn co -r 11816 http://amcg.ese.ic.ac.uk/svn/fluidity/trunk/ fluidity/
 \end{lstlisting}
 
-Alternatively, you may either want or be told to check out a specific Fluidity
-tag. A tag is a useful method of identifying a particular Fluidity revision
+Alternatively, you may either want or be told to check out a specific \fluidity
+tag. A tag is a useful method of identifying a particular \fluidity revision
 using an easy to remember name, and potentially making further specifications 
 of exactly what will be checked out. For example, you may be asked to check out
 the \lstinline[language=Bash]+benchmark-9.10+ tag, and to do this you would
@@ -160,12 +159,25 @@ like:
 svn co http://amcg.ese.ic.ac.uk/svn/fluidity/tags/benchmark-9.10/ fluidity/
 \end{lstlisting}
 
-\subsubsection{Updating your copy of Fluidity}
+A tag that will be interest to users is the \lstinline[language=Bash]+stable-trunk+
+which contains the version of the code to pass all available tests. This can be obtained
+(and subsequently kept up-to-date) by chekcing out the source with the command:
+\begin{lstlisting}[language=Bash]
+svn co http://amcg.ese.ic.ac.uk/svn/fluidity/tags/stable-trunk fluidity/
+\end{lstlisting}
+
+A normal \lstinline[language=Bash]+svn up+ (see section \ref{sect:subversion_updating})
+will keep this directory up-to-date
+with the stable version of \fluidity. Note that this version will not have all
+the functionality that the most-up-to-date version has.
+
+
+\subsubsection{Updating your copy of \fluidity}
 \index{subversion}
 \label{sect:subversion_updating}
 
 If you are interested in keeping up to date with the latest developments in
-fluidity you will probably want to update your local copy of the Fluidity code
+fluidity you will probably want to update your local copy of the \fluidity code
 to reflect changes made to the central source code repository. To do this,
 change directory so that you are in the directory which you checked out
 fluidity to (in the above case, a directory called
@@ -178,16 +190,16 @@ svn up
 
 You will probably see a number of lines with a leading
 \lstinline[language=Bash]+U+, denoting that a file in your local copy of
-Fluidity is being updated, such as:
+\fluidity is being updated, such as:
 
 \begin{lstlisting}[language=Bash]
 U    preprocessor/Populate_State.F90
 \end{lstlisting}
 
-If you have made no changes to your local copy of Fluidity you will rarely have
+If you have made no changes to your local copy of \fluidity you will rarely have
 any problems updating unless a particularly complicated change has been made to
 the central source code repository. However, if you have made changes to your
-local copy of Fluidity, you may see lines with a leading
+local copy of \fluidity, you may see lines with a leading
 \lstinline[language=Bash]+G+, denoting that a locally changed file has had
 central repository changes merged into it in a good way:
 
@@ -224,8 +236,8 @@ available from http://svnbook.red-bean.com/ .
 \index{subversion}
 \label{sect:subversion_extras}
 
-If you can check out and update your copy of Fluidity then you are equipped to
-be an active Fluidity user. However, you may wish to know about a few more
+If you can check out and update your copy of \fluidity then you are equipped to
+be an active \fluidity user. However, you may wish to know about a few more
 useful subversion commands, including getting information about your local
 version of the code using:
 
@@ -233,7 +245,7 @@ version of the code using:
 svn info
 \end{lstlisting}
 
-You may well want to do this if someone asks you which version of Fluidity you
+You may well want to do this if someone asks you which version of \fluidity you
 are using, at which point you're looking for a line such as:
 
 \begin{lstlisting}[language=Bash]
@@ -242,14 +254,16 @@ Revision: 11816
 
 with the relevant information.
 
-\section{Building Fluidity}
+\section{Building \fluidity}
 \label{sect:building_fluidity}
 
-The build process for Fluidity comprises a configuration stage and a compile
+The build process for \fluidity comprises a configuration stage and a compile
 stage. In the simplest form, this can be completed with two commands, run in
-the directory containing your local source code check out:
+the directory containing your local source code check out, which is denoted
+by \fluiditysourcepath in this manual:
 
 \begin{lstlisting}[language=Bash]
+cd `\fluiditysourcepath' 
 ./configure
 make
 \end{lstlisting}
@@ -260,13 +274,13 @@ want to perform non-default compilation steps. The following section describes
 these procedures.
 
 Note that at this point configuration refers to the build-time configuration
-options which define how the Fluidity program will be compiled, and do not
-refer to configuation of the options that you will run Fluidity with once it 
+options which define how the \fluidity program will be compiled, and do not
+refer to configuation of the options that you will run \fluidity with once it 
 has built. However, presence or lack of features configured at the build stage
 may change what is available to you at run time.
 
 It is assumed throughout this section that you are in the top-level directory
-of your local copy of the Fluidity code for the purposes of describing
+of your local copy of the \fluidity code for the purposes of describing
 configuration and compilation commands.
 
 \subsection{Configuring the build process}
@@ -294,14 +308,14 @@ all on the same configuration command line, separated by spaces. For example:
 \label{sect:configure_change_install_location}
 
 By default if you run the install stage of the fluidity build (detailed in the
-following section of the manual), Fluidity will be installed into a set of
+following section of the manual), \fluidity will be installed into a set of
 directories under the system \lstinline[language=Bash]+/usr/local+ directory.
 As a normal UNIX user you are unlikely to have write access to this location,
-and unless you intend to make your Fluidity build available to all users of
+and unless you intend to make your \fluidity build available to all users of
 your computer you almost certainly do not want to install to the default
 location.
 
-To change the location into which Fluidity will be installed, use the
+To change the location into which \fluidity will be installed, use the
 \lstinline[language=Bash]+--prefix+ configuration option. For example, to
 install files into a directory \lstinline[language=Bash]+/data/fluidity+,
 configure fluidity with:
@@ -316,26 +330,26 @@ binaries, libraries, etc. will be automatically generated.
 \subsubsection{Enabling and disabling features}
 \label{sect:configure_enable_disable_features}
 
-Fluidity has a number of optional features which may be enabled or disabled at
+\fluidity has a number of optional features which may be enabled or disabled at
 build time. For a list of all these features see the output of configuring with
 the \lstinline[language=Bash]+--help+ argument. This list should indicate which
 options are enabled by default by appending
 \lstinline[language=Bash]+(default)+ to the option description. An example of
-enabling Fluidity's debugging feature at build time would be:
+enabling \fluidity's debugging feature at build time would be:
 
 \begin{lstlisting}[language=Bash]
 ./configure --enable-debugging
 \end{lstlisting}
 
 Whilst a number of options have the facility to be enabled and disabled, doing
-so may be prejudicial to the expected normal running of Fluidity so unless you
+so may be prejudicial to the expected normal running of \fluidity so unless you
 are fully aware of the consequences of enabling or disabling features it is
 recommended that you do not do so.
 
 \subsubsection{Specifying locations of supporting libraries}
 \label{sect:configure_locate_supporting_libs}
 
-Fluidity requires many supporting libraries, which can either be provided via
+\fluidity requires many supporting libraries, which can either be provided via
 environment variables (see later discussion for how to do this) or, in specific
 cases, provided via options during configuration. This uses the
 \lstinline[language=Bash]+--with+ option, for example specifying the directory
@@ -347,17 +361,17 @@ containing BLAS using:
 
 Whilst there is also the option to supply \lstinline[language=Bash]+--without+
 arguments, this is likely to be highly prejudicial to the normal running of
-Fluidity or, in many cases, be incompatible with building Fluidity such that
+\fluidity or, in many cases, be incompatible with building \fluidity such that
 the configuration exits with an error.
 
 \subsubsection{Environment variables set for configuration}
 \label{sect:configure_environment_vars}
 
 A description of environment variables is outside the scope of this manual, and
-Fluidity users are encouraged to find an experienced UNIX user who can explain
+\fluidity users are encouraged to find an experienced UNIX user who can explain
 the rudiments of environment variables to them if they are not alreay familiar
 with how to set and use them. Influential environment variables are listed
-towards the end of the help output from Fluidity's configuration. Particularly
+towards the end of the help output from \fluidity's configuration. Particularly
 notable are:
 
 \lstinline[language=Bash]+LIBS+, which allows passing a series of linker
@@ -373,19 +387,19 @@ be set or appended to by loading modules on modern UNIX systems.
 \lstinline[language=Bash]+PETSC_DIR+ defines the base directory into which your
 PETSc install has been placed. This will often be set by loading an environment
 module specific to your system, but if you have a local build of PETSc you may
-need to set this variable yourself. Note that for most Fluidity users, having
+need to set this variable yourself. Note that for most \fluidity users, having
 PETSc to provide solver functionality is unavoidable so setting this variable
 by some means is necessary in almost all cases.
 
 \lstinline[language=Bash]+VTK_INCLUDE+ and \lstinline[language=Bash]+VTK_LIBS+
 may be important to set if VTK is not installed at a system level. VTK is
-critical to Fluidity for writing output files, and many UNIX systems lack some
+critical to \fluidity for writing output files, and many UNIX systems lack some
 VTK components so it frequently ends up installed in a nonstandard location.
 
-\subsection{Compiling Fluidity}
+\subsection{Compiling \fluidity}
 \label{sect:compiling_fluidity}
 
-Once you have successfully configured Fluidity, you need to compile the source
+Once you have successfully configured \fluidity, you need to compile the source
 code into binary files including programs and libraries. In the simplest form
 you can do this by running:
 
@@ -393,12 +407,12 @@ you can do this by running:
 make
 \end{lstlisting}
 
-which will generate Fluidity and Diamond programs in the
+which will generate \fluidity and Diamond programs in the
 \lstinline[language=Bash]+bin/+ directory and a set of libraries in the
 \lstinline[language=Bash]+lib/+ directory. 
 
-If you want to build the extended set of Fluidity tools which supplement the
-main Fluidity program, section \ref{sect:fltools}, run:
+If you want to build the extended set of \fluidity tools which supplement the
+main \fluidity program, section \ref{sect:fltools}, run:
 
 \begin{lstlisting}[language=Bash]
 make fltools
@@ -414,14 +428,14 @@ make unittest
 \end{lstlisting}
 
 To run the suite of short test cases which more extensively test the
-functionality of your Fluidity build, run:
+functionality of your \fluidity build, run:
 
 \begin{lstlisting}[language=Bash]
 make test
 \end{lstlisting}
 
 For the most comprehensive set of tests included in your checked out copy of
-Fluidity, run:
+\fluidity, run:
 
 \begin{lstlisting}[language=Bash]
 make mediumtest
@@ -431,7 +445,7 @@ Note that even on the most modern systems
 \lstinline[language=Bash]+make mediumtest+ may take on the order of an hour and
 on slower systems may take on the order of many hours to complete.
 
-Once you have a known-good build of Fluidity you may want to install it
+Once you have a known-good build of \fluidity you may want to install it
 somewhere other than inside the source check out directory. Assuming you
 provided an install prefix at configuration time, running:
 
@@ -439,76 +453,97 @@ provided an install prefix at configuration time, running:
 make install
 \end{lstlisting}
 
-will install all the run-time Fluidity files into the directory you requested
+will install all the run-time \fluidity files into the directory you requested
 at configure-time.
 
-\section{Running Fluidity}
+\section{Running \fluidity}
 \label{sect:running_fluidity}
 
 
-\subsection{Running Fluidity in serial}
+\subsection{Running \fluidity in serial}
 \label{sect:running_fluidity_in_serial}
 
 To run \fluidity in serial use the follwoing command:
 
 \begin{lstlisting}[language=bash]
-`\fluiditysourcepath'/bin/fluidity -l -v2 my_setup.flml
+`\fluiditysourcepath'/bin/fluidity foo.flml
 \end{lstlisting}
 
+Here, \lstinline[language=Bash]+foo.flml+ is a \fluidity configuration file
+which defines the options for the model. These files are covered in detail in 
+Chapter \ref{chap:configuration} and are set up using a simple Graphical User
+Interface, Diamond. See section \ref{sect:running_diamond} for more information 
+on how to run Diamond.
 
-\subsection{Running Fluidity in parallel}
+There are other options that can be passed to the \fluidity executable. A full list
+can be obtained by running:
+
+\begin{lstlisting}[language=bash]
+`\fluiditysourcepath'/bin/fluidity
+\end{lstlisting}
+
+This will produce the following output:
+
+\begin{lstlisting}[language=Bash]
+ERROR: Unrecognized arguments!
+Revision: 13536M
+Compile date: May 31 2010 13:03:59
+Adaptivity support		yes
+2D adaptivity support		yes
+3D MBA support			no
+CGAL support			no
+MPI support			yes
+Double precision		yes
+CGNS support			no
+NetCDF support			yes
+Signal handling support		yes
+Stream I/O support		yes
+PETSc support			yes
+Hypre support			yes
+ARPACK support			yes
+Python support			yes
+Numpy support			yes
+VTK support			yes
+Zoltan support			no
+Memory diagnostics		no
+
+
+Usage: ../bin/fluidity [options ...] [simulation-file]
+
+Options (NOTE: Long options are not available on AIX.):
+ -h, --help
+	Help! Prints this message.
+ -l, --log
+	Create log file for each process (useful for non-interactive testing). Sets default value for -v to 2.
+ -v <level>, --verbose
+	Verbose output to stdout, default level 0
+ -V, --version
+	Version
+\end{lstlisting}
+
+Note that this also gives information on which version is being used, the build-time 
+configuration options used and a list of command-line options for \fluidity. 
+
+\subsection{Running \fluidity in parallel}
 \label{sect:running_fluidity_in_parallel}
 \index{parallel}
 
 \fluidity\ is a fully-parallel program, capable of running on thousands of processors. 
 It uses the Message Passing Interface (MPI) library to communicate information between 
 processors. Running \fluidity\ in parallel requires that MPI is available on your system
-and is properly configured. This chapter assumes that this is the case. The 
-terminology for parallel processing can sometime be confusing. Here, we use the 
-term \emph{processor} to mean one physical CPU core and \emph{process} is one part
+and is properly configured. The terminology for parallel processing can sometime be confusing.
+Here, we use the term \emph{processor} to mean one physical CPU core and \emph{process} is one part
 of a parallel instance of \fluidity. Normally, the number of processors used matches
 the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run on 256 processors.
 
 To run in parallel there are no further changes needed, apart from running \fluidity
 within the mpirun or mpiexec framework. Simply prepend the normal command line with mpiexec:
 \begin{lstlisting}[language=bash]
-mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity \ 
--l -v2 my_setup.flml
+mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml
 \end{lstlisting}
 
-\subsection{Running a periodic extruded mesh}
-\index{parallel!extruded mesh}
-%\ref{mesh!extruded}
-Running a periodic extruded mesh (section ??) in parallel, requires a number of steps to be taken in order to provide flredecomp (required to make the periodic mesh) with a 2D periodic mesh:
-
-\begin{itemize}
-\item Make the periodic 2D flml from the periodic 2plus1 flml
-\begin{lstlisting}[language=bash]
- `\fluiditysourcepath'/scripts/make_periodic_2D_flml foo.flml
-\end{lstlisting}
-\item Periodise the new 2D flml
-\begin{lstlisting}[language=bash]
- `\fluiditysourcepath'/periodise foo_2D.flml
-\end{lstlisting}
-\item Flredecomp the periodised 2D flml
-\begin{lstlisting}[language=bash]
-mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
-    -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
-\end{lstlisting}
-\item Periodise the 2plus1 flml
-\begin{lstlisting}[language=bash]
- `\fluiditysourcepath'/periodise foo.flml
-\end{lstlisting}
-\item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
-\item Run the parallel flml as before
-\begin{lstlisting}[language=bash]
-mpiexec -n [number of processors] \
-   `\fluiditysourcepath'/bin/fluidity [options] foo_periodised.flml
-\end{lstlisting}
-\end{itemize}
-
-There is only one required mesh: the CoordinateMesh. Some settings, fields or other
-settings have specific mesh requirements. This are discussed under the appropriate options.
+However, before performing a parallel run, the mesh needs to be decomposed into several parts. 
+How this is done is covered in detail in Chapter \ref{chap:meshes}. 
 
 \section{Running diamond}
 \label{sect:running_diamond}
@@ -522,7 +557,7 @@ typing:
 ./bin/diamond
 \end{lstlisting}
 
-in the top-level directory of your Fluidity source check-out.
+in the top-level directory of your \fluidity source check-out.
 
 If you ran \lstinline[language=Bash]+make install+ and added the directory
 which executable programs were installed into to your
@@ -532,16 +567,16 @@ from any directory on your system. This may also be possible if you have
 installed the Diamond package for Ubuntu or Debian by running:
 
 \begin{lstlisting}[language=Bash]
-wajig install diamond
+sudo apt-get install diamond
 \end{lstlisting}
 
-Note that installing Diamond on a system-wide basis with wajig will require you
+Note that installing Diamond on a system-wide basis will require you
 to have superuser privileges on your system.
 
 \section{Visualising the output}
 \label{sect:starting_visualisation}
 
-Once you have built and run Fluidity you will want to visualise the results you
+Once you have built and run \fluidity you will want to visualise the results you
 have generated. How to do this is covered in detail in chapter
 \ref{chap:visualisation_and_diagnostics}.
 
