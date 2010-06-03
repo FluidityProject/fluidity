@@ -150,7 +150,7 @@ that the equation tested with the basis functions integrate to zero. The discret
 version of \eqref{eq:weak_adv_diff_simp} therefore becomes
 \index{advection diffusion equation!weak form!discretised}
 \begin{equation}
-  \sum_j \int_\Omega \phi_i \frac{\partial \phi_j}{\partial t}  T_j -
+  \sum_j \int_\Omega \phi_i \phi_j  \ddt{T_j} -
     \grad\phi_i\cdot\vec{u}\phi_j  T_j + 
     \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j T_j = 0,
     \quad\text{for all }\phi_i.
