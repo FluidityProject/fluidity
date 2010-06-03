@@ -167,16 +167,16 @@ version of \eqref{eq:weak_adv_diff_simp} therefore becomes
 \end{equation}
 where we have substituted $c=\sum_j \phi_j c_j$. From this it is readily seen that 
 we have in fact obtained a matrix equation of the following form
-\begin{equation*}
+\begin{equation}
   \mat{M} \ddt{\dvec{c}}-\mat{A}(\vec{u})\dvec{c}+\mat{K}\dvec{c}=0,
   \label{eq:cg_adv_diff_mat}
-\end{equation*}
+\end{equation}
 where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
-\begin{equation*}
+\begin{equation}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
   \mat{A}_{ij}=\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
   \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
-\end{equation*}
+\end{equation}
 
 \subsection{Boundary conditions}
 \index{boundary conditions!Neumann!weakly imposed}
@@ -756,6 +756,55 @@ the efficiency of the method.
 \subsection{CDG}
 \index{CDG}
 \index{diffusion!discontinuous Galerkin!CDG}
+
+\section{The time loop}
+
+% \begin{equation}
+%   \label{eq:utheta}
+%   \utheta=\theta\unew + (1-\theta)\uold
+% \end{equation}
+% For the first solution of the temperature equation on each timestep, for
+% which no $\unew$ will yet have been calculated, the approximation
+% $\unew=\uold$ is used.
+
+\begin{figure}
+  \centering
+  \onlypdf{\begin{pdfdisplay}}
+  \begin{psmatrix}
+    \psframebox{for each tracer solve the advection-diffusion equation for $\cnew$}\\
+    \psframebox{evaluate the equation of state for $\rhotheta$}\\
+    \psframebox{solve the momentum equation for $\ustar$}\\
+    \psframebox{calculate a pressure correction $\Delta p$}\\
+    \psframebox{using $\Delta p$ correct $\ustar$ to $\unew$ and update
+      $\pnew$}\\
+    \psframebox{perform next Picard iteration or finish timestep}
+    \psset{arrows=->}
+    \ncline{1,1}{2,1}
+    \ncline{2,1}{3,1}
+    \ncline{3,1}{4,1}
+    \ncline{4,1}{5,1}
+    \ncline{5,1}{6,1}
+    \ncbar[angleA=0,angleB=0]{6,1}{1,1}
+  \end{psmatrix}
+  \onlypdf{\end{pdfdisplay}}
+  \caption{Outline of the principal steps in the nonlinear iteration sequence.}
+  \label{fig:timestep}
+\end{figure}
+
+\section{Time discretisation of the advection-diffusion equation}
+
+Regardless of the spatial discretisation options used, the
+advection-diffusion equation produces a semidiscrete matrix equation of the
+following form:
+
+\begin{equation}
+  \mat{M} \ddt{\dvec{c}}-\mat{A}(\dvec{\vec{\hat u}})\dvec{c}+\mat{K}\dvec{c}=\dvec{r}
+\end{equation}
+In which $M$ is the mass matrix, $\mat{A}(\dvec{\vec{\hat u}})$ is the advection
+operator, $\mat{K}$ is the diffusion operator and $\dvec{r}$ is the
+right-hand side vector containing boundary and source terms. 
+
+
 
 \section{Momentum Equation}
 \label{Sect:ND_momentum_equation}
