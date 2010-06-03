@@ -150,7 +150,9 @@
                   </diagnostics>
                 </solver>
               </inner_matrix>
-              <preconditioner_matrix name="LumpedSchurComplement"/>
+              <preconditioner_matrix name="LumpedSchurComplement">
+                <lump_on_submesh/>
+              </preconditioner_matrix>
             </full_schur_complement>
           </use_projection_method>
         </scheme>
