@@ -1401,14 +1401,13 @@ The sediment classes can use either the Template initial concentration or set th
 
 Note: to use sediment, a linear equation of state must also be enabled \option{\ldots/equation\_of\_state/fluids/linear}
 
-\section{Ocean Simulations}
+\section{Large scale low aspect ratio ocean Simulations}
 
 This section contains advice for running a large scale ocean simulation with a large aspect ratio. This section is split into options that must be used and options that are recommended.
 
 \subsection{Options that must be switched on}
 These options are almost always recommended for large scale ocean problems.
 
-%The \option{\ldots/problem\_type} option must be set to large_ocean.
 \subsubsection{Meshes}
 
 The mesh that you use must be a two plus one mesh which is unstructured in the horizontal and structured in the vertical.  This can be made in gmsh and read into fludity, or a two-dimensional mesh can be made in gmsh and extruded within fluidity (see \ref{sect:extruded_meshes}).  
@@ -1436,7 +1435,7 @@ The velocity is discontinuous galerkin.  The required options are listed below.
 \item \option{\ldots/spatial\_discretisation/advestion/integrate\_advection\_by\_parts} is twice
 \end{itemize}
 
-\subsubsection{Temperature and Salinity options}
+\subsubsection{Advected scalar fields (temperature, salinity etc)}
 The temperature and salinity are continuous galerkin. 
 
 \begin{itemize}
@@ -1453,7 +1452,7 @@ This is continuous galerkin discretisation, with a mesh of polynomial order two 
 \end{itemize}
 
 \subsection{Reccomended or optional settings}
-These settings may be recommended, but this section is not intended to be a list of instructions, please feel free to ignore it.
+These settings may be recommended, but this section is not intended to be a list of instructions.
 
 \subsubsection{Meshes}
 
