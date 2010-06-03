@@ -1070,7 +1070,7 @@ the optimal set of coefficients $\alpha_k$ that minimises the residual.
 
 \index{GMRES}
 A well known, generally applicable Krylov method is GMRES 
-(Generalised Minimum RESidual). Because the approximate solution 
+(Generalised Minimum RESidual, see \citet{saad1993}). Because the approximate solution 
 is built from all vectors in \eqref{krylov_vectors}, all of these need
 to be stored in memory. For solves that require a large number of 
 iterations this will become too expensive. Restarted GMRES therefore sets
@@ -1083,7 +1083,9 @@ temporary decay in the convergence
 \index{symmetric positive definite (SPD)}
 A very efficient Krylov method that only works for symmetric 
 positive definite (SPD) matrices is the Conjugate 
-Gradient (CG) method. An SPD matrix is a symmetric matrix for which
+Gradient (CG) method (see \citet{shewchuk1994} for 
+an excellent non-expert explanation of the 
+method). An SPD matrix is a symmetric matrix for which
 \begin{equation*}
   \langle \dvec{x}, \mat{A}\dvec{x}\rangle \geq 0, \quad \text{for all }\dvec{x}\in\mathbb{R}^n.
 \end{equation*}
@@ -1092,7 +1094,7 @@ in the Krylov subspace without having to store all of its
 vectors. If the matrix is SPD, CG is usually the most 
 effective choice. Linear systems to be solved in \fluidity\ that are SPD 
 comprise the pressure matrix (only for incompressible flow), and the 
-diffusion equation. (references to equations before in this chapter)
+diffusion equation.
 
 \subsection{Preconditioned Krylov subspace methods} \label{ND_Preconditioners}
 \index{preconditioners}
@@ -1140,15 +1142,28 @@ preconditioner $\mat{M}^{-1}$ is SPD as well.
 \subsubsection{Multigrid methods}
 \index{multigrid}
 \index{multigrid methods}
+\index{algebraic multigrid (AMG)}
 Eventhough simple preconditioners such as SOR
 will improve the conditioning of the system 
 it can be shown that they don't work very well on 
 systems in which multiple length scales are 
 present. The preconditioned iterative method will rapidly 
 reduce local variations in the error, but the larger 
-scale, smooth error only decreases slowly. Multigrid methods 
+scale, smooth error only decreases very slowly. Multigrid methods 
+(see e.g. \cite for an introduction)
 tackle this problem by solving the system on a hierarchy of 
-fine to coarse meshes. Because 
+fine to coarse meshes. 
+
+Because \fluidity\ is based on a fully 
+unstructured mesh discretisation only so called algebraic multigrid (AMG)
+methods are applicable (see e.g. \citet{stueben2001} for an 
+introduction). An AMG method that in general gives very good
+results for most \fluidity\ runs is the smoothed aggregation approach by
+\citet{vanek1996} (available in \fluidity\ as the ``mg'' 
+preconditioner). For large scale ocean simulations a specific multigrid 
+technique, called vertical lumping\citep{kramer2010},
+has been developed, that deals with the large separation between
+horizontal (barotropic) and vertical modes in the pressure equation.
 
 \subsection{Convergence criteria}
 \index{linear solvers!convergence criteria}
