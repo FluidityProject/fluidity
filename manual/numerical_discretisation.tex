@@ -629,7 +629,7 @@ Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_
 \section{Advective stabilisation for DG}
 \index{stabilisation!advection!discontinuous Galerkin}
 
-As described by \cite{CoSh2001}, the DG method with $p$-th order
+As described by \cite{cockburn2001}, the DG method with $p$-th order
 polynomials using an appropriate Riemann flux (the upwind flux in the
 case of the scalar advection equation) applied to hyperbolic systems
 is always stable and $(p+1)$-th order accurate. However, Godunov's
@@ -671,7 +671,7 @@ possible. For high-order elements, exactly how to do this is a very
 contentious issue but a few approaches are satisfactory for low-order
 elements.
 \subsubsection{Cockburn-Shu limiter}
-This limiter, introduced in \cite{CoSh2001}, only checks the element
+This limiter, introduced in \cite{cockburn2001}, only checks the element
 bounded condition at face centres. There is a tolerance parameter, the
 TVB factor, which controls how sensitive the method is to the bounds
 (the value recommended in the paper is 5) and a limit factor, which
@@ -760,11 +760,14 @@ the efficiency of the method.
 
 \section{Diffusion term for DG/FV}\label{sec:NM_DG_diffusion}
 \index{diffusion!discontinuous Galerkin}
+Discretising the diffusion term for discontinuous Galerkin and finite 
+volume methods is a challenge since 
 \subsection{Bassi Rebay}
 \label{BassiRebay}
 \index{diffusion!discontinuous Galerkin!Bassi Rebay}
 \index{Bassi Rebay}
 \subsection{CDG}
+\label{CDG}
 \index{CDG}
 \index{diffusion!discontinuous Galerkin!CDG}
 

@@ -774,16 +774,71 @@ For the diffusion scheme one can choose either Bassi Rebay or the element gradie
 
 \subsubsection{Discontinuous Galerkin}
 
-The Discontinuous Galerkin option implements the advection-diffusion algorithm described in section [CROSS REF].
-There are two options to set - the advection scheme and the diffusion scheme. The advection scheme can be one of upwind
-or none. The diffusion scheme can be one of:
-\begin{description}
-\item[Bassi Rebay] The classical scheme of Bassi and Rebay (see section \ref{BassiRebay}).
-\item[Compact DG] The compact discontinuous Galerkin scheme from Peraire and Persson (\cite{peraire2008}).
-\item[Arbitrary upwind] Scheme in which upwinding is applied in alternating directions.
-\item[Interior penalty] Classical interior penalty scheme.
-\end{description}
+The Discontinuous Galerkin option implements the advection-diffusion
+algorithm described in Section
+\ref{Sect:ND_discontinuous_galerkin_advection}. There are two
+compulsory options to set, as well 
 
+\paragraph{Advection scheme (\option{advection\_scheme})} This
+\emph{compulsory option} selects the approximation for the flux of
+scalar across a face. Select one from:
+\begin{itemize}
+\item \option{upwind}: Use the upwind flux as described in Section
+  \ref{Sect:ND_discontinuous_galerkin_advection}. This is the
+  \emph{recommended flux} for DG advection.
+\item \option{lax\_friedrichs}: Use the Lax-Friedrichs flux as described in
+  Section \ref{Sect:ND_discontinuous_galerkin_advection}. This is an
+  attempt to produce a bounded flux when the advecting velocity is
+  discontinuous. This option is only for testing, if you have a
+  discontinuous advecting velocity it is recommended to use the upwind
+  flux combined with the option to project the velocity to a
+  continuous space described below.
+\item \option{none}: This option switches off the advection term completely.
+\end{itemize}
+\paragraph{Diffusion scheme (\option{diffusion\_scheme})} 
+This \emph{compulsory option} selects the discretisation method used
+for the diffusivity term. This selection is important for performance
+since various different options have different stencil sizes, which
+affects memory signature and hence the number of elements you can use
+per processor.
+
+Select one from:
+\begin{itemize}
+\item \option{bassi\_rebay}: The classical scheme of Bassi and Rebay (see
+  section \ref{BassiRebay}). This scheme results in a large stencil
+  for the diffusion matrix, which can reduce computational speed and
+  increase memory use. If possible one should use a different option
+  with a smaller stencil.
+\item \option{compact\_discontinous\_galerkin}: The compact
+  discontinuous Galerkin scheme (CDG) from Peraire and Persson
+  \citep{peraire2008} (see section \ref{CDG}). This scheme has the
+  smallest stencil of any diffusion scheme and hence is the most
+  efficient and uses the least memory resource. \emph{Recommended
+    option}.
+
+  Optionally, it is possible to set the
+  \option{penalty\_parameter}.\index{Penalty parameter, CDG} This
+  optional option adds an extra term which penalises jumps across
+  faces, you must supply a multiplicative constant which is scale
+  independent (typical value is 10). This term is required to prove
+  theoretical results about the CDG scheme, but we experimentally
+  observe that it is not necessary, and hence it is \emph{recommended
+    not to use this option}.
+\item \option{interior\_penalty}: Symmetric interior penalty (IP)
+  scheme. This scheme simply integrates the diffusion operator by
+  parts in each element, averages the fluxes and adds a term which
+  penalises jumps. You must set the \option{penalty\_parameter}
+  \index{penalty parameter, interior penalty method} which sets the
+  multiplicative constant, and the \option{edge\_length\_parameter}
+  which specifies the scaling with the edge-length $h$. You must also
+  select an \option{edge\_length\_option} which is either
+  \option{use\_face\_integral} which computes a lengthscale from the
+  face integral, or \option{use\_element\_centres} which uses the
+  distance between centres of the two elements on either side of the
+  face. Both of these options only function well for nearly isotropic
+  meshes and hence CDG is the recommended diffusion choice since it 
+  is compact and requires no such parameters.
+\end{itemize}
 
 \subsubsection{Conservative advection}
 
