@@ -133,7 +133,7 @@ void python_add_statec_(char *name,int *len){
 #ifdef HAVE_PYTHON
   // Add a new state object to the Python environment
   char *n = fix_string(name,*len);
-  char t[20+*len];
+  char t[20+*len+*len];
   // 'state' in Python will always be the last state added while the 'states' dictionary 
   // includes all added states
   sprintf(t,"states[\"%s\"] = State(\"%s\")",n,n);
