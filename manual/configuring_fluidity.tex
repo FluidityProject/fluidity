@@ -366,20 +366,24 @@ This element contains all the options required to specify the geometry of the me
 
 \subsubsection{Dimension}
 \index{dimension}
-The dimension of the domain of your problem. For most users this should be
-set to 3. Be careful, once you set the dimension you can't change it again!
+The dimension of the domain of your problem. This can be 1, 2 or 3.
+Be careful, once you set the dimension you can't change it again!
 This is necessary to ensure that all vectors and tensors are of the correct
 dimension.
 
 \subsubsection{Meshes}
-Meshes are the finite element spaces on which your problem is solved. Meshes are either read from file or are derived from other meshes. Mesh options are described in detail in section~\ref{Sect:Element}.
+Meshes are the finite element spaces on which your problem is solved. Meshes are either read from file 
+or are derived from other meshes. Mesh options are described in detail in section~\ref{Sect:Element}. 
+There is only one required mesh: the CoordinateMesh. Some settings, fields or other
+settings have specific mesh requirements. These are discussed under the appropriate options.
+
 
 \subsubsection{Quadrature}
 \index{quadrature!options}
 \fluidity\ uses numerical quadrature to integrate the equations over each
 element. There is a performance/accuracy trade off in quadrature: the more
 quadrature points that are employed, the more accurate the integrals are but
-the more expensive the assembly operation is. Quadrature rules in \fluidity
+the more expensive the assembly operation is. Quadrature rules in \fluidity 
 are categorised by the degree of polynomial which they will integrate
 exactly. The higher the degree of the quadrature rule, the more quadrature
 points which will be employed. As a general rule of thumb, the quadrature
@@ -1604,11 +1608,11 @@ projected to continuous space, advection integrated by parts once and
 a compact-discontinuous-Galerkin diffusion scheme with a vertex-based
 slope limiter. These options are selected with:
 \begin{itemize}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/\\lax\_friedrichs}, cf. [REF SECTION]
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/\\project\_velocity\_to\_continuous/mesh::CoordinateMesh}, cf. [REF SECTION]
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/\\integrate\_advection\_by\_parts/once}, cf. [REF SECTION]
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/\\compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
-\item \option{\ldots/spatial\_discretisation/discontinuous\_galerkin/\\slope\_limiter::Vertex\_Based}, cf. \ref{Sect:ND_DG_slope_limiters}
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}, cf. \ref{Sect:ND_DG_slope_limiters}.
 \end{itemize}
 
 For the temporal discretisation a Crank-Nicolson scheme with subcycling is recommended. This can be set with:
