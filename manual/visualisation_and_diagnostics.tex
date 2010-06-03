@@ -298,189 +298,6 @@ for i in range(field.node_count):
   which Cartesian component is extracted.
 \end{description}
 
-\subsection{The stat file}
-\label{sect:diagnostics_stat_file}
-
-\subsection{Overview}
-The stat file contains information about the simulation, collected at run time. These diagnostics can be extracted from it using the stat\_parser, section \ref{sect:diagnostic_output} and it can be quickly and easily visualised with statplot, section \ref{sect:statplot}. Note, for parallel runs, unless otherwise stated the values have been calculated in a `parallel-safe' manner.
-
-The diagnostics that are recorded in the stat file for each field are selected by the user.  What is included should be considered carefully as including a lot of information can make a notable increase in the simulation run time. To configure the stat file locate the \option{\ldots/stat} element for a generic \option{scalar\_field}, \option{vector\_field} or \option{tensor\_field}, e.g. Figure \ref{fig:diamond_enable_stat}. This contains further elements that will allow the configuration of the stat file as outlined in table \ref{tab:stat_file_diagnostics}. Diagnostics that are more involved and require a longer description are listed in table \ref{tab:stat_file_diagnostics} and documented in section \ref{sect:stat_diagnostics}.
-
-\begin{figure}[ht]
-  \centering
-  \fig[width=0.7\textwidth]{visualisation_and_diagnostics_images/diamond_enable_stat}
-  \caption{Example configuration of the stat file for \option{\ldots/vector\_field(Velocity)}.}
-  \label{fig:diamond_enable_stat}
-\end{figure}
-
-The diagnostics will be output at every time step, from the end of the first time step onwards and, where relevant, are output before the mesh is adapted. The following options, regarding when the diagnostics are output, may also be chosen by activating the following elements in the Diamond file (the names are self-explanatory):
-\begin{itemize}
-\item \option{/io/stat/output\_at\_start}
-\item \option{/io/stat/output\_before\_adapts}
-\item \option{/io/stat/output\_after\_adapts}
-\end{itemize}  
-
-It is also possible to include the values from the previous time step and nonlinear iterations for a vector field by picking the choice elements:
-\begin{itemize}
-\item \option{\ldots/stat/previous\_time\_step/include\_in\_stat}
-\item \option{\ldots/stat/nonlinear\_field/include\_in\_stat}
-\end{itemize}
-
-and for a scalar field by activating the elements:
-
-\begin{itemize}
-\item \option{\ldots/stat/include\_nonlinear\_field}
-\item \option{\ldots/stat/include\_previous\_time\_step}
-\end{itemize}
-
-\subsection{Stat file diagnostics}
-\label{sect:stat_diagnostics}
-
-\begin{landscape}
-\begin{longtable}{|p{0.2\textwidth}|p{0.18\textwidth}|p{0.10\textwidth}|p{0.4\textwidth}|p{0.35\textwidth}|}
-\hline
-\centering
-%-----------------------------------------------------------------------------------------------------------------------------------%
-Name			& Statistic		& Material phase name	& Diamond information			& Notes \\
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf File format information}} \\ \hline
-%-----------------------------------------------------------------------------------------------------------------------------------%
-format			& binary or plain\_text	&			& always included			& the .stat file will be in plain text unless \option{/io/detectors/binary\_output} is switched on  \\
-real\_size		& real\_size		&			& \option{/io/detectors/binary\_output}	& size of real \\
-integer\_size		& integer\_size		&			& \option{/io/detectors/binary\_output}	& size of an integer \\
-\hline \multicolumn{5}{|p{1.5\textwidth}|}{{\bf Mesh diagnostics} e.g. \option{/geometry/mesh::CoordinateMesh/from\_file}} \\ \hline
-CoordinateMesh		& nodes			& 			& \option{\ldots/stat/include\_in\_stat}	& number of nodes in the mesh \\
-CoordinateMesh		& elements		&			& \option{\ldots/stat/include\_in\_stat}	& number of elements in the mesh \\
-CoordinateMesh		& surface elements	&			& \option{\ldots/stat/include\_in\_stat}	& number of surface elements in the mesh \\
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Machine statistics}} \\ \hline
-%-----------------------------------------------------------------------------------------------------------------------------------%
-FluidityVersion		& \fluidity\ version	&			& always included			& \fluidity\ version \\
-CompileTime		& date and time		&			& always included			& compile date and time \\
-StartTime		& date and time		&			& always included			& simulation start date and time \\
-HostName		& hostname		&			& always included			& name of host machine,
-default "Unknown" \\ 
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Memory diagnostics} - these are only included if \fluidity\ is configured with either - -enable-debugging or - -enable-memory-stats. For parallel runs they are over all processors/} \\ \hline
-%-----------------------------------------------------------------------------------------------------------------------------------%
-memory type		& current		& Memory		& n/a					& current memory usage \\
-memory type		& min			& Memory		& n/a					& minimum memory usage during the last time step \\
-memory type		& max			& Memory		& n/a					& maximum memory usage during the last time step \\
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Time diagnostics}} \\ \hline
-%-----------------------------------------------------------------------------------------------------------------------------------%
-Elapsed time		& value			&			& always included			& current simulation time \\
-dt			& value			&			& always included			& time step used for the previous time step\\
-Elapsed wall time	& value			&			& always included			& how long, in real, wall clock time the simulation has been running\\
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Scalar field diagnostics} e.g. for \option{/material\_phase::fluid/scalar\_field::Temperature/prognostic}  } \\ \hline
-%-----------------------------------------------------------------------------------------------------------------------------------%
-Temperature		& min			& fluid			& \option{\ldots/stat/include\_in\_stat} & minimum of the scalar field \\
-Temperature		& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of the scalar field \\
-Temperature		& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of the scalar field over the mesh the scalar field is on\\
-Temperature		& integral		& fluid			& \option{\ldots/stat/include\_in\_stat} & integral of the field over the mesh over the mesh the scalar field is on \\
-Temperature		& cv\_l2norm		& fluid			& \option{\ldots/stat/include\_cv\_stats} & \Ltwo norm of the scalar field over the control volume dual mesh to the mesh the scalar field is on\\
-Temperature		& cv\_integral		& fluid			& \option{\ldots/stat/include\_cv\_stats} & integral of the field over the control volume dual mesh to the mesh the scalar field is on\\
-Temperature		& surface\_integral\% name& fluid		& \option{\ldots/stat/surface\_integral[0]} & section \ref{sect:stat_surface_integral} \\
-Temperature		& mixing\_bins		& fluid			& \option{\ldots/stat/} \option{include\_mixing\_stats[0]} & section \ref{sect:stat_mixing_stats} \\
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Vector field diagnostics} e.g. for \option{/material\_phase::fluid/vector\_field::Velocity/prognostic}. The values of component will range from 1 to number of dimensions. The force, pressure force and viscous force statistics have not been rigorously tested in parallel} \\ \hline
-%-----------------------------------------------------------------------------------------------------------------------------------%
-Velocity\%magnitude	& min			& fluid			& \option{\ldots/stat/include\_in\_stat} & minimum of the magnitude of the vector field \\
-Velocity\%magnitude	& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of the magnitude of the vector field \\
-Velocity\%magnitude	& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of the magnitude of the vector field \\
-Velocity\%component	& min			& fluid			& \option{\ldots/stat/include\_in\_stat} & minimum of component 1 of the vector field  \\
-Velocity\%component	& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of component 1 of the vector field \\
-Velocity\%component	& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of component 1 of the vector field \\
-Velocity\%component	& integral		& fluid			& \option{\ldots/stat/include\_in\_stat} & integral of component 1 of the vector field over the mesh \\
-Velocity		& surface integral\% name& fluid			& \option{\ldots/stat/surface\_integral[0]} & section \ref{sect:stat_surface_integral} \\
-Velocity		& force			& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces} &  this requires a list of surface ids overwhich the total force is calculated???\\
-Velocity		& pressure force	& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces/} \option{output\_terms}& pressure force over the surfaces with ids given in the attribute for \option{\ldots/stat/compute\_body\_forces\_on\_surfaces} ???  \\
-Velocity		& viscous force		& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces/} \option{output\_terms}& outputs the viscous force over the surfaces with ids given in the attribute for \option{\ldots/stat/compute\_body\_forces\_on\_surfaces} ??? \\
-%-----------------------------------------------------------------------------------------------------------------------------------%
-\hline
-\caption[Stat file diagnostics]{Stat file diagnostics  \newline This table contains the `Name' of the diagnostic, `Statistic' and `Material phase name' as they will appear in the stat file, section \ref{sect:diagnostic_output}. `Diamond information' contains the spud path to locate where the option is in Diamond. Finally `Notes' offers information about the diagnostic.}
-\label{tab:stat_file_diagnostics}
-\end{longtable}
-\end{landscape}
-
-\subsubsection{Surface integrals}
-\label{sect:stat_surface_integral}
-
-The surface integral diagnostics allow the calculation of surface integrated quantities
-for arbitrary scalar or vector fields. The options can be found for any scalar
-or vector field at \option{\ldots/stat/surface\_integral}. All surface integral diagnostics are parallelised.
-
-\textbf{Scalar fields}
-
-There are two types of surface integrals for scalar fields, \option{value} and
-\option{gradient\_normal}. These are selected in the \option{type} attribute of
-\option{\ldots/stat/surface\_integral}.
-
-The surface integral type \option{value} calculates the surface integral of the
-scalar field:
-
-\begin{equation}
-\int_{\partial \Omega} T,
-\end{equation}
-
-and the surface integral type \option{gradient\_normal} calculates surface integral
-of the dot product of the gradient of the field with the surface normal:
-
-\begin{equation}
-\int_{\partial \Omega} \nabla T \cdot \vec{n}.
-\end{equation}
-
-The \option{gradient\_normal} surface integral is calculated using the volume
-element shape function derivatives, via:
-
-\begin{equation}
-\sum_{i,j} \int_{\partial \Omega} {T_i \frac{\partial \phi_i}{\partial x_j} n_j}.
-\end{equation}
-
-\textbf{Vector fields}
-
-There is one type of surface integral for vector fields, \option{value}. This
-calculates the surface integral of the dot product of the field with the surface
-normal:
-
-\begin{equation}
-\int_{\partial \Omega} \vec{v} \cdot \vec{n}.
-\end{equation}
-
-\textbf{Surface integral options}
-
-The \option{name} attribute must be set for all diagnostic surface integrals. In
-addition to this, surface IDs (see section \ref{sect:surface_ids}) may be specified at
-\option{\ldots/stat/surface\_integral/surface\_ids}. If specified, the surface
-integral is computed over just these surfaces. If it is disabled the integral is computed
-over the whole surface of the
-mesh. If the element \option{\ldots/stat/surface\_integral/normalise} is activated
-the integral is normalised by dividing by the surface area.
-
-\subsubsection{Mixing stats}
-\label{sect:stat_mixing_stats}
-Mixing stats calculates the volume fraction of the scalar field in a set of `bins' the bounds of which are specified by the user. 
-
-The mixing stats can be calculated using the control-volume mesh or for \Poo using the mesh that the scalar field is on. This is specified by setting the choice element under \option{\ldots/stat/include\_mixing\_stats[0]} to either \option{continuous\_galerkin} or \option{control\_volumes}. The bin bounds must also be specified.  The element \option{\ldots/stat/include\_mixing\_stats[0]/mixing\_bin\_bounds} requires a list of floats that are the values of the bin bounds e.g. if the list reads 0.0 1.0 2.0 3.0 4.0 then 5 bins will be returned with ($T$: the scalar field):
-\begin{itemize}
-\item size bin 1 $=$ volume fraction of domain with $0.0\leq T < 1.0$
-\item size bin 2 $=$ volume fraction of domain with $1.0\leq T < 2.0$
-\item \ldots 
-\item size bin 5 $=$ volume fraction of domain with $3.0\leq T$
-\end{itemize}
-
-The volume fractions can be normalised by the total volume of the domain by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/normalise}. The `tolerance' beneath the bin bounds for which the scalar field should be included can be specified by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/tolerance} (i.e. $1.0-\mathrm{tolerance} \leq T < 2.0-\mathrm{tolerance}$). If not selected it defaults to machine tolerance epsilon(0.0). For an example of using the mixing stats see the test case in the \fluidity\ trunk \lstinline[language = bash]+.../tests/lock_exchange_2d_cg+ or \lstinline[language = bash]+.../tests/cv_mixing_bin_test_serial/+.
-
-\subsection{Detectors}
-\label{sect:diagnostics_detectors}
-The detectors file contains information about the positions of the detectors which is the same for all time steps in the case of static detectors and change at each time step for the Lagrangian detectors as they are advected by the flow. It also contains information about the values of different flow variables at the positions of the detectors. Both, position and variables information are collected at run time.
-
-The user selects which field variables should be included in the detectors file by setting the corresponding option in Diamond. For example, if interested in the value of Temperature at the different detectors positions and at each time step, the option \option{\ldots/scalar\_field/prognostic/detectors} \option{/include\_in\_detectors} should be set. Only the fields of interest should be included since extra information will make the detectors file very large and more difficult to handle. If many detectors are present and/or information from many flow variables is required, it is recommended to set the \option{/io/detectors/binary\_output} in Diamond, since an ascii file will quickly become very large.
-
-The information of the detectors can be extracted with stat\_parser and it can be visualised with statplot. 
-
-The position of the detectors and value of the selected variables at those positions is saved into the output file at every time step, starting from the end of the first time step and it is done before the mesh is adapted. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------OFFLINE DIAGNOSTICS-------------------------%
@@ -504,213 +321,6 @@ Vtktools allows you to analyse data from the vtu file using python. This include
 
 \subsection{Diagnostic output}
 \label{sect:diagnostic_output}
-
-The primary output format for \fluidity\ diagnostics is the .stat file. There
-are two file formats used for storing data in .stat files: a plain text format
-and a binary format.
-
-\subsubsection{Plain text .stat file format}
-
-A plain text .stat file consists of two sections: an XML header section and a
-data section. The header section appears at the start of the .stat file within
-\lstinline[language = XML]*<header>* $\ldots$
-\lstinline[language = XML]*</header>* tags, and defines all meta data concerning
-all statistics contained in the data section. The data section contains a number of lines,
-with each line containing a single data point for each of the statistics defined in the header
-section.
-
-The header element contains 
-\lstinline[language = XML]*<constant>* and
-\lstinline[language = XML]*<field>* child elements. The
-\lstinline[language = XML]*<constant>* elements contain data relevant to the
-entire simulation, such as the \fluidity\ version and simulation start date:
-
-\begin{lstlisting}[language = XML]
-  <constant name = "field_name"
-    type = "field_type" value = "field_value"/>
-\end{lstlisting}
-
-where the \lstinline[language = XML]*type* attribute defines the data type
-(one of "string", "integer" or "float"). A plain text .stat file defines one
-additional constant element:
-
-\begin{lstlisting}[language = XML]
-<constant name="format" type="string" value="plain_text"/>
-\end{lstlisting}
-
-The \lstinline[language = XML]*<field>* elements contain meta-data for statistics
-contained in the data section:
-
-\begin{lstlisting}[language = XML]
-  <field name = "field_name"
-    statistic = "statistic_name" column = "field_column"
-    [material_phase = "material_phase_name"]
-    [components = "field_components"]/>
-\end{lstlisting}
-
-For statistics of scalar, vector or tensor fields, 
-\lstinline[language = XML]*statistic* defines the statistic name for
-a field \lstinline[language = XML]*name* in material / phase
-\lstinline[language = XML]*material_phase*. For other objects (such as mesh
-statistics) the \lstinline[language = XML]*material_phase* attribute may not
-be supplied. The \lstinline[language = XML]*column* attribute is an integer defining the
-index of the first component of the field data in each line of the data section.
-The optional \lstinline[language = XML]*component* attribute defines the number
-of field components (and defaults to one if not supplied). 
-
-\begin{example}
-\begin{lstlisting}[language = XML]
-<header>
-<constant name="FluidityVersion" type="string" value="11780M" />
-<constant name="CompileTime" type="string" value="Nov 25 2009 09:38:20" />
-<constant name="StartTime" type="string" value="20091125 095448.326+0000" />
-<constant name="HostName" type="string" value="Unknown" />
-<constant name="format" type="string" value="plain_text" />
-<field column="1" name="ElapsedTime" statistic="value"/>
-<field column="2" name="dt" statistic="value"/>
-<field column="3" name="ElapsedWallTime" statistic="value"/>
-<field column="4" name="CoordinateMesh" statistic="nodes"/>
-<field column="5" name="CoordinateMesh" statistic="elements"/>
-<field column="6" name="CoordinateMesh" statistic="surface_elements"/>
-<field column="7" name="Tracer" statistic="min" material_phase="Fluid"/>
-<field column="8" name="Tracer" statistic="max" material_phase="Fluid"/>
-<field column="9" name="Tracer" statistic="l2norm" material_phase="Fluid"/>
-<field column="10" name="Tracer" statistic="integral" material_phase="Fluid"/>
-</header>
-1.0 1.0 0.108 41 40 2 0.0 0.0 0.0 0.0
-2.0 1.0 0.146 41 40 2 0.0 0.0 0.0 0.0
-\end{lstlisting}
-\caption{A simple plain text .stat file}
-\end{example}
-
-\subsubsection{Binary .stat file format}
-
-The binary .stat file format contains an XML header section stored in a plain
-text file, and a data section stored in binary in
-a separate file. The file name of the binary data file is equal to the
-header file name plus an additional \textit{.dat} file extension. The XML
-header section is identical to the plain text XML header, except that the
-\lstinline[language = XML]*format* constant element is replaced with:
-
-\begin{lstlisting}[language = XML]
-<constant name="format" type="string" value="binary"/>
-\end{lstlisting}
-
-The binary .stat file format also defines two additional constant elements:
-
-\begin{lstlisting}[language = XML]
-<constant name="real_size" type="integer" value="real_byte_size"/>
-<constant name="integer_size" type="integer" value="integer_byte_size"/>
-\end{lstlisting}
-
-defining the size (in bytes) of a real and an integer in the data section.
-
-At present the data section of binary .stat files contains only floating point
-data.
-
-\subsubsection{Reading .stat files in python}
-\label{sect:diagnostics_stat_parser}
-
-A .stat file can be read into a dictionary object using the
-\lstinline[language = Python]*fluidity_tools* python module via:
-
-\begin{lstlisting}[language = Python]
-import fluidity_tools
-stat = fluidity_tools.stat_parser(filename)
-\end{lstlisting}
-
-\lstinline[language = Python]*fluidity_tools.stat_parser* reads both
-plain text and binary .stat file formats. For .stat files using the binary
-format, \lstinline[language = Python]*filename* should correspond to the XML
-header file.
-
-You can find out which fields are contained in a state Fluid via:
-
-\begin{lstlisting}[language=Python]
-stat["Fluid"].keys()
-\end{lstlisting}
-
-The ``max'' statistics of a field ``Velocity\%magnitude'' in this state can be
-plotted via:
-
-\begin{lstlisting}[language=Python]
-from matplotlib import pylab
-time = stat["ElapsedTime"]["value"]
-max_speed = stat["Fluid"]["Velocity%magnitude"]["max"]
-pylab.plot(time, max_speed)
-pylab.xlabel("Time")
-pylab.ylabel("Max Speed")
-pylab.show()
-\end{lstlisting}
-
-\subsection{Detectors output}
-\label{sect:detectors_output}
-Similarly to the .stat file, the detectors file formats are ascii or plain text format and binary format.
-
-In plain text format, the .detectors file contains first an XML header followed by a section with the data. The header is contained within \lstinline[language = XML]*<header>* $\ldots$
-\lstinline[language = XML]*</header>* tags and describes the content of each column in the data section. An example of the header is presented in \ref{header_det}.
-
-\begin{example}
-\begin{lstlisting}[language = XML]
-<header>
-<field column="1" name="ElapsedTime" statistic="value"/>
-<field column="2" name="dt" statistic="value"/>
-<field column="3" name="LAGRANGIAN_DET_000001" statistic="position" 
-     components="3"/>
-<field column="6" name="LAGRANGIAN_DET_000002" statistic="position" 
-     components="3"/>
-<field column="9" name="LAGRANGIAN_DET_000003" statistic="position" 
-     components="3"/>
-...
-<field column="819348" name="Temperature" 
-    statistic="LAGRANGIAN_DET_000001" material_phase="BoussinesqFluid"/>
-<field column="819349" name="Temperature" 
-    statistic="LAGRANGIAN_DET_000002" material_phase="BoussinesqFluid"/>
-<field column="819350" name="Temperature" 
-    statistic="LAGRANGIAN_DET_000003" material_phase="BoussinesqFluid"/>
-...
-<field column="983217" name="Velocity" statistic="LAGRANGIAN_DET_000001" 
-    material_phase="BoussinesqFluid" components="3"/>
-<field column="983220" name="Velocity" statistic="LAGRANGIAN_DET_000002" 
-    material_phase="BoussinesqFluid" components="3"/>
-<field column="983223" name="Velocity" statistic="LAGRANGIAN_DET_000003" 
-    material_phase="BoussinesqFluid" components="3"/>
-\end{lstlisting}
-
-\caption{An example of the header in .detectors file}
-\label{header_det}
-\end{example}
-
-when having the \option{/io/detectors/binary\_output} option set in Diamond, the header is stored in a plain text file with the .detectors extension and the data is stored in binary in another file with .detectors.dat extension.
-
-In order to read the .detectors files in python, the \lstinline[language = Python]*fluidity_tools* python module described in \ref{sect:diagnostics_stat_parser} should be used.
-
-\begin{lstlisting}[language = Python]
-import fluidity_tools
-detectors = fluidity_tools.stat_parser(filename)
-\end{lstlisting}
-
-As indicated earlier, this python module reads both
-plain text and binary file formats. For .detectors files using the binary
-format, \lstinline[language = Python]*filename* should also correspond to the XML header file.
-
-It is possible to find out which fields are contained in a state Water with:
-
-\begin{lstlisting}[language=Python]
-stat["Water"].keys()
-\end{lstlisting}
-
-The Temperature versus time for a particular detector can be plotted with the following python lines:
-
-\begin{lstlisting}[language=Python]
-from matplotlib import pylab
-time = detectors["ElapsedTime"]["value"]
-Temp = detectors["Water"]["Temperature"]["LAGRANGIAN_DET_000001"]
-pylab.plot(time, Temp)
-pylab.xlabel("Time")
-pylab.ylabel("Temperature")
-pylab.show()
-\end{lstlisting}
 
 \subsection{fltools}
 \label{sect:fltools}
@@ -1400,4 +1010,396 @@ scripts/transform_mesh [OPTIONS] INPUT1 INPUT2 OUTPUT [FIRST] [LAST]
 with \lstinline[language = Bash]+OUTPUT+ the name of the output vtu. If \lstinline[language = Bash]+FIRST+ is supplied, treats INPUT1 and INPUT2 as project names, and generates a different vtu for the specified range of output files \lstinline[language = Bash]+FIRST+ - \lstinline[language = Bash]+LAST+. If not supplied \lstinline[language = Bash]+LAST+ defaults to \lstinline[language = Bash]+FIRST+. The option \lstinline[language = Bash]+-s+ if supplied together with \lstinline[language = Bash]+FIRST+ and \lstinline[language = Bash]+LAST+, only \lstinline[language = Bash]+INPUT1+ is treated as a project name. This allows a range of vtus to be diffed against a single vtu.
 
 
+\section{The stat file}
+\label{sect:diagnostics_stat_file}
+\index{stat file}
+
+The stat file contains information about the simulation, collected at run time. These diagnostics can be extracted from it using the stat\_parser, section \ref{sect:diagnostic_output} and it can be quickly and easily visualised with statplot, section \ref{sect:statplot}. Note, for parallel runs, unless otherwise stated the values have been calculated in a `parallel-safe' manner.
+
+The diagnostics that are recorded in the stat file for each field are selected by the user.  What is included should be considered carefully as including a lot of information can make a notable increase in the simulation run time. To configure the stat file locate the \option{\ldots/stat} element for a generic \option{scalar\_field}, \option{vector\_field} or \option{tensor\_field}, e.g. Figure \ref{fig:diamond_enable_stat}. This contains further elements that will allow the configuration of the stat file as outlined in table \ref{tab:stat_file_diagnostics}. Diagnostics that are more involved and require a longer description are listed in table \ref{tab:stat_file_diagnostics} and documented in section \ref{sect:stat_diagnostics}.
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.7\textwidth]{visualisation_and_diagnostics_images/diamond_enable_stat}
+  \caption{Example configuration of the stat file for \option{\ldots/vector\_field(Velocity)}.}
+  \label{fig:diamond_enable_stat}
+\end{figure}
+
+The diagnostics will be output at every time step, from the end of the first time step onwards and, where relevant, are output before the mesh is adapted. The following options, regarding when the diagnostics are output, may also be chosen by activating the following elements in the Diamond file (the names are self-explanatory):
+\begin{itemize}
+\item \option{/io/stat/output\_at\_start}
+\item \option{/io/stat/output\_before\_adapts}
+\item \option{/io/stat/output\_after\_adapts}
+\end{itemize}  
+
+It is also possible to include the values from the previous time step and nonlinear iterations for a vector field by picking the choice elements:
+\begin{itemize}
+\item \option{\ldots/stat/previous\_time\_step/include\_in\_stat}
+\item \option{\ldots/stat/nonlinear\_field/include\_in\_stat}
+\end{itemize}
+
+and for a scalar field by activating the elements:
+
+\begin{itemize}
+\item \option{\ldots/stat/include\_nonlinear\_field}
+\item \option{\ldots/stat/include\_previous\_time\_step}
+\end{itemize}
+
+\subsection{File format}
+
+There are two file formats used for storing data in .stat files: a plain text format
+and a binary format.
+
+\subsubsection{Plain text .stat file format}
+
+A plain text .stat file consists of two sections: an XML header section and a
+data section. The header section appears at the start of the .stat file within
+\lstinline[language = XML]*<header>* $\ldots$
+\lstinline[language = XML]*</header>* tags, and defines all meta data concerning
+all statistics contained in the data section. The data section contains a number of lines,
+with each line containing a single data point for each of the statistics defined in the header
+section.
+
+The header element contains 
+\lstinline[language = XML]*<constant>* and
+\lstinline[language = XML]*<field>* child elements. The
+\lstinline[language = XML]*<constant>* elements contain data relevant to the
+entire simulation, such as the \fluidity\ version and simulation start date:
+
+\begin{lstlisting}[language = XML]
+  <constant name = "field_name"
+    type = "field_type" value = "field_value"/>
+\end{lstlisting}
+
+where the \lstinline[language = XML]*type* attribute defines the data type
+(one of "string", "integer" or "float"). A plain text .stat file defines one
+additional constant element:
+
+\begin{lstlisting}[language = XML]
+<constant name="format" type="string" value="plain_text"/>
+\end{lstlisting}
+
+The \lstinline[language = XML]*<field>* elements contain meta-data for statistics
+contained in the data section:
+
+\begin{lstlisting}[language = XML]
+  <field name = "field_name"
+    statistic = "statistic_name" column = "field_column"
+    [material_phase = "material_phase_name"]
+    [components = "field_components"]/>
+\end{lstlisting}
+
+For statistics of scalar, vector or tensor fields, 
+\lstinline[language = XML]*statistic* defines the statistic name for
+a field \lstinline[language = XML]*name* in material / phase
+\lstinline[language = XML]*material_phase*. For other objects (such as mesh
+statistics) the \lstinline[language = XML]*material_phase* attribute may not
+be supplied. The \lstinline[language = XML]*column* attribute is an integer defining the
+index of the first component of the field data in each line of the data section.
+The optional \lstinline[language = XML]*component* attribute defines the number
+of field components (and defaults to one if not supplied). 
+
+\begin{example}
+\begin{lstlisting}[language = XML]
+<header>
+<constant name="FluidityVersion" type="string" value="11780M" />
+<constant name="CompileTime" type="string" value="Nov 25 2009 09:38:20" />
+<constant name="StartTime" type="string" value="20091125 095448.326+0000" />
+<constant name="HostName" type="string" value="Unknown" />
+<constant name="format" type="string" value="plain_text" />
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="ElapsedWallTime" statistic="value"/>
+<field column="4" name="CoordinateMesh" statistic="nodes"/>
+<field column="5" name="CoordinateMesh" statistic="elements"/>
+<field column="6" name="CoordinateMesh" statistic="surface_elements"/>
+<field column="7" name="Tracer" statistic="min" material_phase="Fluid"/>
+<field column="8" name="Tracer" statistic="max" material_phase="Fluid"/>
+<field column="9" name="Tracer" statistic="l2norm" material_phase="Fluid"/>
+<field column="10" name="Tracer" statistic="integral" material_phase="Fluid"/>
+</header>
+1.0 1.0 0.108 41 40 2 0.0 0.0 0.0 0.0
+2.0 1.0 0.146 41 40 2 0.0 0.0 0.0 0.0
+\end{lstlisting}
+\caption{A simple plain text .stat file}
+\end{example}
+
+\subsubsection{Binary .stat file format}
+
+The binary .stat file format contains an XML header section stored in a plain
+text file, and a data section stored in binary in
+a separate file. The file name of the binary data file is equal to the
+header file name plus an additional \textit{.dat} file extension. The XML
+header section is identical to the plain text XML header, except that the
+\lstinline[language = XML]*format* constant element is replaced with:
+
+\begin{lstlisting}[language = XML]
+<constant name="format" type="string" value="binary"/>
+\end{lstlisting}
+
+The binary .stat file format also defines two additional constant elements:
+
+\begin{lstlisting}[language = XML]
+<constant name="real_size" type="integer" value="real_byte_size"/>
+<constant name="integer_size" type="integer" value="integer_byte_size"/>
+\end{lstlisting}
+
+defining the size (in bytes) of a real and an integer in the data section.
+
+At present the data section of binary .stat files contains only floating point
+data.
+
+\subsection{Reading .stat files in python}
+\label{sect:diagnostics_stat_parser}
+
+A .stat file can be read into a dictionary object using the
+\lstinline[language = Python]*fluidity_tools* python module via:
+
+\begin{lstlisting}[language = Python]
+import fluidity_tools
+stat = fluidity_tools.stat_parser(filename)
+\end{lstlisting}
+
+\lstinline[language = Python]*fluidity_tools.stat_parser* reads both
+plain text and binary .stat file formats. For .stat files using the binary
+format, \lstinline[language = Python]*filename* should correspond to the XML
+header file.
+
+You can find out which fields are contained in a state Fluid via:
+
+\begin{lstlisting}[language=Python]
+stat["Fluid"].keys()
+\end{lstlisting}
+
+The ``max'' statistics of a field ``Velocity\%magnitude'' in this state can be
+plotted via:
+
+\begin{lstlisting}[language=Python]
+from matplotlib import pylab
+time = stat["ElapsedTime"]["value"]
+max_speed = stat["Fluid"]["Velocity%magnitude"]["max"]
+pylab.plot(time, max_speed)
+pylab.xlabel("Time")
+pylab.ylabel("Max Speed")
+pylab.show()
+\end{lstlisting}
+
+
+\subsection{Stat file diagnostics}
+\label{sect:stat_diagnostics}
+
+\begin{landscape}
+\begin{longtable}{|p{0.2\textwidth}|p{0.18\textwidth}|p{0.10\textwidth}|p{0.4\textwidth}|p{0.35\textwidth}|}
+\hline
+\centering
+%-----------------------------------------------------------------------------------------------------------------------------------%
+Name			& Statistic		& Material phase name	& Diamond information			& Notes \\
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf File format information}} \\ \hline
+%-----------------------------------------------------------------------------------------------------------------------------------%
+format			& binary or plain\_text	&			& always included			& the .stat file will be in plain text unless \option{/io/detectors/binary\_output} is switched on  \\
+real\_size		& real\_size		&			& \option{/io/detectors/binary\_output}	& size of real \\
+integer\_size		& integer\_size		&			& \option{/io/detectors/binary\_output}	& size of an integer \\
+\hline \multicolumn{5}{|p{1.5\textwidth}|}{{\bf Mesh diagnostics} e.g. \option{/geometry/mesh::CoordinateMesh/from\_file}} \\ \hline
+CoordinateMesh		& nodes			& 			& \option{\ldots/stat/include\_in\_stat}	& number of nodes in the mesh \\
+CoordinateMesh		& elements		&			& \option{\ldots/stat/include\_in\_stat}	& number of elements in the mesh \\
+CoordinateMesh		& surface elements	&			& \option{\ldots/stat/include\_in\_stat}	& number of surface elements in the mesh \\
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Machine statistics}} \\ \hline
+%-----------------------------------------------------------------------------------------------------------------------------------%
+FluidityVersion		& \fluidity\ version	&			& always included			& \fluidity\ version \\
+CompileTime		& date and time		&			& always included			& compile date and time \\
+StartTime		& date and time		&			& always included			& simulation start date and time \\
+HostName		& hostname		&			& always included			& name of host machine,
+default "Unknown" \\ 
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Memory diagnostics} - these are only included if \fluidity\ is configured with either - -enable-debugging or - -enable-memory-stats. For parallel runs they are over all processors/} \\ \hline
+%-----------------------------------------------------------------------------------------------------------------------------------%
+memory type		& current		& Memory		& n/a					& current memory usage \\
+memory type		& min			& Memory		& n/a					& minimum memory usage during the last time step \\
+memory type		& max			& Memory		& n/a					& maximum memory usage during the last time step \\
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Time diagnostics}} \\ \hline
+%-----------------------------------------------------------------------------------------------------------------------------------%
+Elapsed time		& value			&			& always included			& current simulation time \\
+dt			& value			&			& always included			& time step used for the previous time step\\
+Elapsed wall time	& value			&			& always included			& how long, in real, wall clock time the simulation has been running\\
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Scalar field diagnostics} e.g. for \option{/material\_phase::fluid/scalar\_field::Temperature/prognostic}  } \\ \hline
+%-----------------------------------------------------------------------------------------------------------------------------------%
+Temperature		& min			& fluid			& \option{\ldots/stat/include\_in\_stat} & minimum of the scalar field \\
+Temperature		& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of the scalar field \\
+Temperature		& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of the scalar field over the mesh the scalar field is on\\
+Temperature		& integral		& fluid			& \option{\ldots/stat/include\_in\_stat} & integral of the field over the mesh over the mesh the scalar field is on \\
+Temperature		& cv\_l2norm		& fluid			& \option{\ldots/stat/include\_cv\_stats} & \Ltwo norm of the scalar field over the control volume dual mesh to the mesh the scalar field is on\\
+Temperature		& cv\_integral		& fluid			& \option{\ldots/stat/include\_cv\_stats} & integral of the field over the control volume dual mesh to the mesh the scalar field is on\\
+Temperature		& surface\_integral\% name& fluid		& \option{\ldots/stat/surface\_integral[0]} & section \ref{sect:stat_surface_integral} \\
+Temperature		& mixing\_bins		& fluid			& \option{\ldots/stat/} \option{include\_mixing\_stats[0]} & section \ref{sect:stat_mixing_stats} \\
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Vector field diagnostics} e.g. for \option{/material\_phase::fluid/vector\_field::Velocity/prognostic}. The values of component will range from 1 to number of dimensions. The force, pressure force and viscous force statistics have not been rigorously tested in parallel} \\ \hline
+%-----------------------------------------------------------------------------------------------------------------------------------%
+Velocity\%magnitude	& min			& fluid			& \option{\ldots/stat/include\_in\_stat} & minimum of the magnitude of the vector field \\
+Velocity\%magnitude	& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of the magnitude of the vector field \\
+Velocity\%magnitude	& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of the magnitude of the vector field \\
+Velocity\%component	& min			& fluid			& \option{\ldots/stat/include\_in\_stat} & minimum of component 1 of the vector field  \\
+Velocity\%component	& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of component 1 of the vector field \\
+Velocity\%component	& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of component 1 of the vector field \\
+Velocity\%component	& integral		& fluid			& \option{\ldots/stat/include\_in\_stat} & integral of component 1 of the vector field over the mesh \\
+Velocity		& surface integral\% name& fluid			& \option{\ldots/stat/surface\_integral[0]} & section \ref{sect:stat_surface_integral} \\
+Velocity		& force			& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces} &  this requires a list of surface ids overwhich the total force is calculated???\\
+Velocity		& pressure force	& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces/} \option{output\_terms}& pressure force over the surfaces with ids given in the attribute for \option{\ldots/stat/compute\_body\_forces\_on\_surfaces} ???  \\
+Velocity		& viscous force		& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces/} \option{output\_terms}& outputs the viscous force over the surfaces with ids given in the attribute for \option{\ldots/stat/compute\_body\_forces\_on\_surfaces} ??? \\
+%-----------------------------------------------------------------------------------------------------------------------------------%
+\hline
+\caption[Stat file diagnostics]{Stat file diagnostics  \newline This table contains the `Name' of the diagnostic, `Statistic' and `Material phase name' as they will appear in the stat file, section \ref{sect:diagnostic_output}. `Diamond information' contains the spud path to locate where the option is in Diamond. Finally `Notes' offers information about the diagnostic.}
+\label{tab:stat_file_diagnostics}
+\end{longtable}
+\end{landscape}
+
+\subsubsection{Surface integrals}
+\label{sect:stat_surface_integral}
+
+The surface integral diagnostics allow the calculation of surface integrated quantities
+for arbitrary scalar or vector fields. The options can be found for any scalar
+or vector field at \option{\ldots/stat/surface\_integral}. All surface integral diagnostics are parallelised.
+
+\textbf{Scalar fields}
+
+There are two types of surface integrals for scalar fields, \option{value} and
+\option{gradient\_normal}. These are selected in the \option{type} attribute of
+\option{\ldots/stat/surface\_integral}.
+
+The surface integral type \option{value} calculates the surface integral of the
+scalar field:
+
+\begin{equation}
+\int_{\partial \Omega} T,
+\end{equation}
+
+and the surface integral type \option{gradient\_normal} calculates surface integral
+of the dot product of the gradient of the field with the surface normal:
+
+\begin{equation}
+\int_{\partial \Omega} \nabla T \cdot \vec{n}.
+\end{equation}
+
+The \option{gradient\_normal} surface integral is calculated using the volume
+element shape function derivatives, via:
+
+\begin{equation}
+\sum_{i,j} \int_{\partial \Omega} {T_i \frac{\partial \phi_i}{\partial x_j} n_j}.
+\end{equation}
+
+\textbf{Vector fields}
+
+There is one type of surface integral for vector fields, \option{value}. This
+calculates the surface integral of the dot product of the field with the surface
+normal:
+
+\begin{equation}
+\int_{\partial \Omega} \vec{v} \cdot \vec{n}.
+\end{equation}
+
+\textbf{Surface integral options}
+
+The \option{name} attribute must be set for all diagnostic surface integrals. In
+addition to this, surface IDs (see section \ref{sect:surface_ids}) may be specified at
+\option{\ldots/stat/surface\_integral/surface\_ids}. If specified, the surface
+integral is computed over just these surfaces. If it is disabled the integral is computed
+over the whole surface of the
+mesh. If the element \option{\ldots/stat/surface\_integral/normalise} is activated
+the integral is normalised by dividing by the surface area.
+
+\subsubsection{Mixing stats}
+\label{sect:stat_mixing_stats}
+Mixing stats calculates the volume fraction of the scalar field in a set of `bins' the bounds of which are specified by the user. 
+
+The mixing stats can be calculated using the control-volume mesh or for \Poo using the mesh that the scalar field is on. This is specified by setting the choice element under \option{\ldots/stat/include\_mixing\_stats[0]} to either \option{continuous\_galerkin} or \option{control\_volumes}. The bin bounds must also be specified.  The element \option{\ldots/stat/include\_mixing\_stats[0]/mixing\_bin\_bounds} requires a list of floats that are the values of the bin bounds e.g. if the list reads 0.0 1.0 2.0 3.0 4.0 then 5 bins will be returned with ($T$: the scalar field):
+\begin{itemize}
+\item size bin 1 $=$ volume fraction of domain with $0.0\leq T < 1.0$
+\item size bin 2 $=$ volume fraction of domain with $1.0\leq T < 2.0$
+\item \ldots 
+\item size bin 5 $=$ volume fraction of domain with $3.0\leq T$
+\end{itemize}
+
+The volume fractions can be normalised by the total volume of the domain by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/normalise}. The `tolerance' beneath the bin bounds for which the scalar field should be included can be specified by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/tolerance} (i.e. $1.0-\mathrm{tolerance} \leq T < 2.0-\mathrm{tolerance}$). If not selected it defaults to machine tolerance epsilon(0.0). For an example of using the mixing stats see the test case in the \fluidity\ trunk \lstinline[language = bash]+.../tests/lock_exchange_2d_cg+ or \lstinline[language = bash]+.../tests/cv_mixing_bin_test_serial/+.
+
+\subsection{Detectors}
+\label{sect:diagnostics_detectors}
+The detectors file contains information about the positions of the detectors which is the same for all time steps in the case of static detectors and change at each time step for the Lagrangian detectors as they are advected by the flow. It also contains information about the values of different flow variables at the positions of the detectors. Both, position and variables information are collected at run time.
+
+The user selects which field variables should be included in the detectors file by setting the corresponding option in Diamond. For example, if interested in the value of Temperature at the different detectors positions and at each time step, the option \option{\ldots/scalar\_field/prognostic/detectors} \option{/include\_in\_detectors} should be set. Only the fields of interest should be included since extra information will make the detectors file very large and more difficult to handle. If many detectors are present and/or information from many flow variables is required, it is recommended to set the \option{/io/detectors/binary\_output} in Diamond, since an ascii file will quickly become very large.
+
+The information of the detectors can be extracted with stat\_parser and it can be visualised with statplot. 
+
+The position of the detectors and value of the selected variables at those positions is saved into the output file at every time step, starting from the end of the first time step and it is done before the mesh is adapted. 
+
+\subsubsection{File format}
+\label{sect:detectors_output}
+Similarly to the .stat file, the detectors file formats are ascii or plain text format and binary format.
+
+In plain text format, the .detectors file contains first an XML header followed by a section with the data. The header is contained within \lstinline[language = XML]*<header>* $\ldots$
+\lstinline[language = XML]*</header>* tags and describes the content of each column in the data section. An example of the header is presented in \ref{header_det}.
+
+\begin{example}
+\begin{lstlisting}[language = XML]
+<header>
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="LAGRANGIAN_DET_000001" statistic="position" 
+     components="3"/>
+<field column="6" name="LAGRANGIAN_DET_000002" statistic="position" 
+     components="3"/>
+<field column="9" name="LAGRANGIAN_DET_000003" statistic="position" 
+     components="3"/>
+...
+<field column="819348" name="Temperature" 
+    statistic="LAGRANGIAN_DET_000001" material_phase="BoussinesqFluid"/>
+<field column="819349" name="Temperature" 
+    statistic="LAGRANGIAN_DET_000002" material_phase="BoussinesqFluid"/>
+<field column="819350" name="Temperature" 
+    statistic="LAGRANGIAN_DET_000003" material_phase="BoussinesqFluid"/>
+...
+<field column="983217" name="Velocity" statistic="LAGRANGIAN_DET_000001" 
+    material_phase="BoussinesqFluid" components="3"/>
+<field column="983220" name="Velocity" statistic="LAGRANGIAN_DET_000002" 
+    material_phase="BoussinesqFluid" components="3"/>
+<field column="983223" name="Velocity" statistic="LAGRANGIAN_DET_000003" 
+    material_phase="BoussinesqFluid" components="3"/>
+\end{lstlisting}
+
+\caption{An example of the header in .detectors file}
+\label{header_det}
+\end{example}
+
+when having the \option{/io/detectors/binary\_output} option set in Diamond, the header is stored in a plain text file with the .detectors extension and the data is stored in binary in another file with .detectors.dat extension.
+
+In order to read the .detectors files in python, the \lstinline[language = Python]*fluidity_tools* python module described in \ref{sect:diagnostics_stat_parser} should be used.
+
+\begin{lstlisting}[language = Python]
+import fluidity_tools
+detectors = fluidity_tools.stat_parser(filename)
+\end{lstlisting}
+
+As indicated earlier, this python module reads both
+plain text and binary file formats. For .detectors files using the binary
+format, \lstinline[language = Python]*filename* should also correspond to the XML header file.
+
+It is possible to find out which fields are contained in a state Water with:
+
+\begin{lstlisting}[language=Python]
+stat["Water"].keys()
+\end{lstlisting}
+
+The Temperature versus time for a particular detector can be plotted with the following python lines:
+
+\begin{lstlisting}[language=Python]
+from matplotlib import pylab
+time = detectors["ElapsedTime"]["value"]
+Temp = detectors["Water"]["Temperature"]["LAGRANGIAN_DET_000001"]
+pylab.plot(time, Temp)
+pylab.xlabel("Time")
+pylab.ylabel("Temperature")
+pylab.show()
+\end{lstlisting}
 
