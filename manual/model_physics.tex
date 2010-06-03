@@ -1,7 +1,7 @@
 \chapter{Model physics}\label{chap:model_physics}
 
 \section{How to navigate this chapter}
-One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter 3. In Chapter three our discretization experts will BLOW YOUR MIND!!
+One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. 
 
 \section{Advection--Diffusion Equation}\label{Sect:MP-AdvdifEqn}
 
@@ -264,13 +264,7 @@ The rotation vector is $\bmOmega$, and $\bmF$ contains additional source terms s
 
 \subsubsection{Compressible equations in conservative form}\label{Sect:compressible_conservative}
 Using the conservation laws outlined above the following pointwise PDE system governing the motion of a compressible fluid is obtained
-% Conservation of mass, Newton's second law and the first law of
-% thermodynamics allows one to derive integral relations governing the
-% properties of material volumes of fluid, for background material see
-% \cite{batchelor1967}. These conservation laws represent the most fundamental
-% description of the properties of fluids. Since the integral relations hold
-% for arbitrary volumes of fluid the following pointwise PDE system is
-% obtained
+
 \begin{subeqnarray}
 \frac{\pp\rho}{\pp t} + \nabla\cdot(\rho\bmu) &=& 0,\slabel{conmass}\\
 \frac{\pp}{\pp t}(\rho\bmu) + \nabla\cdot(\rho\bmu\bmu-\sigtens) &=& \rho\bmF,\slabel{conmom}\\
@@ -279,15 +273,6 @@ Using the conservation laws outlined above the following pointwise PDE system go
 \label{conservativesystem}
 \end{subeqnarray}
 where $\tote\equiv\inte+\modu^2/2$ is the total specific energy. \eqref{conmass} is exactly the conservative form of the continuity equation given in \eqref{mass_conservation_2}, \eqref{conmom} is equation \eqref{mom_cons_4} with the internal stress of the fluid and volume forces taken into account and \eqref{conenergy} is obtained from making the substitutions $w=\inte+p/\rho$ and $\tote\equiv\inte+\modu^2/2$ in \eqref{viscous_fluids_2}.
-
-% where $\bmu$ represents the three-dimensional (3-D) velocity, $\rho$
-% is the density, $\sigtens$ is a stress tensor, $\bmF$ is the
-% internal or volume force per unit mass \footnote{Note that surface
-% forces come in via the stress tensor.}, $\tote\equiv \inte+\bmu^2/2$ where
-% $E$ is the total specific energy and $e$ is the specific internal
-% energy, and $\bmq$ is the heat flux. Note that $\bmu\bmu$ represent
-% the dyadic product of vectors which has components
-% $[\bmu\bmu]_{ij}=\bmu_i\bmu_j$.
 
 \subsubsection{Compressible equations in non-conservative form}\label{Sect:compressible_nonconservative}
 Expanding terms in \eqref{conservativesystem} yields the
@@ -307,20 +292,7 @@ note that substituting for $\tote\equiv\inte+\modu^2/2$ results in the cancellat
 \end{subeqnarray}
 Note that, provided the fields (\eg density and pressure) vary smoothly, that is, the fields are differentiable functions, equations \eqref{conservativesystem} and \eqref{nonconservativesystem} are identical.
 
-%The CFD code \fluidity\ can solve compressible equations in both
-%conservative, non-conservative and mixed form as defined by the
-%scalar BETA in $[0,1]$, in an analogous manner to theta time
-%stepping defined later, \ie the weighted combination
-%BETA*(\ref{conservativesystem})+($1-$BETA)*(\ref{nonconservativesystem})
-%is discretised\footnote{Check that BETA and ($1-$BETA) don't need to be swapped here.}.
-%This BETA has absolutely no connection with the haline contraction coefficient
-%or the parameter in the beta-plane approximation.
-
-
-\section{Equations of state \& constituative relations}
-\label{sect:equation_of_state}
-
-\subsection{Buoyancy and density}\label{sect:buoyancy}
+\subsubsection{Buoyancy and density}\label{sect:buoyancy}
 \index{density}
 \index{buoyancy}
 For fluids upon which gravity is acting the buoyancy force should be considered
@@ -373,7 +345,14 @@ must be included in the horizontal momentum equations.
 Note that in analogy to the perturbation density ($\rho'/\rho_0 = (\rho-\rho_0)/\rho_0$), the
 term $p'/\rho_0$ is termed the perturbation pressure.
 
-\subsection{Incompressible flow}
+\section{Equations of state \& constituative relations}
+\label{sect:equation_of_state}
+
+Closure of the conservation equations requires an additional equation describing how the stress tensor is related to density, temperature and any other state variables of relevance. In general, this relationship is dependent on the physical and chemical properties of the material in the domain; hence, this relationship is known as the material model (note that in multi-material simulations a different material model can and must be specified for each material).
+
+It is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the Identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{Sect:ConfigEOS}} $f(p,\rho,T)=0$ relating density to pressure, temperature, etc., and a constitutive relationship $g(\tautens,\bmu)=0$.
+
+\subsection{Equation of State for Incompressible flow}
 \label{Sect:IncompressibleFlow}
 If a material is \emph{perfectly} incompressible its density cannot change;
 in other words, the material density is independent of pressure and
@@ -409,7 +388,7 @@ general equation of state takes the form
 \begin{equation}
 \rho = \rho_0(1 - \alpha(T-T_0) + \beta(C-C_0) + \gamma(p-p_0)),
 \end{equation}
-where $\alpha$ is the thermal expansion coefficient \eqref{thermalexpansioncoeff}
+where $\alpha$ is the thermal expansion coefficient:
 \begin{equation*}
 \alpha = -\frac{1}{\rho}\frac{\pp\rho}{\pp T},
 \end{equation*}
@@ -426,21 +405,16 @@ For ocean modelling applications the most important compositional variation is s
 \begin{equation}
 \rho = \rho_0(1 - \alpha(T-T_0) + \beta(S-S_0)),
 \end{equation}
-where $\beta$\footnote{Not to be confused with the beta plane parameters defined in the section on Coriolis acceleration} is the saline contraction coefficient
+where $\beta$ is the saline contraction coefficient (Not to be confused with the beta plane parameters defined in the section \ref{sect:coriolis}.)
 
-\subsection{Pade EOS for ocean modelling}\label{Sect:PadeDescription}
+\subsection{Pade Equation of State for Ocean Modelling}\label{Sect:PadeDescription}
 \index{equation of state!Pade approximation}
-To be described...
+To be described... Matt - please fill this in.
 
-\subsection{Material models}
+\subsection{Rheology and the constitutive model}\label{Sect:Rheology}
 \index{stress}
 
-As discussed in section[ADD CROSSREF], closure of the conservation equations requires an additional equation describing how the stress tensor is related to density, temperature and any other state variables of relevance.  In general, this relationship is dependent on the physical and chemical properties of the material in the domain; hence, this relationship is known as the material model and in multi-material or multi-phase simulations a different material model must be specified for each material.
-
-As discussed in section~\ref{Sect:stressed} it is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the Identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{Sect:ConfigEOS}} $f(p,\rho,T)=0$ relating density to pressure, temperature, etc., and a constitutive relationship $g(\tautens,\bmu)=0$.
-
-\subsubsection{Rheology and the constitutive model}\label{Sect:Rheology}
-Two important classes of fluids are: (i) Newtonian fluids, where deviatoric strain rate $\left(\etens\right)$ is linearly proportional to deviatoric stress ($\tautens$); and (ii) non-Newtonian fluids, where deviatoric strain rate is non-linearly proportional to the deviatoric stress. 
+Two important classes of fluids are: (i) Newtonian fluids, where deviatoric strain rate $\left(\etens\right)$ is linearly proportional to deviatoric stress ($\tautens$); and (ii) non-Newtonian fluids, where deviatoric strain rate is non-linearly proportional to the deviatoric stress. At present \fluidity is only configured to deal with Newtonian fluids.
 
 \subsubsection{Newtonian fluids}
 \index{stress}
@@ -463,24 +437,8 @@ where $\mu$ is the molecular viscosity. See \cite{batchelor1967} for further
 details.
 
 \section{Extensions, assumptions and derived equation sets}\label{sect:eqn_extensions}
-Under certain conditions, the equations of Section \ref{Sect:Eqns} can be simplified according to various approximations. In this section we derive the approximate forms of the conservation equations that are appropriate for different problems. 
+Under certain conditions, the equations of Sections \ref{Sect:MP-AdvdifEqn} and \ref {Sect:MP-MomEqn} can be simplified according to various approximations. In this section we derive the approximate forms of the conservation equations that are appropriate for different problems. 
 
-\subsection{Absorption, Reaction and Source Terms}
-The absorption term in \eqref{eq:general_scalar_eqn} 
-\begin{equation}\label{eq:scalar_absorption}
--\sigma c,
-\end{equation}
-has the effect of decreasing the magnitude of $c$ (note the minus sign and the fact 
-that $\sigma$ would typically be positive. It is sometimes termed Rayleigh friction. 
-
-The remaining term in \eqref{eq:general_scalar_eqn}
-\begin{equation}\label{eq:scalar_source}
-F = \sum_i F_i,
-\end{equation}
-can encompasses a number of source and reaction terms. Those terms where $F_i$ are
-a given function of time, location or a-priori known fields are termed sources (and sometime
-sinks if they are negative). Those terms which are also functions of other prognostic fields
-are termed reactions and are common when dealing with chemistry or biology.
 
 \subsection{Equations in a moving reference frame}\label{sect:coriolis}
 \index{Coriolis}
@@ -493,7 +451,7 @@ underlying equations within the moving frame. Extra terms then need to be consid
 which account for the fact that the acceleration of a fluid parcel relative to the 
 moving reference frame is different to the acceleration with respect to the fixed 
 inertial frame, and the latter is the one which allows us to invoke Newton's Laws.
-For useful discussions see \citep{batchelor1967,cushman1994,knauss,vallis2006,gill1982}.
+For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
 
 \begin{figure}\label{fig:rotating_frame}
 \centering
@@ -505,68 +463,8 @@ and the unit vectors $\bmi$, $\bmj$ and $\bmk$ represent a local coordinate axes
 frame: $\bmi$ points Eastwards, $\bmj$ points Northwards and $\bmk$ points in the radial outwards direction.}
 \end{figure}
 
-Consider a point
-\begin{equation*}
-\bmr = x\bmi + y\bmj + z\bmk,
-\end{equation*}
-where $\bmi,\,\bmj,\,\bmk$ represent axes in a coordinate system in the moving frame of
-reference, \eg pointing East, North and upwards at a particular point on the Earth's surface.
-The rate of change of point $\bmr$ with time in the inertial frame can then be written
-\begin{equation*}
-\left(\ddt{\bmr}\right)_i=\left(\ddt{x}\bmi+\ddt{y}\bmj+\ddt{z}\bmk\right)
-+\left(x\ddt{\bmi}+y\ddt{\bmj}+z\ddt{\bmk}\right).
-\end{equation*}
-The first term on the \rhs\ is the rate of change of the point as it appears
-to an observer in the moving reference frame and which can be denoted by
-$(\d\bmr/\d t)_r=\bmu_r$.
-The second term on the \rhs\ accounts for the movement of the reference coordinate system
-with respect to the fixed inertial frame. The case or a rotating reference frame is now considered,
-the translational case is simpler and follows by analogy. Suppose the moving reference frame is
-rotating with an angular velocity $\bmOmega$, then the second term above can be written $\bmOmega\times\bmr$.
-Hence, we may write $\bmu_i=\bmu_r+\bmOmega\times\bmr$.
-
-This procedure can be repeated to consider rates of change of velocity, \ie accelerations. This can be most
-easily achieved by noting that the time derivatives in the two reference frames are related via
-\begin{equation*}
-\left(\ddt{}\right)_i=\left(\ddt{}\right)_r + \bmOmega\times,
-\end{equation*}
-and so 
-\begin{eqnarray*}
-\bma_i=\left(\ddt{}\right)_i\bmu_i &=& \left(\left(\ddt{}\right)_r + \bmOmega\times\right)\left(\bmu_r+\bmOmega\times\bmr\right)\\
-&=&\left(\ddtt{\bmr}\right)_r + \left(\ddt{\bmOmega}\right)_r\times\bmr + 2\bmOmega\times\left(\ddt{\bmr}\right)_r + \bmOmega\times\bmOmega\times\bmr,
-\end{eqnarray*}
-considered like this the third and fourth terms on the \rhs\ represent the Coriolis and Centrifugal accelerations.
-Assuming that the rotation vector $\bmOmega$ is constant and hence the second term on the \rhs\ (the Euler acceleration) 
-is zero, this relation may be rewritten as
-\begin{equation*}
-\bma_r = \bma_i - 2\bmOmega\times\bmu_r - \bmOmega\times\bmOmega\times\bmr.
-\end{equation*}
-where given that acceleration may be treated as force per unit mass states that the observed acceleration of a fluid parcel in the moving frame
-is equal to the acceleration, or force on the fluid parcel divided by its mass, minus a Coriolis force per unit mass and a centrifugal force per unit mass \citep[chap. 2]{vallis2006}. Note that if these two extra force terms are left on the \lhs\ of this relation then they are often termed as accelerations.
-The Coriolis and centrifugal forces are fictitious, or inertial, forces which are only apparent as we are considering accelerations in a non-inertial
-moving frame of reference.
-
-The centrifugal force is can often be dropped as in many cases 
-it may be assumed to be subsumed in a larger gravitational force term.
-This is achieved by noting that $\bmOmega\times\bmr=\bmOmega\times\bmr_\perp$ where $\bmr_\perp$
-is defined to be the perpendicular vector distance of $\bmr$ from the axes of rotation. Then one may write
-\begin{equation*}
-\bmOmega\times(\bmOmega\times\bmr) = \bmOmega\times(\bmOmega\times\bmr_\perp) = (\bmOmega\cdot\bmr_\perp)\bmOmega - \Omega^2\bmr_\perp = - \Omega^2\bmr_\perp,
-\end{equation*}
-as $\bmOmega\cdot\bmr_\perp=0$ and where $\Omega=|\bmOmega|=\sqrt{\bmOmega\cdot\bmOmega}$.
-This can be written as the gradient of the scalar
-potential $\Phi_c = \Omega^2|\bmr_\perp|^2/2$ and combined to give an effective gravity 
-$\bmg_{\mathrm{eff}} = \bmg + \Omega^2|\bmr_\perp|$. Note that g
-points towards the centre of mass of the body being considered, whereas the centrifugal term points
-towards the axes of rotation, hence the effective gravity on a rotating body such as the Earth depends
-on latitude as $|\bmr_\perp|=|\bmr|\cos\phi$. On the Earth $|\bmr|=\km[6378]$ and hence at the equator ($\phi=0$)
-the centrifugal term is at a maximum with a value \mss[0.034], \ie much smaller than gravity. Centrifugal
-effects may need to be considered for a faster rotating body -- for example spinning laboratory or manufacturing tanks.
-
-It is now possible to form the
-equations with respect to a moving reference frame as long as the
-additional force or acceleration term is included.
-In the case of a rotating frame that is
+It is possible to form the equations with respect to a moving reference frame as long as the
+additional force or acceleration term is included. In the case of a rotating frame that is
 just by replacing the material derivative in the momentum equation by
 \begin{equation}
 \DDt{\bmu} + 2\bmOmega\times\bmu,
@@ -593,7 +491,6 @@ The acceleration terms in the three momentum equations now have the form
 &&\DDt{v} + 2\Omega\sin\phi\; u,\\
 &&\DDt{w} {\color{red}-} {\color{red}2\Omega\cos\phi\; v}.
 \end{eqnarray*}}
-
 
 \subsubsection{The `traditional' approximation}
 \index{traditional approximation}
@@ -650,28 +547,12 @@ and
 \end{center}
 
 
-\subsection{Free surface}\label{Sect:FS}
-\index{free surface}
-The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
-may be modelled either via the integrated continuity equation,
-or for simplicity here by the kinematic boundary condition which simply states
-that particles on the free surface remain on it, \ie
-\begin{equation}\label{freesurf2}
-\frac{\partial \eta}{\partial t}=-\left.{\bmu}_H\right|_{z=\eta}\cdot\nabla_H \eta +\left.w\right|_{z=\eta} \quad \textrm{on}\quad \Gamma_{FS},
-\end{equation}
-where $\Omega_{FS}\subset \partial \Omega$ is the free surface boundary, $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
-$\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal vector $\vec n$ at the free surface is $\frac{(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T}{||(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T||}$, equation \eqref{freesurf2} can be reformulated to
-\begin{equation}\label{freesurf3}
-\frac{\partial \eta}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec z},
-\end{equation}
-where $\vec z=(0,0,1)$ is the vertical standard basis vector.
-
 \subsection{Multi-material Simulations}
 \index{multi-material flow}
-The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems.  Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach.  The Multi-material approach is currently implemented within /fluidity/. Multi-phase is currently under development and is therefore not discussed here. 
+The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems.  Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach.  The Multi-material approach is currently implemented within \fluidity. Multi-phase is currently under development and is therefore not discussed here. 
 In situations where the model can resolve physical mixing of immiscible materials, or where there is no mixing, only one velocity field (and hence one momentum equation) is required to describe the flow of all materials. The \emph{multi-material} approach, considers all materials to be immiscible materials separated by a sharp interface.
 
-In a multi-material approach, the various forms of the conservation equations (\eg \eqref{nonconservativesystem} and~\eqref{stokessystem}) can be solved for multiple material flows if the pointwise mass density $\rho$ in the equations is defined as the bulk density at each point.  If the flow comprises $n$ materials and the volume fraction of the $i^{th}$ material is denoted $\phi_i$ then the bulk density is given by:
+In a multi-material approach, the various forms of the conservation equations can be solved for multiple material flows if the pointwise mass density $\rho$ in the equations is defined as the bulk density at each point.  If the flow comprises $n$ materials and the volume fraction of the $i^{th}$ material is denoted $\phi_i$ then the bulk density is given by:
 \begin{equation}
 \rho = \sum_{i=1}^n \phi_i\rho_i
 \end{equation}
@@ -689,3 +570,37 @@ The transport of the $i^{th}$ volume fraction is given by
 \ppt{\phi_i} + \bmu\cdot\nabla\phi_i = 0,
 \end{equation}
 where the volume fraction field at time zero must be specified.
+
+
+\subsection{Absorption, Reaction and Source Terms}
+The absorption term in \eqref{eq:general_scalar_eqn} 
+\begin{equation}\label{eq:scalar_absorption}
+-\sigma c,
+\end{equation}
+has the effect of decreasing the magnitude of $c$ (note the minus sign and the fact 
+that $\sigma$ would typically be positive. It is sometimes termed Rayleigh friction. 
+
+The remaining term in \eqref{eq:general_scalar_eqn}
+\begin{equation}\label{eq:scalar_source}
+F = \sum_i F_i,
+\end{equation}
+can encompasses a number of source and reaction terms. Those terms where $F_i$ are
+a given function of time, location or a-priori known fields are termed sources (and sometime
+sinks if they are negative). Those terms which are also functions of other prognostic fields
+are termed reactions and are common when dealing with chemistry or biology.
+
+\subsection{Free surface}\label{Sect:FS}
+\index{free surface}
+The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
+may be modelled either via the integrated continuity equation,
+or for simplicity here by the kinematic boundary condition which simply states
+that particles on the free surface remain on it, \ie
+\begin{equation}\label{freesurf2}
+\frac{\partial \eta}{\partial t}=-\left.{\bmu}_H\right|_{z=\eta}\cdot\nabla_H \eta +\left.w\right|_{z=\eta} \quad \textrm{on}\quad \Gamma_{FS},
+\end{equation}
+where $\Omega_{FS}\subset \partial \Omega$ is the free surface boundary, $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
+$\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal vector $\vec n$ at the free surface is $\frac{(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T}{||(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T||}$, equation \eqref{freesurf2} can be reformulated to
+\begin{equation}\label{freesurf3}
+\frac{\partial \eta}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec z},
+\end{equation}
+where $\vec z=(0,0,1)$ is the vertical standard basis vector.
