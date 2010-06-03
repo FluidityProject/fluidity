@@ -1585,7 +1585,7 @@ For the spatial discretisation a control-volumes discretisation with a finite-el
 \item \option{\ldots/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
 \item \option{\ldots/prognostic/spatial\_discretisation/control\_volumes/\\face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
 \end{itemize}
-To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts) [REFERENCE SECTION]. To do this activate the option:
+To help increase speed it is possible to store upwind elements so they do not have to be recalculated every time step (only after adapts) [REF SECTION]. To do this activate the option:
 \begin{itemize}
 \item{\ldots/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement/\\limit\_face\_value/limiter::Sweby/project\_upwind\_value\_from\_point/store\_upwind\_elements}
 \end{itemize}
@@ -1608,9 +1608,9 @@ projected to continuous space, advection integrated by parts once and
 a compact-discontinuous-Galerkin diffusion scheme with a vertex-based
 slope limiter. These options are selected with:
 \begin{itemize}
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/lax\_friedrichs}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
 \item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/project\_velocity\_to\_continuous/mesh::CoordinateMesh}, cf. [REF SECTION]
-\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}, cf. [REF SECTION]
+\item{\ldots/spatial\_discretisation/discontinuous\_galerkin/advection\_scheme/integrate\_advection\_by\_parts/once}, cf. \ref{Sect:ND_discontinuous_galerkin_advection}
 \item{\ldots/spatial\_discretisation/discontinuous\_galerkin/diffusion\_scheme/compact\_discontinuous\_galerkin}, cf. \ref{sec:NM_DG_diffusion}
 \item{\ldots/spatial\_discretisation/discontinuous\_galerkin/slope\_limiter::Vertex\_Based}, cf. \ref{Sect:ND_DG_slope_limiters}.
 \end{itemize}

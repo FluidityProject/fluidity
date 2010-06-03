@@ -57,40 +57,33 @@ In the following, a description of the internal diagnostics available in \fluidi
 Internal \option{scalar\_field} diagnostics:
 
 \begin{description}
-\item[CFLNumber:]CFLNumber. See \url{http://amcg.ese.ic.ac.uk/index.php?title=Local:Diagnostics\#CFL\_Number}.
-	Adapting to this field is not recommended  
-\item[ControlVolumeCFLNumber:]Number as defined on a control volume mesh. Adapting to this field is not recommended  
-\item[DG\_CourantNumber:]Number as defined on a DG mesh. Adapting to this field is not recommended  
-\item[DiscontinuityDetector:]Discontinuity detector takes value 1 where detector is triggered.
-	Adapting to this field is not recommended  
-\item[CVMaterialDensityCFLNumber:]Number as defined on a control volume mesh and incorporating the Material Density. Requires a MaterialDensity field!
-Adapting to this field is not recommended  
-\item[SolidConcentration:]  
-\item[CopyofDensity:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF.  
-\item[VisualizeSolidFluid:]Add field to be used by Solid\_configuration to Visualize the solids and MaterialVolumeFraction together  
-\item[VisualizeSolid:]Add field to be used by Solid\_configuration to Visualize the solid\_Concentration  
-\item[ParticleScalar:]Add field to be used by Solid\_configuration to map  the solid\_Concentration from particle mesh to the fluid mesh.  
-\item[FunctionalBegin:]Add field to be used by Explicit\_ALE to visualize functional values before iterations start.  
-\item[FunctionalIter:]Add field to be used by Explicit\_ALE to visualize functional values at each iteration.  
-\item[MaterialVolume:]Add a MaterialVolume scalar\_field to calculate the spatially varying volume of a material (requires a MaterialVolumeFraction)  
-\item[MaterialMass:]Add a MaterialMass scalar\_field to calculate the spatially varying mass of a material (requires a MaterialVolumeFraction and a MaterialDensity)  
-\item[MaterialEOSDensity:]Calculates the MaterialDensity based on the bulk Pressure(and MaterialInternalEnergy if appropriate) for the equationof state of this material.  
-\item[MaterialPressure:]Calculates the MaterialPressure based on the MaterialDensity(and MaterialInternalEnergy if appropriate) for the equationof state of this material.  
-\item[BulkMaterialPressure:]Calculates the BulkMaterialPressure based on the MaterialDensityand MaterialVolumeFraction (and MaterialInternalEnergy if appropriate) for the equation of state of all materials.  
-\item[GridReynoldsNumber:]Grid Reynolds number  
-\item[GridPecletNumber:]The GridPecletNumber is $Pe = U*dx/2*\mbox{diffusivity}$.
-	Also see the test case 'grid\_peclet\_number'if you wish to see the effect of changing the diffusivity on a 1D, cg-discretised tracer-field.
-	Adapting to this field is not recommended  
-\item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \mbox{velocity}$. Uses the gravity field direction to determine the horizontal plane.  
-\item[VelocityDivergence:]Velocity divergence: $div \mbox{ velocity}$  
-\item[Vorticity2D:]Vorticity for a 2D field: $\ppx{u} - \ppt[y]{v}$  
-\item[KineticEnergyDensity:]Kinetic energy density: $\frac{1}{2} \rho |u|^2$ where $\rho$ is the density. \\
-	Limitations: The Density, KineticEnergyDensity and Velocity fields must be on the same mesh.  
-\item[GravitationalPotentialEnergyDensity:]Gravitational potential energy density: $\rho(g \cdot (r - r_0))$ where $\rho$ is the density, and $r_0$ is the potential energy zero point. \\
+\item[AbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. It also assumes both fields are on the same mesh as the AbsoluteDifference field.  
+\item[BackgroundPotentialEnergyDensity:]Background potential energy density: $PE_b = \rho z_{star}$ where $\rho$ is the density, $z_{star}$ is the isopycnal coordinate (which is calculated in the diagnostic \option{scalar\_field::IsopycnalCoordinate}. \\Limitations: 
+	\begin{itemize}
+	\item Requires a constant gravity direction. 
+	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
+	\end{itemize}
+Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate} and (therefore) is not parallelised.
+\item[***CFLNumber:]CFLNumber as defined on the co-ordinate mesh. 
+\item[***ControlVolumeCFLNumber:]CFL Number as defined on a control volume mesh.  
+\item[***CopyofDensity:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF.  
+\item[***DG\_CourantNumber:]CFLNumber as defined on a DG mesh.
+\item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
+\item[***DiscontinuityDetector:]Discontinuity detector takes the value 1 where a detector is triggered. 
+\item[ElementOwner:]Outputs the processors which own the elements of the mesh on which this field is based.  
+\item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualize functional values before iterations start.  
+\item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualize functional values at each iteration.
+\item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as this diagnostic \option{scalar\_field}.
+\item[GravitationalPotentialEnergyDensity:]Gravitational potential energy density: $\rho(g \cdot (r - r_0))$ where $\rho$ is the density (taken from \option{scalar\_field::Density}), and $r_0$ is the potential energy zero point. \\
 	Limitations: \begin{itemize}
 	\item Requires a constant gravity direction. 
 	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize}
+\item[***GridPecletNumber:]The GridPecletNumber is $Pe = U*dx/2*\tensor{\kappa}$, where $\tensor{\kappa}$ is the diffusivity. 
+\item[***GridReynoldsNumber:]Grid Reynolds number 
+\item[***HarmonicPhaseSSa:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. 
+\item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\ppx[]{\psi} = -v$ and  $\ppx[y]{\psi}  = u$ where $u$ and $v$ are the velocity components perpendicular to the gravity direction. A strong Dirichlet boundary condition of $0$ is applied on all boundaries.  
+\item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \vec{u}$. The horizontal plane is determined from the gravity field direction. 
 \item[IsopycnalCoordinate:]Isopycnal coordinate
 	$z_{star(x,t)} = \frac{1}{A} \int_{V'} H(\rho(x',t)-\rho(x,t)) dV'$ where $\rho$ is the density, $A$ is the width/area of the domain. \\
 	Limitations:
@@ -98,29 +91,35 @@ Adapting to this field is not recommended
 	\item You need to specify a (fine) mesh to redistribute the Density onto.
 	\item Requires a constant gravity direction. 
 	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
+	\item Not parallelised
 	\end{itemize} 
-\item[BackgroundPotentialEnergyDensity:]Background potential energy density: $PE_b = \rho z_{star}$ where $\rho$ is the density, $z_{star}$ is the isopycnal coordinate. \\Limitations: 
-	\begin{itemize}
-	\item Requires a constant gravity direction. 
-	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
-	\end{itemize}
-\item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\frac{\partial \rho}{\partial y}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\kappa \frac{\partial \rho}{\partial y}$ (2 subject to definition) where $\frac{\partial \rho}{\partial T} + u\cdot \nabla \rho = \kappa \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
-\item[ViscousDissipation:] $\nabla u : \nabla u = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla u):(\nabla u)$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
-Limitations: Only coded for 2D
-\item[PotentialVorticity:]Ertel potential vorticity: $(f + \mbox{curl } u) \cdot \mbox{grad } \rho'$
-	Limitations: Requires a geometry dimension of 3.  
-\item[RelativePotentialVorticity:]Relative potential vorticity:  $\mbox{curl } u \cdot \mbox{grad } \rho'$  
-\item[MeshEdgeLengths:]Local average mesh edge lengths  
-\item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\partial_x \psi = -v$ and  $\partial_y \psi = u$ where $u$ and $v$ are perpendicular to the gravity direction. Applies astrong Dirichlet boundary condition of $0$ on all boundaries.  
-\item[Speed:]Speed: $|u|$ 
-	Limitations: The Speed and Velocity fields must be on the same mesh.  
+\item[KineticEnergyDensity:]Kinetic energy density: $\frac{1}{2} \rho |\vec{u}|^2$ where $\rho$ is the density taken from the \option{scalar\_field::Density}. \\
+	Limitations: The Density, KineticEnergyDensity and Velocity fields must be on the same mesh.  
+\item[MaterialDensity:]CWILSON TO WRITE
+\item[MaterialMass:]Add a MaterialMass scalar\_field to calculate the spatially varying mass of a material.  
+\item[MaterialVolume:]Add a MaterialVolume scalar\_field to calculate the spatially varying volume of a material.
+\item[***MaterialVolumeFraction:]CWILSON TO WRITE
+\item[***MeshEdgeLengths:]Local average mesh edge lengths 
+\item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
+\item[ParticleScalar:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh.
+\item[***PhytoplanktonGrazing:]Grazing of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.   
+\item[***PotentialVorticity:]Ertel potential vorticity: $(f + \mbox{curl } \vec{u}) \cdot \mbox{grad } \rho'$
+	Limitations: Requires a geometry dimension of 3. 
+\item[***PrimaryProduction:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  
+\item[***RelativePotentialVorticity:]Relative potential vorticity:  $\mbox{curl } \vec{u} \cdot \mbox{grad } \rho'$   
+\item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
+\item[***SolidConcentration:]  
 \item[SolidPhase:]Volume of the vehicles used in Traffic Modelling  
-\item[AbsoluteDifference:]Absolute Difference between two scalar fields. Both fields must be in this material\_phase. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
-\item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields must be in this material\_phase. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
-\item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in this material\_phase. 
-	NOTE: you need the solver options if the mesh of this field is continuous.  
-\item[PrimaryProduction:]Primary production of Phytoplankton. This is calculated bythe ocean biology module and will not be calculated unlessocean biology is being simulated.  
-\item[PhytoplanktonGrazing:]Grazing of Phytoplankton by Zooplankton. This is calculated bythe ocean biology module and will not be calculated unlessocean biology is being simulated.  
+\item[Speed:]Speed: $|\vec{u}|$ 
+	Limitations: The Speed and Velocity fields must be on the same mesh. 
+\item[***SumMaterialVolumeFractions:]CWILSON TO WRITE
+\item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.
+\item[VelocityDivergence:]Velocity divergence: $div \mbox{ \vec{u}}$ 
+\item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
+Limitations: Only coded for 2D
+\item[VisualizeSolid:]Add a field to be used by Solid\_configuration to visualize the solid\_Concentration 
+\item[VisualizeSolidFluid:]Add a field to be used by Solid\_configuration to visualize the solids and MaterialVolumeFraction together.
+\item[Vorticity2D:]Vorticity for a 2D field: $\ppx{u} - \ppt[y]{v}$  
 \item[TidalRange]  
 \item[MaxFreeSurface]  
 \item[MinFreeSurface]  
@@ -145,10 +144,6 @@ Limitations: Only coded for 2D
 \item[HarmonicAmplitudeMm]  
 \item[HarmonicPhaseMm]  
 \item[HarmonicAmplitudeSSa]  
-\item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.  
-\item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.  
-\item[ElementOwner:]Output the processors which own the elements of the mesh on which this field is based.  
-\item[HarmonicPhaseSSa:]Primary production of Phytoplankton. This is calculated bythe ocean biology module and will not be calculated unlessocean biology is being simulated.  
 \end{description}
 
 The available internal \option{vector\_field}  diagnostics are:
