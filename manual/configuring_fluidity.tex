@@ -249,41 +249,6 @@ def val(X,t):
     vector field about the origin.}
 \end{example}
 
-\begin{example}
-  \begin{lstlisting}[language=Python]
-def val(X,t):
-    from numpy import matrix
-    from math import sqrt
-    dx= (matrix(X)-matrix((-0.5,0)))
-    r=sqrt(dx*dx.T)
-    if (r<0.25):
-        return 1.0
-    else:
-        return 0    
-  \end{lstlisting}
-  \caption{A Python function returning a scalar tracer value which is 1.0 in
-  a disk of radius 0.25 about the point (-0.5,0) and zero elsewhere. This
-  example illustrates that it is possible to use a range of Python commands
-  including importing modules.}
-\end{example}
-
-\begin{example}
-  \begin{lstlisting}[language=Python]
-def val(X,t):
-   t_ramp=50.
-   if t<t_ramp:
-       scale=t/t_ramp
-   else:
-       scale=1.
-   return [[scale*100, 0, 0],
-           [0, scale*100, 0],
-           [0, 0, scale*1.e-3]]
-  \end{lstlisting}
-  \caption{A Python function returning a tensor which might be a typical
-    three-dimensional diffusivity. The diffusivity ramps up from zero over
-    the first 50 time units.}
-\end{example}
-
 \subsubsection{Reading fields from a file}
 \index{field!input}
 A field can be populated using saved data from a file. This is intended primarily
