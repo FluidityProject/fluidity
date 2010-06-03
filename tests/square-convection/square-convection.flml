@@ -144,6 +144,9 @@
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-16</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
