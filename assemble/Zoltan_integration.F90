@@ -158,8 +158,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 !   variables for recording various element quality functional values 
     real(zoltan_float) :: quality, min_quality
 
-!   variables for recording the local maximum edge weight and local 90th percentile edge weight
-    real(zoltan_float) :: max_weight, ninety_weight
+!   variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
+    real(zoltan_float) :: min_weight, max_weight, ninety_weight
 
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
     type(integer_set) :: nelistA, nelistB, intersection
@@ -258,11 +258,14 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 !  calculate the local maximum edge weight
    max_weight = maxval(ewgts(1:head-1))
 
-!  don't want to adjust the weights if all the elements are within tolerance
-   if (max_weight .NE. 1.0) then
-!     calculate the local 90th percentile edge weight   
-      ninety_weight = max_weight * 0.9
+!  calculate the local minimum edge weight
+   min_weight = minval(ewgts(1:head-1))
 
+!  calculate the local 90th percentile edge weight   
+   ninety_weight = max_weight * 0.9
+
+!  don't want to adjust the weights if all the elements are of a similar quality
+   if (min_weight < ninety_weight) then
 !     make the worst 10% of elements uncuttable
       do i=1,head-1
          if (ewgts(i) .GT. ninety_weight) then
