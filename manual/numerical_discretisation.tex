@@ -784,10 +784,10 @@ approaches to circumventing this problem which have been shown to be
 essentially equivalent in \cite{arnold2002}, which we describe in this
 section.
 
-The first approach, which
-leads to the class of interior penalty methods, is to
-integrate the Laplacian by parts separately in each element
-(within which the functions are continuous), and the equations become
+The first approach, which leads to the class of interior penalty
+methods, is to integrate the Laplacian by parts separately in each
+element (within which the functions are continuous), and the equations
+become
 \begin{equation}
 \label{eq:poisson-parts}
 \sum_E\left(-\int_E\nabla \phi^\delta\cdot\nabla c^\delta +
@@ -869,22 +869,24 @@ the following properties:
 \item Discontinuity-detecting: $\alpha(c^\delta,c^\delta)$ increases
   as the discontinuities across facets increase.
 \end{enumerate}
-Note that, due to the continuity-vanishing property, equation
-\eqref{eq:poisson-penalty} is satisfied by the exact solution (which
-is always continuous) to the Poisson equation, which is the required
-\emph{consistency condition}.  In defining the particular form the penalty
-functional $\alpha$ it is necessary to maintain a balance: if the
-functional penalises discontinuities too much then the resulting
-matrix is ill-conditioned, if it penalises discontinuities too little
-then there is not enough communication between elements and the
-numerical solution does not converge to the exact solution. The
-particular form of $\alpha$ for the Interior Penalty method is
-described below.
+The form of equation \eqref{eq:poisson-penalty} is called the
+\emph{primal form}.  Note that, due to the continuity-vanishing
+property, equation \eqref{eq:poisson-penalty} is satisfied by the
+exact solution (which is always continuous) to the Poisson equation,
+which is the required \emph{consistency condition}.  In defining the
+particular form the penalty functional $\alpha$ it is necessary to
+maintain a balance: if the functional penalises discontinuities too
+much then the resulting matrix is ill-conditioned, if it penalises
+discontinuities too little then there is not enough communication
+between elements and the numerical solution does not converge to the
+exact solution. The particular form of $\alpha$ for the Interior
+Penalty method is described below.
 
-The second approach (the LDG framework which leads to Bassi-Rebay and
-CDG methods) is to introduce a vector field
+The second approach (the Local Discontinuous Galerkin (LDG) framework
+\citep{cockburn1998,sherwin2006} which leads to Bassi-Rebay and
+Compact Discontinous Galerkin methods) is to introduce a vector field
 $\vec{\xi}$, to rewrite the Poisson equation as a system of
-first-order equations
+first-order equations 
 \begin{equation}
 \label{eq:poisson-first-order}
 \nabla\cdot\vec{\xi} = f, \quad \vec{\xi}=\nabla c,
@@ -892,12 +894,12 @@ first-order equations
 and to finally eliminate the vector field $\vec{\xi}$. This
 elimination is possible to do locally (\emph{i.e.} only depending on
 the values of $c$ in nearby elements) since the mass matrix for DG
-fields is block diagonal and so does not couple together nodes from
-different elements. For discontinuous Galerkin methods, we introduce a
-discontinuous vector test function $\vec{w}^{\delta}$. Multiplication
-of equations \eqref{eq:poisson-first-order} by test functions,
-integrating over a single element $E$ and applying integration by
-parts leads to
+fields is block diagonal and so the inverse mass matrix does not
+couple together nodes from different elements. For discontinuous
+Galerkin methods, we introduce a discontinuous vector test function
+$\vec{w}^{\delta}$. Multiplication of equations
+\eqref{eq:poisson-first-order} by test functions, integrating over a
+single element $E$ and applying integration by parts leads to
 \begin{equation}
 \label{eq:ldg}
 -\int_E\nabla\phi^{\delta}\cdot\vec{\xi}^\delta + \int_{\partial E}
@@ -907,9 +909,10 @@ parts leads to
 -\int_E\nabla\cdot\vec{w}^\delta c^\delta + \int_{\partial E}
 \vec{n}\cdot\vec{w}^\delta \hat{c}^\delta = \int_E\vec{w}^\delta\cdot\vec{\xi}^\delta.
 \end{equation}
-The exact definition of the particular scheme depends on how the
-surface values (fluxes) $\hat{\vec{\xi}}^\delta$ and $\hat{c}^\delta$
-are defined. The choice of these fluxes has an impact on the stability
+This form of the equations is called the \emph{dual form}.  The exact
+definition of the particular scheme depends on how the surface values
+(fluxes) $\hat{\vec{\xi}}^\delta$ and $\hat{c}^\delta$ are
+defined. The choice of these fluxes has an impact on the stability
 (whether there are any spurious modes), consistency (whether the
 discrete equation is satisfied by the exact solution), convergence
 (whether and how fast the numerical solution approaches the exact
@@ -918,38 +921,89 @@ resulting matrix). It is worth noting at this point that the method of
 rewriting the second-order operator as a first-order system has some
 superficial connections with the discrete pressure projection method
 for continuous finite element methods as described in Section
-\ref{Sect:pressure_correction}. However, many of the ideas do not carry
-over to the discontinuous Galerkin framework, for example, it is
+\ref{Sect:pressure_correction}. However, many of the ideas do not
+carry over to the discontinuous Galerkin framework, for example, it is
 neither necessary nor sufficient to reduce the polynomial order of
 $\phi^\delta$ relative to the polynomial order of
 $\vec{\xi}^\delta$. The issues of stability, consistency, convergence
 and sparsity for DG discretisations of the diffusion operator are
-extremely subtle and there is an enormous literature on this topic; it 
+extremely subtle and there is an enormous literature on this topic; it
 remains a dangerous tar pit for the unwary developer looking to invent
 a new DG diffusion operator discretisation.
 
 It was shown in \citet{arnold2002} (which is an excellent review of DG
-methods for elliptic problems) that numerical schemes obtained from 
-this second approach result precisely in discretisations of the form
-\eqref{eq:poisson-penalty} with some particular choice of the
-functional $\alpha$. Hence, it is possible to describe the three
-options available in Fluidity together, in the following subsections.
+methods for elliptic problems) that numerical schemes obtained from
+this second approach can be transformed to primal form, resulting
+precisely in discretisations of the form \eqref{eq:poisson-penalty}
+with some particular choice of the functional $\alpha$. Hence, it is
+possible to describe the three options available in Fluidity together,
+in the following subsections.
 
 \subsection{Interior Penalty}
-%The Interior Penalty method is a very simple scheme with penalty
-%functional of the form
-%\[
-%\alpha(\phi^\delta,c^\delta) = 
-%\]
+The Interior Penalty method is a very simple scheme with penalty
+functional of the form
+\begin{equation}
+\label{eq:ip}
+\alpha(\phi^\delta,c^\delta) = \sum_{\Gamma}C_{\Gamma}\int_{\Gamma}
+[[\phi^\delta]]\cdot[[c^\delta]],
+\end{equation}
+where for a scalar function $\phi^\delta$, the jump bracket
+$[[\cdot]]$ is a vector quantity defined as
+\[
+[[\phi^\delta]] = \phi^\delta|_{E^+}\vec{n}^+ + \phi^\delta|_{E^-}\vec{n}^-.
+\]
+For convergence, the constant $C_{\Gamma}$ should be positive and
+proportional to $h^{-1}$, where $h$ is the element edge length. This 
+needs to be carefully defined for anistropic meshes.
+
 \subsection{Bassi Rebay}
 \label{BassiRebay}
 \index{diffusion!discontinuous Galerkin!Bassi Rebay}
 \index{Bassi Rebay}
-\subsection{CDG}
-\label{CDG}
-\index{CDG}
-\index{diffusion!discontinuous Galerkin!CDG}
+The scheme of Bassi-Rebay \citep{bassi1997} is in some sense the most
+simple choice within the LDG framework, in which the fluxes are just
+taken from the symmetric averages:
+\[
+\hat{\xi}^\delta = \{\vec{\xi}^\delta\}, \quad
+\hat{\phi}^\delta = \{\phi^\delta\}.
+\]
+This scheme was analysed in \cite{arnold2002}, and was shown to only
+converge in the following rather weak sense: if the numerical solution
+and exact solution are projected to piecewise constant
+($P0$) functions then these projected solutions converge to each at order $p+1$,
+without this projection they only converge at order $p$, where $p$ is
+the polynomial order used in the DG element. Furthermore, the
+Bassi-Rebay scheme has a very large stencil (large number of non-zero
+values in the resulting matrix). For this reason, other more
+sophisticated flux choices have been investigated.
 
+\subsection{Compact Discontinuous Galerkin}
+\label{CDG}
+\index{Compact Discontinuous Galerkin} \index{diffusion!discontinuous
+  Galerkin!CDG} The Compact Discontinuous Galerkin (CDG) scheme
+\cite{peraire2008} has a rather complex choice of fluxes based on
+``lifting operators'' (see the paper for more information). When
+transforming the equations to primal form, this choice of flux results
+in a sophisticated penalty function with two terms. The first term
+exactly cancels part of the flux integrals in equation
+\eqref{eq:poisson-penalty} so that all of the symmetric fluxes using
+the averaging bracket $\{\cdot\}$ are replaced by the flux evaluated
+on one particular (arbitrarily chosen) side of the facet (there are
+various schemes for making this choice). The second term only couples
+together nodes which share the same facet. Both of these terms result
+in a much smaller stencil than for the Bassi-Rebay scheme in
+particular and other LDG schemes in general. Furthermore, the scheme
+is observed to be stable, consistent, and optimally convergent
+(numerical solutions converge at order $(p+1)$). The scheme optionally
+includes the interior penalty term from equation \eqref{eq:ip}, but
+the constant may be independent of $h$. This term only appears to be
+necessary for the mathematical proofs of stability and convergence
+since in practise good results are obtained without this term (in fact
+the results are usually more accurate without this term). Since the
+penalty term has only one tunable constant (which may be set to zero)
+with does not depend on $h$, this makes the CDG scheme very attractive
+for anisotropic elements, including large aspect ratio meshes such as
+those used in large scale ocean modelling.
 
 \section{The time loop}
 
