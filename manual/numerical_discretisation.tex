@@ -759,10 +759,188 @@ damage to the solution if the discontinuity detector is too strict
 \emph{i.e.}  identifies too many elements as troubled, but will reduce
 the efficiency of the method. 
 
-\section{Diffusion term for DG/FV}\label{sec:NM_DG_diffusion}
-\index{diffusion!discontinuous Galerkin}
-Discretising the diffusion term for discontinuous Galerkin and finite 
-volume methods is a challenge since 
+\section{Diffusion term for DG}
+\label{sec:NM_DG_diffusion}
+\index{diffusion!discontinuous Galerkin} In this section we describe
+the discretisation of the diffusion operator using discontinuous
+Galerkin methods. We concentrate on solving the equation
+\begin{equation}
+\label{eq:poisson}
+\nabla^2 c = f,
+\end{equation}
+although this can easily be extended to the advection-diffusion and
+momentum equations by replacing $f$ with the rest of the equation.
+Discretising the Poisson equation \eqref{eq:poisson} using
+discontinuous Galerkin is a challenge since discontinuous fields are
+not immediately amenable to introducing second-order operators (they
+are best at advection): the treatment of the diffusion operator is one
+of the main drawbacks with discontinuous Galerkin methods.  The
+standard continuous finite element approach is to multiply equation
+\eqref{eq:poisson} by a test function and integrate the Laplacian by
+parts, leading to integrals containing the gradient of the trial and
+test functions. Since the trial and test functions contain
+discontinuities, these integrals are not defined. There are two
+approaches to circumventing this problem which have been shown to be
+essentially equivalent in \cite{arnold2002}, which we describe in this
+section.
+
+The first approach, which
+leads to the class of interior penalty methods, is to
+integrate the Laplacian by parts separately in each element
+(within which the functions are continuous), and the equations become
+\begin{equation}
+\label{eq:poisson-parts}
+\sum_E\left(-\int_E\nabla \phi^\delta\cdot\nabla c^\delta +
+ \int_{\partial E} \phi^\delta \vec{n}\cdot\nabla c^\delta\right) = 
+\sum_E\int_E \phi^\delta f^{\delta},
+\end{equation}
+where $E$ is the element index $\int_E$ indicates an integral over
+element $E$, $\int_{\partial E}$ indicates an integral over the
+boundary of $E$, $\phi^\delta$ is the DG test function, $c^\delta$ is
+the DG trial function, and $f^\delta$ is the DG approximation of $f$.
+The next step is to notice that for each facet (face in 3D, edge in 2D
+or vertex in 1D) there is a surface integral on each side of the
+facet, and so equation \eqref{eq:poisson-parts} becomes 
+\begin{equation}
+\label{eq:poisson-parts-facets}
+-\sum_E\int_E\nabla \phi^\delta\cdot\nabla c^\delta +
+\sum_\Gamma\int_{\Gamma} [[\nabla c^\delta{\phi}^\delta]] = 
+\sum_E\int_E \phi^\delta f^{\delta},
+\end{equation}
+where $\Gamma$ is the facet index, $\int_{\Gamma}$ indicates an
+integral over facet $\Gamma$, and the jump bracket
+$[[\vec{v}^\delta]]$ measures the jump in the normal component of
+$\vec{v}^\delta$ across $\Gamma$ and is defined by
+\[
+[[\vec{v}^\delta]] = \vec{v}^\delta|_{E^+}\cdot\vec{n}^+ + 
+\vec{v}^\delta|_{E^-}\cdot\vec{n}^-,
+\]
+where $E^+$ and $E^-$ are the elements on either side of facet
+$\Gamma$, $\vec{v}^\delta_{E^{\pm}}$ is the value of the vector-valued
+DG field $\vec{v}^\delta$ on the $E^{\pm}$ side of $\Gamma$, and
+$\vec{n}^{\pm}$ is the normal to $\Gamma$ pointing out of
+$E^{\pm}$. The problem with this formulation is that there is still no
+communication between elements, and so the equation is not
+invertible. The approximation is made consistent by making three
+changes to equation \eqref{eq:poisson-parts-facets}. Firstly, in the
+facet integral, the test function $\phi^\delta$ (which takes different
+values either side of the face) is replaced by the average value, 
+$\{\phi^\delta\}$ defined by
+\[
+\{\phi^\delta\} = \frac{\phi^\delta|_{E^+} + \phi^\delta|_{E^-}}{2},
+\]
+leading to 
+\begin{equation}
+\label{eq:poisson-parts-facets-average}
+-\sum_E\int_E\nabla \phi^\delta\cdot\nabla c^\delta +
+\sum_\Gamma\int_{\Gamma} [[\nabla c^\delta]]\{\phi^\delta\} = 
+\sum_E\int_E \phi^\delta f^{\delta}.
+\end{equation}
+Secondly, to make the operator symmetric (required for adjoint
+consistency, also means that the conjugate gradient method can be used
+to invert the matrix), an extra jump term is added, leading to
+\begin{equation}
+\label{eq:poisson-parts-facets-average-symmetric}
+-\sum_E\int_E\nabla \phi^\delta\cdot\nabla c^\delta +
+\sum_\Gamma\int_{\Gamma} [[\nabla c^\delta]]\{\phi^\delta\} +
+\{c^\delta\}
+[[\nabla\phi^\delta]] = \sum_E\int_E \phi^\delta f^{\delta}.
+\end{equation}
+Note that this symmetric averaging couples together each node in
+element $E$ with all the nodes in the elements which share facets with
+element $E$. Thirdly, a penalty term is added which tries to reduce
+discontinuities in the solution, and the discretised equation becomes
+\begin{equation}
+\label{eq:poisson-penalty}
+-\sum_E\int_E\nabla \phi^\delta\cdot\nabla c^\delta +
+\sum_\Gamma\int_{\Gamma} [[\nabla c^\delta]]\{\phi^\delta\} +
+\{c^\delta\}
+[[\nabla\phi^\delta]] + \alpha(\phi^\delta,c^\delta)
+= \sum_E\int_E \phi^\delta f^{\delta},
+\end{equation}
+where $\alpha(\cdot,\cdot)$ is the penalty functional which satisfies
+the following properties:
+\begin{enumerate}
+\item Symmetry:
+  $\alpha(c^\delta,\phi^\delta)=\alpha(\phi^\delta,c^\delta)$.
+\item Positive semi-definiteness: $\alpha(c^\delta,c^\delta)\geq 0$.
+\item Continuity-vanishing: $\alpha(c^\delta,c^\delta)=0$ when $c^\delta$ is continuous
+ across all facets.
+\item Discontinuity-detecting: $\alpha(c^\delta,c^\delta)$ increases
+  as the discontinuities across facets increase.
+\end{enumerate}
+Note that, due to the continuity-vanishing property, equation
+\eqref{eq:poisson-penalty} is satisfied by the exact solution (which
+is always continuous) to the Poisson equation, which is the required
+\emph{consistency condition}.  In defining the particular form the penalty
+functional $\alpha$ it is necessary to maintain a balance: if the
+functional penalises discontinuities too much then the resulting
+matrix is ill-conditioned, if it penalises discontinuities too little
+then there is not enough communication between elements and the
+numerical solution does not converge to the exact solution. The
+particular form of $\alpha$ for the Interior Penalty method is
+described below.
+
+The second approach (the LDG framework which leads to Bassi-Rebay and
+CDG methods) is to introduce a vector field
+$\vec{\xi}$, to rewrite the Poisson equation as a system of
+first-order equations
+\begin{equation}
+\label{eq:poisson-first-order}
+\nabla\cdot\vec{\xi} = f, \quad \vec{\xi}=\nabla c,
+\end{equation}
+and to finally eliminate the vector field $\vec{\xi}$. This
+elimination is possible to do locally (\emph{i.e.} only depending on
+the values of $c$ in nearby elements) since the mass matrix for DG
+fields is block diagonal and so does not couple together nodes from
+different elements. For discontinuous Galerkin methods, we introduce a
+discontinuous vector test function $\vec{w}^{\delta}$. Multiplication
+of equations \eqref{eq:poisson-first-order} by test functions,
+integrating over a single element $E$ and applying integration by
+parts leads to
+\begin{equation}
+\label{eq:ldg}
+-\int_E\nabla\phi^{\delta}\cdot\vec{\xi}^\delta + \int_{\partial E}
+\phi^\delta\vec{n}\cdot\hat{\vec{\xi}}^{\delta} =
+\int_E\phi^\delta f^\delta,
+\quad
+-\int_E\nabla\cdot\vec{w}^\delta c^\delta + \int_{\partial E}
+\vec{n}\cdot\vec{w}^\delta \hat{c}^\delta = \int_E\vec{w}^\delta\cdot\vec{\xi}^\delta.
+\end{equation}
+The exact definition of the particular scheme depends on how the
+surface values (fluxes) $\hat{\vec{\xi}}^\delta$ and $\hat{c}^\delta$
+are defined. The choice of these fluxes has an impact on the stability
+(whether there are any spurious modes), consistency (whether the
+discrete equation is satisfied by the exact solution), convergence
+(whether and how fast the numerical solution approaches the exact
+solution), and sparsity (how many non-zero elements there are in the
+resulting matrix). It is worth noting at this point that the method of
+rewriting the second-order operator as a first-order system has some
+superficial connections with the discrete pressure projection method
+for continuous finite element methods as described in Section
+\ref{Sect:pressure_correction}. However, many of the ideas do not carry
+over to the discontinuous Galerkin framework, for example, it is
+neither necessary nor sufficient to reduce the polynomial order of
+$\phi^\delta$ relative to the polynomial order of
+$\vec{\xi}^\delta$. The issues of stability, consistency, convergence
+and sparsity for DG discretisations of the diffusion operator are
+extremely subtle and there is an enormous literature on this topic; it 
+remains a dangerous tar pit for the unwary developer looking to invent
+a new DG diffusion operator discretisation.
+
+It was shown in \citet{arnold2002} (which is an excellent review of DG
+methods for elliptic problems) that numerical schemes obtained from 
+this second approach result precisely in discretisations of the form
+\eqref{eq:poisson-penalty} with some particular choice of the
+functional $\alpha$. Hence, it is possible to describe the three
+options available in Fluidity together, in the following subsections.
+
+\subsection{Interior Penalty}
+%The Interior Penalty method is a very simple scheme with penalty
+%functional of the form
+%\[
+%\alpha(\phi^\delta,c^\delta) = 
+%\]
 \subsection{Bassi Rebay}
 \label{BassiRebay}
 \index{diffusion!discontinuous Galerkin!Bassi Rebay}
@@ -771,6 +949,7 @@ volume methods is a challenge since
 \label{CDG}
 \index{CDG}
 \index{diffusion!discontinuous Galerkin!CDG}
+
 
 \section{The time loop}
 
