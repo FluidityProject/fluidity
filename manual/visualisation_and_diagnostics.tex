@@ -40,7 +40,7 @@ Visualisation of the .vtu and .pvtu files can be done using paraview
 \subsection{Fields}
 \label{sect:diagnostics_fields}
 
-\subsubsection{Internal diagnostic fields}
+\subsubsection{Internal diagnostic fields}\label{sect:Internal_diagnostic_fields}
 \fluidity\ has a set of predefined diagnostic fields called internal diagnostic fields. These diagnostic fields can be scalar, vector and tensor fields. Common used internal diagnostic field are the CFLNumber or the Gradient of a specified scalar\_field.
 
 
@@ -71,7 +71,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
 \item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sect:ND_hermite_weno_limiter}.
 \item[***FiniteElementDivergence:]  
-\item[***FreeSurfaceHistory:] SFUNKE?
+\item[FreeSurfaceHistory:] The free surface history diagnostics saves snapshots of the free surface field. The regularity and amount of snapshots can be specified in diamond. The main usage of this diagnostic is for harmonic analysis, see \ref{sec:diagnostic_algorithms}
 \item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualize functional values before iterations start.  
 \item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualize functional values at each iteration.
 \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as this diagnostic \option{scalar\_field}.
@@ -101,9 +101,9 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[MaterialVolume:]Add a MaterialVolume scalar\_field to calculate the spatially varying volume of a material.
 \item[***MaterialVolumeFraction:]CWILSON TO WRITE
 \item[MaxEdgeWeightOnNodes:]An estimate of the edge weights whilst adapting using Zoltan.
-\item[***MaxFreeSurface:]  SFUNKE?
+\item[MaxFreeSurface:]  Writes the (nodewise) maximum free surface value over all previous timesteps.
 \item[MeshEdgeLengths:]Local average of mesh edge lengths.
- \item[***MinFreeSurface:] SFUNKE?
+ \item[MinFreeSurface:] Writes the (nodewise) minimum free surface value over all previous timesteps.
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
 \item[***PhytoplanktonGrazing:]Grazing of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.   JHILL?
 \item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
@@ -116,7 +116,6 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[Speed:]Speed: $|\vec{u}|$ 
 	Limitations: The Speed and Velocity fields must be on the same mesh. 
 \item[***SumMaterialVolumeFractions:]CWILSON TO WRITE
-\item[***TidalRange:]  SFUNKE?
 \item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.
 \item[VelocityDivergence:]Velocity divergence: $div \mbox{ \vec{u}}$ 
 \item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
@@ -200,7 +199,7 @@ And the internal \option{tensor\_field}  diagnostics are:
 \end{description}
 
 
-\subsubsection{Diagnostic algorithms}
+\subsubsection{Diagnostic algorithms}\label{sec:diagnostic_algorithms}
 
 The name of each field for each material / phase  in the options tree must be
 unique. Hence there can only be one field named ``Gradient'' in a single
@@ -237,6 +236,14 @@ may be defined by a :: delimited ``state\_name\::field\_name'' string.
            Diamond. Here a pressure gradient diagnostic is defined.}
   \label{fig:diagnostic_algorithm}
 \end{figure}
+
+The available internal \option{scalar\_field}  diagnostics are:
+\begin{description}
+\item[tidal\_harmonics :] Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" (see \ref{sec:ocean_boundaries}) have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on (see \ref{sect:Internal_diagnostic_fields}).  
+\item[temporalmin :] Writes the (nodewise) minimum scalar value over all previous timesteps.
+\item[temporalmax :] Writes the (nodewise) maximum scalar value over all previous timesteps.
+\end{description}        
+
 
 \subsubsection{Python diagnostic algorithms}
 
