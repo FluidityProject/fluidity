@@ -1,7 +1,7 @@
 \chapter{Model physics}\label{chap:model_physics}
 
 \section{How to navigate this chapter}
-One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994,panton2006,vallis2006,gill1982} are also useful references.
+One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batch} and \citet{landau}. \cite{cushbook} is also a useful reference.
 
 \section{Advection--Diffusion Equation}\label{Sect:MP-AdvdifEqn}
 
@@ -12,7 +12,7 @@ The general form the equation that governs the evolution of a scalar field $c$
 \begin{equation}\label{eq:general_scalar_eqn}
 \ppt{c} + \nabla\cdot(\bmu c) = \nabla\cdot(\kaptens\nabla c) - \sigma c + F,
 \end{equation}
-where $\bmu=(u,v,w)$ is the velocity vector, $\kaptens$ is the diffusivity, $\sigma$ is an absorption term and $F$ represents any source or reaction terms.
+where $\bmu=(u,v,w)^{T}$ is the velocity vector, $\kaptens$ is the diffusivity, $\sigma$ is an absorption term and $F$ represents any source or reaction terms.
 
 \subsubsection{Advection}
 The advection term in \eqref{eq:general_scalar_eqn}, given by
@@ -142,20 +142,16 @@ where the tangential components of stress are set to zero.
 Apologies for the bad notation, $\tau$ here is the tangential direction
 vectors (two of them) and $\tautens$ is the viscous stress tensor.
 
-\section{Momentum Equations}\label{Sect:MP-MomEqn}
-
-\subsection{Derivation \& Equations}
+\section{Momentum Equation}\label{Sect:MP-MomEqn}
 
 The state of a moving fluid can be described mathematically through means of
 functions which give the distribution of velocity $\bmu=\bmu(\bmx,t)$ and
 any two thermodynamics quantities (such as the pressure $p(\bmx,t)$ and
 density $\rho(\bmx,t)$) within the fluid. All thermodynamic quantities are
 determined by the values of any two such quantities together with the
-equation of state. \citet{batchelor1967} is the ultimate reference to much of this
-material. However, \cite{landau,cushman1994,panton2006,vallis2006,gill1982} are also
-useful. \fluidity\ can solve the equations of motion in varying forms, and
+equation of state. \fluidity\ can solve the equations of motion in varying forms, and
 with various approximations. These forms and approximations are discussed in
-the following sections.
+the following subsections.
 
 \index{conservation!equation}
 \index{momentum equation}
@@ -191,7 +187,7 @@ The momentum associated with a unit volume of fluid is given by $\rho\bmu$. Init
  \frac{\partial}{\partial{t}}(\rho\bmu)=\rho\frac{\partial\bmu}{\partial{t}}+\frac{\partial\rho}{\partial{t}}\bmu.
 \end{equation}
 Using the equation of continuity \eqref{mass_conservation_2} and Euler's
-equation \citep{batchelor1967}, which is the force equation for an inviscid fluid, in the form
+equation \citep{batch}, which is the force equation for an inviscid fluid, in the form
 \begin{equation}\label{mom_cons_2}
  \frac{\partial\bmu}{\partial{t}}=-\bmu\cdot\nabla\bmu-\frac{1}{\rho}\nabla{p},
 \end{equation}
@@ -204,6 +200,22 @@ where $\bmu\bmu$ is a tensor which represents the dyadic product of vectors whic
  \frac{\partial}{\partial{t}}(\rho\bmu)+\nabla\cdot\tensor{\Pi}=0,
 \end{equation}
 where $\tensor{\Pi}$ is clearly a symmetric tensor and is termed the \textit{momentum flux density tensor}.
+
+The effects of viscosity on the motion of a fluid are now considered. To express the equations of motion governing a viscous fluid, some additional terms are required. The equation of continuity (conservation of mass) is equally valid for any viscous as well as inviscid fluid. However, Euler's equation \eqref{mom_cons_2} and hence \eqref{mom_cons_4} requires modification.
+
+By adding $-\tautens$ to the previously introduced \textit{momentum flux density tensor}, $\tensor{\Pi}$, so that
+
+\begin{equation}
+ \tensor{\Pi}=p\mathbf{I}+\rho\bmu\bmu-\tautens=-\sigtens+\rho\bmu\bmu,
+\end{equation}
+
+where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{Sect:Rheology}. Thus, the most general form of the equations of motion of a compressible viscous fluid may be written as
+
+\begin{equation}\label{viscous_fluids_1}
+ \rho\left(\frac{\partial\bmu}{\partial{t}}+\bmu\cdot\nabla\bmu\right)=-\nabla\cdot\sigtens+\rho\bmF,
+\end{equation}
+
+where $\bmF$ is the internal or volume force per unit mass (\eg gravity).
 
 \subsection{Approximations}
 
@@ -366,7 +378,7 @@ the order of magnitude of the spatial variation in the velocity field, then
 the flow field can be considered incompressible if the relative rate of
 change of density with time is much less than the spatial variation in
 velocity; \ie if $\frac{1}{\rho}\DDt{\rho}\ll U/L$ then
-$\nabla\cdot\mathbf{u}\approx 0$ \cite[][p.167]{batchelor1967}.
+$\nabla\cdot\mathbf{u}\approx 0$ \cite[][p.167]{batch}.
 
 The term incompressible flow is used to describe any such situation where
 changes in the density of a parcel of material are negligible.  Not all
@@ -430,7 +442,7 @@ hence:
 \begin{equation}
 \tautens = 2\mu(\etens - (\nabla\cdot\bmu)\bmI/3),
 \end{equation}
-where $\mu$ is the molecular viscosity. See \cite{batchelor1967} for further
+where $\mu$ is the molecular viscosity. See \cite{batch} for further
 details.
 
 \section{Extensions, assumptions and derived equation sets}\label{sect:eqn_extensions}
@@ -448,7 +460,7 @@ underlying equations within the moving frame. Extra terms then need to be consid
 which account for the fact that the acceleration of a fluid parcel relative to the 
 moving reference frame is different to the acceleration with respect to the fixed 
 inertial frame, and the latter is the one which allows us to invoke Newton's Laws.
-For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
+For useful discussions see \citep{batch,cushman1994,gill1982}.
 
 \begin{figure}\label{fig:rotating_frame}
 \centering
