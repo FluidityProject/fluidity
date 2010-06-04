@@ -875,10 +875,13 @@ For a continuous galerkin discretisation of
 velocity and ignoring boundary conditions, $\mat{M}, \mat{A}$ and $\mat{K}$
 are given by:
 \begin{equation}
-  \mat{M}_{ij}=\int_\Omega \rho\phi_i\phi_j, \quad
-  \mat{A}_{ij}=\int_\Omega \phi_i\rho\vec{u}\cdot\grad \phi_j, \quad
-  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
+  \mat{M}_{ij}=\int_\Omega \rho\bmphi_i\cdot\bmphi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \bmphi_i\cdot\left(\rho\vec{u}\cdot\grad \bmphi_j\right), \quad
+  \mat{K}_{ij}=\sum_{\alpha,\beta,\gamma} \int_\Omega 
+    \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{\mu}_{\beta\gamma}
+      \left(\partial_\gamma \bmphi_{j,\alpha}\right),
 \end{equation}
+where $\alpha,\beta$ and $\gamma$ are summed over the spatial dimensions.
 Dirichlet and Neuman boundary conditions are implemented by 
 surface integrals over the domain boundary in the same way 
 as for the advection diffusion equation. The discontinuous galerkin
@@ -888,13 +891,13 @@ involving additional integrals over the faces of the elements.
 The pressure gradient term is new. In \fluidity\ it is possible 
 to use a different set of test/trial functions for pressure 
 and velocity, a so called mixed element discretisation. From this section 
-on, we will use the notation $\phi_i$ for the velocity 
+on, we will use the notation $\bmphi_i$ for the velocity 
 basis functions and $\psi_i$ for the pressure basis functions.
 See section \ref{later} for a discussion of suitable element-pairs.
 
 The pressure gradient matrix is then simply given by
 \begin{equation}
-  \matC_{ij}=\int_\Omega \phi_i\grad\psi_j \label{pgmatrix}
+  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j \label{pgmatrix}
 \end{equation}
 In fact this is a vector of matrices, where each matrix corresponds
 to a derivative in $\grad$. Note that \fluidity\ only supports
@@ -908,23 +911,25 @@ in the Boussinesq approximation is given by simply
 dropping the density in the mass and advection terms:
 \begin{equation*}
   \mat{M} \ddt{\dvec{\vec u}}
-    +\mat{A}(\vec{u})\dvec{\bmu}
-    +\mat{Cor}~\dvec\bmu
-    +\mat{K}\dvec{\bmu}    
+    +\mat{A}(\vec{u})\dvec{u}
+    +\mat{Cor}~\dvec u
+    -\mat{K}\dvec{u}    
     +\matC \dvec p
     =\dvec{\vec b}(\rho')+\dvec{\vec F},
 \end{equation*}
 where (again assuming CG and ignoring boundary conditions):
 \begin{equation*}
 \begin{split}
-  \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
-  \mat{A}_{ij}=\int_\Omega \phi_i\vec{u}\cdot\grad \phi_j, \quad
-  \left(\mat{Cor}~\dvec{\vec u}\right)_i
-    =\sum_j\int_\Omega \phi_i \phi_j 2\vec\Omega\times\dvec{\vec{u}}_j, \\
-  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j, \quad
-  \matC_{ij}=\int_\Omega \phi_i\grad\psi_j, \quad
-    \dvec{\vec b}_i(\rho')=\int_\Omega \phi_i\rho'g\vec k,\quad
-    \dvec{\vec F}_i=\int_\Omega \phi_i\vec F
+  \mat{M}_{ij}=\int_\Omega \bmphi_i\cdot\bmphi_j, \quad
+  \mat{A}_{ij}=\int_\Omega \bmphi_i\cdot\left(\bmu\cdot\grad \bmphi_j\right), \quad
+  \mat{Cor}_{ij}=
+    \int_\Omega \bmphi_i\cdot\left(2\vec\Omega\times\bmphi_j\right), \\
+  \mat{K}_{ij}=\sum_{\alpha,\beta,\gamma} \int_\Omega 
+    \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{\nu}_{\beta\gamma}
+      \left(\partial_\gamma \bmphi_{j,\alpha}\right),
+  \matC_{ij}=\int_\Omega \bmphi_i\grad\psi_j, \quad
+    \dvec{\vec b}_i(\rho')=\int_\Omega \bmphi_i\rho'g\vec k,\quad
+    \dvec{\vec F}_i=\int_\Omega \bmphi_i\vec F
 \end{split}
 \end{equation*}
 
@@ -934,8 +939,8 @@ in conjunction with the continuity equation
 $\div\vec u=0$. The discretised weak form of 
 this equation, integrated by parts, is given by
 \begin{equation*}
-  \sum_j \int_\Omega \left(\grad\psi_i\right)\cdot\phi_j \vec u_j - 
-    \int_\dOmega \psi_i\phi_j \vec u_j\cdot\vec n = 0.
+  \sum_j \int_\Omega \left(\grad\psi_i\right)\cdot\bmphi_j u_j - 
+    \int_\dOmega \psi_i\bmphi_j\cdot\vec n u_j = 0.
 \end{equation*}
 Similar to the advection equation, dirichlet boundary conditions for the 
 normal component of the velocity can be implemented by replacing
@@ -951,15 +956,15 @@ the first term involves a matrix that is the
 transpose of \eqref{pgmatrix}. Therefore if we redefine the pressure 
 gradient matrix as
 \begin{equation*}
-  \matC_{ij}=\int_\Omega \phi_i\grad\psi_j 
-    -\int_{\dOmega_{\mathrm{open}}} \phi_i\psi_j \vec n,
+  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j 
+    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\psi_j ,
 \end{equation*}
 we can write the continuity equation in the following matrix form:
 \begin{equation}
-  \matC^T \dvec\bmu=
+  \matC^T \dvec u=
     \vec{\mat{M}}_D ~\dvec{g}{}_D, 
     \quad\text{ with }
-    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\phi_j\vec n
+    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\bmphi_j\cdot\vec n
   \label{discrete_incompressible_continuity}
 \end{equation}
 
@@ -997,7 +1002,7 @@ $\dvec{\vec u}^{n+\theta}=\theta \dvec{\vec u}^{n+1} + (1-\theta) \dvec{\vec u}^
 is used.  The derivation of the pressure-correction step starts with two 
 variations of the time-discretisation of the 
 momentum equation \eqref{eq:momentum_equation}. The first 
-one is used to solve for a preliminary $\dvec\bmu_*^{n+1}$:
+one is used to solve for a preliminary $\dvec{u}_*^{n+1}$:
 \begin{equation}\label{eqn:presscorr_1}
 \mat{M}  \frac{{\dvec{\vec u_*}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
     +\mat{A}\dvec{\vec u}_*^{n+\theta}+\mat{K}\dvec{\vec u}_*^{n+\theta}
@@ -1009,7 +1014,7 @@ be obtained from the previous time step (denoted by
 $\dvec p^{n-\tfrac 12}$) or an initial
 pressure poission solve as in section \ref{}. The second variation
 describes the momentum equation that will be satisfied by
-$\dvec\bmu^{n+1}$ after the pressure correction:
+$\dvec{u}^{n+1}$ after the pressure correction:
 \begin{equation}\label{eqn:presscorr_2}
 \mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
     +\mat{A}\dvec{\vec u}_*^{n+\theta}+\mat{K}\dvec{\vec u}_*^{n+\theta}
@@ -1019,13 +1024,13 @@ $\dvec\bmu^{n+1}$ after the pressure correction:
 here $\dvec p^{n+\tfrac 12}$ is the pressure 
 obtained after the pressure correction.
 
-Note that $A$ depends on $\dvec\bmu$ itself. There are two possibilities when 
-to evaluate $A$, either $A(\dvec\bmu^n)$ or at the latest velocity in the 
+Note that $A$ depends on $\dvec{u}$ itself. There are two possibilities when 
+to evaluate $A$, either $A(\dvec{u}^n)$ or at the latest velocity in the 
 nonlinear loop, both of which are used in practice. In \fluidity\ 
 one can choose a linear combination of both, set by 
 a second $\thetanl$ that can be chosen independently of
 $\theta$. The advection term is then
-$A\left(\dvec\bmu^{n+\thetanl}\right)\dvec\bmu^{n+\theta}$.
+$A\left(\dvec{u}^{n+\thetanl}\right)\dvec{u}^{n+\theta}$.
 
 
 Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
@@ -1057,11 +1062,11 @@ be updated by:
 \begin{equation*}
 \begin{split}
   \dvec p^{n+\tfrac 12} &= \dvec p_* + \Delta\dvec p, \\
-  \dvec\bmu^{n+1} &= \dvec\bmu_*^{n+1}
+  \dvec{u}^{n+1} &= \dvec{u}_*^{n+1}
   -\Delta t  M^{-1} \matC \Delta\dvec p
 \end{split}
 \end{equation*}
-Note that by construction the obtained $\dvec\bmu^{n+1}$ and 
+Note that by construction the obtained $\dvec{u}^{n+1}$ and 
 $\dvec p^{n+\tfrac 12}$ satisfy both the continuity equation
 \eqref{discrete_incompressible_continuity} and the momentum equation
 \eqref{presscorr_2}. This momentum equation however still used
@@ -1071,7 +1076,7 @@ be obtained using multiple non-linear iterations within a
 time-step. At the beginning of the subsequent non-linear iterations
 the pressure $\dvec p_*$ and the advective velocity 
 $\dvec u_*^{n+\thetanl}$ are updated using the best available values
-$\dvec p^{n+\tfrac 12}$ and $\dvec\bmu^{n+1}$ from the previous 
+$\dvec p^{n+\tfrac 12}$ and $\dvec{u}^{n+1}$ from the previous 
 non-linear iteration.
 
 \subsubsection{Inverting the mass matrix}
@@ -1128,7 +1133,7 @@ Why and how
 Using the fact that the pressure is zero on the free surface and therefore $p=g\eta$, the weak form of the free surface kinematic boundary \eqref{freesurf3} condition is written:
 
 \begin{equation}\label{weakfreesurf3}
-\frac{1}{g} \int_{\Omega_{FS}} {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \vec \bmu} \quad
+\frac{1}{g} \int_{\Omega_{FS}} {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \bmu} \quad
   \text{for all } \psi_i,
 \end{equation}
 and $\Omega_{FS}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts} giving:
