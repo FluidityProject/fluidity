@@ -21,7 +21,11 @@ The advection term in \eqref{eq:general_scalar_eqn}, given by
 \end{equation}
 expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ resulting in the second term on the right hand side of \eqref{eq:scalar_advection} dropping out. However, there may be numerical
 reasons why the discrete velocity field is not exactly divergence free, in which case this term may
-be included in the discretisation (see section \ref{Sect:ND_advection_diffusion_discretisation}). Note also that the second term on
+be included in the discretisation. {\fluidity} deals with the advection term in the form
+\begin{equation}\label{eq:fluidity_scalar_advection}
+\nabla\cdot(\bmu c) + (\beta-1)(\nabla\cdot\bmu)c,
+\end{equation}
+so that $\beta=1$ corresponds to the conservative form of the equation and $\beta=0$ to the non-conservative. Note also that the second term on
 the \rhs\ of \eqref{eq:scalar_advection} may be interpreted as a source term for $c$.When this motion is largely in the vertical direction resulting from temperature (density) differences the term convection is often used to describe this.
 
 \subsubsection{Diffusion}
