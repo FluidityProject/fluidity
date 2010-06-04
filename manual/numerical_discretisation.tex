@@ -1079,13 +1079,36 @@ non-linear iteration.
 The pressure correction equation \eqref{eqn:pressure_correction} contains
 the inverse of the mass matrix $\mat{M}$. For a continuous galerkin
 discretisation of velocity, this inverse will result in a dense 
-matrix, so in general we do not want to explicitly construct this. A way to
-avoid this is to use the lumped mass matrix $\mat{M}_L$
-as an approximation
+matrix, so in general we do not want to explicitly construct 
+this. This can be avoided by approximating the mass matrix by the 
+so called \emph{lumped} mass matrix:
 \begin{equation*}
-  \mat{M}_{L,ii}=\sum_k \mat{M}_{ik},\quad \mat{M}_{Lij\neq i}=0
+  \mat{M}_{L,ii}=\sum_k \mat{M}_{ik},\quad \mat{M}_{Lij\neq i}=0.
 \end{equation*}
+This lumped mass matrix $\mat{M}_L$ replaces $\mat{M}$ in the 
+discretised momentum equation. Since the lumped mass matrix is 
+diagonal it is trivial to invert. This lumping procedure is more 
+often used to avoid mass matrix inversions, for instance in 
+Galerkin projections. The lumping procedure is conservative, 
+but leads to a loss in accuracy.
 
+With a discontinuous galerkin discretisation of velocity, the mass matrix
+becomes easier to invert. This is because the test functions only overlap
+if they are associated with nodes in the same element. Therefore the mass
+matrix takes on a block-diagonal form, with $n\times n$ blocks along 
+the diagonal, where $n$ is the number of nodes per element. These blocks
+can be independently inverted and the inverse mass matrix still has the 
+same block-diagonal form. As a consequence the matrix 
+$\matC^T M^{-1} \matC$ is sparse and can be explicitly 
+constructed. Moreover with a continuous $Pn+1$ discretisation of pressure,
+and a discontinuous $Pm, m\leq n$ discretisation of velocity, we 
+have the following property\citep{cotter2009}:
+\begin{equation*}
+  \matC^T M^{-1} \matC_{ij}=\int_\Omega \grad \psi_i\cdot\grad \psi_j.
+\end{equation*}
+That is, the discretised pressure equation \eqref{eqn:pressure_correction}
+is the same as that would be obtained from a direct $Pn+1$ 
+discretisation of the continuous pressure poisson equation.
 
 \subsection{DG and not mass lumping}
 
