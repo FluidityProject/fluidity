@@ -1006,6 +1006,7 @@ for anisotropic elements, including large aspect ratio meshes such as
 those used in large scale ocean modelling.
 
 \section{The time loop}
+\label{sect:ND_time_loop}
 
 \fluidity\ solves a coupled system of nonlinear equations with (typically)
 time-varying solutions. The time-marching algorithm employed uses a
@@ -1081,6 +1082,7 @@ unknown values at the next timestep. Taking the example of $\dvec{c}$, we write:
 $\thetac$ must lie in $[0,1]$.
 
 \section{Time discretisation of the advection-diffusion equation}
+\label{sect:ND_time_disct_adv_diff}
 
 Regardless of the spatial discretisation options used, the
 advection-diffusion equation produces a semidiscrete matrix equation of the

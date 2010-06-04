@@ -1560,7 +1560,7 @@ If \option{\ldots/scalar\_field::GeostrophicPressure} is to be included, cf. \re
 
 \subsection{Timestepping}
 
-2 non-linear iterations are recommended and can be specified by setting \option{\ldots/timestepping/nonlinear\_iterations} to 2.
+2 non-linear iterations are recommended and can be specified by setting \option{\ldots/timestepping/nonlinear\_iterations} to 2, \ref{}
 
 \subsection{Material/Phase}
 
@@ -1577,7 +1577,7 @@ The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{Press
 
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation/continuous\_galerkin} is recommended for the spatial discretisation. 
-\item \option{\ldots/scheme/poisson\_pressure\_solution} is recommended to be chosen as either \option{never} or \option{only\_first\_timestep}, [REF SECTION]
+\item \option{\ldots/scheme/poisson\_pressure\_solution} can be chosen as either \option{never} or \option{only\_first\_timestep}, [REF SECTION]
 \end{itemize}
 
 Note, if the normal component of the velocity is imposed on all boundaries, then either \option{\ldots/prognostic/reference\_node} or \option{\ldots/solver/remove\_null\_space} need to be set, cf. \ref{Nullspaceremove}.
@@ -1588,7 +1588,7 @@ The specified mesh should be \option{CoordinateMesh} for P1-P1 and \option{Press
 
 The equation used to solve for Velocity is set under \option{\ldots/equation}, cf. \ref{Sect:ND_momentum_equation}. For GFD problems that require the Boussinesq approximation selecting \option{\ldots/equation::Boussinesq} will ensure that this correct formulation used, cf, \ref{sect:boussinesq_approximation}, \ref{sect:typical_ICOM_equations}, \ref{Sect:ND_momentum_equation}.
 
-A Crank-Nicolson temporal discretisation with a non-linear relaxation is recommended for the temporal discretisation [REF SECTION]. This is selected by setting:
+A Crank-Nicolson temporal discretisation with a non-linear relaxation is recommended for the temporal discretisation cf. \ref{sect:ND_time_loop}, \ref{sect:ND_time_disct_adv_diff}. This is selected by setting:
 \begin{itemize}
 \item \option{\ldots/temporal\_discretisation/theta} to 0.5
 \item \option{\ldots/temporal\_discretisation/relaxation} to 0.5

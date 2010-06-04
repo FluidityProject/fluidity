@@ -82,7 +82,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\end{itemize}
 \item[GridPecletNumber:]The GridPecletNumber: $Pe = U*dx/\kappa$, where $\kappa$ is the diffusivity. It is calculated as $\tensor{\kappa}^{-1}\vec{u}\mat{J}$ where $\tensor{\kappa}$ is the diffusivity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
 \item[GridReynoldsNumber:]Grid Reynolds number: $Re = U*dx/\nu$, where $\nu$ is the viscosity. It is calculated as $\tensor{\nu}^{-1}\vec{u}\mat{J}$ where $\tensor{\nu}$ is the viscosity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
-\item[***HarmonicPhaseSSa:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. JHILL
+\item[***HarmonicPhaseSSa:]
 \item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\ppx[]{\psi} = -v$ and  $\ppx[y]{\psi}  = u$ where $u$ and $v$ are the velocity components perpendicular to the gravity direction. A strong Dirichlet boundary condition of $0$ is applied on all boundaries.  
 \item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \vec{u}$. The horizontal plane is determined from the gravity field direction. 
 \item[IsopycnalCoordinate:]Isopycnal coordinate
@@ -107,7 +107,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
 \item[***PhytoplanktonGrazing:]Grazing of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.   JHILL?
 \item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
-\item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
+\item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the magnitude of the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
 	Limitations: Requires a geometry dimension of 3. 
 \item[***PrimaryProduction:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. JHILL ?
 \item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocitya nd $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
@@ -132,27 +132,15 @@ Limitations: Only coded for 2D
 The available internal \option{vector\_field}  diagnostics are:
 
 \begin{description}    
- \item[AbsoluteDifference :] Absolute Difference between two vector fields. Both fields and \option{vector\_field::AbsoluteDifference} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the \option{vector\_field::AbsoluteDifference}.  
- \item[***AbsoluteVorticity :] Absolute vorticity:  $\vec{f} + \nabla \times \vec{u}$ 
+ \item[AbsoluteDifference:] Absolute Difference between two vector fields. Both fields and \option{vector\_field::AbsoluteDifference} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as \option{vector\_field::AbsoluteDifference}.  
+ \item[AbsoluteVorticity:] Absolute vorticity:  $f\vec{k} + \nabla \times \vec{u}$, where $f$ is the magnitude of the Coriolis force and $\vec{u}$ the velocity.
 	Limitations: Requires a geometry dimension of 3.
- \item[BalancedVelocity :] Compute the balanced component of velocity, that is, the velocity that puts the state in Geostrophic Balance. This diagnostic depends on \option{vector\_field::ImbalancedVelocity}.  
- \item[***BedShearStress :] $\mbox{Bed Shear Stress} = \mbox{density}*\mbox{drag\_coeff}*|\vec{u}|*\vec{u}$. At the moment this assumes the density and drag coefficients are constants. This diagnostic vector field is only calculated over surface elements/nodes, interior nodes will have zero value.
+ \item[***Buoyancy:] 
+ \item[BedShearStress :] Returns the bed shear stress, $bss = \rho*C_D*|\vec{u}|*\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.
  \item[ControlVolumeAuxiliaryGradient :] Calculate the control volume auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::ControlVolumeAuxiliaryGradient}.    
- \item[***ControlVolumeDivergenceTransposed :] Gradient of a scalar field evaluated using the transpose of the $C^T$ matrix constructed using control volumes. Field must be in this material\_phase.
-  \item[***Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. Projection? lump mass matrix?
+ \item[***ControlVolumeDivergenceTransposed:] Gradient of a scalar field evaluated using the transpose of the $C^T$ matrix constructed using control volumes. The related field must be in the same \option{material\_phase} as \option{vector\_field::ControlVolumeDivergenceTransposed}
+  \item[***Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. lump mass matrix?
   \item[DGAuxiliaryGradient :] Calculate the discontinuous-Galerkin (Bassi Rebay) auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::DGAuxiliaryGradient}.  
- \item[DgMappedVelocity :] The continuous solution mapped to a discontinuous mesh.
-	Limitations: 
-	\begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}   
- \item[***DgMappedVorticity :] Vorticity of the DG mapped Velocity. Note vorticity is actually calculated over a DG field.
-	Limitations:
-	\begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}  
  \item[DiagnosticCoordinate :] Coordinate field remapped to the specified mesh.    
  \item[***Displacement :] Displacement    	 
  \item[***FiniteElementDivergenceTransposed :] Gradient of a scalar field evaluated using the transpose of the $C^T$ divergence matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementDivergenceTransposed}.   
@@ -161,22 +149,6 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[GalerkinProjection :] Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}    
  \item[***GeostrophicSource :] Experimental geostrophic source field to be used in combination with a free surface. Does not solve a vertical balance yet.  
  \item[Gradient :] Gradient of a scalar field. The field must be in the same \option{material\_phase} as \option{vector\_field::Gradient}    
- \item[ImbalancedVelocity :] Compute the imbalanced component of velocity,that is,$\vec{u} - \vec{u}_{bal}$ where $\vec{u}_{bal}$ is the velocity that puts the state in Geostrophic balance. 
- \item[InnerElementFullVelocity :] Full velocity in an inner element SGS treatment of momentum
-	Limitations: \begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}    
- \item[InnerElementFullVorticity :] Vorticity of the full velocity in an inner element SGS treatment of momentum
-	Limitations: \begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize} 
- \item[InnerElementVorticity :] Vorticity of the SGS velocity in aninner element SGS treatment of momentum
-	Limitations: \begin{itemize}
-	\item Requires a geometry dimension of 3.
-	\item Requires inner element active for momentum.
-	\end{itemize}
  \item[***LinearMomentum :] LinearMomentum field: $p = \rho \vec{u}$ (where $p$ is the linear momentum, $\rho$ the density and $\vec{u}$ the velocity)
  \item[MaxBedShearStress :] Max Bed Shear Stress. Note that you need \option{vector\_field::BedShearStress} turned on for this to work.    
  \item[***ParticleForce :] Same as Solid Velocity field but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.       
