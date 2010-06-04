@@ -772,12 +772,13 @@ several options to control the face value and how diffusion is implemented. Face
 
 For the diffusion scheme one can choose either Bassi Rebay or the element gradient method [CROSS REF].
 
-\subsubsection{Discontinuous Galerkin}
+\subsubsection{Discontinuous Galerkin method for the
+  advection-diffusion equation}
 
 The Discontinuous Galerkin option implements the advection-diffusion
 algorithm described in Section
 \ref{Sect:ND_discontinuous_galerkin_advection}. There are two
-compulsory options to set, as well 
+compulsory options to set, as well as a number of non-compulsory options.
 
 \paragraph{Advection scheme (\option{advection\_scheme})} This
 \emph{compulsory option} selects the approximation for the flux of
@@ -795,6 +796,11 @@ scalar across a face. Select one from:
   continuous space described below.
 \item \option{none}: This option switches off the advection term completely.
 \end{itemize}
+
+\option{project\_velocity\_to\_continuous}
+\option{integrate\_advection\_by\_parts}
+\option{integrate\_conservation\_term\_by\_parts}
+
 \paragraph{Diffusion scheme (\option{diffusion\_scheme})} 
 This \emph{compulsory option} selects the discretisation method used
 for the diffusivity term. This selection is important for performance
@@ -840,9 +846,17 @@ Select one from:
   is compact and requires no such parameters.
 \end{itemize}
 
+\paragraph{Slope limiter (\option{slope\_limiter})}
+Need to mention about subcycling.
+\paragraph{Mass terms (\option{mass\_terms})}
+
 \subsubsection{Conservative advection}
 
-The momentum equation can be discretised conservatively by setting the BETA factor equal to 1 (corresponding to a divergence form of the equation). If BETA is set to zero, the discretisation is left non-conservative. An intermediate value can alternatively be selected. Please refer to section \ref{Sect:ND_momentum_equation} for a comprehensive discussion on the influence of this parameter.
+The momentum equation can be discretised conservatively by setting the
+BETA factor equal to 1 (corresponding to a divergence form of the
+equation). If BETA is set to zero, the discretisation is left
+non-conservative. An intermediate value can alternatively be
+selected. Please refer to section \ref{Sect:ND_momentum_equation} for a comprehensive discussion on the influence of this parameter.
 
 
 \subsection{Temporal discretisations}
