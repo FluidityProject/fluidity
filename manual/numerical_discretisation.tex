@@ -830,11 +830,11 @@ can write it in the same matrix form as
 \begin{equation}\label{eq:momentum_equation}
   \mat{M} \ddt{\dvec{\vec u}}
     +\mat{A}(\vec{u})\dvec{\vec u}-\mat{K}\dvec{\vec u}
-    +\vec{\mat{C}} \dvec p
+    +\matC \dvec p
     =0,
 \end{equation}
 with a mass matrix $\mat{M}$, advection matrix $\mat{A}$,
-viscosity matrix $\mat{K}$ and pressure gradient matrix $\vec{\mat{C}}$.
+viscosity matrix $\mat{K}$ and pressure gradient matrix $\matC$.
 For a continuous galerkin discretisation of 
 velocity and ignoring boundary conditions, $\mat{M}, \mat{A}$ and $\mat{K}$
 are given by:
@@ -858,7 +858,7 @@ See section \ref{later} for a discussion of suitable element-pairs.
 
 The pressure gradient matrix is then simply given by
 \begin{equation}
-  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\grad\psi_j \label{pgmatrix}
+  \matC_{ij}=\int_\Omega \phi_i\grad\psi_j \label{pgmatrix}
 \end{equation}
 In fact this is a vector of matrices, where each matrix corresponds
 to a derivative in $\grad$. Note that \fluidity\ only supports
@@ -875,7 +875,7 @@ dropping the density in the mass and advection terms:
     +\mat{A}(\vec{u})\dvec{\bmu}
     +\mat{Cor}~\dvec\bmu
     -\mat{K}\dvec{\bmu}    
-    +\vec{\mat{C}} \dvec p
+    +\matC \dvec p
     =\dvec{\vec b}(\rho')+\dvec{\vec F},
 \end{equation*}
 where (again assuming CG and ignoring boundary conditions):
@@ -886,7 +886,7 @@ where (again assuming CG and ignoring boundary conditions):
   \left(\mat{Cor}~\dvec{\vec u}\right)_i
     =\sum_j\int_\Omega \phi_i \phi_j 2\vec\Omega\times\dvec{\vec{u}}_j, \\
   \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j, \quad
-  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\grad\psi_j, \quad
+  \matC_{ij}=\int_\Omega \phi_i\grad\psi_j, \quad
     \dvec{\vec b}_i(\rho')=\int_\Omega \phi_i\rho'g\vec k,\quad
     \dvec{\vec F}_i=\int_\Omega \phi_i\vec F
 \end{split}
@@ -915,19 +915,20 @@ the first term involves a matrix that is the
 transpose of \eqref{pgmatrix}. Therefore if we redefine the pressure 
 gradient matrix as
 \begin{equation*}
-  \vec{\mat{C}}_{ij}=\int_\Omega \phi_i\grad\psi_j 
+  \matC_{ij}=\int_\Omega \phi_i\grad\psi_j 
     -\int_{\dOmega_{\mathrm{open}}} \phi_i\psi_j \vec n,
 \end{equation*}
 we can write the continuity equation in the following matrix form:
-\begin{equation*}
-  \vec{\mat{C}}^T \dvec\bmu=
+\begin{equation}
+  \matC^T \dvec\bmu=
     \vec{\mat{M}}_D ~\dvec{g}{}_D, 
     \quad\text{ with }
     \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\phi_j\vec n
-\end{equation*}
+  \label{discrete_incompressible_continuity}
+\end{equation}
 
 The extra surface integral over $\dOmega_{\mathrm{open}}$ in 
-$\vec{\mat{C}}$ in the momentum equation will enforce
+$\matC$ in the momentum equation will enforce
 a $p=0$ boundary condition at this part of the boundary (together with the
 boundary condition of the viscosity term this will form a no normal stress 
 condition). An inhomogoneous pressure boundary condition can also 
@@ -943,57 +944,113 @@ conditions in the tangential direction (slip/no-slip) are independent of this ch
 \subsection{Pressure correction}\label{Sect:pressure_correction}
 \index{pressure!correction}
 
-After solving the Momentum equation \eqref{eq:momentum_equation} for the velocity using a pressure guess, the solution does not satisfy the continuity equation. A common way to enforce the continuity is to project the velocity to the set of continuity-free functions. After this projection step the continuity equation is satisfied, but in general the solution does not satisfy the momentum equation anymore, which is why the combination of momentum solve and pressure correction has to be repeated until a convergence criterium has been reached. 
-More information about pressure correction methods can be found in \cite{gresho1988}.
+After solving the Momentum equation \eqref{eq:momentum_equation} for the 
+velocity using a pressure guess, the solution does not satisfy the 
+continuity equation. A common way to enforce the continuity is to project 
+the velocity to the set of divergence-free functions. After this projection 
+step the continuity equation is satisfied, but in general the solution does 
+not satisfy the momentum equation anymore, which is why the combination of 
+momentum solve and pressure correction has to be repeated until a 
+convergence criterium has been reached. 
+More information about pressure correction methods can be 
+found in \cite{gresho1988}.
 
-In this section, a variable with a star annotated (i.e. $\dvec{\vec u}_*$) is an intermediate solution and the notation $\dvec{\vec u}^{n+\theta}=\theta \dvec{\vec u}^{n+1} + (1-\theta) \dvec{\vec u}^{n}$ is used.
-The derivation of the pressure-correction step starts with two variations of the Momentum equation \eqref{eq:momentum_equation}. The first one is the one which was used in the Momentum solve
+In this section, a variable with a star annotated (i.e. $\dvec{\vec u}_*$) 
+is an intermediate solution and the notation 
+$\dvec{\vec u}^{n+\theta}=\theta \dvec{\vec u}^{n+1} + (1-\theta) \dvec{\vec u}^{n}$ 
+is used.  The derivation of the pressure-correction step starts with two 
+variations of the time-discretisation of the 
+momentum equation \eqref{eq:momentum_equation}. The first 
+one is used to solve for a preliminary $\dvec\bmu_*^{n+1}$:
 \begin{equation}\label{eqn:presscorr_1}
 \mat{M}  \frac{{\dvec{\vec u_*}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
     +\mat{A}\dvec{\vec u}_*^{n+\theta}-\mat{K}\dvec{\vec u}_*^{n+\theta}
-    +\vec{\mat{C}} \dvec p_*^{n+1}
+    +\matC \dvec p_*
     =0,
 \end{equation}
-while the second variation contains the corrected solution:
+where we use an initial guess pressure $\dvec p_*$, that may 
+be obtained from the previous time step (denoted by 
+$\dvec p^{n-\tfrac 12}$) or an initial
+pressure poission solve as in section \ref{}. The second variation
+describes the momentum equation that will be satisfied by
+$\dvec\bmu^{n+1}$ after the pressure correction:
 \begin{equation}\label{eqn:presscorr_2}
 \mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
     +\mat{A}\dvec{\vec u}_*^{n+\theta}-\mat{K}\dvec{\vec u}_*^{n+\theta}
-    +\vec{\mat{C}} \dvec p^{n+1}
+    +\matC \dvec p^{n+\tfrac 12}
     =0,
 \end{equation}
+here $\dvec p^{n+\tfrac 12}$ is the pressure 
+obtained after the pressure correction.
 
-Note that $A$ depends on $u$ itself. There are two possibilities when to evaluate $A$, either $A(u^n)$ or at the latest velocity in the nonlinear loop, of which are both used in practice. (TODO: is the right?) 
+\newcommand\thetanl{\theta_{\mathrm{nl}}}
+Note that $A$ depends on $\dvec\bmu$ itself. There are two possibilities when 
+to evaluate $A$, either $A(\dvec\bmu^n)$ or at the latest velocity in the 
+nonlinear loop, both of which are used in practice. In \fluidity\ 
+one can choose a linear combination of both, set by 
+a second $\thetanl$ that can be chosen independently of
+$\theta$. The advection term is then
+$A\left(\dvec\bmu^{n+\thetanl}\right)\dvec\bmu^{n+\theta}$.
 
-Substracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
+
+Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
 \begin{equation}\label{eqn:presscorr_substract}
 \mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}}}{\Delta t}
-    + \vec{\mat{C}} ( \dvec p^{n+1} - \dvec p_*^{n+1})
+    + \matC ( \dvec p^{n+\tfrac 12} - \dvec p_*)
     =0,
 \end{equation}
 
-Multipliying by $\Delta t C^TM^{-1}$ and rearranging results in:
-\begin{equation}\label{eqn:presscorr_presscorr}
-\mat{C^T} \mat{M^{-1}}\vec{\mat{C}} ( \dvec p^{n+1} -  \dvec p_*^{    n+1})
-=-\frac{\mat{C^T}  ({\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}})}{\Delta t},
-\end{equation}
-In this form the left hand side already contains the sought-after pressure correction, but the left hand side cannot be evaluated yet because $\dvec{\vec u}^{n+1}$ is unknown. The continuity equation is needed for that whose discretised form is:
-\begin{equation}\label{eqn:presscorr_continuity}
-\mat{C^T} \dvec{\vec u}^{n+1}=0
-\end{equation}
-Putting \eqref{eqn:presscorr_continuity} into \eqref{eqn:presscorr_presscorr} and some rearraging yields:
+Left-multipliying by $\matC^TM^{-1}$ and 
+some rearrangement results in:
 \begin{equation*}
- \mat{C^T} \mat{M^{-1}}\vec{\mat{C}} ( \dvec p^{n+1} -  \dvec p_*^{    n+1})
-=\frac{ \mat{C^T} \dvec{\vec u}_*^{n+1}}{\Delta t},
+  \matC^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
+  =-\frac{\matC^T  ({\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}})}{\Delta t},
 \end{equation*}
-This discrete poisson equation can now be solved for $\dvec p^{n+1}$ and the solution used to update the velocity with \eqref{eqn:presscorr_substract}:
+The left hand side of this equation contains the sought after pressure 
+correction $\Delta\dvec p=\dvec p^{n+\tfrac 12}-\dvec p_*$. 
+Taking into account the discretised incompressible continuity 
+\eqref{discrete_incompressible_continuity} evaluated at 
+$t^{n+1}$, we finally arrive at the pressure correction equation:
+\begin{equation}
+ \matC^T \mat{M^{-1}}\matC~\Delta\dvec p
+   =\frac{ \matC^T \dvec{\vec u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t},
+   \label{eqn:pressure_correction}
+\end{equation}
+This discrete poisson equation can now be solved 
+for $\Delta\dvec p$, after which the pressure and velocity can 
+be updated by:
 \begin{equation*}
-\dvec{\vec u}^{n+1}=\dvec{\vec u_*}^{n+1}-\Delta t  M^{-1} C ( \dvec p^{n+1} - \dvec p_*^{n+1})
+\begin{split}
+  \dvec p^{n+\tfrac 12} &= \dvec p_* + \Delta\dvec p, \\
+  \dvec\bmu^{n+1} &= \dvec\bmu_*^{n+1}
+  -\Delta t  M^{-1} \matC \Delta\dvec p
+\end{split}
 \end{equation*}
-Note that the velocity is now divergence free.
+Note that by construction the obtained $\dvec\bmu^{n+1}$ and 
+$\dvec p^{n+\tfrac 12}$ satisfy both the continuity equation
+\eqref{discrete_incompressible_continuity} and the momentum equation
+\eqref{presscorr_2}. This momentum equation however still used
+the intermediate $\dvec u_*$ and $\dvec p_*$.
+A more accurate answer can therefore 
+be obtained using multiple non-linear iterations within a 
+time-step. At the beginning of the subsequent non-linear iterations
+the pressure $\dvec p_*$ and the advective velocity 
+$\dvec u_*^{n+\thetanl}$ are updated using the best available values
+$\dvec p^{n+\tfrac 12}$ and $\dvec\bmu^{n+1}$ from the previous 
+non-linear iteration.
 
-\subsection{CG and mass lumping}
+\subsubsection{Inverting the mass matrix}
 \label{Sect:ND_cg_mass_lumping}
 \index{mass lumping}
+The pressure correction equation \eqref{eqn:pressure_correction} contains
+the inverse of the mass matrix $\mat{M}$. For a continuous galerkin
+discretisation of velocity, this inverse will result in a dense 
+matrix, so in general we do not want to explicitly construct this. A way to
+avoid this is to use the lumped mass matrix $\mat{M}_L$
+as an approximation
+\begin{equation*}
+  \mat{M}_{L,ii}=\sum_k \mat{M}_{ik},\quad \mat{M}_{Lij\neq i}=0
+\end{equation*}
 
 
 \subsection{DG and not mass lumping}
@@ -1001,8 +1058,6 @@ Note that the velocity is now divergence free.
 \subsection{Consistent solve CG/DG/FV}
 
 \section{Compressible equations}
-
-\section{Multi-whatever}
 
 \section{Balance pressure}
 \label{Sect:balance_pressure}
