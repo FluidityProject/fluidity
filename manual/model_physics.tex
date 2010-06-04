@@ -1,7 +1,7 @@
 \chapter{Model physics}\label{chap:model_physics}
 
 \section{How to navigate this chapter}
-One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. 
+One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994,panton2006,vallis2006,gill1982} are also useful references.
 
 \section{Advection--Diffusion Equation}\label{Sect:MP-AdvdifEqn}
 
@@ -19,43 +19,40 @@ The advection term in \eqref{eq:general_scalar_eqn}, given by
 \begin{equation}\label{eq:scalar_advection}
 \nabla\cdot(\bmu c) = \bmu\cdot\nabla c + (\nabla\cdot\bmu)c,
 \end{equation}
-expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ resulting in the second term on the right hand side of (\ref{eq:scalar_advection}) dropping out. However, there may be numerical
+expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ resulting in the second term on the right hand side of \eqref{eq:scalar_advection} dropping out. However, there may be numerical
 reasons why the discrete velocity field is not exactly divergence free, in which case this term may
 be included in the discretisation (see section \ref{Sect:ND_advection_diffusion_discretisation}). Note also that the second term on
 the \rhs\ of \eqref{eq:scalar_advection} may be interpreted as a source term for $c$.When this motion is largely in the vertical direction resulting from temperature (density) differences the term convection is often used to describe this.
 
 \subsubsection{Diffusion}
-The diffusion term in \eqref{eq:general_scalar_eqn} represents the mixing of $c$ and may be due to 
-molecular mixing of individual particles via Brownian motion, or mixing via large (compared to the
-molecular scale) eddies in the flow.
-The diffusion term
+The diffusion term in \eqref{eq:general_scalar_eqn}, given by 
 \begin{equation}\label{eq:scalar_diffusion}
 \nabla\cdot(\kaptens\nabla c),
 \end{equation}
-takes some convenient simpler forms for tensor diffusivities often encountered. Often an
-isotropic diffusivity, $\kaptens = \mathrm{diag}(\kappa,\kappa,\kappa)$ in which case the diffusion term
+represents the mixing of $c$ and may be due to 
+molecular mixing of individual particles via Brownian motion, or mixing via large (in comparison to the
+molecular scale) eddies in the flow. For many applications \eqref{eq:scalar_diffusion} can be written in a simpler form. Often, diffusion is isotropic giving $\kaptens = \mathrm{diag}(\kappa,\kappa,\kappa)$ and thus the diffusion term
 may be written as
 \begin{equation}\label{eq:scalar_isotropic_diffusion}
 \nabla\cdot(\kaptens\nabla c) = \kappa\nabla\cdot\nabla c = \kappa\nabla^2 c = \kappa\Delta c.
 \end{equation}
 In domains with high aspect ratio dynamics one often uses a smaller value of diffusivity in the `thin'
 direction. For example, in the atmosphere or ocean we may choose a horizontal diffusivity $\kappa_H$ and a
-vertical diffusivity $\kappa_V$ so that
-$\kaptens = \mathrm{diag}(\kappa_H,\kappa_H,\kappa_V)$ with $\kappa_V < \kappa_H$ and. 
+vertical diffusivity $\kappa_V$ so that $\kaptens = \mathrm{diag}(\kappa_H,\kappa_H,\kappa_V)$ with $\kappa_V < \kappa_H$.
 In this case the diffusion term may be written as
 \begin{equation}\label{eq:scalar_isotropic_diffusion}
 \nabla\cdot(\kaptens\nabla c) = \kappa_H \left(\pptt[x]{c} + \pptt[y]{c}\right) + \kappa_V \pptt[z]{c}.
 \end{equation}
-Note that this second order term is often termed Laplacian diffusion, the 4th order version is sometimes
-termed hyper-diffusion. Hyper-diffusion acts in a similar manner to Laplacian diffusion but is more
+Note that this second order term is often termed Laplacian diffusion. The corresponding 4th order version is sometimes
+termed hyper-diffusion and acts in a similar manner to Laplacian diffusion but is more
 scale selective.
 
 \subsection{Boundary Conditions} \label{Sect:BCs}
 
 \index{boundary conditions}
 
-To form a well-posed system upon which to attempt a numerical discretisation the
-set of equations (taken for the discussion above) describing the behaiour of the 
+To form a well-posed system upon which to attempt a numerical discretisation, the
+set of equations (discussed above) describing the behaiour of the 
 system must be supplemented with appropriate boundary conditions.
 
 
@@ -71,8 +68,7 @@ T=\tilde{T},\quad \textrm{on}\quad \partial\Omega.
 \subsubsection{Neumann condition for a scalar field}\label{sect:bc_scalar_neumann}
 \index{boundary conditions!Neumann}
 \index{advection-diffusion equation}
-Recall the advection-diffusion equation \eqref{heat}, taking the weak form (applying Green's
-Theorem to the diffusion term) leads to a surface integral of the form
+Taking the weak form (applying Green's theorem to the diffusion term) of the advection-diffusion equation \eqref{eq:general_scalar_eqn} leads to a surface integral of the form
 \begin{equation*}
 \int_{\partial\Omega} N_i (\kaptens\nabla T)\cdot\bmn \;d\Gamma.
 \end{equation*}
@@ -85,7 +81,7 @@ and adding in this surface integral to the discretised equation.
 
 \subsubsection{Robin condition for a scalar field}\label{sect:bc_scalar_robin}
 \index{boundary conditions!Robin}
-The Robin condition is like the Neumann condition but takes the form
+The Robin condition is similar to the Neumann condition but instead takes the form
 \begin{equation*}
 (\kaptens\nabla T)\cdot\bmn + \alpha T = q,\quad \textrm{on}\quad \partial\Omega.
 \end{equation*}
