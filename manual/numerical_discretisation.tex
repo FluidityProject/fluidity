@@ -833,8 +833,19 @@ nonlinear relaxation parameter $\thetanl$ which must lie in the interval
 $[0,1]$. This allows us to define:
 \begin{equation}
   \label{eq:thetanl}
-  \urelax=\thetanl\vec{\tilde u}^{n+1} + (1-\thetanl)\vec{u}^n
+  \urelax=\thetanl\vec{\tilde u}^{n+1} + (1-\thetanl)\vec{u}^n.
 \end{equation}
+
+\subsection{The $\theta$ scheme}
+
+The $\theta$ timestepping scheme requires the expression of a linear
+combination of the known field values at the present timestep and the as-yet
+unknown values at the next timestep. Taking the example of $\dvec{c}$, we write:
+\begin{equation}
+  \label{eq:thetac}
+  \ctheta=\thetac\cnew+(1-\thetac)\cold.
+\end{equation}
+$\thetac$ must lie in $[0,1]$.
 
 \section{Time discretisation of the advection-diffusion equation}
 
@@ -843,9 +854,9 @@ advection-diffusion equation produces a semidiscrete matrix equation of the
 following form:
 
 \begin{equation}
-  \mat{M} \ddt{\dvec{c}}-\mat{A}(\vec{u})\dvec{c}+\mat{K}\dvec{c}=\dvec{r}
+  \mat{M} \ddt{\dvec{c}}+\mat{A}(\vec{u})\dvec{c}+\mat{K}\dvec{c}=\dvec{r},
 \end{equation}
-In which $M$ is the mass matrix, $\mat{A}(\vec{u})$ is the advection
+in which $M$ is the mass matrix, $\mat{A}(\vec{u})$ is the advection
 operator, $\mat{K}$ is the diffusion operator and $\dvec{r}$ is the
 right-hand side vector containing boundary and source terms. For continuous
 Galerkin, the matrices take the following form:
@@ -855,6 +866,21 @@ Galerkin, the matrices take the following form:
   \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
 \end{equation}
 
+This is discretised using a classical $\theta$ scheme while $\vec u$ is as
+given in equation \eqref{eq:thetanl}:
+\begin{equation}
+  \mat{M} \frac{\cnew-\cold}{\Delta t}
+  +\mat{A}(\urelax)\ctheta+\mat{K}\ctheta=\dvec{r}^{n+\theta_c}.
+\end{equation}
+Here, $\dvec{r}^{n+\theta_c}$ indicates that the boundary condition
+functions will be evaluated at $\theta_c\Delta t$ after the time at timestep
+$n$. Using equation \eqref{eq:thetac}, this can be rearranged as a single
+matrix equation for the unknown vector $\cnew$:
+\begin{equation}
+  \left(M+\theta\Delta t\left(\mat{A}(\urelax)+\mat{K}\right)\right)\cnew
+  =\left(M-\theta(1-\Delta
+    t)\left(\mat{A}(\urelax)+\mat{K}\right)\right)\cold +\dvec{r}^{n+\theta_c}.
+\end{equation}
 
 \section{Momentum Equation}
 \label{Sect:ND_momentum_equation}
