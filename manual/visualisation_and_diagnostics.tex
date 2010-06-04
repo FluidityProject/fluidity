@@ -64,13 +64,14 @@ Internal \option{scalar\_field} diagnostics:
 	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize}
 Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate} and (therefore) is not parallelised.
-\item[***CFLNumber:]CFLNumber as defined on the co-ordinate mesh. 
-\item[***ControlVolumeCFLNumber:]CFL Number as defined on a control volume mesh.  
-\item[***CopyofDensity:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF.  
-\item[***DG\_CourantNumber:]CFLNumber as defined on a DG mesh.
+\item[CFLNumber:]CFLNumber as defined on the co-ordinate mesh. It is calculated as $\triangle t \vec{u} \mat{J}^{-1}$ where $\triangle t$ is the timestep, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian. 
+\item[ControlVolumeCFLNumber:]CFL Number as defined on a control volume mesh. It is calculated as $\triangle t \frac{1}{V} \int _{cv_{face}} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the control volume and $V$ is the volume of the control volume.
+\item[***ControlVolumeDivergence:]
+\item[DG\_CourantNumber:]CFLNumber as defined on a DG mesh. It is calculated as $\triangle t \frac{1}{V} \int _{element} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the element $V$ is the volume of the element.
 \item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
-\item[***DiscontinuityDetector:]Discontinuity detector takes the value 1 where a detector is triggered. 
-\item[ElementOwner:]Outputs the processors which own the elements of the mesh on which this field is based.  
+\item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sect:ND_hermite_weno_limiter}.
+\item[***FiniteElementDivergence:]  
+\item[***FreeSurfaceHistory:] SFUNKE?
 \item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualize functional values before iterations start.  
 \item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualize functional values at each iteration.
 \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as this diagnostic \option{scalar\_field}.
@@ -79,9 +80,9 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\item Requires a constant gravity direction. 
 	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize}
-\item[***GridPecletNumber:]The GridPecletNumber is $Pe = U*dx/2*\tensor{\kappa}$, where $\tensor{\kappa}$ is the diffusivity. 
-\item[***GridReynoldsNumber:]Grid Reynolds number 
-\item[***HarmonicPhaseSSa:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. 
+\item[GridPecletNumber:]The GridPecletNumber: $Pe = U*dx/\kappa$, where $\kappa$ is the diffusivity. It is calculated as $\tensor{\kappa}^{-1}\vec{u}\mat{J}$ where $\tensor{\kappa}$ is the diffusivity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
+\item[GridReynoldsNumber:]Grid Reynolds number: $Re = U*dx/\nu$, where $\nu$ is the viscosity. It is calculated as $\tensor{\nu}^{-1}\vec{u}\mat{J}$ where $\tensor{\nu}$ is the viscosity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
+\item[***HarmonicPhaseSSa:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. JHILL
 \item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\ppx[]{\psi} = -v$ and  $\ppx[y]{\psi}  = u$ where $u$ and $v$ are the velocity components perpendicular to the gravity direction. A strong Dirichlet boundary condition of $0$ is applied on all boundaries.  
 \item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \vec{u}$. The horizontal plane is determined from the gravity field direction. 
 \item[IsopycnalCoordinate:]Isopycnal coordinate
@@ -99,51 +100,34 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[MaterialMass:]Add a MaterialMass scalar\_field to calculate the spatially varying mass of a material.  
 \item[MaterialVolume:]Add a MaterialVolume scalar\_field to calculate the spatially varying volume of a material.
 \item[***MaterialVolumeFraction:]CWILSON TO WRITE
-\item[***MeshEdgeLengths:]Local average mesh edge lengths 
+\item[MaxEdgeWeightOnNodes:]An estimate of the edge weights whilst adapting using Zoltan.
+\item[***MaxFreeSurface:]  SFUNKE?
+\item[MeshEdgeLengths:]Local average of mesh edge lengths.
+ \item[***MinFreeSurface:] SFUNKE?
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
-\item[ParticleScalar:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh.
-\item[***PhytoplanktonGrazing:]Grazing of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.   
-\item[***PotentialVorticity:]Ertel potential vorticity: $(f + \mbox{curl } \vec{u}) \cdot \mbox{grad } \rho'$
+\item[***PhytoplanktonGrazing:]Grazing of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.   JHILL?
+\item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
+\item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
 	Limitations: Requires a geometry dimension of 3. 
-\item[***PrimaryProduction:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  
-\item[***RelativePotentialVorticity:]Relative potential vorticity:  $\mbox{curl } \vec{u} \cdot \mbox{grad } \rho'$   
+\item[***PrimaryProduction:]Primary production of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. JHILL ?
+\item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocitya nd $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
+\item[***RichardsonNumber:]Returns the Richardson number: $\frac{N^2}{(\ppt[z]{u})^2+(\ppx[z]{v})^2}$ where $N^2 = \frac{g}{\rho_0}\ppt[z]{\rho}$ is the buoyancy frequency, $z$ is the vertical direction, $g$ is the magnitude of gravity $(u,v)$ is the horizontal velocity, $\rho_0$ is the reference density and $\rho '$ the perturbation density. (In 2D $z\rightarrow y$ and $\ppx[z]{v}$ is not included). 
 \item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
-\item[***SolidConcentration:]  
-\item[SolidPhase:]Volume of the vehicles used in Traffic Modelling  
 \item[Speed:]Speed: $|\vec{u}|$ 
 	Limitations: The Speed and Velocity fields must be on the same mesh. 
 \item[***SumMaterialVolumeFractions:]CWILSON TO WRITE
+\item[***TidalRange:]  SFUNKE?
 \item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.
 \item[VelocityDivergence:]Velocity divergence: $div \mbox{ \vec{u}}$ 
 \item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
 Limitations: Only coded for 2D
-\item[VisualizeSolid:]Add a field to be used by Solid\_configuration to visualize the solid\_Concentration 
-\item[VisualizeSolidFluid:]Add a field to be used by Solid\_configuration to visualize the solids and MaterialVolumeFraction together.
-\item[Vorticity2D:]Vorticity for a 2D field: $\ppx{u} - \ppt[y]{v}$  
-\item[TidalRange]  
-\item[MaxFreeSurface]  
-\item[MinFreeSurface]  
-\item[HarmonicAmplitudeM2]  
-\item[HarmonicPhaseM2]  
-\item[HarmonicAmplitudeS2]  
-\item[HarmonicPhaseS2]  
-\item[HarmonicAmplitudeN2]  
-\item[HarmonicPhaseN2]  
-\item[HarmonicAmplitudeK2]  
-\item[HarmonicPhaseK2]  
-\item[HarmonicAmplitudeK1]  
-\item[HarmonicPhaseK1]  
-\item[HarmonicAmplitudeO1]  
-\item[HarmonicPhaseO1]  
-\item[HarmonicAmplitudeP1]  
-\item[HarmonicPhaseP1]  
-\item[HarmonicAmplitudeQ1]  
-\item[HarmonicPhaseQ1]  
-\item[HarmonicAmplitudeMf]  
-\item[HarmonicPhaseMf]  
-\item[HarmonicAmplitudeMm]  
-\item[HarmonicPhaseMm]  
-\item[HarmonicAmplitudeSSa]  
+\item[Vorticity2D:]Vorticity for a 2D field: $\ppx{u} - \ppt[y]{v}$ where $u$ and $v$ are the $x$ and $y$ componenets of velocity.
+\item[***CopyofDensity - TRAFFIC:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF. 
+\item[ParticleScalar-TRAFFIC:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh. 
+\item[***SolidConcentration - TRAFFIC:]  
+\item[***SolidPhase - TRAFFIC:]Volume of the vehicles used in Traffic Modelling 
+\item[***VisualizeSolid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualize the solid\_Concentration 
+\item[***VisualizeSolidFluid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualize the solids and MaterialVolumeFraction together.
 \end{description}
 
 The available internal \option{vector\_field}  diagnostics are:
