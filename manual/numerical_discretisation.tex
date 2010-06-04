@@ -864,7 +864,7 @@ can write it in the same matrix form as
 \eqref{eq:cg_adv_diff_mat}
 \begin{equation}\label{eq:momentum_equation}
   \mat{M} \ddt{\dvec{\vec u}}
-    +\mat{A}(\vec{u})\dvec{\vec u}-\mat{K}\dvec{\vec u}
+    +\mat{A}(\vec{u})\dvec{\vec u}+\mat{K}\dvec{\vec u}
     +\matC \dvec p
     =0,
 \end{equation}
@@ -909,7 +909,7 @@ dropping the density in the mass and advection terms:
   \mat{M} \ddt{\dvec{\vec u}}
     +\mat{A}(\vec{u})\dvec{\bmu}
     +\mat{Cor}~\dvec\bmu
-    -\mat{K}\dvec{\bmu}    
+    +\mat{K}\dvec{\bmu}    
     +\matC \dvec p
     =\dvec{\vec b}(\rho')+\dvec{\vec F},
 \end{equation*}
@@ -999,7 +999,7 @@ momentum equation \eqref{eq:momentum_equation}. The first
 one is used to solve for a preliminary $\dvec\bmu_*^{n+1}$:
 \begin{equation}\label{eqn:presscorr_1}
 \mat{M}  \frac{{\dvec{\vec u_*}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
-    +\mat{A}\dvec{\vec u}_*^{n+\theta}-\mat{K}\dvec{\vec u}_*^{n+\theta}
+    +\mat{A}\dvec{\vec u}_*^{n+\theta}+\mat{K}\dvec{\vec u}_*^{n+\theta}
     +\matC \dvec p_*
     =0,
 \end{equation}
@@ -1011,7 +1011,7 @@ describes the momentum equation that will be satisfied by
 $\dvec\bmu^{n+1}$ after the pressure correction:
 \begin{equation}\label{eqn:presscorr_2}
 \mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
-    +\mat{A}\dvec{\vec u}_*^{n+\theta}-\mat{K}\dvec{\vec u}_*^{n+\theta}
+    +\mat{A}\dvec{\vec u}_*^{n+\theta}+\mat{K}\dvec{\vec u}_*^{n+\theta}
     +\matC \dvec p^{n+\tfrac 12}
     =0,
 \end{equation}
