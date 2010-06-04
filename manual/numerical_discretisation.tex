@@ -168,13 +168,13 @@ version of \eqref{eq:weak_adv_diff_simp} therefore becomes
 where we have substituted $c=\sum_j \phi_j c_j$. From this it is readily seen that 
 we have in fact obtained a matrix equation of the following form
 \begin{equation}
-  \mat{M} \ddt{\dvec{c}}-\mat{A}(\vec{u})\dvec{c}+\mat{K}\dvec{c}=0,
+  \mat{M} \ddt{\dvec{c}}+\mat{A}(\vec{u})\dvec{c}+\mat{K}\dvec{c}=0,
   \label{eq:cg_adv_diff_mat}
 \end{equation}
 where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
 \begin{equation}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
-  \mat{A}_{ij}=\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
+  \mat{A}_{ij}=-\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
   \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
 \end{equation}
 
@@ -260,7 +260,7 @@ a single element we may write
 \begin{equation}\label{eq:adv_diff_dg}
   \int_e \phi \frac{\partial c}{\partial t} -
     \left(\grad\cdot \phi~\vec{u}\right)~c +
-    \grad\psi\cdot\tensor{\mu}\cdot\grad c +
+    \grad\phi\cdot\tensor{\mu}\cdot\grad c +
     \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~c} - 
     \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
     = 0,
@@ -291,7 +291,7 @@ conditions, this results in:
 \begin{multline}
   \sum_e \int_e \phi \frac{\partial c}{\partial t} 
   - \left(\grad\cdot \phi~\vec{u}\right)~c 
-  + \grad\psi\cdot\tensor{\mu}\cdot\grad c\\
+  + \grad\phi\cdot\tensor{\mu}\cdot\grad c\\
   + \int_{\partial e\,\cap\dOmega^{D_c}_{-}} \phi\vec{n}\cdot\vec{u}~g_D  
   + \int_{\partial e\,\cap\dOmega^{D_c}_{+}} \phi\vec{n}\cdot\vec{u}~c  
   - \int_{\partial e\,\cap\dOmega^{D_c}}
@@ -773,20 +773,35 @@ volume methods is a challenge since
 
 \section{The time loop}
 
-% \begin{equation}
-%   \label{eq:utheta}
-%   \utheta=\theta\unew + (1-\theta)\uold
-% \end{equation}
-% For the first solution of the temperature equation on each timestep, for
-% which no $\unew$ will yet have been calculated, the approximation
-% $\unew=\uold$ is used.
+\fluidity\ solves a coupled system of nonlinear equations with (typically)
+time-varying solutions. The time-marching algorithm employed uses a
+non-linear iteration scheme known as Picard iteration in which each equation
+is solved using the best available solution for the other variables. This
+process is then repeated either a fixed number of times or until convergence
+is achieved. Figure \ref{fig:timestep}\ shows the sequence of steps in the
+Picard iteration loop. 
+
+\subsection{Time notation}
+
+It is assumed that we know the state of all variables at the $n$th timestep
+and that we wish to calculate their value at the $n+1$th step. To take as an
+example the general tracer denoted $\dvec{c}$, the value at the $n$th
+timestep will be denoted $\cold$ and that at the new timestep
+$\dvec{c}^{n+1}$. The Picard iteration process results in a series of
+tentative results for $\dvec{c}$ at the next timestep on the basis of the
+best available data. This tentative result will be written $\cnew$. At the
+end of the final Picard iteration, the tentative results become final (\ie\
+$\dvec{c}^{n+1}:=\cnew$). Conversely, at the start of the timestep, the only
+available value of $c$ is $\cnew$ so at the start of the timestep,
+$\cnew:=\cold$. This notation naturally applies \emph{mutatis mutandis}\ to
+all other variables.
 
 \begin{figure}
   \centering
   \onlypdf{\begin{pdfdisplay}}
   \begin{psmatrix}
     \psframebox{for each tracer solve the advection-diffusion equation for $\cnew$}\\
-    \psframebox{evaluate the equation of state for $\rhotheta$}\\
+    \psframebox{evaluate the equation of state for $\rhorelax$}\\
     \psframebox{solve the momentum equation for $\ustar$}\\
     \psframebox{calculate a pressure correction $\Delta p$}\\
     \psframebox{using $\Delta p$ correct $\ustar$ to $\unew$ and update
@@ -805,6 +820,21 @@ volume methods is a challenge since
   \label{fig:timestep}
 \end{figure}
 
+\subsection{Nonlinear relaxation}
+
+Where a variable is used in the solution of another variable, there are two
+available values of the first variable which might be employed: that at time
+$n$ and the latest result for time $n+1$. For instance the velocity,
+$\vec u$, is used in solving the advection-diffusion equation for
+$\dvec{c}$ so $\vec{u}^n$ and $\vec{\tilde u}^{n+1}$ are available values
+of $\vec u$. The choice between these values is made using the
+nonlinear relaxation parameter $\thetanl$ which must lie in the interval
+$[0,1]$. This allows us to define:
+\begin{equation}
+  \label{eq:thetanl}
+  \urelax=\thetanl\vec{\tilde u}^{n+1} + (1-\thetanl)\vec{u}^n
+\end{equation}
+
 \section{Time discretisation of the advection-diffusion equation}
 
 Regardless of the spatial discretisation options used, the
@@ -812,12 +842,17 @@ advection-diffusion equation produces a semidiscrete matrix equation of the
 following form:
 
 \begin{equation}
-  \mat{M} \ddt{\dvec{c}}-\mat{A}(\dvec{\vec{\hat u}})\dvec{c}+\mat{K}\dvec{c}=\dvec{r}
+  \mat{M} \ddt{\dvec{c}}-\mat{A}(\vec{u})\dvec{c}+\mat{K}\dvec{c}=\dvec{r}
 \end{equation}
-In which $M$ is the mass matrix, $\mat{A}(\dvec{\vec{\hat u}})$ is the advection
+In which $M$ is the mass matrix, $\mat{A}(\vec{u})$ is the advection
 operator, $\mat{K}$ is the diffusion operator and $\dvec{r}$ is the
-right-hand side vector containing boundary and source terms. 
-
+right-hand side vector containing boundary and source terms. For continuous
+Galerkin, the matrices take the following form:
+\begin{equation}
+  \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
+  \mat{A}_{ij}=-\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
+  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
+\end{equation}
 
 
 \section{Momentum Equation}
@@ -838,18 +873,18 @@ viscosity matrix $\mat{K}$ and pressure gradient matrix $\matC$.
 For a continuous galerkin discretisation of 
 velocity and ignoring boundary conditions, $\mat{M}, \mat{A}$ and $\mat{K}$
 are given by:
-\begin{equation*}
+\begin{equation}
   \mat{M}_{ij}=\int_\Omega \rho\phi_i\phi_j, \quad
   \mat{A}_{ij}=\int_\Omega \phi_i\rho\vec{u}\cdot\grad \phi_j, \quad
   \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
-\end{equation*}
+\end{equation}
 Dirichlet and Neuman boundary conditions are implemented by 
 surface integrals over the domain boundary in the same way 
 as for the advection diffusion equation. The discontinuous galerkin
 discretisation is again the same as that for advection diffusion 
 involving additional integrals over the faces of the elements.
 
-New is the pressure gradient term. In \fluidity\ it is possible 
+The pressure gradient term is new. In \fluidity\ it is possible 
 to use a different set of test/trial functions for pressure 
 and velocity, a so called mixed element discretisation. From this section 
 on, we will use the notation $\phi_i$ for the velocity 
@@ -983,7 +1018,6 @@ $\dvec\bmu^{n+1}$ after the pressure correction:
 here $\dvec p^{n+\tfrac 12}$ is the pressure 
 obtained after the pressure correction.
 
-\newcommand\thetanl{\theta_{\mathrm{nl}}}
 Note that $A$ depends on $\dvec\bmu$ itself. There are two possibilities when 
 to evaluate $A$, either $A(\dvec\bmu^n)$ or at the latest velocity in the 
 nonlinear loop, both of which are used in practice. In \fluidity\ 
