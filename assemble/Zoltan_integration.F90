@@ -258,15 +258,18 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 !  calculate the local maximum edge weight
    max_weight = maxval(ewgts(1:head-1))
 
-!  calculate the local 90th percentile edge weight   
-   ninety_weight = max_weight * 0.9
+!  don't want to adjust the weights if all the elements are within tolerance
+   if (max_weight .NE. 1.0) then
+!     calculate the local 90th percentile edge weight   
+      ninety_weight = max_weight * 0.9
 
-!  make the worst 10% of elements uncuttable
-   do i=1,head-1
-      if (ewgts(i) .GT. ninety_weight) then
-         ewgts(i) = total_num_edges + 1
-      end if
-   end do
+!     make the worst 10% of elements uncuttable
+      do i=1,head-1
+         if (ewgts(i) .GT. ninety_weight) then
+            ewgts(i) = total_num_edges + 1
+         end if
+      end do
+   end if
 
    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/dump_edge_weights")) then
       open(666, file = 'edge_weights.dat')
