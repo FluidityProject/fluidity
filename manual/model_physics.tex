@@ -7,25 +7,22 @@ One should navigate this chapter in the following manner: Start here and read fr
 
 \subsection{Derivation \& Equations}
 
-The general form the equation that governs the evolution of a scalar fields $c$
+The general form the equation that governs the evolution of a scalar field $c$
 (\eg passive tracer, species concentration, temperature, salinity) is
 \begin{equation}\label{eq:general_scalar_eqn}
-\ppt{c} + \nabla\cdot(\bmu c) = \nabla\cdot(\kaptens\nabla c) - \sigma c + F.
+\ppt{c} + \nabla\cdot(\bmu c) = \nabla\cdot(\kaptens\nabla c) - \sigma c + F,
 \end{equation}
+where $\bmu=(u,v,w)$ is the velocity vector, $\kaptens$ is the diffusivity, $\sigma$ is an absorption term and $F$ represents any source or reaction terms.
 
 \subsubsection{Advection}
-The advection term in \eqref{eq:general_scalar_eqn} expresses the transport of 
-the scalar quantity $c$ with the flow field $\bmu$. The term convection is often
-used for this process where the motion is largely vertical and as the results of
-temperature (density) differences.
-The advection term in \eqref{eq:general_scalar_eqn} may be written
+The advection term in \eqref{eq:general_scalar_eqn}, given by
 \begin{equation}\label{eq:scalar_advection}
-\nabla\cdot(\bmu c) = \bmu\cdot\nabla c + (\nabla\cdot\bmu)c.
+\nabla\cdot(\bmu c) = \bmu\cdot\nabla c + (\nabla\cdot\bmu)c,
 \end{equation}
-Note that for incompressible flow the second term on the \rhs\ is zero. However, there may be numerical
+expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ resulting in the second term on the right hand side of (\ref{eq:scalar_advection}) dropping out. However, there may be numerical
 reasons why the discrete velocity field is not exactly divergence free, in which case this term may
-be included in the discretisation, see section \ref{sect:??}. Note also that the second term on
-the \rhs\ of \eqref{eq:scalar_advection} may be interpreted as a source term for $c$.
+be included in the discretisation (see section \ref{Sect:ND_advection_diffusion_discretisation}). Note also that the second term on
+the \rhs\ of \eqref{eq:scalar_advection} may be interpreted as a source term for $c$.When this motion is largely in the vertical direction resulting from temperature (density) differences the term convection is often used to describe this.
 
 \subsubsection{Diffusion}
 The diffusion term in \eqref{eq:general_scalar_eqn} represents the mixing of $c$ and may be due to 
