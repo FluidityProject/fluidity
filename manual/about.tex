@@ -205,10 +205,10 @@ example \lstinline[language=TeX]+\tautens+ ($\tautens$) and
 Vectors composed of the value of a field at each node and matrices mapping
 between discrete spaces should be typeset differently from continuous
 vectors and tensors. Discrete vectors should be typeset with an underline
-using the \lstinline[language=TeX]+\dvec+ command. This can be combined with
-\lstinline[language=TeX]+vec+ for discretisations of vector quantities. For
-example \lstinline[language=TeX]+\dvec{\bmu}+ ($\dvec{\bmu}$) for the
-discretised velocity vector.
+using the \lstinline[language=TeX]+\dvec+ command. Note that the convention
+in Fluidity is that vector fields are represented as scalar sums over vector
+valued basis functions so the correct representation of the discrete
+velocity vector is \lstinline[language=TeX]+\dvec{\bmu}+ ($\dvec{u}$.
 
 Matrices should be typeset as upright upper case letters. The
 \lstinline[language=TeX]+\mat+ command is available for this purpose. For
