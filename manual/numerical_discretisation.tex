@@ -1055,7 +1055,7 @@ all other variables.
   \label{fig:timestep}
 \end{figure}
 
-\subsection{Nonlinear relaxation}
+\subsection{Nonlinear relaxation}\label{sect:relax}
 
 Where a variable is used in the solution of another variable, there are two
 available values of the first variable which might be employed: that at time
@@ -1294,16 +1294,13 @@ convergence criterium has been reached.
 More information about pressure correction methods can be 
 found in \cite{gresho1988}.
 
-In this section, a variable with a star annotated (i.e. $\dvec{u}_*$) 
-is an intermediate solution and the notation 
-$\dvec{u}^{n+\theta}=\theta \dvec{u}^{n+1} + (1-\theta) \dvec{u}^{n}$ 
-is used.  The derivation of the pressure-correction step starts with two 
+The derivation of the pressure-correction step starts with two 
 variations of the time-discretisation of the 
 momentum equation \eqref{eq:momentum_equation}. The first 
 one is used to solve for a preliminary $\dvec{u}_*^{n+1}$:
 \begin{equation}\label{eqn:presscorr_1}
 \mat{M}  \frac{{\dvec{u}_*^{n+1}-\dvec{u}^{n}}}{\Delta t}
-    +\mat{A}\dvec{u}_*^{n+\theta}+\mat{K}\dvec{u}_*^{n+\theta}
+    +\mat{A}(\urelax)\dvec{u}_*^{n+\theta}+\mat{K}\dvec{u}_*^{n+\theta}
     +\matC \dvec p_*
     =0,
 \end{equation}
@@ -1314,27 +1311,21 @@ pressure poission solve as in section \ref{}. The second variation
 describes the momentum equation that will be satisfied by
 $\dvec{u}^{n+1}$ after the pressure correction:
 \begin{equation}\label{eqn:presscorr_2}
-\mat{M}  \frac{{\dvec{u}^{n+1}-\dvec{u}^{n}}}{\Delta t}
-    +\mat{A}\dvec{u}_*^{n+\theta}+\mat{K}\dvec{u}_*^{n+\theta}
-    +\matC \dvec p^{n+\tfrac 12}
+\mat{M}  \frac{{\dvec{\tilde u}^{n+1}-\dvec{u}^{n}}}{\Delta t}
+    +\mat{A}(\urelax)\dvec{u}_*^{n+\theta}+\mat{K}\dvec{u}_*^{n+\theta}
+    +\matC \dvec{\tilde p}^{n+\tfrac 12}
     =0,
 \end{equation}
-here $\dvec p^{n+\tfrac 12}$ is the pressure 
+here $\dvec{\tilde p}^{n+\tfrac 12}$ is the pressure 
 obtained after the pressure correction.
 
-Note that $A$ depends on $\dvec{u}$ itself. There are two possibilities when 
-to evaluate $A$, either $A(\dvec{u}^n)$ or at the latest velocity in the 
-nonlinear loop, both of which are used in practice. In \fluidity\ 
-one can choose a linear combination of both, set by 
-a second $\thetanl$ that can be chosen independently of
-$\theta$. The advection term is then
-$A\left(\dvec{u}^{n+\thetanl}\right)\dvec{u}^{n+\theta}$.
-
+Note that $\mat{A}$ depends on $\vec{u}$ itself. For the definition of the
+$\urelax$ term used calculate $\mat{A}$, see section \ref{sect:relax}.
 
 Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
 \begin{equation}\label{eqn:presscorr_substract}
-\mat{M}  \frac{{\dvec{u}^{n+1}-\dvec{u}_*^{n+1}}}{\Delta t}
-    + \matC ( \dvec p^{n+\tfrac 12} - \dvec p_*)
+\mat{M}  \frac{{\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}}}{\Delta t}
+    + \matC ( \dvec{\tilde p}^{n+\tfrac 12} - \dvec p_*)
     =0,
 \end{equation}
 
@@ -1342,7 +1333,7 @@ Left-multipliying by $\matC^TM^{-1}$ and
 some rearrangement results in:
 \begin{equation*}
   \matC^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
-  =-\frac{\matC^T  ({\dvec{u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
+  =-\frac{\matC^T  ({\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
 \end{equation*}
 The left hand side of this equation contains the sought after pressure 
 correction $\Delta\dvec p=\dvec p^{n+\tfrac 12}-\dvec p_*$. 
@@ -1359,13 +1350,13 @@ for $\Delta\dvec p$, after which the pressure and velocity can
 be updated by:
 \begin{equation*}
 \begin{split}
-  \dvec p^{n+\tfrac 12} &= \dvec p_* + \Delta\dvec p, \\
-  \dvec{u}^{n+1} &= \dvec{u}_*^{n+1}
+  \dvec{\tilde p}^{n+\tfrac 12} &= \dvec p_* + \Delta\dvec p, \\
+  \dvec{\tilde u}^{n+1} &= \dvec{u}_*^{n+1}
   -\Delta t  M^{-1} \matC \Delta\dvec p
 \end{split}
 \end{equation*}
-Note that by construction the obtained $\dvec{u}^{n+1}$ and 
-$\dvec p^{n+\tfrac 12}$ satisfy both the continuity equation
+Note that by construction the obtained $\dvec{\tilde u}^{n+1}$ and 
+$\dvec{\tilde p}^{n+\tfrac 12}$ satisfy both the continuity equation
 \eqref{discrete_incompressible_continuity} and the momentum equation
 \eqref{presscorr_2}. This momentum equation however still used
 the intermediate $\dvec u_*$ and $\dvec p_*$.
@@ -1374,7 +1365,7 @@ be obtained using multiple non-linear iterations within a
 time-step. At the beginning of the subsequent non-linear iterations
 the pressure $\dvec p_*$ and the advective velocity 
 $\dvec u_*^{n+\thetanl}$ are updated using the best available values
-$\dvec p^{n+\tfrac 12}$ and $\dvec{u}^{n+1}$ from the previous 
+$\dvec{\tilde p}^{n+\tfrac 12}$ and $\dvec{\tilde u}^{n+1}$ from the previous 
 non-linear iteration.
 
 \subsubsection{Inverting the mass matrix}
