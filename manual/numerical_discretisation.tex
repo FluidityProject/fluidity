@@ -1112,10 +1112,47 @@ functions will be evaluated at $\theta_c\Delta t$ after the time at timestep
 $n$. Using equation \eqref{eq:thetac}, this can be rearranged as a single
 matrix equation for the unknown vector $\cnew$:
 \begin{equation}
-  \left(M+\theta\Delta t\left(\mat{A}(\urelax)+\mat{K}\right)\right)\cnew
-  =\left(M-\theta(1-\Delta
-    t)\left(\mat{A}(\urelax)+\mat{K}\right)\right)\cold +\dvec{r}^{n+\theta_c}.
+  \left(M+\thetac\Delta t\left(\mat{A}(\urelax)+\mat{K}\right)\right)\cnew
+  =\left(M-(1-\thetac)\Delta
+    t\left(\mat{A}(\urelax)+\mat{K}\right)\right)\cold +\dvec{r}^{n+\theta_c}.
 \end{equation}
+Fluidity actually uses a somewhat different rearrangement of the equations
+however this is an implementation detail which has no impact for the user.
+
+\subsection{Advection subcycling}
+
+The slope limiters used with the discontinuous Galerkin formulation only
+guarantee a bounded solution in conjunction with an explicit advection
+scheme. To achieve this, the equation is split into two stages: first the
+tracer is advected, then diffusion occurs. This produces the following
+system:
+\begin{gather}
+  \mat{M} \frac{\cstar-\cold}{\Delta t}
+  +\mat{A}(\urelax)\cold=\dvec{r}_D^{n+\theta_c}\label{eq:adv_explicit}\\
+  \mat{M} \frac{\cnew-\cstar}{\Delta t}
+  +\mat{K}\ctheta=\dvec{r}_N^{n+\theta_c}+\dvec{r}_s^{n+\theta_c}\label{eq:no_adv},
+\end{gather}
+where now $\dvec{r}$ has been split into Dirichlet and Neumann boundary
+components, and a source component. Equation \eqref{eq:no_adv}\ can be
+solved directly in exactly the manner of the preceding section however the
+explicit Euler scheme shown in equation \eqref{eq:adv_explicit}\ is subject
+to a tight CFL criterion. Accordingly, the timestep is split into $n$
+subtimesteps to satisfy a user-specified Courant number and the following
+equation is solved for each:
+\begin{equation}
+  \mat{M} \dvec{c}_\mathrm{new}=\left(\mat{M}-\frac{\Delta t}{n}\mat{A}(\urelax)\right) \dvec{c}_\mathrm{old}+\dvec{r}_D^{n+\theta_c}.
+\end{equation}
+At the start of the timestep, $\dvec{c}_{\mathrm{old}}:=\cold$ and at the
+end of the timestep $\cstar:=\dvec{c}_{\mathrm{new}}$.
+Since the discontinuous Galerkin mass matrix is block diagonal with only the
+nodes on each element being connected, it is trivial to construct
+$\mat{M}^{-1}$ so this equation may be solved trivailly. Note also that the
+matrix $\mat{M}-(\Delta t/n)\mat{A}(\urelax)$ is constant within one timestep
+so assembling and solving each subtimestep reduces to two matrix
+multiplies and a vector addition.
+
+If a slope limiter is employed, the slope limiter is applied to
+$\dvec{c}_{\mathrm{new}}$ after each subtimestep. 
 
 \section{Momentum Equation}
 \label{Sect:ND_momentum_equation}
