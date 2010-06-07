@@ -81,7 +81,7 @@
   contains
     
 !--------------------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,kmk_matrix)
+    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,auxilliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -97,7 +97,7 @@
       ! scaled by the inverse of viscosity.
       type(csr_matrix), intent(inout) :: pmat 
       ! p1-p1 stabilization matrix:
-      type(csr_matrix), pointer :: kmk_matrix
+      type(csr_matrix), optional, intent(in) :: auxilliary_matrix
 
 
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
@@ -111,7 +111,6 @@
       
       ewrite(2,*) 'Entering Full Projection Solve:'
       ewrite(2,*) 'Inner matrix of Schur complement: ',inner_m%name 
-      ewrite(2,*) 'Are we applying stabilization: ', associated(kmk_matrix)
 
       ! Start from zero? For now, always true.
       ewrite(2,*) 'Note: startfromzero hard-coded to .true.'
@@ -123,7 +122,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            inner_solver_option_path,lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs,kmk_matrix)
+           rhs,auxilliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -156,7 +155,7 @@
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
          inner_solver_option_path,lstartfromzero,inner_m,div_matrix_comp, &
-         div_matrix_incomp,option_path,preconditioner_matrix,rhs,kmk_matrix)
+         div_matrix_incomp,option_path,preconditioner_matrix,rhs,auxilliary_matrix)
 !--------------------------------------------------------------------------------------------------------
 
       !  Sets up things needed to call petsc_solve_core. The following arrays/arguments go out:
@@ -191,7 +190,7 @@
       ! Preconditioner matrix:
       type(csr_matrix), intent(inout) :: preconditioner_matrix
       ! Stabilization matrix:
-      type(csr_matrix), pointer :: kmk_matrix
+      type(csr_matrix), optional, intent(in) :: auxilliary_matrix
       ! Option path:
       character(len=*), intent(in):: option_path
 
@@ -207,11 +206,11 @@
       Mat G_t_comp ! PETSc compressible divergence matrix
       Mat G_t_incomp ! PETSc incompressible divergence matrix
       Mat G ! PETSc Gradient matrix (transpose of G_t_incomp)
-      Mat S ! PETSc Stabilization matrix (kmk_matrix)
+      Mat S ! PETSc Stabilization matrix (auxilliary_matrix)
       Mat pmat ! PETSc preconditioning matrix
       
       integer reference_node, stat
-      logical parallel
+      logical parallel, have_auxilliary_matrix
 
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
@@ -239,6 +238,10 @@
          allocate(ghost_nodes(1:0))
       end if
 
+      ! Is auxilliary matrix present?
+      have_auxilliary_matrix = present(auxilliary_matrix)
+      ewrite(2,*) 'Are we using an auxilliary matrix: ', have_auxilliary_matrix
+
       ! set up numbering used in PETSc objects:
       call allocate(petsc_numbering_u, &
            nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
@@ -259,8 +262,8 @@
       call MatCreateTranspose(G_t_incomp,G,ierr)
 
       ! Convert Stabilization matrix --> PETSc format if required:
-      if(associated(kmk_matrix)) then
-         S=csr2petsc(kmk_matrix, petsc_numbering_p, petsc_numbering_p)
+      if(have_auxilliary_matrix) then
+         S=csr2petsc(auxilliary_matrix, petsc_numbering_p, petsc_numbering_p)
       end if
       
       ! Need to assemble the petsc matrix before we use it:
@@ -268,7 +271,7 @@
 
       ! Build Schur complement:
       ewrite(2,*) 'Building Schur complement'                
-      if(associated(kmk_matrix)) then
+      if(have_auxilliary_matrix) then
 #if PETSC_VERSION_MINOR==0
          call MatCreateSchurComplement(inner_M%M,G,G_t_comp,S,A,ierr)
 #else
@@ -315,7 +318,7 @@
       call MatDestroy(G_t_incomp, ierr) ! Destroy Incompressible Divergence Operator.
       call MatDestroy(G, ierr) ! Destroy Gradient Operator (i.e. transpose of incompressible div).
       call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix if allocated.
-      if(associated(kmk_matrix)) call MatDestroy(S,ierr) ! Destroy stabilization matrix
+      if(have_auxilliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
       
       call deallocate( petsc_numbering_u )
       ! petsc_numbering_p is passed back and destroyed there      
