@@ -67,7 +67,7 @@ contains
     type(scalar_field) :: lumped_mass
     integer :: ele_A, ele_B, ele_C
     type(tet_type) :: tet_A, tet_B
-    type(plane_type), dimension(4) :: planes_A
+    type(plane_type), dimension(:), allocatable :: planes_A
     integer :: stat, nintersections, i, j, k
     integer :: ntests, dat_unit, its
     integer, dimension(:), pointer :: ele_A_nodes
@@ -126,12 +126,22 @@ contains
 
           if (positions%dim == 3) then
 
-             tet_A%v = ele_val(positions, ele_A)
-             planes_A = get_planes(tet_A)
+             if (ele_loc(positions, ele_A)==4) then
+                ! tets
+                allocate(planes_A(4))
+                tet_A%v = ele_val(positions, ele_A)
+                planes_A = get_planes(tet_A)
+             else
+                ! hexes
+                allocate(planes_A(6))
+                planes_A = get_planes(positions, ele_A)
+             end if
 
              call intersect_tets(tet_B, planes_A, &
                   ele_shape(external_positions, ele_B), &
                   stat=stat, output=intersection)
+
+             deallocate(planes_A)
 
           else
 
@@ -202,9 +212,7 @@ contains
 
     call deallocate(lumped_mass)
 
-    do i = 1, positions%dim
-       call allsum(drag(i))
-    end do
+    call allsumv(drag)
 
     if (GetRank() == 0 .and. its == itinoi) then
        open(1453, file="drag_force", position="append")
