@@ -1162,8 +1162,8 @@ diffusion equation. Assuming a tensor form for viscosity, we
 can write it in the same matrix form as
 \eqref{eq:cg_adv_diff_mat}
 \begin{equation}\label{eq:momentum_equation}
-  \mat{M} \ddt{\dvec{\vec u}}
-    +\mat{A}(\vec{u})\dvec{\vec u}+\mat{K}\dvec{\vec u}
+  \mat{M} \ddt{\vec u}
+    +\mat{A}(\vec{u})\dvec{u}+\mat{K}\dvec{ u}
     +\matC \dvec p
     =0,
 \end{equation}
@@ -1208,12 +1208,12 @@ The discretisation of the velocity equation \eqref{mtm}
 in the Boussinesq approximation is given by simply 
 dropping the density in the mass and advection terms:
 \begin{equation*}
-  \mat{M} \ddt{\dvec{\vec u}}
+  \mat{M} \ddt{\dvec u}
     +\mat{A}(\vec{u})\dvec{u}
     +\mat{Cor}~\dvec u
     -\mat{K}\dvec{u}    
     +\matC \dvec p
-    =\dvec{\vec b}(\rho')+\dvec{\vec F},
+    =\dvec{b}(\rho')+\dvec{\vec F},
 \end{equation*}
 where (again assuming CG and ignoring boundary conditions):
 \begin{equation*}
@@ -1225,9 +1225,9 @@ where (again assuming CG and ignoring boundary conditions):
   \mat{K}_{ij}=\sum_{\alpha,\beta,\gamma} \int_\Omega 
     \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{\nu}_{\beta\gamma}
       \left(\partial_\gamma \bmphi_{j,\alpha}\right),
-  \matC_{ij}=\int_\Omega \bmphi_i\grad\psi_j, \quad
-    \dvec{\vec b}_i(\rho')=\int_\Omega \bmphi_i\rho'g\vec k,\quad
-    \dvec{\vec F}_i=\int_\Omega \bmphi_i\vec F
+  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j, \quad
+    \dvec{b}_i(\rho')=\int_\Omega \bmphi_i\cdot\vec k\rho'g,\quad
+    \dvec{F}_i=\int_\Omega \bmphi_i \cdot\vec F
 \end{split}
 \end{equation*}
 
@@ -1294,16 +1294,16 @@ convergence criterium has been reached.
 More information about pressure correction methods can be 
 found in \cite{gresho1988}.
 
-In this section, a variable with a star annotated (i.e. $\dvec{\vec u}_*$) 
+In this section, a variable with a star annotated (i.e. $\dvec{u}_*$) 
 is an intermediate solution and the notation 
-$\dvec{\vec u}^{n+\theta}=\theta \dvec{\vec u}^{n+1} + (1-\theta) \dvec{\vec u}^{n}$ 
+$\dvec{u}^{n+\theta}=\theta \dvec{u}^{n+1} + (1-\theta) \dvec{u}^{n}$ 
 is used.  The derivation of the pressure-correction step starts with two 
 variations of the time-discretisation of the 
 momentum equation \eqref{eq:momentum_equation}. The first 
 one is used to solve for a preliminary $\dvec{u}_*^{n+1}$:
 \begin{equation}\label{eqn:presscorr_1}
-\mat{M}  \frac{{\dvec{\vec u_*}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
-    +\mat{A}\dvec{\vec u}_*^{n+\theta}+\mat{K}\dvec{\vec u}_*^{n+\theta}
+\mat{M}  \frac{{\dvec{u}_*^{n+1}-\dvec{u}^{n}}}{\Delta t}
+    +\mat{A}\dvec{u}_*^{n+\theta}+\mat{K}\dvec{u}_*^{n+\theta}
     +\matC \dvec p_*
     =0,
 \end{equation}
@@ -1314,8 +1314,8 @@ pressure poission solve as in section \ref{}. The second variation
 describes the momentum equation that will be satisfied by
 $\dvec{u}^{n+1}$ after the pressure correction:
 \begin{equation}\label{eqn:presscorr_2}
-\mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}^{n}}}{\Delta t}
-    +\mat{A}\dvec{\vec u}_*^{n+\theta}+\mat{K}\dvec{\vec u}_*^{n+\theta}
+\mat{M}  \frac{{\dvec{u}^{n+1}-\dvec{u}^{n}}}{\Delta t}
+    +\mat{A}\dvec{u}_*^{n+\theta}+\mat{K}\dvec{u}_*^{n+\theta}
     +\matC \dvec p^{n+\tfrac 12}
     =0,
 \end{equation}
@@ -1333,7 +1333,7 @@ $A\left(\dvec{u}^{n+\thetanl}\right)\dvec{u}^{n+\theta}$.
 
 Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
 \begin{equation}\label{eqn:presscorr_substract}
-\mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}}}{\Delta t}
+\mat{M}  \frac{{\dvec{u}^{n+1}-\dvec{u}_*^{n+1}}}{\Delta t}
     + \matC ( \dvec p^{n+\tfrac 12} - \dvec p_*)
     =0,
 \end{equation}
@@ -1342,7 +1342,7 @@ Left-multipliying by $\matC^TM^{-1}$ and
 some rearrangement results in:
 \begin{equation*}
   \matC^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
-  =-\frac{\matC^T  ({\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}})}{\Delta t},
+  =-\frac{\matC^T  ({\dvec{u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
 \end{equation*}
 The left hand side of this equation contains the sought after pressure 
 correction $\Delta\dvec p=\dvec p^{n+\tfrac 12}-\dvec p_*$. 
@@ -1351,7 +1351,7 @@ Taking into account the discretised incompressible continuity
 $t^{n+1}$, we finally arrive at the pressure correction equation:
 \begin{equation}
  \matC^T \mat{M^{-1}}\matC~\Delta\dvec p
-   =\frac{ \matC^T \dvec{\vec u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t},
+   =\frac{ \matC^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t},
    \label{eqn:pressure_correction}
 \end{equation}
 This discrete poisson equation can now be solved 
