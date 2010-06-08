@@ -3094,10 +3094,9 @@ contains
 
   subroutine check_large_scale_ocean_options
   
-    character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path
+    character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path,continuity2, continuity1, velmesh, pressuremesh
     logical on_sphere, constant_gravity, new_navsto
-    integer iterations
-    
+    integer iterations, poly
     if (option_count('/material_phase')/=1) then
        FLExit("The checks for problem_type oceans only work for single phase.")
     endif
@@ -3182,18 +3181,12 @@ contains
          .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/salinity_dependency")))) then
        ewrite(0,*) "WARNING: You have a salinity field but it will not affect the density of the fluid."
     end if
-    if(.not.have_option(trim(salinity_path)//"/spatial_discretisation/discontinuous_galerkin").and.(.not.(have_option(trim(salinity_path)//"/spatial_discretisation/continuous_galerkin")))) then
-       ewrite(0,*)("WARNING: You probably should have discontinuous galerkin or continuous galerkin spatial discretisation under salinity")
-    end if
 
    ! Temperature options checks
    temperature_path="/material_phase[0]/scalar_field::Temperature/prognostic"
     if(have_option("/material_phase[0]/scalar_field::Temperature")&
          .and.(.not.(have_option("/material_phase[0]/equation_of_state/fluids/linear/temperature_dependency") ))) then
        ewrite(0,*) "WARNING: You have a temperature field but it will not affect the density of the fluid."
-    end if
-    if(.not.have_option(trim(temperature_path)//"/spatial_discretisation/discontinuous_galerkin").and.(.not.(have_option(trim(temperature_path)//"/spatial_discretisation/continuous_galerkin")))) then
-       ewrite(0,*)("WARNING: You probably should have discontinuous galerkin or continuous galerkin spatial discretisation under temperature")
     end if
    
     ! Check that the gravity field is not constant for spherical problems
@@ -3202,6 +3195,54 @@ contains
     if(on_sphere .and. constant_gravity) then
        FLExit("GravityDirection set incorrectly for spherical geometry.")
     end if
+
+! Check velocity mesh continuity
+  call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name",velmesh)
+  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/mesh_continuity",continuity2)
+    
+  if (trim(continuity2).ne."discontinuous") then
+    FLExit("The velocity mesh is not discontinuous")
+  end if
+
+  ! Check pressure mesh continuity 
+  call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/mesh/name",pressuremesh)
+  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity"))then
+    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity",continuity1)
+    if (trim(continuity1).ne."continuous")then
+      FLExit ("Pressure mesh is not continuous")
+    end if
+  end if
+  ! Check pressure mesh polynomial order
+  if (.not.have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_shape"))then
+    ewrite (0,*)"WARNING: You should have the pressure mesh shape set to polynomial order 2"
+  end if
+  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_shape/polynomial_degree"))then
+    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_shape/polynomial_degree",poly)
+    if (poly.ne.2) then
+      ewrite (0,*)"WARNING: You should have the pressure mesh shape set to polynomial order 2"
+    end if 
+  end if
+
+    !Check for viscosity field
+  if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/tensor_field::Viscosity"))then
+    ewrite(0,*)"WARNING: You have no viscosity field"
+  end if
+  ! Check for absorption term
+if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vector_field::Absorption"))then
+    ewrite(0,*)"WARNING: you may wish to add an absorption term under velocity"
+  end if
+  !Check for temperature diffusivity
+  if (have_option("/material_phase[0]/scalar_field::Temperature/prognostic")) then
+    if (.not. have_option("/material_phase[0]/scalar_field::Temperature/prognostic/tensor_field::Diffusivity")) then
+    ewrite(0,*)"WARNING: you have a prognostic temperature field but no diffusivity"
+    end if
+  end if
+  !Check for salinity diffusivity
+  if (have_option("/material_phase[0]/scalar_field::Salinity/prognostic")) then
+    if (.not. have_option("/material_phase[0]/scalar_field::Salinity/prognostic/tensor_field::Diffusivity")) then
+    ewrite(0,*)"WARNING: you have a prognostic salinity field but no diffusivity"
+    end if
+  end if
 
   end subroutine check_large_scale_ocean_options
 
