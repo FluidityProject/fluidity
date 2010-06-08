@@ -70,16 +70,19 @@ module zoltan_integration
   public :: zoltan_drive
   private
 
-  contains
+contains
 
   function zoltan_cb_owned_node_count(data, ierr) result(count)
     integer(zoltan_int) :: count
     integer(zoltan_int), dimension(*) :: data ! not used
     integer(zoltan_int), intent(out) :: ierr
-
+    
     ewrite(1,*) "In zoltan_cb_owned_node_count"
-
+    
     count = halo_nowned_nodes(zz_halo)
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
+       ewrite(0,*) "zoltan_cb_owned_node_count found: ", count, " nodes"
+    end if
     ierr = ZOLTAN_OK
   end function zoltan_cb_owned_node_count
 
@@ -91,24 +94,29 @@ module zoltan_integration
     integer(zoltan_int), intent(in) :: wgt_dim 
     real(zoltan_float), intent(out), dimension(*) :: obj_wgts 
     integer(zoltan_int), intent(out) :: ierr
-
+    
     integer :: count, i
-
+    
     ewrite(1,*) "In zoltan_cb_get_owned_nodes"
-
+    
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
     assert(wgt_dim == 1)
-
+    
     count = halo_nowned_nodes(zz_halo)
-
+    
     call get_owned_nodes(zz_halo, local_ids(1:count))
     global_ids(1:count) = halo_universal_number(zz_halo, local_ids(1:count))
-
+    
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
+       ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
+       ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
+    end if
+      
     do i=1,count
-      obj_wgts(i) = 1.0
+       obj_wgts(i) = 1.0
     end do
-
+      
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_owned_nodes
 
@@ -119,21 +127,34 @@ module zoltan_integration
     integer(zoltan_int), intent(in), dimension(*) :: local_ids
     integer(zoltan_int), intent(out),dimension(*) :: num_edges
     integer(zoltan_int), intent(out) :: ierr  
-
+      
     integer :: count
     integer :: node
 
     ewrite(1,*) "In zoltan_cb_get_num_edges"
-
+      
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
 
     count = zz_halo%nowned_nodes
     assert(count == num_obj)
 
+
     do node=1,count
-      num_edges(node) = row_length(zz_sparsity_two, local_ids(node))
+       num_edges(node) = row_length(zz_sparsity_two, local_ids(node))
+       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then      
+          ewrite(3,*) node, num_edges(node)
+       end if
     end do
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
+      open(666, file = 'edge_counts.dat')
+      do node=1,count
+         write(666,*) num_edges(node)
+      end do
+      close(666)
+    end if
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_num_edges
 
@@ -274,7 +295,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       end do
    end if
 
-   if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/dump_edge_weights")) then
+   if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
       open(666, file = 'edge_weights.dat')
       do i=1,head-1
          write(666,*) ewgts(i)
