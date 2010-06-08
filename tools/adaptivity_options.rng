@@ -1175,11 +1175,20 @@ and improved. Range is 0 to 1, with default 0.6</a:documentation>
 
 Turn on more verbose output for use when debugging Zoltan.</a:documentation>
               <optional>
+                <element name="dump_edge_counts">
+                  <a:documentation>Print out a dump file of the edge counts.
+This permits checking of the edge count for each node.
+Dump is to the current directory, in a file called edge_counts.dat
+Will get overwritten at each adapt.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
                 <element name="dump_edge_weights">
                   <a:documentation>Print out a dump file of the edge weights.
 This permits a visualisation of how the edge weights are distributed.
 Dump is to the current directory, in a file called edge_weights.dat
-Will get overwritten at each adapt</a:documentation>
+Will get overwritten at each adapt.</a:documentation>
                   <empty/>
                 </element>
               </optional>
