@@ -133,8 +133,8 @@ subroutine test_multigrid
   
   ! destroying of PETSc objects, check for remaining references by
   ! running with ./test_multigrid -log_summary
-  call petsc_solve_destroy(y1, A1, b1, ksp1, petsc_numbering1)
-  call petsc_solve_destroy(y2, A2, b2, ksp2, petsc_numbering2)
+  call petsc_solve_destroy(y1, A1, b1, ksp1, petsc_numbering1, solver_option_path1)
+  call petsc_solve_destroy(y2, A2, b2, ksp2, petsc_numbering2, solver_option_path2)
   call PetscRandomDestroy(rctx, ierr)
   call VecDestroy(xex1, ierr)
   call VecDestroy(xex2, ierr)

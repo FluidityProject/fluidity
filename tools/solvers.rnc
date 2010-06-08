@@ -485,6 +485,11 @@ generic_solver_options =
                attribute exact_solution_field {
                   string
                }
+            }?,
+            ## Writes out the approximate solution to a vtu each iteration.
+            ## <b>This may create a large number of vtus!</b>
+            element iteration_vtus {
+               empty
             }?
          }
       }

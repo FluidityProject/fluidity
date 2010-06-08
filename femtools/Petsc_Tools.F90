@@ -729,12 +729,7 @@ contains
     deallocate(vals)
 #endif
       
-    if (associated(petsc_numbering%ghost_nodes)) then
-       
-       if (.not. present(rhs)) then
-         ewrite(0,*) "In Petsc2ScalarFields:"
-         FLAbort("Need to provide rhs if ghost_nodes are present.")
-       end if
+    if (associated(petsc_numbering%ghost_nodes) .and. present(rhs)) then
        
        do b=1, nfields
          call profiler_tic(fields(b), "petsc2field")

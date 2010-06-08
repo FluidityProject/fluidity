@@ -40,6 +40,7 @@ module solvers
   use spud
   use halos
   use profiler
+  use vtk_interfaces
 #ifdef HAVE_PETSC_MODULES
   use petsc 
   use petscvec 
@@ -65,12 +66,30 @@ module solvers
 #endif
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
-  Vec :: petsc_monitor_exact
+  integer :: petsc_monitor_iteration = 0
   Vec :: petsc_monitor_x
+  !
+  ! if .true. the code will compare with the provided exact answer, and
+  ! give the error convergence each iteration:
+  logical, save:: petsc_monitor_has_exact=.false.
+  ! this requires the following:
+  Vec :: petsc_monitor_exact
   real, dimension(:), pointer :: petsc_monitor_error => null()
   PetscLogDouble, dimension(:), pointer :: petsc_monitor_flops => null()
-  integer :: petsc_monitor_iteration = 0
-    
+  type(scalar_field), save:: petsc_monitor_exact_sfield
+  type(vector_field), save:: petsc_monitor_exact_vfield
+  character(len=FIELD_NAME_LEN), save:: petsc_monitor_error_filename=""
+  !
+  ! if .true. a vtu will be written for each iteration
+  logical, save:: petsc_monitor_iteration_vtus=.false.
+  ! this requires the following:
+  type(petsc_numbering_type), save:: petsc_monitor_numbering
+  type(vector_field), target, save:: petsc_monitor_positions
+  type(scalar_field), save:: petsc_monitor_sfield
+  type(vector_field), save:: petsc_monitor_vfield
+  character(len=FIELD_NAME_LEN), save:: petsc_monitor_vtu_name
+  integer, save:: petsc_monitor_vtu_series=0
+  
 private
 
 public petsc_solve, set_solver_options, &
@@ -79,7 +98,8 @@ public petsc_solve, set_solver_options, &
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
   petsc_solve_copy_vectors_from_scalar_fields, &
-  setup_ksp_from_options, SetupKSP
+  setup_ksp_from_options, SetupKSP, petsc_solve_monitor_exact, &
+  petsc_solve_monitor_iteration_vtus
 
 interface petsc_solve
    module procedure petsc_solve_scalar, petsc_solve_vector, &
@@ -93,12 +113,16 @@ interface set_solver_options
     module procedure set_solver_options_with_path, &
       set_solver_options_scalar, set_solver_options_vector, set_solver_options_tensor
 end interface set_solver_options
+  
+interface petsc_solve_monitor_exact
+    module procedure petsc_solve_monitor_exact_scalar
+end interface petsc_solve_monitor_exact
 
 contains
 
 subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
-  preconditioner_matrix, prolongator, surface_node_list,exact, &
-  error_filename,internal_smoothing_option)
+  preconditioner_matrix, prolongator, surface_node_list, &
+  internal_smoothing_option)
   !!< Solve a linear system the nice way.
   type(scalar_field), intent(inout) :: x
   type(scalar_field), intent(in) :: rhs
@@ -109,10 +133,6 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   type(csr_matrix), optional, intent(in) :: preconditioner_matrix
   !! prolongator to be used at the first level of 'mg'
   type(csr_matrix), optional, intent(in) :: prolongator
-  !! exact solution, for testing
-  type(scalar_field), optional, intent(in) :: exact
-  !! file to dump errors and flops
-  character(len=*), optional, intent(in) :: error_filename
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
   !! internal smoothing option
@@ -152,7 +172,7 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
         option_path=option_path, &
         preconditioner_matrix=preconditioner_matrix, &
         prolongator=prolongator,surface_node_list=surface_node_list, &
-        exact=exact,internal_smoothing_option=internal_smoothing_option)
+        internal_smoothing_option=internal_smoothing_option)
  
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_scalar_fields(y, b, x, &
@@ -167,8 +187,8 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   call petsc2field(y, petsc_numbering, x, rhs)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, exact, &
-       & error_filename)
+  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, &
+       & solver_option_path)
   
 end subroutine petsc_solve_scalar
 
@@ -225,7 +245,8 @@ subroutine petsc_solve_scalar_multiple(x, matrix, rhs, option_path)
   ewrite(1,*) 'Finished solving all scalar fields'
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
+  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, &
+       & solver_option_path)
   
 end subroutine petsc_solve_scalar_multiple
 
@@ -291,8 +312,8 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
       call petsc2field(y, petsc_numbering, xblock, rhsblock)
       
       ! destroy all PETSc objects and the petsc_numbering
-      call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
-          
+      call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, &
+         & solver_option_path)          
     end do
     
   else
@@ -320,7 +341,8 @@ subroutine petsc_solve_vector(x, matrix, rhs, option_path, deallocate_matrix)
     call petsc2field(y, petsc_numbering, x)
     
     ! destroy all PETSc objects and the petsc_numbering
-    call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
+    call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, &
+       & solver_option_path)
   end if
   
 end subroutine petsc_solve_vector
@@ -387,12 +409,13 @@ subroutine petsc_solve_vector_components(x, matrix, rhs, option_path)
   ewrite(1,*) 'Finished solving all components.'
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
+  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, &
+       & solver_option_path)
   
 end subroutine petsc_solve_vector_components
 
 subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
-  prolongator, exact, surface_node_list)
+  prolongator, surface_node_list)
   !!< Solve a linear system the nice way. Options for this
   !!< come via the options mechanism. 
   type(scalar_field), intent(inout) :: x
@@ -401,8 +424,6 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   character(len=*), optional, intent(in) :: option_path
   !! prolongator to be used at the first level of 'mg'
   type(csr_matrix), optional, intent(in) :: prolongator
-  !! exact solution, for testing
-  type(scalar_field), optional, intent(in) :: exact
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
 
@@ -423,8 +444,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
         matrix, &
         sfield=x, &
         option_path=option_path, &
-        prolongator=prolongator,surface_node_list=surface_node_list, &
-        exact=exact)
+        prolongator=prolongator,surface_node_list=surface_node_list)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_scalar_fields(y, b, x, rhs=rhs, &
@@ -439,7 +459,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   call petsc2field(y, matrix%column_numbering, x)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy_petsc_csr(y, b, ksp)
+  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
   
 end subroutine petsc_solve_scalar_petsc_csr
 
@@ -483,7 +503,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
   call petsc2field(y, matrix%column_numbering, x)
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy_petsc_csr(y, b, ksp)
+  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
   
 end subroutine petsc_solve_vector_petsc_csr
 
@@ -580,7 +600,7 @@ subroutine petsc_solve_tensor_components(x, matrix, rhs, &
   end if
   
   ! destroy all PETSc objects and the petsc_numbering
-  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
+  call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, solver_option_path)
   
 end subroutine petsc_solve_tensor_components
   
@@ -610,7 +630,7 @@ subroutine petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
   matrix, block_matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
   preconditioner_matrix, prolongator, surface_node_list, &
-  exact,internal_smoothing_option)
+  internal_smoothing_option)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -650,8 +670,6 @@ type(csr_matrix), optional, intent(in) :: prolongator
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 integer, optional, intent(in) :: internal_smoothing_option
-!! exact solution for computing errors
-type(scalar_field), optional, intent(in) :: exact
   
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
@@ -665,6 +683,7 @@ type(scalar_field), optional, intent(in) :: exact
   integer ierr
   logical:: parallel, timing, have_cache
   type(halo_type), pointer ::  halo
+  type(mesh_type), pointer:: mesh
   integer i, j
   KSP, pointer:: ksp_pointer
   
@@ -836,16 +855,18 @@ type(scalar_field), optional, intent(in) :: exact
     
     ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &
+      petsc_numbering, &
       startfromzero_in=startfromzero_in, &
       prolongator=prolongator,surface_node_list=surface_node_list, &
-      matrix_csr=matrix,exact=exact, &
+      matrix_csr=matrix, &
       internal_smoothing_option=internal_smoothing_option)
   else
     ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call SetupKSP(ksp, A, A, solver_option_path, parallel, &
+      petsc_numbering, &
       startfromzero_in=startfromzero_in, &
       prolongator=prolongator,surface_node_list=surface_node_list, &
-      matrix_csr=matrix,exact=exact, &
+      matrix_csr=matrix, &
       internal_smoothing_option=internal_smoothing_option)
   end if
   
@@ -904,7 +925,7 @@ subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
   solver_option_path, startfromzero, &
   matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
-  prolongator,surface_node_list, exact)
+  prolongator,surface_node_list)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -938,10 +959,8 @@ logical, optional, intent(in):: startfromzero_in
 type(csr_matrix), optional, intent(in) :: prolongator
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
-!! exact solution for computing errors
-type(scalar_field), optional, intent(in) :: exact
 
-
+  type(mesh_type), pointer:: mesh
   real time1, time2
   integer ierr
   logical parallel, timing
@@ -990,9 +1009,9 @@ type(scalar_field), optional, intent(in) :: exact
   
   ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
   call SetupKSP(ksp, matrix%M, matrix%M, solver_option_path, parallel, &
+      matrix%column_numbering, &
       startfromzero_in=startfromzero_in, &
-      prolongator=prolongator,surface_node_list=surface_node_list, &
-      exact=exact)
+      prolongator=prolongator,surface_node_list=surface_node_list)
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
@@ -1231,15 +1250,14 @@ logical, optional, intent(in):: checkconvergence
   
 end subroutine petsc_solve_core
 
-subroutine petsc_solve_destroy(y, A, b, ksp, petsc_numbering, exact, &
-     error_filename)
+subroutine petsc_solve_destroy(y, A, b, ksp, petsc_numbering, &
+  solver_option_path)
 Vec, intent(inout):: y
 Mat, intent(inout):: A
 Vec, intent(inout):: b
 KSP, intent(inout):: ksp
 type(petsc_numbering_type), intent(inout):: petsc_numbering
-type(scalar_field), intent(in), optional :: exact
-character(len=*), optional, intent(in) :: error_filename
+character(len=*), intent(in):: solver_option_path
 
   PC pc
   PCType pctype
@@ -1255,19 +1273,28 @@ character(len=*), optional, intent(in) :: error_filename
   end if
   call KSPDestroy(ksp, ierr)
 
-  !destroy callback (includes dumping output)
-  if(present(exact)) then
-     call petsc_solve_callback_destroy(error_filename)
+  ! destroy everything associated with the monitors
+  if(have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/true_error') .or. &
+       have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/iteration_vtus')) then
+     ! note we have to check the option itself and not the logicals
+     ! as we may be in an inner solver, where only the outer solve 
+     ! has the monitor set
+     call petsc_monitor_destroy()
+     petsc_monitor_has_exact=.false.
+     petsc_monitor_iteration_vtus=.false.
   end if
   ! we could reuse this, but for the moment we don't:
   call deallocate(petsc_numbering)
   
 end subroutine petsc_solve_destroy
 
-subroutine petsc_solve_destroy_petsc_csr(y, b, ksp)
+subroutine petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
 Vec, intent(inout):: y
 Vec, intent(inout):: b
 KSP, intent(inout):: ksp
+character(len=*), intent(in):: solver_option_path
 
   PC pc
   PCType pctype
@@ -1281,6 +1308,19 @@ KSP, intent(inout):: ksp
     call DestroyMultigrid(pc)
   end if
   call KSPDestroy(ksp, ierr)
+  
+  ! destroy everything associated with the monitors
+  if(have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/true_error') .or. &
+       have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/iteration_vtus')) then
+     ! note we have to check the option itself and not the logicals
+     ! as we may be in an inner solver, where only the outer solve 
+     ! has the monitor set
+     call petsc_monitor_destroy()
+     petsc_monitor_has_exact=.false.
+     petsc_monitor_iteration_vtus=.false.
+  end if
   
 end subroutine petsc_solve_destroy_petsc_csr
 
@@ -1393,9 +1433,10 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   
 end subroutine ConvergenceCheck
 
-subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &       
+subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
+       petsc_numbering, &
        startfromzero_in, &
-       prolongator,surface_node_list, matrix_csr, exact, &
+       prolongator,surface_node_list, matrix_csr, &
        internal_smoothing_option)
   !!< Creates the KSP solver context and calls
   !!< setup_ksp_from_options
@@ -1405,12 +1446,12 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     character(len=*), intent(in):: solver_option_path
     ! need to know this for setup:
     logical, intent(in):: parallel
+    ! used in the monitors:
+    type(petsc_numbering_type), intent(in):: petsc_numbering
     ! if true overrides what is set in the options:
     logical, optional, intent(in):: startfromzero_in
     ! prolongator to be used at the first level of 'mg'
     type(csr_matrix), optional, intent(in) :: prolongator
-    ! exact solution for diagnostic purposes:
-    type(scalar_field), optional, intent(in) :: exact
     ! additional information for multigrid smoother:
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
@@ -1426,18 +1467,19 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     call KSPSetOperators(ksp, mat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
     
     call setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
+      petsc_numbering=petsc_numbering, &
       startfromzero_in=startfromzero_in, &
       prolongator=prolongator, &
       surface_node_list=surface_node_list, &
       matrix_csr=matrix_csr, &
-      exact=exact, &
       internal_smoothing_option=internal_smoothing_option)
       
   end subroutine SetupKSP
     
   recursive subroutine setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
+      petsc_numbering, &
       startfromzero_in, &
-      prolongator, surface_node_list, matrix_csr, exact, &
+      prolongator, surface_node_list, matrix_csr, &
       internal_smoothing_option)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
@@ -1446,12 +1488,12 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     Mat, intent(in):: mat, pmat
     ! path to solver block (including '/solver')
     character(len=*), intent(in):: solver_option_path
+    ! used in the monitors (optional for "inner solves"):
+    type(petsc_numbering_type), optional, intent(in):: petsc_numbering
     ! if true overrides what is set in the options:
     logical, optional, intent(in):: startfromzero_in
     ! prolongator to be used at the first level of 'mg'
     type(csr_matrix), optional, intent(in) :: prolongator
-    ! exact solution for diagnostic purposes:
-    type(scalar_field), optional, intent(in) :: exact
     ! additional information for multigrid smoother:
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
@@ -1556,10 +1598,34 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
            PETSC_NULL_FUNCTION, ierr)
     end if
 
-    if(present(exact)) then
-       call get_option(trim(solver_option_path)//'/max_iterations', max_its)
-       call Petsc_solve_callback_setup(exact,max_its)
-       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_INTEGER,          &
+    if (have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/true_error') &
+       .and. .not. petsc_monitor_has_exact) then
+       ewrite(0,*) "Solver option diagnostics/monitors/true_error set but "
+       ewrite(0,*) "petsc_solve_monitor_exact() not called. This probably means"
+       ewrite(0,*) "this version of petsc_solve() doesn't support the monitor."
+       FLAbort("petsc_solve_monitor_exact() not called")
+    end if
+    if (have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/iteration_vtus') &
+       .and. .not. petsc_monitor_iteration_vtus) then
+       ewrite(0,*) "Solver option diagnostics/monitors/iteration_vtus set but "
+       ewrite(0,*) "petsc_solve_monitor_iteration_vtus() not called. This probably means"
+       ewrite(0,*) "this version of petsc_solve() doesn't support the monitor."
+       FLAbort("petsc_solve_monitor_iteration_vtus() not called")
+    end if
+    if(have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/true_error') .or. &
+       have_option(trim(solver_option_path)// &
+       '/diagnostics/monitors/iteration_vtus')) then
+       ! note we have to check the option itself and not the logical
+       ! as we may be in an inner solver, where only the outer solve 
+       ! has the monitor set
+       if (.not. present(petsc_numbering)) then
+         FLAbort("Need petsc_numbering for monitor")
+       end if
+       call petsc_monitor_setup(petsc_numbering, max_its)
+       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_INTEGER, &
             &                     PETSC_NULL_FUNCTION,ierr)
     end if
 
@@ -1872,78 +1938,131 @@ subroutine set_solver_options_tensor(field, &
 
 end subroutine set_solver_options_tensor
 
-subroutine petsc_solve_callback_setup(exact,max_its)
-  !! sets up call back function to be called each iteration of a solve
-  type(scalar_field), intent(in) :: exact
+subroutine petsc_monitor_setup(petsc_numbering, max_its)
+  ! sets up the petsc monitors "exact" or "iteration_vtus"
+  type(petsc_numbering_type), intent(in):: petsc_numbering
   integer, intent(in) :: max_its
   
-  integer :: ierr, i
+  type(mesh_type), pointer:: mesh
+  integer :: ierr, i, ncomponents
   integer, allocatable, dimension(:) :: numbering
 
-  call VecCreateSeq(MPI_COMM_SELF, node_count(exact), &
-       petsc_monitor_exact, ierr)
-
-  allocate( numbering( node_count(exact) ) )
-
-  do i = 1, size(numbering)
-     numbering(i) = i-1
-  end do
-
-  call VecDuplicate(petsc_monitor_exact, petsc_monitor_x, ierr)
-
-#ifdef DOUBLEP
-  call VecSetValues(petsc_monitor_exact, size(exact%val), &
-       numbering, exact%val, INSERT_VALUES, ierr)
-#else
-  call VecSetValues(petsc_monitor_exact, size(exact%val), &
-       numbering, real(exact%val, kind = PetscScalar_kind), INSERT_VALUES, ierr)
-#endif
+  petsc_monitor_x=PetscNumberingCreateVec(petsc_numbering)
+  petsc_monitor_numbering=petsc_numbering
+  ncomponents=size(petsc_numbering%gnn2unn,2)
        
-  call VecAssemblyBegin(petsc_monitor_exact, ierr)
-  call VecAssemblyEnd(petsc_monitor_exact, ierr)
+  if (petsc_monitor_has_exact) then
+    
+    call VecDuplicate(petsc_monitor_x, petsc_monitor_exact, ierr)
+    
+    if (ncomponents==1) then
+      call field2petsc(petsc_monitor_exact_sfield, petsc_numbering, petsc_monitor_exact)
+    else
+      call field2petsc(petsc_monitor_exact_vfield, petsc_numbering, petsc_monitor_exact)
+    end if
+    
+    allocate( petsc_monitor_error(max_its+1) )
+    allocate( petsc_monitor_flops(max_its+1) )
+    petsc_monitor_error = 0.0
+    petsc_monitor_flops = 0.0
+    petsc_monitor_iteration=0
+    
+  end if
   
-  allocate( petsc_monitor_error(max_its+1) )
-  allocate( petsc_monitor_flops(max_its+1) )
-  petsc_monitor_error = 0.0
-  petsc_monitor_flops = 0.0
-  petsc_monitor_iteration=0
+  if (petsc_monitor_iteration_vtus) then
+    mesh => petsc_monitor_positions%mesh
+    if (ncomponents==1) then
+      call allocate(petsc_monitor_sfield, mesh, name="X")
+    else
+      call allocate(petsc_monitor_vfield, ncomponents, mesh, name="X")
+    end if
+    petsc_monitor_vtu_name="petsc_monitor_"//int2str(petsc_monitor_vtu_series)
+    petsc_monitor_vtu_series=petsc_monitor_vtu_series+1
+  end if
 
-end subroutine Petsc_solve_callback_setup
+end subroutine petsc_monitor_setup
   
-subroutine petsc_solve_callback_destroy(error_filename)
-!! Destroys everything asscociated with the call back function
-  character(len=*), optional, intent(in) :: error_filename
-  !
+subroutine petsc_solve_monitor_exact_scalar(exact, error_filename)
+!! To be called before petsc_solve. Registers the exact solution field
+!! to which the approximate solutions are compared each iteration.
+type(scalar_field), intent(in):: exact
+! if present write to this filename, otherwise writes to stdout
+character(len=*), optional, intent(in):: error_filename
+  
+  petsc_monitor_exact_sfield=exact
+  call incref(petsc_monitor_exact_sfield)
+  if (present(error_filename)) then
+    petsc_monitor_error_filename=error_filename
+  else
+    petsc_monitor_error_filename=""
+  end if
+  petsc_monitor_has_exact=.true.
+  
+end subroutine petsc_solve_monitor_exact_scalar
+  
+subroutine petsc_solve_monitor_iteration_vtus(positions)
+!! To be called before petsc_solve. Registers the position field to be
+!! used in the vtus written out by the "iteration_vtus" monitor. Needs
+!! to be the exact same mesh as the solution field.
+type(vector_field), intent(in):: positions
+  
+  petsc_monitor_positions=positions
+  call incref(petsc_monitor_positions)
+  petsc_monitor_iteration_vtus=.true.
+  
+end subroutine petsc_solve_monitor_iteration_vtus
+
+subroutine petsc_monitor_destroy()
+  ! Destroys everything asscociated with the petsc monitors
   integer :: ierr, i
   integer :: error_unit
   character(len = 100) :: format0
 
-  if(present(error_filename)) then
-     !dumping out errors and flops
-     error_unit=free_unit()
-     open(unit=error_unit, file=trim(error_filename), action="write")    
-     format0="(i0,a," &
-          & // real_format(padding = 1) // ",a," &
-          & // real_format(padding = 1) //")" 
-     do i = 1, petsc_monitor_iteration
-        write(error_unit, format0) i , " ", &
-             & petsc_monitor_error(i), " ", petsc_monitor_flops(i)
-     end do
-     close(error_unit)
-  else
-     ewrite(1,*) 'ERROR CALCULATIONS'
-     ewrite(1,*) 'iteration, error'
-     do i = 1, petsc_monitor_iteration
-        ewrite(1,*) i, petsc_monitor_error(i), petsc_monitor_flops(i)
-     end do
+  call VecDestroy(petsc_monitor_x, ierr)
+  
+  if (petsc_monitor_has_exact) then
+
+    if(petsc_monitor_error_filename/='') then
+       !dumping out errors and flops
+       error_unit=free_unit()
+       open(unit=error_unit, file=trim(petsc_monitor_error_filename), action="write")    
+       format0="(i0,a," &
+            & // real_format(padding = 1) // ",a," &
+            & // real_format(padding = 1) //")" 
+       do i = 1, petsc_monitor_iteration
+          write(error_unit, format0) i , " ", &
+               & petsc_monitor_error(i), " ", petsc_monitor_flops(i)
+       end do
+       close(error_unit)
+    else
+       ewrite(1,*) 'ERROR CALCULATIONS'
+       ewrite(1,*) 'iteration, error, flops'
+       do i = 1, petsc_monitor_iteration
+          ewrite(1,*) i, petsc_monitor_error(i), petsc_monitor_flops(i)
+       end do
+    end if
+    
+    if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
+      call deallocate(petsc_monitor_exact_sfield)
+    else
+      call deallocate(petsc_monitor_exact_vfield)
+    end if
+
+    call VecDestroy(petsc_monitor_exact, ierr)
+    deallocate( petsc_monitor_error )
+    deallocate( petsc_monitor_flops )
+  end if
+  
+  if (petsc_monitor_iteration_vtus) then
+    if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
+      call deallocate(petsc_monitor_sfield)
+    else
+      call deallocate(petsc_monitor_vfield)
+    end if
+    call deallocate(petsc_monitor_positions)
   end if
 
-  call VecDestroy(petsc_monitor_exact, ierr)
-  call VecDestroy(petsc_monitor_x, ierr)
-  deallocate( petsc_monitor_error )
-  deallocate( petsc_monitor_flops )
-
-end subroutine petsc_solve_callback_destroy
+end subroutine petsc_monitor_destroy
   
 subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
 !! The monitor function that gets called each iteration of petsc_solve
@@ -1965,14 +2084,30 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   ! will clobber it (bug in fortran interface)
   call KSPBuildSolution(ksp,petsc_monitor_x, dummy_vec, ierr)
 
-  ! Compare with exact solution
-  call VecAXPY(petsc_monitor_x, real(-1.0, kind = PetscScalar_kind), petsc_monitor_exact, ierr)
-  call VecNorm(petsc_monitor_x, NORM_INFINITY, rnorm, ierr)
-  call PetscGetFlops(flops,ierr)
+  if (petsc_monitor_has_exact) then
+    ! Compare with exact solution
+    call VecAXPY(petsc_monitor_x, real(-1.0, kind = PetscScalar_kind), petsc_monitor_exact, ierr)
+    call VecNorm(petsc_monitor_x, NORM_INFINITY, rnorm, ierr)
+    call PetscGetFlops(flops,ierr)
 
-  petsc_monitor_error(n+1) = rnorm
-  petsc_monitor_iteration = max(petsc_monitor_iteration,n+1)
-  petsc_monitor_flops(n+1) = flops
+    petsc_monitor_error(n+1) = rnorm
+    petsc_monitor_iteration = max(petsc_monitor_iteration,n+1)
+    petsc_monitor_flops(n+1) = flops
+  end if
+  
+  if (petsc_monitor_iteration_vtus) then
+    if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
+      call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_sfield)
+      call vtk_write_fields(petsc_monitor_vtu_name, index=n, &
+        model=petsc_monitor_positions%mesh, position=petsc_monitor_positions, &
+        sfields=(/ petsc_monitor_sfield /))
+    else
+      call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfield)
+      call vtk_write_fields(petsc_monitor_vtu_name, index=n, &
+        model=petsc_monitor_positions%mesh, position=petsc_monitor_positions, &
+        vfields=(/ petsc_monitor_vfield /))
+    end if
+  end if
   
   ierr=0
   

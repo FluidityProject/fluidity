@@ -146,7 +146,7 @@
       
       ewrite(2,*) 'Destroying all PETSc objects'
       ! Destroy all PETSc objects and the petsc_numbering:
-      call petsc_solve_destroy(y, A, b, ksp, petsc_numbering)
+      call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, solver_option_path)
       
       ewrite(2,*) 'Leaving PETSc_solve_setup_full_projection'
       
@@ -293,6 +293,7 @@
       call MatSchurComplementGetKSP(A,ksp_schur,ierr)
       call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
         inner_solver_option_path, startfromzero_in=.true.)
+      ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format:
       pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
@@ -306,7 +307,8 @@
 
       parallel=IsParallel()
 
-      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,lstartfromzero)
+      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,&
+        petsc_numbering_p, lstartfromzero)
       
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,

@@ -129,6 +129,7 @@
     use free_surface_module
     use FLDebug
     use multigrid
+    use spud
     implicit none
     type(state_type), intent(inout) :: state
     logical, intent(in) :: vl_as, vl_as_wsor, vl, no_vl, sor
@@ -199,48 +200,46 @@
          ksptype="cg", pctype="mg", &
          atol=1.0e-100, rtol=1.0e-20, max_its=10000, &
          start_from_zero=.true.)
+         
+    call add_option(trim(psi%option_path)//'/solver/diagnostics/monitors/true_error', stat=stat)
 
     if(vl_as) then
        ewrite(1,*) 'with vertical lumping and internal smoother'
 
+       call petsc_solve_monitor_exact(exact, error_filename='with_vl_and_is.dat')
        call petsc_solve(psi, A, rhs, prolongator=vprolongator, &
-            & exact=exact, surface_node_list=top_surface_node_list, &
-            & error_filename='with_vl_and_is.dat', &
+            & surface_node_list=top_surface_node_list, &
             & internal_smoothing_option=INTERNAL_SMOOTHING_SEPARATE_SOR)
     end if
 
     if(vl_as_wsor) then       
        ewrite(1,*) 'with vertical lumping and internal smoother and wrapped &
             &sor'
+       call petsc_solve_monitor_exact(exact, error_filename='with_vl_and_is_wrap_sor.dat')
        call petsc_solve(psi, A, rhs, prolongator=vprolongator, &
-            & exact=exact, surface_node_list=top_surface_node_list, &
-            & error_filename='with_vl_and_is_wrap_sor.dat', &
+            & surface_node_list=top_surface_node_list, &
             & internal_smoothing_option=INTERNAL_SMOOTHING_WRAP_SOR)
     end if
 
     if(vl) then
        ewrite(1,*) 'with vertical lumping, no additive smoother'
 
-       call petsc_solve(psi, A, rhs, prolongator=vprolongator, &
-            & exact=exact, &
-            & error_filename='with_vl_without_is.dat')
-
+       call petsc_solve_monitor_exact(exact, error_filename='with_vl_without_is.dat')
+       call petsc_solve(psi, A, rhs, prolongator=vprolongator)
     end if
 
     if(no_vl) then
        ewrite(1,*) 'without vertical lumping'
 
-       call petsc_solve(psi, A, rhs, &
-            & exact=exact, &
-            & error_filename='without_vl.dat')
+       call petsc_solve_monitor_exact(exact, error_filename='without_vl.dat')
+       call petsc_solve(psi, A, rhs)
     end if
 
     if(sor) then
        ewrite(1,*) 'Using SOR'
 
-       call petsc_solve(psi, A, rhs, &
-            & exact=exact, &
-            & error_filename='sor.dat')
+       call petsc_solve_monitor_exact(exact, error_filename='sor.dat')
+       call petsc_solve(psi, A, rhs)
     end if
 
   end subroutine run_model

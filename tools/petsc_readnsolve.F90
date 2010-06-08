@@ -419,9 +419,9 @@ contains
         ewrite(1,*) "Node count of mesh agrees with that of the matrixdump: ", n
         components=1
         
-      else if (mod(universal_nodes,n)==0) then
+      else if (mod(n, universal_nodes)==0) then
         
-        components=universal_nodes/n
+        components=n/universal_nodes
         ewrite(1,*) "Number of nodes in the mesh is an integer multiple of the matrixdump size"
         ewrite(1,*) "Assuming it's a vector field with"
         ewrite(1,*) components, " components and ", universal_nodes, " nodes."

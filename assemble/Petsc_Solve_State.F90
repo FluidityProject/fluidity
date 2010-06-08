@@ -42,6 +42,7 @@ use solvers
 use sparse_tools_petsc
 use state_module
 use global_parameters, only: OPTION_PATH_LEN
+use field_options
 ! modules from assemble:
 use free_surface_module
 implicit none
@@ -67,8 +68,41 @@ contains
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
     
-    call petsc_solve_scalar_state_wrapper(x, matrix_csr=matrix, &
-      rhs=rhs, state=state, option_path=option_path)
+    integer, dimension(:), pointer:: surface_nodes
+    type(csr_matrix):: prolongator
+    character(len=OPTION_PATH_LEN):: solver_option_path
+    
+    call petsc_solve_state_setup(solver_option_path, state, x, &
+      option_path=option_path)
+    
+    if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping')) then
+      
+      prolongator=vertical_prolongator_from_free_surface(state, x%mesh)
+      
+      if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping/internal_smoother')) then
+        
+        surface_nodes => free_surface_nodes(state, x%mesh)
+        
+        call petsc_solve(x, matrix, rhs, &
+           prolongator=prolongator, &
+           surface_node_list=surface_nodes, option_path=option_path)
+           
+        deallocate(surface_nodes)
+        
+      else
+      
+        call petsc_solve(x, matrix, rhs, &
+           prolongator=prolongator, option_path=option_path)
+        
+      end if
+      
+      call deallocate(prolongator)
+    
+    else
+    
+      call petsc_solve(x, matrix, rhs, option_path=option_path)
+      
+    end if
     
   end subroutine petsc_solve_scalar_state
   
@@ -84,45 +118,12 @@ contains
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
     
-    call petsc_solve_scalar_state_wrapper(x, matrix_petsc_csr=matrix, &
-      rhs=rhs, state=state, option_path=option_path)
-    
-  end subroutine petsc_solve_scalar_state_petsc_csr
-  
-  subroutine petsc_solve_scalar_state_wrapper(x, &
-    matrix_csr, matrix_petsc_csr, rhs, state, &
-    option_path)
-    ! Wrapper for petsc_solve_scalar_state that takes either
-    ! csr_matrix or petsc_csr_matrix
-    type(scalar_field), intent(inout) :: x
-    type(scalar_field), intent(in) :: rhs
-    type(csr_matrix), optional, intent(in) :: matrix_csr
-    type(petsc_csr_matrix), optional, intent(inout) :: matrix_petsc_csr
-    type(state_type), intent(in):: state
-    ! override x%option_path if provided:
-    character(len=*), optional, intent(in):: option_path
-      
     integer, dimension(:), pointer:: surface_nodes
-    type(csr_matrix) prolongator
-    type(scalar_field), pointer:: exact
+    type(csr_matrix):: prolongator
     character(len=OPTION_PATH_LEN):: solver_option_path
-    character(len=FIELD_NAME_LEN):: exact_field_name
-    integer stat
-      
-    if (present(option_path)) then
-       solver_option_path=complete_solver_option_path(option_path)
-    else
-       solver_option_path=complete_solver_option_path(x%option_path)
-    end if
     
-    call get_option( &
-        trim(solver_option_path)//'/diagnostics/monitors/true_error/exact_solution_field', &
-        exact_field_name, stat=stat)
-    if (stat==0) then        
-       exact => extract_scalar_field(state, exact_field_name)       
-    else      
-       nullify(exact)    
-    end if
+    call petsc_solve_state_setup(solver_option_path, state, x, &
+      option_path=option_path)
     
     if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping')) then
       
@@ -132,8 +133,7 @@ contains
         
         surface_nodes => free_surface_nodes(state, x%mesh)
         
-        call petsc_solve_exact(x, matrix_csr=matrix_csr, &
-           matrix_petsc_csr=matrix_petsc_csr, rhs=rhs, exact=exact, &
+        call petsc_solve(x, matrix, rhs, &
            prolongator=prolongator, &
            surface_node_list=surface_nodes, option_path=option_path)
            
@@ -141,8 +141,7 @@ contains
         
       else
       
-        call petsc_solve_exact(x, matrix_csr=matrix_csr, &
-           matrix_petsc_csr=matrix_petsc_csr, rhs=rhs, exact=exact, &
+        call petsc_solve(x, matrix, rhs, &
            prolongator=prolongator, option_path=option_path)
         
       end if
@@ -151,57 +150,49 @@ contains
     
     else
     
-        call petsc_solve_exact(x, matrix_csr=matrix_csr, &
-           matrix_petsc_csr=matrix_petsc_csr, rhs=rhs, exact=exact, &
-           option_path=option_path)
+      call petsc_solve(x, matrix, rhs, option_path=option_path)
       
+    end if
+    
+  end subroutine petsc_solve_scalar_state_petsc_csr
+    
+  subroutine petsc_solve_state_setup(solver_option_path, state, x, option_path)
+    ! sets up monitors and returns solver_option_path
+    character(len=*), intent(out):: solver_option_path
+    type(state_type), intent(in):: state
+    type(scalar_field), intent(in):: x
+    character(len=*), intent(in), optional:: option_path
+    
+    type(vector_field):: positions
+    type(scalar_field), pointer:: exact
+    character(len=FIELD_NAME_LEN):: exact_field_name
+    integer:: stat
+    
+    if (present(option_path)) then
+       solver_option_path=complete_solver_option_path(option_path)
+    else
+       solver_option_path=complete_solver_option_path(x%option_path)
+    end if
+    
+    call get_option(trim(solver_option_path)// &
+        '/diagnostics/monitors/true_error/exact_solution_field', &
+        exact_field_name, stat=stat)
+    if (stat==0) then
+       exact => extract_scalar_field(state, exact_field_name)
+       call petsc_solve_monitor_exact(exact)
+    end if
+    
+    if (have_option(trim(solver_option_path)// &
+        '/diagnostics/monitors/iteration_vtus')) then
+       positions=get_nodal_coordinate_field(state, x%mesh)
+       ! creates its own reference that's cleaned up in petsc_solve:
+       call petsc_solve_monitor_iteration_vtus(positions)
+       ! so we're free to get rid of ours
+       call deallocate(positions)
     end if
 
-  end subroutine petsc_solve_scalar_state_wrapper
+  end subroutine petsc_solve_state_setup
     
-  subroutine petsc_solve_exact(x, matrix_csr, matrix_petsc_csr, &
-    rhs, exact, prolongator, surface_node_list, option_path)
-    ! This wrapper passes on exact only if associated
-    type(scalar_field), intent(inout) :: x
-    type(scalar_field), intent(in) :: rhs
-    type(csr_matrix), optional, intent(in) :: matrix_csr
-    type(petsc_csr_matrix), optional, intent(inout) :: matrix_petsc_csr
-    type(scalar_field), pointer :: exact
-    ! optional arguments passed straight on:
-    type(csr_matrix), optional, intent(in):: prolongator
-    integer, dimension(:), optional, intent(in):: surface_node_list
-    character(len=*), optional, intent(in):: option_path
-      
-    if (present(matrix_csr)) then
-      if (associated(exact)) then
-        
-        call petsc_solve(x, matrix_csr, rhs, exact=exact, prolongator=prolongator, &
-          surface_node_list=surface_node_list, option_path=option_path)
-          
-      else
-      
-        call petsc_solve(x, matrix_csr, rhs, prolongator=prolongator, &
-          surface_node_list=surface_node_list, option_path=option_path)
-          
-      end if
-    else if (present(matrix_petsc_csr)) then
-      if (associated(exact)) then
-        
-        call petsc_solve(x, matrix_petsc_csr, rhs, exact=exact, prolongator=prolongator, &
-          surface_node_list=surface_node_list, option_path=option_path)
-          
-      else
-      
-        call petsc_solve(x, matrix_petsc_csr, rhs, prolongator=prolongator, &
-          surface_node_list=surface_node_list, option_path=option_path)
-          
-      end if
-    else
-      FLAbort("Either matrix_csr or matrix_petsc_csr required in petsc_solve_exact")
-    end if
-      
-  end subroutine petsc_solve_exact
-  
   logical function petsc_solve_needs_state(option_path)
   character(len=*), intent(in):: option_path
   
@@ -212,7 +203,9 @@ contains
      petsc_solve_needs_state=have_option( &
         trim(solver_option_path)//'/preconditioner::mg/vertical_lumping') &
       .or. have_option( &
-        trim(solver_option_path)//'/diagnostics/monitors/true_error')
+        trim(solver_option_path)//'/diagnostics/monitors/true_error') &
+      .or. have_option( &
+        trim(solver_option_path)//'/diagnostics/monitors/iteration_vtus')
   
   end function petsc_solve_needs_state
   

@@ -525,6 +525,13 @@ solution to be compared with each iteration</a:documentation>
             </attribute>
           </element>
         </optional>
+        <optional>
+          <element name="iteration_vtus">
+            <a:documentation>Writes out the approximate solution to a vtu each iteration.
+&lt;b&gt;This may create a large number of vtus!&lt;/b&gt;</a:documentation>
+            <empty/>
+          </element>
+        </optional>
       </element>
     </element>
   </define>
