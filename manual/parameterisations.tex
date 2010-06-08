@@ -1,11 +1,11 @@
 \chapter{Parameterisations}\label{chap:parameterisations}
 
-Although \fluidity is capable of resolving a range of scales dynamically using 
-and adaptive mesh, it is not always feasible to resolve all process that are
-required for a simulation. This chapter introduces the subgrid-scale paramateristations
+Although \fluidity\ is capable of resolving a range of scales dynamically using 
+an adaptive mesh, it is not always feasible to resolve all process that are
+required for a simulation. This chapter introduces the subgrid scale paramateristations
 that are available in \fluidity.
 
-\section{General length scale subgridscale parameterisation}\label{Sect:GLS}
+\section{General length scale subgrid scale parameterisation}\label{Sect:GLS}
 \index{viscosity!eddy}
 \index{diffusivity!eddy}
 \index{Reynolds stress}
@@ -13,7 +13,7 @@ that are available in \fluidity.
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-The general length scale (GLS) subgridscale parameterisation is capable of simulating vertical
+The general length scale (GLS) subgrid parameterisation is capable of simulating vertical
 turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution, 
 so is ideal for adaptive ocean-scale problems. GLS can be set-up to behave as a number of classical
 turbulence models. \fluidity has four implementations of GLS available: $k-\epsilon$, $k-kl$, $k-\omega$, 
