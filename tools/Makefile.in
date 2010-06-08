@@ -233,8 +233,8 @@ $(VTKPROJECTION): vtkprojection.cpp lib/
 $(RUNZOLTAN): zoltan_load_balance.F90 lib/
 	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(RUNZOLTAN) zoltan_load_balance.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
 
-$(PERIODISE): periodise.F90 lib/
-	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(PERIODISE) periodise.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
+$(PERIODISE): periodise.o lib/
+	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
