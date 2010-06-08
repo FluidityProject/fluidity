@@ -150,7 +150,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     real(zoltan_float), intent(out), dimension(*) :: ewgts
     integer(zoltan_int), intent(out) :: ierr 
     integer :: count
-    integer :: node, i, j, nnode
+    integer :: node, i, j
     integer :: head
     integer, dimension(:), pointer :: neighbours
     
@@ -890,7 +890,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), intent(out) :: ierr  
 
     real, dimension(sizes(1) / real_size) :: rbuf ! easier to read reals 
-    integer :: rhead, i, state_no, field_no, loc, ihead, ratio
+    integer :: rhead, i, state_no, field_no, loc, ratio
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
@@ -957,7 +957,6 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), dimension(:), pointer :: p1_import_local_ids => null()
     integer(zoltan_int), dimension(:), pointer :: p1_import_procs => null()
     integer, save :: dumpno = 0
-    real :: test
 
     type(tensor_field) :: new_metric
 
@@ -1268,7 +1267,6 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       integer, dimension(size(receives)) :: nreceives, nsends
       integer, dimension(ele_count(new_positions)) :: renumber_permutation
       integer :: universal_element_number, old_new_local_element_number, new_new_local_element_number
-      integer :: stat
       
       ewrite(1,*) "In reconstruct_halo"
 
@@ -1562,8 +1560,6 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       type(integer_hash_table) :: universal_surface_element_to_local_numbering
       integer, dimension(:), allocatable, target :: sndgln, surface_ids, element_owners
       type(csr_sparsity), pointer :: nnlist
-      integer, dimension(:), pointer :: neighbours
-      integer :: k, l
       logical, dimension(key_count(new_surface_elements)) :: keep_surface_element
       integer :: universal_element_number
 
@@ -2031,7 +2027,6 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
       ierr = Zoltan_LB_Free_Data(p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
                                & p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-      write(*,*) ierr, ZOLTAN_OK, ZOLTAN_WARN, ZOLTAN_FATAL, ZOLTAN_MEMERR
       assert(ierr == ZOLTAN_OK)
 
     end subroutine deallocate_zoltan_lists
