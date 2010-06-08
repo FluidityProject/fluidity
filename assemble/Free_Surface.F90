@@ -53,7 +53,7 @@ public free_surface_module_check_options
 
 contains
 
-  subroutine add_free_surface_to_cmc_projection(state, cmc, rhs, dt, theta, get_cmc)
+  subroutine add_free_surface_to_cmc_projection(state, cmc, dt, theta, get_cmc, rhs)
   !!< Adds a boundary integral to the continuity equation
   !!< that weakly enforces the kinematic boundary condition.
   !!<
@@ -76,10 +76,10 @@ contains
   
     type(state_type), intent(inout) :: state
     type(csr_matrix), intent(inout) :: cmc
-    type(scalar_field), intent(inout) :: rhs
     real, intent(in) :: dt, theta
     !! only add in to the matrix if get_cmc==.true.
     logical, intent(in):: get_cmc
+    type(scalar_field), optional, intent(inout) :: rhs      
     
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
       type(scalar_field), pointer:: p, prevp
@@ -92,8 +92,9 @@ contains
       
       real, save :: coef_old = 0.0
       
-      ewrite(1,*) 'Entering add_free_surface_to_cmc_projection'
-      
+      ewrite(1,*) 'Entering add_free_surface_to_cmc_projection routine'
+      ewrite(2,*) "Are we adding free-surface contribution to RHS:",present(rhs)
+
       ! gravity acceleration
       call get_option('/physical_parameters/gravity/magnitude', g, stat=grav_stat)
         
@@ -123,7 +124,9 @@ contains
       
       ewrite_minmax(p)
       ewrite_minmax(prevp)
-      ewrite_minmax(rhs)
+      if(present(rhs)) then
+         ewrite_minmax(rhs)
+      end if
       
       if (move_mesh) then
         positions => extract_vector_field(state, "IteratedCoordinate")
@@ -162,7 +165,9 @@ contains
       ! save the coefficient with the current timestep for the next time round
       coef_old = coef
     
-      ewrite_minmax(rhs)
+      if(present(rhs)) then
+         ewrite_minmax(rhs)
+      end if
       
     contains 
     
@@ -203,13 +208,17 @@ contains
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
         mass_ele_old=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
-        call addto(rhs, face_global_nodes(p, sele), &
-          -(matmul(mass_ele, face_val(p, sele)) &
-          -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
+        if(present(rhs)) then
+           call addto(rhs, face_global_nodes(p, sele), &
+                -(matmul(mass_ele, face_val(p, sele)) &
+                -matmul(mass_ele_old, face_val(prevp,sele)))*alpha)
+        end if
       else
         ! no mesh movement - just use the same mass matrix as above
-        call addto(rhs, face_global_nodes(p, sele), &
-          -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
+         if(present(rhs)) then
+            call addto(rhs, face_global_nodes(p, sele), &
+                 -1.0*matmul(mass_ele, face_val(p, sele)-face_val(prevp,sele))*alpha)
+         end if
       end if
       
     end subroutine add_free_surface_element

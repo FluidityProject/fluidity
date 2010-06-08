@@ -152,10 +152,10 @@
       logical :: get_diag_schur
       ! Do we need the scaled pressure mass matrix?
       logical :: get_scaled_pressure_mass_matrix
-      ! Do we need an auxilliary matrix for full_projection solve?
-      logical :: assemble_schur_auxilliary_matrix
-      type(csr_sparsity), pointer :: schur_auxilliary_matrix_sparsity
-      type(csr_matrix) :: schur_auxilliary_matrix
+      ! Do we need an auxiliary matrix for full_projection solve?
+      logical :: assemble_schur_auxiliary_matrix
+      type(csr_sparsity), pointer :: schur_auxiliary_matrix_sparsity
+      type(csr_matrix) :: schur_auxiliary_matrix
       ! Scaled pressure mass matrix - used for preconditioning full projection solve:
       type(csr_matrix), target :: scaled_pressure_mass_matrix
       type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity      
@@ -372,7 +372,7 @@
 
       get_diag_schur = .false.
       get_scaled_pressure_mass_matrix = .false.
-      assemble_schur_auxilliary_matrix = .false.
+      assemble_schur_auxiliary_matrix = .false.
 
       full_schur = have_option(trim(p%option_path)//&
           &"/prognostic/scheme&
@@ -613,27 +613,27 @@
         end if
 
         if(full_schur) then
-           ! Decide whether we need to assemble an auxilliary matrix for full_projection solve:
-           if(apply_kmk) assemble_schur_auxilliary_matrix = .true.
-           if (has_boundary_condition(u, "free_surface")) assemble_schur_auxilliary_matrix = .true.
-           ! If schur_auxilliary_matrix is needed then assemble it:
-           if(assemble_schur_auxilliary_matrix) then
+           ! Decide whether we need to assemble an auxiliary matrix for full_projection solve:
+           if(apply_kmk) assemble_schur_auxiliary_matrix = .true.
+           if (has_boundary_condition(u, "free_surface")) assemble_schur_auxiliary_matrix = .true.
+           ! If schur_auxiliary_matrix is needed then assemble it:
+           if(assemble_schur_auxiliary_matrix) then
               ! Get sparsity and assemble:
-              ewrite(2,*) "Assembling auxilliary matrix for full_projection solve"
-              schur_auxilliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
-              call allocate(schur_auxilliary_matrix, schur_auxilliary_matrix_sparsity,&
-                   name="schur_auxilliary_matrix")
+              ewrite(2,*) "Assembling auxiliary matrix for full_projection solve"
+              schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
+              call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
+                   name="schur_auxiliary_matrix")
               ! Initialize matrix:
-              call zero(schur_auxilliary_matrix)
+              call zero(schur_auxiliary_matrix)
               if(apply_kmk) then
-                 ewrite(2,*) "Adding kmk stabilisation matrix to full_projection auxilliary matrix"
-                 call add_kmk_matrix(state(istate), schur_auxilliary_matrix)
+                 ewrite(2,*) "Adding kmk stabilisation matrix to full_projection auxiliary matrix"
+                 call add_kmk_matrix(state(istate), schur_auxiliary_matrix)
               end if
-!              if (has_boundary_condition(u, "free_surface")) then
-!                 ewrite(2,*) "Adding free surface to full_projection auxilliary matrix"
-!                 call add_free_surface_to_cmc_projection(state(istate), &
-!                      cmc_m, ct_rhs, dt, theta_pg, get_cmc=get_cmc_m)
-!              end if
+              if (has_boundary_condition(u, "free_surface")) then
+                 ewrite(2,*) "Adding free surface to full_projection auxiliary matrix"
+                 call add_free_surface_to_cmc_projection(state(istate), &
+                      schur_auxiliary_matrix, dt, theta_pg, get_cmc=.true., rhs=ct_rhs)
+              end if
            end if
         end if
 
@@ -661,7 +661,7 @@
         
         if (has_boundary_condition(u, "free_surface")) then
           call add_free_surface_to_cmc_projection(state(istate), &
-              cmc_m, ct_rhs, dt, theta_pg, get_cmc=get_cmc_m)
+              cmc_m, dt, theta_pg, get_cmc=get_cmc_m, rhs=ct_rhs)
         end if
         
         ! do we want to get an initial guess at the pressure?
@@ -715,8 +715,13 @@
            call assemble_diagonal_schur(cmc_m,u,inner_m,ctp_m,ct_m)
            ! P1-P1 stabilisation:
            if (apply_kmk) then
-              ewrite(2,*) "Adding P1-P1 stabilisation to preconditioner matrix"
+              ewrite(2,*) "Adding P1-P1 stabilisation to diagonal schur complement preconditioner matrix"
               call add_kmk_matrix(state(istate), cmc_m)
+           end if
+           if (has_boundary_condition(u, "free_surface")) then
+              ewrite(2,*) "Adding free surface to diagonal schur complement preconditioner matrix"
+              call add_free_surface_to_cmc_projection(state(istate), &
+                   cmc_m, dt, theta_pg, get_cmc=.true.)
            end if
         end if
 
@@ -858,9 +863,9 @@
       
             ! solve for the change in pressure
             if(full_schur) then
-               if(assemble_schur_auxilliary_matrix) then
+               if(assemble_schur_auxiliary_matrix) then
                   call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
-                       full_projection_preconditioner,schur_auxilliary_matrix)
+                       full_projection_preconditioner,schur_auxiliary_matrix)
                else
                   call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
                        full_projection_preconditioner)
@@ -915,9 +920,9 @@
             call deallocate(projec_rhs)
             call deallocate(delta_p)
 
-            if(assemble_schur_auxilliary_matrix) then
-               ! Deallocate schur_auxilliary_matrix:
-               call deallocate(schur_auxilliary_matrix)
+            if(assemble_schur_auxiliary_matrix) then
+               ! Deallocate schur_auxiliary_matrix:
+               call deallocate(schur_auxiliary_matrix)
             end if
 
             if(get_scaled_pressure_mass_matrix) then
