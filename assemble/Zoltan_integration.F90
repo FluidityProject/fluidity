@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size
+  use global_parameters, only: real_size, OPTION_PATH_LEN
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -127,32 +127,30 @@ contains
     integer(zoltan_int), intent(in), dimension(*) :: local_ids
     integer(zoltan_int), intent(out),dimension(*) :: num_edges
     integer(zoltan_int), intent(out) :: ierr  
-      
+
     integer :: count
     integer :: node
+    character (len = OPTION_PATH_LEN) :: filename
 
     ewrite(1,*) "In zoltan_cb_get_num_edges"
-      
+    
     assert(num_gid_entries == 1)
     assert(num_lid_entries == 1)
-
+    
     count = zz_halo%nowned_nodes
     assert(count == num_obj)
-
-
+    
     do node=1,count
        num_edges(node) = row_length(zz_sparsity_two, local_ids(node))
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then      
-          ewrite(3,*) node, num_edges(node)
-       end if
     end do
-
+    
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
-      open(666, file = 'edge_counts.dat')
-      do node=1,count
-         write(666,*) num_edges(node)
-      end do
-      close(666)
+       write(filename, '(A,I0,A)') 'edge_counts_', getrank(),'.dat'
+       open(666, file = filename)
+       do node=1,count
+          write(666,*) num_edges(node)
+       end do
+       close(666)
     end if
 
     ierr = ZOLTAN_OK
@@ -174,7 +172,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer :: node, i, j
     integer :: head
     integer, dimension(:), pointer :: neighbours
-    
+    character (len = OPTION_PATH_LEN) :: filename
 
 !   variables for recording various element quality functional values 
     real(zoltan_float) :: quality, min_quality
@@ -296,7 +294,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
    end if
 
    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
-      open(666, file = 'edge_weights.dat')
+      write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
+      open(666, file = filename)
       do i=1,head-1
          write(666,*) ewgts(i)
       end do
@@ -319,6 +318,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), intent(out) :: ierr  
 
     integer :: i, node
+    character (len = OPTION_PATH_LEN) :: filename
 
     ewrite(1,*) "In zoltan_cb_pack_node_sizes"
     do i=1,num_ids
@@ -329,6 +329,16 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
                  1 * integer_size + row_length(zz_nelist, node) * integer_size + &
                  1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
     end do
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_node_sizes")) then
+       write(filename, '(A,I0,A)') 'node_sizes_', getrank(),'.dat'
+       open(666, file = filename)
+       do i=1,num_ids
+          write(666,*) sizes(i)
+       end do
+       close(666)
+    end if
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_node_sizes
 
@@ -667,6 +677,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), intent(out) :: ierr  
 
     integer :: i, node
+    character (len = OPTION_PATH_LEN) :: filename
+
     ewrite(1,*) "In zoltan_cb_pack_halo_node_sizes"
 
     do i=1,num_ids
@@ -675,6 +687,16 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
                  2 * integer_size + row_length(zz_nelist, node) * integer_size + &
                  1 * integer_size + key_count(old_snelist(node)) * 3 * integer_size
     end do
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_halo_node_sizes")) then
+       write(filename, '(A,I0,A)') 'halo_node_sizes_', getrank(),'.dat'
+       open(666, file = filename)
+       do i=1,num_ids
+          write(666,*) sizes(i)
+       end do
+       close(666)
+    end if
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_halo_node_sizes
 
@@ -804,6 +826,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     integer :: state_no, field_no, sz, i
+    character (len = OPTION_PATH_LEN) :: filename
 
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
 
@@ -831,6 +854,15 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     do i=1,num_ids
       sizes(i) = sz * real_size
     end do
+
+    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
+       write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
+       open(666, file = filename)
+       do i=1,num_ids
+          write(666,*) sizes(i)
+       end do
+       close(666)
+    end if
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_pack_field_sizes
