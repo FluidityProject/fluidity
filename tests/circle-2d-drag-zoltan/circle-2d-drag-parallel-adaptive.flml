@@ -67,7 +67,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -420,9 +420,9 @@
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
-      <period replaces="TIMMES">
-        <real_value rank="0">0.2</real_value>
-      </period>
+      <period_in_timesteps>
+        <integer_value rank="0">5</integer_value>
+      </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">10000</integer_value>
       </maximum_number_of_nodes>
