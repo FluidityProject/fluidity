@@ -1177,8 +1177,10 @@ Turn on more verbose output for use when debugging Zoltan.</a:documentation>
               <optional>
                 <element name="dump_edge_counts">
                   <a:documentation>Print out a dump file of the edge counts.
-This permits checking of the edge count for each node.
-Dump is to the current directory, in a file called edge_counts.dat
+Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
+This option dumps the edge count for each owned node.
+Dump is to the current directory, in a file called edge_counts_*.dat
+One dump file is created for each rank.
 Will get overwritten at each adapt.</a:documentation>
                   <empty/>
                 </element>
@@ -1186,9 +1188,22 @@ Will get overwritten at each adapt.</a:documentation>
               <optional>
                 <element name="dump_edge_weights">
                   <a:documentation>Print out a dump file of the edge weights.
-This permits a visualisation of how the edge weights are distributed.
-Dump is to the current directory, in a file called edge_weights.dat
+Edge weights are calculated for each edge in zoltan_cb_get_edge_list.
+Permits a visualisation of how the edge weights are distributed.
+Dump is to the current directory, in a file called edge_weights_*.dat
+One dump file is created for each rank.
 Will get overwritten at each adapt.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="dump_node_sizes">
+                  <a:documentation>Print out a dump file of node sizes.
+Zoltan needs to be told how much data is associated with each node.
+Here we dump the size calculated by zoltan_cb_pack_node_sizes for each
+owned node.
+Dump is to the current directory, in a file called node_sizes_*.dat
+One dump file is created for each rank.</a:documentation>
                   <empty/>
                 </element>
               </optional>
