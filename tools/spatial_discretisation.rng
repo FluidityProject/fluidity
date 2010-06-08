@@ -402,29 +402,27 @@ Not for production runs.</a:documentation>
                   <value>FPN</value>
                 </attribute>
                 <optional>
-                  <element name="limit_from_previous_time_step">
-                    <a:documentation>Options allowing the user to set the bounds using
-the field from the current or previous time step and
-whether or not to exclude the current value at the
-node in the calculation of the bounds. 
-(Currently not in the trunk) Users can also manually set the
-upper and lower bounds if they wish.</a:documentation>
+                  <!--
+                                     element limit_from_previous_time_step {
+                                        empty
+                                     }?,
+                                     element exclude_current_node {
+                                        empty
+                                     }?,
+                                     element max_upper_bound {
+                                        real
+                                     }?,
+                                     element min_lower_bound {
+                                        real
+                                     }?,
+                                     element monotomic {
+                                        empty
+                                     }?,
+                  -->
+                  <element name="mid-point_scheme">
+                    <a:documentation>Option allowing the user to include the neighbouring
+elements "mid-point" in the calculation.</a:documentation>
                     <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="exclude_current_node">
-                    <empty/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="max_upper_bound">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="min_lower_bound">
-                    <ref name="real"/>
                   </element>
                 </optional>
               </element>

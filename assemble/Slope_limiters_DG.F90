@@ -1473,73 +1473,144 @@ contains
   end subroutine limit_vb
 
   subroutine limit_fpn(state, t)
+
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
     
     type(scalar_field), pointer :: limiting_t, lumped_mass
-    type(scalar_field) :: min_bound, max_bound, inverse_lumped_mass
+    type(scalar_field) :: lowerbound, upperbound, inverse_lumped_mass
     type(csr_matrix), pointer :: mass
 
     type(csr_sparsity), pointer :: eelist
     integer :: ele
-    real :: ele_max, ele_min
-    integer, dimension(:), pointer :: neighbours
-    integer :: j, k(1)
-    logical :: first, include_current_node
+    real :: node_max, node_min, line_max, line_min, extra_val
+    integer :: i, j, k, q
 
-    if (have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter::FPN/limit_from_previous_time_step")) then
-      limiting_t => extract_scalar_field(state, "Old" // trim(t%name))
-    else
-      limiting_t => extract_scalar_field(state, trim(t%name))
-    end if
+    integer, dimension(:), pointer :: nodelist, faces, neighbouring_ele_nodes
+    integer, dimension(:), allocatable :: face_nodes, neighbouring_nodes
+    integer :: neighbouring_face, neighbouring_ele
+    type(vector_field), pointer:: position
+    logical :: first, midpoint
 
-    include_current_node=.not.(have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter::FPN/exclude_current_node"))
-    
-    call allocate(min_bound, t%mesh, "MinBound")
-    call allocate(max_bound, t%mesh, "MaxBound")
-    call zero(min_bound); call zero(max_bound)
+    write (*,*) "In limit_fpn"
+
+    midpoint=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme")
 
     mass => get_mass_matrix(state, t%mesh)
     lumped_mass => get_lumped_mass(state, t%mesh)
     call allocate(inverse_lumped_mass, lumped_mass%mesh, "InverseLumpedMass")
     inverse_lumped_mass%val = 1.0/lumped_mass%val
 
+    limiting_t => extract_scalar_field(state, trim(t%name))
+
     eelist => extract_eelist(t%mesh)
 
+    call allocate(lowerbound, t%mesh, "LowerBound")
+    call allocate(upperbound, t%mesh, "UpperBound")
+    call zero(lowerbound); call zero(upperbound)
+
+    allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
+
+    ! Loop through the elements
     do ele=1,ele_count(limiting_t)
-      first=.true.
-      neighbours => row_m_ptr(eelist, ele)
-      k = minloc(neighbours, mask=neighbours > 0)
 
-      if (include_current_node) then
-        ele_max = maxval(ele_val(limiting_t, neighbours(k(1))))
-        ele_min = minval(ele_val(limiting_t, neighbours(k(1))))
-        first=.false.
-      end if
+      ! Get the global node numbers of the current element
+      nodelist => ele_nodes(limiting_t, ele)
 
-      do j=k(1)+1,size(neighbours)
-        if (neighbours(j) <= 0) cycle
-          if (first) then
-            ele_max = maxval(ele_val(limiting_t, neighbours(j)))
-            ele_min = minval(ele_val(limiting_t, neighbours(j)))
-            first=.false.
-          else
-            ele_max = max(ele_max, maxval(ele_val(limiting_t, neighbours(j))) )
-            ele_min = min(ele_min, minval(ele_val(limiting_t, neighbours(j))) )
-          endif
+      ! Get the face numbers of the current element
+      faces => ele_faces(limiting_t, ele)
+
+      ! Loop through the nodes 
+      do i=1, size(nodelist)
+
+        ! Get the max and min values within an element excluiding the value of the current node
+
+        ! Now work out and get the values at the neighbouring nodes.
+        ! First loop through the faces
+
+        node_max=0.0
+        node_min=0.0        
+
+        first=.true.
+        do j=1, size(faces)
+
+          face_nodes = face_global_nodes(limiting_t, faces(j))
+
+          do k=1,size(face_nodes)
+
+            if (nodelist(i)/=face_nodes(k)) cycle
+
+            ! We need to grab the value at the node opposite to the current face.
+            ! This node is at the same position in the ele_nodes array as the
+            ! opposite face is in the ele_faces array. This is the logic currently
+            ! used to obtain this value.
+            ! NOTE: Need to think about the boundary case
+
+            line_max=node_val(limiting_t,nodelist(j))
+            line_min=node_val(limiting_t,nodelist(j))
+
+            neighbouring_face = face_neigh(limiting_t, faces(j))
+
+            neighbouring_nodes = face_global_nodes(limiting_t, neighbouring_face)
+
+            ! neighbouring_nodes(k) will now be the 'corresponding' node to face_nodes(k)
+            ! Note that is this logic is changed below code will need to be changed accordingly
+            if (first) then
+
+              if (node_val(limiting_t,neighbouring_nodes(k))>line_max) line_max=node_val(limiting_t,neighbouring_nodes(k))
+              if (node_val(limiting_t,neighbouring_nodes(k))<line_min) line_min=node_val(limiting_t,neighbouring_nodes(k))
+
+              node_max=line_max
+              node_min=line_min
+
+              first=.false.
+
+            else
+
+              if (node_val(limiting_t,neighbouring_nodes(k))>line_max) line_max=node_val(limiting_t,neighbouring_nodes(k))
+              if (node_val(limiting_t,neighbouring_nodes(k))<line_min) line_min=node_val(limiting_t,neighbouring_nodes(k))
+
+              if (line_max<node_max) node_max=line_max
+              if (line_min>node_min) node_min=line_min
+
+            end if
+
+            if (midpoint) then
+
+              !Get the node_list of the neighbouring element of interest
+              neighbouring_ele = node_ele(limiting_t,neighbouring_nodes(k))
+              neighbouring_ele_nodes => ele_nodes(limiting_t,neighbouring_ele)
+
+              ! Get the extra mid point value
+              extra_val = 0.5*(node_val(limiting_t,neighbouring_nodes(k))+node_val(limiting_t,neighbouring_ele_nodes(j)))
+
+              if (extra_val>line_max) line_max=extra_val
+              if (extra_val<line_min) line_min=extra_val
+
+              if (line_max<node_max) node_max=line_max
+              if (line_min>node_min) node_min=line_min
+
+            end if
+
+          end do
+
+        end do
+
+        call set(lowerbound, nodelist(i), node_min)
+        call set(upperbound, nodelist(i), node_max)
+
       end do
 
-      call set(min_bound, ele_nodes(min_bound, ele), spread(ele_min, 1, ele_loc(min_bound, ele)))
-      call set(max_bound, ele_nodes(max_bound, ele), spread(ele_max, 1, ele_loc(max_bound, ele)))
     end do
 
-    call bound_field_diffuse(t, max_bound, min_bound, mass, lumped_mass, inverse_lumped_mass)
+    call bound_field_diffuse(t, upperbound, lowerbound, mass, lumped_mass, inverse_lumped_mass)
 
+    deallocate (face_nodes,neighbouring_nodes)
     call deallocate(inverse_lumped_mass)
-    call deallocate(min_bound)
-    call deallocate(max_bound)
+    call deallocate(upperbound)
+    call deallocate(lowerbound)
+
   end subroutine limit_fpn
 
 end module slope_limiters_dg
