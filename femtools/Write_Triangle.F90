@@ -60,7 +60,7 @@ contains
     
     ! gets a coordinate field for the given mesh, if necessary
     ! interpolated from "Coordinate", always takes a reference:
-    positions = get_coordinate_field(state, mesh)
+    positions = get_nodal_coordinate_field(state, mesh)
 
     call write_triangle_files(filename, positions)
     
