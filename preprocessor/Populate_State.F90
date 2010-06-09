@@ -167,7 +167,7 @@ contains
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
-    logical :: from_file, extruded
+    logical :: from_file, extruded, always_serial
     integer :: dim, loc
     integer :: quad_family
     integer :: nprocs
@@ -193,7 +193,7 @@ contains
        else
          extruded = .false.
        end if
-      
+
        if(from_file .or. extruded) then
 
           ! Get file format
@@ -209,6 +209,9 @@ contains
           call get_option(trim(from_file_path)//"/file_name", mesh_file_name)
           call get_option("/geometry/quadrature/degree", quad_degree)
           quad_family = get_quad_family()
+
+          always_serial=&
+               have_option(trim(from_file_path)//"/format/always_serial")
 
           if (.not. is_active_process) then
             ! is_active_process records whether we have data on disk or not
@@ -239,7 +242,11 @@ contains
 
           else if(trim(mesh_file_format)=="triangle") then
              ! Read mesh from triangle file
-             position=read_triangle_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
+             if (always_serial) then
+                position=read_triangle_serial(trim(mesh_file_name), quad_degree=quad_degree)
+             else
+                position=read_triangle_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
+             end if
              mesh=position%mesh
           else if(trim(mesh_file_format) == "vtu") then
              position_ptr => vtk_cache_read_positions_field(mesh_file_name)

@@ -48,8 +48,25 @@ module implicit_solids
   use timeloop_utilities
   use fefields, only: compute_lumped_mass
   use parallel_tools
+  use interpolation_module
 
   implicit none
+
+  interface 
+     subroutine y3allocate_femdem(string)          
+       character(len=*) :: string
+     end subroutine y3allocate_femdem
+  end interface
+
+  interface 
+     subroutine y3dfemdem(flag, dt, &
+          xs, ys, zs, us, vs, ws, uf, vf, wf)
+       integer, intent(in) :: flag
+       real, intent(in) :: dt
+       real, dimension(:) :: xs, ys, zs
+       real, dimension(:) :: us, vs, ws, uf, vf, wf
+     end subroutine y3dfemdem
+  end interface
 
   private
   public:: solids
@@ -87,9 +104,10 @@ contains
     positions => extract_vector_field(state, "Coordinate")
 
     if (.not. init) then
-       call get_option("/implicit_solids/mesh_name", external_mesh_name)
-       external_positions = &
-            read_triangle_serial(trim(external_mesh_name), quad_degree=1)
+       call get_option("/implicit_solids/one_way_coupling/mesh_name", &
+            external_mesh_name)
+       external_positions = extract_vector_field(state, &
+            trim(external_mesh_name)//"Coordinate")
 
        call get_option("/implicit_solids/beta", beta, default=1.)
 
@@ -232,233 +250,118 @@ contains
   end subroutine solids
 
   !----------------------------------------------------------------------------
+  !----------------------------------------------------------------------------
 
-  function read_triangle_serial(filename, quad_degree) result (field)
-    
-    character(len=*), intent(in) :: filename
-    !! The degree of the quadrature.
-    integer, intent(in), optional, target :: quad_degree
-    !! The degree of the quadrature.
+!!$  subroutine femdem_two_way_initialise(state)
+!!$
+!!$    integer :: flag = 1
+!!$    character(len=field_name_len) :: external_mesh_name
+!!$    type(vector_field), pointer :: external_positions
+!!$    type(vector_field), pointer :: ext_pos_solid_vel, ext_pos_fluid_vel
+!!$    type(state_type) :: state
+!!$
+!!$
+!!$    call get_option("/implicit_solids/mesh_name", external_mesh_name)
+!!$
+!!$    call y3allocate_femdem(trim(external_mesh_name)//char(0))
+!!$
+!!$    ! get external positions...
+!!$    external_positions => extract_vector_field(state, trim(external_mesh_name)//"Coordinate")
+!!$
+!!$    ! this is the solid velocity on the solid mesh
+!!$    ext_pos_solid_vel => extract_vector_field(state, "ParticleVector")
+!!$    call zero(ext_pos_solid_vel)
+!!$
+!!$    ! this is the interpolated fluid velocity
+!!$    ! on the solid mesh
+!!$    ext_pos_fluid_vel => extract_vector_field(state, "ParticleForce")
+!!$    call zero(ext_pos_fluid_vel)
+!!$
+!!$    assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
+!!$    assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_vel))
+!!$
+!!$    ! out :: ext_pos_solid_vel (i.e. initial velocity source)
+!!$    call y3dfemdem(flag, dt, &
+!!$         external_positions%val(1)%ptr, external_positions%val(2)%ptr, external_positions%val(3)%ptr, &
+!!$         ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, ext_pos_solid_vel%val(3)%ptr, &
+!!$         ext_pos_fluid_vel%val(1)%ptr, ext_pos_fluid_vel%val(2)%ptr, ext_pos_fluid_vel%val(3)%ptr)
+!!$    
+!!$  end subroutine femdem_two_way_initialise
+!!$
+!!$  !----------------------------------------------------------------------------
+!!$
+!!$  subroutine femdem_two_way_update(state)
+!!$
+!!$    integer :: flag = 0
+!!$    type(vector_field), pointer :: external_positions
+!!$    type(vector_field), pointer :: ext_pos_solid_vel, ext_pos_fluid_vel
+!!$    type(state_type) :: state
+!!$
+!!$    ! in  :: ext_pos_fluid_vel
+!!$    ! out :: updated external_positions and ext_pos_solid_vel
+!!$    call y3dfemdem(flag, dt, &
+!!$         external_positions%val(1)%ptr, external_positions%val(2)%ptr, external_positions%val(3)%ptr, &
+!!$         ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, ext_pos_solid_vel%val(3)%ptr, &
+!!$         ext_pos_fluid_vel%val(1)%ptr, ext_pos_fluid_vel%val(2)%ptr, ext_pos_fluid_vel%val(3)%ptr)
+!!$
+!!$  end subroutine femdem_two_way_update
+!!$
+!!$  !----------------------------------------------------------------------------
+!!$
+!!$  subroutine femdem_interpolation_in(state)
+!!$
+!!$    ! new => out_mesh - fluidity  ! to be used for  
+!!$    ! old => in_mesh  - solid     ! 2-way coupling interpolations...
+!!$    
+!!$    type(state_type) :: state, state_old
+!!$    type(state_type) :: alg_old, alg_new
+!!$
+!!$    type(mesh_type), pointer :: old_mesh, new_mesh
+!!$    type(vector_field) :: old_positions, new_positions
+!!$    type(vector_field), pointer :: v_field_new, v_field_old 
+!!$
+!!$
+!!$
+!!$    ! READ IN FEMDEM DATA TO ALG_OLD STATE
+!!$    ! states_old and _new are input to this sub...
+!!$    ! here we should read in the femdem mesh rather than do this...
+!!$ 
+!!$    ! call y3dfemdem()
+!!$
+!!$    old_mesh => extract_mesh(state_old, "Coordinate")
+!!$    old_positions = extract_vector_field(state_old, "Coordinate")
+!!$    call insert(alg_old, old_mesh, "Mesh")
+!!$    call insert(alg_old, old_positions, "Coordinate")
+!!$
+!!$    ! this needs to be replaced...
+!!$    v_field_old => extract_vector_field(state_old, "SolidVelocity")
+!!$
+!!$    call insert(alg_old, v_field_old, "SolidVelocity")
+!!$
+!!$
+!!$    ! READ IN DATA FROM STATE TO ALG_NEW STATE
+!!$    new_mesh => extract_mesh(state, "Coordinate")
+!!$    new_positions = extract_vector_field(state, "Coordinate")
+!!$    call insert(alg_new, new_mesh, "Mesh")
+!!$    call insert(alg_new, new_positions, "Coordinate")
+!!$
+!!$    v_field_new => extract_vector_field(state, "SolidVelocity")
+!!$    call zero(v_field_new)
+!!$    call insert(alg_new, v_field_new, "SolidVelocity")
+!!$
+!!$    call linear_interpolation(alg_old, alg_new, different_domains=.true.)
+!!$    
+!!$    call deallocate(alg_old)
+!!$    call deallocate(alg_new)
+!!$    
+!!$  end subroutine femdem_interpolation_in
 
-    type(vector_field) :: field
-    type(quadrature_type) :: quad
-    type(element_type) :: shape
-
-    integer :: dim, loc
-
-    call identify_triangle_file(filename, dim, loc)
-    quad=make_quadrature(loc, dim, degree=quad_degree)
-    shape=make_element_shape(loc, dim, 1, quad)
-    field=read_triangle_files_serial(filename, shape)
-
-    ! deallocate our references of shape and quadrature:
-    ! NOTE: we're using the specific deallocate interface here
-    !       to make the intel compiler shut up
-    call deallocate_element(shape)
-    call deallocate(quad)
-
-  end function read_triangle_serial
-
-
-  function read_triangle_files_serial(filename, shape) result (field)
-    !!< Filename is the base name of the triangle file without .node or .ele.
-
-    character(len=*), intent(in) :: filename
-    type(element_type), intent(in), target :: shape
-    type(vector_field) :: field
-
-    integer :: node_unit, ele_unit
-    real, allocatable, dimension(:) :: read_buffer
-    integer, allocatable, dimension(:,:) :: edge_buffer
-    integer, allocatable, dimension(:) :: sndglno
-    integer, allocatable, dimension(:) :: boundary_ids, element_owner
-
-    character(len = parallel_filename_len(filename)) :: lfilename
-    integer :: i, j, nodes, dim, node_attributes, boundaries, &
-         ele_attributes, loc, sloc, elements, edges, edge_count
-    integer, allocatable, dimension(:):: node_order
-    logical :: file_exists
-    type(mesh_type) :: mesh
-
-    lfilename = trim(filename)
-
-    node_unit=free_unit()
-
-    ewrite(2, *) "Opening "//trim(lfilename)//".node for reading."
-    ! Open node file
-    open(unit=node_unit, file=trim(lfilename)//".node", err=42, action="read")
-
-    ! Read node file header.
-    read (node_unit, *) nodes, dim, node_attributes, boundaries
-
-    ele_unit=free_unit()
-
-    ewrite(2, *) "Opening "//trim(lfilename)//".ele for reading."
-    ! Open element file
-    open(unit=ele_unit, file=trim(lfilename)//".ele", err=43, action="read")
-
-    ! Read element file header.
-    read (ele_unit, *) elements, loc, ele_attributes
-
-    assert(loc==shape%loc)
-    allocate(node_order(loc))
-    select case(loc)
-    case(3)
-       node_order = (/1,2,3/)
-    case default
-       do j = 1, loc
-          node_order(j) = j
-       end do
-    end select
-
-    call allocate(mesh, nodes, elements, shape, name="CoordinateMesh")
-    call allocate(field, dim, mesh, name="Coordinate")
-
-    ! Drop the local reference to mesh - now field owns the only reference.
-    call deallocate(mesh)
-
-    allocate(read_buffer(dim+node_attributes+boundaries+1))
-
-    if(node_attributes==1) then ! this assumes the node attribute are column numbers
-       allocate(field%mesh%columns(1:nodes))
-    end if
-
-    do i = 1, nodes
-       read(node_unit,*) read_buffer
-       forall (j=1:dim)
-          field%val(j)%ptr(i)=read_buffer(j+1)
-       end forall
-       if (node_attributes==1) then
-          field%mesh%columns(i)=floor(read_buffer(dim+1))
-       end if
-    end do
-
-    deallocate(read_buffer)
-    allocate(read_buffer(loc+ele_attributes+1))
-
-    if(ele_attributes==1) then  ! this assumes that the element attribute is a region id
-       allocate(field%mesh%region_ids(1:elements))
-    end if
-
-    do i = 1, elements
-       read(ele_unit,*) read_buffer
-       field%mesh%ndglno((i-1)*loc+1:i*loc)=floor(read_buffer(node_order+1))
-       if(ele_attributes==1) then
-          field%mesh%region_ids(i)=read_buffer(loc+2)
-       end if
-    end do
-
-    close(node_unit)
-    close(ele_unit)
-
-    ! Open edge file
-    select case (dim)
-    case(2)
-       inquire(file=trim(lfilename)//".edge",exist=file_exists)
-       if(file_exists) then
-          ewrite(2, *) "Opening "//trim(lfilename)//".edge for reading."
-          open(unit=node_unit, file=trim(lfilename)//".edge", err=41, &
-               action="read")
-       end if
-    case(3)
-       inquire(file=trim(lfilename)//".face",exist=file_exists)
-       if(file_exists) then
-          ewrite(2, *) "Opening "//trim(lfilename)//".face for reading."
-          open(unit=node_unit, file=trim(lfilename)//".face", err=41, &
-               action="read")
-       end if
-    end select
-
-    if(file_exists) then
-       ! Read edge file header.
-       read (node_unit, *) edges, boundaries
-    else
-       edges = 0
-       boundaries = 1
-    end if
-
-    if(edges==0) then
-       file_exists = .false.
-       close(node_unit)
-    end if
-
-    select case(shape%numbering%family)
-    case(FAMILY_SIMPLEX)
-       if ((loc/=dim+1).and.(boundaries/=0)) then
-          ewrite(0,*) "Warning: triangle boundary markers not supported for qua", &
-               "dratic space elements."
-          if(file_exists) then
-             file_exists= .false.
-             close(node_unit)
-          end if
-       end if
-       sloc=loc-1
-    case default
-       FLAbort('Illegal element family')
-    end select
-
-    allocate(edge_buffer(sloc+boundaries+1,edges))
-    edge_buffer=0
-    allocate(sndglno(edges*sloc))
-    sndglno=0
-    allocate(boundary_ids(1:edges))
-    boundary_ids=0
-    if (boundaries==2) then
-       allocate(element_owner(1:edges))
-       element_owner=0
-    end if
-    edge_count=0
-
-    if (boundaries==0) then
-       ewrite(0,*) "Warning: triangle edge file has no boundary markers"
-       if(file_exists) then
-          file_exists=.false.
-          close(node_unit)
-       end if
-    else
-       if(file_exists) then
-          read(node_unit, *) edge_buffer
-          do i = 1, edges
-             if (edge_buffer(sloc+2,i)/=0) then
-                ! boundary edge/face
-                edge_count=edge_count+1
-                sndglno((edge_count-1)*sloc+1:edge_count*sloc)= &
-                     edge_buffer(2:sloc+1,i)
-                boundary_ids(edge_count)=edge_buffer(sloc+2,i)
-                if (boundaries==2) then
-                   element_owner(edge_count)=edge_buffer(sloc+3,i)
-                end if
-             end if
-          end do
-
-          file_exists=.false.
-          close(node_unit)
-       end if
-    end if
-
-    if (boundaries<2) then
-       call add_faces(field%mesh, &
-            sndgln=sndglno(1:edge_count*sloc), &
-            boundary_ids=boundary_ids(1:edge_count))
-    else
-       call add_faces(field%mesh, &
-            sndgln=sndglno(1:edge_count*sloc), &
-            boundary_ids=boundary_ids(1:edge_count), &
-            element_owner=element_owner)
-    end if
-
-    deallocate(edge_buffer)
-    deallocate(sndglno)
-    deallocate(boundary_ids)
-
-41  continue ! We jump to here if there was no edge file.
-
-    return
-
-42  FLAbort("Unable to open "//trim(lfilename)//".node")
-
-43  FLAbort("Unable to open "//trim(lfilename)//".ele")
-
-  end function read_triangle_files_serial
+!!$  !----------------------------------------------------------------------------
+!!$!  subroutine femdem_interpolation_out(state)
+!!$!  end subroutine femdem_interpolation_out
+!!$  !----------------------------------------------------------------------------
+!!$!  subroutine femdem_source_and_absorption(state)
+!!$!  end subroutine femdem_source_and_absorption
+!!$  !----------------------------------------------------------------------------
 
 end module implicit_solids

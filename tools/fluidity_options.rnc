@@ -1780,12 +1780,22 @@ start =
          ##
          ## Implict Solids
          element implicit_solids {
-              ## mesh name
-              element mesh_name{ xsd:string },
-              ## absorption coefficient weigting factor
-              ##
-              ## default: beta=1.
-              element beta{ real }? 
+              element one_way_coupling{
+                   ## mesh name
+                   element mesh_name{ xsd:string },
+                   ## absorption coefficient weigting factor
+                   ##
+                   ## default: beta=1.
+                   element beta{ real }?
+              }|
+              element two_way_coupling{
+                   ## mesh name
+                   element mesh_name{ xsd:string },
+                   ## absorption coefficient weigting factor
+                   ##
+                   ## default: beta=1.
+                   element beta{ real }?
+              }
          }?
       }
    )      
