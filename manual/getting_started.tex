@@ -512,19 +512,21 @@ Usage: ../bin/fluidity [options ...] [simulation-file]
 
 Options (NOTE: Long options are not available on AIX.):
  -h, --help
-	Help! Prints this message.
+    Help! Prints this message.
  -l, --log
-	Create log file for each process (useful for non-interactive testing). Sets default value for -v to 2.
+    Create log file for each process (useful for non-interactive testing).
+    Sets default value for -v to 2.
  -v <level>, --verbose
-	Verbose output to stdout, default level 0
+    Verbose output to stdout, default level 0
  -V, --version
-	Version
+    Version
 \end{lstlisting}
 
 Note that this also gives information on which version is being used, the build-time 
 configuration options used and a list of command-line options for \fluidity. 
 
-Running \fluidity\ will produce several output files. There will be a 
+Running \fluidity\ will produce several output files. See Chapter \ref{chap:visualisation_and_diagnostics}
+for more information.
 
 \subsection{Running \fluidity\ in parallel}
 \label{sect:running_fluidity_in_parallel}
@@ -582,3 +584,6 @@ described in detail in section \ref{sect:diagnostics_stat_file}, contains data f
 collected at run time.
 
 \website
+
+
+
