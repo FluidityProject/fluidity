@@ -488,8 +488,8 @@ return 2.0 * omega
 
 \section{Meshes}\label{Sect:Mesh}
 
-Every field is associated with a mesh. The mesh defines the discrete
-function space in which the field's values lie. For example, the mesh
+A mesh defines the discrete
+function space in which the values of one or more fields lie. For example, the mesh
 defines what degree of polynomials are employed on each element, whether the
 field is continuous or discontinuous between elements, and whether the
 domain is periodic in any direction. 
@@ -550,8 +550,16 @@ the \option{CoordinateMesh} and no extra mesh is needed.
 
 \subsubsection{Shape function}
 
+This option is used to specify the degree of polynomial which should be used
+for the shape functions on each element of the mesh. If not selected, the
+shape functions will be the same as those on the mesh from which this mesh
+is derived.
+
 \subsubsection{Continuity}
 
+This option can be set to discontinuous to derive a discontinuous mesh from
+a continuous one. Note that it is not possible to derive a continuous mesh
+from a discontinuous mesh.
 
 \subsubsection{Periodic}
 
