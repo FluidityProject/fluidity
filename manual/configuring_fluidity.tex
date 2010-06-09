@@ -1761,3 +1761,72 @@ but also an Advection-Diffusion equation is solved (and solver options need to b
 Either Continuous Galerkin or Control Volumes can be used as discretisation options for pressure and density (both fields need to have the same option). Nevertheless, 
 when using Control Volumes pressure and density have to be the same order of parent mesh.
 
+\section{Mesh Adaptivity}
+
+The configuration on mesh adaptivity occurs in two places: under \option{mesh\_adaptivity} where 
+the overall adaptive settings are configured, and on a per-field basis where both the interpolation
+method is set and if that field should be considered when creating the error metric. See chapter 
+\ref{chap:Adaptivity} for information on how the metric is formed.
+
+\subsection{Field settings}
+
+For each field present in the simulation there are upto two options that should be set. The first
+is the interpolation method that should be used to transfer the values of a field from the old to the new mesh.
+Second, in order to form the error metic by which the mesh is adapted, the user must set which fields
+should form the error metric and how the error for that field should be calculated.
+
+\subsubsection{Interpolation method}
+
+For each prognostic field in the current state, an interoplation type must be set. These can be set by selecting an
+option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolation type>} is one of:
+\begin{itemize}
+\item consistant interpolation - the default and quick inteprolation method, but is non-conservative and dissipative.
+\item psuedo-consistant interpolation - not recommended at present.
+\item Galerkin interoplation - Conservative and non-dissipative, but requires the construction of a supermesh
+\item Grandy interpolation - Conservative, but highly diffusive. See \citet{grandy1999}.
+\end{itemize}
+
+For some fields, such as Pressure and Velcoity other interoplation methods are available.
+
+For diagnostic and prescribed fields an inteprolation method is not required. However, if an output dump
+occurs immeadiately following a mesh adapt, diagnostic fields may not have correct values depending
+on the method by which they are calculated. In these instances, it is worth setting an interpolation type
+for these fields which will ensure that the values are set correctly before an output dump occurs.
+
+The Galerkin projection also requires some further settings depending on the mesh type. For discontinuous
+meshes there are no other required settings. For continuous meshes a solver is required in order
+to perform the supermesh projection. The solver settings are configured as with any other solver, see
+section \ref{Sect:Solve} for more details.
+
+\subsubsection{Creating an error metric}
+
+The second step for configuring adaptivity is to set up the fields that are to form the erorr metric used
+to adapt the mesh. For each field that should be considered when forming the metric the option
+\option{\ldots/adaptivity\_options} needs to be enabled. The error bound is set as seperate fields within 
+state, so for Temperature, for example, the acceptable error is stored an a field called 
+TemperatureInteroplationErrorBound. There are two methods available for calculating the error, absolute and relative.
+Both have similar options in which the InteroplationErrorBound field can be set as with any other prescribed field.
+One can, for example, set a different error metric in different regions on the mesh. This field
+is output as any other field too.
+
+For relative interpolation error bounds a tolerance value also has to be set under 
+\option{\ldots/adaptivity\_options/relative\_measure/tolerance}. This value prevents division by zero
+and should be set to a small enough number that the field can effecivtly be considered zero at this value.
+
+\subsection{General adaptivity options}
+
+These are found under \option{mesh\_adaptivity}. Here the user can specify whether to use mesh movement methods, 
+prescribed adaptivity (serial only) or hr adaptivity. hr adaptivity is the normal method for most applications.
+
+Under \option{/mesh\_adaptivity/hr\_adaptivity} there are a number of mandatory options, which are:
+\begin{itemize}
+\item period - how often should the mesh be adapted. This can be set in number of simulation seconds, 
+or in number of timesteps. It is recommended that adapt happen every 10-20 timesteps.
+\item maximum number of nodes - sets the maximum possible number of nodes in the domain. In parallel this is the
+global maximum number, but can be altered to be the number per process.
+\item enable gradation - is on by default and set to a value of 1.5. 
+\item minimum edge lengths - a tensor specifying the minimum edge length of an element.
+\item maximum edge lengths - a tensor specifying the maximum edge length of an element.
+\end{itemize}
+
+In addition to these mandatory settings, there are a number of other configuration options.
