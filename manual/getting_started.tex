@@ -550,6 +550,12 @@ mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml
 \section{Running diamond}
 \label{sect:running_diamond}
 
+Diamond is the Graphical User Interface (GUI) by which a \fluidity\ simulation is 
+configured. The flml file that \fluidity\ uses is an XML file, which defines the
+meshes, fields and options for \fluidity. Chapter \ref{chap:configuration} covers 
+the options that are currently available. In addition, Diamond will display inline
+help on options where available.
+
 If the \lstinline[language=Bash]+make+ command successfully completed, there will be an
 executable program \lstinline[language=Bash]+diamond+ in the
 \lstinline[language=Bash]+bin/+ directory. Running diamond is now as simple as
@@ -576,12 +582,12 @@ Note that installing Diamond on a system-wide basis will require superuser privi
 \label{sect:working_with_output}
 
 Once \fluidity\ has been built and run, result files will be generated, that will need visualisaing
-and post-processing. These data are stored in \emph{vtu} file, one per output dump. 
-How to visualise and work with them is covered in detail in chapter
+and post-processing. These data are stored in VTK files, one per output dump. 
+How these files can be visualised and post-processed is covered in detail in chapter
 \ref{chap:visualisation_and_diagnostics}.
 
-As well as visualisation, another important output resource is the \emph{stat} file,
-described in detail in section \ref{sect:diagnostics_stat_file}, contains data from the model
+As well as visualisation, another important output resource is the stat file,
+described in detail in section \ref{sect:diagnostics_stat_file}, which contains data from the model
 collected at run time.
 
 \website
