@@ -195,17 +195,6 @@ Alternatively, if you require a more complex periodic mesh with some structure b
 boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be done by 
 setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh (\website)
 
-\subsection{Setting field values}\label{Sect:setting_field_values}
-\index{field!values}
-\index{initial conditions!setting}
-Field values must be specified by the user in two circumstances: the initial
-value of most prognostic fields and the value throughout the simulation of
-all prescribed fields. 
-
-The initial value of prognostic fields is set with the
-\option{\ldots/prognostic/initial\_condition} option while the value of
-prescribed fields is set with the \option{\ldots/prescribed/value} option.
-
 \section{Meshing tools}
 \index{mesh!meshing tools}
 
