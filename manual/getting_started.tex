@@ -540,8 +540,9 @@ Here, we use the term \emph{processor} to mean one physical CPU core and \emph{p
 of a parallel instance of \fluidity. Normally, the number of processors used matches
 the number of processes, i.e. if \fluidity\ is split into 256 parts, it is run on 256 processors.
 
-To run in parallel there are no further changes needed, apart from running \fluidity
-within the mpirun or mpiexec framework. Simply prepend the normal command line with mpiexec:
+To run in parallel one must first decompose the mesh. See section \ref{decomp_meshes_parallel}
+for more information on how to do this. \fluidity\ 
+must then be run within the mpirun or mpiexec framework. Simply prepend the normal command line with mpiexec:
 \begin{lstlisting}[language=bash]
 mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml
 \end{lstlisting}
