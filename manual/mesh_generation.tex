@@ -195,37 +195,6 @@ Alternatively, if you require a more complex periodic mesh with some structure b
 boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be done by 
 setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh (\website)
 
-\subsubsection{Running a parallel periodic extruded mesh}
-\index{parallel!extruded mesh}
-%\ref{mesh!extruded}
-Running a periodic extruded mesh (section ??) in parallel, requires a number of steps to be taken in order to provide flredecomp (required to make the periodic mesh) with a 2D periodic mesh:
-
-\begin{itemize}
-\item Make the periodic 2D flml from the periodic 2plus1 flml
-\begin{lstlisting}[language=bash]
- `\fluiditysourcepath'/scripts/make_periodic_2D_flml foo.flml
-\end{lstlisting}
-\item Periodise the new 2D flml
-\begin{lstlisting}[language=bash]
- `\fluiditysourcepath'/periodise foo_2D.flml
-\end{lstlisting}
-\item Flredecomp the periodised 2D flml
-\begin{lstlisting}[language=bash]
-mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
-    -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
-\end{lstlisting}
-\item Periodise the 2plus1 flml
-\begin{lstlisting}[language=bash]
- `\fluiditysourcepath'/periodise foo.flml
-\end{lstlisting}
-\item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
-\item Run the parallel flml as before
-\begin{lstlisting}[language=bash]
-mpiexec -n [number of processors] \
-   `\fluiditysourcepath'/bin/fluidity [options] foo_periodised.flml
-\end{lstlisting}
-\end{itemize}
-
 \subsection{Setting field values}\label{Sect:setting_field_values}
 \index{field!values}
 \index{initial conditions!setting}
@@ -391,6 +360,40 @@ The output is a new flml called  foo\_periodised.flml and the periodic meshes. T
 mpiexec -n [number of processors] \
    `\fluiditysourcepath'/bin/fluidity [options] foo_periodised_flredecomp.flml
 \end{lstlisting}
+
+\subsection{Parallel periodic extruded meshes}
+\index{parallel!extruded mesh}
+%\ref{mesh!extruded}
+When using a periodic extruded mesh (section ??) in parallel, a number
+of steps are reqiured in order to provide flredecomp (required to make the
+periodic mesh) with a 2D periodic mesh:
+
+\begin{itemize}
+\item Make the periodic 2D flml from the periodic 2plus1 flml
+\begin{lstlisting}[language=bash]
+ `\fluiditysourcepath'/scripts/make_periodic_2D_flml foo.flml
+\end{lstlisting}
+\item Periodise the new 2D flml
+\begin{lstlisting}[language=bash]
+ `\fluiditysourcepath'/periodise foo_2D.flml
+\end{lstlisting}
+\item Flredecomp the periodised 2D flml
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
+    -i 1 -o 4 foo_2D_periodised foo_2D_periodised_flredecomp
+\end{lstlisting}
+\item Periodise the 2plus1 flml
+\begin{lstlisting}[language=bash]
+ `\fluiditysourcepath'/periodise foo.flml
+\end{lstlisting}
+\item Replace the mesh file in foo.flml with the one created in flml\_2D.flml
+\item Run the parallel flml as in the usual manner.
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   `\fluiditysourcepath'/bin/fluidity [options] foo_periodised.flml
+\end{lstlisting}
+\end{itemize}
+
 
 \section{Pseudo-meshing}
 
