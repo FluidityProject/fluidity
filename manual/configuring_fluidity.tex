@@ -70,277 +70,6 @@ convention in Diamond in which name attributes are given in brackets. Figure
 
 Names of objects (fields, material phases, meshes, etc.) should be camel cased (MyOwnField) and not contain spaces or underscores. Furthermore, the characters \verb+/:[]+ are prohibited as these have special meanings in the options dictionary inside \fluidity. 
 
-\section{Working with Fields}
-\index{field}
-\subsection{Types of field}
-
-A field associates a value with every node in the domain. Examples of fields
-in a fluids simulation include the velocity and pressure. Fields in \fluidity
-are distinguished by the rank of the data on the field and the way in which
-that field is calculated. 
-
-\begin{description}
-\item[Scalar fields] have a scalar value at each node. Common examples
-  include temperature, pressure and density.
-\item[Vector fields] have a vector value, in other words a list of numbers,
-  at each node. The rank of a vector field is 1 and the length of the
-  vector is given by the dimension of the problem.
-\item[Tensor fields] have a value given by a square matrix at each
-  node. The side length of the matrix is the problem dimension and the rank
-  is naturally 2. The diffusivity of a tracer is a typical example of a
-  tensor-valued field.
-\end{description}
-
-Fields can also be characterised by the manner in which their value is
-calculated. \fluidity\ recognises three such categories:
-
-\begin{description}
-\item[Prognostic fields] are the result of solving a partial differential
-  equation. In a typical fluids simulation, the velocity and pressure are
-  prognostic and are calculated by solving some variant of the Navier-Stokes
-  equations. Similarly, tracers such as temperature and salinity are usually
-  the result of solving and advection-diffusion equation. Prognostic fields
-  typically have specified initial and boundary conditions and it will be
-  necessary to specify spatial and temporal discretisation options. If an
-  implicit timestepping scheme is in use (and it almost always is in
-  \fluidity), it is also necessary to specify solver options. 
-\item[Diagnostic fields] are calculated from other fields without solving a
-  partial differential equation. A typical example is the CFL number which
-  may be calculated from the timestep, the mesh spacing and the velocity
-  field. 
-\item[Prescribed fields] receive their values from sources external to
-  \fluidity. This might be a constant or varying function specified by the
-  user, or it might be interpolated from some external data set. Fields such
-  as diffusivity and viscosity are often prescribed as are source and
-  absorption terms.
-\end{description}
-
-\subsection{Meshes}\label{Sect:Element}
-
-Every field is associated with a mesh. The mesh defines the discrete
-function space in which the field's values lie. For example, the mesh
-defines what degree of polynomials are employed on each element, whether the
-field is continuous or discontinuous between elements, and whether the
-domain is periodic in any direction. 
-
-Meshes are defined in the flml file by \option{/geometry/mesh} options. The
-mesh associated with each field is referred to by name in the
-\option{\ldots/mesh} option under that field.
-
-\subsubsection{Reading meshes from file}
-\index{mesh!input}
-There must always be one mesh which is read in from a set of files in
-triangle format. This is usually the \option{CoordinateMesh}. To specify the
-triangle files from which the coordinate mesh should be read, set the
-\option{file\_name} attribute of
-\option{/geometry/dimension/mesh::CoordinateMesh/from\_file} to the basename
-of the triangle files (that is, the filename without .node, .ele etc.)
-
-The coordinate mesh read in from file will always have linear elements and
-the Coordinate field is always continuous between elements.
-
-For information on generating meshes in triangle format, see chapter
-\ref{chap:meshes}. 
-
-\subsubsection{Deriving meshes from other meshes}
-\index{mesh!derived}
-The alternative to reading a mesh from a file is to derive it from another
-mesh. This is necessary when for instance we wish to derive a mesh with
-different continuity or elements from the original mesh. 
-For example, if we have a \option{CoordinateMesh} as our input mesh read 
-from file, it is possible to derive a \option{VelocityMesh} from it
-by adding \option{/geometry/mesh::VelocityMesh}, selecting 
-\option{from\_mesh} under it and there selecting
-\option{mesh::CoordinateMesh}. If nothing further is specified 
-under the new mesh, the derived mesh will be exactly the same as the mesh
-it is derived from.
-
-The more interesting case occurs where we wish to derive a mesh with
-different continuity or elements from the original mesh. To specify a
-discontinuous mesh, under \option{\ldots/from\_mesh} enable
-\option{mesh\_continuity} and select \option{discontinuous}.
-
-Similarly, to specify a mesh with higher polynomial degree elements, enable
-\option{mesh\_shape} under \option{\ldots/from\_mesh} and set
-\option{polynomial\_degree}.
-
-Meshes with any name can be added. Only the name \option{CoordinateMesh} 
-is special, as it will be used to store the coordinates of the mesh. This 
-is also the only required mesh. \option{VelocityMesh} and \option{PressureMesh}
-are only provided as suggested names as quite often the pressure 
-and velocity fields need to be on a different mesh 
-than the coordinate mesh, e.g. for \PoDGPt. It is however 
-not required that the velocity is defined on a mesh with the name
-\option{VelocityMesh}, nor does the pressure field have to be on a mesh
-with the name \option{PressureMesh}. If for instance the mesh needed 
-for pressure is the same as your \option{CoordinateMesh}, e.g. 
-for \Poo or \Pzero\Pone, the pressure can be defined directly on
-the \option{CoordinateMesh} and no extra mesh is needed.
-
-\subsubsection{Mesh properties}
-
-\begin{itemize}
-\item Mesh shape
-\item Mesh Continuity
-\item Periodic boundary conditions
-
-To specify a periodic domain in Diamond, add a new mesh under
-\option{/geometry/mesh}.  Select \onlypdf\linebreak
-\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
-on \onlypdf\\
-\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
-that is periodic. There are three fields that need to be completed: the
-surface IDs of one side, the surface IDs of the opposite side and a python
-function (\option{coordinate\_map}) which contains the necessary mapping
-function.
-
-For example, suppose that the domain is the unit square shown in figure
-\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
-designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
-\emph{aliased boundary}. We therefore enter 1 in
-\option{\ldots/physical\_boundary\_ids}\ and 2 in
-\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
-takes a point on the \emph{aliased}\ boundary to the corresponding point on
-the \emph{physical}\ boundary. In this case, the appropriate function is:
-\begin{lstlisting}[language=Python]
-def val(X,t):
-    result = list(X)
-    result[0]=result[0]-1.0
-    return result
-\end{lstlisting}
-
-\begin{figure}[ht]
-  \centering
-  \xfig{configuring_fluidity_images/periodic_domain}
-  \caption{Periodic unit square with surface IDs 1-4 shown.}
-  \label{fig:periodic}
-\end{figure}
-
-Meshes that are required to be periodic can now be derived from this periodic mesh.
-
-\item Extrude
-\end{itemize}
-
-\subsubsection{Constant fields}
-\index{field!constant}
-Fields which are constant in space and (for prescribed fields) time may be
-specified by simply providing a constant value in the \option{constant}
-option under \option{\ldots/prognostic/initial\_condition},
-\option{\ldots/prescribed/value}. For a scalar field, this is a single
-floating point (real) value while for a vector field this is a list of reals
-of length equal to the field dimension.
-
-For tensor valued fields there are more options. It is possible to specify
-an isotropic, or rotation invariant, value by choosing
-\option{\ldots/value/isotropic/constant} and specifying a single real which
-will be used for all the diagonal entries of the tensor field at all mesh
-nodes. The off-diagonal entries of an isotropic tensor field are always
-zero. A constant anisotropic field may be specified by choosing
-\option{\ldots/value/anisotropic\_asymmetric/constant} and providing the
-entire matrix. Finally, a constant symmetric anisotropic tensor field may be
-specified by selecting \onlypdf\linebreak
-\option{\ldots/value/anisotropic\_symmetric/constant}. In this case, the
-user must specify all of the entries in the upper half of the matrix and
-those in the lower half will be filled automatically by symmetry.
-
-\subsubsection{Setting fields with a Python function}\label{Sect:setting_with_python}
-\index{field!Python function}
-\index{Python!prescribed field values}
-The value of a field which varies in space and (for prescribed fields) in
-time may be specified by providing an appropriate function written in
-Python. The Python function will be evaluated for each node in the mesh at
-the start of the simulation to populate the field values. For time-varying
-prescribed fields, the function will be evaluated again at the beginning of
-every timestep to update the field value. If it is known that the value of
-the field does not in fact vary in time, then the re-evaluation of the
-Python function on each timestep can be inhibited by setting the
-\onlypdf\linebreak \option{\ldots/prescribed/do\_not\_recalculate} option.
-
-The Python function must be provided as the value of the
-\option{\ldots/python} option which may be chosen as an alternative to the
-\option{\ldots/constant} function. The option may contain any Python code
-but it must define a function \lstinline[language=Python]+val(X,t)+ where
-the sequence \lstinline[language=Python]+X+ is the coordinates of the point
-at which the field is being evaluated and \lstinline[language=Python]+t+ is
-the current time. 
-
-For a scalar field, the function must return a single floating point
-value. Similarly for a vector field, a sequence of values of length equal to
-the field dimension must be returned. For a tensor field, there are two
-cases. For an isotropic field specified with
-\option{\ldots/value/isotropic/python}, the function must return a single
-float which will be used for all the diagonal entries of the tensor at that
-point. The off-diagonal entries will be set to zero. For the anisotropic case,
-the function must return a two-dimensional array (a sequence of
-sequences). It is the user's responsibility to ensure that the tensor is
-symmetric in cases where it should be.
-
-\begin{example}
-  \begin{lstlisting}[language=Python]
-def val(X,t):
-    return (-X[1],X[0])
-  \end{lstlisting}
-  \caption{A Python function returning a two-dimensional solid rotating
-    vector field about the origin.}
-\end{example}
-
-\subsubsection{Reading fields from a file}
-\index{field!input}
-A field can be populated using saved data from a file. This is intended primarily
-for picking up prescribed fields from previously run prognostic simulations
-(checkpointing) and may be specified by providing the file name in
-the \option{from\_file} option under \option{\ldots/prognostic/initial\_condition},
-\option{\ldots/prescribed/value}.
-
-For prescribed fields the format of the input file containing field data must be
-vtu, and this will only work for those prescribed fields directly underneath
-\option{\ldots/material\_phase}. For prognostic fields it is possible to select
-the type of input file, under \option{\ldots/initial\_condition/from\_file/format};
-the available supported formats for this include \option{vtu} and \option{NetCDF-CF 1.x}.
-
-The file mesh must match the mesh of this field (except for piecewise constant
-fields which will be remapped back from the discontinuous nodal values). In
-parallel the process number is appended to the filename, e.g. if the file name
-attribute is set to \option{input.vtu}, process 0 reads from \option{input-0.vtu}.
-
-\subsubsection{Setting fields from NEMO data}\label{Sect:setting_from_nemo}
-\index{field!from Nemo}
-Initial conditions of prognostic fields and the values of prescribed fields can also be set from an external NEMO
-data file. The external data file is in the NETCDF format and data is currently available for pressure, temperature, salinity
-and velocity. To set the initial condition of a prognostic field from NEMO data, chose the option 
-\option{\ldots/prognostic/initial\_condition/NEMO\_data} and then under \option{format} select the required data format. For scalar fields
-the formats available are `Temperature', `Salinity' and `Free-surface height', for vector fields `Velocity' is the only available format.
-Setting the value of prescribed fields from NEMO data works similarly. Set the option \option{\ldots/prescribed/value/NEMO\_data} and then proceed as above.
-
-\subsection{Region IDs}
-\index{region ID}
-If the input mesh defines a number of region IDs then these may be employed
-to specify different field values for each region. For a prescribed field,
-this is achieved by changing the \option{\ldots/value::WholeMesh} element to
-the unnamed \option{\ldots/value}. The user must then specify a new name for
-that value element. Next, enable the  \option{\ldots/value/region\_ids}
-option and set it to a list of region ids to which this value should
-apply. Any number of  \option{\ldots/value} elements may be added to allow
-different values to be specified in different regions. For prognostic
-fields, analogous behaviour for initial conditions may be achieved by
-switching \option{\ldots/initial\_condition} from \option{WholeMesh} to a
-user-specified name and specifying the region IDs appropriately.
-
-See section \ref{sect:region_ids}\ for information on including region IDs
-in meshes.
-
-\subsection{Mathematical constraints on initial conditions}\label{Sect:ICs}
-
-For well-posedness, the initial condition of the velocity field must
-satisfy both continuity (\ref{conty}) and the boundary conditions
-imposed on the problem. If the normal component of velocity is
-imposed on the entire boundary then the additional
-compatibility constraint of global mass conservation must be
-satisfied:
-\begin{equation*}
-\int_{\partial\Omega}\bmn\cdot\bmu=0.
-\end{equation*}
-
 \section{The options tree}\label{Sect:OptionsTree}
 The top level of the options tree contains the following compulsory elements:
 
@@ -372,10 +101,12 @@ This is necessary to ensure that all vectors and tensors are of the correct
 dimension.
 
 \subsubsection{Meshes}
-Meshes are the finite element spaces on which your problem is solved. Meshes are either read from file 
-or are derived from other meshes. Mesh options are described in detail in section~\ref{Sect:Element}. 
-There is only one required mesh: the CoordinateMesh. Some settings, fields or other
-settings have specific mesh requirements. These are discussed under the appropriate options.
+Meshes are the finite element spaces on which your problem is solved. Meshes
+are either read from file or are derived from other meshes. Mesh options are
+described in detail in section~\ref{Sect:Mesh}.  There is only one required
+mesh: the CoordinateMesh. Some settings, fields or other settings have
+specific mesh requirements. These are discussed under the appropriate
+options.
 
 
 \subsubsection{Quadrature}
@@ -754,6 +485,114 @@ return 2.0 * omega
 \label{ex:python_f_plane}
 \end{example}
 
+
+\section{Meshes}\label{Sect:Mesh}
+
+Every field is associated with a mesh. The mesh defines the discrete
+function space in which the field's values lie. For example, the mesh
+defines what degree of polynomials are employed on each element, whether the
+field is continuous or discontinuous between elements, and whether the
+domain is periodic in any direction. 
+
+Meshes are defined in the flml file by \option{/geometry/mesh} options. The
+mesh associated with each field is referred to by name in the
+\option{\ldots/mesh} option under that field.
+
+\subsection{Reading meshes from file}
+\index{mesh!input}
+There must always be one mesh which is read in from a set of files in
+triangle format. This is usually the \option{CoordinateMesh}. To specify the
+triangle files from which the coordinate mesh should be read, set the
+\option{file\_name} attribute of
+\option{/geometry/dimension/mesh::CoordinateMesh/from\_file} to the basename
+of the triangle files (that is, the filename without .node, .ele etc.)
+
+The coordinate mesh read in from file will always have linear elements and
+the Coordinate field is always continuous between elements.
+
+For information on generating meshes in triangle format, see chapter
+\ref{chap:meshes}. 
+
+\subsection{Deriving meshes from other meshes}
+\index{mesh!derived}
+The alternative to reading a mesh from a file is to derive it from another
+mesh. This is necessary when for instance we wish to derive a mesh with
+different continuity or elements from the original mesh. 
+For example, if we have a \option{CoordinateMesh} as our input mesh read 
+from file, it is possible to derive a \option{VelocityMesh} from it
+by adding \option{/geometry/mesh::VelocityMesh}, selecting 
+\option{from\_mesh} under it and there selecting
+\option{mesh::CoordinateMesh}. If nothing further is specified 
+under the new mesh, the derived mesh will be exactly the same as the mesh
+it is derived from.
+
+The more interesting case occurs where we wish to derive a mesh with
+different continuity or elements from the original mesh. To specify a
+discontinuous mesh, under \option{\ldots/from\_mesh} enable
+\option{mesh\_continuity} and select \option{discontinuous}.
+
+Similarly, to specify a mesh with higher polynomial degree elements, enable
+\option{mesh\_shape} under \option{\ldots/from\_mesh} and set
+\option{polynomial\_degree}.
+
+Meshes with any name can be added. Only the name \option{CoordinateMesh} 
+is special, as it will be used to store the coordinates of the mesh. This 
+is also the only required mesh. \option{VelocityMesh} and \option{PressureMesh}
+are only provided as suggested names as quite often the pressure 
+and velocity fields need to be on a different mesh 
+than the coordinate mesh, e.g. for \PoDGPt. It is however 
+not required that the velocity is defined on a mesh with the name
+\option{VelocityMesh}, nor does the pressure field have to be on a mesh
+with the name \option{PressureMesh}. If for instance the mesh needed 
+for pressure is the same as your \option{CoordinateMesh}, e.g. 
+for \Poo or \Pzero\Pone, the pressure can be defined directly on
+the \option{CoordinateMesh} and no extra mesh is needed.
+
+\subsubsection{Shape function}
+
+\subsubsection{Continuity}
+
+
+\subsubsection{Periodic}
+
+To specify a periodic domain in Diamond, add a new mesh under
+\option{/geometry/mesh}.  Select \onlypdf\linebreak
+\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
+on \onlypdf\\
+\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
+that is periodic. There are three fields that need to be completed: the
+surface IDs of one side, the surface IDs of the opposite side and a python
+function (\option{coordinate\_map}) which contains the necessary mapping
+function.
+
+For example, suppose that the domain is the unit square shown in figure
+\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
+designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
+\emph{aliased boundary}. We therefore enter 1 in
+\option{\ldots/physical\_boundary\_ids}\ and 2 in
+\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
+takes a point on the \emph{aliased}\ boundary to the corresponding point on
+the \emph{physical}\ boundary. In this case, the appropriate function is:
+\begin{lstlisting}[language=Python]
+def val(X,t):
+    result = list(X)
+    result[0]=result[0]-1.0
+    return result
+\end{lstlisting}
+
+\begin{figure}[ht]
+  \centering
+  \xfig{configuring_fluidity_images/periodic_domain}
+  \caption{Periodic unit square with surface IDs 1-4 shown.}
+  \label{fig:periodic}
+\end{figure}
+
+Meshes that are required to be periodic can now be derived from this periodic mesh.
+
+\subsubsection{Extruded meshes}
+
+
+
 \section{Material/Phase}
 The final compulsory element in the top level of the options tree is
 \option{/material\_phase}.  A \option{/material\_phase} element groups all
@@ -771,6 +610,184 @@ Note that you must give each of your material phases a name.
 % NOTE: if you add anything below the Sediments sections here, change the ref...
 The following sections (\ref{config:spatial} to \ref{config:sediments}) describe the options below the
 \option{/material\_phase} option.
+
+\section{Fields}
+\index{field}
+\subsection{Types of field}
+
+A field associates a value with every node in the domain. Examples of fields
+in a fluids simulation include the velocity and pressure. Fields in \fluidity
+are distinguished by the rank of the data on the field and the way in which
+that field is calculated. 
+
+\begin{description}
+\item[Scalar fields] have a scalar value at each node. Common examples
+  include temperature, pressure and density.
+\item[Vector fields] have a vector value, in other words a list of numbers,
+  at each node. The rank of a vector field is 1 and the length of the
+  vector is given by the dimension of the problem.
+\item[Tensor fields] have a value given by a square matrix at each
+  node. The side length of the matrix is the problem dimension and the rank
+  is naturally 2. The diffusivity of a tracer is a typical example of a
+  tensor-valued field.
+\end{description}
+
+Fields can also be characterised by the manner in which their value is
+calculated. \fluidity\ recognises three such categories:
+
+\begin{description}
+\item[Prognostic fields] are the result of solving a partial differential
+  equation. In a typical fluids simulation, the velocity and pressure are
+  prognostic and are calculated by solving some variant of the Navier-Stokes
+  equations. Similarly, tracers such as temperature and salinity are usually
+  the result of solving and advection-diffusion equation. Prognostic fields
+  typically have specified initial and boundary conditions and it will be
+  necessary to specify spatial and temporal discretisation options. If an
+  implicit timestepping scheme is in use (and it almost always is in
+  \fluidity), it is also necessary to specify solver options. 
+\item[Diagnostic fields] are calculated from other fields without solving a
+  partial differential equation. A typical example is the CFL number which
+  may be calculated from the timestep, the mesh spacing and the velocity
+  field. 
+\item[Prescribed fields] receive their values from sources external to
+  \fluidity. This might be a constant or varying function specified by the
+  user, or it might be interpolated from some external data set. Fields such
+  as diffusivity and viscosity are often prescribed as are source and
+  absorption terms.
+\end{description}
+
+
+\subsection{Setting field values}\label{Sect:setting_field_values}
+\index{field!values}
+\index{initial conditions!setting}
+Field values must be specified by the user in two circumstances: the initial
+value of most prognostic fields and the value throughout the simulation of
+all prescribed fields. 
+
+The initial value of prognostic fields is set with the
+\option{\ldots/prognostic/initial\_condition} option while the value of
+prescribed fields is set with the \option{\ldots/prescribed/value} option.
+
+
+\subsubsection{Constant fields}
+\index{field!constant}
+Fields which are constant in space and (for prescribed fields) time may be
+specified by simply providing a constant value in the \option{constant}
+option under \option{\ldots/prognostic/initial\_condition},
+\option{\ldots/prescribed/value}. For a scalar field, this is a single
+floating point (real) value while for a vector field this is a list of reals
+of length equal to the field dimension.
+
+For tensor valued fields there are more options. It is possible to specify
+an isotropic, or rotation invariant, value by choosing
+\option{\ldots/value/isotropic/constant} and specifying a single real which
+will be used for all the diagonal entries of the tensor field at all mesh
+nodes. The off-diagonal entries of an isotropic tensor field are always
+zero. A constant anisotropic field may be specified by choosing
+\option{\ldots/value/anisotropic\_asymmetric/constant} and providing the
+entire matrix. Finally, a constant symmetric anisotropic tensor field may be
+specified by selecting \onlypdf\linebreak
+\option{\ldots/value/anisotropic\_symmetric/constant}. In this case, the
+user must specify all of the entries in the upper half of the matrix and
+those in the lower half will be filled automatically by symmetry.
+
+\subsubsection{Setting fields with a Python function}\label{Sect:setting_with_python}
+\index{field!Python function}
+\index{Python!prescribed field values}
+The value of a field which varies in space and (for prescribed fields) in
+time may be specified by providing an appropriate function written in
+Python. The Python function will be evaluated for each node in the mesh at
+the start of the simulation to populate the field values. For time-varying
+prescribed fields, the function will be evaluated again at the beginning of
+every timestep to update the field value. If it is known that the value of
+the field does not in fact vary in time, then the re-evaluation of the
+Python function on each timestep can be inhibited by setting the
+\onlypdf\linebreak \option{\ldots/prescribed/do\_not\_recalculate} option.
+
+The Python function must be provided as the value of the
+\option{\ldots/python} option which may be chosen as an alternative to the
+\option{\ldots/constant} function. The option may contain any Python code
+but it must define a function \lstinline[language=Python]+val(X,t)+ where
+the sequence \lstinline[language=Python]+X+ is the coordinates of the point
+at which the field is being evaluated and \lstinline[language=Python]+t+ is
+the current time. 
+
+For a scalar field, the function must return a single floating point
+value. Similarly for a vector field, a sequence of values of length equal to
+the field dimension must be returned. For a tensor field, there are two
+cases. For an isotropic field specified with
+\option{\ldots/value/isotropic/python}, the function must return a single
+float which will be used for all the diagonal entries of the tensor at that
+point. The off-diagonal entries will be set to zero. For the anisotropic case,
+the function must return a two-dimensional array (a sequence of
+sequences). It is the user's responsibility to ensure that the tensor is
+symmetric in cases where it should be.
+
+\begin{example}
+  \begin{lstlisting}[language=Python]
+def val(X,t):
+    return (-X[1],X[0])
+  \end{lstlisting}
+  \caption{A Python function returning a two-dimensional solid rotating
+    vector field about the origin.}
+\end{example}
+
+\subsubsection{Reading fields from a file}
+\index{field!input}
+A field can be populated using saved data from a file. This is intended primarily
+for picking up prescribed fields from previously run prognostic simulations
+(checkpointing) and may be specified by providing the file name in
+the \option{from\_file} option under \option{\ldots/prognostic/initial\_condition},
+\option{\ldots/prescribed/value}.
+
+For prescribed fields the format of the input file containing field data must be
+vtu, and this will only work for those prescribed fields directly underneath
+\option{\ldots/material\_phase}. For prognostic fields it is possible to select
+the type of input file, under \option{\ldots/initial\_condition/from\_file/format};
+the available supported formats for this include \option{vtu} and \option{NetCDF-CF 1.x}.
+
+The file mesh must match the mesh of this field (except for piecewise constant
+fields which will be remapped back from the discontinuous nodal values). In
+parallel the process number is appended to the filename, e.g. if the file name
+attribute is set to \option{input.vtu}, process 0 reads from \option{input-0.vtu}.
+
+\subsubsection{Setting fields from NEMO data}\label{Sect:setting_from_nemo}
+\index{field!from Nemo}
+Initial conditions of prognostic fields and the values of prescribed fields can also be set from an external NEMO
+data file. The external data file is in the NETCDF format and data is currently available for pressure, temperature, salinity
+and velocity. To set the initial condition of a prognostic field from NEMO data, chose the option 
+\option{\ldots/prognostic/initial\_condition/NEMO\_data} and then under \option{format} select the required data format. For scalar fields
+the formats available are `Temperature', `Salinity' and `Free-surface height', for vector fields `Velocity' is the only available format.
+Setting the value of prescribed fields from NEMO data works similarly. Set the option \option{\ldots/prescribed/value/NEMO\_data} and then proceed as above.
+
+\subsection{Region IDs}
+\index{region ID}
+If the input mesh defines a number of region IDs then these may be employed
+to specify different field values for each region. For a prescribed field,
+this is achieved by changing the \option{\ldots/value::WholeMesh} element to
+the unnamed \option{\ldots/value}. The user must then specify a new name for
+that value element. Next, enable the  \option{\ldots/value/region\_ids}
+option and set it to a list of region ids to which this value should
+apply. Any number of  \option{\ldots/value} elements may be added to allow
+different values to be specified in different regions. For prognostic
+fields, analogous behaviour for initial conditions may be achieved by
+switching \option{\ldots/initial\_condition} from \option{WholeMesh} to a
+user-specified name and specifying the region IDs appropriately.
+
+See section \ref{sect:region_ids}\ for information on including region IDs
+in meshes.
+
+\subsection{Mathematical constraints on initial conditions}\label{Sect:ICs}
+
+For well-posedness, the initial condition of the velocity field must
+satisfy both continuity (\ref{conty}) and the boundary conditions
+imposed on the problem. If the normal component of velocity is
+imposed on the entire boundary then the additional
+compatibility constraint of global mass conservation must be
+satisfied:
+\begin{equation*}
+\int_{\partial\Omega}\bmn\cdot\bmu=0.
+\end{equation*}
 
 \section{Advected quantities: momentum and tracers}
 \label{config:spatial}
