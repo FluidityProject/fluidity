@@ -85,8 +85,8 @@ module solvers
   ! this requires the following:
   type(petsc_numbering_type), save:: petsc_monitor_numbering
   type(vector_field), target, save:: petsc_monitor_positions
-  type(scalar_field), save:: petsc_monitor_sfield
-  type(vector_field), save:: petsc_monitor_vfield
+  type(scalar_field), dimension(3), save:: petsc_monitor_sfields
+  type(vector_field), dimension(3), save:: petsc_monitor_vfields
   character(len=FIELD_NAME_LEN), save:: petsc_monitor_vtu_name
   integer, save:: petsc_monitor_vtu_series=0
   
@@ -1972,9 +1972,13 @@ subroutine petsc_monitor_setup(petsc_numbering, max_its)
   if (petsc_monitor_iteration_vtus) then
     mesh => petsc_monitor_positions%mesh
     if (ncomponents==1) then
-      call allocate(petsc_monitor_sfield, mesh, name="X")
+      call allocate(petsc_monitor_sfields(1), mesh, name="X")
+      call allocate(petsc_monitor_sfields(2), mesh, name="Residual")
+      call allocate(petsc_monitor_sfields(3), mesh, name="PreconditionedResidual")
     else
-      call allocate(petsc_monitor_vfield, ncomponents, mesh, name="X")
+      call allocate(petsc_monitor_vfields(1), ncomponents, mesh, name="X")
+      call allocate(petsc_monitor_vfields(2), ncomponents, mesh, name="Residual")
+      call allocate(petsc_monitor_vfields(3), ncomponents, mesh, name="PreconditionedResidual")
     end if
     petsc_monitor_vtu_name="petsc_monitor_"//int2str(petsc_monitor_vtu_series)
     petsc_monitor_vtu_series=petsc_monitor_vtu_series+1
@@ -2055,9 +2059,13 @@ subroutine petsc_monitor_destroy()
   
   if (petsc_monitor_iteration_vtus) then
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
-      call deallocate(petsc_monitor_sfield)
+      do i=1, 3
+        call deallocate(petsc_monitor_sfields(i))
+      end do
     else
-      call deallocate(petsc_monitor_vfield)
+      do i=1, 3
+        call deallocate(petsc_monitor_vfields(i))
+      end do
     end if
     call deallocate(petsc_monitor_positions)
   end if
@@ -2073,7 +2081,10 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
   PetscScalar :: rnorm
   PetscLogDouble :: flops
-  Vec:: dummy_vec
+  MatStructure:: flag
+  Mat:: Amat, Pmat
+  PC:: pc
+  Vec:: dummy_vec, r, rhs
 
   ! Stop warnings.
   ierr = dummy  
@@ -2097,16 +2108,38 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
   if (petsc_monitor_iteration_vtus) then
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
-      call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_sfield)
-      call vtk_write_fields(petsc_monitor_vtu_name, index=n, &
-        model=petsc_monitor_positions%mesh, position=petsc_monitor_positions, &
-        sfields=(/ petsc_monitor_sfield /))
+      call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_sfields(1))
     else
-      call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfield)
+      call petsc2field(petsc_monitor_x, petsc_monitor_numbering, petsc_monitor_vfields(1))
+    end if
+    call KSPGetRhs(ksp, rhs, ierr)
+    call KSPGetOperators(ksp, Amat, Pmat, flag, ierr)
+    call VecDuplicate(petsc_monitor_x, r, ierr)
+    call MatMult(Amat, petsc_monitor_x, r, ierr)
+    call VecAXPY(r, -1.0, rhs, ierr)
+    if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
+      call petsc2field(r, petsc_monitor_numbering, petsc_monitor_sfields(2))
+    else
+      call petsc2field(r, petsc_monitor_numbering, petsc_monitor_vfields(2))
+    end if
+    call VecCopy(r, petsc_monitor_x, ierr)
+    call KSPGetPC(ksp, pc, ierr)
+    call PCApply(pc, petsc_monitor_x, r, ierr)
+    if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
+      call petsc2field(r, petsc_monitor_numbering, petsc_monitor_sfields(3))
+    else
+      call petsc2field(r, petsc_monitor_numbering, petsc_monitor_vfields(3))
+    end if
+    if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call vtk_write_fields(petsc_monitor_vtu_name, index=n, &
         model=petsc_monitor_positions%mesh, position=petsc_monitor_positions, &
-        vfields=(/ petsc_monitor_vfield /))
+        sfields=petsc_monitor_sfields)
+    else
+      call vtk_write_fields(petsc_monitor_vtu_name, index=n, &
+        model=petsc_monitor_positions%mesh, position=petsc_monitor_positions, &
+        vfields=petsc_monitor_vfields)
     end if
+    call VecDestroy(r, ierr)
   end if
   
   ierr=0
