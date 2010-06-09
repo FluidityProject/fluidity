@@ -183,6 +183,41 @@ the \option{CoordinateMesh} and no extra mesh is needed.
 \item Mesh shape
 \item Mesh Continuity
 \item Periodic boundary conditions
+
+To specify a periodic domain in Diamond, add a new mesh under
+\option{/geometry/mesh}.  Select \onlypdf\linebreak
+\option{\ldots/from\_mesh/mesh::CoordinateMesh} and then turn
+on \onlypdf\\
+\option{\ldots/from\_mesh/periodic\_boundary\_conditions} for each dimension
+that is periodic. There are three fields that need to be completed: the
+surface IDs of one side, the surface IDs of the opposite side and a python
+function (\option{coordinate\_map}) which contains the necessary mapping
+function.
+
+For example, suppose that the domain is the unit square shown in figure
+\ref{fig:periodic}\ which is to be periodic in the $x$ direction. We
+designate surface ID 1 as the \emph{physical boundary}\ and surface ID 2 as the
+\emph{aliased boundary}. We therefore enter 1 in
+\option{\ldots/physical\_boundary\_ids}\ and 2 in
+\option{\ldots/aliased\_boundary\_ids}. The \emph{coordinate map}\ function
+takes a point on the \emph{aliased}\ boundary to the corresponding point on
+the \emph{physical}\ boundary. In this case, the appropriate function is:
+\begin{lstlisting}[language=Python]
+def val(X,t):
+    result = list(X)
+    result[0]=result[0]-1.0
+    return result
+\end{lstlisting}
+
+\begin{figure}[ht]
+  \centering
+  \xfig{configuring_fluidity_images/periodic_domain}
+  \caption{Periodic unit square with surface IDs 1-4 shown.}
+  \label{fig:periodic}
+\end{figure}
+
+Meshes that are required to be periodic can now be derived from this periodic mesh.
+
 \item Extrude
 \end{itemize}
 
