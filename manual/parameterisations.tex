@@ -2,10 +2,10 @@
 
 Although \fluidity\ is capable of resolving a range of scales dynamically using 
 an adaptive mesh, it is not always feasible to resolve all process that are
-required for a simulation. This chapter introduces the subgrid scale paramateristations
-that are available in \fluidity.
+required for a simulation, and therefore some form of parameterisation is required.
+This chapter introduces the paramateristations that are available in \fluidity.
 
-\section{General length scale subgrid scale parameterisation}\label{Sect:GLS}
+\section{General length scale turbulence parameterisation}\label{Sect:GLS}
 \index{viscosity!eddy}
 \index{diffusivity!eddy}
 \index{Reynolds stress}
@@ -13,11 +13,12 @@ that are available in \fluidity.
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-The general length scale (GLS) subgrid parameterisation is capable of simulating vertical
+The general length scale (GLS) turbulence parameterisation is capable of simulating vertical
 turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution, 
-so is ideal for adaptive ocean-scale problems. GLS can be set-up to behave as a number of classical
-turbulence models. \fluidity has four implementations of GLS available: $k-\epsilon$, $k-kl$, $k-\omega$, 
-and an additional model based on \citet{umlauf2003}, the \emph{gen} model. 
+so is ideal for adaptive ocean-scale problems. GLS has the additional advantage that it
+can be set-up to behave as a number of classical turbulence models. 
+\fluidity has four implementations of GLS available: $k-\epsilon$, $k-kl$, $k-\omega$, 
+and an additional model based on \citet{umlauf2003}, the $gen$ model. 
 
 Briefly, all implementations rely on a local, temporally varying, kinematic eddy 
 viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow 
