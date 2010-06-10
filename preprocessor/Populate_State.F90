@@ -305,7 +305,7 @@ contains
           end if
                        
           ! If running in parallel, additionally read in halo information and register the elements halo
-          if(isparallel()) then
+          if(isparallel() .and. .not.always_serial) then
             if (no_active_processes == 1) then
               nprocs = getnprocs()
               allocate(position%mesh%halos(2))
@@ -2797,9 +2797,9 @@ contains
     if(n_external_meshes==0) then
        FLExit("At least one mesh must come from a file.")
     end if
-    if(isparallel() .and. n_external_meshes > 1) then
-      FLExit("Only one mesh may be from_file in parallel.")
-    end if
+    !if(isparallel() .and. n_external_meshes > 1) then
+    !  FLExit("Only one mesh may be from_file in parallel.")
+    !end if
     if(n_external_meshes-n_external_meshes_excluded_from_mesh_adaptivity>1) then
       ewrite(-1,*) "With multiple external (from_file) meshes"
       FLExit("Only one external mesh may leave out the exclude_from_mesh_adaptivity option.")

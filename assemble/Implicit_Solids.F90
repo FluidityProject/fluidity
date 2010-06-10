@@ -252,44 +252,46 @@ contains
   !----------------------------------------------------------------------------
   !----------------------------------------------------------------------------
 
-!!$  subroutine femdem_two_way_initialise(state)
-!!$
-!!$    integer :: flag = 1
-!!$    character(len=field_name_len) :: external_mesh_name
-!!$    type(vector_field), pointer :: external_positions
-!!$    type(vector_field), pointer :: ext_pos_solid_vel, ext_pos_fluid_vel
-!!$    type(state_type) :: state
-!!$
-!!$
-!!$    call get_option("/implicit_solids/mesh_name", external_mesh_name)
-!!$
-!!$    call y3allocate_femdem(trim(external_mesh_name)//char(0))
-!!$
-!!$    ! get external positions...
-!!$    external_positions => extract_vector_field(state, trim(external_mesh_name)//"Coordinate")
-!!$
-!!$    ! this is the solid velocity on the solid mesh
-!!$    ext_pos_solid_vel => extract_vector_field(state, "ParticleVector")
-!!$    call zero(ext_pos_solid_vel)
-!!$
-!!$    ! this is the interpolated fluid velocity
-!!$    ! on the solid mesh
-!!$    ext_pos_fluid_vel => extract_vector_field(state, "ParticleForce")
-!!$    call zero(ext_pos_fluid_vel)
-!!$
-!!$    assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
-!!$    assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_vel))
-!!$
-!!$    ! out :: ext_pos_solid_vel (i.e. initial velocity source)
-!!$    call y3dfemdem(flag, dt, &
-!!$         external_positions%val(1)%ptr, external_positions%val(2)%ptr, external_positions%val(3)%ptr, &
-!!$         ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, ext_pos_solid_vel%val(3)%ptr, &
-!!$         ext_pos_fluid_vel%val(1)%ptr, ext_pos_fluid_vel%val(2)%ptr, ext_pos_fluid_vel%val(3)%ptr)
-!!$    
-!!$  end subroutine femdem_two_way_initialise
-!!$
-!!$  !----------------------------------------------------------------------------
-!!$
+  subroutine femdem_two_way_initialise(state)
+
+    integer :: flag = 1
+    character(len=field_name_len) :: external_mesh_name
+    type(vector_field), pointer :: external_positions
+    type(vector_field), pointer :: ext_pos_solid_vel, ext_pos_fluid_vel
+    type(state_type) :: state
+
+
+    call get_option("/implicit_solids/two_way_coupling/mesh_name", &
+         external_mesh_name)
+
+    !call y3allocate_femdem(trim(external_mesh_name)//char(0))
+
+    ! get external positions...
+    external_positions => extract_vector_field(state, &
+         trim(external_mesh_name)//"Coordinate")
+
+    ! this is the solid velocity on the solid mesh
+    ext_pos_solid_vel => extract_vector_field(state, "ParticleVector")
+    call zero(ext_pos_solid_vel)
+
+    ! this is the interpolated fluid velocity
+    ! on the solid mesh
+    ext_pos_fluid_vel => extract_vector_field(state, "ParticleForce")
+    call zero(ext_pos_fluid_vel)
+
+    assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
+    assert(node_count(ext_pos_fluid_vel) == node_count(ext_pos_solid_vel))
+
+    ! out :: ext_pos_solid_vel (i.e. initial velocity source)
+    !call y3dfemdem(flag, dt, &
+    !     external_positions%val(1)%ptr, external_positions%val(2)%ptr, external_positions%val(3)%ptr, &
+    !     ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, ext_pos_solid_vel%val(3)%ptr, &
+    !     ext_pos_fluid_vel%val(1)%ptr, ext_pos_fluid_vel%val(2)%ptr, ext_pos_fluid_vel%val(3)%ptr)
+    
+  end subroutine femdem_two_way_initialise
+
+  !----------------------------------------------------------------------------
+
 !!$  subroutine femdem_two_way_update(state)
 !!$
 !!$    integer :: flag = 0
@@ -305,60 +307,99 @@ contains
 !!$         ext_pos_fluid_vel%val(1)%ptr, ext_pos_fluid_vel%val(2)%ptr, ext_pos_fluid_vel%val(3)%ptr)
 !!$
 !!$  end subroutine femdem_two_way_update
-!!$
-!!$  !----------------------------------------------------------------------------
-!!$
-!!$  subroutine femdem_interpolation_in(state)
-!!$
-!!$    ! new => out_mesh - fluidity  ! to be used for  
-!!$    ! old => in_mesh  - solid     ! 2-way coupling interpolations...
-!!$    
-!!$    type(state_type) :: state, state_old
-!!$    type(state_type) :: alg_old, alg_new
-!!$
-!!$    type(mesh_type), pointer :: old_mesh, new_mesh
-!!$    type(vector_field) :: old_positions, new_positions
-!!$    type(vector_field), pointer :: v_field_new, v_field_old 
-!!$
-!!$
-!!$
-!!$    ! READ IN FEMDEM DATA TO ALG_OLD STATE
-!!$    ! states_old and _new are input to this sub...
-!!$    ! here we should read in the femdem mesh rather than do this...
-!!$ 
-!!$    ! call y3dfemdem()
-!!$
-!!$    old_mesh => extract_mesh(state_old, "Coordinate")
-!!$    old_positions = extract_vector_field(state_old, "Coordinate")
-!!$    call insert(alg_old, old_mesh, "Mesh")
-!!$    call insert(alg_old, old_positions, "Coordinate")
-!!$
-!!$    ! this needs to be replaced...
-!!$    v_field_old => extract_vector_field(state_old, "SolidVelocity")
-!!$
-!!$    call insert(alg_old, v_field_old, "SolidVelocity")
-!!$
-!!$
-!!$    ! READ IN DATA FROM STATE TO ALG_NEW STATE
-!!$    new_mesh => extract_mesh(state, "Coordinate")
-!!$    new_positions = extract_vector_field(state, "Coordinate")
-!!$    call insert(alg_new, new_mesh, "Mesh")
-!!$    call insert(alg_new, new_positions, "Coordinate")
-!!$
-!!$    v_field_new => extract_vector_field(state, "SolidVelocity")
-!!$    call zero(v_field_new)
-!!$    call insert(alg_new, v_field_new, "SolidVelocity")
-!!$
-!!$    call linear_interpolation(alg_old, alg_new, different_domains=.true.)
-!!$    
-!!$    call deallocate(alg_old)
-!!$    call deallocate(alg_new)
-!!$    
-!!$  end subroutine femdem_interpolation_in
 
-!!$  !----------------------------------------------------------------------------
-!!$!  subroutine femdem_interpolation_out(state)
-!!$!  end subroutine femdem_interpolation_out
+  !----------------------------------------------------------------------------
+
+  subroutine femdem_interpolation(state, operation)
+ 
+    character(len=field_name_len) :: external_mesh_name
+    character(len=field_name_len), intent(in) :: operation
+    type(state_type) :: state
+    type(state_type) :: alg_ext, alg_fl
+
+    type(mesh_type), pointer :: ext_mesh, fl_mesh
+    type(vector_field) :: ext_positions, fl_positions
+    type(vector_field), pointer :: field_ext, field_fl
+
+    ! this subroutine interpolates velocities
+    ! between fluidity and femdem meshes
+    ! if operation == "in"  : interpolate femdem into fluidity
+    ! if operation == "out" : interpolate fluidity into femdem
+
+    ! read in femdem data into alg_old state
+    ! all data is on the solid mesh
+    call get_option("/implicit_solids/two_way_coupling/mesh_name", &
+         external_mesh_name)
+    ext_mesh => extract_mesh(state, &
+         trim(external_mesh_name)//"Coordinate")
+    ext_positions = extract_vector_field(state, &
+         trim(external_mesh_name)//"Coordinate")
+    call insert(alg_ext, ext_mesh, "Mesh")
+    call insert(alg_ext, ext_positions, "Coordinate")
+
+    if (operation == "in") then
+
+       ! this is the solid velocity on the solid mesh
+       field_ext => extract_vector_field(state, "ParticleVector")
+       ! just rename "ParticleVector" to "SolidVelocity"
+       call insert(alg_ext, field_ext, "SolidVelocity")
+
+    else if (operation == "out") then
+
+       ! this is the fluid velocity on the solid mesh
+       ! this will be returned to femdem...
+       field_ext => extract_vector_field(state, "ParticleForce")
+       call zero(field_ext)
+       ! just rename "ParticleForce" to "Velocity"
+       call insert(alg_ext, field_ext, "Velocity")
+
+    end if
+
+    ! read in fluidity data into alg_new state
+    ! all data is on the fluidity mesh
+    fl_mesh => extract_mesh(state, "Coordinate")
+    fl_positions = extract_vector_field(state, "Coordinate")
+    call insert(alg_fl, fl_mesh, "Mesh")
+    call insert(alg_fl, fl_positions, "Coordinate")
+
+    if (operation == "in") then
+
+       ! this is the solid velocity on the fluidity mesh
+       ! this will be used to set the source term...
+       field_fl => extract_vector_field(state, "SolidVelocity")
+       call zero(field_fl)
+       call insert(alg_fl, field_fl, "SolidVelocity")
+
+    else if (operation == "out") then
+
+       ! this is the fluid velocity on the fluidity mesh
+       field_fl => extract_vector_field(state, "Velocity")
+       call insert(alg_fl, field_fl, "Velocity")
+
+    end if
+
+    ! perform interpolations
+    if (operation == "in") then
+
+       ! interpolate the solid velocity from
+       ! the solid mesh to the fluidity mesh
+       call linear_interpolation(alg_ext, alg_fl, different_domains=.true.)
+
+    else if (operation == "out") then
+
+       ! interpolate the fluid velocity from
+       ! the fluid mesh to the solid mesh
+       call linear_interpolation(alg_fl, alg_ext, different_domains=.true.)
+
+    else
+       FLExit("Don't know what to interpolate...")
+    end if
+    
+    call deallocate(alg_ext)
+    call deallocate(alg_fl)
+    
+  end subroutine femdem_interpolation
+
 !!$  !----------------------------------------------------------------------------
 !!$!  subroutine femdem_source_and_absorption(state)
 !!$!  end subroutine femdem_source_and_absorption
