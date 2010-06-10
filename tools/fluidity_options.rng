@@ -4148,6 +4148,31 @@ i.e. excluding the components</a:documentation>
       </element>
     </choice>
   </define>
+  <!-- Same choices, but with CoordinateMesh offered first -->
+  <define name="coordinate_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>VelocityMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>PressureMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
   <!-- This is the choice of additional scalar field to be solved for -->
   <define name="scalar_field_choice">
     <!--

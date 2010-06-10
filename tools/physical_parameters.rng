@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
   <define name="physical_parameter_options">
     <element name="physical_parameters">
       <optional>
@@ -26,11 +26,7 @@
           <value>1</value>
         </attribute>
         <element name="prescribed">
-          <element name="mesh">
-            <attribute name="name">
-              <data type="string"/>
-            </attribute>
-          </element>
+          <ref name="coordinate_mesh_choice"/>
           <ref name="prescribed_vector_field_no_adapt"/>
         </element>
       </element>

@@ -3136,6 +3136,23 @@ pressure_mesh_choice =
       }
    )
 
+# Same choices, but with CoordinateMesh offered first
+coordinate_mesh_choice =
+   (
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "VelocityMesh" }
+      }|
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { string }
+      }
+   )
+
 # This is the choice of additional scalar field to be solved for
 scalar_field_choice =
    (
