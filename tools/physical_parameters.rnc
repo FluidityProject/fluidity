@@ -17,7 +17,7 @@ gravity_options =
          attribute rank { "1" },
          element prescribed {
             element mesh {
-              attribute name {  "CoordinateMesh" }
+              attribute name { xsd:string }
             },
             prescribed_vector_field_no_adapt
          }
