@@ -50,7 +50,8 @@ implicit none
 
   private
   public populate_boundary_conditions, set_boundary_conditions_values, &
-       apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node
+       apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node, &
+       impose_reference_velocity_node
   public :: populate_scalar_boundary_conditions, &
     & populate_vector_boundary_conditions
 
@@ -2172,4 +2173,27 @@ contains
 
   end subroutine impose_reference_pressure_node
 
+  subroutine impose_reference_velocity_node(big_m, rhs, option_path)
+    !!< If solving the Stokes equation and there 
+    !!< are only Neumann boundaries on u, it is necessary to pin
+    !!< the value of the velocity at one point.
+    !!< This is currently done using a big spring (unlike for pressure).
+    type(petsc_csr_matrix), intent(inout) :: big_m
+    type(vector_field), intent(inout):: rhs
+    character(len=*), intent(in) :: option_path
+
+    integer :: reference_node, stat, stat2
+
+    call get_option(trim(complete_field_path(option_path, stat2))//&
+        &"/reference_node", reference_node, &
+        & stat=stat)
+    if (stat==0) then
+       ! all processors now have to call this routine, although only
+       ! process 1 sets it
+       ewrite(1,*) 'Imposing_reference_velocity_node'    
+       call set_reference_node(big_m, reference_node, rhs)
+    end if
+
+  end subroutine impose_reference_velocity_node
+  
 end module boundary_conditions_from_options

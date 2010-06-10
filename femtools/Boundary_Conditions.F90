@@ -98,7 +98,7 @@ implicit none
   end interface
 
   interface set_reference_node
-     module procedure set_reference_node_scalar
+     module procedure set_reference_node_scalar, set_reference_node_vector_petsc
   end interface set_reference_node
 
   interface has_boundary_condition
@@ -1445,6 +1445,37 @@ contains
     end if
     
   end subroutine set_reference_node_scalar
+
+  subroutine set_reference_node_vector_petsc(matrix, node, rhs, reference_value)
+    !!< Sets a reference node for which the value is fixed in the equation
+    !!< This is typically done for a Poisson equation with all Neumann
+    !!< bcs to eliminate the spurious freedom of adding a constant value
+    !!< to the solution.
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    integer, intent(in):: node
+    !! if rhs is not provided, you have to make sure the rhs at 
+    !! the reference node has the right value, usually 0, yourself:
+    type(vector_field), optional, intent(inout) :: rhs
+    !! by default the field gets set to 0 at the reference node
+    real, dimension(blocks(matrix,1)), optional, intent(in) :: reference_value
+
+    !! iterator
+    integer :: k
+    
+    ! only first should set the reference node (as this is a big spring)
+    if (GetProcNo()/=1) return
+    
+    assert(blocks(matrix,1)==blocks(matrix,2))
+    do k = 1, blocks(matrix, 1)
+      call addto_diag(matrix, k, k, node, INFINITY)
+    end do
+    
+    if ((present(rhs)).and.(present(reference_value))) then
+       assert(rhs%dim==blocks(matrix,1))
+       call addto(rhs, node, reference_value*INFINITY)
+    end if
+    
+  end subroutine set_reference_node_vector_petsc
 
   logical function has_boundary_condition_scalar(field, type)
   !!< logical function that tells whether any of the bcs of a field

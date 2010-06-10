@@ -66,7 +66,7 @@ implicit none
      module procedure scalar_field_vaddto, scalar_field_addto, &
           vector_field_addto, vector_field_vaddto_dim, tensor_field_addto, &
           tensor_field_vaddto, tensor_field_vaddto_single, tensor_field_vaddto_dim, &
-          vector_field_vaddto_vec, scalar_field_addto_scalar, &
+          vector_field_vaddto_vec, scalar_field_addto_scalar, vector_field_addto_vector, &
           scalar_field_addto_field, vector_field_addto_field, &
           vector_field_addto_field_dim, tensor_field_addto_field_dim_dim, &
           tensor_field_addto_dim, tensor_field_addto_tensor_field, &
@@ -345,6 +345,21 @@ implicit none
     field%val=field%val+val
 
   end subroutine scalar_field_addto_scalar
+
+  subroutine vector_field_addto_vector(field, val)
+    !!< Add val to field%val
+    !!< Works for both constant and space varying fields
+    type(vector_field), intent(inout) :: field
+    real, dimension(field%dim), intent(in) :: val
+    
+    integer :: i
+    
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    do i = 1, field%dim
+      field%val(i)%ptr=field%val(i)%ptr+val(i)
+    end do
+
+  end subroutine vector_field_addto_vector
 
   subroutine vector_field_addto(field, node_number, val)
     !!< Add val to the field%val(node_number).

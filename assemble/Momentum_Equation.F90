@@ -774,6 +774,10 @@
 
           ! impose zero guess on change in u
           call zero(delta_u)
+
+          ! impose any reference nodes on velocity
+          call impose_reference_velocity_node(big_m, mom_rhs, trim(u%option_path))
+       
           call profiler_toc(u, "assembly")
 
           ! solve for the change in velocity
@@ -1017,7 +1021,7 @@
       integer :: i, nmat
       character(len=FIELD_NAME_LEN) :: schur_scheme
       character(len=FIELD_NAME_LEN) :: schur_preconditioner
-
+      
       ewrite(1,*) 'Checking momentum discretisation options'
 
       nmat = option_count("/material_phase")
@@ -1031,6 +1035,31 @@
                             "]/scalar_field::Pressure/prognostic&
                             &/solver/remove_null_space")) then
           FLExit("Can't set a pressure reference node and remove the null space.")
+        end if
+
+        if(have_option("/material_phase["//int2str(i)//&
+                            "]/vector_field::Velocity/prognostic/reference_node")) then
+          if((.not.(have_option("/material_phase["//int2str(i)//&
+                              "]/vector_field::Velocity/prognostic&
+                              &/spatial_discretisation/continuous_galerkin/mass_terms/exclude_mass_terms").and. &
+                    have_option("/material_phase["//int2str(i)//&
+                              "]/vector_field::Velocity/prognostic&
+                              &/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms"))).and. &
+             (.not.(have_option("/material_phase["//int2str(i)//&
+                              "]/vector_field::Velocity/prognostic&
+                              &/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms").and. &
+                    have_option("/material_phase["//int2str(i)//&
+                              "]/vector_field::Velocity/prognostic&
+                              &/spatial_discretisation/discontinuous_galerkin/advection_scheme/none")))) then
+             ewrite(-1,*) "Error: You have set a Velocity reference node but don't appear"
+             ewrite(-1,*) "to be solving the Stokes equation."
+             ewrite(-1,*) "Setting a reference node for Velocity only makes sense if both"
+             ewrite(-1,*) "mass and advection terms are excluded from the momentum"
+             ewrite(-1,*) "equation.  Even then whether it is valid depends on your"
+             ewrite(-1,*) "boundary conditions and whether your velocity components"
+             ewrite(-1,*) "are coupled but I can't check for that."
+             FLExit("Don't set a Velocity reference_node unless solving the Stokes equation.")
+          end if
         end if
 
 

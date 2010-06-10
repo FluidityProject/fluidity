@@ -2535,6 +2535,10 @@ contains
       character(len=FIELD_NAME_LEN) :: field_name_a, field_name_b
       integer :: i
 
+      real, dimension(difference%dim) :: av_diff
+      real :: max_a, max_b, min_a, min_b, av_a, av_b
+      type(scalar_field) :: field_comp
+
       call get_option(trim(difference%option_path)//"/diagnostic/field_name_a", field_name_a)
       call get_option(trim(difference%option_path)//"/diagnostic/field_name_b", field_name_b)
 
@@ -2570,8 +2574,24 @@ contains
         call linear_interpolation(field_b, field_coordinate, l_field_b, difference_coordinate)
       end if
 
+      av_diff = 0.0
+      if (have_option(trim(difference%option_path)//"/diagnostic/relative_to_average")) then
+        do i = 1, difference%dim
+          field_comp = extract_scalar_field(l_field_a, i)
+          call field_stats(field_comp, max=max_a)
+          call field_stats(field_comp, min=min_a)
+          av_a = (max_a+min_a)/2.0
+          field_comp = extract_scalar_field(l_field_b, i)
+          call field_stats(field_comp, max=max_b)
+          call field_stats(field_comp, min=min_b)
+          av_b = (max_b+min_b)/2.0
+          av_diff(i) = av_a-av_b
+        end do
+      end if
+      
       call set(difference, l_field_a)
       call addto(difference, l_field_b, -1.0)
+      call addto(difference, -av_diff)
 
       do i = 1, difference%dim
         difference%val(i)%ptr = abs(difference%val(i)%ptr)
