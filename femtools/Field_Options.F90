@@ -842,9 +842,9 @@ contains
   end function get_linear_coordinate_field_name
   
   subroutine find_linear_parent_mesh(state, mesh, parent_mesh, stat)
-  !!< Tries to find the parent mesh (possibly grant...parent mesh)
-  !!< that is linear, continuous and non-periodic by trawling through
-  !!< the options tree.
+  !!< Tries to find the parent mesh (possibly grand...parent mesh)
+  !!< that is linear and continuous by trawling through
+  !!< the options tree. It will have the same periodicity.
   type(state_type), intent(in):: state
   type(mesh_type), target, intent(in):: mesh
   type(mesh_type), pointer:: parent_mesh
@@ -860,8 +860,7 @@ contains
     
     do
       ! this is what we're looking for:
-      if (parent_mesh%shape%degree==1 .and. parent_mesh%continuity>=0 .and. &
-        .not. parent_mesh%periodic) then
+      if (parent_mesh%shape%degree==1 .and. parent_mesh%continuity>=0) then
         return
       end if
       call get_option(trim(parent_mesh%option_path)// &
@@ -872,9 +871,11 @@ contains
           return
         else
           ! this fails if parent is not derived, i.e. external, and not
-          ! meeting our criteria (currently not possible)
-          ewrite(-1,*) "Trying to find linear, continuous, non-periodic &
-              &parent mesh of ", trim(mesh%name)
+          ! meeting our criteria (currently not possible as higher order
+          ! meshes are always derived directly from a P1 mesh - can't
+          ! extrude or periodise higher order meshes)
+          ewrite(-1,*) "Trying to find linear and continuous parent mesh of ", &
+             trim(mesh%name)
           ewrite(-1,*) "External mesh ", trim(parent_mesh%name), &
               &" does not meet these criteria"
           FLAbort("Linear input mesh required")
