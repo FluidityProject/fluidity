@@ -40,6 +40,9 @@ module streamfunction
   use transform_elements
   use eventcounter
   use sparsity_patterns_meshes
+  USE parallel_fields
+  USE Parallel_Tools
+  
   implicit none
 
   private
@@ -100,7 +103,7 @@ contains
        dx2=dot_product(dx,dx)
 
        do ele1=1, element_count(streamfunc)
-          neigh=>ele_neigh(streamfunc, ele1)
+          neigh=>ele_neigh(X, ele1)
           
           do e2=1,size(neigh)
              ele2=neigh(e2)
@@ -108,6 +111,9 @@ contains
              if (ele2<=0) cycle
              ! Do each edge only once
              if (ele1>ele2) cycle
+
+             !for parallel check that we own the node
+             if (.not.element_owned(streamfunc, ele1)) cycle
 
              face=ele_face(streamfunc, ele1, ele2)
 
@@ -120,10 +126,9 @@ contains
 
              c1=cross_product2(sum(ele_val(X,ele1),2)/ele_loc(X,ele1)-start, dx)
              c2=cross_product2(sum(ele_val(X,ele2),2)/ele_loc(X,ele2)-start, dx)
-             
+                
              if(C1<0 .and. C2>=0) then
                 continue
-
              else if (C1>=0 .and. C2<0) then
                 continue
              else
@@ -168,8 +173,11 @@ contains
        face=flux_face_list(bc_num)%ptr(i)
        
        boundary_value=boundary_value + face_flux(face, X, U, bc_num)
-
+       
     end do
+
+    ! for parallel so each partitition calculates the bit of the flux that it owns and they sum along the boundary so they all have the correct bd. condition
+    call allsum(boundary_value)
     
   contains
 
@@ -238,9 +246,10 @@ contains
 
     if (last_adapt<eventcount(EVENT_ADAPTIVITY)) then
        last_adapt=eventcount(EVENT_ADAPTIVITY)
-       
        call find_stream_paths(X, streamfunc)
     end if
+    
+    
     
     psi_mat = extract_csr_matrix(state, "StreamFunctionMatrix", stat = stat)
     if(stat == 0) then
@@ -284,7 +293,7 @@ contains
        surface_field=>extract_surface_field(streamfunc, i, "value")
 
        flux_val=boundary_value(X,U,i)
-
+     
        call set(surface_field, flux_val)
 
     end do
