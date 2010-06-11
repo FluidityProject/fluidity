@@ -125,13 +125,13 @@ support.o: snapsvd.o spaerr.o Explicit_ALE.o
 traffic.o: qmesh.o
 Mba3d_Integration.o: Node_Locking.o qmesh.o Surface_Id_Interleaving.o
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
-Advection_Diffusion_CG.o: Upwind_Stabilisation.o
-Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o
+Advection_Diffusion_CG.o: Upwind_Stabilisation.o Petsc_Solve_State.o
+Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o Petsc_Solve_State.o
 reduced_model.o: Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o 
 Assemble_CMC.o: Multimaterials.o
-Field_Equations_CV.o: Divergence_Matrix_CV.o
+Field_Equations_CV.o: Divergence_Matrix_CV.o Petsc_Solve_State.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
 Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
   Field_Equations_CV.o Vorticity_Diagnostics.o \

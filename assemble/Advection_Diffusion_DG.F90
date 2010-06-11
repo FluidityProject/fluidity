@@ -42,7 +42,7 @@ module advection_diffusion_DG
   use vector_tools
   use fldebug
   use vtk_interfaces
-  use solvers
+  use petsc_solve_state_module
   use boundary_conditions
   use boundary_conditions_from_options
   use spud
@@ -403,7 +403,7 @@ contains
 
     call zero(delta_T) ! Impose zero initial guess.
     ! Solve for the change in T.
-    call petsc_solve(delta_T, matrix, rhs)
+    call petsc_solve(delta_T, matrix, rhs, state)
 
     ! Add the change in T to T.
     call addto(T, delta_T, dt)

@@ -63,17 +63,6 @@ module sparse_tools
      integer, dimension(:), pointer :: colm=>null()
      !! Number of columns in matrix.
      integer :: columns
-     ! The following code is made obsolete by changes to the way halos are
-     ! handled.
-!!$     !! Parallel info:
-!!$     !!   Number of private rows, i.e. excluding the halo nodes
-!!$     !!     note that the rows n>private_rows are generally incomplete
-!!$     !!     (as not all of its neighbours may be in the halo)
-!!$     !!     and are ignored for most purposes. Legacy code however often
-!!$     !!     assumes their pressence:
-!!$     integer :: private_rows
-!!$     !!   Number of private columns, i.e. excluding the halo nodes:
-!!$     integer :: private_columns
      !! The halos associated with the rows and columns of the matrix.
      type(halo_type), pointer :: row_halo => null(), column_halo => null()
      !! Reference counting

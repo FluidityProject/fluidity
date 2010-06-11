@@ -42,7 +42,7 @@ module advection_diffusion_cg
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use profiler
   use spud
-  use solvers
+  use petsc_solve_state_module
   use state_module
   use upwind_stabilisation
   use sparsity_patterns_meshes
@@ -135,7 +135,7 @@ contains
     call profiler_toc(t, "assembly")
 
     call profiler_tic(t, "solve_total")
-    call solve_advection_diffusion_cg(t, delta_t, matrix, rhs)
+    call solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state)
     call profiler_toc(t, "solve_total")
 
     call profiler_tic(t, "assembly")
@@ -1080,13 +1080,14 @@ contains
 
   end subroutine add_diffusivity_face_cg
   
-  subroutine solve_advection_diffusion_cg(t, delta_t, matrix, rhs)
+  subroutine solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state)
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(inout) :: delta_t
     type(csr_matrix), intent(in) :: matrix
     type(scalar_field), intent(in) :: rhs
+    type(state_type), intent(in) :: state
     
-    call petsc_solve(delta_t, matrix, rhs, option_path = t%option_path)
+    call petsc_solve(delta_t, matrix, rhs, state, option_path = t%option_path)
     
     ewrite_minmax(delta_t%val)
     

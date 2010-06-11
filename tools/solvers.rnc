@@ -23,7 +23,7 @@ linear_solver_options_asym =
          pceisenstat_options|
          pcilu_options|
          pclu_options|
-         pcmg_options_no_lumping|
+         pcmg_options|
          pcprometheus_options|
          pchypre_options|
          pcbjacobi_options|
@@ -204,16 +204,15 @@ pcmg_options =
             element internal_smoother {
                empty
             }?
+         }?,
+         ## Only useful for solves on meshes that are not P1 continuous. This
+         ## option makes the first coarsening step of mg consist of a reduction
+         ## from the Pn>=1 discontinuous or Pn>1 continuous mesh to a P1 
+         ## continous mesh. Currently only works for the Pressure solve,
+         ## and the advection-diffusion solve of prognostic scalar fields.
+         element higher_order_lumping {
+            empty
          }?
-      }
-   )
-pcmg_options_no_lumping =
-   (
-      ## Fluidity`s own multigrid method
-      ##
-      ## Especially suited for ill-conditioned, large aspect ratio problems.
-      element preconditioner {
-         attribute name { "mg" }
       }
    )
 

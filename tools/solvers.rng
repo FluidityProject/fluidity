@@ -25,7 +25,7 @@ by the PETSc library. Many more methods are provided.
       <ref name="pceisenstat_options"/>
       <ref name="pcilu_options"/>
       <ref name="pclu_options"/>
-      <ref name="pcmg_options_no_lumping"/>
+      <ref name="pcmg_options"/>
       <ref name="pcprometheus_options"/>
       <ref name="pchypre_options"/>
       <ref name="pcbjacobi_options"/>
@@ -212,16 +212,16 @@ but improves the solution quite a lot for difficult meshes.</a:documentation>
           </optional>
         </element>
       </optional>
-    </element>
-  </define>
-  <define name="pcmg_options_no_lumping">
-    <element name="preconditioner">
-      <a:documentation>Fluidity`s own multigrid method
-
-Especially suited for ill-conditioned, large aspect ratio problems.</a:documentation>
-      <attribute name="name">
-        <value>mg</value>
-      </attribute>
+      <optional>
+        <element name="higher_order_lumping">
+          <a:documentation>Only useful for solves on meshes that are not P1 continuous. This
+option makes the first coarsening step of mg consist of a reduction
+from the Pn&gt;=1 discontinuous or Pn&gt;1 continuous mesh to a P1 
+continous mesh. Currently only works for the Pressure solve,
+and the advection-diffusion solve of prognostic scalar fields.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="pcprometheus_options">

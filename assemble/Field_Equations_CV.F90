@@ -48,7 +48,7 @@ module field_equations_cv
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
   use global_parameters, only: OPTION_PATH_LEN
   use fefields, only: compute_lumped_mass
-  use solvers, only: petsc_solve
+  use petsc_solve_state_module
   use transform_elements, only: transform_cvsurf_to_physical, &
                                 transform_cvsurf_facet_to_physical
   use parallel_tools, only: getprocno
@@ -648,7 +648,7 @@ contains
             call apply_dirichlet_conditions(M, rhs, tfield, sub_dt)
 
             call zero(delta_tfield)
-            call petsc_solve(delta_tfield, M, rhs)
+            call petsc_solve(delta_tfield, M, rhs, state(1))
           end if
 
           ! reset tfield to l_old_tfield before applying change
@@ -2460,7 +2460,7 @@ contains
               call apply_dirichlet_conditions(M(f), rhs(f), tfield(f)%ptr, sub_dt)
 
               call zero(delta_tfield(f))
-              call petsc_solve(delta_tfield(f), M(f), rhs(f))
+              call petsc_solve(delta_tfield(f), M(f), rhs(f), state(1))
             end if
 
             ewrite_minmax(delta_tfield(f)%val)
