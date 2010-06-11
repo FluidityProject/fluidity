@@ -444,22 +444,28 @@ elements "mid-point" in the calculation.</a:documentation>
         <ref name="coupled_cv_options"/>
         <element name="finite_volume">
           <a:documentation>**DO NOT USE!**
-This is a temporary discretisation option to help Cian
-implement P0 advection-diffusion.</a:documentation>
-          <element name="diffusion_scheme">
-            <choice>
-              <element name="bassi_rebay">
-                <optional>
-                  <element name="penalty">
-                    <ref name="real"/>
-                  </element>
-                </optional>
-              </element>
-              <element name="ldg">
+UNDER DEVELOPMENT</a:documentation>
+          <element name="mass_terms">
+            <a:documentation>Discretisation options for the mass terms.</a:documentation>
+            <optional>
+              <element name="exclude_mass_terms">
+                <a:documentation>Remove the mass terms from the equation. This requires an
+implicitness factor theta = 1.0 (under
+temporal_discretisation).</a:documentation>
                 <empty/>
               </element>
-            </choice>
+            </optional>
           </element>
+          <element name="advection_terms">
+            <a:documentation>Discretisation options for the advection terms.</a:documentation>
+            <element name="exclude_advection_terms">
+              <a:documentation>Remove the advection terms from the equation.
+This overrides any other advection term options (including
+conservative_advection below).</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </element>
+          <ref name="comment"/>
         </element>
       </choice>
       <element name="conservative_advection">

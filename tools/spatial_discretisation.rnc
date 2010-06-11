@@ -377,21 +377,27 @@ spatial_discretisation_options =
          pure_cv_options|
          coupled_cv_options|
          ## **DO NOT USE!**
-         ## This is a temporary discretisation option to help Cian
-         ## implement P0 advection-diffusion.
+         ## UNDER DEVELOPMENT
          element finite_volume {
-            element diffusion_scheme {
-               (
-                  element bassi_rebay {
-                     element penalty {
-                       real
-                     }?
-                  }|
-                  element ldg {
-                     empty
-                  }
-               )
-            }
+            ## Discretisation options for the mass terms.
+            element mass_terms {
+               ## Remove the mass terms from the equation. This requires an
+               ## implicitness factor theta = 1.0 (under
+               ## temporal_discretisation).
+               element exclude_mass_terms {
+                  empty
+               }?
+            },
+            ## Discretisation options for the advection terms.
+            element advection_terms {
+               ## Remove the advection terms from the equation.
+               ## This overrides any other advection term options (including
+               ## conservative_advection below).
+               element exclude_advection_terms {
+                  comment
+               }
+            },
+            comment
          }
       ),
       ## Conservative discretisation of field advection equation
