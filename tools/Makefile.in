@@ -234,7 +234,7 @@ $(RUNZOLTAN): zoltan_load_balance.F90 lib/
 	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(RUNZOLTAN) zoltan_load_balance.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(PERIODISE): periodise.o lib/
-	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -259,10 +259,10 @@ $(DERIVE_MESH): Derive_Mesh.o Derive_Mesh_main.o lib/
 
 $(PROJECT_VTU): Project_Vtu.o Project_Vtu_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-	
+
 $(DIFFERENTIATE_VTU): Differentiate_Vtu.o Differentiate_Vtu_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-		
+
 $(VTU_BINS): Vtu_Bins.o Vtu_Bins_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
