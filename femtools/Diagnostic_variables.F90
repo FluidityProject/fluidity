@@ -3062,7 +3062,7 @@ contains
          
                     vvalue =  detector_value(vfield, node)
 
-                    offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
+                    offset = location_to_write+(total_num_det*(number_of_vector_det_fields-1)+(node%id_number-1))*size(node%position)*realsize
 
                     allocate(buffer(size(node%position)))
 
@@ -3085,7 +3085,7 @@ contains
 
                  vvalue =  detector_value(vfield, node)
   
-                 offset = location_to_write+(node%id_number-1)*size(node%position)*realsize
+                 offset = location_to_write+(total_num_det*(number_of_vector_det_fields-1)+(node%id_number-1))*size(node%position)*realsize
 
                  allocate(buffer(size(node%position)))
 
@@ -3109,6 +3109,9 @@ contains
     end do phaseloop
 
     call mpi_barrier(mpi_comm_world, ierror)
+
+    !The following was used when debugging to check some of the data written into the file
+    !Left here in case someone would like to use the MPI_FILE_READ_AT for debugging or checking
    
     number_total_columns=2+total_num_det*dimen
 
@@ -3120,8 +3123,6 @@ contains
 
     call MPI_GET_COUNT(status,getpreal(),count, IERROR)
   
-    write(*,*) "count after reading first value is (should be 2):", count
-
     deallocate(buffer)
 
     call mpi_barrier(mpi_comm_world, ierror)
