@@ -1348,25 +1348,25 @@ contains
 
         if(dg.and.diffusion_scheme==IP) then
            if(edge_length_option==USE_ELEMENT_CENTRES) then
-             ele_2_X = x_neigh(ni)
+              ele_2_X = x_neigh(ni)
               ele_centre = sum(X_val,2)/size(X_val,2)
               face_centre = sum(face_val(X,face),2)/size(face_val(X,face),2)
               if(boundary_element) then
-                 ! Boundary case. We compute 2x the distance to the face centre
-                 centre_vec = 2.0*(ele_centre - face_centre)
-              else if (ele_2/=x_neigh(ni)) then
-                 ! Periodic boundary case. We have to cook up the coordinate by
-                 ! adding vectors to the face from each side.
-                 x_val_2 = ele_val(X,ele_2_X)
-                 neigh_centre = sum(X_val_2,2)/size(X_val_2,2)
-                 face_centre_2 = &
+                  ! Boundary case. We compute 2x the distance to the face centre
+                  centre_vec = 2.0*(ele_centre - face_centre)
+              else if (ele_2/=ele_2_X) then
+                  ! Periodic boundary case. We have to cook up the coordinate by
+                  ! adding vectors to the face from each side.
+                  x_val_2 = ele_val(X,ele_2_X)
+                  neigh_centre = sum(X_val_2,2)/size(X_val_2,2)
+                  face_centre_2 = &
                       sum(face_val(X,face_2),2)/size(face_val(X,face_2),2)
-                 centre_vec = ele_centre - face_centre + &
+                  centre_vec = ele_centre - face_centre + &
                       & face_centre_2 - neigh_centre
               else
-                 x_val_2 = ele_val(X,ele_2_X)
-                 neigh_centre = sum(X_val_2,2)/size(X_val_2,2)
-                 centre_vec = ele_centre - neigh_centre
+                  x_val_2 = ele_val(X,ele_2_X)
+                  neigh_centre = sum(X_val_2,2)/size(X_val_2,2)
+                  centre_vec = ele_centre - neigh_centre
               end if
            end if
         end if

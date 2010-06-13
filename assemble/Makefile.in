@@ -108,7 +108,7 @@ default: $(OBJS)
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Advection_Diffusion_FV.o: Upwind_Stabilisation.o Petsc_Solve_State.o
+Advection_Diffusion_FV.o: Petsc_Solve_State.o
 Adapt_State_Prescribed.o: Interpolation_manager.o
 Adaptivity_1D.o: Node_Locking.o
 Adapt_Integration.o: Node_Locking.o Surface_Id_Interleaving.o

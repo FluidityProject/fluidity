@@ -282,33 +282,153 @@ contains
 
     ! What we will be adding to the matrix and RHS - assemble these as we
     ! go, so that we only do the calculations we really need
-    real, dimension(ele_loc(t, ele)) :: rhs_addto
-    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: matrix_addto
+    real, dimension(ele_and_faces_loc(t, ele)) :: rhs_addto
+    real, dimension(ele_and_faces_loc(t, ele), ele_and_faces_loc(t, ele)) :: matrix_addto
+    integer, dimension(ele_and_faces_loc(t,ele)) :: local_glno
+    
+    real, dimension(coordinate%dim, ele_loc(coordinate, ele)) :: x_val
+    
+    integer, dimension(:), pointer :: neigh, x_neigh
+    integer :: loc, ni, ele_2, face, face_2, start, finish
 
     assert(element_degree(t,ele)==0)
     t_shape => ele_shape(t, ele)
+
+    loc = ele_loc(t, ele) ! how many nodes belong to this element... should be 1
+
+    element_nodes => ele_nodes(t, ele)
+    local_glno(:loc)=element_nodes
+    
+    matrix_addto = 0.0
+    rhs_addto = 0.0
 
     if(have_mass.or.have_source.or.have_absorption) then
       call transform_to_physical(coordinate, ele, detwei=detwei)
     end if
     
     ! Mass
-    if(have_mass) call add_mass_element_fv(ele, t_shape, t, detwei, matrix_addto)
+    if(have_mass) call add_mass_element_fv(ele, t_shape, t, detwei, matrix_addto(:loc,:loc))
     
     ! Absorption
-    if(have_absorption) call add_absorption_element_fv(ele, t_shape, t, absorption, detwei, matrix_addto, rhs_addto)
+    if(have_absorption) call add_absorption_element_fv(ele, t_shape, t, absorption, detwei, matrix_addto(:loc,:loc), rhs_addto(:loc))
     
     ! Source
-    if(have_source) call add_source_element_fv(ele, t_shape, t, source, detwei, rhs_addto)
-     
-    ! Diffusivity
-!     if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+    if(have_source) call add_source_element_fv(ele, t_shape, t, source, detwei, rhs_addto(:loc))
     
-    element_nodes => ele_nodes(t, ele)
-    call addto(matrix, element_nodes, element_nodes, matrix_addto)
-    call addto(rhs, element_nodes, rhs_addto)
+    if(have_diffusivity.or.have_advection) then
+    
+      x_val = ele_val(coordinate, ele)
+    
+      neigh=>ele_neigh(t, ele)
+      x_neigh => ele_neigh(coordinate, ele)
+      
+      start = size(element_nodes)+1
+      
+      neighboorloop: do ni = 1, size(neigh)
+      
+        ele_2=neigh(ni)
+        if(ele_2>0) then
+          face_2=ele_face(t, ele_2, ele)
+        else
+          ! external face
+          face_2 = face
+        end if
+        
+        finish = start+face_loc(t, face_2)-1
+        local_glno(start:finish) = face_global_nodes(t, face_2)
+        
+        call assemble_advection_diffusion_face_fv(ele, ele_2, face, face_2, &
+                                                  t, coordinate, diffusivity, &
+                                                  x_val, &
+                                                  matrix_addto, rhs_addto)
+        
+      end do neighboorloop
+    
+    end if
+    
+    if(have_diffusivity.or.have_advection) then
+      ! element depends on its neighbours
+      if(have_diffusivity) then
+        ! have diffusivity, all neighbours involved
+        call addto(matrix, local_glno, local_glno, matrix_addto)
+        call addto(rhs, local_glno, rhs_addto)
+      else
+        ! no diffusivity so only some neighbours need adding to
+        call addto(matrix, element_nodes, local_glno, matrix_addto(:loc,:))
+        call addto(rhs, element_nodes, rhs_addto(:loc))
+      end if
+    else
+      ! element doesn't depend on its neighbours
+      call addto(matrix, element_nodes, element_nodes, matrix_addto(:loc,:loc))
+      call addto(rhs, element_nodes, rhs_addto(:loc))
+    end if
 
   end subroutine assemble_advection_diffusion_element_fv
+
+  subroutine assemble_advection_diffusion_face_fv(ele, ele_2, face, face_2, &
+                                                  t, coordinate, diffusivity, &
+                                                  x_val, &
+                                                  matrix_addto, rhs_addto)
+  
+    integer, intent(in) :: ele, ele_2, face, face_2
+    type(scalar_field), intent(in) :: t
+    type(vector_field), intent(in) :: coordinate
+    type(tensor_field), intent(in) :: diffusivity
+    real, dimension(:,:) :: x_val
+    real, dimension(:,:), intent(inout) :: matrix_addto
+    real, dimension(:), intent(inout) :: rhs_addto
+    
+    real, dimension(face_ngi(t, face)) :: detwei
+    real, dimension(mesh_dim(t), face_ngi(t, face)) :: normal
+    
+    
+    call transform_facet_to_physical(coordinate, face, &
+                                     detwei_f=detwei, normal=normal)
+                                 
+    if(have_diffusivity) then
+      call add_diffusivity_face_fv(ele, ele_2, face, face_2, &
+                                   t, coordinate, diffusivity, &
+                                   detwei, normal, x_val, &
+                                   matrix_addto, rhs_addto)
+    end if
+                                     
+  
+  end subroutine assemble_advection_diffusion_face_fv
+  
+  subroutine add_diffusivity_face_fv(ele, ele_2, face, face_2, &
+                                     t, coordinate, diffusivity, &
+                                     detwei, normal, x_val, &
+                                     matrix_addto, rhs_addto)
+    
+    integer, intent(in) :: ele, ele_2, face, face_2
+    type(scalar_field), intent(in) :: t
+    type(vector_field), intent(in) :: coordinate
+    type(tensor_field), intent(in) :: diffusivity
+    real, dimension(:), intent(in) :: detwei
+    real, dimension(:,:), intent(in) :: normal
+    real, dimension(:,:), intent(in) :: x_val
+    real, dimension(:,:), intent(inout) :: matrix_addto
+    real, dimension(:), intent(inout) :: rhs_addto
+    
+    real, dimension(coordinate%dim, ele_loc(coordinate, ele)) :: x_val_2
+    real, dimension(ele_loc(coordinate, ele)) :: centroid, centroid_2
+    real, dimension(diffusivity%dim, diffusivity%dim, face_ngi(diffusivity, face)) :: diffusivity_gi
+    
+    diffusivity_gi = face_val_at_quad(diffusivity, face)
+    if(ele==ele_2) then
+    
+    else
+      x_val_2 = ele_val(coordinate, ele_2)
+      
+      centroid = sum(x_val,2)/size(x_val)
+      centroid_2 = sum(x_val_2, 2)/size(x_val_2)
+      
+      
+    end if
+    
+    
+    
+  end subroutine add_diffusivity_face_fv
 
   subroutine add_mass_element_fv(ele, t_shape, t, detwei, matrix_addto)
     integer, intent(in) :: ele
