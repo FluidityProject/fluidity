@@ -1503,6 +1503,7 @@ contains
      if ((isparallel()).or.((.not.isparallel()).and.(binary_detector_output))) then
 
     call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, fh, IERROR)
+    assert(ierror == MPI_SUCCESS)
 
     end if 
 
@@ -2133,7 +2134,7 @@ contains
     logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len=10) :: format_buffer
-    integer :: i, j, k, phase, ele, processor_number, num_proc, dimen, number_neigh_processors, all_send_lists_empty, current_proc, nprocs, processor_owner
+    integer :: i, j, k, phase, ele, processor_number, num_proc, dim, number_neigh_processors, all_send_lists_empty, nprocs, processor_owner
     real :: value
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
@@ -2141,7 +2142,6 @@ contains
 !    character(len=254), dimension(:), allocatable :: types_det
     integer, dimension(:), allocatable :: types_det
     logical :: any_lagrangian
-    integer, dimension(:), allocatable :: processor_number_array
 
     type(detector_type), pointer :: node, temp_node, node_to_send
     type(integer_hash_table) :: ihash, ihash_inverse, ihash_neigh_ele
@@ -2149,16 +2149,11 @@ contains
     integer, dimension(:), allocatable :: global_det_count
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
-    integer :: len_set, target_proc_a, mapped_val_a, halo_level, communicator, nhalos, list_neigh_processor, check_no_det
+    integer :: target_proc_a, mapped_val_a, halo_level, list_neigh_processor, check_no_det
 
-    type(mesh_type), pointer :: mesh_ele
+    type(halo_type), pointer :: ele_halo
 
-    type(halo_type), pointer :: ele_halo, node_halo 
-
-    type(integer_hash_table) :: ihash_sparsity
-    type(csr_sparsity) :: element_detector_list
-    real, dimension(:,:), allocatable :: list_into_array
-    integer :: rows, columns, entries, count
+    integer :: entries
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2336,7 +2331,7 @@ contains
     num_proc=1
 
     vfield => extract_vector_field(state(1),"Velocity")
-    dimen=vfield%dim
+    dim=vfield%dim
     halo_level = element_halo_count(vfield%mesh)
 
     do ele = 1, element_count(vfield%mesh)
@@ -2822,8 +2817,8 @@ contains
 
     integer, ALLOCATABLE, DIMENSION(:) :: status
 
-    integer :: i, j, phase, IERROR, nints, number_of_dt, number_of_scalar_det_fields, count, realsize, dimen
-    integer(KIND=MPI_OFFSET_KIND) :: location_to_write, offset, offset_to_read
+    integer :: i, j, phase, IERROR, nints, number_of_dt, number_of_scalar_det_fields, realsize, dim
+    integer(KIND=MPI_OFFSET_KIND) :: location_to_write, offset
     integer :: number_of_vector_det_fields, number_total_columns
 
     real, dimension(:), allocatable :: buffer
@@ -2832,6 +2827,8 @@ contains
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: node
+    
+    integer :: count, offset_to_read
 
     allocate( status(MPI_STATUS_SIZE) )
 
@@ -2882,13 +2879,14 @@ contains
     end do 
 
     call MPI_TYPE_EXTENT(getpreal(), realsize, ierror)
+    assert(ierror == MPI_SUCCESS)
 
     vfield => extract_vector_field(state(1),"Velocity")
 
-    dimen=vfield%dim
+    dim=vfield%dim
 
-    number_total_columns=2+total_num_det*dimen+total_num_det*number_of_scalar_det_fields &
-                       & +total_num_det*number_of_vector_det_fields*dimen
+    number_total_columns=2+total_num_det*dim+total_num_det*number_of_scalar_det_fields &
+                       & +total_num_det*number_of_vector_det_fields*dim
 
     ewrite(1,*) "total_num_det is:", total_num_det
 
@@ -2904,6 +2902,7 @@ contains
         buffer(2)=dt
 
         call MPI_FILE_WRITE_AT(fh,location_to_write,buffer,nints,getpreal(),status, IERROR)
+        assert(ierror == MPI_SUCCESS)
 
         deallocate(buffer)
 
@@ -2928,6 +2927,7 @@ contains
                  nints=size(node%position)
 
                  call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+                 assert(ierror == MPI_SUCCESS)
 
                  deallocate(buffer)
 
@@ -2947,6 +2947,7 @@ contains
                  nints=size(node%position)
 
                  call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+                 assert(ierror == MPI_SUCCESS)
 
                  deallocate(buffer)
 
@@ -2958,11 +2959,12 @@ contains
 
     node => detector_list%firstnode
 
-    location_to_write = location_to_write+total_num_det*dimen*realsize
+    location_to_write = location_to_write+total_num_det*dim*realsize
 
     number_of_scalar_det_fields=0
 
-    phaseloop: do phase=1,size(state)
+    allocate(vvalue(dim))
+    state_loop: do phase=1,size(state)
 
         do i=1, size(detector_sfield_list(phase)%ptr)
         ! Output statistics for each scalar field.
@@ -2993,6 +2995,7 @@ contains
                    nints=1
 
                    call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+                   assert(ierror == MPI_SUCCESS)
 
                    deallocate(buffer)
 
@@ -3016,6 +3019,7 @@ contains
                 nints=1
 
                 call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
+                assert(ierror == MPI_SUCCESS)
 
                 deallocate(buffer)
 
@@ -3029,103 +3033,62 @@ contains
 
         location_to_write = location_to_write+(total_num_det*number_of_scalar_det_fields)*realsize
 
-        number_of_vector_det_fields=0
-
-        allocate(vvalue(0))
-
+        number_of_vector_det_fields = 0
         node => detector_list%firstnode
-
-        do i = 1, size(detector_vfield_list(phase)%ptr)
+        vector_loop: do i = 1, size(detector_vfield_list(phase)%ptr)
            ! Output statistics for each vector field
        
-           vfield => extract_vector_field(state(phase), &
-                & detector_vfield_list(phase)%ptr(i))
+           vfield => extract_vector_field(state(phase), detector_vfield_list(phase)%ptr(i))
        
-           if(.not. detector_field(vfield)) then
-              cycle
-           end if
+           if(.not. detector_field(vfield)) cycle
 
-           if (size(vvalue)/=vfield%dim) then
-              deallocate(vvalue)
-              allocate(vvalue(vfield%dim))
-           end if
+           ! We currently don't have enough information for mixed dimension
+           ! vector fields (see below)
+           assert(vfield%dim == dim)
 
-           number_of_vector_det_fields=number_of_vector_det_fields+1
+           number_of_vector_det_fields = number_of_vector_det_fields + 1
 
            node => detector_list%firstnode
+           vector_node_loop: do while(associated(node))
+             if(node%initial_owner /= -1 .or. getprocno() == 1) then
+               vvalue =  detector_value(vfield, node)
 
-           do j=1, detector_list%length
+               ! Currently have to assume single dimension vector fields in
+               ! order to compute the offset
+               offset = location_to_write + (total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
 
-              if (node%initial_owner==-1) then
+               call mpi_file_write_at(fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+               assert(ierror == MPI_SUCCESS)
+             end if  
 
-                 if(getprocno() == 1) then
-         
-                    vvalue =  detector_value(vfield, node)
+             node => node%next
+           end do vector_node_loop
+           
+        end do vector_loop
+        
+    end do state_loop
+    deallocate(vvalue)
 
-                    offset = location_to_write+(total_num_det*(number_of_vector_det_fields-1)+(node%id_number-1))*size(node%position)*realsize
+    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    assert(ierror == MPI_SUCCESS)
 
-                    allocate(buffer(size(node%position)))
-
-                    buffer=vvalue
-                    nints=size(node%position)
-
-                    call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
-
-                    deallocate(buffer)
-
-                    node => node%next
-
-                 else
-                
-                 node => node%next
-
-                 end if
-
-              else
-
-                 vvalue =  detector_value(vfield, node)
-  
-                 offset = location_to_write+(total_num_det*(number_of_vector_det_fields-1)+(node%id_number-1))*size(node%position)*realsize
-
-                 allocate(buffer(size(node%position)))
-
-                 buffer=vvalue
-                 nints=size(node%position)
-
-                 call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
-
-                 deallocate(buffer)
-
-                 node => node%next
-
-              end if  
-
-           end do            
-     
-        end do
-
-        deallocate(vvalue)
-
-    end do phaseloop
-
-    call mpi_barrier(mpi_comm_world, ierror)
-
-    !The following was used when debugging to check some of the data written into the file
-    !Left here in case someone would like to use the MPI_FILE_READ_AT for debugging or checking
-   
-    number_total_columns=2+total_num_det*dimen
-
-    offset_to_read=0
-
-    allocate(buffer(number_total_columns)) 
-
-    call MPI_FILE_READ_AT(fh,offset_to_read,buffer,number_total_columns,getpreal(),status,IERROR)
-
-    call MPI_GET_COUNT(status,getpreal(),count, IERROR)
-  
-    deallocate(buffer)
-
-    call mpi_barrier(mpi_comm_world, ierror)
+!    ! The following was used when debugging to check some of the data written
+!    ! into the file
+!    ! Left here in case someone would like to use the MPI_FILE_READ_AT for
+!    ! debugging or checking
+!   
+!    number_total_columns = 2 + total_num_det * dim
+!    allocate(buffer(number_total_columns))
+!
+!    call mpi_file_read_at(fh, 0, buffer, size(buffer), getpreal(), status, ierror)
+!    call mpi_get_count(status, getpreal(), count,  ierror)
+!    assert(ierror == MPI_SUCCESS)
+!
+!    call mpi_barrier(MPI_COMM_WORLD, ierror)
+!    assert(ierror == MPI_SUCCESS)
+!    
+!    deallocate(buffer)
+!    ewrite(2, "(a,i0,a)") "Read ", count, " reals"
    
   end subroutine write_mpi_out
 
@@ -3146,7 +3109,7 @@ contains
     type(vector_field), pointer :: vfield, xfield, old_vfield
     type(detector_type), pointer :: this_det
     integer, dimension(:), pointer :: ele_number_ptr
-    real :: dt_temp, dt_var_temp, dt_temp_temp, dt_var_value
+    real :: dt_temp
     integer :: index_next_face, current_element, previous_element, & 
                & cont_repeated_situation, processor_number
 
@@ -3263,16 +3226,14 @@ contains
     type(vector_field), pointer :: vfield, xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: gens
-    integer :: global_ele, univ_ele, number_detectors_to_send, number_of_columns, total_data_received, number_detectors_received, number_data_to_send, target_proc, mapped_val, count, IERROR, dimen, i, j
+    integer :: global_ele, univ_ele, number_detectors_to_send, number_of_columns, number_detectors_received, target_proc, count, IERROR, dim, i, j
     integer, PARAMETER ::TAG=12
 
     integer, ALLOCATABLE, DIMENSION(:) :: sendRequest
     integer, ALLOCATABLE, DIMENSION(:) :: status
-    integer, ALLOCATABLE, DIMENSION(:) :: verification_arr
  
     type(integer_hash_table) :: ihash_inverse
-    integer :: halo_level, gensaa, gensaaa, unn, target_proc_a, mapped_val_a
-    real :: aabb, aabba, aabbaa, aabbaaa, aabbaaaa
+    integer :: halo_level, gensaa, gensaaa, target_proc_a, mapped_val_a
 
     type(element_type), pointer :: shape
 
@@ -3324,10 +3285,10 @@ contains
 
        node => send_list_array(i)%firstnode
 
-       dimen=vfield%dim
+       dim=vfield%dim
 
        number_detectors_to_send=send_list_array(i)%length
-       number_of_columns=dimen+4
+       number_of_columns=dim+4
 
        allocate(send_list_array_serialise(i)%ptr(number_detectors_to_send,number_of_columns))
 
@@ -3337,11 +3298,11 @@ contains
 
           univ_ele = halo_universal_number(ele_halo, global_ele)
 
-          send_list_array_serialise(i)%ptr(j,1:dimen)=node%position
-          send_list_array_serialise(i)%ptr(j,dimen+1)=univ_ele
-          send_list_array_serialise(i)%ptr(j,dimen+2)=node%dt
-          send_list_array_serialise(i)%ptr(j,dimen+3)=node%id_number
-          send_list_array_serialise(i)%ptr(j,dimen+4)=node%type
+          send_list_array_serialise(i)%ptr(j,1:dim)=node%position
+          send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
+          send_list_array_serialise(i)%ptr(j,dim+2)=node%dt
+          send_list_array_serialise(i)%ptr(j,dim+3)=node%id_number
+          send_list_array_serialise(i)%ptr(j,dim+4)=node%type
 
           node => node%next
  
@@ -3351,12 +3312,11 @@ contains
 
        call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
             & getpreal(), target_proc-1, TAG, MPI_COMM_WORLD, sendRequest(i-1), IERROR)
+       assert(ierror == MPI_SUCCESS)
 
        !!!getprocno() returns the rank of the processor + 1, hence, for 4 proc, we have 1,2,3,4 whereas 
        !!!the ranks are 0,1,2,3. That is why I am using target_proc-1, so that for proc 4, it sends to 
        !!!proc with rank 3.
-
-       ewrite(1,*) "IERROR is:", IERROR
 
     end do
   
@@ -3377,32 +3337,35 @@ contains
     do i=1, number_neigh_processors
               
        call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_WORLD, status(:), IERROR) 
+       assert(ierror == MPI_SUCCESS)
 
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
+       assert(ierror == MPI_SUCCESS)
 
        number_detectors_received=count/number_of_columns
 
        allocate(receive_list_array_serialise(i)%ptr(number_detectors_received,number_of_columns))
 
        call MPI_Recv(receive_list_array_serialise(i)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE, IERROR)
+       assert(ierror == MPI_SUCCESS)
 
        do j=1, number_detectors_received
 
-          univ_ele=receive_list_array_serialise(i)%ptr(j,dimen+1);
+          univ_ele=receive_list_array_serialise(i)%ptr(j,dim+1);
 
           global_ele=fetch(gens,univ_ele)
 
           allocate(node_rec)
 
-          allocate(node_rec%position(dimen))
+          allocate(node_rec%position(dim))
 
-          node_rec%position=receive_list_array_serialise(i)%ptr(j,1:dimen)
+          node_rec%position=receive_list_array_serialise(i)%ptr(j,1:dim)
           node_rec%element=global_ele
-          node_rec%dt=receive_list_array_serialise(i)%ptr(j,dimen+2)
+          node_rec%dt=receive_list_array_serialise(i)%ptr(j,dim+2)
 !          node_rec%type = LAGRANGIAN_DETECTOR
-          node_rec%type = receive_list_array_serialise(i)%ptr(j,dimen+4)
+          node_rec%type = receive_list_array_serialise(i)%ptr(j,dim+4)
           node_rec%local = .true. 
-          node_rec%id_number=receive_list_array_serialise(i)%ptr(j,dimen+3)
+          node_rec%id_number=receive_list_array_serialise(i)%ptr(j,dim+3)
           node_rec%initial_owner=getprocno()
  
           allocate(node_rec%local_coords(local_coord_count(shape)))          
@@ -3418,6 +3381,7 @@ contains
     end do    
 
     call MPI_WAITALL(number_neigh_processors, sendRequest, MPI_STATUSES_IGNORE, IERROR)
+    assert(ierror == MPI_SUCCESS)
 
     call deallocate(gens)
 
@@ -3477,22 +3441,20 @@ contains
     integer, dimension(:), allocatable:: detector_count ! detectors per element
     integer, dimension(:), pointer:: detectors
     type(detector_type), pointer :: node
-    type(vector_field), pointer :: vfield, xfield
-    integer :: dimen, i, j, ele, no_rows, rows, columns, entries, row, pos, row_in_spar_matrix, dets_in_ele, aaa, bbb, ccc, ddd
-    integer, dimension(:), pointer:: det_index_in_list_into_array
+    integer :: dim, i, ele, no_rows, entries, row, pos
 
     if (detector_list%length/=0) then
    
        node => detector_list%firstnode
 
-       dimen=size(node%position)
+       dim=size(node%position)
 
        do i=1, detector_list%length
 
-             list_into_array(i,1:dimen)=node%position
-             list_into_array(i,dimen+1)=node%element
-             list_into_array(i,dimen+2)=node%id_number
-             list_into_array(i,dimen+3)=node%type
+             list_into_array(i,1:dim)=node%position
+             list_into_array(i,dim+1)=node%element
+             list_into_array(i,dim+2)=node%id_number
+             list_into_array(i,dim+3)=node%type
 
              node => node%next
     
@@ -3537,7 +3499,7 @@ contains
 
       do i=1, detector_list%length
       
-         ele=list_into_array(i,dimen+1)  
+         ele=list_into_array(i,dim+1)  
          if  (has_key(ihash_sparsity, ele)) then
             row=fetch(ihash_sparsity, ele)
             detectors => row_m_ptr(element_detector_list, row)
@@ -3569,17 +3531,13 @@ contains
     type(integer_hash_table), intent(in) :: ihash
     integer, intent(inout) :: processor_number
 
-    integer :: i,k,h, univ_ele, halo_level, nhalos, ele, ele_owner, node_owner, ele_owned
+    integer :: k,h, univ_ele, halo_level, ele
     real :: dt_var_temp, dt_temp_temp, dt_var_value
     integer :: old_index_minloc, cont_aaa, cont_bbb, cont_ccc, cont_ddd, cont_eee, cont_fff, & 
                cont_ggg, cont_times_same_element, list_neigh_processor, processor_number_curr_ele
     integer, dimension(:), allocatable :: element_next_to_boundary
 
-    integer, dimension(:), pointer :: nodes
-
-    type(mesh_type), pointer :: mesh_ele
-
-    type(halo_type), pointer :: ele_halo, node_halo 
+    type(halo_type), pointer :: ele_halo
 
     cont_aaa=0.0
     cont_bbb=0.0
