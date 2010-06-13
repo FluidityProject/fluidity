@@ -2828,7 +2828,7 @@ contains
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: node
     
-    integer :: count, offset_to_read
+!    integer :: count
 
     allocate( status(MPI_STATUS_SIZE) )
 
@@ -2956,120 +2956,75 @@ contains
              end if
 
     end do positionloop
-
-    node => detector_list%firstnode
-
-    location_to_write = location_to_write+total_num_det*dim*realsize
-
-    number_of_scalar_det_fields=0
+    location_to_write = location_to_write + total_num_det * dim * realsize
 
     allocate(vvalue(dim))
-    state_loop: do phase=1,size(state)
+    state_loop: do phase = 1, size(state)
 
-        do i=1, size(detector_sfield_list(phase)%ptr)
-        ! Output statistics for each scalar field.
-        sfield=>extract_scalar_field(state(phase), &
-        &                       detector_sfield_list(phase)%ptr(i))
+      number_of_scalar_det_fields = 0
+      scalar_loop: do i = 1, size(detector_sfield_list(phase)%ptr)
+        ! Output statistics for each scalar field
+        
+        sfield => extract_scalar_field(state(phase), detector_sfield_list(phase)%ptr(i))
 
-        if(.not. detector_field(sfield)) then
-          cycle
-        end if
-
-        number_of_scalar_det_fields=number_of_scalar_det_fields+1
+        if(.not. detector_field(sfield)) cycle
+        number_of_scalar_det_fields = number_of_scalar_det_fields + 1
 
         node => detector_list%firstnode
+        scalar_node_loop: do j = 1, detector_list%length
+          if(node%initial_owner /= -1 .or. getprocno() == 1) then
+            value =  detector_value(sfield, node)
 
-        do j=1, detector_list%length
+            offset = location_to_write + (total_num_det * (number_of_scalar_det_fields - 1) + (node%id_number - 1)) * realsize
 
-             if (node%initial_owner==-1) then
+            call mpi_file_write_at(fh, offset, value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+            assert(ierror == MPI_SUCCESS)
+          end if
 
-                if(getprocno() == 1) then
+          node => node%next
+        end do scalar_node_loop
+        assert(.not. associated(node))
 
-                   offset = location_to_write+(total_num_det*(number_of_scalar_det_fields-1)+(node%id_number-1))*realsize
+      end do scalar_loop
+      location_to_write = location_to_write + total_num_det * number_of_scalar_det_fields * realsize
+      
+      number_of_vector_det_fields = 0
+      vector_loop: do i = 1, size(detector_vfield_list(phase)%ptr)
+         ! Output statistics for each vector field
+     
+         vfield => extract_vector_field(state(phase), detector_vfield_list(phase)%ptr(i))
+     
+         if(.not. detector_field(vfield)) cycle
+         number_of_vector_det_fields = number_of_vector_det_fields + 1
 
-                   value =  detector_value(sfield, node)
+         ! We currently don't have enough information for mixed dimension
+         ! vector fields (see below)
+         assert(vfield%dim == dim)
 
-                   allocate(buffer(1))
+         node => detector_list%firstnode
+         vector_node_loop: do j = 1, detector_list%length
+           if(node%initial_owner /= -1 .or. getprocno() == 1) then
+             vvalue =  detector_value(vfield, node)
 
-                   buffer=value
-                   nints=1
+             ! Currently have to assume single dimension vector fields in
+             ! order to compute the offset
+             offset = location_to_write + (total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
 
-                   call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
-                   assert(ierror == MPI_SUCCESS)
+             call mpi_file_write_at(fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+             assert(ierror == MPI_SUCCESS)
+           end if  
 
-                   deallocate(buffer)
-
-                   node => node%next
-
-                   else
-                
-                   node => node%next
-
-                end if
- 
-             else
-
-                offset = location_to_write+(total_num_det*(number_of_scalar_det_fields-1)+(node%id_number-1))*realsize
-
-                value =  detector_value(sfield, node)
-
-                allocate(buffer(1))
-
-                buffer=value
-                nints=1
-
-                call MPI_FILE_WRITE_AT(fh,offset,buffer,nints,getpreal(),status,IERROR)
-                assert(ierror == MPI_SUCCESS)
-
-                deallocate(buffer)
-
-                node => node%next
-
-             end if
-
-        end do
-
-        end do
-
-        location_to_write = location_to_write+(total_num_det*number_of_scalar_det_fields)*realsize
-
-        number_of_vector_det_fields = 0
-        node => detector_list%firstnode
-        vector_loop: do i = 1, size(detector_vfield_list(phase)%ptr)
-           ! Output statistics for each vector field
-       
-           vfield => extract_vector_field(state(phase), detector_vfield_list(phase)%ptr(i))
-       
-           if(.not. detector_field(vfield)) cycle
-
-           ! We currently don't have enough information for mixed dimension
-           ! vector fields (see below)
-           assert(vfield%dim == dim)
-
-           number_of_vector_det_fields = number_of_vector_det_fields + 1
-
-           node => detector_list%firstnode
-           vector_node_loop: do while(associated(node))
-             if(node%initial_owner /= -1 .or. getprocno() == 1) then
-               vvalue =  detector_value(vfield, node)
-
-               ! Currently have to assume single dimension vector fields in
-               ! order to compute the offset
-               offset = location_to_write + (total_num_det * (number_of_vector_det_fields - 1) + (node%id_number - 1)) * dim * realsize
-
-               call mpi_file_write_at(fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-               assert(ierror == MPI_SUCCESS)
-             end if  
-
-             node => node%next
-           end do vector_node_loop
-           
-        end do vector_loop
+           node => node%next
+         end do vector_node_loop
+        assert(.not. associated(node))
+        
+      end do vector_loop
+      location_to_write = location_to_write + total_num_det * number_of_vector_det_fields * dim * realsize
         
     end do state_loop
     deallocate(vvalue)
 
-    call mpi_barrier(MPI_COMM_WORLD, ierror)
+    call mpi_file_sync(fh, ierror)
     assert(ierror == MPI_SUCCESS)
 
 !    ! The following was used when debugging to check some of the data written
@@ -4655,10 +4610,10 @@ contains
        end if
     end if
 
-    if (fh/=0) then
+    if (fh/=0) then    
        call MPI_FILE_CLOSE(fh, IERROR) 
-       if (IERROR/=0) then
-          ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+       if(IERROR /= MPI_SUCCESS) then
+         ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
        end if
     end if
 
