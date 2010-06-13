@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>Periodic channel with streamfunction diagnostic check get correct boundary condition</name>
+  <owner userid="amcvicar"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line> ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction.flml &amp;&amp; mv fluidity.log-0 fluidity_periodic.log-0 &amp;&amp;
+    ../../bin/fluidity -v3 -l  2d_nonperiodic_p1p1_streamfunction.flml &amp;&amp; mv fluidity.log-0 fluidity_nonperiodic.log-0 &amp;&amp; 
+    mpiexec -np 4  ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction_periodised_flredecomp.flml &amp;&amp; mv fluidity.log-0 fluidity_periodic_parallel.log-0  </command_line>
+  </problem_definition>
+  <variables>
+        <variable name="analytical_solution" language="python">
+# compute analytical solution
+import numpy
+u_bottom = 0.0
+u_top = 1.0
+divisions=12.0
+y=numpy.arange(0,(1+(u_top/divisions)),(u_top/divisions))
+#velocity is a function of y
+x=[]
+for i in y:
+  x.append((i**2)/2)
+analytical_solution=float((u_top**2.0)/2.0)
+    </variable>
+
+    <variable name="numerical_solution_periodic" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+from numpy import array
+# read in the .vtu
+data=vtktools.vtu("2d_periodic_p1p1_streamfunction_1.vtu")
+SF=data.GetField('MultiplyConnectedStreamFunction');
+numerical_solution_periodic=[0,0,0]
+numerical_solution_periodic[0]=max(abs(array(SF[:,0])));
+numerical_solution_periodic[1]=min((array(SF[:,0])));
+
+#final change in streamfunction
+#numerical_solution_periodic[2]=stat("2d_periodic_p1p1_streamfunction.stat")["water"]["MultiplyConnectedStreamFunction"]["l2norm"][-1]
+dt = stat("2d_periodic_p1p1_streamfunction.stat")["dt"]["value"][-1]
+numerical_solution_periodic[2] = max(abs(data.GetScalarField("MultiplyConnectedStreamFunction")-data.GetScalarField("OldMultiplyConnectedStreamFunction"))/dt)
+
+    </variable>
+    <variable name="numerical_solution_nonperiodic" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+from numpy import array
+# read in the .vtu
+data=vtktools.vtu("2d_nonperiodic_p1p1_streamfunction_1.vtu")
+SF=data.GetField('MultiplyConnectedStreamFunction');
+numerical_solution_nonperiodic=[0,0,0]
+numerical_solution_nonperiodic[0]=max(abs(array(SF[:,0])));
+numerical_solution_nonperiodic[1]=min((array(SF[:,0])));
+
+#final change in streamfunction
+#numerical_solution_nonperiodic[2]=stat("2d_nonperiodic_p1p1_streamfunction.stat")["water"]["MultiplyConnectedStreamFunction"]["l2norm"][-1]
+dt = stat("2d_nonperiodic_p1p1_streamfunction.stat")["dt"]["value"][-1]
+numerical_solution_nonperiodic[2] = max(abs(data.GetScalarField("MultiplyConnectedStreamFunction")-data.GetScalarField("OldMultiplyConnectedStreamFunction"))/dt)
+
+    </variable>
+
+    <variable name="numerical_solution_periodic_parallel" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+from numpy import array
+# read in the .vtu
+data=vtktools.vtu("2d_periodic_p1p1_streamfunction_parallel_1.pvtu")
+SF=data.GetField('MultiplyConnectedStreamFunction');
+numerical_solution_periodic_parallel=[0,0,0]
+numerical_solution_periodic_parallel[0]=max(abs(array(SF[:,0])));
+numerical_solution_periodic_parallel[1]=min((array(SF[:,0])));
+
+#final change in streamfunction
+#numerical_solution_periodic_parallel[2]=stat("2d_periodic_p1p1_streamfunction_parallel.stat")["water"]["MultiplyConnectedStreamFunction"]["l2norm"][-1]
+dt = stat("2d_periodic_p1p1_streamfunction_parallel.stat")["dt"]["value"][-1]
+numerical_solution_periodic_parallel[2] = max(abs(data.GetScalarField("MultiplyConnectedStreamFunction")-data.GetScalarField("OldMultiplyConnectedStreamFunction"))/dt)
+
+    </variable>
+
+  </variables>
+  <pass_tests>
+    <test name="Compare max error of nonperiodic with analytical solution" language="python">
+    assert abs(numerical_solution_periodic[0]-analytical_solution) &lt; 1e-6</test>
+    <test name="Compare min error of periodic " language="python">
+    assert abs(numerical_solution_periodic[1]) &lt; 1e-6 </test>
+    <test name="Compare L2norm of periodic" language="python">
+    assert abs(numerical_solution_periodic[2]) &lt; 1e-6 </test>
+    
+    <test name="Compare max error of nonperiodic with analytical solution" language="python">
+    assert abs(numerical_solution_nonperiodic[0]-analytical_solution) &lt; 1e-6</test>
+    <test name="Compare min error of nonperiodic " language="python">
+    assert abs(numerical_solution_nonperiodic[1]) &lt; 1e-6 </test>
+    <test name="Compare L2norm of nonperiodic" language="python">
+    assert abs(numerical_solution_nonperiodic[2]) &lt; 1e-6 </test>
+    
+    <test name="Compare max error of periodic parallel with analytical solution" language="python">
+    assert abs(numerical_solution_periodic_parallel[0]-analytical_solution) &lt; 1e-6</test>
+    <test name="Compare min error of periodic parallel" language="python">
+    assert abs(numerical_solution_periodic_parallel[1]) &lt; 1e-6 </test>
+    <test name="Compare L2norm of periodic parallel" language="python">
+    assert abs(numerical_solution_periodic_parallel[2]) &lt; 1e-6 </test>
+    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

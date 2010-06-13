@@ -99,7 +99,8 @@ contains
        call get_option(trim(option_path)//"/secondary_boundary/secondary_point"&
             &, end) 
        
-       dx=start-end
+       dx=-abs(start-end)
+       
        dx2=dot_product(dx,dx)
 
        do ele1=1, element_count(streamfunc)
@@ -150,6 +151,7 @@ contains
        call flush_list(tmp_face_list)
 
        ! Work out the orthonormal to the line.
+       dx=start-end
        dx=dx/sqrt(dx2)
        flux_normal(:,i)=(/-dx(2), dx(1)/)
        
@@ -173,7 +175,7 @@ contains
        face=flux_face_list(bc_num)%ptr(i)
        
        boundary_value=boundary_value + face_flux(face, X, U, bc_num)
-       
+              
     end do
 
     ! for parallel so each partitition calculates the bit of the flux that it owns and they sum along the boundary so they all have the correct bd. condition

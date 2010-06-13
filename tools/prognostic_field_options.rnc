@@ -1466,6 +1466,83 @@ prognostic_stream_function_field =
       discrete_properties_algorithm_scalar?
    )
 
+
+# stream function, this is a copy of prognostic_scalar_field above
+# removing all options that don't apply (mainly advection related)
+prognostic_multipath_stream_function_field =
+   (
+      ## Solver
+      element solver {
+         linear_solver_options_asym
+      },
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## The streamfunction will be zero on the primary boundary. There must be exactly one primary boundary.
+          element primary_boundary{
+            empty
+         },
+         ## Type
+         (
+            element type {
+               attribute name { "dirichlet" },
+               element internally_calculated {
+                  empty
+               }
+            }
+         )
+      },
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id:
+         element surface_ids {
+            integer_vector
+         },
+         ## Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  
+         element secondary_boundary{
+            ## A point on or behind the primary boundary *from* which the flux line should extend. 
+            ## Note: Path should not go through periodic boundary
+            element primary_point {
+               real_dim_vector
+            },
+            ## A point on or behind the secondary boundary *to* which the flux line should extend. 
+            ## Note: Path should not go through periodic boundary
+            element secondary_point {
+               real_dim_vector
+            }
+         },
+         ## Type
+         (
+            element type {
+               attribute name { "dirichlet" },
+               element internally_calculated {
+                  empty
+               }
+            }
+         )
+      }*,
+      ## Disables checkpointing of this field
+      element exclude_from_checkpointing {
+        comment
+      },
+      # no Diffusivity for field
+      # no source term
+      # no Absorption term
+      # no Adaptive timestepping option
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      prognostic_detector_options,
+      scalar_steady_state_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar_full,
+      discrete_properties_algorithm_scalar?
+   )
+
 scalar_equation_choice =
    (
       (

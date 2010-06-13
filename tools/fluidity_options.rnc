@@ -3542,6 +3542,21 @@ scalar_field_choice =
                }
             )
          }|
+         ## ***UNDER TESTING***
+         ## Calculate the stream function of 2D incompressible flow. for multiply connected domains
+         ## Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
+         ## Requires a continuous mesh.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "MultiplyConnectedStreamFunction" },
+            attribute depends { "Velocity" },
+            (
+               element prognostic {
+                  mesh_choice,
+                  prognostic_multipath_stream_function_field
+               }
+            )
+         }|
          ## Phytoplankton
          element scalar_field {
             attribute rank { "0" },

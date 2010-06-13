@@ -292,6 +292,13 @@ contains
          end if
        end if
 
+       s_field => extract_scalar_field(state(i), "MultiplyConnectedStreamFunction", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "MultiplyConnectedStreamFunction", s_field)
+         end if
+       end if
+
        s_field => extract_scalar_field(state(i), "Time", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
