@@ -1879,6 +1879,96 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
       <ref name="discrete_properties_algorithm_scalar"/>
     </optional>
   </define>
+  <!--
+    stream function, this is a copy of prognostic_scalar_field above
+    removing all options that don't apply (mainly advection related)
+  -->
+  <define name="prognostic_multipath_stream_function_field">
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id:</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <element name="primary_boundary">
+        <a:documentation>The streamfunction will be zero on the primary boundary. There must be exactly one primary boundary.</a:documentation>
+        <empty/>
+      </element>
+      <group>
+        <a:documentation>Type</a:documentation>
+        <element name="type">
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <element name="internally_calculated">
+            <empty/>
+          </element>
+        </element>
+      </group>
+    </element>
+    <zeroOrMore>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <element name="secondary_boundary">
+          <a:documentation>Secondary boundaries have a value given by the flux between this boundary and the primary boundary.  </a:documentation>
+          <element name="primary_point">
+            <a:documentation>A point on or behind the primary boundary *from* which the flux line should extend. 
+Note: Path should not go through periodic boundary</a:documentation>
+            <ref name="real_dim_vector"/>
+          </element>
+          <element name="secondary_point">
+            <a:documentation>A point on or behind the secondary boundary *to* which the flux line should extend. 
+Note: Path should not go through periodic boundary</a:documentation>
+            <ref name="real_dim_vector"/>
+          </element>
+        </element>
+        <group>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <element name="internally_calculated">
+              <empty/>
+            </element>
+          </element>
+        </group>
+      </element>
+    </zeroOrMore>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <!--
+      no Diffusivity for field
+      no source term
+      no Absorption term
+      no Adaptive timestepping option
+    -->
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
   <define name="scalar_equation_choice">
     <choice>
       <element name="equation">

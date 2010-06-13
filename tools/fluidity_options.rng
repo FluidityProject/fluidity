@@ -4649,6 +4649,25 @@ Requires a continuous mesh.</a:documentation>
         </element>
       </element>
       <element name="scalar_field">
+        <a:documentation>***UNDER TESTING***
+Calculate the stream function of 2D incompressible flow. for multiply connected domains
+Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
+Requires a continuous mesh.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>MultiplyConnectedStreamFunction</value>
+        </attribute>
+        <attribute name="depends">
+          <value>Velocity</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice"/>
+          <ref name="prognostic_multipath_stream_function_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
         <a:documentation>Phytoplankton</a:documentation>
         <attribute name="rank">
           <value>0</value>
