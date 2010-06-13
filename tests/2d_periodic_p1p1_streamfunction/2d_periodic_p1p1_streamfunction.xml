@@ -4,7 +4,7 @@
 <testproblem>
   <name>Periodic channel with streamfunction diagnostic check get correct boundary condition</name>
   <owner userid="amcvicar"/>
-  <tags>flml</tags>
+  <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
     <command_line> ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction.flml &amp;&amp; mv fluidity.log-0 fluidity_periodic.log-0 &amp;&amp;
     ../../bin/fluidity -v3 -l  2d_nonperiodic_p1p1_streamfunction.flml &amp;&amp; mv fluidity.log-0 fluidity_nonperiodic.log-0 &amp;&amp; 
