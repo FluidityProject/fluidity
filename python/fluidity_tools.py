@@ -270,7 +270,6 @@ for example:
           nColumns += int(components)
         else:
           nColumns += 1
-      columns = [[] for i in range(nColumns)]
 
       if binaryFormat:           
         for ele in constantEles:
@@ -292,24 +291,29 @@ for example:
             if not integer_size == 4:
               raise Exception("Unexpected integer size: " + str(real_size))
        
-        statDatFile = file(filename + ".dat", "rb")
+        nOutput = (os.path.getsize(filename + ".dat") / (nColumns * real_size)) / subsample
         
+        columns = numpy.empty((nColumns, nOutput))
+        statDatFile = file(filename + ".dat", "rb")   
+        index = 0     
         while True:
           values = array.array(realFormat)
           try:
-            values.read(statDatFile, nColumns)
+            values.fromfile(statDatFile, nColumns)
           except EOFError:
             break
             
           for i, value in enumerate(values):
-            columns[i].append(value)
-          
+            columns[i][index] = value
+            
+          index += 1
           if subsample > 1:
             # Ignore non-sampled lines
-            statDatFile.seek(real_size * (subsample - 1) * nColumns, 1)
-        
+            statDatFile.seek(real_size * (subsample - 1) * nColumns, 1)        
         statDatFile.close()
+        assert(index == nOutput)
       else:
+        columns = [[] for i in range(nColumns)]
         lineNo = 0
         for line in statfile:
           entries = map(float, line.split())
@@ -317,6 +321,7 @@ for example:
           if len(entries) == len(columns) and lineNo == 0:
             map(list.append, columns, entries)
           lineNo = (lineNo + 1) % subsample
+        columns = numpy.array(columns)
               
       for field in parsed.getElementsByTagName("field"):
         material_phase=field.getAttribute("material_phase")
@@ -338,10 +343,9 @@ for example:
         if components:
             column=int(column)
             components=int(components)
-            current_dict[name][statistic]=numpy.array(columns[column-1:
-                                                      column-1+components])
+            current_dict[name][statistic]=columns[column-1:column-1+components]
         else:
-            current_dict[name][statistic]=numpy.array(columns[int(column)-1])
+            current_dict[name][statistic]=columns[int(column)-1]
 
 def test_steady(vals, error, test_count = 1):
   """
