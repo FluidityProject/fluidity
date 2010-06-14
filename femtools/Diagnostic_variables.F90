@@ -2871,7 +2871,6 @@ contains
 
     if(procno == 1) then
       ! Output time data
-      print *, "JAMES: ", location_to_write, time
       call mpi_file_write_at(fh, location_to_write, time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
       assert(ierror == MPI_SUCCESS)
         
