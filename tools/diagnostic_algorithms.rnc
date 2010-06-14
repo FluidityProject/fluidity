@@ -726,7 +726,10 @@ scalar_python_diagnostic_algorithm =
          attribute name { "scalar_python_diagnostic" },
          attribute material_phase_support { "single"|"multiple" },
          python_code,
-         ## Enable to specify dependencies manually
+         ## Enable to specify dependencies manually. Any field specified here
+         ## will be calculated before this python diagnostic field.
+         ##
+         ## Fields should be a comma delimited list.
          element depends {
             anystring
          }?
@@ -742,7 +745,10 @@ vector_python_diagnostic_algorithm =
          attribute name { "vector_python_diagnostic" },
          attribute material_phase_support { "single"|"multiple" },
          python_code,
-         ## Enable to specify dependencies manually
+         ## Enable to specify dependencies manually. Any field specified here
+         ## will be calculated before this python diagnostic field.
+         ##
+         ## Fields should be a comma delimited list.
          element depends {
             anystring
          }?
