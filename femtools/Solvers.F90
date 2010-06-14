@@ -1370,9 +1370,8 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   reasons(9)  = "KSP_DIVERGED_NAN"
   reasons(10) = "KSP_DIVERGED_INDEFINITE_MAT"
   
-  if(present(nomatrixdump)) matrixdumped = .true.
-  
   if (reason<=0) then
+     if(present_and_true(nomatrixdump)) matrixdumped = .true.    
      if (present(checkconvergence)) then
         ! checkconvergence==.false. in iterative solver calls that will
         ! not always convergence within the allowed n/o iterations
