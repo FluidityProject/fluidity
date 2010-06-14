@@ -6,4 +6,4 @@ input:	clean
 	../../scripts/gmsh2triangle --2d src/MMS_E.msh
 
 clean:
-	rm -f *.vtu *.stat *.log* *.err* *.node *.ele *.edge *checkpoint* *.convergence
+	rm -f *.vtu *.stat *.log* *.err* *.node *.ele *.edge *checkpoint* *.convergence matrixdump*

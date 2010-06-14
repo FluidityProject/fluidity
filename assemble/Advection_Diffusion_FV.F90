@@ -97,7 +97,7 @@ contains
 
     t=>extract_scalar_field(state, field_name)
     if((continuity(T)>=0).or.(element_degree(T,1)/=0)) then
-      FLExit("FV advection-diffusion requires a discontinuous mesh.")
+      FLExit("FV advection-diffusion requires a discontinuous P0 mesh.")
     end if
     
     t_old=>extract_scalar_field(state, "Old"//field_name)
@@ -143,6 +143,7 @@ contains
     type(vector_field), pointer :: coordinate, &
                                    old_coordinate, new_coordinate, &
                                    grid_velocity
+    type(vector_field) :: t_coordinate                               
     type(scalar_field), pointer :: source, absorption
     type(tensor_field), pointer :: diffusivity
     
@@ -153,7 +154,6 @@ contains
     coordinate => extract_vector_field(state, "Coordinate")
     assert(coordinate%dim == mesh_dim(t))
     assert(ele_count(coordinate) == ele_count(t))
-    
     ! Source
     source => extract_scalar_field(state, trim(t%name)//"Source", stat = stat)
     have_source = stat == 0
@@ -203,7 +203,15 @@ contains
       isotropic_diffusivity = .false.
       ewrite(2, *) "No diffusivity"
     end if
-    
+
+    ! field coordinate
+    if(have_diffusivity) then
+      t_coordinate = get_coordinate_field(state, t%mesh)
+    else
+      t_coordinate = coordinate
+      call incref(t_coordinate)
+    end if
+
     call get_option(trim(t%option_path) // "/prognostic/temporal_discretisation/theta", theta)
     assert(theta >= 0.0 .and. theta <= 1.0)
     ewrite(2, *) "Theta = ", theta
@@ -250,7 +258,7 @@ contains
     
     do ele = 1, ele_count(t)
       call assemble_advection_diffusion_element_fv(ele, t, matrix, rhs, &
-                                                   coordinate, &
+                                                   coordinate, t_coordinate, &
                                                    source, absorption, diffusivity)
     end do
 
@@ -258,20 +266,21 @@ contains
     call apply_dirichlet_conditions(matrix, rhs, t, dt)
     
     ewrite_minmax(rhs%val)
+    call deallocate(t_coordinate)
 
     ewrite(1,*) "Exiting assemble_advection_diffusion_fv"
 
   end subroutine assemble_advection_diffusion_fv
   
   subroutine assemble_advection_diffusion_element_fv(ele, t, matrix, rhs, &
-                                                   coordinate, &
+                                                   coordinate, t_coordinate, &
                                                    source, absorption, diffusivity)
                                                    
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(vector_field), intent(in) :: coordinate
+    type(vector_field), intent(in) :: coordinate, t_coordinate
     type(scalar_field), intent(in) :: source
     type(scalar_field), intent(in) :: absorption
     type(tensor_field), intent(in) :: diffusivity
@@ -286,10 +295,11 @@ contains
     real, dimension(ele_and_faces_loc(t, ele), ele_and_faces_loc(t, ele)) :: matrix_addto
     integer, dimension(ele_and_faces_loc(t,ele)) :: local_glno
     
-    real, dimension(coordinate%dim, ele_loc(coordinate, ele)) :: x_val
-    
     integer, dimension(:), pointer :: neigh, x_neigh
     integer :: loc, ni, ele_2, face, face_2, start, finish
+    
+    integer, dimension(:), allocatable :: t_bc_types
+    type(scalar_field) :: t_bc
 
     assert(element_degree(t,ele)==0)
     t_shape => ele_shape(t, ele)
@@ -316,9 +326,15 @@ contains
     if(have_source) call add_source_element_fv(ele, t_shape, t, source, detwei, rhs_addto(:loc))
     
     if(have_diffusivity.or.have_advection) then
-    
-      x_val = ele_val(coordinate, ele)
-    
+
+      ! this part of assembly is over faces of elements so it needs
+      ! to know about boundary conditions
+      allocate(t_bc_types(surface_element_count(t)))
+      call get_entire_boundary_condition(t, (/ &
+        "neumann      ", &
+        "weakdirichlet", &
+        "periodic     "/), t_bc, t_bc_types)
+
       neigh=>ele_neigh(t, ele)
       x_neigh => ele_neigh(coordinate, ele)
       
@@ -327,6 +343,7 @@ contains
       neighboorloop: do ni = 1, size(neigh)
       
         ele_2=neigh(ni)
+        face=ele_face(t, ele, ele_2)
         if(ele_2>0) then
           face_2=ele_face(t, ele_2, ele)
         else
@@ -337,12 +354,16 @@ contains
         finish = start+face_loc(t, face_2)-1
         local_glno(start:finish) = face_global_nodes(t, face_2)
         
-        call assemble_advection_diffusion_face_fv(ele, ele_2, face, face_2, &
-                                                  t, coordinate, diffusivity, &
-                                                  x_val, &
+        call assemble_advection_diffusion_face_fv(face, face_2, start, finish, &
+                                                  t, coordinate, t_coordinate, diffusivity, &
                                                   matrix_addto, rhs_addto)
+                                                  
+        start = start+face_loc(t, face_2)
         
       end do neighboorloop
+      
+      call deallocate(t_bc)
+      deallocate(t_bc_types)
     
     end if
     
@@ -365,16 +386,14 @@ contains
 
   end subroutine assemble_advection_diffusion_element_fv
 
-  subroutine assemble_advection_diffusion_face_fv(ele, ele_2, face, face_2, &
-                                                  t, coordinate, diffusivity, &
-                                                  x_val, &
+  subroutine assemble_advection_diffusion_face_fv(face, face_2, start, finish, &
+                                                  t, coordinate, t_coordinate, diffusivity, &
                                                   matrix_addto, rhs_addto)
   
-    integer, intent(in) :: ele, ele_2, face, face_2
+    integer, intent(in) :: face, face_2, start, finish
     type(scalar_field), intent(in) :: t
-    type(vector_field), intent(in) :: coordinate
+    type(vector_field), intent(in) :: coordinate, t_coordinate
     type(tensor_field), intent(in) :: diffusivity
-    real, dimension(:,:) :: x_val
     real, dimension(:,:), intent(inout) :: matrix_addto
     real, dimension(:), intent(inout) :: rhs_addto
     
@@ -386,47 +405,93 @@ contains
                                      detwei_f=detwei, normal=normal)
                                  
     if(have_diffusivity) then
-      call add_diffusivity_face_fv(ele, ele_2, face, face_2, &
-                                   t, coordinate, diffusivity, &
-                                   detwei, normal, x_val, &
+      call add_diffusivity_face_fv(face, face_2, start, finish, &
+                                   t, coordinate, t_coordinate, diffusivity, &
+                                   detwei, normal, &
                                    matrix_addto, rhs_addto)
     end if
                                      
   
   end subroutine assemble_advection_diffusion_face_fv
   
-  subroutine add_diffusivity_face_fv(ele, ele_2, face, face_2, &
-                                     t, coordinate, diffusivity, &
-                                     detwei, normal, x_val, &
+  subroutine add_diffusivity_face_fv(face, face_2, start, finish, &
+                                     t, coordinate, t_coordinate, diffusivity, &
+                                     detwei, normal, &
                                      matrix_addto, rhs_addto)
     
-    integer, intent(in) :: ele, ele_2, face, face_2
+    integer, intent(in) :: face, face_2, start, finish
     type(scalar_field), intent(in) :: t
-    type(vector_field), intent(in) :: coordinate
+    type(vector_field), intent(in) :: coordinate, t_coordinate
     type(tensor_field), intent(in) :: diffusivity
     real, dimension(:), intent(in) :: detwei
     real, dimension(:,:), intent(in) :: normal
-    real, dimension(:,:), intent(in) :: x_val
     real, dimension(:,:), intent(inout) :: matrix_addto
     real, dimension(:), intent(inout) :: rhs_addto
     
-    real, dimension(coordinate%dim, ele_loc(coordinate, ele)) :: x_val_2
-    real, dimension(ele_loc(coordinate, ele)) :: centroid, centroid_2
+    real, dimension(t_coordinate%dim, face_loc(t_coordinate, face)) :: c_vector
+    real, dimension(face_loc(t_coordinate, face)) :: c_dist
     real, dimension(diffusivity%dim, diffusivity%dim, face_ngi(diffusivity, face)) :: diffusivity_gi
+    real, dimension(face_loc(t, face)+face_loc(t,face_2), face_ngi(t, face), mesh_dim(t)) :: dt_t
+    type(element_type), pointer :: t_shape
+    real, dimension(face_loc(t, face), face_loc(t,face)+face_loc(t,face_2)) :: diff_mat
+    integer, dimension(face_loc(t, face)) :: t_face_l
+    real, dimension(face_loc(t, face) + face_loc(t, face_2)) :: t_val
+    integer :: loc, tloc, iloc, jloc, gi
+
+    assert(face_loc(t, face)==face_loc(t_coordinate, face))
+    assert(face_loc(t, face)==face_loc(t, face_2))
     
-    diffusivity_gi = face_val_at_quad(diffusivity, face)
-    if(ele==ele_2) then
+    loc = face_loc(t,face) ! should just be 1 but being paranoid
+    tloc = face_loc(t, face) + face_loc(t, face_2) ! so clearly should be 2
+    
+    t_face_l = face_local_nodes(t, face)
+    t_val(:loc) = face_val(t, face)
+    t_val(loc+1:) = face_val(t, face_2)
+    
+    ! first we need to construct the derivative of a pseudo "shape function"
+    dt_t = 0.0
+    
+    if(face==face_2) then
+      ! on boundary
     
     else
-      x_val_2 = ele_val(coordinate, ele_2)
+      ! internal (but might be a periodic boundary)
       
-      centroid = sum(x_val,2)/size(x_val)
-      centroid_2 = sum(x_val_2, 2)/size(x_val_2)
+      c_vector = face_val(t_coordinate, face) - face_val(t_coordinate, face_2)
+      c_dist = sum(c_vector**2, dim=1) ! this is the square of the distance
+      do iloc = 1, loc
+        ! normalise
+        c_vector(:,iloc) = c_vector(:,iloc)/c_dist(iloc)
+      end do
+
+      dt_t(:loc,:,:) = spread(transpose(c_vector), 2, face_ngi(t,face))
+      dt_t(loc+1:,:,:) = spread(transpose(-c_vector), 2, face_ngi(t,face))
       
+      ! now we need to construct the matrix entries for the face integral:
+      ! /
+      ! | shape (diffusivity dt_t) . normal ds
+      ! /
+      diff_mat = 0.0
       
+      diffusivity_gi = face_val_at_quad(diffusivity, face)
+      t_shape => face_shape(t, face)
+      do iloc = 1, face_loc(t, face) ! just the node at the centre of this element
+        do jloc = 1, (face_loc(t, face)+face_loc(t, face_2)) ! this element's node plus the neighbouring element's
+          do gi = 1, face_ngi(t, face) ! all the gauss points on this face
+            diff_mat(iloc, jloc) = diff_mat(iloc, jloc) - t_shape%n(iloc, gi)*&
+                                  sum(matmul(diffusivity_gi(:,:,gi), dt_t(jloc, gi, :))*normal(:,gi), 1)*&
+                                  detwei(gi)
+          end do
+        end do
+      end do
+
+      if(abs(dt_theta) > epsilon(0.0)) then
+        matrix_addto(t_face_l, t_face_l) = matrix_addto(t_face_l, t_face_l) + dt_theta*diff_mat(:,:loc)
+        matrix_addto(t_face_l, start:finish) = matrix_addto(t_face_l, start:finish) + dt_theta*diff_mat(:,loc+1:)
+      end if
+      rhs_addto(t_face_l) = rhs_addto(t_face_l) - matmul(diff_mat, t_val)
+
     end if
-    
-    
     
   end subroutine add_diffusivity_face_fv
 
@@ -511,9 +576,6 @@ contains
           if(have_option(trim(path) // "/spatial_discretisation/finite_volume").and.&
              have_option(trim(path) // "/equation[0]")) then       
              
-            call field_error(state_name, field_name, &
-                             "Finite volume spatial_discretisation under development")
-            
             call get_option(trim(path) // "/spatial_discretisation/conservative_advection", beta, stat)
             if(stat == SPUD_NO_ERROR) then
               if(beta < 0.0 .or. beta > 1.0) then
