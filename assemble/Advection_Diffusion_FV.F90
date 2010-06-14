@@ -329,11 +329,11 @@ contains
 
       ! this part of assembly is over faces of elements so it needs
       ! to know about boundary conditions
-      allocate(t_bc_types(surface_element_count(t)))
-      call get_entire_boundary_condition(t, (/ &
-        "neumann      ", &
-        "weakdirichlet", &
-        "periodic     "/), t_bc, t_bc_types)
+!       allocate(t_bc_types(surface_element_count(t)))
+!       call get_entire_boundary_condition(t, (/ &
+!         "neumann      ", &
+!         "weakdirichlet", &
+!         "periodic     "/), t_bc, t_bc_types)
 
       neigh=>ele_neigh(t, ele)
       x_neigh => ele_neigh(coordinate, ele)
@@ -362,8 +362,8 @@ contains
         
       end do neighboorloop
       
-      call deallocate(t_bc)
-      deallocate(t_bc_types)
+!       call deallocate(t_bc)
+!       deallocate(t_bc_types)
     
     end if
     
