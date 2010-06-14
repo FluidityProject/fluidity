@@ -1131,7 +1131,7 @@ subroutine petsc_solve_core(y, A, b, ksp, petsc_numbering, &
   solver_option_path, startfromzero, &
   iterations, &
   sfield, vfield, tfield, &
-  x0, vector_x0, checkconvergence)
+  x0, vector_x0, checkconvergence, nomatrixdump)
 !!< inner core of matrix solve, called by all versions of petsc_solve
 !! IN: inital guess, OUT: solution
 Vec, intent(inout):: y
@@ -1160,6 +1160,8 @@ real, dimension(:), optional, intent(in):: x0
 type(vector_field), optional, intent(in):: vector_x0
 !! whether to check convergence (optional legacy argument to be passed straight on)
 logical, optional, intent(in):: checkconvergence
+!! logical to prevent dump of matrix equation (full projection solve eqn cannot be dumped):
+logical, optional, intent(in):: nomatrixdump
 
   PetscReal norm
   PetscErrorCode ierr
@@ -1226,9 +1228,9 @@ logical, optional, intent(in):: checkconvergence
   ! This needs to be done before we copy back the result as
   ! x still contains the initial guess to be used in the matrixdump.
   call ConvergenceCheck(reason, iterations, name, solver_option_path, &
-    startfromzero, A, b, petsc_numbering, &
-    x0=x0, vector_x0=vector_x0, &
-    checkconvergence=checkconvergence)
+       startfromzero, A, b, petsc_numbering, &
+       x0=x0, vector_x0=vector_x0, &
+       checkconvergence=checkconvergence,nomatrixdump=nomatrixdump)
 
   ewrite(2, "(A, ' PETSc reason of convergence: ', I0)") trim(name), reason
   ewrite(2, "(A, ' PETSc n/o iterations: ', I0)") trim(name), iterations
@@ -1325,7 +1327,7 @@ character(len=*), intent(in):: solver_option_path
 end subroutine petsc_solve_destroy_petsc_csr
 
 subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
-  startfromzero, A, b, petsc_numbering, x0, vector_x0, checkconvergence)
+  startfromzero, A, b, petsc_numbering, x0, vector_x0, checkconvergence, nomatrixdump)
   !!< Checks reason of convergence. If negative (not converged)
   !!< writes out a scary warning and dumps matrix (if first time), 
   !!< and if reason<0 but reason/=-3
@@ -1347,6 +1349,8 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   type(vector_field), optional, intent(in):: vector_x0
   !! if present and .false. do not check, otherwise do check
   logical, optional, intent(in):: checkconvergence
+  !! if present do not dump matrix equation:
+  logical, optional, intent(in):: nomatrixdump
 
   ! did we dump before? :
   logical, save:: matrixdumped=.false.
@@ -1365,6 +1369,8 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   reasons(8)  = "KSP_DIVERGED_INDEFINITE_PC"
   reasons(9)  = "KSP_DIVERGED_NAN"
   reasons(10) = "KSP_DIVERGED_INDEFINITE_MAT"
+  
+  if(present(nomatrixdump)) matrixdumped = .true.
   
   if (reason<=0) then
      if (present(checkconvergence)) then

@@ -99,7 +99,6 @@
       ! p1-p1 stabilization matrix:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
 
-
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
       Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
@@ -138,7 +137,7 @@
       ewrite(2,*) 'Entering Core PETSc Solve'
       ! Solve Ay = b using KSP and PC. Also check convergence. We call this the inner solve.
       call petsc_solve_core(y, A, b, ksp, petsc_numbering, solver_option_path, lstartfromzero, &
-           literations, sfield=x, x0=x%val)
+           literations, sfield=x, x0=x%val, nomatrixdump=.true.)
 
       ewrite(2,*) 'Copying PETSc solution vector into designated Fluidity array'
       ! Copy back the result into the fluidity solution array (x) using the PETSc numbering:
