@@ -140,7 +140,7 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <scalar_field name="MultiplyConnectedStreamFunction" rank="0">
+    <scalar_field depends="Velocity" name="MultiplyConnectedStreamFunction" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
         <solver>
@@ -194,6 +194,9 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
         <no_interpolation/>
       </prognostic>
     </scalar_field>

@@ -6,9 +6,9 @@
   <owner userid="amcvicar"/>
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line> ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction.flml &amp;&amp; mv fluidity.log-0 fluidity_periodic.log-0 &amp;&amp;
-    ../../bin/fluidity -v3 -l  2d_nonperiodic_p1p1_streamfunction.flml &amp;&amp; mv fluidity.log-0 fluidity_nonperiodic.log-0 &amp;&amp; 
-    mpiexec -np 4  ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction_periodised_flredecomp.flml &amp;&amp; mv fluidity.log-0 fluidity_periodic_parallel.log-0  </command_line>
+    <command_line> ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction.flml &amp;&amp;
+    ../../bin/fluidity -v3 -l  2d_nonperiodic_p1p1_streamfunction.flml &amp;&amp; 
+    mpiexec -np 4  ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction_periodised_flredecomp.flml </command_line>
   </problem_definition>
   <variables>
         <variable name="analytical_solution" language="python">
@@ -16,12 +16,12 @@
 import numpy
 u_bottom = 0.0
 u_top = 1.0
-divisions=12.0
-y=numpy.arange(0,(1+(u_top/divisions)),(u_top/divisions))
+#divisions=12.0
+#y=numpy.arange(0,(1+(u_top/divisions)),(u_top/divisions))
 #velocity is a function of y
-x=[]
-for i in y:
-  x.append((i**2)/2)
+#x=[]
+#for i in y:
+#  x.append((i**2)/2)
 analytical_solution=float((u_top**2.0)/2.0)
     </variable>
 
