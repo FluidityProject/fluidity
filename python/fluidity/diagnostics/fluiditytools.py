@@ -281,12 +281,11 @@ class Stat:
           
       return newS
         
+    debug.dprint("Reading .stat file: " + filename)
     if filehandling.FileExists(filename + ".dat"):
       debug.dprint("Format: binary")
     else:
       debug.dprint("Format: plain text")
-        
-    debug.dprint("Reading .stat file: " + filename)
     if subsample == 1:
       # Handle this case separately, as it's convenient to be backwards
       # compatible
@@ -333,18 +332,41 @@ def JoinStat(*args):
     for i in range(nStat): 
       debug.dprint((startT[i], times[i][endIndices[i] - 1]))
   else:
-    debug.dprint("No data")  
+    debug.dprint("No data")
+    
+  dataIndices = numpy.zeros(len(args) + 1, dtype = int)
+  dataIndices[0] = 0
+  for i, index in enumerate(endIndices):
+    dataIndices[i + 1] = dataIndices[i] + index
     
   stat = stats[0]
   data = {}
   for key in stat.keys():
-    data[key] = stat[key].tolist()[:endIndices[0]]
+    arr = stat[key]
+    if len(arr.shape) == 1:
+      data[key] = numpy.empty(dataIndices[-1], dtype = arr.dtype)
+    elif len(arr.shape) == 2:
+      data[key] = numpy.empty(dataIndices[-1], data[key].shape[1], dtype = arr.dtype)
+    else:
+      raise Exception("Unexpected data rank: " + str(len(arr.shape)))
+    data[key][:dataIndices[1]] = arr
+    data[key][dataIndices[1]:] = calc.Nan()
   delimiter = stat.GetDelimiter()
   
   for i in range(1, nStat):
     stat = stats[i]
     for key in stat.keys(): 
-      data[key] += stat[key].tolist()[:endIndices[i]]
+      arr = stat[key]
+      if not key in data:
+        if len(arr.shape) == 1:
+          data[key] = numpy.empty(dataIndices[-1], dtype = arr.dtype)
+        elif len(arr.shape) == 2:
+          data[key] = numpy.empty(dataIndices[-1], data[key].shape[1], dtype = arr.dtype)
+        else:
+          raise Exception("Unexpected data rank: " + str(len(arr.shape)))
+        data[key][:dataIndices[i]] = calc.Nan()
+        data[key][dataIndices[i + 1]:] = calc.Nan()
+      data[key][dataIndices[i]:dataIndices[i + 1]] = arr[:endIndices[i]]
   
   output = Stat(delimiter = delimiter)
   for key in data.keys():

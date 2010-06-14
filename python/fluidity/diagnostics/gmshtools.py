@@ -19,6 +19,7 @@ Tools for dealing with gmsh mesh files
 """
 
 import array
+import copy
 import ctypes
 import os
 import tempfile
@@ -44,6 +45,33 @@ gmshElementTypeIds = ( \
     GMSH_LINE, GMSH_TRIANGLE, GMSH_QUAD, \
     GMSH_TETRAHEDRON, GMSH_HEXAHEDRON \
   )
+  
+def FromGmshNodeOrder(nodes, type):
+  """
+  Permute Gmsh node ordering into default node ordering
+  """
+  
+  newNodes = nodes
+  
+  if type.GetElementTypeId() == elements.ELEMENT_QUAD:
+    newNodes = copy.deepcopy(nodes)
+    newNodes[3] = nodes[2]
+    newNodes[2] = nodes[3]
+      
+  return newNodes
+  
+def ToGmshNodeOrder(nodes, type):
+  """
+  Permute Gmsh node ordering into default node ordering
+  """
+
+  newNodes = nodes
+  
+  if type.GetElementTypeId() == elements.ELEMENT_QUAD:
+    newNodes[2] = nodes[3]
+    newNodes[3] = nodes[2]
+      
+  return newNodes
  
 class GmshElementType(elements.ElementType):
   """
@@ -212,7 +240,7 @@ def ReadMsh(filename):
         eleId = iArr[0]
         assert(eleId > 0)
         ids = iArr[1:1 + nIds]
-        nodes = utils.OffsetList(iArr[-type.GetNodeCount():], -1)
+        nodes = FromGmshNodeOrder(utils.OffsetList(iArr[-type.GetNodeCount():], -1), type)
         
         element = elements.Element(nodes, ids)
         
@@ -293,7 +321,7 @@ def ReadMsh(filename):
       
       type = GmshElementType(gmshElementTypeId = typeId)
       ids = [int(id) for id in lineSplit[3:3 + nIds]]
-      nodes = [int(node) - 1 for node in lineSplit[-type.GetNodeCount():]]
+      nodes = FromGmshNodeOrder([int(node) - 1 for node in lineSplit[-type.GetNodeCount():]], type)
       element = elements.Element(nodes, ids)
       
       if type.GetDim() == dim - 1:
@@ -376,7 +404,7 @@ def WriteMsh(mesh, filename, binary = True):
       iArr = array.array("i", [gmshEleId, len(eles), nIds])
       iArr.tofile(fileHandle)
       for ele in eles:
-        iArr = array.array("i", [index] + list(ele.GetIds()) + utils.OffsetList(ele.GetNodes(), 1))
+        iArr = array.array("i", [index] + list(ele.GetIds()) + utils.OffsetList(ToGmshNodeOrder(ele.GetNodes(), ele.GetType()), 1))
         iArr.tofile(fileHandle)
         index += 1
     assert(index == mesh.SurfaceElementCount() + mesh.VolumeElementCount() + 1)
@@ -415,7 +443,7 @@ def WriteMsh(mesh, filename, binary = True):
       eleType = ele.GetType()
       gmshType = GmshElementType(dim = eleType.GetDim(), nodeCount = eleType.GetNodeCount())
       ids = ele.GetIds()
-      fileHandle.write(utils.FormLine([i + 1, gmshType.GetGmshElementTypeId(), len(ids), ids, utils.OffsetList(ele.GetNodes(), 1)]))
+      fileHandle.write(utils.FormLine([i + 1, gmshType.GetGmshElementTypeId(), len(ids), ids, utils.OffsetList(ToGmshNodeOrder(ele.GetNodes(), eleType), 1)]))
     fileHandle.write("$EndElements\n")
   
   return

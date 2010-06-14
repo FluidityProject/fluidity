@@ -393,6 +393,74 @@ class NormalisedLombScargle:
     
     return self.EvaluateDirect(omegas)
     
+def DominantModeStructured(amps, dt, N = 250):
+  """
+  Compute the period and amplitude of the dominant mode in an even data series.
+  """
+  
+  def Omegas(ts):
+    return [2.0 * math.pi / t for t in ts]
+  
+  nScans = len(amps)
+  times = [i * dt for i in range(nScans)]
+    
+  tMin = 2.0 * dt
+  tMax = nScans * dt
+  
+  return DominantModeUnstructured(amps, times, N = N, tMin = tMin, tMax = tMax)
+
+def DominantModeUnstructured(amps, times, N = 250, tMin = None, tMax = None):
+  """
+  Compute the period and amplitude of the dominant mode in an uneven data
+  series.
+  """
+  
+  def Omegas(ts):
+    return [2.0 * math.pi / t for t in ts]
+  
+  debug.dprint("Finding dominant mode")
+  
+  assert(len(amps) == len(times))
+  if tMin is None:
+    tMin = Inf()
+    for i in range(len(times) -1):
+      tMin = min(tMin, times[i + 1] - times[i])
+    tMin *= 2.0
+  if tMax is None:
+    tMax = 2.0 * (times[-1] - times[0])
+  
+  debug.dprint("Period bounds = " + str((tMin, tMax)), 1)
+  
+  ls = NormalisedLombScargle(amps, times)
+  
+  amp = 0.0
+  t = 0.0
+  while True:
+    debug.dprint("Period bounds = " + str((tMin, tMax)), 2)
+    
+    ts = [tMin + (tMax - tMin) * float(i) / float(N - 1) for i in range(N)]
+             # Note the factor of two - we want the least squares harmonic
+             # fit amplitude, not the FFT amplitude
+    lsAmps = 2.0 * ls.Evaluate(Omegas(ts))
+    lastT = t
+    amp = 0.0
+    for i, lsAmp in enumerate(lsAmps):
+      if lsAmp > amp:
+        t = ts[i]
+        amp = lsAmp
+    if AlmostEquals(t, lastT):
+      break
+    tMin = t - (tMax - tMin) / float(N - 1)
+    tMax = t + (t - tMin)
+    N = 4
+  
+  debug.dprint("Period = " + str(t))
+  debug.dprint("Amplitude = " + str(amp))
+  
+  debug.dprint("Done")
+    
+  return t, amp
+    
 def IndexBinaryLboundSearch(val, values, increasing = True):
   """
   Find the max (min) index into values such that values[index] <= val, where
@@ -524,17 +592,23 @@ def InterpolatedSSA(v, t, N_T, n, J = 1, t0 = None, t1 = None):
     
   return SSA(lv, n, J = J)
     
-def LinearRegression(x, y, returnR = False):
+def LinearRegression(x, y, returnR = False, returnSe = False):
   """
   Linear regression for x-y data
   """
   
-  m, c, r, two_tailed, prob = scipy.stats.linregress(x, y)
+  m, c, r, two_tailed, se = scipy.stats.linregress(x, y)
   
   if returnR:
-    return (m, c), r
+    if returnSe:
+      return (m, c), r, se
+    else:
+      return (m, c), r
   else:
-    return (m, c)
+    if returnSe:
+      return (m, c), se
+    else:
+      return (m, c)
   
 def Deg2Rad(degrees):
   """
@@ -1082,6 +1156,17 @@ class calcUnittests(unittest.TestCase):
     self.assertAlmostEquals(nfft[0], 0.0)
     self.assertAlmostEquals(nfft[4], 0.5)
   
+    return
+    
+  def testDominantModeStructured(self):
+    dt = 1.2
+    amps = [1.5 * math.sin(2.0 * math.pi * dt * float(i) / float(9)) for i in range(25)]
+    
+    t, amp = DominantModeStructured(amps, dt)
+    
+    self.assertAlmostEquals(t, 9.0, 0)
+    self.assertAlmostEquals(amp, 1.5, 1)
+    
     return
     
   def testIndexBinaryLboundSearch(self):
