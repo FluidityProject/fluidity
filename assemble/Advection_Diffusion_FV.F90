@@ -428,7 +428,7 @@ contains
     real, dimension(:,:), intent(inout) :: matrix_addto
     real, dimension(:), intent(inout) :: rhs_addto
     
-    real, dimension(t_coordinate%dim, face_loc(t_coordinate, face)) :: c_vector
+    real, dimension(face_loc(t_coordinate, face), t_coordinate%dim) :: c_vector
     real, dimension(face_loc(t_coordinate, face)) :: c_dist
     real, dimension(diffusivity%dim, diffusivity%dim, face_ngi(diffusivity, face)) :: diffusivity_gi
     real, dimension(face_loc(t, face)+face_loc(t,face_2), face_ngi(t, face), mesh_dim(t)) :: dt_t
@@ -457,15 +457,15 @@ contains
     else
       ! internal (but might be a periodic boundary)
       
-      c_vector = face_val(t_coordinate, face) - face_val(t_coordinate, face_2)
-      c_dist = sum(c_vector**2, dim=1) ! this is the square of the distance
+      c_vector = transpose(face_val(t_coordinate, face) - face_val(t_coordinate, face_2))
+      c_dist = sum(c_vector**2, dim=2) ! this is the square of the distance
       do iloc = 1, loc
         ! normalise
-        c_vector(:,iloc) = c_vector(:,iloc)/c_dist(iloc)
+        c_vector(iloc,:) = c_vector(iloc,:)/c_dist(iloc)
       end do
 
-      dt_t(:loc,:,:) = spread(transpose(c_vector), 2, face_ngi(t,face))
-      dt_t(loc+1:,:,:) = spread(transpose(-c_vector), 2, face_ngi(t,face))
+      dt_t(:loc,:,:) = spread(c_vector, 2, face_ngi(t,face))
+      dt_t(loc+1:,:,:) = spread(-c_vector, 2, face_ngi(t,face))
       
       ! now we need to construct the matrix entries for the face integral:
       ! /
