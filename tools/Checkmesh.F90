@@ -39,6 +39,7 @@ subroutine checkmesh(filename, filename_len)
   
   call print_mesh_statistics(positions)
 
+  call check_node_connectivity(positions)
   call check_elements(positions)
   call check_volume_element_tangling(positions)
 
@@ -192,6 +193,33 @@ contains
     print "(a," // rformat // ")", "Max anisotropy: ", max_anisotropy
     
   end subroutine print_mesh_edge_statistics
+  
+  subroutine check_node_connectivity(positions)
+    !!< Check the nodal connectivity of the supplied mesh
+  
+    type(vector_field), intent(in) :: positions
+  
+    integer :: i
+    logical, dimension(node_count(positions)) :: connected_node
+    
+    print "(a)", "Checking nodal connectivity ..."
+    
+    connected_node = .false.
+    do i = 1, ele_count(positions)
+      connected_node(ele_nodes(positions, i)) = .true.
+    end do
+    if(all(connected_node)) then
+      print "(a)", "All nodes are connected to volume elements"
+    else
+      do i = 1, size(connected_node)
+        if(.not. connected_node(i)) then
+          call print_node(positions, i)
+          print "(a)", "Node not connected to any volume elements"
+        end if
+      end do
+    end if
+  
+  end subroutine check_node_connectivity
 
   subroutine check_elements(positions)
     !!< Check that the supplied mesh for inverted or degenerate elements
@@ -351,6 +379,25 @@ contains
     if(dim == 3) call finalise_tet_intersector()
     
   end subroutine check_volume_element_tangling
+
+  subroutine print_node(positions, number)
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: number
+
+    character(len = 1 + int2str_len(positions%dim) + real_format_len(padding = 1) + 1) :: format_buffer
+    integer :: i
+    real, dimension(positions%dim) :: coord
+
+    print "(a,i0)", "Node: ", number
+    
+    print "(a)", "Coordinates:"
+    coord = node_val(positions, number)
+    format_buffer = "(" // trim(real_format()) // ")"
+    do i = 1, size(coord)
+      print trim(format_buffer), coord(i)
+    end do
+    
+  end subroutine print_node
 
   subroutine print_element(number, coords, numbering)
     !!< Print the supplied element information
