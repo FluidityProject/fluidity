@@ -3542,7 +3542,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## ***UNDER TESTING***
+         ## ***UNDER TESTING***
          ## Calculate the stream function of 2D incompressible flow. for multiply connected domains
          ## Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
          ## Requires a continuous mesh.
