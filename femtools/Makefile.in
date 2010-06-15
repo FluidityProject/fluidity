@@ -368,7 +368,7 @@ Reference_Counting.o: Global_Parameters.o \
 Fields_Data_Types.o: Global_Parameters.o Picker_Data_Types.o \
   Shape_Functions.o Sparse_Tools.o Reference_Counting.o
 
-Multigrid.o: Sparse_Tools.o Petsc_Tools.o Parallel_Tools.o 
+Multigrid.o: Sparse_Tools.o Petsc_Tools.o Parallel_Tools.o Sparse_Tools_Petsc.o
 
 Parallel_fields.o: Fields_Allocates.o Fields_Base.o Fields_Data_Types.o \
   Parallel_Tools.o Halos_Communications.o Halos_Ownership.o Halos_Numbering.o \
