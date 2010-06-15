@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Detectors with adaptivity in parallel</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>mpiexec -n 2 fluidity -l detectors.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="detector" language="python">from fluidity_tools import stat_parser
+detector = stat_parser("detectors.detectors")</variable>
+  </variables>
+  <pass_tests>
+    <test name="tracerD1" language="python">import fluidity_tools
+
+vals = detector["Water"]["Tracer"]["D1"]
+print vals
+fluidity_tools.compare_variables(vals, [-0.5 for i in range(len(vals))], 1.0e-12)</test>
+    <test name="tracerD2" language="python">import fluidity_tools
+
+vals = detector["Water"]["Tracer"]["D2"]
+print vals
+fluidity_tools.compare_variables(vals, [0.5 for i in range(len(vals))], 1.0e-12)</test>
+    <test name="tracerD3" language="python">import fluidity_tools
+
+vals = detector["Water"]["Tracer"]["D3"]
+print vals
+fluidity_tools.compare_variables(vals, [0.0 for i in range(len(vals))], 1.0e-12)</test>
+    <test name="tracerD4" language="python">import fluidity_tools
+
+vals = detector["Water"]["Tracer"]["D4"]
+print vals
+fluidity_tools.compare_variables(vals, [0.0 for i in range(len(vals))], 1.0e-12)</test>
+    <test name="velocityD1" language="python">import fluidity_tools
+
+vals = detector["Water"]["Velocity"]["D1"]
+print vals
+fluidity_tools.compare_variables(vals[0, :], [0.0 for i in range(vals.shape[1])], 1.0e-12)
+fluidity_tools.compare_variables(vals[1, :], [-0.5 for i in range(vals.shape[1])], 1.0e-12)</test>
+    <test name="velocityD2" language="python">import fluidity_tools
+
+vals = detector["Water"]["Velocity"]["D2"]
+print vals
+fluidity_tools.compare_variables(vals[0, :], [0.0 for i in range(vals.shape[1])], 1.0e-12)
+fluidity_tools.compare_variables(vals[1, :], [0.5 for i in range(vals.shape[1])], 1.0e-12)</test>
+    <test name="velocityD3" language="python">import fluidity_tools
+
+vals = detector["Water"]["Velocity"]["D3"]
+print vals
+fluidity_tools.compare_variables(vals[0, :], [-0.5 for i in range(vals.shape[1])], 1.0e-12)
+fluidity_tools.compare_variables(vals[1, :], [0.0 for i in range(vals.shape[1])], 1.0e-12)</test>
+    <test name="velocityD4" language="python">import fluidity_tools
+
+vals = detector["Water"]["Velocity"]["D4"]
+print vals
+fluidity_tools.compare_variables(vals[0, :], [0.5 for i in range(vals.shape[1])], 1.0e-12)
+fluidity_tools.compare_variables(vals[1, :], [0.0 for i in range(vals.shape[1])], 1.0e-12)</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
