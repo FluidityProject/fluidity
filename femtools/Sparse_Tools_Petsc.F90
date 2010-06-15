@@ -167,7 +167,8 @@ module sparse_tools_petsc
      size, block_size, blocks, entries, &
      zero, addto, addto_diag, scale, &
      extract_diagonal, assemble, incref_petsc_csr_matrix, &
-     ptap, mult, mult_T, dump_matrix
+     ptap, mult, mult_T, dump_matrix, &
+     csr2petsc_csr
 
 contains
 
@@ -1099,7 +1100,46 @@ contains
     b=PetscNumberingCreateVec(A%row_numbering)
     call DumpMatrixEquation(name, x0, A%M, b)
     
-    end subroutine dump_matrix
+  end subroutine dump_matrix
+    
+  function csr2petsc_csr(matrix) result (A)
+    type(csr_matrix), intent(in):: matrix
+    type(petsc_csr_matrix):: A
+    
+    Mat:: M
+    type(petsc_numbering_type):: row_numbering, column_numbering
+    logical, dimension(:), pointer:: inactive_mask
+    integer, dimension(:), allocatable:: ghost_nodes
+    integer:: i, j
+    
+    inactive_mask => get_inactive_mask(matrix)
+    ! create list of inactive, ghost_nodes
+    if (associated(inactive_mask)) then
+      allocate( ghost_nodes(1:count(inactive_mask)) )
+      j=0
+      do i=1, size(matrix,1)
+        if (inactive_mask(i)) then
+          j=j+1
+          ghost_nodes(j)=i
+        end if
+      end do
+    else
+      allocate( ghost_nodes(1:0) )
+    end if
+    
+    ! note: the row/column_halo is passed as a pointer, and is allowed to be disassociated
+    call allocate(row_numbering, size(matrix, 1), 1, &
+        matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+    call allocate(column_numbering, size(matrix, 2), 1, &
+        matrix%sparsity%column_halo, ghost_nodes=ghost_nodes)
+    M=csr2petsc(matrix, row_numbering, column_numbering)
+    call VecDestroy(M, i)
+    call allocate(A, M, row_numbering, column_numbering, &
+      name=trim(matrix%name))
+    call deallocate(row_numbering)
+    call deallocate(column_numbering)
+    
+  end function csr2petsc_csr
   
 #include "Reference_count_petsc_csr_matrix.F90"
 end module sparse_tools_petsc

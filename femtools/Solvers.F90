@@ -132,7 +132,7 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   !! provide approximation the matrix (only to be used in combination with pctype='KSP')
   type(csr_matrix), optional, intent(in) :: preconditioner_matrix
   !! prolongator to be used at the first level of 'mg'
-  type(csr_matrix), optional, intent(in) :: prolongator
+  type(petsc_csr_matrix), optional, intent(in) :: prolongator
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
   !! internal smoothing option
@@ -423,7 +423,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   type(petsc_csr_matrix), intent(inout) :: matrix
   character(len=*), optional, intent(in) :: option_path
   !! prolongator to be used at the first level of 'mg'
-  type(csr_matrix), optional, intent(in) :: prolongator
+  type(petsc_csr_matrix), optional, intent(in) :: prolongator
   !! surface_node_list for internal smoothing
   integer, dimension(:), optional, intent(in) :: surface_node_list
 
@@ -666,7 +666,7 @@ logical, optional, intent(in):: startfromzero_in
 !! provide approximation the matrix (only to be used in combination with pctype='KSP')
 type(csr_matrix), optional, intent(in) :: preconditioner_matrix
 !! prolongator to be used at the first level of 'mg'
-type(csr_matrix), optional, intent(in) :: prolongator
+type(petsc_csr_matrix), optional, intent(in) :: prolongator
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 integer, optional, intent(in) :: internal_smoothing_option
@@ -956,7 +956,7 @@ logical, optional, intent(in):: startfromzero_in
 
 !! additional info for "mg" preconditioner:
 !! prolongator to be used at the first level of 'mg'
-type(csr_matrix), optional, intent(in) :: prolongator
+type(petsc_csr_matrix), optional, intent(in) :: prolongator
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 
@@ -1456,7 +1456,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! if true overrides what is set in the options:
     logical, optional, intent(in):: startfromzero_in
     ! prolongator to be used at the first level of 'mg'
-    type(csr_matrix), optional, intent(in) :: prolongator
+    type(petsc_csr_matrix), optional, intent(in) :: prolongator
     ! additional information for multigrid smoother:
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
@@ -1498,7 +1498,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! if true overrides what is set in the options:
     logical, optional, intent(in):: startfromzero_in
     ! prolongator to be used at the first level of 'mg'
-    type(csr_matrix), optional, intent(in) :: prolongator
+    type(petsc_csr_matrix), optional, intent(in) :: prolongator
     ! additional information for multigrid smoother:
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
@@ -1643,7 +1643,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
   Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
   ! additional information for multigrid smoother:
-  type(csr_matrix), optional, intent(in) :: prolongator
+  type(petsc_csr_matrix), optional, intent(in) :: prolongator
   integer, dimension(:), optional, intent(in) :: surface_node_list
   type(csr_matrix), optional, intent(in) :: matrix_csr
   integer, optional, intent(in) :: internal_smoothing_option

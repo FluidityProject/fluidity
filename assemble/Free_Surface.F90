@@ -565,8 +565,9 @@ contains
   !! to implement vertical lumping if the "mg" preconditioner is selected.
   type(state_type), intent(in):: state
   type(mesh_type), intent(in):: mesh
-  type(csr_matrix):: vertical_prolongator
+  type(petsc_csr_matrix):: vertical_prolongator
     
+    type(csr_matrix):: csr_vertical_prolongator
     type(scalar_field), pointer:: topdis
     type(vector_field), pointer:: positions, vertical_normal
     type(integer_set):: owned_surface_nodes
@@ -586,14 +587,15 @@ contains
       surface_element_list=surface_element_list, &
       surface_node_list=surface_node_list)
     
-    if (IsParallel()) then
-      assert( associated(mesh%halos) )
-      vertical_prolongator=VerticalProlongationOperator( &
+
+    csr_vertical_prolongator=VerticalProlongationOperator( &
          mesh, positions, vertical_normal, surface_element_list)
-      ! note that in surface_positions the non-owned free surface nodes may be inbetween
-      ! the reduce_columns option should have removed those however
-      ! with debugging perform test to check if this is the case:
 #ifdef DDEBUG
+    ! note that in surface_positions the non-owned free surface nodes may be inbetween
+    ! the reduce_columns option should have removed those however
+    ! with debugging perform test to check if this is the case:
+    if (IsParallel()) then
+      assert( associated(mesh%halos) )      
       ! count n/o owned surface nodes
       call allocate(owned_surface_nodes)
       do i=1, size(surface_element_list)
@@ -610,11 +612,11 @@ contains
         FLAbort("Vertical lumping requires 2d decomposition along columns")
       end if
       call deallocate(owned_surface_nodes)
-#endif
-    else
-      vertical_prolongator=VerticalProlongationOperator( &
-         mesh, positions, vertical_normal, surface_element_list)
     end if
+#endif
+
+    vertical_prolongator=csr2petsc_csr(csr_vertical_prolongator)
+    call deallocate(csr_vertical_prolongator)
 
   end function vertical_prolongator_from_free_surface
   

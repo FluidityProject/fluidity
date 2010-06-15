@@ -122,7 +122,7 @@
     use fields
     use state_module
     use elements
-    use sparse_tools
+    use sparse_tools_petsc
     use read_triangle
     use sparsity_patterns
     use boundary_conditions
@@ -139,7 +139,7 @@
     type(scalar_field) :: error
     type(scalar_field), pointer :: topdis
     type(mesh_type) :: top_surface_mesh
-    type(csr_matrix) :: vprolongator
+    type(petsc_csr_matrix) :: vprolongator
     integer, dimension(:), pointer :: top_surface_node_list => null()
     integer, dimension(:), pointer :: top_surface_element_list => null()
     !character(len=OPTION_PATH_LEN) solver_option_path

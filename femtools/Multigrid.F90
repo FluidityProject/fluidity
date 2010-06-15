@@ -4,6 +4,7 @@
 module multigrid
 use Petsc_Tools
 use Sparse_tools
+use sparse_tools_petsc
 use FLDebug
 use spud
 use futils
@@ -229,7 +230,7 @@ Mat, intent(in):: matrix
 !! will be deallocated
 integer, intent(out):: ierror
 !! use external prolongator at the finest level
-type(csr_matrix), optional, intent(in):: external_prolongator
+type(petsc_csr_matrix), optional, intent(in):: external_prolongator
 !! if present, use additve smoother that solves the eliptic problem with 
 !! the solution of the last multigrid iteration at the top surface as
 !! dirichlet boundary condition
@@ -364,7 +365,7 @@ Mat, intent(in):: matrix
 !! will be deallocated
 integer, intent(out):: ierror
 !! use external prolongator at the finest level
-type(csr_matrix), optional, intent(in):: external_prolongator
+type(petsc_csr_matrix), optional, intent(in):: external_prolongator
 !! Don't do smoothing on the top level
 logical, intent(in), optional :: no_top_smoothing
 !! option to prevent a direct solve at the coarsest level
@@ -384,7 +385,7 @@ logical, optional, intent(in) :: has_null_space
   PetscObject:: myPETSC_NULL_OBJECT
   integer, allocatable, dimension(:):: contexts
   integer i, j, ri, nolevels, m, n, top_level
-  integer nosmd, nosmu, clustersize
+  integer nosmd, nosmu, clustersize, no_external_prolongators
   logical forgetlastone
   logical lno_top_smoothing
 
@@ -411,6 +412,12 @@ logical, optional, intent(in) :: has_null_space
     !       its transpose is the restriction between level i and level i+1
     allocate(matrices(1:maxlevels), prolongators(1:maxlevels-1), &
       contexts(1:maxlevels-1))
+      
+    if (present(external_prolongator)) then
+      no_external_prolongators=1
+    else
+      no_external_prolongators=0
+    end if
 
     forgetlastone=.false.
     matrices(1)=matrix
@@ -418,7 +425,7 @@ logical, optional, intent(in) :: has_null_space
       ewrite(3,*) '---------------------'
       ewrite(3,*) 'coarsening from level',i,' to ',i+1
       if (i==1 .and. present(external_prolongator)) then
-         prolongators(i)=csr2petsc(external_prolongator)
+         prolongators(i)=external_prolongator%M
          ewrite(2,*) "Using provided external prolongator"
          ewrite(2,*) "Coarsening from", size(external_prolongator,1), &
            "to", size(external_prolongator,2), "nodes"
@@ -437,7 +444,7 @@ logical, optional, intent(in) :: has_null_space
           ewrite(0,*) 'WARNING: mg preconditioner setup failed'          
           ewrite(0,*) 'This probably means the matrix is not suitable for it.'
         end if
-        do j=1, i-1
+        do j=1+no_external_prolongators, i-1
           call MatDestroy(prolongators(j), ierr)
           call MatDestroy(matrices(j), ierr)
         end do
@@ -566,7 +573,9 @@ logical, optional, intent(in) :: has_null_space
       ! This won't actually destroy them, as they are still refered to
       ! as interpolators and restrictors. PETSc will destroy them once
       ! these references are destroyed in KSP/PCDestroy:
-      call MatDestroy(prolongators(ri), ierr)
+      if (ri>no_external_prolongators) then
+        call MatDestroy(prolongators(ri), ierr)
+      end if
       
     end do
     

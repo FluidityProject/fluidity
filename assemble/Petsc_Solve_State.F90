@@ -69,7 +69,7 @@ contains
     character(len=*), optional, intent(in):: option_path
     
     integer, dimension(:), pointer:: surface_nodes
-    type(csr_matrix):: prolongator
+    type(petsc_csr_matrix):: prolongator
     character(len=OPTION_PATH_LEN):: solver_option_path
     
     type(mesh_type), pointer:: linear_mesh
@@ -131,7 +131,7 @@ contains
     
     type(mesh_type), pointer:: linear_mesh
     integer, dimension(:), pointer:: surface_nodes
-    type(csr_matrix):: prolongator
+    type(petsc_csr_matrix):: prolongator
     character(len=OPTION_PATH_LEN):: solver_option_path
     
     call petsc_solve_state_setup(solver_option_path, state, x, &
@@ -241,33 +241,43 @@ contains
   ! order pn meshes. This can be used as the first stage prolongator
   ! in the "mg" multigrid preconditioner
     type(mesh_type), intent(in):: p1_mesh, pn_mesh
-    type(csr_matrix):: P
+    type(petsc_csr_matrix):: P
     
-    type(csr_sparsity):: sparsity
     real, dimension(:), pointer:: Prow
-    integer, dimension(:), pointer:: p1_nodes, pn_nodes, Prow_m
-    integer:: rows, columns, entries, nloc
+    integer, dimension(:), allocatable:: onnz, dnnz
+    integer, dimension(:), pointer:: p1_nodes, pn_nodes
+    integer:: rows, columns
     integer:: i, j, k, node, ele
     
     rows=nowned_nodes(pn_mesh)
     columns=node_count(p1_mesh)
-    ! need to adjust this for n>2
-    nloc=ele_loc(p1_mesh,1)
-    entries=rows*ele_loc(p1_mesh,1)
+    allocate(dnnz(1:rows), onnz(1:rows))    
     
-    call allocate(sparsity, rows, columns, entries, name="HigherOrderProlongatorSparsity")
-    j=1
-    do i=1, size(sparsity%findrm)
-      sparsity%findrm(i)=j
-      j=j+nloc
+    dnnz=0
+    onnz=0
+    do ele=1, ele_count(pn_mesh)
+      pn_nodes => ele_nodes(pn_mesh, ele)
+      p1_nodes => ele_nodes(p1_mesh, ele)
+      do j=1, size(pn_nodes)
+        node=pn_nodes(j)
+        if (node_owned(pn_mesh, node)) then
+          do k=1, size(p1_nodes)
+            if (node_owned(p1_mesh, node)) then
+              dnnz(node)=dnnz(node)+1
+            else
+              onnz(node)=onnz(node)+1
+            end if
+          end do
+        end if
+      end do
     end do
-    if (associated(p1_mesh%halos)) then
-      sparsity%column_halo => p1_mesh%halos(1)
-      call incref(sparsity%column_halo)
-    end if
       
-    call allocate(P, sparsity, name="HigherOrderProlongator")
-    call deallocate(sparsity)
+    call allocate(P, rows, columns, dnnz, onnz, (/ 1, 1 /), name="HigherOrderProlongator")
+    if (associated(p1_mesh%halos)) then
+      P%column_halo => p1_mesh%halos(1)
+      call incref(P%column_halo)
+    end if
+    call zero(P)
     
     do ele=1, ele_count(pn_mesh)
       pn_nodes => ele_nodes(pn_mesh, ele)
@@ -275,12 +285,9 @@ contains
       do j=1, size(pn_nodes)
         node=pn_nodes(j)
         if (node_owned(pn_mesh, node)) then
-          Prow_m => row_m_ptr(P, node)
-          Prow_m = p1_nodes
-          Prow => row_val_ptr(P, node)        
           do k=1, size(p1_nodes)
-            Prow(k)=eval_shape(p1_mesh%shape, k, &
-                    local_coords(j, pn_mesh%shape))
+            call addto(P, 1, 1, node, p1_nodes(k), eval_shape(p1_mesh%shape, k, &
+                    local_coords(j, pn_mesh%shape)))
           end do
         end if
       end do
