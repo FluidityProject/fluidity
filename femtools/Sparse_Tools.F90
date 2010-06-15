@@ -395,6 +395,10 @@ module sparse_tools
      module procedure csr_reset_inactive
   end interface
     
+  interface has_solver_cache
+     module procedure csr_has_solver_cache, block_csr_has_solver_cache
+  end interface       
+    
   interface destroy_solver_cache
      module procedure csr_destroy_solver_cache, block_csr_destroy_solver_cache
   end interface
@@ -418,7 +422,7 @@ module sparse_tools
        & addto_diag, set_diag,  set, val, ival, dense, dense_i, wrap, matmul_T,&
        & matrix2file, mmwrite, mmread, transpose, sparsity_sort,&
        & sparsity_merge, scale, set_inactive, get_inactive_mask, &
-       & reset_inactive, destroy_solver_cache
+       & reset_inactive, has_solver_cache, destroy_solver_cache
        
   public :: posinm, posinm_legacy, posinmc_legacy
 
@@ -2722,6 +2726,32 @@ END SUBROUTINE POSINM_COLOUR
     end if
   
   end function has_inactive
+  
+  pure function csr_has_solver_cache(matrix)
+    logical :: csr_has_solver_cache
+    type(csr_matrix), intent(in) :: matrix
+    
+    if (associated(matrix%ksp)) then
+      csr_has_solver_cache = matrix%ksp/=PETSC_NULL_OBJECT
+    else
+      ! this should only be possible for a csr_matrix returned from block()
+      csr_has_solver_cache = .false.
+    end if
+    
+  end function csr_has_solver_cache
+  
+  pure function block_csr_has_solver_cache(matrix)
+    logical :: block_csr_has_solver_cache
+    type(block_csr_matrix), intent(in) :: matrix
+    
+    if (associated(matrix%ksp)) then
+      block_csr_has_solver_cache = matrix%ksp/=PETSC_NULL_OBJECT
+    else
+      ! don't think this is possible, but hey
+      block_csr_has_solver_cache = .false.
+    end if
+    
+  end function block_csr_has_solver_cache
   
   subroutine csr_destroy_solver_cache(matrix)
     type(csr_matrix), intent(inout) :: matrix

@@ -74,7 +74,7 @@ contains
     integer:: i
     
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x, option_path=option_path)
+      state, x, has_solver_cache(matrix), option_path=option_path)
     
     if (associated(prolongators)) then
     
@@ -123,8 +123,9 @@ contains
     character(len=OPTION_PATH_LEN):: solver_option_path
     integer:: i
     
+    ! no solver cache for petsc_csr_matrices at the mo'
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x, option_path=option_path)
+      state, x, .false., option_path=option_path)
     
     if (associated(prolongators)) then
     
@@ -157,7 +158,7 @@ contains
   end subroutine petsc_solve_scalar_state_petsc_csr
     
   subroutine petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-    state, x, option_path)
+    state, x, matrix_has_solver_cache, option_path)
     ! sets up monitors and returns solver_option_path,
     ! and prolongators and surface_nodes to be used in "mg" preconditioner
     character(len=*), intent(out):: solver_option_path
@@ -166,6 +167,7 @@ contains
     !
     type(state_type), intent(in):: state
     type(scalar_field), intent(in):: x
+    logical, intent(in):: matrix_has_solver_cache
     character(len=*), intent(in), optional:: option_path
     
     type(vector_field):: positions
@@ -205,7 +207,9 @@ contains
     vertical_lumping = have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping')
     no_prolongators = count( (/ higher_order_lumping, vertical_lumping /) )
     
-    if (no_prolongators>0) then
+    ! if the solver context has been cached from last time, we don't
+    ! need to recreate the prolongation operators for "mg"
+    if (no_prolongators>0 .and. .not. matrix_has_solver_cache) then
       allocate( prolongators(1:no_prolongators) )
       if (higher_order_lumping) then
         call find_linear_parent_mesh(state, x%mesh, linear_mesh)
