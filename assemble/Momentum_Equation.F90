@@ -781,7 +781,7 @@
           call profiler_toc(u, "assembly")
 
           ! solve for the change in velocity
-          call petsc_solve(delta_u, big_m, mom_rhs)
+          call petsc_solve(delta_u, big_m, mom_rhs, state(istate))
           do i = 1, u%dim
             ewrite_minmax(delta_u%val(i)%ptr(:))
           end do

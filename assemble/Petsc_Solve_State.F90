@@ -48,7 +48,9 @@ use free_surface_module
 implicit none
 
 interface petsc_solve
-   module procedure petsc_solve_scalar_state, petsc_solve_scalar_state_petsc_csr
+   module procedure petsc_solve_scalar_state, &
+       petsc_solve_scalar_state_petsc_csr, &
+       petsc_solve_vector_state_petsc_csr
 end interface
   
 private
@@ -74,7 +76,7 @@ contains
     integer:: i
     
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x, has_solver_cache(matrix), option_path=option_path)
+      state, x%mesh, 1, x%option_path, has_solver_cache(matrix), option_path=option_path)
     
     if (associated(prolongators)) then
     
@@ -125,7 +127,7 @@ contains
     
     ! no solver cache for petsc_csr_matrices at the mo'
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x, .false., option_path=option_path)
+      state, x%mesh, 1, x%option_path, .false., option_path=option_path)
     
     if (associated(prolongators)) then
     
@@ -156,9 +158,48 @@ contains
     end if
     
   end subroutine petsc_solve_scalar_state_petsc_csr
+  
+  subroutine petsc_solve_vector_state_petsc_csr(x, matrix, rhs, state, &
+    option_path)
+    !!< Solve a linear system the nice way.
+    !!< This version uses state to pull geometric information from
+    !!< if required for the specified options.
+    type(vector_field), intent(inout) :: x
+    type(vector_field), intent(in) :: rhs
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    type(state_type), intent(in):: state
+    !! override x%option_path if provided:
+    character(len=*), optional, intent(in):: option_path
+    
+    integer, dimension(:), pointer:: surface_nodes
+    type(petsc_csr_matrix), dimension(:), pointer:: prolongators
+    character(len=OPTION_PATH_LEN):: solver_option_path
+    integer:: i
+    
+    ! no solver cache for petsc_csr_matrices at the mo'
+    call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
+      state, x%mesh, x%dim, x%option_path, .false., option_path=option_path)
+    
+    if (associated(prolongators)) then
+    
+      call petsc_solve(x, matrix, rhs, &
+           prolongators=prolongators, option_path=option_path)
+      
+      do i=1, size(prolongators)
+        call deallocate(prolongators(i))
+      end do
+      deallocate(prolongators)
+    
+    else
+    
+      call petsc_solve(x, matrix, rhs, option_path=option_path)
+      
+    end if
+    
+  end subroutine petsc_solve_vector_state_petsc_csr
     
   subroutine petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-    state, x, matrix_has_solver_cache, option_path)
+    state, mesh, field_dim, field_option_path, matrix_has_solver_cache, option_path)
     ! sets up monitors and returns solver_option_path,
     ! and prolongators and surface_nodes to be used in "mg" preconditioner
     character(len=*), intent(out):: solver_option_path
@@ -166,8 +207,12 @@ contains
     integer, dimension(:), pointer:: surface_nodes
     !
     type(state_type), intent(in):: state
-    type(scalar_field), intent(in):: x
+    type(mesh_type), intent(in):: mesh ! mesh we're solving on
+    integer, intent(in):: field_dim ! dimension of the field
+    ! option_path of the provided field:
+    character(len=*), intent(in):: field_option_path
     logical, intent(in):: matrix_has_solver_cache
+    ! optional option_path that may be provided to override field option_path
     character(len=*), intent(in), optional:: option_path
     
     type(vector_field):: positions
@@ -180,7 +225,7 @@ contains
     if (present(option_path)) then
        solver_option_path=complete_solver_option_path(option_path)
     else
-       solver_option_path=complete_solver_option_path(x%option_path)
+       solver_option_path=complete_solver_option_path(field_option_path)
     end if
     
     call get_option(trim(solver_option_path)// &
@@ -193,7 +238,7 @@ contains
     
     if (have_option(trim(solver_option_path)// &
         '/diagnostics/monitors/iteration_vtus')) then
-       positions=get_nodal_coordinate_field(state, x%mesh)
+       positions=get_nodal_coordinate_field(state, mesh)
        ! creates its own reference that's cleaned up in petsc_solve:
        call petsc_solve_monitor_iteration_vtus(positions)
        ! so we're free to get rid of ours
@@ -212,13 +257,16 @@ contains
     if (no_prolongators>0 .and. .not. matrix_has_solver_cache) then
       allocate( prolongators(1:no_prolongators) )
       if (higher_order_lumping) then
-        call find_linear_parent_mesh(state, x%mesh, linear_mesh)
-        prolongators(1) = higher_order_prolongator(linear_mesh, x%mesh)
+        call find_linear_parent_mesh(state, mesh, linear_mesh)
+        prolongators(1) = higher_order_prolongator(linear_mesh, mesh, field_dim)
       end if
       if (vertical_lumping) then
-        prolongators(no_prolongators) = vertical_prolongator_from_free_surface(state, x%mesh)
+        if (field_dim>1) then
+          FLExit("Cannot use vertical_lumping for vector fields")
+        end if
+        prolongators(no_prolongators) = vertical_prolongator_from_free_surface(state, mesh)
         if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping/internal_smoother')) then
-          surface_nodes => free_surface_nodes(state, x%mesh)
+          surface_nodes => free_surface_nodes(state, mesh)
         end if
       end if
     end if
@@ -246,22 +294,23 @@ contains
   
   end function petsc_solve_needs_state
   
-  
-  function higher_order_prolongator(p1_mesh, pn_mesh) result (P)
+  function higher_order_prolongator(p1_mesh, pn_mesh, ncomponents) result (P)
   ! Creates the linear operator that extrapolates p1 fields to higher
   ! order pn meshes. This can be used as the first stage prolongator
   ! in the "mg" multigrid preconditioner
     type(mesh_type), intent(in):: p1_mesh, pn_mesh
+    integer, intent(in):: ncomponents
     type(petsc_csr_matrix):: P
     
     integer, dimension(:), allocatable:: onnz, dnnz
     integer, dimension(:), pointer:: p1_nodes, pn_nodes
     integer:: rows, columns
-    integer:: j, k, node, ele
+    integer:: i, j, k, node, ele
+    real:: val
     
     rows=nowned_nodes(pn_mesh)
     columns=node_count(p1_mesh)
-    allocate(dnnz(1:rows), onnz(1:rows))    
+    allocate(dnnz(1:rows*ncomponents), onnz(1:rows*ncomponents))
     
     dnnz=0
     onnz=0
@@ -272,7 +321,7 @@ contains
         node=pn_nodes(j)
         if (node_owned(pn_mesh, node)) then
           do k=1, size(p1_nodes)
-            if (node_owned(p1_mesh, node)) then
+            if (node_owned(p1_mesh, p1_nodes(k))) then
               dnnz(node)=dnnz(node)+1
             else
               onnz(node)=onnz(node)+1
@@ -281,8 +330,13 @@ contains
         end if
       end do
     end do
+    ! copy over to other components, if any
+    do i=2, ncomponents
+      dnnz( (i-1)*rows+1:i*rows )=dnnz(1:rows)
+      onnz( (i-1)*rows+1:i*rows )=onnz(1:rows)
+    end do
       
-    call allocate(P, rows, columns, dnnz, onnz, (/ 1, 1 /), name="HigherOrderProlongator")
+    call allocate(P, rows, columns, dnnz, onnz, (/ ncomponents, ncomponents /), name="HigherOrderProlongator")
     if (associated(p1_mesh%halos)) then
       P%column_halo => p1_mesh%halos(1)
       call incref(P%column_halo)
@@ -296,12 +350,16 @@ contains
         node=pn_nodes(j)
         if (node_owned(pn_mesh, node)) then
           do k=1, size(p1_nodes)
-            call addto(P, 1, 1, node, p1_nodes(k), eval_shape(p1_mesh%shape, k, &
-                    local_coords(j, pn_mesh%shape)))
+            val=eval_shape(p1_mesh%shape, k, local_coords(j, pn_mesh%shape))
+            do i=1, ncomponents
+              call addto(P, i, i, node, p1_nodes(k), val)
+            end do
           end do
         end if
       end do
     end do
+      
+    call assemble(P)
     
   end function higher_order_prolongator
   

@@ -463,13 +463,16 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   
 end subroutine petsc_solve_scalar_petsc_csr
 
-subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
+subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
+  prolongators)
   !!< Solve a linear system the nice way. Options for this
   !!< come via the options mechanism. 
   type(vector_field), intent(inout) :: x
   type(vector_field), intent(in) :: rhs
   type(petsc_csr_matrix), intent(inout) :: matrix
   character(len=*), optional, intent(in) :: option_path
+  !! prolongators to be used at the first levels of 'mg'
+  type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 
   KSP ksp
   Vec y, b
@@ -488,7 +491,8 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path)
   ! setup PETSc object and petsc_numbering from options and 
   call petsc_solve_setup_petsc_csr(y, b, ksp, &
         solver_option_path, lstartfromzero, &
-        matrix, vfield=x, option_path=option_path)
+        matrix, vfield=x, option_path=option_path, &
+        prolongators=prolongators)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_vector_fields(y, b, x, rhs, &
