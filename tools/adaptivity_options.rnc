@@ -977,6 +977,14 @@ hr_adaptivity =
             ## 
             ## Turn on more verbose output for use when debugging Zoltan.
             element zoltan_debug {
+               ## Turn on graph checking.
+               ## When using ParMETIS or PT-Scotch options for turning on
+               ## graph checking are provided by Zoltan.
+               ## 1 - on process checking,
+               ## 2 - full checking (very slow)
+               element graph_checking {
+                   "1"|"2"
+               }?,
                ## Print out a dump file of the edge counts.
                ## Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
                ## This option dumps the edge count for each owned node.

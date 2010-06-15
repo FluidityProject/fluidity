@@ -1179,6 +1179,19 @@ and improved. Range is 0 to 1, with default 0.6</a:documentation>
 
 Turn on more verbose output for use when debugging Zoltan.</a:documentation>
               <optional>
+                <element name="graph_checking">
+                  <a:documentation>Turn on graph checking.
+When using ParMETIS or PT-Scotch options for turning on
+graph checking are provided by Zoltan.
+1 - on process checking,
+2 - full checking (very slow)</a:documentation>
+                  <choice>
+                    <value>1</value>
+                    <value>2</value>
+                  </choice>
+                </element>
+              </optional>
+              <optional>
                 <element name="dump_edge_counts">
                   <a:documentation>Print out a dump file of the edge counts.
 Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
