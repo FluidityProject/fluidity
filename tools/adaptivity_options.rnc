@@ -992,12 +992,33 @@ hr_adaptivity =
                   empty
                }?,
                ## Print out a dump file of node sizes.
-               ## Zoltan needs to be told how much data is associated with each node.
+               ## Zoltan needs to be told how much data is associated with each node when
+               ## doing phase one migration.
                ## Here we dump the size calculated by zoltan_cb_pack_node_sizes for each
                ## owned node.
                ## Dump is to the current directory, in a file called node_sizes_*.dat
                ## One dump file is created for each rank.
                element dump_node_sizes {
+                  empty
+               }?,
+               ## Print out a dump file of halo node sizes.
+               ## Zoltan needs to be told how much data is associated with each halo node when
+               ## doing phase two migration.
+               ## Here we dump the size calculated by zoltan_cb_pack_halo_node_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called halo_node_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_halo_node_sizes {
+                  empty
+               }?,
+               ## Print out a dump file of field sizes.
+               ## Zoltan needs to be told how much data is associated with the fields for each 
+               ## element when we're transfering fields.
+               ## Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
+               ## owned node.
+               ## Dump is to the current directory, in a file called field_sizes_*.dat
+               ## One dump file is created for each rank.
+               element dump_field_sizes {
                   empty
                }?
             }?
