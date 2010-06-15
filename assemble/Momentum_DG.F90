@@ -2580,7 +2580,7 @@ contains
 
   subroutine momentum_DG_check_options
     
-    character(len=OPTION_PATH_LEN) :: phase_path
+    character(len=OPTION_PATH_LEN) :: phase_path, velocity_path, dg_path
     integer :: i
     integer :: nstates ! number of states
 
@@ -2589,16 +2589,21 @@ contains
     state_loop: do i=0, nstates-1
 
        phase_path="/material_phase["//int2str(i)//"]"
+       velocity_path=trim(phase_path)//"/vector_field::Velocity/prognostic"
+       dg_path=trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin"
        
-       if (have_option(trim(phase_path)//"/vector_field::Velocity&
-            &/prognostic/spatial_discretisation/discontinuous_galerkin")&
-            & .and. have_option(trim(phase_path)//"/vector_field::Velocity&
-            &/prognostic/solver/iterative_method::cg")) then
-          ewrite(0,*) "Warning: You have seleted conjugate gradient &
-               &as a solver for"
-          ewrite(0,*) "    "//trim(phase_path)//&
-               &"/vector_field::Velocity"
-          ewrite(0,*) "which is probably an asymmetric matrix"
+       if (have_option(dg_path)) then
+          if (have_option(trim(velocity_path)//"/solver/iterative_method::cg") &
+                &.and. &
+                &(  (.not. have_option(trim(dg_path)//"/advection_scheme/none")) &
+                &    .or. have_option("/physical_parameters/coriolis"))) then
+            
+             ewrite(0,*) "Warning: You have selected conjugate gradient &
+                &as a solver for"
+             ewrite(0,*) "    "//trim(phase_path)//&
+                &"/vector_field::Velocity"
+             ewrite(0,*) "which is probably an asymmetric matrix"
+          end if
     
        end if
 
