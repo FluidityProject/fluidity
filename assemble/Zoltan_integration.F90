@@ -2039,6 +2039,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
              end if
 
           end if
+
+          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/scotch")) then
+             ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+          end if
+
       else
          ! Use the Zoltan graph partitioner by default
          ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
