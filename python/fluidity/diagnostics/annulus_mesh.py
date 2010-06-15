@@ -519,7 +519,7 @@ class RotationRemapper(Remapper):
     return calc.RotatedVector(coord, self._angle, axis = self._axis)
 
 class SlopingAnnulusTopAndBottomRemapper(Remapper):
-  def __init__(self, a, b, minZ, maxZ, thetaTop, thetaBottom):
+  def __init__(self, a, b, minZ, maxZ, phiTop, phiBottom):
     assert(b > 0.0)
     assert(maxZ > minZ)
     Remapper.__init__(self)
@@ -527,8 +527,8 @@ class SlopingAnnulusTopAndBottomRemapper(Remapper):
     self._b = b
     self._minZ = minZ
     self._maxZ = maxZ
-    self._thetaTop = thetaTop
-    self._thetaBottom = thetaBottom
+    self._phiTop = phiTop
+    self._phiBottom = phiBottom
 
     return
     
@@ -545,42 +545,42 @@ class SlopingAnnulusTopAndBottomRemapper(Remapper):
     distanceFromInnerWall = r - self._a
     distanceFromOuterWall = self._b - r
 
-    if calc.AlmostEquals(self._thetaTop, 0.0):
+    if calc.AlmostEquals(self._phiTop, 0.0):
       localMaxZ = self._maxZ
-    elif self._thetaTop > 0.0:
-      localMaxZ = self._maxZ - distanceFromOuterWall * math.tan(self._thetaTop)
+    elif self._phiTop > 0.0:
+      localMaxZ = self._maxZ - distanceFromOuterWall * math.tan(self._phiTop)
     else:
-      localMaxZ = self._maxZ + distanceFromInnerWall * math.tan(self._thetaTop)
-    if calc.AlmostEquals(self._thetaBottom, 0.0):
+      localMaxZ = self._maxZ + distanceFromInnerWall * math.tan(self._phiTop)
+    if calc.AlmostEquals(self._phiBottom, 0.0):
       localMinZ = self._minZ
-    elif self._thetaBottom > 0.0:
-      localMinZ = self._minZ + distanceFromInnerWall * math.tan(self._thetaBottom)
+    elif self._phiBottom > 0.0:
+      localMinZ = self._minZ + distanceFromInnerWall * math.tan(self._phiBottom)
     else:
-      localMinZ = self._minZ - distanceFromOuterWall * math.tan(self._thetaBottom)
+      localMinZ = self._minZ - distanceFromOuterWall * math.tan(self._phiBottom)
     
     newZ = localMinZ + (distanceFromBottom / (self._maxZ - self._minZ)) * (localMaxZ - localMinZ)
 
     return [coord[0], coord[1], newZ]
 
 class SlopingAnnulusTopRemapper(SlopingAnnulusTopAndBottomRemapper):
-  def __init__(self, a, b, minZ, maxZ, theta):
-    SlopingAnnulusTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, theta, 0.0)
+  def __init__(self, a, b, minZ, maxZ, phi):
+    SlopingAnnulusTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, phi, 0.0)
     
     return
 
 class SlopingAnnulusBottomRemapper(SlopingAnnulusTopAndBottomRemapper):
-  def __init__(self, a, b, minZ, maxZ, theta):
-    SlopingAnnulusTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, 0.0, theta)
+  def __init__(self, a, b, minZ, maxZ, phi):
+    SlopingAnnulusTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, 0.0, phi)
     
     return
     
 class CorkscrewAnnulusRemapper(Remapper):
-  def __init__(self, minZ, maxZ, theta):
+  def __init__(self, minZ, maxZ, phi):
     assert(maxZ > minZ)
     Remapper.__init__(self)
     self._minZ = minZ
     self._maxZ = maxZ
-    self._theta = theta
+    self._phi = phi
     
     return
     
@@ -591,17 +591,17 @@ class CorkscrewAnnulusRemapper(Remapper):
       assert(coord[2] >= self._minZ)
     
     r = calc.L2Norm(coord[:2])
-    theta = math.atan2(coord[1], coord[0])
+    phi = math.atan2(coord[1], coord[0])
     
-    theta += self._theta * ((coord[2] - self._minZ) / (self._maxZ - self._minZ))
+    phi += self._phi * ((coord[2] - self._minZ) / (self._maxZ - self._minZ))
     
-    newX = r * math.cos(theta)
-    newY = r * math.sin(theta)
+    newX = r * math.cos(phi)
+    newY = r * math.sin(phi)
     
     return [newX, newY, coord[2]]
     
 class SlopingCuboidTopAndBottomRemapper(Remapper):
-  def __init__(self, a, b, minZ, maxZ, thetaTop, thetaBottom):
+  def __init__(self, a, b, minZ, maxZ, phiTop, phiBottom):
     assert(b > 0.0)
     assert(maxZ > minZ)
     Remapper.__init__(self)
@@ -609,8 +609,8 @@ class SlopingCuboidTopAndBottomRemapper(Remapper):
     self._b = b
     self._minZ = minZ
     self._maxZ = maxZ
-    self._thetaTop = thetaTop
-    self._thetaBottom = thetaBottom
+    self._phiTop = phiTop
+    self._phiBottom = phiBottom
 
     return
     
@@ -625,31 +625,31 @@ class SlopingCuboidTopAndBottomRemapper(Remapper):
     distanceFromInnerWall = coord[0] - self._a
     distanceFromOuterWall = self._b - coord[0]
 
-    if calc.AlmostEquals(self._thetaTop, 0.0):
+    if calc.AlmostEquals(self._phiTop, 0.0):
       localMaxZ = self._maxZ
-    elif self._thetaTop > 0.0:
-      localMaxZ = self._maxZ - distanceFromOuterWall * math.tan(self._thetaTop)
+    elif self._phiTop > 0.0:
+      localMaxZ = self._maxZ - distanceFromOuterWall * math.tan(self._phiTop)
     else:
-      localMaxZ = self._maxZ + distanceFromInnerWall * math.tan(self._thetaTop)
-    if calc.AlmostEquals(self._thetaBottom, 0.0):
+      localMaxZ = self._maxZ + distanceFromInnerWall * math.tan(self._phiTop)
+    if calc.AlmostEquals(self._phiBottom, 0.0):
       localMinZ = self._minZ
-    elif self._thetaBottom > 0.0:
-      localMinZ = self._minZ + distanceFromInnerWall * math.tan(self._thetaBottom)
+    elif self._phiBottom > 0.0:
+      localMinZ = self._minZ + distanceFromInnerWall * math.tan(self._phiBottom)
     else:
-      localMinZ = self._minZ - distanceFromOuterWall * math.tan(self._thetaBottom)
+      localMinZ = self._minZ - distanceFromOuterWall * math.tan(self._phiBottom)
     newZ = localMinZ + (distanceFromBottom / (self._maxZ - self._minZ)) * (localMaxZ - localMinZ)
 
     return [coord[0], coord[1], newZ]
     
 class SlopingCuboidTopRemapper(SlopingCuboidTopAndBottomRemapper):
-  def __init__(self, a, b, minZ, maxZ, theta):
-    SlopingCuboidTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, theta, 0.0)
+  def __init__(self, a, b, minZ, maxZ, phi):
+    SlopingCuboidTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, phi, 0.0)
     
     return
 
 class SlopingCuboidBottomRemapper(SlopingCuboidTopAndBottomRemapper):
-  def __init__(self, a, b, minZ, maxZ, theta):
-    SlopingCuboidTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, 0.0, theta)
+  def __init__(self, a, b, minZ, maxZ, phi):
+    SlopingCuboidTopAndBottomRemapper.__init__(self, a, b, minZ, maxZ, 0.0, phi)
     
     return
 

@@ -334,7 +334,7 @@ def JoinStat(*args):
   else:
     debug.dprint("No data")
     
-  dataIndices = numpy.zeros(len(args) + 1, dtype = int)
+  dataIndices = numpy.empty(len(args) + 1, dtype = int)
   dataIndices[0] = 0
   for i, index in enumerate(endIndices):
     dataIndices[i + 1] = dataIndices[i] + index
@@ -349,7 +349,7 @@ def JoinStat(*args):
       data[key] = numpy.empty(dataIndices[-1], data[key].shape[1], dtype = arr.dtype)
     else:
       raise Exception("Unexpected data rank: " + str(len(arr.shape)))
-    data[key][:dataIndices[1]] = arr
+    data[key][:dataIndices[1]] = arr[:endIndices[0]]
     data[key][dataIndices[1]:] = calc.Nan()
   delimiter = stat.GetDelimiter()
   
