@@ -1133,7 +1133,6 @@ contains
     call allocate(column_numbering, size(matrix, 2), 1, &
         matrix%sparsity%column_halo, ghost_nodes=ghost_nodes)
     M=csr2petsc(matrix, row_numbering, column_numbering)
-    call VecDestroy(M, i)
     call allocate(A, M, row_numbering, column_numbering, &
       name=trim(matrix%name))
     call deallocate(row_numbering)

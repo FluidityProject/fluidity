@@ -69,24 +69,19 @@ contains
     character(len=*), optional, intent(in):: option_path
     
     integer, dimension(:), pointer:: surface_nodes
-    type(petsc_csr_matrix):: prolongator
+    type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
+    integer:: i
     
-    type(mesh_type), pointer:: linear_mesh
+    call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
+      state, x, option_path=option_path)
     
-    call petsc_solve_state_setup(solver_option_path, state, x, &
-      option_path=option_path)
+    if (associated(prolongators)) then
     
-    if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping')) then
-      
-      prolongator=vertical_prolongator_from_free_surface(state, x%mesh)
-      
-      if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping/internal_smoother')) then
-        
-        surface_nodes => free_surface_nodes(state, x%mesh)
+      if (associated(surface_nodes)) then
         
         call petsc_solve(x, matrix, rhs, &
-           prolongator=prolongator, &
+           prolongators=prolongators, &
            surface_node_list=surface_nodes, option_path=option_path)
            
         deallocate(surface_nodes)
@@ -94,21 +89,15 @@ contains
       else
       
         call petsc_solve(x, matrix, rhs, &
-           prolongator=prolongator, option_path=option_path)
+           prolongators=prolongators, option_path=option_path)
         
       end if
       
-      call deallocate(prolongator)
+      do i=1, size(prolongators)
+        call deallocate(prolongators(i))
+      end do
+      deallocate(prolongators)
     
-    else if (have_option(trim(solver_option_path)//'/preconditioner::mg/higher_order_lumping')) then
-    
-      call find_linear_parent_mesh(state, x%mesh, linear_mesh)
-      prolongator=higher_order_prolongator(linear_mesh, x%mesh)
-    
-      call petsc_solve(x, matrix, rhs, option_path=option_path, prolongator=prolongator)
-      
-      call deallocate(prolongator)
-      
     else
     
       call petsc_solve(x, matrix, rhs, option_path=option_path)
@@ -129,24 +118,20 @@ contains
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
     
-    type(mesh_type), pointer:: linear_mesh
     integer, dimension(:), pointer:: surface_nodes
-    type(petsc_csr_matrix):: prolongator
+    type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
+    integer:: i
     
-    call petsc_solve_state_setup(solver_option_path, state, x, &
-      option_path=option_path)
+    call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
+      state, x, option_path=option_path)
     
-    if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping')) then
-      
-      prolongator=vertical_prolongator_from_free_surface(state, x%mesh)
-      
-      if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping/internal_smoother')) then
-        
-        surface_nodes => free_surface_nodes(state, x%mesh)
+    if (associated(prolongators)) then
+    
+      if (associated(surface_nodes)) then
         
         call petsc_solve(x, matrix, rhs, &
-           prolongator=prolongator, &
+           prolongators=prolongators, &
            surface_node_list=surface_nodes, option_path=option_path)
            
         deallocate(surface_nodes)
@@ -154,21 +139,15 @@ contains
       else
       
         call petsc_solve(x, matrix, rhs, &
-           prolongator=prolongator, option_path=option_path)
+           prolongators=prolongators, option_path=option_path)
         
       end if
       
-      call deallocate(prolongator)
+      do i=1, size(prolongators)
+        call deallocate(prolongators(i))
+      end do
+      deallocate(prolongators)
     
-    else if (have_option(trim(solver_option_path)//'/preconditioner::mg/higher_order_lumping')) then
-    
-      call find_linear_parent_mesh(state, x%mesh, linear_mesh)
-      prolongator=higher_order_prolongator(linear_mesh, x%mesh)
-    
-      call petsc_solve(x, matrix, rhs, option_path=option_path, prolongator=prolongator)
-      
-      call deallocate(prolongator)
-      
     else
     
       call petsc_solve(x, matrix, rhs, option_path=option_path)
@@ -177,17 +156,24 @@ contains
     
   end subroutine petsc_solve_scalar_state_petsc_csr
     
-  subroutine petsc_solve_state_setup(solver_option_path, state, x, option_path)
-    ! sets up monitors and returns solver_option_path
+  subroutine petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
+    state, x, option_path)
+    ! sets up monitors and returns solver_option_path,
+    ! and prolongators and surface_nodes to be used in "mg" preconditioner
     character(len=*), intent(out):: solver_option_path
+    type(petsc_csr_matrix), dimension(:), pointer:: prolongators
+    integer, dimension(:), pointer:: surface_nodes
+    !
     type(state_type), intent(in):: state
     type(scalar_field), intent(in):: x
     character(len=*), intent(in), optional:: option_path
     
     type(vector_field):: positions
     type(scalar_field), pointer:: exact
+    type(mesh_type), pointer:: linear_mesh
     character(len=FIELD_NAME_LEN):: exact_field_name
-    integer:: stat
+    logical:: vertical_lumping, higher_order_lumping
+    integer:: stat, no_prolongators
     
     if (present(option_path)) then
        solver_option_path=complete_solver_option_path(option_path)
@@ -210,6 +196,27 @@ contains
        call petsc_solve_monitor_iteration_vtus(positions)
        ! so we're free to get rid of ours
        call deallocate(positions)
+    end if    
+    
+    nullify(prolongators)
+    nullify(surface_nodes)
+    
+    higher_order_lumping = have_option(trim(solver_option_path)//'/preconditioner::mg/higher_order_lumping')
+    vertical_lumping = have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping')
+    no_prolongators = count( (/ higher_order_lumping, vertical_lumping /) )
+    
+    if (no_prolongators>0) then
+      allocate( prolongators(1:no_prolongators) )
+      if (higher_order_lumping) then
+        call find_linear_parent_mesh(state, x%mesh, linear_mesh)
+        prolongators(1) = higher_order_prolongator(linear_mesh, x%mesh)
+      end if
+      if (vertical_lumping) then
+        prolongators(no_prolongators) = vertical_prolongator_from_free_surface(state, x%mesh)
+        if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping/internal_smoother')) then
+          surface_nodes => free_surface_nodes(state, x%mesh)
+        end if
+      end if
     end if
 
   end subroutine petsc_solve_state_setup
@@ -243,11 +250,10 @@ contains
     type(mesh_type), intent(in):: p1_mesh, pn_mesh
     type(petsc_csr_matrix):: P
     
-    real, dimension(:), pointer:: Prow
     integer, dimension(:), allocatable:: onnz, dnnz
     integer, dimension(:), pointer:: p1_nodes, pn_nodes
     integer:: rows, columns
-    integer:: i, j, k, node, ele
+    integer:: j, k, node, ele
     
     rows=nowned_nodes(pn_mesh)
     columns=node_count(p1_mesh)

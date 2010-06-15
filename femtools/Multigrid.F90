@@ -220,7 +220,7 @@ subroutine DestroyInternalSmoother()
 end subroutine DestroyInternalSmoother
 
 subroutine SetupMultigrid(prec, matrix, ierror, &
-  external_prolongator, surface_node_list, matrix_csr, &
+  external_prolongators, surface_node_list, matrix_csr, &
   internal_smoothing_option, has_null_space)
 !!< This subroutine sets up the multigrid preconditioner including
 !!< all options (vertical_lumping, internal_smoother)
@@ -230,7 +230,7 @@ Mat, intent(in):: matrix
 !! will be deallocated
 integer, intent(out):: ierror
 !! use external prolongator at the finest level
-type(petsc_csr_matrix), optional, intent(in):: external_prolongator
+type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongators
 !! if present, use additve smoother that solves the eliptic problem with 
 !! the solution of the last multigrid iteration at the top surface as
 !! dirichlet boundary condition
@@ -255,7 +255,7 @@ integer :: linternal_smoothing_option
   case (INTERNAL_SMOOTHING_NONE)
      !Don't apply internal smoothing, just regular mg
      call SetupSmoothedAggregation(prec, matrix, ierror, &
-          external_prolongator=external_prolongator, &
+          external_prolongators=external_prolongators, &
           has_null_space=has_null_space)
   case (INTERNAL_SMOOTHING_WRAP_SOR)
      !Apply the internal smoothing with wrapped SOR
@@ -298,7 +298,7 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(subprec, 0, subsubprec, ierr)
      call SetupSmoothedAggregation(subsubprec, matrix, ierror, &
-          external_prolongator,no_top_smoothing=.true., &
+          external_prolongators, no_top_smoothing=.true., &
           has_null_space=has_null_space)
      !set up the "internal" mg shell
      call PCCompositeGetPC(subprec, 1, subsubprec, ierr)
@@ -324,7 +324,7 @@ integer :: linternal_smoothing_option
      ! set up the vertical_lumped mg
      call PCCompositeGetPC(prec, 0, subprec, ierr)
      call SetupSmoothedAggregation(subprec, matrix, ierror, &
-          external_prolongator=external_prolongator, &
+          external_prolongators=external_prolongators, &
           has_null_space=has_null_space)
      ! set up the "internal" mg shell
      call PCCompositeGetPC(prec, 1, subprec, ierr)
@@ -355,7 +355,7 @@ PC, intent(inout):: prec
 end subroutine DestroyMultigrid
 
 subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
-  external_prolongator,no_top_smoothing, has_null_space)
+  external_prolongators,no_top_smoothing, has_null_space)
 !!< This subroutine sets up the preconditioner for using the smoothed
 !!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
@@ -365,7 +365,7 @@ Mat, intent(in):: matrix
 !! will be deallocated
 integer, intent(out):: ierror
 !! use external prolongator at the finest level
-type(petsc_csr_matrix), optional, intent(in):: external_prolongator
+type(petsc_csr_matrix), dimension(:), optional, intent(in):: external_prolongators
 !! Don't do smoothing on the top level
 logical, intent(in), optional :: no_top_smoothing
 !! option to prevent a direct solve at the coarsest level
@@ -413,8 +413,8 @@ logical, optional, intent(in) :: has_null_space
     allocate(matrices(1:maxlevels), prolongators(1:maxlevels-1), &
       contexts(1:maxlevels-1))
       
-    if (present(external_prolongator)) then
-      no_external_prolongators=1
+    if (present(external_prolongators)) then
+      no_external_prolongators=size(external_prolongators)
     else
       no_external_prolongators=0
     end if
@@ -424,11 +424,11 @@ logical, optional, intent(in) :: has_null_space
     do i=1, maxlevels-1
       ewrite(3,*) '---------------------'
       ewrite(3,*) 'coarsening from level',i,' to ',i+1
-      if (i==1 .and. present(external_prolongator)) then
-         prolongators(i)=external_prolongator%M
+      if (i<=no_external_prolongators) then
+         prolongators(i)=external_prolongators(i)%M
          ewrite(2,*) "Using provided external prolongator"
-         ewrite(2,*) "Coarsening from", size(external_prolongator,1), &
-           "to", size(external_prolongator,2), "nodes"
+         ewrite(2,*) "Coarsening from", size(external_prolongators(i),1), &
+           "to", size(external_prolongators(i),2), "nodes"
       else
          prolongators(i)=Prolongator(matrices(i), epsilon, omega, clustersize)
          epsilon=epsilon/epsilon_decay

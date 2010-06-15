@@ -207,7 +207,7 @@
        ewrite(1,*) 'with vertical lumping and internal smoother'
 
        call petsc_solve_monitor_exact(exact, error_filename='with_vl_and_is.dat')
-       call petsc_solve(psi, A, rhs, prolongator=vprolongator, &
+       call petsc_solve(psi, A, rhs, prolongators=(/ vprolongator /), &
             & surface_node_list=top_surface_node_list, &
             & internal_smoothing_option=INTERNAL_SMOOTHING_SEPARATE_SOR)
     end if
@@ -216,7 +216,7 @@
        ewrite(1,*) 'with vertical lumping and internal smoother and wrapped &
             &sor'
        call petsc_solve_monitor_exact(exact, error_filename='with_vl_and_is_wrap_sor.dat')
-       call petsc_solve(psi, A, rhs, prolongator=vprolongator, &
+       call petsc_solve(psi, A, rhs, prolongators=(/ vprolongator /), &
             & surface_node_list=top_surface_node_list, &
             & internal_smoothing_option=INTERNAL_SMOOTHING_WRAP_SOR)
     end if
@@ -225,7 +225,7 @@
        ewrite(1,*) 'with vertical lumping, no additive smoother'
 
        call petsc_solve_monitor_exact(exact, error_filename='with_vl_without_is.dat')
-       call petsc_solve(psi, A, rhs, prolongator=vprolongator)
+       call petsc_solve(psi, A, rhs, prolongators=(/ vprolongator /))
     end if
 
     if(no_vl) then
