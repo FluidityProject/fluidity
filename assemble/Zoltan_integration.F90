@@ -81,7 +81,7 @@ contains
     
     count = halo_nowned_nodes(zz_halo)
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
-       ewrite(0,*) "zoltan_cb_owned_node_count found: ", count, " nodes"
+       ewrite(1,*) "zoltan_cb_owned_node_count found: ", count, " nodes"
     end if
     ierr = ZOLTAN_OK
   end function zoltan_cb_owned_node_count
@@ -2009,7 +2009,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     subroutine set_zoltan_parameters
       integer(zoltan_int) :: ierr
-      character (len = FIELD_NAME_LEN) :: method
+      character (len = FIELD_NAME_LEN) :: method, graph_checking_level
 
       if (debug_level()>1) then
          ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
@@ -2022,8 +2022,13 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
           if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-             ! turn off graph checking as this was filling the error file with Zoltan warnings
-             ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
+             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
+                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
+             else
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             end if
           end if
 
           if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan")) then
@@ -2043,6 +2048,13 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
           if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+             ! Probably not going to want graph checking unless debugging
+             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
+                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
+             else
+                ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
+             end if
           end if
 
       else
