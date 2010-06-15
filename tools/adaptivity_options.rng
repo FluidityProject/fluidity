@@ -1145,6 +1145,10 @@ and Zoltan PHG. The Zoltan PHG hypergraph partitoner is also available.</a:docum
 closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
+                <element name="scotch">
+                  <a:documentation>Use the PT-Scotch graph partitioner. </a:documentation>
+                  <empty/>
+                </element>
                 <element name="zoltan">
                   <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
                   <element name="method">

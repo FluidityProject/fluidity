@@ -952,6 +952,10 @@ hr_adaptivity =
                 element metis {
                     empty
                 }|
+                ## Use the PT-Scotch graph partitioner. 
+                element scotch {
+                    empty
+                }|
                 ## Use the Zoltan PHG partitioner.
                 element zoltan {
                     ## Select the partitioning method you would like used by Zoltan PHG.
