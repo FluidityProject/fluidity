@@ -307,6 +307,9 @@ for example:
             columns[i][index] = value
             
           index += 1
+          if index > nOutput:
+            # Ignore incomplete lines
+            break
           if subsample > 1:
             # Ignore non-sampled lines
             statDatFile.seek(real_size * (subsample - 1) * nColumns, 1)        
