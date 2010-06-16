@@ -264,7 +264,11 @@ contains
         if (field_dim>1) then
           FLExit("Cannot use vertical_lumping for vector fields")
         end if
-        prolongators(no_prolongators) = vertical_prolongator_from_free_surface(state, mesh)
+        if (higher_order_lumping) then
+          prolongators(2) = vertical_prolongator_from_free_surface(state, linear_mesh)
+        else
+          prolongators(1) = vertical_prolongator_from_free_surface(state, mesh)
+        end if
         if (have_option(trim(solver_option_path)//'/preconditioner::mg/vertical_lumping/internal_smoother')) then
           surface_nodes => free_surface_nodes(state, mesh)
         end if
