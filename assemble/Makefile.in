@@ -79,7 +79,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Adapt_Integration.o Node_Locking.o Mba3d_Integration.o \
 	Adapt_State.o Adapt_State_Prescribed.o Adapt_State_Unittest.o \
 	Upwind_Stabilisation.o \
-        Coriolis.o \
+        Coriolis.o Full_Projection.o \
         Mba2d_Integration.o Slope_limiters_DG.o \
         Porous_Media.o Spontaneous_Potentials.o LES_viscosity.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
@@ -129,7 +129,8 @@ Advection_Diffusion_CG.o: Upwind_Stabilisation.o Petsc_Solve_State.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o Petsc_Solve_State.o
 reduced_model.o: Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
-Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o 
+Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o \
+  Full_Projection.o
 Assemble_CMC.o: Multimaterials.o
 Field_Equations_CV.o: Divergence_Matrix_CV.o Petsc_Solve_State.o
 Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
@@ -156,6 +157,7 @@ Compressible_Projection.o: Multimaterials.o Upwind_Stabilisation.o
 Free_Surface.o: Vertical_Extrapolation.o
 Pseudo_supermesh.o: Adapt_State_Unittest.o
 Implicit_Solids.o: Timeloop_utilities.o
+Full_Projection.o: Petsc_Solve_State.o
 
 Interpolation_manager.o: Geostrophic_Pressure.o
 Solenoidal_interpolation.o: Assemble_CMC.o Divergence_Matrix_CG.o \

@@ -869,10 +869,11 @@
             if(full_schur) then
                if(assemble_schur_auxiliary_matrix) then
                   call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
-                       full_projection_preconditioner,schur_auxiliary_matrix)
+                       full_projection_preconditioner, state(istate), u%mesh, &                       
+                       auxiliary_matrix=schur_auxiliary_matrix)
                else
                   call petsc_solve_full_projection(delta_p,ctp_m,inner_m,ct_m,projec_rhs, &
-                       full_projection_preconditioner)
+                       full_projection_preconditioner, state(istate), u%mesh)
                end if
             else
               call petsc_solve(delta_p, cmc_m, projec_rhs, state(istate))

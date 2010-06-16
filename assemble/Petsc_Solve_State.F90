@@ -54,7 +54,8 @@ interface petsc_solve
 end interface
   
 private
-public petsc_solve, petsc_solve_needs_state
+public petsc_solve, petsc_solve_needs_state, &
+  petsc_solve_state_setup
 
 contains
 
@@ -306,6 +307,7 @@ contains
     integer, intent(in):: ncomponents
     type(petsc_csr_matrix):: P
     
+    logical, dimension(:), allocatable:: nodes_visited
     integer, dimension(:), allocatable:: onnz, dnnz
     integer, dimension(:), pointer:: p1_nodes, pn_nodes
     integer:: rows, columns
@@ -347,22 +349,26 @@ contains
     end if
     call zero(P)
     
+    allocate(nodes_visited(1:node_count(pn_mesh)))
+    nodes_visited=.false.
+    
     do ele=1, ele_count(pn_mesh)
       pn_nodes => ele_nodes(pn_mesh, ele)
       p1_nodes => ele_nodes(p1_mesh, ele)
       do j=1, size(pn_nodes)
         node=pn_nodes(j)
-        if (node_owned(pn_mesh, node)) then
+        if (node_owned(pn_mesh, node) .and. .not. nodes_visited(node)) then
           do k=1, size(p1_nodes)
             val=eval_shape(p1_mesh%shape, k, local_coords(j, pn_mesh%shape))
             do i=1, ncomponents
               call addto(P, i, i, node, p1_nodes(k), val)
             end do
           end do
+          nodes_visited(node)=.true.
         end if
       end do
     end do
-      
+    
     call assemble(P)
     
   end function higher_order_prolongator

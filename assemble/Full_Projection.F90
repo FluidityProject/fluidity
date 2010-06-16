@@ -40,6 +40,8 @@
     use spud
     use halos
     use Multigrid
+    use state_module
+    use petsc_solve_state_module
 
 #ifdef HAVE_PETSC_MODULES
 #include "petscversion.h"
@@ -81,7 +83,9 @@
   contains
     
 !--------------------------------------------------------------------------------------------------------------------
-    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,auxiliary_matrix)
+    subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
+      state, inner_mesh, &
+      auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -95,15 +99,18 @@
       ! as DiagonalSchurComplement, this comes in as C(Big_m_id)C, where Big_M_id is the inverse diagonal of the full 
       ! momentum matrix. If preconditioner is set to ScaledPressureMassMatrix, this comes in as the pressure mass matrix,
       ! scaled by the inverse of viscosity.
-      type(csr_matrix), intent(inout) :: pmat 
-      ! p1-p1 stabilization matrix:
+      type(csr_matrix), intent(inout) :: pmat
+      ! state, and inner_mesh are used to setup mg preconditioner of inner solve
+      type(state_type), intent(in):: state
+      type(mesh_type), intent(in):: inner_mesh
+      ! p1-p1 stabilization matrix or free surface terms:
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
 
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
       Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
       
-      character(len=OPTION_PATH_LEN) solver_option_path, inner_solver_option_path, name
+      character(len=OPTION_PATH_LEN) solver_option_path, name
       integer literations
       type(petsc_numbering_type) petsc_numbering
       logical lstartfromzero
@@ -120,8 +127,8 @@
       ! Build Schur complement and set KSP.
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
-           inner_solver_option_path,lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs,auxiliary_matrix)
+           lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
+           rhs, state, inner_mesh, auxiliary_matrix)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -153,8 +160,11 @@
 
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
-         inner_solver_option_path,lstartfromzero,inner_m,div_matrix_comp, &
-         div_matrix_incomp,option_path,preconditioner_matrix,rhs,auxiliary_matrix)
+         lstartfromzero,inner_m,div_matrix_comp, &
+         div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
+         state, inner_mesh, &
+         auxiliary_matrix)
+         
 !--------------------------------------------------------------------------------------------------------
 
       !  Sets up things needed to call petsc_solve_core. The following arrays/arguments go out:
@@ -173,7 +183,6 @@
       character(len=*), intent(out) :: name
       ! Solver option paths:
       character(len=*), intent(out) :: solver_option_path
-      character(len=*), intent(out) :: inner_solver_option_path
 
       ! Stuff that comes in:
       !
@@ -192,12 +201,18 @@
       type(csr_matrix), optional, intent(in) :: auxiliary_matrix
       ! Option path:
       character(len=*), intent(in):: option_path
+      ! state, and inner_mesh are used to setup mg preconditioner of inner solve
+      type(state_type), intent(in):: state
+      type(mesh_type), intent(in):: inner_mesh
 
       ! Additional arrays used internally:
       ! Additional numbering types:
       type(petsc_numbering_type) :: petsc_numbering_u
 
       integer, dimension(:), allocatable:: ghost_nodes
+      ! stuff for "mg" preconditioner
+      type(petsc_csr_matrix), dimension(:), pointer:: prolongators
+      integer, dimension(:), pointer:: surface_nodes
 
       PetscObject:: myPETSC_NULL_OBJECT
       PetscErrorCode ierr
@@ -208,14 +223,16 @@
       Mat S ! PETSc Stabilization matrix (auxiliary_matrix)
       Mat pmat ! PETSc preconditioning matrix
       
-      integer reference_node, stat
+      character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
+      
+      integer reference_node, stat, i
       logical parallel, have_auxiliary_matrix
 
       ! Sort option paths etc...
       solver_option_path=complete_solver_option_path(option_path)
-      inner_solver_option_path= trim(option_path)//&
-                                  "/prognostic/scheme/use_projection_method&
-                                  &/full_schur_complement/inner_matrix[0]/solver"
+      inner_option_path= trim(option_path)//&
+              "/prognostic/scheme/use_projection_method&
+              &/full_schur_complement/inner_matrix[0]"
       
       if (have_option(trim(option_path)//'/name')) then
          call get_option(trim(option_path)//'/name', name)
@@ -290,8 +307,24 @@
       
       ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 
       call MatSchurComplementGetKSP(A,ksp_schur,ierr)
-      call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-        inner_solver_option_path, startfromzero_in=.true.)
+      call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
+        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, .false.)
+      if (associated(prolongators)) then
+        if (associated(surface_nodes)) then
+          FLAbort("Internal smoothing not available for inner solve")
+        end if
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, startfromzero_in=.true., &
+          prolongators=prolongators)
+        do i=1, size(prolongators)
+          call deallocate(prolongators(i))
+        end do
+        deallocate(prolongators)
+      else
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, startfromzero_in=.true.)
+      end if
+      
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format:

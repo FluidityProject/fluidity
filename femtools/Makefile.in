@@ -59,7 +59,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Shape_Functions.o Signals.o Signal_Vars.o signal_handlers.o		\
   Global_Parameters.o Timers.o Transform_elements.o VTK_interfaces.o \
   Fields.o FETools.o FEFields.o Vector_Tools.o Read_Triangle.o \
-  Timers.o Transform_elements.o Petsc_Tools.o Solvers.o Full_Projection.o Linked_Lists.o	\
+  Timers.o Transform_elements.o Petsc_Tools.o Solvers.o Linked_Lists.o	\
   Sparsity_Patterns.o Sparsity_Patterns_Meshes.o State.o Tensors.o \
   Superconvergence.o Unittest_tools.o Fields_Data_Types.o Multigrid.o	\
   ieee_arithmetic_dummy.o ieee_arithmetic_C99.o Diagnostic_variables.o	\
@@ -343,9 +343,6 @@ Wandzura_Quadrature.o: Global_Parameters.o
 Solvers.o: Petsc_Tools.o Signal_Vars.o Multigrid.o Fields.o \
   Sparse_Tools.o Global_Parameters.o Sparse_Tools_Petsc.o \
   Sparse_Matrices_Fields.o Halos.o Parallel_Tools.o Profiler_Fortran.o
-
-Full_Projection.o: Solvers.o Petsc_Tools.o Multigrid.o Fields_Base.o Sparse_Tools.o \
-  Global_Parameters.o Sparse_Matrices_Fields.o Sparse_Tools_Petsc.o
 
 Petsc_Tools.o: Sparse_Tools.o ISCopyIndices.o \
   Fields_Base.o Reference_count_petsc_numbering_type.F90 Fields_Manipulation.o \
