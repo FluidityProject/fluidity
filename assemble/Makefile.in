@@ -163,7 +163,7 @@ Solenoidal_interpolation.o: Assemble_CMC.o Divergence_Matrix_CG.o \
 
 Discrete_Properties.o: Solenoidal_interpolation.o
 Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o State_Matrices.o \
-   LES_viscosity.o
+   LES_viscosity.o Petsc_Solve_State.o
 Divergence_Matrix_CG.o: Upwind_Stabilisation.o
 Momentum_Diagnostic_Fields.o: Multimaterials.o
 Mba2d_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
