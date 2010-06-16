@@ -36,7 +36,7 @@
     use sparse_tools
     use boundary_conditions
     use boundary_conditions_from_options
-    use solvers, only: petsc_solve
+    use petsc_solve_state_module
     use sparse_tools_petsc
     use sparse_matrices_fields
     use field_options
@@ -1555,7 +1555,7 @@
 
     end subroutine correct_masslumped_velocity
 
-    subroutine correct_velocity_cg(u, mass, ct_m, delta_p)
+    subroutine correct_velocity_cg(u, mass, ct_m, delta_p, state)
       !!< Given the pressure correction delta_p, correct the velocity.
       !!<
       !!< U_new = U_old + M_l^{-1} * C * delta_P
@@ -1563,6 +1563,7 @@
       type(petsc_csr_matrix), intent(inout) :: mass
       type(block_csr_matrix), intent(in) :: ct_m
       type(scalar_field), intent(in) :: delta_p
+      type(state_type), intent(in) :: state
 
       ! Correction to u one dimension at a time.
       type(vector_field) :: delta_u1, delta_u2
@@ -1582,7 +1583,7 @@
       
       ! compute M^{-1} delta_u1
       call zero(delta_u2)
-      call petsc_solve(delta_u2, mass, delta_u1)
+      call petsc_solve(delta_u2, mass, delta_u1, state)
       
       call addto(u, delta_u2)
       

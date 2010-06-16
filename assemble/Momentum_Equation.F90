@@ -910,7 +910,7 @@
             call profiler_tic(u, "assembly")
             ! correct velocity according to new delta_p
             if(full_schur) then
-              call correct_velocity_cg(u, inner_m, ct_m, delta_p)
+              call correct_velocity_cg(u, inner_m, ct_m, delta_p, state(istate))
             elseif(lump_mass) then
               call correct_masslumped_velocity(u, inverse_masslump, ct_m, delta_p)
             elseif(dg) then
