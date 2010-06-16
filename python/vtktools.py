@@ -41,7 +41,7 @@ class vtu:
         vtkdata=celldata.GetScalars(name)
         vtkdata.GetNumberOfTuples()
       except:
-        raise Exception("ERROR: couldn't find point or cell scalar field data with name "+name)
+        raise Exception("ERROR: couldn't find point or cell scalar field data with name "+name+" in file "+self.filename+".")
     return arr([vtkdata.GetTuple1(i) for i in range(vtkdata.GetNumberOfTuples())])
 
   def GetScalarRange(self, name):
@@ -56,7 +56,7 @@ class vtu:
         vtkdata=celldata.GetScalars(name)
         vtkdata.GetRange()
       except:
-        raise Exception("ERROR: couldn't find point or cell scalar field data with name "+name)
+        raise Exception("ERROR: couldn't find point or cell scalar field data with name "+name+" in file "+self.filename+".")
     return vtkdata.GetRange()
 
   def GetVectorField(self, name):
@@ -71,7 +71,7 @@ class vtu:
         vtkdata=celldata.GetScalars(name)
         vtkdata.GetNumberOfTuples()
       except:
-        raise Exception("ERROR: couldn't find point or cell vector field data with name "+name)
+        raise Exception("ERROR: couldn't find point or cell vector field data with name "+name+" in file "+self.filename+".")
     return arr([vtkdata.GetTuple3(i) for i in range(vtkdata.GetNumberOfTuples())])
 
   def GetVectorNorm(self, name):
@@ -106,7 +106,7 @@ class vtu:
         vtkdata=celldata.GetArray(name)
         vtkdata.GetNumberOfTuples()
       except:
-        raise Exception("ERROR: couldn't find point or cell field data with name "+name)
+        raise Exception("ERROR: couldn't find point or cell field data with name "+name+" in file "+self.filename+".")
     nc=vtkdata.GetNumberOfComponents()
     nt=vtkdata.GetNumberOfTuples()
     array=arr([vtkdata.GetValue(i) for i in range(nc*nt)])
@@ -131,7 +131,7 @@ class vtu:
         vtkdata=celldata.GetArray(name)
         vtkdata.GetNumberOfTuples()
       except:
-        raise Exception("ERROR: couldn't find point or cell field data with name "+name)
+        raise Exception("ERROR: couldn't find point or cell field data with name "+name+" in file "+self.filename+".")
     comps = vtkdata.GetNumberOfComponents()
     if comps == 1:
       return 0
