@@ -307,7 +307,7 @@ for example:
             columns[i][index] = value
             
           index += 1
-          if index > nOutput:
+          if index >= nOutput:
             # Ignore incomplete lines
             break
           if subsample > 1:
