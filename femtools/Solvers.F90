@@ -1565,7 +1565,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     call KSPSetTolerances(ksp, rtol, atol, dtol, max_its, ierr)
     
     if (have_option(trim(solver_option_path)//'/start_from_zero') &
-      .or. present_and_true(startfromzero_in)) then
+      .or. present_and_true(startfromzero_in) .or. ksptype==KSPPREONLY) then
       call KSPSetInitialGuessNonzero(ksp, PETSC_FALSE, ierr)
       startfromzero=.true.
     else
