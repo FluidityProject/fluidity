@@ -68,6 +68,7 @@ def convergence(dx):
     error = numpy.zeros(dx.size)
 
     binary="../../bin/shallow_water"
+    project = "inertia_gravity_cjc"
 
     dt=0.0125
     for x in enumerate(dx):
@@ -77,11 +78,11 @@ def convergence(dx):
         while True:
             print "Simulation with dx="+`x[1]`+" and dt="+`dt`
             
-            os.system("spud-set inertia_gravity.swml /timestepping/timestep "+str(dt))
+            os.system("spud-set "+project+".swml /timestepping/timestep "+str(dt))
             
-            os.system(binary+" inertia_gravity.swml")
+            os.system(binary+" "+project+".swml")
             
-            s=stat_parser("inertia_gravity.stat")
+            s=stat_parser(project+".stat")
             this_error=s["Fluid"]['LayerThicknessError']['l2norm'][-1]
 
             if numpy.abs((this_error-last_error)/this_error) <0.01:
@@ -106,7 +107,7 @@ def convergence_constant_dt(dx):
 
     binary="../../bin/shallow_water"
 
-    dt=0.003125
+    dt=1.0e-3
     for x in enumerate(dx):
         generate_meshfile("square",x[1])
 
@@ -128,7 +129,7 @@ def convergence_constant_dt(dx):
 g=1
 H=1
 c=(g*H)**0.5
-f=0.0
+f=1.0
 
 k=numpy.array([1,2])
 phi=0.01

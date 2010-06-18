@@ -32,78 +32,51 @@ def generate_meshfile(name,layers):
     os.system("gmsh -2 "+name+".geo")
     os.system("../../scripts/gmsh2triangle --2d "+name+".msh")
     
-def convergence(dx):
+def convergence(layers):
+    import libspud
 
-    os.system("spud-set rossby_wave.swml /physical_parameters/gravity/magnitude "+str(1.0/ee))
-    os.system("spud-set rossby_wave.swml /physical_parameters/coriolis/beta_plane/f_0 "+str(1.0/ee))
-    os.system("spud-set rossby_wave.swml /material_phase[0]/scalar_field::LayerThickness/prognostic/mean_layer_thickness "+str(1.0/ee))
-              
-    error = numpy.zeros(dx.size)
+    libspud.load_options("rossby_wave.swml")
+    libspud.set_option("/physical_parameters/gravity/magnitude", 1.0/ee)
+    libspud.set_option("/physical_parameters/coriolis/beta_plane/f_0", 1.0/ee)
+    libspud.set_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/mean_layer_thickness", 1.0/ee)
+    libspud.write_options("rossby_wave2.swml")
+
+    error = numpy.zeros(layers.size)
 
     binary="../../bin/shallow_water"
 
     dt=0.01
-    for x in enumerate(dx):
-        generate_meshfile("square",x[1])
+    for layer in enumerate(layers):
+        generate_meshfile("square",layer[1])
         
         last_error=1.e100
         while True:
-            print "Simulation with dx="+`x[1]`+" and dt="+`dt`
+            print "Simulation with layers="+`layer[1]`+" and dt="+`dt`
             
             os.system("spud-set rossby_wave.swml /timestepping/timestep "+str(dt))
-            
-            os.system(binary+" rossby_wave.swml")
-            
+
+            status = 1
+            while(status!=0):
+                print "Running FLuidity."
+                status = os.system(binary+" rossby_wave.swml")
+                if(status!=0):
+                    print "Fluidity crashed."            
+
             s=stat_parser("rossby_wave.stat")
             this_error=s["Fluid"]['LayerThicknessError']['l2norm'][-1]
+            print numpy.abs((this_error-last_error)/this_error),  this_error, last_error
+            print "###############################################"
 
             if numpy.abs((this_error-last_error)/this_error) <0.01:
                 # Set dt to twice the current level so that the next stage
                 # has some chance to converge at the same dt.
                 dt=dt*2
 
-                print "converged! dx="+`x[1]`+" and dt="+`dt`
+                print "converged! layers="+`layer[1]`+" and dt="+`dt`
                 print "this error="+`this_error`+" last_error="+`last_error`
 
-                error[x[0]]=this_error
-                break
-
-            last_error=this_error
-            dt=dt*.5
-            
-    return error
-
-def convergence(dx):
-
-    error = numpy.zeros(dx.size)
-
-    binary="../../bin/shallow_water"
-    project = "rossby_wave"
-
-    dt=0.0125
-    for x in enumerate(dx):
-        generate_meshfile("square",x[1])
-
-        last_error=1.e100
-        while True:
-            print "Simulation with dx="+`x[1]`+" and dt="+`dt`
-            
-            os.system("spud-set "+project+".swml /timestepping/timestep "+str(dt))
-            
-            os.system(binary+" "+project+".swml")
-            
-            s=stat_parser(project+".stat")
-            this_error=s["Fluid"]['LayerThicknessError']['l2norm'][-1]
-
-            if numpy.abs((this_error-last_error)/this_error) <0.01:
-                # Set dt to twice the current level so that the next stage
-                # has some chance to converge at the same dt.
-                dt=dt*2
-
-                print "converged! dx="+`x[1]`+" and dt="+`dt`
-                print "this error="+`this_error`+" last_error="+`last_error`
-
-                error[x[0]]=this_error
+                error[layer[0]]=this_error
+                os.system("mv rossby_wave_1.vtu rossby_wave"+str(layer[1])+"_1.vtu")
                 break
 
             last_error=this_error

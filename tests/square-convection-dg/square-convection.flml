@@ -186,17 +186,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin replaces="DISOPT">
             <viscosity_scheme>
-              <interior_penalty>
-                <penalty_parameter>
-                  <real_value rank="0">10</real_value>
-                </penalty_parameter>
-                <edge_length_power>
-                  <real_value rank="0">-1</real_value>
-                </edge_length_power>
-                <edge_length_option>
-                  <use_face_integral/>
-                </edge_length_option>
-              </interior_penalty>
+              <compact_discontinuous_galerkin/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
