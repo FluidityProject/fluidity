@@ -1,5 +1,5 @@
 input: clean
-	cp src/square* .
+	cp src/mesh* .
 
 clean:
 	rm -f  *.ele *.face *.node *.vtu  *.edge *.stat
