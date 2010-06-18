@@ -1464,6 +1464,7 @@ contains
 
     !Deallocate copy of field
     call set(T, T_limit)
+    call halo_update(T)
     call deallocate(T_limit)
     call deallocate(T_max)
     call deallocate(T_min)

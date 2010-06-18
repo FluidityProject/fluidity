@@ -522,6 +522,7 @@ contains
             & s_field)
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
+       call allmax(subcycles)
     end if
 
     limit_slope=.false.
@@ -567,7 +568,7 @@ contains
        
        ! T = T + dt/s * dT
        call addto(T, delta_T, scale=-dt/subcycles)
-
+       call halo_update(T)
        if (limit_slope) then
           ! Filter wiggles from T
           call limit_slope_dg(T, U_nl, X, state, limiter)
