@@ -75,6 +75,7 @@ contains
        
     if(.not.(allocated(flux_face_list))) then
        allocate(flux_face_list(bc_count))
+       CALL nullify(flux_face_list) 
        allocate(flux_normal(2, bc_count))
     end if
 

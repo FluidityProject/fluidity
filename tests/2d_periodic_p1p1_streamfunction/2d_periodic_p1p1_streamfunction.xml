@@ -5,7 +5,7 @@
   <name>Periodic channel with streamfunction diagnostic check get correct boundary condition</name>
   <owner userid="amcvicar"/>
   <tags>flml zoltan</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line> ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction.flml &amp;&amp;
     ../../bin/fluidity -v3 -l  2d_nonperiodic_p1p1_streamfunction.flml &amp;&amp; 
     mpiexec -np 4  ../../bin/fluidity -v3 -l  2d_periodic_p1p1_streamfunction_periodised_flredecomp.flml </command_line>
