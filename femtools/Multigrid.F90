@@ -769,6 +769,8 @@ integer, intent(in):: maxclustersize
 integer, optional, dimension(:), intent(out):: cluster
 
   PetscErrorCode:: ierr
+  PetscInt:: diagminloc
+  PetscReal:: diagmin
   Vec:: sqrt_diag, inv_sqrt_diag, diag, one
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
@@ -789,6 +791,12 @@ integer, optional, dimension(:), intent(out):: cluster
   ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
   call MatGetVecs(A, diag, sqrt_diag, ierr)
   call MatGetDiagonal(A, diag, ierr)
+  call VecMin(diag, diagminloc, diagmin, ierr)
+  if (diagmin<=0.0) then
+    ewrite(0,*) 'Multigrid preconditioner "mg" requires strictly positive diagonal'
+    FLExit("Zero or negative value on the diagonal")
+  end if
+  
   !
   call VecCopy(diag, sqrt_diag, ierr)
   call VecSqrt(sqrt_diag, ierr)
@@ -814,7 +822,7 @@ integer, optional, dimension(:), intent(out):: cluster
     ! more than 1% isolated nodes, give a warning
     ewrite(0,*) "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows
     ewrite(0,*) "Warning: more than 1 perc. isolated nodes"
-  end if    
+  end if
 
   ! Step 1 - Startup aggregation
   ! select some of the coupled neighbourhoods as an initial (incomplete) 
