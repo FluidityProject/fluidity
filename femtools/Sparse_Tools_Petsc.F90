@@ -168,7 +168,7 @@ module sparse_tools_petsc
      zero, addto, addto_diag, scale, &
      extract_diagonal, assemble, incref_petsc_csr_matrix, &
      ptap, mult, mult_T, dump_matrix, &
-     csr2petsc_csr
+     csr2petsc_csr, dump_petsc_csr_matrix
 
 contains
 
@@ -901,7 +901,10 @@ contains
     
     diagonal_vec=PetscNumberingCreateVec(matrix%row_numbering)
     call MatGetDiagonal(matrix%M, diagonal_vec, ierr)
+
     call petsc2field(diagonal_vec, matrix%row_numbering, diagonal)
+
+    call VecDestroy(diagonal_vec,ierr)
 
   end subroutine petsc_csr_extract_diagonal
     
@@ -1139,6 +1142,27 @@ contains
     call deallocate(column_numbering)
     
   end function csr2petsc_csr
+
+  subroutine dump_petsc_csr_matrix(matrix)
+    !! Dumps a petsc_csr_matrix, along with dummy solution and RHS vectors,
+    !! that can be used by petscreadnsolve.
+    
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    
+    PetscErrorCode:: ierr
+    Vec:: diagonal_vec
+    integer, save:: index=1
+    
+    call petsc_csr_assemble(matrix)
+    
+    diagonal_vec=PetscNumberingCreateVec(matrix%row_numbering)
+    
+    call DumpMatrixEquation('PetscCSRdump'//int2str(index), diagonal_vec, matrix%M, diagonal_vec)
+    index=index+1
+    
+    call VecDestroy(diagonal_vec, ierr)
+
+  end subroutine dump_petsc_csr_matrix
   
 #include "Reference_count_petsc_csr_matrix.F90"
 end module sparse_tools_petsc

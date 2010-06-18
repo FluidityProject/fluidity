@@ -159,6 +159,10 @@ contains
 
       do i = 1, inner_m_diagonal%dim
          ewrite_minmax(inner_m_diagonal%val(i)%ptr)
+         if(any(inner_m_diagonal%val(i)%ptr < 0)) then
+            ewrite(0,*) 'Inner_m_diagonal has negative values'
+            FLExit("Negative values in the diagonal schur complement preconditioner")        
+         end if
       end do
 
       call mult_div_invvector_div_T(schur_diagonal_matrix, ctp_m, inner_m_diagonal, ct_m)
@@ -188,6 +192,8 @@ contains
       ! Positions:
       type(vector_field), pointer :: positions
       
+      ewrite(1,*) 'Entering assemble_scaled_pressure_mass_matrix'    
+
       ! Positions:
       positions => extract_vector_field(state, "Coordinate")
 
@@ -209,6 +215,8 @@ contains
       ! Compute pressure mass matrix, scaled by inverse viscosity - note that the
       ! inverse viscosity is supplied as density here:
       call compute_mass(positions,pressure%mesh,scaled_pressure_mass_matrix,density=inverse_viscosity_component)
+
+      ewrite_minmax(scaled_pressure_mass_matrix%val)
 
       ! Deallocate inverse viscosity component scalar field:
       call deallocate(inverse_viscosity_component)
