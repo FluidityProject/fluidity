@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>vb_parallel</name>
+  <owner userid="colin"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -n 2 ../../bin/fluidity blob.flml; ../../scripts/pvtu2vtu blob 1</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="Tmax" language="python">
+import vtktools
+myvtu = vtktools.vtu("blob_1.vtu")
+T = myvtu.GetScalarField("Temperature")
+Tmax = T.max()
+    </variable>
+    <variable name="Tmin" language="python">
+import vtktools
+myvtu = vtktools.vtu("blob_1.vtu")
+T = myvtu.GetScalarField("Temperature")
+Tmin = T.min()
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="MaxTBounds" language="python">
+assert Tmax &lt; 2.0
+    </test>
+    <test name="MinTBounds" language="python">
+assert Tmin &gt; 0.0
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
