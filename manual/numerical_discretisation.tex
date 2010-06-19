@@ -1411,7 +1411,85 @@ discretisation of the continuous pressure poisson equation.
 \section{Balance pressure}
 \label{Sect:balance_pressure}
 \index{pressure!balance}
-Why and how
+
+In a balanced pressure decomposition the pressure correction equation \eqref{eqn:presscorr_substract}
+is modified to:
+
+\begin{equation}\label{eqn:bp_projection}
+\mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}}}{\Delta t}
+    + \vec{\mat{C}} ( \dvec p_r^{n+1} - \dvec p_{r,*}^{n+1}) + \vec{\mat{C_b}} \dvec p_b,
+    =0,
+\end{equation}
+
+where $\dvec p_b$ is some solution for the pressure field associated with buoyancy
+and Coriolis accelerations, $\dvec p_r$ is the residual pressure enforcing
+incompressibility, and $\vec{\mat{C_b}}$ is a balanced pressure
+gradient matrix. If a solution for $\dvec p_b$ can be found via some method that
+is more accurate that the pressure projection method used to solve for the
+residual pressure $\dvec p_r$, then this leads to a more accurate representation of
+geostrophic and hydrostatic balance. In particular, for the \Poo\
+element pair, a second order accurate solution
+for $\dvec p_b$ enables a second order accurate solution for the Helmholtz decomposition
+of the velocity increment associated with buoyancy and Coriolis, even with the introduction of
+pressure stabilisation.
+
+The pressure correction equation is the Galerkin projection of the Helmholtz
+decomposition of the divergent velocity increment computed from the discretised
+momentum equation. In the continuous space, this is equivalent to the Helmholtz
+decomposition of the forcing terms in the momentum equation, and takes the form:
+
+\begin{align}
+  \vec{F} = \vec{F}_* + \nabla p, \\
+  \nabla \cdot \vec{F} = 0,
+\end{align}
+
+where $\vec{F}_*$ are all forcing terms in the continuous momentum equation
+(including advection, buoyancy, Coriolis, and any other forcings).
+Decomposing the pressure into a component $p_b$ associated with the buoyancy and
+Coriolis accelerations $\vec{B}_*$, and a residual component $p_r$ associated with
+all other forcing terms $\vec{F}_* - \vec{B}_*$, yields:
+
+\begin{subequations}
+  \begin{equation}\label{eqn:bp_helmholtz}
+    \vec{B} = \vec{B}_* + \nabla p_b,
+  \end{equation}
+  \begin{equation}
+    \vec{F} - \vec{B} = \vec{F}_* - \vec{B}_* + \nabla p_r,
+  \end{equation}
+  \begin{equation}
+    \nabla \cdot \vec{B} = 0,
+  \end{equation}
+  \begin{equation}
+    \nabla \cdot \left( \vec{F} - \vec{B} \right) = 0.
+  \end{equation}
+\end{subequations}
+
+Taking the divergence of equation \eqref{eqn:bp_helmholtz} yields a Poisson equation for the diagnostic
+balanced pressure component $p_b$:
+
+\begin{equation}\label{eqn:bp_poisson}
+  0 = \nabla \cdot \vec{B}_* + \nabla^2 p_b.
+\end{equation}
+
+For no-slip boundary conditions on $\partial \Omega$ bounding
+$\Omega$, this equation has boundary conditions \linebreak 
+$\left( \vec{B}_* + \nabla p_b \right) \cdot \vec{\hat{n}} = 0$ on $\partial \Omega$. This corresponds
+to no acceleration of fluid parcels in the direction normal to the boundary
+by the non-divergent (and dynamically significant) component of the buoyancy
+and Coriolis accelerations. Performing a continuous Galerkin discretisation of equation
+\eqref{eqn:bp_poisson} subject to these boundary conditions yields:
+
+\begin{equation}\label{eqn:bp_solve}
+  \int_\Omega \nabla \xi_i \nabla \xi_i \dvec p_b = - \int_\Omega \nabla \xi_i \cdot \vec{B}_*,
+\end{equation}
+
+where $\xi_i$ are the balanced pressure elemental basis functions. Hence equation
+\eqref{eqn:bp_solve} can be used to gain a solution for $p_b$, which can in turn
+be used in equation \eqref{eqn:bp_projection}. Since $p_b$ is computed via
+a Galerkin projection of the Poisson equation for the balanced pressure,
+rather than a Galerkin projection of the Helmholtz decomposition of the buoyancy
+and Coriolis accelerations, LBB stability constraints do not apply in the selection
+of a space for $\dvec p_b$.
 
 \section{Free surface}
 \index{free surface!weak form}
