@@ -1416,14 +1416,14 @@ In a balanced pressure decomposition the pressure correction equation \eqref{eqn
 is modified to:
 
 \begin{equation}\label{eqn:bp_projection}
-\mat{M}  \frac{{\dvec{\vec u}^{n+1}-\dvec{\vec u}_*^{n+1}}}{\Delta t}
-    + \vec{\mat{C}} ( \dvec p_r^{n+1} - \dvec p_{r,*}^{n+1}) + \vec{\mat{C_b}} \dvec p_b,
+\mat{M}  \frac{{\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}}}{\Delta t}
+    + \matC ( \dvec{\tilde p}_r^{n+\tfrac 12} - \dvec p_{r,*}) + \mat{C_b} \dvec p_b,
     =0,
 \end{equation}
 
 where $\dvec p_b$ is some solution for the pressure field associated with buoyancy
 and Coriolis accelerations, $\dvec p_r$ is the residual pressure enforcing
-incompressibility, and $\vec{\mat{C_b}}$ is a balanced pressure
+incompressibility, and $\mat{C_b}$ is a balanced pressure
 gradient matrix. If a solution for $\dvec p_b$ can be found via some method that
 is more accurate that the pressure projection method used to solve for the
 residual pressure $\dvec p_r$, then this leads to a more accurate representation of
