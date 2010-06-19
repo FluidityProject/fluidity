@@ -1093,7 +1093,8 @@ contains
         ewrite(2, *) "There are reserved meshes, so skipping printing of references."
       end if
       
-      call write_adapt_state_debug_output(states, i, max_adapt_iteration)      
+      call write_adapt_state_debug_output(states, i, max_adapt_iteration, &
+        & initialise_fields = initialise_fields)
       
       call incrementeventcounter(EVENT_ADAPTIVITY)
       call incrementeventcounter(EVENT_MESH_MOVEMENT)
@@ -1329,12 +1330,17 @@ contains
     end if
   end subroutine perform_vertically_inhomogenous_step
   
-  subroutine write_adapt_state_debug_output(states, adapt_iteration, max_adapt_iteration)
+  subroutine write_adapt_state_debug_output(states, adapt_iteration, max_adapt_iteration, initialise_fields)
     !!< Diagnostic output for mesh adaptivity
   
     type(state_type), dimension(:), intent(in) :: states
+    !! The current iteration the adapt-re-load-balance loop
     integer, intent(in) :: adapt_iteration
+    !! The total number of iterations to be performed in the
+    !! adapt-re-load-balance loop
     integer, intent(in) :: max_adapt_iteration
+    !! If present and .true., initialise fields rather than interpolate them
+    logical, optional, intent(in) :: initialise_fields
     
     character(len = FIELD_NAME_LEN) :: file_name
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/debug"
@@ -1344,9 +1350,14 @@ contains
     
     integer, save :: cp_no = 0, mesh_dump_no = 0, state_dump_no = 0
     
-    if(.not. have_option(base_path)) return
+    if(.not. have_option(base_path)) then
+      ! No debug output options
+      return
+    end if
     
     if(have_option(base_path // "/write_adapted_mesh")) then
+      ! Debug triangle mesh output. These are output on every adapt iteration.
+    
       file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration)
       call find_mesh_to_adapt(states(1), mesh)
       positions = get_coordinate_field(states(1), mesh)
@@ -1362,6 +1373,8 @@ contains
     end if
     
     if(have_option(base_path // "/write_adapted_state")) then   
+      ! Debug vtu output. These are output on every adapt iteration.
+    
       file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)   
       call vtk_write_state(file_name, state = states)
       
@@ -1369,20 +1382,40 @@ contains
     end if
     
     if(adapt_iteration == max_adapt_iteration .and. have_option(base_path // "/checkpoint")) then
-      call checkpoint_simulation(states, postfix = "adapt_checkpoint", cp_no = cp_no)
-      
-      cp_no = cp_no + 1
-      
-      call get_option(base_path // "/checkpoint/max_checkpoint_count", max_output, stat = stat)
-      if(stat == SPUD_NO_ERROR) cp_no = modulo(cp_no, max_output)
+      ! Debug checkpointing. These are only output on the final adapt iteration.
+    
+      if(present_and_true(initialise_fields)) then
+        ! If we're adapting with field initialisation rather than interpolation
+        ! then we probably don't want to overwrite the field initialisation
+        ! options by checkpointing, as any subsequent adapt with field
+        ! initialisation will read (and consistently interpolate) the debug
+        ! checkpoint. Applies to first timestep adapts.        
+        ewrite(1, *) "Adapt checkpoint skipped, as adapt performed with with field initialisation"
+      else
+        ewrite(1, "(a,i0)") "Performing adapt checkpoint ", cp_no
+        
+        call checkpoint_simulation(states, postfix = "adapt_checkpoint", cp_no = cp_no)
+        
+        cp_no = cp_no + 1
+        
+        call get_option(base_path // "/checkpoint/max_checkpoint_count", max_output, stat = stat)
+        if(stat == SPUD_NO_ERROR) cp_no = modulo(cp_no, max_output)
+      end if
     end if
     
   contains
   
     function adapt_state_debug_file_name(base_name, dump_no, adapt_iteration, max_adapt_iteration, add_parallel) result(file_name)
+      !!< Form an adapt diagnostic output filename
+      
+      !! Filename base
       character(len = *), intent(in) :: base_name
+      !! Dump number
       integer, intent(in) :: dump_no
+      !! The current iteration the adapt-re-load-balance loop
       integer, intent(in) :: adapt_iteration
+      !! The total number of iterations to be performed in the
+      !! adapt-re-load-balance loop
       integer, intent(in) :: max_adapt_iteration
       !! If present and .false., do not convert into a parallel file_name
       logical, optional, intent(in) :: add_parallel
