@@ -1480,7 +1480,7 @@ and Coriolis accelerations. Performing a continuous Galerkin discretisation of e
 \eqref{eqn:bp_poisson} subject to these boundary conditions yields:
 
 \begin{equation}\label{eqn:bp_solve}
-  \int_\Omega \nabla \xi_i \nabla \xi_i \dvec p_b = - \int_\Omega \nabla \xi_i \cdot \vec{B}_*,
+  \int_\Omega \nabla \xi_i \nabla \xi_j \dvec p_b = - \int_\Omega \nabla \xi_j \cdot \vec{B}_*,
 \end{equation}
 
 where $\xi_i$ are the balanced pressure elemental basis functions. Hence equation
