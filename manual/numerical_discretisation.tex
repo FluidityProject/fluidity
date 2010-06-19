@@ -1430,7 +1430,7 @@ residual pressure $\dvec p_r$, then this leads to a more accurate representation
 geostrophic and hydrostatic balance. In particular, for the \Poo\
 element pair, a second order accurate solution
 for $\dvec p_b$ enables a second order accurate solution for the Helmholtz decomposition
-of the velocity increment associated with buoyancy and Coriolis, even with the introduction of
+of the velocity increment associated with the buoyancy and Coriolis accelerations, even with the introduction of
 pressure stabilisation.
 
 The pressure correction equation is the Galerkin projection of the Helmholtz
@@ -1480,10 +1480,10 @@ and Coriolis accelerations. Performing a continuous Galerkin discretisation of e
 \eqref{eqn:bp_poisson} subject to these boundary conditions yields:
 
 \begin{equation}\label{eqn:bp_solve}
-  \int_\Omega \nabla \xi_i \nabla \xi_j \dvec p_b = - \int_\Omega \nabla \xi_j \cdot \vec{B}_*,
+  \int_\Omega \nabla \xi_i \nabla \xi_j \dvec p_b = - \int_\Omega \nabla \xi_i \cdot \vec{B}_*,
 \end{equation}
 
-where $\xi_i$ are the balanced pressure elemental basis functions. Hence equation
+where the $\xi_i$ are the balanced pressure elemental basis functions. Hence equation
 \eqref{eqn:bp_solve} can be used to gain a solution for $p_b$, which can in turn
 be used in equation \eqref{eqn:bp_projection}. Since $p_b$ is computed via
 a Galerkin projection of the Poisson equation for the balanced pressure,
