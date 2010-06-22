@@ -32,9 +32,14 @@ module k_epsilon
   use elements
   use field_derivatives
   use fields
+  use field_options
   use sparse_tools
   use sparse_tools_petsc
+  use petsc_tools
   use sparsity_patterns_meshes
+  use parallel_tools
+  use halos_base
+  use halo_data_types
   use state_module
   use spud
   use global_parameters, only:   OPTION_PATH_LEN
@@ -49,17 +54,48 @@ module k_epsilon
   use node_boundary
   use FLDebug
 
-  implicit none
+#ifdef HAVE_PETSC_MODULES
+  use petsc 
+#if PETSC_VERSION_MINOR==0
+  use petscvec 
+  use petscmat 
+  use petscksp 
+  use petscpc 
+  use petscis 
+  use petscmg  
+#endif
+#endif
+
+implicit none
+
+#ifdef HAVE_PETSC_MODULES
+#include "finclude/petscvecdef.h"
+#include "finclude/petscmatdef.h"
+#include "finclude/petsckspdef.h"
+#include "finclude/petscpcdef.h"
+#include "finclude/petscviewerdef.h"
+#include "finclude/petscisdef.h"
+#else
+#include "finclude/petsc.h"
+#include "finclude/petscmat.h"
+#include "finclude/petscvec.h"
+#include "finclude/petscviewer.h"
+#include "finclude/petscksp.h"
+#include "finclude/petscpc.h"
+#include "finclude/petscmg.h"
+#include "finclude/petscis.h"
+#include "finclude/petscsys.h"
+#endif
 
   private
 
   ! old turbulent kinetic energy, lengthscale, eddy viscosity, production
-  type(scalar_field), save :: tke_old, ll, EV, P, tkeovereps
+  type(scalar_field), save      :: tke_old, ll, EV, P, tkeovereps
   ! Minimum values of 2 fields to initialise, and empirical constants from flml
-  real, save               :: eps_init, k_init, ll_max, fields_min, &
-                              c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
-  integer, save            :: nnodes, count_rhs, count_mass, index
-  logical, save            :: calculate_bcs, limit_length
+  real, save                    :: eps_init, k_init, ll_max, fields_min, &
+                                   c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
+  integer, save                 :: nnodes
+  logical, save                 :: calculate_bcs, limit_length
 
   ! The following are the public subroutines
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_adapt_mesh, keps_check_options
@@ -116,7 +152,7 @@ subroutine keps_init(state)
 
     ! initialise other fields
     ll_max = 1.   ! hard coded to size of backward facing step inlet
-    fields_min = 1.e-12
+    fields_min = 1.e-20
 
     call set( ll, ll_max )
     !eps_init = k_init**1.5 / ll_max   ! make eps_init a dependent variable
@@ -158,10 +194,10 @@ subroutine keps_tke(state)
     real, allocatable, dimension(:,:,:):: dshape_velo
     real, allocatable, dimension(:)    :: strain_ngi
     real, allocatable, dimension(:)    :: strain_loc
-    real                               :: epsovertke
-    integer, dimension(:), pointer   :: surface_elements, surface_node_list
-    character(len=FIELD_NAME_LEN)    :: bc_type, bc_name
-    type(mesh_type), pointer         :: surface_mesh
+    real                               :: epsoverk, prod, diss
+    integer, dimension(:), pointer     :: surface_elements, surface_node_list
+    character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
+    type(mesh_type), pointer           :: surface_mesh
 
     ewrite(1,*) "In keps_tke"
 
@@ -173,9 +209,11 @@ subroutine keps_tke(state)
     kk_diff    => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
-    shape_velo  = ele_shape(nu, ele)
+    shape_velo =  ele_shape(nu, ele)          ! Velocity element type
 
-    ! Calculate TKE production using strain rate function
+    ewrite(1,*) "eps boundary condition count: ", get_boundary_condition_count(eps)
+    ewrite(1,*) "kk boundary condition count: ", get_boundary_condition_count(kk)
+
     call zero(source)
     call zero(absorption)
 
@@ -188,6 +226,7 @@ subroutine keps_tke(state)
 
         call transform_to_physical( positions, ele, shape_velo, dshape=dshape_velo, detwei=detwei )
 
+        ! Calculate TKE production using strain rate function
         strain_ngi = double_dot_product(dshape_velo, ele_val(nu, ele) )
         strain_loc = shape_rhs( shape_velo, detwei * strain_ngi )
 
@@ -198,13 +237,24 @@ subroutine keps_tke(state)
 
     end do
 
+    ! Implicit way of setting source and absorption:
+    ! Puts source into absorption. Ensures positivity of terms.
+    !do i = 1, nnodes
+    !    prod = source%val(i)
+    !    diss = eps%val(i) / kk%val(i)
+    !    call set(source, i, -min(0.0, diss-prod) )
+    !    call set(absorption, i, max(0.0, diss-prod) )
+    !    ! Get a copy of old source, for eps equation
+    !    call set(P,  i, prod)
+    !end do
+
     ! Calculate TKE absorption
     do i = 1, nnodes
-        epsovertke = eps%val(i) / kk%val(i)
-        call set(absorption, i, epsovertke)
+        epsoverk = eps%val(i) / kk%val(i)
+        call set(absorption, i, epsoverk)
     end do
 
-    ! puts the BC boundary values in surface_eps_values:
+    ! Add special boundary conditions to k field, if selected.
     if (calculate_bcs) then    ! do I need this any more?
 
         do bc = 1, get_boundary_condition_count(kk)   ! use kk bcs for eps
@@ -225,45 +275,44 @@ subroutine keps_tke(state)
 
     end if
 
-    ! set diffusivity for KK - copied from Jon's update 28 Feb revision 12719
+    ! Set diffusivity for k equation.
     call zero(kk_diff)
     do i = 1, kk_diff%dim
         call set(kk_diff, i, i, EV, scale=1. / sigma_k)
     end do
 
-    ! finally, we need a copy of the old TKE and source for eps, so grab it before we solve.
+    ! Get a copy of old k and source, for eps equation, before we solve k.
     do i=1,nnodes
         call set(tke_old, i, max(kk%val(i), fields_min) )
         call set(P, i, source%val(i))
     end do
 
     ewrite_minmax(tke_old)
+    ewrite_minmax(P)
     ewrite_minmax(kk)
-    ewrite_minmax(eps)
-    ewrite_minmax(EV)
-    ewrite_minmax(ll)
 
 end subroutine keps_tke
 
-!----------------------------------------------------------------------------------
-! IMPORTANT! USE OLD VALUES OF EVERYTHING FOR CONSISTENCY
 !----------------------------------------------------------------------------------
 
 subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source, absorption, kk, eps
+    type(scalar_field), pointer        :: source, absorption, kk, eps, dummyfield
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: eps_diff
-    type(mesh_type), pointer           :: surface_mesh
     type(scalar_field)                 :: rhs_vector, surface_eps_values
     type(petsc_csr_matrix)             :: lumped_mass
-    type(csr_sparsity), pointer        :: eps_sparsity
-    real                               :: prod, diss, epsovertke
-    integer                            :: i, g, l, bc, ele, sele
+    type(halo_type), pointer           :: halo
+    real                               :: prod, diss, epsoverk
+    integer                            :: i, j, ele, sele
     integer, dimension(:), pointer     :: surface_elements, surface_node_list
-    integer, dimension(:), allocatable :: global_node_list, local_node_list
     character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
+    integer, dimension(:), allocatable :: dnnz, onnz
+    integer                            :: node, mynodes
+    real, dimension(:), allocatable    :: rhs
+    real, dimension(:,:), allocatable  :: mass
+    integer, dimension(:), allocatable :: nodes_bdy
 
     ewrite(1,*) "In keps_eps"
 
@@ -273,6 +322,7 @@ subroutine keps_eps(state)
     source     => extract_scalar_field(state, "TurbulentDissipationSource")
     absorption => extract_scalar_field(state, "TurbulentDissipationAbsorption")
     eps_diff   => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
+    dummyfield => extract_scalar_field(state, "dummyfield")
 
     do i = 1, nnodes
 
@@ -280,16 +330,26 @@ subroutine keps_eps(state)
         eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
 
         ! compute RHS terms in epsilon equation
-        EpsOverTke = eps%val(i) / tke_old%val(i)
-        prod       = c_eps_1 * epsovertke * P%val(i)   ! kk source term at old timestep
-        diss       = c_eps_2 * epsovertke
+        epsoverk = eps%val(i) / tke_old%val(i)
+        prod     = c_eps_1 * epsoverk * P%val(i)   ! kk source term at old timestep
+        diss     = c_eps_2 * epsoverk
 
         ! Implicit way of setting source and absorption:
         ! Puts source into absorption. Ensures positivity of terms.
-        call set(source, i, -min(0.0, diss-prod) )
-        call set(absorption, i, max(0.0, diss-prod) )
+        !call set(source, i, -min(0.0, diss-prod) )
+        !call set(absorption, i, max(0.0, diss-prod) )
+
+        ! Try explicit terms
+        call set(source, i, prod )
+        call set(absorption, i, diss )
 
     end do
+
+    ewrite_minmax(tke_old)
+    ewrite_minmax(eps)
+    ewrite_minmax(P)
+    ewrite_minmax(source)
+    ewrite_minmax(absorption)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
@@ -300,72 +360,114 @@ subroutine keps_eps(state)
     ! puts the BC boundary values in surface_eps_values:
     if (calculate_bcs) then
 
-        do bc = 1, get_boundary_condition_count(eps)   ! use kk bcs for eps
+        ! FROM ROTATED BOUNDARY CONDITIONS:
+        if (associated(eps%mesh%halos)) then
+            halo => eps%mesh%halos(1)
+            mynodes=halo_nowned_nodes(halo)
+        else
+            nullify(halo)
+            mynodes=nnodes
+        end if
 
-            call get_boundary_condition(eps, bc, name=bc_name, type=bc_type, &
-                 surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
-                 surface_element_list=surface_elements)
+        allocate(dnnz(1:mynodes), onnz(1:mynodes))
+        dnnz=1; onnz=0
 
-            if (bc_type == 'k_epsilon') then
+        do i = 1, get_boundary_condition_count(eps)
+           call get_boundary_condition(eps, i, type=bc_type, &
+                surface_node_list=surface_node_list)
 
-                ewrite(1,*) "Calculating epsilon boundary condition: ", bc_name
-
-                ! create a sparse matrix, rhs and solution vectors
-                eps_sparsity => get_csr_sparsity_firstorder( state, surface_mesh, surface_mesh )
-                call allocate(lumped_mass, eps_sparsity, (/1,1/), diagonal=.true., name="lumped_mass")
-                call allocate(surface_eps_values, surface_mesh, name="SurfaceValuesEps")
-                call allocate(rhs_vector, surface_mesh, name="RHS")
-                allocate(global_node_list(size(surface_node_list)))
-                allocate(local_node_list(size(surface_node_list)))
-
-                call zero(lumped_mass)
-                call zero(rhs_vector)
-                call zero(surface_eps_values)
-                global_node_list = 0
-                local_node_list = 0
-                index = 1                             ! initialise node list counter
-
-                ewrite(1,*) "surface field size: ", size( surface_eps_values%val )
-
-                ! Calculate boundary condition at surface element and add to petsc system
-                do i = 1, size(surface_elements)      ! local element list
-                    sele = surface_elements(i)        ! global face id
-                    ele  = face_ele(positions, sele)  ! index of the element which owns face
-
-                    call eps_bc(ele, sele, kk, positions, surface_node_list, &
-                            global_node_list, local_node_list, rhs_vector, lumped_mass)
-                end do
-
-                if( sum(local_node_list) /= &
-                    0.5*size(local_node_list)*(size(local_node_list)+1) ) then
-                    ewrite(1,*) "WARNING: local node list may contain repeated entries"
-                end if
-
-                ! Solve the petsc linear system. Important: get solver options here.
-                surface_eps_values%option_path = eps%option_path
-                call petsc_solve( surface_eps_values, lumped_mass, rhs_vector )
-
-                ! Apply boundary condition to epsilon field
-                do i = 1, node_count(surface_eps_values)
-                    g = global_node_list(i)
-                    l = local_node_list(i)
-                    eps%val(g) = max(surface_eps_values%val(l), eps_init)
-                end do
-
-                call deallocate( rhs_vector )
-                call deallocate( lumped_mass )
-                call deallocate( surface_eps_values )
-                deallocate( local_node_list, global_node_list )
-
-            end if
+           if (bc_type=="k_epsilon") then
+              ! Check for duplicated bcs at node
+              do j = 1, size(surface_node_list)
+                 node=surface_node_list(j)
+                 if (node > mynodes) cycle
+                 if ( dnnz(node) > 1 ) then
+                    FLAbort("Two boundary condition specifications for the same node.")
+                 end if
+                 dnnz(node) = 2
+              end do
+           end if
         end do
+
+        call allocate(lumped_mass, nnodes, nnodes, &
+             dnnz, onnz, (/1,1/), "lumped_mass", halo=halo)
+        call allocate(rhs_vector, eps%mesh, name="RHS")
+        call allocate(surface_eps_values, eps%mesh, name="SurfaceValuesEps")
+        call zero(rhs_vector)
+        call zero(surface_eps_values)
+        call zero(lumped_mass)
+
+        ! put a 1.0 on the diagonal ulness it's a surface node
+        do i = 1,nnodes
+          if (dnnz(i) == 2) cycle
+          call addto(lumped_mass, 1,1,i, i, 1.0)
+        end do
+
+        ! Calculate boundary condition at surface element and add to system
+        do i = 1, get_boundary_condition_count(eps)
+
+          call get_boundary_condition(eps, i, name=bc_name, type=bc_type, &
+               surface_node_list=surface_node_list, &
+               surface_element_list=surface_elements)
+
+          if (bc_type=="k_epsilon") then
+
+            ewrite(1,*) "Calculating epsilon boundary condition: ", &
+                       trim(bc_name), ', ', trim(bc_type), ', ', size(surface_node_list)
+
+            do j = 1, size(surface_elements)      ! local element list
+              sele = surface_elements(j)          ! global face id
+              ele  = face_ele(positions, sele)    ! index of the element which owns face
+
+              allocate(rhs(face_loc(positions, sele) ))
+              allocate(mass( 1:(face_loc(positions, sele)), 1:(face_loc(positions, sele) ) ) )
+              allocate(nodes_bdy(face_loc(positions, ele) ))
+              nodes_bdy =  face_global_nodes(positions, sele)    ! global node ids
+
+              call eps_bc(ele, sele, kk, positions, nodes_bdy, rhs, mass)
+
+              ! Add contributions to RHS and lumped mass matrix using global numbering
+              call addto( rhs_vector, nodes_bdy, rhs )
+              call addto_diag( lumped_mass, 1, 1, nodes_bdy, sum(mass, 2) )
+
+              deallocate(rhs); deallocate(mass); deallocate(nodes_bdy)
+
+            end do
+          end if
+        end do
+
+        call assemble(lumped_mass)
+
+        ! matrixdump for mass matrix
+        !ewrite(1,*) "writing lumped mass to file: matrixdump"
+        !call dump_matrix("matrixdump", lumped_mass)
+        ewrite(1,*) "writing rhs vector to file: rhs_vector_field2file.dat"
+        call field2file('rhs_vector_field2file.dat', rhs_vector)
+
+        ! Solve the petsc linear system. Important: get solver options here
+        surface_eps_values%option_path = dummyfield%option_path
+        call petsc_solve( surface_eps_values, lumped_mass, rhs_vector )
+
+        ! Print surface eps values:
+        call field2file('surfaceepsvalues_field2file.dat', surface_eps_values)
+        ewrite(1,*) "writing surface eps values to file: surfaceepsvalues_field2file.dat"
+
+        ! Finally, apply all k-epsilon type boundary conditions to epsilon field
+        do j = 1, nnodes
+            ! Ignore zeros, they are not on the boundaries of interest
+            if(surface_eps_values%val(j) == 0) cycle
+            eps%val(j) = max(surface_eps_values%val(j), fields_min)
+        end do
+
+        call deallocate( rhs_vector )
+        call deallocate( lumped_mass )
+        call deallocate( surface_eps_values )
+
     end if
 
-    ewrite_minmax(tke_old)
-    ewrite_minmax(kk)
+    ewrite_minmax(source)
+    ewrite_minmax(absorption)
     ewrite_minmax(eps)
-    ewrite_minmax(EV)
-    ewrite_minmax(ll)
 
 end subroutine keps_eps
 
@@ -380,7 +482,7 @@ subroutine keps_eddyvisc(state)
     type(tensor_field), pointer      :: eddy_visc, viscosity, background
     type(vector_field), pointer      :: positions
     type(scalar_field), pointer      :: kk, eps, scalarField
-    integer                          :: i, j, stat
+    integer                          :: i, stat
 
     ewrite(1,*) "In keps_eddyvisc"
 
@@ -390,6 +492,9 @@ subroutine keps_eddyvisc(state)
     eddy_visc  => extract_tensor_field(state, "EddyViscosity")
     viscosity  => extract_tensor_field(state, "Viscosity")
     background => extract_tensor_field(state, "BackgroundViscosity")
+
+    ewrite_minmax(kk)
+    ewrite_minmax(eps)
 
     ! Calculate new eddy viscosity and lengthscale
     call set(viscosity, background)
@@ -425,12 +530,9 @@ subroutine keps_eddyvisc(state)
     end do
 
     viscosity%val = viscosity%val + eddy_visc%val
-
+    ! Check components of viscosity
     do i = 1, viscosity%dim
-        do j = 1, viscosity%dim
-            if(j<i) cycle
-            ewrite_minmax(viscosity%val(i,j,:))
-        end do
+        ewrite_minmax(viscosity%val(i,i,:))
     end do
 
     ! Set output on optional fields
@@ -446,6 +548,9 @@ subroutine keps_eddyvisc(state)
     if(stat == 0) then
         call set(scalarField, tkeovereps)  
     end if
+
+    ewrite_minmax(kk)
+    ewrite_minmax(eps)
 
 end subroutine keps_eddyvisc
 
@@ -579,7 +684,7 @@ subroutine keps_check_options
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
     end if
 
-  end subroutine keps_check_options
+end subroutine keps_check_options
 
 !------------------------------------------------------------------!
 !                       Private subroutines                        !
@@ -589,6 +694,7 @@ subroutine keps_allocate_fields(state)
 
     type(state_type), intent(inout) :: state
     type(vector_field), pointer     :: vectorField
+
     ewrite(1,*) "In keps_allocate_fields"
 
     vectorField => extract_vector_field(state, "Velocity")
@@ -602,6 +708,25 @@ subroutine keps_allocate_fields(state)
     call allocate(tkeovereps, vectorField%mesh, "TKEoverEpsilon")
 
 end subroutine keps_allocate_fields
+
+!-------------------------------------------------------------------------
+
+!subroutine keps_init_surfaces(state)
+
+!    type(state_type), intent(in)     :: state
+!    type(scalar_field), pointer      :: kk, eps
+
+!    ewrite(1,*) "Initialising the k-epsilon surfaces required for BCs"
+
+    ! grab hold of some essential field
+!    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
+!    eps => extract_scalar_field(state, "TurbulentDissipation")
+
+    ! Create fields of surface values for k and eps wherever k_epsilon bc is applied.
+!    call get_entire_boundary_condition(kk, (/"k_epsilon"/), kk_boundary_values, kk_bc_list)
+!    call get_entire_boundary_condition(eps, (/"k_epsilon"/), eps_boundary_values, eps_bc_list)
+
+!end subroutine keps_init_surfaces
 
 !--------------------------------------------------------------------------------!
 ! Only used if bc type = k_epsilon for k field. Hard-coded to Dirichlet for now. !
@@ -631,57 +756,34 @@ end subroutine tke_bc
 ! Lump the mass matrix to diagonalise it, then simply solve the system for epsilon. !
 !-----------------------------------------------------------------------------------!
 
-subroutine eps_bc(ele, sele, kk, positions, surface_node_list, &
-                  global_node_list, local_node_list, rhs_vector, lumped_mass)
+subroutine eps_bc(ele, sele, kk, positions, nodes_bdy, rhs, mass)
 
-    type(scalar_field), pointer                   :: kk
-    type(vector_field), intent(in)                :: positions
-    type(scalar_field), intent(inout)             :: rhs_vector
-    type(petsc_csr_matrix), intent(inout)         :: lumped_mass
-    type(element_type), pointer                   :: shape_kk, fshape_kk
-    type(element_type)                            :: augmented_shape
-    integer, dimension(:), pointer, intent(in)    :: surface_node_list
-    integer, dimension(size(surface_node_list)), intent(inout) :: &
-                                                     local_node_list, global_node_list
-    integer, intent(in)                           :: ele, sele
-    integer                                       :: i, j, snloc, sngi
-    integer, dimension(face_loc(positions, ele))  :: nodes_bdy, nodes_bdy_local
-    real, dimension(ele_ngi(kk, ele))             :: detwei
-    real, dimension(face_ngi(kk, sele))           :: detwei_bdy, fields_sngi, dkdn_contracted
+    type(scalar_field), pointer                             :: kk
+    type(vector_field), intent(in)                          :: positions
+    type(element_type), pointer                             :: shape_kk, fshape_kk
+    type(element_type)                                      :: augmented_shape
+    integer, intent(in)                                     :: ele, sele
+    real, dimension(face_loc(positions,sele)), intent(out)  :: rhs
+    real, dimension(face_loc(positions,sele), &
+                    face_loc(positions,sele)), intent(out)  :: mass
+    integer                                                 :: i, j, snloc, sngi
+    integer, dimension(face_loc(positions, ele))            :: nodes_bdy
+    real, dimension(ele_ngi(kk, ele))                       :: detwei
+    real, dimension(face_ngi(kk, sele))  :: detwei_bdy, fields_sngi, dkdn_contracted
 
     real, dimension(positions%dim, positions%dim, ele_ngi(kk, sele))     :: invJ
     real, dimension(positions%dim, positions%dim, face_ngi(kk, sele))    :: invJ_face
     real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim)   :: dshape_kk
     real, dimension(ele_loc(kk, ele), face_ngi(kk, sele), positions%dim) :: fdshape_kk
     real, dimension(positions%dim, face_ngi(positions, sele))            :: normal_bdy
-    real, dimension(face_loc(positions,sele))                            :: rhs
     real, dimension(face_loc(positions,sele), face_ngi(positions,sele))  :: dkdn
-    real, dimension(face_loc(positions,sele), face_loc(positions,sele))  :: mass
+
 
     ! Get ids, lists and shape functions
     sngi      =  face_ngi(kk, sele)    ! no. of gauss points in surface element
     snloc     =  face_loc(kk, sele)    ! no. of nodes on surface element
     shape_kk  => ele_shape(kk, ele)    ! shape functions in volume element
     fshape_kk => face_shape(kk, sele)  ! shape functions in surface element
-    nodes_bdy =  face_global_nodes(positions, sele)    ! global node ids
-
-    ! Convert global to local node list. This does what ele_nodes should do if it worked here.
-    do i = 1, snloc
-        ! Have we seen this surface node before?
-        if(any(global_node_list == nodes_bdy(i))) then
-            do j = 1, size(global_node_list)
-                if(global_node_list(j) == nodes_bdy(i)) then
-                    nodes_bdy_local(i) = local_node_list(j)
-                    exit
-                end if
-            end do
-        else
-            nodes_bdy_local(i) = index              ! for populating rhs and lumped_mass
-            global_node_list(index) = nodes_bdy(i)  ! record of global nodes used
-            local_node_list(index) = index          ! record of local nodes used
-            index = index + 1                       ! keep counting new nodes
-        end if
-    end do
 
     ! Get dshape_kk and element quadrature weights: ngi
     call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
@@ -704,7 +806,7 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, &
     call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
 
     ! dot normal with dshape_kk to get shape fn gradient w.r.t. surface normal
-    do i = 1, size(nodes_bdy_local)
+    do i = 1, size(nodes_bdy)
         do j = 1, sngi
             dkdn(i,j) = dot_product( normal_bdy(:,j), fdshape_kk(i,j,:) )
         end do
@@ -723,10 +825,6 @@ subroutine eps_bc(ele, sele, kk, positions, surface_node_list, &
 
     ! block to add to mass matrix diagonal
     mass = shape_shape( fshape_kk, fshape_kk, detwei_bdy )
-
-    ! Add contributions to RHS and lumped mass matrix using local numbering
-    call addto( rhs_vector, nodes_bdy_local, rhs )
-    call addto_diag( lumped_mass, 1, 1, nodes_bdy_local, sum(mass, 2) )
 
 end subroutine eps_bc
 
