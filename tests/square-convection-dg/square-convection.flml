@@ -89,10 +89,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">0.71E+3</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -186,7 +186,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin replaces="DISOPT">
             <viscosity_scheme>
-              <compact_discontinuous_galerkin/>
+              <bassi_rebay/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
