@@ -244,6 +244,21 @@ contains
         tdensity=>dummyscalar
         oldtdensity=>dummyscalar
 
+        ! dpavlidis - coefficient for advdiff
+        if (have_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field')) then
+           call get_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field/', &
+                tmpstring)
+           ! density needed so extract the type specified in the input
+           ! ?? are there circumstances where this should be "Iterated"... need to be
+           ! careful with priority ordering
+           tdensity=>extract_scalar_field(state(1), trim(tmpstring))
+           ewrite_minmax(tdensity%val)
+           ! halo exchange? - not currently necessary when suboptimal halo exchange if density
+           ! is solved for with this subroutine and the correct priority ordering.
+           oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
+           ewrite_minmax(oldtdensity%val)
+        end if
+
       case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, &
            FIELD_EQUATION_INTERNALENERGY )
         call get_option(trim(option_path)//'/prognostic/equation[0]/density[0]/name', &
@@ -633,7 +648,7 @@ contains
                                     source, absorption, tfield_options%theta, &
                                     state, advu, sub_dt, explicit, &
                                     t_lumpedmass, t_lumpedmass_old, t_lumpedmass_new, & 
-                                    D_m, diff_rhs)
+                                    D_m, diff_rhs, option_path=option_path)
 
 
           ! Solve for the change in tfield.
@@ -725,7 +740,7 @@ contains
                                     source, absorption, theta, &
                                     state, advu, dt, explicit, &
                                     lumpedmass, lumpedmass_old, lumpedmass_new, &
-                                    D_m, diff_rhs)
+                                    D_m, diff_rhs, option_path)
 
       ! This subroutine assembles the equation
       ! M(T^{n+1}-T^{n})/\Delta T = rhs
@@ -792,6 +807,10 @@ contains
       ! self explanatory strings
       integer :: equation_type
 
+      ! figure out coefficient
+      character(len=OPTION_PATH_LEN), optional :: option_path
+      integer :: i
+
       ewrite(1, *) "In assemble_field_eqn_cv"
 
       if(include_diffusion) then
@@ -810,16 +829,30 @@ contains
       ! start by adding the mass - common to all equation types
       if(include_mass) then
         if(move_mesh) then
-          if(explicit) then
-            call set(m_lumpedmass, lumpedmass_new)
-          else
-            call addto_diag(M, lumpedmass_new)
-          end if
+           if(explicit) then
+              call set(m_lumpedmass, lumpedmass_new)
+           else
+              ! dpavlidis - coefficient for advdiff
+              if (have_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field')) then
+                 do i = 1, node_count(tdensity)
+                    call set( M, i, i, node_val(lumpedmass, i) * node_val(tdensity, i) )
+                 end do
+              else
+                 call addto_diag(M, lumpedmass_new)
+              end if
+           end if
         else
           if(explicit) then
             call set(m_lumpedmass, lumpedmass)
           else
-            call addto_diag(M, lumpedmass)
+             ! dpavlidis - coefficient for advdiff
+             if (have_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field')) then
+                do i=1, node_count(tfield)
+                   call set( M, i, i, node_val(lumpedmass, i) * node_val(tdensity, i) )
+                end do
+             else
+                call addto_diag(M, lumpedmass)
+             end if
           end if
         end if
       end if
@@ -2446,7 +2479,7 @@ contains
                                       tdensity(f)%ptr, oldtdensity(f)%ptr, &
                                       source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
                                       state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
-                                      t_lumpedmass, t_lumpedmass_old, t_lumpedmass_new)
+                                      t_lumpedmass, t_lumpedmass_old, t_lumpedmass_new, option_path=option_path(f))
 
             ! Solve for the change in tfield.
             if(explicit(f)) then

@@ -1978,7 +1978,15 @@ Works for all discretisation types.</a:documentation>
         <attribute name="name">
           <value>AdvectionDiffusion</value>
         </attribute>
-        <empty/>
+        <optional>
+          <element name="coefficient_field">
+            <a:documentation>Select combination of coefficients
+to be used in the Advection Diffusion Equation
+
+this should be a scalar field</a:documentation>
+            <data type="string"/>
+          </element>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>***UNDER TESTING***

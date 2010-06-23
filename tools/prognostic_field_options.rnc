@@ -1551,7 +1551,11 @@ scalar_equation_choice =
          ## Works for all discretisation types.
          element equation { 
             attribute name { "AdvectionDiffusion" },
-            empty
+            ## Select combination of coefficients
+            ## to be used in the Advection Diffusion Equation
+            ##
+            ## this should be a scalar field
+            element coefficient_field { string }?
          }|
          ## ***UNDER TESTING***
          ##
