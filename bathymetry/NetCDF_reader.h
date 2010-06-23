@@ -17,6 +17,8 @@
 #ifndef NETCDF_READER_H
 #define NETCDF_READER_H
 
+#include "confdefs.h"
+
 #include <cassert>
 #include <cstdlib>
 #include <cmath>
@@ -35,7 +37,9 @@
 #endif
 
 extern "C" {
+#ifdef HAVE_NETCDF
 #include <netcdf.h>
+#endif
 }
 
 class NetCDF_reader{

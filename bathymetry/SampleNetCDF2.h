@@ -16,13 +16,18 @@
  */
 #ifndef SAMPLENETCDF2_H
 #define SAMPLENETCDF2_H
+
+#include "confdefs.h"
+
 #include <cmath>
 #include <string>
 #include <vector>
 
 #include <string.h>
 extern "C" {
+#ifdef HAVE_NETCDF
 #include <netcdf.h>
+#endif
 }
 // #include "tools.h" // Experimenting to see whether this is needed
 #include "NetCDF_reader.h"

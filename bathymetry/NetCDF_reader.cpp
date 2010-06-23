@@ -21,6 +21,7 @@
 using namespace std;
 
 NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
+#ifdef HAVE_NETCDF
   verbose = _verbose;
  
   if(verbose)
@@ -340,11 +341,19 @@ NetCDF_reader::NetCDF_reader(const char *filename, bool _verbose){
   spacing[1] = (y_range[1] - y_range[0])/(dimension[1]-1);
   
   return;
+#else
+  cerr << "No NetCDF support" << endl;
+  exit(-1);
+#endif
 }
 
 NetCDF_reader::~NetCDF_reader(){
+#ifdef HAVE_NETCDF
   // Close the netCDF file.
   ncclose(ncid);
+#else
+  cerr << "No NetCDF support" << endl;
+#endif
 }
 
 int NetCDF_reader::GetDimension(int &ilen, int &jlen) const{
@@ -379,6 +388,7 @@ bool NetCDF_reader::IsColatitude() const{
 }
 
 int NetCDF_reader::Read(vector<double> &z) const{
+#ifdef HAVE_NETCDF
   if(verbose)
     cout<<"int NetCDF_reader::Read(vector<double> &z) const\n";
 
@@ -433,15 +443,29 @@ int NetCDF_reader::Read(vector<double> &z) const{
   }
 
   return 0;
+#else
+  cerr << "No NetCDF support" << endl;
+  exit(-1);
+#endif
 }
 
 void NetCDF_reader::NetCDFErrorCheckingOff(){
+#ifdef HAVE_NETCDF
   ncopts = 0;
+#else
+  cerr << "No NetCDF support" << endl;
+  exit(-1);
+#endif
 }
 
 void NetCDF_reader::NetCDFErrorCheckingOn(){
+#ifdef HAVE_NETCDF
   // Make NetCDF errors verbose and fatal
   ncopts = NC_VERBOSE | NC_FATAL;
+#else
+  cerr << "No NetCDF support" << endl;
+  exit(-1);
+#endif
 }
 
 void NetCDF_reader::VerboseOff(){
