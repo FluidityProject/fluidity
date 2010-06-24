@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>circular_duct</name>
+  <owner userid="cjc1"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 -l circular_duct.flml </command_line>
+    <!-- 3D Circular duct test for p1dg-p2 with CDG viscosity -->
+  </problem_definition>
+  <variables>
+    <variable name="max_u_error" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("circular_duct.stat")
+emax = s["Water"]["VelocityError%magnitude"]["max"][-1]
+emin = s["Water"]["VelocityError%magnitude"]["min"][-1]
+max_u_error = max(emax,-emin)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="u error less than 0.03" language="python">
+assert max_u_error &lt; 0.03
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
