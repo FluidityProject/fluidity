@@ -309,6 +309,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	test\_pressure\_solve			& \ref{sect:test_pressure_solve}	\\
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
     	vertical\_integration			& \ref{sect:vertical_integration} 	\\
+    	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
 	differentiate\_vtu          & \ref{sect:differentiate_vtu}		\\
 	vtu\_bins           & \ref{sect:vtu_bins}		\\
@@ -535,6 +536,28 @@ field is \ensuremath{P_{degree}} (continuous). The
 \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 vertical\_integration can only be used in serial.
+
+%%%%%%%%%%%%%%%%%% SUPERMESH DIFFERENCE %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{supermesh\_difference}
+\label{sect:supermesh_difference}
+
+The supermesh\_difference tool computes the difference between two vtu
+files using supermesh construction. supermesh\_difference is built as part of
+the fltools build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+supermesh_difference vtu_1 vtu_2 output_vtu
+\end{lstlisting}
+
+The output vtu (with filename \lstinline[language = Bash]+output_vtu+)
+is equal to the first vtu (with filename \lstinline[language = Bash]+vtu_1+)
+minus the second vtu (with filename \lstinline[language = Bash]+vtu_2+).  The
+\lstinline[language = Bash]+-v+ flag enables verbose output.
+
+Be aware that supermesh\_difference can generate extremely large output files,
+particularly in three dimensions. supermesh\_difference can only be used in
+serial.
 
 %%%%%%%%%%%%%%%%%%%%%% VTKDIAGNOSTIC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
