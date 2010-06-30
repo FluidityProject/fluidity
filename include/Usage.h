@@ -41,6 +41,7 @@
 #else
 #include <getopt.h>
 #endif
+#undef MPI_Comm
 
 #ifdef HAVE_MPI
 #include <mpi.h>
