@@ -177,10 +177,12 @@ subroutine vertical_integration(target_basename, target_basename_len, &
           call deallocate(positions_c)
           cycle
         end if
-        if(volume(positions_c) < epsilon(0.0)) then
-          ! Negligable intersection to integrate
-          call deallocate(positions_c)
-          cycle
+        if(dim /= 3 .or. (intersector_exactness .eqv. .true.)) then  ! The stat argument to intersect_tets checks this
+          if(volume(positions_c) < epsilon(0.0)) then
+            ! Negligable intersection to integrate
+            call deallocate(positions_c)
+            cycle
+          end if
         end if
         
         
