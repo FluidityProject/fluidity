@@ -168,7 +168,8 @@ Momentum_CG.o: Upwind_Stabilisation.o Coriolis.o State_Matrices.o \
    LES_viscosity.o Petsc_Solve_State.o
 Divergence_Matrix_CG.o: Upwind_Stabilisation.o
 Momentum_Diagnostic_Fields.o: Multimaterials.o
-Mba2d_Integration.o: Node_Locking.o Surface_Id_Interleaving.o
+Mba2d_Integration.o: Adapt_Integration.o Node_Locking.o \
+  Surface_Id_Interleaving.o
 Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
 Petsc_Solve_State.o: Free_Surface.o
 Spontaneous_Potentials.o: Porous_Media.o

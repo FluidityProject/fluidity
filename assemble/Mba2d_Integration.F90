@@ -18,10 +18,16 @@ module mba2d_integration
   use quicksort
   use surface_id_interleaving
   use data_structures
+  use global_parameters, only : current_debug_level
+  use adapt_integration
 #ifdef HAVE_MBA_2D
   use mba2d_module
 #endif
   implicit none
+  
+  private
+  
+  public :: adapt_mesh_mba2d, mba2d_integration_check_options
 
   contains
 
@@ -53,7 +59,7 @@ module mba2d_integration
     real, dimension(:, :), allocatable :: tmp_metric
     integer :: i, j, k, partition_surface_id, face
     real :: quality, rQuality
-    integer :: ierr, maxWr, maxWi
+    integer :: iPrint, ierr, maxWr, maxWi
     real, dimension(:), allocatable :: rW
     integer, dimension(:), allocatable :: iW
     integer :: status
@@ -112,8 +118,8 @@ module mba2d_integration
     call initialise_boundcount(xmesh, input_positions)
 
     ! mxnods is an option to adaptivity specifying the maximum number of nodes
-    call get_option('/mesh_adaptivity/hr_adaptivity/maximum_number_of_nodes', &
-      mxnods)
+    xpctel = max(expected_elements(input_positions, metric), 5)
+    mxnods = max_nodes(input_positions, expected_nodes(input_positions, xpctel, global = .false.))
 
     nonods = node_count(xmesh)
     totele = ele_count(xmesh)
@@ -121,7 +127,6 @@ module mba2d_integration
     mxface = int(max((float(mxnods) / float(nonods)) * orig_stotel * 3.5, 10000.0))
     maxele = int(max((float(mxnods) / float(nonods)) * totele * 1.5, 10000.0))
     maxp = mxnods * 1.2
-    xpctel = max(expected_elements(input_positions, metric), 5)
 
     allocate(pos(2, maxp))
     pos = 0.0
@@ -308,6 +313,15 @@ module mba2d_integration
                   parcrv, iFnc, filename)
 #endif
 
+    select case(current_debug_level)
+      case(:0)
+        iPrint = 0
+      case(1)
+        iPrint = 5
+      case(2:)
+        iPrint = 9
+    end select
+
     call mbaNodal(                                   &
          nonods, maxp, stotel, mxface, totele, maxele, npv, &
          pos, ipf, ipe, ipv, &
@@ -318,7 +332,7 @@ module mba2d_integration
          100, iterations, &
          tmp_metric, quality, rQuality, &
          maxWr, maxWi, rW, iW, &
-         10, ierr)
+         iPrint, ierr)
 
     call incrementeventcounter(EVENT_ADAPTIVITY)
     call incrementeventcounter(EVENT_MESH_MOVEMENT)

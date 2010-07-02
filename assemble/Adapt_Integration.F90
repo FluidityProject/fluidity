@@ -47,7 +47,7 @@ module adapt_integration
   
   private
   
-  public :: adapt_mesh, adapt_integration_check_options
+  public :: adapt_mesh, max_nodes, adapt_integration_check_options
   
   character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
   
@@ -305,10 +305,10 @@ contains
     
     ewrite(2, "(a,i0)") "Integer working memory size: ", intsiz
     ewrite(2, "(a,i0)") "Real working memory size: ", rlsiz
-    if(intsiz<0) then
+    if(intsiz < 0) then
       FLAbort("Invalid integer working memory size")
     end if
-    if(rlsiz<0) then
+    if(rlsiz < 0) then
       FLAbort("Invalid real working memory size")
     end if
       
@@ -323,18 +323,8 @@ contains
     useq = .false.  ! Unknown
     
     ! Maximum number of nodes
-    call get_option(base_path // "/maximum_number_of_nodes", absolutemxnods, default = 100000)
-    if(isparallel()) then
-      if(.not. have_option(base_path // "/maximum_number_of_nodes/per_process")) then
-        absolutemxnods = absolutemxnods / getnprocs()
-      end if
-      absolutemxnods = &
-        & max( &
-          & absolutemxnods, &
-          & expected_nodes(input_positions, int(xpctel / expected_elements_buffer), global = .false.) &
-        & )
-    end if
-    absolutemxnods = max(absolutemxnods, nnod) * mxnods_buffer
+    absolutemxnods = max_nodes(input_positions, expected_nodes(input_positions, int(xpctel / expected_elements_buffer), global = .false.))
+    absolutemxnods = absolutemxnods * mxnods_buffer
     ewrite(2, "(a,i0)") "Max. nodes: ", absolutemxnods
     
     ! Volume element list
@@ -397,13 +387,10 @@ contains
     select case(metric%field_type)
       case(FIELD_TYPE_NORMAL)
         orgmtx = reshape(metric%val, (/nnod * dim ** 2/))
-      case(FIELD_TYPE_CONSTANT)
+      case default
         do i = 1, nnod
           orgmtx((i - 1) * dim * dim + 1:i * dim * dim) = reshape(node_val(metric, i), (/dim ** 2/))
         end do
-      case default
-        ewrite(-1, *) "For field type ", metric%field_type
-        FLAbort("Unrecognised field type")
     end select
 
     ! Field data - none, as we don't use libadaptivity for interpolation any
@@ -677,6 +664,23 @@ contains
     
   end subroutine adapt_mesh
   
+  function max_nodes(positions, expected_nodes)
+    type(vector_field), intent(in) :: positions
+    !! The process local number of expected nodes
+    integer, intent(in) :: expected_nodes
+    
+    integer :: max_nodes   
+    
+    call get_option(base_path // "/maximum_number_of_nodes", max_nodes, default = 100000)
+    if(isparallel()) then
+      if(.not. have_option(base_path // "/maximum_number_of_nodes/per_process")) then
+        max_nodes = max_nodes  / getnprocs()
+      end if
+    end if
+    max_nodes = max(max_nodes, expected_nodes, node_count(positions))
+    
+  end function max_nodes
+  
   subroutine get_locked_nodes_and_faces(positions, lock_faces, locked_nodes)
     type(vector_field), intent(in) :: positions
     type(integer_set), intent(in) :: lock_faces
@@ -747,7 +751,6 @@ contains
     
     real :: func
     
-    integer :: i
     integer, dimension(:), pointer :: nodes
     real :: scale_factor = 1.0 / (2.0 * sqrt(6.0))
     
