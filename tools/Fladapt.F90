@@ -47,7 +47,7 @@ subroutine fladapt(input_basename, input_basename_len, &
   use spud
   use state_module
   use vtk_interfaces
-  use write_triangle
+  use mesh_files
   use populate_state_module
   interface
     subroutine check_options()
@@ -135,7 +135,7 @@ subroutine fladapt(input_basename, input_basename_len, &
   old_mesh => null()
   
   ! Write the output mesh
-  call write_triangle_files(output_basename, new_mesh_field)
+  call write_mesh_files(output_basename, new_mesh_field)
   
   ! Deallocate
   do i = 1, size(states)

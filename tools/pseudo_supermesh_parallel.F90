@@ -16,7 +16,7 @@ program pseudo_supermesh_parallel
   use unittest_tools
   use metric_tools
   use global_parameters, only: current_debug_level
-  use read_triangle
+  use mesh_files
   use reference_counting
   implicit none
 
@@ -51,7 +51,7 @@ program pseudo_supermesh_parallel
   nprocs = getnprocs()
 
   call parse_args(initial_file, mxnods, files)
-  positions = read_triangle_files(trim(initial_file), quad_degree=4)
+  positions = read_mesh_files(trim(initial_file), quad_degree=4)
   call halo_business(nprocs, positions, initial_file)
 
   dim = positions%dim

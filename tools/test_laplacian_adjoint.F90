@@ -6,7 +6,7 @@ program test_laplacian
   ! 
   ! This tests and illustrates the use of fields and shape functions to
   ! solve finite element problems.
-  use read_triangle
+  use mesh_files
   use fields
   use FEtools
   use elements
@@ -117,7 +117,7 @@ program test_laplacian
 
   end select
 
-  positions=read_triangle_files(filename, quad_degree)
+  positions=read_mesh_files(filename, quad_degree)
   call insert(state, positions, "Coordinate")
 
   ! Shape functions for psi

@@ -63,13 +63,14 @@ module adapt_state_module
   use sam_integration
   use tictoc  
   use timeloop_utilities
-  use write_triangle
   use fields_halos
   use data_structures
   use intersection_finder_module
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
+
+  use mesh_files
   
   implicit none
   
@@ -879,11 +880,13 @@ contains
     
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then
       output_positions => extract_vector_field(states(1), "Coordinate")
+
+
       if(isparallel()) then
-        call write_triangle_files(parallel_filename("first_timestep_adapted_mesh"), output_positions)
+        call write_mesh_files(parallel_filename("first_timestep_adapted_mesh"), output_positions)
         call write_halos("first_timestep_adapted_mesh", output_positions%mesh)
       else
-        call write_triangle_files("first_timestep_adapted_mesh", output_positions)
+        call write_mesh_files("first_timestep_adapted_mesh", output_positions)
       end if
     end if
     
@@ -1356,12 +1359,12 @@ contains
     end if
     
     if(have_option(base_path // "/write_adapted_mesh")) then
-      ! Debug triangle mesh output. These are output on every adapt iteration.
+      ! Debug mesh output. These are output on every adapt iteration.
     
       file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration)
       call find_mesh_to_adapt(states(1), mesh)
       positions = get_coordinate_field(states(1), mesh)
-      call write_triangle_files(file_name, positions)
+      call write_mesh_files(file_name, positions)
       if(isparallel()) then
         file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration, &
                                                 add_parallel = .false.)  ! parallel extension is added by write_halos

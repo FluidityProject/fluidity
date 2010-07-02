@@ -38,7 +38,7 @@ module adapt_state_prescribed_module
   use boundary_conditions
   use boundary_conditions_from_options
   use populate_state_module
-  use read_triangle
+  use mesh_files
   use reserve_state_module
   use spud
   use state_module
@@ -109,15 +109,8 @@ contains
     if(have_option(base_path // "/mesh/from_file")) then
       call get_option(base_path // "/mesh/from_file/format", format)
       call get_option("/geometry/quadrature/degree", quad_degree)
-      select case(format)
-        case("triangle")
-          ewrite(2, *) "Reading new mesh from triangle"
           
-          new_positions = read_triangle_files(mesh_name, quad_degree = quad_degree)
-        case default
-          ewrite(-1, *) "For mesh format " // trim(format)
-          FLAbort("Invalid mesh format")
-      end select
+      new_positions = read_mesh_files(mesh_name, quad_degree = quad_degree)
     else
       ewrite(2, *) "Extracting new mesh from state"
     

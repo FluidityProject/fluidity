@@ -44,11 +44,11 @@ module implicit_solids
   use unittest_tools
   use global_parameters, only: FIELD_NAME_LEN, current_time, dt
   use spud
-  use read_triangle
   use timeloop_utilities
   use fefields, only: compute_lumped_mass
   use parallel_tools
   use interpolation_module
+  use mesh_files
 
   implicit none
 

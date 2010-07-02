@@ -27,10 +27,10 @@
 
 #include "fdebug.h"
 
-subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
-     & trianglename_len) 
+subroutine project_to_continuous_parallel(vtuname, vtuname_len, meshname,&
+     & meshname_len) 
   !!< Given a vtu file containing fields on a discontinuous mesh, and the
-  !!< triangle files for the corresponding continuous mesh, produce a vtu
+  !!< mesh files for the corresponding continuous mesh, produce a vtu
   !!< with its fields projected onto the continuous mesh.
   
   use fefields
@@ -38,7 +38,7 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   use halos
   use global_parameters, only : current_debug_level
   use parallel_tools
-  use read_triangle
+  use mesh_files
   use solvers
   use sparsity_patterns
   use sparse_tools
@@ -47,9 +47,9 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
   
   implicit none
   
-  integer, intent(in):: vtuname_len, trianglename_len
+  integer, intent(in):: vtuname_len, meshname_len
   character(len=vtuname_len), intent(in):: vtuname
-  character(len=trianglename_len), intent(in):: trianglename
+  character(len=meshname_len), intent(in):: meshname
 
   character(len = *), parameter :: solver_option_path = "/dummy"
   integer :: i, nfields
@@ -78,8 +78,8 @@ subroutine project_to_continuous_parallel(vtuname, vtuname_len, trianglename,&
     call vtk_read_state(trim(vtuname) //".vtu", dg_state, quad_degree = quad_degree)
   end if
   
-  cg_coordinate = read_triangle_files(trianglename, quad_degree = quad_degree)
-  if(isparallel()) call read_halos(trianglename, cg_coordinate)
+  cg_coordinate = read_mesh_files(meshname, quad_degree = quad_degree)
+  if(isparallel()) call read_halos(meshname, cg_coordinate)
   cg_mesh => cg_coordinate%mesh
 
   do i = 1, scalar_field_count(dg_state)

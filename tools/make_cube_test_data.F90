@@ -4,7 +4,7 @@ program make_cube_test_data
   ! A small program to construct a vtu file
   ! for testing mayavi diagnostics
 
-  use read_triangle
+  use mesh_files
   use fields
   use FEtools
   use DGtools
@@ -66,7 +66,7 @@ program make_cube_test_data
 
   ewrite(1,*) 'reading mesh'
 
-  positions=read_triangle_files(filename, X_shape)
+  positions=read_mesh_files(filename, X_shape)
 
   ewrite(1,*) 'getting shapes'
 
@@ -288,7 +288,7 @@ contains
 
   subroutine usage
     
-    write (0,*) "usage: inspect_CMC <triangle_file_name>"
+    write (0,*) "usage: inspect_CMC <mesh_file_name>"
     
   end subroutine usage
 

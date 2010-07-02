@@ -41,7 +41,7 @@ module checkpoint
   use spud
   use state_module
   use vtk_interfaces
-  use write_triangle
+  use mesh_files
   use detector_data_types
   use diagnostic_variables
   use mpi_interfaces
@@ -445,7 +445,7 @@ contains
   end subroutine checkpoint_state
 
   subroutine checkpoint_meshes(state, prefix, postfix, cp_no)
-    !!< Checkpoint the meshes in state. Outputs to triangle files with names:
+    !!< Checkpoint the meshes in state. Outputs to mesh files with names:
     !!<   [prefix]_[mesh_name][_cp_no][_postfix][_process].[extention]
     !!< where cp_no is optional and the process number is added in parallel.
     !!< Also outputs a .halo file if running in parallel.
@@ -506,13 +506,13 @@ contains
           else
             position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
           end if
-          call write_triangle_files(parallel_filename(mesh_filename), position)
+          call write_mesh_files(parallel_filename(mesh_filename), position)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
           call write_halos(mesh_filename, mesh)
         else
           ! Write out the mesh
-          call write_triangle_files(mesh_filename, state(1), mesh)
+          call write_mesh_files(mesh_filename, state(1), mesh)
         end if
      end if
    end do

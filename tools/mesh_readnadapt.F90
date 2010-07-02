@@ -22,7 +22,7 @@ program mesh_readnadapt
   use global_parameters, only : current_debug_level, PYTHON_FUNC_LEN
   use spud 
   use adapt_integration
-  use write_triangle
+  use mesh_files
 
   implicit none
   type(vector_field), target :: positions, new_positions
@@ -59,9 +59,9 @@ program mesh_readnadapt
   end select
   filename=trim(filename)
 
-  ewrite(2,*) 'Getting triangle file information'
+  ewrite(2,*) 'Getting mesh file information'
 
-  call identify_triangle_file(trim(filename), dim, loc, nnodes, nelements, &
+  call identify_mesh_file(trim(filename), dim, loc, nnodes, nelements, &
        node_attributes)
 
   quad_degree = 6
@@ -79,7 +79,7 @@ program mesh_readnadapt
   ewrite(2,*) 'reading mesh'
   ewrite(2,*) 'loc = ',loc,'dim = ',dim
 
-  positions=read_triangle_files(trim(filename), X_shape)
+  positions=read_mesh_files(trim(filename), X_shape)
   call allocate(h,positions%mesh,'h')
 
   ewrite(2,*) 'Setting h'
@@ -129,7 +129,7 @@ program mesh_readnadapt
   
   call set_from_python_function(h,trim(func), new_positions, 0.0)
 
-  call write_triangle_files(trim(filename)//'_out', & 
+  call write_mesh_files(trim(filename)//'_out', & 
        new_positions)
   call vtk_write_fields(trim(filename)//'_out', &
        index=0, position=new_positions, &

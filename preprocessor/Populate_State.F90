@@ -31,7 +31,7 @@ module populate_state_module
   use state_module
   use FLDebug
   use spud
-  use read_triangle
+  use mesh_files
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
@@ -217,14 +217,13 @@ contains
             ! is_active_process records whether we have data on disk or not
             ! see the comment in Global_Parameters. In this block, 
             ! we want to allocate an empty mesh and positions.
-            assert(trim(mesh_file_format)=="triangle")
 
             allocate(quad)
             allocate(shape)
             if (no_active_processes == 1) then
-              call identify_triangle_file(trim(mesh_file_name), dim, loc)
+              call identify_mesh_file(trim(mesh_file_name), dim, loc )
             else
-              call identify_triangle_file(trim(mesh_file_name) // "_0", dim, loc)
+              call identify_mesh_file(trim(mesh_file_name) // "_0", dim, loc )
             end if
             quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
             shape=make_element_shape(loc, dim, 1, quad)
@@ -240,12 +239,13 @@ contains
             deallocate(quad)
             deallocate(shape)
 
-          else if(trim(mesh_file_format)=="triangle") then
+          else if(trim(mesh_file_format)=="triangle" .or. &
+               trim(mesh_file_format)=="gmsh" ) then
              ! Read mesh from triangle file
              if (always_serial) then
-                position=read_triangle_serial(trim(mesh_file_name), quad_degree=quad_degree)
+                position=read_mesh_files(trim(mesh_file_name), quad_degree=quad_degree)
              else
-                position=read_triangle_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
+                position=read_mesh_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
              end if
              mesh=position%mesh
           else if(trim(mesh_file_format) == "vtu") then
@@ -287,7 +287,7 @@ contains
           mesh%periodic = option_count("/geometry/mesh/from_mesh/&
              &periodic_boundary_conditions/remove_periodicity")>0
 
-          ! Get mesh name. This must be done after the triangle file has
+          ! Get mesh name. This must be done after the mesh file has
           ! been read otherwise the filename is automatically inserted
           ! as the mesh name.
           call get_option(trim(mesh_path)//"/name", mesh%name)

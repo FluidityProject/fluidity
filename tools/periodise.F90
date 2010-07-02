@@ -12,7 +12,7 @@ program periodise
   use reference_counting
   use spud
   use field_options
-  use write_triangle
+  use mesh_files
   use integer_set_module
   implicit none
 
@@ -62,7 +62,7 @@ program periodise
 
   ! Dump out the periodic mesh to disk:
   new_external_filename = trim(external_filename) // '_periodic'
-  call write_triangle_files(new_external_filename, periodic_positions)
+  call write_mesh_files(new_external_filename, periodic_positions)
 
   ! OK! Now we need to do some setting of options.
   call manipulate_options(external_mesh, trim(external_mesh%option_path), periodic_mesh, trim(periodic_mesh%option_path), new_external_filename)

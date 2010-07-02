@@ -30,6 +30,7 @@ subroutine gallopede_main()
   use sparsity_patterns
   use MLCM_scalar_formulation
 
+  use mesh_files
 
   implicit none
 
@@ -200,9 +201,9 @@ subroutine gallopede_main()
   close(25)
 
 
-  call identify_triangle_file('Positions',dim,loc,nodes,nelements,n_attributes)
+  call identify_mesh_file('Positions',dim,loc,nodes,nelements,n_attributes)
   print*, dim,loc,nodes,nelements,n_attributes
-  call identify_triangle_file('Variables',dim,loc,nodes,n_elements,n_attributes)
+  call identify_mesh_file('Variables',dim,loc,nodes,n_elements,n_attributes)
   u_deg = loc/3
   print*, 'u_deg=', u_deg
   N_vels = 3*nelements

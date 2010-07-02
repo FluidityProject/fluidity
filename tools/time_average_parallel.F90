@@ -16,7 +16,7 @@ program time_average_parallel
   use unittest_tools
   use metric_tools
   use global_parameters, only: current_debug_level
-  use read_triangle
+  use mesh_files
   use reference_counting
   implicit none
 

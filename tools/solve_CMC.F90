@@ -8,7 +8,7 @@ program solve_CMC
   ! We solve              <v,u> = -<v,grad p> + (v.n,p)
   !      -<grad g,u> + < gn, u> = <g,f>
   ! 
-  use read_triangle
+  use mesh_files
   use fields
   use FEtools
   use DGtools
@@ -129,7 +129,7 @@ program solve_CMC
   
   ewrite(1,*) 'getting quadrature'
 
-  call identify_triangle_file(filename, dim, loc, nnodes, nelements, &
+  call identify_mesh_file(filename, dim, loc, nnodes, nelements, &
        node_attributes)
 
   ewrite(1,*) 'dim = ', dim

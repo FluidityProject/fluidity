@@ -10,7 +10,7 @@ module text_io
   use fields
   use FETools
   use fields_data_types
-  use read_triangle
+  use mesh_files
   use mesh_tools, only : get_tangents
 
   implicit none
@@ -118,9 +118,9 @@ contains
     call nullify(Positions_state)
     call nullify(Variables_state)
     
-    Variables_state = read_triangle_files('Variables',mesh%nh,.true.,3)
-    Connectivity_state = read_triangle_files('Connectivity',mesh%nu,.true.)
-    Positions_state = read_triangle_files('Positions',mesh%nu,.true.)
+    Variables_state = read_mesh_files('Variables',mesh%nh,.true.,3)
+    Connectivity_state = read_mesh_files('Connectivity',mesh%nu,.true.)
+    Positions_state = read_mesh_files('Positions',mesh%nu,.true.)
 
     !--------------------------------------------------------
     !read in connectivity for X

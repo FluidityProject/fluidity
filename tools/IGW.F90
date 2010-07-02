@@ -5,7 +5,7 @@ subroutine IGW
   ! using P1dg triangular elements for velocity
   ! and P2 triangular elements for height
   ! weak boundary conditions u.n = 0
-  use read_triangle
+  use mesh_files
   use fields
   use FEtools
   use DGtools
@@ -131,9 +131,9 @@ subroutine IGW
   ewrite(2,*) 'balanced_u',balanced_u
   ewrite(2,*) 'u_degree, h_degree, u_cty', u_degree,h_degree, u_cty
 
-  ewrite(2,*) 'Getting triangle file information'
+  ewrite(2,*) 'Getting mesh file information'
 
-  call identify_triangle_file(trim(mesh), dim, loc, nnodes, nelements, &
+  call identify_mesh_file(trim(mesh), dim, loc, nnodes, nelements, &
        node_attributes)
 
   ewrite(2,*) 'dim = ', dim
@@ -156,7 +156,7 @@ subroutine IGW
   ewrite(2,*) 'reading mesh'
   ewrite(2,*) 'loc = ',loc,'dim = ',dim
 
-  positions=read_triangle_files(trim(mesh), X_shape)
+  positions=read_mesh_files(trim(mesh), X_shape)
 
   ewrite(2,*) 'adding faces'
 
@@ -314,7 +314,7 @@ subroutine IGW
     call set_solver_options(h, ksptype='cg', pctype='eisenstat', &
          rtol=1.0e-10, max_its=10000)
     h%option_path = "/fields/height"
-    source_positions = read_triangle_files("source", X_shape)
+    source_positions = read_mesh_files("source", X_shape)
     source_h_mesh = make_mesh(source_positions%mesh, h_shape, 0, 'h_mesh')
     source_u_mesh = make_mesh(source_positions%mesh, u_shape, u_cty, 'u_mesh')
     call allocate(source_height, source_h_mesh, 'height')
