@@ -369,6 +369,17 @@ grad_algorithm =
         scalar_source_field
       }
    )
+perp_algorithm =
+   (
+      ## [curl (z_hat source field). Valid in 2D only.
+      element algorithm {
+         attribute name { "perp" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         galerkin_projection_mass_options?,
+         comment
+      }
+   )
 curl_2d_algorithm =
    (
       ## [curl (source field)]_z. Valid in 2D only.
@@ -1054,6 +1065,7 @@ vector_diagnostic_algorithms = vector_python_diagnostic_algorithm
 vector_diagnostic_algorithms |= vector_copy_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= grad_algorithm
+vector_diagnostic_algorithms |= perp_algorithm
 vector_diagnostic_algorithms |= finite_element_divergence_transpose_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_advection_algorithm

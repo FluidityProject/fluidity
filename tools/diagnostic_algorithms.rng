@@ -497,6 +497,22 @@ elements.</a:documentation>
       <ref name="scalar_source_field"/>
     </element>
   </define>
+  <define name="perp_algorithm">
+    <element name="algorithm">
+      <a:documentation>[curl (z_hat source field). Valid in 2D only.</a:documentation>
+      <attribute name="name">
+        <value>perp</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <optional>
+        <ref name="galerkin_projection_mass_options"/>
+      </optional>
+      <ref name="comment"/>
+    </element>
+  </define>
   <define name="curl_2d_algorithm">
     <element name="algorithm">
       <a:documentation>[curl (source field)]_z. Valid in 2D only.</a:documentation>
@@ -1491,6 +1507,9 @@ No. 1 pp. 243--268, 1980</a:documentation>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="grad_algorithm"/>
+  </define>
+  <define name="vector_diagnostic_algorithms" combine="choice">
+    <ref name="perp_algorithm"/>
   </define>
   <define name="vector_diagnostic_algorithms" combine="choice">
     <ref name="finite_element_divergence_transpose_algorithm"/>
