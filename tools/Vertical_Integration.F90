@@ -177,6 +177,12 @@ subroutine vertical_integration(target_basename, target_basename_len, &
           call deallocate(positions_c)
           cycle
         end if
+        if(volume(positions_c) < epsilon(0.0)) then
+          ! Negligable intersection to integrate
+          call deallocate(positions_c)
+          cycle
+        end if
+        
         
 #ifdef DUMP_INTERSECTIONS
         call vtk_write_fields("vertical_integration_intersections", index = ndumped_intersections, position = positions_c, model = positions_c%mesh)
@@ -245,6 +251,19 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   ewrite(1, *) "Exiting vertical_integration"
   
 contains
+  
+  function volume(positions)
+    type(vector_field), intent(in) :: positions
+    
+    integer :: i
+    real :: volume
+    
+    volume = 0.0
+    do i = 1, ele_count(positions)
+      volume = volume + element_volume(positions, i)
+    end do
+  
+  end function volume
   
   subroutine assemble_mass_ele(ele, positions, field, matrix)
     integer, intent(in) :: ele
