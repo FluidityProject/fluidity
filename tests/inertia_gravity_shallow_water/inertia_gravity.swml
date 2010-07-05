@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <shallow_water_options>
   <simulation_name>
     <string_value lines="1">inertia_gravity</string_value>
@@ -105,11 +105,9 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
-      <constant>
-        <integer_value rank="0">1000</integer_value>
-      </constant>
-    </dump_period_in_timesteps>
+    <dump_period replaces="TIMDUM">
+      <real_value rank="0">2.</real_value>
+    </dump_period>
     <output_mesh name="OutputMesh"/>
   </io>
   <timestepping>
@@ -117,7 +115,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep replaces="DT">
-      <real_value rank="0">0.0015625</real_value>
+      <real_value rank="0">0.003125</real_value>
     </timestep>
     <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">1</integer_value>
@@ -135,7 +133,7 @@
     <coriolis replaces="OPTOME">
       <f_plane replaces="OPTOME = 0">
         <f replaces="OMEGA">
-          <real_value rank="0">0</real_value>
+          <real_value rank="0">1</real_value>
         </f>
       </f_plane>
     </coriolis>
@@ -289,6 +287,24 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="VelocityInitialConditionDisabled" rank="1">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">import inertia_gravity
+val=inertia_gravity.velocity_solution(inertia_gravity.k)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
   </material_phase>
   <debug/>
 </shallow_water_options>
