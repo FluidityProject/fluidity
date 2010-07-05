@@ -823,7 +823,7 @@ contains
   end function norm2_element
 
   function norm2_cv(field, X, ele) result (norm)
-    !!< Return the l2 norm of field on the given element.
+    !!< Return the cv l2 norm of field on the given parent element.
     real :: norm
     ! Element values at the nodes.
     type(scalar_field), intent(in) :: field
@@ -869,7 +869,7 @@ contains
     
     call transform_to_physical(X, ele, detwei=detwei)
     
-    integral=dot_product(matmul(ele_val(field, ele), field%mesh%shape%n), detwei)
+    integral=dot_product(ele_val_at_quad(field, ele), detwei)
 
   end function integral_element_scalar
 

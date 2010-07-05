@@ -449,6 +449,68 @@ implicit none
 
   end subroutine field_con_stats_vector
   
+  subroutine divergence_field_stats(field, X, field_min, field_max, field_norm2, field_integral)
+    !!< Return scalar statistical informaion about the divergence of field.
+    type(vector_field) :: field
+    !! Positions field associated with field
+    type(vector_field) :: X
+    !! Minimum value in the field.
+    real, intent(out) :: field_min
+    !! Maximum value in the field.
+    real, intent(out) :: field_max  
+    !! L2 norm of the field. This requires positions to be specified as
+    !! well.
+    real, intent(out) :: field_norm2
+    !! Integral of the field. This requires positions to be specified as
+    !! well.
+    real, intent(out) :: field_integral
+    
+    integer :: ele
+    real :: ele_min, ele_max, ele_norm2, ele_integral
+    
+    field_min = huge(0.0)
+    field_max = -huge(0.0)
+    field_norm2 = 0.0
+    field_integral = 0.0
+    
+    do ele = 1, ele_count(field)
+      call divergence_field_stats_element(ele, field, X, ele_min, ele_max, ele_norm2, ele_integral)
+      field_min = min(field_min, ele_min)
+      field_max = max(field_max, ele_max)
+      field_norm2 = field_norm2 + ele_norm2
+      field_integral = field_integral + ele_integral
+    end do
+    
+    call allmin(field_min)
+    call allmax(field_max)
+    call allsum(field_norm2)
+    field_norm2 = sqrt(field_norm2)
+    call allsum(field_integral)
+        
+    contains
+    
+    subroutine divergence_field_stats_element(ele, field, X, ele_min, ele_max, ele_norm2, ele_integral)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: field, X
+      real, intent(inout) :: ele_min, ele_max, ele_norm2, ele_integral
+    
+      real, dimension(ele_loc(field, ele), ele_ngi(field, ele), mesh_dim(field)) :: df_t
+      real, dimension(ele_ngi(field, ele)) :: detwei, field_div_at_quad
+
+      call transform_to_physical(X, ele, &
+           & ele_shape(field, ele), dshape = df_t, detwei = detwei)
+      
+      field_div_at_quad = ele_div_at_quad(field, ele, df_t)
+      
+      ele_min      = minval(field_div_at_quad)
+      ele_max      = maxval(field_div_at_quad)
+      ele_norm2    = dot_product(field_div_at_quad*field_div_at_quad, detwei)
+      ele_integral = dot_product(field_div_at_quad, detwei)
+    
+    end subroutine divergence_field_stats_element
+
+  end subroutine divergence_field_stats
+
   function distance(positions, p, q) result(dist)
     !!< Return the euclidean distance between nodes p and q.
     type(vector_field), intent(in) :: positions

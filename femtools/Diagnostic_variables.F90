@@ -654,43 +654,54 @@ contains
              write(diag_unit, "(a)") trim(buffer)
            end do
 
-           ! drag calculation
-           if(stat_field(vfield, state(phase), test_for_components = .true.)) then
+            ! drag calculation
             if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
-             do j = 1, mesh_dim(vfield%mesh)
-               column = column + 1
-               buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
-               // int2str(j), material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
-             end do
-             if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-               do j = 1, mesh_dim(vfield%mesh)
-                 column = column + 1
-                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
-                 // int2str(j), material_phase_name=material_phase_name)
-                 write(diag_unit, '(a)') trim(buffer)
-               end do
-               do j = 1, mesh_dim(vfield%mesh)
-                 column = column + 1
-                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
-                 // int2str(j), material_phase_name=material_phase_name)
-                 write(diag_unit, '(a)') trim(buffer)
-               end do
-             end if
+              do j = 1, mesh_dim(vfield%mesh)
+                column = column + 1
+                buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
+                // int2str(j), material_phase_name=material_phase_name)
+                write(diag_unit, '(a)') trim(buffer)
+              end do
+              if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
+                do j = 1, mesh_dim(vfield%mesh)
+                  column = column + 1
+                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
+                  // int2str(j), material_phase_name=material_phase_name)
+                  write(diag_unit, '(a)') trim(buffer)
+                end do
+                do j = 1, mesh_dim(vfield%mesh)
+                  column = column + 1
+                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
+                  // int2str(j), material_phase_name=material_phase_name)
+                  write(diag_unit, '(a)') trim(buffer)
+                end do
+              end if
             end if
-           end if
-
-           ! momentum conservation error calculation
-           if(stat_field(vfield, state(phase))) then
+           
+            if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
+              column=column+1
+              buffer=field_tag(name=vfield%name, column=column, statistic="divergence%min", material_phase_name=material_phase_name)
+              write(diag_unit, '(a)') trim(buffer)
+              column=column+1
+              buffer=field_tag(name=vfield%name, column=column, statistic="divergence%max", material_phase_name=material_phase_name)
+              write(diag_unit, '(a)') trim(buffer)
+              column=column+1
+              buffer=field_tag(name=vfield%name, column=column, statistic="divergence%l2norm", material_phase_name=material_phase_name)
+              write(diag_unit, '(a)') trim(buffer)
+              column=column+1
+              buffer=field_tag(name=vfield%name, column=column, statistic="divergence%integral", material_phase_name=material_phase_name)
+              write(diag_unit, '(a)') trim(buffer)
+            end if
+            
+            ! momentum conservation error calculation
             if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
-             do j = 1, mesh_dim(vfield%mesh)
-               column = column + 1
-               buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
-               // int2str(j), material_phase_name=material_phase_name)
-               write(diag_unit, '(a)') trim(buffer)
-             end do
+              do j = 1, mesh_dim(vfield%mesh)
+                column = column + 1
+                buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
+                // int2str(j), material_phase_name=material_phase_name)
+                write(diag_unit, '(a)') trim(buffer)
+              end do
             end if
-           end if
 
          end do
 
@@ -1711,19 +1722,23 @@ contains
            end if
          end do
 
-         ! drag calculation
-         if(stat_field(vfield, state(phase), test_for_components = .true.)) then
+          ! drag calculation
           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
             call write_body_forces(state(phase), vfield)  
           end if
-         end if
 
-         ! momentum conservation error calculation
-         if(stat_field(vfield, state(phase))) then
+          if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
+            call divergence_field_stats(vfield, Xfield, fmin, fmax, fnorm2, fintegral)
+            if(getprocno() == 1) then
+              write(diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
+                   & fintegral
+            end if            
+          end if
+
+          ! momentum conservation error calculation
           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
             call write_momentum_conservation_error(state(phase), vfield)
           end if
-         end if
          
          call deallocate(xfield)
          

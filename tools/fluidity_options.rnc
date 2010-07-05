@@ -2907,6 +2907,13 @@ prognostic_velocity_stat_options.stat &=
          }?,
          integer_vector
       }?,
+      ## Compute the divergence of this field at the Gauss points
+      ## and return its stats.  This is a direct measure of the
+      ## divergence at the gauss points rather than a discrete measure
+      ## at the nodes (provided by several other diagnostic fields).
+      element divergence_stats {
+        empty
+      }?,
       ## Calculate the error in the conservation of momentum
       ## IN PROGRESS - Does not include all terms!
       element calculate_momentum_conservation_error {

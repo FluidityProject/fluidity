@@ -3897,6 +3897,15 @@ as the total force)</a:documentation>
       </element>
     </optional>
     <optional>
+      <element name="divergence_stats">
+        <a:documentation>Compute the divergence of this field at the Gauss points
+and return its stats.  This is a direct measure of the
+divergence at the gauss points rather than a discrete measure
+at the nodes (provided by several other diagnostic fields).</a:documentation>
+        <empty/>
+      </element>
+    </optional>
+    <optional>
       <element name="calculate_momentum_conservation_error">
         <a:documentation>Calculate the error in the conservation of momentum
 IN PROGRESS - Does not include all terms!</a:documentation>
