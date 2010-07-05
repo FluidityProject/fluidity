@@ -702,12 +702,12 @@ contains
       ! therefore we have to assemble column by column
       do k=1, size(j)
         ! luckily columns are contiguous in memory in fortran, so no copy, required
-        call MatSetValues(matrix%M, size(i), idxm, 1, idxn(k:k), val(:,k), &
+        call MatSetValues(matrix%M, size(i), idxm, 1, idxn(k:k), real(val(:,k), kind=PetscScalar_kind), &
           ADD_VALUES, ierr)
       end do
     else
     
-      call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, val, &
+      call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, real(val, kind=PetscScalar_kind), &
         ADD_VALUES, ierr)
     end if
     matrix%is_assembled=.false.
@@ -740,11 +740,11 @@ contains
     if (insert_per_column) then
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         call MatSetValues(matrix%M, size(idxm), idxm, 1, idxn(blockj:blockj), &
-                  val(:,blockj), ADD_VALUES, ierr)
+                  real(val(:,blockj), kind=PetscScalar_kind), ADD_VALUES, ierr)
       end do
     else
       call MatSetValues(matrix%M, size(idxm), idxm, size(idxn), idxn, &
-                  val, ADD_VALUES, ierr)
+                  real(val, kind=PetscScalar_kind), ADD_VALUES, ierr)
     end if
     matrix%is_assembled=.false.
 
@@ -848,7 +848,7 @@ contains
     
     PetscErrorCode:: ierr
     
-    call MatScale(matrix%M, scale, ierr)
+    call MatScale(matrix%M, real(scale ,kind=PetscScalar_kind), ierr)
     matrix%is_assembled=.false. ! I think?
     
   end subroutine petsc_csr_scale
@@ -935,7 +935,7 @@ contains
     call assemble(p)
     
     ! this creates the petsc ptap matrix and computes it
-    call MatPTAP(a%M, p%M, MAT_INITIAL_MATRIX, 1.5, c%M, ierr)
+    call MatPTAP(a%M, p%M, MAT_INITIAL_MATRIX, 1.5_PETSCSCALAR_KIND, c%M, ierr)
     
     ! rest of internals for c is copied from A
     c%row_numbering=a%row_numbering
