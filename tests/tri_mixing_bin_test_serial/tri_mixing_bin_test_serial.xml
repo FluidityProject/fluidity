@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Triangle mixing bin test</name>
+  <owner userid="maddison"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>make clean-run-debug; fluidity -l tri_mixing_bin_test_serial.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="stat" language="python">import fluidity_tools
+
+stat = fluidity_tools.stat_parser("tri_mixing_bin_test_serial.stat")</variable>
+  </variables>
+  <pass_tests>
+    <test name="Phi0Integrals" language="python">import fluidity_tools
+
+integrals = stat["Fluid"]["Phi0"]["mixing_bins%Bins"][:, -1]
+
+print integrals
+assert((integrals &gt; -1.0e-12).all())
+fluidity_tools.compare_variable(integrals.sum(), 1.0, 1.0e-12)</test>
+    <test name="Phi1Integrals" language="python">import fluidity_tools
+
+integrals = stat["Fluid"]["Phi1"]["mixing_bins%Bins"][:, -1]
+
+print integrals
+assert((integrals &gt; -1.0e-12).all())
+fluidity_tools.compare_variable(integrals.sum(), 1.0, 1.0e-12)
+fluidity_tools.compare_variable(integrals[1], 0.5, 1.0e-12)
+fluidity_tools.compare_variable(integrals[2], 0.5, 1.0e-12)</test>
+  </pass_tests>
+</testproblem>
