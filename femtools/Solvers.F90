@@ -2125,7 +2125,7 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
     call KSPGetOperators(ksp, Amat, Pmat, flag, ierr)
     call VecDuplicate(petsc_monitor_x, r, ierr)
     call MatMult(Amat, petsc_monitor_x, r, ierr)
-    call VecAXPY(r, -1.0, rhs, ierr)
+    call VecAXPY(r, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
     if (size(petsc_monitor_numbering%gnn2unn,2)==1) then
       call petsc2field(r, petsc_monitor_numbering, petsc_monitor_sfields(2))
     else
