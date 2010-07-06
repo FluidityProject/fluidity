@@ -280,7 +280,7 @@
       G_t_incomp=block_csr2petsc(div_matrix_incomp, petsc_numbering_p, petsc_numbering_u)
 
       ! Scale G_t_comp to fit PETSc sign convention:
-      call MatScale(G_t_comp,-1.,ierr)
+      call MatScale(G_t_comp,real(-1.0, kind = PetscScalar_kind),ierr)
 
       ! Determine transpose of G_t_incomp to form Gradient Matrix (G):
       call MatCreateTranspose(G_t_incomp,G,ierr)
