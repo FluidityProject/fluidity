@@ -18,7 +18,7 @@ pressure = v.GetScalarRange("Pressure")
   </variables>
     <pass_tests>
     <test name="Pressure range correct." language="python">
-assert abs(pressure[0]) &lt; 1e-6
+assert abs(pressure[0]) &lt; 1e-5
 assert abs(pressure[1] - 1.0e9) &lt; 1.0
     </test>
   </pass_tests>
