@@ -154,7 +154,7 @@
       ! Destroy all PETSc objects and the petsc_numbering:
       call petsc_solve_destroy(y, A, b, ksp, petsc_numbering, solver_option_path)
       
-      ewrite(2,*) 'Leaving PETSc_solve_setup_full_projection'
+      ewrite(2,*) 'Leaving PETSc_solve_full_projection'
       
     end subroutine petsc_solve_full_projection
 
@@ -208,8 +208,9 @@
       ! Additional arrays used internally:
       ! Additional numbering types:
       type(petsc_numbering_type) :: petsc_numbering_u
+      type(petsc_numbering_type) :: petsc_numbering_aux
 
-      integer, dimension(:), allocatable:: ghost_nodes
+      integer, dimension(:), allocatable:: ghost_nodes, ghost_nodes_aux
       ! stuff for "mg" preconditioner
       type(petsc_csr_matrix), dimension(:), pointer:: prolongators
       integer, dimension(:), pointer:: surface_nodes
@@ -265,6 +266,13 @@
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
            halo=preconditioner_matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+           ! - why is this using the row halo of the preconditioner matrix when there might be rows missing?
+           ! - same question about the nnodes use of the rows of the block of the divergence matrix?
+           ! - and how can ghost_nodes be appropriate for both this and the auxiliary_matrix?
+           ! this definitely appears to be inappropriate for the auxiliary matrix (hence there's a new one added
+           ! below) so two questions:
+           ! 1. is it definitely appropriate for all its other used (the divergence matrix and the pressure vectors)?
+           ! 2. can it be made appropriate for the auxiliary matrix at the same time as being appropriate for the current uses?
 
       ! Convert Divergence matrix (currently stored as block_csr matrix) to petsc format:   
       ! Create PETSc Div Matrix (comp & incomp) using this numbering:
@@ -279,7 +287,18 @@
 
       ! Convert Stabilization matrix --> PETSc format if required:
       if(have_auxiliary_matrix) then
-         S=csr2petsc(auxiliary_matrix, petsc_numbering_p, petsc_numbering_p)
+         ! set up numbering used in PETSc objects:
+         ! NOTE: we use size(auxiliary_matrix,2) here as halo rows may be absent
+         allocate(ghost_nodes_aux(1:0))
+         call allocate(petsc_numbering_aux, &
+              nnodes=size(auxiliary_matrix,2), nfields=1, &
+              halo=auxiliary_matrix%sparsity%column_halo, &
+              ghost_nodes=ghost_nodes_aux)
+         
+         S=csr2petsc(auxiliary_matrix, petsc_numbering_aux, petsc_numbering_aux)
+         
+         call deallocate(petsc_numbering_aux)
+         deallocate(ghost_nodes_aux)
       end if
       
       ! Need to assemble the petsc matrix before we use it:
