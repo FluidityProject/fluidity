@@ -29,7 +29,7 @@ assert(all(ElapsedTime_Turbine-ElapsedTime_Onedomain==0.0))</test>
     <test name="DetectorArray_Comparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
 maxerr=-1.0
 maxerrkey=""
-tol=1e-4
+tol=2e-4
 for key in DetectorArray_Turbine.iterkeys():
   for i in range(0,len(DetectorArray_Onedomain[key])):
     err=abs(DetectorArray_Turbine[key]-DetectorArray_Onedomain[key])[i]
@@ -50,7 +50,7 @@ assert(maxerr&lt;tol)<comment>This calculates the absolute error over all timest
     <test name="DetectorArray_RelativeComparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
 maxerr=-1.0
 maxerrkey=""
-tol=0.02
+tol=0.01
 lind=len(Detectors_Onedomain["dt"]["value"])-1
 
 for key in DetectorArray_Turbine.iterkeys():
