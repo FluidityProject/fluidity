@@ -1848,6 +1848,9 @@ contains
          shape_vector_rhs(ele_shape(normal, i), normal_bdy, detwei_bdy))
     end do ! surface_element_list
 
+    t1 = 0.0
+    t2 = 0.0
+
     bcnod=normal%mesh%nodes
     do i=1, bcnod
 
@@ -1858,7 +1861,9 @@ contains
        n=n/sqrt(sum(n**2))
 
        call set(normal, i, n)
-       if (present(tangent_1)) then
+       if (x%dim>1) then
+       
+         assert(present(tangent_1))
            
          t1_max=minloc( abs(n), dim=1 )
          t1_norm=0.
@@ -1874,30 +1879,44 @@ contains
 
          if (x%dim>2)then
           
+            assert(present(tangent_2))
+            
             t2 = cross_product(n, t1)
           
             call set( tangent_2, i, t2 )
           
-            ! dump normals when debugging
-            if (debugging_mode) then
-             
-               call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-               call remap_field_to_surface(x, bc_position, surface_element_list)
-               call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
-                     vfields=(/ normal, tangent_1, tangent_2/))
-             
-               det = abs( &
-                      n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
-                      t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
-                      t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
-               if (  abs( det - 1.) > 1.e-5) then
-                  ewrite(-1,*) "rotation matrix determinant", det
-                  FLExit("rotation matrix is messed up, rotated bcs have exploded...")
-               end if
-            end if
          end if
+         
        endif
+
+       ! dump normals when debugging
+       if (debugging_mode) then
+        
+          det = abs( &
+                n(1) * (t1(2) * t2(3) - t2(2) * t1(3) ) + &
+                t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
+                t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
+          if (  abs( det - 1.) > 1.e-5) then
+            call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
+            call remap_field_to_surface(x, bc_position, surface_element_list)
+            call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
+                  vfields=(/ normal, tangent_1, tangent_2/))
+            call deallocate(bc_position)
+            ewrite(-1,*) "rotation matrix determinant", det
+            FLExit("rotation matrix is messed up, rotated bcs have exploded...")
+          end if
+       end if
+       
     end do ! bcnod
+
+    ! dump normals when debugging
+    if (debugging_mode) then
+      call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
+      call remap_field_to_surface(x, bc_position, surface_element_list)
+      call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
+                vfields=(/ normal, tangent_1, tangent_2/))
+      call deallocate(bc_position)
+    end if
     
   end subroutine initialise_rotated_bcs
 
