@@ -1270,6 +1270,25 @@ the defaults are:
                 </element>
               </optional>
               <optional>
+                <element name="disable_edge_split">
+                  <a:documentation>Enable this option to turn off edge splitting</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="disable_edge_collapse">
+                  <a:documentation>Enable this option to turn off edge collapsing</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="disable_edge_swap">
+                  <a:documentation>Enable this option to turn off edge/face, face/edge and
+edge/edge swapping</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
+              <optional>
                 <element name="disable_node_movement">
                   <a:documentation>Enable this option to turn off node movement, and use
 h-adaptivity only.</a:documentation>

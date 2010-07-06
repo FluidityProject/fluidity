@@ -409,13 +409,13 @@ contains
     
     ! Which element operations are we using?
     ! Split edges if true 
-    mshopt(1) = .true.
+    mshopt(1) = .not. have_option(base_path // "/adaptivity_library/libadaptivity/disable_edge_split")
     ! Collapse edges if true
-    mshopt(2) = .true.
+    mshopt(2) = .not. have_option(base_path // "/adaptivity_library/libadaptivity/disable_edge_collapse")
     ! Perform edge to face and edge to edge swapping if true
-    mshopt(3) = .true.
+    mshopt(3) = .not. have_option(base_path // "/adaptivity_library/libadaptivity/disable_edge_swap")
     ! Perform face to edge swapping if true
-    mshopt(4) = .true.
+    mshopt(4) = .not. have_option(base_path // "/adaptivity_library/libadaptivity/disable_edge_swap")
     mshopt(5) = .true.  ! Split elements (do not use this yet)
                         ! In fact, this option is currently ignored and element
                         ! splitting is not performed by libadaptivity
@@ -674,7 +674,7 @@ contains
     call get_option(base_path // "/maximum_number_of_nodes", max_nodes, default = 100000)
     if(isparallel()) then
       if(.not. have_option(base_path // "/maximum_number_of_nodes/per_process")) then
-        max_nodes = max_nodes  / getnprocs()
+        max_nodes = max_nodes / getnprocs()
       end if
     end if
     max_nodes = max(max_nodes, expected_nodes, node_count(positions))

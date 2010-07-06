@@ -1047,6 +1047,19 @@ hr_adaptivity =
                element sweeps {
                   integer
                }?,
+               ## Enable this option to turn off edge splitting
+               element disable_edge_split {
+                  comment
+               }?,
+               ## Enable this option to turn off edge collapsing
+               element disable_edge_collapse {
+                  comment
+               }?,
+               ## Enable this option to turn off edge/face, face/edge and
+               ## edge/edge swapping
+               element disable_edge_swap {
+                  comment
+               }?,
                ## Enable this option to turn off node movement, and use
                ## h-adaptivity only.
                element disable_node_movement {
