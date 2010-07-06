@@ -163,33 +163,37 @@ contains
     ewrite(0,*)
         
     ! output initial basic statistics:
-    call VecNorm(rhs, NORM_2, value, ierr)
+    call VecNorm(rhs, NORM_2, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'Right-hand side 2-norm:', value
-    call VecNorm(rhs, NORM_INFINITY, value, ierr)
+    call VecNorm(rhs, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'Right-hand side inf-norm:', value
-    call VecNorm(x, NORM_2, value, ierr)
+    call VecNorm(x, NORM_2, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'init. guess 2-norm:', value
-    call VecNorm(x, NORM_INFINITY, value, ierr)
+    call VecNorm(x, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'init. guess inf-norm:', value
     
     ! including inital residual:
     call VecDuplicate(x,y, ierr)
     call MatMult(matrix, x, y, ierr)
-    call VecAXPY(y, -1.0, rhs, ierr)
-    call VecNorm(y, NORM_2, value, ierr)
+    call VecAXPY(y, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
+    call VecNorm(y, NORM_2, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'init. residual 2-norm:', value
-    call VecNorm(y, NORM_INFINITY, value, ierr)
+    call VecNorm(y, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'init. residual inf-norm:', value  
 
     ! get values to locate 'large sping' boundary conditions:
     call VecGetOwnershipRange(rhs, n1, n2, ierr)
     n=n2-n1
     allocate(rv(1:n), xv(1:n), rhsv(1:n), dv(1:n))
-    call VecGetValues(y, n, (/ (i, i=0, n-1) /)+n1, rv,ierr)
-    call VecGetValues(x, n, (/ (i, i=0, n-1) /)+n1, xv,ierr)
-    call VecGetValues(rhs, n, (/ (i, i=0, n-1) /)+n1, rhsv,ierr)
+    call VecGetValues(y, n, (/ (i, i=0, n-1) /)+n1, &
+           real(rv, kind = PetscScalar_kind),ierr)
+    call VecGetValues(x, n, (/ (i, i=0, n-1) /)+n1, &
+           real(xv, kind = PetscScalar_kind),ierr)
+    call VecGetValues(rhs, n, (/ (i, i=0, n-1) /)+n1, &
+           real(rhsv, kind = PetscScalar_kind),ierr)
     call MatGetDiagonal(matrix, y, ierr)
-    call VecGetValues(y, n, (/ (i, i=0, n-1) /)+n1, dv,ierr)
+    call VecGetValues(y, n, (/ (i, i=0, n-1) /)+n1, &
+           real(dv, kind = PetscScalar_kind),ierr)
     
     ! This can get massive so lower verbosity if you don't want it:
     ewrite(3,*) 'Large spring boundary conditions found at:'
@@ -254,10 +258,10 @@ contains
     
     ! output final residual:
     call MatMult(matrix, x, y, ierr)
-    call VecAXPY(y, -1.0, rhs, ierr)
-    call VecNorm(y, NORM_2, value, ierr)
+    call VecAXPY(y, real(-1.0, kind = PetscScalar_kind), rhs, ierr)
+    call VecNorm(y, NORM_2, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'Final residual 2-norm:', value
-    call VecNorm(y, NORM_INFINITY, value, ierr)
+    call VecNorm(y, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'Final residual inf-norm:', value  
 
     ! write out solution vector if asked:
@@ -279,10 +283,10 @@ contains
       call VecLoad(viewer, VECSEQ, y, ierr)
       call PetscViewerDestroy(viewer, ierr)
 
-      call VecAXPY(y, -1.0, x, ierr)
-      call VecNorm(y, NORM_2, value, ierr)
+      call VecAXPY(y, real(-1.0, kind = PetscScalar_kind), x, ierr)
+      call VecNorm(y, NORM_2, real(value, kind = PetscScalar_kind), ierr)
       ewrite(2,*) 'Error in 2-norm:', value
-      call VecNorm(y, NORM_INFINITY, value, ierr)
+      call VecNorm(y, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
       ewrite(2,*) 'Error in inf-norm:', value  
     end if
     
