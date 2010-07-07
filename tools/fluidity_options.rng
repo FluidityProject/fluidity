@@ -7708,6 +7708,100 @@ and in/out boundary conditions</a:documentation>
           </optional>
         </element>
       </optional>
+      <optional>
+        <element name="tidal_forcing">
+          <a:documentation>Tidal forcing options </a:documentation>
+          <optional>
+            <element name="M2">
+              <a:documentation>M2</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^11</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="S2">
+              <a:documentation>S2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="N2">
+              <a:documentation>N2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K2">
+              <a:documentation>K2</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="K1">
+              <a:documentation>K1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="O1">
+              <a:documentation>O1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="P1">
+              <a:documentation>P1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Q1">
+              <a:documentation>Q1</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Mf">
+              <a:documentation>Mf</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Mm">
+              <a:documentation>Mm</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="Ssa">
+              <a:documentation>Ssa</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="all_tidal_components">
+              <a:documentation>Switch on all tidal components</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^5 (tidallcom)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="love_number">
+              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.</a:documentation>
+              <attribute name="replaces">
+                <value>DISOTT=2^6 (tlove)</value>
+              </attribute>
+              <element name="value">
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="biology">

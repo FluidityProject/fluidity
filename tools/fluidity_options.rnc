@@ -6026,6 +6026,66 @@ forcing =
                     }
                 )
             }?
+        }?,
+        ## Tidal forcing options 
+        element tidal_forcing {
+               ## M2
+               element M2 {
+                 attribute replaces {"DISOTT=2^11"}, 
+                 empty
+               }?,
+               ## S2
+               element S2 {
+                  empty
+               }?,
+               ## N2
+               element N2 {
+                  empty
+               }?,
+               ## K2
+               element K2 {
+                  empty
+               }?,
+               ## K1
+               element K1 {
+                  empty
+               }?,
+               ## O1
+               element O1 {
+                  empty
+               }?,
+               ## P1
+               element P1 {
+                  empty
+               }?,
+               ## Q1
+               element Q1 {
+                  empty
+               }?,        
+               ## Mf
+               element Mf {
+                  empty
+               }?,  
+               ## Mm
+               element Mm {
+                  empty
+               }?,  
+               ## Ssa
+               element Ssa {
+                  empty
+               }?,  
+               ## Switch on all tidal components
+               element all_tidal_components {
+                  attribute replaces { "DISOTT=2^5 (tidallcom)" },
+                  empty
+               }?,
+               ## Sets a user defined Love number. If not active a value of 1.0 is used.
+               element love_number {
+                  attribute replaces { "DISOTT=2^6 (tlove)" },
+                  element value {
+                     real
+                  }
+               }?
         }?
     }
   )

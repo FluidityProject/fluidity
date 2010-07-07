@@ -159,12 +159,11 @@ contains
 
     END SUBROUTINE FIND_CHI
 
-    FUNCTION equilibrium_tide(WHICH_TIDE,LAT,LONG,ACCTIM,HORIZ_RESCALE) result(eqtide)
+    FUNCTION equilibrium_tide(which_tide,LAT,LONG,ACCTIM,HORIZ_RESCALE) result(eqtide)
 
-      INTEGER  WHICH_TIDE(11)
-      REAL     LAT,LONG,ACCTIM,HORIZ_RESCALE
+      logical, dimension(11), intent(in) ::  which_tide(11)
+      REAL, intent(in) ::     LAT,LONG,ACCTIM,HORIZ_RESCALE ! HORIZ_RESCALE is normally set to 1.0
 
-      real :: equilibrium_tide_result
 
       REAL     COLAT,TWOCOLAT,TWOLONG,TIME
       REAL     DEGRAD,PIOVER2
@@ -211,50 +210,49 @@ contains
 !     Mf:  \chi =        2*s0
 !     Mm:  \chi =          s0 - p0
 !     Ssa: \chi = 2*h0
-!######################################################################      
-      EQTIDE   = 0.
+!######################################################################
+      eqtide   = 0.0
       COLAT    = PIOVER2 - LAT
       TWOLONG  = 2.0*LONG
       TWOCOLAT = 2.0*COLAT
       TIME     = ACCTIM*HORIZ_RESCALE
-      IF(WHICH_TIDE(1).EQ.1) THEN
+      IF(which_tide(1).EQv. .true.) THEN
 !  M2 COMPONENT   NB Co-latitude (used below) = 90 degress (pi/2) - latitude 
-         EQTIDE = EQTIDE + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG) 
-
+         eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG) 
       ENDIF
-      IF(WHICH_TIDE(2).EQ.1) THEN
-         EQTIDE = EQTIDE + S2AMP*(SIN(COLAT)**2.0)*COS(S2FREQ*TIME + TWOLONG)
+      IF(which_tide(2).EQv..true.) THEN
+         eqtide = eqtide + S2AMP*(SIN(COLAT)**2.0)*COS(S2FREQ*TIME + TWOLONG)
       ENDIF
-      IF(WHICH_TIDE(3).EQ.1) THEN
-         EQTIDE = EQTIDE + N2AMP*(SIN(COLAT)**2.0)*COS(N2FREQ*TIME + TWOLONG)
+      IF(which_tide(3).EQv..true.) THEN
+         eqtide = eqtide + N2AMP*(SIN(COLAT)**2.0)*COS(N2FREQ*TIME + TWOLONG)
       ENDIF
-      IF(WHICH_TIDE(4).EQ.1) THEN
-         EQTIDE = EQTIDE + K2AMP*(SIN(COLAT)**2.0)*COS(K2FREQ*TIME + TWOLONG)
+      IF(which_tide(4).EQv..true.) THEN
+         eqtide = eqtide + K2AMP*(SIN(COLAT)**2.0)*COS(K2FREQ*TIME + TWOLONG)
       ENDIF                     
       
-      IF(WHICH_TIDE(5).EQ.1) THEN
+      IF(which_tide(5).EQv..true.) THEN
 !  K1 COMPONENT   
-         EQTIDE = EQTIDE + K1AMP*(SIN(TWOCOLAT))*COS(K1FREQ*TIME + LONG) 
+         eqtide = eqtide + K1AMP*(SIN(TWOCOLAT))*COS(K1FREQ*TIME + LONG) 
       ENDIF
-      IF(WHICH_TIDE(6).EQ.1) THEN  
-         EQTIDE = EQTIDE + O1AMP*(SIN(TWOCOLAT))*COS(O1FREQ*TIME + LONG) 
+      IF(which_tide(6).EQv..true.) THEN  
+         eqtide = eqtide + O1AMP*(SIN(TWOCOLAT))*COS(O1FREQ*TIME + LONG) 
       ENDIF
-      IF(WHICH_TIDE(7).EQ.1) THEN  
-         EQTIDE = EQTIDE + P1AMP*(SIN(TWOCOLAT))*COS(P1FREQ*TIME + LONG) 
+      IF(which_tide(7).EQv..true.) THEN  
+         eqtide = eqtide + P1AMP*(SIN(TWOCOLAT))*COS(P1FREQ*TIME + LONG) 
       ENDIF
-      IF(WHICH_TIDE(8).EQ.1) THEN  
-         EQTIDE = EQTIDE + Q1AMP*(SIN(TWOCOLAT))*COS(Q1FREQ*TIME + LONG) 
+      IF(which_tide(8).EQv..true.) THEN  
+         eqtide = eqtide + Q1AMP*(SIN(TWOCOLAT))*COS(Q1FREQ*TIME + LONG) 
       ENDIF      
 
-      IF(WHICH_TIDE(9).EQ.1) THEN
+      IF(which_tide(9).EQv..true.) THEN
 !  Mf COMPONENT   
-         EQTIDE = EQTIDE + MfAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MfFREQ*TIME) 
+         eqtide = eqtide + MfAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MfFREQ*TIME) 
       ENDIF
-      IF(WHICH_TIDE(10).EQ.1) THEN 
-         EQTIDE = EQTIDE + MmAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MmFREQ*TIME) 
+      IF(which_tide(10).EQv..true.) THEN 
+         eqtide = eqtide + MmAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MmFREQ*TIME) 
       ENDIF      
-      IF(WHICH_TIDE(11).EQ.1) THEN
-         EQTIDE = EQTIDE + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME) 
+      IF(which_tide(11).EQv..true.) THEN
+         eqtide = eqtide + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME) 
       ENDIF
 
     END FUNCTION EQUILIBRIUM_TIDE
