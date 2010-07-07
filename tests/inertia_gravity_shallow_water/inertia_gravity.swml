@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
     <string_value lines="1">inertia_gravity</string_value>
@@ -105,8 +105,10 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period replaces="TIMDUM">
-      <real_value rank="0">2.</real_value>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">2.</real_value>
+      </constant>
     </dump_period>
     <output_mesh name="OutputMesh"/>
   </io>
@@ -292,7 +294,7 @@ for n in range(field.node_count):
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">import inertia_gravity
+            <string_value lines="20" type="python">import inertia_gravity
 val=inertia_gravity.velocity_solution(inertia_gravity.k)</string_value>
           </python>
         </value>
