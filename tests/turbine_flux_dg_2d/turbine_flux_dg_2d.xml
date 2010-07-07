@@ -50,7 +50,7 @@ assert(maxerr&lt;tol)<comment>This calculates the absolute error over all timest
     <test name="DetectorArray_RelativeComparison" language="python">assert(len(DetectorArray_Turbine)-len(DetectorArray_Onedomain)==0)
 maxerr=-1.0
 maxerrkey=""
-tol=0.01
+tol=0.015
 lind=len(Detectors_Onedomain["dt"]["value"])-1
 
 for key in DetectorArray_Turbine.iterkeys():
