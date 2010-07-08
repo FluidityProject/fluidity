@@ -63,17 +63,6 @@ def Getflmlvalue(flml_name, xpath):
 
 ################################################################################################
 
-def SVG2PDF(fign, rmsvg = True):
-
-  subprocess.Popen(['inkscape', '-z', '--export-pdf='+fign+'.pdf', fign+'.svg'], stdout=subprocess.PIPE).communicate()[0]
-  subprocess.Popen(['pdfcrop', fign+'.pdf', fign+'.pdf'], stdout=subprocess.PIPE).communicate()[0]
-  if rmsvg == True: 
-    subprocess.Popen(['rm', fign+'.svg'], stdout=subprocess.PIPE).communicate()[0]
-
-  return
-    
-################################################################################################
-
 # extract values from flml
 
 #dt
@@ -89,7 +78,7 @@ except: nu = 0
 rho_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase["@name=fluid"]/equation_of_state/fluids/linear/reference_density'))
 
 energy_stats = []
-for statfile in glob.glob('*.stat'):
+for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
   stat = stat_parser(statfile)
 
 # Time
