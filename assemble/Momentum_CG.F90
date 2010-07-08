@@ -184,7 +184,7 @@
       ! bc arrays
       type(vector_field) :: velocity_bc
       type(scalar_field) :: pressure_bc
-      integer, dimension(:,:), allocatable :: velocity_bc_type
+      integer, dimension(:,:), allocatable :: velocity_bc_type, velocity_bc_number
       integer, dimension(:), allocatable :: pressure_bc_type
 
       ! fields for the assembly of absorption when
@@ -196,7 +196,8 @@
       type(tensor_field):: grad_u
 
       integer :: stat, dim, ele, sele, dim2
-      
+      logical :: have_surface_fs_stabilisation
+
       ewrite(1,*) 'entering construct_momentum_cg'
     
       assert(continuity(u)>=0)
@@ -429,13 +430,14 @@
       if((integrate_advection_by_parts.and.(.not.exclude_advection)).or.&
            (integrate_continuity_by_parts)) then
          allocate(velocity_bc_type(u%dim, surface_element_count(u)))
+         allocate(velocity_bc_number(u%dim, surface_element_count(u)))
          call get_entire_boundary_condition(u, &
            & (/ &
              "weakdirichlet      ", &
              "no_normal_flow     ", &
              "periodic           ", &
              "free_surface       " &
-           & /), velocity_bc, velocity_bc_type)
+           & /), velocity_bc, velocity_bc_type, velocity_bc_number)
            
          allocate(pressure_bc_type(surface_element_count(p)))
          call get_entire_boundary_condition(p, &
@@ -455,8 +457,8 @@
             ele = face_ele(x, sele)
             
             call construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
-                 x, u, nu, ug, density, p, &
-                 velocity_bc, velocity_bc_type, &
+                 x, u, nu, ug, density, p, gravity, &
+                 velocity_bc, velocity_bc_type, velocity_bc_number, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix, cg_pressure, viscosity, oldu)
             
@@ -550,8 +552,8 @@
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
-                                                     x, u, nu, ug, density, p, &
-                                                     velocity_bc, velocity_bc_type, &
+                                                     x, u, nu, ug, density, p, gravity, &
+                                                     velocity_bc, velocity_bc_type, velocity_bc_number, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix, cg_pressure, viscosity, &
                                                      oldu)
@@ -568,10 +570,11 @@
       type(vector_field), intent(in) :: u, nu
       type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density, p
+      type(vector_field), pointer, intent(in) :: gravity 
       type(tensor_field), intent(in) :: viscosity
 
       type(vector_field), intent(in) :: velocity_bc
-      integer, dimension(:,:), intent(in) :: velocity_bc_type
+      integer, dimension(:,:), intent(in) :: velocity_bc_type, velocity_bc_number
 
       type(scalar_field), intent(in) :: pressure_bc
       integer, dimension(:), intent(in) :: pressure_bc_type
@@ -579,18 +582,22 @@
       logical, intent(in) :: assemble_ct_matrix, cg_pressure
 
       ! local
-      integer :: dim
+      integer :: dim, dim2
 
       integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
       integer, dimension(face_loc(p, sele)) :: p_nodes_bdy
       type(element_type), pointer :: u_shape, p_shape
 
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
-      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
+      real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, upwards_gi
       real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab
       real, dimension(face_loc(u, sele), face_loc(u, sele)) :: adv_mat_bdy
 
       real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
+
+      character(len=OPTION_PATH_LEN) fs_option_path
+      logical :: have_surface_fs_stabilisation
 
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(p, sele)
@@ -659,6 +666,25 @@
           end do
         end if
         
+      end if
+
+      ! Add free surface stabilisation.
+      if (velocity_bc_type(1,sele)==4) then
+          call get_boundary_condition(u, velocity_bc_number(1, sele), option_path=fs_option_path)
+          have_surface_fs_stabilisation=have_option(trim(fs_option_path)//"/type::free_surface/surface_stabilisation") 
+          if (have_surface_fs_stabilisation) then
+                 upwards_gi=-face_val_at_quad(gravity, sele)
+
+                 fs_surfacestab = shape_shape_vector_outer_vector(u_shape, u_shape, &
+                     dt*gravity_magnitude*detwei_bdy*face_val_at_quad(density, sele), normal_bdy, upwards_gi)
+
+                 do dim = 1, u%dim 
+                     do dim2 = 1, u%dim
+                        call addto(big_m, dim, dim2, u_nodes_bdy, u_nodes_bdy, dt*fs_surfacestab(dim2, dim,:,:))
+                        call addto(rhs, dim, u_nodes_bdy, matmul(fs_surfacestab(dim2, dim, :,:), face_val(nu, dim2, sele)/dt-face_val(oldu, dim2, sele)/dt))
+                     end do
+                 end do
+          end if
       end if
 
     end subroutine construct_momentum_surface_element_cg

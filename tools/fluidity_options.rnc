@@ -2541,7 +2541,20 @@ velocity_boundary_conditions =
             robin_velocity_components_choice
          }|
          element type {
-            attribute name { "free_surface" }
+           attribute name { "free_surface" },
+           (
+              element no_stabilisation {
+                  empty
+              }|
+              ## This options adds a surface stabilisation term to the free surface. IN DEVELOPMENT
+              element surface_stabilisation {
+                  empty
+              }|
+              ## This options adds a vertically integrated stabilisation term to the free surface. IN DEVELOPMENT
+              element vertical_stabilisation {
+                  empty
+              }
+           )
          }|
          ## Apply quadratic drag. Specify drag coefficient. If you
          ## want to exactly replicate results from using the OCEDRA

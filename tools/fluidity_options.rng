@@ -3462,6 +3462,19 @@ want this.</a:documentation>
         <attribute name="name">
           <value>free_surface</value>
         </attribute>
+        <choice>
+          <element name="no_stabilisation">
+            <empty/>
+          </element>
+          <element name="surface_stabilisation">
+            <a:documentation>This options adds a surface stabilisation term to the free surface. IN DEVELOPMENT</a:documentation>
+            <empty/>
+          </element>
+          <element name="vertical_stabilisation">
+            <a:documentation>This options adds a vertically integrated stabilisation term to the free surface. IN DEVELOPMENT</a:documentation>
+            <empty/>
+          </element>
+        </choice>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you

@@ -1029,7 +1029,7 @@ contains
   end subroutine get_periodic_boundary_condition
     
   subroutine get_entire_scalar_boundary_condition(field, &
-     types, boundary_value, bc_type_list)
+     types, boundary_value, bc_type_list, bc_number_list)
     !!< Gets the boundary conditions on the entire surface mesh for all
     !!< bc types requested
     
@@ -1050,6 +1050,10 @@ contains
     !! thus identifying the applied boundary condition type,
     !! or zero, if no bc of the requested types are applied to this face:
     integer, dimension(:), intent(out):: bc_type_list
+    !! For each surface_element returns the number of the boundary condition,
+    !! which can be used to extract further information
+    !! BC can be set for each component separately, so ndim x surface_element_count()
+    integer, dimension(:), intent(out), optional:: bc_number_list
     
     type(scalar_field), pointer:: surface_field
     type(mesh_type), pointer:: surface_mesh
@@ -1098,6 +1102,9 @@ contains
              FLAbort("Can't have that.")
           end if
           bc_type_list(sele)=j
+          if (present(bc_number_list)) then
+              bc_number_list(sele)=i
+          end if
           
           if (associated(surface_field)) then
              call set(boundary_value, ele_nodes(surface_mesh, sele), &
@@ -1136,7 +1143,7 @@ contains
   end subroutine get_entire_scalar_boundary_condition
     
   subroutine get_entire_vector_boundary_condition(field, &
-     types, boundary_value, bc_type_list)
+     types, boundary_value, bc_type_list, bc_number_list)
     !!< Gets the boundary conditions on the entire surface mesh for all
     !!< bc types requested
     
@@ -1158,6 +1165,10 @@ contains
     !! or zero, if no bc of the requested types are applied to this face.
     !! BC can be set for each component separately, so ndim x surface_element_count()
     integer, dimension(:,:), intent(out):: bc_type_list
+    !! For each surface_element returns the number of the boundary condition,
+    !! which can be used to extract further information
+    !! BC can be set for each component separately, so ndim x surface_element_count()
+    integer, dimension(:,:), intent(out), optional:: bc_number_list
     
     type(vector_field), pointer:: surface_field
     type(mesh_type), pointer:: surface_mesh
@@ -1209,6 +1220,9 @@ contains
                    FLAbort("Can't have that.")
                 end if
                 bc_type_list(n, sele)=j
+                if (present(bc_number_list)) then
+                    bc_number_list(n,sele)=i
+                end if
           
                 if (associated(surface_field)) then
                    call set(boundary_value, n, ele_nodes(surface_mesh, sele), &
