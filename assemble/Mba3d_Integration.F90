@@ -203,7 +203,7 @@ contains
       metric_handle(6, i) = node_val(metric, 1, 3, i)
     end do
 
-    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = 0.6)
+    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = real(0.6, kind = real_8))
     ! Output variable - initialise just in case it's also used as input
     rquality = 0.0
 
