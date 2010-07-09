@@ -1086,7 +1086,16 @@ hr_adaptivity =
                comment
             }|
             ## libmba3d. 3D, serial only.
-            element libmba3d {
+            element libmba3d {           
+               ## Desired output mesh quality, 0 <= quality <= 1.
+               ## Default value 0.6.
+               element quality {
+                  real
+               }?,
+               ## Maximum number of mesh optimisations. Default value 10^5.
+               element max_optimisations {
+                  integer
+               }?,
                comment
             }
          }?,
