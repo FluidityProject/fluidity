@@ -807,7 +807,7 @@
                 call set(tidal_pressure, node, eqtide*gravity_magnitude)
               end do
               do node=1,node_count(position)
-                call set(combined_p, node, node_val(p_theta, node)+node_val(tidal_pressure, node))
+                call set(combined_p, node, node_val(p_theta, node)-node_val(tidal_pressure, node))
               end do
               call mult_T(delta_u, ct_m, combined_p)
               call deallocate(tidal_pressure)
