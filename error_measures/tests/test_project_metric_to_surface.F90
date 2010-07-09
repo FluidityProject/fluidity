@@ -23,7 +23,7 @@ subroutine test_project_metric_to_surface
   call set_option("/geometry/mesh::CoordinateMesh/from_mesh/extrude/regions[0]/bottom_depth/constant", 1.0, stat=stat)
   call set_option("/geometry/mesh::CoordinateMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 0.5, stat=stat)
 
-  call compute_z_nodes(h_mesh, 1.0, (/0.0, 0.0/), sizing=0.5)
+  call compute_z_nodes(h_mesh, 1.0, (/0.0, 0.0/), min_bottom_layer_frac=1e-3, sizing=0.5)
   call set(h_mesh, node_count(h_mesh), (/1.0/))
   call add_nelist(h_mesh%mesh)
 

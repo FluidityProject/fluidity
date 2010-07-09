@@ -28,7 +28,7 @@ subroutine test_metric_based_extrusion
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/bottom_depth/constant", 1.0, stat=stat)
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 1.0, stat=stat)
 
-  call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), sizing=1.0)
+  call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), min_bottom_layer_frac=1e-3, sizing=1.0)
   call vtk_write_fields("data/layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
 
   call extrude(z_mesh, "/geometry/mesh::ExtrudedMesh", old_mesh)

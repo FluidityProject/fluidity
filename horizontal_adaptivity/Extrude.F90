@@ -211,7 +211,8 @@ module hadapt_extrude
     real, dimension(:), intent(in):: xy
     ! to prevent infinitesimally thin bottom layer if sizing function
     ! is an integer mulitple of total depth, the bottom layer needs
-    ! to have at least this fraction of the layer depth above it:
+    ! to have at least this fraction of the layer depth above it.
+    ! The recommended value is 1e-3.
     real, intent(in) :: min_bottom_layer_frac
     real, optional, intent(in):: sizing
     character(len=*), optional, intent(in):: sizing_function
