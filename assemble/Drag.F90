@@ -155,16 +155,16 @@ subroutine drag_surface(bigm, rhs, state, density)
    type(scalar_field), intent(in) :: density
    
    type(vector_field), pointer:: velocity, nl_velocity, position, old_velocity
-   type(scalar_field), pointer:: drag_coefficient
+   type(scalar_field), pointer:: drag_coefficient, distance_top, distance_bottom
    character(len=OPTION_PATH_LEN) bctype
    real, dimension(:), allocatable:: face_detwei, coefficient, density_face_gi
    real, dimension(:,:), allocatable:: drag_mat
-   real dt, theta
+   real dt, theta, gravity_magnitude
    integer, dimension(:), allocatable:: faceglobalnodes
    integer, dimension(:), pointer:: surface_element_list
-   integer i, j, k, nobcs
+   integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
-   logical:: parallel_dg
+   logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, chezy_manning_strickler
      
    ewrite(1,*) 'Inside drag_surface'
    
@@ -174,10 +174,17 @@ subroutine drag_surface(bigm, rhs, state, density)
    ! velocity weighted between old and new with theta
    nl_velocity => extract_vector_field(state, "NonlinearVelocity")
    position => extract_vector_field(state, "Coordinate")
+   distance_bottom => extract_scalar_field(state, "DistanceToBottom", stat)
+   have_distance_bottom = stat == 0
+   distance_top => extract_scalar_field(state, "DistanceToTop", stat)
+   have_distance_top = stat == 0
    
    call get_option("/timestepping/timestep", dt)
    call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/theta", &
                       theta)
+   call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
+          stat=stat)
+   have_gravity = stat == 0
    parallel_dg=continuity(velocity)<0 .and. IsParallel()
                       
    sngi=face_ngi(velocity, 1)
@@ -192,6 +199,13 @@ subroutine drag_surface(bigm, rhs, state, density)
       call get_boundary_condition(velocity, i, type=bctype, &
          surface_element_list=surface_element_list)
       if (bctype=='drag') then
+         chezy_manning_strickler=have_option(trim(velocity%option_path)//&
+               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/chezy-manning-strickler')
+         if (chezy_manning_strickler) then
+            if (.not. have_distance_bottom .or. .not. have_distance_top .or. .not. have_gravity) then
+               FLExit("Chezy-manning-strickler drag needs DistanceToTop and DistanceToBottom fields and gravity.")
+            end if
+         end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
          do j=1, size(surface_element_list)
            
@@ -212,6 +226,11 @@ subroutine drag_surface(bigm, rhs, state, density)
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
                 sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
+              if (chezy_manning_strickler) then
+                 ! The chezy-manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient
+                 ! Note that distance_bottom+distance_top is the current water level H
+                 coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))
+               end if
             end if
                
             ! density to turn this into a momentum absorption term
