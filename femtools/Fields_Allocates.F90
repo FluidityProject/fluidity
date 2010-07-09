@@ -1717,6 +1717,10 @@ contains
     
     nonperiodic_faces => nonperiodic%faces
     call deallocate(nonperiodic_faces%surface_mesh)
+#ifdef HAVE_MEMORY_STATS
+    call register_deallocation("mesh_type", "integer", &
+         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
+#endif
     deallocate(nonperiodic_faces%surface_node_list)
     call create_surface_mesh(nonperiodic_faces%surface_mesh, &
        nonperiodic_faces%surface_node_list, nonperiodic, name='Surface'//trim(nonperiodic%name))
