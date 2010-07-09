@@ -27,6 +27,7 @@ module metric_assemble
   use anisotropic_gradation
   use richardson_metric_module
   use anisotropic_zz_module
+  use aspect_ratios_module
   use reference_meshes
   
   implicit none
@@ -156,6 +157,7 @@ module metric_assemble
       call halo_update(error_metric)
     end if
 
+    call bound_metric_aspect_ratio(error_metric)
     ! for vertically structured, the limiting should happen after the vertical collapsing
     if (.not. vertically_structured_adaptivity) then
       call limit_metric(positions, error_metric)

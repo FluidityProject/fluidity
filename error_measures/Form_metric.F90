@@ -199,15 +199,8 @@ module form_metric_field
     real, dimension(hessian%dim) :: evals
     integer :: i, j
     type(tensor_field), pointer :: min_bound, max_bound
-    logical :: have_aspect_ratio_bound
-    real :: aspect_ratio_bound, max_eval
 
     ! min and max refer to edge lengths, not eigenvalues
-
-    have_aspect_ratio_bound = have_option("/mesh_adaptivity/hr_adaptivity/aspect_ratio_bound")
-    if (have_aspect_ratio_bound) then
-      call get_option("/mesh_adaptivity/hr_adaptivity/aspect_ratio_bound", aspect_ratio_bound)
-    end if
 
     min_bound => extract_tensor_field(state, "MaxMetricEigenbound")
     max_bound => extract_tensor_field(state, "MinMetricEigenbound")
@@ -224,14 +217,6 @@ module form_metric_field
       min_tensor = node_val(min_bound, i)
       call merge_tensor(hessian%val(:, :, i), max_tensor)
       call merge_tensor(hessian%val(:, :, i), min_tensor, aniso_min=.true.)
-      if (have_aspect_ratio_bound) then
-        call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
-        max_eval = maxval(evals)
-        do j=1,hessian%dim
-          evals(j) = max(evals(j), 1/(aspect_ratio_bound**2) * max_eval)
-        end do
-        call eigenrecomposition(hessian%val(:, :, i), evecs, evals)
-      end if
     end do
 
   end subroutine bound_metric_anisotropic
