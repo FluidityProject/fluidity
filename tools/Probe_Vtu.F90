@@ -86,6 +86,7 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
     format = "(" // real_format() // ")"
     s_val = eval_field(ele, s_field, local_coord)
     ewrite(2, *) fieldname // " value:"
+    print format, s_val
     if(allocated) deallocate(s_field)
   else
     v_field => extract_vector_field(state, fieldname, stat = stat)
@@ -93,12 +94,14 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
       format = "(" // int2str(dim) // real_format(padding = 1) // ")"
       v_val = eval_field(ele, v_field, local_coord)
       ewrite(2, *) fieldname // " value:"
+      print format, v_val
     else
       t_field => extract_tensor_field(state, fieldname, stat = stat)
       if(stat == 0) then
         format = "(" // int2str(dim ** 2) // real_format(padding = 1) // ")"
         t_val = eval_field(ele, t_field, local_coord)
         ewrite(2, *) fieldname // " value:"
+        print format, t_val
       else
         FLExit("Field " // fieldname // " not found in vtu " // vtu_filename)
       end if

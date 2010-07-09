@@ -312,6 +312,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
     	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
 	differentiate\_vtu          & \ref{sect:differentiate_vtu}		\\
+	probe\_vtu  & \ref{sect:probe_vtu} \\
 	vtu\_bins           & \ref{sect:vtu_bins}		\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
     \hline
@@ -616,13 +617,32 @@ of large numbers of fields are required. differentiate\_vtu is built as part of 
 build target (see section \ref{sect:fltools}), and is used via:
 
 \begin{lstlisting}[language = Bash]
-vtu_bins [-v] input_filename output_filename [input_fieldname]
+differentiate_vtu [-v] input_filename output_filename [input_fieldname]
 \end{lstlisting}
 
 where \lstinline[language = Bash]+input_filename+ is the input vtu and
 \lstinline[language = Bash]+output_filename+ is the output vtu. If
 \lstinline[language = Bash]+input_fieldname+ is supplied then only that field
 is differentiated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
+
+%%%%%%%%%%%%%%%%%%%%% PROBE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{probe\_vtu}
+\label{sect:probe_vtu}
+
+Returns the value of a field at a specified coordinate in a vtu file.
+probe\_vtu is built as part of the fltools
+build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+probe_vtu [-v] input_filename field_name x [y z]
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input_filename+ is the input vtu and
+\lstinline[language = Bash]+field_name+ is the field to be probed. 
+\lstinline[language = Bash]+x+, \lstinline[language = Bash]+y+ and
+\lstinline[language = Bash]+z+ are the coordinates at which the field is to
+be evaluated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 %%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -921,7 +941,7 @@ statplot is a graphical program for previewing files in the .stat file format.
 statplot can be launched via:
 
 \begin{lstlisting}[language = Bash]
-scripts/statplot filename
+scripts/statplot filename [filename2 filename3 ...]
 \end{lstlisting}
 
 This generates a graphical user interface displaying a plot of one statistic in
@@ -930,6 +950,9 @@ selected via combo boxes immediately beneath the plot. The plot itself can
 be navigated using the pylab navigation toolbar - see
 \url{http://matplotlib.sourceforge.net/users/navigation_toolbar.html} for
 more complete documentation.
+
+If multiple .stat files are supplied, the data are combined. This is useful for
+visualising output for simulations that are checkpointed and resumed. 
 
 Additional keyboard commands:
 
