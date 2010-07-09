@@ -285,7 +285,7 @@ module fields_base
   end interface field_val
  
   interface eval_field
-    module procedure eval_field_scalar, eval_field_vector
+    module procedure eval_field_scalar, eval_field_vector, eval_field_tensor
   end interface eval_field
 
   interface set_from_python_function
@@ -811,6 +811,26 @@ contains
     end if
 
   end function mesh_compatible
+  
+  subroutine print_mesh_incompatibility(debug_level, test_mesh, reference_mesh)
+    !!< Tests if a field on test_mesh is suitable for initialising a field
+    !!< on reference_mesh, and prints a descriptive message.
+
+    integer, intent(in) :: debug_level
+    type(mesh_type), intent(in) :: test_mesh
+    type(mesh_type), intent(in) :: reference_mesh
+        
+    if(node_count(test_mesh) /= node_count(reference_mesh)) then
+      ewrite(debug_level, *) "Node counts do not match"
+    end if
+    if(ele_count(test_mesh) /= ele_count(reference_mesh)) then
+      ewrite(debug_level, *) "Element counts do not match"
+    end if
+    if(continuity(test_mesh) == continuity(reference_mesh)) then
+      ewrite(debug_level, *) "Continuities do not match"
+    end if
+    
+  end subroutine print_mesh_incompatibility
 
   function ele_faces_mesh(mesh, ele_number) result (ele_faces)
     !!< Return a pointer to a vector containing the face numbers of the
@@ -3205,6 +3225,47 @@ contains
     end do
       
   end function eval_field_vector
+  
+  function eval_field_tensor(ele, t_field, local_coord) result(val)
+    !!< Evaluate the tensor field t_field at element local coordinate
+    !!< local_coord of element ele.
+  
+    integer, intent(in) :: ele
+    type(tensor_field), intent(in) :: t_field
+    real, dimension(:), intent(in) :: local_coord
+    
+    real, dimension(t_field%dim, t_field%dim) :: val
+    
+    integer :: i, j
+    real, dimension(ele_loc(t_field, ele)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => ele_shape(t_field, ele)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(t_field, ele) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    do i = 1, size(val, 1)
+      do j = 1, size(val, 2)
+        val(i, j) = dot_product(ele_val(t_field, i, j, ele), n)
+      end do
+    end do
+      
+  end function eval_field_tensor
 
   subroutine getsndgln(mesh, sndgln)
   !! get legacy surface mesh ndglno that uses node numbering of the full mesh

@@ -133,6 +133,7 @@ contains
                  trim(field%mesh%name), &
                 " specified under ", trim(field%mesh%option_path)
               ! treat this as a user error!
+              call print_mesh_incompatibility(-1, read_field%mesh, field%mesh)
               FLExit("Mesh from file and in state are not compatible")
             end if
             
@@ -241,6 +242,7 @@ contains
                  trim(field%mesh%name), &
                 " specified under ", trim(field%mesh%option_path)
               ! treat this as a user error!
+              call print_mesh_incompatibility(-1, read_field%mesh, field%mesh)
               FLExit("Mesh from file and in state are not compatible")
             end if
             
