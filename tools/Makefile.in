@@ -73,6 +73,7 @@ FTLE=../bin/FTLE
 CHECKMESH=../bin/checkmesh
 DERIVE_MESH=../bin/derive_mesh
 PROJECT_VTU=../bin/project_vtu
+PROBE_VTU=../bin/probe_vtu
 SUPERMESH_DIFFERENCE=../bin/supermesh_difference
 DIFFERENTIATE_VTU=../bin/differentiate_vtu
 VTU_BINS=../bin/vtu_bins
@@ -98,7 +99,7 @@ PERIODISE=../bin/periodise
 BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC) \
   $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE) $(FLINTEGRATE) \
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH) $(DERIVE_MESH) \
-  $(PROJECT_VTU) $(SUPERMESH_DIFFERENCE) $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU) \
+  $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE) $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU) \
   $(PROJECT_TO_CONTINUOUS) $(PROJECT_TO_CONTINUOUS_PARALLEL) \
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)
 
@@ -259,6 +260,9 @@ $(DERIVE_MESH): Derive_Mesh.o Derive_Mesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(PROJECT_VTU): Project_Vtu.o Project_Vtu_main.o lib/
+	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+
+$(PROBE_VTU): Probe_Vtu.o Probe_Vtu_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(SUPERMESH_DIFFERENCE): Supermesh_Difference.o Supermesh_Difference_main.o lib/
