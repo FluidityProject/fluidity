@@ -191,6 +191,14 @@ extrusion_options =
       element sizing_function {
           input_choice_real_plus_list
       },
+      ## To prevent infinitesimally thin bottom layer if sizing function
+      ## is an integer multiple of total depth, the bottom layer needs
+      ## to have at least this fraction of the layer depth above it. 
+      ##
+      ## Default is 1e-3.
+      element minimum_bottom_layer_fraction {
+          real
+      }?,
       ## surface_id to assign to the top of the extruded mesh
       element top_surface_id {
           integer

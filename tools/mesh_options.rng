@@ -228,6 +228,16 @@ varies both in the horizontal as in the vertical.</a:documentation>
       <ref name="input_choice_real_plus_list"/>
     </element>
     <optional>
+      <element name="minimum_bottom_layer_fraction">
+        <a:documentation>To prevent infinitesimally thin bottom layer if sizing function
+is an integer multiple of total depth, the bottom layer needs
+to have at least this fraction of the layer depth above it. 
+
+Default is 1e-3.</a:documentation>
+        <ref name="real"/>
+      </element>
+    </optional>
+    <optional>
       <element name="top_surface_id">
         <a:documentation>surface_id to assign to the top of the extruded mesh</a:documentation>
         <ref name="integer"/>

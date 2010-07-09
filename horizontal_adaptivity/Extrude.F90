@@ -39,7 +39,7 @@ module hadapt_extrude
     type(vector_field), dimension(node_count(h_mesh)) :: z_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     logical:: sizing_is_constant, depth_is_constant
-    real:: constant_sizing, depth
+    real:: constant_sizing, depth, min_bottom_layer_frac
     integer:: stat, h_dim, column, quadrature_degree
     
     real, dimension(1) :: tmp_depth
@@ -121,6 +121,15 @@ module hadapt_extrude
           FLAbort("Unknown way of specifying sizing function in mesh extrusion")
         end if       
       end if
+
+    
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(r)//&
+                      ']/minimum_bottom_layer_fraction', &
+                      min_bottom_layer_frac, stat=stat)
+      if (stat/=0) then
+         min_bottom_layer_frac=1e-3
+      end if       
         
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
@@ -153,10 +162,10 @@ module hadapt_extrude
         
         if (sizing_is_constant) then
           call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
-            sizing=constant_sizing)
+            min_bottom_layer_frac, sizing=constant_sizing)
         else
           call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
-            sizing_function=sizing_function)
+            min_bottom_layer_frac, sizing_function=sizing_function)
         end if
       end do
       
@@ -195,21 +204,20 @@ module hadapt_extrude
 
   end subroutine extrude
 
-  subroutine compute_z_nodes(z_mesh, depth, xy, sizing, sizing_function)
+  subroutine compute_z_nodes(z_mesh, depth, xy, min_bottom_layer_frac, sizing, sizing_function)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: z_mesh
     real, intent(in):: depth
     real, dimension(:), intent(in):: xy
-    real, optional, intent(in):: sizing
-    character(len=*), optional, intent(in):: sizing_function
-
-    ! this is a safety gap, for people doing something stupid:
-    integer, parameter:: MAX_VERTICAL_NODES=1e6
     ! to prevent infinitesimally thin bottom layer if sizing function
     ! is an integer mulitple of total depth, the bottom layer needs
     ! to have at least this fraction of the layer depth above it:
-    real, parameter:: MIN_BOTTOM_LAYER_FRAC=1e-3
-    
+    real, intent(in) :: min_bottom_layer_frac
+    real, optional, intent(in):: sizing
+    character(len=*), optional, intent(in):: sizing_function
+    ! this is a safety gap, for people doing something stupid:
+    integer, parameter:: MAX_VERTICAL_NODES=1e6
+
     integer :: elements
     logical :: is_constant
     real :: constant_value
@@ -253,7 +261,7 @@ module hadapt_extrude
       xyz(size(xy)+1)=z
       delta_h = get_delta_h( xyz, is_constant, constant_value, py_func)
       z=z - delta_h
-      if (z<-depth+MIN_BOTTOM_LAYER_FRAC*delta_h) exit
+      if (z<-depth+min_bottom_layer_frac*delta_h) exit
       call insert(depths, z)
       if (depths%length>MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
