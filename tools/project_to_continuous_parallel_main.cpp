@@ -104,15 +104,15 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  
-  if (argc-no_option_args != 3){
-    cerr << "Need exactly two non-option arguments" << endl;
-    project_to_continuous_parallel_usage(argv[0]);
-    exit(-1);
-  }
 
   // Help?
   if(flArgs.count('h')){
+    project_to_continuous_parallel_usage(argv[0]);
+    exit(-1);
+  }
+  
+  if (argc-no_option_args != 3){
+    cerr << "Need exactly two non-option arguments" << endl;
     project_to_continuous_parallel_usage(argv[0]);
     exit(-1);
   }

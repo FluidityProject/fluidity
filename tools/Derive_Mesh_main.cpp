@@ -94,15 +94,15 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  
-  if (optind != argc - 2){
-    cerr << "Need exactly two non-option arguments" << endl;
-    usage(argv[0]);
-    exit(-1);
-  }
 
   // Help?
   if(args.count('h')){
+    usage(argv[0]);
+    exit(-1);
+  }
+  
+  if (optind != argc - 2){
+    cerr << "Need exactly two non-option arguments" << endl;
     usage(argv[0]);
     exit(-1);
   }
@@ -128,7 +128,7 @@ int main(int argc, char **argv){
   
   int continuity = 0;
   if(args.count('d') == 1){
-    continuity = 1;
+    continuity = -1;
   }
 
   string input_filename = argv[optind];

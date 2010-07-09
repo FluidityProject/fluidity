@@ -94,15 +94,15 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  
-  if (optind != argc - 4){
-    cerr << "Need exactly four non-option arguments" << endl;
-    project_vtu_usage(argv[0]);
-    exit(-1);
-  }
 
   // Help?
   if(args.count('h')){
+    project_vtu_usage(argv[0]);
+    exit(-1);
+  }
+  
+  if (optind != argc - 4){
+    cerr << "Need exactly four non-option arguments" << endl;
     project_vtu_usage(argv[0]);
     exit(-1);
   }

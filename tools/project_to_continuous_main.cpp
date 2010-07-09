@@ -94,15 +94,15 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  
-  if (argc-no_option_args != 3){
-    cerr << "Need exactly two non-option arguments" << endl;
-    usage(argv[0]);
-    exit(-1);
-  }
 
   // Help?
   if(flArgs.count('h')){
+    usage(argv[0]);
+    exit(-1);
+  }
+  
+  if (argc-no_option_args != 3){
+    cerr << "Need exactly two non-option arguments" << endl;
     usage(argv[0]);
     exit(-1);
   }
