@@ -29,6 +29,7 @@
 
 module mba3d_integration 
 
+  use adapt_integration
   use quadrature
   use elements
   use fields
@@ -48,17 +49,19 @@ module mba3d_integration
 
   public :: adapt_mesh_mba3d, mba3d_integration_check_options
   
+  character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity"
+  
 contains
 
-  subroutine adapt_mesh_mba3d(input_mesh_field, metric, output_mesh_field, force_preserve_regions)
+  subroutine adapt_mesh_mba3d(input_positions, metric, output_positions, force_preserve_regions)
     !!< Adapt the supplied input mesh using libmba3d. Return the new adapted
-    !!< mesh in output_mesh_field (which is allocated by this routine).
-    !!< input_mesh_field and output_mesh_field are the Coordinate fields of
+    !!< mesh in output_positions (which is allocated by this routine).
+    !!< input_positions and output_positions are the Coordinate fields of
     !!< the old and new meshes respectively.
     
-    type(vector_field), intent(in) :: input_mesh_field
+    type(vector_field), intent(in) :: input_positions
     type(tensor_field), intent(in) :: metric
-    type(vector_field), intent(out) :: output_mesh_field
+    type(vector_field), intent(out) :: output_positions
     logical, intent(in), optional :: force_preserve_regions
     
     ! Linear tets only
@@ -95,50 +98,50 @@ contains
 
     ewrite(1, *) "In adapt_mesh_mba_3d"
     
-    assert(input_mesh_field%dim == 3)
-    assert(ele_loc(input_mesh_field, 1) == 4)
+    assert(input_positions%dim == 3)
+    assert(ele_loc(input_positions, 1) == 4)
 #ifdef DDEBUG
-    if(surface_element_count(input_mesh_field) > 0) then
-      assert(associated(input_mesh_field%mesh%faces))
-      assert(face_loc(input_mesh_field, 1) == 3)
+    if(surface_element_count(input_positions) > 0) then
+      assert(associated(input_positions%mesh%faces))
+      assert(face_loc(input_positions, 1) == 3)
     end if
 #endif
-    assert(metric%mesh == input_mesh_field%mesh)
+    assert(metric%mesh == input_positions%mesh)
 
     ewrite(2, *) "Forming mbanodal arguments"
 
     ewrite(2, *) "Forming group (M) arguments"
 
-    nestar = expected_elements(input_mesh_field, metric, global = .false.)
+    nestar = expected_elements(input_positions, metric, global = .false.)
 
     ! Factor of limit_buffer buffers in limits
-    np = node_count(input_mesh_field)
-    maxp = max(expected_nodes(input_mesh_field, nestar, global = .false.), np) * limit_buffer + 1
-    nf = surface_element_count(input_mesh_field)
+    np = node_count(input_positions)
+    maxp = max_nodes(input_positions, expected_nodes(input_positions, nestar, global = .false.)) * limit_buffer
+    nf = surface_element_count(input_positions)
     maxf = max(int(((maxp * 1.0) / (np * 1.0)) * nf), nf) * limit_buffer + 1
-    ne = ele_count(input_mesh_field)
+    ne = ele_count(input_positions)
     maxe = max(nestar, ne) * limit_buffer + 1
 
     allocate(xyp(dim, maxp))
     xyp = 0.0
     do i = 1, dim
-      xyp(i, :np) = input_mesh_field%val(i)%ptr
+      xyp(i, :np) = input_positions%val(i)%ptr
     end do
 
     allocate(ipf(snloc, maxf))
     ipf = 0
     allocate(sndgln(nf * snloc))
-    call getsndgln(input_mesh_field%mesh, sndgln)
+    call getsndgln(input_positions%mesh, sndgln)
     ipf(:, :nf) = reshape(sndgln, (/snloc, nf/))
     deallocate(sndgln)
 
     allocate(ipe(nloc, maxe))
     ipe = 0
-    ipe(:, :ne) = reshape(input_mesh_field%mesh%ndglno, (/nloc, ne/))
+    ipe(:, :ne) = reshape(input_positions%mesh%ndglno, (/nloc, ne/))
 
     allocate(lbf(maxf))
     lbf = 0
-    call interleave_surface_ids(input_mesh_field%mesh, lbf(:nf), max_coplanar_id)
+    call interleave_surface_ids(input_positions%mesh, lbf(:nf), max_coplanar_id)
     if(minval(lbf(:nf)) < 0) then
       FLAbort("libmba3d does not permit negative surface IDs")
     end if
@@ -152,10 +155,10 @@ contains
     end if
     
     allocate(lbe(maxe))
-    if(associated(input_mesh_field%mesh%region_ids).and.&
+    if(associated(input_positions%mesh%region_ids).and.&
        (have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
                               .or.present_and_true(force_preserve_regions))) then
-      lbe(:ne) = input_mesh_field%mesh%region_ids
+      lbe(:ne) = input_positions%mesh%region_ids
       if(minval(lbe(:ne)) < 0) then
         FLAbort("libmba3d does not permit negative region IDs")
       end if
@@ -171,7 +174,7 @@ contains
     ewrite(2, *) "Forming group (Dev) arguments"
 
     ! Locked nodes
-    call get_locked_nodes(input_mesh_field, ipv)
+    call get_locked_nodes(input_positions, ipv)
     npv = size(ipv)
 
     ! Locked faces
@@ -188,7 +191,7 @@ contains
     ewrite(2, *) "Forming group (Q) arguments"
 
     maxskipe = ne
-    maxqitr = 100000
+    call get_option(base_path // "/adaptivity_library/libmba3d/max_optimisations", maxqitr, default = 100000)
 
     allocate(metric_handle(6, np))
     do i = 1, np
@@ -200,7 +203,7 @@ contains
       metric_handle(6, i) = node_val(metric, 1, 3, i)
     end do
 
-    quality = 0.6
+    call get_option(base_path // "/adaptivity_library/libmba3d/quality", quality, default = 0.6)
     ! Output variable - initialise just in case it's also used as input
     rquality = 0.0
 
@@ -212,7 +215,7 @@ contains
     maxwi = (7 * maxp + np + 7 * maxf + 18 * maxe + 13 * ne) * memory_buffer + 1
     allocate(iw(maxwi))
 
-    iprint = min(max(current_debug_level *  3, 0), 9)
+    iprint = min(max(current_debug_level *  5, 0), 9)
     ! Output variable - initialise just in case it's also used as input
     ierr = 0
 
@@ -270,12 +273,12 @@ contains
       ewrite(2, *) "Finished constructing output halo"
     end if
 
-    ewrite(2, *) "Constructing output mesh field"
+    ewrite(2, *) "Constructing output positions"
 
     ! Construct the new mesh
-    output_quad = make_quadrature(nloc, dim, degree = input_mesh_field%mesh%shape%quadrature%degree)
-    output_shape = make_element_shape(nloc, dim, input_mesh_field%mesh%shape%degree, output_quad)
-    call allocate(output_mesh, np, ne, output_shape, name = input_mesh_field%mesh%name)
+    output_quad = make_quadrature(nloc, dim, degree = input_positions%mesh%shape%quadrature%degree)
+    output_shape = make_element_shape(nloc, dim, input_positions%mesh%shape%degree, output_quad)
+    call allocate(output_mesh, np, ne, output_shape, name = input_positions%mesh%name)
     call deallocate(output_quad)
     call deallocate(output_shape)
 
@@ -294,16 +297,16 @@ contains
       allocate(output_mesh%region_ids(ne))
       output_mesh%region_ids = lbe(:ne)
     end if
-    output_mesh%option_path = input_mesh_field%mesh%option_path
+    output_mesh%option_path = input_positions%mesh%option_path
 
-    ! Construct the new mesh field
-    call allocate(output_mesh_field, dim, output_mesh, name = input_mesh_field%name)
+    ! Construct the new positions
+    call allocate(output_positions, dim, output_mesh, name = input_positions%name)
     call deallocate(output_mesh)
                
     do i = 1, dim
-      output_mesh_field%val(i)%ptr = xyp(i, :np)
+      output_positions%val(i)%ptr = xyp(i, :np)
     end do
-    output_mesh_field%option_path = input_mesh_field%option_path
+    output_positions%option_path = input_positions%option_path
 
     deallocate(xyp)
     deallocate(ipf)
@@ -311,7 +314,7 @@ contains
     deallocate(lbf)
     deallocate(lbe)
 
-    ewrite(2, *) "Finished constructing output mesh field"
+    ewrite(2, *) "Finished constructing output positions"
 
     ewrite(1, *) "Exiting adapt_mesh_mba3d"
 

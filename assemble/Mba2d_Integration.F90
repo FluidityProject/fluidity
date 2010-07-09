@@ -313,14 +313,7 @@ module mba2d_integration
                   parcrv, iFnc, filename)
 #endif
 
-    select case(current_debug_level)
-      case(:0)
-        iPrint = 0
-      case(1)
-        iPrint = 5
-      case(2:)
-        iPrint = 9
-    end select
+    iprint = min(max(current_debug_level *  5, 0), 9)
 
     call mbaNodal(                                   &
          nonods, maxp, stotel, mxface, totele, maxele, npv, &
