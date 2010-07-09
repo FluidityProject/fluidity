@@ -54,8 +54,8 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
   logical :: allocated
   real :: s_val
   real, dimension(dim) :: coord, v_val
+  real, dimension(dim + 1) :: local_coord
   real, dimension(dim, dim) :: t_val
-  real, dimension(:), allocatable :: local_coord
   type(scalar_field), pointer :: s_field
   type(vector_field), pointer :: positions, v_field
   type(state_type) :: state
@@ -75,9 +75,7 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
   if(dim > 0) coord(1) = x
   if(dim > 1) coord(2) = y
   if(dim > 2) coord(3) = z
-  ewrite(2, *) x, y, z
   ewrite(2, *) "Probe coord: ", coord
-  allocate(local_coord(dim + 1))
   call picker_inquire(positions, coord, ele, local_coord = local_coord)
   if(ele < 0) then
     FLExit("Probe point not contained in vtu " // vtu_filename)
@@ -88,7 +86,6 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
     format = "(" // real_format() // ")"
     s_val = eval_field(ele, s_field, local_coord)
     ewrite(2, *) fieldname // " value:"
-    print format, s_val
     if(allocated) deallocate(s_field)
   else
     v_field => extract_vector_field(state, fieldname, stat = stat)
@@ -96,21 +93,17 @@ subroutine probe_vtu(vtu_filename, vtu_filename_len, fieldname, fieldname_len, x
       format = "(" // int2str(dim) // real_format(padding = 1) // ")"
       v_val = eval_field(ele, v_field, local_coord)
       ewrite(2, *) fieldname // " value:"
-      print format, v_val
     else
       t_field => extract_tensor_field(state, fieldname, stat = stat)
       if(stat == 0) then
         format = "(" // int2str(dim ** 2) // real_format(padding = 1) // ")"
         t_val = eval_field(ele, t_field, local_coord)
         ewrite(2, *) fieldname // " value:"
-        print format, t_val
       else
         FLExit("Field " // fieldname // " not found in vtu " // vtu_filename)
       end if
     end if
   end if
-  
-  deallocate(local_coord)
   
   call deallocate(state)
   
