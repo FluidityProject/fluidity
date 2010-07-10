@@ -1393,7 +1393,7 @@ contains
         ! options by checkpointing, as any subsequent adapt with field
         ! initialisation will read (and consistently interpolate) the debug
         ! checkpoint. Applies to first timestep adapts.        
-        ewrite(1, *) "Adapt checkpoint skipped, as adapt performed with with field initialisation"
+        ewrite(1, *) "Adapt checkpoint skipped, as adapt performed with field initialisation"
       else
         ewrite(1, "(a,i0)") "Performing adapt checkpoint ", cp_no
         

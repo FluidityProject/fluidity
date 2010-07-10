@@ -115,8 +115,8 @@ contains
   end subroutine find_node_ownership_rtree_no_tolerance
 
   subroutine find_node_ownership_rtree_tolerance(positions_a, positions_b, map, ownership_tolerance)
-    !!< Find all elements in positions_a within ownership_tolerance of nodes
-    !!< in positions_b.
+    !!< Find all elements in positions_a within ownership_tolerance (in ideal
+    !!< space) of nodes in positions_b.
     !!< Uses an rtree algorithm.
   
     type(vector_field), intent(inout) :: positions_a

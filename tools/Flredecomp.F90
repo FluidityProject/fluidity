@@ -96,10 +96,10 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   else if(target_nprocs < 0) then
     FLExit("Target number of processes cannot be negative!")
   else if(input_nprocs > nprocs) then
-    ewrite(-1, *) "The input number of processes must equal or less than the number of processes currently running."
+    ewrite(-1, *) "The input number of processes must be equal or less than the number of processes currently running."
     FLExit("Running on insufficient processes.")
   else if(target_nprocs > nprocs) then
-    ewrite(-1, *) "The target number of processes must equal or less than the number of processes currently running."
+    ewrite(-1, *) "The target number of processes must be equal or less than the number of processes currently running."
     FLExit("Running on insufficient processes.")
   end if
   

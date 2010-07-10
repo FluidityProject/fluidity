@@ -921,6 +921,9 @@ contains
         case(0)
           ewrite(-1, *) "Decomposed field on mesh: " // trim(matrices%u_mesh%name)
           FLExit("Must lump mass with continuous decomposed field")
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(matrices%u_mesh)
+          FLAbort("Unrecognised mesh continuity")
       end select
     end if
     
@@ -1031,6 +1034,9 @@ contains
         case(0)
           ewrite(-1, *) "Decomposed field on mesh: " // trim(matrices%u_mesh%name)
           FLExit("Must lump mass with continuous decomposed field")
+        case default
+          ewrite(-1, *) "For mesh continuity: ", continuity(matrices%u_mesh)
+          FLAbort("Unrecognised mesh continuity")
       end select
     end if
     
@@ -2337,7 +2343,7 @@ contains
       deallocate(surface_eles)
     end if
     
-    ewrite(1, *) "Exiting decompose_p_mean_multiple"
+    ewrite(1, *) "Exiting decompose_p_optimal_multiple"
     
   contains
   

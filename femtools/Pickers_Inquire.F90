@@ -54,6 +54,8 @@ module pickers_inquire
       & picker_inquire_nodes_tolerance
   end interface picker_inquire
 
+  real, parameter, public :: max_picker_ownership_tolerance = rtree_tolerance
+
 contains
 
   subroutine picker_inquire_single_position_xyz(positions, coordx, coordy, coordz, ele, local_coord, global)
@@ -193,7 +195,8 @@ contains
 
   subroutine picker_inquire_single_position_tolerance(positions, coord, ele, ownership_tolerance)
     !!< Find the owning elements in positions of the supplied coordinate
-    !!< using an ownership tolerance
+    !!< using an ownership tolerance. This performs a strictly local (this
+    !!< process) ownership test.
   
     type(vector_field), intent(inout) :: positions
     real, dimension(positions%dim), intent(in) :: coord
@@ -207,7 +210,8 @@ contains
 
   subroutine picker_inquire_multiple_positions_tolerance(positions, coords, eles, ownership_tolerance)
     !!< Find the owning elements in positions of the supplied coordinates
-    !!< using an ownership tolerance
+    !!< using an ownership tolerance. This performs a strictly local (this
+    !!< process) ownership test.
 
     type(vector_field), intent(inout) :: positions
     real, dimension(:, :), intent(in) :: coords
@@ -278,7 +282,8 @@ contains
 
   subroutine picker_inquire_node_tolerance(positions_a, positions_b, ele_a, node_b, ownership_tolerance)
     !!< Find the owning element in positions_a of a node in positions_b
-    !!< using an ownership tolerance
+    !!< using an ownership tolerance. This performs a strictly local (this
+    !!< process) ownership test.
 
     type(vector_field), intent(inout) :: positions_a
     type(vector_field), intent(in) :: positions_b
@@ -294,7 +299,8 @@ contains
 
   subroutine picker_inquire_nodes_tolerance(positions_a, positions_b, ele_as, ownership_tolerance)
     !!< Find the owning elements in positions_a of the nodes in positions_b
-    !!< using an ownership tolerance
+    !!< using an ownership tolerance. This performs a strictly local (this
+    !!< process) ownership test.
   
     type(vector_field), intent(inout) :: positions_a
     type(vector_field), intent(in) :: positions_b

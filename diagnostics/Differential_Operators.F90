@@ -230,7 +230,7 @@ contains
       select case(continuity(v_field))
         case(0)
           if(.not. have_option(trim(path) // "/solver")) then
-            FLExit("For continuous curl, must supply solver options when not lumping mass")
+            FLExit("For continuous perp, must supply solver options when not lumping mass")
           end if
           mass => get_mass_matrix(state, v_field%mesh)
           call allocate(rhs, v_field%dim, v_field%mesh, "PerpRHS")
