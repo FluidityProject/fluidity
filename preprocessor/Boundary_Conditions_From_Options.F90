@@ -281,7 +281,7 @@ contains
     type(mesh_type), pointer:: surface_mesh
     type(vector_field) surface_field, surface_field2, bc_position
     type(vector_field):: normal, tangent_1, tangent_2
-    type(scalar_field) scalar_surface_field
+    type(scalar_field) scalar_surface_field, scalar_surface_field2
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     logical applies(3), have_sem_bc, debugging_mode
@@ -414,6 +414,18 @@ contains
                & surface_ids, option_path=bc_path_i, &
                & applies=(/ .true., .false., .false. /) )
           deallocate(surface_ids)
+          if (trim(bc_type)=="free_surface") then
+             bc_path_i=trim(bc_path_i)//"/type[0]/wetting_drying"
+             if(have_option(trim(bc_path_i))) then
+                call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+                call allocate(scalar_surface_field, surface_mesh, name="WettingDryingAlpha")
+                call allocate(scalar_surface_field2, surface_mesh, name="WettingDryingOldAlpha")
+                call insert_surface_field(field, i+1, scalar_surface_field)
+                call insert_surface_field(field, i+1, scalar_surface_field2)
+                call deallocate(scalar_surface_field)
+                call deallocate(scalar_surface_field2)
+             end if
+          end if
           
        case ("near_wall_treatment", "log_law_of_wall")
          
@@ -948,7 +960,17 @@ contains
           end if
           call deallocate(bc_position)
 
-       case("free_surface", "no_normal_flow", "near_wall_treatment", "log_law_of_wall", "outflow")
+        case("free_surface")
+            
+           bc_path_i=trim(bc_path_i)//"/wetting_drying"
+           if(have_option(trim(bc_path_i))) then
+              scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingAlpha")
+              call zero(scalar_surface_field)
+              scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingOldAlpha")
+              call zero(scalar_surface_field)
+           end if
+
+         case ("no_normal_flow", "near_wall_treatment", "log_law_of_wall", "outflow")
 
           ! nothing to be done (yet?)
           

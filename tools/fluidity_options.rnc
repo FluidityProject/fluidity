@@ -2547,7 +2547,34 @@ velocity_boundary_conditions =
               element surface_stabilisation {
                   empty
               }?
-           )
+           ),
+           element wetting_drying {
+               ## Specifies the dmin value which is needed to calculate alpha. 
+               ## A value of 0.1 shoud work in most cases.
+               element dminoffset {
+                  element value {
+                    real
+                  }
+               },
+               ## Specifies the d0 value which is used to calculate alpha.
+               ## This option should only be used in combination with enforce_min_depth_to_d0.
+               ## Default is 0.0
+               element d0offset {
+                  element value {
+                    real
+                  }
+               }?,
+               ## Saves some extra vtus. For testing purposes only.
+               element output_debug_vtus {
+                  empty
+               }?,
+               ## Instead of calculating alpha from the free surface heigth, always use this constant value. This should be used for testing purposes only!
+               element set_alpha_constant {
+                  element value {
+                    real
+                  }
+               }?
+            }?
          }|
          ## Apply quadratic drag. Specify drag coefficient. If you
          ## want to exactly replicate results from using the OCEDRA
@@ -3294,6 +3321,28 @@ scalar_field_choice =
                ## with the free_surface boundary condition applied to the Velocity
                ## field. It gives you a 3D field (constant over the vertical)
                ## of the free surface elevation.
+               element diagnostic {
+                  internal_algorithm,
+                  # this is hard-coded on the PressureMesh as long as the Pressure is
+                  # if this is no longer true, it should be option-checked to be on the
+                  # same mesh as Pressure
+                  ## Must be on the same mesh as Pressure
+                  pressure_mesh_choice,
+                  diagnostic_scalar_field
+               }
+               
+            )
+         }|
+         ## Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "WettingDryingAlpha" },
+            (
+               ## Free Surface
+               ## NOTE: the diagnostic WettingDryingAlpha only works in combination
+               ## with the free_surface boundary condition applied to the Velocity
+               ## field. It gives you a 3D field (constant over the vertical)
+               ## of the wetting and drying alpha coefficient.
                element diagnostic {
                   internal_algorithm,
                   # this is hard-coded on the PressureMesh as long as the Pressure is

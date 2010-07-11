@@ -44,7 +44,8 @@ module diagnostic_fields_wrapper
                                   calculate_bulk_material_pressure, &
                                   calculate_sum_material_volume_fractions, &
                                   calculate_material_volume
-  use free_surface_module, only: calculate_diagnostic_free_surface
+  use free_surface_module, only: calculate_diagnostic_free_surface, &
+                                 calculate_diagnostic_wettingdrying_alpha
   use field_options, only: do_not_recalculate
   use vorticity_diagnostics
   use diagnostic_fields_matrices
@@ -455,6 +456,13 @@ contains
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
            call calculate_diagnostic_free_surface(state(i), s_field)
+         end if
+       end if
+       
+       s_field => extract_scalar_field(state(i), "WettingDryingAlpha", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_wettingdrying_alpha(state(i), s_field)
          end if
        end if
 

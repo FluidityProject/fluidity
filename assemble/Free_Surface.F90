@@ -46,7 +46,8 @@ private
 public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   move_free_surface_nodes, vertical_prolongator_from_free_surface, &
   free_surface_nodes, calculate_diagnostic_free_surface, &
-  add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior
+  add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior, &
+  calculate_diagnostic_wettingdrying_alpha
   
 
 public free_surface_module_check_options
@@ -82,16 +83,18 @@ contains
     type(scalar_field), optional, intent(inout) :: rhs      
     
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
-      type(scalar_field), pointer:: p, prevp
+      type(scalar_field), pointer:: p, prevp, wettingdrying_alpha
       character(len=FIELD_NAME_LEN):: bctype
+      character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, alpha, coef
       integer, dimension(:), pointer:: surface_element_list
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
       logical:: addto_cmc
+      logical:: have_wetting_drying
       
       real, save :: coef_old = 0.0
-      
+
       ewrite(1,*) 'Entering add_free_surface_to_cmc_projection routine'
       ewrite(2,*) "Are we adding free-surface contribution to RHS:",present(rhs)
 
@@ -142,17 +145,22 @@ contains
       ! on and that results in a different coefficient
       do i=1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, type=bctype, &
-           surface_element_list=surface_element_list)
+           surface_element_list=surface_element_list,option_path=fs_option_path)
         if (bctype=="free_surface") then
           if (grav_stat/=0) then
              FLAbort("For a free surface you need gravity")
+          end if
+          have_wetting_drying=have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")
+          if (have_wetting_drying) then
+             assert(get_cmc) ! sf1409 : We need to reassemble every time for now!
+             wettingdrying_alpha => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
           end if
           ! only add to cmc if we're reassembling it (get_cmc = .true.)
           ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
           addto_cmc = get_cmc.or.&
                       (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
           do j=1, size(surface_element_list)
-            call add_free_surface_element(surface_element_list(j))
+            call add_free_surface_element(surface_element_list(j), j, have_wetting_drying, wettingdrying_alpha)
           end do
         end if
       end do
@@ -171,15 +179,20 @@ contains
       
     contains 
     
-    subroutine add_free_surface_element(sele)
-    integer, intent(in):: sele
-      
+    subroutine add_free_surface_element(sele, j, have_wetting_drying, wettingdrying_alpha)
+      integer, intent(in):: sele, j
+      type(scalar_field), intent(in) :: wettingdrying_alpha
+      logical :: have_wetting_drying
+
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_old
-      real, dimension(face_ngi(p, sele)):: detwei
+      real, dimension(face_ngi(p, sele)):: detwei, alpha_wetdry_quad
       integer:: ele
-      
+
       ele=face_ele(positions, sele)
+      if (have_wetting_drying) then
+             call get_wettingdrying_alpha_quad(state, sele, alpha_wetdry_quad)
+      end if
       if(include_normals) then
         call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
             & normal=normals)
@@ -191,7 +204,11 @@ contains
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
       end if
-      
+      if (have_wetting_drying) then
+             detwei=detwei*(1.0-alpha_wetdry_quad)
+             assert(coef_old==0.0)  ! wetting and drying needs to reassemble constantly for now.
+      end if
+
       mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
       if (addto_cmc) then
         ! we consider the projection equation to solve for 
@@ -207,6 +224,9 @@ contains
            & normal=normals)
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
+        if (have_wetting_drying) then
+             detwei=detwei*(1.0-alpha_wetdry_quad)
+        end if
         mass_ele_old=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
         if(present(rhs)) then
            call addto(rhs, face_global_nodes(p, sele), &
@@ -338,12 +358,12 @@ contains
   subroutine move_mesh_free_surface(states, initialise)
   type(state_type), dimension(:), intent(inout) :: states
   logical, intent(in), optional :: initialise
-  
-    type(vector_field), pointer :: velocity
-    real :: itheta
-    integer :: i
+
+   type(vector_field), pointer :: velocity
+   real :: itheta
+   integer :: i
     
-    logical :: complete
+   logical :: complete
     
     complete = .false.
 
@@ -371,7 +391,9 @@ contains
             end if
             call CalculateTopBottomDistance(states(i))
           end if
-          
+          ! Update the wetting and drying coefficients
+          call update_wettingdrying_alpha(states(i))
+
           complete = .true.
       end if
     end do
@@ -391,17 +413,19 @@ contains
     type(vector_field), pointer :: old_grid_u, iterated_grid_u
     type(scalar_field), target:: linear_p
     character(len=FIELD_NAME_LEN):: bctype
-    real g, dt, rho0
+    real g, dt, rho0, gravity_magnitude
     integer, dimension(:), allocatable:: face_nodes
     integer, dimension(:), pointer:: surface_element_list
     integer i, j, k, node, sele, stat
 
     ! some fields for when moving the entire mesh
     type(scalar_field), pointer :: topdis, bottomdis
+    !type(scalar_field), save :: fracdis
     type(scalar_field) :: fracdis
+    !logical :: fracdis_initialise=.true.
     type(scalar_field) :: extrapolated_p
     
-    logical :: l_initialise
+    logical :: l_initialise, have_wd
     
     ewrite(1,*) 'Entering move_free_surface_nodes'
     
@@ -474,14 +498,28 @@ contains
       call VerticalExtrapolation(p, extrapolated_p, positions, &
         gravity_normal, surface_element_list=surface_element_list, &
         surface_name="DistanceToTop")
-        
+
+      call have_wetting_drying(u, have_wd)
+      if (have_wd) then
+         call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+         do node=1, node_count(extrapolated_p)
+            call set(extrapolated_p, node, &
+                  max(node_val(extrapolated_p, node),-gravity_magnitude*node_val(get_wettingdrying_d0(state), node)))
+         end do
+      end if
+
+      ! The fractionaldistance needs to be calculated only once.
+      ! This is needed in order to keep the correct fractionaldistance. For some reasons not using this method leads to funny fractionaldistances with time.
       ! then we need to scale it by its fractional distance from the bottom
-      call allocate(fracdis, topdis%mesh, "FractionalDistance")
+  !    if (fracdis_initialise) then
+  !      fracdis_initialise=.false.
+        call allocate(fracdis, topdis%mesh, "FractionalDistance")
       
-      call set(fracdis, topdis)
-      call addto(fracdis, bottomdis)
-      call invert(fracdis)
-      call scale(fracdis, bottomdis)
+        call set(fracdis, topdis)
+        call addto(fracdis, bottomdis)
+        call invert(fracdis)
+        call scale(fracdis, bottomdis)
+   !   end if
       
       call scale(extrapolated_p, fracdis)
       
@@ -556,7 +594,29 @@ contains
     if (associated(p, linear_p)) then
        call deallocate(p)
     end if
-          
+
+    contains
+      subroutine have_wetting_drying(u, have_wd)
+        type(vector_field), intent(in) :: u
+        logical, intent(out) :: have_wd
+        integer :: i
+        character(len=FIELD_NAME_LEN):: bctype
+        character(len=OPTION_PATH_LEN) fs_option_path
+        logical, save :: have_wd_, initialized
+
+        if (.not. initialized) then
+            have_wd_=.false.
+            do i=1, get_boundary_condition_count(u)
+                call get_boundary_condition(u, i, type=bctype, option_path=fs_option_path)
+                if (bctype=="free_surface" .and. have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
+                    have_wd_=.true.
+                    exit
+                end if
+            end do
+        end if
+        have_wd=have_wd_
+    end subroutine have_wetting_drying
+    
   end subroutine move_free_surface_nodes
   
   function vertical_prolongator_from_free_surface(state, mesh) result (vertical_prolongator)
@@ -754,7 +814,287 @@ contains
     endif
 
   end subroutine get_reference_density_from_options
-    
+
+ subroutine update_wettingdrying_alpha(state)
+  !!< calculates and updates the alpha coefficients of the wetting and drying algorithm.
+  type(state_type), intent(in):: state
+  type(scalar_field), pointer:: scalar_surface_field, scalar_surface_field_old
+
+  integer, dimension(:), pointer :: surface_element_list
+  type(vector_field), pointer:: x, u, vertical_normal
+  type(scalar_field), pointer:: p, topdis
+  character(len=FIELD_NAME_LEN):: bctype
+  character(len=OPTION_PATH_LEN) fs_option_path
+  real:: g, rho0, gravity_magnitude, const_alpha, dminoffset, d0offset
+  integer:: i, j, sele, stat
+  real, dimension(:), allocatable :: alpha
+  type(scalar_field), pointer :: bottomdist, topdist, iteratedpressure, dmin_pfield
+
+
+  u => extract_vector_field(state, "Velocity")
+  iteratedpressure => extract_scalar_field(state, "IteratedPressure")
+  allocate(alpha(face_loc(iteratedpressure, 1)))
+
+  do i=1, get_boundary_condition_count(u)
+       call get_boundary_condition(u, i, type=bctype, &
+          surface_element_list=surface_element_list, option_path=fs_option_path)
+       if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
+             scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
+             ! Save current WettingDryingAlpha to WettingDryingAlphaOld
+             scalar_surface_field_old => extract_scalar_surface_field(u, i, "WettingDryingOldAlpha")
+             call set(scalar_surface_field_old, scalar_surface_field)
+             ! Update WettingDryingAlpha
+             call get_reference_density_from_options(state, u, rho0)
+             call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
+             bottomdist => extract_scalar_field(state, "DistanceToBottom")
+             topdist => extract_scalar_field(state, "DistanceToTop")
+             iteratedpressure => extract_scalar_field(state, "IteratedPressure")
+             dmin_pfield => get_wettingdrying_dmin(state)
+             call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/dminoffset/value", dminoffset)
+             call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/d0offset/value", d0offset)
+             assert(dminoffset > d0offset)
+
+             ! For debugging purposes, alpha can be set to a constant value
+             if (have_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/set_alpha_constant")) then
+                 call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/set_alpha_constant/value", const_alpha)
+                 call set(scalar_surface_field, const_alpha)
+             else
+                 ! Calculate alpha for each surface element
+                 face_loop: do j=1, size(surface_element_list)
+                   sele=surface_element_list(j)
+                   call calculate_alpha(sele, gravity_magnitude, iteratedpressure, bottomdist, topdist, dmin_pfield, dminoffset, d0offset, alpha )
+                   call set(scalar_surface_field, &
+                     ele_nodes(scalar_surface_field, j), &
+                     alpha)
+                 end do face_loop
+             end if
+       end if
+   end do
+   deallocate(alpha)
+
+  contains
+   subroutine calculate_alpha(sele, gravity_magnitude, p, bottomdist, topdist, dmin_pfield, dminoffset, d0offset, alpha)
+        type(scalar_field), pointer, intent(in) :: p, bottomdist, topdist, dmin_pfield
+        integer, intent(in) :: sele
+        real, intent(in) :: gravity_magnitude, dminoffset, d0offset
+        real, dimension(face_loc(p, sele)), intent(inout) :: alpha
+        real, dimension(face_loc(p, sele)) :: dmin, d0, d
+
+        !!! Tha caluculation of alpha is based on pressure, thus pressure and free surface don't have to be coupled.
+        alpha = -gravity_magnitude * face_val(dmin_pfield, sele) - face_val(p, sele)
+        alpha = alpha/(gravity_magnitude * (dminoffset - d0offset))
+        alpha = min(1.0, max(0.0, alpha))
+    end subroutine calculate_alpha
+ end subroutine update_wettingdrying_alpha
+
+ subroutine get_wettingdrying_alpha_quad(state, sele, alpha_quad)
+  !!< Returns the wettingdrying alpha value at a surface element index.
+  type(state_type), intent(in):: state
+  integer, intent(in) :: sele
+  real, dimension(:), intent(inout) :: alpha_quad ! must have length scalar_surface_field%mesh%shape%ngi
+  type(scalar_field), pointer:: scalar_surface_field
+
+  integer, dimension(:), pointer:: surface_element_list
+  type(vector_field), pointer:: u
+  character(len=FIELD_NAME_LEN):: bctype
+  integer:: i, j
+  logical :: have_wetting_drying_setalpha
+  real :: const_alpha
+
+  u => extract_vector_field(state, "Velocity")
+  do i=1, get_boundary_condition_count(u)
+       call get_boundary_condition(u, i, type=bctype, &
+          surface_element_list=surface_element_list)
+       if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
+             scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
+             do j=1, size(surface_element_list)
+                if (surface_element_list(j)==sele) then
+                   alpha_quad=ele_val_at_quad(scalar_surface_field, j)
+                   return
+                end if
+             end do
+       end if
+  end do
+  FLAbort("Error in get_wettingdrying_alpha_quad: Requested surface element is not part of a wetting and drying surface.")
+ end subroutine get_wettingdrying_alpha_quad
+
+ function get_wettingdrying_dmin(state) result(dmin_pfield)
+  !!< Returns a scalar field with the auxiliary wetting and drying dmin value.
+  !!< In non-wetting and drying regions the value of dmin_pfield is INFINITY.
+  !!< This field multiplied by -1.0*gravity_magnitude gives the free surface pressure on the d0 level.
+  type(state_type), intent(in):: state
+
+  logical, save  :: initialized=.false.
+  real :: dminoffset
+  real, dimension(:), allocatable :: dminoffset_loc
+  type(scalar_field), pointer :: bottomdist, topdis
+  type(vector_field), pointer :: x, vertical_normal
+  type(scalar_field), save, target :: dmin_field
+  type(scalar_field), pointer :: dmin_pfield
+  type(vector_field), pointer:: u
+  character(len=OPTION_PATH_LEN) fs_option_path
+  integer:: i, j, sele, stat
+  integer, dimension(:), pointer:: surface_element_list
+
+  if (.not. initialized) then
+     bottomdist => extract_scalar_field(state, "DistanceToBottom")
+     u => extract_vector_field(state, "Velocity")
+     allocate(dminoffset_loc(face_loc(bottomdist, 1)))
+     call allocate(dmin_field, bottomdist%mesh, "dmin")
+     call set(dmin_field, INFINITY)
+     do i = 1, get_boundary_condition_count(u)
+            call get_boundary_condition(u, i, &
+            surface_element_list = surface_element_list, option_path=fs_option_path)
+            if (have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
+                call get_option(trim(fs_option_path)//"/type::free_surface/wetting_drying/dminoffset/value", dminoffset)
+                dminoffset_loc=dminoffset
+                do j = 1, size(surface_element_list)
+                    sele = surface_element_list(j)
+                    call set(dmin_field, &
+                    face_global_nodes(dmin_field, sele), &
+                    -dminoffset_loc)
+                end do
+            end if
+     end do
+     call addto(dmin_field, bottomdist)
+
+     ! Vertical Extrapolation since the values are only valid on the free surface for now.
+     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
+     assert(stat==0)
+     if (stat==0) then
+       call get_boundary_condition(topdis, 1, &
+         surface_element_list=surface_element_list)
+
+       vertical_normal => extract_vector_field(state, "GravityDirection")
+       x => extract_vector_field(state, "Coordinate")
+
+       ! vertically extrapolate pressure values at the free surface downwards
+       ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
+       call VerticalExtrapolation(dmin_field, dmin_field, x, &
+         vertical_normal, surface_element_list=surface_element_list)
+     end if
+
+     initialized=.true.
+     deallocate(dminoffset_loc)
+  end if
+
+  dmin_pfield=>dmin_field
+
+ end function get_wettingdrying_dmin
+
+ ! Returns a scalar field with the auxiliary wetting and drying d0 value.
+ ! In non-wetting and drying regions the value of d0_pfield is INFINITY.
+ ! This field multiplied by -1.0*gravity_magnitude gives the free surface pressure on the d0 level.
+ function get_wettingdrying_d0(state) result(d0_pfield)
+    type(state_type), intent(in):: state
+
+  logical,save  :: initialized=.false.
+  real :: d0offset
+  real, dimension(:), allocatable :: d0offset_loc
+  type(scalar_field), pointer :: bottomdist, topdis
+  type(vector_field), pointer :: x, vertical_normal
+  type(scalar_field), save, target :: d0_field
+  type(scalar_field), pointer :: d0_pfield
+  type(vector_field), pointer:: u
+  character(len=OPTION_PATH_LEN) fs_option_path
+  integer:: i, j, sele, stat
+  integer, dimension(:), pointer:: surface_element_list
+
+  if (.not. initialized) then
+     bottomdist => extract_scalar_field(state, "DistanceToBottom")
+     u => extract_vector_field(state, "Velocity")
+     allocate(d0offset_loc(face_loc(bottomdist, 1)))
+     call allocate(d0_field, bottomdist%mesh, "d0")
+     call set(d0_field, INFINITY)
+     do i = 1, get_boundary_condition_count(u)
+            call get_boundary_condition(u, i, &
+            surface_element_list = surface_element_list, option_path=fs_option_path)
+            if (have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
+                call get_option(trim(fs_option_path)//"/type::free_surface/wetting_drying/d0offset/value", d0offset)
+                d0offset_loc=d0offset
+                do j = 1, size(surface_element_list)
+                    sele = surface_element_list(j)
+                    call set(d0_field, &
+                    face_global_nodes(d0_field, sele), &
+                    -d0offset_loc)
+                end do
+            end if
+     end do
+     call addto(d0_field, bottomdist)
+
+     ! Vertical Extrapolation since the values are only valid on the free surface for now.
+     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
+     assert(stat==0)
+     if (stat==0) then
+       call get_boundary_condition(topdis, 1, &
+         surface_element_list=surface_element_list)
+
+       vertical_normal => extract_vector_field(state, "GravityDirection")
+       x => extract_vector_field(state, "Coordinate")
+
+       ! vertically extrapolate pressure values at the free surface downwards
+       ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
+       call VerticalExtrapolation(d0_field, d0_field, x, &
+         vertical_normal, surface_element_list=surface_element_list)
+     end if
+
+     initialized=.true.
+     deallocate(d0offset_loc)
+  end if
+
+  d0_pfield=>d0_field
+end function get_wettingdrying_d0
+
+
+  subroutine calculate_diagnostic_wettingdrying_alpha(state, wettingdrying_alpha)
+    !!< calculates the alpha coefficient of the wetting and drying algorithm.
+    !!< This can be added as a diagnostic field in the flml.
+    type(state_type), intent(in) :: state
+    type(scalar_field), intent(inout) :: wettingdrying_alpha
+    type(scalar_field), pointer :: scalar_surface_field
+
+    integer, dimension(:), pointer :: surface_element_list
+    type(vector_field), pointer :: x, u, gravity_normal
+    type(scalar_field), pointer :: p, topdis
+    character(len=OPTION_PATH_LEN) :: fs_option_path
+    real :: g, rho0
+    integer :: i, j, sele, stat
+
+    u => extract_vector_field(state, "Velocity")
+
+    call zero(wettingdrying_alpha)
+    do i = 1, get_boundary_condition_count(u)
+        call get_boundary_condition(u, i, &
+        surface_element_list = surface_element_list, option_path=fs_option_path)
+        if (have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
+            scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
+            do j = 1, size(surface_element_list)
+                sele = surface_element_list(j)
+                call set(wettingdrying_alpha, &
+                face_global_nodes(wettingdrying_alpha, sele), &
+                ele_val(scalar_surface_field, j))
+            end do
+        end if
+    end do
+    ! Extrapolate values down the horizontal if possible.
+    topdis => extract_scalar_field(state, "DistanceToTop", stat = stat)
+    if (stat == 0) then
+        ! note we're not using the actual wettingdrying_alpha bc here, as
+        ! that may be specified in parts, or not cover the whole area
+        call get_boundary_condition(topdis, 1, &
+        surface_element_list = surface_element_list)
+        gravity_normal => extract_vector_field(state, "GravityDirection")
+        x => extract_vector_field(state, "Coordinate")
+
+        ! vertically extrapolate pressure values at the free surface downwards
+        ! (reuse projected horizontal top surface mesh cached under DistanceToTop)
+        call VerticalExtrapolation(wettingdrying_alpha, wettingdrying_alpha, x, &
+        gravity_normal, surface_element_list = surface_element_list)
+    end if
+
+end subroutine calculate_diagnostic_wettingdrying_alpha
+
+
   subroutine free_surface_module_check_options
     
     character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path

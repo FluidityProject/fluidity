@@ -3468,6 +3468,41 @@ want this.</a:documentation>
             <empty/>
           </element>
         </optional>
+        <optional>
+          <element name="wetting_drying">
+            <element name="dminoffset">
+              <a:documentation>Specifies the dmin value which is needed to calculate alpha. 
+A value of 0.1 shoud work in most cases.</a:documentation>
+              <element name="value">
+                <ref name="real"/>
+              </element>
+            </element>
+            <optional>
+              <element name="d0offset">
+                <a:documentation>Specifies the d0 value which is used to calculate alpha.
+This option should only be used in combination with enforce_min_depth_to_d0.
+Default is 0.0</a:documentation>
+                <element name="value">
+                  <ref name="real"/>
+                </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="output_debug_vtus">
+                <a:documentation>Saves some extra vtus. For testing purposes only.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="set_alpha_constant">
+                <a:documentation>Instead of calculating alpha from the free surface heigth, always use this constant value. This should be used for testing purposes only!</a:documentation>
+                <element name="value">
+                  <ref name="real"/>
+                </element>
+              </element>
+            </optional>
+          </element>
+        </optional>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you
@@ -4347,6 +4382,32 @@ NOTE: the diagnostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
 field. It gives you a 3D field (constant over the vertical)
 of the free surface elevation.</a:documentation>
+          <ref name="internal_algorithm"/>
+          <!--
+            this is hard-coded on the PressureMesh as long as the Pressure is
+            if this is no longer true, it should be option-checked to be on the
+            same mesh as Pressure
+          -->
+          <ref name="pressure_mesh_choice">
+            <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+          </ref>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>WettingDryingAlpha</value>
+        </attribute>
+        <element name="diagnostic">
+          <a:documentation>Free Surface
+NOTE: the diagnostic WettingDryingAlpha only works in combination
+with the free_surface boundary condition applied to the Velocity
+field. It gives you a 3D field (constant over the vertical)
+of the wetting and drying alpha coefficient.</a:documentation>
           <ref name="internal_algorithm"/>
           <!--
             this is hard-coded on the PressureMesh as long as the Pressure is
