@@ -98,8 +98,6 @@ contains
     type(scalar_field), pointer :: masslump
     type(vector_field), pointer :: positions, source_field
     
-    integer, parameter :: CACHE_STAT_USE = 0, CACHE_STAT_ALLOCATE = 1, CACHE_STAT_CALCULATE = 2
-    
     source_field => vector_source_field(state, s_field)
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     
