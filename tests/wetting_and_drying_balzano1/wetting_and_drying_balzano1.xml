@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>balzano1_2plus1</name>
+  <owner userid="sf1409"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity balzano1_2plus1.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="velocity" language="python">from fluidity_tools import stat_parser
+s = stat_parser("balzano1_2plus1.detectors")
+velocity=s["water"]["Velocity"]</variable>
+    <variable name="wetting_drying_alpha" language="python">from fluidity_tools import stat_parser
+s = stat_parser("balzano1_2plus1.detectors")
+wetting_drying_alpha=s["water"]["WettingDryingAlpha"]</variable>
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
+s = stat_parser("balzano1_2plus1.detectors")
+ElapsedTime=s["ElapsedTime"]["value"]</variable>
+  </variables>
+  <pass_tests>
+    <test name="endtime" language="python">assert(ElapsedTime[-1]==10800.0)</test>
+    <test name="wetting_drying_alpha" language="python">for det in range(1,12):
+  det_str="det_%(#)02d" %{"#": det}
+  print "Checking wetting and drying alpha for detector ", det, "... ",
+  if det&lt;5:
+    assert(wetting_drying_alpha[det_str][-1]==1.0)
+  elif det&gt;5:
+    assert(wetting_drying_alpha[det_str][-1]==0.0)  
+  print "Passed"<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).</comment></test>
+    <test name="Velocity" language="python">for det in range(1,12):
+  det_str="det_%(#)02d" %{"#": det}
+  print "Velocity magnitude for detector ", det, ": ",
+  magnitude=0.0
+  for dim in range(0,3):
+    magnitude=magnitude+velocity[det_str][dim][-1]**2
+  magnitude=magnitude**0.5
+  print magnitude, "... ",
+  if det&lt;5:
+    assert(magnitude&lt;0.02)
+    print "Passed"
+  else:
+    print "Ignored"</test>
+  </pass_tests>
+</testproblem>
