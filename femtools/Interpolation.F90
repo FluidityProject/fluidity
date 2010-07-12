@@ -30,18 +30,22 @@ module interpolation_module
 
   contains
 
-  function get_element_mapping(old_position, new_position) result(map)
+  function get_element_mapping(old_position, new_position, different_domains) result(map)
     !!< Return the elements in the mesh of old_position
     !!< that contains the nodes of the mesh of new_position
     type(vector_field), intent(inout) :: old_position
     type(vector_field), intent(in) :: new_position
+    logical, optional, intent(in) :: different_domains
+    
     integer, dimension(node_count(new_position)) :: map
 
     ! Thanks, James!
     call find_node_ownership(old_position, new_position, map)
     
-    if(.not. all(map > 0)) then
-      FLAbort("Failed to find element mapping")
+    if(.not. present_and_true(different_domains)) then
+      if(.not. all(map > 0)) then
+        FLAbort("Failed to find element mapping")
+      end if
     end if
     
   end function get_element_mapping
@@ -463,7 +467,7 @@ module interpolation_module
       lmap => map
     else
       allocate(lmap(node_count(new_mesh)))
-      lmap = get_element_mapping(old_position, new_position)
+      lmap = get_element_mapping(old_position, new_position, different_domains = different_domains)
     end if
 
     ! Loop over the nodes of the new mesh.
