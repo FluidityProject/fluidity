@@ -86,6 +86,7 @@ module fluids_module
   use k_epsilon
   use halos
   use memory_diagnostics
+  use free_surface_module
   use global_parameters, only: current_time, dt, timestep, OPTION_PATH_LEN, &
                                simulation_start_time, &
                                simulation_start_cpu_time, &
@@ -350,6 +351,9 @@ contains
         call keps_init(state(1))
     end if
 
+    ! Initialise wetting and drying
+    call initialize_wetting_and_drying(state(1))
+
     ! ******************************
     ! *** Start of timestep loop ***
     ! ******************************
@@ -450,7 +454,7 @@ contains
           ! move the mesh according to the free surface algorithm
           ! (is this the right place to do this??)
           call move_mesh_free_surface(state)
-
+          
           call compute_goals(state)
 
           !------------------------------------------------
