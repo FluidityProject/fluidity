@@ -1011,7 +1011,7 @@ contains
         fshistory_levels=50
       end if
       do i=1,fshistory_levels
-          call allocate_and_insert_scalar_field('', states(1), parent_mesh='VelocityMesh', field_name='harmonic'//int2str(i))
+          call allocate_and_insert_scalar_field('', states(1), parent_mesh='PressureMesh', field_name='harmonic'//int2str(i))
       end do
     end if
 
