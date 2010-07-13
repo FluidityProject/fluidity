@@ -397,7 +397,7 @@
               <real_value rank="0">0.01</real_value>
             </constant>
             <quadratic_drag>
-              <chezy-manning-strickler/>
+              <manning-strickler/>
             </quadratic_drag>
           </type>
         </boundary_conditions>

@@ -164,7 +164,7 @@ subroutine drag_surface(bigm, rhs, state, density)
    integer, dimension(:), pointer:: surface_element_list
    integer i, j, k, nobcs, stat
    integer snloc, sele, sngi
-   logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, chezy_manning_strickler
+   logical:: parallel_dg, have_distance_bottom, have_distance_top, have_gravity, manning_strickler
      
    ewrite(1,*) 'Inside drag_surface'
    
@@ -199,11 +199,11 @@ subroutine drag_surface(bigm, rhs, state, density)
       call get_boundary_condition(velocity, i, type=bctype, &
          surface_element_list=surface_element_list)
       if (bctype=='drag') then
-         chezy_manning_strickler=have_option(trim(velocity%option_path)//&
-               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/chezy-manning-strickler')
-         if (chezy_manning_strickler) then
+         manning_strickler=have_option(trim(velocity%option_path)//&
+               '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/manning-strickler')
+         if (manning_strickler) then
             if (.not. have_distance_bottom .or. .not. have_distance_top .or. .not. have_gravity) then
-               FLExit("Chezy-manning-strickler drag needs DistanceToTop and DistanceToBottom fields and gravity.")
+               FLExit("Manning-strickler drag needs DistanceToTop and DistanceToBottom fields and gravity.")
             end if
          end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
@@ -226,8 +226,8 @@ subroutine drag_surface(bigm, rhs, state, density)
               ! drag coefficient: C_D * |u|
               coefficient=ele_val_at_quad(drag_coefficient, j)* &
                 sqrt(sum(face_val_at_quad(nl_velocity, sele)**2, dim=1))
-              if (chezy_manning_strickler) then
-                 ! The chezy-manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient
+              if (manning_strickler) then
+                 ! The manning-strickler formulation takes the form n**2g|u|u/(H**0.3333), where H is the water level, g is gravity and n is the Manning coefficient
                  ! Note that distance_bottom+distance_top is the current water level H
                  coefficient=ele_val_at_quad(drag_coefficient, j)*gravity_magnitude*coefficient/((face_val_at_quad(distance_bottom, sele)+face_val_at_quad(distance_top, sele))**(1./3.))
                end if
