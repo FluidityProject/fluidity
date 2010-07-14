@@ -1,6 +1,6 @@
 #include "fdebug.h"
 
-program time_average_parallel
+subroutine time_average_parallel
 
   use fields
   use state_module
@@ -125,4 +125,4 @@ program time_average_parallel
     end select
   end subroutine parse_args
 
-end program time_average_parallel
+end subroutine time_average_parallel
