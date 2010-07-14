@@ -1,6 +1,6 @@
 #include "fdebug.h"
 
-subroutine time_average_parallel
+program time_average_parallel
 
   use fields
   use state_module
@@ -34,10 +34,14 @@ subroutine time_average_parallel
   type(vector_field) :: vavg
   integer :: stat
 
+  call mpi_init(ierr)
+  call python_init
   rank = getrank()
 
   current_debug_level = 0
   nprocs = getnprocs()
+  write(0,*) "process count: ", nprocs
+  write(0,*) "rank: ", rank
 
   call parse_args(initial_file, fieldname)
   call vtk_read_state(subdomain_name(initial_file, rank), state)
@@ -104,6 +108,12 @@ subroutine time_average_parallel
     integer :: argc, status
 
     argc = command_argument_count()
+    write(0,*) "argument count: ", argc
+    call get_command_argument(1, value=initial_file, status=status)
+    write(0,*) "initial_file: ", initial_file
+    call get_command_argument(2, value=fieldname, status=status)
+    write(0,*) "fieldname: ", fieldname
+
     if (argc /= 2) then
       write(0,*) "Usage: time_average_parallel initial_file FieldName"
       stop
@@ -122,4 +132,4 @@ subroutine time_average_parallel
     end select
   end subroutine parse_args
 
-end subroutine time_average_parallel
+end program time_average_parallel

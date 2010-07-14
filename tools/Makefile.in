@@ -181,7 +181,7 @@ $(LINEARLY_INTERPOLATE_ALL): linearly_interpolate_all.o
 $(LINEAR_INTERPOLATION_PARALLEL): linear_interpolation_parallel.o
 	$(LINKER) -o $(LINEAR_INTERPOLATION_PARALLEL) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
 
-$(TIME_AVERAGE_PARALLEL): time_average_parallel_main.o time_average_parallel.o lib/
+$(TIME_AVERAGE_PARALLEL): time_average_parallel.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FTLE): FTLE.o
