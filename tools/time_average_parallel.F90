@@ -34,9 +34,6 @@ subroutine time_average_parallel
   type(vector_field) :: vavg
   integer :: stat
 
-  call mpi_init(ierr)
-  call python_init
-
   rank = getrank()
 
   current_debug_level = 0
