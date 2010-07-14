@@ -375,6 +375,12 @@ this option to these these internal algorithms.</a:documentation>
       </attribute>
       <ref name="scalar_source_field"/>
       <optional>
+        <element name="spin_up_time">
+          <a:documentation>This sets a spinning up time.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
         <element name="initial_condition">
           <a:documentation>Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. </a:documentation>
           <attribute name="name">
@@ -399,6 +405,12 @@ this option to these these internal algorithms.</a:documentation>
         <value>true</value>
       </attribute>
       <ref name="scalar_source_field"/>
+      <optional>
+        <element name="spin_up_time">
+          <a:documentation>This sets a spinning up time.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
       <optional>
         <element name="initial_condition">
           <a:documentation>Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. </a:documentation>

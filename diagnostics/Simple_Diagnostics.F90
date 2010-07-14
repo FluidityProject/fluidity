@@ -53,7 +53,7 @@ contains
     type(vector_field), pointer :: position
     character(len = OPTION_PATH_LEN) :: path
     integer :: i
-    real :: val
+    real :: val, current_time, spin_up_time
     source_field => scalar_source_field(state, s_field)
     assert(node_count(s_field) == node_count(source_field))
     position => extract_vector_field(state, "Coordinate")
@@ -66,6 +66,11 @@ contains
           call set(s_field,source_field)
        end if
        return
+    end if
+    if(have_option(trim(complete_field_path(s_field%option_path)) // "/algorithm/spin_up_time")) then
+       call get_option("/timestepping/current_time", current_time)
+       call get_option(trim(complete_field_path(s_field%option_path)) // "/algorithm/spin_up_time", spin_up_time)
+       if (current_time<spin_up_time) return
     end if
     do i=1,node_count(s_field)
        val = max(node_val(s_field,i),node_val(source_field,i))
@@ -80,7 +85,7 @@ contains
     type(vector_field), pointer :: position
     character(len = OPTION_PATH_LEN) :: path
     integer :: i
-    real :: val
+    real :: val, current_time, spin_up_time
     source_field => scalar_source_field(state, s_field)
     assert(node_count(s_field) == node_count(source_field))
     position => extract_vector_field(state, "Coordinate")
@@ -93,6 +98,11 @@ contains
           call set(s_field,source_field)
        end if
        return
+    end if
+    if(have_option(trim(complete_field_path(s_field%option_path)) // "/algorithm/spin_up_time")) then
+       call get_option("/timestepping/current_time", current_time)
+       call get_option(trim(complete_field_path(s_field%option_path)) // "/algorithm/spin_up_time", spin_up_time)
+       if (current_time<spin_up_time) return
     end if
     do i=1,node_count(s_field)
        val = min(node_val(s_field,i),node_val(source_field,i))

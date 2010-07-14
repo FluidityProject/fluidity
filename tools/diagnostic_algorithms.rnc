@@ -278,6 +278,10 @@ temporalmax_algorithm =
         attribute material_phase_support { "single" },
         attribute persistent { "true" },
         scalar_source_field,
+        ## This sets a spinning up time.
+        element spin_up_time {
+               real
+        }?,
         ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
         element initial_condition {
             attribute name { "WholeMesh" },
@@ -294,6 +298,10 @@ temporalmin_algorithm =
         attribute material_phase_support { "single" },
         attribute persistent { "true" },
         scalar_source_field,
+        ## This sets a spinning up time.
+        element spin_up_time {
+               real
+        }?,
         ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
         element initial_condition {
             attribute name { "WholeMesh" },
