@@ -2,8 +2,8 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>Channel forced on one side with periodic tide and closed other end.</name>
-  <owner userid="skramer"/>
+  <name>Channel forced on one side with periodic tide and closed other end, using a GMSH mesh file.</name>
+  <owner userid="acreech"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v3 -l  channel.flml</command_line>
