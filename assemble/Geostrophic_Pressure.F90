@@ -2487,7 +2487,7 @@ contains
       call allocate(old_bc_velocity, old_velocity%dim, old_u_mesh, old_velocity%name)
       old_bc_velocity%option_path = old_velocity%option_path
       call zero(old_bc_velocity)
-      call populate_vector_boundary_conditions(old_bc_velocity, trim(complete_field_path(old_bc_velocity%option_path)) // "/boundary_conditions", old_positions)
+      call populate_vector_boundary_conditions(old_state, old_bc_velocity, trim(complete_field_path(old_bc_velocity%option_path)) // "/boundary_conditions", old_positions)
     else
       old_u_mesh => old_velocity%mesh
       new_u_mesh => new_velocity%mesh
@@ -2844,7 +2844,7 @@ contains
       call allocate(new_bc_velocity, new_velocity%dim, new_u_mesh, new_velocity%name)
       new_bc_velocity%option_path = new_velocity%option_path
       call zero(new_bc_velocity)
-      call populate_vector_boundary_conditions(new_bc_velocity, trim(complete_field_path(new_bc_velocity%option_path)) // "/boundary_conditions", new_positions)
+      call populate_vector_boundary_conditions(new_state, new_bc_velocity, trim(complete_field_path(new_bc_velocity%option_path)) // "/boundary_conditions", new_positions)
     else
       new_u_mesh => new_velocity%mesh
       allocate(new_bc_velocity)
