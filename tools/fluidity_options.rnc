@@ -2543,7 +2543,7 @@ velocity_boundary_conditions =
          element type {
            attribute name { "free_surface" },
            (
-              ## This options adds a surface stabilisation term to the free surface. IN DEVELOPMENT
+              ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. IN DEVELOPMENT
               element surface_stabilisation {
                   empty
               }?

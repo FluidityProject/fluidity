@@ -3464,7 +3464,7 @@ want this.</a:documentation>
         </attribute>
         <optional>
           <element name="surface_stabilisation">
-            <a:documentation>This options adds a surface stabilisation term to the free surface. IN DEVELOPMENT</a:documentation>
+            <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. IN DEVELOPMENT</a:documentation>
             <empty/>
           </element>
         </optional>
