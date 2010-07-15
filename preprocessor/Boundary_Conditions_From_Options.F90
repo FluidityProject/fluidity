@@ -112,7 +112,7 @@ contains
           if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
           ! only prognostic fields from here:
-          call populate_vector_boundary_conditions(vfield, &
+          call populate_vector_boundary_conditions(states(p+1),vfield, &
                trim(field_path)//'/prognostic/boundary_conditions', position)
 
        end do
@@ -257,9 +257,10 @@ contains
 
   end subroutine populate_scalar_boundary_conditions
 
-  subroutine populate_vector_boundary_conditions(field, bc_path, position)
+  subroutine populate_vector_boundary_conditions(state, field, bc_path, position)
     ! Populate the boundary conditions of one vector field
     ! needs to be a pointer:
+    type(state_type), intent(in) :: state
     type(vector_field), pointer:: field
     character(len=*), intent(in):: bc_path
     type(vector_field), intent(in):: position
@@ -278,15 +279,15 @@ contains
 
     character(len=20), dimension(3) :: aligned_components
 
-    type(mesh_type), pointer:: surface_mesh
+    type(mesh_type), pointer:: mesh, surface_mesh
     type(vector_field) surface_field, surface_field2, bc_position
     type(vector_field):: normal, tangent_1, tangent_2
-    type(scalar_field) scalar_surface_field, scalar_surface_field2
+    type(scalar_field) :: scalar_surface_field, scalar_surface_field2
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     logical applies(3), have_sem_bc, debugging_mode
     integer, dimension(:), allocatable:: surface_ids
-    integer, dimension(:), pointer:: surface_element_list
+    integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer i, j, nbcs, shape_option(2)
 
     nbcs=option_count(trim(bc_path))
@@ -414,19 +415,25 @@ contains
                & surface_ids, option_path=bc_path_i, &
                & applies=(/ .true., .false., .false. /) )
           deallocate(surface_ids)
+
           if (trim(bc_type)=="free_surface") then
              bc_path_i=trim(bc_path_i)//"/type[0]/wetting_drying"
              if(have_option(trim(bc_path_i))) then
-                call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
-                call allocate(scalar_surface_field, surface_mesh, name="WettingDryingAlpha")
-                call allocate(scalar_surface_field2, surface_mesh, name="WettingDryingOldAlpha")
-                call insert_surface_field(field, i+1, scalar_surface_field)
-                call insert_surface_field(field, i+1, scalar_surface_field2)
-                call deallocate(scalar_surface_field)
-                call deallocate(scalar_surface_field2)
+                  ! Wetting and drying needs an auxiliary field on the pressure mesh
+                  mesh => extract_pressure_mesh(state)
+                  call get_boundary_condition(field, i+1, surface_element_list=surface_element_list)
+                  allocate(surface_mesh)
+                  call create_surface_mesh(surface_mesh, surface_node_list, mesh, surface_element_list, "PressureSurfaceMesh")
+                  call allocate(scalar_surface_field, surface_mesh, name="WettingDryingAlpha")
+                  call allocate(scalar_surface_field2, surface_mesh, name="WettingDryingOldAlpha")
+                  call insert_surface_field(field, i+1, scalar_surface_field)
+                  call insert_surface_field(field, i+1, scalar_surface_field2)
+                  call deallocate(scalar_surface_field)
+                  call deallocate(scalar_surface_field2)
+                  deallocate(surface_mesh)
              end if
           end if
-          
+
        case ("near_wall_treatment", "log_law_of_wall")
          
           ! these are marked as applying in the 2nd (and 3d if present) only

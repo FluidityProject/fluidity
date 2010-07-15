@@ -520,7 +520,7 @@ contains
          do node=1, node_count(extrapolated_p)
             call set(extrapolated_p, node, &
                   max(node_val(extrapolated_p, node),-gravity_magnitude*node_val(get_wettingdrying_d0(state), node)))
-         end do
+          end do
       end if
 
       ! The fractionaldistance needs to be calculated only once.
@@ -836,7 +836,8 @@ contains
 
   integer, dimension(:), pointer :: surface_element_list
   type(vector_field), pointer:: x, u, vertical_normal
-  type(scalar_field), pointer:: p, bottomdist, topdist, dmin_pfield
+  type(scalar_field), pointer:: p, bottomdist, topdist, dmin_field
+  type(scalar_field), pointer:: dmin_pfield
   character(len=FIELD_NAME_LEN):: bctype
   character(len=OPTION_PATH_LEN) fs_option_path
   real:: g, rho0, gravity_magnitude, const_alpha, dminoffset, d0offset
@@ -861,8 +862,7 @@ contains
              call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
              bottomdist => extract_scalar_field(state, "DistanceToBottom")
              topdist => extract_scalar_field(state, "DistanceToTop")
-             p => extract_scalar_field(state, "Pressure")
-             dmin_pfield => get_wettingdrying_dmin(state)
+             dmin_field => get_wettingdrying_dmin(state)
              call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/dminoffset/value", dminoffset)
              call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/d0offset/value", d0offset)
              assert(dminoffset > d0offset)
@@ -872,6 +872,9 @@ contains
                  call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/set_alpha_constant/value", const_alpha)
                  call set(scalar_surface_field, const_alpha)
              else
+                 allocate(dmin_pfield)
+                 call allocate(dmin_pfield, p%mesh, "dmin_pmesh")
+                 call remap_field(dmin_field, dmin_pfield)
                  ! Calculate alpha for each surface element
                  face_loop: do j=1, size(surface_element_list)
                    sele=surface_element_list(j)
@@ -880,6 +883,8 @@ contains
                      ele_nodes(scalar_surface_field, j), &
                      alpha)
                  end do face_loop
+                 call deallocate(dmin_pfield)
+                 deallocate(dmin_pfield)
              end if
        end if
    end do
@@ -893,7 +898,7 @@ contains
         real, dimension(face_loc(p, sele)), intent(inout) :: alpha
         real, dimension(face_loc(p, sele)) :: dmin, d0, d
 
-        !!! Tha caluculation of alpha is based on pressure, thus pressure and free surface don't have to be coupled.
+        !!! Tha calculation of alpha is based on pressure, thus pressure and free surface don't have to be coupled.
         alpha = -gravity_magnitude * face_val(dmin_pfield, sele) - face_val(p, sele)
         alpha = alpha/(gravity_magnitude * (dminoffset - d0offset))
         alpha = min(1.0, max(0.0, alpha))
@@ -904,7 +909,7 @@ contains
   !!< Returns the wettingdrying alpha value at a surface element index.
   type(state_type), intent(in):: state
   integer, intent(in) :: sele
-  real, dimension(:), intent(inout) :: alpha_quad ! must have length scalar_surface_field%mesh%shape%ngi
+  real, dimension(:), intent(inout) :: alpha_quad ! must have length PressureMesh%shape%ngi
   type(scalar_field), pointer:: scalar_surface_field
 
   integer, dimension(:), pointer:: surface_element_list
@@ -931,8 +936,8 @@ contains
   FLAbort("Error in get_wettingdrying_alpha_quad: Requested surface element is not part of a wetting and drying surface.")
  end subroutine get_wettingdrying_alpha_quad
 
- function get_wettingdrying_dmin(state) result(dmin_pfield)
-  !!< Returns a scalar field with the auxiliary wetting and drying dmin value.
+ function get_wettingdrying_dmin(state) result(dmin)
+  !!< Returns a scalar field on the PressureMesh with the auxiliary wetting and drying dmin value.
   !!< In non-wetting and drying regions the value of dmin_pfield is INFINITY.
   !!< This field multiplied by -1.0*gravity_magnitude gives the free surface pressure on the d0 level.
   type(state_type), intent(in):: state
@@ -942,8 +947,8 @@ contains
   real, dimension(:), allocatable :: dminoffset_loc
   type(scalar_field), pointer :: bottomdist, topdis
   type(vector_field), pointer :: x, vertical_normal
-  type(scalar_field), save, target :: dmin_field
-  type(scalar_field), pointer :: dmin_pfield
+  type(scalar_field), save, target  :: dmin_field
+  type(scalar_field), pointer :: dmin
   type(vector_field), pointer:: u
   character(len=OPTION_PATH_LEN) fs_option_path
   integer:: i, j, sele, stat
@@ -989,17 +994,17 @@ contains
 
      initialized=.true.
      deallocate(dminoffset_loc)
+  else
+      dmin=>dmin_field
   end if
 
-  dmin_pfield=>dmin_field
+  end function get_wettingdrying_dmin
 
- end function get_wettingdrying_dmin
-
- ! Returns a scalar field with the auxiliary wetting and drying d0 variable, saving the distance between
+ ! Returns a scalar field on the PressureMesh with the auxiliary wetting and drying d0 variable, saving the distance between
  ! steady state free surface height and bathymetry + d0 offset.
  ! In non-wetting and drying regions the value of d0_pfield is INFINITY.
  ! This field multiplied by -1.0*gravity_magnitude gives the free surface pressure on the d0 level.
- function get_wettingdrying_d0(state) result(d0_pfield)
+ function get_wettingdrying_d0(state) result(d0)
     type(state_type), intent(in):: state
 
   logical,save  :: initialized=.false.
@@ -1008,7 +1013,7 @@ contains
   type(scalar_field), pointer :: bottomdist, topdis
   type(vector_field), pointer :: x, vertical_normal
   type(scalar_field), save, target :: d0_field
-  type(scalar_field), pointer :: d0_pfield
+  type(scalar_field), pointer :: d0
   type(vector_field), pointer:: u
   character(len=OPTION_PATH_LEN) fs_option_path
   integer:: i, j, sele, stat
@@ -1054,9 +1059,10 @@ contains
 
      initialized=.true.
      deallocate(d0offset_loc)
+  else
+    d0=>d0_field
   end if
 
-  d0_pfield=>d0_field
 end function get_wettingdrying_d0
 
 
