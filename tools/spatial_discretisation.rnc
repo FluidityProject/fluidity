@@ -140,11 +140,6 @@ spatial_discretisation_options =
             },
             element diffusion_scheme {
                (
-                  ## Classical scheme from Bassi and Rebay 
-                  ## (JCP 131 267-179 1997)
-                  element bassi_rebay {
-                     empty
-                  }|
                   ## Compact discontinuous Galerkin scheme.
                   ## (Peraire and Persson SIAM J. Sci. Comput. 30, p1806)
                   element compact_discontinuous_galerkin {
@@ -155,9 +150,9 @@ spatial_discretisation_options =
                         real
                      }?
                   }|
-                  ## Scheme in which upwinding is applied in
-                  ## alternating directions. Devised by C.Pain.
-                  element arbitrary_upwind {
+                  ## Classical scheme from Bassi and Rebay 
+                  ## (JCP 131 267-179 1997)
+                  element bassi_rebay {
                      empty
                   }|
                   ## Classical interior penalty scheme
@@ -193,35 +188,10 @@ spatial_discretisation_options =
                         element use_element_centres {
                            empty
                         }
-                     },
-                     ## Switch on debugging output
-                     element debug {
-                        ## Bound for testing element gradient matrix
-                        element gradient_test_bound {
-                           real
-                        },
-                        ## Remove the elemental integral:
-                        ## Int grad u.kappa.grad v dV
-                        element remove_element_integral {
-                           empty
-                        }?,
-                        ## Remove the primal fluxes
-                        element remove_primal_fluxes {
-                           empty
-                        }?,
-                        ## Remove the penalty fluxes
-                        element remove_penalty_fluxes {
-                           empty
-                        }?
-                     }?
+                     }
                   }
                )
             },
-            ## This introduces a simple upwind diffusion based on eqn 2.52 in 
-            ## Donea and Huerta (2003) "Finite elements for flow problems".
-            element upwind_stabilisation {
-               empty
-            }?,
             (
                ## Vertex-based slope limiter from D. Kuzmin, "A
                ## vertex-based hierarchical slope limiter for
