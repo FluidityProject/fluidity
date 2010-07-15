@@ -157,6 +157,10 @@ subroutine load_nemo_values(state)
   real, dimension(:), allocatable :: X, Y, Z, Temperature, Salinity
   real, dimension(:), allocatable :: U, V, W, SSH, Pressure
   integer :: NNodes, i
+
+  ! A radius array and a depth array to pass to get_nemo_variables
+  real, dimension(:), allocatable :: radius, depth
+  real :: rsphere
   
   call get_option('/ocean_forcing/mesh_choice/mesh/name', input_mesh_name)
   input_mesh = extract_mesh(state, input_mesh_name)
@@ -164,20 +168,27 @@ subroutine load_nemo_values(state)
 
   NNodes=node_count(input_mesh)
 
-  allocate(X(NNodes), Y(NNodes), Z(NNodes), Temperature(NNodes), Salinity(NNodes), &
-           U(NNodes), V(NNodes), W(NNodes), SSH(NNodes), Pressure(NNodes))
+  allocate(X(NNodes), Y(NNodes), Z(NNodes), radius(NNodes), depth(NNodes), Temperature(NNodes), &
+           Salinity(NNodes), U(NNodes), V(NNodes), W(NNodes), SSH(NNodes), Pressure(NNodes))
 
   do i=1,NNodes
       temp_vector_3D = node_val(position,i)
       X(i) = temp_vector_3D(1) 
       Y(i) = temp_vector_3D(2)
       Z(i) = temp_vector_3D(3)
-  end do
+      radius(i) = sqrt(X(i)*X(i)+Y(i)*Y(i)+Z(i)*Z(i))
+  enddo
+
+  rsphere=maxval(radius)
+
+  do i=1,NNodes
+    depth(i) = rsphere - radius(i)
+  enddo
 
   call get_option("/timestepping/current_time",current_time)
   on_sphere=have_option('/geometry/spherical_earth')
 
-  call get_nemo_variables(current_time, X, Y, Z, Temperature, Salinity, U, V, W, &
+    call get_nemo_variables(current_time, X, Y, Z, depth, Temperature, Salinity, U, V, W, &
                           SSH, NNodes)
 
   call allocate(temperature_t, input_mesh, name="temperature")
@@ -198,7 +209,7 @@ subroutine load_nemo_values(state)
      call set(velocity_t,i,temp_vector_3D)
   enddo
 
-  deallocate(X, Y, Z, Temperature, Salinity, &
+  deallocate(X, Y, Z, radius, depth, Temperature, Salinity, &
              U, V, W, SSH, Pressure)
 
 end subroutine

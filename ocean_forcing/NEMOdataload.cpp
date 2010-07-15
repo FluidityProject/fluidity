@@ -41,11 +41,11 @@ extern "C" {
                      const double *r3u, const double *r3v, const double *r3w);
 
 #define get_nemo_variables_fc F77_FUNC(get_nemo_variables, GET_NEMO_VARIABLES)
-    void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, 
+    void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
                      double *Te, double *Sa, double *U, double *V, double *W, double *SSH, const int *NNodes);
 }
 
-void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, 
+void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
                      double *Te, double *Sa, double *U, double *V, double *W, double *SSH, const int *n){
 
     const int nFields = 5; // number of fields being read in, currently temperature, salinity, U, V and sea surface height
@@ -69,7 +69,8 @@ void get_nemo_variables_fc(double *time, const double *X, const double *Y, const
         x[i] = X[i];
         y[i] = Y[i];
         z[i] = Z[i];
-        depth[i]=6378000.0-sqrt(X[i]*X[i]+Y[i]*Y[i]+Z[i]*Z[i]);
+//         depth[i]=6371010.0-sqrt(X[i]*X[i]+Y[i]*Y[i]+Z[i]*Z[i]);
+        depth[i] = DEPTH[i];
     }    
 
     int ret = projections(NNodes, x, y, z, "cart", "spherical");
@@ -202,7 +203,7 @@ int main(int argc, char **argv){
     double time = 0.0;  
     vector<double> Te(NNodes, 0.0), Sa(NNodes, 0.0), U(NNodes, 0.0), V(NNodes, 0.0), 
     W(NNodes, 0.0), SSH(NNodes, 0.0), X(NNodes, 0.0), Y(NNodes, 0.0), Z(NNodes, 0.0), 
-    x(NNodes,0.0), y(NNodes,0.0), z(NNodes,0.0);
+    x(NNodes,0.0), y(NNodes,0.0), z(NNodes,0.0), r(NNodes,0.0), depth(NNodes,0.0);
  
     for (int i=0; i<NNodes; i++) {
         double r[3];
@@ -214,12 +215,24 @@ int main(int argc, char **argv){
         x[i] = X[i];
         y[i] = Y[i];
         z[i] = Z[i];
+        r[i] = sqrt(X[i]*X[i]+Y[i]*Y[i]+Z[i]*Z[i]);
+    }
+    
+    double REdum=0.0;
+    
+    for (int i=0; i<NNodes; i++) {
+      if(r[i]>REdum) REdum=r[i];
+    }
+    
+    for (int i=0; i<NNodes; i++) {
+      depth[i]=REdum-r[i];
     }
 
     NEMOReader NEMOReader_NEMOdata;
 
     // this data set is the input
-    NEMOReader_v2_global.RegisterDataFile("/data/ORCA_grid/gmt_gridding/NEMOdata.nc");
+//     NEMOReader_v2_global.RegisterDataFile("/data/ORCA_grid/gmt_gridding_nwa/NEMOnwa.nc");
+    NEMOReader_v2_global.RegisterDataFile("/data/ORCA_grid/gmt_gridding_med/NEMOmed.nc");
 
     NEMOReader_v2_global.SetSimulationTimeUnits("seconds since 1987-01-05 00:00:0.0");
     NEMOReader_v2_global.AddFieldOfInterest("temperature");  //  0   | Sea temperature
@@ -242,7 +255,7 @@ int main(int argc, char **argv){
     // Note that latitudinal velocities are currently missing from the NEMO data
     // and is thus set to zero.
 
-    get_nemo_variables_fc(&time, &X[0], &Y[0], &Z[0], &Te[0], &Sa[0], &U[0], &V[0], &W[0],
+    get_nemo_variables_fc(&time, &X[0], &Y[0], &Z[0], &depth[0], &Te[0], &Sa[0], &U[0], &V[0], &W[0],
                         &SSH[0], &NNodes);
 
     // add to VTU file
@@ -257,15 +270,16 @@ int main(int argc, char **argv){
     // now print values at a single node
     int n = 1;
     // A point in the North West Approaches
-    double londum,latdum,REdum,pidum;
+    double londum,latdum,pidum,location_depth;
     pidum=acos(-1.0);
-    REdum=6378100.0;
-    londum=(-8.0)*pidum/180.0;
-    latdum=(60.0)*pidum/180.0;
-    X[0] = REdum*cos(latdum)*cos(londum);
-    Y[0] = REdum*cos(latdum)*sin(londum);
-    Z[0] = REdum*sin(latdum);
-    double location_depth=6378100.0-sqrt(X[0]*X[0]+Y[0]*Y[0]+Z[0]*Z[0]);
+//     londum=(-8.0)*pidum/180.0;
+//     latdum=(60.0)*pidum/180.0;
+    londum=(-5.0)*pidum/180.0;
+    latdum=(40.0)*pidum/180.0;
+    location_depth=50.0
+    X[0] = (REdum-location_depth)*cos(latdum)*cos(londum);
+    Y[0] = (REdum-location_depth)*cos(latdum)*sin(londum);
+    Z[0] = (REdum-location_depth)*sin(latdum);
     y[0] = Y[0] , x[0] = X[0] , z[0] = Z[0];
     ret = projections(n, &x[0], &y[0], &z[0], "cart", "spherical");
     if (ret != 0) {
@@ -299,7 +313,8 @@ int main(int argc, char **argv){
     cout <<"       SSH           |    "<<SSH[0] << endl;
 
   vtkXMLUnstructuredGridWriter *writer = vtkXMLUnstructuredGridWriter::New();
-  writer->SetFileName("NEMOvalues.vtu");
+//   writer->SetFileName("NEMOvalues_nwa.vtu");
+  writer->SetFileName("NEMOvalues_med.vtu");
   writer->SetInput(ug);
   writer->Write();
 }
