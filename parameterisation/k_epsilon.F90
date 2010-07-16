@@ -309,7 +309,7 @@ subroutine keps_eps(state)
     integer, dimension(:), pointer     :: surface_elements, surface_node_list
     character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
     integer, dimension(:), allocatable :: dnnz, onnz
-    integer                            :: node, mynodes
+    integer                            :: node, nodes, mynodes
     real, dimension(:), allocatable    :: rhs
     real, dimension(:,:), allocatable  :: mass
     integer, dimension(:), allocatable :: nodes_bdy
@@ -361,16 +361,19 @@ subroutine keps_eps(state)
     if (calculate_bcs) then
 
         ! FROM ROTATED BOUNDARY CONDITIONS:
+        nodes=node_count(eps)
         if (associated(eps%mesh%halos)) then
             halo => eps%mesh%halos(1)
-            mynodes=halo_nowned_nodes(halo)
+            mynodes = halo_nowned_nodes(halo)
         else
             nullify(halo)
-            mynodes=nnodes
+            mynodes = nodes
         end if
+        ewrite(1,*) "nodes, mynodes: ", nodes, mynodes
+
 
         allocate(dnnz(1:mynodes), onnz(1:mynodes))
-        dnnz=1; onnz=0
+        dnnz = 1; onnz = 0
 
         do i = 1, get_boundary_condition_count(eps)
            call get_boundary_condition(eps, i, type=bc_type, &
@@ -389,7 +392,7 @@ subroutine keps_eps(state)
            end if
         end do
 
-        call allocate(lumped_mass, nnodes, nnodes, &
+        call allocate(lumped_mass, nodes, nodes, &
              dnnz, onnz, (/1,1/), "lumped_mass", halo=halo)
         call allocate(rhs_vector, eps%mesh, name="RHS")
         call allocate(surface_eps_values, eps%mesh, name="SurfaceValuesEps")
@@ -397,10 +400,11 @@ subroutine keps_eps(state)
         call zero(surface_eps_values)
         call zero(lumped_mass)
 
-        ! put a 1.0 on the diagonal ulness it's a surface node
-        do i = 1,nnodes
+        ! put a 1.0 on the diagonal unless it's a halo node or a surface node
+        do i = 1, nodes
+          if (i > mynodes) cycle
           if (dnnz(i) == 2) cycle
-          call addto(lumped_mass, 1,1,i, i, 1.0)
+          call addto(lumped_mass, 1, 1, i, i, 1.0)
         end do
 
         ! Calculate boundary condition at surface element and add to system
@@ -441,19 +445,19 @@ subroutine keps_eps(state)
         ! matrixdump for mass matrix
         !ewrite(1,*) "writing lumped mass to file: matrixdump"
         !call dump_matrix("matrixdump", lumped_mass)
-        ewrite(1,*) "writing rhs vector to file: rhs_vector_field2file.dat"
-        call field2file('rhs_vector_field2file.dat', rhs_vector)
+        !ewrite(1,*) "writing rhs vector to file: rhs_vector_field2file.dat"
+        !call field2file('rhs_vector_field2file.dat', rhs_vector)
 
         ! Solve the petsc linear system. Important: get solver options here
         surface_eps_values%option_path = dummyfield%option_path
         call petsc_solve( surface_eps_values, lumped_mass, rhs_vector )
 
         ! Print surface eps values:
-        call field2file('surfaceepsvalues_field2file.dat', surface_eps_values)
-        ewrite(1,*) "writing surface eps values to file: surfaceepsvalues_field2file.dat"
+        !call field2file('surfaceepsvalues_field2file.dat', surface_eps_values)
+        !ewrite(1,*) "writing surface eps values to file: surfaceepsvalues_field2file.dat"
 
         ! Finally, apply all k-epsilon type boundary conditions to epsilon field
-        do j = 1, nnodes
+        do j = 1, nodes
             ! Ignore zeros, they are not on the boundaries of interest
             if(surface_eps_values%val(j) == 0) cycle
             eps%val(j) = max(surface_eps_values%val(j), fields_min)
