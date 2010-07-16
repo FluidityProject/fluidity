@@ -2,8 +2,8 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>Moving Seiche</name>
-  <owner userid="yves"/>
+  <name>Moving Seiche using Fluidity GMSH support</name>
+  <owner userid="acreech"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v3 -l  Seiche_coarse.flml &gt; /dev/null 2&gt;&amp;1</command_line>
