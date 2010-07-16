@@ -576,7 +576,8 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: v_field
     
-    integer :: i
+    integer :: i, j
+    type(scalar_field) :: source_field_comp, v_field_comp
     type(scalar_field), pointer :: masslump
     type(vector_field), pointer :: positions, source_field
       
@@ -596,6 +597,15 @@ contains
     call zero(v_field)
     do i = 1, ele_count(v_field)
       call assemble_vector_laplacian_ele(i, v_field, positions, source_field)
+    end do
+    do i = 1, v_field%dim
+      v_field_comp = extract_scalar_field(v_field, i)
+      source_field_comp = extract_scalar_field(source_field, i)
+      do j = 1, surface_element_count(v_field)
+        ! This could be made more efficent by assembling all components at the
+        ! same time
+        call assemble_scalar_laplacian_face(j, v_field_comp, positions, source_field_comp)
+      end do
     end do
     do i = 1, v_field%dim
       ewrite_minmax(v_field%val(i)%ptr)
@@ -644,6 +654,63 @@ contains
     
   end subroutine assemble_vector_laplacian_ele
   
+  subroutine assemble_scalar_laplacian_face(face, s_field, positions, source_field)
+    integer, intent(in) :: face
+    type(scalar_field), intent(inout) :: s_field
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(in) :: source_field
+    
+    integer :: ele, lface, i, j
+    real, dimension(face_ngi(s_field, face)) :: detwei, grad_sgi_n
+    real, dimension(positions%dim, face_ngi(s_field, face)) :: grad_sgi, normal    
+    real, dimension(positions%dim, positions%dim, ele_ngi(s_field, face_ele(s_field, face))) :: invj
+    real, dimension(positions%dim, positions%dim, face_ngi(s_field, face)) :: invj_face
+    real, dimension(ele_loc(s_field, face_ele(source_field, face)), face_ngi(s_field, face), positions%dim) :: dshape_face
+    real, dimension(ele_loc(s_field, face_ele(source_field, face))) :: s_ele_val
+    type(element_type) :: augmented_shape
+    type(element_type), pointer :: fshape, source_shape, positions_shape
+      
+    ele = face_ele(s_field, face)
+    lface = local_face_number(s_field, face)
+      
+    positions_shape => ele_shape(positions, ele)
+    fshape => face_shape(s_field, face)
+    
+    source_shape => ele_shape(source_field, ele)
+    if(associated(source_shape%dn_s)) then
+      augmented_shape = source_shape
+      call incref(augmented_shape)
+    else
+      augmented_shape = make_element_shape(positions_shape%loc, source_shape%dim, &
+        & source_shape%degree, source_shape%quadrature, &
+        & quad_s = fshape%quadrature)
+    end if    
+    
+    call transform_facet_to_physical(positions, face, &
+      & detwei_f = detwei, normal = normal)
+    call compute_inverse_jacobian( &
+      & ele_val(positions, ele), positions_shape, &
+      & invj = invj)
+    assert(positions_shape%degree == 1)
+    assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
+    invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
+      
+    dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, lface, invj_face)
+    call deallocate(augmented_shape)
+    
+    s_ele_val = ele_val(source_field, ele)
+    forall(i = 1:positions%dim, j = 1:face_ngi(s_field, face))
+      grad_sgi(i, j) = dot_product(s_ele_val, dshape_face(:, j, i))
+    end forall
+    
+    do i = 1, face_ngi(s_field, face)
+      grad_sgi_n = dot_product(grad_sgi(:, i), normal(:, i))
+    end do
+    
+    call addto(s_field, face_global_nodes(s_field, face), shape_rhs(fshape, detwei * grad_sgi_n))
+  
+  end subroutine assemble_scalar_laplacian_face
+  
   subroutine calculate_scalar_laplacian(state, s_field)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
@@ -666,6 +733,9 @@ contains
     call zero(s_field)
     do i = 1, ele_count(s_field)
       call assemble_scalar_laplacian_ele(i, s_field, positions, source_field)
+    end do
+    do i = 1, surface_element_count(s_field)
+      call assemble_scalar_laplacian_face(i, s_field, positions, source_field)
     end do
     ewrite_minmax(s_field%val)
     
