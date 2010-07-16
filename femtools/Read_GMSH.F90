@@ -170,7 +170,7 @@ contains
 
     ! If running in parallel, add the process number
     if(isparallel()) then
-       lfilename = parallel_filename(filename) // ".msh"
+       lfilename = trim(parallel_filename(filename)) // ".msh"
     else
        lfilename = trim(filename) // ".msh"
     end if
@@ -193,7 +193,6 @@ contains
     ! Read in elements
     call read_faces_and_elements( fd, lfilename, gmshFormat, &
          elements, faces )
-
 
     ! According to fluidity/scripts/gmsh2triangle, Fluidity doesn't need
     ! anything past $EndElements, so we close the file.
@@ -231,7 +230,7 @@ contains
 
     do n=1, numNodes
        forall (d = 1:effDimen)
-         field%val(d)%ptr(n) = nodes(n)%x(d)
+          field%val(d)%ptr(n) = nodes(n)%x(d)
        end forall
 
        ! Labelling nodes for columns is unsupported in Fluidity GMSH
@@ -261,7 +260,7 @@ contains
        boundaryIDs(f) = faces(f)%physicalID
     end forall
 
-   
+
     if( boundaries<2 ) then
        call add_faces( field%mesh, &
             & sndgln = sndglno(1:numFaces*sloc), &
@@ -401,7 +400,7 @@ contains
 
     read(fd, *) charBuff
     if( trim(charBuff) .ne. "$EndMeshFormat" ) then
-      FLAbort("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
+       FLAbort("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
     end if
 
     ! Done with error checking... set format (ie. ascii or binary)
@@ -451,6 +450,7 @@ contains
        else
           read(fd) nodes(i)%nodeID, nodes(i)%x
        end if
+
     end do
 
     ! Skip newline character when in binary mode
@@ -524,7 +524,7 @@ contains
 
     select case(gmshFormat)
 
-    ! ASCII is straightforward
+       ! ASCII is straightforward
     case (asciiFormat)
 
        do e=1, numAllElements
@@ -553,9 +553,9 @@ contains
        ! GMSH groups elements by type:
        ! the code below reads in one type of element in a block, followed
        ! by other types until all the elements have been read in.
-       do while( e .lt. numAllelements )
+       do while( e .le. numAllelements )
           read(fd) groupType, groupElems, groupTags
-          
+
           if( (e-1)+groupElems .gt. numAllElements ) then
              FLAbort("GMSH element group contains more than the total")
           end if
@@ -720,5 +720,3 @@ contains
 
 
 end module read_gmsh
-
-
