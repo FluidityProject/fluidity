@@ -1426,6 +1426,7 @@ AC_OUTPUT(Makefile
           error_measures/Makefile error_measures/tests/Makefile
           parameterisation/Makefile parameterisation/tests/Makefile
           decomp/Makefile
+	  fldecomp/Makefile
           assemble/Makefile assemble/tests/Makefile
           diagnostics/Makefile
           adjoint/Makefile

@@ -252,16 +252,11 @@ endif
 	@./scripts/make_check_options
 	@cd preprocessor; $(MAKE) check_options
 
-fldecomp: fluidity_library fldecomp.o
+fldecomp: fluidity_library 
 	@echo "BUILD fldecomp"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
-	@echo "    LD $(FLDECOMP)"
-	@$(EVAL) $(LINKER) @OPENMP_CXXFLAGS@ -o $(FLDECOMP) -I./include/ fldecomp.o $(LIBS) -lmetis
-
-fldecomp.o: fldecomp.cpp
-	@echo "        CXX fldecomp.o"
-	$(CXX) $(CXXFLAGS) @OPENMP_CXXFLAGS@ -c fldecomp.cpp
+	@cd fldecomp; $(MAKE)
 
 .PHONY: doc
 
