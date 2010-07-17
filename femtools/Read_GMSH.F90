@@ -593,9 +593,11 @@ contains
     do e=1, numAllElements
 
        ! These two are apparently standard tags
-       if( allElements(e)%numTags .ge. 2) then
+       if( allElements(e)%numTags .ge. 1) then
           allElements(e)%physicalID = allElements(e)%tags(1)
-          allElements(e)%elementary = allElements(e)%tags(2)
+          if( allElements(e)%numTags .ge. 2) then
+             allElements(e)%elementary = allElements(e)%tags(2)
+          end if
        end if
 
        call toFluidityElementNodeOrdering( allElements(e)%nodeIDs )
