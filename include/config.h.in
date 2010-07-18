@@ -33,8 +33,8 @@
 /* Define to 1 if you have the `arpack' library (-larpack). */
 #undef HAVE_LIBARPACK
 
-/* Define to 1 if you have the `cgns' library (-lcgns). */
-#undef HAVE_LIBCGNS
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
@@ -51,8 +51,26 @@
 /* Define to 1 if you have the `stdc++' library (-lstdc++). */
 #undef HAVE_LIBSTDC__
 
-/* Define to 1 if you have the `udunits' library (-ludunits). */
-#undef HAVE_LIBUDUNITS
+/* Define to 1 if you have the `vtkCommon' library (-lvtkCommon). */
+#undef HAVE_LIBVTKCOMMON
+
+/* Define to 1 if you have the `vtkexpat' library (-lvtkexpat). */
+#undef HAVE_LIBVTKEXPAT
+
+/* Define to 1 if you have the `vtkFiltering' library (-lvtkFiltering). */
+#undef HAVE_LIBVTKFILTERING
+
+/* Define to 1 if you have the `vtkGraphics' library (-lvtkGraphics). */
+#undef HAVE_LIBVTKGRAPHICS
+
+/* Define to 1 if you have the `vtkIO' library (-lvtkIO). */
+#undef HAVE_LIBVTKIO
+
+/* Define to 1 if you have the `vtksys' library (-lvtksys). */
+#undef HAVE_LIBVTKSYS
+
+/* Define to 1 if you have the `vtkzlib' library (-lvtkzlib). */
+#undef HAVE_LIBVTKZLIB
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -60,11 +78,14 @@
 /* Define if you have ParMetis library. */
 #undef HAVE_PARMETIS
 
-/* Define if you have PETSc library. */
+/* Define if you have the PETSc library. */
 #undef HAVE_PETSC
 
-/* Define to 1 if you have the <petsc.h> header file. */
-#undef HAVE_PETSc_H
+/* Define if you have petsc fortran modules. */
+#undef HAVE_PETSC_MODULES
+
+/* If available, contains the Python version number currently in use. */
+#undef HAVE_PYTHON
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -87,6 +108,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define if you have zoltan library. */
+#undef HAVE_ZOLTAN
+
 /* Define to 1 if `sizeof (long int)' = 8. Obsolete, use `SIZEOF_LONG_INT'. */
 #undef LONG_64_BITS
 
@@ -102,11 +126,17 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
 /* The size of `long int', as computed by sizeof. */
 #undef SIZEOF_LONG_INT
+
+/* The size of `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
