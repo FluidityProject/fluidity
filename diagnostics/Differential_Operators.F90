@@ -29,12 +29,18 @@
 
 module differential_operator_diagnostics
 
+! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
+  use quadrature
+  use elements
+  use sparse_tools
+  use fields
+  use state_module
+!
   use diagnostic_source_fields
   use divergence_matrix_cg
   use eventcounter
   use field_derivatives
   use field_options
-  use fields
   use fldebug
   use geostrophic_pressure
   use global_parameters, only : OPTION_PATH_LEN
@@ -43,7 +49,6 @@ module differential_operator_diagnostics
   use sparsity_patterns_meshes
   use spud
   use state_fields_module
-  use state_module
 
   implicit none
   
