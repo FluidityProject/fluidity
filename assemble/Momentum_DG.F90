@@ -129,7 +129,8 @@ contains
   subroutine construct_momentum_dg(u, p, rho, x, &
        & big_m, rhs, state, &
        & inverse_masslump, inverse_mass, mass, &
-       & acceleration_form, cg_pressure)
+       & acceleration_form, cg_pressure,&
+       & subcycle_m)
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form. If acceleration_form is present and false, the
     !!< matrices will be constructed for use in conventional solution form.
@@ -141,6 +142,8 @@ contains
 
     !! Main momentum matrix.    
     type(petsc_csr_matrix), intent(inout) :: big_m
+    !! Explicit subcycling matrix.
+    type(block_csr_matrix), intent(inout), optional :: subcycle_m
     !! Momentum right hand side vector for each point.
     type(vector_field), intent(inout) :: rhs
     !! Collection of fields defining system state.
@@ -436,6 +439,9 @@ contains
     assert(has_faces(P%mesh))
 
     call zero(big_m)
+    if(present(subcycle_m)) then
+       call zero(subcycle_m)
+    end if
     call zero(RHS)
     
     if(present(inverse_masslump) .and. lump_mass) then
@@ -489,7 +495,10 @@ contains
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
-            & inverse_mass=inverse_mass, inverse_masslump=inverse_masslump, mass=mass, turbine_conn_mesh=turbine_conn_mesh)
+            & inverse_mass=inverse_mass, &
+            & inverse_masslump=inverse_masslump, &
+            & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
+            & subcycle_m=subcycle_m)
        
     end do element_loop
 
@@ -531,7 +540,8 @@ contains
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
-       &inverse_mass, inverse_masslump, mass, turbine_conn_mesh)
+       &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
+       &subcycle_m)
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -544,6 +554,8 @@ contains
     !! Auxiliary variable mesh
     type(mesh_type), intent(in) :: q_mesh
     type(mesh_type), intent(in), optional :: turbine_conn_mesh
+    !! 
+    type(block_csr_matrix), intent(inout), optional :: subcycle_m
 
     !! Position, velocity and source fields.
     type(scalar_field) :: buoyancy
@@ -649,9 +661,15 @@ contains
 
     ! What we will be adding to the matrix and RHS - assemble these as we
     ! go, so that we only do the calculations we really need
-    real, dimension(u%dim, ele_and_faces_loc(U,ele)) :: big_m_diag_addto, rhs_addto
+    real, dimension(u%dim, ele_and_faces_loc(U,ele)) :: big_m_diag_addto,&
+         & rhs_addto
+    
     real, dimension(u%dim, u%dim, ele_and_faces_loc(U,ele), ele_and_faces_loc(U,ele)) :: big_m_tensor_addto
     logical, dimension(u%dim, u%dim) :: diagonal_block_mask, off_diagonal_block_mask
+    ! Addto matrices for when subcycling is performed
+    real, dimension(u%dim, u%dim, ele_and_faces_loc(U,ele), &
+         ele_and_faces_loc(U,ele)) :: subcycle_m_tensor_addto
+    !real, dimension(u%dim, ele_and_faces_loc(U,ele)) :: subcycle_bc_addto
 
     !Switch to select if we are assembling the primal or dual form
     logical :: primal
@@ -691,6 +709,10 @@ contains
 
     big_m_diag_addto = 0.0
     big_m_tensor_addto = 0.0
+    if(present(subcycle_m)) then
+       subcycle_m_tensor_addto = 0.0
+    end if
+
     rhs_addto = 0.0
     
     diagonal_block_mask = .false.
@@ -830,9 +852,18 @@ contains
       Coriolis_mat = shape_shape(u_shape, u_shape, Rho_q*Coriolis_q*detwei)
       
       ! cross terms in U_ and V_ for coriolis
-      big_m_tensor_addto(U_, V_, :loc, :loc) = big_m_tensor_addto(U_, V_, :loc, :loc) - dt*theta*coriolis_mat
-      big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
-      
+      if(present(subcycle_m)) then
+         subcycle_m_tensor_addto(U_, V_, :loc, :loc) = &
+              subcycle_m_tensor_addto(U_, V_, :loc, :loc) &
+              - coriolis_mat
+         subcycle_m_tensor_addto(V_, U_, :loc, :loc) = &
+              subcycle_m_tensor_addto(V_, U_, :loc, :loc) &
+              + coriolis_mat
+      else
+         big_m_tensor_addto(U_, V_, :loc, :loc) = big_m_tensor_addto(U_, V_, :loc, :loc) - dt*theta*coriolis_mat
+         big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
+
+      end if
       if(acceleration) then
         rhs_addto(U_, :loc) = rhs_addto(U_, :loc) + matmul(coriolis_mat, u_val(V_,:))
         rhs_addto(V_, :loc) = rhs_addto(V_, :loc) - matmul(coriolis_mat, u_val(U_,:))
@@ -896,7 +927,15 @@ contains
       end if
       
       do dim = 1, u%dim
-        big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + dt*theta*advection_mat
+         if(present(subcycle_m)) then
+            subcycle_m_tensor_addto(dim, dim, :loc, :loc) &
+                 &= subcycle_m_tensor_addto(dim, dim, :loc, :loc) &
+                 &+ advection_mat
+         else
+            big_m_tensor_addto(dim, dim, :loc, :loc) &
+                 &= big_m_tensor_addto(dim, dim, :loc, :loc) &
+                 &+ dt*theta*advection_mat
+         end if
         if(acceleration) then
           rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(advection_mat, u_val(dim,:))
         end if
@@ -1152,7 +1191,8 @@ contains
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
                         & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-                        & viscosity, viscosity_mat)
+                        & viscosity, viscosity_mat, &
+                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto)
            end if
         else
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
@@ -1161,7 +1201,8 @@ contains
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
-                        & pressure_bc, pressure_bc_type)
+                        & pressure_bc, pressure_bc_type, &
+                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto)
             end if
         end if
 
@@ -1276,7 +1317,6 @@ contains
           ! first the diagonal blocks, i.e. the coupling within the element
           ! and neighbouring face nodes but with the same component
           if(have_viscosity) then
-             
              ! add to the matrix
              call addto(big_m, local_glno, local_glno, big_m_tensor_addto, &
                 block_mask=diagonal_block_mask)
@@ -1289,11 +1329,21 @@ contains
              ! add to the rhs
              call addto(rhs, u_ele, rhs_addto(:,:loc))
           end if
-          
+          if(present(subcycle_m)) then
+             call addto(subcycle_m, u_ele, local_glno,&
+                  &subcycle_m_tensor_addto(:,:,:loc,:), &
+                  &block_mask=diagonal_block_mask)
+          end if
           if(have_coriolis) then
              ! add in coupling between different components, but only within the element
+             if(present(subcycle_m)) then
+                call addto(subcycle_m, u_ele, u_ele, &
+                     subcycle_m_tensor_addto(:,:,:loc,:loc), block_mask&
+                     &=off_diagonal_block_mask)
+             end if
              call addto(big_m, u_ele, u_ele, &
-                big_m_tensor_addto(:,:,:loc,:loc), block_mask=off_diagonal_block_mask)
+                  big_m_tensor_addto(:,:,:loc,:loc), block_mask&
+                  &=off_diagonal_block_mask)
           end if
        else
           ! in this case we only have coupling between nodes within the element
@@ -1369,18 +1419,22 @@ contains
   end subroutine construct_momentum_element_dg
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
-       & big_m_tensor_addto, rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
+       & big_m_tensor_addto, &
+       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-       & viscosity, viscosity_mat)
+       & viscosity, viscosity_mat, &
+       & subcycle_m_tensor_addto)
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
 
     integer, intent(in) :: ele, face, face_2, ni
     real, dimension(:,:,:,:), intent(inout) :: big_m_tensor_addto
+    real, dimension(:,:,:,:), intent(inout), optional :: & 
+         & subcycle_m_tensor_addto
     real, dimension(:,:) :: rhs_addto
     real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
@@ -1594,39 +1648,50 @@ contains
         ! Insert advection in matrix.
     
         ! Outflow boundary integral.
-        big_m_tensor_addto(dim, dim, u_face_l, u_face_l) = &
-            big_m_tensor_addto(dim, dim, u_face_l, u_face_l) + &
-            nnAdvection_out*dt*theta
+         if(present(subcycle_m_tensor_addto)) then
+            subcycle_m_tensor_addto(dim, dim, u_face_l, u_face_l) = &
+                 &subcycle_m_tensor_addto(dim, dim, u_face_l, u_face_l) + &
+                 &nnAdvection_out
               
-        if (.not.dirichlet(dim)) then
-          big_m_tensor_addto(dim, dim, u_face_l, start:finish) = &
-              big_m_tensor_addto(dim, dim, u_face_l, start:finish) + &
-              nnAdvection_in*dt*theta
-        end if
-        
-        if (.not.dirichlet(dim)) then
-            ! For interior interfaces this is the upwinding term. For a Neumann
-            ! boundary it's necessary to apply downwinding here to maintain the
-            ! surface integral. Fortunately, since face_2==face for a boundary
-            ! this is automagic.
-  
-            if (acceleration) then
-              rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
-                    ! Outflow boundary integral.
-                    -matmul(nnAdvection_out,face_val(U,dim,face))&
-                    ! Inflow boundary integral.
-                    -matmul(nnAdvection_in,face_val(U,dim,face_2))
+            if (.not.dirichlet(dim)) then
+               subcycle_m_tensor_addto(dim, dim, u_face_l, start:finish) = &
+                    &subcycle_m_tensor_addto(dim, dim, u_face_l, start:finish)&
+                    &+nnAdvection_in
             end if
+         else
+            big_m_tensor_addto(dim, dim, u_face_l, u_face_l) = &
+                 big_m_tensor_addto(dim, dim, u_face_l, u_face_l) + &
+                 nnAdvection_out*dt*theta
               
-        else
-            
-              rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
+            if (.not.dirichlet(dim)) then
+               big_m_tensor_addto(dim, dim, u_face_l, start:finish) = &
+                    big_m_tensor_addto(dim, dim, u_face_l, start:finish) + &
+                    nnAdvection_in*dt*theta
+            end if
+        
+            if (.not.dirichlet(dim)) then
+               ! For interior interfaces this is the upwinding term. For a
+               ! Neumann boundary it's necessary to apply downwinding here
+               ! to maintain the surface integral. Fortunately, since
+               ! face_2==face for a boundary this is automagic.
+               
+               if (acceleration) then
+                  rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
+                       ! Outflow boundary integral.
+                       -matmul(nnAdvection_out,face_val(U,dim,face))&
+                       ! Inflow boundary integral.
+                       -matmul(nnAdvection_in,face_val(U,dim,face_2))
+               end if
+               
+            else
+               
+               rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
                     ! Outflow boundary integral.
                     -matmul(nnAdvection_out,face_val(U,dim,face))&
                     ! Inflow boundary integral.
                     -matmul(nnAdvection_in,ele_val(velocity_bc,dim,face))
-        end if
-        
+            end if
+         end if
        end do
         
     end if
