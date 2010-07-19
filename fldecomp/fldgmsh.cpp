@@ -646,7 +646,8 @@ void read_gmsh_header(fstream &gmshfile)
 
   // Prelimary format checking
 
-  string beginTag, gmshVersion;
+  string beginTag;
+  float gmshVersion;
   int gmshFormat, doubleFloatLen;
 
   gmshfile >> beginTag >> gmshVersion >> gmshFormat >> doubleFloatLen;
@@ -657,7 +658,7 @@ void read_gmsh_header(fstream &gmshfile)
     exit(errorCode);
   }
 
-  if( gmshVersion != "2.0" && gmshVersion != "2.1" && gmshVersion != "2.2" ) {
+  if( gmshVersion < 2 || gmshVersion >= 3 ) {
     cerr << "Currently only GMSH format v2.x is supported\n";
     exit(errorCode);
   }
