@@ -192,6 +192,11 @@ spatial_discretisation_options =
                   }
                )
             },
+            ## This introduces a simple upwind diffusion based on eqn 2.52 in
+            ## Donea and Huerta (2003) "Finite elements for flow problems".
+            element upwind_stabilisation { 
+               empty
+            }?,
             (
                ## Vertex-based slope limiter from D. Kuzmin, "A
                ## vertex-based hierarchical slope limiter for

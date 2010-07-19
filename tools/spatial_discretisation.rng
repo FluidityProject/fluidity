@@ -217,6 +217,13 @@ Use 2x distance to face centre on boundaries</a:documentation>
             </choice>
           </element>
           <optional>
+            <element name="upwind_stabilisation">
+              <a:documentation>This introduces a simple upwind diffusion based on eqn 2.52 in
+Donea and Huerta (2003) "Finite elements for flow problems".</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
             <choice>
               <element name="slope_limiter">
                 <a:documentation>Vertex-based slope limiter from D. Kuzmin, "A
