@@ -58,9 +58,6 @@ void write_partitions_triangle(bool verbose,
   //              each partition
   // where in each case partitions are numbered from zero.
   
-  cout << "@@@@ write_partitions_triangle()\n";
-  cout << "filename: " << filename << "  file_format: " << file_format <<"\n";
-  cout << "nparts: " << nparts << "  nnodes: " << nnodes << "\n";
 
   if(verbose)
     cout<<"void write_partitions_triangle( ... )";
@@ -401,9 +398,6 @@ int decomp_triangle( map<char, string> flArgs, bool verbose,
                               string filename, string file_format,
                               int nparts, int ncores )
 {
-  cout << "@@@@ read_and_write_triangle()\n";
-  cout << "filename: " << filename << "  " 
-       << "  file_format: " << file_format << "\n";
 
   bool extruded = (flArgs.find('t')!=flArgs.end());
   if(extruded&&verbose){
