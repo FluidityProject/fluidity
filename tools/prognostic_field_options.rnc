@@ -615,18 +615,11 @@ prognostic_velocity_field =
          element discontinuous_galerkin {
             (
                ## Use timestep subcycling to solve this equation.
-               element advection_cycling {
-                  ## Specify the number of subcycles.
-                  element number_advection_subcycles {
-                     integer
-                  },
-                  ## Specify whether coriolis should be included in the 
-                  ## subcycling.
-                  element coriolis_in_subcycles {
-                     empty
-                  }?
+               ## Specify the maximum courant number per subcycle.
+               element maximum_courant_number_per_subcycle {
+                  real
                }
-            )?
+            )
          }?
       },
       ## <b>ONLY MAKES SENSE WITH STOKES</b>

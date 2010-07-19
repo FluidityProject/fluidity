@@ -732,22 +732,11 @@ twice.</a:documentation>
       </element>
       <optional>
         <element name="discontinuous_galerkin">
-          <optional>
-            <element name="advection_cycling">
-              <a:documentation>Use timestep subcycling to solve this equation.</a:documentation>
-              <element name="number_advection_subcycles">
-                <a:documentation>Specify the number of subcycles.</a:documentation>
-                <ref name="integer"/>
-              </element>
-              <optional>
-                <element name="coriolis_in_subcycles">
-                  <a:documentation>Specify whether coriolis should be included in the 
-subcycling.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-          </optional>
+          <element name="maximum_courant_number_per_subcycle">
+            <a:documentation>Use timestep subcycling to solve this equation.
+Specify the maximum courant number per subcycle.</a:documentation>
+            <ref name="real"/>
+          </element>
         </element>
       </optional>
     </element>
