@@ -211,8 +211,6 @@ contains
        effDimen = numDimen
     end if
 
-
-
     call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
 
     call allocate( field, effDimen, mesh, name="Coordinate")
@@ -369,6 +367,7 @@ contains
     character(len=longStringLen) :: charBuff
     character :: newlineChar
     integer gmshFileType, gmshDataSize, one
+    real versionNumber
 
 
     ! Error checking ...
@@ -380,9 +379,11 @@ contains
 
     read(fd, *) charBuff, gmshFileType, gmshDataSize
 
-    if( trim(charBuff) .ne. GMSHVersionStr ) then
-       FLAbort("Error: GMSH mesh version must be "//GMSHVersionStr)
+    read(charBuff,*) versionNumber
+    if( versionNumber .lt. 2.0 .or. versionNumber .ge. 3.0 ) then
+       FLAbort("Error: GMSH mesh version must be 2.x")
     end if
+
 
     if( gmshDataSize .ne. doubleNumBytes ) then
        FLAbort("Error: GMSH data size is not equal to doubleNumBytes")
@@ -483,6 +484,7 @@ contains
     absZ(:) = nodes(:)%x(3)
 
     if( all( absZ .lt. verySmall ) ) mesh_dimensions=2
+
 
     deallocate(absZ)
   end function mesh_dimensions
