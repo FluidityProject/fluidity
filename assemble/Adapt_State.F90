@@ -65,6 +65,8 @@ module adapt_state_module
   use timeloop_utilities
   use fields_halos
   use data_structures
+  use detector_data_types
+  use diagnostic_variables
   use intersection_finder_module
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
@@ -881,13 +883,13 @@ contains
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then
       output_positions => extract_vector_field(states(1), "Coordinate")
 
-
       if(isparallel()) then
         call write_mesh_files(parallel_filename("first_timestep_adapted_mesh"), output_positions)
         call write_halos("first_timestep_adapted_mesh", output_positions%mesh)
       else
         call write_mesh_files("first_timestep_adapted_mesh", output_positions)
       end if
+
     end if
     
     ewrite(1, *) "Exiting adapt_state_first_timestep"
@@ -1021,8 +1023,8 @@ contains
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
       call deallocate(metric)
-      ! We're done with the new_positions, so we may drop our reference
-      call deallocate(new_positions)
+!      ! We're done with the new_positions, so we may drop our reference
+!      call deallocate(new_positions)  Moved downstream
       
       ! Interpolate fields
       if(associated(node_ownership)) then
@@ -1072,7 +1074,9 @@ contains
 
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
+
         call zoltan_drive(states, i, metric=metric)
+
         if (i == max_adapt_iteration) then
           call deallocate(metric)
         end if
@@ -1086,6 +1090,8 @@ contains
         end if
 #endif
       end if
+
+      call deallocate(new_positions)
       
       if(vertical_only) then
         ewrite(2,*) "Using vertical_only adaptivity, so skipping the printing of references"
@@ -1095,9 +1101,9 @@ contains
       else
         ewrite(2, *) "There are reserved meshes, so skipping printing of references."
       end if
-      
+ 
       call write_adapt_state_debug_output(states, i, max_adapt_iteration, &
-        & initialise_fields = initialise_fields)
+        & initialise_fields = initialise_fields)   
       
       call incrementeventcounter(EVENT_ADAPTIVITY)
       call incrementeventcounter(EVENT_MESH_MOVEMENT)
@@ -1360,7 +1366,7 @@ contains
     
     if(have_option(base_path // "/write_adapted_mesh")) then
       ! Debug mesh output. These are output on every adapt iteration.
-    
+
       file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, adapt_iteration, max_adapt_iteration)
       call find_mesh_to_adapt(states(1), mesh)
       positions = get_coordinate_field(states(1), mesh)
@@ -1377,7 +1383,7 @@ contains
     
     if(have_option(base_path // "/write_adapted_state")) then   
       ! Debug vtu output. These are output on every adapt iteration.
-    
+
       file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)   
       call vtk_write_state(file_name, state = states)
       
@@ -1404,16 +1410,16 @@ contains
         call get_option(base_path // "/checkpoint/max_checkpoint_count", max_output, stat = stat)
         if(stat == SPUD_NO_ERROR) cp_no = modulo(cp_no, max_output)
       end if
+
     end if
     
   contains
   
     function adapt_state_debug_file_name(base_name, dump_no, adapt_iteration, max_adapt_iteration, add_parallel) result(file_name)
       !!< Form an adapt diagnostic output filename
-      
+
       !! Filename base
       character(len = *), intent(in) :: base_name
-      !! Dump number
       integer, intent(in) :: dump_no
       !! The current iteration the adapt-re-load-balance loop
       integer, intent(in) :: adapt_iteration
