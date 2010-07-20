@@ -157,7 +157,7 @@ contains
     integer,  pointer, dimension(:) :: sndglno, boundaryIDs, element_owner
 
     character(len = parallel_filename_len(filename)) :: lfilename
-    integer :: boundaries, loc, sloc
+    integer :: loc, sloc
     type(mesh_type) :: mesh
     integer :: numNodes, numElements, numFaces, numBoundaries
     integer :: numDimen, effDimen
@@ -201,6 +201,7 @@ contains
 
     numNodes = size(nodes)
     numFaces = size(faces)
+
     ! Can't specify this in GMSH file, value=1 is near-universal
     numBoundaries = 1
     numElements = size(elements)
@@ -248,9 +249,9 @@ contains
     end forall
 
 
-    allocate(sndglno(numFaces*sloc))
+    allocate(sndglno(1:numFaces*sloc))
     sndglno=0
-    allocate(boundaryIDs(numFaces))
+    allocate(boundaryIDs(1:numFaces))
 
 
     forall (f=1:numFaces)
@@ -259,7 +260,7 @@ contains
     end forall
 
 
-    if( boundaries<2 ) then
+    if( numBoundaries<2 ) then
        call add_faces( field%mesh, &
             & sndgln = sndglno(1:numFaces*sloc), &
             & boundary_ids = boundaryIDs(1:numFaces) )

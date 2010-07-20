@@ -33,7 +33,7 @@
 
 // Matches element type with number of nodes.
 int elemNumNodes[] = 
-  {-1, 2, 3, 4, 4, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+  {2, 2, 3, 4, 4, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
 
 
