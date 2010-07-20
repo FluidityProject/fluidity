@@ -8,6 +8,7 @@ unstrucutred meshes that are stuiable for use with \fluidity. Here, we restrict 
 to the mesh generation capabilities built into \fluidity and the associated script and
 tools, mentioning only briefly some of the more common tools also available.
 
+
 \section{The triangle format}\label{sect:triangle_format}
 \index{mesh!file formats}
 
@@ -162,6 +163,82 @@ Numbers can be assigned to label particular surfaces in order to set boundary co
 \index{region ID}
 These are similar to surface IDs. In general, any region (a line, surface or volume) can be labelled.
 
+
+\section{The GMSH format}\label{sect:gmsh_format}
+\index{mesh!file formats}
+
+Fluidity also contains built-in support for the GMSH format. GMSH is a mesh generator freely available on the World Wide Web (\href{http://geuz.org/gmsh/}{geuz.org/gmsh}), as well as being supplied by Linux distributions such as Ubuntu. Having this support means that any GMSH mesh files can be loaded directly into Fluidity without the need for preprocessing with tools such as \textbf{gmsh2triangle}. 
+
+Unlike triangle files, GMSH meshes are contained within one file, which have the extension \textit{.msh}. This can be either binary or ASCII.
+
+\subsection{Using GMSH files with Fluidity}\label{sect:using_gmsh}
+
+Fluidity needs to be told to expect a GMSH file, and you can do this within Diamond by setting the file format of the mesh type. This is typically in \textit{geometry $\rightarrow$ mesh(CoordinateMesh)  $\rightarrow$ from\_file  $\rightarrow$ format}. Once that is done, Fluidity will now look for a file with the extension \textit{.msh} when it runs.
+
+For parallel simulations, you must use \textbf{fldecomp} to decompose a GMSH mesh into sub-meshes for each process. Here, only binary GMSH files can be used - see
+section \ref{mesh!meshing tools!fldecomp} for details.
+
+\subsection{GMSH file format}\label{sect:gmsh_file_format}
+
+This section briefly describes what the GMSH format looks like. For more information, please read the official GMSH documentation (\href{http://geuz.org/gmsh/doc/texinfo/gmsh.pdf}{geuz.org/gmsh/doc/texinfo/gmsh.pdf}). Typically, GMSH files used in Fluidity contain three parts: a header, a section for nodes, and one for elements. These are explained in more detail below.
+
+
+
+\subsubsection*{The header}\label{sect:gmsh_header_section}
+This contains GMSH file version information, and indicates whether the main data is in ASCII or binary format. This will typically look like:
+\begin{lstlisting}
+$MeshFormat
+2.1 0 8
+[Extra data here in binary mode]
+$EndMeshFormat
+\end{lstlisting}
+
+From the listing above we can tell that:
+\begin{itemize}
+\item the GMSH format version is 2.1
+\item it is in ASCII, as indicated by the 0 (1=binary)
+\item the byte size of double precision is 8
+\end{itemize}
+In addition, in binary mode the integer 1 is written as 4 raw bytes, to check that the endianness of the GMSH file and the system are the same (\textit{you will rarely have to worry about this})
+
+
+
+\subsubsection*{The nodes section}\label{sect:gmsh_nodes_section}
+
+The next section contains node data, viz:
+\begin{lstlisting}
+$Nodes
+number_of_nodes
+[node data]
+$EndNodes
+\end{lstlisting}
+
+The \textit{[node data]} part contains the listing of nodes, with ID, followed by \textit{x}, \textit{y}, and \textit{z} co-ordinates. This part will be in binary when binary mode has been selected. Note that even with 2D problems, there will be a zeroed \textit{z} co-ordinate.
+
+
+
+\subsubsection*{The elements section}\label{sect:gmsh_elements_section}
+
+The elements section contains information on both faces (eg. sides, edges) and regular elements. It also varies between binary and ASCII formats, so we'll concentrate on ASCII. 
+
+\begin{lstlisting}
+$Elements
+element1_id element_type number_of_tags tag_list node_number_list
+element2_id ...
+...
+...
+$EndElements
+\end{lstlisting}
+As you can see, it's quite straightforward -- the ID, followed by the numbered type (see GMSH or Fluidity documentation for details), then the number of tags. \textit{Tags} are integer properties ascribed to the element. In Fluidity, we are only concerned with the first one, the physical ID. This can mean one of two things:
+
+
+\begin{itemize}
+\item A region ID - in the case of elements
+\item A boundary ID - in the case of faces
+\end{itemize}
+
+Since GMSH doesn't explicitly label faces or regular elements as such, internally Fluidity works this out from type: eg, if there a mesh consists of tetrahedra and triangles, then triangles must be the faces.
+
 \section{Mesh types}
 \subsection{Extruded meshes}
 \label{sect:extruded_meshes}
@@ -217,13 +294,12 @@ Where left and right define the range of the line. It has a number of user defin
 \item - -reverse = reverse order of mesh
 \end{itemize}
 
+
+
 \subsection{gmsh2triangle}
 \index{mesh!meshing tools!gmsh2triangle}
-Converting msh files to triangle format. The \lstinline[language=Bash]{gmsh2triangle} script in the scripts
-directory converts msh files to triangle format, which is supported by \fluidity.
-If you are generating a 2D mesh, the default behaviour is to still
-output 3 dimensional positions. If you require 2d positions in this case (most
-people will) then you need to supply the - -2d option to gmsh2triangle.
+
+\textit{This script converts GMSH mesh files into triangle format. It will is no longer strictly necessary to use this, since GMSH support is now built into Fluidity -- see section \ref{sect:gmsh_format}. It is included here for historical reasons.}
 
 \lstinline[language=Bash]{gmsh2triangle} stores the entire gmsh mesh in memory before writing it out to
 triangle file. For very large meshes this is likely to be impractical,
@@ -269,14 +345,23 @@ inside your \fluidity\ folder. The following binaries will then be created in th
 %fluidity path /bin/fldecomp -n [PARTS] [BASENAME]
 %\end{lstlisting}
 
+
+
 \subsection{fldecomp}
 \index{mesh!meshing tools!fldecomp}
+\label{mesh!meshing tools!fldecomp}
 This function is used to decompose a mesh into multiple regions, one per process. In order to run fldecomp, if your mesh files have the base name foo and you want to decompose into four parts, type:
 \begin{lstlisting}[language = Bash]
-`\fluiditysourcepath'/bin/fldecomp -n 4 foo
+`\fluiditysourcepath'/bin/fldecomp -n 4 -m mesh_format mesh_file
 \end{lstlisting}
 
-This will create partition triangle meshes together with halo files. 
+Where:
+\begin{itemize}
+\item \textit{mesh\_file} is the base name of your mesh file(s). Eg., \textit{foo} for \textit{foo.msh} with GMSH format, or \textit{foo.face/node/ele} with triangle format.
+
+\item \textit{mesh\_format} is the format of the mesh file you wish to decompose. It can
+take two values: \textit{gmsh} or \textit{triangle}. If you omit the \textit{-m} option, \textbf{fldecomp} will default to \textit{triangle}.
+\end{itemize}
 
 %In your fluidity directory type:
 %\begin{lstlisting}[language = Bash]
@@ -284,13 +369,23 @@ This will create partition triangle meshes together with halo files.
 %\end{lstlisting}
 %Navigate back to the directory containing your mesh files. In order to run fldecomp, if your mesh files are called square.geo etc and you want to decompose into four parts, type:
 %\begin{lstlisting}[language = Bash]
-%fludity path /bin/fldecomp -n 4 square
+%fludity path /bin/fldecomp -m gmsh -n 4 square
 %\end{lstlisting}
+
+\subsubsection*{Note} For performance reasons, \lstinline[language=Bash]{fldecomp} only supports binary GMSH files. Here is an example of how to generate one:
+
+\begin{lstlisting}[language=bash]
+gmsh -3 -bin project.geo
+\end{lstlisting}
+
+This creates a 3D binary GMSH mesh called \textit{project.msh} from the geometry file.
+
+
 
 \subsection{flredecomp}
 \index{mesh!meshing tools!flredecomp}
 \label{mesh!meshing tools!flredecomp}
-This is sililar to fldecomp but it runs in parallel. To use simply type, where the decomposed file has the
+This is similar to fldecomp but it runs in parallel. To use simply type, where the decomposed file has the
 name foo\_flredecomp.flml:
 
 \begin{lstlisting}[language=bash]
