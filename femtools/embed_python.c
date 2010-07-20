@@ -1017,6 +1017,136 @@ void real_from_python(char* function, int* function_len,
 #endif
 }
 
+void free_real_vector(void** vector)
+{
+  free(*vector);
+}
+
+void real_vector_from_python(char* function, int* function_len,
+                             double* t, 
+                             void** result, 
+                             int* result_len, 
+                             int* stat)
+{
+#ifndef HAVE_PYTHON
+  strncpy(function, "No Python support!\n", (size_t) *function_len);
+  for (i=0; i < *function_len; i++)
+  {
+    if (function[i] == '\0')
+      function[i] = ' ';
+  }
+  *stat=1;
+  return;
+#else
+  PyObject *pMain, *pGlobals, *pLocals, *pFunc, *pCode, *pResult, 
+    *pArgs, *pT, *pResultItem;
+  
+  char *function_c;
+
+  int i;
+  
+  // the function string passed down from Fortran needs terminating,
+  // so make a copy and fiddle with it (remember to free it)
+  function_c = (char *)malloc(*function_len+3);
+  memcpy( function_c, function, *function_len );
+  function_c[*function_len] = 0;
+
+  // Get a reference to the main module and global dictionary
+  pMain = PyImport_AddModule("__main__");
+
+  pGlobals = PyModule_GetDict(pMain);
+  // Global and local namespace dictionaries for our code.
+  pLocals=PyDict_New();
+  
+  // Execute the user's code.
+  pCode=PyRun_String(function_c, Py_file_input, pGlobals, pLocals);
+
+  // Extract the function from the code.
+  pFunc=PyDict_GetItemString(pLocals, "val");
+
+  // Clean up memory from null termination.
+  free(function_c);
+  
+  // Check for errors in executing user code.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  // Python form of time variable.
+  pT=PyFloat_FromDouble(*t);
+
+  // Tuple of arguments to function;
+  pArgs=PyTuple_New(1);
+  PyTuple_SetItem(pArgs, 0, pT);
+
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  pResult=PyObject_CallObject(pFunc, pArgs); 
+  
+  // Check for a Python error in the function call
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+
+  *result_len = PySequence_Length(pResult);
+  
+  // Check for a Python error in result_dim.
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=1;
+    return;
+  }
+  
+  *result = malloc(*result_len * sizeof(double));
+
+  // Unpack tuple to pointer
+  for (i = 0; i < *result_len; i++){
+    pResultItem = PySequence_GetItem(pResult, i);    
+    // Check for a Python error in unpacking tuple.
+    if (PyErr_Occurred()){
+      PyErr_Print();
+      *stat=1;
+      return;
+    }
+
+    ((double*)*result)[i]=PyFloat_AsDouble(pResultItem);
+
+    // Check we really got a float.
+    if (PyErr_Occurred()){
+      PyErr_Print();
+      *stat=1;
+      return;
+    }
+    
+    Py_DECREF(pResultItem);
+  }
+ 
+
+  Py_DECREF(pResult);  
+  
+  // Clean up
+  Py_DECREF(pArgs);  
+  Py_DECREF(pLocals);  
+  Py_DECREF(pCode);  
+
+  // Force a garbage collection
+  PyGC_Collect();
+
+
+  *stat=0;
+  return;
+#endif
+}
+
 #define integer_from_python F77_FUNC(integer_from_python, INTEGER_FROM_PYTHON)
 void integer_from_python(char* function, int* function_len,
                         double* t,  

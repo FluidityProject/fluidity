@@ -31,6 +31,7 @@ module embed_python
 
   use fldebug
   use global_parameters, only : real_4, real_8
+  use iso_c_binding
 
   implicit none
   
@@ -179,6 +180,29 @@ module embed_python
       integer, intent(out) :: stat
     end subroutine real_from_python
   end interface real_from_python
+  
+  interface real_vector_from_python
+    module procedure real_vector_from_python_interface, real_vector_from_python_sp
+
+    subroutine real_vector_from_python(function, function_len, t, result,&
+         & result_len, stat) bind(c)
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in) :: function_len
+      character(kind=c_char,len = 1), intent(in) :: function
+      real(kind = c_double), intent(in) :: t
+      type(c_ptr), intent(out) :: result
+      integer(c_int), intent(out) :: result_len, stat
+    end subroutine real_vector_from_python
+  end interface real_vector_from_python
+
+  interface
+     subroutine free_real_vector(vector) bind(c)
+      use :: iso_c_binding
+      implicit none
+      type(c_ptr) :: vector
+     end subroutine
+  end interface
 
   interface integer_from_python
     module procedure integer_from_python_sp, integer_from_python_interface
@@ -214,8 +238,8 @@ module embed_python
   public :: set_scalar_field_from_python, set_integer_array_from_python, &
     & set_vector_field_from_python, set_tensor_field_from_python, &
     & set_particle_sfield_from_python, set_particle_vfield_from_python, &
-    & set_detectors_from_python, real_from_python, integer_from_python, &
-    & string_from_python
+    & set_detectors_from_python, real_from_python, real_vector_from_python, &
+    & integer_from_python, string_from_python
 
 contains
 
@@ -413,6 +437,64 @@ contains
     end if
 
   end subroutine real_from_python_interface
+ 
+  subroutine real_vector_from_python_sp(function, current_time,  result, stat)
+    character(len = *), intent(in) :: function
+    real(kind=real_4), intent(in) :: current_time
+    real(kind=real_4), dimension(:), pointer, intent(out) :: result
+    integer, optional, intent(out) :: stat
+
+    real(kind=real_8), dimension(:), pointer :: lresult
+    
+    call real_vector_from_python(function, real(current_time, kind=real_8),&
+         & lresult, stat)
+
+    allocate(result(size(lresult)))
+
+    result=lresult
+
+    deallocate(lresult)
+
+  end subroutine real_vector_from_python_sp
+
+  subroutine real_vector_from_python_interface(function, current_time,  result, stat)
+    character(len = *), intent(in) :: function
+    real(kind=real_8), intent(in) :: current_time
+    real(kind=real_8), dimension(:), pointer, intent(out) :: result
+    integer, optional, intent(out) :: stat
+
+    
+    type(c_ptr) :: c_result
+    integer(kind=c_int) :: c_result_len
+    real, dimension(:), pointer :: tmp_result
+    integer(kind=c_int) :: lstat
+
+    if(present(stat)) stat = 0
+
+    call real_vector_from_python(function, &
+         int(len_trim(function), kind=c_int), &
+         real(current_time, kind=c_double), c_result, c_result_len, lstat)
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = lstat
+        return
+      else
+        ewrite(-1, *) "Python error, Python string was:"
+        ewrite(-1, *) trim(function)
+        FLAbort("Dying")
+      end if
+    end if
+
+    call c_f_pointer(c_result, tmp_result, (/c_result_len/))
+
+    allocate(result(c_result_len))
+
+    result=tmp_result
+
+    call free_real_vector(c_result)
+
+  end subroutine real_vector_from_python_interface  
 
   subroutine integer_from_python_sp(function, function_len, t, result, stat)
     integer, intent(in) :: function_len
