@@ -344,7 +344,7 @@ def GenerateAnnulusVerticalIntegralBins(nRCoords, nZCoords, nPhiCoords, connectE
   
   return vBins
   
-def GenerateRectangleMesh(xCoords, yCoords, leftId = 1, rightId = 2, topId = 3, bottomId = 4, volumeId = 0):
+def GenerateRectangleMesh(xCoords, yCoords, leftId = 1, rightId = 2, topId = 3, bottomId = 4, volumeId = 0, elementFamilyId = elements.ELEMENT_FAMILY_SIMPLEX):
   """
   Generate a structured 2D linear tet rectangular mesh based upon the given x
   and y coordinates
@@ -375,17 +375,29 @@ def GenerateRectangleMesh(xCoords, yCoords, leftId = 1, rightId = 2, topId = 3, 
     for y in lYCoords:
       mesh.AddNodeCoord([x, y])
 
-  # Generate volume elements
-  for i in range(nXCoords - 1):
-    debug.dprint("Processing x element strip " + str(i + 1) + " of " + str(nXCoords - 1), 2)
-    for j in range(nYCoords - 1):
-      debug.dprint("Processing y element strip " + str(i + 1) + " of " + str(nYCoords - 1), 3)
-      # Out of a quad, construct 2 triangles
-      
-      # Triangle 1
-      mesh.AddVolumeElement(elements.Element([xyToNode[i][j], xyToNode[i + 1][j], xyToNode[i + 1][j + 1]], volumeId))
-      # Triangle 2
-      mesh.AddVolumeElement(elements.Element([xyToNode[i][j], xyToNode[i + 1][j + 1], xyToNode[i][j + 1]], volumeId))
+  if elementFamilyId == elements.ELEMENT_FAMILY_SIMPLEX:
+    # Generate volume elements
+    for i in range(nXCoords - 1):
+      debug.dprint("Processing x element strip " + str(i + 1) + " of " + str(nXCoords - 1), 2)
+      for j in range(nYCoords - 1):
+        debug.dprint("Processing y element strip " + str(i + 1) + " of " + str(nYCoords - 1), 3)
+        # Out of a quad, construct 2 triangles
+        
+        # Triangle 1
+        mesh.AddVolumeElement(elements.Element([xyToNode[i][j], xyToNode[i + 1][j], xyToNode[i + 1][j + 1]], volumeId))
+        # Triangle 2
+        mesh.AddVolumeElement(elements.Element([xyToNode[i][j], xyToNode[i + 1][j + 1], xyToNode[i][j + 1]], volumeId))
+  elif elementFamilyId == elements.ELEMENT_FAMILY_CUBIC:
+    # Generate volume elements
+    for i in range(nXCoords - 1):
+      debug.dprint("Processing x element strip " + str(i + 1) + " of " + str(nXCoords - 1), 2)
+      for j in range(nYCoords - 1):
+        debug.dprint("Processing y element strip " + str(i + 1) + " of " + str(nYCoords - 1), 3)
+        
+        # Quad
+        mesh.AddVolumeElement(elements.Element([xyToNode[i][j], xyToNode[i + 1][j], xyToNode[i][j + 1], xyToNode[i + 1][j + 1]], volumeId))    
+  else:
+    raise Exception("Unsupported element family")
   
   # Generate surface elements...
   # ... for left

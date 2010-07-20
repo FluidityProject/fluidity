@@ -297,7 +297,10 @@ class Stat:
     
     if "ElapsedTime" in self.keys():
       t = self["ElapsedTime"]
-      debug.dprint("Time range: " + str((t[0], t[-1])))
+      if t.shape[0] > 0:
+        debug.dprint("Time range: " + str((t[0], t[-1])))
+      else:
+        debug.dprint("Time range: No data")
     
     return
     
@@ -343,12 +346,9 @@ def JoinStat(*args):
   data = {}
   for key in stat.keys():
     arr = stat[key]
-    if len(arr.shape) == 1:
-      data[key] = numpy.empty(dataIndices[-1], dtype = arr.dtype)
-    elif len(arr.shape) == 2:
-      data[key] = numpy.empty(dataIndices[-1], data[key].shape[1], dtype = arr.dtype)
-    else:
-      raise Exception("Unexpected data rank: " + str(len(arr.shape)))
+    shape = list(arr.shape)
+    shape[0] = dataIndices[-1]
+    data[key] = numpy.empty(shape, dtype = arr.dtype)
     data[key][:dataIndices[1]] = arr[:endIndices[0]]
     data[key][dataIndices[1]:] = calc.Nan()
   delimiter = stat.GetDelimiter()
@@ -358,12 +358,9 @@ def JoinStat(*args):
     for key in stat.keys(): 
       arr = stat[key]
       if not key in data:
-        if len(arr.shape) == 1:
-          data[key] = numpy.empty(dataIndices[-1], dtype = arr.dtype)
-        elif len(arr.shape) == 2:
-          data[key] = numpy.empty(dataIndices[-1], data[key].shape[1], dtype = arr.dtype)
-        else:
-          raise Exception("Unexpected data rank: " + str(len(arr.shape)))
+        shape = list(arr.shape)
+        shape[0] = dataIndices[-1]
+        data[key] = numpy.empty(shape, dtype = arr.dtype)
         data[key][:dataIndices[i]] = calc.Nan()
         data[key][dataIndices[i + 1]:] = calc.Nan()
       data[key][dataIndices[i]:dataIndices[i + 1]] = arr[:endIndices[i]]
@@ -516,10 +513,19 @@ def SplitVtuFilename(filename):
   first = filehandling.StripFileExtension(filename)
   ext = filehandling.FileExtension(filename)
   
-  id = first.split("_")[-1]
-  project = first[:-len(id) - 1]
-  id = int(id)
+  split = first.split("_") + [ext]
   
+  idIndex = None
+  for i, val in enumerate(split[1:]):
+    if utils.IsIntString(val):
+      idIndex = i + 1
+      break
+  assert(not idIndex is None)
+  
+  project = utils.FormLine(split[:idIndex], delimiter = "_", newline = False)
+  id = int(split[idIndex])
+  ext = utils.FormLine([""] + split[idIndex + 1:len(split) - 1], delimiter = "_", newline = False) + split[-1]
+    
   return project, id, ext
   
 def VtuFilename(project, id, ext):
@@ -647,6 +653,29 @@ def FindPFilenames(basename, extension):
 class fluiditytoolsUnittests(unittest.TestCase):
   def testFluidityToolsSupport(self):
     import fluidity_tools
+    
+    return
+    
+  def testSplitVtuFilename(self):
+    project, id, ext = SplitVtuFilename("project_0.vtu")
+    self.assertEquals(project, "project")
+    self.assertEquals(id, 0)
+    self.assertEquals(ext, ".vtu")
+    
+    project, id, ext = SplitVtuFilename("project_1.vtu")
+    self.assertEquals(project, "project")
+    self.assertEquals(id, 1)
+    self.assertEquals(ext, ".vtu")
+    
+    project, id, ext = SplitVtuFilename("project_-1.vtu")
+    self.assertEquals(project, "project")
+    self.assertEquals(id, -1)
+    self.assertEquals(ext, ".vtu")
+    
+    project, id, ext = SplitVtuFilename("project_-1_sub.vtu")
+    self.assertEquals(project, "project")
+    self.assertEquals(id, -1)
+    self.assertEquals(ext, "_sub.vtu")
     
     return
     

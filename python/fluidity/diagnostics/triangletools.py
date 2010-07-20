@@ -86,7 +86,7 @@ def ReadTriangle(baseName):
     line = StripComment(line)
     if len(line.strip()) == 0:
       continue
-    lineSplit =line.split()
+    lineSplit = line.split()
     assert(len(lineSplit) == 1 + dim + nNodeAttrs + nNodeIds)
     mesh.AddNodeCoord([float(coord) for coord in lineSplit[1:dim + 1]])
   assert(mesh.NodeCoordsCount() == nNodes)

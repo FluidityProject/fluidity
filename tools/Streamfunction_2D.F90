@@ -175,7 +175,7 @@ contains
     element_nodes => ele_nodes(rhs, ele)
     
     call addto(matrix, element_nodes, element_nodes, dshape_dot_dshape(dn_t, dn_t, detwei))
-    call addto(rhs, element_nodes, shape_rhs(psi_shape, -vorticity_gi * detwei))
+    call addto(rhs, element_nodes, shape_rhs(psi_shape, vorticity_gi * detwei))
     
   end subroutine assemble_streamfunction_2d_element
 

@@ -34,7 +34,9 @@ def IsIntString(string):
   except ValueError:
     return False
     
-  return str(intVal) == string.strip().lstrip("0")
+  strip = string.strip().lstrip("0")
+        
+  return len(strip) == 0 or str(intVal) == strip
 
 def CanLen(input):
   """
@@ -336,6 +338,10 @@ def TypeCodeToType(typeCode):
     
 class utilsUnittests(unittest.TestCase):
   def testIsIntString(self):
+    self.assertFalse(IsIntString(""))
+    self.assertTrue(IsIntString("0"))
+    self.assertTrue(IsIntString("00"))
+    self.assertTrue(IsIntString(" 00  "))
     self.assertTrue(IsIntString("1"))
     self.assertTrue(IsIntString("0010"))
     self.assertTrue(IsIntString(" -1  "))

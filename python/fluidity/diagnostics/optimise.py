@@ -14,6 +14,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+import ctypes
 import unittest
 
 import fluidity.diagnostics.debug as debug
@@ -54,14 +55,16 @@ def EnablePsyco():
   return
   
 def EnableAll():
-  EnablePsyco()
+  if ctypes.sizeof(ctypes.c_voidp) == 4:
+    EnablePsyco()
   DisableDebugging()
   
   return
   
 class optimiseUnittests(unittest.TestCase):
   def testPsycoSupport(self):
-    import psyco
+    if ctypes.sizeof(ctypes.c_voidp) == 4:
+      import psyco
     
     return
 

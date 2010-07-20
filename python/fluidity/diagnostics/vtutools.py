@@ -170,8 +170,8 @@ def PrintVtu(vtu, debugLevel = 0):
      
 def ModelPvtuToVtu(pvtu):
   """
-  Convert a parallel vtu to a serial vtu but without any fields. Does nothing (except generate a copy)
-  if the supplied vtu is already a serial vtu.
+  Convert a parallel vtu to a serial vtu but without any fields. Does nothing
+  (except generate a copy) if the supplied vtu is already a serial vtu.
   """
   
   # Step 1: Extract the ghost levels, and check that we have a parallel vtu
@@ -1186,6 +1186,15 @@ def VtuAddCellField(vtu, fieldName, field):
   ### End of code from vtktools.py
   
   return
+  
+def VtuRemoveCellField(vtu, fieldName):
+  """
+  Remove a P0 field from the supplied vtu
+  """
+  
+  vtu.ugrid.GetCellData().RemoveArray(fieldName)
+  
+  return
 
 def TimeAveragedVtu(filenames, timeFieldName = "Time", baseMesh = None, baseVtu = None):
   """
@@ -1400,6 +1409,60 @@ def VtuMeshMerge(vtu, mesh, idsName = "IDs"):
     VtuAddCellField(merge, fieldName, VtuGetCellField(vtu, fieldName))
   
   return merge
+    
+def VtuStripFloatingNodes(vtu):
+  """
+  Strip floating (unconnected) nodes from the supplied vtu
+  """
+  
+  nodeUsed = numpy.array([False for i in range(vtu.ugrid.GetNumberOfPoints())])
+  for i in range(vtu.ugrid.GetNumberOfCells()):
+    cell = vtu.ugrid.GetCell(i)
+    nodeIds = cell.GetPointIds()
+    nodes = [nodeIds.GetId(i) for i in range(nodeIds.GetNumberOfIds())]
+    nodeUsed[nodes] = True
+  
+  nodeMap = [None for i in range(vtu.ugrid.GetNumberOfPoints())]
+  nnodes = 0
+  for node, used in enumerate(nodeUsed):
+    if used:
+      nodeMap[node] = nnodes
+      nnodes += 1
+  nFloatingNodes = vtu.ugrid.GetNumberOfPoints() - nnodes
+  debug.dprint("Floating nodes: " + str(nFloatingNodes))
+  if nFloatingNodes == 0:
+    return
+  
+  coords = vtu.GetLocations()
+  points = vtk.vtkPoints()
+  points.SetDataTypeToDouble()
+  for node, coord in enumerate(coords):
+    if nodeUsed[node]:
+      points.InsertNextPoint(coord[0], coord[1], coord[2])
+  vtu.ugrid.SetPoints(points)
+  
+  cells = vtk.vtkCellArray()
+  for i in range(vtu.ugrid.GetNumberOfCells()):
+    cell = vtu.ugrid.GetCell(i)
+    nodeIds = cell.GetPointIds()
+    nodes = [nodeIds.GetId(i) for i in range(nodeIds.GetNumberOfIds())]
+    for i, node in enumerate(nodes):
+      assert(not nodeMap[node] is None)
+      nodeIds.SetId(i, nodeMap[node])      
+    cells.InsertNextCell(cell)
+  vtu.ugrid.SetCells(vtu.ugrid.GetCellTypesArray(), vtu.ugrid.GetCellLocationsArray(), cells)
+  
+  for fieldName in vtu.GetFieldNames():
+    field = vtu.GetField(fieldName)
+    shape = list(field.shape)
+    shape[0] = nnodes
+    nField = numpy.empty(shape)
+    for node, nNode in enumerate(nodeMap):
+      if not nNode is None:
+        nField[nNode] = field[node]
+    vtu.AddField(fieldName, nField)
+  
+  return
     
 class vtutoolsUnittests(unittest.TestCase):
   def testVtkSupport(self):

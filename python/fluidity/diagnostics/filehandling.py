@@ -30,10 +30,28 @@ import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.utils as utils
 
 def FileExtension(filename):
-  return "." + filename.split(".")[-1]
+  """
+  Return the file extension of the supplied filename (including the ".")
+  """
+
+  split = os.path.basename(filename).split(".")
+  
+  if len(split) == 1:
+    return ""
+  else:
+    return "." + split[-1]
 
 def StripFileExtension(filename):
-  return utils.FormLine(filename.split(".")[:-1], delimiter = ".", newline = False)
+  """
+  Strip the file extension from the supplied filename
+  """
+
+  split = os.path.basename(filename).split(".")
+  
+  if len(split) == 1:
+    return filename
+  else:
+    return os.path.join(os.path.dirname(filename), utils.FormLine(split[:-1], delimiter = ".", newline = False))
 
 def Touch(filename):
   """
@@ -159,12 +177,16 @@ class filehandlingUnittests(unittest.TestCase):
   def testFileExtension(self):
     self.assertEquals(FileExtension("a.b"), ".b")
     self.assertEquals(FileExtension("/one/two.three.four"), ".four")
+    self.assertEquals(FileExtension("a"), "")
+    self.assertEquals(FileExtension("../one.two"), ".two")
     
     return
     
   def testStripFileExtension(self):
     self.assertEquals(StripFileExtension("a.b"), "a")
     self.assertEquals(StripFileExtension("/one/two.three.four"), "/one/two.three")
+    self.assertEquals(StripFileExtension("a"), "a")
+    self.assertEquals(StripFileExtension("../one.two"), "../one")
     
     return
 

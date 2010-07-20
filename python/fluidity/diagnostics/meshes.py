@@ -20,9 +20,15 @@ Finite element mesh classes
 
 import unittest
 
+import fluidity.diagnostics.debug as debug
+
+try:
+  import numpy
+except:
+  debug.deprint("Warning: Failed to import numpy module")
+
 import fluidity.diagnostics.bounds as bounds
 import fluidity.diagnostics.calc as calc
-import fluidity.diagnostics.debug as debug
 import fluidity.diagnostics.elements as elements
 import fluidity.diagnostics.events as events
 import fluidity.diagnostics.mesh_halos as mesh_halos
@@ -117,6 +123,9 @@ class Mesh(events.Evented):
 
     return
     
+  def _RemoveNodeCoordByIndex(self, index):
+    del self._nodeCoords[index]
+    
   def ValidNode(self, node):
     return node >= 0 and node<= self.NodeCoordsCount() - 1
     
@@ -151,7 +160,7 @@ class Mesh(events.Evented):
     return
     
   def RemoveVolumeElementByIndex(self, index):
-    self._volumeElements.remove(self._volumeElements[index])
+    del self._volumeElements[index]
     
     return
     
@@ -208,7 +217,7 @@ class Mesh(events.Evented):
     return
     
   def RemoveSurfaceElementByIndex(self, index):
-    self._surfaceElements.remove(self._surfaceElements[index])
+    del self._surfaceElements[index]
     
     return
     
@@ -328,6 +337,22 @@ class Mesh(events.Evented):
     
     return vtu
   
+  def NNList(self):
+    nnList = [[] for i in range(self.NodeCoordsCount())]
+    for element in self.GetSurfaceElements() + self.GetVolumeElements():
+      type = element.GetType()
+      assert(type.GetElementFamilyId() == elements.ELEMENT_FAMILY_SIMPLEX and type.GetDegree() == 1)
+      nodes = element.GetNodes()
+      for node in nodes:
+        for cNode in nodes:
+          if not cNode == node:
+            nnList[node].append(cNode)
+    
+    for nList in nnList:
+      utils.StripListDuplicates(nList)
+      
+    return nnList
+  
   def NeList(self):
     neList = [[] for i in range(self.NodeCoordsCount())]
     for i, element in enumerate(self.GetVolumeElements()):
@@ -353,7 +378,7 @@ class Mesh(events.Evented):
             eeList[i].append(ele)
     
     return eeList
-   
+     
 def VtuToMesh(vtu, idsName = "IDs"):
   """
   Construct a mesh from the supplied vtu
@@ -361,13 +386,14 @@ def VtuToMesh(vtu, idsName = "IDs"):
   
   dim = vtktools.VtuDim(vtu)
   boundingBox = vtktools.VtuBoundingBox(vtu)
-  coordMask = boundingBox.UsedDimCoordMask()
+  dimIndices = boundingBox.UsedDimIndices()
   
   mesh = Mesh(dim)
   
   # Read the points
   for location in vtu.GetLocations():
-    mesh.AddNodeCoord(utils.MaskList(list(location),  coordMask))
+    location = numpy.array(location)
+    mesh.AddNodeCoord(location[dimIndices])
     
   # Read the boundary / region IDs
   cellData = vtu.ugrid.GetCellData().GetArray(idsName)

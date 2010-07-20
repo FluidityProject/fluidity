@@ -361,6 +361,7 @@ def WriteMsh(mesh, filename, binary = True):
     
     iArr = array.array("i", [1])
     iArr.tofile(fileHandle)
+    fileHandle.write("\n")
     
     fileHandle.write("$EndMeshFormat\n")
     
@@ -378,7 +379,8 @@ def WriteMsh(mesh, filename, binary = True):
       iArr = array.array("i", [i + 1])
       rArr = array.array("d", nodeCoord)
       iArr.tofile(fileHandle)
-      rArr.tofile(fileHandle)      
+      rArr.tofile(fileHandle) 
+    fileHandle.write("\n")     
     
     fileHandle.write("$EndNodes\n")
     
@@ -408,6 +410,7 @@ def WriteMsh(mesh, filename, binary = True):
         iArr.tofile(fileHandle)
         index += 1
     assert(index == mesh.SurfaceElementCount() + mesh.VolumeElementCount() + 1)
+    fileHandle.write("\n")
     
     fileHandle.write("$EndElements\n")
   else:
