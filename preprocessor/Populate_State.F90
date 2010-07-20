@@ -3133,8 +3133,8 @@ contains
        if(have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/mass_terms/lump_mass_matrix")) then
          FLExit("Should not lump mass matrix in large-scale ocean simulations")
        end if
-       if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/bassi_rebay")) then
-         FLExit("Should have Bassi Rebay Viscosity under Velocity")
+       if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/bassi_rebay").and. .not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/compact_discontinuous_galerkin")) then
+         FLExit("Should have Bassi Rebay or compact discontinuous galerkin Viscosity scheme (under Velocity)")
        end if
   end if
   
