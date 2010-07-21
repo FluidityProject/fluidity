@@ -115,7 +115,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import sqrt, pi, exp
   x = X[0]
   nu = 0.025
@@ -164,6 +164,11 @@
           <relaxation replaces="ITHETA">
             <real_value rank="0">1.0</real_value>
           </relaxation>
+          <discontinuous_galerkin>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.1</real_value>
+            </maximum_courant_number_per_subcycle>
+          </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
@@ -188,7 +193,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import sqrt, pi, exp, cos, sin
   x = X[0]
   y = X[1]
@@ -306,6 +311,23 @@
     <scalar_field name="PressureError" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="PressureExact" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DG_CourantNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>

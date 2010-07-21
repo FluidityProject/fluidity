@@ -234,6 +234,8 @@
       type(scalar_field), pointer :: Courant_number_field
       !U component of scalar, used for slope limiter
       type(scalar_field) :: u_cpt
+      !temporary vector field for subcycling
+      type(vector_field) :: u_sub
 
       logical :: apply_kmk, assemble_kmk
       logical :: have_viscosity, stress_form, have_coriolis, diagonal
@@ -271,7 +273,7 @@
 
       subcycle=have_option(trim(u%option_path)//&
            "/prognostic/temporal_discretisation/&
-           &discontinuous_galerkin/advection_cycling")
+           &discontinuous_galerkin/maximum_courant_number_per_subcycle")
       !Always limit slope using VB limiter if subcycling
       !If we get suitable alternative limiter options we shall use them
       limit_slope = subcycle
@@ -280,8 +282,10 @@
               "/prognostic/temporal_discretisation/&
               &discontinuous_galerkin/maximum_courant_number_per_subcycle",&
               &Max_Courant_number)
-         Courant_number_field => extract_scalar_field(state, "DG_CourantNumber")
-         call calculate_diagnostic_variable(state, "DG_CourantNumber", &
+         Courant_number_field => &
+              extract_scalar_field(state(istate), "DG_CourantNumber")
+         call calculate_diagnostic_variable(state(istate), &
+              "DG_CourantNumber", &
               & Courant_number_field)
          subcycles = ceiling( maxval(Courant_number_field%val)&
               &/Max_Courant_number)
@@ -801,22 +805,26 @@
 
           !Apply advection subcycling
           if(subcycle) then
+             call allocate(u_sub, u%dim, u%mesh, "SubcycleU")
+             u_sub%option_path = trim(u%option_path)
+             call set(u_sub,u)
+             ewrite(2,*) 'Applying subcycling for advection'
              do i=1, subcycles                
                 ! dU = Advection * U
                 call zero(delta_U)
-                call mult_addto(delta_U, subcycle_m, U)
+                call mult_addto(delta_U, subcycle_m, U_sub)
                 ! dU = dU + RHS
                 !call addto(delta_T, RHS, -1.0)
                 ! dU = M^(-1) dU
                 call dg_apply_mass(inverse_mass, delta_U)
                 
                 ! U = U + dt/s * dU
-                call addto(U, delta_U, scale=-dt/subcycles)
-                call halo_update(U)
+                call addto(U_sub, delta_U, scale=-dt/subcycles)
+                call halo_update(U_sub)
                 if (limit_slope) then
                    ! Filter wiggles from U
                    do d =1, mesh_dim(u)
-                      u_cpt = extract_scalar_field_from_vector_field(u,d)
+                      u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
                       call limit_vb(state(istate),u_cpt)
                    end do
                 end if
@@ -829,8 +837,8 @@
              !\theta u^{n+1} + (1-\theta)u^n
              !=\theta\Delta t\Delta u + u^n
              !so right-hand side stuff gets a minus sign
-             call set(delta_u,old_u)
-             call addto(delta_u,u,-1.0)
+             call set(delta_u,u)
+             call addto(delta_u,u_sub,-1.0)
              call allocate(mom_tmp,mom_rhs%dim,&
                   &mom_rhs%mesh,name='TempMomMem')
              call mult(mom_tmp,big_m,delta_u)
