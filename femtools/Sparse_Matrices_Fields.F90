@@ -36,6 +36,10 @@ implicit none
           csr_mult_vector_scalar, csr_mult_vector_vector, csr_mult_vector
   end interface
   
+  interface mult_addto
+     module procedure block_csr_mult_addto_vector, csr_mult_addto_scalar
+  end interface
+
   interface mult_T
      module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar
   end interface
@@ -74,6 +78,26 @@ contains
     
   end subroutine csr_mult_scalar
 
+  subroutine csr_mult_addto_scalar(x, A, b)
+    !!< Replace x with x+A*b
+    type(scalar_field), intent(inout) :: x
+    type(csr_matrix), intent(in) :: A
+    type(scalar_field), intent(in) :: b
+    real, dimension(:), allocatable :: tmp,tmp1
+    real, dimension(:), pointer :: x_ptr
+
+    select case(b%field_type)
+    case(FIELD_TYPE_NORMAL)
+      call mult_addto(x%val, A, b%val)
+    case(FIELD_TYPE_CONSTANT)
+      allocate(tmp(size(x%val)))
+      tmp=b%val(1)
+      call mult_addto(x%val, A, tmp)
+      deallocate(tmp)
+    end select
+    
+  end subroutine csr_mult_addto_scalar
+
   subroutine csr_mult_vector(x, A, b)
     !!< Calculate x=A*b
     type(vector_field), intent(inout) :: x
@@ -91,6 +115,29 @@ contains
     end do
 
   end subroutine csr_mult_vector
+
+  subroutine block_csr_mult_addto_vector(x, A, b)
+    !!< Calculate x=A*b
+    type(vector_field), intent(inout) :: x
+    type(block_csr_matrix), intent(in) :: A
+    type(vector_field), intent(in) :: b
+    
+    integer :: i, j
+    type(scalar_field) :: x_comp, b_comp
+    type(csr_matrix) :: A_block
+
+    assert(x%dim==b%dim)
+    call zero(x)
+    do i = 1, b%dim
+       b_comp = extract_scalar_field(b, i)
+       do j = 1, b%dim
+          x_comp = extract_scalar_field(x, j)
+          A_block = block(A,i,j)
+          call mult_addto(x_comp, A_block, b_comp)
+       end do
+    end do
+
+  end subroutine block_csr_mult_addto_vector
 
   subroutine csr_diag_mult_scalar(A, b)
     !!< Calculate A_{i,i}=A_{i,i}*b_{i}

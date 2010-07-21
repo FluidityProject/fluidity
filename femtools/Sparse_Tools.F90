@@ -194,7 +194,7 @@ module sparse_tools
        & mult,mult_T, zero_column, addref, incref, decref, has_references, &
        & csr_matrix_pointer, block_csr_matrix_pointer, &
        & csr_sparsity, csr_sparsity_pointer, logical_array_ptr,&
-       & initialise_inactive, has_inactive
+       & initialise_inactive, has_inactive, mult_addto
 
   TYPE node
      !!< A node in a linked list
@@ -351,6 +351,10 @@ module sparse_tools
 
   interface mult
      module procedure csr_mult
+  end interface
+
+  interface mult_addto
+     module procedure csr_mult_addto
   end interface
 
   interface mult_T
@@ -4372,6 +4376,28 @@ END SUBROUTINE POSINM_COLOUR
     end do
    
   end subroutine csr_mult
+
+  subroutine csr_mult_addto(vector_out,mat,vector_in)
+    !!< Multiply a csr_matrix by a vector,
+    !!< result is added vector_out
+
+    !interface variables
+    real, dimension(:), intent(in) :: vector_in
+    type(csr_matrix), intent(in) :: mat
+    real, dimension(:), intent(inout) :: vector_out
+
+    !local variables
+    integer :: i
+
+    assert(size(vector_in)==size(mat,2))
+    assert(size(vector_out)==size(mat,1))
+
+    do i = 1, size(vector_out)
+       vector_out(i) = vector_out(i) + &
+            &sum( vector_in(row_m(mat,i)) * row_val_ptr(mat,i) )
+    end do
+   
+  end subroutine csr_mult_addto
 
   subroutine dcsr_mult(m,v,mv)
     type(dynamic_csr_matrix), intent(in) :: m
