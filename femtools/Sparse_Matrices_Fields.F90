@@ -130,13 +130,18 @@ contains
     call zero(x)
     do i = 1, b%dim
        b_comp = extract_scalar_field(b, i)
-       do j = 1, b%dim
-          x_comp = extract_scalar_field(x, j)
-          A_block = block(A,i,j)
+       if(A%diagonal) then
+          x_comp = extract_scalar_field(x, i)
+          A_block = block(A,i,i)
           call mult_addto(x_comp, A_block, b_comp)
-       end do
+       else
+          do j = 1, b%dim
+             x_comp = extract_scalar_field(x, j)
+             A_block = block(A,i,j)
+             call mult_addto(x_comp, A_block, b_comp)
+          end do
+       end if
     end do
-
   end subroutine block_csr_mult_addto_vector
 
   subroutine csr_diag_mult_scalar(A, b)

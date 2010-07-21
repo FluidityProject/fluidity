@@ -495,7 +495,9 @@ contains
     type(scalar_field) :: s_field
     !
     do i = 1, v_field%dim
-       FLAbort('not finished yet')
+       mass_comp = block(block_mass,i,i)
+       s_field = extract_scalar_field_from_vector_field(v_field,i)
+       call dg_apply_mass(mass_comp,s_field)
     end do
   end subroutine block_csr_dg_apply_mass_vector
   
