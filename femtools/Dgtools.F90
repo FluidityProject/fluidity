@@ -36,7 +36,7 @@ interface get_lumped_mass
 end interface
 
 interface dg_apply_mass
-   module procedure csr_dg_apply_mass
+   module procedure csr_dg_apply_mass_scalar, block_csr_dg_apply_mass_vector
 end interface
    
 interface dg_add_mass
@@ -460,7 +460,7 @@ contains
  
   end subroutine csr_dg_inverse_mass_from_mass
 
-  subroutine csr_dg_apply_mass(mass, field)
+  subroutine csr_dg_apply_mass_scalar(mass, field)
     !!< return field=mass*field. This is basically an optimised in-place
     !!< matrix multiply.
     type(csr_matrix), intent(in) :: mass
@@ -484,8 +484,21 @@ contains
        colm_pos=colm_pos+nloc**2
     end do
     
-  end subroutine csr_dg_apply_mass
+  end subroutine csr_dg_apply_mass_scalar
 
+  subroutine block_csr_dg_apply_mass_vector(block_mass, v_field)
+    type(block_csr_matrix), intent(in) :: block_mass
+    type(vector_field), intent(in) :: v_field
+    !
+    integer :: i
+    type(csr_matrix) :: mass_comp
+    type(scalar_field) :: s_field
+    !
+    do i = 1, v_field%dim
+       FLAbort('not finished yet')
+    end do
+  end subroutine block_csr_dg_apply_mass_vector
+  
   subroutine csr_dg_add_mass(matrix, mass)
     !!< Add mass to matrix. This is an optimised addto operation.
     type(csr_matrix), intent(inout) :: matrix
