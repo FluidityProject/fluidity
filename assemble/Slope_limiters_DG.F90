@@ -40,7 +40,7 @@ use vtk_interfaces
 implicit none
 
 private
-public limit_slope_dg, limit_fpn
+public limit_slope_dg, limit_fpn, limit_vb
 
 integer, parameter :: LIMITER_MINIMAL=1
 integer, parameter :: LIMITER_COCKBURN=2
