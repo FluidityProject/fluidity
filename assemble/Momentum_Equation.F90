@@ -907,10 +907,11 @@
                    call LongitudeLatitude(node_val(position,node), long,&
                         & lat, height) 
                 else 
-                   FLExit("Tidal forcing in non spherical geometries is yet &
-                        &to be added. & 
-                        & Would you like to add this functionality?") 
-                end if 
+                   FLExit("Tidal forcing in non spherical geometries &
+                        is yet to be added. & 
+                        & Would you like to &
+                        & add this functionality?") 
+                end if
                  eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
                       &,long*acos(-1.0)/180.0,current_time,1.0) 
                  eqtide=love_number*eqtide 
@@ -919,7 +920,7 @@
               do node=1,node_count(position) 
                  call set(combined_p, node, node_val(p_theta, node)&
                       &-node_val(tidal_pressure, node)) 
-              end do 
+              end do
               call mult_T(delta_u, ct_m, combined_p) 
               call deallocate(tidal_pressure) 
               call deallocate(combined_p) 
