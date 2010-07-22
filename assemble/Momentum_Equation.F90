@@ -907,10 +907,10 @@
                    call LongitudeLatitude(node_val(position,node), long,&
                         & lat, height) 
                 else 
-                   FLExit("Tidal forcing in non spherical geometries &
-                        is yet to be added. & 
-                        & Would you like to &
-                        & add this functionality?") 
+                   ewrite(-1,*) "Tidal forcing in non spherical geometries&
+                        &is yet to be added. Would you like &
+                        &to add this functionality?"
+                   FLAbort('Exiting as code missing')
                 end if
                  eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
                       &,long*acos(-1.0)/180.0,current_time,1.0) 
