@@ -165,25 +165,28 @@ contains
          &/discontinuous_galerkin/advection_scheme&
          &/project_velocity_to_continuous")) then
 
-       call get_option(trim(T%option_path)&
-            //"/prognostic/spatial_discretisation&
-            &/discontinuous_galerkin/advection_scheme&
-            &/project_velocity_to_continuous/mesh/name",pmesh_name) 
+       lvelocity_name="Projected"//trim(lvelocity_name)
 
-       U_nl=>extract_vector_field(state, lvelocity_name)
-       pmesh=>extract_mesh(state, pmesh_name)
-       X=>extract_vector_field(state, "Coordinate")
+       if(.not.has_scalar_field(state, lvelocity_name)) then
+          
+          call get_option(trim(T%option_path)&
+               //"/prognostic/spatial_discretisation&
+               &/discontinuous_galerkin/advection_scheme&
+               &/project_velocity_to_continuous/mesh/name",pmesh_name) 
 
-       lvelocity_name=trim(lvelocity_name)//"Projected"
+          U_nl=>extract_vector_field(state, lvelocity_name)
+          pmesh=>extract_mesh(state, pmesh_name)
+          X=>extract_vector_field(state, "Coordinate")
+          
+          call allocate(pvelocity, U_nl%dim, pmesh, lvelocity_name)
+          
+          call project_field(U_nl, pvelocity, X)
+          
+          call insert(state, pvelocity, lvelocity_name)
 
-       call allocate(pvelocity, U_nl%dim, pmesh, lvelocity_name)
-       
-       call project_field(U_nl, pvelocity, X)
-
-       call insert(state, pvelocity, lvelocity_name)
-
-       ! Discard the additional reference.
-       call deallocate(pvelocity)
+          ! Discard the additional reference.
+          call deallocate(pvelocity)
+       end if
 
     end if
 

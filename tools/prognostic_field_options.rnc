@@ -511,6 +511,15 @@ prognostic_velocity_field =
                         empty
                      }
                   ),
+                  ## Project the advecting velocity to continuous
+                  ## space. This is useful for obtaining bounded
+                  ## advection schemes.
+                  element project_velocity_to_continuous {
+                     ## The mesh to which the projection should occur.
+                     element mesh {
+                        attribute name { xsd:string }
+                     }
+                  }?,
                   ## Integrate the advection terms of the momentum equation by parts.
                   ##
                   ## Integrating the advection term by parts is

@@ -32,6 +32,7 @@ module momentum_DG
   use elements
   use sparse_tools
   use fetools
+  use fefields
   use fields
   use sparse_matrices_fields
   use state_module
@@ -176,7 +177,13 @@ contains
 
     !! Position, velocity and source fields.
     type(vector_field), pointer :: U_mesh, X_old, X_new
-    type(vector_field) :: U_nl
+    type(vector_field), target :: U_nl
+    !! Projected velocity field for them as needs it. 
+    type(vector_field), target :: pvelocity
+    type(vector_field), pointer :: advecting_velocity
+    !! Mesh for projected velocity.
+    type(mesh_type) :: pmesh
+    character(len=FIELD_NAME_LEN) :: pmesh_name
 
     !! Viscosity
     type(tensor_field) :: Viscosity
@@ -229,6 +236,30 @@ contains
          &/advection_scheme/none")) then
        U_nl=extract_vector_field(state, "NonlinearVelocity")
        call incref(U_nl)
+
+       if(have_option(trim(U%option_path)//"/prognostic/&
+            &spatial_discretisation/discontinuous_galerkin/&
+            &advection_scheme/project_velocity_to_continuous")) then
+
+          if(.not.has_scalar_field(state, "ProjectedNonlinearVelocity")) then
+          
+             call get_option(trim(U%option_path)//"/prognostic/&
+                  &spatial_discretisation/discontinuous_galerkin/&
+                  &advection_scheme/project_velocity_to_continuous&
+                  &/mesh/name",pmesh_name)
+             pmesh = extract_mesh(state, pmesh_name)
+             call allocate(pvelocity, U_nl%dim, pmesh, &
+                  &"ProjectedNonlinearVelocity")
+             call project_field(U_nl, pvelocity, X)
+             call insert(state, pvelocity, U%name//"Projected")
+             advecting_velocity => pvelocity
+
+             ! Discard the additional reference.
+             call deallocate(pvelocity)
+          end if
+       else
+          advecting_velocity => U_nl
+       end if
        have_advection = .true.
     else
        ! Forcing a zero NonlinearVelocity will disable advection.
@@ -236,6 +267,7 @@ contains
             FIELD_TYPE_CONSTANT)
        call zero(U_nl)
        have_advection=.false.
+       advecting_velocity => U_nl
     end if
     ewrite(2, *) "Include advection? ", have_advection
 
@@ -492,7 +524,7 @@ contains
     element_loop: do ELE=1,element_count(U)
        
        call construct_momentum_element_dg(ele, big_m, rhs, &
-            & X, U, U_nl, U_mesh, X_old, X_new, &
+            & X, U, advecting_velocity, U_mesh, X_old, X_new, &
             & Source, Buoyancy, gravity, Abs, Viscosity, &
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &

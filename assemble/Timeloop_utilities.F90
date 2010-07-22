@@ -28,6 +28,7 @@
 
 module timeloop_utilities
   use state_module
+  use FEFields
   use fields
   use spud
   use signal_vars
@@ -242,6 +243,8 @@ contains
     type(vector_field) :: vfield, old_vfield, nl_vfield
     type(tensor_field) :: tfield, old_tfield, nl_tfield
 
+    !For projecting velocity to continuous 
+    type(vector_field) :: U_nl, pvelocity, X
     type(vector_field), pointer :: velocity
 
     do s=1,size(state)
@@ -292,7 +295,7 @@ contains
 
               call set(nl_vfield, vfield, old_vfield, itheta)
 
-            end if
+           end if
 
           end if
 
@@ -321,6 +324,17 @@ contains
        end do
 
     end do
+
+    !Compute velocity field projected to continuous for DG advection
+    !Not currently coded for multimaterial/phase as I don't understand
+    !how it works
+    if(has_vector_field(state(1),"ProjectedNonlinearVelocity")) then
+       U_nl = extract_vector_field(state(1),"NonlinearVelocity")
+       pvelocity = extract_vector_field(state(1),&
+            "ProjectedNonlinearVelocity")
+       X = extract_vector_field(state(1),"Coordinate")
+       call project_field(U_nl,pvelocity,X)
+    end if
 
   end subroutine relax_to_nonlinear
 

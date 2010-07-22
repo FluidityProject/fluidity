@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <define name="prognostic_scalar_field">
     <ref name="scalar_equation_choice"/>
     <ref name="spatial_discretisation_options"/>
@@ -40,7 +40,7 @@ regions of the mesh (defined by region_ids).  In this case
 each initial_condition
 requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
-            <data type="string"/>
+            <data type="string" datatypeLibrary=""/>
           </attribute>
           <ref name="region_ids"/>
           <ref name="input_choice_initial_condition_real"/>
@@ -54,7 +54,7 @@ requires a distinct name for the options dictionary.</a:documentation>
           <value>boundary, TTPER1 TTPER2 TTPERI</value>
         </attribute>
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -621,6 +621,19 @@ Int grad u.kappa.grad v dV</a:documentation>
                 <empty/>
               </element>
             </choice>
+            <optional>
+              <element name="project_velocity_to_continuous">
+                <a:documentation>Project the advecting velocity to continuous
+space. This is useful for obtaining bounded
+advection schemes.</a:documentation>
+                <element name="mesh">
+                  <a:documentation>The mesh to which the projection should occur.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+              </element>
+            </optional>
             <element name="integrate_advection_by_parts">
               <a:documentation>Integrate the advection terms of the momentum equation by parts.
 
@@ -785,7 +798,7 @@ regions of the mesh (defined by region_ids).  In this case
 each initial_condition
 requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
-            <data type="string"/>
+            <data type="string" datatypeLibrary=""/>
           </attribute>
           <ref name="region_ids"/>
           <ref name="input_choice_initial_condition_vector"/>
@@ -799,7 +812,7 @@ requires a distinct name for the options dictionary.</a:documentation>
           <value>boundary, TMPER1 TMPER2 TMPERI</value>
         </attribute>
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -1212,7 +1225,7 @@ each materials contribution
 to the C_P^T matrix.  Leave unselected for no normalisation.
 Allows the selection of an arbitrary field.</a:documentation>
                 <attribute name="name">
-                  <data type="string"/>
+                  <data type="string" datatypeLibrary=""/>
                 </attribute>
                 <empty/>
               </element>
@@ -1255,7 +1268,7 @@ regions of the mesh (defined by region_ids).  In this case
 each initial_condition
 requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
-            <data type="string"/>
+            <data type="string" datatypeLibrary=""/>
           </attribute>
           <ref name="region_ids"/>
           <ref name="input_choice_initial_condition_real"/>
@@ -1265,7 +1278,7 @@ requires a distinct name for the options dictionary.</a:documentation>
     <zeroOrMore>
       <element name="boundary_conditions">
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -1387,7 +1400,7 @@ regions of the mesh (defined by region_ids).  In this case
 each initial_condition
 requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
-            <data type="string"/>
+            <data type="string" datatypeLibrary=""/>
           </attribute>
           <ref name="region_ids"/>
           <ref name="input_choice_initial_condition_real"/>
@@ -1400,7 +1413,7 @@ requires a distinct name for the options dictionary.</a:documentation>
 If applied, this would normally be a homogeneous bc on the top but
 this only makes sense when excluding coriolis.</a:documentation>
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -1440,7 +1453,7 @@ this only makes sense when excluding coriolis.</a:documentation>
         <a:documentation>Apply a strong dirichlet boundary condition to VerticalBalancePressure.
 This is normally be a homogeneous bc on the top surface.</a:documentation>
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -1732,7 +1745,7 @@ regions of the mesh (defined by region_ids).  In this case
 each initial_condition
 requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
-            <data type="string"/>
+            <data type="string" datatypeLibrary=""/>
           </attribute>
           <ref name="region_ids"/>
           <ref name="input_choice_initial_condition_real"/>
@@ -1746,7 +1759,7 @@ requires a distinct name for the options dictionary.</a:documentation>
           <value>boundary, TTPER1 TTPER2 TTPERI</value>
         </attribute>
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -1764,13 +1777,13 @@ requires a distinct name for the options dictionary.</a:documentation>
                 <oneOrMore>
                   <element name="tidal">
                     <attribute name="file_name">
-                      <data type="string"/>
+                      <data type="string" datatypeLibrary=""/>
                     </attribute>
                     <attribute name="variable_name_amplitude">
-                      <data type="string"/>
+                      <data type="string" datatypeLibrary=""/>
                     </attribute>
                     <attribute name="variable_name_phase">
-                      <data type="string"/>
+                      <data type="string" datatypeLibrary=""/>
                     </attribute>
                     <attribute name="name">
                       <a:documentation>See E.W. Schwiderski - Rev. Geophys. Space
@@ -1798,7 +1811,7 @@ for details of these constituent.</a:documentation>
 A prescribed NEMO pressure scalar field must be set to use this option.
 Set the name of the prescribed NEMO pressure scalar field below.</a:documentation>
                 <attribute name="field_name">
-                  <data type="string"/>
+                  <data type="string" datatypeLibrary=""/>
                 </attribute>
               </element>
             </choice>
@@ -1880,7 +1893,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
       <attribute name="name">
-        <data type="string"/>
+        <data type="string" datatypeLibrary=""/>
       </attribute>
       <element name="surface_ids">
         <a:documentation>Surface id:</a:documentation>
@@ -1906,7 +1919,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
       <element name="boundary_conditions">
         <a:documentation>Boundary conditions</a:documentation>
         <attribute name="name">
-          <data type="string"/>
+          <data type="string" datatypeLibrary=""/>
         </attribute>
         <element name="surface_ids">
           <a:documentation>Surface id:</a:documentation>
@@ -1973,7 +1986,7 @@ Works for all discretisation types.</a:documentation>
 to be used in the Advection Diffusion Equation
 
 this should be a scalar field</a:documentation>
-            <data type="string"/>
+            <data type="string" datatypeLibrary=""/>
           </element>
         </optional>
       </element>
@@ -2007,7 +2020,7 @@ Clearly this requires a Density field to be present</a:documentation>
           <element name="density">
             <a:documentation>Select density to use in the Conservation of Mass Equation</a:documentation>
             <attribute name="name">
-              <data type="string"/>
+              <data type="string" datatypeLibrary=""/>
             </attribute>
           </element>
         </choice>
@@ -2049,7 +2062,7 @@ Clearly this requires a Density field to be present</a:documentation>
           <element name="density">
             <a:documentation>Select density to use in the Reduced Conservation of Mass Equation</a:documentation>
             <attribute name="name">
-              <data type="string"/>
+              <data type="string" datatypeLibrary=""/>
             </attribute>
           </element>
         </choice>
@@ -2090,7 +2103,7 @@ Whatever field is selected must be present.</a:documentation>
             <a:documentation>Select density to use in the Internal Energy Equation
 Whatever field is selected must be present.</a:documentation>
             <attribute name="name">
-              <data type="string"/>
+              <data type="string" datatypeLibrary=""/>
             </attribute>
           </element>
         </choice>
