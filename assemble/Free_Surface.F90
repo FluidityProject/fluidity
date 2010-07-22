@@ -39,6 +39,7 @@ use parallel_tools
 use halos
 use eventcounter
 use integer_set_module
+use field_options
 implicit none
 
 private
@@ -836,7 +837,7 @@ contains
 
   integer, dimension(:), pointer :: surface_element_list
   type(vector_field), pointer:: x, u, vertical_normal
-  type(scalar_field), pointer:: p, bottomdist, topdist, dmin_field
+  type(scalar_field), pointer:: p, dmin_field
   type(scalar_field), pointer:: dmin_pfield
   character(len=FIELD_NAME_LEN):: bctype
   character(len=OPTION_PATH_LEN) fs_option_path
@@ -860,8 +861,6 @@ contains
              ! Update WettingDryingAlpha
              call get_reference_density_from_options(state, u, rho0)
              call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
-             bottomdist => extract_scalar_field(state, "DistanceToBottom")
-             topdist => extract_scalar_field(state, "DistanceToTop")
              dmin_field => get_wettingdrying_dmin(state)
              call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/dminoffset/value", dminoffset)
              call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/d0offset/value", d0offset)
@@ -878,7 +877,7 @@ contains
                  ! Calculate alpha for each surface element
                  face_loop: do j=1, size(surface_element_list)
                    sele=surface_element_list(j)
-                   call calculate_alpha(sele, gravity_magnitude, p, bottomdist, topdist, dmin_pfield, dminoffset, d0offset, alpha )
+                   call calculate_alpha(sele, gravity_magnitude, p, dmin_pfield, dminoffset, d0offset, alpha )
                    call set(scalar_surface_field, &
                      ele_nodes(scalar_surface_field, j), &
                      alpha)
@@ -891,14 +890,14 @@ contains
    deallocate(alpha)
 
   contains
-   subroutine calculate_alpha(sele, gravity_magnitude, p, bottomdist, topdist, dmin_pfield, dminoffset, d0offset, alpha)
-        type(scalar_field), pointer, intent(in) :: p, bottomdist, topdist, dmin_pfield
+   subroutine calculate_alpha(sele, gravity_magnitude, p, dmin_pfield, dminoffset, d0offset, alpha)
+        type(scalar_field), pointer, intent(in) :: p, dmin_pfield
         integer, intent(in) :: sele
         real, intent(in) :: gravity_magnitude, dminoffset, d0offset
         real, dimension(face_loc(p, sele)), intent(inout) :: alpha
         real, dimension(face_loc(p, sele)) :: dmin, d0, d
 
-        !!! Tha calculation of alpha is based on pressure, thus pressure and free surface don't have to be coupled.
+        !!! The calculation of alpha is based on pressure, thus pressure and free surface don't have to be coupled.
         alpha = -gravity_magnitude * face_val(dmin_pfield, sele) - face_val(p, sele)
         alpha = alpha/(gravity_magnitude * (dminoffset - d0offset))
         alpha = min(1.0, max(0.0, alpha))
@@ -907,6 +906,7 @@ contains
 
  subroutine get_wettingdrying_alpha_quad(state, sele, alpha_quad)
   !!< Returns the wettingdrying alpha value at a surface element index.
+  !! Warning: This routine is inefficient! Ideally you want to loop over the WettingDryingAlpha surface field.
   type(state_type), intent(in):: state
   integer, intent(in) :: sele
   real, dimension(:), intent(inout) :: alpha_quad ! must have length PressureMesh%shape%ngi
@@ -1075,13 +1075,16 @@ end function get_wettingdrying_d0
 
     integer, dimension(:), pointer :: surface_element_list
     type(vector_field), pointer :: x, u, gravity_normal
-    type(scalar_field), pointer :: p, topdis
+    type(scalar_field), pointer :: topdis, p
     character(len=OPTION_PATH_LEN) :: fs_option_path
     real :: g, rho0
     integer :: i, j, sele, stat
 
     u => extract_vector_field(state, "Velocity")
-
+    if (.not. wettingdrying_alpha%mesh==extract_pressure_mesh(state)) then
+        FLExit("The WettingDryingAlpha diagnostic field must live on the PressureMesh.")
+    end if
+  
     call zero(wettingdrying_alpha)
     do i = 1, get_boundary_condition_count(u)
         call get_boundary_condition(u, i, &
