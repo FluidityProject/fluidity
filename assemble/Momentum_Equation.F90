@@ -813,6 +813,15 @@
 
           !Apply advection subcycling
           if(subcycle) then
+
+             if (limit_slope) then
+                ! Filter wiggles from U
+                do d =1, mesh_dim(u)
+                   u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
+                   call limit_vb(state(istate),u_cpt)
+                end do
+             end if
+
              call allocate(u_sub, u%dim, u%mesh, "SubcycleU")
              u_sub%option_path = trim(u%option_path)
              call set(u_sub,u)
@@ -1048,6 +1057,14 @@
               call petsc_solve(delta_p, cmc_m, projec_rhs, state(istate))
            end if
 
+           if (limit_slope) then
+              ! Filter wiggles from U
+              do d =1, mesh_dim(u)
+                 u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
+                 call limit_vb(state(istate),u_cpt)
+              end do
+           end if
+           
             ewrite_minmax(delta_p%val)
 
             if (pressure_debugging_vtus) then
