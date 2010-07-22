@@ -454,7 +454,7 @@ contains
           ! move the mesh according to the free surface algorithm
           ! (is this the right place to do this??)
           call move_mesh_free_surface(state)
-
+          
           call compute_goals(state)
 
           !------------------------------------------------
@@ -737,7 +737,6 @@ contains
        ! *** Mesh adapt ***
        ! ******************
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
-
           if(do_adapt_mesh(current_time, timestep)) then  
 
              call pre_adapt_tasks()
@@ -747,17 +746,15 @@ contains
              call run_diagnostics(state)
              
              call adapt_state(state, metric_tensor)
-
              call update_state_post_adapt(state, metric_tensor, dt)
             
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
-
           end if
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then    
-
-             call pre_adapt_tasks()
+              
+              call pre_adapt_tasks()
                
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)             
              call run_diagnostics(state)
@@ -767,7 +764,6 @@ contains
             
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
- 
           end if
         
        not_to_move_det_yet=.false.
