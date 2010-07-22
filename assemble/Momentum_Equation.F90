@@ -817,7 +817,7 @@
              if (limit_slope) then
                 ! Filter wiggles from U
                 do d =1, mesh_dim(u)
-                   u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
+                   u_cpt = extract_scalar_field_from_vector_field(u,d)
                    call limit_vb(state(istate),u_cpt)
                 end do
              end if
