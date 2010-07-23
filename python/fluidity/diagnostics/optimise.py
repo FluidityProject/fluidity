@@ -44,13 +44,17 @@ def DebuggingEnabled():
   
   return _debugging
 
-def EnablePsyco():
+def PsycoSupport():
   try:
     import psyco
+    return True
+  except ImportError:
+    return False
+
+def EnablePsyco():
+  if PsycoSupport():
     psyco.full()
     debug.dprint("Enabled psyco specialising compiler")
-  except ImportError:
-    debug.deprint("Failed to enable psyco specialising compiler")
   
   return
   
@@ -63,8 +67,14 @@ def EnableAll():
   
 class optimiseUnittests(unittest.TestCase):
   def testPsycoSupport(self):
+    try:
+      import ctypes
+    except ImportError:
+      return
+      
     if ctypes.sizeof(ctypes.c_voidp) == 4:
       import psyco
+      self.assertTrue(PsycoSupport())
     
     return
 
