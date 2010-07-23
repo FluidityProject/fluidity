@@ -59,8 +59,7 @@ def EnablePsyco():
   return
   
 def EnableAll():
-  if ctypes.sizeof(ctypes.c_voidp) == 4:
-    EnablePsyco()
+  EnablePsyco()
   DisableDebugging()
   
   return
