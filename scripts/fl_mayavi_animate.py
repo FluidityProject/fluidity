@@ -208,9 +208,9 @@ def main ():
       # write this image to the disk
       v.renwin.save_png (frame)
 
-    # Bail out if no movie desired
-    if (movie=="non"):
-        return 0
+  # Bail out if no movie desired
+  if (movie=="non"):
+      return 0
 
   # Now generate the avi file
   pid          = os.getpid ()
