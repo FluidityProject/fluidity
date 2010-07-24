@@ -533,6 +533,12 @@
       call zero(ct_rhs)
       call profiler_toc(u, "assembly")
       
+      if(has_scalar_field(state(istate), hp_name)) then
+        call calculate_hydrostatic_pressure(state(istate))
+      end if      
+      if(has_vector_field(state(istate), hpg_name)) then
+        call calculate_hydrostatic_pressure_gradient(state(istate))
+      end if
       if(has_scalar_field(state(istate), gp_name)) then
         call calculate_geostrophic_pressure_options(state(istate))
       end if
@@ -568,11 +574,9 @@
       call profiler_toc(u, "assembly")
       
       if(has_scalar_field(state(istate), hp_name)) then
-        call calculate_hydrostatic_pressure(state(istate))
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
       end if
       if(has_vector_field(state(istate), hpg_name)) then
-        call calculate_hydrostatic_pressure_gradient(state(istate))
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
       end if      
       if(has_scalar_field(state(istate), vbp_name)) then
