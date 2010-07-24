@@ -3401,6 +3401,12 @@ scalar_field_choice =
          ## By choosing an appropriate mesh (typically velocity mesh order + 1)
          ## for the balanced part of pressure, physical balance can be
          ## represented to a higher degree of accuracy.
+         ##
+         ## If buoyancy is included and HydrostaticPressure or
+         ## HydrostaticPressureGradient are enabled, the "geopressure" solver
+         ## is modified:
+         ##
+         ##   f = - grad p_gp + g - grad p_hp
          element scalar_field {
             attribute rank { "0" },
             attribute name { "GeostrophicPressure" },

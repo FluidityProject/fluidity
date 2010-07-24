@@ -39,6 +39,7 @@ module geostrophic_pressure
   use fields
   use fldebug
   use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
+  use hydrostatic_pressure
   use petsc_solve_state_module
   use pickers
   use solvers
@@ -394,10 +395,10 @@ contains
     
     integer :: i, stat
     real :: gravity_magnitude
-    logical :: have_density
-    type(scalar_field), pointer :: buoyancy, density
+    logical :: have_density, have_hp, have_hpg
+    type(scalar_field), pointer :: buoyancy, density, hp
     type(scalar_field), target :: dummy_scalar
-    type(vector_field), pointer :: gravity, positions, velocity
+    type(vector_field), pointer :: gravity, hpg, positions, velocity
     type(vector_field), target :: dummy_vector
     
     ewrite(1, *) "In assemble_geostrophic_pressure_cg"
@@ -443,6 +444,32 @@ contains
       gravity => extract_vector_field(state, "GravityDirection")
       assert(gravity%dim == mesh_dim(gp_rhs))
       assert(ele_count(gravity) == ele_count(gp_rhs))
+      
+      hp => extract_scalar_field(state, hp_name, stat = stat)
+      if(stat == 0) then
+        ewrite(2, *) "Using " // hp_name
+        have_hp = .true.
+        ewrite_minmax(hp%val)
+      else
+        ewrite(2, *) "No " // hp_name
+        have_hp = .false.
+        hp => dummy_scalar
+      end if
+      
+      hpg => extract_vector_field(state, hpg_name, stat = stat)
+      if(stat == 0) then
+        ewrite(2, *) "Using " // hpg_name
+        have_hpg = .true.
+        do i = 1, hpg%dim
+          ewrite_minmax(hpg%val(i)%ptr)
+        end do
+      else
+        ewrite(2, *) "No " // hpg_name
+        have_hpg = .false.
+        hpg => dummy_vector
+      end if
+      
+      assert(.not. have_hp .or. .not. have_hpg)
     else      
       gravity_magnitude = 0.0
       gravity => dummy_vector
@@ -469,9 +496,10 @@ contains
     do i = 1, ele_count(gp_rhs)
       if(.not. assemble_ele(gp_rhs, i)) cycle
     
-      call assemble_geostrophic_pressure_element_cg(i, positions, density, &
+      call assemble_geostrophic_pressure_element_cg(i, positions, &
+        & density, have_density, &
         & gravity_magnitude, buoyancy, gravity, velocity, &
-        & have_density, &
+        & hp, have_hp, hpg, have_hpg, &
         & gp_m, gp_rhs)
     end do
    
@@ -501,55 +529,48 @@ contains
     
   end subroutine set_geostrophic_pressure_reference_node
   
-  subroutine assemble_geostrophic_pressure_element_cg(ele, positions, density, &
+  subroutine assemble_geostrophic_pressure_element_cg(ele, positions, &
+    & density, have_density, &
     & gravity_magnitude, buoyancy, gravity, velocity, &
-    & have_density, &
+    & hp, have_hp, hpg, have_hpg, &
     & gp_m, gp_rhs)
     !!< Assemble the element-wise contribution to the elliptic equation for
     !!< GeostrophicPressure
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: density
+    logical, intent(in) :: have_density
     real, intent(in) :: gravity_magnitude
     type(scalar_field), intent(in) :: buoyancy
     type(vector_field), intent(in) :: gravity
     type(vector_field), intent(in) :: velocity
-    logical, intent(in) :: have_density
+    type(scalar_field), intent(in) :: hp
+    logical, intent(in) :: have_hp
+    type(vector_field), intent(in) :: hpg
+    logical, intent(in) :: have_hpg
     type(csr_matrix), intent(inout) :: gp_m
     type(scalar_field), intent(inout) :: gp_rhs
     
     integer :: dim
     integer, dimension(:), pointer :: gp_element_nodes
-    real, dimension(ele_ngi(gp_rhs, ele)) :: detwei
-    real, dimension(mesh_dim(gp_rhs), ele_ngi(gp_rhs, ele)) :: vec_gi
-    real, dimension(ele_loc(gp_rhs, ele), ele_ngi(gp_rhs, ele), mesh_dim(gp_rhs)) :: dn_t
-
-#ifdef DDEBUG    
-    assert(ele_ngi(positions, ele) == ele_ngi(gp_rhs, ele))
-    if(have_density) then
-      assert(ele_ngi(density, ele) == ele_ngi(gp_rhs, ele))
-    end if
-    if(include_coriolis) then
-      assert(ele_ngi(velocity, ele) == ele_ngi(gp_rhs, ele))
-    end if
-    if(include_buoyancy) then
-      assert(ele_ngi(buoyancy, ele) == ele_ngi(gp_rhs, ele))
-      assert(ele_ngi(gravity, ele) == ele_ngi(gp_rhs, ele))
-    end if
-#endif
+    real, dimension(ele_ngi(positions, ele)) :: detwei
+    real, dimension(positions%dim, ele_ngi(positions, ele)) :: vec_gi
+    real, dimension(ele_loc(gp_rhs, ele), ele_ngi(positions, ele), positions%dim) :: dshape
+    type(element_type), pointer :: gp_shape
   
     dim = mesh_dim(gp_rhs)
+    gp_shape => ele_shape(gp_rhs, ele)
     gp_element_nodes => ele_nodes(gp_rhs, ele)
 
-    call transform_to_physical(positions, ele, ele_shape(gp_rhs, ele), &
-      & dshape = dn_t, detwei = detwei)
+    call transform_to_physical(positions, ele, gp_shape, &
+      & dshape = dshape, detwei = detwei)
       
     if(assemble_matrix) then
       ! LHS matrix
       ! /
       ! | grad N_A dot grad N_B dV
       ! /
-      call addto(gp_m, gp_element_nodes, gp_element_nodes, dshape_dot_dshape(dn_t, dn_t, detwei))
+      call addto(gp_m, gp_element_nodes, gp_element_nodes, dshape_dot_dshape(dshape, dshape, detwei))
     end if
           
     if(include_coriolis) then
@@ -581,8 +602,35 @@ contains
 
       vec_gi = vec_gi + ele_val_at_quad(gravity, ele) * spread(ele_val_at_quad(buoyancy, ele) * gravity_magnitude, 1, dim)
     end if
+    
+    if(have_hp) then
+      ! Precondition using HydrostaticPressure
+      call add_hp_ele
+    else if(have_hpg) then
+      ! Precondition using HydrostaticPressureGradient
+      vec_gi = vec_gi - ele_val_at_quad(hpg, ele)
+    end if
 
-    call addto(gp_rhs, gp_element_nodes, dshape_dot_vector_rhs(dn_t, vec_gi, detwei))
+    call addto(gp_rhs, gp_element_nodes, dshape_dot_vector_rhs(dshape, vec_gi, detwei))
+  
+  contains
+  
+    subroutine add_hp_ele
+    
+      real, dimension(ele_loc(hp, ele), ele_ngi(positions, ele), positions%dim) :: hp_dshape
+      type(element_type), pointer :: hp_shape
+      
+      hp_shape => ele_shape(hp, ele)
+      if(hp_shape == gp_shape) then
+        hp_dshape = dshape
+      else
+        call transform_to_physical(positions, ele, hp_shape, &
+          & dshape = hp_dshape)
+      end if
+      
+      vec_gi = vec_gi - transpose(ele_grad_at_quad(hp, ele, hp_dshape))
+    
+    end subroutine add_hp_ele
     
   end subroutine assemble_geostrophic_pressure_element_cg
     
@@ -677,18 +725,18 @@ contains
     type(vector_field), intent(inout) :: mom_rhs
     
     real, dimension(ele_ngi(positions, ele)) :: detwei
-    real, dimension(ele_loc(gp, ele), ele_ngi(gp, ele), mom_rhs%dim) :: dn_t
+    real, dimension(ele_loc(gp, ele), ele_ngi(gp, ele), mom_rhs%dim) :: dshape
         
     assert(ele_ngi(positions, ele) == ele_ngi(mom_rhs, ele))
     assert(ele_ngi(gp, ele) == ele_ngi(mom_rhs, ele))
         
     call transform_to_physical(positions, ele, ele_shape(gp, ele), &
-      & dshape = dn_t, detwei = detwei)
+      & dshape = dshape, detwei = detwei)
       
     ! /
     ! | -N_A grad gp dV
     ! /
-    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(gp, ele, dn_t)), detwei))
+    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(gp, ele, dshape)), detwei))
   
   end subroutine subtract_given_geostrophic_pressure_gradient_element
           
@@ -3045,14 +3093,6 @@ contains
             end if
             
             call get_option(trim(path) // "/spatial_discretisation/geostrophic_pressure_option", geostrophic_pressure_option)
-            if(geostrophic_pressure_option == "include_buoyancy" .and. &
-              & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressure") > 0) then
-              FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressure")
-            end if
-            if(geostrophic_pressure_option == "include_buoyancy" .and. &
-              & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressureGradient") > 0) then
-              FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressureGradient")
-            end if
             if(geostrophic_pressure_option /= "exclude_coriolis" .and. &
               & have_option("/physical_parameters/coriolis") .and. &
               & have_option(trim(path) // "/boundary_conditions")) then
@@ -3067,6 +3107,13 @@ contains
     if(option_count("/material_phase/scalar_field::BalancePressure") > 0) then   
       FLExit("BalancePressure has been removed - switch to GeostrophicPressure")
     end if
+    
+    do i = 0, option_count("/material_phase") - 1
+      if(have_option("/material_phase/scalar_field::" // hp_name) .and. &
+        & have_option("/material_phase/vector_field::" // hpg_name)) then
+        FLExit("Cannot use both HydrostaticPressure and HydrostaticPressureGradient")
+      end if
+    end do
 
     if(have_option("/material_phase/vector_field/prescribed/geostrophic_interpolation") .or. & 
       & have_option("/material_phase/vector_field/diagnostic/geostrophic_interpolation") .or. &
