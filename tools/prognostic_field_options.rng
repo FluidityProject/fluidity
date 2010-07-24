@@ -1539,6 +1539,24 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
       <ref name="discrete_properties_algorithm_scalar"/>
     </optional>
   </define>
+  <!-- Hydrostatic pressure gradient field, this is a copy of prognostic_scalar_field -->
+  <define name="prognostic_hydrostatic_pressure_gradient_field">
+    <a:documentation>above removing all options that don't apply (mainly advection related)</a:documentation>
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_scalar"/>
+    </optional>
+  </define>
   <!--
     free surface field, this is a copy of prognostic_scalar_field above
     removing all options that don't apply (mainly advection related)

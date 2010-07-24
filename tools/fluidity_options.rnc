@@ -4871,6 +4871,18 @@ vector_field_choice =
          element ___Prognostic_fields_below___ {
             empty
          }|
+         ## As HydrostaticPressure, but solves for the gradient of the pressure
+         ## associated with buoyancy. Requires a discontinuous mesh.
+         element vector_field {
+            attribute rank { "0" },
+            attribute name { "HydrostaticPressureGradient" },
+            (
+               element prognostic {
+                  mesh_choice,
+                  prognostic_hydrostatic_pressure_gradient_field
+               }
+            )
+         }|
 #
 # -- List of fields that are primarily prescribed,
 #    but can be aliased.

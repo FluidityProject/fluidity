@@ -45,12 +45,15 @@ module hydrostatic_pressure
   use upwind_stabilisation
   use profiler
   use solvers
+  
   implicit none
 
   public calculate_hydrostatic_pressure, &
-  & subtract_hydrostatic_pressure_gradient
+    & calculate_hydrostatic_pressure_gradient, &
+    & subtract_hydrostatic_pressure_gradient
 
   character(len = *), parameter, public :: hp_name = "HydrostaticPressure"
+  character(len = *), parameter, public :: hpg_name = "HydrostaticPressureGradient"
 
   ! Stabilisation schemes
   integer, parameter :: STABILISATION_NONE = 0, &
@@ -60,6 +63,12 @@ module hydrostatic_pressure
   integer :: stabilisation_scheme
   integer :: nu_bar_scheme
   real :: nu_bar_scale
+  
+  interface subtract_given_hydrostatic_pressure_gradient_element
+    module procedure &
+      & subtract_given_hydrostatic_pressure_gradient_element_scalar, &
+      & subtract_given_hydrostatic_pressure_gradient_element_vector
+  end interface subtract_given_hydrostatic_pressure_gradient_element
 
   contains
 
@@ -95,6 +104,31 @@ module hydrostatic_pressure
     ewrite_minmax(hp%val)
 
   end subroutine calculate_hydrostatic_pressure
+  
+  subroutine calculate_hydrostatic_pressure_gradient(state)
+    type(state_type), intent(inout) :: state
+  
+    integer :: i, stat
+    type(vector_field), pointer :: hpg
+    
+    hpg => extract_vector_field(state, hpg_name, stat = stat)
+    if(stat /= 0) return
+    
+    select case(continuity(hpg))
+      case(0)
+        FLExit("HydrostaticPressureGradient requires a discontinuous mesh")
+      case(-1)
+        call calculate_hydrostatic_pressure_gradient_dg(state, hpg)
+      case default
+        ewrite(-1, *) "For mesh continuity: ", continuity(hpg)
+        FLAbort("Unrecognised mesh continuity")
+    end select
+    
+    do i = 1, hpg%dim
+      ewrite_minmax(hpg%val(i)%ptr)
+    end do
+    
+  end subroutine calculate_hydrostatic_pressure_gradient
 
   subroutine calculate_hydrostatic_pressure_dg(state, hp)
     type(state_type), intent(in) :: state
@@ -108,7 +142,7 @@ module hydrostatic_pressure
     type(scalar_field), pointer :: buoyancy, topdis
     type(vector_field), pointer :: positions, gravity
     
-    ewrite(1,*) 'In calculate_hydrostatic_pressure_dg'
+    ewrite(1, *) "In calculate_hydrostatic_pressure_dg"
     
     if(.not. continuity(hp) == -1) then
       FLExit("HydrostaticPressure requires a discontinuous mesh")
@@ -140,7 +174,126 @@ module hydrostatic_pressure
     call deallocate(from_hp)
     call deallocate(lbuoyancy)
     
+    ewrite(1, *) "Exiting calculate_hydrostatic_pressure_dg"
+    
   end subroutine calculate_hydrostatic_pressure_dg
+  
+  subroutine calculate_hydrostatic_pressure_gradient_dg(state, hpg)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: hpg
+  
+    integer :: i
+    integer, dimension(:), pointer :: surface_element_list
+    real :: gravity_magnitude
+    type(element_type) :: grad_buoyancy_shape
+    type(element_type), pointer :: buoyancy_shape
+    type(mesh_type) :: from_hpg_mesh, grad_buoyancy_mesh
+    type(mesh_type), pointer :: surface_mesh
+    type(scalar_field) :: from_hpg
+    type(scalar_field), dimension(hpg%dim) :: from_hpg_flattened, &
+      & hpg_flattened, grad_buoyancy_flattened
+    type(scalar_field), pointer :: buoyancy, topdis
+    type(vector_field) :: grad_buoyancy
+    type(vector_field), pointer :: positions, gravity
+  
+    ewrite(1, *) "In calculate_hydrostatic_pressure_gradient_dg"
+    
+    if(.not. continuity(hpg) == -1) then
+      FLExit("HydrostaticPressureGradient requires a discontinuous mesh")
+    end if
+    
+    positions => extract_vector_field(state, "Coordinate")
+    
+    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+    buoyancy => extract_scalar_field(state, "VelocityBuoyancyDensity")
+    assert(ele_count(buoyancy) == ele_count(hpg))
+    ewrite_minmax(buoyancy%val)
+    
+    gravity => extract_vector_field(state, "GravityDirection")
+    assert(gravity%dim == mesh_dim(hpg))
+    assert(ele_count(gravity) == ele_count(hpg))
+    
+    if(continuity(buoyancy) /= 0) then
+      ewrite(-1, *) "VelocityBuoyancyDensity on mesh " // trim(buoyancy%mesh%name)
+      ewrite(-1, *) "With continuity: ", continuity(buoyancy)
+      FLExit("HydrostaticPressureGradient requires a continuous VelocityBuoyancyDensity mesh")
+    end if
+    buoyancy_shape => ele_shape(buoyancy, 1)
+    ! Make some assumptions in the projection of the buoyancy gradient
+    assert(ele_numbering_family(buoyancy_shape) == FAMILY_SIMPLEX)
+    assert(buoyancy_shape%numbering%type == ELEMENT_LAGRANGIAN)
+    assert(buoyancy_shape%degree > 0)
+    grad_buoyancy_shape = make_element_shape(buoyancy_shape, degree = buoyancy_shape%degree - 1)
+    grad_buoyancy_mesh = make_mesh(buoyancy%mesh, shape = grad_buoyancy_shape, continuity = -1)
+    call deallocate(grad_buoyancy_shape)
+    call allocate(grad_buoyancy, positions%dim, grad_buoyancy_mesh, name = "RHS")
+    call deallocate(grad_buoyancy_mesh)
+    do i = 1, ele_count(grad_buoyancy)
+      call calculate_grad_h_ele(i, positions, buoyancy, grad_buoyancy, gravity)
+    end do
+    call scale(grad_buoyancy, gravity_magnitude)
+    do i = 1, grad_buoyancy%dim
+      ewrite_minmax(grad_buoyancy%val(i)%ptr)
+    end do
+    
+    topdis => extract_scalar_field(state, "DistanceToTop")
+    call get_boundary_condition(topdis, 1, surface_mesh = surface_mesh, surface_element_list = surface_element_list) 
+    from_hpg_mesh = make_mesh(surface_mesh, shape = face_shape(hpg, 1), continuity = -1)
+    call allocate(from_hpg, from_hpg_mesh, hp_name // "BoundaryCondition")
+    call deallocate(from_hpg_mesh)
+    call zero(from_hpg)
+    
+    do i = 1, hpg%dim
+      from_hpg_flattened(i) = from_hpg
+      hpg_flattened(i) = extract_scalar_field(hpg, i)
+      grad_buoyancy_flattened(i) = extract_scalar_field(grad_buoyancy, i)
+    end do    
+    call vertical_integration(from_hpg_flattened, hpg_flattened, positions, gravity, surface_element_list, grad_buoyancy_flattened)
+
+    call deallocate(from_hpg)
+    call deallocate(grad_buoyancy)
+    
+    ewrite(1, *) "Exiting calculate_hydrostatic_pressure_gradient_dg"
+  
+  contains
+  
+    subroutine calculate_grad_h_ele(ele, positions, source, grad_h, vertical_normal)
+      integer, intent(in) :: ele
+      type(vector_field), intent(in) :: positions
+      type(scalar_field), intent(in) :: source
+      type(vector_field), intent(inout) :: grad_h
+      type(vector_field), intent(in) :: vertical_normal
+      
+      integer :: i
+      real, dimension(ele_ngi(positions, ele)) :: detwei      
+      real, dimension(ele_loc(source, ele), ele_ngi(positions, ele), positions%dim) :: dshape
+      real, dimension(ele_loc(grad_h, ele), grad_h%dim) :: little_rhs
+      real, dimension(ele_loc(grad_h, ele), ele_loc(grad_h, ele)) :: little_mass
+      real, dimension(positions%dim, ele_ngi(positions, ele)) :: g_gi, grad_gi, grad_h_gi
+      type(element_type), pointer :: shape
+    
+      call transform_to_physical(positions, ele, ele_shape(source, ele), &
+        & dshape = dshape, detwei = detwei)
+      
+      shape => ele_shape(grad_h, ele)
+      little_mass = shape_shape(shape, shape, detwei)
+      
+      grad_gi = transpose(ele_grad_at_quad(source, ele, dshape))
+      g_gi = ele_val_at_quad(vertical_normal, ele)
+      
+      do i = 1, size(grad_h_gi, 2)
+        grad_h_gi(:, i) = grad_gi(:, i) - (dot_product(grad_gi(:, i), g_gi(:, i)) * g_gi(:, i))
+      end do
+      
+      little_rhs = transpose(shape_vector_rhs(shape, grad_h_gi, detwei))
+      
+      call solve(little_mass, little_rhs)
+      
+      call set(grad_h, ele_nodes(grad_h, ele), transpose(little_rhs))
+    
+    end subroutine calculate_grad_h_ele
+  
+  end subroutine calculate_hydrostatic_pressure_gradient_dg
 
   subroutine calculate_hydrostatic_pressure_cg(state, hp)
     type(state_type), intent(inout) :: state
@@ -433,55 +586,76 @@ module hydrostatic_pressure
     type(vector_field), intent(inout) :: mom_rhs
     type(state_type), intent(inout) :: state
     
-    integer :: i
-    type(vector_field), pointer :: positions
+    integer :: i, stat
     type(scalar_field), pointer :: hp
+    type(vector_field), pointer :: positions, hpg
     
     logical :: dg
     
     ewrite(1, *) "In subtract_hydrostatic_pressure_gradient"
             
-    hp => extract_scalar_field(state, hp_name)
-            
-    ! Apply to momentum equation
-    assert(ele_count(hp) == ele_count(mom_rhs))
-    
-    positions => extract_vector_field(state, "Coordinate")
-    assert(positions%dim == mom_rhs%dim)
-    assert(ele_count(positions) == ele_count(mom_rhs))
+    hp => extract_scalar_field(state, hp_name, stat)
+    if(stat == 0) then
+      assert(ele_count(hp) == ele_count(mom_rhs))
+      
+      positions => extract_vector_field(state, "Coordinate")
+      assert(positions%dim == mom_rhs%dim)
+      assert(ele_count(positions) == ele_count(mom_rhs))
 
-    do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i)%ptr)
-    end do
-    
-    if(have_option(trim(hp%option_path)// &
-       "/prognostic/spatial_discretisation/continuous_galerkin/do_not_integrate_gradient_by_parts")) then
-      ewrite(2,*) 'not integrating gradient by parts'
-      do i = 1, ele_count(mom_rhs)
-        if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
-          call subtract_given_hydrostatic_pressure_gradient_element(i, positions,hp, mom_rhs)
-        end if
+      do i = 1, mom_rhs%dim
+        ewrite_minmax(mom_rhs%val(i)%ptr)
       end do
-    else
-      dg = (continuity(mom_rhs)==-1)
-      ewrite(2,*) 'integrating gradient by parts, dg = ', dg
-      do i = 1, ele_count(mom_rhs)
-        if((.not.dg).or.(element_owned(mom_rhs, i))) then
-          call subtract_given_hydrostatic_pressure_gradient_element_ibp(i, positions,hp, mom_rhs, dg)
-        end if
+      
+      if(have_option(trim(hp%option_path)// &
+         "/prognostic/spatial_discretisation/continuous_galerkin/do_not_integrate_gradient_by_parts")) then
+        ewrite(2,*) 'not integrating gradient by parts'
+        do i = 1, ele_count(mom_rhs)
+          if((continuity(mom_rhs)>=0).or.(element_owned(mom_rhs, i))) then
+            call subtract_given_hydrostatic_pressure_gradient_element(i, positions,hp, mom_rhs)
+          end if
+        end do
+      else
+        dg = (continuity(mom_rhs)==-1)
+        ewrite(2,*) 'integrating gradient by parts, dg = ', dg
+        do i = 1, ele_count(mom_rhs)
+          if((.not.dg).or.(element_owned(mom_rhs, i))) then
+            call subtract_given_hydrostatic_pressure_gradient_element_ibp(i, positions,hp, mom_rhs, dg)
+          end if
+        end do
+      
+      end if
+      
+      do i = 1, mom_rhs%dim
+        ewrite_minmax(mom_rhs%val(i)%ptr)
       end do
-    
     end if
     
-    do i = 1, mom_rhs%dim
-      ewrite_minmax(mom_rhs%val(i)%ptr)
-    end do
+    hpg => extract_vector_field(state, hpg_name, stat)
+    if(stat == 0) then
+      assert(ele_count(hpg) == ele_count(mom_rhs))
+      
+      positions => extract_vector_field(state, "Coordinate")
+      assert(positions%dim == mom_rhs%dim)
+      assert(ele_count(positions) == ele_count(mom_rhs))
+      
+      do i = 1, mom_rhs%dim
+        ewrite_minmax(mom_rhs%val(i)%ptr)
+      end do
+      
+      do i = 1, ele_count(mom_rhs)
+        call subtract_given_hydrostatic_pressure_gradient_element(i, positions, hpg, mom_rhs)
+      end do
+      
+      do i = 1, mom_rhs%dim
+        ewrite_minmax(mom_rhs%val(i)%ptr)
+      end do
+    end if
     
     ewrite(1, *) "Exiting subtract_hydrostatic_pressure_gradient"
 
   end subroutine subtract_hydrostatic_pressure_gradient
 
-  subroutine subtract_given_hydrostatic_pressure_gradient_element(ele, positions, hp, mom_rhs)
+  subroutine subtract_given_hydrostatic_pressure_gradient_element_scalar(ele, positions, hp, mom_rhs)
     !!< Subtract the element-wise contribution of the HydrostaticPressure
     !!< gradient from the momentum equation RHS
 
@@ -491,7 +665,7 @@ module hydrostatic_pressure
     type(vector_field), intent(inout) :: mom_rhs
 
     real, dimension(ele_ngi(positions, ele)) :: detwei
-    real, dimension(ele_loc(hp, ele), ele_ngi(hp, ele), mom_rhs%dim) :: dn_t
+    real, dimension(ele_loc(hp, ele), ele_ngi(positions, ele), positions%dim) :: dn_t
         
     assert(ele_ngi(positions, ele) == ele_ngi(mom_rhs, ele))
     assert(ele_ngi(hp, ele) == ele_ngi(mom_rhs, ele))
@@ -504,7 +678,31 @@ module hydrostatic_pressure
     ! /
     call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), transpose(ele_grad_at_quad(hp, ele, dn_t)), detwei))
 
-  end subroutine subtract_given_hydrostatic_pressure_gradient_element
+  end subroutine subtract_given_hydrostatic_pressure_gradient_element_scalar
+  
+  subroutine subtract_given_hydrostatic_pressure_gradient_element_vector(ele, positions, hpg, mom_rhs)
+    !!< Subtract the element-wise contribution of the HydrostaticPressureGradient
+    !!< from the momentum equation RHS
+
+    integer, intent(in) :: ele
+    type(vector_field), intent(in) :: positions
+    type(vector_field), intent(in) :: hpg
+    type(vector_field), intent(inout) :: mom_rhs
+
+    real, dimension(ele_ngi(positions, ele)) :: detwei
+        
+    assert(ele_ngi(positions, ele) == ele_ngi(mom_rhs, ele))
+    assert(ele_ngi(hpg, ele) == ele_ngi(mom_rhs, ele))
+        
+    call transform_to_physical(positions, ele, &
+      & detwei = detwei)
+
+    ! /
+    ! | -N_A grad gp dV
+    ! /
+    call addto(mom_rhs, ele_nodes(mom_rhs, ele), -shape_vector_rhs(ele_shape(mom_rhs, ele), ele_val_at_quad(hpg, ele), detwei)) 
+
+  end subroutine subtract_given_hydrostatic_pressure_gradient_element_vector
 
   subroutine subtract_given_hydrostatic_pressure_gradient_element_ibp(ele, positions, hp, mom_rhs, dg)
     !!< Subtract the element-wise contribution of the HydrostaticPressure
@@ -517,7 +715,7 @@ module hydrostatic_pressure
     logical, intent(in) :: dg
         
     real, dimension(ele_ngi(positions, ele)) :: detwei
-    real, dimension(ele_loc(hp, ele), ele_ngi(hp, ele), mom_rhs%dim) :: dn_s
+    real, dimension(ele_loc(mom_rhs, ele), ele_ngi(mom_rhs, ele), mom_rhs%dim) :: dn_s
     
     integer, dimension(:), pointer :: neigh
     integer :: ele_2, face, face_2, ni

@@ -571,7 +571,10 @@
         call calculate_hydrostatic_pressure(state(istate))
         call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
       end if
-      
+      if(has_vector_field(state(istate), hpg_name)) then
+        call calculate_hydrostatic_pressure_gradient(state(istate))
+        call subtract_hydrostatic_pressure_gradient(mom_rhs, state(istate))
+      end if      
       if(has_scalar_field(state(istate), vbp_name)) then
         call calculate_vertical_balance_pressure(state(istate))
         call subtract_vertical_balance_pressure_gradient(mom_rhs, state(istate))

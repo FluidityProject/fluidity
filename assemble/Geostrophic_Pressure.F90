@@ -3049,6 +3049,10 @@ contains
               & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressure") > 0) then
               FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressure")
             end if
+            if(geostrophic_pressure_option == "include_buoyancy" .and. &
+              & option_count(trim(mat_phase_path) // "/scalar_field::HydrostaticPressureGradient") > 0) then
+              FLExit("Must exclude_buoyancy from GeostrophicPressure if using HydrostaticPressureGradient")
+            end if
             if(geostrophic_pressure_option /= "exclude_coriolis" .and. &
               & have_option("/physical_parameters/coriolis") .and. &
               & have_option(trim(path) // "/boundary_conditions")) then

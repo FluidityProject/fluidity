@@ -6282,6 +6282,20 @@ will be emptied by an adapt.</a:documentation>
         <a:documentation>Prescribed vector fields below this</a:documentation>
         <empty/>
       </element>
+      <element name="vector_field">
+        <a:documentation>As HydrostaticPressure, but solves for the gradient of the pressure
+associated with buoyancy. Requires a discontinuous mesh.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>HydrostaticPressureGradient</value>
+        </attribute>
+        <element name="prognostic">
+          <ref name="mesh_choice"/>
+          <ref name="prognostic_hydrostatic_pressure_gradient_field"/>
+        </element>
+      </element>
       <!--
         
         - - List of fields that are primarily prescribed,
