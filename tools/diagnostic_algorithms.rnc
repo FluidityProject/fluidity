@@ -891,7 +891,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "1.40519E-04"
+          "2.23642934E-05"
           },
           comment
         }|
@@ -903,7 +903,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "1.45444E-04"
+          "2.31481315E-05"
           },
           comment
         }|
@@ -915,7 +915,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "1.3788E-04"
+          "2.19442836E-05"
           },
           comment
         }|
@@ -927,7 +927,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "1.45842E-04"
+          "2.32114752E-05"
           },
           comment
         }|
@@ -939,7 +939,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.72921E-04"
+          "1.16057376E-05"
           },
           comment
         }|
@@ -951,7 +951,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.67598E-04"
+          "1.07585558E-05"
           },
           comment
         }|
@@ -963,7 +963,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.72523E-04"
+          "1.15423939E-05"
           },
           comment
         }|
@@ -975,7 +975,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.64959E-04"
+          "1.03385459E-05"
           },
           comment
         }|
@@ -987,7 +987,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.053234E-04"
+          "8.47245424E-07"
           },
           comment
         }|
@@ -999,7 +999,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.026392E-04"
+          "4.20041726E-07"
           },
           comment
         }|
@@ -1011,7 +1011,7 @@ tidal_harmonic_algorithm =
          element real_value {
           attribute rank { "0" },
           attribute shape { "1" },
-          "0.003982E-04"
+          "6.33754983E-08"
           },
           comment
         }|
@@ -1020,7 +1020,7 @@ tidal_harmonic_algorithm =
         attribute name { "Residual" },
         comment
         }|
-        ## Custom defined frequencies.
+        ## Custom defined frequencies (in 1/s).
         element constituent {
           attribute name { "custom"},
           real

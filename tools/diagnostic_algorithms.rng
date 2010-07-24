@@ -1218,7 +1218,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>1.40519E-04</value>
+            <value>2.23642934E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1236,7 +1236,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>1.45444E-04</value>
+            <value>2.31481315E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1254,7 +1254,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>1.3788E-04</value>
+            <value>2.19442836E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1272,7 +1272,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>1.45842E-04</value>
+            <value>2.32114752E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1290,7 +1290,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.72921E-04</value>
+            <value>1.16057376E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1308,7 +1308,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.67598E-04</value>
+            <value>1.07585558E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1326,7 +1326,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.72523E-04</value>
+            <value>1.15423939E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1344,7 +1344,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.64959E-04</value>
+            <value>1.03385459E-05</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1362,7 +1362,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.053234E-04</value>
+            <value>8.47245424E-07</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1380,7 +1380,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.026392E-04</value>
+            <value>4.20041726E-07</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1398,7 +1398,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
             <attribute name="shape">
               <value>1</value>
             </attribute>
-            <value>0.003982E-04</value>
+            <value>6.33754983E-08</value>
           </element>
           <ref name="comment"/>
         </element>
@@ -1410,7 +1410,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
           <ref name="comment"/>
         </element>
         <element name="constituent">
-          <a:documentation>Custom defined frequencies.</a:documentation>
+          <a:documentation>Custom defined frequencies (in 1/s).</a:documentation>
           <attribute name="name">
             <value>custom</value>
           </attribute>
