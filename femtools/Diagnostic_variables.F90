@@ -437,8 +437,12 @@ contains
 
     integer :: column, i, j, phase, stat
     integer, dimension(2) :: shape_option
+    integer :: no_mixing_bins
+    real, dimension(:), pointer :: mixing_bin_bounds
+    real :: current_time
     character(len = 254) :: buffer, material_phase_name
     character(len = FIELD_NAME_LEN) :: surface_integral_name, mixing_stats_name
+    character(len = OPTION_PATH_LEN) :: func
     type(scalar_field) :: vfield_comp
     type(mesh_type), pointer :: mesh
     type(scalar_field), pointer :: sfield
@@ -576,13 +580,32 @@ contains
             do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_mixing_stats") - 1
               call get_option(trim(complete_field_path(sfield%option_path)) &
               & // "/stat/include_mixing_stats["// int2str(j) // "]/name", mixing_stats_name)
-              shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
-                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds")             
+
+              if(have_option(trim(complete_field_path(sfield%option_path)) // &
+                  & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")) then
+                  shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
+                      & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")
+
+                  no_mixing_bins = shape_option(1)
+              else if(have_option(trim(complete_field_path(sfield%option_path)) // &
+                  & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/python")) then
+                  call get_option(trim(complete_field_path(sfield%option_path)) // &
+                      & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/python", func)
+                  call get_option("/timestepping/current_time", current_time)
+                  call real_vector_from_python(func, current_time, mixing_bin_bounds)
+                  no_mixing_bins = size(mixing_bin_bounds)
+                  deallocate(mixing_bin_bounds)
+              else
+                  FLAbort("Unable to determine mixing bin bounds type")  
+                  
+              end if
+                         
               buffer = field_tag(name=sfield%name, column=column+1, statistic="mixing_bins%" // trim(mixing_stats_name),&
-                   & material_phase_name=material_phase_name, components=(shape_option(1)))
+                   & material_phase_name=material_phase_name, components=(no_mixing_bins))
               write(diag_unit, '(a)') trim(buffer)
               column = column + (shape_option(1))
-            end do
+              
+            end do         
             
             ! Surface integrals
             do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_integral") - 1
@@ -1573,11 +1596,15 @@ contains
     logical, intent(in), optional :: not_to_move_det_yet 
 
     character(len = 2 + real_format_len(padding = 1) + 1) :: format, format2, format3, format4
+    character(len = OPTION_PATH_LEN) :: func
     integer :: i, j, k, phase, stat
     integer, dimension(2) :: shape_option
     integer :: nodes, elements, surface_elements
+    integer :: no_mixing_bins
     real :: fmin, fmax, fnorm2, fintegral, fnorm2_cv, fintegral_cv, surface_integral
     real, dimension(:), allocatable :: f_mix_fraction
+    real, dimension(:), pointer :: mixing_bin_bounds
+    real :: current_time
     type(mesh_type), pointer :: mesh
     type(scalar_field) :: vfield_comp
     type(scalar_field), pointer :: sfield
@@ -1652,9 +1679,27 @@ contains
 
           ! Mixing stats
           do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_mixing_stats") - 1
-            shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
-                 & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds")           
-            allocate(f_mix_fraction(1:shape_option(1)))
+            if(have_option(trim(complete_field_path(sfield%option_path)) // &
+                  & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")) then
+                  shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
+                      & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")
+                  ewrite(1,*) 'shape_option = ', shape_option
+                  no_mixing_bins = shape_option(1)
+                
+            else if(have_option(trim(complete_field_path(sfield%option_path)) // &
+                & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/python")) then
+                call get_option(trim(complete_field_path(sfield%option_path)) // &
+                    & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/python", func)
+                call get_option("/timestepping/current_time", current_time)
+                call real_vector_from_python(func, current_time, mixing_bin_bounds)
+                no_mixing_bins = size(mixing_bin_bounds)
+                deallocate(mixing_bin_bounds)
+            else
+                FLAbort("Unable to determine mixing bin bounds type")
+                
+            end if
+                    
+            allocate(f_mix_fraction(1:no_mixing_bins))
             f_mix_fraction = 0.0
             
             call mixing_stats(f_mix_fraction, sfield, Xfield, mixing_stats_count = j)          

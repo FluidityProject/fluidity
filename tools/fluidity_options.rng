@@ -5078,7 +5078,7 @@ BE AWARE OF WHAT THE DENSITY SCALAR FIELD IS
   This assumes kappa is isotropic and constant
   For a linear equation of state kappa = diffusivity (thermal or haline)
 
-c.f. Winters 1995, Journal of Fluid Mechanics and B Martin's thesis</a:documentation>
+c.f. Winters 1995, Journal of Fluid Mechanics</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -5104,8 +5104,8 @@ Only coded for 2D
 
   (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
 
-  The actual viscous dissipation for a BOUSSINESQ fluid with
-  ISOTROPIC viscosity is nu*rho_0*(grad u):(grad u)
+  The actual viscous dissipation for a Newtonian, Boussinesq fluid with
+  constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
   where rho_0 is the reference density in the equation of state
   and nu is the viscosity so need to multiply by these when post-processing
 
@@ -5651,10 +5651,11 @@ from the stat file and multiply by
       <element name="scalar_field">
         <a:documentation>Gravitational potential energy density:
 
-rho*(g dot (r - r_0))
+-rho*(g dot (r - r_0))
 
 where rho is the Density scalar field
-r_0 is the potential energy zero point.
+r_0 is the potential energy zero point
+and g is the gravity vector
 
 BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
 
@@ -5722,17 +5723,19 @@ Limitations:
       <element name="scalar_field">
         <a:documentation>Background potential energy density:
 
-PE_b = rho*z_star
+  PE_b = rho*g*z_star
 
 where rho is the Density scalar field and
 z_star is the isopycnal coordinate. 
 
-Requires the diagnostic IsopycnalCoordinate diagnostic field.
 
 BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
 
+
 Limitations:
  - Requires a constant gravity direction.
+ - Requires a Density scalar field.
+ - Requires the IsopycnalCoordinate diagnostic field.
  - The Density and GravitationalPotentialEnergyDensity
  fields must be on the same mesh.</a:documentation>
         <attribute name="rank">
@@ -7563,11 +7566,26 @@ divided by the total volume of the domain</a:documentation>
       </choice>
       <element name="mixing_bin_bounds">
         <a:documentation>The values of the bounds of the bins 
-e.g. the values 0 1 2 3 will return 4 bins 
+e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins 
 and the fraction of the field in each bin with,
-0&lt;=field&lt;1, 1&lt;=field&lt;2, 2&lt;=field&lt;3, 3&lt;=field, 
-will be calculated. </a:documentation>
-        <ref name="real_vector"/>
+-1.5&lt;=field&lt;0.0, 0.0&lt;=field&lt;1.5, 1.5&lt;=field&lt;2.0, 2.0&lt;=field, 
+will be calculated.  </a:documentation>
+        <choice>
+          <element name="constant">
+            <a:documentation>list of bin bounds</a:documentation>
+            <ref name="real_vector"/>
+          </element>
+          <element name="python">
+            <a:documentation>Python function prescribing bin bounds. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value that should be an array of reals
+
+</a:documentation>
+            <ref name="python_code"/>
+          </element>
+        </choice>
       </element>
       <optional>
         <element name="tolerance">

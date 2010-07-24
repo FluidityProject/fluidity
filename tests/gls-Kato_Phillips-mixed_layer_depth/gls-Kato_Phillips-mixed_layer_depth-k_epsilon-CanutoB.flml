@@ -915,7 +915,9 @@
                     <include_mixing_stats name="stats" replaces="heaviside.dat file">
                         <control_volumes></control_volumes>
                         <mixing_bin_bounds>
+                          <constant>
                             <real_value rank="1" shape="6">0 0.2 0.4 0.6 0.8 1</real_value>
+                          </constant>
                         </mixing_bin_bounds>
                     </include_mixing_stats>
                 </stat>

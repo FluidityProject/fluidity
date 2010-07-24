@@ -420,7 +420,9 @@
               <normalise/>
             </control_volumes>
             <mixing_bin_bounds>
+              <constant>
               <real_value shape="2" rank="1">-0.5 0.0</real_value>
+              </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
         </stat>

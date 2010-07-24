@@ -3895,7 +3895,7 @@ scalar_field_choice =
          ##   This assumes kappa is isotropic and constant
          ##   For a linear equation of state kappa = diffusivity (thermal or haline)
          ##
-         ## c.f. Winters 1995, Journal of Fluid Mechanics and B Martin's thesis
+         ## c.f. Winters 1995, Journal of Fluid Mechanics
          element scalar_field {
             attribute rank { "0" },
             attribute name { "DiffusiveDissipation" },
@@ -3917,8 +3917,8 @@ scalar_field_choice =
          ##
          ##   (grad u):(grad u) = sum_ij(du_i/dx_j)(du_i/dx_j)
          ##
-         ##   The actual viscous dissipation for a BOUSSINESQ fluid with
-         ##   ISOTROPIC viscosity is nu*rho_0*(grad u):(grad u)
+         ##   The actual viscous dissipation for a Newtonian, Boussinesq fluid with
+         ##   constant, isotropic viscosity is nu*rho_0*(grad u):(grad u)
          ##   where rho_0 is the reference density in the equation of state
          ##   and nu is the viscosity so need to multiply by these when post-processing
          ##
@@ -4367,10 +4367,11 @@ scalar_field_choice =
          
          ## Gravitational potential energy density:
          ##
-         ## rho*(g dot (r - r_0))
+         ## -rho*(g dot (r - r_0))
          ##
          ## where rho is the Density scalar field
-         ## r_0 is the potential energy zero point.
+         ## r_0 is the potential energy zero point
+         ## and g is the gravity vector
          ##
          ## BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
          ##
@@ -4428,17 +4429,19 @@ scalar_field_choice =
          }|
          ## Background potential energy density:
          ##
-         ## PE_b = rho*z_star
+         ##   PE_b = rho*g*z_star
          ##
          ## where rho is the Density scalar field and
          ## z_star is the isopycnal coordinate. 
          ##
-         ## Requires the diagnostic IsopycnalCoordinate diagnostic field.
          ##
          ## BE AWARE OF WHAT IS IN THE DENSITY SCALAR FIELD
          ##
+         ##
          ## Limitations:
          ##  - Requires a constant gravity direction.
+         ##  - Requires a Density scalar field.
+         ##  - Requires the IsopycnalCoordinate diagnostic field.
          ##  - The Density and GravitationalPotentialEnergyDensity
          ##  fields must be on the same mesh.
          element scalar_field {
@@ -5919,12 +5922,27 @@ mixing_stats =
             }
          ),
          ## The values of the bounds of the bins 
-         ## e.g. the values 0 1 2 3 will return 4 bins 
+         ## e.g. the values -1.5 0.0 1.5 2.0 will return 4 bins 
          ## and the fraction of the field in each bin with,
-         ## 0<=field<1, 1<=field<2, 2<=field<3, 3<=field, 
-         ## will be calculated. 
+         ## -1.5<=field<0.0, 0.0<=field<1.5, 1.5<=field<2.0, 2.0<=field, 
+         ## will be calculated.  
          element mixing_bin_bounds { 
-            real_vector 
+            (
+                 ## list of bin bounds
+                 element constant { 
+                     real_vector
+                 }|
+                 ## Python function prescribing bin bounds. Functions should be of the form:
+                 ##
+                 ##  def val(t):
+                 ##     # Function code
+                 ##     return # Return value that should be an array of reals
+                 ##
+                 ## 
+                 element python {
+                     python_code
+                   }
+              )
          },
          ## Define the tolerance beneath the specified bins that should be included.
          ## Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.

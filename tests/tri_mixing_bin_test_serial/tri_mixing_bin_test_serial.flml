@@ -84,7 +84,9 @@
           <include_mixing_stats replaces="heaviside.dat file" name="Bins">
             <continuous_galerkin/>
             <mixing_bin_bounds>
+              <constant>
               <real_value shape="5" rank="1">-inf 0.0 0.5 1.0 inf</real_value>
+              </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
         </stat>
@@ -107,7 +109,9 @@
           <include_mixing_stats replaces="heaviside.dat file" name="Bins">
             <continuous_galerkin/>
             <mixing_bin_bounds>
+              <constant>
               <real_value shape="5" rank="1">-inf 0.0 0.5 1.0 inf</real_value>
+              </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
         </stat>

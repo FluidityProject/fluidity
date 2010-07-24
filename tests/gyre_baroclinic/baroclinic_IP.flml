@@ -555,7 +555,9 @@
           <include_mixing_stats replaces="heaviside.dat file" name="Temperatures">
             <continuous_galerkin/>
             <mixing_bin_bounds>
+              <constant>
               <real_value shape="21" rank="1">-10 -9.5 -9 -8.5 -8 -7.5 -7 -6.5 -6 -5.5 -5 -4.5 -4 -3.5 -3 -2.5 -2 -1.5 -1 -0.5 0</real_value>
+              </constant>
             </mixing_bin_bounds>
           </include_mixing_stats>
         </stat>

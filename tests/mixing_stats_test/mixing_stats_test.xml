@@ -40,6 +40,7 @@ filename_ids = ['1','4','7']
 # 4 is before adapt
 # 7 is after adapt
 for i in range(len(filenames)):
+  print 'pvtu2vtu'
   os.system('../../scripts/pvtu2vtu '+filename_base+' '+filename_ids[i])
   # take pvtus -> vtus as otherwise will count multiple nodes in halo regions more than once and make the sum used below incorrect
   matvolume_parallel[0].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material1::MaterialVolume"))) 
@@ -87,6 +88,34 @@ for types_b in stat_type_b:
     mixing_stats_current.append([types_b + '_' + types_a])
     mixing_stats_mat1_parallel.append(mixing_stats_current) 
     </variable> 
+    
+   <variable name="mixing_stats_mat1_serial_python" language="python"> 
+# serial mixing stats for Material 1 where bounds have been set with a python function
+# just to check python function working OK
+import fluidity_tools
+from fluidity_tools import stat_parser
+stat = fluidity_tools.stat_parser("./mixing_stats_test_serial.stat")
+mixing_stats_mat1_serial_python = []
+for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'])):
+  bin = []
+  for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i])):
+    bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i][j]) 
+  mixing_stats_mat1_serial_python.append(bin) 
+    </variable>  
+    
+    <variable name="mixing_stats_mat1_parallel_python" language="python"> 
+# parallel mixing stats for Material 1 where bounds have been set with a python function
+# just to check python function working OK
+import fluidity_tools
+from fluidity_tools import stat_parser
+stat = fluidity_tools.stat_parser("./mixing_stats_test_parallel.stat")
+mixing_stats_mat1_parallel_python = []
+for i in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'])):
+  bin = []
+  for j in range(len(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i])):
+    bin.append(stat['Material1']['MaterialVolumeFraction']['mixing_bins%cv_normalised_python'][i][j]) 
+  mixing_stats_mat1_parallel_python.append(bin) 
+    </variable>  
     
      <variable name="mixing_stats_mat2_serial" language="python"> 
 # mixing stats, each of those contains the amount in the bins (bounds 0 and 1) over time
@@ -201,6 +230,7 @@ for j in range(3):
     if mesh_state[j] == 'adapt': tolerance = 1e-1 # after adapt have material between 0 and 1 so need to loosen tolerance
     assert abs(mixing_stats_mat2_serial[i][mixing_stats_pick[j]] - (matvolume_serial[i][j]/(matvolume_serial[0][j]+matvolume_serial[1][j]))) &lt; tolerance
     </test>
+    
     <test name = "compare parallel normalised mixing bins of material 2 to pvtu" language = "python">
 mixing_stats_pick = [0,3,6] # corresponds to the vtus
 mesh_state = ['fixed','fixed','adapt']
@@ -221,6 +251,7 @@ for i in range(len(mixing_stats_mat1_serial[0][0])):
     print 'difference', abs(mixing_stats_mat1_serial[j][0][i] + mixing_stats_mat1_serial[j][1][i] - 1.0)
     assert abs(mixing_stats_mat1_serial[j][0][i] + mixing_stats_mat1_serial[j][1][i] - 1.0) &lt; 1e-6
     </test>
+    
     <test name="check all serial unormalised mixing bins of material 1 sum to right number" language="python">
 stat_type_a = ['cv','cg']
 for i in range(len(mixing_stats_mat1_serial[0][0])):
@@ -238,6 +269,7 @@ for i in range(len(mixing_stats_mat1_parallel[0][0])):
     print 'difference', abs(mixing_stats_mat1_parallel[j][0][i] + mixing_stats_mat1_parallel[j][1][i] - 1.0)
     assert abs(mixing_stats_mat1_parallel[j][0][i] + mixing_stats_mat1_parallel[j][1][i] - 1.0) &lt; 1e-6
     </test>
+    
     <test name="check all parallel unormalised mixing bins of material 1 sum to right number" language="python">
 stat_type_a = ['cv','cg']
 for i in range(len(mixing_stats_mat1_parallel[0][0])):
@@ -257,7 +289,8 @@ for i in range(len(mixing_stats_mat2_serial[0])):
 for i in range(len(mixing_stats_mat2_parallel[0])):
   print 'difference', abs(mixing_stats_mat2_parallel[0][i] + mixing_stats_mat2_parallel[1][i] - 1.0)
   assert abs(mixing_stats_mat2_parallel[0][i] + mixing_stats_mat2_parallel[1][i] - 1.0) &lt; 1e-6
-    </test>      
+    </test> 
+         
     <test name = "check all parallel and serial mixing bins agree for Material 1" language = "python">
 stat_type = ['normalised_cv', 'normalised_cg', 'unormalised_cv', 'unormalised_cg']
 bins_loop = ['lower','upper']
@@ -269,6 +302,26 @@ for j in range(len(stat_type)):
       tolerance = 1e-6
       if k &gt; 3: tolerance = 1e-2 # after adapt have material between 0 and 1 and subtle mesh difference so need to loosen tolerance
       assert abs(mixing_stats_mat1_parallel[j][i][k] - mixing_stats_mat1_serial[j][i][k]) &lt; tolerance
+    </test>
+    
+    <test name = "check serial mixing bins set with python function and constant agree for Material 1" language = "python">
+bins_loop = ['lower','upper']
+for i in range(len(bins_loop)): # bins to loop over
+  print bins_loop[i]
+  for k in range(len(mixing_stats_mat1_serial[0][i])):
+    print 'difference', abs(mixing_stats_mat1_serial[0][i][k] - mixing_stats_mat1_serial_python[i][k])
+    tolerance = 1e-10 # should be exactly same so tolerance tight (no mesh differences etc)
+    assert abs(mixing_stats_mat1_serial[0][i][k] - mixing_stats_mat1_serial_python[i][k]) &lt; tolerance
+    </test>
+
+    <test name = "check parallel mixing bins set with python function and constant agree for Material 1" language = "python">
+bins_loop = ['lower','upper']
+for i in range(len(bins_loop)): # bins to loop over
+  print bins_loop[i]
+  for k in range(len(mixing_stats_mat1_parallel[0][i])):
+    print 'difference', abs(mixing_stats_mat1_parallel[0][i][k] - mixing_stats_mat1_parallel_python[i][k])
+    tolerance = 1e-10 # should be exactly same so tolerance tight (no mesh differences etc)
+    assert abs(mixing_stats_mat1_parallel[0][i][k] - mixing_stats_mat1_parallel_python[i][k]) &lt; tolerance
     </test>
     
     <test name = "check all parallel and serial mixing bins agree for Material 2" language = "python">

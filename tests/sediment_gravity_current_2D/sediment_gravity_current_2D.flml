@@ -417,7 +417,9 @@
           <include_mixing_stats replaces="heaviside.dat file" name="cv_non_normalised">
             <control_volumes/>
             <mixing_bin_bounds>
+              <constant>
               <real_value shape="8" rank="1">-1.0E15 0.0 2.0E-15 0.01 0.1 0.5 1.0 1.5</real_value>
+              </constant>
             </mixing_bin_bounds>
             <tolerance>
               <real_value rank="0">1.0E-15</real_value>

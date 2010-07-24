@@ -30,6 +30,7 @@
 module mixing_statistics
 
   use elements
+  use embed_python
   use global_parameters, only:FIELD_NAME_LEN,OPTION_PATH_LEN
   use fields
   use field_derivatives
@@ -41,8 +42,9 @@ module mixing_statistics
   use halos
   use MeshDiagnostics
   use spud
-  implicit none
 
+  implicit none
+  
   interface heaviside_integral
     module procedure heaviside_integral_old, heaviside_integral_new, &
       & heaviside_integral_new_options
@@ -91,19 +93,35 @@ contains
     integer, intent(in) :: mixing_stats_count
 
     integer :: i, j
-    real :: tolerance, total_volume
-    real, dimension(:), allocatable :: mixing_bin_bounds
+    real :: tolerance, total_volume, current_time
+    real, dimension(:), pointer :: mixing_bin_bounds
+    character(len = OPTION_PATH_LEN) :: func
     type(scalar_field) :: lumped_mass
-
+    integer, dimension(2) :: shape_option
 
     call get_option(trim(complete_field_path(sfield%option_path)) &
          &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/tolerance",&
          & tolerance, default = epsilon(0.0))
+         
+    if(have_option(trim(complete_field_path(sfield%option_path)) // &
+        & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/constant")) then
+       shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
+            & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/constant")
+       allocate(mixing_bin_bounds(shape_option(1)))
 
-    allocate(mixing_bin_bounds(1:size(f_mix_fraction)))
-    call get_option(trim(complete_field_path(sfield%option_path)) &
-         &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds",&
-         & mixing_bin_bounds)
+       call get_option(trim(complete_field_path(sfield%option_path)) &
+           &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/constant",&
+           & mixing_bin_bounds)
+
+    else if(have_option(trim(complete_field_path(sfield%option_path)) // &
+        & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/python")) then
+        call get_option(trim(complete_field_path(sfield%option_path)) // &
+          & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/python", func)
+        call get_option("/timestepping/current_time", current_time)
+        call real_vector_from_python(func, current_time, mixing_bin_bounds)
+    else
+        FLAbort("Unable to determine mixing bin bounds type")  
+    end if   
 
     call allocate(lumped_mass, sfield%mesh, name="MixingLumpedMass")
     call zero(lumped_mass)
@@ -157,18 +175,34 @@ contains
     type(vector_field), target, intent(in) :: Xfield
     integer, intent(in) :: mixing_stats_count
 
-
     integer :: j, ele
     real :: total_volume
-    real, dimension(:), allocatable :: mixing_bin_bounds, detwei
-    real :: tolerance
-    type(element_type), pointer :: shape
+    real, dimension(:), allocatable :: detwei
+    real :: tolerance, current_time
+    real, dimension(:), pointer :: mixing_bin_bounds
+    character(len = OPTION_PATH_LEN) :: func
+    type(element_type), pointer :: shape           
+    integer, dimension(2) :: shape_option
 
-    allocate(mixing_bin_bounds(1:size(f_mix_fraction)))            
+    if(have_option(trim(complete_field_path(sfield%option_path)) // &
+        & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/constant")) then
 
-    call get_option(trim(complete_field_path(sfield%option_path)) &
-         &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds",&
-         & mixing_bin_bounds)
+       shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
+            & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/constant")
+       allocate(mixing_bin_bounds(shape_option(1)))
+
+        call get_option(trim(complete_field_path(sfield%option_path)) &
+           &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/constant",&
+           & mixing_bin_bounds)
+    else if(have_option(trim(complete_field_path(sfield%option_path)) // &
+        & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/python")) then
+        call get_option(trim(complete_field_path(sfield%option_path)) // &
+          & "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/mixing_bin_bounds/python", func)
+        call get_option("/timestepping/current_time", current_time)
+        call real_vector_from_python(func, current_time, mixing_bin_bounds)
+    else
+        FLAbort("Unable to determine mixing bin bounds type") 
+    end if
 
     call get_option(trim(complete_field_path(sfield%option_path)) &
          &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/tolerance",&
@@ -177,9 +211,7 @@ contains
     do j=1,size(f_mix_fraction)
       f_mix_fraction(j) = heaviside_integral_new(sfield, mixing_bin_bounds(j), Xfield, tolerance = tolerance)
     end do
-
-    deallocate(mixing_bin_bounds)
-
+    
     ! In f_mix_fraction(j) have volume of sfield >mixing_bin_bounds(j)
     ! Subtract so that f_mix_fraction(j) has 
     ! mixing_bin_bounds(j)<volume fraction of sfield<mixing_bins_bounds(j+1) 
@@ -221,6 +253,8 @@ contains
             & f_mix_fraction(size(f_mix_fraction))
 
     endif
+    
+    deallocate(mixing_bin_bounds)
     
   end subroutine heaviside_integral_new_options
   
