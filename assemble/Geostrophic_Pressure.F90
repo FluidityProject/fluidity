@@ -474,6 +474,10 @@ contains
       gravity_magnitude = 0.0
       gravity => dummy_vector
       buoyancy => dummy_scalar
+      hp => dummy_scalar
+      hpg => dummy_vector
+      have_hp = .false.
+      have_hpg = .false.
     end if
 
     if(include_coriolis) then
