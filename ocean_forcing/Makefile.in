@@ -52,7 +52,7 @@ LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@ \
 
 OBJS =  Calendar.o SampleNetCDF.o NetCDFReader.o NetCDFWriter.o \
 ClimateReader.o ClimateReader_interface.o FluxesReader.o NEMOReader.o forcingERA40.o  NEMOdataload.o \
-NEMOdataload_rotation.o ncar_ocean_fluxes.o forcingERA40_fortran.o NEMO_load_fields_vars.o NEMO_load_fields.o 
+NEMOdataload_rotation.o bulk_parameterisations.o forcingERA40_fortran.o NEMO_load_fields_vars.o NEMO_load_fields.o 
 
 .SUFFIXES: .c .o .cpp .F90 .a .so
 
@@ -72,11 +72,6 @@ default: $(OBJS)
 
 test_StormMaker:
 	$(FC) $(FCFLAGS) -DDEBUG_WRITENETCDF -o testStormMaker StormMaker.F90 $(LIBFLUIDITY) $(LIBS)
-
-FORCING_OBJS=ncar_ocean_fluxes.o forcingERA40.cpp forcingERA40_fortran.o
-
-forcingERA40: $(FORCING_OBJS)
-	$(CXX) $(CXXFLAGS) -DFORCINGERA40_UNITTEST -o $@ $(FORCING_OBJS) $(LIBFLUIDITY) $(LIBS)
 
 NEMO_OBJS=NEMOdataload.cpp NEMOdataload_rotation.o
 
