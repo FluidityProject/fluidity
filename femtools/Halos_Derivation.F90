@@ -52,6 +52,7 @@ module halos_derivation
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos
+  public :: invert_comms_sizes
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh, derive_l1_from_l2_halo_halo

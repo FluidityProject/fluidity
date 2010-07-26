@@ -337,6 +337,8 @@ contains
     real, dimension(:, :), allocatable :: global_coords, local_coords, global_l_coords, local_l_coords
     integer, dimension(:), allocatable :: global_ele, local_ele
        
+    if(detectors%length == 0) return
+       
     call initialise_picker(positions)
         
     allocate(global_coords(positions%dim, detectors%length))

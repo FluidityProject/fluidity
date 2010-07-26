@@ -49,6 +49,11 @@ module sam_integration
   use surface_id_interleaving
   use tictoc
   use memory_diagnostics
+  
+  use data_structures
+  use detector_data_types
+  use diagnostic_variables
+  use pickers
 
   implicit none
   
@@ -198,6 +203,14 @@ module sam_integration
      end subroutine sam_pop_field_c
    end interface sam_pop_field
    
+   interface sam_export_node_ownership
+     subroutine sam_export_node_ownership_c(node_ownership, nnodes)
+       implicit none
+       integer, intent(in) :: nnodes
+       integer, dimension(nnodes), intent(out) :: node_ownership
+     end subroutine sam_export_node_ownership_c
+   end interface sam_export_node_ownership
+   
    private
    
    public :: sam_drive, strip_level_2_halo, sam_integration_check_options
@@ -291,6 +304,8 @@ module sam_integration
        call generate_stripped_vector_field(old_positions, old_linear_mesh, new_positions, new_linear_mesh, keep)
        call insert(states, new_positions, new_positions%name)
        call deallocate(old_positions)
+       
+       call halo_transfer_detectors(old_linear_mesh, new_positions)
        call deallocate(new_positions)
        
        ! Insert meshes from reserve states
@@ -740,7 +755,6 @@ module sam_integration
 
        integer :: field, state
 
-       type(mesh_type), pointer :: external_mesh
        type(scalar_field) :: linear_s
        type(vector_field) :: linear_v
        type(tensor_field) :: linear_t
@@ -752,18 +766,19 @@ module sam_integration
 
        integer, dimension(size(states)) :: scount, vcount, tcount
 
-       type(vector_field), pointer :: positions
        type(element_type) :: linear_shape
 
-       integer :: max_coplanar_id
+       integer :: max_coplanar_id, nlocal_dets
        integer, dimension(:), allocatable :: boundary_ids, coplanar_ids
        
        integer :: NNODP, NONODS, TOTELE, STOTEL, ncolga, nscate, pncolga, pnscate
+       type(mesh_type) :: old_linear_mesh
        type(mesh_type), pointer :: linear_mesh
 
        integer, dimension(:), allocatable :: ATOSEN, ATOREC
        integer, dimension(:), allocatable :: COLGAT, SCATER
        type(vector_field), target :: new_positions
+       type(vector_field), pointer :: old_positions
        integer :: dim, snloc, nloc
        integer, dimension(:), allocatable :: senlist, surface_ids
        character(len=FIELD_NAME_LEN) :: linear_mesh_name, linear_coordinate_field_name, metric_name
@@ -781,26 +796,36 @@ module sam_integration
        end if
 
        ! Step 2. Supply sam with all the fields it needs to migrate.
-       external_mesh => get_external_mesh(states, external_mesh_name=external_mesh_name)
-       linear_mesh_name = external_mesh%name
-       linear_mesh_option_path = external_mesh%option_path
+       old_linear_mesh = get_external_mesh(states, external_mesh_name=external_mesh_name)
+
+       nlocal_dets = local_detectors()
+       call allsum(nlocal_dets)
+       if(nlocal_dets > 0) then
+         ! Detector communication required. Take a reference to the old mesh.
+         ! If no detector communication is required, avoid taking a reference to
+         ! save memory.
+         call incref(old_linear_mesh)
+       end if
+       
+       linear_mesh_name = old_linear_mesh%name
+       linear_mesh_option_path = old_linear_mesh%option_path
        if(trim(linear_mesh_name) == "CoordinateMesh") then
           linear_coordinate_field_name="Coordinate"
        else
           linear_coordinate_field_name=trim(linear_mesh_name)//"Coordinate"
        end if
 
-       positions => extract_vector_field(states(1), trim(linear_coordinate_field_name))
-       dim = positions%dim
-       linear_shape = ele_shape(external_mesh, 1)
+       old_positions => extract_vector_field(states(1), trim(linear_coordinate_field_name))
+       dim = old_positions%dim
+       linear_shape = ele_shape(old_linear_mesh, 1)
 
-       nloc = external_mesh%shape%loc
-       snloc = external_mesh%faces%surface_mesh%shape%loc
+       nloc = old_linear_mesh%shape%loc
+       snloc = old_linear_mesh%faces%surface_mesh%shape%loc
        call incref(linear_shape)
 
-       call allocate(linear_s, external_mesh, "LinearScalarField")
-       call allocate(linear_v, dim, external_mesh, "LinearVectorField")
-       call allocate(linear_t, external_mesh, "LinearTensorField")
+       call allocate(linear_s, old_linear_mesh, "LinearScalarField")
+       call allocate(linear_v, dim, old_linear_mesh, "LinearVectorField")
+       call allocate(linear_t, old_linear_mesh, "LinearTensorField")
 
        ! Get the sizes so I can allocate the right amount of headers
        ! Multiple states is a REAL pain
@@ -891,8 +916,6 @@ module sam_integration
          call deallocate(metric)
        end if
        
-       ! At this point, the only thing that should still exist is linear_shape
-
        ! Step 4. Migrate.
        ewrite(1, *) "Calling sam_migrate from sam_drive"
        call tic(TICTOC_ID_DATA_MIGRATION)
@@ -933,6 +956,12 @@ module sam_integration
        deallocate(coplanar_ids)
        deallocate(surface_ids)
        deallocate(senlist)
+         
+       if(nlocal_dets > 0) then
+         ! Communicate the local detectors
+         call sam_transfer_detectors(old_linear_mesh, new_positions)
+         call deallocate(old_linear_mesh)
+       end if
 
        ! Check that the level 2 halo is around
        if(pncolga >= 0) then
@@ -1000,7 +1029,9 @@ module sam_integration
            call derive_element_halo_from_node_halo(linear_mesh, &
              & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
          else
-           allocate(linear_mesh%element_halos(0))
+           allocate(linear_mesh%element_halos(1))
+           call derive_element_halo_from_node_halo(linear_mesh, &
+             & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)  
          end if
        end if
 
@@ -1344,6 +1375,236 @@ module sam_integration
        end do
        
      end subroutine sam_add_field_tensor
+     
+  function local_detectors()
+    integer :: local_detectors
+    
+    type(detector_type), pointer :: node
+    
+    local_detectors = 0
+    
+    node => detector_list%firstnode
+    do while(associated(node))
+      if(node%local) local_detectors = local_detectors + 1
+      node => node%next
+    end do
+  
+  end function local_detectors
+     
+  subroutine sam_transfer_detectors(old_mesh, new_positions)
+    type(mesh_type), intent(in) :: old_mesh
+    type(vector_field), intent(inout) :: new_positions
+    
+    integer :: nnodes
+    integer, dimension(:), allocatable :: node_ownership
+    
+    nnodes = node_count(old_mesh)
+    allocate(node_ownership(nnodes))
+    call sam_export_node_ownership(node_ownership, nnodes)
+    node_ownership = node_ownership + 1
+    
+    call transfer_detectors(old_mesh, new_positions, node_ownership)
+    
+    deallocate(node_ownership)
+  
+  end subroutine sam_transfer_detectors
+  
+  subroutine halo_transfer_detectors(old_mesh, new_positions)
+    type(mesh_type), intent(in) :: old_mesh
+    type(vector_field), intent(inout) :: new_positions
+  
+    integer :: nhalos, nnodes
+    integer, dimension(:), allocatable :: node_ownership
+    type(halo_type), pointer :: halo
+    
+    nhalos = halo_count(old_mesh)
+    if(nhalos == 0) return
+    halo => old_mesh%halos(nhalos)
+    
+    nnodes = node_count(old_mesh)
+    allocate(node_ownership(nnodes))
+    call get_node_owners(halo, node_ownership)
+    
+    call transfer_detectors(old_mesh, new_positions, node_ownership)
+    
+    deallocate(node_ownership)
+    
+  end subroutine halo_transfer_detectors
+     
+  subroutine transfer_detectors(old_mesh, new_positions, node_ownership)
+    type(mesh_type), intent(in) :: old_mesh
+    type(vector_field), intent(inout) :: new_positions
+    integer, dimension(node_count(new_positions)) :: node_ownership
+    
+    integer :: communicator, i, j, nlocal_dets, nhalos,  nprocs, &
+      & owner, procno
+    type(detector_type), pointer :: node
+    type(halo_type), pointer :: halo
+    
+    integer, parameter :: idata_size = 3
+    integer :: rdata_size
+    
+    integer, dimension(:), allocatable :: nsends
+    type(integer_vector), dimension(:), allocatable :: isend_data
+    type(real_vector), dimension(:), allocatable :: rsend_data
+    
+    integer, dimension(:), allocatable :: nreceives, receives_index
+    type(integer_vector), dimension(:), allocatable :: ireceive_data
+    type(real_vector), dimension(:), allocatable :: rreceive_data
+    
+    integer :: ierr, tag
+    integer, dimension(:), allocatable :: requests, statuses
+    
+    nhalos = halo_count(old_mesh)
+    if(nhalos == 0) return
+    halo => old_mesh%halos(nhalos)
+    communicator = halo_communicator(halo)
+    procno = getprocno(communicator = communicator)
+    nprocs = halo_proc_count(halo)
+    
+    rdata_size = new_positions%dim + 1
+
+    nlocal_dets = local_detectors()
+    allocate(isend_data(nprocs))
+    allocate(rsend_data(nprocs))    
+    do i = 1, nprocs
+      allocate(isend_data(i)%ptr(nlocal_dets * idata_size))
+      allocate(rsend_data(i)%ptr(nlocal_dets * rdata_size))
+    end do
+    
+    allocate(nsends(nprocs))
+    nsends = 0
+    node => detector_list%firstnode
+    do while(associated(node))
+      if(node%local) then
+        assert(node%element > 0)
+        owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
+        if(owner /= procno) then
+          ! Pack this node for sending
+          
+          ! Integer data
+          isend_data(owner)%ptr(nsends(owner) * idata_size + 1) = node%type
+          isend_data(owner)%ptr(nsends(owner) * idata_size + 2) = node%id_number
+          isend_data(owner)%ptr(nsends(owner) * idata_size + 3) = node%initial_owner
+          ! Real data
+          rsend_data(owner)%ptr(nsends(owner) * rdata_size + 1:nsends(owner) * rdata_size + new_positions%dim) = node%position
+          rsend_data(owner)%ptr(nsends(owner) * rdata_size + new_positions%dim + 1) = node%dt
+          
+          nsends(owner) = nsends(owner) + 1
+          
+          ! Remove this node from the detector list
+          if(associated(node%previous)) then
+            node%previous%next => node%next
+            if(associated(node%next)) then
+              node%next%previous => node%previous
+            else
+              detector_list%lastnode => node%previous
+            end if
+          else
+            detector_list%firstnode => node%next
+            if(associated(node%next)) then
+              node%next%previous => null()
+            end if
+          end if
+          detector_list%length = detector_list%length - 1
+        end if
+      end if      
+    
+      node => node%next
+    end do
+    
+    ewrite(2, *) "Detectors to be sent: ", sum(nsends)
+    
+    allocate(nreceives(nprocs))
+    nreceives = invert_comms_sizes(nsends, communicator = communicator)
+    
+    ewrite(2, *) "Detectors to be received: ", sum(nreceives)
+    
+    allocate(ireceive_data(nprocs))
+    allocate(rreceive_data(nprocs))
+    do i = 1, nprocs
+      allocate(ireceive_data(i)%ptr(nreceives(i) * idata_size))
+      allocate(rreceive_data(i)%ptr(nreceives(i) * rdata_size))
+    end do
+    
+    ! Set up non-blocking communications
+    allocate(requests(nprocs * 4))
+    requests = MPI_REQUEST_NULL
+    tag = next_mpi_tag()
+
+    do i = 1, nprocs
+      ! Non-blocking sends
+      if(nsends(i) > 0) then
+        call mpi_isend(isend_data(i)%ptr, nsends(i) * idata_size, getpinteger(), i - 1, tag, communicator, requests(i), ierr)
+        assert(ierr == MPI_SUCCESS)
+        call mpi_isend(rsend_data(i)%ptr, nsends(i) * rdata_size, getpreal(), i - 1, tag, communicator, requests(i + nprocs), ierr)
+        assert(ierr == MPI_SUCCESS)
+      end if
+      
+      ! Non-blocking receives
+      if(nreceives(i) > 0) then
+        call mpi_irecv(ireceive_data(i)%ptr, nreceives(i) * idata_size, getpinteger(), i - 1, tag, communicator, requests(i + 2 * nprocs), ierr)
+        assert(ierr == MPI_SUCCESS)
+        call mpi_irecv(rreceive_data(i)%ptr, nreceives(i) * rdata_size, getpreal(), i - 1, tag, communicator, requests(i + 3 * nprocs), ierr)
+        assert(ierr == MPI_SUCCESS)
+      end if
+    end do   
+        
+    ! Wait for all non-blocking communications to complete
+    allocate(statuses(MPI_STATUS_SIZE * size(requests)))
+    call mpi_waitall(size(requests), requests, statuses, ierr)
+    assert(ierr == MPI_SUCCESS)
+    deallocate(statuses)
+    deallocate(requests)
+    
+    deallocate(nsends)
+    do i = 1, nprocs
+      deallocate(isend_data(i)%ptr)
+      deallocate(rsend_data(i)%ptr)
+    end do
+    deallocate(isend_data)
+    deallocate(rsend_data)
+    
+    allocate(receives_index(nprocs))
+    receives_index = 0
+    do i = 1, nprocs
+      do j = 1, nreceives(i)
+        ! Unpack the node
+        allocate(node)
+        
+        ! Integer data
+        node%type = ireceive_data(i)%ptr(receives_index(i) * idata_size + 1)
+        node%id_number = ireceive_data(i)%ptr(receives_index(i) * idata_size + 2)
+        node%initial_owner = ireceive_data(i)%ptr(receives_index(i) * idata_size + 3)
+                
+        ! Real data
+        allocate(node%position(new_positions%dim))
+        node%position = rreceive_data(i)%ptr(receives_index(i) * rdata_size + 1:receives_index(i) * rdata_size + new_positions%dim)
+        node%dt = rreceive_data(i)%ptr(receives_index(i) * rdata_size + new_positions%dim + 1)
+        
+        ! Recoverable data, not communicated
+        node%name = name_of_detector_in_read_order(node%id_number)
+        node%local = .true.
+        allocate(node%local_coords(new_positions%dim + 1))
+        
+        call insert_det(detector_list, node)
+        
+        receives_index(i) = receives_index(i) + 1
+      end do
+      
+      deallocate(ireceive_data(i)%ptr)
+      deallocate(rreceive_data(i)%ptr)
+    end do      
+    
+    ! Update the detector element ownership data
+    call search_for_detectors(detector_list, new_positions)
+    
+    deallocate(nreceives)
+    deallocate(receives_index)
+    deallocate(ireceive_data)
+    deallocate(rreceive_data)
+  
+  end subroutine transfer_detectors
 
   function load_imbalance(count)
     !!< Calculates the load imbalance metric:

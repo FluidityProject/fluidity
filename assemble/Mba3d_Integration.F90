@@ -30,6 +30,7 @@
 module mba3d_integration 
 
   use adapt_integration
+  use diagnostic_variables
   use quadrature
   use elements
   use fields
@@ -40,6 +41,7 @@ module mba3d_integration
 #ifdef HAVE_MBA_3D
   use mba3d_mba_nodal
 #endif
+  use pickers
   use spud
   use surface_id_interleaving
 
@@ -315,6 +317,9 @@ contains
     deallocate(lbe)
 
     ewrite(2, *) "Finished constructing output positions"
+    
+    ! Update the detector element ownership data
+    call search_for_detectors(detector_list, output_positions)
 
     ewrite(1, *) "Exiting adapt_mesh_mba3d"
 
