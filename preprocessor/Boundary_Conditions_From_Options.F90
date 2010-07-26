@@ -1488,7 +1488,7 @@ contains
 
     call get_era40_fluxes(current_time, X, Y, Z, temp, Vx, Vy, Vz, sal, &
                           F_as, Q_as, Tau_u, Tau_v, Q_s, &
-                          NNodes,on_sphere,d1,d2,d3,d4,d5)
+                          NNodes,on_sphere,0)
 
     ! finally, we need to reverse-map the temporary fields on the ocean mesh
     ! to the actual fields in state
