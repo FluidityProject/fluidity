@@ -48,6 +48,7 @@ module hydrostatic_pressure
   use state_matrices_module
   use upwind_stabilisation
   use profiler
+  use shape_functions
   use solvers
   
   implicit none

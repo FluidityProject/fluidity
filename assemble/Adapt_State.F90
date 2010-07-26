@@ -998,8 +998,10 @@ contains
       
       call perform_vertically_inhomogenous_step(states, new_positions, full_metric, extruded_positions)
 
-      ! Update the detector element ownership data
-      call search_for_detectors(detector_list, new_positions)
+      if(isparallel()) then
+        ! Update the detector element ownership data
+        call search_for_detectors(detector_list, new_positions)
+      end if
 
       ! We're done with old_positions, so we may deallocate it
       call deallocate(old_positions)

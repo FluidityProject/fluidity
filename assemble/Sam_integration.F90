@@ -227,7 +227,7 @@ module sam_integration
        logical, optional, intent(in) :: initialise_fields
        
        character(len = FIELD_NAME_LEN) :: linear_coordinate_field_name
-       integer :: i, j, stat
+       integer :: i, j, nlocal_dets, stat
        integer, dimension(:), allocatable :: renumber
        logical, dimension(:), allocatable :: keep
        type(halo_type), pointer :: level_1_halo, level_2_halo
@@ -305,7 +305,9 @@ module sam_integration
        call insert(states, new_positions, new_positions%name)
        call deallocate(old_positions)
        
-       call halo_transfer_detectors(old_linear_mesh, new_positions)
+       nlocal_dets = local_detectors()
+       call allsum(nlocal_dets)
+       if(nlocal_dets > 0) call halo_transfer_detectors(old_linear_mesh, new_positions)
        call deallocate(new_positions)
        
        ! Insert meshes from reserve states
@@ -1432,9 +1434,9 @@ module sam_integration
   subroutine transfer_detectors(old_mesh, new_positions, node_ownership)
     type(mesh_type), intent(in) :: old_mesh
     type(vector_field), intent(inout) :: new_positions
-    integer, dimension(node_count(new_positions)) :: node_ownership
+    integer, dimension(node_count(old_mesh)) :: node_ownership
     
-    integer :: communicator, i, j, nlocal_dets, nhalos,  nprocs, &
+    integer :: communicator, i, j, nhalos,  nprocs, &
       & owner, procno
     type(detector_type), pointer :: node
     type(halo_type), pointer :: halo
@@ -1442,11 +1444,11 @@ module sam_integration
     integer, parameter :: idata_size = 3
     integer :: rdata_size
     
-    integer, dimension(:), allocatable :: nsends
+    integer, dimension(:), allocatable :: nsends, data_index
     type(integer_vector), dimension(:), allocatable :: isend_data
     type(real_vector), dimension(:), allocatable :: rsend_data
     
-    integer, dimension(:), allocatable :: nreceives, receives_index
+    integer, dimension(:), allocatable :: nreceives
     type(integer_vector), dimension(:), allocatable :: ireceive_data
     type(real_vector), dimension(:), allocatable :: rreceive_data
     
@@ -1461,21 +1463,33 @@ module sam_integration
     nprocs = halo_proc_count(halo)
     
     rdata_size = new_positions%dim + 1
-
-    nlocal_dets = local_detectors()
-    allocate(isend_data(nprocs))
-    allocate(rsend_data(nprocs))    
-    do i = 1, nprocs
-      allocate(isend_data(i)%ptr(nlocal_dets * idata_size))
-      allocate(rsend_data(i)%ptr(nlocal_dets * rdata_size))
-    end do
     
     allocate(nsends(nprocs))
     nsends = 0
     node => detector_list%firstnode
     do while(associated(node))
-      if(node%local) then
-        assert(node%element > 0)
+      if(node%local .and. node%element > 0) then
+        owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
+        if(owner /= procno) then
+          nsends(owner) = nsends(owner) + 1
+        end if
+      end if      
+    
+      node => node%next
+    end do
+    
+    allocate(isend_data(nprocs))
+    allocate(rsend_data(nprocs))    
+    do i = 1, nprocs
+      allocate(isend_data(i)%ptr(nsends(i) * idata_size))
+      allocate(rsend_data(i)%ptr(nsends(i) * rdata_size))
+    end do
+    
+    allocate(data_index(nprocs))
+    data_index = 0
+    node => detector_list%firstnode
+    do while(associated(node))
+      if(node%local .and. node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
         if(owner /= procno) then
           ! Pack this node for sending
@@ -1487,9 +1501,7 @@ module sam_integration
           ! Real data
           rsend_data(owner)%ptr(nsends(owner) * rdata_size + 1:nsends(owner) * rdata_size + new_positions%dim) = node%position
           rsend_data(owner)%ptr(nsends(owner) * rdata_size + new_positions%dim + 1) = node%dt
-          
-          nsends(owner) = nsends(owner) + 1
-          
+                    
           ! Remove this node from the detector list
           if(associated(node%previous)) then
             node%previous%next => node%next
@@ -1563,22 +1575,21 @@ module sam_integration
     deallocate(isend_data)
     deallocate(rsend_data)
     
-    allocate(receives_index(nprocs))
-    receives_index = 0
+    data_index = 0
     do i = 1, nprocs
       do j = 1, nreceives(i)
         ! Unpack the node
         allocate(node)
         
         ! Integer data
-        node%type = ireceive_data(i)%ptr(receives_index(i) * idata_size + 1)
-        node%id_number = ireceive_data(i)%ptr(receives_index(i) * idata_size + 2)
-        node%initial_owner = ireceive_data(i)%ptr(receives_index(i) * idata_size + 3)
+        node%type = ireceive_data(i)%ptr(data_index(i) * idata_size + 1)
+        node%id_number = ireceive_data(i)%ptr(data_index(i) * idata_size + 2)
+        node%initial_owner = ireceive_data(i)%ptr(data_index(i) * idata_size + 3)
                 
         ! Real data
         allocate(node%position(new_positions%dim))
-        node%position = rreceive_data(i)%ptr(receives_index(i) * rdata_size + 1:receives_index(i) * rdata_size + new_positions%dim)
-        node%dt = rreceive_data(i)%ptr(receives_index(i) * rdata_size + new_positions%dim + 1)
+        node%position = rreceive_data(i)%ptr(data_index(i) * rdata_size + 1:data_index(i) * rdata_size + new_positions%dim)
+        node%dt = rreceive_data(i)%ptr(data_index(i) * rdata_size + new_positions%dim + 1)
         
         ! Recoverable data, not communicated
         node%name = name_of_detector_in_read_order(node%id_number)
@@ -1587,7 +1598,7 @@ module sam_integration
         
         call insert_det(detector_list, node)
         
-        receives_index(i) = receives_index(i) + 1
+        data_index(i) = data_index(i) + 1
       end do
       
       deallocate(ireceive_data(i)%ptr)
@@ -1598,7 +1609,7 @@ module sam_integration
     call search_for_detectors(detector_list, new_positions)
     
     deallocate(nreceives)
-    deallocate(receives_index)
+    deallocate(data_index)
     deallocate(ireceive_data)
     deallocate(rreceive_data)
   
