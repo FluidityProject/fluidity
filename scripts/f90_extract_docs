@@ -158,7 +158,8 @@ open_block_line_re=r"""(?ix)^\s*                      # Strip leading spaces.
 (?:\s*,\s*(?P<public>(?:public)|(?:private)))?(?:\s*::\s*)? # Public/private (type)
 (?:\s+(?P<name>(?:"""+operator_re+""")|(?:"""+name_re+r"""))\s*)? # Name of the block.
 (?:\((?P<arguments>"""+name_list_re+r"""?)\s*\))?        # Argument list.
-(?:\s*result\s*\(\s*(?P<result>"""+name_re+r")\s*\))?\s*$"# Function result name.
+(?:\s*result\s*\(\s*(?P<result>"""+name_re+r""")\s*\))?\s*# Function result name.
+(?:\s*bind\s*\(c\)\s*)?$""" # Fortran-C bindings.
 
 # Match the closing line of a block.
 end_block_line_re=r"(?ix)^\s*end\s+(?P<block_type>"+blocks_re+")"
