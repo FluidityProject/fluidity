@@ -1441,7 +1441,7 @@ module sam_integration
     type(detector_type), pointer :: node
     type(halo_type), pointer :: halo
     
-    integer, parameter :: idata_size = 3
+    integer, parameter :: idata_size = 2
     integer :: rdata_size
     
     integer, dimension(:), allocatable :: nsends, data_index
@@ -1462,7 +1462,7 @@ module sam_integration
     procno = getprocno(communicator = communicator)
     nprocs = halo_proc_count(halo)
     
-    rdata_size = new_positions%dim + 1
+    rdata_size = new_positions%dim
     
     allocate(nsends(nprocs))
     nsends = 0
@@ -1495,12 +1495,12 @@ module sam_integration
           ! Pack this node for sending
           
           ! Integer data
-          isend_data(owner)%ptr(nsends(owner) * idata_size + 1) = node%type
-          isend_data(owner)%ptr(nsends(owner) * idata_size + 2) = node%id_number
-          isend_data(owner)%ptr(nsends(owner) * idata_size + 3) = node%initial_owner
+          isend_data(owner)%ptr(data_index(owner) * idata_size + 1) = node%type
+          isend_data(owner)%ptr(data_index(owner) * idata_size + 2) = node%id_number
           ! Real data
-          rsend_data(owner)%ptr(nsends(owner) * rdata_size + 1:nsends(owner) * rdata_size + new_positions%dim) = node%position
-          rsend_data(owner)%ptr(nsends(owner) * rdata_size + new_positions%dim + 1) = node%dt
+          rsend_data(owner)%ptr(data_index(owner) * rdata_size + 1:data_index(owner) * rdata_size + new_positions%dim) = node%position
+                    
+          data_index(owner) = data_index(owner) + 1
                     
           ! Remove this node from the detector list
           if(associated(node%previous)) then
@@ -1584,17 +1584,16 @@ module sam_integration
         ! Integer data
         node%type = ireceive_data(i)%ptr(data_index(i) * idata_size + 1)
         node%id_number = ireceive_data(i)%ptr(data_index(i) * idata_size + 2)
-        node%initial_owner = ireceive_data(i)%ptr(data_index(i) * idata_size + 3)
                 
         ! Real data
         allocate(node%position(new_positions%dim))
         node%position = rreceive_data(i)%ptr(data_index(i) * rdata_size + 1:data_index(i) * rdata_size + new_positions%dim)
-        node%dt = rreceive_data(i)%ptr(data_index(i) * rdata_size + new_positions%dim + 1)
         
         ! Recoverable data, not communicated
         node%name = name_of_detector_in_read_order(node%id_number)
         node%local = .true.
         allocate(node%local_coords(new_positions%dim + 1))
+        node%initial_owner = procno
         
         call insert_det(detector_list, node)
         
