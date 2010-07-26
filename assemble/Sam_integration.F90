@@ -1029,9 +1029,7 @@ module sam_integration
            call derive_element_halo_from_node_halo(linear_mesh, &
              & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)
          else
-           allocate(linear_mesh%element_halos(1))
-           call derive_element_halo_from_node_halo(linear_mesh, &
-             & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES)  
+           allocate(linear_mesh%element_halos(0)) 
          end if
        end if
 

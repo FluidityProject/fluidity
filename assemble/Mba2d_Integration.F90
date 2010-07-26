@@ -20,8 +20,6 @@ module mba2d_integration
   use data_structures
   use global_parameters, only : current_debug_level
   use adapt_integration
-  use diagnostic_variables
-  use pickers
 #ifdef HAVE_MBA_2D
   use mba2d_module
 #endif
@@ -544,9 +542,6 @@ module mba2d_integration
     deallocate(rW)
     deallocate(iW)
     deallocate(tmp_metric)
-    
-    ! Update the detector element ownership data
-    call search_for_detectors(detector_list, output_positions)
     
     ewrite(1, *) "Exiting adapt_mesh_mba2d"
 

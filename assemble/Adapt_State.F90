@@ -66,6 +66,8 @@ module adapt_state_module
   use fields_halos
   use data_structures
   use intersection_finder_module
+  use diagnostic_variables
+  use pickers
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
 #endif
@@ -989,12 +991,15 @@ contains
         call allocate(new_positions,old_positions%dim,old_positions%mesh,name=trim(old_positions%name))
         call set(new_positions,old_positions)
       end if
-
+      
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
       
       call perform_vertically_inhomogenous_step(states, new_positions, full_metric, extruded_positions)
+
+      ! Update the detector element ownership data
+      call search_for_detectors(detector_list, new_positions)
 
       ! We're done with old_positions, so we may deallocate it
       call deallocate(old_positions)

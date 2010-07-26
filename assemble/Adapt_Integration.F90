@@ -30,7 +30,6 @@
 module adapt_integration
 
   use data_structures
-  use diagnostic_variables
   use quadrature
   use elements
   use fldebug
@@ -39,7 +38,6 @@ module adapt_integration
   use limit_metric_module
   use meshdiagnostics
   use node_locking
-  use pickers
   use spud
   use surface_id_interleaving
   use tictoc
@@ -661,9 +659,6 @@ contains
     
     deallocate(intarr)
     deallocate(rlarr)
-    
-    ! Update the detector element ownership data
-    call search_for_detectors(detector_list, output_positions)
     
     ewrite(1, *) "Exiting adapt_mesh"
     
