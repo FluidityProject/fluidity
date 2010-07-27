@@ -1440,7 +1440,7 @@ module sam_integration
     
     integer :: communicator, i, j, nhalos,  nprocs, &
       & owner, procno
-    type(detector_type), pointer :: node
+    type(detector_type), pointer :: next_node, node
     type(halo_type), pointer :: halo
     
     integer, parameter :: idata_size = 2
@@ -1491,6 +1491,8 @@ module sam_integration
     data_index = 0
     node => detector_list%firstnode
     do while(associated(node))
+      next_node => node%next
+    
       if(node%local .and. node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
         if(owner /= procno) then
@@ -1519,10 +1521,11 @@ module sam_integration
             end if
           end if
           detector_list%length = detector_list%length - 1
+          deallocate(node)
         end if
       end if      
     
-      node => node%next
+      node => next_node
     end do
     deallocate(data_index)
     
