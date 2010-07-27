@@ -1166,7 +1166,7 @@ you must enable the correct diffusivity. This
 is done by specifying \option{\ldots/subgridscale\_parameterisation} in the
 field to \option{GLS}. Normally, this would be the temperature, salinity and any biology fields active.
 
-Finally, a fields that are altered by the GLS model, such as the Viscosity need to be switched
+Finally, fields that are altered by the GLS model, such as the Viscosity, should be switched
 to a \option{diagnostic/algorithm::Internal}-type field. The list of fields to switch is:
 \begin{enumerate}
 \item \option{GLSTurbulentKineticEnergy/Diffusivity}
@@ -1185,9 +1185,17 @@ If these fields are not set correctly, a user error will occur.
 \index{k-$\epsilon$ model}
 
 This option enables the turbulence model described in \ref{Sect:kepsilon}. It must not be confused with the
-$k-\epsilon$ option in the GLS model (see \ref{Sect:GLS}) which is only for oceans. There are only 2 sub-options,
-both of which are recommended to be on:
-\option{\ldots/calculate\_boundaries} and \option{\ldots/limit\_lengthscale}.
+$k-\epsilon$ option in the GLS model (see \ref{Sect:GLS}) which is only for oceans. The user can choose to limit the length-scale
+ near the wall, which is recommended: \option{\ldots/limit\_lengthscale}.
+The user must select either implicit or explicit source and absorption terms via \option{\ldots/option}.
+If \option{explicit} is chosen, the source and absorption terms are as described in \ref{Sect:kepsilon}.
+If \option{implicit} is chosen, the source and absorption terms are calculated as follows:
+\begin{align}
+source &= -min(0.0, diss-prod), \nonumber \\
+absorption &= max(0.0, diss-prod), \nonumber \\
+\end{align}
+where $src$ is the explicitly calculated source term and $abs$ is the explicitly calculated absorption term.
+
 In Diamond the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
 The 2 fields should use the following spatial discretisation options: \linebreak
 \option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
