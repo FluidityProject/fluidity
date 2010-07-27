@@ -66,7 +66,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep replaces="DT">
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time replaces="LTIME">
       <real_value rank="0">20000</real_value>
@@ -164,11 +164,6 @@
           <relaxation replaces="ITHETA">
             <real_value rank="0">1.0</real_value>
           </relaxation>
-          <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.1</real_value>
-            </maximum_courant_number_per_subcycle>
-          </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
