@@ -1678,19 +1678,16 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       </choice>
                     </element>
                   </optional>
-                  <optional>
-                    <element name="calculate_boundaries">
-                      <a:documentation>If calculate_boundaries is selected, BCs for the epsilon field are imposed
-inside the code on the same surface ids as those for the k field.
-More sophisticated BCs for Epsilon (turbulentDissipation) will be included soon:
-eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.</a:documentation>
-                      <optional>
-                        <element name="string_value">
-                          <empty/>
-                        </element>
-                      </optional>
+                  <element name="option">
+                    <a:documentation>Select whether source and absorption terms for k and epsilon
+are implicit or explicit (see manual for details).</a:documentation>
+                    <element name="string_value">
+                      <choice>
+                        <value>explicit</value>
+                        <value>implicit</value>
+                      </choice>
                     </element>
-                  </optional>
+                  </element>
                   <optional>
                     <element name="limit_length">
                       <a:documentation>If limit_length is selected, the lengthscale is limited on the same surfaces as

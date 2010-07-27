@@ -1282,15 +1282,13 @@ start =
                         }
                      )
                   }?,
-                  ## If calculate_boundaries is selected, BCs for the epsilon field are imposed
-                  ## inside the code on the same surface ids as those for the k field.
-                  ## More sophisticated BCs for Epsilon (turbulentDissipation) will be included soon:
-                  ## eps = 2 * nu * (delta k^0.5/delta n)^2 on walls, where n = wall normal.
-                  element calculate_boundaries {
+                  ## Select whether source and absorption terms for k and epsilon
+                  ## are implicit or explicit (see manual for details).
+                  element option {
                      element string_value {
-                     empty
-                     }?
-                  }?,
+                     "explicit"|"implicit"
+                     }
+                  },
                   ## If limit_length is selected, the lengthscale is limited on the same surfaces as
                   ## k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).
                   element limit_length {
