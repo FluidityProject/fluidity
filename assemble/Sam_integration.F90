@@ -948,6 +948,14 @@ module sam_integration
                           & linear_mesh%ndglno, senlist, surface_ids)
        ewrite(1, *) "Exited sam_export_mesh"
        linear_mesh%option_path = linear_mesh_option_path
+         
+       if(nlocal_dets > 0) then
+         ! Communicate the local detectors
+         call sam_transfer_detectors(old_linear_mesh, new_positions)
+         call deallocate(old_linear_mesh)
+       end if
+       
+       ! Add the surface mesh data
        allocate(boundary_ids(stotel))
        allocate(coplanar_ids(stotel))
        call deinterleave_surface_ids(surface_ids, max_coplanar_id, boundary_ids, coplanar_ids)
@@ -958,12 +966,6 @@ module sam_integration
        deallocate(coplanar_ids)
        deallocate(surface_ids)
        deallocate(senlist)
-         
-       if(nlocal_dets > 0) then
-         ! Communicate the local detectors
-         call sam_transfer_detectors(old_linear_mesh, new_positions)
-         call deallocate(old_linear_mesh)
-       end if
 
        ! Check that the level 2 halo is around
        if(pncolga >= 0) then
@@ -1522,6 +1524,7 @@ module sam_integration
     
       node => node%next
     end do
+    deallocate(data_index)
     
     ewrite(2, *) "Detectors to be sent: ", sum(nsends)
     
@@ -1575,19 +1578,18 @@ module sam_integration
     deallocate(isend_data)
     deallocate(rsend_data)
     
-    data_index = 0
     do i = 1, nprocs
       do j = 1, nreceives(i)
         ! Unpack the node
         allocate(node)
         
         ! Integer data
-        node%type = ireceive_data(i)%ptr(data_index(i) * idata_size + 1)
-        node%id_number = ireceive_data(i)%ptr(data_index(i) * idata_size + 2)
+        node%type = ireceive_data(i)%ptr((j - 1) * idata_size + 1)
+        node%id_number = ireceive_data(i)%ptr((j - 1) * idata_size + 2)
                 
         ! Real data
         allocate(node%position(new_positions%dim))
-        node%position = rreceive_data(i)%ptr(data_index(i) * rdata_size + 1:data_index(i) * rdata_size + new_positions%dim)
+        node%position = rreceive_data(i)%ptr((j - 1) * rdata_size + 1:(j - 1) * rdata_size + new_positions%dim)
         
         ! Recoverable data, not communicated
         node%name = name_of_detector_in_read_order(node%id_number)
@@ -1596,21 +1598,18 @@ module sam_integration
         node%initial_owner = procno
         
         call insert_det(detector_list, node)
-        
-        data_index(i) = data_index(i) + 1
       end do
       
       deallocate(ireceive_data(i)%ptr)
       deallocate(rreceive_data(i)%ptr)
     end do      
     
-    ! Update the detector element ownership data
-    call search_for_detectors(detector_list, new_positions)
-    
     deallocate(nreceives)
-    deallocate(data_index)
     deallocate(ireceive_data)
     deallocate(rreceive_data)
+    
+    ! Update the detector element ownership data
+    call search_for_detectors(detector_list, new_positions)
   
   end subroutine transfer_detectors
 
