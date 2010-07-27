@@ -165,9 +165,8 @@ contains
          &/discontinuous_galerkin/advection_scheme&
          &/project_velocity_to_continuous")) then
 
-       lvelocity_name="Projected"//trim(lvelocity_name)
-
-       if(.not.has_scalar_field(state, lvelocity_name)) then
+       if(.not.has_scalar_field(state, "Projected"//trim(lvelocity_name))) &
+            &then
           
           call get_option(trim(T%option_path)&
                //"/prognostic/spatial_discretisation&
@@ -178,6 +177,7 @@ contains
           pmesh=>extract_mesh(state, pmesh_name)
           X=>extract_vector_field(state, "Coordinate")
           
+          lvelocity_name="Projected"//trim(lvelocity_name)
           call allocate(pvelocity, U_nl%dim, pmesh, lvelocity_name)
           
           call project_field(U_nl, pvelocity, X)
@@ -186,6 +186,9 @@ contains
 
           ! Discard the additional reference.
           call deallocate(pvelocity)
+       else
+          lvelocity_name="Projected"//trim(lvelocity_name)
+          pvelocity=extract_vector_field(state,lvelocity_name)
        end if
 
     end if
@@ -334,13 +337,6 @@ contains
        call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else
        call solve_advection_diffusion_dg_theta(field_name, state, lvelocity_name)
-    end if
-
-    ! Clean up any projected velocity field.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation&
-         &/discontinuous_galerkin/advection_scheme&
-         &/project_velocity_to_continuous")) then
-       call remove_vector_field(state, lvelocity_name)
     end if
 
   end subroutine solve_advection_diffusion_dg

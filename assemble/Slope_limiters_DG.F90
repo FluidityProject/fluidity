@@ -1448,7 +1448,7 @@ contains
              alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
           end if
        end do
-       ewrite(3,*) 'cjc alpha', alpha
+
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
 !!$       call set(alpha_field, T_ele, T_val_slope*0.0+alpha)
     end do

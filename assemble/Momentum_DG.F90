@@ -240,7 +240,7 @@ contains
        if(have_option(trim(U%option_path)//"/prognostic/&
             &spatial_discretisation/discontinuous_galerkin/&
             &advection_scheme/project_velocity_to_continuous")) then
-
+          ewrite(3,*) 'CREATING PROJECTEDNONLINEARVELOCITY, cjc'
           if(.not.has_scalar_field(state, "ProjectedNonlinearVelocity")) then
           
              call get_option(trim(U%option_path)//"/prognostic/&
@@ -251,11 +251,16 @@ contains
              call allocate(pvelocity, U_nl%dim, pmesh, &
                   &"ProjectedNonlinearVelocity")
              call project_field(U_nl, pvelocity, X)
-             call insert(state, pvelocity, U%name//"Projected")
+             call insert(state, pvelocity, "ProjectedNonlinearVelocity")
              advecting_velocity => pvelocity
 
              ! Discard the additional reference.
              call deallocate(pvelocity)
+          else
+             pvelocity = extract_vector_field(state, &
+                  &"ProjectedNonlinearVelocity")
+
+             advecting_velocity => pvelocity
           end if
        else
           advecting_velocity => U_nl
@@ -898,7 +903,7 @@ contains
          big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
 
       end if
-      if(acceleration) then
+      if(acceleration.and..not.subcycle) then
         rhs_addto(U_, :loc) = rhs_addto(U_, :loc) + matmul(coriolis_mat, u_val(V_,:))
         rhs_addto(V_, :loc) = rhs_addto(V_, :loc) - matmul(coriolis_mat, u_val(U_,:))
       end if
@@ -970,7 +975,7 @@ contains
                  &= big_m_tensor_addto(dim, dim, :loc, :loc) &
                  &+ dt*theta*advection_mat
          end if
-        if(acceleration) then
+        if(acceleration.and..not.subcycle) then
           rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(advection_mat, u_val(dim,:))
         end if
       end do

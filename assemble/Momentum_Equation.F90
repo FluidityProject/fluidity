@@ -75,6 +75,7 @@
 
     private
     public :: momentum_loop, momentum_equation_check_options
+
   contains
 
     subroutine momentum_loop(state, at_first_timestep, timestep, POD_state)
@@ -297,6 +298,7 @@
               & Courant_number_field)
          subcycles = ceiling( maxval(Courant_number_field%val)&
               &/Max_Courant_number)
+         ewrite(3,*) 'subcycles cjc', subcycles
          call allmax(subcycles)
       end if
       
@@ -832,7 +834,9 @@
              call allocate(u_sub, u%dim, u%mesh, "SubcycleU")
              u_sub%option_path = trim(u%option_path)
              call set(u_sub,u)
+
              ewrite(2,*) 'Applying subcycling for advection'
+
              do i=1, subcycles                
                 ! dU = Advection * U
                 call zero(delta_U)
@@ -845,16 +849,25 @@
                 ! U = U + dt/s * dU
                 call addto(U_sub, delta_U, scale=-dt/subcycles)
                 call halo_update(U_sub)
+
                 if (limit_slope) then
                    ! Filter wiggles from U
                    do d =1, mesh_dim(u)
                       u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
                       call limit_vb(state(istate),u_cpt)
                    end do
+
                 end if
-                
+
              end do
-             
+             call set(u,u_sub)
+
+             ewrite(2,*) 'cjc before'
+             do i = 1, delta_u%dim
+                ewrite_minmax(delta_u%val(i)%ptr(:))
+             end do
+             ewrite(2,*) 'cjc after'             
+
              !update RHS of momentum equation
              !delta_u is just used as dummy memory here
              !Theta method
@@ -867,6 +880,8 @@
                   &mom_rhs%mesh,name='TempMomMem')
              call mult(mom_tmp,big_m,delta_u)
              call addto(mom_rhs,mom_tmp)
+             call deallocate(mom_tmp)
+             call deallocate(u_sub)
           end if
 
           if (associated(ct_m)) then
