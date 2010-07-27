@@ -585,7 +585,6 @@ contains
                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")) then
                   shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
                       & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")
-
                   no_mixing_bins = shape_option(1)
               else if(have_option(trim(complete_field_path(sfield%option_path)) // &
                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/python")) then
@@ -603,7 +602,7 @@ contains
               buffer = field_tag(name=sfield%name, column=column+1, statistic="mixing_bins%" // trim(mixing_stats_name),&
                    & material_phase_name=material_phase_name, components=(no_mixing_bins))
               write(diag_unit, '(a)') trim(buffer)
-              column = column + (shape_option(1))
+              column = column + (no_mixing_bins)
               
             end do         
             
