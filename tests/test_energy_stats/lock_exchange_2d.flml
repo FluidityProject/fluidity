@@ -413,7 +413,21 @@
         </tensor_field>
         <output/>
         <stat>
-          <exclude_from_stat/>
+          <include_mixing_stats replaces="heaviside.dat file" name="normalised_cv">
+            <control_volumes>
+              <normalise/>
+            </control_volumes>
+            <mixing_bin_bounds>
+              <python>
+                <string_value lines="20" type="python">def val(t):
+  n = 100
+  dx = 1.0/(1.0*n)
+  bounds = [-1E10]
+  for i in range(n+1): bounds.append(-0.5+(i*dx))
+  return bounds</string_value>
+              </python>
+            </mixing_bin_bounds>
+          </include_mixing_stats>
         </stat>
         <convergence>
           <include_in_convergence/>

@@ -28,6 +28,7 @@ from lxml import etree
 import re
 import os
 import scipy.stats
+import scipy.integrate
 import math
 import vtktools
 import numpy
@@ -67,6 +68,7 @@ def Getflmlvalue(flml_name, xpath):
 
 #dt
 dt = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/timestepping/timestep'))
+
 #diffusivity
 try: kappa = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/scalar_field[@name="Temperature"]/prognostic/  tensor_field[@name="Diffusivity"]/prescribed/value[@name="WholeMesh"]/isotropic/constant'))
 except: kappa = 0
@@ -74,8 +76,24 @@ except: kappa = 0
 #viscosity
 try: nu = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/vector_field[@name="Velocity"]/prognostic/tensor_field[@name="Viscosity"]/prescribed/value[@name="WholeMesh"]/isotropic/constant')); #nu = 1E-6
 except: nu = 0
+
 # reference density (in EOS)
 rho_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase["@name=fluid"]/equation_of_state/fluids/linear/reference_density'))
+
+#g
+g = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/physical_parameters/gravity/magnitude'))
+
+# reference density
+rho_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/reference_density'))
+
+# thermal expansion coefficient
+alpha = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/temperature_dependency/thermal_expansion_coefficient'))
+
+# reference temperature
+T_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/temperature_dependency/reference_temperature'))
+
+# Domain dimensions
+H = 0.1; L = 0.8
 
 energy_stats = []
 for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
@@ -92,7 +110,28 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 # Minimum potential energy available through an adiabatic restratification of the fluid
   try: BPE = stat["fluid"]["BackgroundPotentialEnergyDensity"]["integral"]
   except: BPE = []
-
+  
+# Background Potential Energy from statfile
+# c.f. Tseng and Ferziger, Physics of Fluids, 2001
+  no_bins = len(stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"])
+  # get temp bin bounds (cf flml) and make them density rather than temperature
+  min_bound = -0.5; max_bound = 0.5
+  bounds = [T for T in [min_bound+((max_bound-min_bound)*i/(no_bins-2)) for i in range(no_bins-1)]]
+  bounds.insert(0,-1E10)
+# get pdfs and z_rs at each time  (note will neglect top and bottom bin in calculation of z_r)
+  z_r = []
+  for i in range(len(stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][0])):
+    pdf = [stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][j][i] for j in range(0,no_bins)]
+    pdf[-2] = pdf[-2]+pdf[-1] # add final bin in to second to final bin so pdf[-2] is volume with -0.49\leqT\leq0.5 not just -0.49\leqT\lt0.5
+    z_r.append([0]) # first z_r will be zero, corresponds to maximum density
+    for j in range(2,no_bins):
+      z_r[-1].append(H*sum([(bounds[q+1]-bounds[q])*pdf[q] for q in range(1,j)]))
+  rho_bounds = [rho_0*(1-(alpha*(T - T_0))) for T in bounds]
+  BPE_mixing_stats = []
+  for j in range(len(z_r)):
+    integral = scipy.integrate.simps([z_r[j][i]*rho_bounds[i+1] for i in range(len(z_r[j]))])
+    BPE_mixing_stats.append(g*H*L*integral)
+  
 # Potential energy diffused through boundaries 
   PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
   PEout = scipy.integrate.cumtrapz(PEflux,time)
@@ -132,7 +171,7 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 
   E_t = PE_t + KE_t - (PEflux + DD + DT + VD)[:-1]
 
-  energy_stats.append([PE, PEflux, DD, KE, DT, VD, E_t, totalE, BPE])
+  energy_stats.append([PE, PEflux, DD, KE, DT, VD, E_t, totalE, BPE_mixing_stats, BPE])
 
 print 'E total difference serial first timestep, last time step: ', energy_stats[0][-2][0], energy_stats[0][-2][-1]
 print 'dE/dt difference serial first timestep, last time step: ', energy_stats[0][-3][0], energy_stats[0][-3][-1] 
@@ -145,7 +184,9 @@ print 'dE/dt difference parallel first timestep, last time step: ', energy_stats
 
 #PE_error_1
 
-# Get error in PE for serial and parallel and BPE in serial run
+# Get error in PE for serial and parallel,
+# BPE_mixing_stats for serial and parallel
+# BPE in serial run
 # at end of first time step
 # (stat file does not output zero time step)
 # cannot test BPE for parallel as Isopycnal Coordinate not parallelised and
@@ -161,15 +202,6 @@ print 'dE/dt difference parallel first timestep, last time step: ', energy_stats
 # rho_2 is the density of the lighter fluid
 # c.f. Winters 1995 JFM and Ozgokmen 2007 Ocean Modelling
 
-# Get values from flml
-g = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/physical_parameters/gravity/magnitude'))
-rho_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/reference_density'))
-alpha = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/temperature_dependency/thermal_expansion_coefficient'))
-T_0 = float(Getflmlvalue('lock_exchange_2d.flml','/fluidity_options/material_phase[@name="fluid"]/equation_of_state/fluids/linear/temperature_dependency/reference_temperature'))
-
-# Domain dimensions
-H = 0.1; L = 0.8
-
 # Get PE and BPE
 rho = [rho_0*(1-alpha*(T - T_0)) for T in [-0.5,0.5]]
 
@@ -180,10 +212,12 @@ print 'PE: ', PE
 print 'PE stat serial, difference: ', energy_stats[0][0][0], ', ', abs(PE-energy_stats[0][0][0])
 print 'PE stat parallel, difference: ', energy_stats[1][0][0], ', ', abs(PE-energy_stats[1][0][0])
 print 'BPE: ', BPE
-print 'BPE stat serial, difference: ', energy_stats[0][-1][0], ', ', abs(PE-energy_stats[0][-1][0])
+print 'BPE from mixing stats serial, difference: ', energy_stats[0][-2][0], ', ', abs(BPE-energy_stats[0][-2][0])
+print 'BPE from mixing stats parallel, difference: ', energy_stats[1][-2][0], ', ', abs(BPE-energy_stats[1][-2][0])
+print 'BPE stat serial, difference: ', energy_stats[0][-1][0], ', ', abs(BPE-energy_stats[0][-1][0])
 
-PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-1][0])]]
-PE_error_1.append([abs(PE-energy_stats[1][0][0])])
+PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-2][0]), abs(BPE-energy_stats[0][-1][0])]]
+PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0])])
 
 #########################################################
 #########################################################
@@ -195,10 +229,10 @@ PE_error_1.append([abs(PE-energy_stats[1][0][0])])
 # (first output value) and final time
 # for all fields except BPE
 
-names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDissipation', 'dE/dt', 'total Energy']
+names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDissipation', 'dE/dt', 'total Energy', 'BPE from mixing stats']
 serial_parallel_error = [[abs(energy_stats[0][i][0] - energy_stats[1][i][0]) for i in range(len(energy_stats[0])-1)]]
 serial_parallel_error.append([abs(energy_stats[0][i][-1] - energy_stats[1][i][-1]) for i in range(len(energy_stats[0])-1)])
-for i in range(len(energy_stats)-1): 
+for i in range(len(energy_stats[0])-1): 
   print names[i]+' serial-parallel error start, end: ', serial_parallel_error[0][i], ', ', serial_parallel_error[1][i]
   
 #########################################################
@@ -214,22 +248,22 @@ errors = [energy_stats, serial_parallel_error, PE_error_1]
       assert (times[0]-times[1]) &lt; 1.E-8
     </test>
     <test name="check difference in total E and E_t in serial at first time step" language="python">
-      for err in errors[0][0][-3][0], errors[0][0][-2][0]: assert abs(err) &lt; 1.E-6
+      for err in errors[0][0][-4][0], errors[0][0][-3][0]: print err; assert abs(err) &lt; 1.E-6
     </test>
     <test name="check difference in total E in parallel at first and last time step" language="python">
-      for err in errors[0][1][-3][-1], errors[0][1][-2][-1]: assert abs(err) &lt; 1.E-6
+      for err in errors[0][1][-4][-1], errors[0][1][-3][-1]: print err; assert abs(err) &lt; 1.E-6
     </test>
     <test name="check difference between parallel and serial at first time step" language="python">
       for err in errors[1][0][:6]: print err; assert err &lt; 1.E-7
     </test>
     <test name="check difference between parallel and serial at end of run" language="python">
-      for err in errors[1][1][:6]: print err; assert err &lt; 1.E-6
+      for err in errors[1][1][:6]: print err; assert err &lt; 1.E-7
     </test>  
-    <test name="check error to PE in serial at first time step" language="python">
-      for err in errors[2][0]: assert err &lt; 1.E-7
+    <test name="check error to PE/BPE in serial at first time step" language="python">
+      for err in errors[2][0]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
     </test>
-    <test name="check error to PE in parallel at first time step" language="python">
-      for err in errors[2][1]: assert err &lt; 1.E-7
+    <test name="check error to PE/BPE in parallel at first time step" language="python">
+      for err in errors[2][1]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
     </test>
   </pass_tests>
   <warn_tests>
