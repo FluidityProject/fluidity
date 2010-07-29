@@ -54,6 +54,8 @@ module momentum_DG
   use sparsity_patterns
   use petsc_tools
   use turbine
+  use les_viscosity_module
+  use fields_manipulation
 
   implicit none
 
@@ -124,6 +126,10 @@ module momentum_DG
   logical :: CDG_switch_in
   logical :: CDG_penalty
   logical :: remove_penalty_fluxes
+
+  ! DG LES
+  logical :: have_dg_les
+  real :: smagorinsky_coefficient
 
 contains
 
@@ -216,7 +222,11 @@ contains
     type(mesh_type), save :: q_mesh, turbine_conn_mesh
 
     integer :: dim, dim2
-    
+   
+    !! DG LES
+    type(mesh_type), pointer :: cg_mesh
+    type(vector_field), pointer :: X_cg
+    type(vector_field) :: u_cg, u_nl_cg
     ewrite(1, *) "In construct_momentum_dg"
 
     assert(continuity(u)<0)
@@ -333,6 +343,15 @@ contains
           ewrite_minmax(viscosity%val(dim,dim2,:))
         end do
       end do
+    end if
+    have_dg_les=.false.
+    if (have_option(trim(u%option_path)//&
+        &"/prognostic/spatial_discretisation&
+        &/discontinuous_galerkin/LES")) have_dg_les=.true.
+    if (have_dg_les) then
+      call get_option(trim(u%option_path)//&
+        &"/prognostic/spatial_discretisation&
+        &/discontinuous_galerkin/LES/smagorinsky_coefficient", smagorinsky_coefficient)
     end if
 
     surfacetension = extract_tensor_field(state, "VelocitySurfaceTension", stat)
@@ -526,6 +545,19 @@ contains
       "weakdirichlet", &
       "dirichlet    "/), pressure_bc, pressure_bc_type)
 
+    ! dg les hack
+    cg_mesh=>extract_mesh(state, "CoordinateMesh")
+    X_cg=>extract_vector_field(state, "Coordinate")
+    call allocate(u_cg, u%dim, cg_mesh, "U_CG")
+    call zero(u_cg)
+    call allocate(u_nl_cg, u%dim, cg_mesh, "U_CG")
+    call zero(u_nl_cg)
+    
+    if (have_dg_les) then
+      call lumped_mass_galerkin_projection_vector(state, u_cg, u)
+      call lumped_mass_galerkin_projection_vector(state, u_nl_cg, advecting_velocity)
+    end if
+
     element_loop: do ELE=1,element_count(U)
        
        call construct_momentum_element_dg(ele, big_m, rhs, &
@@ -534,11 +566,12 @@ contains
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
+            & u_cg, u_nl_cg, X_cg, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
             & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
             & subcycle_m=subcycle_m)
-       
+      
     end do element_loop
 
     if (present(inverse_masslump) .and. lump_mass) then
@@ -569,6 +602,8 @@ contains
     call deallocate(surfacetension)
     call deallocate(buoyancy)
     call deallocate(gravity)
+    call deallocate(u_cg)
+    call deallocate(u_nl_cg)
     
     ewrite(1, *) "Exiting construct_momentum_dg"
     
@@ -579,8 +614,10 @@ contains
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
+       u_cg, u_nl_cg, X_cg, &
        &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
        &subcycle_m)
+
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -724,6 +761,19 @@ contains
          & face_centre, face_centre_2
     real :: turbine_fluxfac
 
+    ! dg les continuous fields
+    type(vector_field) :: u_cg, u_nl_cg, X_cg
+    type(element_type), pointer :: u_cg_shape
+    real, dimension(face_ngi(u_cg, ele)) :: detwei_cg
+    real, dimension(ele_loc(u_cg, ele), ele_ngi(u_cg, ele), u_cg%dim) :: du_t_cg
+    real, dimension(x_cg%dim, x_cg%dim, ele_ngi(u_cg,ele)) :: les_tensor_gi
+    real, dimension(ele_ngi(u_cg, ele)) :: les_coef_gi
+    integer :: toloc, fromloc, j, gi
+    real, dimension(u%mesh%shape%loc, u_cg%mesh%shape%loc) :: locweight
+    integer, dimension(:), pointer :: from_ele, to_ele
+    real, dimension(u%dim, u%dim, ele_loc(u, ele)) :: dg_les_loc
+    real, dimension(u%dim, u%dim, ele_loc(u_cg, ele)) :: cg_les_loc
+
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
@@ -818,13 +868,49 @@ contains
     
     Rho_q=ele_val_at_quad(Rho, ele)
 
-    if (have_viscosity.and.owned_element) then
-       Viscosity_ele = ele_val(Viscosity,ele)
+    ! dg les hack
+    if (have_dg_les) then
+      u_cg_shape=>ele_shape(u_cg, ele)
+      call transform_to_physical(X, ele, &
+           u_cg_shape, dshape=du_t_cg, detwei=detwei_cg)
+
+      les_tensor_gi=les_length_scale_tensor(du_t_cg, ele_shape(u_cg, ele))
+      les_coef_gi=les_viscosity_strength(du_t_cg, ele_val(u_nl_cg, ele))
+
+      do gi=1, size(les_coef_gi)
+         ! eddy-viscosity on the cg gauss points
+         les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
+              smagorinsky_coefficient**2
+      end do
+
+      ! eddy-viscosity on the cg nodes
+      cg_les_loc=shape_tensor_rhs(u_cg_shape, les_tensor_gi, detwei_cg)
+
+      do toloc=1,size(locweight,1)
+         do fromloc=1,size(locweight,2)
+            locweight(toloc,fromloc)=eval_shape(u_cg%mesh%shape, fromloc, &
+                 local_coords(toloc, u%mesh%shape))
+         end do
+      end do
+      from_ele=>ele_nodes(u_cg, ele)
+      to_ele=>ele_nodes(u, ele)
+      
+      do i=1,u_cg%dim
+         do j=1,u_cg%dim
+            ! eddy-viscosity on the dg nodes
+            dg_les_loc(i, j, :) = matmul(locweight, cg_les_loc(i, j, :))
+         end do
+      end do
     end if
-    
+   
+    if (have_viscosity.and.owned_element) then
+      Viscosity_ele = ele_val(Viscosity,ele)
+      if (have_dg_les) Viscosity_ele = Viscosity_ele + dg_les_loc
+    end if
+   
     if (owned_element) then
        u_val = ele_val(u, ele)
-    end if
+   end if
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
@@ -2685,6 +2771,90 @@ contains
     ewrite_minmax(poisson_rhs%val(1:nowned_nodes(poisson_rhs)))
 
   end subroutine assemble_poisson_rhs_dg
+
+  subroutine lumped_mass_galerkin_projection_vector(state, field, projected_field)
+    type(state_type), intent(in) :: state
+    type(vector_field), intent(inout) :: field
+    type(vector_field), intent(inout) :: projected_field
+    type(vector_field), pointer :: positions
+    type(vector_field) :: rhs
+    type(scalar_field) :: mass_lumped, inverse_mass_lumped
+
+    integer :: ele
+ 
+    positions => extract_vector_field(state, "Coordinate")
+
+    ! Assuming they're on the same quadrature
+    assert(ele_ngi(field, 1) == ele_ngi(projected_field, 1))
+
+    call allocate(mass_lumped, field%mesh, name="GalerkinProjectionMassLumped")
+    call zero(mass_lumped)
+     
+    call allocate(rhs, field%dim, field%mesh, name="GalerkinProjectionRHS")
+    call zero(rhs)
+
+    do ele=1,ele_count(field)
+      call assemble_galerkin_projection(field, projected_field, positions, &
+                                     &  rhs, ele)
+    end do
+
+    call allocate(inverse_mass_lumped, field%mesh, &
+       name="GalerkinProjectionInverseMassLumped")
+    call invert(mass_lumped, inverse_mass_lumped)
+    call set(field, rhs)
+    call scale(field, inverse_mass_lumped)
+    call deallocate(mass_lumped)
+    call deallocate(inverse_mass_lumped)
+    call deallocate(rhs)
+
+    contains
+     
+      subroutine assemble_galerkin_projection(field, projected_field, positions, rhs, ele)
+        type(vector_field), intent(inout) :: field
+        type(vector_field), intent(in) :: projected_field
+        type(vector_field), intent(in) :: positions
+        type(vector_field), intent(inout) :: rhs
+        integer, intent(in) :: ele
+
+        type(element_type), pointer :: field_shape, proj_field_shape
+
+        real, dimension(ele_loc(field, ele), field%dim) :: little_rhs
+        real, dimension(ele_loc(field, ele), ele_loc(field, ele)) :: little_mass
+        real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba
+        real, dimension(ele_loc(field, ele), ele_loc(projected_field, ele)) :: little_mba_int
+        real, dimension(ele_ngi(field, ele)) :: detwei
+        real, dimension(field%dim, ele_loc(projected_field, ele)) :: proj_field_val
+
+        integer :: i, j, k
+
+        field_shape => ele_shape(field, ele)
+        proj_field_shape => ele_shape(projected_field, ele)
+
+        call transform_to_physical(positions, ele, detwei=detwei)
+
+        little_mass = shape_shape(field_shape, field_shape, detwei)
+
+        ! And compute the product of the basis functions
+        little_mba = 0
+        do i=1,ele_ngi(field, ele)
+          forall(j=1:ele_loc(field, ele), k=1:ele_loc(projected_field, ele))
+            little_mba_int(j, k) = field_shape%n(j, i) * proj_field_shape%n(k, i)
+          end forall
+          little_mba = little_mba + little_mba_int * detwei(i)
+        end do
+
+        proj_field_val = ele_val(projected_field, ele)
+        do i=1,field%dim
+          little_rhs(:, i) = matmul(little_mba, proj_field_val(i, :))
+        end do
+
+        call addto(mass_lumped, ele_nodes(field, ele), &
+          sum(little_mass,2))
+        call addto(rhs, ele_nodes(field, ele), transpose(little_rhs))
+         
+      end subroutine assemble_galerkin_projection
+         
+   end subroutine lumped_mass_galerkin_projection_vector
 
   subroutine momentum_DG_check_options
     

@@ -708,6 +708,17 @@ twice.</a:documentation>
               </element>
             </optional>
           </element>
+          <optional>
+            <element name="les_model">
+              <a:documentation>DG large-eddy simulation</a:documentation>
+              <element name="smagorinsky_coefficient">
+                <a:documentation>literature sybol: Cs
+
+suggested value 0.1</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
         </element>
       </choice>
       <element name="conservative_advection">
