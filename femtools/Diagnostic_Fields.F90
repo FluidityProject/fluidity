@@ -1705,6 +1705,10 @@ contains
 
        call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
     end do
+    
+    ! the courant values at the edge of the halo are going to be incorrect
+    ! this matters when computing the max courant number
+    call halo_update(courant)
 
   end subroutine calculate_courant_number_dg
 
