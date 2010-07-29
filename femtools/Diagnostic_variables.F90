@@ -83,7 +83,8 @@ module diagnostic_variables
        & test_and_write_convergence, initialise_detectors, write_detectors, &
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
-       & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det
+       & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det, &
+       & remove_det_from_current_det_list
 
   public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order
 
@@ -580,6 +581,8 @@ contains
             do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_mixing_stats") - 1
               call get_option(trim(complete_field_path(sfield%option_path)) &
               & // "/stat/include_mixing_stats["// int2str(j) // "]/name", mixing_stats_name)
+              shape_option=option_shape(trim(complete_field_path(sfield%option_path)) // &
+                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds")   
 
               if(have_option(trim(complete_field_path(sfield%option_path)) // &
                   & "/stat/include_mixing_stats["// int2str(j) // "]/mixing_bin_bounds/constant")) then
@@ -598,13 +601,14 @@ contains
                   FLAbort("Unable to determine mixing bin bounds type")  
                   
               end if
-                         
+          
               buffer = field_tag(name=sfield%name, column=column+1, statistic="mixing_bins%" // trim(mixing_stats_name),&
                    & material_phase_name=material_phase_name, components=(no_mixing_bins))
+
               write(diag_unit, '(a)') trim(buffer)
               column = column + (no_mixing_bins)
-              
-            end do         
+
+            end do
             
             ! Surface integrals
             do j = 0, option_count(trim(complete_field_path(sfield%option_path, stat = stat)) // "/stat/surface_integral") - 1
@@ -676,31 +680,31 @@ contains
              write(diag_unit, "(a)") trim(buffer)
            end do
 
-            ! drag calculation
-            if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
-              do j = 1, mesh_dim(vfield%mesh)
-                column = column + 1
-                buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
-                // int2str(j), material_phase_name=material_phase_name)
-                write(diag_unit, '(a)') trim(buffer)
-              end do
-              if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-                do j = 1, mesh_dim(vfield%mesh)
-                  column = column + 1
-                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
-                  // int2str(j), material_phase_name=material_phase_name)
-                  write(diag_unit, '(a)') trim(buffer)
-                end do
-                do j = 1, mesh_dim(vfield%mesh)
-                  column = column + 1
-                  buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
-                  // int2str(j), material_phase_name=material_phase_name)
-                  write(diag_unit, '(a)') trim(buffer)
-                end do
-              end if
-            end if
-           
-            if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
+           ! drag calculation
+           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
+             do j = 1, mesh_dim(vfield%mesh)
+               column = column + 1
+               buffer = field_tag(name=trim(vfield%name), column=column, statistic="force%" &
+               // int2str(j), material_phase_name=material_phase_name)
+               write(diag_unit, '(a)') trim(buffer)
+             end do
+             if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
+               do j = 1, mesh_dim(vfield%mesh)
+                 column = column + 1
+                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="pressure_force%" &
+                 // int2str(j), material_phase_name=material_phase_name)
+                 write(diag_unit, '(a)') trim(buffer)
+               end do
+               do j = 1, mesh_dim(vfield%mesh)
+                 column = column + 1
+                 buffer = field_tag(name=trim(vfield%name), column=column, statistic="viscous_force%" &
+                 // int2str(j), material_phase_name=material_phase_name)
+                 write(diag_unit, '(a)') trim(buffer)
+               end do
+             end if
+           end if
+
+           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%min", material_phase_name=material_phase_name)
               write(diag_unit, '(a)') trim(buffer)
@@ -713,17 +717,17 @@ contains
               column=column+1
               buffer=field_tag(name=vfield%name, column=column, statistic="divergence%integral", material_phase_name=material_phase_name)
               write(diag_unit, '(a)') trim(buffer)
-            end if
-            
-            ! momentum conservation error calculation
-            if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
-              do j = 1, mesh_dim(vfield%mesh)
-                column = column + 1
-                buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
-                // int2str(j), material_phase_name=material_phase_name)
-                write(diag_unit, '(a)') trim(buffer)
-              end do
-            end if
+           end if
+
+           ! momentum conservation error calculation
+           if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
+             do j = 1, mesh_dim(vfield%mesh)
+               column = column + 1
+               buffer = field_tag(name=trim(vfield%name), column=column, statistic="momentum_conservation%" &
+               // int2str(j), material_phase_name=material_phase_name)
+               write(diag_unit, '(a)') trim(buffer)
+             end do
+           end if
 
          end do
 
@@ -1766,23 +1770,23 @@ contains
            end if
          end do
 
-          ! drag calculation
-          if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
-            call write_body_forces(state(phase), vfield)  
-          end if
+         ! drag calculation
+         if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/compute_body_forces_on_surfaces")) then
+           call write_body_forces(state(phase), vfield)  
+         end if
 
-          if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
-            call divergence_field_stats(vfield, Xfield, fmin, fmax, fnorm2, fintegral)
-            if(getprocno() == 1) then
-              write(diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
+         if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/divergence_stats")) then
+           call divergence_field_stats(vfield, Xfield, fmin, fmax, fnorm2, fintegral)
+           if(getprocno() == 1) then
+             write(diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
-            end if            
-          end if
+           end if            
+         end if
 
-          ! momentum conservation error calculation
-          if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
-            call write_momentum_conservation_error(state(phase), vfield)
-          end if
+         ! momentum conservation error calculation
+         if(have_option(trim(complete_field_path(vfield%option_path, stat)) // "/stat/calculate_momentum_conservation_error")) then
+           call write_momentum_conservation_error(state(phase), vfield)
+         end if
          
          call deallocate(xfield)
          
@@ -2203,7 +2207,7 @@ contains
     integer, dimension(:), allocatable :: types_det
     logical :: any_lagrangian
 
-    type(detector_type), pointer :: node, temp_node, node_to_send
+    type(detector_type), pointer :: node, temp_node, node_to_send, node_duplicated
     type(integer_hash_table) :: ihash, ihash_inverse, ihash_neigh_ele
 
     integer, dimension(:), allocatable :: global_det_count
@@ -2211,9 +2215,11 @@ contains
     type(detector_linked_list), dimension(:), allocatable :: send_list_array, receive_list_array
     integer :: target_proc_a, mapped_val_a, halo_level, list_neigh_processor, check_no_det
 
-    type(halo_type), pointer :: ele_halo
+    type(halo_type), pointer :: ele_halo 
 
-    integer :: entries
+    integer :: entries, totaldet_global
+
+    type(element_type), pointer :: shape
 
     ewrite(1,*) "Inside write_detectors subroutine"
 
@@ -2230,31 +2236,284 @@ contains
        return
     end if
 
+    vfield => extract_vector_field(state(1),"Velocity")
+    halo_level = element_halo_count(vfield%mesh)
+
+    shape=>ele_shape(xfield,1)
+
+    ! Calculate the location of the detectors in the mesh.
+
     if (detector_list%length/=0) then
-     
-      ! Calculate the location of the detectors in the mesh.
 
        call search_for_detectors(detector_list, xfield)
 
-       node => detector_list%firstnode
+    end if
 
-       do i = 1, detector_list%length
+    node => detector_list%firstnode
+
+    do i = 1, detector_list%length
          
-         if (node%element<0) then
+      if (node%element<0) then
 
-            node%local = .true.
+         node%local = .true.
 
-         else
+      else
 
-            node%initial_owner=getprocno()
+         node%initial_owner=getprocno()
 
-            node%local = .true.
-        
-         end if 
+         node%local = .true.
+     
+      end if 
 
-         node => node%next
+      node => node%next
+
+   end do
+
+   !!!!! After adaptivity of the mesh and the call to zoltan subroutines for the re-load balancing, the element numbering and ownership changes. In principle the ownership of detector elements is found out inside zoltan but it can change after the call to search_for_detectors subroutine due to floating point errors for locations very close (to within precision) to an element face. 
+
+   !!!!! Hence, after zoltan and search_for_detectors if a detector appears to be in a negative element (not owned by current proc.) then the detector will be send to all the neighbour proc. and we will call search_for_detectors again. The detector will then be deleted from the list of the procs. who dont own it.
+
+    if ((timestep/=0).and.(timestep/=1)) then 
+
+       !!! creating hash table with neighbouring processors
+
+       number_neigh_processors=0
+
+       call allocate(ihash) 
+
+       if (halo_level /= 0.) then
+
+          ele_halo => vfield%mesh%element_halos(halo_level)
+
+          nprocs = halo_proc_count(ele_halo)
+
+          num_proc=1
+
+          do i = 1, nprocs 
+            
+            if ((halo_send_count(ele_halo, i) + halo_receive_count(ele_halo, i) > 0).and.(.not.has_key(ihash, i))) then
+
+               call insert(ihash, i, num_proc)
+
+               num_proc=num_proc+1
+
+           end if
+
+          end do
+
+          number_neigh_processors=key_count(ihash)
+
+       end if
+
+       call allocate(ihash_inverse) 
+       do i=1, key_count(ihash)
+
+          call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
+          call insert(ihash_inverse, mapped_val_a, target_proc_a)
 
        end do
+
+       do i=1, key_count(ihash_inverse)
+
+          call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
+
+       end do
+
+       !!! end of creating hash table with neighboruing processors
+
+       !!! Next, if a detector is in a negative element (not owned or seen by current proc.) then it will be sent to all neighbouring processors.
+
+       allocate(send_list_array(number_neigh_processors))
+       allocate(receive_list_array(number_neigh_processors))
+
+       node => detector_list%firstnode
+       do i = 1, detector_list%length
+
+          if (node%element>0) then
+
+             processor_owner=element_owner(vfield%mesh,node%element)
+
+             node => node%next
+
+          else
+
+             node_to_send => node
+
+             node => node%next
+
+             call remove_det_from_current_det_list(detector_list,node_to_send)
+
+             do j=1, number_neigh_processors
+
+                 allocate(node_duplicated)
+
+                 node_duplicated%name=node_to_send%name
+
+                 allocate(node_duplicated%position(vfield%dim))
+                 node_duplicated%position=node_to_send%position
+                 node_duplicated%local = node_to_send%local
+                 node_duplicated%type = node_to_send%type
+                 node_duplicated%id_number = node_to_send%id_number
+                 node_duplicated%element = node_to_send%element
+                  
+                 allocate(node_duplicated%local_coords(local_coord_count(shape)))
+                 node_duplicated%local_coords = node_to_send%local_coords
+                 node_duplicated%dt = node_to_send%dt
+                 node_duplicated%initial_owner = node_to_send%initial_owner
+            
+                 call insert_det(send_list_array(j),node_duplicated)  
+     
+             end do
+            
+          end if
+         
+       end do
+
+       all_send_lists_empty=number_neigh_processors
+       do k=1, number_neigh_processors
+
+          if (send_list_array(k)%length==0) then
+             all_send_lists_empty=all_send_lists_empty-1
+          end if
+
+       end do
+
+       call allmax(all_send_lists_empty)
+
+       if (all_send_lists_empty/=0) then
+
+          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
+
+       end if
+
+       do i=1, number_neigh_processors
+
+          if  (receive_list_array(i)%length/=0) then      
+           
+             call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
+        
+          end if
+
+       end do
+
+       !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
+
+       do k=1, number_neigh_processors
+    
+          if (send_list_array(k)%length/=0) then  
+
+             call flush_det(send_list_array(k))
+
+          end if
+
+       end do
+
+       do k=1, number_neigh_processors
+
+          if (receive_list_array(k)%length/=0) then  
+
+             call flush_det(receive_list_array(k))
+
+          end if
+
+       end do
+
+       deallocate(send_list_array)
+       deallocate(receive_list_array)
+
+    !!! End of sending detectors in negative elements to all neighbouring processors 
+
+    !!! Next we check the location of detectors after sending those in negative elements. This time a processor will own those and will see the element as positive. The det will be removed from the other proc. that see the element still as negative.
+
+       if (detector_list%length/=0) then
+          call search_for_detectors(detector_list, xfield)
+       end if
+
+       node => detector_list%firstnode
+       do i = 1, detector_list%length
+          if (node%element>0) then
+
+               node => node%next
+
+          else
+
+              temp_node => node
+                 
+              if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
+              !!this checks if the current node that we are going to remove from the list is the first 
+              !!one in the list but not the only node in the list
+
+                  node%next%previous => null()
+
+                  node => node%next
+
+                  temp_node%previous => null()
+                  temp_node%next => null()
+
+                  detector_list%firstnode => node
+                  detector_list%firstnode%previous => null()
+
+                  detector_list%length = detector_list%length-1   
+
+              else 
+
+                   if ((.not.associated(node%next)).and.(associated(node%previous))) then
+                   !!this takes into account the case when the node is the last one in the list 
+                   !!but not the only one
+
+                        node%previous%next => null()
+
+                        detector_list%lastnode => node%previous
+
+                        temp_node%previous => null()
+                        temp_node%next => null()
+
+                        detector_list%lastnode%next => null()
+
+                        detector_list%length = detector_list%length-1    
+
+                   else    
+
+                        if (detector_list%length==1) then
+                        !!!This case takes into account if the list has only one node. 
+
+                        temp_node%previous => null()
+                        temp_node%next => null()
+
+                        detector_list%firstnode => null()
+                        detector_list%lastnode => null()
+
+                        detector_list%length = detector_list%length-1    
+
+                        else
+                        !!case when the node is in the middle of the double linked list
+
+                           node%previous%next => node%next
+
+                           node%next%previous => node%previous
+
+                           node => node%next
+
+                           temp_node%previous => null()
+                           temp_node%next => null()
+
+                           detector_list%length = detector_list%length-1    
+
+                        end if 
+                   end if
+
+              end if
+    
+          end if
+
+       end do
+
+       call deallocate(ihash) 
+       call deallocate(ihash_inverse) 
+
+    end if
+
+    !!!!! End of the additional code included to find element ownership after adapt + zoltan since although ownership is found in zoltan, it can change after the call to search_for_detectors subroutine due to floating point errors for locations very close (to within precision) to an element face. 
 
     !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED BEFORE CALLING MPI_ALL_MAX() 
     !!! TO SOLVE THE CONFLICT OF OWNERSHIP OF THE DETECTORS.
@@ -2262,6 +2521,8 @@ contains
     !!! THIS IS ONLY NEEDED AT THE BEGINNING OF THE SIMULATION, at the first time step, 
     !!! ONCE WE HAVE DISTRIBUTED INITIALLY THE DETECTORS
     !!! AMONG THE DIFFERENT PROCESSORS, WE DON'T NEED TO DO THIS ANY MORE
+
+    if (detector_list%length/=0) then
 
         if (timestep==1) then
 
@@ -2296,9 +2557,8 @@ contains
                temp_node => node
               
                if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-               !!this checks if the current node that we are going to remove from the list is the first 
-               !!one in the list but not the only node in the list
-
+               !!this checks if the current node that we are going to remove from the list is the first one in the list but not the only node in the list
+         
                   node%next%previous => null()
 
                   node => node%next
@@ -2384,7 +2644,7 @@ contains
 
        end if
 
-    end if
+    end if  ! end of if (detector_list%length/=0)
 
     call allocate(ihash_neigh_ele)   
     processor_number=getprocno() 
@@ -2439,8 +2699,6 @@ contains
     do i=1, key_count(ihash)
 
        call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
-!       ewrite(1,*) "ihash, i is", i
-!       ewrite(1,*) "ihash, pair", target_proc_a, mapped_val_a
 
     end do
 
@@ -2455,8 +2713,6 @@ contains
     do i=1, key_count(ihash_inverse)
 
        call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
-!       ewrite(1,*) "ihash_inverse, i is", i
-!       ewrite(1,*) "ihash_inverse, pair", target_proc_a, mapped_val_a
 
     end do
 
@@ -2465,8 +2721,6 @@ contains
     do i=1, key_count(ihash_neigh_ele)
 
        call fetch_pair(ihash_neigh_ele, i, target_proc_a, mapped_val_a)
-       ewrite(1,*) "ihash_neigh_ele, i is", i
-       ewrite(1,*) "ihash_neigh_ele, pair", target_proc_a, mapped_val_a
 
     end do
 
@@ -2521,19 +2775,13 @@ contains
        all_send_lists_empty=number_neigh_processors
        do k=1, number_neigh_processors
 
-          ewrite(1,*) "number_neigh_processors:", number_neigh_processors
-
           if (send_list_array(k)%length==0) then
             all_send_lists_empty=all_send_lists_empty-1
-         end if
+          end if
 
        end do
 
-       ewrite(1,*) "all_send_lists_empty bef allmax. It is 0 if all list towards neigh proc. are empty:", all_send_lists_empty
-
        call allmax(all_send_lists_empty)
-
-       ewrite(1,*) "all_send_lists_empty after allmax. It is 0 if all list towards neigh proc. are empty for all proc:", all_send_lists_empty
 
        if (all_send_lists_empty==0) exit
 
@@ -2762,8 +3010,6 @@ contains
       all_send_lists_empty=number_neigh_processors
       do k=1, number_neigh_processors
 
-         ewrite(1,*) "number_neigh_processors:", number_neigh_processors
-
          if (send_list_array(k)%length==0) then
          
             all_send_lists_empty=all_send_lists_empty-1
@@ -2772,11 +3018,7 @@ contains
 
       end do
 
-      ewrite(1,*) "all_send_lists_empty bef allmax. It is 0 if all list towards neigh proc. are empty:", all_send_lists_empty
-
       call allmax(all_send_lists_empty)
-
-      ewrite(1,*) "all_send_lists_empty after allmax. It is 0 if all list towards neigh proc. are empty for all proc:", all_send_lists_empty
 
       if (all_send_lists_empty/=0) then
 
@@ -2823,6 +3065,12 @@ contains
     end if
 
     call deallocate(ihash) 
+
+    totaldet_global=detector_list%length
+
+    call allsum(totaldet_global)
+
+    ewrite(2,*) "total number of detectors at the end of write_detectors subroutine", totaldet_global
 
    contains
 
@@ -3251,7 +3499,16 @@ contains
 
           global_ele=node%element
 
-          univ_ele = halo_universal_number(ele_halo, global_ele)
+          if (node%element>0) then
+
+             univ_ele = halo_universal_number(ele_halo, global_ele)
+
+          else
+
+          !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
+             univ_ele =-1
+
+          end if
 
           send_list_array_serialise(i)%ptr(j,1:dim)=node%position
           send_list_array_serialise(i)%ptr(j,dim+1)=univ_ele
@@ -3268,7 +3525,6 @@ contains
        call MPI_ISEND(send_list_array_serialise(i)%ptr,size(send_list_array_serialise(i)%ptr), &
             & getpreal(), target_proc-1, TAG, MPI_COMM_WORLD, sendRequest(i-1), IERROR)
        assert(ierror == MPI_SUCCESS)
-
        !!!getprocno() returns the rank of the processor + 1, hence, for 4 proc, we have 1,2,3,4 whereas 
        !!!the ranks are 0,1,2,3. That is why I am using target_proc-1, so that for proc 4, it sends to 
        !!!proc with rank 3.
@@ -3306,9 +3562,19 @@ contains
 
        do j=1, number_detectors_received
 
-          univ_ele=receive_list_array_serialise(i)%ptr(j,dim+1);
+          univ_ele=receive_list_array_serialise(i)%ptr(j,dim+1); 
 
-          global_ele=fetch(gens,univ_ele)
+          !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary
+
+          if (univ_ele/=-1) then
+
+             global_ele=fetch(gens,univ_ele)
+
+          else
+         
+             global_ele=-1
+      
+          end if
 
           allocate(node_rec)
 
@@ -3317,15 +3583,21 @@ contains
           node_rec%position=receive_list_array_serialise(i)%ptr(j,1:dim)
           node_rec%element=global_ele
           node_rec%dt=receive_list_array_serialise(i)%ptr(j,dim+2)
-!          node_rec%type = LAGRANGIAN_DETECTOR
+!         node_rec%type = LAGRANGIAN_DETECTOR
           node_rec%type = receive_list_array_serialise(i)%ptr(j,dim+4)
           node_rec%local = .true. 
           node_rec%id_number=receive_list_array_serialise(i)%ptr(j,dim+3)
           node_rec%initial_owner=getprocno()
  
-          allocate(node_rec%local_coords(local_coord_count(shape)))          
+          allocate(node_rec%local_coords(local_coord_count(shape)))    
+  
+        !!! added this line below since I had to add extra code to cope with issues after adapt+zoltan. In particular, after adapt + zoltan, the element that owns a detector can be negative, i.e., this current proc does not see it/own it. This can happen due to floating errors if det in element boundary   
 
-          node_rec%local_coords=local_coords(xfield,node_rec%element,node_rec%position)
+          if (node_rec%element/=-1) then
+ 
+              node_rec%local_coords=local_coords(xfield,node_rec%element,node_rec%position)
+
+          end if
 
           node_rec%name=name_of_detector_in_read_order(node_rec%id_number)
 
@@ -3396,6 +3668,7 @@ contains
     integer, dimension(:), allocatable:: detector_count ! detectors per element
     integer, dimension(:), pointer:: detectors
     type(detector_type), pointer :: node
+    type(vector_field), pointer :: vfield, xfield
     integer :: dim, i, ele, no_rows, entries, row, pos
 
     if (detector_list%length/=0) then
@@ -3455,7 +3728,7 @@ contains
       do i=1, detector_list%length
       
          ele=list_into_array(i,dim+1)  
-         if  (has_key(ihash_sparsity, ele)) then
+         if (has_key(ihash_sparsity, ele)) then
             row=fetch(ihash_sparsity, ele)
             detectors => row_m_ptr(element_detector_list, row)
             detector_count(row)=detector_count(row)+1
@@ -3492,7 +3765,7 @@ contains
                cont_ggg, cont_times_same_element, list_neigh_processor, processor_number_curr_ele
     integer, dimension(:), allocatable :: element_next_to_boundary
 
-    type(halo_type), pointer :: ele_halo
+    type(halo_type), pointer :: ele_halo 
 
     cont_aaa=0.0
     cont_bbb=0.0
@@ -3684,12 +3957,6 @@ contains
   
          univ_ele = halo_universal_number(ele_halo, current_element)
 
-         ewrite(1,*) "In check_if_det_gone_through_domain_boundary, else current proc do not own current ele"   
-         ewrite(1,*) "detector LOCAL or GLOBAL element now is current element:", this_det%element
-         ewrite(1,*) "current_element, I think this is the previous element to the one that is negative:", current_element
-         ewrite(1,*) "detector UNIVERSAL element of current element:", univ_ele
-         ewrite(1,*) "WE ARE IN PROC.:", getprocno()
-
          end if
 
          processor_number=element_owner(vfield,this_det%element)
@@ -3713,6 +3980,60 @@ contains
     end if
 
   end subroutine check_if_det_gone_through_domain_boundary
+
+  subroutine remove_det_from_current_det_list(detector_list,node)
+
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(detector_type), pointer :: node
+
+    if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
+         !!this checks if the current node that we are going to remove from the list is the first 
+         !!one in the list but not the only node in the list
+
+            node%next%previous => null()
+
+            detector_list%firstnode => node%next
+
+            detector_list%firstnode%previous => null()
+ 
+            detector_list%length = detector_list%length-1
+
+     else 
+
+          if ((.not.associated(node%next)).and.(associated(node%previous))) then
+          !!this takes into account the case when the node is the last one in the list but not the only one
+
+               node%previous%next => null()
+
+               detector_list%lastnode => node%previous
+
+               detector_list%lastnode%next => null()
+
+               detector_list%length = detector_list%length-1
+
+          else 
+
+               if (detector_list%length==1) then
+
+                  detector_list%firstnode => null()
+                  detector_list%lastnode => null()
+
+                  detector_list%length = detector_list%length-1 
+
+              else
+
+                  node%previous%next => node%next
+                  node%next%previous => node%previous
+
+                  detector_list%length = detector_list%length-1 
+
+              end if
+
+          end if
+
+     end if
+
+  end subroutine remove_det_from_current_det_list
 
   subroutine move_det_to_send_list(detector_list,node,send_list)
 
@@ -4610,10 +4931,10 @@ contains
        end if
     end if
 
-    if (fh/=0) then    
+    if (fh/=0) then
        call MPI_FILE_CLOSE(fh, IERROR) 
        if(IERROR /= MPI_SUCCESS) then
-         ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+          ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
        end if
     end if
 
