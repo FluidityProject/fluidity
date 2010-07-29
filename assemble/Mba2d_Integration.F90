@@ -495,7 +495,11 @@ module mba2d_integration
         ! Reorder the nodes for trailing receives consistency
         call renumber_positions_trailing_receives(output_positions)
         
-        allocate(output_positions%mesh%element_halos(0))
+        allocate(output_positions%mesh%element_halos(1))
+        ! Reorder the elements for trailing receives consistency
+        call derive_element_halo_from_node_halo(output_positions%mesh, &
+          & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
+        call renumber_positions_elements_trailing_receives(output_positions)
       end if
 
 #ifdef DUMP_HALO
