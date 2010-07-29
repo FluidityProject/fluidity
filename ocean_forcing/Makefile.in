@@ -70,6 +70,10 @@ default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 	cp *.mod ../include/
 
+# Add explicit dependency of forcingERA40_fortran on bulk_parameterisations.o. Will
+# strop race conditions on parallel builds
+forcingERA40_fortran.o: bulk_parameterisations.o
+
 test_StormMaker:
 	$(FC) $(FCFLAGS) -DDEBUG_WRITENETCDF -o testStormMaker StormMaker.F90 $(LIBFLUIDITY) $(LIBS)
 
