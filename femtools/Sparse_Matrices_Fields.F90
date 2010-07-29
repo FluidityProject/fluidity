@@ -453,6 +453,8 @@ contains
     
     do dim_x=1,x%dim
        do dim_b=1,b%dim
+          if (A%diagonal .and. dim_b/=dim_x) cycle
+          
           select case(b%field_type)
           case(FIELD_TYPE_NORMAL)
              call mult(tmpx, block(A,dim_x,dim_b), b%val(dim_b)%ptr)

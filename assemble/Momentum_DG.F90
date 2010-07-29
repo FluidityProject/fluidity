@@ -2641,44 +2641,48 @@ contains
     type(vector_field), intent(inout) :: velocity
     real, intent(in) :: dt, theta_pg
 
-    type(vector_field) :: l_mom_rhs
-    type(scalar_field) :: l_mom_rhs_comp, mom_rhs_comp
+    type(vector_field) :: l_mom_rhs, minv_mom_rhs
     type(halo_type), pointer :: halo
 
-    integer :: dim
-
     ewrite(1,*) 'Entering assemble_poisson_rhs_dg'
-
-    call allocate(l_mom_rhs, mom_rhs%dim, mom_rhs%mesh, name="AssemblePoissonMomRHS")
-
-    ! poisson_rhs = ct_rhs/dt - C^T ( M^-1 mom_rhs + velocity/dt )
     
-    ! compute M^-1 mom_rhs
-    do dim = 1, l_mom_rhs%dim
+    ! poisson_rhs = ct_rhs/dt - C^T ( M^-1 mom_rhs + velocity/dt )
 
-      l_mom_rhs_comp = extract_scalar_field(l_mom_rhs,dim)
-      mom_rhs_comp = extract_scalar_field(mom_rhs,dim)
-
-      call mult(l_mom_rhs_comp, block(inverse_mass,dim,dim), mom_rhs_comp)
-
-    end do
-      
     if (IsParallel()) then
+
+      call allocate(l_mom_rhs, mom_rhs%dim, mom_rhs%mesh, name="AssemblePoissonMomRHS")
+      call set(l_mom_rhs, mom_rhs)
+      
       ! we need to still add up the non-owned contributions from the global assembly of the mom_rhs
       ! this is done via a slight hack: assemble it as a petsc vector where petsc will add up the local
       ! contributions, and copy it back again
       halo => mom_rhs%mesh%halos(1)
       call addup_global_assembly(l_mom_rhs, halo)
-    end if
-
-    call addto(l_mom_rhs, velocity, scale=1.0/dt/theta_pg)
+      
+    else
     
-    call mult(poisson_rhs, ctp_m, l_mom_rhs)
+      l_mom_rhs =  mom_rhs      
+
+    end if
+    
+    ! compute M^-1 mom_rhs
+    call allocate(minv_mom_rhs, mom_rhs%dim, mom_rhs%mesh, name="AssembleMinvPoissonMomRHS")
+    call mult(minv_mom_rhs, inverse_mass, l_mom_rhs)
+    call halo_update(minv_mom_rhs)
+      
+    call addto(minv_mom_rhs, velocity, scale=1.0/dt/theta_pg)
+    call mult(poisson_rhs, ctp_m, minv_mom_rhs)
+
     call scale(poisson_rhs, -1.0)
     
     call addto(poisson_rhs, ct_rhs, scale=1.0/dt/theta_pg)
 
-    call deallocate(l_mom_rhs)
+    call deallocate(minv_mom_rhs)
+    if (IsParallel()) then
+      call deallocate(l_mom_rhs)
+    end if
+    
+    ewrite_minmax(poisson_rhs%val(1:nowned_nodes(poisson_rhs)))
 
   end subroutine assemble_poisson_rhs_dg
 
