@@ -99,6 +99,7 @@
     logical :: have_coriolis
     logical :: have_geostrophic_pressure
     logical :: have_les
+    logical :: have_surface_fs_stabilisation
     logical :: les_fourth_order
     
     logical :: move_mesh
@@ -196,7 +197,6 @@
       type(tensor_field):: grad_u
 
       integer :: stat, dim, ele, sele, dim2
-      logical :: have_surface_fs_stabilisation
 
       ewrite(1,*) 'entering construct_momentum_cg'
     
@@ -446,6 +446,9 @@
               "dirichlet    " /), &
               pressure_bc, pressure_bc_type)
 
+         ! Check if we want free surface stabilisation (in development!)
+         have_surface_fs_stabilisation=have_fs_stab(u)
+
          surface_element_loop: do sele=1, surface_element_count(u)
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
@@ -549,6 +552,24 @@
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
 
+      contains 
+
+        logical function have_fs_stab(u)
+            type(vector_field), intent(in) :: u
+            character(len=OPTION_PATH_LEN) :: type
+            character(len=OPTION_PATH_LEN) :: option_path
+            integer :: n
+
+            have_fs_stab=.false.
+            do n=1,get_boundary_condition_count(u)
+                call get_boundary_condition(u, n, type=type, option_path=option_path)
+                if (have_option(trim(option_path)//"/type::free_surface/surface_stabilisation")) then
+                    have_fs_stab=.true.
+                    return
+                end if
+            end do
+        end function have_fs_stab
+   
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
@@ -596,8 +617,6 @@
 
       real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
 
-      character(len=OPTION_PATH_LEN) fs_option_path
-      logical :: have_surface_fs_stabilisation
 
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(p, sele)
@@ -669,22 +688,18 @@
       end if
 
       ! Add free surface stabilisation.
-      if (velocity_bc_type(1,sele)==4) then
-          call get_boundary_condition(u, velocity_bc_number(1, sele), option_path=fs_option_path)
-          have_surface_fs_stabilisation=have_option(trim(fs_option_path)//"/type::free_surface/surface_stabilisation") 
-          if (have_surface_fs_stabilisation) then
-                 upwards_gi=-face_val_at_quad(gravity, sele)
+      if (velocity_bc_type(1,sele)==4 .and. have_surface_fs_stabilisation) then
+             upwards_gi=-face_val_at_quad(gravity, sele)
 
-                 fs_surfacestab = shape_shape_vector_outer_vector(u_shape, u_shape, &
-                     dt*gravity_magnitude*detwei_bdy*face_val_at_quad(density, sele), normal_bdy, upwards_gi)
+             fs_surfacestab = shape_shape_vector_outer_vector(u_shape, u_shape, &
+                 dt*gravity_magnitude*detwei_bdy*face_val_at_quad(density, sele), normal_bdy, upwards_gi)
 
-                 do dim = 1, u%dim 
-                     do dim2 = 1, u%dim
-                        call addto(big_m, dim, dim2, u_nodes_bdy, u_nodes_bdy, dt*fs_surfacestab(dim2, dim,:,:))
-                        call addto(rhs, dim, u_nodes_bdy, matmul(fs_surfacestab(dim2, dim, :,:), face_val(nu, dim2, sele)/dt-face_val(oldu, dim2, sele)/dt))
-                     end do
+             do dim = 1, u%dim 
+                 do dim2 = 1, u%dim
+                    call addto(big_m, dim, dim2, u_nodes_bdy, u_nodes_bdy, dt*fs_surfacestab(dim2, dim,:,:))
+                    call addto(rhs, dim, u_nodes_bdy, matmul(fs_surfacestab(dim2, dim, :,:), face_val(nu, dim2, sele)/dt-face_val(oldu, dim2, sele)/dt))
                  end do
-          end if
+             end do
       end if
 
     end subroutine construct_momentum_surface_element_cg
