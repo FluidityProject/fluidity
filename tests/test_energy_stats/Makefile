@@ -1,6 +1,6 @@
 input: clean
 	$(call makemesh,channel_2d) ; \
-        ../../bin/fldecomp -n 4 channel_2d
+        ../../bin/fldecomp -n 3 channel_2d
 	$(call makemesh,channel_2d_finemesh)
 
 clean: 

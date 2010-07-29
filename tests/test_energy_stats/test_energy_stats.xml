@@ -239,7 +239,19 @@ for i in range(len(energy_stats[0])-1):
 #########################################################
 #########################################################
 
-errors = [energy_stats, serial_parallel_error, PE_error_1]
+# mixing stats error
+
+# compare BPE from mixing stats (serial) and BPE direct calculation in stats 
+# (compare serial and parallel values so don't need to make that comparison too)
+ms_error = [abs(energy_stats[0][-2][i]-energy_stats[0][-1][i]) for i in range(len(energy_stats[0][-1]))]
+print 'difference between BPE from mixing stats (serial) and BPE direct calculation in stats'
+print ms_error
+
+#########################################################
+#########################################################
+#########################################################
+
+errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
 
     </variable>
   </variables>
@@ -264,6 +276,9 @@ errors = [energy_stats, serial_parallel_error, PE_error_1]
     </test>
     <test name="check error to PE/BPE in parallel at first time step" language="python">
       for err in errors[2][1]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
+    </test>
+    <test name="check difference between BPE from mixing stats (serial) and BPE direct calculation in stats (over time) " language="python">
+      for err in errors[3]: print err; assert err &lt; 1.E-3
     </test>
   </pass_tests>
   <warn_tests>
