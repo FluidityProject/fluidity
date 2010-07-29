@@ -347,11 +347,11 @@ contains
     have_dg_les=.false.
     if (have_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation&
-        &/discontinuous_galerkin/LES")) have_dg_les=.true.
+        &/discontinuous_galerkin/les_model")) have_dg_les=.true.
     if (have_dg_les) then
       call get_option(trim(u%option_path)//&
         &"/prognostic/spatial_discretisation&
-        &/discontinuous_galerkin/LES/smagorinsky_coefficient", smagorinsky_coefficient)
+        &/discontinuous_galerkin/les_model/smagorinsky_coefficient", smagorinsky_coefficient)
     end if
 
     surfacetension = extract_tensor_field(state, "VelocitySurfaceTension", stat)
