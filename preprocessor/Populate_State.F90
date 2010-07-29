@@ -332,6 +332,7 @@ contains
                 call create_global_to_universal_numbering(position%mesh%element_halos(j))
                 call create_ownership(position%mesh%element_halos(j))
               end do
+              call reorder_element_numbering(position)
               mesh = position%mesh
             else
               call read_halos(mesh_file_name, position)
@@ -3107,7 +3108,7 @@ contains
   subroutine check_large_scale_ocean_options
   
     character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path,continuity2, continuity1, velmesh, pressuremesh
-    logical on_sphere, constant_gravity, new_navsto
+    logical on_sphere, constant_gravity
     integer iterations, poly
     if (option_count('/material_phase')/=1) then
        FLExit("The checks for problem_type oceans only work for single phase.")
