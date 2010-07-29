@@ -2,7 +2,7 @@
 <testproblem>
   <name>Detectors with adaptivity in parallel</name>
   <owner userid="maddison"/>
-  <tags>flml nozoltan</tags>
+  <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec -n 2 fluidity -l detectors.flml</command_line>
   </problem_definition>

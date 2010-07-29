@@ -1030,8 +1030,8 @@ contains
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
       call deallocate(metric)
-!      ! We're done with the new_positions, so we may drop our reference
-!      call deallocate(new_positions)  Moved downstream
+      ! We're done with the new_positions, so we may drop our reference
+      call deallocate(new_positions)
       
       ! Interpolate fields
       if(associated(node_ownership)) then
@@ -1081,24 +1081,18 @@ contains
 
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
-
-        call zoltan_drive(states, i, metric=metric)
-
-        if (i == max_adapt_iteration) then
-          call deallocate(metric)
-        end if
+        ! Re-load-balance using zoltan
+        call zoltan_drive(states, i, metric = metric)
 #else
         ! Re-load-balance using libsam
         call sam_drive(states, sam_options(i, max_adapt_iteration), metric = metric)
+#endif
         if(i == max_adapt_iteration) then
           ! On the last adapt iteration the metric was interpolated
-          ! only for sam_drive, hence it must be deallocated
+          ! only for re-load-balancing, hence it must be deallocated
           call deallocate(metric)
         end if
-#endif
       end if
-
-      call deallocate(new_positions)
       
       if(vertical_only) then
         ewrite(2,*) "Using vertical_only adaptivity, so skipping the printing of references"

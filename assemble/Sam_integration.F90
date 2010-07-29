@@ -1507,20 +1507,7 @@ module sam_integration
           data_index(owner) = data_index(owner) + 1
                     
           ! Remove this node from the detector list
-          if(associated(node%previous)) then
-            node%previous%next => node%next
-            if(associated(node%next)) then
-              node%next%previous => node%previous
-            else
-              detector_list%lastnode => node%previous
-            end if
-          else
-            detector_list%firstnode => node%next
-            if(associated(node%next)) then
-              node%next%previous => null()
-            end if
-          end if
-          detector_list%length = detector_list%length - 1
+          call remove_det_from_current_det_list(detector_list, node)
           deallocate(node)
         end if
       end if      
