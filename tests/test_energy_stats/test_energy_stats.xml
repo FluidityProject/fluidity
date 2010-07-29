@@ -6,7 +6,7 @@
   <problem_definition length="medium" nprocs="1">
     <command_line>
     mpiexec  -np 1 ../../bin/fluidity -v3 -l lock_exchange_2d.flml &amp;&amp;
-    mpiexec -np 4 ../../bin/fluidity -v3 -l lock_exchange_2d_parallel.flml
+    mpiexec -np 3 ../../bin/fluidity -v3 -l lock_exchange_2d_parallel.flml
     </command_line> 
   </problem_definition>
   <variables>
