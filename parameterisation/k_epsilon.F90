@@ -103,6 +103,9 @@ subroutine keps_init(state)
     limit_length = &
     have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/limit_length")
 
+    ! Get maximum lengthscale. This should be a geometric constraint on eddy size.
+    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/L_max', ll_max)
+
     ! Allocate the temporary, module-level variables
     call keps_allocate_fields(state)
 
@@ -120,8 +123,7 @@ subroutine keps_init(state)
     call set(scalarField, k_init)
 
     ! initialise other fields
-    ll_max = 1.   ! hard coded to size of backward facing step inlet
-    fields_min = 1.e-20
+    fields_min = 1.e-20    ! small nonzero number
 
     call set( ll, ll_max )
     !eps_init = k_init**1.5 / ll_max   ! make eps_init a dependent variable
@@ -177,7 +179,6 @@ subroutine keps_tke(state)
     kk_diff    => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
-    shape_velo =  ele_shape(nu, ele)          ! Velocity element type
 
     ewrite(1,*) "eps boundary condition count: ", get_boundary_condition_count(eps)
     ewrite(1,*) "kk boundary condition count: ", get_boundary_condition_count(kk)
@@ -187,6 +188,7 @@ subroutine keps_tke(state)
 
     do ele = 1, ele_count(nu)
 
+        shape_velo =  ele_shape(nu, ele)          ! Velocity element type
         allocate( dshape_velo (ele_loc(nu, ele), ele_ngi(nu, ele), nu%dim) )
         allocate( detwei (ele_ngi(nu, ele) ) )
         allocate( strain_ngi (ele_ngi(nu, ele) ) )
@@ -198,8 +200,8 @@ subroutine keps_tke(state)
         strain_ngi = double_dot_product(dshape_velo, ele_val(nu, ele) )
         strain_loc = shape_rhs( shape_velo, detwei * strain_ngi )
 
-        ! Sum components of tensor
-        call addto(source, ele_nodes(nu, ele), abs(ele_val(EV, ele) * strain_loc) )
+        ! Sum components of tensor. Ensure non-negative.
+        call addto(source, ele_nodes(nu, ele), max(ele_val(EV, ele) * strain_loc, 0.) )
 
         deallocate( dshape_velo, detwei, strain_ngi, strain_loc )
 
@@ -816,7 +818,7 @@ subroutine limit_lengthscale(state)
 
     do bc = 1, get_boundary_condition_count(kk)   ! use kk bcs for eps
 
-        call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
+        call get_boundary_condition(eps, bc, name=bc_name, type=bc_type, &
              surface_node_list=surface_node_list, surface_mesh=sur_mesh, &
              surface_element_list=surface_element_list)
 
@@ -907,7 +909,7 @@ function double_dot_product(du_t, nu)
 
     do gi=1, ngi
 
-       s = matmul( nu, du_t(:,gi,:) )
+       S = matmul( nu, du_t(:,gi,:) )
        T = S
        S = S + transpose(S)
        double_dot_product = 0.

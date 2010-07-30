@@ -1291,11 +1291,15 @@ start =
                   },
                   ## If limit_length is selected, the lengthscale is limited on the same surfaces as
                   ## k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).
+                  ## This is currently only applied on surfaces with "k_epsilon" type BCs for epsilon.
                   element limit_length {
                      element string_value {
                      empty
                      }?
                   }?,
+                  ## Maximum lengthscale. This is the geometric constraint on the largest possible
+                  ## eddy, e.g. channel width. If not known guesstimate!
+                  element L_max {real},
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.
                   element C_mu {real},

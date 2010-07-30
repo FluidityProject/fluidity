@@ -1691,7 +1691,8 @@ are implicit or explicit (see manual for details).</a:documentation>
                   <optional>
                     <element name="limit_length">
                       <a:documentation>If limit_length is selected, the lengthscale is limited on the same surfaces as
-k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).</a:documentation>
+k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).
+This is currently only applied on surfaces with "k_epsilon" type BCs for epsilon.</a:documentation>
                       <optional>
                         <element name="string_value">
                           <empty/>
@@ -1699,6 +1700,11 @@ k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).</
                       </optional>
                     </element>
                   </optional>
+                  <element name="L_max">
+                    <a:documentation>Maximum lengthscale. This is the geometric constraint on the largest possible
+eddy, e.g. channel width. If not known guesstimate!</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
 Recommended value (default): 0.09.</a:documentation>
