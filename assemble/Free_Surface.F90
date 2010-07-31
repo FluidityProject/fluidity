@@ -170,14 +170,13 @@ contains
           have_wetting_drying=have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")
           if (have_wetting_drying) then
              assert(get_cmc) ! sf1409 : We need to reassemble every time for now!
-             wettingdrying_alpha => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
           end if
           ! only add to cmc if we're reassembling it (get_cmc = .true.)
           ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
           addto_cmc = get_cmc.or.&
                       (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
           do j=1, size(surface_element_list)
-            call add_free_surface_element(surface_element_list(j), j, have_wetting_drying, wettingdrying_alpha)
+            call add_free_surface_element(surface_element_list(j), j, have_wetting_drying)
           end do
         end if
       end do
@@ -196,9 +195,8 @@ contains
       
     contains 
     
-    subroutine add_free_surface_element(sele, j, have_wetting_drying, wettingdrying_alpha)
+    subroutine add_free_surface_element(sele, j, have_wetting_drying)
       integer, intent(in):: sele, j
-      type(scalar_field), intent(in) :: wettingdrying_alpha
       logical :: have_wetting_drying
 
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
