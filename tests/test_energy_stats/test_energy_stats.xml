@@ -123,6 +123,8 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
   for i in range(len(stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][0])):
     pdf = [stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][j][i] for j in range(0,no_bins)]
     pdf[-2] = pdf[-2]+pdf[-1] # add final bin in to second to final bin so pdf[-2] is volume with -0.49\leqT\leq0.5 not just -0.49\leqT\lt0.5
+    pdf[1] = pdf[0]+pdf[1] # add bottom two bins so pdf[1] is volume with T\lt0.01 as if some fluid has T so that if falls in bottom bin 
+                           # this will muck up calculation (recall overshoot can be very very small - tolerance is machine precision)
     z_r.append([0]) # first z_r will be zero, corresponds to maximum density
     for j in range(2,no_bins):
       z_r[-1].append(H*sum([(bounds[q+1]-bounds[q])*pdf[q] for q in range(1,j)]))
@@ -278,7 +280,7 @@ errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
       for err in errors[2][1]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
     </test>
     <test name="check difference between BPE from mixing stats (serial) and BPE direct calculation in stats (over time) " language="python">
-      for err in errors[3]: print err; assert err &lt; 1.E-3
+      for err in errors[3]: print err; assert err &lt; 1.E-4
     </test>
   </pass_tests>
   <warn_tests>
