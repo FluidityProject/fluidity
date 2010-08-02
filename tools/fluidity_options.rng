@@ -327,7 +327,9 @@ checkpoints may be overwritten.</a:documentation>
     # Function code
     return # Return value
 
-The return value must have length number_of_detectors.
+The return value must have length number_of_solids.
+
+These coordinates are used to translate the location of the solid mesh.
 
 *** IMPORTANT NOTE ***
 
@@ -2498,6 +2500,14 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
           <a:documentation>UNDER DEVELOPMENT - DO NOT USE
 
 Implict Solids</a:documentation>
+          <optional>
+            <element name="beta">
+              <a:documentation>absorption coefficient weigting factor
+
+default: beta=1.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
           <choice>
             <element name="one_way_coupling">
               <element name="mesh_name">
@@ -2505,11 +2515,34 @@ Implict Solids</a:documentation>
                 <data type="string"/>
               </element>
               <optional>
-                <element name="beta">
-                  <a:documentation>absorption coefficient weigting factor
+                <element name="number_of_solids">
+                  <a:documentation>number of solids
 
-default: beta=1.</a:documentation>
-                  <ref name="real"/>
+default: 1</a:documentation>
+                  <ref name="integer"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="python">
+                  <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_detectors.
+
+*** IMPORTANT NOTE ***
+
+The t argument is for future use only - currently solid locations are only set at simulation start.</a:documentation>
+                  <ref name="python_code"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="print_drag">
+                  <a:documentation>calculate drag coefficient over all
+solids and store it in a file called "drag_force"</a:documentation>
+                  <empty/>
                 </element>
               </optional>
             </element>
@@ -2518,14 +2551,6 @@ default: beta=1.</a:documentation>
                 <a:documentation>mesh name</a:documentation>
                 <data type="string"/>
               </element>
-              <optional>
-                <element name="beta">
-                  <a:documentation>absorption coefficient weigting factor
-
-default: beta=1.</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
             </element>
           </choice>
         </element>

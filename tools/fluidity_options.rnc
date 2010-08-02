@@ -258,7 +258,9 @@ start =
                         ##     # Function code
                         ##     return # Return value
                         ##
-                        ## The return value must have length number_of_detectors.
+                        ## The return value must have length number_of_solids.
+                        ##
+                        ## These coordinates are used to translate the location of the solid mesh.
                         ##
                         ## *** IMPORTANT NOTE ***
                         ##
@@ -1782,22 +1784,41 @@ start =
          ##
          ## Implict Solids
          element implicit_solids {
-              element one_way_coupling{
-                   ## mesh name
-                   element mesh_name{ xsd:string },
-                   ## absorption coefficient weigting factor
-                   ##
-                   ## default: beta=1.
-                   element beta{ real }?
-              }|
-              element two_way_coupling{
-                   ## mesh name
-                   element mesh_name{ xsd:string },
-                   ## absorption coefficient weigting factor
-                   ##
-                   ## default: beta=1.
-                   element beta{ real }?
-              }
+              ## absorption coefficient weigting factor
+              ##
+              ## default: beta=1.
+              element beta{ real }?,
+              (
+                 element one_way_coupling{
+                      ## mesh name
+                      element mesh_name{ xsd:string },
+                      ## number of solids
+                      ##
+                      ## default: 1
+                      element number_of_solids {integer}?,
+                      ## Python function prescribing dimensional vector input. Functions should be of the form:
+                      ##
+                      ##  def val(t):
+                      ##     # Function code
+                      ##     return # Return value
+                      ##
+                      ## The return value must have length number_of_detectors.
+                      ##
+                      ## *** IMPORTANT NOTE ***
+                      ##
+                      ## The t argument is for future use only - currently solid locations are only set at simulation start.
+                      element python {
+                        python_code
+                      }?,
+                      ## calculate drag coefficient over all
+                      ## solids and store it in a file called "drag_force"
+                      element print_drag { empty }?
+                 }|
+                 element two_way_coupling{
+                      ## mesh name
+                      element mesh_name{ xsd:string }
+                 }
+              )
          }?
       }
    )      

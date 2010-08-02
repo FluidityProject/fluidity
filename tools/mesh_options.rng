@@ -13,18 +13,6 @@ Enter the base name without the .edge .ele, .face or
             <attribute name="name">
               <value>triangle</value>
             </attribute>
-            <optional>
-              <element name="always_serial">
-                <a:documentation>in parallel each process
-reads in one subdomain 
-this option will force each process
-to read in the whole domain
-
-this should ONLY
-be used for femdem meshes</a:documentation>
-                <empty/>
-              </element>
-            </optional>
             <ref name="comment"/>
           </element>
           <element name="format">

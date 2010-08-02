@@ -9,14 +9,6 @@ mesh_info =
             ## .node extensions, and without process numbers.
             element format {
               attribute name { "triangle" },
-              ## in parallel each process
-              ## reads in one subdomain 
-              ## this option will force each process
-              ## to read in the whole domain
-              ## 
-              ## this should ONLY
-              ## be used for femdem meshes
-              element always_serial{empty}?,
               comment
             }|
             ## Read the mesh from a vtu. Note that the mesh will have no surface

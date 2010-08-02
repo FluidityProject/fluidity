@@ -415,7 +415,7 @@ contains
           call get_option(trim(dynamic_path)//"/file_name",femdem3d_filename)
           ewrite(0,*) 'right before allocating y3dfemdem: ',trim(femdem3d_filename)
           !allocate 3dfemdem memory
-          call y3allocate_femdem(trim(femdem3d_filename)//char(0))          
+          !call y3allocate_femdem(trim(femdem3d_filename)//char(0))          
           ewrite(0,*) 'after allocating y3dfemdem'
           particle_vector=extract_vector_field(state(1),"ParticleVector")
           particle_force=extract_vector_field(state(1),"ParticleForce")

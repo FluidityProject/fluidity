@@ -56,6 +56,7 @@ module populate_state_module
   use nemo_states_module
   use data_structures
   use fields_halos
+  use read_triangle
 
   implicit none
 
@@ -167,7 +168,7 @@ contains
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
-    logical :: from_file, extruded, always_serial
+    logical :: from_file, extruded
     integer :: dim, loc
     integer :: quad_family
     integer :: nprocs
@@ -210,9 +211,6 @@ contains
           call get_option("/geometry/quadrature/degree", quad_degree)
           quad_family = get_quad_family()
 
-          always_serial=&
-               have_option(trim(from_file_path)//"/format/always_serial")
-
           if (.not. is_active_process) then
             ! is_active_process records whether we have data on disk or not
             ! see the comment in Global_Parameters. In this block, 
@@ -241,51 +239,43 @@ contains
             deallocate(quad)
             deallocate(shape)
 
-          else if(trim(mesh_file_format)=="triangle" .or. &
-               trim(mesh_file_format)=="gmsh" ) then
-             ! Read mesh from triangle file
-             if (always_serial) then
-               position=read_mesh_files(trim(mesh_file_name), &
-                 quad_degree=quad_degree, format=mesh_file_format )
-             else
-               position=read_mesh_files(trim(mesh_file_name), &
-                 quad_degree=quad_degree, quad_family=quad_family, &
-                 format=mesh_file_format )
-             end if
-             mesh=position%mesh
-          else if(trim(mesh_file_format) == "vtu") then
-             position_ptr => vtk_cache_read_positions_field(mesh_file_name)
-             ! No hybrid mesh support here
-             assert(ele_count(position_ptr) > 0)
-             dim = position_ptr%dim
-             loc = ele_loc(position_ptr, 1)
+         else if(trim(mesh_file_format)=="triangle") then
+            ! Read mesh from triangle file
+            position=read_triangle_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
+            mesh=position%mesh
+         else if(trim(mesh_file_format) == "vtu") then
+            position_ptr => vtk_cache_read_positions_field(mesh_file_name)
+            ! No hybrid mesh support here
+            assert(ele_count(position_ptr) > 0)
+            dim = position_ptr%dim
+            loc = ele_loc(position_ptr, 1)
 
-             ! Generate a copy, and swap the quadrature degree
-             ! Note: Even if positions_ptr has the correct quadrature degree, it
-             ! won't have any faces and hence a copy is still required (as
-             ! add_faces is a construction routine only)
-             allocate(quad)
-             allocate(shape)
-             quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
-             shape = make_element_shape(loc, dim, 1, quad)
-             call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
-             do j = 1, ele_count(mesh)
+            ! Generate a copy, and swap the quadrature degree
+            ! Note: Even if positions_ptr has the correct quadrature degree, it
+            ! won't have any faces and hence a copy is still required (as
+            ! add_faces is a construction routine only)
+            allocate(quad)
+            allocate(shape)
+            quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
+            shape = make_element_shape(loc, dim, 1, quad)
+            call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
+            do j = 1, ele_count(mesh)
                call set_ele_nodes(mesh, j, ele_nodes(position_ptr%mesh, j))
-             end do
-             call add_faces(mesh)
-             call allocate(position, dim, mesh, position_ptr%name)
-             call set(position, position_ptr)
-             call deallocate(mesh)
-             call deallocate(shape)
-             call deallocate(quad)
-             deallocate(quad)
-             deallocate(shape)
+            end do
+            call add_faces(mesh)
+            call allocate(position, dim, mesh, position_ptr%name)
+            call set(position, position_ptr)
+            call deallocate(mesh)
+            call deallocate(shape)
+            call deallocate(quad)
+            deallocate(quad)
+            deallocate(shape)
 
-             mesh = position%mesh
-          else
-             ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
-             FLAbort("Invalid format for mesh file")
-          end if
+            mesh = position%mesh
+         else
+            ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
+            FLAbort("Invalid format for mesh file")
+         end if
           
           ! if there is a derived mesh which specifies periodic bcs 
           ! to be *removed*, we assume the external mesh is periodic
@@ -310,7 +300,7 @@ contains
           end if
                        
           ! If running in parallel, additionally read in halo information and register the elements halo
-          if(isparallel() .and. .not.always_serial) then
+          if(isparallel()) then
             if (no_active_processes == 1) then
               nprocs = getnprocs()
               allocate(position%mesh%halos(2))
@@ -2803,9 +2793,9 @@ contains
     if(n_external_meshes==0) then
        FLExit("At least one mesh must come from a file.")
     end if
-    !if(isparallel() .and. n_external_meshes > 1) then
-    !  FLExit("Only one mesh may be from_file in parallel.")
-    !end if
+    if(isparallel() .and. n_external_meshes > 1) then
+      FLExit("Only one mesh may be from_file in parallel.")
+    end if
     if(n_external_meshes-n_external_meshes_excluded_from_mesh_adaptivity>1) then
       ewrite(-1,*) "With multiple external (from_file) meshes"
       FLExit("Only one external mesh may leave out the exclude_from_mesh_adaptivity option.")
