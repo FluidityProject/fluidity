@@ -603,7 +603,7 @@ contains
         oldtfield_scomp = extract_scalar_field(oldtfield, i, j)
 
         ! does the field need upwind values
-        if(need_upwind_values(trim(tfield%option_path))) then
+        if(need_upwind_values(tfield_options)) then
 
           call find_upwind_values(state, x_tfield, tfield_scomp, tfield_upwind, &
                                   oldtfield_scomp, oldtfield_upwind, &

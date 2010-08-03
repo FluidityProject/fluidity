@@ -55,6 +55,10 @@ module cv_upwind_values
   interface find_upwind_values
     module procedure find_upwind_values_single_state, find_upwind_values_multiple_states
   end interface
+  
+  interface need_upwind_values
+    module procedure need_upwind_values_option_path, need_upwind_values_cv_options_type
+  end interface
 
   private
   public :: need_upwind_values, &
@@ -64,7 +68,7 @@ module cv_upwind_values
 
 contains
 
-  logical function need_upwind_values(option_path)
+  logical function need_upwind_values_option_path(option_path) result (need_upwind_values)
     ! This function checks whether a field with option_path requires the calculation of
     ! upwind values its control volume spatial discretisation.
 
@@ -80,7 +84,20 @@ contains
                           (have_option(trim(complete_cv_field_path(option_path))//&
                           "/face_value::PotentialUltraC")))
 
-  end function need_upwind_values
+  end function need_upwind_values_option_path
+  
+  logical function need_upwind_values_cv_options_type(options) result (need_upwind_values)
+    ! This function checks whether a field with option_path requires the calculation of
+    ! upwind values its control volume spatial discretisation.
+
+    type(cv_options_type), intent(in) :: options
+
+    need_upwind_values = (options%limit_facevalue.or.&
+                         (options%facevalue==CV_FACEVALUE_HYPERC).or.&
+                         (options%facevalue==CV_FACEVALUE_ULTRAC).or.&
+                         (options%facevalue==CV_FACEVALUE_POTENTIALULTRAC))
+
+  end function need_upwind_values_cv_options_type
   
   subroutine find_upwind_values_single_state(state, x_field, field, upwind_values, &
                                 old_field, old_upwind_values, &

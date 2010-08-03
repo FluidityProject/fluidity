@@ -1591,105 +1591,58 @@ scalar_equation_choice =
          ## Works for all discretisation types.
          element equation { 
             attribute name { "AdvectionDiffusion" },
-            ## Select combination of coefficients
-            ## to be used in the Advection Diffusion Equation
-            ##
-            ## this should be a scalar field
-            element coefficient_field { string }?
+            empty
+         }|
+         ## ***UNDER TESTING***
+         ##
+         ## Select the equation used to solve for this field.
+         ## Heat Transfer equation - requires the selection of a Density field.
+         ##
+         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS.
+         ##
+         ## This equation is very similar to a standard advection of temperature equation
+         ## except that a coefficient density field may be spatially and/or temporally
+         ## varying.
+         element equation {
+            attribute name { "HeatTransfer" },
+            equation_coefficients
          }|
          ## ***UNDER TESTING***
          ##
          ## Select the equation used to solve for this field.
          ## Conservation of Mass equation - requires the selection of a Density field.
-         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
-         ## DIFFUSIVITY, SOURCE OR ABSORPTION.
-         element equation { 
+         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+         element equation {
             attribute name { "ConservationOfMass" },
-            (
-               ## Select density to use in the Conservation of Mass Equation
-               ## Use the MaterialDensity - useful for multimaterial simulations
-               ## Clearly this requires a MaterialDensity field to be present
-               element density {
-                  attribute name { "MaterialDensity" }
-               }|
-               ## Select density to use in the Conservation of Mass Equation
-               ## Use the bulk Density
-               ## Clearly this requires a Density field to be present
-               element density {
-                  attribute name { "Density" }
-               }|
-               ## Select density to use in the Conservation of Mass Equation
-               element density {
-                  attribute name { string }
-               }
-            )
+            equation_coefficients
          }|
          ## ***UNDER TESTING***
          ##
          ## Select the equation used to solve for this field.
          ## Reduced Conservation of Mass equation - requires the selection of a Density field.
          ##
-         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
-         ## DIFFUSIVITY, SOURCE OR ABSORPTION.
+         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
          ##
          ## This equation is very similar to a standard conservation of mass equation
          ## except that the time discretisation uses only a single time level of density.
          ## This enables consistency between the
          ## MaterialVolumeFraction (ReducedConservationOfMass) and
          ## MaterialDensity (Advection) equations in compressible multimaterial simulations.
-         element equation { 
+         element equation {
             attribute name { "ReducedConservationOfMass" },
-            (
-               ## Select density to use in the Reduced Conservation of Mass Equation
-               ## Use the MaterialDensity - useful for multimaterial simulations
-               ## Clearly this requires a MaterialDensity field to be present
-               element density {
-                  attribute name { "MaterialDensity" }
-               }|
-               ## Select density to use in the Reduced Conservation of Mass Equation
-               ## Use the bulk Density
-               ## Clearly this requires a Density field to be present
-               element density {
-                  attribute name { "Density" }
-               }|
-               ## Select density to use in the Reduced Conservation of Mass Equation
-               element density {
-                  attribute name { string }
-               }
-            )
+            equation_coefficients
          }|
          ## ***UNDER TESTING***
          ##
          ## Select the equation used to solve for this field.
          ## Internal Energy equation - requires the selection of a Density field.
-         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
-         ## DIFFUSIVITY, SOURCE OR ABSORPTION.
+         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
          ## Solve the internal energy equation for this field.
          ## Requires pressure and velocity fields to be present.
          ## Uses a nonconservative time discretisation.
          element equation {
             attribute name { "InternalEnergy" },
-            (
-               ## Select density to use in the Internal Energy Equation
-               ## Use the MaterialDensity - useful for multimaterial simulations
-               ## Clearly this requires a MaterialDensity field to be present
-               ## Whatever field is selected must be present.
-               element density {
-                  attribute name { "MaterialDensity" }
-               }|
-               ## Select density to use in the Internal Energy Equation
-               ## Use the bulk Density
-               ## Clearly this requires a Density field to be present
-               ## Whatever field is selected must be present.
-               element density {
-                  attribute name { "Density" }
-               }|
-               ## Select density to use in the Internal Energy Equation
-               ## Whatever field is selected must be present.
-               element density {
-                  attribute name { string }
-               }
-            )
+            equation_coefficients
          }|
          ## Option to solve for electrical potential from
          ## electrokinetic, electrochemical or electrothermal sources 
@@ -1698,6 +1651,67 @@ scalar_equation_choice =
          }
       )
    )
+
+equation_coefficients =
+   (
+      ## Select density to use in the equation
+      ## Use the MaterialDensity - useful for multimaterial simulations
+      ## Clearly this requires a MaterialDensity field to be present
+      ## Whatever field is selected must be present.
+      element density {
+        attribute name { "MaterialDensity" },
+        coefficient_discretisation_options?
+      }|
+      ## Select density to use in the equation
+      ## Use the bulk Density
+      ## Clearly this requires a Density field to be present
+      ## Whatever field is selected must be present.
+      element density {
+        attribute name { "Density" },
+        coefficient_discretisation_options?
+      }|
+      ## Select density to use in the equation
+      ## Whatever field is selected must be present.
+      element density {
+        attribute name { string },
+        coefficient_discretisation_options?
+      }
+   )
+
+coefficient_discretisation_options =
+  (
+    ## Provide discretisation options for the coefficient density field.
+    ##
+    ## If not provided then the discretisation options will default to those
+    ## under the field that is named (hence it will generally have to be a prognostic
+    ## field itself).
+    element discretisation_options {
+      element spatial_discretisation {
+        element control_volumes {
+          spatial_control_volume_options_excluding_none
+        }
+      },
+      element temporal_discretisation {
+        ## Implicit/explicit control (TTHETA)
+        ##  =0.  -- explicit
+        ##  =0.5 -- Crank-Nicolson
+        ##  =1.  -- implicit
+        element theta {
+          attribute replaces {"TTHETA, DEFALT (TTHETA = 0.5)"},
+          real
+        },
+        element control_volumes {
+          ## Only works if a control volume or coupled_cv spatial discretisation is selected.
+          ## If not active then the theta specified above will be used.
+          ## Otherwise use variable limited theta on individual faces.
+          element limit_theta {
+              attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)" },
+              empty
+          }?
+        }
+      }
+    }
+  )
 
 velocity_equation_choice =
    (

@@ -396,7 +396,7 @@ CV_Shape_Functions.o : CV_Faces.o
 
 CVTools.o : State.o Vector_Tools.o Futils.o Field_Options.o
 
-CV_Options.o : CVTools.o Element_Numbering.o
+CV_Options.o : CVTools.o Element_Numbering.o Futils.o
 
 CV_Fields.o : CVTools.o State.o Diagnostic_Fields.o Fields.o
 

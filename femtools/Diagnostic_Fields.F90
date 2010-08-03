@@ -2144,7 +2144,7 @@ contains
       call allocate(oldmatdens_upwind, mesh_sparsity, name="OldMaterialDensityUpwindValues")
 
       ! does the density field need upwind values?
-      if(need_upwind_values(trim(matdens%option_path))) then
+      if(need_upwind_values(matdens_options)) then
 
         state_array(1) = state  ! a hack to let find_upwind_values accept a single state
 

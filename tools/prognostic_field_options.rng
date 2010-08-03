@@ -2025,50 +2025,34 @@ Works for all discretisation types.</a:documentation>
         <attribute name="name">
           <value>AdvectionDiffusion</value>
         </attribute>
-        <optional>
-          <element name="coefficient_field">
-            <a:documentation>Select combination of coefficients
-to be used in the Advection Diffusion Equation
+        <empty/>
+      </element>
+      <element name="equation">
+        <a:documentation>***UNDER TESTING***
 
-this should be a scalar field</a:documentation>
-            <data type="string" datatypeLibrary=""/>
-          </element>
-        </optional>
+Select the equation used to solve for this field.
+Heat Transfer equation - requires the selection of a Density field.
+
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS.
+
+This equation is very similar to a standard advection of temperature equation
+except that a coefficient density field may be spatially and/or temporally
+varying.</a:documentation>
+        <attribute name="name">
+          <value>HeatTransfer</value>
+        </attribute>
+        <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
         <a:documentation>***UNDER TESTING***
 
 Select the equation used to solve for this field.
 Conservation of Mass equation - requires the selection of a Density field.
-ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
-DIFFUSIVITY, SOURCE OR ABSORPTION.</a:documentation>
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS</a:documentation>
         <attribute name="name">
           <value>ConservationOfMass</value>
         </attribute>
-        <choice>
-          <element name="density">
-            <a:documentation>Select density to use in the Conservation of Mass Equation
-Use the MaterialDensity - useful for multimaterial simulations
-Clearly this requires a MaterialDensity field to be present</a:documentation>
-            <attribute name="name">
-              <value>MaterialDensity</value>
-            </attribute>
-          </element>
-          <element name="density">
-            <a:documentation>Select density to use in the Conservation of Mass Equation
-Use the bulk Density
-Clearly this requires a Density field to be present</a:documentation>
-            <attribute name="name">
-              <value>Density</value>
-            </attribute>
-          </element>
-          <element name="density">
-            <a:documentation>Select density to use in the Conservation of Mass Equation</a:documentation>
-            <attribute name="name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-          </element>
-        </choice>
+        <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
         <a:documentation>***UNDER TESTING***
@@ -2076,8 +2060,7 @@ Clearly this requires a Density field to be present</a:documentation>
 Select the equation used to solve for this field.
 Reduced Conservation of Mass equation - requires the selection of a Density field.
 
-ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
-DIFFUSIVITY, SOURCE OR ABSORPTION.
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
 
 This equation is very similar to a standard conservation of mass equation
 except that the time discretisation uses only a single time level of density.
@@ -2087,71 +2070,21 @@ MaterialDensity (Advection) equations in compressible multimaterial simulations.
         <attribute name="name">
           <value>ReducedConservationOfMass</value>
         </attribute>
-        <choice>
-          <element name="density">
-            <a:documentation>Select density to use in the Reduced Conservation of Mass Equation
-Use the MaterialDensity - useful for multimaterial simulations
-Clearly this requires a MaterialDensity field to be present</a:documentation>
-            <attribute name="name">
-              <value>MaterialDensity</value>
-            </attribute>
-          </element>
-          <element name="density">
-            <a:documentation>Select density to use in the Reduced Conservation of Mass Equation
-Use the bulk Density
-Clearly this requires a Density field to be present</a:documentation>
-            <attribute name="name">
-              <value>Density</value>
-            </attribute>
-          </element>
-          <element name="density">
-            <a:documentation>Select density to use in the Reduced Conservation of Mass Equation</a:documentation>
-            <attribute name="name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-          </element>
-        </choice>
+        <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
         <a:documentation>***UNDER TESTING***
 
 Select the equation used to solve for this field.
 Internal Energy equation - requires the selection of a Density field.
-ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS WITHOUT A
-DIFFUSIVITY, SOURCE OR ABSORPTION.
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
 Solve the internal energy equation for this field.
 Requires pressure and velocity fields to be present.
 Uses a nonconservative time discretisation.</a:documentation>
         <attribute name="name">
           <value>InternalEnergy</value>
         </attribute>
-        <choice>
-          <element name="density">
-            <a:documentation>Select density to use in the Internal Energy Equation
-Use the MaterialDensity - useful for multimaterial simulations
-Clearly this requires a MaterialDensity field to be present
-Whatever field is selected must be present.</a:documentation>
-            <attribute name="name">
-              <value>MaterialDensity</value>
-            </attribute>
-          </element>
-          <element name="density">
-            <a:documentation>Select density to use in the Internal Energy Equation
-Use the bulk Density
-Clearly this requires a Density field to be present
-Whatever field is selected must be present.</a:documentation>
-            <attribute name="name">
-              <value>Density</value>
-            </attribute>
-          </element>
-          <element name="density">
-            <a:documentation>Select density to use in the Internal Energy Equation
-Whatever field is selected must be present.</a:documentation>
-            <attribute name="name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-          </element>
-        </choice>
+        <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
         <a:documentation>Option to solve for electrical potential from
@@ -2161,6 +2094,83 @@ electrokinetic, electrochemical or electrothermal sources </a:documentation>
         </attribute>
       </element>
     </choice>
+  </define>
+  <define name="equation_coefficients">
+    <choice>
+      <element name="density">
+        <a:documentation>Select density to use in the equation
+Use the MaterialDensity - useful for multimaterial simulations
+Clearly this requires a MaterialDensity field to be present
+Whatever field is selected must be present.</a:documentation>
+        <attribute name="name">
+          <value>MaterialDensity</value>
+        </attribute>
+        <optional>
+          <ref name="coefficient_discretisation_options"/>
+        </optional>
+      </element>
+      <element name="density">
+        <a:documentation>Select density to use in the equation
+Use the bulk Density
+Clearly this requires a Density field to be present
+Whatever field is selected must be present.</a:documentation>
+        <attribute name="name">
+          <value>Density</value>
+        </attribute>
+        <optional>
+          <ref name="coefficient_discretisation_options"/>
+        </optional>
+      </element>
+      <element name="density">
+        <a:documentation>Select density to use in the equation
+Whatever field is selected must be present.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <optional>
+          <ref name="coefficient_discretisation_options"/>
+        </optional>
+      </element>
+    </choice>
+  </define>
+  <define name="coefficient_discretisation_options">
+    <element name="discretisation_options">
+      <a:documentation>Provide discretisation options for the coefficient density field.
+
+If not provided then the discretisation options will default to those
+under the field that is named (hence it will generally have to be a prognostic
+field itself).</a:documentation>
+      <element name="spatial_discretisation">
+        <element name="control_volumes">
+          <ref name="spatial_control_volume_options_excluding_none"/>
+        </element>
+      </element>
+      <element name="temporal_discretisation">
+        <element name="theta">
+          <a:documentation>Implicit/explicit control (TTHETA)
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+          <attribute name="replaces">
+            <value>TTHETA, DEFALT (TTHETA = 0.5)</value>
+          </attribute>
+          <ref name="real"/>
+        </element>
+        <element name="control_volumes">
+          <optional>
+            <element name="limit_theta">
+              <a:documentation>Only works if a control volume or coupled_cv spatial discretisation is selected.
+If not active then the theta specified above will be used.
+Otherwise use variable limited theta on individual faces.</a:documentation>
+              <attribute name="replaces">
+                <value>MOD(INT(ABS(NDISOT)/1),10) = 1,3,5,7,9 (odd)</value>
+              </attribute>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </element>
+    </element>
   </define>
   <define name="velocity_equation_choice">
     <choice>

@@ -137,7 +137,7 @@ contains
       type(scalar_field) :: diff_rhs
 
       ! local copy of option_path for solution field
-      character(len=OPTION_PATH_LEN) :: option_path
+      character(len=OPTION_PATH_LEN) :: option_path, tdensity_option_path
 
       ! number of advection iterations and subcycles
       integer :: adv_iterations, no_subcycles
@@ -194,7 +194,7 @@ contains
 
       ! temporary hack to get around compiler failure to construct arrays of characters
       character(len=OPTION_PATH_LEN), dimension(1) :: option_path_array
-      character(len=OPTION_PATH_LEN), dimension(1) :: density_option_path_array
+      character(len=OPTION_PATH_LEN), dimension(1) :: tdensity_option_path_array
 
       ewrite(2,*) 'in solve_field_eqn_cv'
       ewrite(2,*) 'solving for '//field_name//' in state '//trim(state(1)%name)
@@ -244,23 +244,8 @@ contains
         tdensity=>dummyscalar
         oldtdensity=>dummyscalar
 
-        ! dpavlidis - coefficient for advdiff
-        if (have_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field')) then
-           call get_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field/', &
-                tmpstring)
-           ! density needed so extract the type specified in the input
-           ! ?? are there circumstances where this should be "Iterated"... need to be
-           ! careful with priority ordering
-           tdensity=>extract_scalar_field(state(1), trim(tmpstring))
-           ewrite_minmax(tdensity%val)
-           ! halo exchange? - not currently necessary when suboptimal halo exchange if density
-           ! is solved for with this subroutine and the correct priority ordering.
-           oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
-           ewrite_minmax(oldtdensity%val)
-        end if
-
       case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, &
-           FIELD_EQUATION_INTERNALENERGY )
+           FIELD_EQUATION_INTERNALENERGY, FIELD_EQUATION_HEATTRANSFER )
         call get_option(trim(option_path)//'/prognostic/equation[0]/density[0]/name', &
                         tmpstring)
         include_density = .true.
@@ -275,11 +260,18 @@ contains
         ewrite_minmax(oldtdensity%val)
       end select
 
+      ! get the density option path
+      if(have_option(trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+        tdensity_option_path = trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options'
+      else
+        tdensity_option_path = trim(tdensity%option_path)
+      end if
+
       ! now we can get the options for these fields
       ! handily wrapped in a new type...
       tfield_options=get_cv_options(tfield%option_path, tfield%mesh%shape%numbering%family)
       if(include_density) then
-        tdensity_options=get_cv_options(tdensity%option_path, tdensity%mesh%shape%numbering%family)
+        tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, coefficient_field=.true.)
       end if
 
       ! extract fields from state
@@ -415,11 +407,11 @@ contains
       call get_option("/timestepping/current_time", time) ! so it can be output in the convergence file
 
       ! allocate and retrieve the cfl no. if necessary
-      option_path_array(1) = trim(option_path)                  ! temporary hack for
-      density_option_path_array(1) = trim(tdensity%option_path) ! compiler failure
+      option_path_array(1) = trim(option_path)                  ! temporary hack for compiler failure
+      tdensity_option_path_array(1) = tdensity_option_path
       call cv_disc_get_cfl_no(option_path_array, &
                       state(1), tfield%mesh, cfl_no, &
-                      density_option_path_array)
+                      tdensity_option_path_array)
 
       ! get the mesh sparsity for the matrices
       if(include_diffusion.and.(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY)) then
@@ -644,11 +636,11 @@ contains
           ! assemble it all into a coherent equation
           call assemble_field_eqn_cv(M, A_m, lumpedmass, rhs, &
                                     tfield, l_old_tfield, &
-                                    tdensity, oldtdensity, &
+                                    tdensity, oldtdensity, tdensity_options, &
                                     source, absorption, tfield_options%theta, &
                                     state, advu, sub_dt, explicit, &
                                     t_lumpedmass, t_lumpedmass_old, t_lumpedmass_new, & 
-                                    D_m, diff_rhs, option_path=option_path)
+                                    D_m, diff_rhs)
 
 
           ! Solve for the change in tfield.
@@ -736,11 +728,11 @@ contains
     ! equation wrapping subroutines
     subroutine assemble_field_eqn_cv(M, A_m, m_lumpedmass, rhs, &
                                     tfield, oldtfield, &
-                                    tdensity, oldtdensity, &
+                                    tdensity, oldtdensity, tdensity_options, &
                                     source, absorption, theta, &
                                     state, advu, dt, explicit, &
                                     lumpedmass, lumpedmass_old, lumpedmass_new, &
-                                    D_m, diff_rhs, option_path)
+                                    D_m, diff_rhs)
 
       ! This subroutine assembles the equation
       ! M(T^{n+1}-T^{n})/\Delta T = rhs
@@ -760,6 +752,8 @@ contains
       ! the field we are solving for
       type(scalar_field), intent(inout) :: tfield
       type(scalar_field), intent(inout) :: oldtfield, tdensity, oldtdensity
+      ! options wrappers for tdensity
+      type(cv_options_type) :: tdensity_options
       type(scalar_field), intent(inout) :: source, absorption
       ! time discretisation parameter
       real, intent(in) :: theta
@@ -807,10 +801,6 @@ contains
       ! self explanatory strings
       integer :: equation_type
 
-      ! figure out coefficient
-      character(len=OPTION_PATH_LEN), optional :: option_path
-      integer :: i
-
       ewrite(1, *) "In assemble_field_eqn_cv"
 
       if(include_diffusion) then
@@ -829,30 +819,16 @@ contains
       ! start by adding the mass - common to all equation types
       if(include_mass) then
         if(move_mesh) then
-           if(explicit) then
-              call set(m_lumpedmass, lumpedmass_new)
-           else
-              ! dpavlidis - coefficient for advdiff
-              if (have_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field')) then
-                 do i = 1, node_count(tdensity)
-                    call set( M, i, i, node_val(lumpedmass, i) * node_val(tdensity, i) )
-                 end do
-              else
-                 call addto_diag(M, lumpedmass_new)
-              end if
-           end if
+          if(explicit) then
+            call set(m_lumpedmass, lumpedmass_new)
+          else
+            call addto_diag(M, lumpedmass_new)
+          end if
         else
           if(explicit) then
             call set(m_lumpedmass, lumpedmass)
           else
-             ! dpavlidis - coefficient for advdiff
-             if (have_option(trim(option_path)//'/prognostic/equation[0]/coefficient_field')) then
-                do i=1, node_count(tfield)
-                   call set( M, i, i, node_val(lumpedmass, i) * node_val(tdensity, i) )
-                end do
-             else
-                call addto_diag(M, lumpedmass)
-             end if
+            call addto_diag(M, lumpedmass)
           end if
         end if
       end if
@@ -987,10 +963,56 @@ contains
 
       case (FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS)
 
-        ! [\rho^{n}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs
+        ! [\rho^{n+\theta}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs
+        tdensity_theta = tdensity_options%theta
 
-        call get_option(trim(tdensity%option_path)//"/prognostic/temporal_discretisation&
-                             &/theta", tdensity_theta)
+        ! construct M
+        ! multiply the diagonal by the previous timesteps density
+        if(explicit) then
+          if(include_mass) then
+            m_lumpedmass%val = m_lumpedmass%val*(tdensity_theta*tdensity%val+(1.0-tdensity_theta)*oldtdensity%val)
+          end if
+        else
+          if(include_mass) then 
+            call mult_diag(M, ((tdensity_theta)*tdensity%val+(1.0-tdensity_theta)*oldtdensity%val))
+          end if
+          if(include_advection) call addto(M, A_m, dt)
+          if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
+        
+          ! construct rhs
+          if(include_advection) then
+            call mult(MT_old, A_m, oldtfield)
+            call addto(rhs, MT_old, -1.0)
+          end if
+        end if
+
+        if(include_source) call addto(rhs, masssource)
+
+        if(include_absorption) then
+          ! massabsorption has already been added to the matrix so it can now be scaled
+          ! by the old field value to add it to the rhs
+          call scale(massabsorption, oldtfield)
+          call addto(rhs, massabsorption, -1.0)
+        end if
+
+        if(include_diffusion) then
+          call mult(MT_old, D_m, oldtfield)
+          call addto(rhs, MT_old, -1.0)
+          call addto(rhs, diff_rhs, -1.0)
+
+          if(.not.explicit) then
+            call addto(M, D_m, theta*dt)
+          end if
+        end if
+        
+        if(move_mesh) then
+          FLAbort("Moving mesh with this equation type not yet supported.")
+        end if
+
+      case (FIELD_EQUATION_HEATTRANSFER)
+
+        ! [\rho^{n+\theta}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs
+        tdensity_theta = tdensity_options%theta
 
         ! construct M
         ! multiply the diagonal by the previous timesteps density
@@ -1155,8 +1177,8 @@ contains
       ! a type containing all the tfield options
       type(cv_options_type), intent(in) :: tfield_options
       ! density and previous time level of density associated with the
-      ! field (only a real density if solving for
-      ! a conservation equation, just constant 1 if AdvectionDiffusion)
+      ! field (only a real density if solving for an equation other than
+      ! AdvectionDiffusion)
       type(scalar_field), intent(inout) :: tdensity, oldtdensity
       ! a type containing all the tdensity options
       type(cv_options_type), intent(in) :: tdensity_options
@@ -1281,7 +1303,7 @@ contains
       call allocate(tfield_upwind, mesh_sparsity, name="TFieldUpwindValues")
       call allocate(oldtfield_upwind, mesh_sparsity, name="OldTFieldUpwindValues")
       ! does the field need upwind values
-      if(need_upwind_values(trim(tfield%option_path))) then
+      if(need_upwind_values(tfield_options)) then
 
         call find_upwind_values(state, x_tfield, tfield, tfield_upwind, &
                                 oldtfield, oldtfield_upwind, &
@@ -1299,11 +1321,16 @@ contains
         call allocate(tdensity_upwind, mesh_sparsity, name="TDensityUpwindValues")
         call allocate(oldtdensity_upwind, mesh_sparsity, name="OldTDensityUpwindValues")
 
-        if(need_upwind_values(trim(tdensity%option_path))) then
-
-          call find_upwind_values(state, x_tfield, tdensity, tdensity_upwind, &
-                                  oldtdensity, oldtdensity_upwind &
-                                  )
+        if(need_upwind_values(tdensity_options)) then
+          if(have_option(trim(tfield%option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+            call find_upwind_values(state, x_tfield, tdensity, tdensity_upwind, &
+                                    oldtdensity, oldtdensity_upwind, &
+                                    option_path=trim(tfield%option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')
+          else
+            call find_upwind_values(state, x_tfield, tdensity, tdensity_upwind, &
+                                    oldtdensity, oldtdensity_upwind &
+                                    )
+          end if
 
         else
 
@@ -2211,7 +2238,7 @@ contains
           tdensity(f)%ptr=>dummydensity
           oldtdensity(f)%ptr=>dummydensity
         case(FIELD_EQUATION_CONSERVATIONOFMASS, FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS, &
-            FIELD_EQUATION_INTERNALENERGY )
+            FIELD_EQUATION_INTERNALENERGY, FIELD_EQUATION_HEATTRANSFER )
           call get_option(trim(option_path(f))//'/prognostic/equation[0]/density[0]/name', &
                           tmpstring)
           include_density = .true.
@@ -2224,13 +2251,17 @@ contains
           oldtdensity(f)%ptr=>extract_scalar_field(state(state_indices(f)), "Old"//trim(tmpstring))
         end select
         ! its option path
-        tdensity_option_path(f)=tdensity(f)%ptr%option_path
-
+        if(have_option(trim(option_path(f))//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+          tdensity_option_path(f)=trim(option_path(f))//'/prognostic/equation[0]/density[0]/discretisation_options'
+        else
+          tdensity_option_path(f)=tdensity(f)%ptr%option_path
+        end if
+        
         ! now we can get the options for these fields
         ! handily wrapped in a new type...
         tfield_options(f)=get_cv_options(tfield(f)%ptr%option_path, tfield(f)%ptr%mesh%shape%numbering%family)
         if(include_density) then
-          tdensity_options(f)=get_cv_options(tdensity(f)%ptr%option_path, tdensity(f)%ptr%mesh%shape%numbering%family)
+          tdensity_options(f)=get_cv_options(tdensity_option_path(f), tdensity(f)%ptr%mesh%shape%numbering%family, coefficient_field=.true.)
         end if
 
         source(f)%ptr=>extract_scalar_field(state(state_indices(f)), trim(field_name)//"Source", stat=stat)
@@ -2476,10 +2507,10 @@ contains
             ! assemble it all into a coherent equation
             call assemble_field_eqn_cv(M(f), A_m(f), lumpedmass(f), rhs(f), &
                                       tfield(f)%ptr, l_old_tfield(f)%ptr, &
-                                      tdensity(f)%ptr, oldtdensity(f)%ptr, &
+                                      tdensity(f)%ptr, oldtdensity(f)%ptr, tdensity_options(f), &
                                       source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
                                       state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
-                                      t_lumpedmass, t_lumpedmass_old, t_lumpedmass_new, option_path=option_path(f))
+                                      t_lumpedmass, t_lumpedmass_old, t_lumpedmass_new)
 
             ! Solve for the change in tfield.
             if(explicit(f)) then
@@ -2697,11 +2728,16 @@ contains
         if(include_density) then
           call allocate(tdensity_upwind(f), mesh_sparsity, name=int2str(f)//"TDensityUpwindValues")
           call allocate(oldtdensity_upwind(f), mesh_sparsity, name=int2str(f)//"OldTDensityUpwindValues")
-          if(need_upwind_values(trim(tdensity(f)%ptr%option_path))) then
-
-            call find_upwind_values(state, x_tfield, tdensity(f)%ptr, tdensity_upwind(f), &
-                                    oldtdensity(f)%ptr, oldtdensity_upwind(f) &
-                                    )
+          if(need_upwind_values(tdensity_options(f))) then
+            if(have_option(trim(tfield(f)%ptr%option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+              call find_upwind_values(state, x_tfield, tdensity(f)%ptr, tdensity_upwind(f), &
+                                      oldtdensity(f)%ptr, oldtdensity_upwind(f), &
+                                      option_path=trim(tfield(f)%ptr%option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')
+            else
+              call find_upwind_values(state, x_tfield, tdensity(f)%ptr, tdensity_upwind(f), &
+                                      oldtdensity(f)%ptr, oldtdensity_upwind(f) &
+                                      )
+            end if
 
           else
 
@@ -2714,7 +2750,7 @@ contains
         call allocate(tfield_upwind(f), mesh_sparsity, name=int2str(f)//"TFieldUpwindValues")
         call allocate(oldtfield_upwind(f), mesh_sparsity, name=int2str(f)//"OldTFieldUpwindValues")
         ! does the field need upwind values
-        if(need_upwind_values(trim(tfield(f)%ptr%option_path))) then
+        if(need_upwind_values(tfield_options(f))) then
 
           call find_upwind_values(state, x_tfield, tfield(f)%ptr, tfield_upwind(f), &
                                   oldtfield(f)%ptr, oldtfield_upwind(f))

@@ -515,7 +515,16 @@ This defines the limiter used to enforce boundedness on this field.</a:documenta
       </element>
     </element>
   </define>
+  <define name="spatial_control_volume_options_excluding_none">
+    <ref name="compressive_control_volume_options"/>
+  </define>
+  <define name="spatial_control_volume_options_excluding_none" combine="choice">
+    <ref name="standard_control_volume_options"/>
+  </define>
   <define name="spatial_control_volume_options">
+    <ref name="no_advection_control_volume_options"/>
+  </define>
+  <define name="spatial_control_volume_options" combine="choice">
     <ref name="compressive_control_volume_options"/>
   </define>
   <define name="spatial_control_volume_options" combine="choice">
@@ -580,14 +589,16 @@ First order downwinding is unconditionally unstable</a:documentation>
         </attribute>
         <empty/>
       </element>
-      <element name="face_value">
-        <a:documentation>No face value - i.e. no advection!</a:documentation>
-        <attribute name="name">
-          <value>None</value>
-        </attribute>
-        <empty/>
-      </element>
     </choice>
+  </define>
+  <define name="no_advection_control_volume_options">
+    <element name="face_value">
+      <a:documentation>No face value - i.e. no advection!</a:documentation>
+      <attribute name="name">
+        <value>None</value>
+      </attribute>
+      <empty/>
+    </element>
   </define>
   <define name="coupled_spatial_control_volume_options">
     <ref name="coupled_control_volume_options"/>

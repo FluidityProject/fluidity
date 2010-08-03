@@ -483,7 +483,11 @@ contains
       call allocate(dens_upwind, mesh_sparsity, name="DensityUpwindValues")
       call allocate(olddens_upwind, mesh_sparsity, name="OldDensityUpwindValues")
 
-      if(need_upwind_values(trim(dens%option_path))) then
+      ! get all the relevent options for density
+      ! handily wrapped in a new type...
+      dens_options = get_cv_options(dens%option_path, dens%mesh%shape%numbering%family)
+
+      if(need_upwind_values(dens_options)) then
 
         call find_upwind_values(state, x_p, dens, dens_upwind, &
                                 olddens, olddens_upwind)
@@ -515,10 +519,6 @@ contains
       ! Clear memory of arrays being designed
       call zero(CTP_m)
       if(present(ct_rhs)) call zero(ct_rhs)
-
-      ! get all the relevent options for density
-      ! handily wrapped in a new type...
-      dens_options = get_cv_options(dens%option_path, dens%mesh%shape%numbering%family)
 
       allocate(x_ele(x%dim,ele_loc(x,1)), &
                x_f(x%dim, x_cvshape%ngi), &

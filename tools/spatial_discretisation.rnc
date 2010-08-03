@@ -449,7 +449,11 @@ coupled_cv_options =
       }
    )
 
-spatial_control_volume_options = compressive_control_volume_options
+spatial_control_volume_options_excluding_none = compressive_control_volume_options
+spatial_control_volume_options_excluding_none |= standard_control_volume_options
+
+spatial_control_volume_options = no_advection_control_volume_options
+spatial_control_volume_options |= compressive_control_volume_options
 spatial_control_volume_options |= standard_control_volume_options
 
 standard_control_volume_options = 
@@ -496,7 +500,11 @@ standard_control_volume_options =
       element face_value {
         attribute name { "FirstOrderDownwind" },
         empty
-      }|
+      }
+   )
+   
+no_advection_control_volume_options = 
+   (
       ## No face value - i.e. no advection!
       element face_value {
         attribute name { "None" },

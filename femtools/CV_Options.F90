@@ -33,6 +33,7 @@ module cv_options
   use field_options, only: complete_field_path
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use element_numbering, only: FAMILY_SIMPLEX, FAMILY_CUBE
+  use futils
 
   implicit none
 
@@ -96,7 +97,7 @@ module cv_options
 
 contains
 
-  function get_cv_options(option_path, element_family) result(cv_options)
+  function get_cv_options(option_path, element_family, coefficient_field) result(cv_options)
 
     ! This function retrieves all current control volume
     ! discretisation options wrapped in a cv_options_type.
@@ -106,6 +107,7 @@ contains
 
     character(len=*), intent(in) :: option_path
     integer, intent(in) :: element_family
+    logical, intent(in), optional :: coefficient_field
     type(cv_options_type) :: cv_options
 
     character(len=FIELD_NAME_LEN) :: tmpstring
@@ -160,10 +162,17 @@ contains
                         "/temporal_discretisation&
                         &/control_volumes/pivot_theta", &
                         cv_options%ptheta, default=1.0)
-    call get_option(trim(complete_field_path(option_path, stat))//&
-                        "/spatial_discretisation&
-                        &/conservative_advection", &
-                        cv_options%beta)
+    if(present_and_true(coefficient_field)) then
+      ! if these options are for a field that just a coefficient to the main
+      ! equation then this isn't need.
+      ! initialise it to something insane to make sure it will be noticed if used.
+      cv_options%beta = -666.0
+    else
+      call get_option(trim(complete_field_path(option_path, stat))//&
+                          "/spatial_discretisation&
+                          &/conservative_advection", &
+                          cv_options%beta)
+    end if
     call get_option(trim(complete_cv_field_path(option_path))//&
                     '/face_value[0]/limit_face_value/limiter[0]/slopes&
                     &/lower', cv_options%limiter_slopes(1), default=1.0)
