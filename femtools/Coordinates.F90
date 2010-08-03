@@ -46,7 +46,7 @@ module Coordinates
        LongitudeLatitude,  &
        cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
        earth_radius, higher_order_sphere_projection, &
-       Coordinates_check_options
+       sphere_inward_normal_at_quad, Coordinates_check_options
        
   interface LongitudeLatitude
      module procedure LongitudeLatitude_single, LongitudeLatitude_multiple
@@ -195,6 +195,32 @@ contains
     call deallocate(radius)    
   
   end subroutine higher_order_sphere_projection
+
+  function sphere_inward_normal_at_quad(positions, ele_number) result(quad_val)
+    ! Return the direction of gravity at the quadrature points of and element.
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele_number
+    real, dimension(:,:), allocatable :: X_quad, quad_val
+
+    type(element_type), pointer :: shape
+
+    integer :: i,j
+
+    shape=>ele_shape(positions,ele_number)
+
+    allocate(X_quad(positions%dim,ele_ngi(positions,ele_number)),quad_val(positions%dim, positions%mesh%shape%ngi))
+
+    X_quad=ele_val_at_quad(positions, ele_number)
+
+    do j=1,positions%mesh%shape%ngi
+      do i=1,positions%dim
+        quad_val(i,j)=-X_quad(i,j)/sqrt(sum(X_quad(:,j)**2))
+      end do
+    end do
+
+!     call exit
+
+  end function sphere_inward_normal_at_quad
 
   ! Coordinates options checking
   subroutine Coordinates_check_options

@@ -786,6 +786,20 @@ prognostic_velocity_field =
            }
          )
       }?,
+      ## Vertical stabilization
+      element vertical_stabilization {
+         ## A depth dependent absorption term to
+         ## increase stability in shallow regions 
+         ## given by n_grav*g*dt*rho/d
+         element vertical_velocity_relaxation{
+            empty
+         }?,
+         ## Implicit buoyancy, calculated via
+         ## theta*g*dt*drho/dr_grav
+         element implicit_buoyancy{
+            empty
+         }?
+      }?,
       ## SurfaceTension
       element tensor_field {
          attribute name { "SurfaceTension" },

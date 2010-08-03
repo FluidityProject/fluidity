@@ -965,6 +965,26 @@ only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
       </element>
     </optional>
     <optional>
+      <element name="vertical_stabilization">
+        <a:documentation>Vertical stabilization</a:documentation>
+        <optional>
+          <element name="vertical_velocity_relaxation">
+            <a:documentation>A depth dependent absorption term to
+increase stability in shallow regions 
+given by n_grav*g*dt*rho/d</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="implicit_buoyancy">
+            <a:documentation>Implicit buoyancy, calculated via
+theta*g*dt*drho/dr_grav</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+      </element>
+    </optional>
+    <optional>
       <element name="tensor_field">
         <a:documentation>SurfaceTension</a:documentation>
         <attribute name="name">

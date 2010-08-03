@@ -56,6 +56,7 @@
     use sparsity_patterns_meshes
     use fefields
     use rotated_boundary_conditions
+    use Coordinates
     implicit none
 
     private
@@ -94,6 +95,9 @@
     logical :: have_source
     logical :: have_gravity
     logical :: have_absorption
+    logical :: have_vertical_stabilization
+    logical :: have_implicit_buoyancy
+    logical :: have_vertical_velocity_relaxation
     logical :: have_viscosity
     logical :: have_surfacetension
     logical :: have_coriolis
@@ -101,6 +105,7 @@
     logical :: have_les
     logical :: have_surface_fs_stabilisation
     logical :: les_fourth_order
+    logical :: on_sphere
     
     logical :: move_mesh
     
@@ -198,6 +203,16 @@
 
       integer :: stat, dim, ele, sele, dim2
 
+      ! For the evaluation of the inward normal at gauss points if on the sphere
+      type(vector_field), pointer:: positions
+      
+      logical :: have_surface_fs_stabilisation
+
+      ! Fields for vertical velocity relaxation
+      type(scalar_field), pointer :: dtt, dtb
+      type(scalar_field) :: depth
+      integer :: node   
+
       ewrite(1,*) 'entering construct_momentum_cg'
     
       assert(continuity(u)>=0)
@@ -233,6 +248,25 @@
       do dim = 1, absorption%dim
         ewrite_minmax(absorption%val(dim)%ptr(:))
       end do
+
+      ! Check if we have either implicit absorption term
+      have_vertical_stabilization=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation").or. &
+                                  have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")
+
+      ! If we have vertical velocity relaxation set then grab the required fields
+      ! sigma = n_z*g*dt*_rho_o/depth
+      have_vertical_velocity_relaxation=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/vertical_velocity_relaxation")
+      if (have_vertical_velocity_relaxation) then
+        dtt => extract_scalar_field(state, "DistanceToTop")
+        dtb => extract_scalar_field(state, "DistanceToBottom")
+        call allocate(depth, dtt%mesh, "Depth")
+        do node=1,node_count(dtt)
+          call set(depth, node, node_val(dtt, node)+node_val(dtb, node))
+        end do
+      endif
+
+      ! Implicit buoyancy (theta*g*dt*drho/dr)
+      have_implicit_buoyancy=have_option(trim(u%option_path)//"/prognostic/vertical_stabilization/implicit_buoyancy")    
 
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, &
           stat=stat)
@@ -297,6 +331,10 @@
         gp => dummyscalar
       end if
 
+      on_sphere = have_option('/geometry/spherical_earth/')
+        
+      positions => extract_vector_field(state, "Coordinate")
+
       call get_option("/timestepping/timestep", dt)
       call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
                       theta)
@@ -314,7 +352,7 @@
           &/lump_absorption/use_submesh")
       pressure_corrected_absorption=have_option(trim(u%option_path)//&
           &"/prognostic/vector_field::Absorption&
-          &/include_pressure_correction")
+          &/include_pressure_correction") .or. have_vertical_stabilization
       if (pressure_corrected_absorption) then
          ! as we add the absorption into the mass matrix
          ! lump_absorption needs to match lump_mass
@@ -415,13 +453,13 @@
       ! ----- Volume integrals over elements -------------
       
       element_loop: do ele=1, element_count(u)
-         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, &
+         call construct_momentum_element_cg(positions, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               gp, surfacetension, &
-              assemble_ct_matrix, cg_pressure)
+              assemble_ct_matrix, cg_pressure, on_sphere, depth=depth)
          
       end do element_loop
         
@@ -705,18 +743,19 @@
     end subroutine construct_momentum_surface_element_cg
 
 
-    subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, &
+    subroutine construct_momentum_element_cg(positions, ele, big_m, rhs, ct_m, &
                                             mass, masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix, cg_pressure)
+                                            assemble_ct_matrix, cg_pressure, on_sphere, depth)
     !!< Assembles the local element matrix contributions and places them in big_m
     !!< and rhs for the continuous galerkin momentum equations
 
       ! current element
+      type(vector_field), intent(inout) :: positions
       integer, intent(in) :: ele
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
@@ -734,8 +773,9 @@
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
       type(tensor_field), intent(in) :: grad_u
+      type(scalar_field), optional, intent(in) :: depth
 
-      logical, intent(in) :: assemble_ct_matrix, cg_pressure
+      logical, intent(in) :: assemble_ct_matrix, cg_pressure, on_sphere
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -869,7 +909,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(ele, test_function, u, buoyancy, gravity, detwei, rhs_addto)
+        call add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, on_sphere, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -878,10 +918,10 @@
       end if
 
       ! Absorption terms (sponges)
-      if(have_absorption) then
-       call add_absorption_element_cg(ele, test_function, u, oldu_val, density, &
+      if (have_absorption .or. have_vertical_stabilization) then
+       call add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, &
          absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
-         masslump, mass)
+         masslump, mass, depth=depth, gravity=gravity, buoyancy=buoyancy)
       end if
       
       ! Viscous terms
@@ -1133,7 +1173,8 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(ele, test_function, u, buoyancy, gravity, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, on_sphere, detwei, rhs_addto)
+      type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
@@ -1141,11 +1182,21 @@
       type(vector_field), intent(in) :: gravity
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
+      logical, intent(in) :: on_sphere
       
-      rhs_addto = rhs_addto + &
-                  shape_vector_rhs(test_function, &
-                                   ele_val_at_quad(gravity, ele), &
-                                   detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+      if (on_sphere) then
+      ! If were on a spherical Earth evaluate the direction of the gravity vector
+      ! exactly at quadrature points.
+        rhs_addto = rhs_addto + &
+                    shape_vector_rhs(test_function, &
+                                     sphere_inward_normal_at_quad(positions, ele), &
+                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+      else
+        rhs_addto = rhs_addto + &
+                    shape_vector_rhs(test_function, &
+                                     ele_val_at_quad(gravity, ele), &
+                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+      endif
       
     end subroutine add_buoyancy_element_cg
     
@@ -1173,7 +1224,8 @@
       
     end subroutine add_surfacetension_element_cg
     
-    subroutine add_absorption_element_cg(ele, test_function, u, oldu_val, density, absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, masslump, mass)
+    subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, masslump, mass, depth, gravity, buoyancy)
+      type(vector_field), intent(inout) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
@@ -1187,14 +1239,83 @@
       type(vector_field), intent(inout) :: masslump
       type(petsc_csr_matrix), optional, intent(inout) :: mass
     
-      integer :: dim
+      integer :: dim, i
       real, dimension(ele_ngi(u, ele)) :: density_gi
       real, dimension(u%dim , ele_loc(u, ele)) :: absorption_lump
       real, dimension(u%dim, ele_ngi(u, ele)) :: absorption_gi
       real, dimension(u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: absorption_mat
+
+      type(vector_field), optional, intent(in) :: gravity
+
+      ! Add vertical velocity relaxation to the absorption if present
+      real, dimension(u%dim, ele_ngi(u,ele)) :: vvr_abs
+      real, dimension(ele_ngi(u,ele)) :: depth_at_quads
+      type(scalar_field), optional, intent(in) :: depth
+
+      ! Add implicit buoyancy to the absorption if present
+      type(scalar_field), intent(in) :: buoyancy
+      real, dimension(u%dim, ele_ngi(u,ele)) :: ib_abs
+      real, dimension(ele_loc(u,ele),ele_ngi(u,ele),mesh_dim(u)) :: dt_rho
+      real, dimension(U%dim,ele_ngi(u,ele)) :: grad_rho, grav_at_quads
+      real, dimension(ele_ngi(u,ele)) :: drho_dz
       
       density_gi=ele_val_at_quad(density, ele)
       absorption_gi = ele_val_at_quad(absorption, ele)
+
+      ! If we have any vertical stabilizing absorption terms, calculate them now
+      if (have_vertical_stabilization) then
+        vvr_abs=0.0
+        ib_abs=0.0
+        if (have_vertical_velocity_relaxation) then
+        
+          assert(ele_ngi(u, ele)==ele_ngi(density, ele))
+          assert(ele_ngi(density,ele)==ele_ngi(depth,ele))          
+        
+          ! Form the vertical velocity relaxation absorption term
+          if (on_sphere) then
+            assert(ele_ngi(u, ele)==ele_ngi(positions, ele))
+            vvr_abs=sphere_inward_normal_at_quad(positions, ele)
+          else
+            assert(ele_ngi(u, ele)==ele_ngi(gravity, ele))
+            vvr_abs=ele_val_at_quad(gravity, ele)
+          end if
+          depth_at_quads=ele_val_at_quad(depth, ele)
+
+          do i=1,ele_ngi(u,ele)
+            vvr_abs(:,i)=gravity_magnitude*dt*vvr_abs(:,i)*density_gi(i)/depth_at_quads(i)
+          end do
+
+        end if
+
+        if (have_implicit_buoyancy) then
+
+          assert(ele_ngi(u, ele)==ele_ngi(buoyancy, ele))
+        
+          call transform_to_physical(positions, ele, ele_shape(buoyancy,ele), dshape=dt_rho)
+          grad_rho=ele_grad_at_quad(buoyancy, ele, dt_rho)
+
+          ! Calculate the gradient in the direction of gravity
+          if (on_sphere) then
+            grav_at_quads=sphere_inward_normal_at_quad(positions, ele)
+          else
+            grav_at_quads=ele_val_at_quad(gravity, ele)
+          end if
+          do i=1,ele_ngi(U,ele)
+            drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i))
+            if (drho_dz(i) < 0.0) drho_dz(i)=0.0
+          end do
+
+          ! Form the implicit buoyancy absorption terms
+          do i=1,ele_ngi(U,ele)
+            ib_abs(:,i)=theta*dt*gravity_magnitude*drho_dz(i)*grav_at_quads(:,i)
+          end do
+
+        end if
+
+        ! Add any vertical stabilization to the absorption term
+        absorption_gi=absorption_gi-vvr_abs-ib_abs
+
+      end if
       
       ! element absorption matrix
       !  /
