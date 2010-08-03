@@ -85,15 +85,12 @@ module implicit_solids
   end interface
 #endif
 
-  !type(vector_field), pointer, save :: ext_pos_solid_vel, ext_pos_fluid_vel
-  !type(vector_field), pointer, save :: fl_pos_solid_vel
-
   type(vector_field), target, save :: ext_pos_solid_vel, ext_pos_fluid_vel
   type(vector_field), target, save :: fl_pos_solid_vel
 
-
   type(scalar_field), save :: solid_local
   type(vector_field), save :: external_positions
+  real, save :: beta
   real, dimension(:,:), allocatable, save :: translation_coordinates
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
@@ -115,7 +112,8 @@ contains
     integer :: dat_unit, stat
     character(len=PYTHON_FUNC_LEN) :: python_function
     character(len=field_name_len) :: external_mesh_name
-    integer :: dim, i, quad_degree
+    integer :: i, quad_degree
+    integer, save :: dim
 
     ewrite(2, *) "inside implicit_solids"
 
@@ -124,9 +122,13 @@ contains
 
     if (.not. init) then
 
+       call get_option("/implicit_solids/beta", beta, default=1.)
+
        call get_option("/timestepping/nonlinear_iterations", itinoi)
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
        two_way_coupling = have_option("/implicit_solids/two_way_coupling/")
+
+       call get_option("/geometry/dimension", dim)
 
        if (one_way_coupling) then
 
@@ -138,7 +140,6 @@ contains
           if (stat /= 0) number_of_solids = 1
           multiple_solids = (number_of_solids>1)
 
-          call get_option("/geometry/dimension", dim)
           allocate(translation_coordinates(dim, number_of_solids))
           if (have_option("/implicit_solids/one_way_coupling/python")) then
              call get_option(&
@@ -212,6 +213,13 @@ contains
 
     else if (two_way_coupling) then
 
+       if (do_calculate_volume_fraction) then
+          call allocate(solid_local, &
+               solid%mesh, "SolidConcentrationLocal")
+          call allocate(fl_pos_solid_vel, dim, &
+               solid%mesh, "SolidVelocity")
+       end if
+
        if (its == 1) then
           ! update          : 1. external_positions
           !                   2. ext_pos_solid_vel
@@ -224,14 +232,13 @@ contains
 
           ! interpolate the solid velocity from
           ! the femdem mesh to the fluidity mesh
+          call zero(fl_pos_solid_vel)
           call femdem_interpolation(state, "in")
+
+          call zero(solid_local)
+          call calculate_volume_fraction(state)
        end if
 
-       if (do_calculate_volume_fraction) call allocate(solid_local, &
-            solid%mesh, "SolidConcentrationLocal")
-
-       call zero(solid_local)
-       call calculate_volume_fraction(state)
        call set(solid, solid_local)
        ewrite_minmax(solid)
 
@@ -241,6 +248,7 @@ contains
        do_calculate_volume_fraction = .false.
        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
           call deallocate(solid_local)
+          call deallocate(fl_pos_solid_vel)
           do_calculate_volume_fraction = .true.
        end if
 
@@ -381,14 +389,12 @@ contains
     type(state_type),intent(inout) :: state
     type(vector_field), pointer :: absorption
     integer :: i, j
-    real :: beta, sigma
+    real :: sigma
 
     ewrite(2, *) "inside set_absorption_coefficient"
 
     absorption => extract_vector_field(state, "VelocityAbsorption")
     call zero(absorption)
-
-    call get_option("/implicit_solids/beta", beta, default=1.)
 
     do i = 1, node_count(absorption)
        sigma = node_val(solid_local, i)*beta/dt
@@ -408,19 +414,17 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), pointer :: source
     integer :: i, j
-    real :: beta, sigma
+    real :: sigma
 
     ewrite(2, *) "inside set_source"
 
     source => extract_vector_field(state, "VelocitySource")
     call zero(source)
 
-    call get_option("/implicit_solids/beta", beta, default=1.)
-
     do i = 1, node_count(source)
        sigma = node_val(solid_local, i)*beta/dt
        do j = 1, source%dim
-          call set(source, j, i, sigma * node_val(fl_pos_solid_vel, j, i) )
+          call set(source, j, i, sigma * node_val(fl_pos_solid_vel, j, i))
        end do
     end do
 
@@ -573,16 +577,10 @@ contains
          external_positions%mesh, name="femdem_solid_velocity")
     call zero(ext_pos_solid_vel)
 
-    ! this is the interpolated solid velocity 
-    ! on the fluid mesh
-    call allocate(fl_pos_solid_vel, positions%dim, &
-         positions%mesh, name="femdem_solid_velocity")
-    call zero(fl_pos_solid_vel)
-
     ! this is the interpolated fluid velocity
     ! on the solid mesh
     call allocate(ext_pos_fluid_vel, external_positions%dim, &
-         external_positions%mesh, name="femdem_solid_velocity")
+         external_positions%mesh, name="femdem_fluid_velocity")
     call zero(ext_pos_fluid_vel)
 
     assert(node_count(external_positions) == node_count(ext_pos_solid_vel))
@@ -671,7 +669,7 @@ contains
 
        ! this is the solid velocity on the fluidity mesh
        ! this will be used to set the source term...
-       field_fl => extract_vector_field(state, "SolidVelocity")
+       field_fl => fl_pos_solid_vel
        call zero(field_fl)
        call insert(alg_fl, field_fl, "SolidVelocity")
 

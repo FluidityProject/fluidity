@@ -239,7 +239,7 @@ contains
             deallocate(quad)
             deallocate(shape)
 
-         else if(trim(mesh_file_format)=="triangle") then
+         else if(trim(mesh_file_format)=="triangle" .or. trim(mesh_file_format)=="gmsh") then
             ! Read mesh from triangle file
             position=read_triangle_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
             mesh=position%mesh
