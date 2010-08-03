@@ -239,9 +239,11 @@ contains
             deallocate(quad)
             deallocate(shape)
 
-         else if(trim(mesh_file_format)=="triangle" .or. trim(mesh_file_format)=="gmsh") then
+         else if(trim(mesh_file_format)=="triangle" &
+              .or. trim(mesh_file_format)=="gmsh") then
             ! Read mesh from triangle file
-            position=read_triangle_files(trim(mesh_file_name), quad_degree=quad_degree, quad_family=quad_family)
+            position=read_mesh_files(trim(mesh_file_name), quad_degree=quad_degree, &
+                 quad_family=quad_family, format=mesh_file_format)
             mesh=position%mesh
          else if(trim(mesh_file_format) == "vtu") then
             position_ptr => vtk_cache_read_positions_field(mesh_file_name)
