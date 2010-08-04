@@ -803,7 +803,8 @@ contains
     ! Add implicit buoyancy to the absorption if present
     real, dimension(U%dim, ele_ngi(U,ele)) :: ib_abs
     real, dimension(ele_loc(U,ele),ele_ngi(U,ele),mesh_dim(U)) :: dt_rho
-    real, dimension(U%dim,ele_ngi(U,ele)) :: grad_rho, grav_at_quads
+    real, dimension(ele_ngi(U,ele),U%dim) :: grad_rho
+    real, dimension(U%dim,ele_ngi(U,ele)) :: grav_at_quads
     real, dimension(ele_ngi(U,ele)) :: drho_dz
 
     ! element centre and neighbour centre
@@ -816,7 +817,7 @@ contains
     ! dg les continuous fields
     type(vector_field) :: u_cg, u_nl_cg
     type(element_type), pointer :: u_cg_shape
-    real, dimension(face_ngi(u_cg, ele)) :: detwei_cg
+    real, dimension(ele_ngi(u_cg, ele)) :: detwei_cg
     real, dimension(ele_loc(u_cg, ele), ele_ngi(u_cg, ele), u_cg%dim) :: du_t_cg
     real, dimension(positions%dim, positions%dim, ele_ngi(u_cg,ele)) :: les_tensor_gi
     real, dimension(ele_ngi(u_cg, ele)) :: les_coef_gi
@@ -958,6 +959,8 @@ contains
     if (have_viscosity.and.owned_element) then
       Viscosity_ele = ele_val(Viscosity,ele)
       if (have_dg_les) Viscosity_ele = Viscosity_ele + dg_les_loc
+    else if (have_dg_les.and.owned_element) then
+      Viscosity_ele = dg_les_loc
     end if
    
     if (owned_element) then
@@ -1191,7 +1194,7 @@ contains
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
         do i=1,ele_ngi(U,ele)
-          drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i))
+          drho_dz(i)=dot_product(grad_rho(i,:),grav_at_quads(:,i))
           if (drho_dz(i) < 0.0) drho_dz(i)=0.0
         end do
 
