@@ -258,9 +258,7 @@ start =
                         ##     # Function code
                         ##     return # Return value
                         ##
-                        ## The return value must have length number_of_solids.
-                        ##
-                        ## These coordinates are used to translate the location of the solid mesh.
+                        ## The return value must have length number_of_detectors.
                         ##
                         ## *** IMPORTANT NOTE ***
                         ##
