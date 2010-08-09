@@ -31,7 +31,7 @@ module zoltan_integration
   use halos_ownership
   use memory_diagnostics
   use detector_data_types
-!  use pickers
+  use pickers
   use diagnostic_variables
   implicit none
 
@@ -73,6 +73,7 @@ module zoltan_integration
   real, save :: quality_tolerance
   ! The variable chooses the method of transfering data when re-loading in zoltan
   logical :: variable_sizes_rbuf = .true.
+  integer, save :: zoltan_transfer_fields_count = 0
  
   public :: zoltan_drive
   private
@@ -1009,7 +1010,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     dimen=zz_positions%dim
 
-    allocate(list_into_array(detector_list%length,dimen+3))
+    allocate(list_into_array(detector_list%length,dimen+4))
 
     call allocate(ihash_sparsity) 
 
@@ -1119,7 +1120,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer(zoltan_int), intent(out) :: ierr
 
     real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
-    integer :: rhead, i, j, state_no, field_no, loc
+    integer :: rhead, i, j, k, state_no, field_no, loc
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
@@ -1134,7 +1135,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     type(detector_type), pointer :: node, node_to_send
 
-    integer :: row_in_spar_matrix, original_legth, remove_det, unn, processor_number, processor_number_a, processor_number_old_mesh
+    integer :: row_in_spar_matrix, original_length, remove_det, unn, processor_number, processor_number_a, processor_number_old_mesh, det_found
 
     type(element_type), pointer :: shape
    
@@ -1178,10 +1179,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     do i=1,num_ids
  
-       if (variable_sizes_rbuf) then
+      if (variable_sizes_rbuf) then
            deallocate(rbuf)
            allocate(rbuf(sizes(i)/real_size))
-       end if
+      end if
 
       old_universal_element_number = global_ids(i)
       old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
@@ -1231,7 +1232,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     if (i==1) then
 
-       allocate(list_into_array(detector_list%length,dimen+3))
+       allocate(list_into_array(detector_list%length,dimen+4))
 
 !! This subroutine below creates a csr_sparsity matrix called element_detector_list that we use to find out 
 !! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
@@ -1268,14 +1269,21 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
             rbuf(rhead) = list_into_array(det_index_in_list_into_array(j),dimen+3)
             rhead = rhead + 1
 
+            if (processor_number_array(i)/=getprocno()) then
+               
+               !!! Tagging det for removal
+               list_into_array(det_index_in_list_into_array(j),dimen+4)=1.0
+
+            end if
+
         end do
 
-     else
+    else
         rhead = rhead + 1
-     end if
+    end if
 
-   ewrite(2,*) 'rhead, size(rbuf) COLIN', rhead, size(rbuf)   
-
+!!! list_into_array(det_index_in_list_into_array(j),dimen+4)=det_needs_to_be_removed, that has been set to 1 when packing above if the element was not owned any more by this proc: processor_number_array(i)/=getprocno()
+ 
    if (.not.variable_sizes_rbuf) then
 
       if ((rhead-1)/=max_size/real_size) then
@@ -1303,47 +1311,54 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
        
 !!! Next: Removing detectors from current detector_list if they are being packed to be sent to another proc. and current proc doesn't own the element anymore in the new mesh.
 
-!!! This happens if processor_number calculated above is different from current proc. or processor_number=-1 which means we could not check who owns the element in the new mesh because old_univ_ele number is not in the new list uen_to_new_local_numbering. In any case even if we don't know who owns it, the fact that is not in the new list for this proc. means this proc does not own it anymore in the new mesh)
+!!! This happens if processor_number calculated above is different from current proc. or processor_number=-1 which means we could not check who owns the element in the new mesh because old_univ_ele number is not in the new list uen_to_new_local_numbering. In any case even if we don't know who owns it, the fact that is not in the new list for this proc., means this proc does not own it anymore in the new mesh. In this case, it was tagged above as list_into_array(det_index_in_list_into_array(j),dimen+4)==1.0. Whenever this is 1.0 as opposed to 0.0, the detector is being transferred and we should remove it from this list.
 
-!!! The code below will be modified shortly so that we don't need to loop twice. There is a better way to do it.
-    
     if (detector_list%length/=0) then
 
        node => detector_list%firstnode
 
-       original_legth=detector_list%length
+       original_length=detector_list%length
 
-       do j=1, original_legth
+       do k=1, original_length
 
-         remove_det=0
+            remove_det=0
 
-         do i=1,num_ids
+            det_found=0
 
-              if ((node%element==old_local_element_number_array(i)).and.(processor_number_array(i)/=getprocno())) then 
+            if (has_key(ihash_sparsity, node%element)) then
 
-                   remove_det=1    
+               row=fetch(ihash_sparsity, node%element) 
 
-                   node_to_send => node
+               det_index_in_list_into_array => row_m_ptr(element_detector_list, row) 
 
-                   node => node%next
-                   call remove_det_from_current_det_list(detector_list,node_to_send)  
+               dets_in_ele=size(det_index_in_list_into_array)
 
-                   if (remove_det==1) exit
+               do j=1, dets_in_ele
 
-             end if
-             if (j/=original_legth) then
-               
-                  if (node%element==old_local_element_number_array(i)) exit
+                  !If there are more than one detector in the element make sure we are accessing the right one
+                  if (list_into_array(det_index_in_list_into_array(j),dimen+2)==node%id_number) then
+                      det_found=1
+                      !If the detector in that element is in a new element after the adapt that belongs to another proc.
+                      !then when going over the elements to transfer, it was tagged:, i.e., 
+                      !list_into_array(det_index_in_list_into_array(j),dimen+4)==1.0 
+                      if (list_into_array(det_index_in_list_into_array(j),dimen+4)==1.0) then
+                            remove_det=1 
+                            node_to_send => node
+                            node => node%next
+                            call remove_det_from_current_det_list(detector_list,node_to_send) 
+                      end if
+                  end if
+                  if (det_found==1) exit !(the detector has already been found and deleted if needed)
+               end do
 
-             end if
-         end do
+            end if
 
-          if (remove_det/=1) then
+            if (remove_det/=1) then
 
-          node => node%next
+               node => node%next
 
-          end if
-
+            end if
+      
        end do
 
     end if
@@ -1589,43 +1604,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     call initialise_transfer
 
-     ewrite(1,*) "in ZOLTAN_DRIVE before calling transfer fields:"
-
-     if (detector_list%length/=0) then
-
-     node => detector_list%firstnode
-
-     ewrite(1,*) "DETECTOR list length:", detector_list%length
-
-        do k = 1, detector_list%length
-         
-            ewrite(1,*) "in zoltan_drive before calling transfer fields:"
-
-            ewrite(1,*) "DETECTOR number:", node%id_number
-
-            ewrite(1,*) "name this detector is:", node%name
-            ewrite(1,*) "position this detector is:", node%position
-
-            ewrite(1,*) "DETECTOR element:", node%element
-
-            ewrite(1,*) "DETECTOR initial_owner:", node%initial_owner
-
-            ewrite(1,*) "DETECTOR local:", node%local
-
-            ewrite(1,*) "DETECTOR type:", node%type
-
-            ewrite(1,*) "DETECTOR dt:", node%dt
-
-            ewrite(1,*) "Processor number:", getprocno()
-
-            node => node%next
-
-        end do
-
-     end if
-
     ! And now transfer the field data around.
     call transfer_fields
+
+    call deallocate(new_positions)
 
     call finalise_transfer
 
@@ -1661,10 +1643,43 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       type(vector_field), pointer :: source_vfield, target_vfield
       type(tensor_field), pointer :: source_tfield, target_tfield
 
+      type(integer_hash_table) :: ihash_sparsity
+      type(csr_sparsity) :: element_detector_list
+      real, dimension(:,:), allocatable :: list_into_array
+      integer, dimension(:), pointer:: det_index_in_list_into_array
+!     integer, dimension(:), allocatable :: old_local_element_number_array, old_universal_element_number_array, processor_number_array
+
+      type(detector_type), pointer :: node
+      integer :: j, row_in_spar_matrix, ele, count, row, dimen, det_found, dets_in_ele
+
       do i=1,size(sends)
         call allocate(sends(i))
       end do
       call allocate(self_sends)
+
+     call allocate(ihash_sparsity) 
+
+     count=0
+     node => detector_list%firstnode
+
+     do j=1, detector_list%length
+
+       ele=node%element
+       if ((.not. has_key(ihash_sparsity, ele)).and.(ele/=-1)) then
+          count=count+1
+          call insert(ihash_sparsity, ele, count)
+       end if
+       node => node%next
+
+     end do
+
+     call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
+
+     dimen=zz_positions%dim
+
+     allocate(list_into_array(detector_list%length,dimen+4))
+
+     call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 
       do old_ele=1,ele_count(zz_positions)
         universal_element_number = halo_universal_number(zz_ele_halo, old_ele)
@@ -1770,6 +1785,79 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         end do
       end do
 
+    do i=1,key_count(self_sends)
+      old_universal_element_number = fetch(self_sends, i)
+      new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+      old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+
+      dets_in_ele=0
+ 
+      if (has_key(ihash_sparsity, old_local_element_number)) then
+
+        row=fetch(ihash_sparsity, old_local_element_number)
+        det_index_in_list_into_array => row_m_ptr(element_detector_list, row)
+
+        dets_in_ele=size(det_index_in_list_into_array)
+
+        do j=1, dets_in_ele
+
+            !det element
+            list_into_array(det_index_in_list_into_array(j),dimen+1)=new_local_element_number
+
+            !list_into_array(i,dim+1)=node%element
+
+        end do
+      end if
+
+    end do
+
+!!! From the element number find out which is the detector, and change node%element=new_local_element_number
+
+    if (detector_list%length/=0) then
+
+       node => detector_list%firstnode
+
+       do k=1, detector_list%length
+
+            det_found=0
+
+            if (has_key(ihash_sparsity, node%element)) then
+
+               row=fetch(ihash_sparsity, node%element) 
+
+               det_index_in_list_into_array => row_m_ptr(element_detector_list, row) 
+
+               dets_in_ele=size(det_index_in_list_into_array)
+
+               do j=1, dets_in_ele
+
+                  !If there are more than one detector in the element make sure we are accessing the right one
+                  if (list_into_array(det_index_in_list_into_array(j),dimen+2)==node%id_number) then
+                      det_found=1
+                      node%element=list_into_array(det_index_in_list_into_array(j),dimen+1)
+                  end if
+                  if (det_found==1) exit !(the detector has already been found and element number updated)
+               end do
+
+            end if
+
+            node => node%next
+      
+       end do
+
+    end if
+
+    zoltan_transfer_fields_count = zoltan_transfer_fields_count+1
+
+    if (detector_list%length/=0) then
+
+       node => detector_list%firstnode
+       do k=1, detector_list%length
+           node => node%next
+       end do
+
+    end if
+
       call deallocate(self_sends)
       call deallocate(sends)
 
@@ -1842,8 +1930,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         call set(new_metric,reshape([666.,666.,666.,666.],[2,2]))
       end if
 
-
-      call deallocate(new_positions)
+      !!! TEST
+      !call deallocate(new_positions)
 
       ! Setup meshes and fields on states
       call restore_reserved_meshes(states)

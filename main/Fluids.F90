@@ -192,6 +192,8 @@ contains
     
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
+
+    zoltan_drive_call=.false.
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 

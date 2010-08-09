@@ -86,7 +86,7 @@ module diagnostic_variables
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det, &
        & remove_det_from_current_det_list, set_detector_coords_from_python
 
-  public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order
+  public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order, zoltan_drive_call
 
   interface stat_field
     module procedure stat_field_scalar, stat_field_vector
@@ -132,6 +132,9 @@ module diagnostic_variables
 
   !! Are we continuing from a detector checkpoint file?
   logical, save :: detectors_checkpoint_done = .false.
+
+  !The following variable will switch to true if call to zoltan_drive for the re-load balance occur.
+  logical, save :: zoltan_drive_call = .false.
 
   type stringlist
      !!< Container type for a list of strings.
@@ -2245,7 +2248,15 @@ contains
 
     if (detector_list%length/=0) then
 
-       call search_for_detectors(detector_list, xfield)
+       if ((.not.zoltan_drive_call).or.(timestep<=1)) then
+
+          ewrite(2,*) "Checking when entering here"
+
+          ewrite(2,*) "timestep", timestep
+
+          call search_for_detectors(detector_list, xfield)
+
+       end if
 
     end if
 
@@ -2268,252 +2279,6 @@ contains
       node => node%next
 
    end do
-
-   !!!!! After adaptivity of the mesh and the call to zoltan subroutines for the re-load balancing, the element numbering and ownership changes. In principle the ownership of detector elements is found out inside zoltan but it can change after the call to search_for_detectors subroutine due to floating point errors for locations very close (to within precision) to an element face. 
-
-   !!!!! Hence, after zoltan and search_for_detectors if a detector appears to be in a negative element (not owned by current proc.) then the detector will be send to all the neighbour proc. and we will call search_for_detectors again. The detector will then be deleted from the list of the procs. who dont own it.
-
-    if ((timestep/=0).and.(timestep/=1)) then 
-
-       !!! creating hash table with neighbouring processors
-
-       number_neigh_processors=0
-
-       call allocate(ihash) 
-
-       if (halo_level /= 0.) then
-
-          ele_halo => vfield%mesh%element_halos(halo_level)
-
-          nprocs = halo_proc_count(ele_halo)
-
-          num_proc=1
-
-          do i = 1, nprocs 
-            
-            if ((halo_send_count(ele_halo, i) + halo_receive_count(ele_halo, i) > 0).and.(.not.has_key(ihash, i))) then
-
-               call insert(ihash, i, num_proc)
-
-               num_proc=num_proc+1
-
-           end if
-
-          end do
-
-          number_neigh_processors=key_count(ihash)
-
-       end if
-
-       call allocate(ihash_inverse) 
-       do i=1, key_count(ihash)
-
-          call fetch_pair(ihash, i, target_proc_a, mapped_val_a)
-          call insert(ihash_inverse, mapped_val_a, target_proc_a)
-
-       end do
-
-       do i=1, key_count(ihash_inverse)
-
-          call fetch_pair(ihash_inverse, i, target_proc_a, mapped_val_a)
-
-       end do
-
-       !!! end of creating hash table with neighboruing processors
-
-       !!! Next, if a detector is in a negative element (not owned or seen by current proc.) then it will be sent to all neighbouring processors.
-
-       allocate(send_list_array(number_neigh_processors))
-       allocate(receive_list_array(number_neigh_processors))
-
-       node => detector_list%firstnode
-       do i = 1, detector_list%length
-
-          if (node%element>0) then
-
-             processor_owner=element_owner(vfield%mesh,node%element)
-
-             node => node%next
-
-          else
-
-             node_to_send => node
-
-             node => node%next
-
-             call remove_det_from_current_det_list(detector_list,node_to_send)
-
-             do j=1, number_neigh_processors
-
-                 allocate(node_duplicated)
-
-                 node_duplicated%name=node_to_send%name
-
-                 allocate(node_duplicated%position(vfield%dim))
-                 node_duplicated%position=node_to_send%position
-                 node_duplicated%local = node_to_send%local
-                 node_duplicated%type = node_to_send%type
-                 node_duplicated%id_number = node_to_send%id_number
-                 node_duplicated%element = node_to_send%element
-                  
-                 allocate(node_duplicated%local_coords(local_coord_count(shape)))
-                 node_duplicated%local_coords = node_to_send%local_coords
-                 node_duplicated%dt = node_to_send%dt
-                 node_duplicated%initial_owner = node_to_send%initial_owner
-            
-                 call insert_det(send_list_array(j),node_duplicated)  
-     
-             end do
-            
-          end if
-         
-       end do
-
-       all_send_lists_empty=number_neigh_processors
-       do k=1, number_neigh_processors
-
-          if (send_list_array(k)%length==0) then
-             all_send_lists_empty=all_send_lists_empty-1
-          end if
-
-       end do
-
-       call allmax(all_send_lists_empty)
-
-       if (all_send_lists_empty/=0) then
-
-          call serialise_lists_exchange_receive(state,send_list_array,receive_list_array,number_neigh_processors,ihash)
-
-       end if
-
-       do i=1, number_neigh_processors
-
-          if  (receive_list_array(i)%length/=0) then      
-           
-             call move_det_from_receive_list_to_det_list(detector_list,receive_list_array(i))
-        
-          end if
-
-       end do
-
-       !!! BEFORE DEALLOCATING THE LISTS WE SHOULD MAKE SURE THEY ARE EMPTY
-
-       do k=1, number_neigh_processors
-    
-          if (send_list_array(k)%length/=0) then  
-
-             call flush_det(send_list_array(k))
-
-          end if
-
-       end do
-
-       do k=1, number_neigh_processors
-
-          if (receive_list_array(k)%length/=0) then  
-
-             call flush_det(receive_list_array(k))
-
-          end if
-
-       end do
-
-       deallocate(send_list_array)
-       deallocate(receive_list_array)
-
-    !!! End of sending detectors in negative elements to all neighbouring processors 
-
-    !!! Next we check the location of detectors after sending those in negative elements. This time a processor will own those and will see the element as positive. The det will be removed from the other proc. that see the element still as negative.
-
-       if (detector_list%length/=0) then
-          call search_for_detectors(detector_list, xfield)
-       end if
-
-       node => detector_list%firstnode
-       do i = 1, detector_list%length
-          if (node%element>0) then
-
-               node => node%next
-
-          else
-
-              temp_node => node
-                 
-              if ((.not.associated(node%previous)).and.(detector_list%length/=1)) then
-              !!this checks if the current node that we are going to remove from the list is the first 
-              !!one in the list but not the only node in the list
-
-                  node%next%previous => null()
-
-                  node => node%next
-
-                  temp_node%previous => null()
-                  temp_node%next => null()
-
-                  detector_list%firstnode => node
-                  detector_list%firstnode%previous => null()
-
-                  detector_list%length = detector_list%length-1   
-
-              else 
-
-                   if ((.not.associated(node%next)).and.(associated(node%previous))) then
-                   !!this takes into account the case when the node is the last one in the list 
-                   !!but not the only one
-
-                        node%previous%next => null()
-
-                        detector_list%lastnode => node%previous
-
-                        temp_node%previous => null()
-                        temp_node%next => null()
-
-                        detector_list%lastnode%next => null()
-
-                        detector_list%length = detector_list%length-1    
-
-                   else    
-
-                        if (detector_list%length==1) then
-                        !!!This case takes into account if the list has only one node. 
-
-                        temp_node%previous => null()
-                        temp_node%next => null()
-
-                        detector_list%firstnode => null()
-                        detector_list%lastnode => null()
-
-                        detector_list%length = detector_list%length-1    
-
-                        else
-                        !!case when the node is in the middle of the double linked list
-
-                           node%previous%next => node%next
-
-                           node%next%previous => node%previous
-
-                           node => node%next
-
-                           temp_node%previous => null()
-                           temp_node%next => null()
-
-                           detector_list%length = detector_list%length-1    
-
-                        end if 
-                   end if
-
-              end if
-    
-          end if
-
-       end do
-
-       call deallocate(ihash) 
-       call deallocate(ihash_inverse) 
-
-    end if
-
-    !!!!! End of the additional code included to find element ownership after adapt + zoltan since although ownership is found in zoltan, it can change after the call to search_for_detectors subroutine due to floating point errors for locations very close (to within precision) to an element face. 
 
     !!! CREATE HERE THE ARRAY CALLED GLOBAL DET COUNT (GDC) THAT WE NEED BEFORE CALLING MPI_ALL_MAX() 
     !!! TO SOLVE THE CONFLICT OF OWNERSHIP OF THE DETECTORS.
@@ -3071,6 +2836,16 @@ contains
     call allsum(totaldet_global)
 
     ewrite(2,*) "total number of detectors at the end of write_detectors subroutine", totaldet_global
+
+    if (totaldet_global/=total_num_det) then
+
+        ewrite(2,*) "We have either duplication or have lost some det"
+
+        ewrite(2,*) "totaldet_global", totaldet_global
+
+        ewrite(2,*) "total_num_det", total_num_det
+
+    end if
 
    contains
 
@@ -3683,6 +3458,7 @@ contains
              list_into_array(i,dim+1)=node%element
              list_into_array(i,dim+2)=node%id_number
              list_into_array(i,dim+3)=node%type
+             list_into_array(i,dim+4)=0.0
 
              node => node%next
     
