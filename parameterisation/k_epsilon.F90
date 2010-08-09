@@ -157,7 +157,7 @@ subroutine keps_tke(state)
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: source, absorption, kk, eps
     type(vector_field), pointer        :: positions, nu
-    type(tensor_field), pointer        :: kk_diff, visc
+    type(tensor_field), pointer        :: background_diff, kk_diff
     type(element_type)                 :: shape_velo
     integer                            :: i, ele, bc
     real, allocatable, dimension(:)    :: detwei
@@ -171,17 +171,13 @@ subroutine keps_tke(state)
 
     ewrite(1,*) "In keps_tke"
 
-    positions  => extract_vector_field(state, "Coordinate")
-    nu         => extract_vector_field(state, "NonlinearVelocity")
-    visc       => extract_tensor_field(state, "Viscosity")
-    source     => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    absorption => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
-    kk_diff    => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
-    kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
-    eps        => extract_scalar_field(state, "TurbulentDissipation")
-
-    ewrite(1,*) "eps boundary condition count: ", get_boundary_condition_count(eps)
-    ewrite(1,*) "kk boundary condition count: ", get_boundary_condition_count(kk)
+    positions       => extract_vector_field(state, "Coordinate")
+    nu              => extract_vector_field(state, "NonlinearVelocity")
+    source          => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    absorption      => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
+    background_diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
+    kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
+    eps             => extract_scalar_field(state, "TurbulentDissipation")
 
     call zero(source)
     call zero(absorption)
@@ -208,20 +204,29 @@ subroutine keps_tke(state)
     end do
 
     ! Calculate TKE source and absorption. Implicit or explicit.
-    do i = 1, nnodes
-        prod = source%val(i)
-        diss = eps%val(i) / kk%val(i)
-        select case (src_abs)
-        case ("explicit")
+    select case (src_abs)
+    case ("explicit")
+        do i = 1, nnodes
+            diss = eps%val(i) / kk%val(i)
             call set(absorption, i, diss)
-        case ("implicit")
+            ! Get a copy of old source, for eps equation
+            call set(P,  i, prod)
+            ! Get a copy of old k and source, for eps equation, before we solve k.
+            call set(tke_old, i, max(kk%val(i), fields_min) )
+        end do
+    case ("implicit")
+        do i = 1, nnodes
+            prod = source%val(i)
+            diss = eps%val(i) / kk%val(i)
             ! Puts source into absorption. Ensures positivity of terms.
             call set(source, i, -min(0.0, diss-prod) )
             call set(absorption, i, max(0.0, diss-prod) )
-        end select
-        ! Get a copy of old source, for eps equation
-        call set(P,  i, prod)
-    end do
+            ! Get a copy of old source, for eps equation
+            call set(P,  i, prod)
+            ! Get a copy of old k and source, for eps equation, before we solve k.
+            call set(tke_old, i, max(kk%val(i), fields_min) )
+        end do
+    end select
 
     ! Add special boundary conditions to k field, if selected.
     do bc = 1, get_boundary_condition_count(kk)   ! use kk bcs for eps
@@ -242,15 +247,8 @@ subroutine keps_tke(state)
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
-    do i = 1, kk_diff%dim
-        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
-    end do
-
-    ! Get a copy of old k and source, for eps equation, before we solve k.
-    do i=1,nnodes
-        call set(tke_old, i, max(kk%val(i), fields_min) )
-        call set(P, i, source%val(i))
-    end do
+    call set(kk_diff, kk_diff%dim, kk_diff%dim, EV, scale=1. / sigma_k)
+    call addto(kk_diff, background_diff)
 
     ewrite_minmax(tke_old)
     ewrite_minmax(P)
@@ -265,7 +263,7 @@ subroutine keps_eps(state)
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: source, absorption, kk, eps, dummyfield
     type(vector_field), pointer        :: positions
-    type(tensor_field), pointer        :: eps_diff
+    type(tensor_field), pointer        :: background_diff, eps_diff
     type(scalar_field)                 :: rhs_vector, surface_eps_values
     type(petsc_csr_matrix)             :: lumped_mass
     type(halo_type), pointer           :: halo
@@ -281,13 +279,13 @@ subroutine keps_eps(state)
 
     ewrite(1,*) "In keps_eps"
 
-    positions  => extract_vector_field(state, "Coordinate")
-    kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
-    eps        => extract_scalar_field(state, "TurbulentDissipation")
-    source     => extract_scalar_field(state, "TurbulentDissipationSource")
-    absorption => extract_scalar_field(state, "TurbulentDissipationAbsorption")
-    eps_diff   => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
-    dummyfield => extract_scalar_field(state, "dummyfield")
+    positions       => extract_vector_field(state, "Coordinate")
+    kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
+    eps             => extract_scalar_field(state, "TurbulentDissipation")
+    source          => extract_scalar_field(state, "TurbulentDissipationSource")
+    absorption      => extract_scalar_field(state, "TurbulentDissipationAbsorption")
+    background_diff => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
+    dummyfield      => extract_scalar_field(state, "dummyfield")
 
     do i = 1, nnodes
 
@@ -320,9 +318,8 @@ subroutine keps_eps(state)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
-    do i = 1, eps_diff%dim
-        call set(eps_diff, i, i, EV, scale = 1. / sigma_eps)
-    end do
+    call set(eps_diff, eps_diff%dim, eps_diff%dim, EV, scale=1./sigma_eps)
+    call addto(eps_diff, background_diff)
 
     ! puts the BC boundary values in surface_eps_values.
     ! FROM ROTATED BOUNDARY CONDITIONS:
@@ -912,7 +909,7 @@ function double_dot_product(du_t, nu)
        S = matmul( nu, du_t(:,gi,:) )
        T = S
        S = S + transpose(S)
-       double_dot_product = 0.
+       double_dot_product(gi) = 0.
 
        do i = 1, dim
            do j = 1, dim

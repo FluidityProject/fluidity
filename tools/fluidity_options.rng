@@ -1543,15 +1543,10 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                     <attribute name="name">
                       <value>TurbulentKineticEnergy</value>
                     </attribute>
-                    <choice>
-                      <element name="prognostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prognostic_scalar_field"/>
-                      </element>
-                      <element name="aliased">
-                        <ref name="generic_aliased_field"/>
-                      </element>
-                    </choice>
+                    <element name="prognostic">
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="prognostic_scalar_field"/>
+                    </element>
                   </element>
                   <element name="scalar_field">
                     <a:documentation>TurbulentDissipation (epsilon). INSTRUCTIONS:
@@ -1564,18 +1559,13 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                     <attribute name="name">
                       <value>TurbulentDissipation</value>
                     </attribute>
-                    <choice>
-                      <element name="prognostic">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prognostic_scalar_field"/>
-                      </element>
-                      <element name="aliased">
-                        <ref name="generic_aliased_field"/>
-                      </element>
-                    </choice>
+                    <element name="prognostic">
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="prognostic_scalar_field"/>
+                    </element>
                   </element>
                   <element name="tensor_field">
-                    <a:documentation>Set the value of the normal viscosity field here.
+                    <a:documentation>Set the value of the normal (laminar) viscosity field here.
 Make it small to see the influence of the eddy viscosity.
 IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                     <attribute name="rank">
@@ -1584,15 +1574,23 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                     <attribute name="name">
                       <value>BackgroundViscosity</value>
                     </attribute>
-                    <choice>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_tensor_field"/>
-                      </element>
-                      <element name="aliased">
-                        <ref name="generic_aliased_field"/>
-                      </element>
-                    </choice>
+                    <element name="prescribed">
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="prescribed_tensor_field"/>
+                    </element>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Background diffusivity</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>BackgroundDiffusivity</value>
+                    </attribute>
+                    <element name="prescribed">
+                      <ref name="mesh_choice"/>
+                      <ref name="prescribed_tensor_field"/>
+                    </element>
                   </element>
                   <element name="tensor_field">
                     <a:documentation>Eddy viscosity (turbulent diffusion of velocity)
@@ -1604,16 +1602,27 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                     <attribute name="name">
                       <value>EddyViscosity</value>
                     </attribute>
-                    <choice>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                      <element name="aliased">
-                        <ref name="generic_aliased_field"/>
-                      </element>
-                    </choice>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
+                    </element>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Eddy diffusivity (turbulent diffusion of scalar fields)
+This is a fictitious diffusivity, added to normal diffusivity field, that
+carries the influence of turbulence onto scalar fields.</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyDiffusivity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
+                    </element>
                   </element>
                   <optional>
                     <element name="scalar_field">
@@ -1624,16 +1633,11 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       <attribute name="name">
                         <value>LengthScale</value>
                       </attribute>
-                      <choice>
-                        <element name="diagnostic">
-                          <ref name="internal_algorithm"/>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                        <element name="aliased">
-                          <ref name="generic_aliased_field"/>
-                        </element>
-                      </choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
                     </element>
                   </optional>
                   <optional>
@@ -1645,16 +1649,11 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       <attribute name="name">
                         <value>ScalarEddyViscosity</value>
                       </attribute>
-                      <choice>
-                        <element name="diagnostic">
-                          <ref name="internal_algorithm"/>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                        <element name="aliased">
-                          <ref name="generic_aliased_field"/>
-                        </element>
-                      </choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
                     </element>
                   </optional>
                   <optional>
@@ -1666,16 +1665,11 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       <attribute name="name">
                         <value>TKEOverEpsilon</value>
                       </attribute>
-                      <choice>
-                        <element name="diagnostic">
-                          <ref name="internal_algorithm"/>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                        <element name="aliased">
-                          <ref name="generic_aliased_field"/>
-                        </element>
-                      </choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
                     </element>
                   </optional>
                   <element name="option">
