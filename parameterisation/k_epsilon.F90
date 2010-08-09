@@ -61,10 +61,11 @@ implicit none
   ! old turbulent kinetic energy, lengthscale, eddy viscosity, production
   type(scalar_field), save      :: tke_old, ll, EV, P, tkeovereps
   ! Minimum values of 2 fields to initialise, and empirical constants from flml
-  real, save                    :: eps_init, k_init, ll_max, fields_min, &
+  real, save                    :: eps_init, k_init, ll_max, &
                                    c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
+  real, save                    :: fields_min = 1.e-20
   integer, save                 :: nnodes
-  logical, save                 :: limit_length
+  logical, save                 :: limit_length, do_k_bc, do_eps_bc
   character(len=FIELD_NAME_LEN) :: src_abs
 
   ! The following are the public subroutines
@@ -93,8 +94,13 @@ subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
     type(scalar_field), pointer     :: scalarField
+    character(len=FIELD_NAME_LEN)   :: bc_type
+    integer                         :: i
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
+
+    ! Allocate the temporary, module-level variables
+    call keps_allocate_fields(state)
 
     ! Are source and absorption terms implicit/explicit?
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/option', src_abs)
@@ -102,12 +108,9 @@ subroutine keps_init(state)
     ! Do we have the limit_lengthscale option?
     limit_length = &
     have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/limit_length")
-
     ! Get maximum lengthscale. This should be a geometric constraint on eddy size.
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/L_max', ll_max)
-
-    ! Allocate the temporary, module-level variables
-    call keps_allocate_fields(state)
+    call set(ll, ll_max)
 
     ! Get the 5 model constants
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_mu', C_mu, default = 0.09)
@@ -115,22 +118,40 @@ subroutine keps_init(state)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_2', c_eps_2, default = 1.92)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_k', sigma_k, default = 1.0)
     call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_eps', sigma_eps, default = 1.3)
-  
-    ! initialise fields (k, epsilon) with minimum values
+
+    ! initialise k field with minimum values
     scalarField => extract_scalar_field(state, "TurbulentKineticEnergy")
     call get_option(trim(scalarField%option_path)// &
                     "/prognostic/initial_condition::WholeMesh/constant", k_init)
     call set(scalarField, k_init)
 
-    ! initialise other fields
-    fields_min = 1.e-20    ! small nonzero number
+    ! Are we calculating k boundary conditions within this module?
+    do_k_bc = .false.
+    do i = 1, get_boundary_condition_count(scalarField)
+       call get_boundary_condition(scalarField, i, type=bc_type)
+       if (bc_type=="k_epsilon") then
+          do_k_bc =.true.
+          exit
+       end if
+    end do
 
-    call set( ll, ll_max )
+    ! initialise epsilon field with minimum values
     !eps_init = k_init**1.5 / ll_max   ! make eps_init a dependent variable
     scalarField => extract_scalar_field(state, "TurbulentDissipation")
     call get_option(trim(scalarField%option_path)// &
                     "/prognostic/initial_condition::WholeMesh/constant", eps_init)
     call set(scalarField, eps_init)
+
+    ! Are we calculating epsilon boundary conditions within this module?
+    do i = 1, get_boundary_condition_count(scalarField)
+       call get_boundary_condition(scalarField, i, type=bc_type)
+       if (bc_type=="k_epsilon") then
+          do_eps_bc =.true.
+          exit
+       end if
+    end do
+
+    ! initialise eddy viscosity field with minimum values
     call set(EV, c_mu * k_init**2. / eps_init)
 
     ewrite(1,*) "k-epsilon parameters"
@@ -146,6 +167,8 @@ subroutine keps_init(state)
     ewrite(1,*) "ll_max: ",   ll_max
     ewrite(1,*) "EV_init: ",   c_mu * k_init**2. / eps_init
     ewrite(1,*) "limiting lengthscale on surfaces: ", limit_length
+    ewrite(1,*) "calculating k bcs within module: ", do_k_bc
+    ewrite(1,*) "calculating eps bcs within module: ", do_eps_bc
     ewrite(1,*) "--------------------------------------------"
 
 end subroutine keps_init
@@ -175,9 +198,10 @@ subroutine keps_tke(state)
     nu              => extract_vector_field(state, "NonlinearVelocity")
     source          => extract_scalar_field(state, "TurbulentKineticEnergySource")
     absorption      => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
-    background_diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
+    kk_diff         => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
+    background_diff => extract_tensor_field(state, "BackgroundDiffusivity")
 
     call zero(source)
     call zero(absorption)
@@ -207,6 +231,7 @@ subroutine keps_tke(state)
     select case (src_abs)
     case ("explicit")
         do i = 1, nnodes
+            prod = source%val(i)
             diss = eps%val(i) / kk%val(i)
             call set(absorption, i, diss)
             ! Get a copy of old source, for eps equation
@@ -226,24 +251,28 @@ subroutine keps_tke(state)
             ! Get a copy of old k and source, for eps equation, before we solve k.
             call set(tke_old, i, max(kk%val(i), fields_min) )
         end do
+    case default
+        FLAbort("Invalid implicitness option for k")
     end select
 
     ! Add special boundary conditions to k field, if selected.
-    do bc = 1, get_boundary_condition_count(kk)   ! use kk bcs for eps
+    if (do_k_bc) then
+       ewrite(1,*) "Entering k BC calculation"
+       do bc = 1, get_boundary_condition_count(kk)
 
-        call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
-             surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
-             surface_element_list=surface_elements)
+          call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
+               surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
+               surface_element_list=surface_elements)
 
-        if (bc_type == 'k_epsilon') then
+          ewrite(1,*) "k bc name, type: ", bc_name, bc_type
 
-            ewrite(1,*) "Calculating k bc: ", bc_name
-            ! what goes in here? Lacasse and Lew set a Dirichlet BC using wall stress.
-            call tke_bc(state, surface_node_list)
-
-        end if
-
-    end do
+          if (bc_type == 'k_epsilon') then
+             ewrite(1,*) "Calculating k bc: ", bc_name
+             ! what goes in here? Lacasse and Lew set a Dirichlet BC using wall stress.
+             call tke_bc(state, surface_node_list)
+          end if
+       end do
+    end if
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
@@ -261,7 +290,7 @@ end subroutine keps_tke
 subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source, absorption, kk, eps, dummyfield
+    type(scalar_field), pointer        :: source, absorption, kk, eps
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: background_diff, eps_diff
     type(scalar_field)                 :: rhs_vector, surface_eps_values
@@ -277,6 +306,7 @@ subroutine keps_eps(state)
     real, dimension(:,:), allocatable  :: mass
     integer, dimension(:), allocatable :: nodes_bdy
 
+
     ewrite(1,*) "In keps_eps"
 
     positions       => extract_vector_field(state, "Coordinate")
@@ -284,31 +314,38 @@ subroutine keps_eps(state)
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     source          => extract_scalar_field(state, "TurbulentDissipationSource")
     absorption      => extract_scalar_field(state, "TurbulentDissipationAbsorption")
-    background_diff => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
-    dummyfield      => extract_scalar_field(state, "dummyfield")
+    eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
+    background_diff => extract_tensor_field(state, "BackgroundDiffusivity")
 
-    do i = 1, nnodes
-
-        ! re-construct eps at "old" timestep
-        eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
-
-        ! compute RHS terms in epsilon equation
-        epsoverk = eps%val(i) / tke_old%val(i)
-        prod     = c_eps_1 * epsoverk * P%val(i)   ! kk source term at old timestep
-        diss     = c_eps_2 * epsoverk
-
-        ! Calculate TKE source and absorption. Implicit or explicit.
-        select case (src_abs)
-        case ("explicit")
+    ! Calculate TKE source and absorption. Implicit or explicit.
+    select case (src_abs)
+    case ("explicit")
+        do i = 1, nnodes
+            ! re-construct eps at "old" timestep
+            !eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
+            eps%val(i) = max( c_mu * tke_old%val(i)**2. / EV%val(i), fields_min )
+            ! compute RHS terms in epsilon equation
+            epsoverk = eps%val(i) / tke_old%val(i)
+            prod     = c_eps_1 * epsoverk * P%val(i)   ! kk source term at old timestep
+            diss     = c_eps_2 * epsoverk
             call set(absorption, i, diss)
             call set(source, i, prod )
-        case ("implicit")
+        end do
+    case ("implicit")
+        do i = 1, nnodes
+            ! re-construct eps at "old" timestep
+            eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
+            ! compute RHS terms in epsilon equation
+            epsoverk = eps%val(i) / tke_old%val(i)
+            prod     = c_eps_1 * epsoverk * P%val(i)   ! kk source term at old timestep
+            diss     = c_eps_2 * epsoverk
             ! Puts source into absorption. Ensures positivity of terms.
             call set(source, i, -min(0.0, diss-prod) )
             call set(absorption, i, max(0.0, diss-prod) )
-        end select
-
-    end do
+        end do
+    case default
+        FLAbort("Invalid implicitness option for k")
+    end select
 
     ewrite_minmax(tke_old)
     ewrite_minmax(eps)
@@ -321,112 +358,113 @@ subroutine keps_eps(state)
     call set(eps_diff, eps_diff%dim, eps_diff%dim, EV, scale=1./sigma_eps)
     call addto(eps_diff, background_diff)
 
-    ! puts the BC boundary values in surface_eps_values.
-    ! FROM ROTATED BOUNDARY CONDITIONS:
-    nodes=node_count(eps)
-    if (associated(eps%mesh%halos)) then
-        halo => eps%mesh%halos(1)
-        mynodes = halo_nowned_nodes(halo)
-    else
-        nullify(halo)
-        mynodes = nodes
-    end if
-    ewrite(1,*) "nodes, mynodes: ", nodes, mynodes
-
-    allocate(dnnz(1:mynodes), onnz(1:mynodes))
-    dnnz = 1; onnz = 0
-
-    do i = 1, get_boundary_condition_count(eps)
-       call get_boundary_condition(eps, i, type=bc_type, &
-            surface_node_list=surface_node_list)
-
-       if (bc_type=="k_epsilon") then
-          ! Check for duplicated bcs at node
-          do j = 1, size(surface_node_list)
-             node=surface_node_list(j)
-             if (node > mynodes) cycle
-             if ( dnnz(node) > 1 ) then
-                FLAbort("Two boundary condition specifications for the same node.")
-             end if
-             dnnz(node) = 2
-          end do
+    ! Add special boundary conditions to eps field, if selected.
+    if(do_eps_bc) then
+       ewrite(1,*) "Entering epsilon BC calculation"
+       ! put the boundary values in surface_eps_values.
+       nodes=node_count(eps)
+       if (associated(eps%mesh%halos)) then
+          halo => eps%mesh%halos(1)
+          mynodes = halo_nowned_nodes(halo)
+       else
+          nullify(halo)
+          mynodes = nodes
        end if
-    end do
 
-    call allocate(lumped_mass, nodes, nodes, &
-         dnnz, onnz, (/1,1/), "lumped_mass", halo=halo)
-    call allocate(rhs_vector, eps%mesh, name="RHS")
-    call allocate(surface_eps_values, eps%mesh, name="SurfaceValuesEps")
-    call zero(rhs_vector)
-    call zero(surface_eps_values)
-    call zero(lumped_mass)
+       ewrite(1,*) "nodes, mynodes: ", nodes, mynodes
+       allocate(dnnz(1:mynodes), onnz(1:mynodes))
+       dnnz = 1; onnz = 0
 
-    ! put a 1.0 on the diagonal unless it's a halo node or a surface node
-    do i = 1, nodes
-      if (i > mynodes) cycle
-      if (dnnz(i) == 2) cycle
-      call addto(lumped_mass, 1, 1, i, i, 1.0)
-    end do
+       do i = 1, get_boundary_condition_count(eps)
+          call get_boundary_condition(eps, i, type=bc_type, &
+               surface_node_list=surface_node_list)
 
-    ! Calculate boundary condition at surface element and add to system
-    do i = 1, get_boundary_condition_count(eps)
+          if (bc_type=="k_epsilon") then
+             ! Check for duplicated bcs at node
+             do j = 1, size(surface_node_list)
+                node=surface_node_list(j)
+                if (node > mynodes) cycle
+                if ( dnnz(node) > 1 ) then
+                   FLAbort("Two boundary condition specifications for the same node.")
+                end if
+                dnnz(node) = 2
+             end do
+          end if
+       end do
 
-      call get_boundary_condition(eps, i, name=bc_name, type=bc_type, &
-           surface_node_list=surface_node_list, &
-           surface_element_list=surface_elements)
+       call allocate(lumped_mass, nodes, nodes, &
+            dnnz, onnz, (/1,1/), "lumped_mass", halo=halo)
+       call allocate(rhs_vector, eps%mesh, name="RHS")
+       call allocate(surface_eps_values, eps%mesh, name="SurfaceValuesEps")
+       call zero(rhs_vector)
+       call zero(surface_eps_values)
+       call zero(lumped_mass)
 
-      if (bc_type=="k_epsilon") then
+       ! put a 1.0 on the diagonal unless it's a halo node or a surface node
+       do i = 1, nodes
+          if (i > mynodes) cycle
+          if (dnnz(i) == 2) cycle
+          call addto(lumped_mass, 1, 1, i, i, 1.0)
+       end do
 
-        ewrite(1,*) "Calculating epsilon boundary condition: ", &
-                trim(bc_name), ', ', trim(bc_type), ', ', size(surface_node_list)
+       do i = 1, get_boundary_condition_count(eps)
+          call get_boundary_condition(eps, i, type=bc_type, &
+                       surface_node_list=surface_node_list, &
+                       surface_element_list=surface_elements)
 
-        do j = 1, size(surface_elements)      ! local element list
-          sele = surface_elements(j)          ! global face id
-          ele  = face_ele(positions, sele)    ! index of the element which owns face
+          if (bc_type=="k_epsilon") then
+             ! Calculate boundary condition at surface element and add to system
+             ewrite(1,*) "Calculating epsilon boundary condition: ", &
+                  trim(bc_name), ', ', trim(bc_type), ', ', size(surface_node_list)
 
-          allocate(rhs(face_loc(positions, sele) ))
-          allocate(mass( 1:(face_loc(positions, sele)), 1:(face_loc(positions, sele) ) ) )
-          allocate(nodes_bdy(face_loc(positions, ele) ))
-          nodes_bdy =  face_global_nodes(positions, sele)    ! global node ids
+             do j = 1, size(surface_elements)       ! local element list
+                sele = surface_elements(j)          ! global face id
+                ele  = face_ele(positions, sele)    ! index of the element which owns face
 
-          call eps_bc(ele, sele, kk, positions, nodes_bdy, rhs, mass)
+                allocate(rhs(face_loc(positions, sele) ))
+                allocate(mass( 1:(face_loc(positions, sele)), 1:(face_loc(positions, sele) ) ) )
+                allocate(nodes_bdy(face_loc(positions, ele) ))
+                nodes_bdy =  face_global_nodes(positions, sele)    ! global node ids
 
-          ! Add contributions to RHS and lumped mass matrix using global numbering
-          call addto( rhs_vector, nodes_bdy, rhs )
-          call addto_diag( lumped_mass, 1, 1, nodes_bdy, sum(mass, 2) )
+                call eps_bc(ele, sele, kk, positions, nodes_bdy, rhs, mass)
 
-          deallocate(rhs); deallocate(mass); deallocate(nodes_bdy)
+                ! Add contributions to RHS and lumped mass matrix using global numbering
+                call addto( rhs_vector, nodes_bdy, rhs )
+                call addto_diag( lumped_mass, 1, 1, nodes_bdy, sum(mass, 2) )
 
-        end do
-      end if
-    end do
+                deallocate(rhs); deallocate(mass); deallocate(nodes_bdy)
+             end do
+          end if
+       end do
 
-    call assemble(lumped_mass)
+       call assemble(lumped_mass)
 
-    ! matrixdump for mass matrix
-    !ewrite(1,*) "writing lumped mass to file: matrixdump"
-    !call dump_matrix("matrixdump", lumped_mass)
-    !ewrite(1,*) "writing rhs vector to file: rhs_vector_field2file.dat"
-    !call field2file('rhs_vector_field2file.dat', rhs_vector)
+       ! matrixdump for mass matrix
+       !ewrite(1,*) "writing lumped mass to file: matrixdump"
+       !call dump_matrix("matrixdump", lumped_mass)
+       !ewrite(1,*) "writing rhs vector to file: rhs_vector_field2file.dat"
+       !call field2file('rhs_vector_field2file.dat', rhs_vector)
 
-    ! Solve the petsc linear system. Important: get solver options here
-    surface_eps_values%option_path = dummyfield%option_path
-    call petsc_solve( surface_eps_values, lumped_mass, rhs_vector )
+       ! Solve the petsc linear system. Important: get solver options here
+       surface_eps_values%option_path = eps%option_path
+       call petsc_solve( surface_eps_values, lumped_mass, rhs_vector )
 
-    ! Print surface eps values:
-    !call field2file('surfaceepsvalues_field2file.dat', surface_eps_values)
-    !ewrite(1,*) "writing surface eps values to file: surfaceepsvalues_field2file.dat"
+       ! Print surface eps values:
+       !call field2file('surfaceepsvalues_field2file.dat', surface_eps_values)
+       !ewrite(1,*) "writing surface eps values to file: surfaceepsvalues_field2file.dat"
 
-    ! Finally, apply all k-epsilon type boundary conditions to epsilon field
-    do j = 1, nodes
-        ! Ignore zeros, they are not on the boundaries of interest
-        if(surface_eps_values%val(j) == 0) cycle
-        eps%val(j) = max(surface_eps_values%val(j), fields_min)
-    end do
+       ! Finally, apply all k-epsilon type boundary conditions to epsilon field
+       do j = 1, nodes
+           ! Ignore zeros, they are not on the boundaries of interest
+           if(surface_eps_values%val(j) == 0) cycle
+           eps%val(j) = max(surface_eps_values%val(j), fields_min)
+       end do
 
-    call deallocate( rhs_vector )
-    call deallocate( lumped_mass )
-    call deallocate( surface_eps_values )
+       call deallocate( rhs_vector )
+       call deallocate( lumped_mass )
+       call deallocate( surface_eps_values )
+
+    end if
 
     ewrite_minmax(source)
     ewrite_minmax(absorption)
