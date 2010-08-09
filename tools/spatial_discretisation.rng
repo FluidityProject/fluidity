@@ -76,12 +76,19 @@ scale factor 0.5.</a:documentation>
                 <a:documentation>Project the advecting velocity to continuous
 space. This is useful for obtaining bounded
 advection schemes.</a:documentation>
-                <element name="mesh">
-                  <a:documentation>The mesh to which the projection should occur.</a:documentation>
-                  <attribute name="name">
-                    <data type="string"/>
-                  </attribute>
-                </element>
+                <choice>
+                  <element name="mesh">
+                    <a:documentation>The mesh to which the projection should occur.</a:documentation>
+                    <attribute name="name">
+                      <value>CoordinateMesh</value>
+                    </attribute>
+                  </element>
+                  <element name="mesh">
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                  </element>
+                </choice>
               </element>
             </optional>
             <element name="integrate_advection_by_parts">

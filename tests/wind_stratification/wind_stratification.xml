@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>wind_stratification</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v3 -l channel.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="temp_stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser('channel.stat')
+temp_stats={}
+temp_stats['max']=s['Water']['Temperature']['max'].max()
+temp_stats['min']=s['Water']['Temperature']['min'].min()
+temp_stats['final_max']=s['Water']['Temperature']['max'][-1]
+temp_stats['final_min']=s['Water']['Temperature']['min'][-1]</variable>
+    <variable name="velocity_stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser('channel.stat')
+velocity_stats={}
+for (i,suffix) in zip(('x','y'),('%1','%2')):
+  velocity_stats[i]={}
+  velocity_stats[i]['max']=s['Water']['Velocity'+suffix]['max'].max()
+  velocity_stats[i]['min']=s['Water']['Velocity'+suffix]['min'].min()
+  velocity_stats[i]['final_max']=s['Water']['Velocity'+suffix]['max'][-1]
+  velocity_stats[i]['final_min']=s['Water']['Velocity'+suffix]['min'][-1]</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+</variable>
+    <variable name="fs_stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser('channel.stat')
+fs_stats={}
+fs_stats['max']=s['Water']['FreeSurface']['max'].max()
+fs_stats['min']=s['Water']['FreeSurface']['min'].min()</variable>
+    <variable name="regions" language="python">from vtktools import vtu
+from pylab import find
+vt=vtu('channel_1.vtu')
+u=vt.GetVectorField('Velocity')
+xyz=vt.GetLocations()
+ind_up=find(u[:,1]&gt;1e-5)
+ind_down=find(u[:,1]&lt;-1e-5)
+regions={}
+# right bound (max x) of region with positive vertical velocity
+regions['up']=max(xyz[ind_up,0])
+# left bound (min x) of region with negative vertical velocity
+regions['down']=min(xyz[ind_down,0])<comment>Find where stuff goes up and down</comment></variable>
+  </variables>
+  <pass_tests>
+    <test name="no_temp_overshoots" language="python">assert temp_stats['min']&gt;0 and temp_stats['max']&lt;10<comment>It's only bounded because there's enough vertical mixing</comment></test>
+    <test name="final_stratification" language="python">assert 0.1&lt;temp_stats['final_min']&lt;1 and 9&lt;temp_stats['final_max']&lt;9.9<comment>Vertical mixing's quite big, but should be constrained</comment></test>
+    <test name="velocity_x_bounds" language="python">s=velocity_stats['x']
+assert 0.2&lt;s['max']&lt;0.3 and -0.2&lt;s['min']&lt;-0.1
+assert 0.1&lt;s['final_max']&lt;0.2 and -0.06&lt;s['final_min']&lt;-0.03<comment>No real good reason for these  bounds, except they shouldn't change too much</comment></test>
+    <test name="velocity_y_bounds" language="python">s=velocity_stats['y']
+assert 1.5e-4&lt;s['max']&lt;3e-4 and -3e-4&lt;s['min']&lt;-1.5e-4
+assert 0.8e-4&lt;s['final_max']&lt;1.2e-4 and -1.2e-4&lt;s['final_min']&lt;-0.8e-4<comment>No real good reason for these  bounds, except they shouldn't change too much</comment></test>
+    <test name="solvers_converged" language="python">assert solvers_converged</test>
+    <test name="free_surface_bounds" language="python">assert -0.2&lt;fs_stats['min']&lt;-0.1 and 0.25&lt;fs_stats['max']&lt;0.35</test>
+    <test name="up_down_regions" language="python">assert regions['up']&lt;5e5 and regions['down']&gt;5e5<comment>This fails currently for CDG without penalty parameter</comment></test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

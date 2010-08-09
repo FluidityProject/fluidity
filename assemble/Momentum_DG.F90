@@ -54,6 +54,8 @@ module momentum_DG
   use sparsity_patterns
   use petsc_tools
   use turbine
+  use diagnostic_fields
+  use slope_limiters_dg
   use les_viscosity_module
   use fields_manipulation
 
@@ -65,7 +67,8 @@ module momentum_DG
   private
   public construct_momentum_dg, &
         momentum_DG_check_options, correct_velocity_dg, &
-        assemble_poisson_rhs_dg, allocate_big_m_dg
+        assemble_poisson_rhs_dg, allocate_big_m_dg, &
+        subcycle_momentum_dg
 
   ! Module private variables for model options. This prevents us having to
   ! do dictionary lookups for every element (or element face!)
@@ -783,7 +786,6 @@ contains
     ! Addto matrices for when subcycling is performed
     real, dimension(u%dim, u%dim, ele_and_faces_loc(U,ele), &
          ele_and_faces_loc(U,ele)) :: subcycle_m_tensor_addto
-    !real, dimension(u%dim, ele_and_faces_loc(U,ele)) :: subcycle_bc_addto
 
     !Switch to select if we are assembling the primal or dual form
     logical :: primal
@@ -1030,21 +1032,12 @@ contains
     
       ! Element Coriolis parameter matrix.
       Coriolis_mat = shape_shape(u_shape, u_shape, Rho_q*Coriolis_q*detwei)
-      
-      ! cross terms in U_ and V_ for coriolis
-      if(subcycle) then
-         subcycle_m_tensor_addto(U_, V_, :loc, :loc) = &
-              subcycle_m_tensor_addto(U_, V_, :loc, :loc) &
-              - coriolis_mat
-         subcycle_m_tensor_addto(V_, U_, :loc, :loc) = &
-              subcycle_m_tensor_addto(V_, U_, :loc, :loc) &
-              + coriolis_mat
-      else
-         big_m_tensor_addto(U_, V_, :loc, :loc) = big_m_tensor_addto(U_, V_, :loc, :loc) - dt*theta*coriolis_mat
-         big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
 
-      end if
-      if(acceleration.and..not.subcycle) then
+      ! cross terms in U_ and V_ for coriolis
+      big_m_tensor_addto(U_, V_, :loc, :loc) = big_m_tensor_addto(U_, V_, :loc, :loc) - dt*theta*coriolis_mat
+      big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
+
+      if(acceleration)then
         rhs_addto(U_, :loc) = rhs_addto(U_, :loc) + matmul(coriolis_mat, u_val(V_,:))
         rhs_addto(V_, :loc) = rhs_addto(V_, :loc) - matmul(coriolis_mat, u_val(U_,:))
       end if
@@ -1572,11 +1565,6 @@ contains
           end if
           if(have_coriolis) then
              ! add in coupling between different components, but only within the element
-             if(subcycle) then
-                call addto(subcycle_m, u_ele, u_ele, &
-                     subcycle_m_tensor_addto(:,:,:loc,:loc), block_mask&
-                     &=off_diagonal_block_mask)
-             end if
              call addto(big_m, u_ele, u_ele, &
                   big_m_tensor_addto(:,:,:loc,:loc), block_mask&
                   &=off_diagonal_block_mask)
@@ -2587,6 +2575,115 @@ contains
     end subroutine local_assembly_cdg_face
 
   end subroutine construct_momentum_interface_dg
+    
+  subroutine subcycle_momentum_dg(u, mom_rhs, subcycle_m, inverse_mass, state)
+    type(vector_field), intent(inout) :: u
+    type(vector_field), intent(inout):: mom_rhs
+    type(block_csr_matrix), intent(in):: subcycle_m, inverse_mass
+    type(state_type), intent(inout):: state
+      
+    type(vector_field) :: u_sub, m_delta_u, delta_u
+    type(scalar_field), pointer :: courant_number_field
+    type(scalar_field) :: u_cpt
+    real :: max_courant_number
+    integer :: d, i, subcycles
+    logical :: limit_slope
+    
+    ewrite(1,*) 'Inside subcycle_momentum_dg'
+    
+    !Always limit slope using VB limiter if subcycling
+    !If we get suitable alternative limiter options we shall use them
+    limit_slope = .true.
+    
+    call get_option(trim(u%option_path)//&
+        "/prognostic/temporal_discretisation/&
+        &discontinuous_galerkin/maximum_courant_number_per_subcycle",&
+        &max_courant_number)
+    courant_number_field => &
+        extract_scalar_field(state, "DG_CourantNumber")
+    call calculate_diagnostic_variable(state, &
+        "DG_CourantNumber", &
+        & courant_number_field)
+    subcycles = ceiling( maxval(courant_number_field%val)&
+        &/max_courant_number)
+    call allmax(subcycles)
+    ewrite(2,*) 'Number of subcycles: ', subcycles
+    if (subcycles==0) return
+    
+    call allocate(u_sub, u%dim, u%mesh, "SubcycleU")
+    u_sub%option_path = trim(u%option_path)
+    call set(u_sub, u)
+    
+    ! aux. field to store increment between subcycles
+    call allocate(delta_u, u%dim, u%mesh, "SubcycleDeltaU")
+    ! aux. field that incrementally computes M (u^sub-u^n)/dt
+    call allocate(m_delta_u, u%dim, u%mesh, "SubcycleMDeltaU")
+    call zero(m_delta_u)
+
+   do i=1, subcycles
+      if (limit_slope) then
+
+        ! filter wiggles from u
+        do d =1, mesh_dim(u)
+        u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
+        call limit_vb(state,u_cpt)
+        end do
+
+      end if
+
+ 
+      ! du = advection * u
+      call mult(delta_u, subcycle_m, u_sub)
+      ! M*du/dt = M*du/dt - advection * u
+      call addto(m_delta_u, delta_u, scale=-1.0/subcycles)
+
+      ! we're only interested in m_delta_u, so we may leave early:
+      if (i==subcycles) exit
+
+      ! du = m^(-1) du
+      call dg_apply_mass(inverse_mass, delta_u)
+      
+      ! u = u - dt/s * du
+      call addto(u_sub, delta_u, scale=-dt/subcycles)
+      call halo_update(u_sub)
+
+ 
+     ! strictly speaking we should have another halo_update here, but
+      ! we can assume that the limiting inside halo 1 elements can be
+      ! performed locally
+
+    end do
+
+    do d = 1, delta_u%dim
+      ewrite_minmax(delta_u%val(d)%ptr(:))
+    end do
+
+    !update RHS of momentum equation
+
+    ! here is the low-down:
+    ! 
+    ! This is what we get from construct_momentum_dg:
+    !   big_m = M + dt*theta*K, where K are any terms not included in subcycling (viscosity, coriolis etc.)
+    !   mom_rhs = f - K u^n
+    ! This is what we want to solve:
+    !   M (u^sub - u^n)/dt + A u^n = 0, assuming one subcycle here
+    !   M (u^n+1 - u^sub)/dt + K u^n+theta = f
+    ! The last eqn can be rewritten:
+    !   M (u^n+1 - u^n)/dt - M (u^sub - u^n)/dt + K u^n + dt*theta*K (u^n+1-u^n)/dt = f
+    ! i.o.w.:
+    !   big_m (u^n+1 - u^n)/dt = f - K u^n + M (u^sub - u^n)/dt
+    ! This means mom_rhs needs to have M (u^sub - u^n)/dt added in 
+    ! and the implicit big_m solve computes a du/dt starting from u^n and not u^sub!
+    ! Therefor this sub doesn't actually change u,  but only adds in the explicit advection
+    ! to the rhs of the mom eqn.
+
+    call addto(mom_rhs, m_delta_u)
+
+    call deallocate(m_delta_u)
+    call deallocate(u_sub)
+    call deallocate(delta_u)
+    
+  end subroutine subcycle_momentum_dg
     
   ! The Coordinate and Solution fields of a turbine simulation live on a non-periodic mesh (that is with option remove-periodicity). 
   ! This function takes such a field's mesh and returns the periodic mesh from which it is derived.

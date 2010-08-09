@@ -517,6 +517,9 @@ prognostic_velocity_field =
                   element project_velocity_to_continuous {
                      ## The mesh to which the projection should occur.
                      element mesh {
+                        attribute name { "CoordinateMesh" }
+                     }|
+                     element mesh {
                         attribute name { xsd:string }
                      }
                   }?,

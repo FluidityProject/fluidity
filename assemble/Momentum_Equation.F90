@@ -177,7 +177,7 @@
       type(block_csr_matrix) :: inverse_mass
 
       ! momentum rhs
-      type(vector_field) :: mom_rhs, mom_tmp
+      type(vector_field) :: mom_rhs
       ! projection rhs
       type(scalar_field) :: ct_rhs, projec_rhs, kmk_rhs, compress_projec_rhs, poisson_rhs
 
@@ -228,20 +228,9 @@
       logical :: dg
       !True if advection-subcycling is performed
       logical :: subcycle
-      !True if limiting the slope
-      logical :: limit_slope
-      !number of cycles
-      integer :: subcycles
-      !maximum Courant number per subcycle
-      real :: Max_Courant_number
-      type(scalar_field), pointer :: Courant_number_field
-      !U component of scalar, used for slope limiter
-      type(scalar_field) :: u_cpt
-      !temporary vector field for subcycling
-      type(vector_field) :: u_sub
 
       logical :: apply_kmk, assemble_kmk
-      logical :: have_viscosity, stress_form, have_coriolis, diagonal
+      logical :: have_viscosity, stress_form, have_coriolis, diagonal_big_m
       logical :: pressure_debugging_vtus
       !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
@@ -260,6 +249,7 @@
       type(vector_field), pointer :: snapmean_velocity
       type(scalar_field), pointer :: snapmean_pressure
       integer :: d
+      type(scalar_field) :: u_cpt
 
       !! For Tidal Forcing 
       type(vector_field), pointer :: position 
@@ -283,25 +273,7 @@
       subcycle=have_option(trim(u%option_path)//&
            "/prognostic/temporal_discretisation/&
            &discontinuous_galerkin/maximum_courant_number_per_subcycle")
-      !Always limit slope using VB limiter if subcycling
-      !If we get suitable alternative limiter options we shall use them
-      limit_slope = subcycle
-      if(subcycle) then
-         call get_option(trim(u%option_path)//&
-              "/prognostic/temporal_discretisation/&
-              &discontinuous_galerkin/maximum_courant_number_per_subcycle",&
-              &Max_Courant_number)
-         Courant_number_field => &
-              extract_scalar_field(state(istate), "DG_CourantNumber")
-         call calculate_diagnostic_variable(state(istate), &
-              "DG_CourantNumber", &
-              & Courant_number_field)
-         subcycles = ceiling( maxval(Courant_number_field%val)&
-              &/Max_Courant_number)
-         ewrite(3,*) 'subcycles cjc', subcycles
-         call allmax(subcycles)
-      end if
-      
+     
       x=>extract_vector_field(state(istate), "Coordinate")
 
       ! get some velocity options:
@@ -322,7 +294,7 @@
           &"/prognostic/spatial_discretisation/continuous_galerkin&
           &/stress_terms/stress_form") 
       have_coriolis = have_option("/physical_parameters/coriolis")
-      diagonal = .not.have_coriolis.and.(.not.(have_viscosity.and.stress_form))
+      diagonal_big_m = .not.have_coriolis.and.(.not.(have_viscosity.and.stress_form))
 
       reduced_model= have_option("/reduced_model/execute_reduced_model")
 
@@ -513,15 +485,16 @@
          call allocate_big_m_dg(state(istate), big_m, u)
          if(subcycle) then
             u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
+            ! subcycle_m currently only contains advection, so diagonal=.true.
             call allocate(subcycle_m, u_sparsity, (/u%dim, u%dim/), &
-                 diagonal=diagonal, name = "subcycle_m")
+                 diagonal=.true., name = "subcycle_m")
          end if
       else
          ! create a sparsity if necessary or pull it from state:
          u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
          ! and then allocate
-         call allocate(big_m, u_sparsity, (/u%dim, u%dim/), diagonal=diagonal,&
-              & name="BIG_m")
+         call allocate(big_m, u_sparsity, (/u%dim, u%dim/), &
+              diagonal=diagonal_big_m, name="BIG_m")
       end if
 
       call zero(big_m)
@@ -820,68 +793,9 @@
           call allocate(delta_u, u%dim, u%mesh, "DeltaU")
           delta_u%option_path = trim(u%option_path)
 
-          !Apply advection subcycling
+          ! apply advection subcycling
           if(subcycle) then
-
-             if (limit_slope) then
-                ! Filter wiggles from U
-                do d =1, mesh_dim(u)
-                   u_cpt = extract_scalar_field_from_vector_field(u,d)
-                   call limit_vb(state(istate),u_cpt)
-                end do
-             end if
-
-             call allocate(u_sub, u%dim, u%mesh, "SubcycleU")
-             u_sub%option_path = trim(u%option_path)
-             call set(u_sub,u)
-
-             ewrite(2,*) 'Applying subcycling for advection'
-
-             do i=1, subcycles                
-                ! dU = Advection * U
-                call zero(delta_U)
-                call mult_addto(delta_U, subcycle_m, U_sub)
-                ! dU = dU + RHS
-                !call addto(delta_T, RHS, -1.0)
-                ! dU = M^(-1) dU
-                call dg_apply_mass(inverse_mass, delta_U)
-                
-                ! U = U + dt/s * dU
-                call addto(U_sub, delta_U, scale=-dt/subcycles)
-                call halo_update(U_sub)
-
-                if (limit_slope) then
-                   ! Filter wiggles from U
-                   do d =1, mesh_dim(u)
-                      u_cpt = extract_scalar_field_from_vector_field(u_sub,d)
-                      call limit_vb(state(istate),u_cpt)
-                   end do
-
-                end if
-
-             end do
-             call set(u,u_sub)
-
-             ewrite(2,*) 'cjc before'
-             do i = 1, delta_u%dim
-                ewrite_minmax(delta_u%val(i)%ptr(:))
-             end do
-             ewrite(2,*) 'cjc after'             
-
-             !update RHS of momentum equation
-             !delta_u is just used as dummy memory here
-             !Theta method
-             !\theta u^{n+1} + (1-\theta)u^n
-             !=\theta\Delta t\Delta u + u^n
-             !so right-hand side stuff gets a minus sign
-             call set(delta_u,u)
-             call addto(delta_u,u_sub,-1.0)
-             call allocate(mom_tmp,mom_rhs%dim,&
-                  &mom_rhs%mesh,name='TempMomMem')
-             call mult(mom_tmp,big_m,delta_u)
-             call addto(mom_rhs,mom_tmp)
-             call deallocate(mom_tmp)
-             call deallocate(u_sub)
+             call subcycle_momentum_dg(u, mom_rhs, subcycle_m, inverse_mass, state(istate))
           end if
 
           if (associated(ct_m)) then
@@ -980,11 +894,11 @@
        
           call profiler_toc(u, "assembly")
 
-         ! solve for the change in velocity
-             call petsc_solve(delta_u, big_m, mom_rhs, state(istate))
-             do i = 1, u%dim
-                ewrite_minmax(delta_u%val(i)%ptr(:))
-             end do
+          ! solve for the change in velocity
+          call petsc_solve(delta_u, big_m, mom_rhs, state(istate))
+          do i = 1, u%dim
+            ewrite_minmax(delta_u%val(i)%ptr(:))
+          end do
 
           call profiler_tic(u, "assembly")
           ! apply change to velocity field
@@ -1079,14 +993,6 @@
               call petsc_solve(delta_p, cmc_m, projec_rhs, state(istate))
            end if
 
-           if (limit_slope) then
-              ! Filter wiggles from U
-              do d =1, mesh_dim(u)
-                 u_cpt = extract_scalar_field_from_vector_field(u,d)
-                 call limit_vb(state(istate),u_cpt)
-              end do
-           end if
-           
             ewrite_minmax(delta_p%val)
 
             if (pressure_debugging_vtus) then
@@ -1183,11 +1089,22 @@
           call deallocate(delta_u)
           
        end if ! end of if reduced model
+
+
       
       call profiler_tic(u, "assembly")
       if (have_rotated_bcs(u)) then
         call rotate_velocity_back(u, state(istate))
       end if
+      if (subcycle) then
+        ! filter wiggles from u
+        do d =1, mesh_dim(u)
+        u_cpt = extract_scalar_field_from_vector_field(u,d)
+        call limit_vb(state(istate),u_cpt)
+        end do
+
+      end if
+
       call profiler_toc(u, "assembly")
       
       if(dg)then
