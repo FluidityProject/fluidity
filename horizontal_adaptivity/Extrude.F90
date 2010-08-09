@@ -175,8 +175,11 @@ module hadapt_extrude
     
 #ifdef DDEBUG
     if(apply_region_ids) then
-      assert(minval(visited)>0)
       ewrite(2,*) "Maximum number of times a node was visited: ", maxval(visited)
+      ewrite(2,*) "Minimum number of times a node was visited: ", minval(visited)
+      if(.not.isparallel()) then
+        assert(minval(visited)>0)
+      end if
     end if
 #endif
       
