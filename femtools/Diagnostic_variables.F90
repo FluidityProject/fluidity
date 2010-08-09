@@ -4691,6 +4691,8 @@ contains
 
           if (bound_elem_iteration>=33554432) exit
 
+          if ((minval(this_det%local_coords)<10.0e-8).and.(minval(this_det%local_coords)>-10.0e-8).and.(minloc(this_det%local_coords, dim=1)/=index_minloc_current)) exit 
+
           index_next_face=minloc(this_det%local_coords, dim=1)
 
           cont_apq=0
