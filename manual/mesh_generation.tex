@@ -244,10 +244,9 @@ Since GMSH doesn't explicitly label faces or regular elements as such, internall
 \label{sect:extruded_meshes}
 \index{mesh!mesh types!extruded}
 
-Given a 2D mesh file in triangle format, \fluidity can extrude this mesh to create a layered three dimensional mesh 
-on which simulations can be performed. This is achieved by checking the extrude option under 
-option{\ldots/from mesh}. After checking this option, the user must specify a bottom\_depth and 
-a sizing\_function (which specifies the separation between layers). These distances can 
+Given a 1D or 2D mesh file in triangle format, \fluidity can extrude this mesh to create a layered 2D or 3D mesh, 
+on which simulations can be performed. This is achieved by first including a new mesh that is created by reading the 1D or 2D mesh file, see \ref{Sect:Mesh}. Then, for the mesh that is to be created by extrusion, select the \option{\ldots/from mesh} and input the name of the 1D or 2D mesh. Next check the \option{extrude} option, after which, the \option{bottom\_depth} and 
+a \option{sizing\_function} (which specifies the separation between layers) must be specified. These distances can 
 currently be entered as a constant, a generic\_function, a python function or by a NetCDF 
 file (\website). Optionally, the user can then set the surface id given to the top and bottom surfaces. 
 
