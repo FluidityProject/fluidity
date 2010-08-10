@@ -827,7 +827,9 @@ contains
     real, dimension(u%mesh%shape%loc, u_cg%mesh%shape%loc) :: locweight
     integer, dimension(:), pointer :: from_ele, to_ele
     real, dimension(u%dim, u%dim, ele_loc(u, ele)) :: dg_les_loc
-    real, dimension(u%dim, u%dim, ele_loc(u_cg, ele)) :: cg_les_loc
+    real, dimension(u%dim, u%dim, ele_loc(u_cg, ele)) :: cg_les_rhs, cg_les_loc
+
+    real, dimension(ele_loc(u,ele), ele_loc(u,ele)) :: v_mass
 
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
@@ -923,6 +925,7 @@ contains
     
     Rho_q=ele_val_at_quad(Rho, ele)
 
+    les_tensor_gi=0.0
     ! dg les hack
     if (have_dg_les) then
       u_cg_shape=>ele_shape(u_cg, ele)
@@ -933,13 +936,33 @@ contains
       les_coef_gi=les_viscosity_strength(du_t_cg, ele_val(u_nl_cg, ele))
 
       do gi=1, size(les_coef_gi)
-         ! eddy-viscosity on the cg gauss points
+         ! eddy-viscosity on the cg (hence dg) gauss points
          les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
               smagorinsky_coefficient**2
       end do
 
-      ! eddy-viscosity on the cg nodes
-      cg_les_loc=shape_tensor_rhs(u_cg_shape, les_tensor_gi, detwei_cg)
+      ! *** eddy-viscosity on the cg nodes ***
+      ! Note :: les_tensor_gi will also be used later in the construction of
+      !         Viscosity_mat
+
+      ! Make sure u and viscosity are on the same mesh_adaptivity
+      if (.not.(u%mesh==viscosity%mesh)) then
+        FLAbort("DG LES currently requires u and viscosity to be on the same mesh")
+      end if
+
+      cg_les_rhs=shape_tensor_rhs(u_cg_shape, les_tensor_gi, detwei_cg)
+
+      v_mass=shape_shape(u_cg_shape, u_cg_shape, detwei_cg)
+      
+      call invert(v_mass)
+
+      do i=1,u%dim
+        do j=1,u%dim
+          cg_les_loc(i,j,:) = matmul(v_mass,cg_les_rhs(i,j,:))
+        end do
+      end do
+
+      ! **************************************
 
       do toloc=1,size(locweight,1)
          do fromloc=1,size(locweight,2)
@@ -956,6 +979,7 @@ contains
             dg_les_loc(i, j, :) = matmul(locweight, cg_les_loc(i, j, :))
          end do
       end do
+      
     end if
    
     if (have_viscosity.and.owned_element) then
@@ -1267,11 +1291,11 @@ contains
     
     ! Viscosity.
     Viscosity_mat=0
-    if(have_viscosity.and.owned_element) then
+    if((have_viscosity.or.have_dg_les).and.owned_element) then
        if (primal) then
           do dim = 1, u%dim
              Viscosity_mat(dim,:loc,:loc)= &
-                  dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele), &
+                  dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele)+les_tensor_gi, &
                   &                    du_t, detwei)
           end do
 
@@ -1445,7 +1469,7 @@ contains
       ! Construct local diffusivity operator for DG.
       !----------------------------------------------------------------------
 
-      if(have_viscosity) then
+      if(have_viscosity.or.have_dg_les) then
 
         select case(viscosity_scheme)
         case(ARBITRARY_UPWIND)
