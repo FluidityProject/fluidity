@@ -1657,12 +1657,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       end do
       call allocate(self_sends)
 
-     call allocate(ihash_sparsity) 
+      call allocate(ihash_sparsity) 
 
-     count=0
-     node => detector_list%firstnode
+      count=0
+      node => detector_list%firstnode
 
-     do j=1, detector_list%length
+      do j=1, detector_list%length
 
        ele=node%element
        if ((.not. has_key(ihash_sparsity, ele)).and.(ele/=-1)) then
@@ -1671,15 +1671,15 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
        end if
        node => node%next
 
-     end do
+      end do
 
-     call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
+      call allocate(element_detector_list, rows=count, columns=detector_list%length, entries=detector_list%length, name="")
 
-     dimen=zz_positions%dim
+      dimen=zz_positions%dim
 
-     allocate(list_into_array(detector_list%length,dimen+4))
+      allocate(list_into_array(detector_list%length,dimen+4))
 
-     call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
+      call list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 
       do old_ele=1,ele_count(zz_positions)
         universal_element_number = halo_universal_number(zz_ele_halo, old_ele)
@@ -1785,83 +1785,80 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         end do
       end do
 
-    do i=1,key_count(self_sends)
-      old_universal_element_number = fetch(self_sends, i)
-      new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-      old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
+      do i=1,key_count(self_sends)
+         old_universal_element_number = fetch(self_sends, i)
+         new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
+         old_local_element_number = fetch(uen_to_old_local_numbering, old_universal_element_number)
 
-      dets_in_ele=0
- 
-      if (has_key(ihash_sparsity, old_local_element_number)) then
+         dets_in_ele=0
+    
+         if (has_key(ihash_sparsity, old_local_element_number)) then
 
-        row=fetch(ihash_sparsity, old_local_element_number)
-        det_index_in_list_into_array => row_m_ptr(element_detector_list, row)
+           row=fetch(ihash_sparsity, old_local_element_number)
+           det_index_in_list_into_array => row_m_ptr(element_detector_list, row)
 
-        dets_in_ele=size(det_index_in_list_into_array)
+           dets_in_ele=size(det_index_in_list_into_array)
 
-        do j=1, dets_in_ele
+           do j=1, dets_in_ele
 
-            !det element
-            list_into_array(det_index_in_list_into_array(j),dimen+1)=new_local_element_number
+               !det element
+               list_into_array(det_index_in_list_into_array(j),dimen+1)=new_local_element_number
 
-            !list_into_array(i,dim+1)=node%element
+               !list_into_array(i,dim+1)=node%element
 
-        end do
-      end if
+           end do
+         end if
 
-    end do
+      end do
 
 !!! From the element number find out which is the detector, and change node%element=new_local_element_number
 
-    if (detector_list%length/=0) then
+      if (detector_list%length/=0) then
 
-       node => detector_list%firstnode
+          node => detector_list%firstnode
 
-       do k=1, detector_list%length
+          do k=1, detector_list%length
 
-            det_found=0
+               det_found=0
 
-            if (has_key(ihash_sparsity, node%element)) then
+               if (has_key(ihash_sparsity, node%element)) then
 
-               row=fetch(ihash_sparsity, node%element) 
+                  row=fetch(ihash_sparsity, node%element) 
 
-               det_index_in_list_into_array => row_m_ptr(element_detector_list, row) 
+                  det_index_in_list_into_array => row_m_ptr(element_detector_list, row) 
 
-               dets_in_ele=size(det_index_in_list_into_array)
+                  dets_in_ele=size(det_index_in_list_into_array)
 
-               do j=1, dets_in_ele
+                  do j=1, dets_in_ele
 
-                  !If there are more than one detector in the element make sure we are accessing the right one
-                  if (list_into_array(det_index_in_list_into_array(j),dimen+2)==node%id_number) then
-                      det_found=1
-                      node%element=list_into_array(det_index_in_list_into_array(j),dimen+1)
-                  end if
-                  if (det_found==1) exit !(the detector has already been found and element number updated)
-               end do
+                     !If there are more than one detector in the element make sure we are accessing the right one
+                     if (list_into_array(det_index_in_list_into_array(j),dimen+2)==node%id_number) then
+                         det_found=1
+                         node%element=list_into_array(det_index_in_list_into_array(j),dimen+1)
+                     end if
+                     if (det_found==1) exit !(the detector has already been found and element number updated)
+                  end do
 
-            end if
+               end if
 
-            node => node%next
-      
-       end do
+               node => node%next
+         
+          end do
 
-    end if
+      end if
 
-    zoltan_transfer_fields_count = zoltan_transfer_fields_count+1
-
-    if (detector_list%length/=0) then
-
-       node => detector_list%firstnode
-       do k=1, detector_list%length
-           node => node%next
-       end do
-
-    end if
+      zoltan_transfer_fields_count = zoltan_transfer_fields_count+1
 
       call deallocate(self_sends)
       call deallocate(sends)
 
       call halo_update(target_states)
+
+      deallocate(list_into_array)
+
+      call deallocate(ihash_sparsity) 
+
+      call deallocate(element_detector_list)
       
     end subroutine transfer_fields
 
