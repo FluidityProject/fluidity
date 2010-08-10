@@ -187,7 +187,7 @@ subroutine keps_tke(state)
     real, allocatable, dimension(:,:,:):: dshape_velo
     real, allocatable, dimension(:)    :: strain_ngi
     real, allocatable, dimension(:)    :: strain_loc
-    real                               :: prod, diss
+    real                               :: residual
     integer, dimension(:), pointer     :: surface_elements, surface_node_list
     character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
     type(mesh_type), pointer           :: surface_mesh
@@ -231,23 +231,21 @@ subroutine keps_tke(state)
     select case (src_abs)
     case ("explicit")
         do i = 1, nnodes
-            prod = source%val(i)
-            diss = eps%val(i) / kk%val(i)
-            call set(absorption, i, diss)
+            call set(absorption, i, eps%val(i) / kk%val(i))
             ! Get a copy of old source, for eps equation
-            call set(P,  i, prod)
+            call set(P,  i, source%val(i))
             ! Get a copy of old k and source, for eps equation, before we solve k.
             call set(tke_old, i, max(kk%val(i), fields_min) )
         end do
     case ("implicit")
         do i = 1, nnodes
-            prod = source%val(i)
-            diss = eps%val(i) / kk%val(i)
+            ! Dissipation - production
+            residual = eps%val(i) / kk%val(i) - source%val(i)
             ! Puts source into absorption. Ensures positivity of terms.
-            call set(source, i, -min(0.0, diss-prod) )
-            call set(absorption, i, max(0.0, diss-prod) )
+            call set(source, i, -min(0.0, residual) )
+            call set(absorption, i, max(0.0, residual) )
             ! Get a copy of old source, for eps equation
-            call set(P,  i, prod)
+            call set(P,  i, source%val(i))
             ! Get a copy of old k and source, for eps equation, before we solve k.
             call set(tke_old, i, max(kk%val(i), fields_min) )
         end do
@@ -296,7 +294,7 @@ subroutine keps_eps(state)
     type(scalar_field)                 :: rhs_vector, surface_eps_values
     type(petsc_csr_matrix)             :: lumped_mass
     type(halo_type), pointer           :: halo
-    real                               :: prod, diss, epsoverk
+    real                               :: residual
     integer                            :: i, j, ele, sele
     integer, dimension(:), pointer     :: surface_elements, surface_node_list
     character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
@@ -322,26 +320,22 @@ subroutine keps_eps(state)
     case ("explicit")
         do i = 1, nnodes
             ! re-construct eps at "old" timestep
-            !eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
             eps%val(i) = max( c_mu * tke_old%val(i)**2. / EV%val(i), fields_min )
             ! compute RHS terms in epsilon equation
-            epsoverk = eps%val(i) / tke_old%val(i)
-            prod     = c_eps_1 * epsoverk * P%val(i)   ! kk source term at old timestep
-            diss     = c_eps_2 * epsoverk
-            call set(absorption, i, diss)
-            call set(source, i, prod )
+            call set(absorption, i, c_eps_2 * eps%val(i) / tke_old%val(i))
+            ! P is kk source term at old timestep
+            call set(source, i, c_eps_1 * eps%val(i) / tke_old%val(i) * P%val(i) )
         end do
     case ("implicit")
         do i = 1, nnodes
             ! re-construct eps at "old" timestep
-            eps%val(i) = max( tke_old%val(i)**1.5 / ll%val(i), fields_min )
+            eps%val(i) = max( c_mu * tke_old%val(i)**2. / EV%val(i), fields_min )
             ! compute RHS terms in epsilon equation
-            epsoverk = eps%val(i) / tke_old%val(i)
-            prod     = c_eps_1 * epsoverk * P%val(i)   ! kk source term at old timestep
-            diss     = c_eps_2 * epsoverk
+            residual = c_eps_2 * eps%val(i) / tke_old%val(i) - &
+                       c_eps_1 * eps%val(i) / tke_old%val(i) * P%val(i)
             ! Puts source into absorption. Ensures positivity of terms.
-            call set(source, i, -min(0.0, diss-prod) )
-            call set(absorption, i, max(0.0, diss-prod) )
+            call set(source, i, -min(0.0, residual) )
+            call set(absorption, i, max(0.0, residual) )
         end do
     case default
         FLAbort("Invalid implicitness option for k")
@@ -505,23 +499,20 @@ subroutine keps_eddyvisc(state)
         call set(kk, i, max(kk%val(i), fields_min) )     ! clip k field at fields_min
         call set(eps, i, max(eps%val(i), fields_min) )   ! clip epsilon field at fields_min
 
-        ! set lengthscale at all other nodes to kk**1.5/eps
-        call set(ll, i, min( kk%val(i)**1.5 / eps%val(i), ll_max ) )
+        ! set lengthscale
+        call set(ll, i, min( c_mu * kk%val(i)**1.5 / eps%val(i), ll_max ) )
 
         ! calculate ratio of fields (a diagnostic)
         call set( tkeovereps, i, kk%val(i) / eps%val(i) )
 
+        ! calculate eddy viscosity
+        call set( EV, i, C_mu * (kk%val(i))**2. / eps%val(i) )
     end do
 
     ! Limit the lengthscale on surfaces
     if(limit_length) then
         call limit_lengthscale(state)
     end if
-
-    ! calculate viscosity for next step and for use in other fields
-    do i = 1, nnodes
-        call set( EV, i, C_mu * ll%val(i) * sqrt(kk%val(i)) )
-    end do
 
     ewrite(1,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors"
     call zero(eddy_visc)    ! zero it first as we're using an addto below
