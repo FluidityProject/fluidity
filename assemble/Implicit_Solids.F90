@@ -67,9 +67,10 @@ module implicit_solids
 
   interface
      subroutine y3d_populate_femdem(ele1, ele2 ,ele3, ele4, &
-          face1, face2, face3)
+          face1, face2, face3, xs, ys, zs)
        integer, dimension(*), intent(out) :: ele1, ele2, ele3, ele4
        integer, dimension(*), intent(out) :: face1, face2, face3
+       real, dimension(*), intent(out) :: xs, ys, zs
      end subroutine y3d_populate_femdem
   end interface
 
@@ -221,14 +222,14 @@ contains
        end if
 
        if (its == 1) then
-          ! update          : 1. external_positions
-          !                   2. ext_pos_solid_vel
-          ! return to femdem: 1. ext_pos_fluid_vel
-          call femdem_two_way_update
-
           ! interpolate the fluid velocity from
           ! the fluidity mesh to the femdem mesh
           call femdem_interpolation(state, "out")
+
+          ! update          : 1. external_positions
+          !                   2. ext_pos_solid_vel
+          ! return to femdem: 1. ext_pos_fluid_vel
+          call femdem_two_way_update(state)
 
           ! interpolate the solid velocity from
           ! the femdem mesh to the fluidity mesh
@@ -262,7 +263,7 @@ contains
 
   subroutine calculate_volume_fraction(state, solid_number)
 
-    type(state_type),intent(inout) :: state
+    type(state_type), intent(inout) :: state
     integer, intent(in), optional :: solid_number
     type(vector_field), pointer :: positions
     type(vector_field) :: external_positions_local
@@ -373,8 +374,6 @@ contains
        call set(solid_local, i, max(0., min(1., node_val(solid_local, i))))
     end do
 
-    ewrite_minmax(solid_local)
-
     call finalise_tet_intersector
     call rtree_intersection_finder_reset(ntests)
 
@@ -386,7 +385,7 @@ contains
 
   subroutine set_absorption_coefficient(state)
 
-    type(state_type),intent(inout) :: state
+    type(state_type), intent(inout) :: state
     type(vector_field), pointer :: absorption
     integer :: i, j
     real :: sigma
@@ -422,7 +421,10 @@ contains
     call zero(source)
 
     do i = 1, node_count(source)
-       sigma = node_val(solid_local, i)*beta/dt
+       ! femdem does not really return: solid_velocity
+       ! but: solid_velocity*dt
+       ! that's why we divide by: dt**2 and not just dt
+       sigma = node_val(solid_local, i)*beta/dt**2
        do j = 1, source%dim
           call set(source, j, i, sigma * node_val(fl_pos_solid_vel, j, i))
        end do
@@ -436,7 +438,7 @@ contains
 
   subroutine print_drag_force(state)
 
-    type(state_type),intent(inout) :: state
+    type(state_type), intent(inout) :: state
     type(vector_field), pointer :: velocity, positions, absorption
     type(scalar_field) :: lumped_mass
     real, dimension(:), allocatable :: drag
@@ -488,11 +490,12 @@ contains
     integer :: quad_degree
     type(mesh_type) :: mesh
 
-    integer :: i, j, loc, sloc
+    integer :: i, loc, sloc
     integer :: dim, nodes, elements, edges
 
     integer, dimension(:), allocatable :: ele1, ele2, ele3, ele4
     integer, dimension(:), allocatable :: face1, face2, face3
+    real, dimension(:), allocatable :: xs, ys, zs
 
     type(quadrature_type) :: quad
     type(element_type) :: shape
@@ -518,8 +521,11 @@ contains
     allocate(face1(edges)); allocate(face2(edges))
     allocate(face3(edges))
 
+    allocate(xs(nodes)); allocate(ys(nodes))
+    allocate(zs(nodes))
+
     call y3d_populate_femdem(ele1, ele2, ele3, ele4,&
-         face1, face2, face3)
+         face1, face2, face3, xs, ys, zs)
 #endif
 
     positions => extract_vector_field(state, "Coordinate")
@@ -535,9 +541,9 @@ contains
 
     ! initialise solid mesh coordinates
     do i = 1, nodes
-       forall (j=1:dim)
-          external_positions%val(j)%ptr(i) = -66.6
-       end forall
+          external_positions%val(1)%ptr(i) = xs(i)
+          external_positions%val(2)%ptr(i) = ys(i)
+          external_positions%val(3)%ptr(i) = zs(i)
     end do
 
     do i = 1, elements
@@ -589,27 +595,32 @@ contains
 #ifdef USING_FEMDEM
     deallocate(ele1, ele2, ele3, ele4)
     deallocate(face1, face2, face3)
+    deallocate(xs, ys, zs)
 #endif
 
   end subroutine femdem_two_way_initialise
 
   !----------------------------------------------------------------------------
 
-  subroutine femdem_two_way_update
+  subroutine femdem_two_way_update(state)
 
-    real :: rho, dt_f
-    character(len=field_name_len) :: external_mesh_name
+    type(state_type) :: state
+    real, save :: rho
+    character(len=field_name_len), save :: external_mesh_name
+    logical, save :: init=.false.
 
-    rho = 1.
-    dt_f = dt
-
-    call get_option("/implicit_solids/two_way_coupling/mesh_name", &
-         external_mesh_name)
+    if (.not. init) then
+       call get_option("/implicit_solids/two_way_coupling/mesh_name", &
+            external_mesh_name)
+       call get_option('/material_phase::'//trim(state%name)// &
+            '/equation_of_state/fluids/linear/reference_density', rho)
+       init=.true.
+    end if
 
 #ifdef USING_FEMDEM
     ! in  :: ext_pos_fluid_vel
     ! out :: updated external_positions and ext_pos_solid_vel
-    call y3dfemdem(trim(external_mesh_name)//char(0), dt_f, rho, &
+    call y3dfemdem(trim(external_mesh_name)//char(0), dt, rho, &
          external_positions%val(1)%ptr, external_positions%val(2)%ptr, &
          external_positions%val(3)%ptr, &
          ext_pos_solid_vel%val(1)%ptr, ext_pos_solid_vel%val(2)%ptr, &
@@ -702,13 +713,13 @@ contains
        ! the fluid mesh to the solid mesh
        call linear_interpolation(alg_fl, alg_ext, different_domains=.true.)
 
-       ewrite_minmax(ext_pos_fluid_vel%val(1)%ptr)
-       ewrite_minmax(ext_pos_fluid_vel%val(2)%ptr)
-       ewrite_minmax(ext_pos_fluid_vel%val(3)%ptr)
-
        ewrite_minmax(field_fl%val(1)%ptr)
        ewrite_minmax(field_fl%val(2)%ptr)
        ewrite_minmax(field_fl%val(3)%ptr)
+
+       ewrite_minmax(ext_pos_fluid_vel%val(1)%ptr)
+       ewrite_minmax(ext_pos_fluid_vel%val(2)%ptr)
+       ewrite_minmax(ext_pos_fluid_vel%val(3)%ptr)
 
     else
        FLExit("Don't know what to interpolate...")
