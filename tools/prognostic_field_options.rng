@@ -973,7 +973,10 @@ only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
     </optional>
     <optional>
       <element name="vertical_stabilization">
-        <a:documentation>Vertical stabilization</a:documentation>
+        <a:documentation>Vertical stabilization options
+
+Note: Switching on one of these options will result in all
+absorption terms being included in the pressure correction.</a:documentation>
         <optional>
           <element name="vertical_velocity_relaxation">
             <a:documentation>A depth dependent absorption term to

@@ -789,7 +789,10 @@ prognostic_velocity_field =
            }
          )
       }?,
-      ## Vertical stabilization
+      ## Vertical stabilization options
+      ##
+      ## Note: Switching on one of these options will result in all
+      ## absorption terms being included in the pressure correction.
       element vertical_stabilization {
          ## A depth dependent absorption term to
          ## increase stability in shallow regions 
