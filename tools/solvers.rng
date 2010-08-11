@@ -155,8 +155,7 @@ half the number of flops,
 i.e. same convergence rate but twice as fast per
 iteration. Because it computes
 a different preconditioned residual the convergence in
-practice may be quite different though.
-It does not work in parallel!</a:documentation>
+practice may be quite different though.</a:documentation>
       <attribute name="name">
         <value>eisenstat</value>
       </attribute>

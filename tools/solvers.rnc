@@ -155,7 +155,6 @@ pceisenstat_options =
       ## iteration. Because it computes
       ## a different preconditioned residual the convergence in
       ## practice may be quite different though.
-      ## It does not work in parallel!
       element preconditioner {
          attribute name { "eisenstat" }
       }
