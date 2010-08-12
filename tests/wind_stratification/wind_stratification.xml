@@ -33,17 +33,15 @@ fs_stats={}
 fs_stats['max']=s['Water']['FreeSurface']['max'].max()
 fs_stats['min']=s['Water']['FreeSurface']['min'].min()</variable>
     <variable name="regions" language="python">from vtktools import vtu
-from pylab import find
 vt=vtu('channel_1.vtu')
 u=vt.GetVectorField('Velocity')
 xyz=vt.GetLocations()
-ind_up=find(u[:,1]&gt;1e-5)
-ind_down=find(u[:,1]&lt;-1e-5)
 regions={}
 # right bound (max x) of region with positive vertical velocity
-regions['up']=max(xyz[ind_up,0])
+regions['up']=max( xyz[:,0].compress(u[:,1]&gt;1e-5) )
 # left bound (min x) of region with negative vertical velocity
-regions['down']=min(xyz[ind_down,0])<comment>Find where stuff goes up and down</comment></variable>
+regions['down']=min( xyz[:,0].compress(u[:,1]&lt;-1e-5) )
+<comment>Find where stuff goes up and down</comment></variable>
   </variables>
   <pass_tests>
     <test name="no_temp_overshoots" language="python">assert temp_stats['min']&gt;0 and temp_stats['max']&lt;10<comment>It's only bounded because there's enough vertical mixing</comment></test>
