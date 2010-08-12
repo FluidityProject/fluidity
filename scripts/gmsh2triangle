@@ -14,7 +14,13 @@ optparser=OptionParser(usage='usage: %prog [options] <filename>',
 
 optparser.add_option("--2D", "--2d", "-2",
                   help="discard 3rd coordinate of node positions",
-		     action="store_const", const=2, dest="dim", default=3)
+                  action="store_const", const=2, dest="dim", default=3)
+
+
+optparser.add_option("--internal-boundary", "-i", 
+                  help="mesh contains internal faces - this option is required if you have assigned " +
+                       "a physical boundary id to lines (2D) or surfaces (3D) that are not on the domain boundary",
+                  action="store_const", const=True, dest="internal_faces", default=False)
 
 (options, argv) = optparser.parse_args()
 
@@ -157,8 +163,31 @@ for i, element in enumerate(elements):
 elefile.write("# Produced by: "+" ".join(sys.argv)+"\n")
 elefile.close()
 
-# Output problem file
-facefile.write(`len(faces)`+" 1\n")
+# Output ele or face file
+if options.internal_faces:
+  # make node element list
+  ne_list = [set() for i in range(nodecount)]
+  for i, element in enumerate(elements):
+      element=[eval(gmsh_node_map[element[j-1]]) for j in node_order]
+      for node in element:
+        ne_list[node-1].add(i)
+
+  # make face list, containing: face_nodes, surface_id, element_owner
+  facelist=[]
+  for face in faces:
+    # last entry of face is surface-id
+    face_nodes=[eval(node) for node in face[:-1]]
+    # loop through elements around node face_nodes[0]
+    for ele in ne_list[face_nodes[0]-1]:
+      element=[eval(gmsh_node_map[elements[ele][j-1]]) for j in node_order]
+      if set(face_nodes) < set(element):
+        facelist.append(face+[`ele+1`])
+  
+  facefile.write(`len(facelist)`+" 2\n")
+  faces=facelist
+
+else:
+  facefile.write(`len(faces)`+" 1\n")
 
 for i,face in enumerate(faces):
     facefile.write(`i+1`+" "+" ".join(face)+"\n")
