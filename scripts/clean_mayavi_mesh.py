@@ -14,7 +14,7 @@ class PostscriptError(Exception):
     """Exception for malformed Postscript."""
     pass
 
-def find_bounding_box(ps):
+def find_bounding_box(ps, margin=10):
     '''Find the ends of all the lines in the mesh and set the bounding box
     to slightly larger than their hull'''
 
@@ -32,16 +32,16 @@ def find_bounding_box(ps):
             bb[3]=max(bb[3],y)
 
 
-    bb[0]=int(math.floor(bb[0])-10)
-    bb[1]=int(math.floor(bb[1])-10)
-    bb[2]=int(math.ceil(bb[2])+10)
-    bb[3]=int(math.ceil(bb[3])+10)
+    bb[0]=int(math.floor(bb[0])-margin)
+    bb[1]=int(math.floor(bb[1])-margin)
+    bb[2]=int(math.ceil(bb[2])+margin)
+    bb[3]=int(math.ceil(bb[3])+margin)
 
     return bb
 
-def set_bounding_box(ps):
+def set_bounding_box(ps, margin):
 
-    bb=find_bounding_box(ps)
+    bb=find_bounding_box(ps, margin)
 
     for i in range(len(ps)):
         
@@ -63,11 +63,11 @@ def set_linestyle(ps):
 
     raise PostscriptError("No line style parameters in input file.")
 
-def process_file(inname, outname):
+def process_file(inname, outname, options):
 
     ps=file(inname,'r').readlines()
 
-    set_bounding_box(ps)
+    set_bounding_box(ps,options.margin)
     set_linestyle(ps)
 
     file(outname,"w").writelines(ps)
@@ -82,9 +82,12 @@ if __name__=='__main__':
     "Vector PS/EPS/PDF/TeX" option in Mayavi2.''',
                     add_help_option=True)
 
-    #optparser.add_option("--verbose", action="store_true",
-    #                     dest="verbose", default=False,
-    #                    help="verbose output")
+    optparser.add_option("--margin",
+                         action="store",
+                         type="int",
+                         dest="margin",
+                         default=10,
+                         help="margin around the mesh in points. Default is 10.")
     
     optparser.set_defaults(dir=".", project="")
 
@@ -97,4 +100,4 @@ if __name__=='__main__':
         optparser.print_help()
         sys.exit(1)
 
-    process_file(infile, outfile)
+    process_file(infile, outfile, options)
