@@ -922,6 +922,7 @@ contains
     ! Vertically structured adaptivity stuff
     type(vector_field) :: extruded_positions
     type(tensor_field) :: full_metric
+    logical :: vertically_structured_adaptivity
 
     ewrite(1, *) "In adapt_state_internal"
     
@@ -929,6 +930,8 @@ contains
     
     max_adapt_iteration = adapt_iterations()
 
+    vertically_structured_adaptivity = have_option( &
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
     vertical_only = have_option(&
         & "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution/adapt_in_vertical_only")
 
@@ -959,7 +962,8 @@ contains
       end if
       ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
       
-      call prepare_vertically_structured_adaptivity(states, metric, full_metric, extruded_positions, old_positions)
+      call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
+                                                    extruded_positions, old_positions)
       
       call initialise_boundcount(old_linear_mesh, old_positions)
      
@@ -993,6 +997,8 @@ contains
         call allocate(new_positions,old_positions%dim,old_positions%mesh,name=trim(old_positions%name))
         call set(new_positions,old_positions)
       end if
+      ! We're done with old_positions, so we may deallocate it
+      call deallocate(old_positions)
 
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
@@ -1000,18 +1006,24 @@ contains
       
       call perform_vertically_inhomogenous_step(states, new_positions, full_metric, extruded_positions)
 
+      ! Insert meshes from reserve states
+      call restore_reserved_meshes(states)
+      ! Next we recreate all derived meshes
+      call insert_derived_meshes(states)
+      
+      if(vertically_structured_adaptivity) then
+        call deallocate(metric)
+        call deallocate(new_positions)
+        
+        metric = full_metric
+        new_positions = get_coordinate_field(states(1), extract_mesh(states(1), topology_mesh_name))
+      end if
+
       if(isparallel()) then
         ! Update the detector element ownership data
         call search_for_detectors(detector_list, new_positions)
       end if
 
-      ! We're done with old_positions, so we may deallocate it
-      call deallocate(old_positions)
-
-      ! Insert meshes from reserve states
-      call restore_reserved_meshes(states)
-      ! Next we recreate all derived meshes
-      call insert_derived_meshes(states)
       ! Then reallocate all fields 
       call allocate_and_insert_fields(states)
       ! Insert fields from reserve states
@@ -1025,13 +1037,16 @@ contains
         ! If there are remaining adapt iterations, or we will be calling
         ! sam_drive, insert the old metric into interpolate_states(1) and a
         ! new metric into states(1), for interpolation
-        call insert_metric_for_interpolation(metric, new_positions%mesh, interpolate_states(1), states(1), metric_name = metric_name)
+        call insert_metric_for_interpolation(metric, new_positions%mesh, &
+                                             interpolate_states(1), states(1), &
+                                             metric_name = metric_name)
       end if
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
       call deallocate(metric)
-!      ! We're done with the new_positions, so we may drop our reference
+      ! We're done with the new_positions, so we may drop our reference
       call deallocate(new_positions) 
+      
       
       ! Interpolate fields
       if(associated(node_ownership)) then
@@ -1137,7 +1152,7 @@ contains
     call allocate(new_metric, new_mesh, metric%name)
     assert(.not. has_tensor_field(new_state, new_metric%name))
     call insert(new_state, new_metric, new_metric%name)
-    
+
     if(present(metric_name)) metric_name = new_metric%name
     
     call deallocate(new_metric)
@@ -1237,7 +1252,8 @@ contains
 
   end function sam_options
 
-  subroutine prepare_vertically_structured_adaptivity(states, metric, full_metric, extruded_positions, old_positions)
+  subroutine prepare_vertically_structured_adaptivity(states, metric, full_metric, &
+                                                      extruded_positions, old_positions)
     type(state_type), dimension(:), intent(inout) :: states
     ! the metric will be collapsed, and the uncollapsed full_metric stored in full_metric
     type(tensor_field), intent(inout) :: metric, full_metric
@@ -1286,9 +1302,6 @@ contains
          ! we need the full_metric and its position field later on for vertical adaptivity
          ! this takes a reference so that it's prevented from the big deallocate in adapt_state
          extruded_positions = get_coordinate_field(states(1), full_metric%mesh)
-      else
-         ! otherwise we're done with it:
-         call deallocate(full_metric)
       end if
     end if
     
@@ -1324,8 +1337,7 @@ contains
        call linear_interpolation( full_metric, extruded_positions, &
           & background_full_metric, background_positions)
        background_full_metric%name="BackgroundFullMetric"
-       ! we can do away with the old metric now
-       call deallocate(full_metric)
+       ! we can do away with the old positions now
        call deallocate(extruded_positions)
        
        ! extrude with adaptivity, computes new extruded_positions

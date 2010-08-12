@@ -605,12 +605,12 @@ contains
                ! update info for adaptivity/error metric code:
                
                if (extrusion .or. (periodic .and. .not. remove_periodicity)) then
-                 ! this is the new topology mesh name to be used by adaptivity
+                 ! this is the name of the mesh to be used by the error metric for adaptivity
                  topology_mesh_name=mesh%name
                end if
                
                if (periodic .and. .not. remove_periodicity) then
-                 ! this is the new topology mesh name to be used by adaptivity
+                 ! this is the name of the mesh to be adapted by adaptivity
                  adaptivity_mesh_name=mesh%name
                end if
 
