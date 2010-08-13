@@ -473,7 +473,7 @@
            & (/ &
              "weakdirichlet      ", &
              "no_normal_flow     ", &
-             "periodic           ", &
+             "internal           ", &
              "free_surface       " &
            & /), velocity_bc, velocity_bc_type, velocity_bc_number)
            

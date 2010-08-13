@@ -467,7 +467,7 @@ contains
       call get_entire_boundary_condition(t, (/ &
         "neumann      ", &
         "weakdirichlet", &
-        "periodic     "/), t_bc, t_bc_types)
+        "internal     "/), t_bc, t_bc_types)
 
       if(any(t_bc_types /= 0)) then
         call ewrite_bc_counts(2, t_bc_types)

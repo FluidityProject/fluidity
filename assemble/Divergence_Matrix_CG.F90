@@ -247,7 +247,7 @@ contains
         call get_entire_boundary_condition(field, (/ &
           "weakdirichlet ", &
           "no_normal_flow", &
-          "periodic      ", &
+          "internal      ", &
           "free_surface  "/), field_bc, field_bc_type)
 
         do sele = 1, surface_element_count(test_mesh)
@@ -527,7 +527,7 @@ contains
         call get_entire_boundary_condition(field, (/ &
           "weakdirichlet ", &
           "no_normal_flow", &
-          "periodic      ", &
+          "internal      ", &
           "free_surface  "/), field_bc, field_bc_type)
 
         allocate(density_bc_type(surface_element_count(density)))

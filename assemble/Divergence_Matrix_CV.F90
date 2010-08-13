@@ -232,7 +232,7 @@ contains
         allocate(field_bc_type(field%dim, surface_element_count(test_mesh)))
         call get_entire_boundary_condition(field, (/"weakdirichlet ", &
                                                     "no_normal_flow", &
-                                                    "periodic      ", &
+                                                    "internal      ", &
                                                     "free_surface  "/), field_bc, field_bc_type)
   
         allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%loc), &
@@ -648,7 +648,7 @@ contains
 
       call get_entire_boundary_condition(u, (/"weakdirichlet ", &
                                               "no_normal_flow", &
-                                              "periodic      "/), &
+                                              "internal      "/), &
                                              velocity_bc, velocity_bc_type)
 
       surface_element_loop: do sele = 1, surface_element_count(p)
@@ -1230,7 +1230,7 @@ contains
           end if
           call get_entire_boundary_condition(matdens, (/"weakdirichlet"/), matdens_bc, matdens_bc_type)
 
-          call get_entire_boundary_condition(u, (/"weakdirichlet ", "no_normal_flow", "periodic      "/), velocity_bc, velocity_bc_type)
+          call get_entire_boundary_condition(u, (/"weakdirichlet ", "no_normal_flow", "internal      "/), velocity_bc, velocity_bc_type)
 
           do sele = 1, surface_element_count(p)
 

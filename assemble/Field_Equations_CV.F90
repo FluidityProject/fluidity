@@ -1633,7 +1633,7 @@ contains
       call get_entire_boundary_condition(tfield, (/ &
         "weakdirichlet", &
         "neumann      ", &
-        "periodic     ", &
+        "internal     ", &
         "zero_flux    "/), tfield_bc, tfield_bc_type)
       if(include_density) then
         allocate(tdensity_bc_type(surface_element_count(tdensity)))
@@ -2987,7 +2987,7 @@ contains
         ! get the fields over the surface containing the bcs
         call get_entire_boundary_condition(tfield(f)%ptr, (/ &
           "weakdirichlet", &
-          "periodic     ", &
+          "internal     ", &
           "zero_flux    "/), tfield_bc(f), tfield_bc_type(f,:))
         call get_entire_boundary_condition(tdensity(f)%ptr, (/"weakdirichlet"/), tdensity_bc(f), tdensity_bc_type(f,:))
       end do

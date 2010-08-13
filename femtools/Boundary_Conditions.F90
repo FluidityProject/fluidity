@@ -1114,8 +1114,9 @@ contains
        end do
     end do
     
+    ! now let's search for internal bcs (this includes periodic boundaries)
     do j=1, size(types)
-      if (trim(types(j))=="periodic") exit
+      if (trim(types(j))=="internal") exit
     end do
     if (j<=size(types)) then
       do sele = 1, surface_element_count(field)
@@ -1125,16 +1126,12 @@ contains
         
         if(neigh(l_face_number)>0) then
           
-          if (bc_type_list(sele)/=0) then
-             ewrite(0,*) 'Requested types:', types
-             ewrite(0,*) 'Of these boundary condition types only one may be applied'
-             ewrite(0,*) 'to each surface element.'
-             ewrite(0,*) 'Surface element nr.:', sele
-             ewrite(0,*) 'has types', types(bc_type_list(sele)), 'periodic'
-             FLAbort("Can't have that.")
+          if (bc_type_list(sele)==0) then
+             ! an internal (or periodic) boundary condition only
+             ! gets assigned if no other boundary condition type
+             ! has been assigned to this surface element
+             bc_type_list(sele)=j
           end if
-          
-          bc_type_list(sele)=j
           
         end if
       end do
@@ -1234,8 +1231,9 @@ contains
        end do faceloop
     end do bcloop
 
+    ! now let's search for internal bcs (this includes periodic boundaries)
     do j=1, size(types)
-      if (trim(types(j))=="periodic") exit
+      if (trim(types(j))=="internal") exit
     end do
     if (j<=size(types)) then
       do sele = 1, surface_element_count(field)
@@ -1245,16 +1243,12 @@ contains
         
         if(neigh(l_face_number)>0) then
           
-          if (any(bc_type_list(:,sele)/=0)) then
-             ewrite(0,*) 'Requested types:', types
-             ewrite(0,*) 'Of these boundary condition types only one may be applied'
-             ewrite(0,*) 'to each surface element.'
-             ewrite(0,*) 'Surface element nr.:', sele
-             ewrite(0,*) 'has types', types(bc_type_list(:,sele)), 'periodic'
-             FLAbort("Can't have that.")
+          if (all(bc_type_list(:,sele)==0)) then
+             ! an internal (or periodic) boundary condition only
+             ! gets assigned if no other boundary condition type
+             ! has been assigned to this surface element
+             bc_type_list(:,sele)=j
           end if
-          
-          bc_type_list(:,sele)=j
           
         end if
       end do
@@ -1329,8 +1323,9 @@ contains
 
      end do
       
+     ! now let's search for internal bcs (this includes periodic boundaries)
       do j=1, size(types)
-        if (trim(types(j))=="periodic") exit
+        if (trim(types(j))=="internal") exit
       end do
       if (j<=size(types)) then
         do sele = 1, surface_element_count(field)
@@ -1340,15 +1335,14 @@ contains
           
           if(neigh(l_face_number)>0) then
             
-            if (any((bc_type_node_list(face_global_nodes(field, sele))/=0).and.&
-                    (bc_type_node_list(face_global_nodes(field, sele))/=j))) then
-                ewrite(0,*) 'Requested types:', types
-                ewrite(0,*) 'Of these boundary condition types only one'
-                ewrite(0,*) 'may be applied to each node.'
-                FLAbort("Sorry!")
+            if (all((bc_type_node_list(face_global_nodes(field, sele))==0).or.&
+                    (bc_type_node_list(face_global_nodes(field, sele))==j))) then
+              ! an internal (or periodic) boundary condition only
+              ! gets assigned if no other boundary condition type
+              ! has been assigned to these surface nodes (that isn't itself
+              ! an internal (or periodic) boundary condition)
+              bc_type_node_list(face_global_nodes(field, sele))=j
             end if
-            
-            bc_type_node_list(face_global_nodes(field, sele))=j
             
           end if
         end do
@@ -1400,8 +1394,9 @@ contains
 
      end do
       
+      ! now let's search for internal bcs (this includes periodic boundaries)
       do j=1, size(types)
-        if (trim(types(j))=="periodic") exit
+        if (trim(types(j))=="internal") exit
       end do
       if (j<=size(types)) then
         do sele = 1, surface_element_count(field)
@@ -1411,15 +1406,14 @@ contains
           
           if(neigh(l_face_number)>0) then
             
-            if (any((bc_type_node_list(:,face_global_nodes(field, sele))/=0).and.&
-                    (bc_type_node_list(:,face_global_nodes(field, sele))/=j))) then
-                ewrite(0,*) 'Requested types:', types
-                ewrite(0,*) 'Of these boundary condition types only one'
-                ewrite(0,*) 'may be applied to each node.'
-                FLAbort("Sorry!")
+            if (all((bc_type_node_list(:,face_global_nodes(field, sele))==0).or.&
+                    (bc_type_node_list(:,face_global_nodes(field, sele))==j))) then
+              ! an internal (or periodic) boundary condition only
+              ! gets assigned if no other boundary condition type
+              ! has been assigned to these surface nodes (that isn't itself
+              ! an internal (or periodic) boundary condition)
+              bc_type_node_list(:,face_global_nodes(field, sele))=j
             end if
-            
-            bc_type_node_list(:,face_global_nodes(field, sele))=j
             
           end if
         end do

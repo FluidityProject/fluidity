@@ -1925,7 +1925,7 @@ contains
         end if
 
         ! get the fields over the surface containing the bcs
-        call get_entire_boundary_condition(courant, (/"periodic"/), courant_bc, courant_bc_type)
+        call get_entire_boundary_condition(courant, (/"internal"/), courant_bc, courant_bc_type)
         
         do sele=1,surface_element_count(courant)
         
@@ -2303,7 +2303,8 @@ contains
       end if
 
       ! get the fields over the surface containing the bcs
-      call get_entire_boundary_condition(matdens, (/"weakdirichlet", "periodic     "/), matdens_bc, matdens_bc_type)
+      call get_entire_boundary_condition(matdens, (/"weakdirichlet", &
+                                                    "internal     "/), matdens_bc, matdens_bc_type)
 
       do sele=1,surface_element_count(courant)
       

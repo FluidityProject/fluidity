@@ -333,7 +333,7 @@ contains
 !       call get_entire_boundary_condition(t, (/ &
 !         "neumann      ", &
 !         "weakdirichlet", &
-!         "periodic     "/), t_bc, t_bc_types)
+!         "internal     "/), t_bc, t_bc_types)
 
       neigh=>ele_neigh(t, ele)
       x_neigh => ele_neigh(coordinate, ele)

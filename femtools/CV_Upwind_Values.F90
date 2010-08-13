@@ -571,7 +571,7 @@ contains
     call add_nelist(x_field%mesh)
     if(mesh_periodic(field)) then
       call add_nelist(field%mesh)
-      call get_boundary_condition_nodes(field, (/"periodic"/), field_bc_type)
+      call get_boundary_condition_nodes(field, (/"internal"/), field_bc_type)
     end if
 
     dim = mesh_dim(field)
@@ -782,7 +782,7 @@ contains
     field_bc_type = 0
     if(mesh_periodic(field)) then
       call add_nelist(x_field%mesh)
-      call get_boundary_condition_nodes(field, (/"periodic"/), field_bc_type)
+      call get_boundary_condition_nodes(field, (/"internal"/), field_bc_type)
     end if
 
     do i = 1, size(upwind_values, 1)
@@ -1064,7 +1064,7 @@ contains
       call add_nelist(x_field%mesh)
       if(bound.and.mesh_periodic(field)) then
         call add_nelist(field%mesh)
-        call get_boundary_condition_nodes(field, (/"periodic"/), field_bc_type)
+        call get_boundary_condition_nodes(field, (/"internal"/), field_bc_type)
       end if
     end if
     eles => null()
