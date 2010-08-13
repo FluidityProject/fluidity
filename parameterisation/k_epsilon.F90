@@ -136,7 +136,6 @@ subroutine keps_init(state)
     end do
 
     ! initialise epsilon field with minimum values
-    !eps_init = k_init**1.5 / ll_max   ! make eps_init a dependent variable
     scalarField => extract_scalar_field(state, "TurbulentDissipation")
     call get_option(trim(scalarField%option_path)// &
                     "/prognostic/initial_condition::WholeMesh/constant", eps_init)
@@ -181,10 +180,10 @@ subroutine keps_tke(state)
     type(scalar_field), pointer        :: source, absorption, kk, eps
     type(vector_field), pointer        :: positions, nu
     type(tensor_field), pointer        :: background_diff, kk_diff
-    type(element_type)                 :: shape_velo
+    type(element_type)                 :: shape_kk
     integer                            :: i, ele, bc
     real, allocatable, dimension(:)    :: detwei
-    real, allocatable, dimension(:,:,:):: dshape_velo
+    real, allocatable, dimension(:,:,:):: dshape_kk
     real, allocatable, dimension(:)    :: strain_ngi
     real, allocatable, dimension(:)    :: strain_loc
     real                               :: residual
@@ -208,22 +207,28 @@ subroutine keps_tke(state)
 
     do ele = 1, ele_count(nu)
 
-        shape_velo =  ele_shape(nu, ele)          ! Velocity element type
-        allocate( dshape_velo (ele_loc(nu, ele), ele_ngi(nu, ele), nu%dim) )
+        shape_kk =  ele_shape(kk, ele)          ! k element type
+        allocate( dshape_kk (ele_loc(nu, ele), ele_ngi(nu, ele), nu%dim) )
         allocate( detwei (ele_ngi(nu, ele) ) )
         allocate( strain_ngi (ele_ngi(nu, ele) ) )
         allocate( strain_loc (ele_loc(nu, ele) ) )
 
-        call transform_to_physical( positions, ele, shape_velo, dshape=dshape_velo, detwei=detwei )
+        call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
 
         ! Calculate TKE production using strain rate function
-        strain_ngi = double_dot_product(dshape_velo, ele_val(nu, ele) )
-        strain_loc = shape_rhs( shape_velo, detwei * strain_ngi )
+        strain_ngi = double_dot_product(dshape_kk, ele_val(nu, ele) )
+        strain_loc = shape_rhs( shape_kk, detwei * strain_ngi )
+        !ewrite(1,*) "shape_kk dim/ngi/loc/deg: ", shape_kk%dim, shape_kk%ngi, shape_kk%loc, shape_kk%degree
+        !ewrite(1,*) "shape_kk fn: ", shape_kk%n
+        !ewrite(1,*) "detwei: ", detwei
+        !ewrite(1,*) "EV: ", ele_val(EV, ele)
+        !ewrite(1,*) "node, strain_ngi: ", ele, strain_ngi
+        !ewrite(1,*) "node, strain_loc: ", ele, strain_loc
 
         ! Sum components of tensor. Ensure non-negative.
         call addto(source, ele_nodes(nu, ele), max(ele_val(EV, ele) * strain_loc, 0.) )
 
-        deallocate( dshape_velo, detwei, strain_ngi, strain_loc )
+        deallocate( dshape_kk, detwei, strain_ngi, strain_loc )
 
     end do
 
@@ -234,7 +239,7 @@ subroutine keps_tke(state)
             call set(absorption, i, eps%val(i) / kk%val(i))
             ! Get a copy of old source, for eps equation
             call set(P,  i, source%val(i))
-            ! Get a copy of old k and source, for eps equation, before we solve k.
+            ! Get a copy of old k for eps equation, before we solve k.
             call set(tke_old, i, max(kk%val(i), fields_min) )
         end do
     case ("implicit")
@@ -246,7 +251,7 @@ subroutine keps_tke(state)
             call set(absorption, i, max(0.0, residual) )
             ! Get a copy of old source, for eps equation
             call set(P,  i, source%val(i))
-            ! Get a copy of old k and source, for eps equation, before we solve k.
+            ! Get a copy of old k for eps equation, before we solve k.
             call set(tke_old, i, max(kk%val(i), fields_min) )
         end do
     case default
@@ -274,8 +279,13 @@ subroutine keps_tke(state)
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
-    call set(kk_diff, kk_diff%dim, kk_diff%dim, EV, scale=1. / sigma_k)
-    call addto(kk_diff, background_diff)
+    !call addto(kk_diff, background_diff)
+    ! Check components of viscosity
+    do i = 1, kk_diff%dim
+        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
+        ewrite_minmax(kk_diff%val(i,i,:))
+    end do
+
 
     ewrite_minmax(tke_old)
     ewrite_minmax(P)
@@ -319,8 +329,6 @@ subroutine keps_eps(state)
     select case (src_abs)
     case ("explicit")
         do i = 1, nnodes
-            ! re-construct eps at "old" timestep
-            eps%val(i) = max( c_mu * tke_old%val(i)**2. / EV%val(i), fields_min )
             ! compute RHS terms in epsilon equation
             call set(absorption, i, c_eps_2 * eps%val(i) / tke_old%val(i))
             ! P is kk source term at old timestep
@@ -328,8 +336,6 @@ subroutine keps_eps(state)
         end do
     case ("implicit")
         do i = 1, nnodes
-            ! re-construct eps at "old" timestep
-            eps%val(i) = max( c_mu * tke_old%val(i)**2. / EV%val(i), fields_min )
             ! compute RHS terms in epsilon equation
             residual = c_eps_2 * eps%val(i) / tke_old%val(i) - &
                        c_eps_1 * eps%val(i) / tke_old%val(i) * P%val(i)
@@ -349,8 +355,12 @@ subroutine keps_eps(state)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
-    call set(eps_diff, eps_diff%dim, eps_diff%dim, EV, scale=1./sigma_eps)
-    call addto(eps_diff, background_diff)
+    !call addto(eps_diff, background_diff)
+    ! Check components of viscosity
+    do i = 1, eps_diff%dim
+        call set(eps_diff, i,i, EV, scale=1./sigma_eps)
+        ewrite_minmax(eps_diff%val(i,i,:))
+    end do
 
     ! Add special boundary conditions to eps field, if selected.
     if(do_eps_bc) then
@@ -490,6 +500,7 @@ subroutine keps_eddyvisc(state)
 
     ewrite_minmax(kk)
     ewrite_minmax(eps)
+    ewrite_minmax(EV)
 
     ! Calculate new eddy viscosity and lengthscale
     call set(viscosity, background)
@@ -543,6 +554,7 @@ subroutine keps_eddyvisc(state)
 
     ewrite_minmax(kk)
     ewrite_minmax(eps)
+    ewrite_minmax(EV)
 
 end subroutine keps_eddyvisc
 
@@ -937,6 +949,7 @@ function double_dot_product(du_t, nu)
 
        S = matmul( nu, du_t(:,gi,:) )
        T = S
+       !print *, "gi, S: ", gi, S
        S = S + transpose(S)
        double_dot_product(gi) = 0.
 

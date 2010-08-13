@@ -516,15 +516,11 @@ contains
 
              ! do we have the k-epsilon 2 equation turbulence model?
              if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-                if (ITS==nonlinear_iterations) then
-                    if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
-                        call keps_tke(state(1))
-                    else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
-                        call keps_eps(state(1))
-                    endif
-                else
-                    cycle
-                end if
+                if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
+                    call keps_tke(state(1))
+                else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
+                    call keps_eps(state(1))
+                endif
              end if
 
              call get_option(trim(field_optionpath_list(it))//&
@@ -605,14 +601,8 @@ contains
 
           ! k_epsilon after the solve on Epsilon has finished
           if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-            if (ITS==nonlinear_iterations) then
-                ! Update the diffusivity, only at the end of the loop ready for
-                ! the next timestep. We do NOT want to be twiddling
-                ! diffusivity/viscosity half way through a non-linear iteration
-                call keps_eddyvisc(state(1))
-            else
-                cycle
-            end if
+            ! Update the diffusivity, at each iteration.
+            call keps_eddyvisc(state(1))
           end if
 
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
