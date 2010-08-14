@@ -277,7 +277,7 @@ contains
     
     shape => ele_shape(sfield, 1)
     if(ele_numbering_family(shape) /= FAMILY_SIMPLEX .or. shape%degree /= 1) then
-      FLAbort("heaviside_integral_new requires a linear triangle or tetrahedron input mesh")
+      FLAbort("heaviside_integral_new requires a linear simplex input mesh")
     end if
     
     select case(positions%dim)
@@ -288,11 +288,62 @@ contains
           & mesh = sfield%mesh)
       case(2)
         integral = heaviside_integral_tri(sfield, bound, positions)
+      case(1)
+        integral = heaviside_integral_line(sfield, bound, positions)
       case default
-        FLAbort("heaviside_integral_new requires a linear triangle or tetrahedron input mesh")
+        FLAbort("heaviside_integral_new requires a linear simplex input mesh")
     end select
     
   end function heaviside_integral_new
+
+  function heaviside_integral_line(sfield, bound, positions) result(integral)
+    type(scalar_field), intent(in) :: sfield
+    real, intent(in) :: bound
+    type(vector_field), intent(in) :: positions
+    
+    real :: integral
+    
+    integer :: ele
+    logical, dimension(2) :: node_integrate
+    real :: sub_coord
+    real, dimension(2) :: node_vals
+    real, dimension(1, 2) :: coords
+    
+    assert(sfield%mesh == positions%mesh)
+    
+    integral = 0.0
+    do ele = 1, ele_count(sfield)
+      if(.not. element_owned(sfield, ele)) cycle
+    
+      assert(ele_loc(sfield, ele) == 2)
+      coords = ele_val(positions, ele)
+      node_vals = ele_val(sfield, ele)
+      node_integrate = node_vals > bound
+      
+      if(node_integrate(1)) then
+        if(node_integrate(2)) then
+          ! Integrate the whole element
+          integral = integral + abs(coords(1, 1) - coords(1, 2))
+        else
+          ! Integrate part of the element
+          sub_coord = ((bound - node_vals(1)) * (coords(1, 2) - coords(1, 1)) / (node_vals(2) - node_vals(1))) + coords(1, 1)
+          integral = integral + abs(coords(1, 1) - sub_coord)
+        end if
+      else if(node_integrate(2)) then
+        ! Integrate part of the element
+        sub_coord = ((bound - node_vals(2)) * (coords(1, 1) - coords(1, 2)) / (node_vals(1) - node_vals(2))) + coords(1, 2)
+        integral = integral + abs(coords(1, 2) - sub_coord)
+      !else
+      !  ! Element not integrated
+      end if
+    end do
+    
+    call allsum(integral, communicator = halo_communicator(sfield))
+    
+    ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bound
+    ewrite(2, *) "Heaviside integral > bound = ", integral
+  
+  end function heaviside_integral_line
 
   function heaviside_integral_tri(sfield, bound, positions) result(integral)
     type(scalar_field), intent(in) :: sfield
@@ -389,6 +440,8 @@ contains
           FLAbort("Unexpected number of integrated nodes in triangle")
       end select
     end do
+    
+    call allsum(integral, communicator = halo_communicator(sfield))
     
     ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bound
     ewrite(2, *) "Heaviside integral > bound = ", integral
@@ -566,9 +619,7 @@ contains
 
        call allsum(integral)
     else
-       integral=0.0
-       ewrite(2,*) 'Gone into heaviside_integral but it ', &
-            & 'only works for tets so have returned zero.'
+       FLAbort("Gone into heaviside_integral but it only works for tets")
     endif
 
     return

@@ -1354,12 +1354,19 @@ contains
       case default
         FLAbort("Unknown element type!")
       end select
+    case(1)
+      select case(nloc)
+        case(2, 3)
+          quaddegree = 8  ! simplices
+        case default
+          FLAbort("Unknown element type!")
+      end select
     case(0)
       ewrite(-1, *) "For vtu filename: " // trim(filename)
       FLExit("vtu not found")
     case default
-      ewrite(-1, *) "Dimension: ", dim
-      FLAbort("Only 2 or 3 dimensions implemented currently.")
+      ewrite(-1, *) "For dimension: ", dim
+      FLAbort("Invalid dimension")
     end select
     if (present(quad_degree)) then
        quaddegree=quad_degree
