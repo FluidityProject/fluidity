@@ -1537,6 +1537,7 @@ the conservative potential must be identical and degree one
 homogenenous (see
 geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).</a:documentation>
         <element name="coriolis">
+          <a:documentation>Options relating to the Coriolis acceleration</a:documentation>
           <optional>
             <choice>
               <element name="mesh">
@@ -1689,27 +1690,48 @@ the L2 norm of the residual</a:documentation>
             <ref name="grandy_interpolation"/>
           </choice>
           <optional>
-            <element name="project_pressure">
-              <a:documentation>Additionally project the Pressure field. This also enables better
-initial guesses for the decomposition solvers.</a:documentation>
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-              <optional>
-                <element name="scale_factor">
-                  <a:documentation>Scale the pressure field by some factor before interpolation,
-and apply the inverse after interpolation. This should be set
-if the pressure field is divided by some reference value
-e.g., in a shallow water with gravity magnitude g, this should
-take the value g. This enables better initial guesses for the
-decomposition solvers, and means that non degree one
-homonogeneous interpolants can be used for the conservative
-potential and pressure, while still being balance preserving.</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <ref name="comment"/>
-            </element>
+            <choice>
+              <element name="project_pressure">
+                <a:documentation>Supply a Pressure field. This enables better initial guesses for
+the decomposition solvers, and also allows decomposed interpolants
+for Pressure (see
+geostrophic_interpolation/conservative_potential/decompose and
+geostrophic_interpolation/conservative_potential/interpolate_boundary).</a:documentation>
+                <attribute name="name">
+                  <value>Pressure</value>
+                </attribute>
+                <optional>
+                  <ref name="geostrophic_interpolation_project_pressure_scale_factor"/>
+                </optional>
+                <ref name="comment"/>
+              </element>
+              <element name="project_pressure">
+                <a:documentation>Supply a Pressure field. This enables better initial guesses for
+the decomposition solvers, and also allows decomposed interpolants
+for Pressure (see
+geostrophic_interpolation/conservative_potential/decompose and
+geostrophic_interpolation/conservative_potential/interpolate_boundary).</a:documentation>
+                <attribute name="name">
+                  <value>LayerThickness</value>
+                </attribute>
+                <ref name="geostrophic_interpolation_project_pressure_scale_factor"/>
+                <ref name="comment"/>
+              </element>
+              <element name="project_pressure">
+                <a:documentation>Supply a Pressure field. This enables better initial guesses for
+the decomposition solvers, and also allows decomposed interpolants
+for Pressure (see
+geostrophic_interpolation/conservative_potential/decompose and
+geostrophic_interpolation/conservative_potential/interpolate_boundary).</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <optional>
+                  <ref name="geostrophic_interpolation_project_pressure_scale_factor"/>
+                </optional>
+                <ref name="comment"/>
+              </element>
+            </choice>
           </optional>
           <optional>
             <choice>
@@ -1868,6 +1890,19 @@ over-writing existing vtus</a:documentation>
         <ref name="comment"/>
       </element>
     </choice>
+  </define>
+  <define name="geostrophic_interpolation_project_pressure_scale_factor">
+    <element name="scale_factor">
+      <a:documentation>Scale the pressure field by some factor before interpolation,
+and apply the inverse after interpolation. This should be set
+if the pressure field is divided by some reference value
+e.g., in a shallow water with gravity magnitude g, this should
+take the value g. This enables better initial guesses for the
+decomposition solvers, and means that non degree one
+homonogeneous interpolants can be used for the conservative
+potential and pressure, while still being balance preserving.</a:documentation>
+      <ref name="real"/>
+    </element>
   </define>
   <define name="galerkin_projection_honour_strong_bcs">
     <element name="honour_strong_boundary_conditions">

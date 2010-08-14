@@ -1287,6 +1287,7 @@ interpolation_algorithm_vector =
       ## homogenenous (see
       ## geostrophic_interpolation/conservative_potential/project_pressure/scale_factor).
       element geostrophic_interpolation {
+        ## Options relating to the Coriolis acceleration
         element coriolis {
            (
                ## The mesh used for the Coriolis acceleration. Defaults to the
@@ -1405,23 +1406,38 @@ interpolation_algorithm_vector =
               consistent_interpolation|
               grandy_interpolation
            ),
-           ## Additionally project the Pressure field. This also enables better
-           ## initial guesses for the decomposition solvers.
-           element project_pressure {
-              attribute name { xsd:string },
-              ## Scale the pressure field by some factor before interpolation,
-              ## and apply the inverse after interpolation. This should be set
-              ## if the pressure field is divided by some reference value
-              ## e.g., in a shallow water with gravity magnitude g, this should
-              ## take the value g. This enables better initial guesses for the
-              ## decomposition solvers, and means that non degree one
-              ## homonogeneous interpolants can be used for the conservative
-              ## potential and pressure, while still being balance preserving.
-              element scale_factor {
-                 real
-              }?,
-              comment
-           }?,
+           (
+              ## Supply a Pressure field. This enables better initial guesses for
+              ## the decomposition solvers, and also allows decomposed interpolants
+              ## for Pressure (see
+              ## geostrophic_interpolation/conservative_potential/decompose and
+              ## geostrophic_interpolation/conservative_potential/interpolate_boundary).
+              element project_pressure {
+                 attribute name { "Pressure" },
+                 geostrophic_interpolation_project_pressure_scale_factor?,
+                 comment
+              }|
+              ## Supply a Pressure field. This enables better initial guesses for
+              ## the decomposition solvers, and also allows decomposed interpolants
+              ## for Pressure (see
+              ## geostrophic_interpolation/conservative_potential/decompose and
+              ## geostrophic_interpolation/conservative_potential/interpolate_boundary).
+              element project_pressure {
+                 attribute name { "LayerThickness" },
+                 geostrophic_interpolation_project_pressure_scale_factor,
+                 comment
+              }|
+              ## Supply a Pressure field. This enables better initial guesses for
+              ## the decomposition solvers, and also allows decomposed interpolants
+              ## for Pressure (see
+              ## geostrophic_interpolation/conservative_potential/decompose and
+              ## geostrophic_interpolation/conservative_potential/interpolate_boundary).
+              element project_pressure {
+                 attribute name { xsd:string },
+                 geostrophic_interpolation_project_pressure_scale_factor?,
+                 comment
+              }       
+           )?,
            (
               ## Decompose the conservative potential into a component constant
               ## on the boundary, and a residual.
@@ -1558,6 +1574,21 @@ interpolation_algorithm_vector =
         comment
       }
     )
+
+geostrophic_interpolation_project_pressure_scale_factor =
+   (
+      ## Scale the pressure field by some factor before interpolation,
+      ## and apply the inverse after interpolation. This should be set
+      ## if the pressure field is divided by some reference value
+      ## e.g., in a shallow water with gravity magnitude g, this should
+      ## take the value g. This enables better initial guesses for the
+      ## decomposition solvers, and means that non degree one
+      ## homonogeneous interpolants can be used for the conservative
+      ## potential and pressure, while still being balance preserving.
+      element scale_factor {
+         real
+      }
+   )
     
 galerkin_projection_honour_strong_bcs =
    (

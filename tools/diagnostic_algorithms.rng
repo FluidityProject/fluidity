@@ -861,10 +861,7 @@ with a strong Dirichlet boundary condition of zero on all boundaries.</a:documen
       <element name="mass">
         <a:documentation>Options relating to the mass matrix</a:documentation>
         <optional>
-          <element name="lump_mass">
-            <a:documentation>Lump the mass matrix. Required for continuous fields.</a:documentation>
-            <ref name="comment"/>
-          </element>
+          <ref name="galerkin_projection_mass_options"/>
         </optional>
       </element>
       <optional>

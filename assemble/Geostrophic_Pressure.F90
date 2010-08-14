@@ -1007,7 +1007,7 @@ contains
   end subroutine add_cmc_matrix
     
   function geopressure_divergence(state, u_mesh, gp_mesh, positions) result(ct_gp_m)
-    !!< Assemble the divergence operator
+    !!< Assemble the geopressure divergence operator
   
     type(state_type), intent(inout) :: state
     type(mesh_type), intent(inout) :: u_mesh
@@ -1037,15 +1037,15 @@ contains
       type(vector_field), intent(in) :: positions
       
       integer, dimension(:), pointer :: gp_nodes, u_nodes
-      real, dimension(ele_ngi(gp_mesh, ele)) :: detwei
-      real, dimension(ele_loc(u_mesh, ele), ele_ngi(u_mesh, ele), mesh_dim(u_mesh)) :: du_shape
+      real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(gp_mesh, ele), ele_ngi(positions, ele), positions%dim) :: dgp_shape
       
-      call transform_to_physical(positions, ele, ele_shape(u_mesh, ele), &
-        & dshape = du_shape, detwei = detwei)
+      call transform_to_physical(positions, ele, ele_shape(gp_mesh, ele), &
+        & dshape = dgp_shape, detwei = detwei)
         
       u_nodes => ele_nodes(u_mesh, ele)
       gp_nodes => ele_nodes(gp_mesh, ele)
-      call addto(ct_gp_m, gp_nodes, u_nodes, spread(shape_dshape(ele_shape(gp_mesh, ele), du_shape, detwei), 1, 1))
+      call addto(ct_gp_m, gp_nodes, u_nodes, spread(-dshape_shape(dgp_shape, ele_shape(u_mesh, ele), detwei), 1, 1))
       
     end subroutine assemble_geopressure_divergence
     
@@ -1523,13 +1523,11 @@ contains
     
   end function velocity_from_coriolis_val_multiple
 
-  subroutine geostrophic_velocity(matrices, state, velocity, p, lump_mass, solver_path)  
+  subroutine geostrophic_velocity(matrices, state, velocity, p, solver_path)  
     type(cmc_matrices), intent(in) :: matrices
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
-    !! Whether to lump mass in the projection of Coriolis for Velocity
-    logical, optional, intent(in) :: lump_mass
     character(len = *), optional, intent(in) :: solver_path
     
     type(vector_field) :: coriolis
@@ -1541,7 +1539,7 @@ contains
     call compute_conservative(matrices, coriolis, p)
     
     call velocity_from_coriolis(state, coriolis, velocity, &
-      & lump_mass = lump_mass, solver_path = solver_path)
+      & lump_mass = matrices%lump_mass, solver_path = solver_path)
     call deallocate(coriolis)
     
   end subroutine geostrophic_velocity
@@ -2493,7 +2491,7 @@ contains
 
     character(len = OPTION_PATH_LEN) :: base_path, u_mesh_name, p_mesh_name
     integer :: dim, stat
-    type(cmc_matrices) :: matrices
+    type(cmc_matrices) :: aux_matrices, matrices
     type(mesh_type), pointer :: new_p_mesh, new_u_mesh, old_p_mesh, old_u_mesh
     type(scalar_field) :: new_p, old_w, old_p, new_w
     type(vector_field) :: coriolis, conserv, new_res, old_res
@@ -2650,10 +2648,6 @@ contains
       end if
     end if
     call deallocate(conserv)
-        
-    call deallocate(coriolis)
-    call deallocate(old_bc_velocity)
-    deallocate(old_bc_velocity)
     
     ! Insert the horizontal Velocity residual    
     
@@ -2707,21 +2701,45 @@ contains
         ! Decompose the Pressure
       
         old_aux_p_decomp(1) = old_aux_p
-        call allocate(old_aux_p_decomp(2), old_p_mesh, trim(old_aux_p%name) // gi_p_decomp_postfix)
+        call allocate(old_aux_p_decomp(2), old_aux_p%mesh, trim(old_aux_p%name) // gi_p_decomp_postfix)
         old_aux_p_decomp(2)%option_path = old_aux_p%option_path
         
         new_aux_p_decomp(1) = new_aux_p
-        call allocate(new_aux_p_decomp(2), new_p_mesh, trim(new_aux_p%name) // gi_p_decomp_postfix)
+        call allocate(new_aux_p_decomp(2), new_aux_p%mesh, trim(new_aux_p%name) // gi_p_decomp_postfix)
         new_aux_p_decomp(2)%option_path = new_aux_p%option_path
         
         if(have_option(trim(base_path) // "/conservative_potential/decompose/boundary_mean")) then
-          call decompose_p_mean(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
-            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1), &
-            & solver_path = trim(base_path) // "/conservative_potential/decompose")
+          if(old_p%mesh == old_aux_p%mesh) then
+            call decompose_p_mean(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
+              & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1), &
+              & solver_path = trim(base_path) // "/conservative_potential/decompose")
+          else          
+            call decompose_p_mean(matrices, old_p, old_positions, old_p_decomp, &
+              & bc_p = new_p_decomp(1), &
+              & solver_path = trim(base_path) // "/conservative_potential/decompose")
+            call allocate(aux_matrices, old_state, coriolis, old_aux_p, &
+              & option_path = old_p%option_path, bcfield = old_bc_velocity, add_cmc = .true.)
+            call decompose_p_mean(aux_matrices, old_aux_p, old_positions, old_aux_p_decomp, &
+              & bc_p = new_aux_p_decomp(1), &
+              & solver_path = trim(base_path) // "/conservative_potential/decompose")
+            call deallocate(aux_matrices)
+          end if
         else if(have_option(trim(base_path) // "/conservative_potential/decompose/l2_minimised_residual")) then
-          call decompose_p_optimal(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
-            & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1), &
-            & solver_path = trim(base_path) // "/conservative_potential/decompose")
+          if(old_p%mesh == old_aux_p%mesh) then
+            call decompose_p_optimal(matrices, old_p, old_aux_p, old_positions, old_p_decomp, old_aux_p_decomp, &
+              & bc_p_1 = new_p_decomp(1), bc_p_2 = new_aux_p_decomp(1), &
+              & solver_path = trim(base_path) // "/conservative_potential/decompose")
+          else
+            call decompose_p_optimal(matrices, old_p, old_positions, old_p_decomp, &
+              & bc_p = new_p_decomp(1), &
+              & solver_path = trim(base_path) // "/conservative_potential/decompose")
+            call allocate(aux_matrices, old_state, coriolis, old_aux_p, &
+              & option_path = old_p%option_path, bcfield = old_bc_velocity, add_cmc = .true.)
+            call decompose_p_optimal(aux_matrices, old_aux_p, old_positions, old_aux_p_decomp, &
+              & bc_p = new_aux_p_decomp(1), &
+              & solver_path = trim(base_path) // "/conservative_potential/decompose")
+            call deallocate(aux_matrices)
+          end if
         else
           FLAbort("Unable to determine conservative potential decomposition type")
         end if
@@ -2762,7 +2780,12 @@ contains
       if(have_option(trim(base_path) // "/conservative_potential/interpolate_boundary")) then
         ! Interpolate boundary conditions
         if(aux_p) then
-          call derive_interpolated_p_dirichlet(old_p, old_aux_p, old_positions, new_p, new_aux_p, new_positions)
+          if(old_p%mesh == old_aux_p%mesh) then
+            call derive_interpolated_p_dirichlet(old_p, old_aux_p, old_positions, new_p, new_aux_p, new_positions)
+          else
+            call derive_interpolated_p_dirichlet(old_p, old_positions, new_p, new_positions)
+            call derive_interpolated_p_dirichlet(old_aux_p, old_positions, new_aux_p, new_positions)
+          end if
         else
           call derive_interpolated_p_dirichlet(old_p, old_positions, new_p, new_positions)
         end if
@@ -2771,7 +2794,10 @@ contains
       call insert_for_interpolation(old_state, old_p)
       call insert_for_interpolation(new_state, new_p)
     end if
-    
+        
+    call deallocate(coriolis)
+    call deallocate(old_bc_velocity)
+    deallocate(old_bc_velocity)    
     call deallocate(matrices)
     
     if(debug_vtus) then

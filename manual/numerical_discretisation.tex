@@ -1439,7 +1439,7 @@ momentum equation. In the continuous space, this is equivalent to the Helmholtz
 decomposition of the forcing terms in the momentum equation, and takes the form:
 
 \begin{align}
-  \vec{F} = \vec{F}_* + \nabla p, \\
+  \vec{F} = \vec{F}_* - \nabla p, \\
   \nabla \cdot \vec{F} = 0,
 \end{align}
 
@@ -1451,10 +1451,10 @@ all other forcing terms $\vec{F}_* - \vec{B}_*$, yields:
 
 \begin{subequations}
   \begin{equation}\label{eqn:bp_helmholtz}
-    \vec{B} = \vec{B}_* + \nabla p_b,
+    \vec{B} = \vec{B}_* - \nabla p_b,
   \end{equation}
   \begin{equation}
-    \vec{F} - \vec{B} = \vec{F}_* - \vec{B}_* + \nabla p_r,
+    \vec{F} - \vec{B} = \vec{F}_* - \vec{B}_* - \nabla p_r,
   \end{equation}
   \begin{equation}
     \nabla \cdot \vec{B} = 0,
@@ -1468,7 +1468,7 @@ Taking the divergence of equation \eqref{eqn:bp_helmholtz} yields a Poisson equa
 balanced pressure component $p_b$:
 
 \begin{equation}\label{eqn:bp_poisson}
-  0 = \nabla \cdot \vec{B}_* + \nabla^2 p_b.
+  0 = \nabla \cdot \vec{B}_* - \nabla^2 p_b.
 \end{equation}
 
 For no-slip boundary conditions on $\partial \Omega$ bounding
@@ -1480,7 +1480,7 @@ and Coriolis accelerations. Performing a continuous Galerkin discretisation of e
 \eqref{eqn:bp_poisson} subject to these boundary conditions yields:
 
 \begin{equation}\label{eqn:bp_solve}
-  \int_\Omega \nabla \xi_i \nabla \xi_j \dvec p_b = - \int_\Omega \nabla \xi_i \cdot \vec{B}_*,
+  \int_\Omega \nabla \xi_i \nabla \xi_j \dvec p_b = \int_\Omega \nabla \xi_i \cdot \vec{B}_*,
 \end{equation}
 
 where the $\xi_i$ are the balanced pressure elemental basis functions. Hence equation

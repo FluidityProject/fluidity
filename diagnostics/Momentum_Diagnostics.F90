@@ -495,7 +495,7 @@ contains
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     call allocate(matrices, state, velocity, source_field, option_path = path, add_cmc = .false.)
     
-    call geostrophic_velocity(matrices, state, v_field, source_field) 
+    call geostrophic_velocity(matrices, state, v_field, source_field, solver_path = trim(path) // "/mass") 
     
     call deallocate(matrices)
     

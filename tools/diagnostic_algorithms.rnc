@@ -639,10 +639,7 @@ geostrophic_velocity_algorithm =
          scalar_source_field,         
          ## Options relating to the mass matrix
          element mass {
-            ## Lump the mass matrix. Required for continuous fields.
-            element lump_mass {
-               comment
-            }?
+           galerkin_projection_mass_options?
          },
          ## Integrate the divergence operator by parts
          element integrate_divergence_by_parts {
