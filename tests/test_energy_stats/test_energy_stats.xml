@@ -113,26 +113,7 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
   
 # Background Potential Energy from statfile
 # c.f. Tseng and Ferziger, Physics of Fluids, 2001
-  no_bins = len(stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"])
-  # get temp bin bounds (cf flml) and make them density rather than temperature
-  min_bound = -0.5; max_bound = 0.5
-  bounds = [T for T in [min_bound+((max_bound-min_bound)*i/(no_bins-2)) for i in range(no_bins-1)]]
-  bounds.insert(0,-1E10)
-# get pdfs and z_rs at each time  (note will neglect top and bottom bin in calculation of z_r)
-  z_r = []
-  for i in range(len(stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][0])):
-    pdf = [stat["fluid"]["Temperature"]["mixing_bins%normalised_cv"][j][i] for j in range(0,no_bins)]
-    pdf[-2] = pdf[-2]+pdf[-1] # add final bin in to second to final bin so pdf[-2] is volume with -0.49\leqT\leq0.5 not just -0.49\leqT\lt0.5
-    pdf[1] = pdf[0]+pdf[1] # add bottom two bins so pdf[1] is volume with T\lt0.01 as if some fluid has T so that if falls in bottom bin 
-                           # this will muck up calculation (recall overshoot can be very very small - tolerance is machine precision)
-    z_r.append([0]) # first z_r will be zero, corresponds to maximum density
-    for j in range(2,no_bins):
-      z_r[-1].append(H*sum([(bounds[q+1]-bounds[q])*pdf[q] for q in range(1,j)]))
-  rho_bounds = [rho_0*(1-(alpha*(T - T_0))) for T in bounds]
   BPE_mixing_stats = []
-  for j in range(len(z_r)):
-    integral = scipy.integrate.simps([z_r[j][i]*rho_bounds[i+1] for i in range(len(z_r[j]))])
-    BPE_mixing_stats.append(g*H*L*integral)
   
 # Potential energy diffused through boundaries 
   PEflux = stat["fluid"]["GravitationalPotentialEnergyDensity"]["surface_integral%PEFlux"]*kappa
@@ -175,10 +156,10 @@ for statfile in ['lock_exchange_2d.stat', 'lock_exchange_2d_parallel.stat']:
 
   energy_stats.append([PE, PEflux, DD, KE, DT, VD, E_t, totalE, BPE_mixing_stats, BPE])
 
-print 'E total difference serial first timestep, last time step: ', energy_stats[0][-2][0], energy_stats[0][-2][-1]
-print 'dE/dt difference serial first timestep, last time step: ', energy_stats[0][-3][0], energy_stats[0][-3][-1] 
-print 'E total difference parallel first timestep, last time step: ', energy_stats[1][-2][0], energy_stats[1][-2][-1]
-print 'dE/dt difference parallel first timestep, last time step: ', energy_stats[1][-3][0], energy_stats[1][-3][-1]   
+print 'E total difference serial first timestep, last time step: ', energy_stats[0][7][0], energy_stats[0][7][-1]
+print 'dE/dt difference serial first timestep, last time step: ', energy_stats[0][6][0], energy_stats[0][6][-1] 
+print 'E total difference parallel first timestep, last time step: ', energy_stats[1][7][0], energy_stats[1][7][-1]
+print 'dE/dt difference parallel first timestep, last time step: ', energy_stats[1][6][0], energy_stats[1][6][-1]   
 
 #########################################################
 #########################################################
@@ -214,12 +195,15 @@ print 'PE: ', PE
 print 'PE stat serial, difference: ', energy_stats[0][0][0], ', ', abs(PE-energy_stats[0][0][0])
 print 'PE stat parallel, difference: ', energy_stats[1][0][0], ', ', abs(PE-energy_stats[1][0][0])
 print 'BPE: ', BPE
-print 'BPE from mixing stats serial, difference: ', energy_stats[0][-2][0], ', ', abs(BPE-energy_stats[0][-2][0])
-print 'BPE from mixing stats parallel, difference: ', energy_stats[1][-2][0], ', ', abs(BPE-energy_stats[1][-2][0])
+#print 'BPE from mixing stats serial, difference: ', energy_stats[0][-2][0], ', ', abs(BPE-energy_stats[0][-2][0])
+#print 'BPE from mixing stats parallel, difference: ', energy_stats[1][-2][0], ', ', abs(BPE-energy_stats[1][-2][0])
 print 'BPE stat serial, difference: ', energy_stats[0][-1][0], ', ', abs(BPE-energy_stats[0][-1][0])
 
-PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-2][0]), abs(BPE-energy_stats[0][-1][0])]]
-PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0])])
+PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-1][0])]]
+PE_error_1.append([abs(PE-energy_stats[1][0][0])])
+# to be re-included when sorted out BPE from mixing_stats
+#PE_error_1 = [[abs(PE-energy_stats[0][0][0]), abs(BPE-energy_stats[0][-2][0]), abs(BPE-energy_stats[0][-1][0])]]
+#PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0])])
 
 #########################################################
 #########################################################
@@ -231,10 +215,10 @@ PE_error_1.append([abs(PE-energy_stats[1][0][0]), abs(BPE-energy_stats[0][-2][0]
 # (first output value) and final time
 # for all fields except BPE
 
-names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDissipation', 'dE/dt', 'total Energy', 'BPE from mixing stats']
-serial_parallel_error = [[abs(energy_stats[0][i][0] - energy_stats[1][i][0]) for i in range(len(energy_stats[0])-1)]]
-serial_parallel_error.append([abs(energy_stats[0][i][-1] - energy_stats[1][i][-1]) for i in range(len(energy_stats[0])-1)])
-for i in range(len(energy_stats[0])-1): 
+names = ['PotentialEnergyDensity', 'PotentialEnergyDensitySurfaceFlux', 'DiffusiveDissipation', 'KineticEnergy', 'KineticEnergySurfaceFlux', 'ViscousDissipation', 'dE/dt', 'total Energy'] #, 'BPE from mixing stats'] 
+serial_parallel_error = [[abs(energy_stats[0][i][0] - energy_stats[1][i][0]) for i in range(len(energy_stats[0])-2)]] #len(energy_stats[0])-1
+serial_parallel_error.append([abs(energy_stats[0][i][-1] - energy_stats[1][i][-1]) for i in range(len(energy_stats[0])-2)]) #len(energy_stats[0])-1
+for i in range(len(energy_stats[0])-2): #len(energy_stats[0])-1
   print names[i]+' serial-parallel error start, end: ', serial_parallel_error[0][i], ', ', serial_parallel_error[1][i]
   
 #########################################################
@@ -245,15 +229,15 @@ for i in range(len(energy_stats[0])-1):
 
 # compare BPE from mixing stats (serial) and BPE direct calculation in stats 
 # (compare serial and parallel values so don't need to make that comparison too)
-ms_error = [abs(energy_stats[0][-2][i]-energy_stats[0][-1][i]) for i in range(len(energy_stats[0][-1]))]
-print 'difference between BPE from mixing stats (serial) and BPE direct calculation in stats'
-print ms_error
+#ms_error = [abs(energy_stats[0][-2][i]-energy_stats[0][-1][i]) for i in range(len(energy_stats[0][-1]))]
+#print 'difference between BPE from mixing stats (serial) and BPE direct calculation in stats'
+#print ms_error
 
 #########################################################
 #########################################################
 #########################################################
 
-errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
+errors = [energy_stats, serial_parallel_error, PE_error_1]#, ms_error]
 
     </variable>
   </variables>
@@ -262,15 +246,15 @@ errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
       assert (times[0]-times[1]) &lt; 1.E-8
     </test>
     <test name="check difference in total E and E_t in serial at first time step" language="python">
-      for err in errors[0][0][-4][0], errors[0][0][-3][0]: print err; assert abs(err) &lt; 1.E-6
+      for err in errors[0][0][7][0], errors[0][0][6][0]: print err; assert abs(err) &lt; 1.E-6
     </test>
-    <test name="check difference in total E in parallel at first and last time step" language="python">
-      for err in errors[0][1][-4][-1], errors[0][1][-3][-1]: print err; assert abs(err) &lt; 1.E-6
+    <test name="check difference in total E and E_t in parallel at first and last time step" language="python">
+      for err in errors[0][1][7][-1], errors[0][1][6][-1]: print err; assert abs(err) &lt; 1.E-6
     </test>
-    <test name="check difference between parallel and serial at first time step" language="python">
+    <test name="check difference in individual terms between parallel and serial at first time step" language="python">
       for err in errors[1][0][:6]: print err; assert err &lt; 1.E-6
     </test>
-    <test name="check difference between parallel and serial at end of run" language="python">
+    <test name="check difference in individual terms between parallel and serial at end of run" language="python">
       for err in errors[1][1][:6]: print err; assert err &lt; 1.E-6
     </test>  
     <test name="check error to PE/BPE in serial at first time step" language="python">
@@ -278,9 +262,6 @@ errors = [energy_stats, serial_parallel_error, PE_error_1, ms_error]
     </test>
     <test name="check error to PE/BPE in parallel at first time step" language="python">
       for err in errors[2][1]: print err; assert err &lt; 1.E-5 # needs to be a bit looser for BPE from mixing stats
-    </test>
-    <test name="check difference between BPE from mixing stats (serial) and BPE direct calculation in stats (over time) " language="python">
-      for err in errors[3]: print err; assert err &lt; 1.E-4
     </test>
   </pass_tests>
   <warn_tests>
