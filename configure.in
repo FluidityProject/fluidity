@@ -1146,11 +1146,17 @@ if test -d libspud ; then
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
     if echo $(hostname) | grep -q "^nid[[0-9]][[0-9]][[0-9]][[0-9]][[0-9]]$"; then
-      # Assume we are on hector
-      AC_MSG_NOTICE([Building on hector; disabling shared libraries])
-      SHFLAG=--disable-shared
+       # Assume we are on hector xt4
+       AC_MSG_NOTICE([Building on hector xt4; disabling shared libraries])
+       SHFLAG=--disable-shared
     else
-      SHFLAG=--enable-shared
+       # Check if we're on hector xt6
+       if echo $(hostname) | grep -q "^hector-xt6-[[0-9]]$"; then
+         AC_MSG_NOTICE([Building on hector xt6; disabling shared libraries])
+         SHFLAG=--disable-shared
+       else
+         SHFLAG=--enable-shared
+       fi
     fi
 
     cd libspud
