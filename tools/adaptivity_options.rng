@@ -632,48 +632,7 @@ Default value if not specified: 0.15</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
-      <choice>
-        <element name="enable_gradation">
-          <a:documentation>Gradation constrains the jump
-in desired edge lengths along an edge, i.e.
-it controls how fast the mesh size may change.</a:documentation>
-          <optional>
-            <element name="gradation_parameter">
-              <a:documentation>The gradation parameter. Must be a real &gt;= 1.0.
-
-The gradation parameter constrains the jump
-in desired edge lengths along an edge, i.e.
-it controls how fast the mesh size may change.
-A constant of 1.0 enforces a mesh of constant
-edge length everywhere. A value of 2.0 would
-allow the element size to double from element
-to element. The default value is 1.5.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-        </element>
-        <element name="disable_gradation">
-          <a:documentation>Gradation constrains the jump
-in desired edge lengths along an edge, i.e.
-it controls how fast the mesh size may change.</a:documentation>
-          <empty/>
-        </element>
-        <element name="anisotropic_gradation">
-          <a:documentation>Anisotropic gradation algorithm, allowing for
-anisotropic bounds on the gradient of the sizing
-function.</a:documentation>
-          <element name="tensor_field">
-            <a:documentation>Gamma is the tensor field that contains
-the bounds on the edge length specified by the error metric.</a:documentation>
-            <attribute name="name">
-              <value>Gamma</value>
-            </attribute>
-            <element name="anisotropic_symmetric">
-              <ref name="input_choice_real_dim_symmetric_tensor"/>
-            </element>
-          </element>
-        </element>
-      </choice>
+      <ref name="gradation_options_full"/>
       <optional>
         <element name="metric_advection">
           <a:documentation>Metric advection algorithm.
@@ -846,8 +805,9 @@ considerations. By default, it is set to 2.0.</a:documentation>
       </optional>
       <optional>
         <element name="goal_based_adaptivity">
-          <a:documentation>Goal-based adaptivity. </a:documentation>
-          <a:documentation>With this option,
+          <a:documentation>Goal-based adaptivity. 
+
+With this option,
 rather than taking the user-specified interpolation
 error bounds as the weights to form the error metric
 from the Hessians of the solution fields,
@@ -1091,6 +1051,15 @@ This will give a columnar mesh, but not a layered one.</a:documentation>
                   <empty/>
                 </element>
               </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="split_gradation">
+              <a:documentation>Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
+gradation to the horizontal (and vertical) metric.
+This replaces is the gradation applied to the full metric and uses the gradation
+algorithm specified above.</a:documentation>
+              <empty/>
             </element>
           </optional>
           <choice>
@@ -2425,6 +2394,58 @@ Please specify a scalar field</a:documentation>
           <ref name="prescribed_adaptivity"/>
         </choice>
       </optional>
+    </element>
+  </define>
+  <define name="gradation_options_full">
+    <ref name="disable_gradation"/>
+  </define>
+  <define name="gradation_options_full" combine="choice">
+    <ref name="gradation_options"/>
+  </define>
+  <define name="gradation_options">
+    <choice>
+      <element name="enable_gradation">
+        <a:documentation>Gradation constrains the jump
+in desired edge lengths along an edge, i.e.
+it controls how fast the mesh size may change.</a:documentation>
+        <optional>
+          <element name="gradation_parameter">
+            <a:documentation>The gradation parameter. Must be a real &gt;= 1.0.
+
+The gradation parameter constrains the jump
+in desired edge lengths along an edge, i.e.
+it controls how fast the mesh size may change.
+A constant of 1.0 enforces a mesh of constant
+edge length everywhere. A value of 2.0 would
+allow the element size to double from element
+to element. The default value is 1.5.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+      </element>
+      <element name="anisotropic_gradation">
+        <a:documentation>Anisotropic gradation algorithm, allowing for
+anisotropic bounds on the gradient of the sizing
+function.</a:documentation>
+        <element name="tensor_field">
+          <a:documentation>Gamma is the tensor field that contains
+the bounds on the edge length specified by the error metric.</a:documentation>
+          <attribute name="name">
+            <value>Gamma</value>
+          </attribute>
+          <element name="anisotropic_symmetric">
+            <ref name="input_choice_real_dim_symmetric_tensor"/>
+          </element>
+        </element>
+      </element>
+    </choice>
+  </define>
+  <define name="disable_gradation">
+    <element name="disable_gradation">
+      <a:documentation>Gradation constrains the jump
+in desired edge lengths along an edge, i.e.
+it controls how fast the mesh size may change.</a:documentation>
+      <empty/>
     </element>
   </define>
 </grammar>

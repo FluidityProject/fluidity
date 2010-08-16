@@ -18,7 +18,7 @@ module form_metric_field
   implicit none
 
   interface bound_metric
-    module procedure bound_metric_anisotropic
+    module procedure bound_metric_anisotropic, bound_metric_minmax
   end interface
 
   interface form_metric
@@ -190,21 +190,46 @@ module form_metric_field
     end if
   end subroutine relative_metric
 
-  subroutine bound_metric_anisotropic(hessian, state)
+  subroutine bound_metric_anisotropic(hessian, state, stat)
     !!< Implement the anisotropic edge length bounds.
     type(tensor_field), intent(inout) :: hessian
     type(state_type), intent(in) :: state
+    integer, optional :: stat
 
-    real, dimension(hessian%dim, hessian%dim) :: max_tensor, min_tensor, evecs
-    real, dimension(hessian%dim) :: evals
-    integer :: i, j
     type(tensor_field), pointer :: min_bound, max_bound
 
     ! min and max refer to edge lengths, not eigenvalues
 
-    min_bound => extract_tensor_field(state, "MaxMetricEigenbound")
-    max_bound => extract_tensor_field(state, "MinMetricEigenbound")
+    if(present(stat)) stat = 0
 
+    min_bound => extract_tensor_field(state, "MaxMetricEigenbound", stat=stat)
+    max_bound => extract_tensor_field(state, "MinMetricEigenbound", stat=stat)
+    if(present(stat)) then
+      if(stat/=0) return
+    end if
+    if((min_bound%dim /= hessian%dim).or.(max_bound%dim /= hessian%dim)) then
+      if(present(stat)) then
+        stat = 1
+        return
+      else
+        FLAbort("Incompatible tensor dimensions")
+      end if
+    end if
+
+    call bound_metric(hessian, min_bound, max_bound)
+
+  end subroutine bound_metric_anisotropic
+  
+  subroutine bound_metric_minmax(hessian, min_bound, max_bound)
+    !!< Implement the anisotropic edge length bounds.
+    type(tensor_field), intent(inout) :: hessian
+    type(tensor_field), intent(in) :: min_bound, max_bound
+
+    real, dimension(hessian%dim, hessian%dim) :: max_tensor, min_tensor, evecs
+    real, dimension(hessian%dim) :: evals
+    integer :: i, j
+
+    ! min and max refer to edge lengths, not eigenvalues
     do i=1,node_count(hessian)
       call eigendecomposition_symmetric(hessian%val(:, :, i), evecs, evals)
       do j=1,hessian%dim
@@ -219,6 +244,6 @@ module form_metric_field
       call merge_tensor(hessian%val(:, :, i), min_tensor, aniso_min=.true.)
     end do
 
-  end subroutine bound_metric_anisotropic
-  
+  end subroutine bound_metric_minmax
+
 end module form_metric_field

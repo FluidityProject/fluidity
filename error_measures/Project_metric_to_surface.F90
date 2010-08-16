@@ -29,17 +29,24 @@ module project_metric_to_surface_module
     real, dimension(mesh_dim(volume_metric), mesh_dim(volume_metric)) :: tmp_metric
     real, dimension(mesh_dim(volume_metric)-1, mesh_dim(volume_metric)-1) :: tmp_smetric
 
-    call allocate(surface_metric, h_mesh%mesh, "SurfaceMetric")
-    call create_columns_sparsity(columns, volume_metric%mesh)
-
-    do column=1,node_count(h_mesh)
-      call merge_up_columns(volume_metric, columns, column, tmp_metric)
+    call allocate(surface_metric, h_mesh%mesh, "Surface"//trim(volume_metric%name), field_type=volume_metric%field_type)
+    
+    if(volume_metric%field_type==FIELD_TYPE_CONSTANT) then
+      tmp_metric = node_val(volume_metric, 1)
       tmp_smetric = reduce_metric_dimension(tmp_metric)
-      call set(surface_metric, column, tmp_smetric)
-    end do
-      
-    call deallocate(columns)
+      call set(surface_metric, tmp_smetric)
+    else  
+      call create_columns_sparsity(columns, volume_metric%mesh)
 
+      do column=1,node_count(h_mesh)
+        call merge_up_columns(volume_metric, columns, column, tmp_metric)
+        tmp_smetric = reduce_metric_dimension(tmp_metric)
+        call set(surface_metric, column, tmp_smetric)
+      end do
+        
+      call deallocate(columns)
+    end if
+    
     contains
 
       subroutine merge_up_columns(volume_metric, columns, column, tmp_metric)

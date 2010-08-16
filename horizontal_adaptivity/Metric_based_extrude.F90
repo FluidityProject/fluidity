@@ -13,7 +13,7 @@ module hadapt_metric_based_extrude
   use halos
   implicit none
 
-  public :: metric_based_extrude, combine_z_meshes, combine_r_meshes
+  public :: metric_based_extrude, combine_z_meshes, combine_r_meshes, recombine_metric, get_1d_mesh, get_1d_tensor
 
   contains
 
@@ -47,8 +47,6 @@ module hadapt_metric_based_extrude
     
     ewrite(1,*) "Inside metric_based_extrude"
 
-    ewrite(2,*) "In metric_based_extrude"
-
     call get_option("/geometry/quadrature/degree", quadrature_degree)
     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
@@ -60,7 +58,7 @@ module hadapt_metric_based_extrude
 
     ! create a 1d vertical mesh under each surface node
     do column=1,node_count(h_mesh)
-      call get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, back_z_meshes(column), back_sizing(column))
+      call get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, back_z_meshes(column), sizing=back_sizing(column))
       call adapt_1d(back_z_meshes(column), back_sizing(column), oned_shape, out_z_meshes(column))
     end do
       
@@ -339,14 +337,16 @@ module hadapt_metric_based_extrude
     
   end subroutine derive_extruded_l2_node_halo
 
-  subroutine get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, z_mesh, sizing)
+  subroutine get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, z_mesh, &
+                         sizing)
     integer, intent(in) :: column
     type(vector_field), intent(in) :: back_mesh
     type(csr_sparsity), intent(in) :: back_columns
     type(tensor_field), intent(in) :: metric
     type(element_type), intent(inout) :: oned_shape
     type(vector_field), intent(out) :: z_mesh
-    type(scalar_field), intent(out) :: sizing
+    type(scalar_field), intent(out), optional :: sizing
+
     type(mesh_type) :: mesh
 
     integer :: nodes, elements
@@ -369,7 +369,9 @@ module hadapt_metric_based_extrude
     end do
 
     call allocate(z_mesh, 1, mesh, "ZMesh")
-    call allocate(sizing, mesh, "SizingFunction")
+    if(present(sizing)) then
+      call allocate(sizing, mesh, "SizingFunction")
+    end if
     call deallocate(mesh)
 
     ! normal here should be made smarter if this is on the globe.
@@ -380,11 +382,79 @@ module hadapt_metric_based_extrude
       j = column_nodes(i)
       call set(z_mesh, i, (/node_val(back_mesh, dim, j)/))
 
-      mesh_size = edge_length_from_eigenvalue(dot_product(matmul(normal, node_val(metric, j)), normal))
-      call set(sizing, i, mesh_size)
+      if(present(sizing)) then
+        mesh_size = edge_length_from_eigenvalue(dot_product(matmul(normal, node_val(metric, j)), normal))
+        call set(sizing, i, mesh_size)
+      end if
     end do
     
   end subroutine get_1d_mesh
+  
+  subroutine get_1d_tensor(column, back_tensor, oned_tensor, back_columns)
+    integer, intent(in) :: column
+    type(tensor_field), intent(in) :: back_tensor
+    type(tensor_field), intent(inout) :: oned_tensor
+    type(csr_sparsity), intent(in) :: back_columns
+
+    integer :: nodes
+    integer, dimension(:), pointer :: column_nodes
+    integer :: i, j
+    integer :: dim
+
+    real, dimension(mesh_dim(back_tensor)) :: normal
+    real :: oned_value
+
+    ! normal here should be made smarter if this is on the globe.
+    normal = 0.0
+    normal(dim) = 1.0
+
+    if(back_tensor%field_type==FIELD_TYPE_CONSTANT) then
+
+      oned_value = dot_product(matmul(normal, node_val(back_tensor, 1)), normal)
+      call set(oned_tensor, spread(spread(oned_value, 1, oned_tensor%dim), 2, oned_tensor%dim))
+
+    else
+    
+      nodes = row_length(back_columns, column)
+      dim = mesh_dim(back_tensor)
+      column_nodes => row_m_ptr(back_columns, column)
+
+      do i=1,nodes
+        j = column_nodes(i)
+
+        oned_value = dot_product(matmul(normal, node_val(back_tensor, j)), normal)
+        call set(oned_tensor, i, spread(spread(oned_value, 1, oned_tensor%dim), 2, oned_tensor%dim))
+      end do
+      
+    end if
+    
+  end subroutine get_1d_tensor
+  
+  subroutine recombine_metric(metric, column, oned_metric, back_columns)
+    type(tensor_field), intent(inout) :: metric
+    integer, intent(in) :: column
+    type(tensor_field), intent(in) :: oned_metric
+    type(csr_sparsity), intent(in) :: back_columns
+    
+    integer :: nodes
+    integer, dimension(:), pointer :: column_nodes
+    integer :: i, j
+    real, dimension(1, 1) :: oned_val
+
+    nodes = row_length(back_columns, column)
+    column_nodes => row_m_ptr(back_columns, column)
+    
+    ! NOTE WELL: just as in get_1d_mesh, we're about to assume that the
+    ! 1d metric belongs in the last entry of the full metric!
+    ! We should be cleverer than this (i.e. on a sphere).
+    do i = 1, nodes
+      j = column_nodes(i)
+      
+      oned_val = node_val(oned_metric, i)
+      call set(metric, metric%dim, metric%dim, j, oned_val(1,1))
+    end do
+  
+  end subroutine recombine_metric
 
   function get_expected_elements(z_mesh, sizing) result(elements)
     type(vector_field), intent(inout) :: z_mesh

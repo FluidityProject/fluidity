@@ -49,6 +49,8 @@ module anisotropic_gradation
 
     real, dimension(positions%dim, positions%dim) :: val_gamma, val_p, val_q, grad, const_gamma, prev_grad
 
+    integer :: stat
+
     ewrite(1,*) "Using anisotropic gradation algorithm"
     mesh => metric%mesh
 
@@ -114,7 +116,7 @@ module anisotropic_gradation
       if (is_constant) then
         val_gamma = const_gamma
       else
-        val_gamma = metric_from_edge_lengths((node_val(gamma, p) + node_val(gamma, q)) / 2.0)
+        val_gamma = (node_val(gamma, p) + node_val(gamma, q)) / 2.0
       end if
 
       prev_grad = (val_p - val_q) / dist
@@ -142,7 +144,7 @@ module anisotropic_gradation
     end if
     call deallocate(nnlist)
     
-    call bound_metric(metric, state)
+    call bound_metric(metric, state, stat=stat)
   end subroutine
 
   function anisotropic_min(tensor1, tensor2) result(tensor3)

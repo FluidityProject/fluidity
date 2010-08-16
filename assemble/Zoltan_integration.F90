@@ -1924,7 +1924,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       ! Allocate a new metric field on the new positions mesh and zero it
       if (present(metric)) then
         call allocate(new_metric, new_positions%mesh, "ErrorMetric")
-        call set(new_metric,spread(spread(666.0, 1, metric%dim), 2, metric%dim))
+        call set(new_metric,spread(spread(666.0, 1, new_metric%dim), 2, new_metric%dim))
       end if
 
       !!! TEST

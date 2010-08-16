@@ -314,7 +314,7 @@ if __name__ == "__main__":
     else: parser.error("Specify either serial or parallel.")
 
     curdir = os.getcwd().split(os.sep)[-1]
-    if curdir != "tests" and curdir != "longtests":
+    if curdir != "tests" and curdir != "longtests" and curdir != "examples":
         try:
             os.chdir("longtests")
         except OSError:

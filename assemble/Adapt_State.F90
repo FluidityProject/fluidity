@@ -54,6 +54,7 @@ module adapt_state_module
   use mba2d_integration
   use mba3d_integration
   use metric_assemble
+  use anisotropic_gradation, only: use_anisotropic_gradation
   use parallel_tools
   use boundary_conditions
   use boundary_conditions_from_options
@@ -1265,8 +1266,9 @@ contains
     logical :: vertically_structured_adaptivity
     logical :: vertically_inhomogenous_adaptivity
     logical :: include_bottom_metric
+    logical :: split_gradation
 
-    type(scalar_field):: edge_lengths
+    type(scalar_field) :: edge_lengths
       
     vertically_structured_adaptivity = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
@@ -1274,7 +1276,8 @@ contains
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
     include_bottom_metric = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/include_bottom_metric")
-
+    split_gradation = have_option( &
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation")
 
     if (vertically_structured_adaptivity) then
       ! project full mesh metric to horizontal surface mesh metric
@@ -1285,6 +1288,11 @@ contains
       ! in the surface metric
       ! state only required for DistanceToBottom and Coordinate so states(1) is fine
       if(include_bottom_metric) call incorporate_bathymetric_metric(states(1), full_metric, old_positions, metric)
+      
+      if(split_gradation) then
+        ! apply gradation just to the horizontal metric for now
+        call apply_horizontal_gradation(states(1), metric, full_metric, old_positions)
+      end if
       
       ! apply limiting to enforce maximum number of nodes
       call limit_metric(old_positions, metric)
@@ -1299,7 +1307,7 @@ contains
       end if
       
       if (vertically_inhomogenous_adaptivity) then
-         ! we need the full_metric and its position field later on for vertical adaptivity
+         ! we need the position field later on for vertical adaptivity
          ! this takes a reference so that it's prevented from the big deallocate in adapt_state
          extruded_positions = get_coordinate_field(states(1), full_metric%mesh)
       end if
@@ -1318,8 +1326,12 @@ contains
     type(vector_field) :: background_positions
     type(tensor_field) :: background_full_metric
 
+    logical :: split_gradation
+
     vertically_inhomogenous_adaptivity = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
+    split_gradation = have_option( &
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation")
 
     if (vertically_inhomogenous_adaptivity) then
        ! first we create a background mesh: this is an extrusion of 
@@ -1339,6 +1351,10 @@ contains
        background_full_metric%name="BackgroundFullMetric"
        ! we can do away with the old positions now
        call deallocate(extruded_positions)
+       
+       if(split_gradation) then
+          call apply_vertical_gradation(states(1), background_full_metric, background_positions, new_positions)
+       end if
        
        ! extrude with adaptivity, computes new extruded_positions
        call metric_based_extrude(new_positions, background_positions, &

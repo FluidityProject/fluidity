@@ -519,44 +519,7 @@ hr_adaptivity =
             attribute replaces {"MESTP1"},
             real
          }?,
-         (
-            ## Gradation constrains the jump
-            ## in desired edge lengths along an edge, i.e.
-            ## it controls how fast the mesh size may change.
-            element enable_gradation {
-               ## The gradation parameter. Must be a real >= 1.0.
-               ##
-               ## The gradation parameter constrains the jump
-               ## in desired edge lengths along an edge, i.e.
-               ## it controls how fast the mesh size may change.
-               ## A constant of 1.0 enforces a mesh of constant
-               ## edge length everywhere. A value of 2.0 would
-               ## allow the element size to double from element
-               ## to element. The default value is 1.5.
-               element gradation_parameter {
-                  real
-               }?
-            }|
-            ## Gradation constrains the jump
-            ## in desired edge lengths along an edge, i.e.
-            ## it controls how fast the mesh size may change.
-            element disable_gradation {
-               empty
-            }|
-            ## Anisotropic gradation algorithm, allowing for
-            ## anisotropic bounds on the gradient of the sizing
-            ## function.
-            element anisotropic_gradation {
-              ## Gamma is the tensor field that contains
-              ## the bounds on the edge length specified by the error metric.
-              element tensor_field {
-                attribute name { "Gamma" },
-                element anisotropic_symmetric {
-                  input_choice_real_dim_symmetric_tensor
-                }
-              }
-            }
-         ),
+         gradation_options_full,
          ## Metric advection algorithm.
          ## By advecting the metric with the flow velocity,
          ## we can push mesh resolution ahead of the flow dynamics,
@@ -704,7 +667,7 @@ hr_adaptivity =
             real
          }?,
          ## Goal-based adaptivity. 
-
+         ##
          ## With this option,
          ## rather than taking the user-specified interpolation
          ## error bounds as the weights to form the error metric
@@ -906,6 +869,13 @@ hr_adaptivity =
                 empty
               }?
            }?,
+           ## Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)
+           ## gradation to the horizontal (and vertical) metric.
+           ## This replaces is the gradation applied to the full metric and uses the gradation
+           ## algorithm specified above.
+           element split_gradation {
+             empty
+           }?,
            (
             ## Remove components from each field's metric that aren't aligned either horizontally
             ## or vertically.  This can help prevent the horizontal metric from becoming
@@ -922,7 +892,7 @@ hr_adaptivity =
             ## and horizontal components.
             element use_full_metric {
               empty
-            }           
+            }
            ),
            ## When constructing the horizontal metric incorporate the components of the 
            ## full metric tangential to the bottom boundary.  For example, this is useful 
@@ -1962,3 +1932,50 @@ mesh_adaptivity_options =
          prescribed_adaptivity
       )?
    }
+
+gradation_options_full = disable_gradation
+gradation_options_full |= gradation_options
+
+gradation_options =
+  (
+    ## Gradation constrains the jump
+    ## in desired edge lengths along an edge, i.e.
+    ## it controls how fast the mesh size may change.
+    element enable_gradation {
+        ## The gradation parameter. Must be a real >= 1.0.
+        ##
+        ## The gradation parameter constrains the jump
+        ## in desired edge lengths along an edge, i.e.
+        ## it controls how fast the mesh size may change.
+        ## A constant of 1.0 enforces a mesh of constant
+        ## edge length everywhere. A value of 2.0 would
+        ## allow the element size to double from element
+        ## to element. The default value is 1.5.
+        element gradation_parameter {
+          real
+        }?
+    }|
+    ## Anisotropic gradation algorithm, allowing for
+    ## anisotropic bounds on the gradient of the sizing
+    ## function.
+    element anisotropic_gradation {
+      ## Gamma is the tensor field that contains
+      ## the bounds on the edge length specified by the error metric.
+      element tensor_field {
+        attribute name { "Gamma" },
+        element anisotropic_symmetric {
+          input_choice_real_dim_symmetric_tensor
+        }
+      }
+    }
+  )
+
+disable_gradation = 
+  (
+    ## Gradation constrains the jump
+    ## in desired edge lengths along an edge, i.e.
+    ## it controls how fast the mesh size may change.
+    element disable_gradation {
+        empty
+    }
+  )
