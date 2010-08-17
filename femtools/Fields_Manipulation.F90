@@ -3777,6 +3777,7 @@ implicit none
     type(scalar_field), intent(inout) :: sub_field
     integer, dimension(:), pointer :: node_map
 
+    assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
     if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
@@ -3793,6 +3794,7 @@ implicit none
     type(vector_field), intent(inout) :: sub_field
     integer, dimension(:), pointer :: node_map
 
+    assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
     if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
@@ -3809,6 +3811,7 @@ implicit none
     type(tensor_field), intent(inout) :: sub_field
     integer, dimension(:), pointer :: node_map
 
+    assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
     if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
@@ -3826,6 +3829,7 @@ implicit none
     integer, dimension(:), pointer :: node_map
     integer :: inode
 
+    assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
     if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
@@ -3844,6 +3848,7 @@ implicit none
     integer, dimension(:), pointer :: node_map
     integer :: inode
 
+    assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
     if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
@@ -3862,6 +3867,7 @@ implicit none
     integer, dimension(:), pointer :: node_map
     integer :: inode
 
+    assert(associated(sub_field%mesh%subdomain_mesh%node_list))
     node_map => sub_field%mesh%subdomain_mesh%node_list
 
     if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
