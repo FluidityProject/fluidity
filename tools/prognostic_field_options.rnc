@@ -1052,7 +1052,7 @@ prognostic_pressure_field =
          ## requires a distinct name for the options dictionary.
          element initial_condition {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_initial_condition_real
          }
       )*,
@@ -1154,7 +1154,7 @@ prognostic_geostrophic_pressure_field =
          ## requires a distinct name for the options dictionary.
          element initial_condition {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_initial_condition_real
          }
       )*,
@@ -1430,7 +1430,7 @@ prognostic_free_surface_field =
          ## requires a distinct name for the options dictionary.
          element initial_condition {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_initial_condition_real
          }
       )+,
