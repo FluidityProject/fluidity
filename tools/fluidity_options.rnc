@@ -1988,7 +1988,7 @@ prognostic_density_field =
          ## requires a distinct name for the options dictionary.
          element initial_condition {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_initial_condition_real
          }
       )+,

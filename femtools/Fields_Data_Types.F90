@@ -38,7 +38,7 @@ module fields_data_types
 
   private
   public adjacency_cache, &
-     mesh_type, mesh_faces, scalar_field, vector_field, tensor_field, &
+     mesh_type, mesh_faces, mesh_subdomain_mesh, scalar_field, vector_field, tensor_field, &
      mesh_pointer, scalar_field_pointer, vector_field_pointer, tensor_field_pointer, &
      scalar_boundary_condition, vector_boundary_condition, &
      scalar_boundary_conditions_ptr, vector_boundary_conditions_ptr
@@ -76,6 +76,8 @@ module fields_data_types
      type(refcount_type), pointer :: refcount=>null()
      !! Mesh face information for those meshes (eg discontinuous) which need it.
      type(mesh_faces), pointer :: faces=>null()
+     !! Information on subdomain_ mesh, for partially prognostic solves:
+     type(mesh_subdomain_mesh), pointer :: subdomain_mesh=>null()
      type(adjacency_cache), pointer :: adj_lists => null()
      !! array that for each node tells which column it is in
      !! (column numbers usually correspond to a node number in a surface mesh)
@@ -115,6 +117,13 @@ module fields_data_types
      !! a DG version of the surface mesh, useful for storing bc values
      type(mesh_type), pointer:: dg_surface_mesh => null()
   end type mesh_faces
+
+  type mesh_subdomain_mesh
+     !! List of elements in subdomain_mesh region(s):
+     integer, dimension(:), pointer :: element_list
+     !! List of nodes in subdomain_mesh regions(s):
+     integer, dimension(:), pointer :: node_list
+  end type mesh_subdomain_mesh
 
   type scalar_field 
      !! Field value at points.

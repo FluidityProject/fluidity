@@ -57,6 +57,7 @@ implicit none
     & renumber_positions_elements_trailing_receives, reorder_element_numbering
   public :: get_patch_ele, get_patch_node, patch_type
   public :: set_ele_nodes, normalise, tensor_second_invariant
+  public :: remap_to_subdomain, remap_to_full_domain
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -170,7 +171,16 @@ implicit none
   interface normalise
     module procedure normalise_scalar, normalise_vector
   end interface
-  
+
+  interface remap_to_subdomain
+    module procedure remap_to_subdomain_scalar, remap_to_subdomain_vector, remap_to_subdomain_tensor
+  end interface
+
+  interface remap_to_full_domain
+    module procedure remap_to_full_domain_scalar, remap_to_full_domain_vector, remap_to_full_domain_tensor
+  end interface
+
+
   type patch_type
     !!< This is a type that represents a patch of elements around a given node.
 
@@ -3761,5 +3771,108 @@ implicit none
 
   end subroutine reorder_element_numbering
 
+  subroutine remap_to_subdomain_scalar(parent_field,sub_field)
+    !!< remaps scalar fields from full domain to sub_domain:
+    type(scalar_field), intent(in) :: parent_field
+    type(scalar_field), intent(inout) :: sub_field
+    integer, dimension(:), pointer :: node_map
+
+    node_map => sub_field%mesh%subdomain_mesh%node_list
+
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+       call set(sub_field,node_val(parent_field,1))
+    else
+       call set_all(sub_field, node_val(parent_field,node_map))
+    end if
+    
+  end subroutine remap_to_subdomain_scalar
+
+  subroutine remap_to_subdomain_vector(parent_field,sub_field)
+
+    type(vector_field), intent(in) :: parent_field
+    type(vector_field), intent(inout) :: sub_field
+    integer, dimension(:), pointer :: node_map
+
+    node_map => sub_field%mesh%subdomain_mesh%node_list
+
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+       call set(sub_field,node_val(parent_field,1))
+    else
+       call set_all(sub_field, node_val(parent_field,node_map))
+    end if
+    
+  end subroutine remap_to_subdomain_vector
+
+  subroutine remap_to_subdomain_tensor(parent_field,sub_field)
+
+    type(tensor_field), intent(in) :: parent_field
+    type(tensor_field), intent(inout) :: sub_field
+    integer, dimension(:), pointer :: node_map
+
+    node_map => sub_field%mesh%subdomain_mesh%node_list
+
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+       call set(sub_field,node_val(parent_field,1))
+    else
+       call set_all(sub_field, node_val(parent_field,node_map))
+    end if
+    
+  end subroutine remap_to_subdomain_tensor
+
+  subroutine remap_to_full_domain_scalar(sub_field,parent_field)
+    !!< remaps scalar fields from sub_domain to full_domain:
+    type(scalar_field), intent(in) :: sub_field
+    type(scalar_field), intent(inout) :: parent_field
+    integer, dimension(:), pointer :: node_map
+    integer :: inode
+
+    node_map => sub_field%mesh%subdomain_mesh%node_list
+
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+       call set(parent_field,node_val(sub_field,1))
+    else
+       do inode = 1, size(node_map)
+          call set(parent_field, node_map(inode), node_val(sub_field,inode))
+       end do
+    end if
+    
+  end subroutine remap_to_full_domain_scalar
+
+  subroutine remap_to_full_domain_vector(sub_field,parent_field)
+    type(vector_field), intent(in) :: sub_field
+    type(vector_field), intent(inout) :: parent_field
+    integer, dimension(:), pointer :: node_map
+    integer :: inode
+
+    node_map => sub_field%mesh%subdomain_mesh%node_list
+
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+       call set(parent_field,node_val(sub_field,1))
+    else
+       do inode = 1, size(node_map)
+          call set(parent_field, node_map(inode), node_val(sub_field,inode))
+       end do
+    end if
+    
+  end subroutine remap_to_full_domain_vector
+
+  subroutine remap_to_full_domain_tensor(sub_field,parent_field)
+    type(tensor_field), intent(in) :: sub_field
+    type(tensor_field), intent(inout) :: parent_field
+    integer, dimension(:), pointer :: node_map
+    integer :: inode
+
+    node_map => sub_field%mesh%subdomain_mesh%node_list
+
+    if(parent_field%field_type == FIELD_TYPE_CONSTANT) then                                                                                                                                                 
+       call set(parent_field,node_val(sub_field,1))
+    else
+       do inode = 1, size(node_map)
+          call set(parent_field, node_map(inode), node_val(sub_field,inode))
+       end do
+    end if
+    
+  end subroutine remap_to_full_domain_tensor
+  
 end module fields_manipulation
 

@@ -61,6 +61,7 @@ contains
     if(timestep==0) then
        path=trim(complete_field_path(s_field%option_path)) // "/algorithm/initial_condition"
        if (have_option(trim(path))) then
+          call zero(s_field)
           call initialise_field_over_regions(s_field, path, position)
        else
           call set(s_field,source_field)
@@ -93,6 +94,7 @@ contains
     if(timestep==0) then
        path=trim(complete_field_path(s_field%option_path)) // "/algorithm/initial_condition"
        if (have_option(trim(path))) then
+          call zero(s_field)
           call initialise_field_over_regions(s_field, path, position)
        else
           call set(s_field,source_field)

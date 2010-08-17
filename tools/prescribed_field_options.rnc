@@ -35,7 +35,7 @@ prescribed_values_scalar_field =
          ## In this case each value requires a distinct name for the options dictionary.
          element value {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_real_plus_file
          }
       )+
@@ -79,7 +79,7 @@ prescribed_values_vector_field =
          ## In this case each value requires a distinct name for the options dictionary.
          element value {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_real_dim_vector_plus_file
          }
       )+
@@ -121,7 +121,7 @@ prescribed_values_tensor_field =
          ## In this case each value requires a distinct name for the options dictionary.
          element value {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_tensor_field
          }
       )+
@@ -144,7 +144,7 @@ prescribed_values_dim_minus_one_tensor_field =
          ## In this case each value requires a distinct name for the options dictionary.
          element value {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_dim_minus_one_tensor_field
          }
       )+

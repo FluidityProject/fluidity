@@ -43,6 +43,7 @@ module fluids_module
   use fields
   use boundary_conditions_from_options
   use populate_state_module
+  use populate_sub_state_module
   use reserve_state_module
   use vtk_interfaces
   use Diagnostic_variables
@@ -124,6 +125,7 @@ contains
 
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
+    type(state_type), dimension(:), pointer :: sub_state => null()
     type(state_type), dimension(:), allocatable :: POD_state
 
     type(tensor_field) :: metric_tensor
@@ -156,6 +158,8 @@ contains
 
     !     backward compatibility with new option structure - crgw 21/12/07
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
+
+    logical::create_sub_state=.false. ! do we need sub_state?
 
     INTEGER :: adapt_count
 
@@ -218,6 +222,13 @@ contains
        call relax_to_nonlinear(state)
 
        call enforce_discrete_properties(state)
+    end if
+
+    ! If needed, call populate sub_state module:
+    call sub_state_trigger(state,create_sub_state)
+    ewrite(1,*) 'Create_sub_state?',create_sub_state
+    if(create_sub_state) then
+       call populate_sub_state(state,sub_state)
     end if
 
     ! Calculate the number of scalar fields to solve for and their correct
@@ -415,10 +426,13 @@ contains
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
+       if(create_sub_state) call set_boundary_conditions_values(sub_state, shift_time=.true.)
        
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
+
+       if(create_sub_state) call set_full_domain_prescribed_fields(state,time=current_time+dt)
 
        ! move the mesh according to a prescribed grid velocity
        ! NOTE: there may be a chicken and egg situation here.  This update
@@ -639,7 +653,13 @@ contains
           ! a loop over state (hence over phases) is incorporated into this subroutine call
           ! hence this lives outside the phase_loop
 
-          call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+          if(create_sub_state) then
+             call update_subdomain_fields(state,sub_state)     
+             call momentum_loop(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             call sub_state_remap_to_full_mesh(state, sub_state)
+          else
+             call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+          end if
           
           if(nonlinear_iterations > 1) then
              ! Check for convergence between non linear iteration loops
@@ -805,14 +825,23 @@ contains
     ! Deallocate the reserve state
     call deallocate_reserve_state()
 
+    ! Deallocate sub_state:
+    if(create_sub_state) then
+       do i = 1, size(sub_state)
+          call deallocate(sub_state(i))
+       end do
+    end if
+
     if (allocated(pod_state)) then
        do i=1, size(pod_state)
           call deallocate(pod_state(i))
        end do
     end if
 
-    ! deallocate the pointer to the array of states
+    ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
+    if(create_sub_state) deallocate(sub_state)
+    
 
     ! Delete the transform_elements cache.
     call deallocate_transform_cache

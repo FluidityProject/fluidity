@@ -468,7 +468,6 @@ contains
 
     nvalues = option_count(trim(path))
 
-    call zero(field)
     do value = 0, nvalues-1
        call zero(tempfield)
        call initialise_field(tempfield, &
@@ -500,7 +499,6 @@ contains
 
     nvalues = option_count(trim(path))
 
-    call zero(field)
     do value = 0, nvalues-1
        call zero(tempfield)
        call initialise_field(tempfield, &
@@ -531,7 +529,6 @@ contains
 
     nvalues = option_count(trim(path))
 
-    call zero(field)
     do value = 0, nvalues-1
        call zero(tempfield)
        call initialise_field(tempfield, &

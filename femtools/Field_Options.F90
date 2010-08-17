@@ -97,7 +97,8 @@ module field_options
      & constant_field, isotropic_field, diagonal_field, &
      & extract_pressure_mesh, extract_velocity_mesh, &
      & postprocess_periodic_mesh, get_diagnostic_coordinate_field, &
-     & get_nodal_coordinate_field
+     & get_nodal_coordinate_field, extract_prognostic_pressure, &
+     & extract_prognostic_velocity
 
   integer, parameter, public :: FIELD_EQUATION_UNKNOWN                   = 0, &
                                 FIELD_EQUATION_ADVECTIONDIFFUSION        = 1, &
@@ -1227,5 +1228,88 @@ contains
     end do
 
   end subroutine field_options_check_options
+
+  function extract_prognostic_pressure(state, stat) result(sfield)
+
+  type(state_type), dimension(:), intent(in) :: state
+  type(scalar_field), pointer :: sfield
+  integer, optional :: stat
+
+  integer :: i, prognostic_count
+  character(len=OPTION_PATH_LEN) :: thismaterial_phase
+
+  ! subroutine to get the prognostic field out of an array of states
+  ! intended to get the correct pointer to pressure or velocity
+
+  if(present(stat)) stat = 0
+
+  prognostic_count=option_count('/material_phase/scalar_field::Pressure/prognostic')
+
+  if(prognostic_count==1) then
+    do i = 1,size(state)
+      write(thismaterial_phase, '(a)') "/material_phase::"//trim(state(i)%name)
+
+      if(have_option(trim(thismaterial_phase)//'/scalar_field::Pressure/prognostic')) then
+        sfield=>extract_scalar_field(state(i),'Pressure')
+      end if
+
+    end do
+  else if(prognostic_count>1) then
+    if(present(stat)) then
+      stat = 2
+    else
+      FLAbort("Multiple prognostic pressure fields.")
+    end if
+  else
+    if(present(stat)) then
+      stat = 1
+    else
+      FLAbort("No prognostic pressure field found.")
+    end if
+  end if
+
+  end function extract_prognostic_pressure
+  
+  function extract_prognostic_velocity(state, stat) result(vfield)
+
+  type(state_type), dimension(:), intent(in) :: state
+  type(vector_field), pointer :: vfield
+  integer, optional :: stat
+
+  integer :: i, prognostic_count
+  character(len=OPTION_PATH_LEN) :: thismaterial_phase
+
+  ! subroutine to get the prognostic field out of an array of states
+  ! intended to get the correct pointer to pressure or velocity
+
+  if(present(stat)) stat = 0
+
+  prognostic_count=option_count('/material_phase/vector_field::Velocity/prognostic')
+
+  if(prognostic_count==1) then
+  
+    do i = 1,size(state)
+      write(thismaterial_phase, '(a)') "/material_phase::"//trim(state(i)%name)
+
+      if(have_option(trim(thismaterial_phase)//'/vector_field::Velocity/prognostic')) then
+        vfield=>extract_vector_field(state(i),'Velocity')
+      end if
+
+    end do
+  else if(prognostic_count>1) then
+    if(present(stat)) then
+      stat = 2
+    else
+      FLAbort("Multiple prognostic velocity fields.")
+    end if
+  else
+    if(present(stat)) then
+      stat = 1
+    else
+      FLAbort("No prognostic velocity field found.")
+    end if
+  end if
+
+  end function extract_prognostic_velocity
 
 end module field_options

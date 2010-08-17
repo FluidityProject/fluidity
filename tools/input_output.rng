@@ -441,16 +441,14 @@ A^T = A</a:documentation>
     </element>
   </define>
   <define name="region_ids">
-    <optional>
-      <element name="region_ids">
-        <a:documentation>Optional region ids to associate different values
+    <element name="region_ids">
+      <a:documentation>Optional region ids to associate different values
 to different regions of the mesh.
 Leave unselected if you`re not using multiple regions or
 region_ids.
 Currently only works with triangle files created by gmsh2triangle.</a:documentation>
-        <ref name="integer_vector"/>
-      </element>
-    </optional>
+      <ref name="integer_vector"/>
+    </element>
   </define>
   <define name="input_choice_real_bc_component">
     <choice>

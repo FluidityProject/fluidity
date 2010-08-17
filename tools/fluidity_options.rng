@@ -2758,7 +2758,9 @@ requires a distinct name for the options dictionary.</a:documentation>
           <attribute name="name">
             <data type="string" datatypeLibrary=""/>
           </attribute>
-          <ref name="region_ids"/>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
           <ref name="input_choice_initial_condition_real"/>
         </element>
       </choice>

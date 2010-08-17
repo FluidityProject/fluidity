@@ -96,7 +96,7 @@ mesh_info =
               ## requires a distinct name for the options dictionary.
               element regions {
                 attribute name { string },
-                region_ids,
+                region_ids?,
                 extrusion_options
               }
             )+,

@@ -38,7 +38,7 @@ module assemble_CMC
   use fields_base
   use fefields
   use sparse_matrices_fields
-  use multimaterial_module, only: extract_prognostic_pressure
+  use field_options
   use global_parameters, only: OPTION_PATH_LEN
   use linked_lists
   

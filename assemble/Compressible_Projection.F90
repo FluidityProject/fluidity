@@ -33,7 +33,7 @@ module compressible_projection
   use spud
   use fields
   use sparse_matrices_fields
-  use multimaterial_module, only: extract_prognostic_pressure
+  use field_options
   use equation_of_state, only: compressible_eos, compressible_material_eos
   use global_parameters, only: new_options, OPTION_PATH_LEN
   use fefields, only: compute_lumped_mass

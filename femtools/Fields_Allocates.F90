@@ -181,13 +181,13 @@ contains
     allocate(mesh%adj_lists)
     mesh%wrapped=.false.
     nullify(mesh%region_ids)
+    nullify(mesh%subdomain_mesh)
     nullify(mesh%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     mesh%periodic=.false.
     
     call addref(mesh)
 
-    
   end subroutine allocate_mesh
 
   subroutine allocate_scalar_field(field, mesh, name, field_type, py_func, py_positions)
@@ -422,6 +422,18 @@ contains
 
   end subroutine allocate_tensor_field
   
+  subroutine deallocate_subdomain_mesh(mesh)
+    type(mesh_type) :: mesh
+
+    if (.not.associated(mesh%subdomain_mesh)) return
+
+    deallocate(mesh%subdomain_mesh%element_list)
+    deallocate(mesh%subdomain_mesh%node_list)
+
+    deallocate(mesh%subdomain_mesh)
+
+  end subroutine deallocate_subdomain_mesh
+
   subroutine deallocate_mesh_faces(mesh)
     type(mesh_type) :: mesh
 
@@ -514,6 +526,10 @@ contains
     end if
 
     call deallocate_faces(mesh)
+
+    if(associated(mesh%subdomain_mesh)) then
+       call deallocate_subdomain_mesh(mesh)
+    end if
     
     if(associated(mesh%columns)) then
       deallocate(mesh%columns)

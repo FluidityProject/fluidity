@@ -36,7 +36,7 @@ prognostic_scalar_field =
          ## requires a distinct name for the options dictionary.
          element initial_condition {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_initial_condition_real
          }
       )+,
@@ -683,10 +683,18 @@ prognostic_velocity_field =
          ## requires a distinct name for the options dictionary.
          element initial_condition {
             attribute name { string },
-            region_ids,
+            region_ids?,
             input_choice_initial_condition_vector
          }
       )+,
+      (
+         ## Prescribed different regions of the field
+            element prescribed_region {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_vector
+         }
+      )*,
       ## Boundary conditions
       element boundary_conditions {
          attribute replaces { "boundary, TMPER1 TMPER2 TMPERI" },

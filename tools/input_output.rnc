@@ -400,7 +400,7 @@ region_ids =
       ## Currently only works with triangle files created by gmsh2triangle.
       element region_ids {
          integer_vector
-      }?
+      }
    )
 
 input_choice_real_bc_component = 
