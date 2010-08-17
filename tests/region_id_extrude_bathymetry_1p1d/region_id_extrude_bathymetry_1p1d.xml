@@ -60,6 +60,12 @@ integral_tracer_dg_7 = stat("landslide_benchmark.stat")["Water"]["OtherTracerP1D
 integral_tracer_dg_8 = stat("landslide_benchmark.stat")["Water"]["TracerP1DG"]["surface_integral%8"]</variable>
     <variable name="integral_tracer_dg_9" language="python">from fluidity_tools import stat_parser as stat
 integral_tracer_dg_9 = stat("landslide_benchmark.stat")["Water"]["TracerP1DG"]["surface_integral%9"]</variable>
+    <variable name="region_id_1" language="python">from fluidity_tools import stat_parser as stat
+region_id_1 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region1"]</variable>
+    <variable name="region_id_2" language="python">from fluidity_tools import stat_parser as stat
+region_id_2 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region2"]</variable>
+    <variable name="region_id_3" language="python">from fluidity_tools import stat_parser as stat
+region_id_3 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region3"]</variable>
   </variables>
   <pass_tests>
     <test name="domain_area_constant" language="python">assert abs(domain_area[0]-65578750.) &lt; 1.E-10</test>
@@ -89,5 +95,11 @@ assert numpy.all(abs(integral_tracer_dg_7-7) &lt; 1.E-6)</test>
 assert numpy.all(abs(integral_tracer_dg_8-8) &lt; 1.E-6)</test>
     <test name="tracer_dg_id_9" language="python">import numpy
 assert numpy.all(abs(integral_tracer_dg_9-9) &lt; 1.E-6)</test>
+    <test name="value_region_id_1" language="python">import numpy
+assert numpy.all(abs(region_id_1-1) &lt; 1.E-10)</test>
+    <test name="value_region_id_2" language="python">import numpy
+assert numpy.all(abs(region_id_2-2) &lt; 1.E-10)</test>
+    <test name="value_region_id_3" language="python">import numpy
+assert numpy.all(abs(region_id_3-3) &lt; 1.E-10)</test>
   </pass_tests>
 </testproblem>

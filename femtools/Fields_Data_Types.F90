@@ -82,6 +82,8 @@ module fields_data_types
      !! array that for each node tells which column it is in
      !! (column numbers usually correspond to a node number in a surface mesh)
      integer, dimension(:), pointer :: columns => null()
+     !! if this mesh is extruded this array says which horizontal mesh element each element is below
+     integer, dimension(:), pointer :: element_columns => null()
      !! A list of ids marking different parts of the mesh
      !! so that initial conditions can be associated with it.
      integer, dimension(:), pointer :: region_ids=>null()

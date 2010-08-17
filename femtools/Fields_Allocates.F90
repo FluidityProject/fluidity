@@ -170,6 +170,7 @@ contains
     ! that has previously been used for something else:
     nullify(mesh%faces)
     nullify(mesh%columns)
+    nullify(mesh%element_columns)
     
     allocate(mesh%ndglno(elements*shape%loc))
 
@@ -533,6 +534,10 @@ contains
     
     if(associated(mesh%columns)) then
       deallocate(mesh%columns)
+    end if
+    
+    if(associated(mesh%element_columns)) then
+      deallocate(mesh%element_columns)
     end if
     
   end subroutine deallocate_mesh

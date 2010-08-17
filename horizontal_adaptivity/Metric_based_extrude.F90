@@ -122,6 +122,16 @@ module hadapt_metric_based_extrude
     ! allocate mapping between extruded nodes to surface node (column number)
     ! it lies under
     allocate(mesh%columns(total_out_nodes))
+    mesh%columns = 0
+    ! allocate mapping between extruded elements to surface elements in horizontal mesh
+    ! it lies under
+    allocate(mesh%element_columns(total_out_elements))
+    mesh%element_columns = 0
+    ! if the horizontal mesh has region ids these can be propagated down into the full
+    ! mesh.  allocate space for this...
+    if(associated(h_mesh%mesh%region_ids)) then
+      allocate(mesh%region_ids(total_out_elements))
+    end if
     if (mesh_name=="CoordinateMesh") then
       call allocate(out_mesh, mesh_dim(h_mesh)+1, mesh, "Coordinate")
     else
@@ -146,6 +156,7 @@ module hadapt_metric_based_extrude
         last_seen = last_seen + no_hanging_nodes(column)+1
       end if
     end do
+    assert(all(out_mesh%mesh%columns>0))
       
     call create_columns_sparsity(out_columns, out_mesh%mesh)
     
@@ -206,6 +217,16 @@ module hadapt_metric_based_extrude
     ! allocate mapping between extruded nodes to surface node (column number)
     ! it lies under
     allocate(mesh%columns(total_out_nodes))
+    mesh%columns = 0
+    ! allocate mapping between extruded elements to surface elements in horizontal mesh
+    ! it lies under
+    allocate(mesh%element_columns(total_out_elements))
+    mesh%element_columns = 0
+    ! if the horizontal mesh has region ids these can be propagated down into the full
+    ! mesh.  allocate space for this...
+    if(associated(shell_mesh%mesh%region_ids)) then
+      allocate(mesh%region_ids(total_out_elements))
+    end if
     if (mesh_name=="CoordinateMesh") then
       call allocate(out_mesh, mesh_dim(shell_mesh)+1, mesh, "Coordinate")
     else
@@ -230,6 +251,7 @@ module hadapt_metric_based_extrude
         last_seen = last_seen + no_hanging_nodes(column)+1
       end if
     end do
+    assert(all(out_mesh%mesh%columns>0))
       
     call create_columns_sparsity(out_columns, out_mesh%mesh)
 

@@ -200,6 +200,23 @@
       <output_before_adapts/>
       <output_after_adapts/>
     </stat>
+    <detectors>
+      <static_detector name="Region1">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">3664.86825015395 -1589.54203006775</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="Region2">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">7998.46424197172 -2014.1173130499</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="Region3">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">11995.3281128037 -1545.62044906958</real_value>
+        </location>
+      </static_detector>
+    </detectors>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
@@ -682,6 +699,40 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="RegionIDs" rank="0">
+      <prescribed>
+        <mesh name="P1DGMesh"/>
+        <value name="Region1">
+          <region_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">1</real_value>
+          </constant>
+        </value>
+        <value name="Region2">
+          <region_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">2</real_value>
+          </constant>
+        </value>
+        <value name="Region3">
+          <region_ids>
+            <integer_value shape="1" rank="1">3</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">3</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+      </prescribed>
     </scalar_field>
   </material_phase>
 </fluidity_options>

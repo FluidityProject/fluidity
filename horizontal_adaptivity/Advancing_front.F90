@@ -44,7 +44,7 @@ module hadapt_advancing_front
     
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
     logical :: top_element, bottom_element
-    logical :: apply_region_ids
+    logical :: apply_region_ids, propagate_region_ids
     
     integer, dimension(2) :: shape_option
     integer, dimension(1) :: other_node
@@ -86,8 +86,19 @@ module hadapt_advancing_front
       allocate(halo_level(1:element_count(mesh)))
     end if
 
-    ! get the region id information (if any) plus the top and bottom surface ids
+    assert(associated(mesh%mesh%columns))
+    assert(associated(mesh%mesh%element_columns))
 
+    ! if the horizontal mesh has region ids associated with it, the elements below
+    ! can inherit these ids
+    propagate_region_ids = associated(mesh%mesh%region_ids)
+#ifdef DDEBUG
+    if(propagate_region_ids) then
+      assert(associated(h_mesh%mesh%region_ids))
+    end if
+#endif
+
+    ! get the region id information used for extrusion (if any) plus the top and bottom surface ids
     n_regions = option_count(trim(mesh%mesh%option_path)//'/from_mesh/extrude/regions')
     apply_region_ids = (n_regions>1)
 
@@ -220,6 +231,15 @@ module hadapt_advancing_front
           ndglno_ptr(1) = ndglno_ptr(2)
           ndglno_ptr(2) = l
         end if
+        
+        ! if the horizontal mesh has region_ids these may as well be preserved here
+        if(propagate_region_ids) then
+          mesh%mesh%region_ids(ele) = h_mesh%mesh%region_ids(h_ele)
+        end if
+        
+        ! we now know the relationship between the mesh element and the h_mesh surface element
+        ! save this for zoltan (particularly useful if we're parallel using zoltan)...
+        mesh%mesh%element_columns(ele) = h_ele
 
         ! if the horizontal element has any surface faces, add them to the extruded surface mesh
         if (has_faces(h_mesh%mesh)) then
@@ -300,6 +320,7 @@ module hadapt_advancing_front
     end do
       
     assert(ele==element_count(mesh))
+    assert(all(mesh%mesh%element_columns>0))
     
     if (associated(h_mesh%mesh%halos)) then
       ! now reorder the elements according to halo level
