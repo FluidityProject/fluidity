@@ -244,6 +244,10 @@ contains
                FLAbort("Incorrect boundary condition type for field")
            end if
 
+          call allocate(surface_field, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
+
        case default
 
           ! This really shouldn't happen
