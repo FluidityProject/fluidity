@@ -577,8 +577,8 @@ module mba2d_integration
       end if
 #endif
 
-      if(dim /= 2) then
-        FLExit("libmba2d can only be used in 2D")
+      if((dim /= 2).and.(.not.(have_option(base_path // "/vertically_structured_adaptivity").and.(dim==3)))) then
+        FLExit("libmba2d can only be used in 2D or 2+1D")
       end if
     end if
   
