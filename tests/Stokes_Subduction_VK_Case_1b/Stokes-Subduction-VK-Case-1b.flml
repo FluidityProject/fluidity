@@ -43,12 +43,13 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">100</integer_value>
+        <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <disable_dump_at_end/>
     <output_mesh name="CoordinateMesh"/>
-    <stat/>
+    <stat>
+      <output_at_start/>
+    </stat>
     <detectors>
       <static_detector name="Temperature6060">
         <location>
@@ -98,41 +99,14 @@
     <finish_time replaces="LTIME">
       <real_value rank="0">1e16</real_value>
     </finish_time>
-    <final_timestep>
-      <integer_value rank="0">300</integer_value>
-    </final_timestep>
-    <nonlinear_iterations replaces="ITINOI">
-      <integer_value rank="0">2</integer_value>
-    </nonlinear_iterations>
-    <adaptive_timestep replaces="TIMAUT">
-      <requested_cfl>
-        <real_value rank="0">5.0</real_value>
-      </requested_cfl>
-      <courant_number name="CFLNumber">
-        <mesh name="VelocityMesh"/>
-      </courant_number>
-      <increase_tolerance>
-        <real_value rank="0">5</real_value>
-      </increase_tolerance>
-    </adaptive_timestep>
     <steady_state>
       <tolerance replaces="STEDER">
         <real_value rank="0">1e-6</real_value>
-        <l2_norm/>
+        <infinity_norm/>
       </tolerance>
     </steady_state>
   </timestepping>
-  <physical_parameters/>
   <material_phase name="Fluid">
-    <equation_of_state>
-      <fluids>
-        <linear replaces="EQNSTA=0 or 1">
-          <reference_density replaces="DENINI">
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-        </linear>
-      </fluids>
-    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
         <mesh name="CoordinateMesh"/>
@@ -171,13 +145,13 @@
           </use_projection_method>
         </scheme>
         <solver>
-          <iterative_method name="fgmres"/>
+          <iterative_method name="cg"/>
           <preconditioner name="ksp">
             <solver>
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.0e-18</real_value>
+                <real_value rank="0">1.0e-12</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">10000</integer_value>
@@ -190,7 +164,7 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">25000</integer_value>
@@ -245,7 +219,7 @@
             <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation replaces="ITHETA">
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -374,7 +348,7 @@
         </boundary_conditions>
         <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="Crust">
           <surface_ids>
-            <integer_value shape="3" rank="1">10 11 32</integer_value>
+            <integer_value shape="1" rank="1">32</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -470,7 +444,9 @@
               <no_stabilisation/>
             </stabilisation>
             <advection_terms/>
-            <mass_terms/>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
           </continuous_galerkin>
           <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
             <real_value rank="0">0.0</real_value>
@@ -478,7 +454,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
         </temporal_discretisation>
         <solver>
@@ -487,7 +463,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="ilu"/>
           <relative_error>
             <real_value rank="0">1.0e-12</real_value>
           </relative_error>
@@ -612,6 +588,38 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="FEDiv" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.E-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">10000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
   </material_phase>
 </fluidity_options>
