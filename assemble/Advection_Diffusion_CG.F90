@@ -63,7 +63,7 @@ module advection_diffusion_cg
     & STABILISATION_STREAMLINE_UPWIND = 1, STABILISATION_SUPG = 2
   
   ! Boundary condition types
-  integer, parameter :: BC_TYPE_NEUMANN = 1, BC_TYPE_WEAKDIRICHLET = 2, BC_TYPE_PERIODIC = 3
+  integer, parameter :: BC_TYPE_NEUMANN = 1, BC_TYPE_WEAKDIRICHLET = 2, BC_TYPE_INTERNAL = 3
   
   ! Global variables, set by assemble_advection_diffusion_cg for use by
   ! assemble_advection_diffusion_element_cg and
@@ -474,7 +474,7 @@ contains
       end if
     
       do i = 1, surface_element_count(t)
-        if(t_bc_types(i)==BC_TYPE_PERIODIC) cycle
+        if(t_bc_types(i)==BC_TYPE_INTERNAL) cycle
         call assemble_advection_diffusion_face_cg(i, t_bc_types(i), t, t_bc,  &
                                                   matrix, rhs, &
                                                   positions, velocity, grid_velocity, &
@@ -506,21 +506,21 @@ contains
     integer, intent(in) :: debug_level
     integer, dimension(:), intent(in) :: bc_types
     
-    integer :: i, nneumann, nweak_dirichlet, nperiodic
+    integer :: i, nneumann, nweak_dirichlet, ninternal
     
     if(debug_level > current_debug_level) return
     
     nneumann = 0
     nweak_dirichlet = 0
-    nperiodic = 0
+    ninternal = 0
     do i = 1, size(bc_types)
       select case(bc_types(i))
         case(BC_TYPE_NEUMANN)
           nneumann = nneumann + 1
         case(BC_TYPE_WEAKDIRICHLET)
           nweak_dirichlet = nweak_dirichlet + 1
-        case(BC_TYPE_PERIODIC)
-          nperiodic = nperiodic + 1
+        case(BC_TYPE_INTERNAL)
+          ninternal = ninternal + 1
         case(0)
         case default
           ewrite(-1, *) "For boundary condition type: ", bc_types(i)
@@ -530,7 +530,7 @@ contains
     
     ewrite(debug_level, *) "Surface elements with Neumann boundary condition: ", nneumann
     ewrite(debug_level, *) "Surface elements with weak Dirichlet boundary condition: ", nweak_dirichlet
-    ewrite(debug_level, *) "Surface elements with periodic boundary condition: ", nperiodic
+    ewrite(debug_level, *) "Surface elements with internal or periodic boundary condition: ", ninternal
     
   end subroutine ewrite_bc_counts
   

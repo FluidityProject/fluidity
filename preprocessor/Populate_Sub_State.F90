@@ -66,7 +66,7 @@ module populate_sub_state_module
 
   public populate_sub_state, set_full_domain_prescribed_fields, &
       &  sub_state_remap_to_full_mesh, update_subdomain_fields, &
-      &  sub_state_trigger
+      &  use_sub_state
 
 contains
 
@@ -88,7 +88,7 @@ contains
     call tictoc_clear(TICTOC_ID_IO_READ)
 
     ! Find out how many states there are and initialise:
-    nstates=option_count("/material_phase")
+    nstates=size(states)
     allocate(sub_states(1:nstates))
     do istate = 1, nstates
        call nullify(sub_states(istate))
@@ -129,25 +129,16 @@ contains
 
   end subroutine populate_sub_state
 
-  subroutine sub_state_trigger(states,create_sub_state)
+  logical function use_sub_state()
     ! Routine to determine whether or not sub_state is set up:
 
-    type(state_type), intent(in), dimension(:) :: states
-    logical, intent(inout) :: create_sub_state
-
-    type(vector_field), pointer :: velocity
     integer :: number_of_prescribed_regions
 
-    ! Extract velocity from state:
-    velocity => extract_vector_field(states(1),"Velocity")   
+    number_of_prescribed_regions = option_count("/material_phase/vector_field::Velocity/prognostic/prescribed_region")
 
-    number_of_prescribed_regions = option_count(trim(velocity%option_path)// &
-                                              "/prognostic/prescribed_region")
+    use_sub_state = (number_of_prescribed_regions > 0)
 
-    ewrite(2,*) 'Rhodri - Regions = ',number_of_prescribed_regions
-    if(number_of_prescribed_regions > 0) create_sub_state = .true.
-
-  end subroutine sub_state_trigger
+  end function use_sub_state
 
   subroutine derive_external_subdomain_mesh(states,sub_states)
 
@@ -455,51 +446,57 @@ contains
     
     ! Other declarations:
     integer :: nstates, nsfields, nvfields, ntfields
-    integer :: istate, ifield
+    integer :: istate, ifield, stat
 
     ewrite(1,*) "Entering update_subdomain_fields"    
 
     ! How many states exist?
-    nstates = option_count('/material_phase')
+    nstates = size(states)
 
     ! Loop over states:
     do istate = 1, nstates
 
        ! Loop over fields (scalar, vector, tensor) in order.
        ! Start with scalar fields:
-       nsfields = scalar_field_count(states(istate))
+       nsfields = scalar_field_count(sub_states(istate))
        do ifield = 1, nsfields
-          ! Extract full domain field from State:
-          sfield => extract_scalar_field(states(istate),ifield)
           ! Extract subdomain field from sub_state:
           sfield_sub => extract_scalar_field(sub_states(istate),ifield)
           if(.not. aliased(sfield_sub)) then
-             ! Zero:
-             call zero(sfield_sub)
-             ! Then remap:
-             call remap_to_subdomain(sfield,sfield_sub)
+            ! Extract full domain field from State:
+            sfield => extract_scalar_field(states(istate),trim(sfield_sub%name), stat=stat)
+            if(stat==0) then
+              ! Zero:
+              call zero(sfield_sub)
+              ! Then remap:
+              call remap_to_subdomain(sfield,sfield_sub)
+            end if
           end if
        end do
 
        ! Vector fields:
-       nvfields = vector_field_count(states(istate))
+       nvfields = vector_field_count(sub_states(istate))
        do ifield = 1, nvfields
-          vfield => extract_vector_field(states(istate),ifield)
           vfield_sub => extract_vector_field(sub_states(istate),ifield)
-          if(.not. aliased(vfield)) then
-             call zero(vfield_sub)
-             call remap_to_subdomain(vfield,vfield_sub)
+          if(.not. aliased(vfield_sub)) then
+            vfield => extract_vector_field(states(istate), trim(vfield_sub%name), stat=stat)
+            if(stat==0) then
+              call zero(vfield_sub)
+              call remap_to_subdomain(vfield,vfield_sub)
+            end if
           end if
        end do
 
        ! Tensor fields:
-       ntfields = tensor_field_count(states(istate))
+       ntfields = tensor_field_count(sub_states(istate))
        do ifield = 1, ntfields
-          tfield => extract_tensor_field(states(istate),ifield)
           tfield_sub => extract_tensor_field(sub_states(istate),ifield)
           if(.not. aliased(tfield)) then
-             call zero(tfield_sub)
-             call remap_to_subdomain(tfield,tfield_sub)
+            tfield => extract_tensor_field(states(istate),trim(tfield_sub%name), stat=stat)
+            if(stat==0) then
+              call zero(tfield_sub)
+              call remap_to_subdomain(tfield,tfield_sub)
+            end if
           end if
        end do
 
@@ -527,23 +524,23 @@ contains
     ewrite(1,*) 'Setting full domain prescribed fields'
 
     ! Determine number of states:
-    nstates = option_count('/material_phase')
+    nstates = size(states)
 
     ! Loop over states:
-    do istate = 0, nstates-1
+    do istate = 1, nstates
        
        ! Deal with vector fields:
-       nvfields = vector_field_count(states(istate+1))
+       nvfields = vector_field_count(states(istate))
 
        do ifield = 1, nvfields
 
-          vfield => extract_vector_field(states(istate+1), ifield)
+          vfield => extract_vector_field(states(istate), ifield)
 
           ! At present this only works for velocity:
           if (have_option(trim(vfield%option_path)// "/prognostic/prescribed_region") .and. &
                .not. aliased(vfield) ) then
 
-             position => get_external_coordinate_field(states(istate+1), vfield%mesh)
+             position => get_external_coordinate_field(states(istate), vfield%mesh)
 
              call initialise_field_over_regions(vfield, &
                 trim(vfield%option_path)// "/prognostic/prescribed_region", &
@@ -571,38 +568,41 @@ contains
     type(vector_field), pointer :: vfield, vfield_sub
     type(tensor_field), pointer :: tfield, tfield_sub
 
-    integer :: istate, ifield, nstates, nsfields, nvfields, ntfields
+    integer :: istate, ifield, nstates, nsfields, nvfields, ntfields, stat
 
     ! Determine number of states:
-    nstates = option_count('/material_phase')
+    nstates = size(states)
+    assert(size(states)==size(sub_states))
 
     ! Loop over states:
-    do istate = 0, nstates-1
+    do istate = 1, nstates
 
        ! Deal with scalar fields:
-       nsfields = scalar_field_count(states(istate+1))
+       nsfields = scalar_field_count(states(istate))
 
        do ifield = 1, nsfields
 
-          sfield => extract_scalar_field(states(istate+1),ifield)
-          sfield_sub => extract_scalar_field(sub_states(istate+1),ifield)
-
+          sfield => extract_scalar_field(states(istate),ifield)
           if(.not. aliased(sfield)) then
-             call remap_to_full_domain(sfield_sub,sfield)
+            sfield_sub => extract_scalar_field(sub_states(istate), trim(sfield%name), stat=stat)
+            if(stat==0) then
+              call remap_to_full_domain(sfield_sub,sfield)
+            end if
           end if
 
        end do
 
        ! Deal with vector fields:
-       nvfields = vector_field_count(states(istate+1))
+       nvfields = vector_field_count(states(istate))
 
        do ifield = 1, nvfields
 
-          vfield => extract_vector_field(states(istate+1), ifield)
-          vfield_sub => extract_vector_field(sub_states(istate+1), ifield)
-
+          vfield => extract_vector_field(states(istate), ifield)
           if(.not. aliased(vfield)) then
-             call remap_to_full_domain(vfield_sub,vfield)
+            vfield_sub => extract_vector_field(sub_states(istate), trim(vfield%name), stat=stat)
+            if(stat==0) then
+              call remap_to_full_domain(vfield_sub,vfield)
+            end if
           end if
 
        end do
@@ -610,11 +610,12 @@ contains
        ! Deal with tensor fields:
        do ifield = 1, ntfields
 
-          tfield => extract_tensor_field(states(istate+1),ifield)
-          tfield_sub => extract_tensor_field(sub_states(istate+1),ifield)
-
+          tfield => extract_tensor_field(states(istate),ifield)
           if(.not. aliased(tfield)) then
-             call remap_to_full_domain(tfield_sub,tfield)
+            tfield_sub => extract_tensor_field(sub_states(istate), trim(tfield%name), stat=stat)
+            if(stat==0) then
+              call remap_to_full_domain(tfield_sub,tfield)
+            end if
           end if
 
        end do
