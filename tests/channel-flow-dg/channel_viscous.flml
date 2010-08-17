@@ -21,11 +21,6 @@
     <mesh name="VelocityMesh">
       <from_mesh>
         <mesh name="PeriodicMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
@@ -39,7 +34,7 @@
         <mesh name="PeriodicMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">3</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <stat>
