@@ -10,17 +10,17 @@
   </problem_definition>
   <variables>
     <variable name="mindivergence" language="python">from fluidity_tools import stat_parser as stat
-mindivergence= max(abs(stat("water_collapse.stat")["Water"]["ControlVolumeDivergence"]["min"]))</variable>
+mindivergence= max(abs(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["min"]))</variable>
     <variable name="minvfrac" language="python">from fluidity_tools import stat_parser as stat
-minvfrac= max(stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["min"])</variable>
+minvfrac= max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["min"])</variable>
     <variable name="maxdivergence" language="python">from fluidity_tools import stat_parser as stat
-maxdivergence= max(stat("water_collapse.stat")["Water"]["ControlVolumeDivergence"]["max"])</variable>
+maxdivergence= max(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["max"])</variable>
     <variable name="maxvfrac" language="python">from fluidity_tools import stat_parser as stat
-maxvfrac = max(stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["max"])</variable>
+maxvfrac = max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["max"])</variable>
     <variable name="vfracintstart" language="python">from fluidity_tools import stat_parser as stat
-vfracintstart= stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["integral"][0]</variable>
+vfracintstart= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][0]</variable>
     <variable name="vfracintend" language="python">from fluidity_tools import stat_parser as stat
-vfracintend= stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["integral"][-1]</variable>
+vfracintend= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][-1]</variable>
     <variable name="nodesstart" language="python">from fluidity_tools import stat_parser as stat
 nodesstart= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][0]</variable>
     <variable name="nodesend" language="python">from fluidity_tools import stat_parser as stat
@@ -51,7 +51,7 @@ def get_head_pos(file):
   reader.SetFileName(file)
   reader.Update()
   data = reader.GetOutput()
-  data.GetPointData().SetActiveScalars("Water::MaterialVolumeFraction")
+  data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
   contour.SetInput(data)
   contour.SetValue(0, 0.025)
@@ -87,7 +87,7 @@ def get_head_pos(file):
   reader.SetFileName(file)
   reader.Update()
   data = reader.GetOutput()
-  data.GetPointData().SetActiveScalars("Water::MaterialVolumeFraction")
+  data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
   contour.SetInput(data)
   contour.SetValue(0, 0.5)
@@ -123,7 +123,7 @@ def get_head_pos(file):
   reader.SetFileName(file)
   reader.Update()
   data = reader.GetOutput()
-  data.GetPointData().SetActiveScalars("Water::MaterialVolumeFraction")
+  data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
   contour.SetInput(data)
   contour.SetValue(0, 0.975)
@@ -134,7 +134,7 @@ def get_head_pos(file):
   
 upper_contour_bounds= get_head_pos(get_last_dump())</variable>
     <variable name="insidecolumn" language="python">from fluidity_tools import stat_parser as stat
-insidecolumn= min(stat("water_collapse.detectors")["Water"]["MaterialVolumeFraction"]["WaterColumn"])</variable>
+insidecolumn= min(stat("water_collapse.detectors")["Dense"]["MaterialVolumeFraction"]["WaterColumn"])</variable>
   </variables>
   <pass_tests>
     <test name="water_conservation" language="python">print 'mass loss = ', abs(vfracintend-vfracintstart)

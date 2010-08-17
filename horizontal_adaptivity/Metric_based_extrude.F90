@@ -405,7 +405,6 @@ module hadapt_metric_based_extrude
     real :: oned_value
 
     ! normal here should be made smarter if this is on the globe.
-    dim = mesh_dim(back_tensor)
     normal = 0.0
     normal(dim) = 1.0
 
@@ -417,6 +416,7 @@ module hadapt_metric_based_extrude
     else
     
       nodes = row_length(back_columns, column)
+      dim = mesh_dim(back_tensor)
       column_nodes => row_m_ptr(back_columns, column)
 
       do i=1,nodes

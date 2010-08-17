@@ -289,8 +289,6 @@ contains
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer i, j, nbcs, shape_option(2)
-    
-    logical, dimension(3) :: rotated_components_required
 
     nbcs=option_count(trim(bc_path))
 
@@ -473,14 +471,11 @@ contains
 
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
               .or. bc_type=="log_law_of_wall") then
-              
-             rotated_components_required = .true.
 
              call allocate(normal, field%dim, surface_mesh, name="normal")
              bc_component_path=trim(bc_type_path)//"/normal_direction"
              if (have_option(bc_component_path)) then
                 call initialise_field(normal, bc_component_path, bc_position)
-                rotated_components_required(1) = .false. ! we don't need to calculate it
              else
                 call zero(normal)
              end if
@@ -490,7 +485,6 @@ contains
              bc_component_path=trim(bc_type_path)//"/tangent_direction_1"
              if (have_option(bc_component_path)) then
                 call initialise_field(tangent_1, bc_component_path, bc_position)
-                rotated_components_required(2) = .false. ! we don't need to calculate it
              else
                 call zero(tangent_1)
              end if
@@ -500,7 +494,6 @@ contains
              bc_component_path=trim(bc_type_path)//"/tangent_direction_2"
              if (have_option(bc_component_path)) then
                 call initialise_field(tangent_2, bc_component_path, bc_position)
-                rotated_components_required(3) = .false. ! we don't need to calculate it
              else
                 call zero(tangent_2)
              end if
@@ -508,12 +501,9 @@ contains
 
              debugging_mode=have_option(trim(bc_type_path)//"/debugging_mode")
             
-             if(any(rotated_components_required(1:field%dim))) then
-              ! calculate the normal, tangent_1 and tangent_2 on every boundary node
-              call initialise_rotated_bcs(surface_element_list, &
-                    position, debugging_mode, normal, tangent_1, tangent_2, &
-                    rotated_components_required)
-             end if
+             ! calculate the normal, tangent_1 and tangent_2 on every boundary node
+             call initialise_rotated_bcs(surface_element_list, &
+                  position, debugging_mode, normal, tangent_1, tangent_2)
              call deallocate(normal)
              call deallocate(tangent_1)
              call deallocate(tangent_2)
@@ -1854,7 +1844,7 @@ contains
 
 
   subroutine initialise_rotated_bcs(surface_element_list, x, & 
-    debugging_mode, normal, tangent_1, tangent_2, rotated_components_required)
+    debugging_mode, normal, tangent_1, tangent_2)
     
     integer, dimension(:),intent(in):: surface_element_list
     ! vector fields on the surface mesh
@@ -1863,7 +1853,6 @@ contains
     ! positions on the entire mesh (may not be same order as surface mesh!!)
     type(vector_field),intent(in)   :: x
     logical, intent(in):: debugging_mode
-    logical, dimension(3), intent(in) :: rotated_components_required
       
     type(vector_field)              :: bc_position
 
@@ -1875,145 +1864,55 @@ contains
     integer                       :: t1_max
     real, dimension(x%dim)        :: t1, t2, t1_norm, n
     real                          :: proj1, det
-    
-    type(mesh_type) :: x_surface_mesh
-    integer, dimension(:), pointer :: surface_nodes
-    type(vector_field) :: x_normal, x_tangent_1, x_tangent_2
-    
-    integer, save :: debugging_vtu_index=0
-    
-    if(x%mesh%shape%degree>1) then
-      ewrite(-1,*) "(I think) Because we don't invert a mass matrix when figuring out"
-      ewrite(-1,*) "the normal directions, rotated boundary conditions"
-      ewrite(-1,*) "(aligning vector bc with surfaces) don't work for"
-      ewrite(-1,*) "coordinates of degree greater than 1."
-      FLAbort("Rotated bc broken for coordinates of degree greater than 1.")
-    end if
-    
-    if(normal%mesh%shape%degree>1) then
-      ! The normal and tangents should be calculated on the surface mesh of
-      ! the coordinate field (as that's what will affect how the normals and
-      ! tangents vary anyway).
-      ! This gets around the fact that when you do a shape_vector_rhs calculation
-      ! using a shape function with degree greater than 1 you introduce negative
-      ! signs which flip the normal direction and result in nodal normals that
-      ! aren't actually normal to the coordinates.
-      ! I think this would be fixed by inverting the mass matrix but for P1 coordinates
-      ! this gets around it for the time being (rather than introducing solver options etc.).
-      ! It will not fix it for P>1 coordinates.
-      call create_surface_mesh(x_surface_mesh, surface_nodes, &
-                                x%mesh, surface_element_list, &
-                                name="coordinate_surface_mesh")
-      
-      if(rotated_components_required(1)) then
-        call allocate(x_normal, normal%dim, x_surface_mesh, name="coordinate_normal")
-        call zero(x_normal)
-      else
-        ewrite(-1,*) "Because when we calculate the normal we loop over the nodes of the"
-        ewrite(-1,*) "field mesh the normal, tangent_1 and tangent_2 must be either all"
-        ewrite(-1,*) "specified or all calculated when the field is on a P>1 mesh."
-        FLExit("Can't specify the normal and not specify the tangents when on a P>1 mesh.")
-        x_normal = normal
-      end if
-      
-      if(rotated_components_required(2)) then
-        call allocate(x_tangent_1, normal%dim, x_surface_mesh, name="coordinate_tangent_1")
-        call zero(x_tangent_1)
-      else
-        if(x%dim>1) then
-          ewrite(-1,*) "Because when we calculate the normal we loop over the nodes of the"
-          ewrite(-1,*) "field mesh the normal, tangent_1 and tangent_2 must be either all"
-          ewrite(-1,*) "specified or all calculated when the field is on a P>1 mesh."
-          FLExit("Can't specify the tangent_1 and not specify the normal and tangent_2 when on a P>1 mesh.")
-        end if
-        x_tangent_1 = tangent_1
-      end if
 
-      if(rotated_components_required(3)) then
-        call allocate(x_tangent_2, normal%dim, x_surface_mesh, name="coordinate_tangent_2")
-        call zero(x_tangent_2)
-      else
-        if(x%dim>2) then
-          ewrite(-1,*) "Because when we calculate the normal we loop over the nodes of the"
-          ewrite(-1,*) "field mesh the normal, tangent_1 and tangent_2 must be either all"
-          ewrite(-1,*) "specified or all calculated when the field is on a P>1 mesh."
-          FLExit("Can't specify the tangent_2 and not specify the normal and tangent_1 when on a P>1 mesh.")
-        end if
-        x_tangent_2 = tangent_2
-      end if
-      
-      call deallocate(x_surface_mesh)
-    else
-    
-      x_normal = normal
-      x_tangent_1 = tangent_1
-      x_tangent_2 = tangent_2
-    
-    end if
 
-    if(rotated_components_required(1)) then
-      do i=1, size(surface_element_list)
-        
-        sele = surface_element_list(i)
-        
-        call transform_facet_to_physical(x, sele, &
-              detwei_f=detwei_bdy, normal=normal_bdy)
-              
-        call addto(x_normal, ele_nodes(x_normal, i), &
-          shape_vector_rhs(ele_shape(x_normal, i), normal_bdy, detwei_bdy))
-      end do ! surface_element_list
-    end if
+    do i=1, size(surface_element_list)
+       
+       sele = surface_element_list(i)
+       
+       call transform_facet_to_physical(x, sele, &
+            detwei_f=detwei_bdy, normal=normal_bdy)
+       
+       call addto(normal, ele_nodes(normal, i), &
+         shape_vector_rhs(ele_shape(normal, i), normal_bdy, detwei_bdy))
+    end do ! surface_element_list
 
     t1 = 0.0
     t2 = 0.0
 
-    bcnod=x_normal%mesh%nodes
+    bcnod=normal%mesh%nodes
     do i=1, bcnod
 
        ! get node normal
-       n=node_val(x_normal,i)
+       n=node_val(normal,i)
 
-       if(rotated_components_required(1)) then
-          ! normalise it
-          n=n/sqrt(sum(n**2))
+       ! normalise it
+       n=n/sqrt(sum(n**2))
 
-          call set(x_normal, i, n)
-       end if
-       
+       call set(normal, i, n)
        if (x%dim>1) then
        
          assert(present(tangent_1))
-         
-         if(rotated_components_required(2)) then
-            t1_max=minloc( abs(n), dim=1 )
-            t1_norm=0.
-            t1_norm(t1_max)=1.
-          
-            proj1=dot_product(n, t1_norm)
-            t1= t1_norm - proj1 * n
-          
-            ! normalise it
-            t1=t1/sqrt(sum(t1**2))
+           
+         t1_max=minloc( abs(n), dim=1 )
+         t1_norm=0.
+         t1_norm(t1_max)=1.
+       
+         proj1=dot_product(n, t1_norm)
+         t1= t1_norm - proj1 * n
+       
+         ! normalise it
+         t1=t1/sqrt(sum(t1**2))
 
-            call set( x_tangent_1, i, t1 )
-         else
-            t1 = node_val(x_tangent_1, i)
-         end if
+         call set( tangent_1, i, t1 )
 
          if (x%dim>2)then
           
             assert(present(tangent_2))
             
-            if(rotated_components_required(3)) then
-            
-              t2 = cross_product(n, t1)
-            
-              call set( x_tangent_2, i, t2 )
-              
-            else
-            
-              t2 = node_val(x_tangent_2, i)
-            end if
+            t2 = cross_product(n, t1)
+          
+            call set( tangent_2, i, t2 )
           
          end if
          
@@ -2027,10 +1926,10 @@ contains
                 t1(1) * (t2(2) *  n(3) -  n(2) * t2(3) ) + &
                 t2(1) * ( n(2) * t1(3) - t1(2) *  n(3) ) )
           if (  abs( det - 1.) > 1.e-5) then
-            call allocate(bc_position, x_normal%dim, x_normal%mesh, "BoundaryPosition")
+            call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
             call remap_field_to_surface(x, bc_position, surface_element_list)
             call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
-                  vfields=(/ x_normal, x_tangent_1, x_tangent_2/))
+                  vfields=(/ normal, tangent_1, tangent_2/))
             call deallocate(bc_position)
             ewrite(-1,*) "rotation matrix determinant", det
             FLExit("rotation matrix is messed up, rotated bcs have exploded...")
@@ -2039,31 +1938,12 @@ contains
        
     end do ! bcnod
 
-    if(normal%mesh%shape%degree>1) then
-      ! of course now we have to remap from the linear mesh to the higher
-      ! order field mesh
-      ! and deallocate
-      if(rotated_components_required(1)) then
-        call remap_field(x_normal, normal)
-        call deallocate(x_normal)
-      end if
-      if(rotated_components_required(2)) then
-        call remap_field(x_tangent_1, tangent_1)
-        call deallocate(x_tangent_1)
-      end if
-      if(rotated_components_required(1)) then
-        call remap_field(x_tangent_2, tangent_2)
-        call deallocate(x_tangent_2)
-      end if
-    end if
-
     ! dump normals when debugging
     if (debugging_mode) then
       call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
       call remap_field_to_surface(x, bc_position, surface_element_list)
-      call vtk_write_fields( "normals", debugging_vtu_index, bc_position, bc_position%mesh, &
+      call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
                 vfields=(/ normal, tangent_1, tangent_2/))
-      debugging_vtu_index = debugging_vtu_index + 1
       call deallocate(bc_position)
     end if
     
