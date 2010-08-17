@@ -77,6 +77,11 @@
           <real_value shape="2" dim1="dim" rank="1">3.22 1.0</real_value>
         </location>
       </static_detector>
+      <static_detector name="WaterColumn">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">-0.375 -0.375</real_value>
+        </location>
+      </static_detector>
     </detectors>
   </io>
   <timestepping>
@@ -499,7 +504,7 @@
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-              <real_value shape="9" rank="1">-1 -1e-08 1e-08 0.025 0.5 0.975 0.99999999 1.00000001 2</real_value>
+                <real_value shape="9" rank="1">-1 -1e-08 1e-08 0.025 0.5 0.975 0.99999999 1.00000001 2</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>

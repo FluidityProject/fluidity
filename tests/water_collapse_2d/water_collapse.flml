@@ -140,6 +140,7 @@
           <real_value shape="2" dim1="dim" rank="1">-0.375 -0.375</real_value>
         </location>
       </static_detector>
+      <binary_output/>
     </detectors>
   </io>
   <timestepping>
@@ -484,7 +485,7 @@
             <control_volumes/>
             <mixing_bin_bounds>
               <constant>
-              <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
+                <real_value shape="9" rank="1">-1.0 -1.E-8 1.E-8 0.025 0.5 0.975 0.99999999 1.00000001 2.0</real_value>
               </constant>
             </mixing_bin_bounds>
             <tolerance>
