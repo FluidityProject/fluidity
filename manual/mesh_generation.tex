@@ -2,17 +2,17 @@
 \index{mesh!generation}
 \index{grid|see{mesh}}
 
-This chapter describes how to create a mesh for your \fluidity simulation. There
+This chapter describes how to create a mesh for your \fluidity\ simulation. There
 are many tools available, both free and commercial, that are capable to generating
 unstrucutred meshes that are stuiable for use with \fluidity. Here, we restrict ourselves
-to the mesh generation capabilities built into \fluidity and the associated script and
+to the mesh generation capabilities built into \fluidity\ and the associated script and
 tools, mentioning only briefly some of the more common tools also available.
 
 
 \section{The triangle format}\label{sect:triangle_format}
 \index{mesh!file formats}
 
-The main input file format for \fluidity meshes is the \emph{triangle} format.
+The main input file format for \fluidity\ meshes is the \emph{triangle} format.
 The triangle format is a ASCII file format originally designed for 2D
 triangle meshes, but it can be easily extended to different dimensions and
 more complex geometries.  \fluidity\ supports an version of the triangle format
@@ -244,14 +244,14 @@ Since GMSH doesn't explicitly label faces or regular elements as such, internall
 \label{sect:extruded_meshes}
 \index{mesh!mesh types!extruded}
 
-Given a 1D or 2D mesh file in triangle format, \fluidity can extrude this mesh to create a layered 2D or 3D mesh, 
+Given a 1D or 2D mesh file in triangle format, \fluidity\ can extrude this mesh to create a layered 2D or 3D mesh, 
 on which simulations can be performed. This is achieved by first including a new mesh that is created by reading the 1D or 2D mesh file, see \ref{Sect:Mesh}. Then, for the mesh that is to be created by extrusion, select the \option{\ldots/from mesh} and input the name of the 1D or 2D mesh. Next check the \option{extrude} option, after which, the \option{bottom\_depth} and 
 a \option{sizing\_function} (which specifies the separation between layers) must be specified. These distances can 
 currently be entered as a constant, a generic\_function, a python function or by a NetCDF 
 file (\website). Optionally, the user can then set the surface id given to the top and bottom surfaces. 
 
 As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file),
-given a pseudo 2D mesh on a spherical shell, \fluidity can perform and extrusion in the radial 
+given a pseudo 2D mesh on a spherical shell, \fluidity\ can perform and extrusion in the radial 
 direction. To perform such an extrusion simply enable the options as noted above and additionally 
 check the \option{/geometry/spherical\_earth option}. With this option enabled fluidity will then perform the 
 specified extrusion towards the center of the sphere.
