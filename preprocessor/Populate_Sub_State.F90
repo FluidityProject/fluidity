@@ -366,8 +366,8 @@ contains
 
   subroutine insert_subdomain_mesh_maps(states,sub_states)
     !! Forms mapping functions for subdomain derived meshes:
-    type(state_type), pointer, intent(in), dimension(:) :: states
-    type(state_type), pointer, intent(inout), dimension(:) :: sub_states
+    type(state_type), intent(in), dimension(:) :: states
+    type(state_type), intent(inout), dimension(:) :: sub_states
 
     ! Externally created mesh:
     type(mesh_type), pointer :: external_mesh
