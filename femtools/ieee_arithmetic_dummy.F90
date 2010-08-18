@@ -6,14 +6,16 @@ module ieee_arithmetic
   !!< for platforms that don't have it.
 
   use fldebug
+  use iso_c_binding
   implicit none
 
   external :: c99_isnan
   integer  :: c99_isnan 
 
   interface
-    subroutine cget_nan(nan)
-      double precision, intent(out) :: nan
+    subroutine cget_nan(nan) bind(c)
+      use iso_c_binding
+      real(kind=c_double), intent(out) :: nan
     end subroutine cget_nan
   end interface
 
