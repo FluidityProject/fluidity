@@ -714,7 +714,7 @@ subroutine gls_check_options
 
     ! one dimensional problems not supported
     call get_option("/geometry/dimension/", dimension) 
-    if (dimension .eq. 1) then
+    if (dimension .eq. 1 .and. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         FLExit("GLS modelling is only supported for dimension > 1")
     end if
     ! Don't do GLS if it's not included in the model!
