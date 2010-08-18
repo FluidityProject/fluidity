@@ -1955,7 +1955,6 @@ contains
     
     integer, dimension(:), pointer     :: surface_element_list, surface_nodes
     type(scalar_field)                 :: scalar_surface_field
-    type(vector_field)                 :: bc_position
     type(vector_field), pointer        :: position
     type(scalar_field), pointer        :: tke, psi
     type(mesh_type), pointer           :: surface_mesh
@@ -1987,8 +1986,6 @@ contains
     ! mesh of only the part of the surface where this b.c. applies
     call get_boundary_condition(tke, 'tke_top_boundary', surface_mesh=surface_mesh, &
         surface_element_list=surface_element_list)
-    call allocate(bc_position, position%dim, surface_mesh)
-    call remap_field_to_surface(position, bc_position, surface_element_list)
     
     call get_boundary_condition(tke, 'tke_top_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
@@ -1999,7 +1996,6 @@ contains
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_top_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
-    call deallocate(bc_position)
 
 
 
@@ -2016,8 +2012,6 @@ contains
 
     ! mesh of only the part of the surface where this b.c. applies
     call get_boundary_condition(tke, 'tke_bottom_boundary', surface_mesh=surface_mesh)
-    call allocate(bc_position, position%dim, surface_mesh)
-    call remap_field_to_surface(position, bc_position, surface_element_list)
     call get_boundary_condition(tke, 'tke_bottom_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(tke, 'tke_bottom_boundary', scalar_surface_field)
@@ -2027,7 +2021,6 @@ contains
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_bottom_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
-    call deallocate(bc_position)
 
     
   end subroutine populate_gls_boundary_conditions
