@@ -491,7 +491,7 @@ contains
        ntfields = tensor_field_count(sub_states(istate))
        do ifield = 1, ntfields
           tfield_sub => extract_tensor_field(sub_states(istate),ifield)
-          if(.not. aliased(tfield)) then
+          if(.not. aliased(tfield_sub)) then
             tfield => extract_tensor_field(states(istate),trim(tfield_sub%name), stat=stat)
             if(stat==0) then
               call zero(tfield_sub)
