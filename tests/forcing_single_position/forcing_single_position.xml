@@ -4,7 +4,7 @@
 <testproblem>
     <name>forcing</name>
   <owner userid="jhill1"/>
-  <tags>flml</tags>
+  <tags>flml forcing</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l forcing_single_position.flml</command_line>
   </problem_definition>  

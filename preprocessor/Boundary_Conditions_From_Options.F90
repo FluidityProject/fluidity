@@ -150,11 +150,12 @@ contains
            call populate_ocean_forcing_boundary_conditions(states(1))
        end if
 
-       if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries')) then
-           call populate_gls_boundary_conditions(states(1))
-       end if
-
     end if
+
+    if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries')) then
+        call populate_gls_boundary_conditions(states(1))
+    end if
+
     if (have_option('/turbine_model')) then
        call populate_flux_turbine_boundary_conditions(states(1))
     end if
@@ -243,10 +244,6 @@ contains
            ("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
                FLAbort("Incorrect boundary condition type for field")
            end if
-
-          call allocate(surface_field, surface_mesh, name="value")
-          call insert_surface_field(field, i+1, surface_field)
-          call deallocate(surface_field)
 
        case default
 
@@ -1956,77 +1953,82 @@ contains
   subroutine populate_gls_boundary_conditions(state)
     type(state_type), intent(in) :: state
     
-    integer, dimension(:), pointer :: surface_element_list, surface_nodes
-    type(scalar_field), pointer :: distanceToTop, distanceToBottom
-    type(scalar_field) :: scalar_surface_field
-    type(scalar_field), pointer :: tke, psi
-    type(mesh_type) :: ocean_mesh, input_mesh
-    type(mesh_type), pointer :: surface_mesh
-    character(len=FIELD_NAME_LEN) :: input_mesh_name
-    character(len=FIELD_NAME_LEN) :: bc_type
-    integer, dimension(:), allocatable:: surface_ids
-    integer, dimension(2) :: shape_option
+    integer, dimension(:), pointer     :: surface_element_list, surface_nodes
+    type(scalar_field)                 :: scalar_surface_field
+    type(vector_field)                 :: bc_position
+    type(vector_field), pointer        :: position
+    type(scalar_field), pointer        :: tke, psi
+    type(mesh_type), pointer           :: surface_mesh
+    character(len=FIELD_NAME_LEN)      :: bc_type
+    integer, dimension(:), allocatable :: surface_ids
+    integer, dimension(2)              :: shape_option
     integer :: stat
 
     ewrite(1,*) "Initialising GLS stable boundaries"
 
-    distanceToTop => extract_scalar_field(state, "DistanceToTop")
-    distanceToBottom => extract_scalar_field(state, "DistanceToBottom")
-
+    position => extract_vector_field(state, "Coordinate")
     tke  => extract_scalar_field(state, "GLSTurbulentKineticEnergy",stat)
     if(stat/=0) FLAbort("Need GLSTurbulentKineticEnergy field")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity",stat)
     if(stat/=0) FLAbort("Need GLSGenericSecondQuantity field")
     
-    call get_option(trim(tke%option_path)//'/prognostic/mesh/name', input_mesh_name)
-    input_mesh = extract_mesh(state, input_mesh_name);
-    
-    ! Add a top BC to the two GLS fields
-    call get_boundary_condition(distanceToTop, name='top', surface_element_list=surface_element_list)
-    call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
-
-    shape_option=option_shape("geometry/ocean_boundaries/top_surface_ids")
+    ! Get vector of surface ids
+    shape_option=option_shape("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/top_surface_ids")
     allocate(surface_ids(1:shape_option(1)))
-    call get_option("geometry/ocean_boundaries/top_surface_ids", surface_ids)
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/top_surface_ids", surface_ids)
 
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/", bc_type)
-    
+
+    ! Add boundary condition
     call add_boundary_condition(tke, 'tke_top_boundary', bc_type, surface_ids)
+    call add_boundary_condition(psi, 'psi_top_boundary', bc_type, surface_ids)
+    deallocate(surface_ids)
+
+    ! mesh of only the part of the surface where this b.c. applies
+    call get_boundary_condition(tke, 'tke_top_boundary', surface_mesh=surface_mesh, &
+        surface_element_list=surface_element_list)
+    call allocate(bc_position, position%dim, surface_mesh)
+    call remap_field_to_surface(position, bc_position, surface_element_list)
+    
     call get_boundary_condition(tke, 'tke_top_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(tke, 'tke_top_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
 
-    call add_boundary_condition(psi, 'psi_top_boundary', bc_type, surface_ids)
     call get_boundary_condition(psi, 'psi_top_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_top_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
-    deallocate(surface_ids)
+    call deallocate(bc_position)
 
-    call deallocate(ocean_mesh)
+
 
     ! Bottom boundary on tke and psi
-    call get_boundary_condition(distanceToBottom, name='bottom', surface_element_list=surface_element_list)
-    call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanBottom')
-
-    shape_option=option_shape("geometry/ocean_boundaries/bottom_surface_ids")
+    ! Get vector of surface ids
+    shape_option=option_shape("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/bottom_surface_ids")
     allocate(surface_ids(1:shape_option(1)))
-    call get_option("geometry/ocean_boundaries/bottom_surface_ids", surface_ids)
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/bottom_surface_ids", surface_ids)
 
+    ! Add boundary condition
     call add_boundary_condition(tke, 'tke_bottom_boundary', bc_type, surface_ids)
+    call add_boundary_condition(psi, 'psi_bottom_boundary', bc_type, surface_ids)
+    deallocate(surface_ids)
+
+    ! mesh of only the part of the surface where this b.c. applies
+    call get_boundary_condition(tke, 'tke_bottom_boundary', surface_mesh=surface_mesh)
+    call allocate(bc_position, position%dim, surface_mesh)
+    call remap_field_to_surface(position, bc_position, surface_element_list)
     call get_boundary_condition(tke, 'tke_bottom_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(tke, 'tke_bottom_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
 
-    call add_boundary_condition(psi, 'psi_bottom_boundary', bc_type, surface_ids)
     call get_boundary_condition(psi, 'psi_bottom_boundary', surface_mesh=surface_mesh)
     call allocate(scalar_surface_field, surface_mesh, name="value")
     call insert_surface_field(psi, 'psi_bottom_boundary', scalar_surface_field)
     call deallocate(scalar_surface_field)
-    call deallocate(ocean_mesh)
-    deallocate(surface_ids)
+    call deallocate(bc_position)
+
     
   end subroutine populate_gls_boundary_conditions
 

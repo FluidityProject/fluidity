@@ -113,10 +113,10 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">9.8</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -134,9 +134,9 @@
         </prescribed>
       </vector_field>
     </gravity>
-    <coriolis replaces="OPTOME">
-      <f_plane replaces="OPTOME = 0">
-        <f replaces="OMEGA">
+    <coriolis>
+      <f_plane>
+        <f>
           <real_value rank="0">1.0e-4</real_value>
         </f>
       </f_plane>
@@ -158,6 +158,12 @@
         </stability_function>
         <calculate_boundaries>
           <string_value>neumann</string_value>
+          <top_surface_ids>
+            <integer_value shape="1" rank="1">38</integer_value>
+          </top_surface_ids>
+          <bottom_surface_ids>
+            <integer_value shape="1" rank="1">39</integer_value>
+          </bottom_surface_ids>
         </calculate_boundaries>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
           <prognostic>

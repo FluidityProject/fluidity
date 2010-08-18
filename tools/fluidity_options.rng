@@ -968,6 +968,12 @@ Make sure the ocean geometry settings are enabled for this option</a:documentati
                           <value>dirichlet</value>
                         </choice>
                       </element>
+                      <element name="top_surface_ids">
+                        <ref name="integer_vector"/>
+                      </element>
+                      <element name="bottom_surface_ids">
+                        <ref name="integer_vector"/>
+                      </element>
                       <optional>
                         <element name="fix_surface_values">
                           <a:documentation>Force the surface values of diffusivity/viscosity to be equal to that if

@@ -759,6 +759,12 @@ start =
                      element string_value {
                      "neumann"|"dirichlet"
                      },
+                     element top_surface_ids {
+                        integer_vector
+                     },
+                     element bottom_surface_ids {
+                        integer_vector
+                     },
                      ## Force the surface values of diffusivity/viscosity to be equal to that if
                      ## a Dirichlet condition is used on the two turbulent fields. The two turbulent
                      ## fields are not actually altered.

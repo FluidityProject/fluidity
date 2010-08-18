@@ -187,6 +187,12 @@
         </stability_function>
         <calculate_boundaries>
           <string_value>neumann</string_value>
+          <top_surface_ids>
+            <integer_value shape="1" rank="1">111</integer_value>
+          </top_surface_ids>
+          <bottom_surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </bottom_surface_ids>
         </calculate_boundaries>
         <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
           <prognostic>

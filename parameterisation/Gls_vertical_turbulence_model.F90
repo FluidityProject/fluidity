@@ -365,6 +365,7 @@ subroutine gls_tke(state)
 
     ! boundary conditions
     if (calculate_bcs) then
+        ewrite(1,*) "Calculating BCs"
         call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/", bc_type)
         call gls_tke_bc(state,bc_type)
         ! above puts the BC boundary values in top_surface_values and bottom_surface_values module level variables
@@ -708,9 +709,14 @@ subroutine gls_check_options
     
     character(len=FIELD_NAME_LEN) :: buffer
     integer                       :: stat
-    real                          :: min_tke, relax
+    real                          :: min_tke, relax, nbcs
+    integer                       :: dimension
 
-
+    ! one dimensional problems not supported
+    call get_option("/geometry/dimension/", dimension) 
+    if (dimension .eq. 1) then
+        FLExit("GLS modelling is only supported for dimension > 1")
+    end if
     ! Don't do GLS if it's not included in the model!
     if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) return
 
@@ -846,13 +852,6 @@ subroutine gls_check_options
     end if
 
   
-    ! If calc boundaries is on, check that ocean geometry is on
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/")) then
-        if (.not.have_option("/geometry/ocean_boundaries")) then
-            FLExit("If you have the calculate_boundaries option on, ocean_boundaries also need to be on")
-        end if
-    end if
-
     ! check a minimum value of TKE has been set
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                     &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", min_tke, stat)
@@ -885,6 +884,17 @@ subroutine gls_check_options
        end if
    end if
    
+   ! Check that the we don't have auto boundaries and user-defined boundaries
+   if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries")) then
+       nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic/boundary_conditions"))
+       if (nbcs > 0) then
+           FLExit("You have automatic boundary conditions on, but some boundary conditions on the GLS TKE field. Not allowed")
+       end if
+       nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic/boundary_conditions"))
+       if (nbcs > 0) then
+           FLExit("You have automatic boundary conditions on, but some boundary conditions on the GLS Psi field. Not allowed")
+       end if
+    end if
 
 
 
@@ -905,34 +915,29 @@ subroutine gls_check_options
 subroutine gls_init_surfaces(state)
     type(state_type), intent(in)     :: state  
 
-    type(scalar_field), pointer      :: distanceToTop, distanceToBottom
-    character(len=OPTION_PATH_LEN)   :: input_mesh_name
     type(scalar_field), pointer      :: kk
-    type(mesh_type)                  :: input_mesh, ocean_mesh
+    type(vector_field), pointer      :: position
+    type(mesh_type), pointer         :: ocean_mesh
   
     ewrite(1,*) "Initialising the GLS surfaces required for BCs"
 
     ! grab hold of some essential field
-    distanceToTop => extract_scalar_field(state, "DistanceToTop")
-    distanceToBottom => extract_scalar_field(state, "DistanceToBottom")
     kk => extract_scalar_field(state, "GLSTurbulentKineticEnergy")
+    position => extract_vector_field(state, "Coordinate")
 
     ! create a surface mesh to place values onto. This is for the top surface
-    call get_option(trim(kk%option_path)//'/prognostic/mesh/name', input_mesh_name)
-    input_mesh = extract_mesh(state, input_mesh_name);
-    call get_boundary_condition(distanceToTop, name='top', surface_element_list=top_surface_element_list)
-    call create_surface_mesh(ocean_mesh, top_surface_nodes, input_mesh, top_surface_element_list, 'OceanSurface')
+    call get_boundary_condition(kk, 'tke_top_boundary', surface_mesh=ocean_mesh, &
+        surface_element_list=top_surface_element_list)
     NNodes_sur = node_count(ocean_mesh) 
     call allocate(top_surface_values, ocean_mesh, name="top_surface")
     call allocate(top_surface_kk_values,ocean_mesh, name="surface_tke")
-    call deallocate(ocean_mesh)
+    
     ! bottom
-    call get_boundary_condition(distanceToBottom, name='bottom', surface_element_list=bottom_surface_element_list)
-    call create_surface_mesh(ocean_mesh, bottom_surface_nodes, input_mesh, bottom_surface_element_list, 'OceanBottom')
+    call get_boundary_condition(kk, 'tke_bottom_boundary', surface_mesh=ocean_mesh, &
+        surface_element_list=bottom_surface_element_list)
     NNodes_bot = node_count(ocean_mesh) 
     call allocate(bottom_surface_values, ocean_mesh, name="bottom_surface")
     call allocate(bottom_surface_kk_values,ocean_mesh, name="bottom_tke")
-    call deallocate(ocean_mesh)
 
     allocate(dzb(NNodes_bot))
     allocate(dzs(NNodes_sur))
@@ -1070,7 +1075,7 @@ subroutine gls_stability_function(state)
     anMin     = anMinNum / anMinDen
 
     if (abs(n2-d5) .lt. 1e-7) then
-    ! (special treatment to  avoid a singularity)
+        ! (special treatment to  avoid a singularity)
         do i=1,nNodes
             tau2   = node_val(KK,i)*node_val(KK,i) / ( node_val(eps,i)*node_val(eps,i) )
             an = tau2 * node_val(NN2,i)
@@ -1092,7 +1097,6 @@ subroutine gls_stability_function(state)
         end do
 
      else
-
         do i=1,nNodes
 
             tau2   = node_val(KK,i)*node_val(KK,i) / ( node_val(eps,i)*node_val(eps,i) )
@@ -1112,7 +1116,6 @@ subroutine gls_stability_function(state)
             nCmp = nt0 + nt1*an + nt2*as
             call set(S_M,i, cm3_inv*nCm /dCm)
             call set(S_H,i, cm3_inv*nCmp/dCm)
-
         end do
 
     endif
@@ -1142,6 +1145,7 @@ subroutine gls_tke_bc(state, bc_type)
     allocate(z0b(NNodes_bot))
     allocate(u_taus_squared(NNodes_sur))
     allocate(u_taub_squared(NNodes_bot))
+
 
     ! get friction
     call gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_squared)
@@ -1290,6 +1294,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     type(vector_field)                   :: bottom_velocity
     type(mesh_type)                      :: ocean_mesh
     real                                 :: u_taub, z0s_min
+    real, dimension(1)                   :: temp_vector_1D ! Obviously, not really a vector, but lets keep the names consistant
     real, dimension(2)                   :: temp_vector_2D
     real, dimension(3)                   :: temp_vector_3D
 
@@ -1309,45 +1314,93 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         end if
     end do
 
-    do i=1,NNodes_sur
-        temp_vector_2D = node_val(wind_surface_field,i)
-        ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
-        ! u_taus = sqrt(wind_stress/rho0)
-        ! we assume here that the wind stress in diamond is already
-        ! wind_stress/rho0
-        u_taus_squared(i) = sqrt(((temp_vector_2D(1))**2+(temp_vector_2D(2))**2))
-        !  use the Charnock formula to compute the surface roughness
-        z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
-        if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
-
-    end do
-
-    ! grab values of velocity from bottom surface
-    call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
-    call allocate(bottom_velocity, 3, ocean_mesh, name="bottom_velocity")
-    call remap_field_to_surface(velocity, bottom_velocity, &
-                                bottom_surface_element_list)
-
-    do i=1,NNodes_bot
-        temp_vector_3D = node_val(bottom_velocity,i)
-        u_taub = sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
-
-
-        !  iterate bottom roughness length MaxItz0b times
-        do ii=1,MaxIter
-            z0b(i)=1e-7/max(1e-6,u_taub)+0.03*0.1
-
-            ! compute the factor r (version 1, with log-law)
-            ! Note that we do this in the closest 1m to surface - irrespective of grid size
-            rr=kappa/(log((z0b(i)+dzb(i))/z0b(i)))
-
-            ! compute the friction velocity at the bottom
-            u_taub = rr*sqrt((temp_vector_2D(1)**2+temp_vector_2D(2)**2))
+    if (positions%dim .eq. 3) then
+        do i=1,NNodes_sur
+            temp_vector_2D = node_val(wind_surface_field,i)
+            ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
+            ! u_taus = sqrt(wind_stress/rho0)
+            ! we assume here that the wind stress in diamond is already
+            ! wind_stress/rho0
+            u_taus_squared(i) = sqrt(((temp_vector_2D(1))**2+(temp_vector_2D(2))**2))
+            !  use the Charnock formula to compute the surface roughness
+            z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
+            if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
 
         end do
 
-        u_taub_squared(i) = u_taub**2
-    end do
+        ! grab values of velocity from bottom surface
+        call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
+        call allocate(bottom_velocity, velocity%dim, ocean_mesh, name="bottom_velocity")
+        call remap_field_to_surface(velocity, bottom_velocity, &
+                                    bottom_surface_element_list)
+
+        do i=1,NNodes_bot
+            temp_vector_3D = node_val(bottom_velocity,i)
+            u_taub = sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
+
+
+            !  iterate bottom roughness length MaxItz0b times
+            do ii=1,MaxIter
+                z0b(i)=1e-7/max(1e-6,u_taub)+0.03*0.1
+
+                ! compute the factor r (version 1, with log-law)
+                ! Note that we do this in the closest 1m to surface - irrespective of grid size
+                rr=kappa/(log((z0b(i)+dzb(i))/z0b(i)))
+
+                ! compute the friction velocity at the bottom
+                u_taub = rr*sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
+
+            end do
+
+            u_taub_squared(i) = u_taub**2
+        end do
+
+    else if (positions%dim .eq. 2) then
+        do i=1,NNodes_sur
+            temp_vector_1D = node_val(wind_surface_field,i)
+            ! big hack! Assumes that the wind stress forcing has ALREADY been divded by ocean density
+            ! u_taus = sqrt(wind_stress/rho0)
+            ! we assume here that the wind stress in diamond is already
+            ! wind_stress/rho0
+            u_taus_squared(i) = temp_vector_1D(1)
+            !  use the Charnock formula to compute the surface roughness
+            z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
+            if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
+
+        end do
+
+        ! grab values of velocity from bottom surface
+        call create_surface_mesh(ocean_mesh, bottom_surface_nodes, velocity%mesh, bottom_surface_element_list, 'OceanBottom')
+        call allocate(bottom_velocity, velocity%dim, ocean_mesh, name="bottom_velocity")
+        call remap_field_to_surface(velocity, bottom_velocity, &
+                                    bottom_surface_element_list)
+
+        do i=1,NNodes_bot
+            temp_vector_2D = node_val(bottom_velocity,i)
+            u_taub = sqrt(temp_vector_2D(1)**2+temp_vector_2D(2)**2)
+
+
+            !  iterate bottom roughness length MaxItz0b times
+            do ii=1,MaxIter
+                z0b(i)=1e-7/max(1e-6,u_taub)+0.03*0.1
+
+                ! compute the factor r (version 1, with log-law)
+                ! Note that we do this in the closest 1m to surface - irrespective of grid size
+                rr=kappa/(log((z0b(i)+dzb(i))/z0b(i)))
+
+                ! compute the friction velocity at the bottom
+                u_taub = rr*sqrt((temp_vector_2D(1)**2+temp_vector_2D(2)**2))
+
+            end do
+
+            u_taub_squared(i) = u_taub**2
+        end do
+
+    else
+        FLAbort("Unsupported dimension in GLS friction")
+    end if
+
+
     call deallocate(bottom_velocity)
     call deallocate(ocean_mesh)
   return
@@ -1513,7 +1566,6 @@ subroutine gls_calc_wall_function(state)
         if( (node_val(distanceToBottom,i).lt.1.0)) then
             call set( Fwall, i, 1.0 + E2 ) ! hanert-ish       
         else
-            !write(*,*) node_val(ll,i), LLL
             call set( Fwall, i, 1.0 + E2*( ((node_val(ll,i)/kappa)*( LLL ))**2 ))       
         end if
     end do
