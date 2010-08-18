@@ -77,7 +77,7 @@ contains
 
     use Profiler
 
-    type(state_type), pointer, intent(in), dimension(:) :: states
+    type(state_type), intent(in), dimension(:) :: states
     type(state_type), pointer, dimension(:) :: sub_states
 
     integer :: nstates ! number of states
@@ -102,8 +102,6 @@ contains
 
     ! Determine mapping functions for derived meshes, to and from full mesh:
     call insert_subdomain_mesh_maps(states,sub_states)
-
-    call compute_domain_statistics(sub_states)
 
     call allocate_and_insert_fields(sub_states)
 
@@ -436,8 +434,8 @@ contains
     ! This routine updates fields on the prognostic subdomain
     ! in partially prognostic simulations:
 
-    type(state_type), pointer, intent(in), dimension(:) :: states
-    type(state_type), pointer, intent(inout), dimension(:) :: sub_states
+    type(state_type), intent(in), dimension(:) :: states
+    type(state_type), intent(inout), dimension(:) :: sub_states
 
     ! Full domain and subdomain fields:
     type(scalar_field), pointer :: sfield, sfield_sub

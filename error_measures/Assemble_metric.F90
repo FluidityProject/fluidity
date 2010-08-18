@@ -200,6 +200,8 @@ module metric_assemble
     type(tensor_field) :: horizontal_min_bound, horizontal_max_bound
 
     if(.not.(use_anisotropic_gradation.or.use_gradation_metric)) return
+    
+    ewrite(1,*) 'in apply_horizontal_gradation'
 
     if (use_anisotropic_gradation) then
       is_constant = have_option(path//"/anisotropic_symmetric/constant")
@@ -268,6 +270,8 @@ module metric_assemble
     
     if(.not.(use_anisotropic_gradation.or.use_gradation_metric)) return
 
+    ewrite(1,*) 'in apply_vertical_gradation'
+    
     call get_option("/geometry/quadrature/degree", quadrature_degree)
     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)

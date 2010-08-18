@@ -119,7 +119,7 @@ contains
       case (3)
           !Triangles
           if (polydegree>CV_TRI_MAX_DEGREE) then
-            FLAbort('Invalid control volume degree.')
+            FLExit('Invalid control volume degree.')
           else
             cv_temp_list=>cv_tri_face_temp
             cvbdy_temp_list=>cv_line_bdy_temp
@@ -128,7 +128,7 @@ contains
       case (4)
           !Quads
           if (polydegree>CV_QUAD_MAX_DEGREE) then
-            FLAbort('Invalid control volume degree.')
+            FLExit('Invalid control volume degree.')
           else
             cv_temp_list=>cv_quad_face_temp
             cvbdy_temp_list=>cv_line_bdy_temp
@@ -144,7 +144,7 @@ contains
       case (4)
           !Tets
           if (polydegree>CV_TET_MAX_DEGREE) then
-            FLAbort('Invalid control volume degree.')
+            FLExit('Invalid control volume degree.')
           else
             cv_temp_list=>cv_tet_face_temp
             cvbdy_temp_list=>cv_tet_bdy_temp
@@ -153,7 +153,7 @@ contains
       case(8)
           !Hexes
           if (polydegree>CV_HEX_MAX_DEGREE) then
-            FLAbort('Invalid control volume degree.')
+            FLExit('Invalid control volume degree.')
           else
             cv_temp_list=>cv_hex_face_temp
             cvbdy_temp_list=>cv_hex_bdy_temp
@@ -161,13 +161,13 @@ contains
 
       case default
 
-          FLAbort('Invalid control volume type.')
+          FLExit('Invalid control volume type.')
 
       end select
 
     case default
 
-      FLAbort('Invalid control volume type.')
+      FLExit('Invalid control volume type.')
 
     end select
 
@@ -200,6 +200,7 @@ contains
       face_quad=make_quadrature(vertices=size(cvfaces%corners, 3),dim=(cvfaces%dim-1), &
                                   ngi=quadngi)
     else
+      ! code error
       FLAbort('Must specifiy either quaddegree or quadngi')
     end if
 

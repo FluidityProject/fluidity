@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -33,6 +33,7 @@ module zoltan_integration
   use detector_data_types
   use pickers
   use diagnostic_variables
+  use hadapt_advancing_front
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
@@ -1558,8 +1559,17 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     integer :: k
 
     type(tensor_field) :: new_metric
+    
+    logical :: vertically_structured_adaptivity
+    integer(zoltan_int), dimension(:), pointer :: p1_export_local_ids_full => null()
+    integer(zoltan_int), dimension(:), pointer :: p1_export_procs_full => null()
+    integer(zoltan_int) :: p1_num_export_full
+    type(vector_field) :: new_positions_m1d
 
     ewrite(1,*) "In zoltan_drive"
+    
+    vertically_structured_adaptivity = have_option( &
+     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
 
     call setup_module_variables
 
@@ -1576,6 +1586,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     end if
 
     call dump_suggested_owner
+    
+    if(vertically_structured_adaptivity) then
+      call derive_full_export_lists
+    end if
 
     ! The general plan:
     ! Just send the nodes you own, along with a note of their dependencies
@@ -1597,6 +1611,36 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     call reconstruct_senlist
     call reconstruct_halo
     call dump_linear_mesh
+    
+    if(vertically_structured_adaptivity) then
+      new_positions_m1d = new_positions
+      call incref(new_positions_m1d) ! we'll need this in a bit so let's prevent it from being deallocated
+      
+      call cleanup_basic_module_variables
+      call cleanup_other_module_variables
+      
+      call setup_module_variables(mesh_name = topology_mesh_name)
+
+      call set_zoltan_parameters
+      
+      call reset_zoltan_lists_full
+      
+      ! It builds an import list from that, then migrates again
+
+      call are_we_keeping_or_sending_nodes
+
+      ! Migrate here
+      call zoltan_migration_phase_one ! for nodes I am going to own
+      call deallocate_zoltan_lists
+      call deal_with_exports
+      call zoltan_migration_phase_two ! for halo nodes those nodes depend on
+      call deallocate_my_lists
+
+      call reconstruct_enlist
+      call reconstruct_senlist
+      call reconstruct_halo
+      call dump_linear_mesh
+    end if
 
     ! At this point, we now have the balanced linear external mesh.
     ! Get populate_state to allocate the fields and such on this new
@@ -1608,16 +1652,94 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     call transfer_fields
 
     call deallocate(new_positions)
+    if(vertically_structured_adaptivity) then
+      call deallocate(new_positions_m1d)
+    end if
 
     call finalise_transfer
 
     call cleanup_basic_module_variables
     call cleanup_other_module_variables
+    
     dumpno = dumpno + 1
 
     ewrite(1,*) "Exiting zoltan_drive"
 
     contains
+    
+    subroutine reset_zoltan_lists_full
+    
+      integer :: i, ierr
+      
+      ewrite(1,*) 'in reset_zoltan_lists_full'
+    
+      p1_num_export = p1_num_export_full
+      
+      p1_export_local_ids => p1_export_local_ids_full
+      p1_export_procs => p1_export_procs_full
+      
+      allocate(p1_export_global_ids(p1_num_export))
+      p1_export_global_ids = 0
+      
+      do i=1,p1_num_export
+        p1_export_global_ids(i) = halo_universal_number(zz_halo, p1_export_local_ids(i))
+      end do
+      assert(all(p1_export_global_ids>0))
+      
+      p1_num_import = 0
+      p1_import_local_ids => null()
+      p1_import_procs => null()
+      p1_import_global_ids => null()
+
+      ierr = Zoltan_Compute_Destinations(zz, &
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
+       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs)
+      assert(ierr == ZOLTAN_OK)
+      
+    
+    end subroutine reset_zoltan_lists_full
+    
+    subroutine derive_full_export_lists
+    
+      type(mesh_type), pointer :: full_mesh
+      type(csr_sparsity) :: columns_sparsity
+      integer :: i, column
+      integer, dimension(:), pointer :: column_nodes
+      
+      integer :: last_full_node
+    
+      ewrite(1,*) 'in derive_full_export_lists'
+      
+      full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
+      
+      call create_columns_sparsity(columns_sparsity, full_mesh)
+      
+      p1_num_export_full = 0
+      do i = 1, p1_num_export
+        column = p1_export_local_ids(i)
+        p1_num_export_full = p1_num_export_full + row_length(columns_sparsity, column)
+      end do
+      
+      allocate(p1_export_local_ids_full(p1_num_export_full))
+      p1_export_local_ids_full = 0
+      allocate(p1_export_procs_full(p1_num_export_full))
+      p1_export_procs_full = -1
+      
+      last_full_node = 1
+      do i = 1, p1_num_export
+        column = p1_export_local_ids(i)
+        column_nodes => row_m_ptr(columns_sparsity, column)
+        
+        p1_export_local_ids_full(last_full_node:last_full_node+size(column_nodes)-1) = column_nodes
+        p1_export_procs_full(last_full_node:last_full_node+size(column_nodes)-1) = p1_export_procs(i)
+        
+        last_full_node = last_full_node + size(column_nodes)
+      end do
+      assert(last_full_node-1==p1_num_export_full)
+      assert(all(p1_export_local_ids_full>0))
+      assert(all(p1_export_procs_full>-1))
+    
+    end subroutine derive_full_export_lists
 
     subroutine transfer_fields
       ! OK! So, here is how this is going to work. We are going to 
@@ -1887,6 +2009,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       integer :: i
       type(state_type), dimension(size(states)) :: interpolate_states
       integer(zoltan_int) :: ierr
+      integer :: no_meshes
 
       ! Set up source_states
       do i=1,size(states)
@@ -1901,10 +2024,19 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         call deallocate(metric)
       end if
 
-      allocate(source_states(mesh_count(interpolate_states(1))))
+      if(vertically_structured_adaptivity) then
+        no_meshes = mesh_count(interpolate_states(1))-1
+      else
+        no_meshes = mesh_count(interpolate_states(1))
+      end if
+      allocate(source_states(no_meshes))
       call halo_update(interpolate_states, level=1)
       ! Place the fields we've picked out to interpolate onto the correct meshes of source_states
-      call collect_fields_by_mesh(interpolate_states, source_states)
+      if(vertically_structured_adaptivity) then
+        call collect_fields_by_mesh(interpolate_states, source_states, exclude_meshes=(/trim(new_positions_m1d%mesh%name)/))
+      else
+        call collect_fields_by_mesh(interpolate_states, source_states)
+      end if
 
       ! Finished with interpolate_states for setting up source_states
       do i=1,size(interpolate_states)
@@ -1918,6 +2050,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       ! Start setting up states so that it can be populated with migrated fields data
 
       ! Put the new positions mesh into states
+      
+      if(vertically_structured_adaptivity) then
+        call insert(states, new_positions_m1d%mesh, name = new_positions_m1d%mesh%name)
+        call insert(states, new_positions_m1d, name = new_positions_m1d%name)
+      end if
+      
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
 
@@ -1946,9 +2084,18 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         call insert(interpolate_states(1), new_metric, "ErrorMetric")
       end if
 
-      allocate(target_states(mesh_count(interpolate_states(1))))
-      call collect_fields_by_mesh(interpolate_states, target_states)
-
+      if(vertically_structured_adaptivity) then
+        no_meshes = mesh_count(interpolate_states(1))-1
+      else
+        no_meshes = mesh_count(interpolate_states(1))
+      end if
+      allocate(target_states(no_meshes))
+      if(vertically_structured_adaptivity) then
+        call collect_fields_by_mesh(interpolate_states, target_states, exclude_meshes=(/trim(new_positions_m1d%mesh%name)/))
+      else
+        call collect_fields_by_mesh(interpolate_states, target_states)
+      end if
+      
       ! Finished with interpolate states for setting up target_states
       do i=1,size(interpolate_states)
         call deallocate(interpolate_states(i))
@@ -2543,7 +2690,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       end do
     end subroutine are_we_keeping_or_sending_nodes
 
-    subroutine setup_module_variables
+    subroutine setup_module_variables(mesh_name)
+      character(len=*), optional :: mesh_name
       integer :: nhalos, stat
       integer, dimension(:), allocatable :: owned_nodes
       integer :: i, j, floc, eloc
@@ -2572,7 +2720,11 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
           quality_tolerance = 0.6
       end if
 
-      zz_mesh = get_external_mesh(states)
+      if(present(mesh_name)) then
+        zz_mesh = extract_mesh(states(1), trim(mesh_name))
+      else
+        zz_mesh = get_external_mesh(states)
+      end if
       call incref(zz_mesh)
       if (zz_mesh%name=="CoordinateMesh") then
         zz_positions = extract_vector_field(states, "Coordinate")

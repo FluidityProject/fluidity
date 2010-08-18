@@ -66,7 +66,7 @@ module hadapt_metric_based_extrude
       
     ! combine these into a full mesh
     call combine_z_meshes(h_mesh, out_z_meshes, out_mesh, &
-      ele_shape(back_mesh, 1), back_mesh%name, trim(back_mesh%mesh%option_path))
+      ele_shape(back_mesh, 1), back_mesh%mesh%name, trim(back_mesh%mesh%option_path))
 
     call deallocate(oned_shape)
     do column=1,node_count(h_mesh)

@@ -162,7 +162,7 @@ contains
         
     t => extract_scalar_field(state, field_name)
     if(t%mesh%continuity /= 0) then
-      FLAbort("CG advection-diffusion requires a continuous mesh")
+      FLExit("CG advection-diffusion requires a continuous mesh")
     end if
         
     t_old => extract_scalar_field(state, "Old" // field_name, stat = stat)
@@ -394,7 +394,7 @@ contains
       call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind", &
           & nu_bar_scheme, nu_bar_scale)
       if(move_mesh) then
-        FLAbort("Haven't thought about how mesh movement works with stabilisation yet.")
+        FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
       end if
     else if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin")) then
       ewrite(2, *) "SUPG stabilisation"
@@ -402,7 +402,7 @@ contains
       call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
           & nu_bar_scheme, nu_bar_scale)
       if(move_mesh) then
-        FLAbort("Haven't thought about how mesh movement works with stabilisation yet.")
+        FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
       end if
     else
       ewrite(2, *) "No stabilisation"
@@ -424,7 +424,7 @@ contains
     case(FIELD_EQUATION_INTERNALENERGY)
       ewrite(2,*) "Solving internal energy equation"
       if(move_mesh) then
-        FLAbort("Haven't implemented a moving mesh energy equation yet.")
+        FLExit("Haven't implemented a moving mesh energy equation yet.")
       end if
       call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
                       density_name)
@@ -523,6 +523,7 @@ contains
           ninternal = ninternal + 1
         case(0)
         case default
+          ! this is a code error
           ewrite(-1, *) "For boundary condition type: ", bc_types(i)
           FLAbort("Unrecognised boundary condition type")
       end select
@@ -1081,7 +1082,7 @@ contains
     else if(bc_type == BC_TYPE_WEAKDIRICHLET) then
       ! Need to add stuff here once transform_to_physical can supply gradients
       ! on faces to ensure that weak bcs work
-      FLAbort("Weak Dirichlet boundary conditions with diffusivity are not supported by CG advection-diffusion")
+      FLExit("Weak Dirichlet boundary conditions with diffusivity are not supported by CG advection-diffusion")
     end if
 
   end subroutine add_diffusivity_face_cg

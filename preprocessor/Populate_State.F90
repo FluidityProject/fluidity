@@ -609,7 +609,8 @@ contains
                  topology_mesh_name=mesh%name
                end if
                
-               if (periodic .and. .not. remove_periodicity) then
+               if ((extrusion.and..not.have_option('/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity')) &
+                   .or.(periodic .and. .not. remove_periodicity)) then
                  ! this is the name of the mesh to be adapted by adaptivity
                  adaptivity_mesh_name=mesh%name
                end if

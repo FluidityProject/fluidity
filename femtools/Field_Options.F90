@@ -948,9 +948,10 @@ contains
 
   end function equation_type_index
 
-  subroutine collect_fields_by_mesh(states, mesh_states)
+  subroutine collect_fields_by_mesh(states, mesh_states, exclude_meshes)
     type(state_type), dimension(:), intent(in) :: states
-    type(state_type), dimension(mesh_count(states(1))), intent(out) :: mesh_states
+    type(state_type), dimension(:), intent(out) :: mesh_states
+    character(len=*), dimension(:), intent(in), optional :: exclude_meshes
 
     type(integer_hash_table) :: refcount_to_meshno
     integer :: i, j, mesh_no
@@ -960,34 +961,42 @@ contains
     type(tensor_field), pointer :: tfield
 
     call allocate(refcount_to_meshno)
+    mesh_no = 1
     do i=1,mesh_count(states(1))
       mesh => extract_mesh(states(1), i)
-      call insert(mesh_states(i), mesh, trim(mesh%name))
+      if(present(exclude_meshes)) then
+        if(any(mesh%name==exclude_meshes)) cycle
+      end if
+      call insert(mesh_states(mesh_no), mesh, trim(mesh%name))
       call insert(refcount_to_meshno, mesh%refcount%id, i)
+      mesh_no = mesh_no + 1
     end do
 
     do i=1,size(states)
       do j=1,scalar_field_count(states(i))
         sfield => extract_scalar_field(states(i), j)
-        assert(has_key(refcount_to_meshno, sfield%mesh%refcount%id))
-        mesh_no = fetch(refcount_to_meshno, sfield%mesh%refcount%id)
-        call insert(mesh_states(mesh_no), sfield, "State" // int2str(i) // trim(sfield%name))
+        if(has_key(refcount_to_meshno, sfield%mesh%refcount%id)) then
+          mesh_no = fetch(refcount_to_meshno, sfield%mesh%refcount%id)
+          call insert(mesh_states(mesh_no), sfield, "State" // int2str(i) // trim(sfield%name))
+        end if
       end do
       sfield => null()
 
       do j=1,vector_field_count(states(i))
         vfield => extract_vector_field(states(i), j)
-        assert(has_key(refcount_to_meshno, vfield%mesh%refcount%id))
-        mesh_no = fetch(refcount_to_meshno, vfield%mesh%refcount%id)
-        call insert(mesh_states(mesh_no), vfield, "State" // int2str(i) // trim(vfield%name))
+        if(has_key(refcount_to_meshno, vfield%mesh%refcount%id)) then
+          mesh_no = fetch(refcount_to_meshno, vfield%mesh%refcount%id)
+          call insert(mesh_states(mesh_no), vfield, "State" // int2str(i) // trim(vfield%name))
+        end if
       end do
       vfield => null()
 
       do j=1,tensor_field_count(states(i))
         tfield => extract_tensor_field(states(i), j)
-        assert(has_key(refcount_to_meshno, tfield%mesh%refcount%id))
-        mesh_no = fetch(refcount_to_meshno, tfield%mesh%refcount%id)
-        call insert(mesh_states(mesh_no), tfield, "State" // int2str(i) // trim(tfield%name))
+        if(has_key(refcount_to_meshno, tfield%mesh%refcount%id)) then
+          mesh_no = fetch(refcount_to_meshno, tfield%mesh%refcount%id)
+          call insert(mesh_states(mesh_no), tfield, "State" // int2str(i) // trim(tfield%name))
+        end if
       end do
       tfield => null()
     end do
@@ -1216,11 +1225,11 @@ contains
             FLExit("Selected equation type only compatible with control volume or continuous galerkin spatial_discretisation")
           end if
         case(FIELD_EQUATION_HEATTRANSFER)
-          if(.not.(cv_disc.or.cg_disc)) then
+          if(.not.cv_disc) then
             ewrite(-1,*) "Options checking field "//&
                           trim(field_name)//" in material_phase "//&
                           trim(mat_name)//"."
-            FLExit("Selected equation type only compatible with control volume or continuous galerkin spatial_discretisation")
+            FLExit("Selected equation type only compatible with control volume spatial_discretisation")
           end if
         end select
 

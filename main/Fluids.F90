@@ -747,7 +747,7 @@ contains
 
           if(do_adapt_mesh(current_time, timestep)) then  
 
-             call pre_adapt_tasks()
+             call pre_adapt_tasks(sub_state)
 
              call qmesh(state, metric_tensor)
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
@@ -755,7 +755,7 @@ contains
              
              call adapt_state(state, metric_tensor)
 
-             call update_state_post_adapt(state, metric_tensor, dt)
+             call update_state_post_adapt(state, metric_tensor, dt, sub_state)
             
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -764,13 +764,13 @@ contains
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then    
 
-             call pre_adapt_tasks()
+             call pre_adapt_tasks(sub_state)
                
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)             
              call run_diagnostics(state)
              
              call adapt_state_prescribed(state, current_time)
-             call update_state_post_adapt(state, metric_tensor, dt)
+             call update_state_post_adapt(state, metric_tensor, dt, sub_state)
             
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -865,7 +865,11 @@ contains
 
   end subroutine fluids
  
-  subroutine pre_adapt_tasks()
+  subroutine pre_adapt_tasks(sub_state)
+
+    type(state_type), dimension(:), pointer :: sub_state
+  
+    integer :: ss
 
     ! GLS - we need to deallocate all module-level fields or the memory
     ! management system complains
@@ -878,13 +882,22 @@ contains
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_cleanup() ! deallocate everything
     end if
+    
+    ! deallocate sub-state
+    if(use_sub_state()) then
+      do ss = 1, size(sub_state)
+        call deallocate(sub_state(ss))
+      end do
+      deallocate(sub_state)
+    end if
 
   end subroutine pre_adapt_tasks
  
-  subroutine update_state_post_adapt(state, metric_tensor, dt)
+  subroutine update_state_post_adapt(state, metric_tensor, dt, sub_state)
     type(state_type), dimension(:), intent(inout) :: state
     type(tensor_field), intent(out) :: metric_tensor
     real, intent(inout) :: dt
+    type(state_type), dimension(:), pointer :: sub_state
     
     ! The adaptivity metric
     if(have_option("/mesh_adaptivity/hr_adaptivity")) then
@@ -896,6 +909,11 @@ contains
     call copy_to_stored_values(state,"Old")
     call copy_to_stored_values(state,"Iterated")
     call relax_to_nonlinear(state)
+
+    ! Repopulate substate
+    if(use_sub_state()) then
+       call populate_sub_state(state,sub_state)
+    end if
 
     ! Discrete properties
     call enforce_discrete_properties(state)

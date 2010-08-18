@@ -1036,7 +1036,7 @@ contains
       
       if(i < max_adapt_iteration .or. isparallel()) then
         ! If there are remaining adapt iterations, or we will be calling
-        ! sam_drive, insert the old metric into interpolate_states(1) and a
+        ! sam_drive or zoltan_drive, insert the old metric into interpolate_states(1) and a
         ! new metric into states(1), for interpolation
         call insert_metric_for_interpolation(metric, new_positions%mesh, &
                                              interpolate_states(1), states(1), &

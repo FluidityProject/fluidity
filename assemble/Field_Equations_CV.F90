@@ -423,9 +423,9 @@ contains
         mesh_sparsity_1 => get_csr_sparsity_firstorder(state, tfield%mesh, tfield%mesh)
         if(.not.(tfield%mesh==diffusivity%mesh)) then
           if(tfield%mesh%shape%degree>1) then
-            FLAbort("To have a different diffusivity mesh the field must be at most P1")
+            FLExit("To have a different diffusivity mesh the field must be at most P1")
           elseif(diffusivity%mesh%shape%degree>tfield%mesh%shape%degree) then
-            FLAbort("The diffusivity mesh must be of a lower degree than the field")
+            FLExit("The diffusivity mesh must be of a lower degree than the field")
           end if
           
           ! we also need a first order sparsity using the diffusivity mesh for the assembly of the auxilliary eqn
@@ -508,7 +508,7 @@ contains
         call allocate(t_lumpedmass_old, tfield%mesh, name=trim(field_name)//"OldLumpedMass")
         call allocate(t_lumpedmass_new, tfield%mesh, name=trim(field_name)//"NewLumpedMass")
         if(tfield%mesh%shape%degree>1) then
-          FLAbort("Lumping on submesh while moving the mesh not set up.")
+          FLExit("Lumping on submesh while moving the mesh not set up.")
         else
           call compute_lumped_mass(x_old, t_lumpedmass_old)
           call compute_lumped_mass(x_new, t_lumpedmass_new)
@@ -805,6 +805,7 @@ contains
 
       if(include_diffusion) then
         if(.not.present(D_m).or..not.present(diff_rhs)) then
+          ! if this happens it's a code error
           FLAbort("Must supply a diffusion matrix and rhs to use diffusion.")
         end if
       end if
@@ -958,7 +959,7 @@ contains
         end if
         
         if(move_mesh) then
-          FLAbort("Moving mesh with this equation type not yet supported.")
+          FLExit("Moving mesh with this equation type not yet supported.")
         end if
 
       case (FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS)
@@ -1006,7 +1007,7 @@ contains
         end if
         
         if(move_mesh) then
-          FLAbort("Moving mesh with this equation type not yet supported.")
+          FLExit("Moving mesh with this equation type not yet supported.")
         end if
 
       case (FIELD_EQUATION_HEATTRANSFER)
@@ -1054,7 +1055,7 @@ contains
         end if
         
         if(move_mesh) then
-          FLAbort("Moving mesh with this equation type not yet supported.")
+          FLExit("Moving mesh with this equation type not yet supported.")
         end if
 
       case (FIELD_EQUATION_INTERNALENERGY)
@@ -1124,7 +1125,7 @@ contains
         end if
         
         if(move_mesh) then
-          FLAbort("Moving mesh with this equation type not yet supported.")
+          FLExit("Moving mesh with this equation type not yet supported.")
         end if
 
       end select
@@ -2374,7 +2375,7 @@ contains
         call allocate(t_lumpedmass_old, tfield(1)%ptr%mesh, name=trim(field_name)//"OldLumpedMass")
         call allocate(t_lumpedmass_new, tfield(1)%ptr%mesh, name=trim(field_name)//"NewLumpedMass")
         if(tfield(1)%ptr%mesh%shape%degree>1) then
-          FLAbort("Lumping on submesh while moving the mesh not set up.")
+          FLExit("Lumping on submesh while moving the mesh not set up.")
         else
           call compute_lumped_mass(x_old, t_lumpedmass_old)
           call compute_lumped_mass(x_new, t_lumpedmass_new)
@@ -3195,6 +3196,7 @@ contains
 
             if(fileno>nfiles) then
               ewrite(-1,*) 'fileno = ', fileno, 'nfiles = ', nfiles
+              ! this shouldn't happen
               FLAbort("More fields think they want a convergence file than expected.")
             end if
 
@@ -3241,6 +3243,7 @@ contains
       end do
 
       if(fileno/=nfiles) then
+        ! something's gone wrong
         ewrite(-1,*) 'fileno = ', fileno, 'nfiles = ', nfiles
         FLAbort("Fewer fields thought they wanted a convergence file than expected.")
       end if
