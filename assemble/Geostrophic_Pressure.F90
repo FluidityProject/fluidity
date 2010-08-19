@@ -29,10 +29,16 @@
 
 module geostrophic_pressure
 
+  use assemble_cmc
   use boundary_conditions
-  use coriolis_module
+  use boundary_conditions_from_options 
+  use conservative_interpolation_module
+  use coriolis_module, only : two_omega => coriolis
   use data_structures
+  use dgtools
+  use divergence_matrix_cg
   use eventcounter
+  use fefields
   use field_options
   use quadrature
   use elements
@@ -40,26 +46,19 @@ module geostrophic_pressure
   use fldebug
   use global_parameters, only : empty_path, FIELD_NAME_LEN, OPTION_PATH_LEN
   use hydrostatic_pressure
+  use momentum_cg
+  use momentum_dg
   use petsc_solve_state_module
   use pickers
   use solvers
+  use state_fields_module
   use sparse_matrices_fields
   use sparse_tools
   use sparsity_patterns
   use sparsity_patterns_meshes
   use spud
   use state_module
-  
-  use assemble_cmc
-  use boundary_conditions_from_options 
-  use conservative_interpolation_module
-  use dgtools
-  use divergence_matrix_cg
-  use fefields
-  use momentum_cg
-  use momentum_dg
-  use state_fields_module
-  use surfacelabels
+  use surfacelabels  
   use unittest_tools
   use vtk_interfaces
 
@@ -590,9 +589,9 @@ contains
       if(dim==3) vec_gi( W_,:)=0.0
 
       if(have_density) then
-        vec_gi = vec_gi * spread(coriolis(ele_val_at_quad(positions, ele)) * ele_val_at_quad(density, ele), 1, dim)
+        vec_gi = vec_gi * spread(two_omega(ele_val_at_quad(positions, ele)) * ele_val_at_quad(density, ele), 1, dim)
       else
-        vec_gi = vec_gi * spread(coriolis(ele_val_at_quad(positions, ele)), 1, dim)
+        vec_gi = vec_gi * spread(two_omega(ele_val_at_quad(positions, ele)), 1, dim)
       end if
     else
       vec_gi = 0.0
@@ -1459,12 +1458,12 @@ contains
     
     real, dimension(size(coord)) :: coriolis_val
     
-    real :: two_omega
+    real :: two_omega_val
     
-    two_omega = sum(coriolis(spread(coord, 2, 1)))
+    two_omega_val = sum(two_omega(spread(coord, 2, 1)))
     assert(any(size(velocity) == (/2, 3/)))
-    coriolis_val(U_) = velocity(V_) * two_omega
-    coriolis_val(V_) = -velocity(U_) * two_omega
+    coriolis_val(U_) = velocity(V_) * two_omega_val
+    coriolis_val(V_) = -velocity(U_) * two_omega_val
     if(size(velocity) == 3) coriolis_val(W_) = 0.0
         
   end function coriolis_val_single
@@ -1478,12 +1477,12 @@ contains
     !! size(dim, loc)
     real, dimension(size(coord, 1), size(coord, 2)) :: coriolis_val
 
-    real, dimension(size(coord, 2)) :: two_omega
+    real, dimension(size(coord, 2)) :: two_omega_vals
 
-    two_omega = coriolis(coord)
+    two_omega_vals = two_omega(coord)
     assert(any(size(velocity, 1) == (/2, 3/)))
-    coriolis_val(U_, :) = velocity(V_, :) * two_omega
-    coriolis_val(V_, :) = -velocity(U_, :) * two_omega
+    coriolis_val(U_, :) = velocity(V_, :) * two_omega_vals
+    coriolis_val(V_, :) = -velocity(U_, :) * two_omega_vals
     if(size(velocity, 1) == 3) coriolis_val(W_, :) = 0.0
     
   end function coriolis_val_multiple
@@ -1494,12 +1493,12 @@ contains
     
     real, dimension(size(coord)) :: velocity
     
-    real :: two_omega
+    real :: two_omega_val
     
-    two_omega = sum(coriolis(spread(coord, 2, 1)))
+    two_omega_val = sum(two_omega(spread(coord, 2, 1)))
     assert(any(size(coriolis_val) == (/2, 3/)))
-    velocity(U_) = -coriolis_val(V_) / two_omega
-    velocity(V_) = coriolis_val(U_) / two_omega
+    velocity(U_) = -coriolis_val(V_) / two_omega_val
+    velocity(V_) = coriolis_val(U_) / two_omega_val
     if(size(coriolis_val, 1) == 3) velocity(W_) = 0.0
     
   end function velocity_from_coriolis_val_single
@@ -1513,22 +1512,21 @@ contains
     !! size(dim, loc)
     real, dimension(size(coord, 1), size(coord, 2)) :: velocity
     
-    real, dimension(size(coord, 2)) :: two_omega
+    real, dimension(size(coord, 2)) :: two_omega_vals
     
-    two_omega = coriolis(coord)
+    two_omega_vals = two_omega(coord)
     assert(any(size(coriolis_val, 1) == (/2, 3/)))
-    velocity(U_, :) = -coriolis_val(V_, :) / two_omega
-    velocity(V_, :) = coriolis_val(U_, :) / two_omega
+    velocity(U_, :) = -coriolis_val(V_, :) / two_omega_vals
+    velocity(V_, :) = coriolis_val(U_, :) / two_omega_vals
     if(size(coriolis_val, 1) == 3) velocity(W_, :) = 0.0
     
   end function velocity_from_coriolis_val_multiple
 
-  subroutine geostrophic_velocity(matrices, state, velocity, p, solver_path)  
+  subroutine geostrophic_velocity(matrices, state, velocity, p)  
     type(cmc_matrices), intent(in) :: matrices
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout) :: velocity
     type(scalar_field), intent(in) :: p
-    character(len = *), optional, intent(in) :: solver_path
     
     type(vector_field) :: coriolis
             
@@ -1539,24 +1537,30 @@ contains
     call compute_conservative(matrices, coriolis, p)
     
     call velocity_from_coriolis(state, coriolis, velocity, &
-      & lump_mass = matrices%lump_mass, solver_path = solver_path)
+      & lump_mass = matrices%lump_mass, solver_path = matrices%mass_option_path)
     call deallocate(coriolis)
     
   end subroutine geostrophic_velocity
   
-  subroutine velocity_from_coriolis(state, coriolis, velocity, lump_mass, solver_path)
+  subroutine velocity_from_coriolis(state, coriolis, velocity, lump_mass, lump_rhs, solver_path)
     type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: coriolis
     type(vector_field), intent(inout) :: velocity
     logical, optional, intent(in) :: lump_mass
+    logical, optional, intent(in) :: lump_rhs
     character(len = *), optional, intent(in) :: solver_path
   
     integer :: cont, i, stat
-    logical :: llump_mass
+    logical :: llump_mass, llump_rhs
     type(csr_matrix), pointer :: mass
     type(scalar_field), pointer :: masslump
     type(vector_field) :: rhs
     type(vector_field), pointer :: positions
+    
+    ewrite(1, *) "In velocity_from_coriolis"
+    
+    ewrite(-1, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
+    ewrite(-1, *) "Velocity mesh: " // trim(velocity%mesh%name)
     
     cont = continuity(velocity)
     if(present(lump_mass)) then
@@ -1564,13 +1568,23 @@ contains
     else
       llump_mass = (cont == 0)
     end if
+    llump_rhs = present_and_true(lump_rhs)
+    if(llump_rhs) then
+      if(.not. coriolis%mesh == velocity%mesh) then
+        FLAbort("Velocity and Coriolis must be on the same mesh when lumping RHS")
+      end if
+    end if
+    
+    ewrite(2, *) "Velocity mesh continuity: ", cont
+    ewrite(2, *) "Lump mass? ", llump_mass
+    ewrite(2, *) "Lump RHS? ", llump_rhs
     
     positions => extract_vector_field(state, "Coordinate")
     if(llump_mass) then
       masslump => get_lumped_mass(state, velocity%mesh)
       call zero(velocity)
       do i = 1, ele_count(velocity)
-        call assemble_velocity_ele(i, positions, coriolis, velocity)
+        call assemble_velocity_ele(i, positions, coriolis, velocity, llump_rhs)
       end do
       do i = 1, coriolis%dim
         velocity%val(i)%ptr = velocity%val(i)%ptr / masslump%val
@@ -1589,13 +1603,16 @@ contains
           call allocate(rhs, velocity%dim, velocity%mesh, "RHS")
           call zero(rhs)
           do i = 1, ele_count(rhs)
-            call assemble_velocity_ele(i, positions, coriolis, rhs)
+            call assemble_velocity_ele(i, positions, coriolis, rhs, llump_rhs)
+          end do
+          do i = 1, rhs%dim
+            ewrite_minmax(rhs%val(i)%ptr)
           end do
           call petsc_solve(velocity, mass, rhs, option_path = solver_path)
           call deallocate(rhs)
         case(-1)
           do i = 1, ele_count(velocity)
-            call solve_velocity_ele(i, positions, coriolis, velocity)
+            call solve_velocity_ele(i, positions, coriolis, velocity, llump_rhs)
           end do
         case default
           ewrite(-1, *) "For mesh continuity: ", cont
@@ -1606,35 +1623,51 @@ contains
     do i = 1, velocity%dim
       ewrite_minmax(velocity%val(i)%ptr)
     end do
+    
+    ewrite(1, *) "Exiting velocity_from_coriolis"
 
   contains
 
-    subroutine assemble_velocity_ele(ele, positions, coriolis, rhs)
+    subroutine assemble_velocity_ele(ele, positions, coriolis, rhs, lump_rhs)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
       type(vector_field), intent(in) :: coriolis
       type(vector_field), intent(inout) :: rhs
+      logical, intent(in) :: lump_rhs
 
       real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(rhs, ele)) :: little_lumped_lrhs
+      real, dimension(rhs%dim, ele_loc(rhs, ele)) :: little_rhs
       type(element_type), pointer :: shape
 
       call transform_to_physical(positions, ele, &
         & detwei = detwei)
         
       shape => ele_shape(rhs, ele)
-      call addto(rhs, ele_nodes(rhs, ele), &
-        & shape_vector_rhs(shape, &
-        & velocity_from_coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(coriolis, ele)), detwei))
+           
+      if(lump_rhs) then
+        little_lumped_lrhs = sum(shape_shape(shape, shape, detwei / two_omega(ele_val_at_quad(positions, ele))), 2)
+        little_rhs(U_, :) = -little_lumped_lrhs * ele_val(coriolis, V_, ele)
+        little_rhs(V_, :) = little_lumped_lrhs * ele_val(coriolis, U_, ele)
+        if(size(little_rhs, 1) == 3) little_rhs(W_, :) = 0.0
+      else
+        little_rhs = shape_vector_rhs(shape, &
+          & velocity_from_coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(coriolis, ele)), detwei)
+      end if
+      
+      call addto(rhs, ele_nodes(rhs, ele), little_rhs)
 
     end subroutine assemble_velocity_ele
 
-    subroutine solve_velocity_ele(ele, positions, coriolis, velocity)
+    subroutine solve_velocity_ele(ele, positions, coriolis, velocity, lump_rhs)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
       type(vector_field), intent(in) :: coriolis
       type(vector_field), intent(inout) :: velocity
+      logical, intent(in) :: lump_rhs
 
       real, dimension(ele_ngi(positions, ele)) :: detwei
+      real, dimension(ele_loc(velocity, ele)) :: little_lumped_lrhs
       real, dimension(ele_loc(velocity, ele), velocity%dim) :: little_rhs
       real, dimension(ele_loc(velocity, ele), ele_loc(velocity, ele)) :: little_mass
       type(element_type), pointer :: shape
@@ -1644,8 +1677,16 @@ contains
 
       shape => ele_shape(velocity, ele)
       little_mass = shape_shape(shape, shape, detwei)
-      little_rhs = transpose(shape_vector_rhs(shape, &
-        & velocity_from_coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(coriolis, ele)), detwei))
+      
+      if(lump_rhs) then
+        little_lumped_lrhs = sum(shape_shape(shape, shape, detwei / two_omega(ele_val_at_quad(positions, ele))), 2)
+        little_rhs(U_, :) = -little_lumped_lrhs * ele_val(coriolis, V_, ele)
+        little_rhs(V_, :) = little_lumped_lrhs * ele_val(coriolis, U_, ele)
+        if(size(little_rhs, 2) == 3) little_rhs(:, W_) = 0.0
+      else
+        little_rhs = transpose(shape_vector_rhs(shape, &
+          & velocity_from_coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(coriolis, ele)), detwei))
+      end if
 
       call solve(little_mass, little_rhs)
 
@@ -1655,9 +1696,7 @@ contains
     
   end subroutine velocity_from_coriolis
   
-  subroutine coriolis_from_velocity(state, velocity, coriolis, lump_mass, lump_rhs, solver_path)
-    use coriolis_module, only : two_omega => coriolis
-  
+  subroutine coriolis_from_velocity(state, velocity, coriolis, lump_mass, lump_rhs, solver_path)  
     type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: velocity
     type(vector_field), intent(inout) :: coriolis
@@ -1667,12 +1706,16 @@ contains
   
     integer :: cont, i, stat
     logical :: llump_mass, llump_rhs
-    type(csr_matrix) :: matrix
-    type(csr_sparsity), pointer :: sparsity
-    type(scalar_field) :: masslump
+    type(csr_matrix), pointer :: matrix
+    type(scalar_field), pointer :: masslump
     type(vector_field) :: rhs
     type(vector_field), pointer :: positions
     
+    ewrite(1, *) "In coriolis_from_velocity"
+    
+    ewrite(-1, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
+    ewrite(-1, *) "Velocity mesh: " // trim(velocity%mesh%name)
+        
     cont = continuity(coriolis)
     if(present(lump_mass)) then
       llump_mass = lump_mass
@@ -1682,28 +1725,24 @@ contains
     llump_rhs = present_and_true(lump_rhs)
     if(llump_rhs) then
       if(.not. coriolis%mesh == velocity%mesh) then
-        ewrite(-1, *) "Coriolis mesh: " // trim(coriolis%mesh%name)
-        ewrite(-1, *) "Velocity mesh: " // trim(velocity%mesh%name)
         FLAbort("Velocity and Coriolis must be on the same mesh when lumping RHS")
-      end if
-      if(llump_mass) then
-        FLAbort("Cannot lump mass and RHS")
       end if
     end if
     
+    ewrite(2, *) "Coriolis mesh continuity: ", cont
+    ewrite(2, *) "Lump mass? ", llump_mass
+    ewrite(2, *) "Lump RHS? ", llump_rhs
+    
     positions => extract_vector_field(state, "Coordinate")
     if(llump_mass) then
-      assert(.not. llump_rhs)
-      call allocate(masslump, coriolis%mesh, "LumpedMass")
-      call zero(masslump)
+      masslump => get_lumped_mass(state, coriolis%mesh)
       call zero(coriolis)
       do i = 1, ele_count(coriolis)
-        call assemble_coriolis_lumped_ele(i, positions, velocity, masslump, coriolis)
+        call assemble_coriolis_ele(i, positions, velocity, coriolis, llump_rhs)
       end do
       do i = 1, coriolis%dim
         coriolis%val(i)%ptr = coriolis%val(i)%ptr / masslump%val
       end do
-      call deallocate(masslump)
     else
       select case(cont)
         case(0)
@@ -1714,16 +1753,13 @@ contains
           else if(.not. have_option(trim(solver_path) // "/solver")) then
             FLExit("Must lump mass or supply solver options for continuous coriolis_from_velocity")
           end if
-          sparsity => get_csr_sparsity_firstorder(state, coriolis%mesh, coriolis%mesh)
-          call allocate(matrix, sparsity, name = "CoriolisProjectionMatrix")
+          matrix => get_mass_matrix(state, coriolis%mesh)
           call allocate(rhs, coriolis%dim, coriolis%mesh, name = "RHS")
-          call zero(matrix)
           call zero(rhs)
           do i = 1, ele_count(coriolis)
-            call assemble_coriolis_ele(i, positions, velocity, matrix, rhs, llump_rhs)
+            call assemble_coriolis_ele(i, positions, velocity, rhs, llump_rhs)
           end do
           call petsc_solve(coriolis, matrix, rhs, option_path = solver_path)
-          call deallocate(matrix)
           call deallocate(rhs)
         case(-1)
           do i = 1, ele_count(coriolis)
@@ -1738,84 +1774,41 @@ contains
     do i = 1, coriolis%dim
       ewrite_minmax(coriolis%val(i)%ptr)
     end do
+    
+    ewrite(1, *) "Exiting coriolis_from_velocity"
 
   contains
 
-    function z_cross_u(u)
-      !! size(dim, :)
-      real, dimension(:, :) :: u
-
-      !! size(dim, :)
-      real, dimension(size(u, 1), size(u, 2)) :: z_cross_u
-
-      assert(any(size(u, 1) == (/2, 3/)))
-      z_cross_u(U_, :) = -u(V_, :)
-      z_cross_u(V_, :) = u(U_, :)
-      if(size(u, 1) == 3) z_cross_u(W_, :) = 0.0
-      
-    end function z_cross_u
-
-    subroutine assemble_coriolis_ele(ele, positions, velocity, matrix, rhs, lump_rhs)
+    subroutine assemble_coriolis_ele(ele, positions, velocity, rhs, lump_rhs)
       integer, intent(in) :: ele
       type(vector_field), intent(in) :: positions
       type(vector_field), intent(in) :: velocity
-      type(csr_matrix), intent(inout) :: matrix
       type(vector_field), intent(inout) :: rhs
       logical, intent(in) :: lump_rhs
 
-      integer, dimension(:), pointer :: nodes
       real, dimension(ele_ngi(positions, ele)) :: detwei
-      real, dimension(ele_loc(rhs, ele)) :: little_masslump
+      real, dimension(ele_loc(rhs, ele)) :: little_lumped_l
       real, dimension(rhs%dim, ele_loc(rhs, ele)) :: little_rhs
-      real, dimension(ele_loc(rhs, ele), ele_loc(rhs, ele)) :: little_matrix
       type(element_type), pointer :: shape
 
       call transform_to_physical(positions, ele, &
         & detwei = detwei)
         
       shape => ele_shape(rhs, ele)
-
-      little_matrix = shape_shape(shape, shape, detwei / two_omega(ele_val_at_quad(positions, ele)))
 
       if(lump_rhs) then
-        little_masslump = sum(shape_shape(shape, shape, detwei), 2)
-        little_rhs = spread(little_masslump, 1, rhs%dim) * (-z_cross_u(ele_val(velocity, ele)))
+        little_lumped_l = sum(shape_shape(shape, shape, detwei * two_omega(ele_val_at_quad(positions, ele))), 2)
+        assert(any(size(little_rhs, 1) == (/2, 3/)))
+        little_rhs(U_, :) = -little_lumped_l * ele_val(velocity, V_, ele)
+        little_rhs(V_, :) = little_lumped_l * ele_val(velocity, U_, ele)
+        if(size(little_rhs, 1) == 3) little_rhs(W_, :) = 0.0
       else
-        little_rhs = shape_vector_rhs(shape, -z_cross_u(ele_val_at_quad(velocity, ele)), detwei)
+        little_rhs = shape_vector_rhs(shape, coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei)
       end if
 
-      nodes => ele_nodes(rhs, ele)
-      call addto(matrix, nodes, nodes, little_matrix)
-      call addto(rhs, nodes, little_rhs)
+      call addto(rhs, ele_nodes(rhs, ele), little_rhs)
 
     end subroutine assemble_coriolis_ele
-
-    subroutine assemble_coriolis_lumped_ele(ele, positions, velocity, masslump, rhs)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: positions
-      type(vector_field), intent(in) :: velocity
-      type(scalar_field), intent(inout) :: masslump
-      type(vector_field), intent(inout) :: rhs
-
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_ngi(positions, ele)) :: detwei
-      real, dimension(ele_loc(coriolis, ele)) :: little_masslump
-      real, dimension(coriolis%dim, ele_loc(coriolis, ele)) :: little_rhs
-      type(element_type), pointer :: shape
-
-      call transform_to_physical(positions, ele, &
-        & detwei = detwei)
-        
-      shape => ele_shape(rhs, ele)
-      
-      little_masslump = sum(shape_shape(shape, shape, detwei), 2)
-      little_rhs = shape_vector_rhs(shape, coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei)
-      
-      nodes => ele_nodes(rhs, ele)
-      call addto(masslump, nodes, little_masslump)
-      call addto(rhs, nodes, little_rhs)
-
-    end subroutine assemble_coriolis_lumped_ele
 
     subroutine solve_coriolis_ele(ele, positions, velocity, coriolis, lump_rhs)
       integer, intent(in) :: ele
@@ -1826,9 +1819,9 @@ contains
 
       integer, dimension(:), pointer :: nodes
       real, dimension(ele_ngi(positions, ele)) :: detwei
-      real, dimension(ele_loc(coriolis, ele)) :: little_masslump
+      real, dimension(ele_loc(coriolis, ele)) :: little_lumped_l
       real, dimension(ele_loc(coriolis, ele), coriolis%dim) :: little_rhs
-      real, dimension(ele_loc(coriolis, ele), ele_loc(coriolis, ele)) :: little_matrix
+      real, dimension(ele_loc(coriolis, ele), ele_loc(coriolis, ele)) :: little_mass
       type(element_type), pointer :: shape
 
       call transform_to_physical(positions, ele, &
@@ -1836,16 +1829,19 @@ contains
         
       shape => ele_shape(coriolis, ele)
 
-      little_matrix = shape_shape(shape, shape, detwei / two_omega(ele_val_at_quad(positions, ele)))
+      little_mass = shape_shape(shape, shape, detwei)
 
       if(lump_rhs) then
-        little_masslump = sum(shape_shape(shape, shape, detwei), 2)
-        little_rhs = spread(little_masslump, 2, coriolis%dim) * transpose(-z_cross_u(ele_val(velocity, ele)))
+        little_lumped_l = sum(shape_shape(shape, shape, detwei * two_omega(ele_val_at_quad(positions, ele))), 2)
+        assert(any(size(little_rhs, 1) == (/2, 3/)))
+        little_rhs(:, U_) = -little_lumped_l * ele_val(velocity, V_, ele)
+        little_rhs(:, V_) = little_lumped_l * ele_val(velocity, U_, ele)
+        if(size(little_rhs, 2) == 3) little_rhs(:, W_) = 0.0
       else
-        little_rhs = transpose(shape_vector_rhs(shape, -z_cross_u(ele_val_at_quad(velocity, ele)), detwei))
+        little_rhs = transpose(shape_vector_rhs(shape, coriolis_val(ele_val_at_quad(positions, ele), ele_val_at_quad(velocity, ele)), detwei))
       end if
       
-      call solve(little_matrix, little_rhs)
+      call solve(little_mass, little_rhs)
 
       nodes => ele_nodes(coriolis, ele)
       call set(coriolis, nodes, transpose(little_rhs))
@@ -3009,6 +3005,7 @@ contains
     
     call velocity_from_coriolis(new_state, coriolis, new_velocity, &
       & lump_mass = have_option(trim(base_path) // "/coriolis/coriolis_to_velocity/lump_mass"), &
+      & lump_rhs = have_option(trim(base_path) // "/coriolis/coriolis_to_velocity/lump_rhs"), &
       & solver_path = trim(base_path) // "/coriolis/coriolis_to_velocity")  
     if(dim == 3) then
       ! Recover the vertical velocity
@@ -3171,17 +3168,23 @@ contains
             end if
 
             if(have_option(trim(path) // "/geostrophic_interpolation/coriolis/velocity_to_coriolis/lump_rhs")) then
-              if(have_option(trim(path) // "/geostrophic_interpolation/coriolis/velocity_to_coriolis/lump_mass")) then
-                ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
-                FLExit("For velocity_to_coriolis, cannot lump both mass and the RHS term")
-              end if
-
               ! Note: Using mesh query above again here
               if(stat == SPUD_NO_ERROR) then
                 call get_option(trim(path) // "/mesh/name", mesh_name_2)
                 if(mesh_name /= mesh_name_2) then
                   ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
                   FLExit("For velocity_to_coriolis, cannot lump the RHS term if Coriolis is not on the same mesh as Velocity")
+                end if
+              end if
+            end if
+
+            if(have_option(trim(path) // "/geostrophic_interpolation/coriolis/coriolis_to_velocity/lump_rhs")) then
+              ! Note: Using mesh query above again here
+              if(stat == SPUD_NO_ERROR) then
+                call get_option(trim(path) // "/mesh/name", mesh_name_2)
+                if(mesh_name /= mesh_name_2) then
+                  ewrite(-1, *) "For geostrophic interpolation of field: " // trim(field_name)
+                  FLExit("For coriolis_to_velocity, cannot lump the RHS term if Coriolis is not on the same mesh as Velocity")
                 end if
               end if
             end if

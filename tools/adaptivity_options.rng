@@ -1548,8 +1548,7 @@ acceleration from Velocity on the donor mesh.</a:documentation>
             <optional>
               <element name="lump_rhs">
                 <a:documentation>Lump the RHS term. Requires Velocity and the Coriolis 
-acceleration to be on the same mesh. Cannot be used when
-lumping the mass matrix.</a:documentation>
+acceleration to be on the same mesh.</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
@@ -1560,6 +1559,13 @@ lumping the mass matrix.</a:documentation>
 the Coriolis acceleration on the target mesh.</a:documentation>
             <optional>
               <ref name="galerkin_projection_mass_options"/>
+            </optional>
+            <optional>
+              <element name="lump_rhs">
+                <a:documentation>Lump the RHS term. Requires Velocity and the Coriolis 
+acceleration to be on the same mesh.</a:documentation>
+                <ref name="comment"/>
+              </element>
             </optional>
             <ref name="comment"/>
           </element>

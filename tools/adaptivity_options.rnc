@@ -1286,8 +1286,7 @@ interpolation_algorithm_vector =
             element velocity_to_coriolis {
                galerkin_projection_mass_options?,
                ## Lump the RHS term. Requires Velocity and the Coriolis 
-               ## acceleration to be on the same mesh. Cannot be used when
-               ## lumping the mass matrix.
+               ## acceleration to be on the same mesh.
                element lump_rhs {
                   comment
                }?,
@@ -1297,6 +1296,11 @@ interpolation_algorithm_vector =
             ## the Coriolis acceleration on the target mesh.
             element coriolis_to_velocity {
                galerkin_projection_mass_options?,
+               ## Lump the RHS term. Requires Velocity and the Coriolis 
+               ## acceleration to be on the same mesh.
+               element lump_rhs {
+                  comment
+               }?,
                comment
             },
             comment
