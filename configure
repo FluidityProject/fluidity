@@ -13565,7 +13565,7 @@ $as_echo "$as_me: Building on hector xt4; disabling shared libraries" >&6;}
        SHFLAG=--disable-shared
     else
        # Check if we're on hector xt6
-       if echo $(hostname) | grep -q "^hector-xt6-[0-9]$"; then
+       if echo $(hostname) | grep -q "^hector-xt6"; then
          { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xt6; disabling shared libraries" >&5
 $as_echo "$as_me: Building on hector xt6; disabling shared libraries" >&6;}
          SHFLAG=--disable-shared
