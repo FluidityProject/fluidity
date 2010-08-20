@@ -498,33 +498,45 @@ contains
     
   end function integrate_over_surface_element_tensor
   
-  subroutine diagnostic_body_drag(state, force, pressure_force, viscous_force)
+  subroutine diagnostic_body_drag(state, force, pressure_force, viscous_force, &
+          & surface_ids, force_field, pressure_force_field, viscous_force_field)
     type(state_type), intent(in) :: state
     real, dimension(:), intent(out) :: force
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force
+    ! surface ids may be supplied explicitly or taken from the options file:
+    integer, dimension(:), optional, intent(in)         :: surface_ids
+    ! optional force fields for use in boundary conditions for other fields:
+    type(vector_field), optional, intent(out)           :: force_field
+    type(vector_field), optional, intent(out)           :: pressure_force_field
+    type(vector_field), optional, intent(out)           :: viscous_force_field
 
-    type(vector_field), pointer :: velocity, position 
-    type(tensor_field), pointer :: viscosity
-    type(scalar_field), pointer :: pressure 
-    type(element_type), pointer :: x_f_shape, x_shape, u_shape, u_f_shape
-    character(len=OPTION_PATH_LEN) :: option_path    
-    integer :: ele,sele,nloc,snloc,sngi,ngi,stotel,nfaces,meshdim, gi
-    integer, dimension(:), allocatable :: surface_ids
-    integer, dimension(2) :: shape_option
-    real, dimension(:), allocatable :: face_detwei, face_pressure
-    real, dimension(:,:), allocatable :: velocity_ele, normal, strain, force_at_quad
-    real, dimension(:,:,:), allocatable :: dn_t,viscosity_ele, tau, invJ, vol_dshape_face, invJ_face
+    type(vector_field), pointer         :: velocity, position 
+    type(tensor_field), pointer         :: viscosity
+    type(scalar_field), pointer         :: pressure 
+    type(element_type), pointer         :: x_f_shape, x_shape, u_shape, u_f_shape
+    type(mesh_type)                     :: force_mesh
+    type(mesh_type), pointer            :: input_mesh
+    character(len=OPTION_PATH_LEN)      :: option_path
+    character(len=FIELD_NAME_LEN)       :: input_mesh_name
+    integer :: ele,sele,nloc,snloc,sngi,ngi,stotel,nfaces,meshdim, gi, i, j, node, ele_count, elem
+    integer, dimension(:), allocatable  :: local_ids, nodes_bdy, surface_element_list, surface_elements
+    integer, dimension(:), pointer      :: surface_nodes
+    integer, dimension(2)               :: shape_option
+    real, dimension(:), allocatable     :: face_detwei, face_pressure
+    real, dimension(:,:), allocatable   :: velocity_ele, normal, strain, force_at_quad
+    real, dimension(:,:,:), allocatable :: dn_t, viscosity_ele, tau, invJ, vol_dshape_face, invJ_face
     real :: sarea
     integer :: l_face_number
     type(element_type) :: augmented_shape
-    
+
     ewrite(1,*) 'In diagnostic_body_drag'
     
     position => extract_vector_field(state, "Coordinate")
     pressure => extract_scalar_field(state, "Pressure")  
     velocity => extract_vector_field(state, "Velocity")
     viscosity=> extract_tensor_field(state, "Viscosity")
+    option_path = velocity%option_path
     
     assert(size(force) == position%dim)
     
@@ -538,21 +550,18 @@ contains
     ngi   = ele_ngi(velocity, 1)
     sngi  = face_ngi(velocity, 1)
     stotel = surface_element_count(velocity)
-    option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces')
-    allocate( surface_ids(shape_option(1)), face_detwei(sngi), &
+
+    allocate( face_detwei(sngi), &
               dn_t(nloc, ngi, meshdim), &
               velocity_ele(meshdim, nloc), normal(meshdim, sngi), &
               face_pressure(sngi), viscosity_ele(meshdim, meshdim, sngi), &
               tau(meshdim, meshdim, sngi), strain(meshdim, meshdim), &
-              force_at_quad(meshdim, sngi))
+              force_at_quad(meshdim, sngi), nodes_bdy(snloc), &
+              surface_element_list(1:stotel) )
 
     allocate(invJ(meshdim, meshdim, ngi))
     allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
     allocate(invJ_face(meshdim, meshdim, face_ngi(velocity, 1)))
-
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces', surface_ids)
-    ewrite(2,*) 'Calculating forces on surfaces with these IDs: ', surface_ids
 
     augmented_shape = make_element_shape(x_shape%loc, u_shape%dim, u_shape%degree, u_shape%quadrature, &
                     & quad_s=u_f_shape%quadrature)
@@ -562,78 +571,157 @@ contains
     force = 0.0
     if(present(pressure_force)) pressure_force = 0.0
     if(present(viscous_force)) viscous_force = 0.0
-    do sele=1,stotel
-      if(integrate_over_surface_element(velocity, sele, surface_ids = surface_ids)) then
+
+    ! Get surface element list. This may be supplied explicitly or taken from the options file.
+    if(.not. present(surface_ids)) then
+      shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces')
+      allocate(local_ids(1:shape_option(1)))
+      call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces', local_ids)
+    else
+      allocate(local_ids(size(surface_ids)))
+      local_ids = surface_ids
+    end if
+    ewrite(2,*) 'Calculating forces on surfaces: ', local_ids
+
+    ! Generate list of surface elements matching boundary ids.
+    ! The list has nonsense entries after ele_count.
+    ele_count = 0
+    do sele = 1, stotel
+      if(integrate_over_surface_element(velocity, sele, local_ids)) then
+        ele_count = ele_count+1
+        surface_element_list(ele_count) = sele
+      end if
+    end do
+
+    ! Transfer to short list that only contains elements in surface
+    allocate(surface_elements(1:ele_count))
+    do sele = 1, ele_count
+      surface_elements(sele) = surface_element_list(sele)
+    end do
+    deallocate(surface_element_list)
+
+    ewrite(2,*) 'Creating surface mesh'
+
+    ! create a surface mesh for force fields
+    if(present(force_field) .or. present(pressure_force_field) .or. present(viscous_force_field)) then
+      call get_option(trim(option_path)//'/prognostic/mesh[0]/name', input_mesh_name)
+      input_mesh => extract_mesh(state, input_mesh_name)
+      call create_surface_mesh(force_mesh, surface_nodes, input_mesh, surface_elements, 'ForceMesh')
+      if(present(force_field)) then
+        call allocate(force_field, velocity%dim, force_mesh, name="ForceField")
+      end if
+      if(present(pressure_force_field)) then
+        call allocate(pressure_force_field, velocity%dim, force_mesh, name="PressureForceField")
+      end if
+      if(present(viscous_force_field)) then
+        call allocate(viscous_force_field, velocity%dim, force_mesh, name="ViscousForceField")
+
+        elem = size(surface_nodes)
+        ewrite(1,*) "force mesh node no: ", elem
+        ewrite_minmax(surface_nodes)
+        elem = size(surface_elements)
+        ewrite(1,*) "force mesh ele no: ", elem
+        ewrite_minmax(surface_elements)
+        ewrite(1,*) "force mesh elements sum: ", sum(surface_elements)
+        ewrite(1,*) "force mesh nodes sum: ", sum(surface_nodes)
+      end if
+    call deallocate(force_mesh)
+    end if
+
+    ewrite(2,*) 'Element loop'
+    ! calculate forces
+    do i=1,ele_count
+        sele = surface_elements(i)
         ! Get face_detwei and normal
-        ele = face_ele(velocity, sele)
-          call transform_facet_to_physical( &
-             position, sele, detwei_f=face_detwei, normal=normal)
-          call transform_to_physical(position, ele, &
-             shape=u_shape, dshape=dn_t, invJ=invJ)
-          velocity_ele = ele_val(velocity,ele)
-          viscosity_ele = face_val_at_quad(viscosity,sele)
+        ele = face_ele(velocity, i)
+        call transform_facet_to_physical( &
+           position, sele, detwei_f=face_detwei, normal=normal)
+        call transform_to_physical(position, ele, &
+           shape=u_shape, dshape=dn_t, invJ=invJ)
+        velocity_ele = ele_val(velocity,ele)
+        viscosity_ele = face_val_at_quad(viscosity,sele)
 
-          !
-          ! Form the stress tensor
-          !
+        !
+        ! Form the stress tensor
+        !
 
-          ! If P1, Assume strain tensor is constant over 
-          ! the element.
-          ! If it isn't, computing this becomes a whole lot more
-          ! complicated. You have to compute the values of the
-          ! derivatives of the volume basis functions at the
-          ! quadrature points of the surface element.
+        ! If P1, Assume strain tensor is constant over 
+        ! the element.
+        ! If it isn't, computing this becomes a whole lot more
+        ! complicated. You have to compute the values of the
+        ! derivatives of the volume basis functions at the
+        ! quadrature points of the surface element.
 
-          if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
-            strain = matmul(velocity_ele, dn_t(:, 1, :))
-            strain = (strain + transpose(strain)) / 2.0
-            do gi=1,sngi
-              tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
-            end do
+        if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
+          strain = matmul(velocity_ele, dn_t(:, 1, :))
+          strain = (strain + transpose(strain)) / 2.0
+          do gi=1,sngi
+            tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
+          end do
+        else
+          ! Get the local face number.
+          l_face_number = local_face_number(velocity, sele)
+
+          ! Here comes the magic.
+          if (x_shape%degree == 1 .and. x_shape%numbering%family == FAMILY_SIMPLEX) then
+            invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
           else
-            ! Get the local face number.
-            l_face_number = local_face_number(velocity, sele)
-
-            ! Here comes the magic.
-            if (x_shape%degree == 1 .and. x_shape%numbering%family == FAMILY_SIMPLEX) then
-              invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
-            else
-              ewrite(-1,*) "If positions are nonlinear, then you have to compute"
-              ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
-              ewrite(-1,*) "quadrature points. Sorry ..."
-              FLAbort("Positions are nonlinear and Patrick is lazy")
-            end if
-            vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
-
-            do gi=1,sngi
-              strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
-              strain = (strain + transpose(strain)) / 2.0
-              tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
-            end do
+            ewrite(-1,*) "If positions are nonlinear, then you have to compute"
+            ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
+            ewrite(-1,*) "quadrature points. Sorry ..."
+            FLAbort("Positions are nonlinear and Patrick is lazy")
           end if
-
-          face_pressure = face_val_at_quad(pressure, sele)
-          nfaces = nfaces + 1
-          sarea = sarea + sum(face_detwei)
+          vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
 
           do gi=1,sngi
-            force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi) - matmul(normal(:, gi), tau(:, :, gi))
+            strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
+            strain = (strain + transpose(strain)) / 2.0
+            tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
           end do
-          force = force + matmul(force_at_quad, face_detwei)
+        end if
 
-          if(present(pressure_force)) then
-            do gi=1,sngi
-              force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi)
+        face_pressure = face_val_at_quad(pressure, sele)
+        nfaces = nfaces + 1
+        sarea = sarea + sum(face_detwei)
+
+        ! Get element nodes for populating force fields.
+        nodes_bdy =  face_global_nodes(velocity, sele)
+
+        do gi=1,sngi
+          force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi) - matmul(normal(:, gi), tau(:, :, gi))
+        end do
+        force = force + matmul(force_at_quad, face_detwei)
+        if(present(force_field)) then
+          do j=1,size(nodes_bdy)
+            node=nodes_bdy(j)
+            call addto(force_field, node, matmul(force_at_quad, face_detwei))
+          end do
+        end if
+
+        if(present(pressure_force)) then
+          do gi=1,sngi
+            force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi)
+          end do
+          pressure_force = pressure_force + matmul(force_at_quad, face_detwei)
+          if(present(pressure_force_field)) then
+            do j=1,size(nodes_bdy)
+              node=nodes_bdy(j)
+              call addto(pressure_force_field, node, matmul(force_at_quad, face_detwei))
             end do
-            pressure_force = pressure_force + matmul(force_at_quad, face_detwei)
           end if
-          if(present(viscous_force)) then
-            do gi=1,sngi
-              force_at_quad(:, gi) = - matmul(normal(:, gi), tau(:, :, gi))
+        end if
+        if(present(viscous_force)) then
+          do gi=1,sngi
+            force_at_quad(:, gi) = - matmul(normal(:, gi), tau(:, :, gi))
+          end do
+          viscous_force = viscous_force + matmul(force_at_quad, face_detwei)
+          if(present(viscous_force_field)) then
+            do j=1,size(nodes_bdy)
+              node=nodes_bdy(j)
+              call addto(viscous_force_field, node, matmul(force_at_quad, face_detwei))
             end do
-            viscous_force = viscous_force + matmul(force_at_quad, face_detwei)
           end if
-       end if
+        end if
     enddo
 
     call allsum(nfaces)
@@ -652,6 +740,7 @@ contains
     end if
 
     call deallocate(augmented_shape)
+    deallocate(surface_elements, nodes_bdy, local_ids)
     
     ewrite(1, *) "Exiting diagnostic_body_drag"
     

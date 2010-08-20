@@ -33,25 +33,17 @@ module k_epsilon
   use field_derivatives
   use fields
   use field_options
-  use sparse_tools
-  use sparse_tools_petsc
-  use petsc_tools
-  use sparsity_patterns_meshes
-  use parallel_tools
-  use halos_base
-  use halo_data_types
   use state_module
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use state_fields_module
   use populate_state_module
   use boundary_conditions
+  use boundary_conditions_from_options
   use fields_manipulation
   use surface_integrals
-  use ieee_arithmetic
   use fetools
   use vector_tools
-  use solvers
   use FLDebug
 
 implicit none
@@ -184,23 +176,25 @@ end subroutine keps_init
 subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source, absorption, kk, eps
+    type(scalar_field), pointer        :: source, absorption, kk, eps, surface_field
+    type(scalar_field)                 :: shear_stress, rhs_field
     type(vector_field), pointer        :: positions, nu
-    type(vector_field)                 :: viscous_force_field
+    type(vector_field)                 :: viscous_force_field, normal, tangent_1, tangent_2
     type(tensor_field), pointer        :: background_diff, kk_diff
     type(element_type)                 :: shape_kk
-    integer                            :: i, ele, bc
-    real, allocatable, dimension(:)    :: detwei, force
+    type(mesh_type), pointer           :: surface_mesh, force_mesh
+    integer                            :: i, ele, sele, bc, node
+    real, allocatable, dimension(:)    :: detwei, strain_ngi, strain_loc, detweitest
+    real, allocatable, dimension(:)    :: force, rotated_vector, rhs
+    real, allocatable, dimension(:,:)  :: rotation
     real, allocatable, dimension(:,:,:):: dshape_kk
-    real, allocatable, dimension(:)    :: strain_ngi
-    real, allocatable, dimension(:)    :: strain_loc
-    real                               :: residual
+    real                               :: residual, tau_w, tarea
     integer, dimension(:), pointer     :: surface_elements, surface_node_list
-    integer, dimension(:), allocatable :: surface_ids
+    integer, dimension(:), allocatable :: surface_ids, nodes_bdy
     integer, dimension(2)              :: shape_option
-    character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
+    character(len=FIELD_NAME_LEN)      :: bc_type, bc_name, mesh_name
     character(len=OPTION_PATH_LEN)     :: option_path
-    type(mesh_type), pointer           :: surface_mesh
+    logical                            :: debug
 
     ewrite(1,*) "In keps_tke"
 
@@ -229,12 +223,6 @@ subroutine keps_tke(state)
         ! Calculate TKE production using strain rate function
         strain_ngi = double_dot_product(dshape_kk, ele_val(nu, ele) )
         strain_loc = shape_rhs( shape_kk, detwei * strain_ngi )
-        !ewrite(1,*) "shape_kk dim/ngi/loc/deg: ", shape_kk%dim, shape_kk%ngi, shape_kk%loc, shape_kk%degree
-        !ewrite(1,*) "shape_kk fn: ", shape_kk%n
-        !ewrite(1,*) "detwei: ", detwei
-        !ewrite(1,*) "EV: ", ele_val(EV, ele)
-        !ewrite(1,*) "node, strain_ngi: ", ele, strain_ngi
-        !ewrite(1,*) "node, strain_loc: ", ele, strain_loc
 
         ! Sum components of tensor. Ensure non-negative.
         call addto(source, ele_nodes(nu, ele), max(ele_val(EV, ele) * strain_loc, 0.) )
@@ -269,20 +257,44 @@ subroutine keps_tke(state)
         FLAbort("Invalid implicitness option for k")
     end select
 
+    ! Set diffusivity for k equation.
+    call zero(kk_diff)
+    do i = 1, kk_diff%dim
+        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
+        ewrite_minmax(kk_diff%val(i,i,:))
+    end do
+
     ! Add special boundary conditions to k field, if selected.
     if (do_k_bc) then
        ewrite(1,*) "Entering k BC calculation"
        option_path = kk%option_path
+       call allocate(shear_stress, kk%mesh, name="shearstress")
+       call zero(shear_stress)
+
        do bc = 1, get_boundary_condition_count(kk)
 
           call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
                surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
                surface_element_list=surface_elements)
 
-          ewrite(1,*) "k bc name, type: ", trim(bc_name), trim(bc_type)
-
           if (bc_type == 'k_epsilon') then
-             ewrite(1,*) "Calculating k bc: ", bc_name
+             ewrite(1,*) "Calculating k BC: ", &
+             trim(bc_name), ', ', trim(bc_type)
+
+             call allocate(rhs_field, kk%mesh, name="KRHS")
+             call zero(rhs_field)
+
+             ! Surface area
+             !allocate(detweitest(1:face_ngi(positions,1)))
+             !tarea=0.
+             !do ele=1,element_count(surface_mesh)
+             !   sele=surface_elements(ele)
+             !   call transform_facet_to_physical(positions, sele, detwei_f=detweitest)
+             !   tarea=tarea+sum(detweitest)
+             !end do
+             !deallocate(detweitest)
+             !ewrite(1,*) "surface mesh surface area: ", tarea
+
              ! set a Dirichlet BC using wall stress.
              shape_option = option_shape(trim(option_path)//'/prognostic/&
                              &boundary_conditions::'//trim(bc_name)//'/surface_ids')
@@ -290,26 +302,96 @@ subroutine keps_tke(state)
              call get_option(trim(option_path)//'/prognostic/boundary_conditions::'&
                                       &//trim(bc_name)//'/surface_ids', surface_ids)
 
-             ewrite(1,*) "Getting viscous force"
+
+             ewrite(1,*) "Getting viscous force on surface ids: ", surface_ids
              ! Get surface viscous force field
-             !allocate(force(velocity%dim))
+             allocate(force(positions%dim))
 
-             !call diagnostic_body_drag(state, force, surface_ids=surface_ids, &
-             !                          viscous_force_field=viscous_force_field)
+             call diagnostic_body_drag(state, force, surface_ids=surface_ids, &
+                                       viscous_force_field=viscous_force_field)
 
+             deallocate(surface_ids, force)
 
+             ! Allocate surface fields: shear stress (scalar), normal/tangents (vector)
+             call allocate(normal, viscous_force_field%dim, surface_mesh, name="normal")
+             call zero(normal)
+             call allocate(tangent_1, viscous_force_field%dim, surface_mesh, name="tangent1")
+             call zero(tangent_1)
+             if (viscous_force_field%dim>2) then
+                call allocate(tangent_2, viscous_force_field%dim, surface_mesh, name="tangent2")
+                call zero(tangent_2)
+             end if
 
-             call tke_bc(state, surface_ids, surface_node_list)
+             ! Calculate normal and tangential surface fields
+             ewrite(1,*) "Populating temporary rotated surface fields"
+             debug = .false.    ! Don't want the normal/tangent fields output as a vtu.
+             if (viscous_force_field%dim==3) then
+                call initialise_rotated_bcs(surface_elements,positions,debug,normal,tangent_1,tangent_2)
+             else if (viscous_force_field%dim==2) then
+                call initialise_rotated_bcs(surface_elements,positions,debug,normal,tangent_1)
+             end if
+
+             ! Create rotation matrix. NB we don't want normal stress component.
+             ewrite(1,*) "Rotating force field"
+             allocate(rotation(viscous_force_field%dim,viscous_force_field%dim))
+             allocate(rotated_vector(viscous_force_field%dim))
+
+             do i = 1, size(surface_node_list)
+                node = surface_node_list(i)
+                rotation(:,1) = 0.0     ! don't want the normal component of the stress.
+                rotation(:,2) = node_val(tangent_1, i)
+                if (viscous_force_field%dim>2) then
+                   rotation(:,3) = node_val(tangent_2, i)
+                end if
+
+                ! rotate the existing vector into (normal, tangent1/2) coordinates.
+                rotated_vector = matmul( rotation, node_val(viscous_force_field, i) )
+
+                ! Calculate vector 2-norm. This is the wall shear stress magnitude.
+                tau_w = norm2(rotated_vector)
+                call addto(shear_stress, node, tau_w)
+             end do
+
+             deallocate(rotation); deallocate(rotated_vector)
+             call deallocate(normal); call deallocate(tangent_1)
+             if (viscous_force_field%dim>2) then
+                call deallocate(tangent_2)
+             end if
+
+             call deallocate(viscous_force_field)
+
+             ! Calculate bc values
+             ewrite(1,*) "Entering tke bc loop"
+             do i = 1, size(surface_elements)
+                sele = surface_elements(i)
+                ele  = face_ele(kk, sele)
+                allocate(rhs(face_loc(kk, sele) ))
+                allocate(nodes_bdy(face_loc(kk, sele)))
+                nodes_bdy =  face_global_nodes(kk, sele)
+
+                call tke_bc(kk, ele, sele, positions, shear_stress, rhs)
+                call addto( rhs_field, nodes_bdy, rhs )
+
+                deallocate(rhs); deallocate(nodes_bdy)
+             end do
+
+             ! Set values in surface field
+             ewrite(1,*) "Applying BC values to tke surface field"
+             if (associated(surface_field)) then
+                surface_field => extract_surface_field(kk, bc, "value")
+                do i = 1, size(surface_node_list)
+                   node = surface_node_list(i)
+                   call set( surface_field, i, rhs_field%val(node) )
+                end do
+             else
+                ewrite(1,*) "No surface fields associated!"
+             end if
+             call deallocate(rhs_field)
+
           end if
        end do
+       call deallocate(shear_stress)
     end if
-
-    ! Set diffusivity for k equation.
-    call zero(kk_diff)
-    do i = 1, kk_diff%dim
-        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
-        ewrite_minmax(kk_diff%val(i,i,:))
-    end do
 
     ewrite_minmax(tke_old)
     ewrite_minmax(P)
@@ -325,7 +407,7 @@ subroutine keps_eps(state)
     type(scalar_field), pointer        :: source, absorption, kk, eps, surface_field
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: background_diff, eps_diff
-    type(scalar_field)                 :: rhs_vector
+    type(scalar_field)                 :: rhs_field
     type(mesh_type), pointer           :: surface_mesh
     real                               :: residual
     integer                            :: i, j, ele, sele, node
@@ -364,7 +446,7 @@ subroutine keps_eps(state)
             call set(absorption, i, max(0.0, residual) )
         end do
     case default
-        FLAbort("Invalid implicitness option for k")
+        FLAbort("Invalid implicitness option for eps")
     end select
 
     ewrite_minmax(tke_old)
@@ -391,11 +473,10 @@ subroutine keps_eps(state)
 
           if (bc_type == 'k_epsilon') then
 
-             call allocate(rhs_vector, eps%mesh, name="RHS")
-             call zero(rhs_vector)
+             call allocate(rhs_field, eps%mesh, name="ERHS")
+             call zero(rhs_field)
 
-             ewrite(1,*) "Calculating epsilon BC: ", &
-             trim(bc_name), ', ', trim(bc_type), ', ', size(surface_elements)
+             ewrite(1,*) "Calculating epsilon BC: ", trim(bc_name), ', ', trim(bc_type)
 
              surface_field => extract_surface_field(eps, i, "value")
 
@@ -408,7 +489,7 @@ subroutine keps_eps(state)
 
                 ! Calculate bc values and add to temporary field
                 call eps_bc(ele, sele, kk, positions, rhs)
-                call addto( rhs_vector, nodes_bdy, rhs )
+                call addto( rhs_field, nodes_bdy, rhs )
 
                 deallocate(rhs); deallocate(nodes_bdy)
              end do
@@ -417,7 +498,7 @@ subroutine keps_eps(state)
                 surface_field => extract_surface_field(eps, i, "value")
                 do j = 1, size(surface_node_list)
                    node = surface_node_list(j)
-                   call set( surface_field, j, rhs_vector%val(node) )
+                   call set( surface_field, j, rhs_field%val(node) )
                 end do
              else
                 ewrite(1,*) "No surface fields associated!"
@@ -425,7 +506,7 @@ subroutine keps_eps(state)
           end if
        end do
 
-       call deallocate(rhs_vector)
+       call deallocate(rhs_field)
 
     end if
 
@@ -552,79 +633,85 @@ end subroutine keps_adapt_mesh
 
 subroutine keps_check_options
 
-    ewrite(1,*) "In keps_check_options"
+    character(len=OPTION_PATH_LEN) :: option_path
+    integer                        :: dimension
 
+    ewrite(1,*) "In keps_check_options"
+    option_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
+
+    ! one dimensional problems not supported
+    call get_option("/geometry/dimension/", dimension) 
+    if (dimension .eq. 1 .and. have_option(trim(option_path))) then
+        FLExit("k-epsilon model is only supported for dimension > 1")
+    end if
     ! Don't do k-epsilon if it's not included in the model!
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) return
+    if (.not.have_option(trim(option_path))) return
 
     ! checking for required fields
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                          &scalar_field::TurbulentKineticEnergy")) then
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy")) then
         FLExit("You need TurbulentKineticEnergy field for k-epsilon")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                          &scalar_field::TurbulentDissipation")) then
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentDissipation")) then
         FLExit("You need TurbulentDissipation field for k-epsilon")
     end if
     ! check that diffusivity is on for the two turbulent fields, and diagnostic
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &tensor_field::Diffusivity")) then
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/&
+        &prognostic/tensor_field::Diffusivity")) then
         FLExit("You need TurbulentKineticEnergy Diffusivity field for k-epsilon")
     end if    
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentKineticEnergy Diffusivity field set to diagnostic/internal")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
                           &tensor_field::Diffusivity")) then
         FLExit("You need TurbulentDissipation Diffusivity field for k-epsilon")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
                           &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Diffusivity field set to diagnostic/internal")
     end if
     ! source terms
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Source")) then
         FLExit("You need TurbulentKineticEnergy Source field for k-epsilon")
     end if    
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Source/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
                           &tensor_field::Source")) then
         FLExit("You need TurbulentDissipation Source field for k-epsilon")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
                           &tensor_field::Source/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Source field set to diagnostic/internal")
     end if
     ! absorption terms
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Absorption")) then
         FLExit("You need TurbulentKineticEnergy Absorption field for k-epsilon")
     end if    
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentKineticEnergy/prognostic/&
                           &tensor_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentKineticEnergy Absorption field set to diagnostic/internal")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
                           &tensor_field::Absorption")) then
         FLExit("You need TurbulentDissipation Absorption field for k-epsilon")
     end if
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &scalar_field::TurbulentDissipation/prognostic/&
                           &tensor_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
@@ -634,7 +721,7 @@ subroutine keps_check_options
         FLExit("You need Velocity field for k-epsilon")
     end if
     ! these fields allow the new diffusivities/viscosities to be used in other calculations
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    if (.not.have_option(trim(option_path)//"/&
                           &tensor_field::EddyViscosity")) then
         FLExit("You need EddyViscosity field for k-epsilon")
     end if
@@ -648,9 +735,8 @@ subroutine keps_check_options
                           &tensor_field::Viscosity/diagnostic/")) then
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
     end if
-    ! check that the background viscosity is an isotropic constant, otherwise eps_bc will break
-    if (.not.have_option("/material_phase::Fluid/subgridscale_parameterisations/&
-                          &k-epsilon/tensor_field::BackgroundViscosity/prescribed/&
+    ! check that the background viscosity is an isotropic constant
+    if (.not.have_option(trim(option_path)//"/tensor_field::BackgroundViscosity/prescribed/&
                           &value::WholeMesh/isotropic/constant")) then
         FLExit("You need to switch the BackgroundViscosity field to isotropic/constant")
     end if
@@ -680,48 +766,35 @@ subroutine keps_allocate_fields(state)
 
 end subroutine keps_allocate_fields
 
-!-------------------------------------------------------------------------
-
-!subroutine keps_init_surfaces(state)
-
-!    type(state_type), intent(in)     :: state
-!    type(scalar_field), pointer      :: kk, eps
-
-!    ewrite(1,*) "Initialising the k-epsilon surfaces required for BCs"
-
-    ! grab hold of some essential field
-!    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
-!    eps => extract_scalar_field(state, "TurbulentDissipation")
-
-    ! Create fields of surface values for k and eps wherever k_epsilon bc is applied.
-!    call get_entire_boundary_condition(kk, (/"k_epsilon"/), kk_boundary_values, kk_bc_list)
-!    call get_entire_boundary_condition(eps, (/"k_epsilon"/), eps_boundary_values, eps_bc_list)
-
-!end subroutine keps_init_surfaces
-
 !--------------------------------------------------------------------------------!
-! Only used if bc type = k_epsilon for k field. Hard-coded to Dirichlet for now. !
-! May be changed to a Dirichlet BC using wall stress (see Lacasse and Lew).      !
+! Only used if bc type = k_epsilon for k field.                                  !
+! Applies a Dirichlet BC using wall stress (see for example Wilcox (1994)).      !
 !--------------------------------------------------------------------------------!
 
-subroutine tke_bc(state, surface_ids, surface_node_list)
+subroutine tke_bc(kk, ele, sele, positions, shear_stress, rhs)
 
-    type(state_type), intent(in)     :: state
-    type(scalar_field), pointer      :: kk
-    type(vector_field), pointer      :: velocity
-    type(vector_field)               :: viscous_force_field
-    integer                          :: i
-    real, dimension(:), allocatable  :: force
-    integer, dimension(:), intent(in)   :: surface_ids
-    integer, dimension(:), pointer, intent(in)   :: surface_node_list
+    type(scalar_field), intent(in)                    :: kk, shear_stress
+    type(vector_field), pointer, intent(in)           :: positions
+    integer, intent(in)                               :: ele, sele
+    real, dimension(face_loc(kk,sele)), intent(inout) :: rhs
+    type(element_type), pointer                       :: shape_kk, fshape_kk
+    integer                                           :: snloc, sngi
+    real, dimension(face_ngi(positions,sele))         :: detwei_bdy, fields_sngi
 
-    kk => extract_scalar_field(state, "TurbulentKineticEnergy")
-    velocity => extract_vector_field(state, "Velocity")
+    ! Get ids, lists and shape functions
+    sngi      =  face_ngi(kk, sele)    ! no. of gauss points in surface element
+    snloc     =  face_loc(kk, sele)    ! no. of nodes on surface element
+    shape_kk  => ele_shape(kk, ele)    ! shape functions in volume element
+    fshape_kk => face_shape(kk, sele)  ! shape functions in surface element
 
+    ! Get transformed element quadrature weights over surface
+    call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy )
 
-    do i = 1, size(surface_node_list)
-        call set( kk, surface_node_list(i), fields_min )
-    end do
+    ! get scalar field values at quadrature points
+    fields_sngi = 1./C_mu**0.5 * visc * face_val_at_quad(shear_stress, sele)
+
+    ! Perform rhs surface integral
+    rhs = shape_rhs( fshape_kk, detwei_bdy * fields_sngi )
 
 end subroutine tke_bc
 
@@ -735,23 +808,21 @@ end subroutine tke_bc
 
 subroutine eps_bc(ele, sele, kk, positions, rhs)
 
-    type(scalar_field), pointer                             :: kk
-    type(vector_field), intent(in)                          :: positions
-    type(element_type), pointer                             :: shape_kk, fshape_kk
-    type(element_type)                                      :: augmented_shape
-    integer, intent(in)                                     :: ele, sele
-    real, dimension(face_loc(positions,sele)), intent(out)  :: rhs
-    integer                                                 :: i, j, snloc, sngi
-    real, dimension(ele_ngi(kk, ele))                       :: detwei
-    real, dimension(face_ngi(kk, sele))  :: detwei_bdy, fields_sngi, dkdn_contracted
-
-    real, dimension(positions%dim, positions%dim, ele_ngi(kk, sele))     :: invJ
-    real, dimension(positions%dim, positions%dim, face_ngi(kk, sele))    :: invJ_face
-    real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim)   :: dshape_kk
-    real, dimension(ele_loc(kk, ele), face_ngi(kk, sele), positions%dim) :: fdshape_kk
-    real, dimension(positions%dim, face_ngi(positions, sele))            :: normal_bdy
-    real, dimension(face_loc(positions,sele), face_ngi(positions,sele))  :: dkdn
-
+    type(scalar_field), pointer, intent(in)                          :: kk
+    type(vector_field), intent(in)                                   :: positions
+    integer, intent(in)                                              :: ele, sele
+    real, dimension(face_loc(kk,sele)), intent(inout)                :: rhs
+    type(element_type), pointer                                      :: shape_kk, fshape_kk
+    type(element_type)                                               :: augmented_shape
+    integer                                                          :: i, j, snloc, sngi
+    real, dimension(ele_ngi(kk,ele))                                 :: detwei
+    real, dimension(positions%dim,positions%dim,ele_ngi(kk,sele))    :: invJ
+    real, dimension(positions%dim,positions%dim,face_ngi(kk,sele))   :: invJ_face
+    real, dimension(ele_loc(kk,ele),ele_ngi(kk,ele),positions%dim)   :: dshape_kk
+    real, dimension(ele_loc(kk,ele),face_ngi(kk,sele),positions%dim) :: fdshape_kk
+    real, dimension(positions%dim,face_ngi(kk,sele))                 :: normal_bdy
+    real, dimension(face_loc(kk,sele),face_ngi(kk,sele))             :: dkdn
+    real, dimension(face_ngi(kk,sele))  :: detwei_bdy, fields_sngi, dkdn_contracted
 
     ! Get ids, lists and shape functions
     sngi      =  face_ngi(kk, sele)    ! no. of gauss points in surface element

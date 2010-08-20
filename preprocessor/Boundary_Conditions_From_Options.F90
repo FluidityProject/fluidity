@@ -53,7 +53,7 @@ implicit none
        apply_dirichlet_conditions_inverse_mass, impose_reference_pressure_node, &
        impose_reference_velocity_node
   public :: populate_scalar_boundary_conditions, &
-    & populate_vector_boundary_conditions
+    & populate_vector_boundary_conditions, initialise_rotated_bcs
 
   interface apply_dirichlet_conditions_inverse_mass
      module procedure apply_dirichlet_conditions_inverse_mass_vector, &
@@ -240,10 +240,14 @@ contains
        
        case( "k_epsilon" )
        
-           if(.not. have_option &
-           ("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
-               FLAbort("Incorrect boundary condition type for field")
-           end if
+          if(.not. have_option &
+          ("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+              FLExit("Incorrect boundary condition type for field")
+          end if
+
+          call allocate(surface_field, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
 
        case default
 
