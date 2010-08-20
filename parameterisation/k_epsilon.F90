@@ -307,8 +307,9 @@ subroutine keps_tke(state)
              ! Get surface viscous force field
              allocate(force(positions%dim))
 
-             call diagnostic_body_drag(state, force, surface_ids=surface_ids, &
-                                       viscous_force_field=viscous_force_field)
+             !call diagnostic_body_drag(state, force, surface_ids=surface_ids, &
+             !                          viscous_force_field=viscous_force_field)
+             call diagnostic_body_drag(state, force)
 
              deallocate(surface_ids, force)
 
