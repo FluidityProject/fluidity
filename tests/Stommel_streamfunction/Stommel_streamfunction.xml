@@ -129,9 +129,9 @@ Adapt_node_count = ug.ugrid.GetNumberOfPoints()
 print Fixed_error_norm
 assert(Fixed_error_norm &lt; 5e-5)
     </test>
-    <test name="Check that the L2 norm of the error on the adaptive mesh is less than 5e-6." language="python">
+    <test name="Check that the L2 norm of the error on the adaptive mesh is less than 5.5e-6." language="python">
 print Adapt_error_norm
-assert(Adapt_error_norm &lt; 5e-5)
+assert(Adapt_error_norm &lt; 5.5e-6)
     </test>
     <test name="Check that number of nodes in the adaptive case is less than 550." language="python">
 print Adapt_node_count
