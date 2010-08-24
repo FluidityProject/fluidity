@@ -620,7 +620,7 @@ subroutine keps_bcs(state, field)
     field_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon/scalar_field::"&
                   //(trim(field%name))//"/prognostic/boundary_conditions"
 
-    do bc = 1, get_boundary_condition_count(field)
+    do bc = 0, get_boundary_condition_count(field)-1
 
        call get_boundary_condition(field, bc, name=bc_name, type=bc_type, &
             surface_node_list=surface_node_list, surface_element_list=surface_elements)
