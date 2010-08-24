@@ -608,28 +608,27 @@ subroutine keps_bcs(state, field)
     type(scalar_field), pointer             :: kk, surface_field   ! always need kk
     type(vector_field), pointer             :: positions
     type(scalar_field)                      :: rhs_field
-    integer                                 :: i, ele, sele, bc, node
+    integer                                 :: i, j, ele, sele, node
     integer, dimension(:), pointer          :: surface_elements, surface_node_list
     character(len=FIELD_NAME_LEN)           :: bc_type, bc_name, wall_fns
-    character(len=OPTION_PATH_LEN)          :: field_path
+    character(len=OPTION_PATH_LEN)          :: bc_path
     integer, allocatable, dimension(:)      :: nodes_bdy
     real, dimension(:), allocatable         :: rhs
 
     kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
     positions => extract_vector_field(state, "Coordinate")
-    field_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon/scalar_field::"&
-                  //(trim(field%name))//"/prognostic/boundary_conditions"
 
-    do bc = 0, get_boundary_condition_count(field)-1
+    do j = 1, get_boundary_condition_count(field)
 
-       call get_boundary_condition(field, bc, name=bc_name, type=bc_type, &
+       call get_boundary_condition(field, j, name=bc_name, type=bc_type, &
             surface_node_list=surface_node_list, surface_element_list=surface_elements)
 
        if (bc_type == 'k_epsilon') then
 
           ! Do we have high- or low-Reynolds number options for wall functions?
-          call get_option(trim(field_path)//'['//int2str(bc)//&
-                  ']/type::k_epsilon/wall_functions', wall_fns)
+          bc_path=field%bc%boundary_condition(j)%option_path
+          bc_path=trim(bc_path)//"/type"
+          call get_option(trim(bc_path)//"/wall_functions", wall_fns)
 
           ewrite(1,*) "Calculating field BC: ", trim(field%name), &
           trim(bc_name), ', ', trim(bc_type)
@@ -656,7 +655,7 @@ subroutine keps_bcs(state, field)
           ! Set values in surface field
           ewrite(1,*) "Applying BC values to surface field"
           if (associated(surface_field)) then
-             surface_field => extract_surface_field(field, bc, "value")
+             surface_field => extract_surface_field(field, j, "value")
              do i = 1, size(surface_node_list)
                 node = surface_node_list(i)
                 call set( surface_field, i, rhs_field%val(node) )
