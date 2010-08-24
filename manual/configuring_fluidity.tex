@@ -1179,7 +1179,7 @@ to a \option{diagnostic/algorithm::Internal}-type field. The list of fields to s
 
 If these fields are not set correctly, a user error will occur.
 
-\subsection{k-epsilon}
+\subsection{K-Epsilon Turbulence Model}\label{Sect:kepsilon_usage}
 \index{turbulence model}
 \index{k-$\epsilon$ model}
 
@@ -1193,7 +1193,7 @@ If \option{implicit} is chosen, the source and absorption terms are calculated a
 source &= -min(0.0, diss-prod), \nonumber \\
 absorption &= max(0.0, diss-prod), \nonumber \\
 \end{align}
-where $src$ is the explicitly calculated source term and $abs$ is the explicitly calculated absorption term.
+where $src$ is the explicitly calculated source term and $abs$ is the explicitly calculated absorption term. Please note, it is not recommended to use the implicit option unless the simulation is very unstable.
 
 In Diamond the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
 The 2 fields should use the following spatial discretisation options: \linebreak
@@ -1201,10 +1201,11 @@ The 2 fields should use the following spatial discretisation options: \linebreak
 with \option{\ldots/control\_volumes/diffusion\_scheme::ElementGradient}.
 
 Fully implicit temporal discretisation (\option{\ldots/temporal\_discretisation/theta=1}) \linebreak
- is recommended. 
+is recommended. The \option{control\_volume} discretisation option should be selected, with \linebreak
+\option{number\_advection\_iterations} = 3.
 
-Finally, a fields that are altered by the k-epsilon model, such as the Viscosity need to be switched
-to a \option{diagnostic/algorithm::Internal}-type field. The list of fields to switch is:
+Fields that are altered by the k-epsilon model, such as the Viscosity, need to be switched
+to \linebreak \option{diagnostic/algorithm::Internal}. The list of fields to switch is:
 \begin{enumerate}
 \item \option{TurbulentKineticEnergy/Diffusivity}
 \item \option{TurbulentKineticEnergy/Source}
@@ -1216,26 +1217,27 @@ to a \option{diagnostic/algorithm::Internal}-type field. The list of fields to s
 \end{enumerate}
 
 If these fields are not set correctly, a user error will occur. The eddy viscosity is available as a diagnostic
-tensor field, and as a diagnostic scalar field (e.g. for plotting using statplot). However, the ordinary viscosity must still be prescribed under \linebreak
+tensor field, and as a diagnostic scalar field (e.g. for plotting using statplot). However, the ordinary (laminar) viscosity must still be prescribed under \linebreak
 \option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}.
-Two further optional diagnostic scalar fields are available within the model: LengthScale and TKEOverEpsilon. The second is the ratio of the $k$ and $\epsilon$ fields.
 
-\subsubsection{Initial and Boundary Conditions}
+If using additional scalar fields such as temperature, salinity etc, an option is available under \linebreak
+\option{\ldots/subgridscale\_parameterisation::k-epsilon} to use the eddy diffusivity calculated in the model. It should be noted that the eddy diffusivity and eddy viscosity are related by the Schmidt number for the kinetic energy field, \option{sigma\_k}, which is usually set to the value in Table \ref{tab:kepsco}.
 
-The model is sensitive to the initial conditions specified for the $k$ and $\epsilon$ fields. It is recommended that they be set to very small values with $k \approx 10^4 \times \epsilon$.
+Three optional diagnostic scalar fields are available within the model: LengthScale, TKEOverEpsilon and EpsilonOverTKE. The first is the integral length scale of the turbulence (see \eqref{lengthscale}), the second is the ratio of the $k$ and $\epsilon$ fields, and the third is it the reciprocal, also known as omega or the specific dissipation.
 
-The model is designed for low Reynolds number flows ($\nu_T \approx \nu$) with the following Dirichlet boundary conditions:
+The lengthscale can be limited near selected walls using the \option{limit\_lengthscale} option (see \eqref{yap}).
+It is limited throughout the domain by the value set in \option{L\_max}, which should be the maximum possible size of an eddy (a geometric constraint, e.g. inlet height).
+However, it has no effect on the solution since the length scale is purely diagnostic [pending revision].
 
-\begin{align}
-\bmu &= 0, \label{ubc}\\
-k &= 0, \label{kbc}\\
-\epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \label{epsbc}
-\end{align}
+\subsubsection{Initial and Boundary Conditions}[PENDING REVISION]
 
-However, it has been tested successfully for higher Reynolds numbers: $\nu_T >> \nu$.
-$k$ should in practice be set to a very small nonzero number to prevent the code crashing.
-\eqref{epsbc} can be implemented by selecting the following boundary condition type: \linebreak
-\option{\ldots/TurbulentDissipation/prognostic/boundary\_conditions/k\_epsilon}.
+The model is sensitive to the initial conditions specified for the $k$ and $\epsilon$ fields. It is recommended to use the special boundary condition type, \option{\ldots/k\_epsilon} on any surface of interest for these fields. Different wall functions are available for low- and high-Reynolds-number flows. The cutoff between high and low Reynolds number is at the user's discretion.
+
+In the low Reynolds number case, \eqref{epsbc1} can be implemented by selecting the following boundary condition type: \option{\ldots/boundary\_conditions/k\_epsilon/wall\_functions/low\_Re}. \eqref{kbc1} is not currently set using this option, and it must be set using a Dirichlet condition on the k field. In practice it should be nonzero and small, perhaps of order $O(1/Re)$.
+
+In the high Reynolds number case, \eqref{kbc2} and \eqref{epsbc2} can be implemented by selecting the following boundary condition type: \option{\ldots/boundary\_conditions/k\_epsilon/wall\_functions/high\_Re}. The velocity condition, \eqref{ubc2}, is not implemented in the model and may not be necessary. If using a sufficiently fine near-wall mesh, the correct velocity profile should be generated anyway.
+
+If using Dirichlet conditions, it is recommended that $k$ and $\epsilon$ be set to small values, chosen such that the eddy viscosity on the boundaries is of order $O(\mu)$ (background viscosity), and both fields perhaps of order $O(1/Re)$.
 
 \section{Boundary conditions}\label{Sect:BCs_configure}
 \index{boundary conditions}

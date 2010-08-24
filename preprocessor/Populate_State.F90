@@ -1343,15 +1343,16 @@ contains
     !!< parameterisation, it is necessary to alias their diffusivity to the
     !!< diffusivity provided by the parameterisation.
     !!<
-    !!< At this stage only prescribed diffusivity is handled via this
-    !!< route. Gent-McWilliams diffusivity is calculated on the fly and
+    !!< At this stage only prescribed diffusivity, the Generic Length Scale ocean model
+    !!< and the K-Epsilon turbulence model are handled via this route.
+    !!< Gent-McWilliams diffusivity is calculated on the fly and
     !!< Mellor-Yamada is pending a rewrite.
     type(state_type), dimension(:), intent(inout) :: states
     type(scalar_field), pointer :: sfield
     type(tensor_field) :: tfield
 
     integer :: i, s, stat
-
+    ! Prescribed diffusivity
     do i = 1, size(states)
        
        tfield=extract_tensor_field(states(i), "PrescribedDiffusivity", stat)
@@ -1377,7 +1378,7 @@ contains
        
     end do
 
-
+    ! Eddy diffusivity from Generic Length Scale Ocean model
     do i = 1, size(states)
        
        tfield=extract_tensor_field(states(i), "GLSEddyDiffusivityKH", stat)
@@ -1393,6 +1394,32 @@ contains
           if (have_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
                &::GLS")) then
+             
+             tfield%name=trim(sfield%name)//"Diffusivity"
+             call insert(states(i), tfield, tfield%name)
+
+          end if
+
+       end do
+       
+    end do
+
+    ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
+    do i = 1, size(states)
+       
+       tfield=extract_tensor_field(states(i), "KEpsEddyDiffusivity", stat)
+
+       if (stat/=0) cycle
+
+       tfield%aliased=.True.
+
+       do s = 1, scalar_field_count(states(i))
+
+          sfield => extract_scalar_field(states(i), s)
+          
+          if (have_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k_epsilon")) then
              
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)

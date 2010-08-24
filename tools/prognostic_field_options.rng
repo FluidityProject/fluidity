@@ -123,6 +123,15 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             <attribute name="name">
               <value>k_epsilon</value>
             </attribute>
+            <element name="wall_functions">
+              <a:documentation>Select high/low Reynolds number wall functions for k and epsilon fields.</a:documentation>
+              <element name="string_value">
+                <choice>
+                  <value>low_Re</value>
+                  <value>high_Re</value>
+                </choice>
+              </element>
+            </element>
           </element>
         </choice>
       </element>
@@ -142,6 +151,14 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
         <element name="subgridscale_parameterisation">
           <attribute name="name">
             <value>GLS</value>
+          </attribute>
+        </element>
+        <element name="subgridscale_parameterisation">
+          <a:documentation>Set the diffusivity to the eddy diffusivity calculated by the
+k-epsilon turbulence model. If using this, set the diffusivity field to
+diagnostic/algorithm(internal).</a:documentation>
+          <attribute name="name">
+            <value>k-epsilon</value>
           </attribute>
         </element>
         <element name="subgridscale_parameterisation">

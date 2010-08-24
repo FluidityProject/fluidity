@@ -94,7 +94,13 @@ prognostic_scalar_field =
             ## and/or TurbulentDissipation (epsilon) fields.
             ## e.g. use a Dirichlet BC on inlets and k_epsilon on walls.
             element type {
-               attribute name { "k_epsilon" }
+               attribute name { "k_epsilon" },
+               ## Select high/low Reynolds number wall functions for k and epsilon fields.
+               element wall_functions {
+                  element string_value {
+                  "low_Re"|"high_Re"
+                  }
+               }
             }
          )
       }*,
@@ -109,6 +115,12 @@ prognostic_scalar_field =
          }|
          element subgridscale_parameterisation {
             attribute name { "GLS"}
+         }|
+         ## Set the diffusivity to the eddy diffusivity calculated by the
+         ## k-epsilon turbulence model. If using this, set the diffusivity field to
+         ## diagnostic/algorithm(internal).
+         element subgridscale_parameterisation {
+            attribute name { "k-epsilon"}
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}

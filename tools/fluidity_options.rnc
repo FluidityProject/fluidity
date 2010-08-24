@@ -1170,16 +1170,16 @@ start =
                      }
                   }
                }?,
-               ## [UNDER DEVELOPMENT] Standard k-epsilon model (see Ferziger and Peric(2002) p.295).
+               ## [UNDER DEVELOPMENT] Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
                ## Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
                ## in order to close momentum equations.
                ## Generates a fictitious 'eddy viscosity', added to normal viscosity field, that
-               ## carries the influence of turbulence onto the velocity field.
+               ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-epsilon {
-                  ## Turbulent kinetic energy (k). INSTRUCTIONS:
-                  ## 1. Specify boundary conditions here. They are not done internally.
+                  ## Turbulent kinetic energy (k).
+                  ## 1. 'k_epsilon'-type boundary conditions are recommended for this field.
                   ## 2. Turn on diffusivity, source and absorption diagnostic fields.
-                  ## 3. Use VelocityMesh.
+                  ## 3. Use the same mesh asVelocity.
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "TurbulentKineticEnergy" },
@@ -1190,10 +1190,10 @@ start =
                         }
                      )
                   },
-                  ## TurbulentDissipation (epsilon). INSTRUCTIONS:
-                  ## 1. Specify boundary conditions here, or internally by selecting calculate_boundaries.
+                  ## TurbulentDissipation (epsilon).
+                  ## 1. 'k_epsilon'-type boundary conditions are recommended for this field.
                   ## 2. Turn on diffusivity, source and absorption diagnostic fields.
-                  ## 3. Use VelocityMesh.
+                  ## 3. Use the same mesh as Velocity.
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "TurbulentDissipation" },
@@ -1204,7 +1204,7 @@ start =
                         }
                      )
                   },
-                  ## Set the value of the normal (laminar) viscosity field here.
+                  ## Set the value of the background (laminar) viscosity field here.
                   ## Make it small to see the influence of the eddy viscosity.
                   ## IMPORTANT: make velocity/viscosity diagnostic.
                   element tensor_field {
@@ -1217,6 +1217,8 @@ start =
                         }
                      )
                   },
+                  ## Set the value of the background (laminar) tracer diffusivity field here.
+                  ## Make it small to see the influence of the eddy diffusivity.
                   ## Background diffusivity
                   element tensor_field {
                      attribute rank { "2" },
@@ -1228,12 +1230,12 @@ start =
                         }
                      )
                   },
-                  ## Eddy viscosity (turbulent diffusion of velocity)
-                  ## This is a fictitious viscosity, added to normal viscosity field, that
+                  ## Eddy viscosity (turbulent diffusion of velocity).
+                  ## This is a fictitious isotropic viscosity, added to normal viscosity field, that
                   ## carries the influence of turbulence onto the velocity field.
                   element tensor_field {
                      attribute rank { "2" },
-                     attribute name { "EddyViscosity" },
+                     attribute name { "KEpsEddyViscosity" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1242,12 +1244,14 @@ start =
                         }
                      )
                   },
-                  ## Eddy diffusivity (turbulent diffusion of scalar fields)
-                  ## This is a fictitious diffusivity, added to normal diffusivity field, that
+                  ## Eddy diffusivity (turbulent diffusion of scalar fields).
+                  ## This is a fictitious isotropic diffusivity, added to normal diffusivity field, that
                   ## carries the influence of turbulence onto scalar fields.
+                  ## It is related to the Eddy Viscosity by the turbulent Schmidt number for the
+                  ## TurbulentKineticEnergy field, sigma_k.
                   element tensor_field {
                      attribute rank { "2" },
-                     attribute name { "EddyDiffusivity" },
+                     attribute name { "KEpsEddyDiffusivity" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1256,7 +1260,7 @@ start =
                         }
                      )
                   },
-                  ## Length scale (a diagnostic with k-epsilon)
+                  ## Integral length scale of the turbulence (diagnostic).
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "LengthScale" },
@@ -1268,7 +1272,7 @@ start =
                         }
                      )
                   }?,
-                  ## Scalar eddy viscosity (diagnostic field)
+                  ## Scalar component of the eddy viscosity tensor (diagnostic).
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "ScalarEddyViscosity" },
@@ -1280,7 +1284,7 @@ start =
                         }
                      )
                   }?,
-                  ## Ratio of TurbulentKineticEnergy to TurbulentDissipation (diagnostic field)
+                  ## Ratio of TurbulentKineticEnergy to TurbulentDissipation (diagnostic).
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "TKEOverEpsilon" },
@@ -1292,9 +1296,21 @@ start =
                         }
                      )
                   }?,
+                  ## Reciprocal of the above ratio, a.k.a. Omega or specific dissipation (diagnostic).
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "EpsilonOverTKE" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
+                  }?,
                   ## Select whether source and absorption terms for k and epsilon
-                  ## are implicit or explicit (see manual for details).
-                  element option {
+                  ## are implicit or explicit.
+                  element source_absorption {
                      element string_value {
                      "explicit"|"implicit"
                      }
@@ -1302,13 +1318,14 @@ start =
                   ## If limit_length is selected, the lengthscale is limited on the same surfaces as
                   ## k boundary conditions, using the formula of Yap (1987) (see also Craft, 1996).
                   ## This is currently only applied on surfaces with "k_epsilon" type BCs for epsilon.
+                  ## Since length scale is diagnostic, this has no effect on the solution and may be scrapped [pending revision].
                   element limit_length {
                      element string_value {
                      empty
                      }?
                   }?,
-                  ## Maximum lengthscale. This is the geometric constraint on the largest possible
-                  ## eddy, e.g. channel width. If not known guesstimate!
+                  ## Maximum lengthscale: geometric constraint on the largest possible eddy, e.g. channel width.
+                  ## Since length scale is diagnostic, this has no effect on the solution and may be scrapped.
                   element L_max {real},
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.
@@ -1320,6 +1337,7 @@ start =
                   ## Recommended value (default): 1.92.
                   element C_eps_2 {real},
                   ## Turbulent Schmidt number (eddy viscosity coefficient from k equation).
+                  ## This is also the ratio of eddy viscosity to eddy diffusivity for use in other scalar fields.
                   ## Recommended value (default): 1.0.
                   element sigma_k {real},
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).

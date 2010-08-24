@@ -197,12 +197,12 @@ A lengthscale is associated with the dissipation of turbulent kinetic energy by 
 l = k^{1.5} / \epsilon.
 \end{equation}
 
-To ensure the correct behaviour near walls, a lengthscale limiter has been included in the model (see \citet{yap1987, craft1996}):
+A lengthscale limiter has been included in the model (see \citet{yap1987, craft1996}):
 
 \begin{equation}\label{yap}
 l = \text{max} \left ( 0.83 \frac{\epsilon^2}{k} \left [ \frac{k^{1.5}}{2.5 \epsilon y} -1 \right ] \left [ \frac{k^{1.5}}{2.5 \epsilon y} \right ]^2, 0 \right ),
 \end{equation}
-where $y$ is the wall-normal distance. The limiter, if switched on, operates only in the wall-adjacent elements.
+where $y$ is the wall-normal distance. The limiter, if switched on, operates only in the wall-adjacent elements. However, it has no effect on the solution since the length scale is purely diagnostic [pending revision].
 
 The five model coefficients are in Table \ref{tab:kepsco}. These are the default values but they can be changed in Diamond.
 
@@ -220,6 +220,26 @@ $\sigma_k$ & 1.0 \\ \hline
 \caption{$k-\epsilon$ model coefficients}
 \label{tab:kepsco}
 \end{table}
+
+\subsection{Initial and Boundary Conditions}
+
+Low- and high-Reynolds-number wall functions are available under the option \linebreak \option{\ldots/k\_epsilon/wall\_functions} (see \ref{Sect:kepsilon}). When simulating low Reynolds number flows the following boundary conditions are recommended \citep{wilcox1998turbulence}:
+
+\begin{align}
+\bmu &= 0, \label{ubc1}\\
+k &= 0, \label{kbc1}\\
+\epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[y]{k^{1/2}} \right ). \label{epsbc1}
+\end{align}
+
+For high Reynolds numbers, the following boundary conditions are recommended \citep{wilcox1998turbulence}:
+
+\begin{align}
+\bmu &= u_* \left [ \frac{1}{\kappa} \ln (u_* y / \nu) + B \right ], \label{ubc2}\\
+k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{kbc2}\\
+\epsilon &= \frac{u_*^3}{\kappa y}, \label{epsbc2}\\
+u_* &= (\tau_w / \rho)^{1/2} = \left ( \nu \ppx[n]{U} \right )^{1/2}. \label{ustar}
+\end{align}
+where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction velocity, $\kappa=0.41$ is Von Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\nu$ is the kinematic laminar viscosity, $\rho$ is the density and $\ppx[n]{U}$ is the gradient of the velocity in the wall-normal direction. For implementation details see \ref{Sect:kepsilon_usage}.
 
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}

@@ -50,25 +50,24 @@ implicit none
 
   private
 
-  ! old turbulent kinetic energy, lengthscale, eddy viscosity, production
-  type(scalar_field), save      :: tke_old, ll, EV, P, tkeovereps
+  ! old turbulent kinetic energy, lengthscale, eddy viscosity, production, field ratios
+  type(scalar_field), save            :: tke_old, ll, EV, P, tkeovereps, epsovertke
   ! Minimum values of 2 fields to initialise, and empirical constants from flml
-  real, save                    :: eps_init, k_init, ll_max, visc, &
-                                   c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
-  real, save                    :: fields_min = 1.e-20
-  integer, save                 :: nnodes
-  logical, save                 :: limit_length, do_k_bc, do_eps_bc
-  character(len=FIELD_NAME_LEN) :: src_abs
+  real, save                          :: eps_init, k_init, ll_max, visc, &
+                                         c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
+  real, save                          :: fields_min = 1.e-20
+  integer, save                       :: nnodes
+  logical, save                       :: limit_length, do_k_bc, do_eps_bc
+  character(len=FIELD_NAME_LEN), save :: src_abs, wall_fns
 
-  ! The following are the public subroutines
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_adapt_mesh, keps_check_options
 
-  ! General plan is:
+  ! Outline:
   !  - Init in populate_state.
-  !  - If solve is about to do TKE, call keps_tke (which calculates P and sets source/absorption for solve).
-  !  - If solve is about to do epsilon, call keps_eps (which fixes TKE surfaces, set source/absorption for solve).
+  !  - call keps_tke (which calculates production and sets source/absorption/diffusivity for solve).
+  !  - call keps_eps (which sets source/absorption/diffusivity for solve).
   !  - After keps_eps solve, keps_eddyvisc recalculates the eddy viscosity and adds it to the viscosity field.
-  !  - keps_eddyvisc also recalculates the lengthscale.
+  !  - Wall functions are added to selected boundaries in keps_bcs and wall_functions.
   !  - keps_adapt_options repopulates the fields after an adapt.
   !  - When done, clean-up.
   !
@@ -79,7 +78,7 @@ implicit none
 contains
 
 !----------
-!    - initialise parameters based on options
+! initialise parameters based on options
 !----------
 
 subroutine keps_init(state)
@@ -87,29 +86,34 @@ subroutine keps_init(state)
     type(state_type), intent(inout) :: state
     type(scalar_field), pointer     :: scalarField
     character(len=FIELD_NAME_LEN)   :: bc_type
+    character(len=OPTION_PATH_LEN)  :: keps_path
     integer                         :: i
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
+    keps_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
 
     ! Allocate the temporary, module-level variables
     call keps_allocate_fields(state)
 
     ! Are source and absorption terms implicit/explicit?
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/option', src_abs)
+    call get_option(trim(keps_path)//'/source_absorption', src_abs)
+
+    ! Do we have high- or low-Reynolds number options for wall functions?
+    call get_option(trim(keps_path)//'/wall_functions', wall_fns)
 
     ! Do we have the limit_lengthscale option?
     limit_length = &
-    have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/limit_length")
+    have_option(trim(keps_path)//'/limit_length')
     ! Get maximum lengthscale. This should be a geometric constraint on eddy size.
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/L_max', ll_max)
+    call get_option(trim(keps_path)//'/L_max', ll_max)
     call set(ll, ll_max)
 
     ! Get the 5 model constants
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_mu', C_mu, default = 0.09)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_1', c_eps_1, default = 1.44)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/C_eps_2', c_eps_2, default = 1.92)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_k', sigma_k, default = 1.0)
-    call get_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/sigma_eps', sigma_eps, default = 1.3)
+    call get_option(trim(keps_path)//'/C_mu', C_mu, default = 0.09)
+    call get_option(trim(keps_path)//'/C_eps_1', c_eps_1, default = 1.44)
+    call get_option(trim(keps_path)//'n/C_eps_2', c_eps_2, default = 1.92)
+    call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
+    call get_option(trim(keps_path)//'n/sigma_eps', sigma_eps, default = 1.3)
 
     ! initialise k field with minimum values
     scalarField => extract_scalar_field(state, "TurbulentKineticEnergy")
@@ -176,25 +180,14 @@ end subroutine keps_init
 subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source, absorption, kk, eps, surface_field
-    type(scalar_field)                 :: shear_stress, rhs_field
+    type(scalar_field), pointer        :: source, absorption, kk, eps
     type(vector_field), pointer        :: positions, nu
-    type(vector_field)                 :: viscous_force_field, normal, tangent_1, tangent_2
     type(tensor_field), pointer        :: background_diff, kk_diff
     type(element_type)                 :: shape_kk
-    type(mesh_type), pointer           :: surface_mesh, force_mesh
-    integer                            :: i, ele, sele, bc, node
-    real, allocatable, dimension(:)    :: detwei, strain_ngi, strain_loc, detweitest
-    real, allocatable, dimension(:)    :: force, rotated_vector, rhs
-    real, allocatable, dimension(:,:)  :: rotation
+    integer                            :: i, ele
+    real, allocatable, dimension(:)    :: detwei, strain_ngi, strain_loc
     real, allocatable, dimension(:,:,:):: dshape_kk
-    real                               :: residual, tau_w, tarea
-    integer, dimension(:), pointer     :: surface_elements, surface_node_list
-    integer, dimension(:), allocatable :: surface_ids, nodes_bdy
-    integer, dimension(2)              :: shape_option
-    character(len=FIELD_NAME_LEN)      :: bc_type, bc_name, mesh_name
-    character(len=OPTION_PATH_LEN)     :: option_path
-    logical                            :: debug
+    real                               :: residual
 
     ewrite(1,*) "In keps_tke"
 
@@ -211,8 +204,7 @@ subroutine keps_tke(state)
     call zero(absorption)
 
     do ele = 1, ele_count(nu)
-
-        shape_kk =  ele_shape(kk, ele)          ! k element type
+        shape_kk =  ele_shape(kk, ele)
         allocate( dshape_kk (ele_loc(nu, ele), ele_ngi(nu, ele), nu%dim) )
         allocate( detwei (ele_ngi(nu, ele) ) )
         allocate( strain_ngi (ele_ngi(nu, ele) ) )
@@ -220,7 +212,7 @@ subroutine keps_tke(state)
 
         call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
 
-        ! Calculate TKE production using strain rate function
+        ! Calculate TKE production using strain rate (double_dot_product) function
         strain_ngi = double_dot_product(dshape_kk, ele_val(nu, ele) )
         strain_loc = shape_rhs( shape_kk, detwei * strain_ngi )
 
@@ -228,7 +220,6 @@ subroutine keps_tke(state)
         call addto(source, ele_nodes(nu, ele), max(ele_val(EV, ele) * strain_loc, 0.) )
 
         deallocate( dshape_kk, detwei, strain_ngi, strain_loc )
-
     end do
 
     ! Calculate TKE source and absorption. Implicit or explicit.
@@ -265,133 +256,8 @@ subroutine keps_tke(state)
     end do
 
     ! Add special boundary conditions to k field, if selected.
-    if (do_k_bc) then
-       ewrite(1,*) "Entering k BC calculation"
-       option_path = kk%option_path
-       call allocate(shear_stress, kk%mesh, name="shearstress")
-       call zero(shear_stress)
-
-       do bc = 1, get_boundary_condition_count(kk)
-
-          call get_boundary_condition(kk, bc, name=bc_name, type=bc_type, &
-               surface_node_list=surface_node_list, surface_mesh=surface_mesh, &
-               surface_element_list=surface_elements)
-
-          if (bc_type == 'k_epsilon') then
-             ewrite(1,*) "Calculating k BC: ", &
-             trim(bc_name), ', ', trim(bc_type)
-
-             call allocate(rhs_field, kk%mesh, name="KRHS")
-             call zero(rhs_field)
-
-             ! Surface area
-             !allocate(detweitest(1:face_ngi(positions,1)))
-             !tarea=0.
-             !do ele=1,element_count(surface_mesh)
-             !   sele=surface_elements(ele)
-             !   call transform_facet_to_physical(positions, sele, detwei_f=detweitest)
-             !   tarea=tarea+sum(detweitest)
-             !end do
-             !deallocate(detweitest)
-             !ewrite(1,*) "surface mesh surface area: ", tarea
-
-             ! set a Dirichlet BC using wall stress.
-             shape_option = option_shape(trim(option_path)//'/prognostic/&
-                             &boundary_conditions::'//trim(bc_name)//'/surface_ids')
-             allocate(surface_ids(1:shape_option(1)))
-             call get_option(trim(option_path)//'/prognostic/boundary_conditions::'&
-                                      &//trim(bc_name)//'/surface_ids', surface_ids)
-
-
-             ewrite(1,*) "Getting viscous force on surface ids: ", surface_ids
-             ! Get surface viscous force field
-             allocate(force(positions%dim))
-
-             !call diagnostic_body_drag(state, force, surface_ids=surface_ids, &
-             !                          viscous_force_field=viscous_force_field)
-             call diagnostic_body_drag(state, force)
-
-             deallocate(surface_ids, force)
-
-             ! Allocate surface fields: shear stress (scalar), normal/tangents (vector)
-             call allocate(normal, viscous_force_field%dim, surface_mesh, name="normal")
-             call zero(normal)
-             call allocate(tangent_1, viscous_force_field%dim, surface_mesh, name="tangent1")
-             call zero(tangent_1)
-             if (viscous_force_field%dim>2) then
-                call allocate(tangent_2, viscous_force_field%dim, surface_mesh, name="tangent2")
-                call zero(tangent_2)
-             end if
-
-             ! Calculate normal and tangential surface fields
-             ewrite(1,*) "Populating temporary rotated surface fields"
-             debug = .false.    ! Don't want the normal/tangent fields output as a vtu.
-             if (viscous_force_field%dim==3) then
-                call initialise_rotated_bcs(surface_elements,positions,debug,normal,tangent_1,tangent_2)
-             else if (viscous_force_field%dim==2) then
-                call initialise_rotated_bcs(surface_elements,positions,debug,normal,tangent_1)
-             end if
-
-             ! Create rotation matrix. NB we don't want normal stress component.
-             ewrite(1,*) "Rotating force field"
-             allocate(rotation(viscous_force_field%dim,viscous_force_field%dim))
-             allocate(rotated_vector(viscous_force_field%dim))
-
-             do i = 1, size(surface_node_list)
-                node = surface_node_list(i)
-                rotation(:,1) = 0.0     ! don't want the normal component of the stress.
-                rotation(:,2) = node_val(tangent_1, i)
-                if (viscous_force_field%dim>2) then
-                   rotation(:,3) = node_val(tangent_2, i)
-                end if
-
-                ! rotate the existing vector into (normal, tangent1/2) coordinates.
-                rotated_vector = matmul( rotation, node_val(viscous_force_field, i) )
-
-                ! Calculate vector 2-norm. This is the wall shear stress magnitude.
-                tau_w = norm2(rotated_vector)
-                call addto(shear_stress, node, tau_w)
-             end do
-
-             deallocate(rotation); deallocate(rotated_vector)
-             call deallocate(normal); call deallocate(tangent_1)
-             if (viscous_force_field%dim>2) then
-                call deallocate(tangent_2)
-             end if
-
-             call deallocate(viscous_force_field)
-
-             ! Calculate bc values
-             ewrite(1,*) "Entering tke bc loop"
-             do i = 1, size(surface_elements)
-                sele = surface_elements(i)
-                ele  = face_ele(kk, sele)
-                allocate(rhs(face_loc(kk, sele) ))
-                allocate(nodes_bdy(face_loc(kk, sele)))
-                nodes_bdy =  face_global_nodes(kk, sele)
-
-                call tke_bc(kk, ele, sele, positions, shear_stress, rhs)
-                call addto( rhs_field, nodes_bdy, rhs )
-
-                deallocate(rhs); deallocate(nodes_bdy)
-             end do
-
-             ! Set values in surface field
-             ewrite(1,*) "Applying BC values to tke surface field"
-             if (associated(surface_field)) then
-                surface_field => extract_surface_field(kk, bc, "value")
-                do i = 1, size(surface_node_list)
-                   node = surface_node_list(i)
-                   call set( surface_field, i, rhs_field%val(node) )
-                end do
-             else
-                ewrite(1,*) "No surface fields associated!"
-             end if
-             call deallocate(rhs_field)
-
-          end if
-       end do
-       call deallocate(shear_stress)
+    if(wall_fns=="high_Re") then
+       call keps_bcs(state, kk)
     end if
 
     ewrite_minmax(tke_old)
@@ -405,23 +271,12 @@ end subroutine keps_tke
 subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source, absorption, kk, eps, surface_field
-    type(vector_field), pointer        :: positions
+    type(scalar_field), pointer        :: source, absorption, eps
     type(tensor_field), pointer        :: background_diff, eps_diff
-    type(scalar_field)                 :: rhs_field
-    type(mesh_type), pointer           :: surface_mesh
     real                               :: residual
-    integer                            :: i, j, ele, sele, node
-    integer, dimension(:), pointer     :: surface_elements, surface_node_list
-    character(len=FIELD_NAME_LEN)      :: bc_type, bc_name
-    real, dimension(:), allocatable    :: rhs
-    integer, dimension(:), allocatable :: nodes_bdy
-
+    integer                            :: i
 
     ewrite(1,*) "In keps_eps"
-
-    positions       => extract_vector_field(state, "Coordinate")
-    kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     source          => extract_scalar_field(state, "TurbulentDissipationSource")
     absorption      => extract_scalar_field(state, "TurbulentDissipationAbsorption")
@@ -464,52 +319,7 @@ subroutine keps_eps(state)
     end do
 
     ! Add special boundary conditions to eps field, if selected.
-    if(do_eps_bc) then
-       ewrite(1,*) "Entering epsilon BC calculation"
-
-       do i = 1, get_boundary_condition_count(eps)
-          call get_boundary_condition(eps, i, bc_name, bc_type, &
-               surface_element_list=surface_elements, &
-               surface_node_list=surface_node_list, surface_mesh=surface_mesh)
-
-          if (bc_type == 'k_epsilon') then
-
-             call allocate(rhs_field, eps%mesh, name="ERHS")
-             call zero(rhs_field)
-
-             ewrite(1,*) "Calculating epsilon BC: ", trim(bc_name), ', ', trim(bc_type)
-
-             surface_field => extract_surface_field(eps, i, "value")
-
-             do j = 1, size(surface_elements)       ! local element list
-                sele = surface_elements(j)          ! global face id
-                ele  = face_ele(eps, sele)
-                allocate(rhs(face_loc(eps, sele) ))
-                allocate(nodes_bdy(face_loc(eps, sele)))
-                nodes_bdy =  face_global_nodes(eps, sele)
-
-                ! Calculate bc values and add to temporary field
-                call eps_bc(ele, sele, kk, positions, rhs)
-                call addto( rhs_field, nodes_bdy, rhs )
-
-                deallocate(rhs); deallocate(nodes_bdy)
-             end do
-             ! Set values in surface field
-             if (associated(surface_field)) then
-                surface_field => extract_surface_field(eps, i, "value")
-                do j = 1, size(surface_node_list)
-                   node = surface_node_list(j)
-                   call set( surface_field, j, rhs_field%val(node) )
-                end do
-             else
-                ewrite(1,*) "No surface fields associated!"
-             end if
-          end if
-       end do
-
-       call deallocate(rhs_field)
-
-    end if
+    call keps_bcs(state, eps)
 
     ewrite_minmax(source)
     ewrite_minmax(absorption)
@@ -519,43 +329,44 @@ end subroutine keps_eps
 
 !----------
 ! eddyvisc calculates the lengthscale, and then the eddy viscosity.
-! Eddy viscosity is added to the velocity viscosity.
+! Eddy viscosity is added to the background viscosity.
 !----------
 
 subroutine keps_eddyvisc(state)
 
     type(state_type), intent(inout)  :: state
-    type(tensor_field), pointer      :: eddy_visc, viscosity, background
+    type(tensor_field), pointer      :: eddy_visc, eddy_diff, viscosity, bg_visc, bg_diff
     type(vector_field), pointer      :: positions
     type(scalar_field), pointer      :: kk, eps, scalarField
     integer                          :: i, stat
 
     ewrite(1,*) "In keps_eddyvisc"
-
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
     positions  => extract_vector_field(state, "Coordinate")
-    eddy_visc  => extract_tensor_field(state, "EddyViscosity")
+    eddy_visc  => extract_tensor_field(state, "KEpsEddyViscosity")
+    eddy_diff  => extract_tensor_field(state, "KEpsEddyDiffusivity")
     viscosity  => extract_tensor_field(state, "Viscosity")
-    background => extract_tensor_field(state, "BackgroundViscosity")
+    bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
+    bg_diff    => extract_tensor_field(state, "BackgroundDiffusivity")
 
     ewrite_minmax(kk)
     ewrite_minmax(eps)
     ewrite_minmax(EV)
 
     ! Calculate new eddy viscosity and lengthscale
-    call set(viscosity, background)
+    call set(viscosity, bg_visc)
 
     do i = 1, nnodes
-
         call set(kk, i, max(kk%val(i), fields_min) )     ! clip k field at fields_min
         call set(eps, i, max(eps%val(i), fields_min) )   ! clip epsilon field at fields_min
 
         ! set lengthscale
         call set(ll, i, min( c_mu * kk%val(i)**1.5 / eps%val(i), ll_max ) )
 
-        ! calculate ratio of fields (a diagnostic)
+        ! calculate ratios of fields (diagnostic)
         call set( tkeovereps, i, kk%val(i) / eps%val(i) )
+        call set( epsovertke, i, 1. / tkeovereps%val(i) )
 
         ! calculate eddy viscosity
         call set( EV, i, C_mu * (kk%val(i))**2. / eps%val(i) )
@@ -568,12 +379,18 @@ subroutine keps_eddyvisc(state)
 
     ewrite(1,*) "Set k-epsilon eddy-diffusivity and eddy-viscosity tensors"
     call zero(eddy_visc)    ! zero it first as we're using an addto below
+    call zero(eddy_diff)
 
+    !tensors are isotropic
     do i = 1, eddy_visc%dim
-        call set(eddy_visc, i, i, EV)   !tensors are isotropic
+        call set(eddy_visc, i, i, EV)
+        ! Using Schmidt number for k (usually 1.0), in absence of a better idea.
+        call set(eddy_diff, i, i, EV, scale=1./sigma_k)
     end do
 
-    viscosity%val = viscosity%val + eddy_visc%val
+    call addto(eddy_visc, bg_visc)
+    call addto(eddy_diff, bg_diff)
+
     ! Check components of viscosity
     do i = 1, viscosity%dim
         ewrite_minmax(viscosity%val(i,i,:))
@@ -591,6 +408,10 @@ subroutine keps_eddyvisc(state)
     scalarField => extract_scalar_field(state, "TKEOverEpsilon", stat)
     if(stat == 0) then
         call set(scalarField, tkeovereps)  
+    end if
+    scalarField => extract_scalar_field(state, "EpsilonOverTKE", stat)
+    if(stat == 0) then
+        call set(scalarField, epsovertke)  
     end if
 
     ewrite_minmax(kk)
@@ -610,6 +431,7 @@ subroutine keps_cleanup()
     call deallocate(tke_old)
     call deallocate(P)
     call deallocate(tkeovereps)
+    call deallocate(epsovertke)
 
 end subroutine keps_cleanup
 
@@ -635,6 +457,7 @@ end subroutine keps_adapt_mesh
 subroutine keps_check_options
 
     character(len=OPTION_PATH_LEN) :: option_path
+    character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
     integer                        :: dimension
 
     ewrite(1,*) "In keps_check_options"
@@ -654,6 +477,13 @@ subroutine keps_check_options
     end if
     if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentDissipation")) then
         FLExit("You need TurbulentDissipation field for k-epsilon")
+    end if
+    ! Check that TurbulentKineticEnergy and TurbulentDissipation fields are on the same mesh
+    call get_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic/mesh", kmsh)
+    call get_option(trim(option_path)//"/scalar_field::TurbulentDissipation/prognostic/mesh", emsh)
+    call get_option("/material_phase::Fluid/vector_field::Velocity/prognostic/mesh", vmsh)
+    if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
+        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
     end if
     ! check that diffusivity is on for the two turbulent fields, and diagnostic
     if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/&
@@ -723,8 +553,12 @@ subroutine keps_check_options
     end if
     ! these fields allow the new diffusivities/viscosities to be used in other calculations
     if (.not.have_option(trim(option_path)//"/&
-                          &tensor_field::EddyViscosity")) then
-        FLExit("You need EddyViscosity field for k-epsilon")
+                          &tensor_field::KEpsEddyViscosity")) then
+        FLExit("You need KEpsEddyViscosity field for k-epsilon")
+    end if
+    if (.not.have_option(trim(option_path)//"/&
+                          &tensor_field::KEpsEddyDiffusivity")) then
+        FLExit("You need KEpsEddyDiffusivity field for k-epsilon")
     end if
     ! check there's a viscosity somewhere
     if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/&
@@ -764,112 +598,190 @@ subroutine keps_allocate_fields(state)
     call allocate(tke_old,    vectorField%mesh, "Old_TKE")
     call allocate(P,          vectorField%mesh, "Production")
     call allocate(tkeovereps, vectorField%mesh, "TKEoverEpsilon")
+    call allocate(epsovertke, vectorField%mesh, "EpsilonOverTKE")
 
 end subroutine keps_allocate_fields
 
 !--------------------------------------------------------------------------------!
-! Only used if bc type = k_epsilon for k field.                                  !
-! Applies a Dirichlet BC using wall stress (see for example Wilcox (1994)).      !
+! This gets and applies locally defined boundary conditions (wall functions)     !
 !--------------------------------------------------------------------------------!
 
-subroutine tke_bc(kk, ele, sele, positions, shear_stress, rhs)
+subroutine keps_bcs(state, field)
 
-    type(scalar_field), intent(in)                    :: kk, shear_stress
-    type(vector_field), pointer, intent(in)           :: positions
-    integer, intent(in)                               :: ele, sele
-    real, dimension(face_loc(kk,sele)), intent(inout) :: rhs
-    type(element_type), pointer                       :: shape_kk, fshape_kk
-    integer                                           :: snloc, sngi
-    real, dimension(face_ngi(positions,sele))         :: detwei_bdy, fields_sngi
+    type(state_type)                        :: state
+    type(scalar_field), pointer, intent(in) :: field   ! k or epsilon
+    type(scalar_field), pointer             :: kk, surface_field   ! always need kk
+    type(vector_field), pointer             :: positions
+    type(scalar_field)                      :: rhs_field
+    integer                                 :: i, ele, sele, bc, node
+    integer, dimension(:), pointer          :: surface_elements, surface_node_list
+    character(len=FIELD_NAME_LEN)           :: bc_type, bc_name
+    integer, allocatable, dimension(:)      :: nodes_bdy
+    real, dimension(:), allocatable         :: rhs
 
-    ! Get ids, lists and shape functions
-    sngi      =  face_ngi(kk, sele)    ! no. of gauss points in surface element
-    snloc     =  face_loc(kk, sele)    ! no. of nodes on surface element
-    shape_kk  => ele_shape(kk, ele)    ! shape functions in volume element
-    fshape_kk => face_shape(kk, sele)  ! shape functions in surface element
+    kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
+    positions => extract_vector_field(state, "Coordinate")
 
-    ! Get transformed element quadrature weights over surface
-    call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy )
+    do bc = 1, get_boundary_condition_count(field)
 
-    ! get scalar field values at quadrature points
-    fields_sngi = 1./C_mu**0.5 * visc * face_val_at_quad(shear_stress, sele)
+       call get_boundary_condition(field, bc, name=bc_name, type=bc_type, &
+            surface_node_list=surface_node_list, surface_element_list=surface_elements)
 
-    ! Perform rhs surface integral
-    rhs = shape_rhs( fshape_kk, detwei_bdy * fields_sngi )
+       if (bc_type == 'k_epsilon') then
+          ewrite(1,*) "Calculating field BC: ", trim(field%name), &
+          trim(bc_name), ', ', trim(bc_type)
 
-end subroutine tke_bc
+          call allocate(rhs_field, field%mesh, name="RHS")
+          call zero(rhs_field)
 
-!-----------------------------------------------------------------------------------!
-! Evaluate eps = f(d(k^.5)/dn) at the Gauss quadrature points on the surface.       !
-! dk/dn can be written as integral dotted with normal.                              !
-! Then set integral (surface_shape_fns *(eps - 2*EV*(d(k^.5)/dn) ) ) = 0.           !
-! Loop over surface elements to construct a surface mass matrix.                    !
-! Lump the mass matrix to diagonalise it, then simply solve the system for epsilon. !
-!-----------------------------------------------------------------------------------!
+          ! Surface element loop
+          ewrite(1,*) "Entering field bc loop"
+          do i = 1, size(surface_elements)
+             sele = surface_elements(i)
+             ele  = face_ele(field, sele)
+             allocate(rhs(face_loc(field, sele) ))
+             allocate(nodes_bdy(face_loc(field, sele)))
+             nodes_bdy =  face_global_nodes(field, sele)
 
-subroutine eps_bc(ele, sele, kk, positions, rhs)
+             ! Calculate wall function
+             call keps_wall_function(field, kk, ele, sele, positions, rhs)
+             call addto( rhs_field, nodes_bdy, rhs )
 
-    type(scalar_field), pointer, intent(in)                          :: kk
-    type(vector_field), intent(in)                                   :: positions
-    integer, intent(in)                                              :: ele, sele
-    real, dimension(face_loc(kk,sele)), intent(inout)                :: rhs
-    type(element_type), pointer                                      :: shape_kk, fshape_kk
-    type(element_type)                                               :: augmented_shape
-    integer                                                          :: i, j, snloc, sngi
-    real, dimension(ele_ngi(kk,ele))                                 :: detwei
-    real, dimension(positions%dim,positions%dim,ele_ngi(kk,sele))    :: invJ
-    real, dimension(positions%dim,positions%dim,face_ngi(kk,sele))   :: invJ_face
-    real, dimension(ele_loc(kk,ele),ele_ngi(kk,ele),positions%dim)   :: dshape_kk
-    real, dimension(ele_loc(kk,ele),face_ngi(kk,sele),positions%dim) :: fdshape_kk
-    real, dimension(positions%dim,face_ngi(kk,sele))                 :: normal_bdy
-    real, dimension(face_loc(kk,sele),face_ngi(kk,sele))             :: dkdn
-    real, dimension(face_ngi(kk,sele))  :: detwei_bdy, fields_sngi, dkdn_contracted
+             deallocate(rhs); deallocate(nodes_bdy)
+          end do
 
-    ! Get ids, lists and shape functions
-    sngi      =  face_ngi(kk, sele)    ! no. of gauss points in surface element
-    snloc     =  face_loc(kk, sele)    ! no. of nodes on surface element
-    shape_kk  => ele_shape(kk, ele)    ! shape functions in volume element
-    fshape_kk => face_shape(kk, sele)  ! shape functions in surface element
+          ! Set values in surface field
+          ewrite(1,*) "Applying BC values to surface field"
+          if (associated(surface_field)) then
+             surface_field => extract_surface_field(field, bc, "value")
+             do i = 1, size(surface_node_list)
+                node = surface_node_list(i)
+                call set( surface_field, i, rhs_field%val(node) )
+             end do
+          else
+             ewrite(1,*) "No surface fields associated!"
+          end if
+          call deallocate(rhs_field)
 
-    ! Get dshape_kk and element quadrature weights: ngi
-    call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
+       end if
+    end do
 
-    ! Need inverse Jacobian for augmented shape functions
-    call compute_inverse_jacobian( ele_val(positions, ele), shape_kk, invJ )
-    invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+end subroutine keps_bcs
 
-    ! Transform element shape functions to face
-    augmented_shape = make_element_shape(shape_kk%loc, shape_kk%dim, &
-                      shape_kk%degree, shape_kk%quadrature, quad_s=fshape_kk%quadrature )
+!--------------------------------------------------------------------------------!
+! Only used if bc type = k_epsilon for field.                                    !
+!--------------------------------------------------------------------------------!
 
-    ! Get dshape on face. nloc x sngi x dim
-    fdshape_kk = eval_volume_dshape_at_face_quad( augmented_shape, &
-                            local_face_number(kk, sele), invJ_face )
+subroutine keps_wall_function(field, kk, ele, sele, positions, rhs)
 
-    call deallocate(augmented_shape)
+    type(scalar_field), pointer, intent(in)              :: field, kk
+    type(vector_field), pointer, intent(in)              :: positions
+    integer, intent(in)                                  :: ele, sele
+    real, dimension(face_loc(field,sele)), intent(inout) :: rhs
+    type(element_type), pointer                          :: shape_field, fshape_field
+    type(element_type)                                   :: augmented_shape
+    integer                                              :: i, j, snloc, sngi
+    real                                                 :: kappa, h
+    real, dimension(1,1)                                 :: hb
+    real, dimension(ele_ngi(field,ele))                  :: detwei
+    real, dimension(face_ngi(field,sele))                :: detwei_bdy,fields_sngi,gradn_c
+    real, dimension(positions%dim,1)                     :: n
+    real, dimension(positions%dim,positions%dim)         :: G
+    real, dimension(positions%dim,positions%dim,ele_ngi(field,sele))       :: invJ
+    real, dimension(positions%dim,positions%dim,face_ngi(field,sele))      :: invJ_face
+    real, dimension(ele_loc(field,ele),ele_ngi(field,ele),positions%dim)   :: dshape_field
+    real, dimension(ele_loc(field,ele),face_ngi(field,sele),positions%dim) :: fdshape_field
+    real, dimension(positions%dim,face_ngi(field,sele))                    :: normal_bdy
+    real, dimension(face_loc(field,sele),face_ngi(field,sele))             :: gradn
+
 
     ! Get boundary normal and transformed element quadrature weights over surface
     call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
 
-    ! dot normal with fdshape_kk to get shape fn gradient w.r.t. surface normal
+    ! Get ids, lists and shape functions
+    sngi      =  face_ngi(field, sele)    ! no. of gauss points in surface element
+    snloc     =  face_loc(field, sele)    ! no. of nodes on surface element
+    shape_field  => ele_shape(field, ele)    ! shape functions in volume element
+    fshape_field => face_shape(field, sele)  ! shape functions in surface element
+
+    ! Get dshape_field and element quadrature weights: ngi
+    call transform_to_physical( positions, ele, shape_field, dshape=dshape_field, detwei=detwei )
+
+    call compute_inverse_jacobian( ele_val(positions, ele), shape_field, invJ )
+    invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+
+    ! Transform element shape functions to face
+    augmented_shape = make_element_shape(shape_field%loc, shape_field%dim, &
+                    shape_field%degree, shape_field%quadrature, quad_s=fshape_field%quadrature )
+
+    fdshape_field = eval_volume_dshape_at_face_quad( augmented_shape, &
+                           local_face_number(field, sele), invJ_face )
+
+    call deallocate(augmented_shape)
+
+    ! dot normal with fdshape_field to get shape fn gradient w.r.t. surface normal
     do i = 1, snloc
-        do j = 1, sngi
-            dkdn(i,j) = dot_product( normal_bdy(:,j), fdshape_kk(i,j,:) )
-        end do
+       do j = 1, sngi
+          gradn(i,j) = dot_product( normal_bdy(:,j), fdshape_field(i,j,:) )
+       end do
     end do
 
-    do j = 1, sngi      ! Sum dshape gradient contributions over snloc
-        dkdn_contracted(j) = sum(dkdn(:,j), 1)
-        dkdn_contracted(j) = ( dkdn_contracted(j) ) ** 2.0
-    end do
+    ! low Re wall functions for k and epsilon: see e.g. Wilcox (1994)
+    if(wall_fns=="low_Re") then
 
-    ! get scalar field values at quadrature points: matmul( 1*snloc, snloc*sngi )
-    fields_sngi = 2.0 * face_val_at_quad(kk, sele) * visc
+       if (field%name=="TurbulentKineticEnergy") then
+          ! Set Dirichlet here: what value? Must be tuned to Reynolds number.
+          ewrite(1,*) "Low-Reynolds number k bc: set to zero for now."
+          fields_sngi = 0.0
 
-    ! Perform rhs surface integral
-    rhs = shape_rhs( fshape_kk, detwei_bdy * dkdn_contracted * fields_sngi )
+          ! Perform rhs surface integration
+          rhs = shape_rhs( fshape_field, detwei_bdy * fields_sngi )
 
-end subroutine eps_bc
+       else if (field%name=="TurbulentDissipation") then
+          ! Evaluate eps = f(d(k^.5)/dn) at the Gauss quadrature points on the surface.
+          ! dk/dn can be written as integral dotted with normal.
+          do j = 1, sngi      ! Contract dshape gradient over snloc and square
+             gradn_c(j) = sum(gradn(:,j), 1)
+             gradn_c(j) = ( gradn_c(j) ) ** 2.0
+          end do
+
+          ! get k*viscosity at quadrature points
+          fields_sngi = 2.0 * face_val_at_quad(kk, sele) * visc
+
+          ! Perform rhs surface integration
+          rhs = shape_rhs( fshape_field, detwei_bdy * gradn_c * fields_sngi )
+       end if
+
+    ! high Re shear-stress wall functions for k and epsilon: see e.g. Wilcox (1994)
+    else
+       ! Evaluate stress = grad U.n at the Gauss quadrature points on the surface.
+       do j = 1, sngi      ! Contract dshape gradient over snloc
+          gradn_c(j) = sum(gradn(:,j), 1)
+       end do
+
+       if (field%name=="TurbulentKineticEnergy") then
+          ! calculate boundary value
+          fields_sngi = 1./C_mu**0.5 * visc * gradn_c
+
+       else if (field%name=="TurbulentDissipation") then
+          ! calculate wall-normal element size
+          G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
+          n(:,1) = normal_bdy(:,1)
+          hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
+          h  = hb(1,1)
+
+          ! Von Karman's constant
+          kappa = 0.41
+
+          ! get boundary condition values at quadrature points
+          fields_sngi = (visc * gradn_c)**1.5 / kappa / h
+       end if
+
+       ! Perform rhs surface integration
+       rhs = shape_rhs( fshape_field, detwei_bdy * fields_sngi )
+    end if
+
+end subroutine keps_wall_function
 
 !----------------------------------------------------------------------------------!
 ! Use the lengthscale limiter on surfaces (see Yap (1987), Craft & Launder(1996)). !
@@ -939,8 +851,6 @@ function get_normal_element_size(ele, sele, positions, kk) result (h)
     type(vector_field)                     :: positions
     type(scalar_field)                     :: kk
     integer                                :: ele, sele
-    integer                                :: ndim, snloc
-    integer, dimension(face_loc(kk, sele)) :: nodes_bdy
     real                                   :: h
     real, dimension(1,1)                   :: hb
     real, dimension(positions%dim,1)       :: n
@@ -949,10 +859,6 @@ function get_normal_element_size(ele, sele, positions, kk) result (h)
     real, dimension(positions%dim, positions%dim, ele_ngi(kk, sele)) :: invJ
     real, dimension(positions%dim, face_ngi(kk, sele))               :: normal_bdy
     real, dimension(face_ngi(kk, sele))                              :: detwei_bdy
-
-    ndim      = positions%dim
-    snloc     = face_loc(kk, sele)
-    nodes_bdy = face_global_nodes(kk, sele)
 
     call compute_inverse_jacobian( ele_val(positions, ele), ele_shape(positions, ele), invJ )
     call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
@@ -976,9 +882,8 @@ function double_dot_product(du_t, nu)
     real, dimension(:,:), intent(in)           :: nu     ! nonlinear velocity
     real, dimension( size(du_t,2) )            :: double_dot_product
     real, dimension(size(du_t,3),size(du_t,3)) :: S, T
-    integer                                    :: dim, ngi, nloc, gi, i, j
+    integer                                    :: dim, ngi, gi, i, j
 
-    nloc = size(du_t,1)
     ngi  = size(du_t,2)
     dim  = size(du_t,3)
 
