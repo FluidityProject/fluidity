@@ -10,11 +10,11 @@ module hadapt_extrude_radially
   use quadrature
   use global_parameters
   use sparse_tools
-  use hadapt_advancing_front
-  use hadapt_metric_based_extrude
   use vector_tools
   use vtk_interfaces
   use linked_lists
+  use hadapt_combine_meshes
+  use halos
   implicit none
 
   private
@@ -400,6 +400,5 @@ module hadapt_extrude_radially
       end function get_delta_r
       
   end subroutine compute_r_nodes
-
     
 end module hadapt_extrude_radially

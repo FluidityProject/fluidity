@@ -1064,6 +1064,26 @@ Defaults to 1 iteration if unselected.</a:documentation>
                   <empty/>
                 </element>
               </optional>
+              <optional>
+                <element name="initial_extrusion_sizing_function">
+                  <a:documentation>Before a step of vertical adaptivity takes place the metric
+must be interpolated from the full mesh to an extruded mesh.
+The parameters defining this extrusion default to those given
+under geometry above however it is also possible to give new
+parameters here (e.g. specify a finer mesh to improve the 
+interpolation).
+
+Constant or function to specify the thickness of the
+layers. The function is a function of all coordinates
+(so in 2+1D: x,y and z) to specify a layer depth that
+varies both in the horizontal as in the vertical.
+
+Note that if you are performing adapt iterations then
+these extrusion parameters are only used on the first iteration.
+Successive iterations use the adapted mesh from the previous iteration.</a:documentation>
+                  <ref name="input_choice_real"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>

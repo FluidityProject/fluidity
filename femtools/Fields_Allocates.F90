@@ -370,11 +370,12 @@ contains
 
   end subroutine allocate_vector_field
 
-  subroutine allocate_tensor_field(field, mesh, name, field_type)
+  subroutine allocate_tensor_field(field, mesh, name, field_type, dim)
     type(tensor_field), intent(inout) :: field
     type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in), optional :: name
     integer, intent(in), optional :: field_type
+    integer, intent(in), optional :: dim
     integer :: lfield_type
 
     if (present(field_type)) then
@@ -383,7 +384,11 @@ contains
       lfield_type = FIELD_TYPE_NORMAL
     end if
         
-    field%dim=mesh_dim(mesh)
+    if(present(dim)) then
+      field%dim = dim
+    else
+      field%dim=mesh_dim(mesh)
+    end if
     field%option_path=empty_path
 
     field%mesh=mesh

@@ -346,8 +346,8 @@ module interpolation_module
     integer, dimension(:), pointer :: node_list
     integer :: i, j
     real :: val_s
-    real, dimension(mesh_dim(old_state%meshes(1)%ptr)) :: val_v
-    real, dimension(mesh_dim(old_state%meshes(1)%ptr), mesh_dim(old_state%meshes(1)%ptr)) :: val_t
+    real, dimension(:), allocatable :: val_v
+    real, dimension(:,:), allocatable :: val_t
     real, dimension(:), allocatable :: local_coord, shape_fns
 
     type(scalar_field), dimension(:), allocatable, target :: old_fields_s
@@ -459,8 +459,15 @@ module interpolation_module
     old_position => extract_vector_field(old_state, "Coordinate")
     new_position=get_coordinate_field(new_state, new_mesh)
 
-    allocate(local_coord(mesh_dim(new_position) + 1))
+    allocate(local_coord(old_position%dim + 1))
     allocate(shape_fns(ele_loc(old_mesh, 1)))
+
+    if(field_count_v>0) then
+      allocate(val_v(old_state%vector_fields(1)%ptr%dim))
+    end if
+    if(field_count_t>0) then
+      allocate(val_t(old_state%tensor_fields(1)%ptr%dim, old_state%tensor_fields(1)%ptr%dim))
+    end if
 
     if (present(map)) then
       assert(node_count(new_mesh) == size(map))

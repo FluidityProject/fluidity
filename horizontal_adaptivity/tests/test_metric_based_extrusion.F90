@@ -39,7 +39,7 @@ subroutine test_metric_based_extrusion
   call set_from_function(metric, metric_func, old_mesh)
 
   ! OK. Now let's adapt?
-  call metric_based_extrude(z_mesh, old_mesh, metric, adapted_mesh)
+  call metric_based_extrude(z_mesh, adapted_mesh, metric, old_mesh)
   call vtk_write_fields("data/metric_based_extrusion", 0, adapted_mesh, adapted_mesh%mesh)
 
   ! .. and check some statistics

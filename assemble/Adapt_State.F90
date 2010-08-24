@@ -1323,33 +1323,23 @@ contains
 
     logical :: vertically_inhomogenous_adaptivity
 
-    type(vector_field) :: background_positions, full_metric_positions
-    type(tensor_field) :: background_full_metric, gradation_full_metric
+    type(vector_field) :: full_metric_positions
+    type(tensor_field) :: gradation_full_metric
 
     logical :: split_gradation
-    integer :: adapt_iterations, it
     
-    type(scalar_field) :: edge_lengths
-    integer, save :: adaptcnt = 0
-    character(len=20) :: buf
-
     vertically_inhomogenous_adaptivity = have_option( &
      &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/inhomogenous_vertical_resolution")
-    split_gradation = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation")
-
+     
     if (vertically_inhomogenous_adaptivity) then
-       ! first we create a background mesh: this is an extrusion of 
-       ! the new horizontal mesh using the layer depths specified
-       ! for the initial extruded mesh
-       call extrude(new_positions, full_metric%mesh%option_path, &
-          background_positions)
-       
        ! save the positions that the full_metric is on in case we're doing iterations of the 1d
        ! adaptivity process
        full_metric_positions = extruded_positions
        call incref(full_metric_positions)
+       call deallocate(extruded_positions) ! deallocate these to make space for the new extruded positions
        
+       split_gradation = have_option( &
+       &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity/split_gradation")
        if(split_gradation) then
           ! if we're applying gradation then apply it now to the full metric
           ! to see if this helps the linear interpolation pick things up
@@ -1362,51 +1352,9 @@ contains
           call incref(gradation_full_metric)
        end if
 
-       call get_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity"//&
-                       "/inhomogenous_vertical_resolution/adapt_iterations", &
-                       adapt_iterations, default=1)
-       
-       do it = 1, adapt_iterations
-       
-          ! now map the old full metric on this background mesh
-          call allocate(background_full_metric, &
-              background_positions%mesh, name="BackgroundFullMetric")
-          ! get old extruded positions (takes reference)
-          ! temp. fix: old and new metric need same name for linear_interpolation -ask Patrick
-          background_full_metric%name=gradation_full_metric%name
-          call linear_interpolation( gradation_full_metric, full_metric_positions, &
-              & background_full_metric, background_positions)
-          background_full_metric%name="BackgroundFullMetric"
-          ! we can do away with the old positions now
-          call deallocate(extruded_positions)
-          
-          if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
-            write(buf, '(i0)') it
-            call allocate(edge_lengths, background_full_metric%mesh, "EdgeLengths")
-            
-            call get_edge_lengths(background_full_metric, edge_lengths)
-            call vtk_write_fields('background_vertical_metric_'//trim(buf), adaptcnt, &
-              background_positions, background_positions%mesh, &
-              sfields=(/ edge_lengths /), tfields=(/ background_full_metric /) )
-
-            call deallocate(edge_lengths)
-          end if
-          
-          ! extrude with adaptivity, computes new extruded_positions
-          call metric_based_extrude(new_positions, background_positions, &
-              background_full_metric, extruded_positions, it)
-          ! and we're done with the background stuff
-          call deallocate(background_full_metric)
-          call deallocate(background_positions)
-          
-          ! save this for the next iteration
-          background_positions = extruded_positions
-          call incref(background_positions)
-       
-       end do
-       
-       ! we're done iterating so let's lose this reference to extruded positions
-       call deallocate(background_positions)
+       ! extrude with adaptivity, computes new extruded_positions
+       call metric_based_extrude(new_positions, extruded_positions, &
+                                gradation_full_metric, full_metric_positions)
        
        ! insert the new positions in state:
        ! give it a generic temporary name, so that it'll be picked up and
@@ -1415,13 +1363,10 @@ contains
        call insert(states, extruded_positions, name="AdaptedExtrudedPositions")
        ! and drop our reference:
        call deallocate(extruded_positions)
+       ! and everything to do with the old metric and mesh too:
        call deallocate(full_metric_positions)
        call deallocate(gradation_full_metric)
        
-       if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
-         adaptcnt=adaptcnt+1
-       end if
-          
     end if
   end subroutine perform_vertically_inhomogenous_step
   

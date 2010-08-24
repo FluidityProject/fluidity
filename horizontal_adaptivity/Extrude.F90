@@ -10,15 +10,18 @@ module hadapt_extrude
   use quadrature
   use global_parameters
   use sparse_tools
-  use hadapt_advancing_front
-  use hadapt_metric_based_extrude
   use vtk_interfaces
   use linked_lists
+  use hadapt_combine_meshes
   implicit none
 
   private
   
-  public :: extrude, compute_z_nodes, hadapt_extrude_check_options
+  public :: extrude, compute_z_nodes, hadapt_extrude_check_options, get_extrusion_options, skip_column_extrude
+
+  interface compute_z_nodes
+    module procedure compute_z_nodes_wrapper, compute_z_nodes_sizing
+  end interface compute_z_nodes
 
   contains
 
@@ -40,19 +43,15 @@ module hadapt_extrude
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     logical:: sizing_is_constant, depth_is_constant
     real:: constant_sizing, depth, min_bottom_layer_frac
-    integer:: stat, h_dim, column, quadrature_degree
+    integer:: h_dim, column, quadrature_degree
     
     real, dimension(1) :: tmp_depth
     real, dimension(mesh_dim(h_mesh), 1) :: tmp_pos
     
-    integer :: n_regions, r, rs
-    integer, dimension(2) :: shape_option
+    integer :: n_regions, r
     integer, dimension(:), allocatable :: region_ids
     logical :: apply_region_ids
-    integer, dimension(:), pointer :: eles
     integer, dimension(node_count(h_mesh)) :: visited
-    logical :: node_in_region
-    
     logical, dimension(node_count(h_mesh)) :: column_visited
 
     !! Checking linearity of h_mesh.
@@ -81,92 +80,23 @@ module hadapt_extrude
     
     do r = 0, n_regions-1
     
-      if(apply_region_ids) then
-        shape_option=option_shape(trim(option_path)//"/from_mesh/extrude/regions["//int2str(r)//"]/region_ids")
-        allocate(region_ids(1:shape_option(1)))
-        call get_option(trim(option_path)//"/from_mesh/extrude/regions["//int2str(r)//"]/region_ids", region_ids)
-      end if
-
-      ! get the extrusion options
-      call get_option(trim(option_path)//&
-                      '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/bottom_depth/constant', &
-                      depth, stat=stat)
-      if (stat==0) then
-        depth_is_constant = .true.
-      else
-        depth_is_constant = .false.
-        call get_option(trim(option_path)//&
-                        '/from_mesh/extrude/regions['//int2str(r)//&
-                        ']/bottom_depth/python', &
-                         depth_function, stat=stat)
-        if (stat /= 0) then
-          FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
-        end if
-      end if
+      call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
+                                 depth_is_constant, depth, depth_function, &
+                                 sizing_is_constant, constant_sizing, sizing_function, &
+                                 min_bottom_layer_frac)
       
-      call get_option(trim(option_path)//&
-                      '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/sizing_function/constant', &
-                      constant_sizing, stat=stat)
-      if (stat==0) then
-        sizing_is_constant=.true.
-      else
-        sizing_is_constant=.false.
-        call get_option(trim(option_path)//&
-                        '/from_mesh/extrude/regions['//int2str(r)//&
-                        ']/sizing_function/python', &
-                        sizing_function, stat=stat)
-        if (stat/=0) then
-          FLAbort("Unknown way of specifying sizing function in mesh extrusion")
-        end if       
-      end if
-
-    
-      call get_option(trim(option_path)//&
-                      '/from_mesh/extrude/regions['//int2str(r)//&
-                      ']/minimum_bottom_layer_fraction', &
-                      min_bottom_layer_frac, stat=stat)
-      if (stat/=0) then
-         min_bottom_layer_frac=1e-3
-      end if       
-        
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
       
-        if (.not. node_owned(h_mesh, column)) cycle
-
-        ! need to work out here if this column is in one of the current region ids!
-        ! this is a bit arbitrary since nodes belong to multiple regions... therefore
-        ! the extrusion depth had better be continuous across region id boundaries!
-        if(apply_region_ids) then
-          if(column_visited(column)) cycle
-          eles => node_neigh(h_mesh, column)
-          node_in_region = .false.
-          region_id_loop: do rs=1, size(region_ids)
-            if(any(region_ids(rs)==h_mesh%mesh%region_ids(eles))) then
-              node_in_region = .true.
-              exit region_id_loop
-            end if
-          end do region_id_loop
-          if(.not. node_in_region) cycle
-          column_visited(column) = .true.
-          visited(column) = visited(column) + 1
-        end if
+        ! decide if this column needs visiting...
+        if(skip_column_extrude(h_mesh%mesh, column, &
+                              apply_region_ids, column_visited(column), region_ids, &
+                              visited_count = visited(column))) cycle
         
-        if(.not.depth_is_constant) then
-          tmp_pos(:,1) = node_val(h_mesh, column)
-          call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
-          depth = tmp_depth(1)
-        end if
-        
-        if (sizing_is_constant) then
-          call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
-            min_bottom_layer_frac, sizing=constant_sizing)
-        else
-          call compute_z_nodes(z_meshes(column), depth, node_val(h_mesh, column), &
-            min_bottom_layer_frac, sizing_function=sizing_function)
-        end if
+        call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), &
+                            min_bottom_layer_frac, &
+                            depth_is_constant, depth, depth_function, &
+                            sizing_is_constant, constant_sizing, sizing_function)
       end do
       
       if(apply_region_ids) deallocate(region_ids)
@@ -202,12 +132,113 @@ module hadapt_extrude
     end do
     call deallocate(full_shape)
     
-    !call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh)
-    !call vtk_write_surface_mesh("surface_mesh", 1, out_mesh)
-
   end subroutine extrude
 
-  subroutine compute_z_nodes(z_mesh, depth, xy, min_bottom_layer_frac, sizing, sizing_function)
+  subroutine get_extrusion_options(option_path, region_index, apply_region_ids, region_ids, &
+                                   depth_is_constant, depth, depth_function, &
+                                   sizing_is_constant, constant_sizing, sizing_function, &
+                                   min_bottom_layer_frac)
+    character(len=*), intent(in) :: option_path
+    integer, intent(in) :: region_index
+    logical, intent(in) :: apply_region_ids
+    
+    integer, dimension(:), allocatable :: region_ids
+    
+    logical, intent(out) :: depth_is_constant
+    real, intent(out) :: depth
+    character(len=PYTHON_FUNC_LEN), intent(out) :: depth_function
+    
+    logical, intent(out) :: sizing_is_constant
+    real, intent(out) :: constant_sizing
+    character(len=PYTHON_FUNC_LEN), intent(out) :: sizing_function
+    
+    real, intent(out) :: min_bottom_layer_frac
+    
+    integer, dimension(2) :: shape_option
+    integer :: stat
+  
+    if(apply_region_ids) then
+      shape_option=option_shape(trim(option_path)//"/from_mesh/extrude/regions["//int2str(region_index)//"]/region_ids")
+      allocate(region_ids(1:shape_option(1)))
+      call get_option(trim(option_path)//"/from_mesh/extrude/regions["//int2str(region_index)//"]/region_ids", region_ids)
+    end if
+
+    ! get the extrusion options
+    call get_option(trim(option_path)//&
+                    '/from_mesh/extrude/regions['//int2str(region_index)//&
+                    ']/bottom_depth/constant', &
+                    depth, stat=stat)
+    if (stat==0) then
+      depth_is_constant = .true.
+    else
+      depth_is_constant = .false.
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(region_index)//&
+                      ']/bottom_depth/python', &
+                        depth_function, stat=stat)
+      if (stat /= 0) then
+        FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
+      end if
+    end if
+    
+    call get_option(trim(option_path)//&
+                    '/from_mesh/extrude/regions['//int2str(region_index)//&
+                    ']/sizing_function/constant', &
+                    constant_sizing, stat=stat)
+    if (stat==0) then
+      sizing_is_constant=.true.
+    else
+      sizing_is_constant=.false.
+      call get_option(trim(option_path)//&
+                      '/from_mesh/extrude/regions['//int2str(region_index)//&
+                      ']/sizing_function/python', &
+                      sizing_function, stat=stat)
+      if (stat/=0) then
+        FLAbort("Unknown way of specifying sizing function in mesh extrusion")
+      end if       
+    end if
+
+  
+    call get_option(trim(option_path)//&
+                    '/from_mesh/extrude/regions['//int2str(region_index)//&
+                    ']/minimum_bottom_layer_fraction', &
+                    min_bottom_layer_frac, default=1.e-3)
+  
+  end subroutine get_extrusion_options
+
+  subroutine compute_z_nodes_wrapper(z_mesh, xy, min_bottom_layer_frac, &
+                                     depth_is_constant, depth, depth_function, &
+                                     sizing_is_constant, constant_sizing, sizing_function)
+    type(vector_field), intent(out) :: z_mesh
+    real, dimension(:), intent(in) :: xy
+    real, intent(in) :: min_bottom_layer_frac
+    logical, intent(in) :: depth_is_constant, sizing_is_constant
+    real, intent(in) :: depth, constant_sizing
+    character(len=*), intent(in) :: depth_function, sizing_function
+    
+    real, dimension(1) :: tmp_depth
+    real, dimension(size(xy), 1) :: tmp_pos
+    real :: ldepth
+    
+    if(depth_is_constant) then
+      ldepth = depth
+    else 
+      tmp_pos(:,1) = xy
+      call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+      ldepth = tmp_depth(1)
+    end if
+    
+    if (sizing_is_constant) then
+      call compute_z_nodes(z_mesh, ldepth, xy, &
+        min_bottom_layer_frac, sizing=constant_sizing)
+    else
+      call compute_z_nodes(z_mesh, ldepth, xy, &
+        min_bottom_layer_frac, sizing_function=sizing_function)
+    end if
+    
+  end subroutine compute_z_nodes_wrapper
+
+  subroutine compute_z_nodes_sizing(z_mesh, depth, xy, min_bottom_layer_frac, sizing, sizing_function)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: z_mesh
     real, intent(in):: depth
@@ -321,7 +352,56 @@ module hadapt_extrude
         
       end function get_delta_h
       
-  end subroutine compute_z_nodes
+  end subroutine compute_z_nodes_sizing
+
+  logical function skip_column_extrude(horizontal_mesh, column, &
+                                       apply_region_ids, column_visited, region_ids, &
+                                       visited_count)
+    !!< this function decides if a column need extruding or not
+    type(mesh_type), intent(in) :: horizontal_mesh
+    integer, intent(in) :: column
+    logical, intent(in) :: apply_region_ids
+    logical, intent(inout) :: column_visited
+    integer, dimension(:), intent(in) :: region_ids
+    integer, intent(inout), optional :: visited_count
+    
+    integer, dimension(:), pointer :: eles
+    logical :: node_in_region
+    integer :: rs
+    
+    skip_column_extrude = .false.
+    if(.not.node_owned(horizontal_mesh, column)) then
+      skip_column_extrude = .true.
+      return
+    end if
+    
+    ! need to work out here if this column is in one of the current region ids!
+    ! this is a bit arbitrary since nodes belong to multiple regions... therefore
+    ! the extrusion depth had better be continuous across region id boundaries!
+    if(apply_region_ids) then
+      if(column_visited) then
+        skip_column_extrude = .true.
+        return
+      end if
+      eles => node_neigh(horizontal_mesh, column)
+      node_in_region = .false.
+      region_id_loop: do rs = 1, size(region_ids)
+        if(any(region_ids(rs)==horizontal_mesh%region_ids(eles))) then
+          node_in_region = .true.
+          exit region_id_loop
+        end if
+      end do region_id_loop
+      if(.not.node_in_region) then
+        skip_column_extrude = .true.
+        return
+      end if
+      column_visited=.true.
+      if(present(visited_count)) then
+        visited_count = visited_count + 1
+      end if
+    end if
+  
+  end function skip_column_extrude
 
   ! hadapt_extrude options checking
   subroutine hadapt_extrude_check_options
