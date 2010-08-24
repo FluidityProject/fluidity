@@ -618,7 +618,7 @@ subroutine keps_bcs(state, field)
     kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
     positions => extract_vector_field(state, "Coordinate")
     field_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon/scalar_field::"&
-                  //(trim(field%name))//"/prognostic/boundary_conditions/"
+                  //(trim(field%name))//"/prognostic/boundary_conditions"
 
     do bc = 1, get_boundary_condition_count(field)
 
