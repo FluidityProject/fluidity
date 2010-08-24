@@ -58,7 +58,7 @@ implicit none
   real, save                          :: fields_min = 1.e-20
   integer, save                       :: nnodes
   logical, save                       :: limit_length, do_k_bc, do_eps_bc
-  character(len=FIELD_NAME_LEN), save :: src_abs, wall_fns
+  character(len=FIELD_NAME_LEN), save :: src_abs
 
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_adapt_mesh, keps_check_options
 
@@ -97,9 +97,6 @@ subroutine keps_init(state)
 
     ! Are source and absorption terms implicit/explicit?
     call get_option(trim(keps_path)//'/source_absorption', src_abs)
-
-    ! Do we have high- or low-Reynolds number options for wall functions?
-    call get_option(trim(keps_path)//'/wall_functions', wall_fns)
 
     ! Do we have the limit_lengthscale option?
     limit_length = &
@@ -256,9 +253,7 @@ subroutine keps_tke(state)
     end do
 
     ! Add special boundary conditions to k field, if selected.
-    if(wall_fns=="high_Re") then
-       call keps_bcs(state, kk)
-    end if
+    call keps_bcs(state, kk)
 
     ewrite_minmax(tke_old)
     ewrite_minmax(P)
@@ -615,12 +610,17 @@ subroutine keps_bcs(state, field)
     type(scalar_field)                      :: rhs_field
     integer                                 :: i, ele, sele, bc, node
     integer, dimension(:), pointer          :: surface_elements, surface_node_list
-    character(len=FIELD_NAME_LEN)           :: bc_type, bc_name
+    character(len=FIELD_NAME_LEN)           :: bc_type, bc_name, wall_fns
+    character(len=OPTION_PATH_LEN)          :: field_path
     integer, allocatable, dimension(:)      :: nodes_bdy
     real, dimension(:), allocatable         :: rhs
 
     kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
     positions => extract_vector_field(state, "Coordinate")
+    field_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon/scalar_field::"//(trim(field%name))
+
+    ! Do we have high- or low-Reynolds number options for wall functions?
+    call get_option(trim(field_path)//'/wall_functions', wall_fns)
 
     do bc = 1, get_boundary_condition_count(field)
 
@@ -644,7 +644,7 @@ subroutine keps_bcs(state, field)
              nodes_bdy =  face_global_nodes(field, sele)
 
              ! Calculate wall function
-             call keps_wall_function(field, kk, ele, sele, positions, rhs)
+             call keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
              call addto( rhs_field, nodes_bdy, rhs )
 
              deallocate(rhs); deallocate(nodes_bdy)
@@ -672,11 +672,12 @@ end subroutine keps_bcs
 ! Only used if bc type = k_epsilon for field.                                    !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field, kk, ele, sele, positions, rhs)
+subroutine keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
 
     type(scalar_field), pointer, intent(in)              :: field, kk
     type(vector_field), pointer, intent(in)              :: positions
     integer, intent(in)                                  :: ele, sele
+    character(len=FIELD_NAME_LEN), intent(in)            :: wall_fns
     real, dimension(face_loc(field,sele)), intent(inout) :: rhs
     type(element_type), pointer                          :: shape_field, fshape_field
     type(element_type)                                   :: augmented_shape
