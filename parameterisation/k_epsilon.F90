@@ -609,7 +609,7 @@ end subroutine keps_allocate_fields
 subroutine keps_bcs(state, field)
 
     type(state_type)                        :: state
-    type(scalar_field), pointer, intent(in) :: field   ! k or epsilon
+    type(scalar_field), pointer, intent(inout) :: field   ! k or epsilon
     type(scalar_field), pointer             :: kk, surface_field   ! always need kk
     type(vector_field), pointer             :: positions
     type(scalar_field)                      :: rhs_field
@@ -631,7 +631,7 @@ subroutine keps_bcs(state, field)
           ewrite(1,*) "Calculating field BC: ", trim(field%name), &
           trim(bc_name), ', ', trim(bc_type)
 
-          call allocate(rhs_field, field%mesh, name="RHS")
+          call allocate(rhs_field, kk%mesh, name="RHS")
           call zero(rhs_field)
 
           ! Surface element loop
