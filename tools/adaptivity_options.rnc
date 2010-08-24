@@ -864,6 +864,17 @@ hr_adaptivity =
            ## will be computed from the error metric.
            ## This will give a columnar mesh, but not a layered one.
            element inhomogenous_vertical_resolution {
+              ## Perform multiple steps of vertical adaptivity.  This may help
+              ## to overcome lower resolution in the vertical dimension caused
+              ## by the interpolation of the metric to a lower resolution initial
+              ## extruded mesh (i.e. on the first iteration the metric is interpolated
+              ## to the extruded mesh but on subsequent iteration it is interpolated
+              ## onto the improved, adapted mesh).
+              ##
+              ## Defaults to 1 iteration if unselected.
+              element adapt_iterations {
+                integer
+              }?,
               ## Ignore the horizontal adapt, and *only* adapt in the vertical
               element adapt_in_vertical_only {
                 empty

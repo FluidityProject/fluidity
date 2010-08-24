@@ -11,20 +11,24 @@ module hadapt_metric_based_extrude
   use vector_tools
   use meshdiagnostics
   use halos
+  use vtk_interfaces
   implicit none
 
   public :: metric_based_extrude, combine_z_meshes, combine_r_meshes, recombine_metric, get_1d_mesh, get_1d_tensor
 
   contains
 
-  subroutine metric_based_extrude(h_mesh, back_mesh, metric, out_mesh)
+  subroutine metric_based_extrude(h_mesh, back_mesh, metric, out_mesh, iteration)
   !! Given a background mesh, and a metric on that background mesh,
   !! solve a load of 1d adaptivity problems for each column's vertical
   !! resolution.
     type(vector_field), intent(inout) :: h_mesh
     type(vector_field), intent(in) :: back_mesh
-    type(tensor_field), intent(in) :: metric
+    type(tensor_field), intent(inout) :: metric
     type(vector_field), intent(out) :: out_mesh
+    !! optional integer indicating which iteration of adaptivity we're
+    !! - for debug output purposes only
+    integer, intent(in), optional :: iteration
 
     !! A bunch of 1d meshes for each column in the background mesh
     !! and for each column in the adapted mesh
@@ -45,6 +49,11 @@ module hadapt_metric_based_extrude
     integer :: quadrature_degree
     integer, parameter :: loc=2
     
+    type(scalar_field) :: edge_lengths
+    integer, dimension(:), pointer :: column_nodes
+    integer, save :: adaptcnt = -1
+    character(len=20) :: buf
+    
     ewrite(1,*) "Inside metric_based_extrude"
 
     call get_option("/geometry/quadrature/degree", quadrature_degree)
@@ -56,12 +65,39 @@ module hadapt_metric_based_extrude
     
     call create_columns_sparsity(back_columns, back_mesh%mesh)
 
+    if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
+      call allocate(edge_lengths, metric%mesh, "EdgeLengths")
+      call zero(edge_lengths)
+    end if
+
     ! create a 1d vertical mesh under each surface node
     do column=1,node_count(h_mesh)
       call get_1d_mesh(column, back_mesh, back_columns, metric, oned_shape, back_z_meshes(column), sizing=back_sizing(column))
+      
+      if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
+        column_nodes => row_m_ptr(back_columns, column)
+        call set(edge_lengths, column_nodes, back_sizing(column)%val)
+      end if
+      
       call adapt_1d(back_z_meshes(column), back_sizing(column), oned_shape, out_z_meshes(column))
     end do
       
+    if (have_option('/mesh_adaptivity/hr_adaptivity/debug/write_metric_stages')) then
+      if(present(iteration)) then
+        write(buf, '(i0)') iteration
+        if(iteration==1) adaptcnt = adaptcnt+1
+        call vtk_write_fields('vertical_metric_'//trim(buf), adaptcnt, &
+          back_mesh, back_mesh%mesh, &
+          sfields=(/ edge_lengths /), tfields=(/ metric /) )
+      else
+        adaptcnt=adaptcnt+1
+        call vtk_write_fields('vertical_metric', adaptcnt, &
+          back_mesh, back_mesh%mesh, &
+          sfields=(/ edge_lengths /), tfields=(/ metric /) )
+      end if
+      call deallocate(edge_lengths)
+    end if
+
     call deallocate(back_columns)
       
     ! combine these into a full mesh

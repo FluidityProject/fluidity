@@ -53,7 +53,6 @@ module bounding_box_metric
     real, dimension(positions%dim, positions%dim) :: domain_metric
     integer :: i
     integer, save :: adaptcnt = 0
-    character(len=20) :: buf
     real, dimension(positions%dim) :: tmp_domain_width
 
     type(scalar_field) :: edgelen
@@ -76,11 +75,9 @@ module bounding_box_metric
     end do
 
     if (debug_metric) then
-      write(buf, '(i0)') adaptcnt
       call allocate(edgelen, error_metric%mesh, "Desired edge lengths")
-      !write(0,*) "size(edgelen%val) == ", size(edgelen%val)
       call get_edge_lengths(error_metric, edgelen)
-      call vtk_write_fields(trim("bounding_box_") // trim(buf), adaptcnt, positions, positions%mesh, &
+      call vtk_write_fields("bounding_box", adaptcnt, positions, positions%mesh, &
                             sfields=(/edgelen/), tfields=(/error_metric/))
       call deallocate(edgelen)
     endif
