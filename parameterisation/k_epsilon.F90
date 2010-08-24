@@ -617,10 +617,8 @@ subroutine keps_bcs(state, field)
 
     kk        => extract_scalar_field(state, "TurbulentKineticEnergy")
     positions => extract_vector_field(state, "Coordinate")
-    field_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon/scalar_field::"//(trim(field%name))
-
-    ! Do we have high- or low-Reynolds number options for wall functions?
-    call get_option(trim(field_path)//'/wall_functions', wall_fns)
+    field_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon/scalar_field::"&
+                  //(trim(field%name))//"/prognostic/boundary_conditions/"
 
     do bc = 1, get_boundary_condition_count(field)
 
@@ -628,6 +626,11 @@ subroutine keps_bcs(state, field)
             surface_node_list=surface_node_list, surface_element_list=surface_elements)
 
        if (bc_type == 'k_epsilon') then
+
+          ! Do we have high- or low-Reynolds number options for wall functions?
+          call get_option(trim(field_path)//'['//int2str(bc)//&
+                  ']/type::k_epsilon/wall_functions', wall_fns)
+
           ewrite(1,*) "Calculating field BC: ", trim(field%name), &
           trim(bc_name), ', ', trim(bc_type)
 
