@@ -897,6 +897,15 @@ subroutine gls_check_options
     end if
 
 
+    ! If the user has selected kkl, we need the ocean surface and bottom fields
+    ! on in ocean_boundaries
+    call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", buffer)
+    if (trim(buffer) .eq. "k-kl") then
+        if (.not. have_option("/geometry/ocean_boundaries")) then 
+            FLExit("If you use the k-kl option under GLS, you need to switch on ocean_boundaries under /geometry/ocean_boundaries")
+       end if
+    end if
+
 
   end subroutine gls_check_options
 
