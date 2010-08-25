@@ -45,9 +45,6 @@ module hadapt_extrude
     real:: constant_sizing, depth, min_bottom_layer_frac
     integer:: h_dim, column, quadrature_degree
     
-    real, dimension(1) :: tmp_depth
-    real, dimension(mesh_dim(h_mesh), 1) :: tmp_pos
-    
     integer :: n_regions, r
     integer, dimension(:), allocatable :: region_ids
     logical :: apply_region_ids
@@ -300,7 +297,7 @@ module hadapt_extrude
       call insert(depths, z)
       if (depths%length>MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
-        FLAbort("Maximum number of vertical layers reached")
+        FLExit("Maximum number of vertical layers reached")
       end if
     end do
     call insert(depths, -depth)

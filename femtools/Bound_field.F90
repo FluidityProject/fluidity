@@ -551,7 +551,7 @@ module bound_field_module
     endif
 
 #else
-    FLAbort("You need algencan to bound a field with algencan.")
+    FLExit("You need algencan to bound a field with algencan.")
 #endif
   end subroutine bound_field_algencan
 

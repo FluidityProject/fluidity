@@ -80,7 +80,7 @@ contains
     real, dimension(surfacetension%dim, surfacetension%dim) :: tensor
     
     if(size(state)==1) then
-      FLAbort("Don't know how to calculate a surface tension for only one state.")
+      FLExit("Don't know how to calculate a surface tension with only one material_phase.")
     end if
     
     x => extract_vector_field(state(1), "Coordinate")

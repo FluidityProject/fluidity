@@ -65,11 +65,11 @@ contains
       & present_and_true(force_preserve_regions)
       
     if(halo_count(old_positions) > 0) then
-      FLAbort("1D adaptivity does not work in parallel")
+      FLExit("1D adaptivity does not work in parallel")
     end if
     call get_locked_nodes(old_positions, locked_nodes)
     if(size(locked_nodes) > 0) then
-      FLAbort("Node locking is not supported by 1D adaptivity")
+      FLExit("Node locking is not supported by 1D adaptivity")
     end if
     deallocate(locked_nodes)
     

@@ -549,7 +549,7 @@ contains
       model_mesh => extract_mesh(state(1), 1)
     else
       ewrite(-1,*) "In vtk_write_state:"
-      FLAbort("Don't know which mesh to use as model.")      
+      FLExit("Don't know which mesh to use as model.")      
     end if
 
     size_lsfields = 0
@@ -856,7 +856,7 @@ contains
         ewrite(-1,*) 'This suggests that the output_mesh requested is periodic,'
         ewrite(-1,*) 'which generally produces strange vtus.'
         ewrite(-1,*) "Please switch to a non-periodic output_mesh."
-        FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+        FLExit("Just remapped from an unperiodic to a periodic continuous field!")
       end if
     end if
     ! we've just allowed remapping from a higher order to a lower order continuous field
@@ -1182,7 +1182,7 @@ contains
           type=VTK_QUADRATIC_EDGE
        case default
           ewrite(0,*) "Polynomial degree: ", element%numbering%degree
-          FLAbort("Unsupported polynomial degree for vtk.")
+          FLExit("Unsupported polynomial degree for vtk.")
        end select
     case(2)
        select case(element%numbering%vertices)
@@ -1196,7 +1196,7 @@ contains
              type=VTK_QUADRATIC_TRIANGLE
           case default
              ewrite(0,*) "Polynomial degree: ", element%numbering%degree
-             FLAbort("Unsupported polynomial degree for vtk.")
+             FLExit("Unsupported polynomial degree for vtk.")
           end select
        case (4)
           select case (element%numbering%degree)
@@ -1208,12 +1208,12 @@ contains
              type=VTK_QUADRATIC_QUAD
           case default
              ewrite(0,*) "Polynomial degree: ", element%numbering%degree
-             FLAbort("Unsupported polynomial degree for vtk.")
+             FLExit("Unsupported polynomial degree for vtk.")
           end select
        case default
           ewrite(0,*) "Dimension: ", element%dim
           ewrite(0,*) "Vertices: ", element%numbering%vertices
-          FLAbort("Unsupported element type for vtk.")
+          FLExit("Unsupported element type for vtk.")
        end select
     case(3)
        select case(element%numbering%vertices)
@@ -1227,7 +1227,7 @@ contains
              type=VTK_QUADRATIC_TETRA
           case default
              ewrite(0,*) "Polynomial degree: ", element%numbering%degree
-             FLAbort("Unsupported polynomial degree for vtk.")
+             FLExit("Unsupported polynomial degree for vtk.")
           end select
        case (8)
           select case (element%numbering%degree)
@@ -1239,16 +1239,16 @@ contains
              type=VTK_QUADRATIC_HEXAHEDRON
           case default
              ewrite(0,*) "Polynomial degree: ", element%numbering%degree
-             FLAbort("Unsupported polynomial degree for vtk.")
+             FLExit("Unsupported polynomial degree for vtk.")
           end select
         case default
           ewrite(0,*) "Dimension: ", element%dim
           ewrite(0,*) "Vertices: ", element%numbering%vertices
-          FLAbort("Unsupported element type for vtk.")
+          FLExit("Unsupported element type for vtk.")
        end select
     case default
        ewrite(0,*) "Dimension: ", element%dim
-       FLAbort("Unsupported dimension for vtk.")
+       FLExit("Unsupported dimension for vtk.")
     end select
 
   end function vtk_element_type
@@ -1294,7 +1294,7 @@ contains
     ! i.e. there are no internal nodes.
     case default
        ewrite(0,*) "VTK element type: ", type
-       FLAbort("Unsupported element type")
+       FLExit("Unsupported element type")
     end select
 
   end function vtk2fluidity_ordering

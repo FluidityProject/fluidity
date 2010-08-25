@@ -183,7 +183,7 @@ module solenoidal_interpolation_module
       call allocate(inverse_field_lumped_mass_vector, dim, v_field%mesh, &
          "InverseFieldLumpedMassVector")
     else if (.not. dg) then
-      FLAbort("Not possible to not lump the mass if not dg.")
+      FLExit("Not possible to not lump the mass if not dg.")
     end if
 
     if(div_cg) then
@@ -210,7 +210,7 @@ module solenoidal_interpolation_module
         call construct_inverse_mass_matrix_dg(inverse_field_mass, v_field, coordinate)
         
       else
-        FLAbort("Not possible to not lump the mass if not dg.")
+        FLExit("Not possible to not lump the mass if not dg.")
       end if
     elseif(div_cv) then
       if(lump_mass) then
@@ -222,13 +222,14 @@ module solenoidal_interpolation_module
       else if(dg) then
         call construct_inverse_mass_matrix_dg(inverse_field_mass, v_field, coordinate)
       else
-        FLAbort("Not possible to not lump the mass if not dg.")
+        FLExit("Not possible to not lump the mass if not dg.")
       end if
     
       call assemble_divergence_matrix_cv(ct_m, local_state, ct_rhs=ct_rhs, &
                                          test_mesh=lagrange_mesh, field=v_field)
 
     else
+      ! coding error
       FLAbort("Unknown spatial discretisation option for the lagrange multiplier.")
     end if
     
@@ -245,7 +246,7 @@ module solenoidal_interpolation_module
     else if(dg) then
       call assemble_cmc_dg(cmc_m, ctp_m, ct_m, inverse_field_mass)
     else
-      FLAbort("Not possible to not lump the mass if not dg.")
+      FLExit("Not possible to not lump the mass if not dg.")
     end if
 
     if(stiff_nodes_repair) then
@@ -300,7 +301,7 @@ module solenoidal_interpolation_module
     else if(dg) then
       call correct_velocity_dg(v_field, inverse_field_mass, ct_m, lagrange)
     else
-      FLAbort("Not possible to not lump the mass if not dg.")
+      FLExit("Not possible to not lump the mass if not dg.")
     end if
     
     call deallocate(ct_m_sparsity)
@@ -319,7 +320,7 @@ module solenoidal_interpolation_module
     else if(dg) then
       call deallocate(inverse_field_mass)
     else
-      FLAbort("Not possible to not lump the mass if not dg.")
+      FLExit("Not possible to not lump the mass if not dg.")
     end if
     call deallocate(local_state)
 

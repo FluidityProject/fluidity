@@ -91,7 +91,7 @@ contains
           cfl_stat=stat
         elseif(trim(cfl_type)/=trim(tmpstring)) then
           ewrite(-1,*) "Attempting to discretise two fields using different courant numbers."
-          FLAbort("This is not currently supported.")
+          FLExit("This is not currently supported.")
         end if
       end if
 
@@ -106,7 +106,7 @@ contains
             cfl_stat=stat
           elseif(trim(cfl_type)/=trim(tmpstring)) then
             ewrite(-1,*) "Attempting to discretise two fields using different courant numbers."
-            FLAbort("This is not currently supported.")
+            FLExit("This is not currently supported.")
           end if
         end if
       end if
@@ -126,7 +126,7 @@ contains
                       "using a "//trim(cfl_type)//" courant number"
           ewrite(-1,*) "and to subcycle "//&
                       "using a "//trim(tmpstring)//" courant number."
-          FLAbort("This is not currently supported.")
+          FLExit("This is not currently supported.")
         end if
       end if
 
@@ -144,7 +144,7 @@ contains
                       "using a "//trim(cfl_type)//" courant number"
           ewrite(-1,*) "and to limit "//&
                       "using a "//trim(tmpstring)//" courant number."
-          FLAbort("This is not currently supported.")
+          FLExit("This is not currently supported.")
         end if
       end if
     end do

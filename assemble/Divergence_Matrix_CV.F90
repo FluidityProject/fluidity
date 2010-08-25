@@ -1041,7 +1041,7 @@ contains
             else
               ewrite(-1,*) "Multiple MaterialDensities but at least "
               ewrite(-1,*) "one has no associated MaterialVolumeFraction"
-              FLAbort("This shouldn't happen")  ! move this to a multimaterials check options
+              FLExit("This shouldn't happen")  ! move this to a multimaterials check options
             end if
           end if
 

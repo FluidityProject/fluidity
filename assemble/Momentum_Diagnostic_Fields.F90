@@ -162,6 +162,7 @@ contains
     real :: boussinesq_rho0
     
     if(.not.present(buoyancy_density).and..not.present(bulk_density)) then
+      ! coding error
       FLAbort("No point calling me if I don't have anything to do.")
     end if
     
@@ -191,10 +192,10 @@ contains
         
       end do
       if(size(state)/=materialvolumefraction_count) then
-        FLAbort("Multiple states but not all of them have MaterialVolumeFractions.")
+        FLExit("Multiple material_phases but not all of them have MaterialVolumeFractions.")
       end if
       if(subtract_count>1) then
-        FLAbort("Don't know what you mean by subtracting out multiple hydrostatic levels")
+        FLExit("You can only select one material_phase to use the reference_density from to subtract out the hydrostatic level.")
       end if
       
       multimaterial = .true.
@@ -254,7 +255,7 @@ contains
                 if(boussinesq) then
                   ! uh oh... looks like you're using multiphase... good luck with that...
                   ! everything here at the moment assumes a single prognostic velocity
-                  FLAbort("Two nonaliased velocities using equation type Boussinesq.  Don't know what to do.")
+                  FLExit("Two nonaliased velocities using equation type Boussinesq.  Don't know what to do.")
                 end if
                 boussinesq=.true.
                 boussinesq_rho0 = reference_density
@@ -302,7 +303,7 @@ contains
           end if
         else
           if(multimaterial) then
-            FLAbort("No multimaterial MaterialDensity or fluid eos provided")
+            FLExit("No multimaterial MaterialDensity or fluid eos provided")
           else
             if(have_option(trim(option_path)//'/compressible')) then
               call allocate(eosdensity, mesh, "LocalCompressibleEOSDensity")
@@ -328,9 +329,10 @@ contains
                 end if
               else
                 if(present(buoyancy_density)) then
-                  FLAbort("Don't know how to set the buoyancy density.")
+                  FLExit("You haven't provide enough information to set the buoyancy density.")
                 end if
                 if(present(bulk_density)) then
+                  ! coding error... hopefully
                   FLAbort("How on Earth did you get here without a density?!")
                 end if
               end if

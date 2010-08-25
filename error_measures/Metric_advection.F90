@@ -945,7 +945,7 @@ contains
       ewrite(-1,*) "You need to write the code to do the full Galerkin projection here."
       ewrite(-1,*) "It's easy. Instead of lumping the mass, just form the full mass matrix"
       ewrite(-1,*) "and call petsc_solve."
-      FLAbort("You need to write the code to do the full Galerkin projection here.")
+      FLExit("bounded_velocity_jacobian not available for non P1 velocities")
     end if
 
     do i=1,dim

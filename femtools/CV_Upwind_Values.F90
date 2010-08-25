@@ -234,10 +234,10 @@ contains
       end if
     case (FAMILY_CUBE) ! use local
       if(project_point) then
-        FLAbort("Not possible to project from a point on cube meshes")
+        FLExit("Not possible to project from a point on cube meshes")
       end if
       if(project_grad.and.bound) then
-        FLAbort("Not possible to bound locally on cube meshes")
+        FLExit("Not possible to bound locally on cube meshes")
       end if
       if((.not.project_point).and.(.not.local).and.(.not.project_grad).and.(.not.structured)) then
         ewrite(2,*) "using cube elements but haven't selected an upwind value method"
@@ -245,6 +245,7 @@ contains
         local=.true.
       end if
     case default
+      ! most likely a code error
       FLAbort('Illegal element family')
     end select
 
@@ -456,6 +457,7 @@ contains
       ! no, um, something's gone wrong here then!
       else
 
+        ! most likely a developer issue as new options are added out of sync with code
         FLAbort("Unknown upwind value calculation method.")
 
       end if
@@ -576,7 +578,7 @@ contains
 
     dim = mesh_dim(field)
     if((dim/=2).and.(dim/=3)) then
-      FLAbort("Unsupported dimension count")
+      FLExit("Unsupported control volume dimension.")
     end if
 
     ! loop over the nodes
@@ -766,7 +768,7 @@ contains
 
     dim = mesh_dim(field)
     if((dim/=2).and.(dim/=3)) then
-      FLAbort("Unsupported dimension count")
+      FLExit("Unsupported control volume dimension.")
     end if
 
     call allocate(normals, mesh_dim(x_field), x_field%mesh, name="NormalsToBoundary")
@@ -1036,7 +1038,7 @@ contains
 
     dim = mesh_dim(field)
     if((dim/=2).and.(dim/=3)) then
-      FLAbort("Unsupported dimension count")
+      FLExit("Unsupported control volume dimension.")
     end if
 
     call allocate(normals, dim, x_field%mesh, name="NormalsToBoundary")
@@ -1262,7 +1264,7 @@ contains
 
     dim = mesh_dim(field)
     if((dim/=2).and.(dim/=3)) then
-      FLAbort("Unsupported dimension count")
+      FLExit("Unsupported control volume dimension.")
     end if
 
     call allocate(normals, dim, x_field%mesh, name="NormalsToBoundary")
@@ -1451,7 +1453,7 @@ contains
       call zero(old_upwind_values)
       
       if(mesh_periodic(field)) then
-        FLAbort("pseudo_structured_upwind_values don't work for periodic meshes")
+        FLExit("pseudo_structured_upwind_values don't work for periodic meshes")
       end if
 
       ! loop over nodes

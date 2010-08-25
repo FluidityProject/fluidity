@@ -309,7 +309,7 @@ contains
         
       else
       
-        FLAbort("Multimaterial compressible continuous_galerkin pressure not possible.")
+        FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
         
       end if
     
@@ -392,7 +392,7 @@ contains
       if(have_option(trim(density%option_path) // "/prognostic/spatial_discretisation/&
                       &continuous_galerkin/stabilisation/streamline_upwind")) then
         ewrite(2, *) "Streamline upwind stabilisation"
-        FLAbort("SU stabilisation broken with continuity at the moment.")
+        FLExit("SU stabilisation broken with continuity at the moment.")
         stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
         call get_upwind_options(trim(density%option_path) // & 
                                 "/prognostic/spatial_discretisation/continuous_galerkin/&

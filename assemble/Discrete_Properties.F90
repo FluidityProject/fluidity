@@ -101,6 +101,7 @@ contains
               call solenoidal_interpolation(alg_state)
             end if
           case default
+            ! coding/schema error
             FLAbort("Unknown discrete property algorithm.")
         end select
 

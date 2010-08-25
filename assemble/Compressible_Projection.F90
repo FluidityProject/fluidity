@@ -395,7 +395,7 @@ contains
       
     else
       
-        FLAbort("Multimaterial compressible continuous_galerkin pressure not possible.")
+        FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
       
     end if
     

@@ -351,6 +351,7 @@
       case("Drainage")
         density=>dummyscalar
       case default
+        ! developer error... out of sync options input and code
         FLAbort("Unknown equation type for velocity")
       end select
       ewrite_minmax(density%val)
@@ -419,6 +420,7 @@
             if(.not.poisson_p) get_cmc_m = .false.
             full_projection_preconditioner => cmc_m
          case default
+            ! developer error... out of sync options input and code
             FLAbort("Unknown Matrix Type for Full_Projection")
          end select
 
@@ -432,6 +434,7 @@
          case("FullMomentumMatrix")
             inner_m => big_m
          case default
+            ! developer error... out of sync options input and code
             FLAbort("Unknown Matrix Type for Full_Projection")
          end select
       end if
@@ -616,6 +619,7 @@
           else if(cg_pressure) then
             call assemble_compressible_divergence_matrix_cg(ctp_m, state, ct_rhs)
           else
+            ! developer error... out of sync options input and code
             FLAbort("Unknown pressure discretisation for compressible projection.")
           end if
           if (have_rotated_bcs(u)) then
@@ -855,7 +859,7 @@
                    ewrite(-1,*) "Tidal forcing in non spherical geometries&
                         &is yet to be added. Would you like &
                         &to add this functionality?"
-                   FLAbort('Exiting as code missing')
+                   FLExit('Exiting as code missing')
                 end if
                  eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
                       &,long*acos(-1.0)/180.0,current_time,1.0) 
@@ -949,6 +953,7 @@
                 call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, theta_pg, &
                                                         get_cmc_m)
               else
+                ! developer error... out of sync options input and code
                 FLAbort("Unknown pressure discretisation for compressible projection.")
              end if
               
@@ -1031,6 +1036,7 @@
            elseif(dg) then
               call correct_velocity_dg(u, inverse_mass, ct_m, delta_p)
            else
+              ! something's gone wrong in the code
               FLAbort("Don't know how to correct the velocity.")
            end if
             call profiler_toc(u, "assembly")

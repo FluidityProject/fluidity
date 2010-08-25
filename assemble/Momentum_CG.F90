@@ -543,7 +543,7 @@
         
         if(vel_lump_on_submesh .or. cmc_lump_on_submesh) then
           if(move_mesh) then
-            FLAbort("Can't move the mesh and lump on the submesh yet.")
+            FLExit("Can't move the mesh and lump on the submesh yet.")
           end if
           ! we still have to make the lumped mass if this is true
           masslump_component=extract_scalar_field(inverse_masslump, 1)
