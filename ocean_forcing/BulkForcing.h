@@ -53,6 +53,13 @@ extern "C" {
                               double *solar, double *thermal, double *Q_solar, double *Q, double *F, 
                               double *tau_u, double *tau_v);
 
+#define kara_forcing_c_fc F77_FUNC(kara_forcing_c, KARA_FORCING_C)
+  extern void kara_forcing_c_fc(const int *points, double *speed, double *air_temp, 
+                              double *sst, double *spec_humidity, double *sea_surface_humidity, 
+                              double *U, double *V, double *ppt, double *runoff, double *salinity,
+                              double *solar, double *thermal, double *Q_solar, double *Q, double *F, 
+                              double *tau_u, double *tau_v);
+
 #define rotate_wind_fc F77_FUNC(rotate_wind, ROTATE_WIND)
   extern void rotate_wind_fc(double *longitude, double *latitude, const double *r3u, 
                             const double *r3v, const double *r3w,

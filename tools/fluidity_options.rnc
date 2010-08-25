@@ -2589,6 +2589,12 @@ velocity_boundary_conditions =
             attribute name { "robin" },
             robin_velocity_components_choice
          }|
+         ## Add a bulk formulae boundary condition. Only makes sense
+         ## on the Velocity field.
+         element type {
+            attribute name { "bulk_formulae" },
+               empty
+         }|
          element type {
            attribute name { "free_surface" },
            (
@@ -6076,105 +6082,122 @@ forcing =
     ## Add forcing from ocean data
     ## If you enable this you MUST enable the /geometry/ocean_boundaries option too
     element ocean_forcing{
-        ## The netCDF data file downloaded from ERA-40 reanalysis
-        element input_file {
-           attribute file_name {xsd:string} 
-        },
-        element mesh_choice {
-            velocity_mesh_choice
-        },
-        element surface_stress {
-            empty
-        }?,
-        element temperature_flux {
-            empty
-        }?,
-        element salinity_flux {
-            empty
-        }?,
-        element solar_radiation {
-            empty
-        }?,
-        ## Adding a latitude and longitude here (specified as two real numbers)
-        ## will obtain data from the forcing file at that location. The
-        ## mesh is not translated nor is the mesh put on the sphere, instead the
-        ## specified lat/long is translated into cartesian coordinates and this is simply
-        ## added to the surface mesh node coordinates when fluxes are calculated.
-        element position {
-            real_vector,
-            ## Turning on this option will cause all nodes on the surface mesh to
-            ## experience the same forcing, regardless of position. Only really
-            ## useful for psuedo-1D simulations.
-            element single_location {
-                empty
-            }?
-        }?,
-        ## Check this option to use an external data set for the t(0)
-        ## and in/out boundary conditions
-        element external_data_boundary_conditions {
-            ## Path of the file containing the external data set
-            element input_file {
-                attribute file_name {xsd:string} 
-            }
-        }?,
-        ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
-        element output_fluxes_diagnostics {
-            element vector_field {
-                attribute rank { "1" },
-                attribute name { "MomentumFlux" },
-                (
-                    element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field
-                    }|
-                    element aliased {
-                        generic_aliased_field
-                    }
-                )
-            }?, 
-            element scalar_field {
-                attribute rank { "0" },
-                attribute name { "HeatFlux" },
-                (
-                    element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field
-                    }|
-                    element aliased {
-                        generic_aliased_field
-                    }
-                )
-            }?,            
-            element scalar_field {
-                attribute rank { "0" },
-                attribute name { "SalinityFlux" },
-                (
-                    element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field
-                    }|
-                    element aliased {
-                        generic_aliased_field
-                    }
-                )
+        element bulk_formulae {
+            ## The type of bulk formulae to use. Default is NCAR if no selection is made.
+            element bulk_formulae {
+                element type {
+                    attribute name { "NCAR" },
+                    empty
+                }|
+                element type {
+                    attribute name { "COARE" },
+                    empty
+                }|
+                element type {
+                    attribute name { "Kara" },
+                    empty
+                }
             }?,
-            element scalar_field {
-                attribute rank { "0" },
-                attribute name { "PhotosyntheticRadiationDownward" },
-                (
-                    element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field
-                    }|
-                    element aliased {
-                        generic_aliased_field
-                    }
-                )
-            }?
+            ## The netCDF data file downloaded from ERA-40 reanalysis
+            element input_file {
+               attribute file_name {xsd:string} 
+            },
+            element input_file_type {
+                ## What kind of file is this?
+                element type {
+                    attribute name { "ERA40" },
+                    empty
+                }|
+                element type {
+                    attribute name { "NSEP" },
+                    empty
+                }|
+                element type {
+                    attribute name { "ICOM" },
+                    empty
+                }
+            }?,
+            ## Adding a latitude and longitude here (specified as two real numbers)
+            ## will obtain data from the forcing file at that location. The
+            ## mesh is not translated nor is the mesh put on the sphere, instead the
+            ## specified lat/long is translated into cartesian coordinates and this is simply
+            ## added to the surface mesh node coordinates when fluxes are calculated.
+            element position {
+                real_vector,
+                ## Turning on this option will cause all nodes on the surface mesh to
+                ## experience the same forcing, regardless of position. Only really
+                ## useful for psuedo-1D simulations.
+                element single_location {
+                    empty
+                }?
+            }?,
+            ## Check this option to use an external data set for the t(0)
+            ## and in/out boundary conditions
+            element external_data_boundary_conditions {
+                ## Path of the file containing the external data set
+                element input_file {
+                    attribute file_name {xsd:string} 
+                }
+            }?,
+            ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+            element output_fluxes_diagnostics {
+                element vector_field {
+                    attribute rank { "1" },
+                    attribute name { "MomentumFlux" },
+                    (
+                        element diagnostic {
+                            internal_algorithm,
+                            velocity_mesh_choice,
+                            diagnostic_scalar_field
+                        }|
+                        element aliased {
+                            generic_aliased_field
+                        }
+                    )
+                }?, 
+                element scalar_field {
+                    attribute rank { "0" },
+                    attribute name { "HeatFlux" },
+                    (
+                        element diagnostic {
+                            internal_algorithm,
+                            velocity_mesh_choice,
+                            diagnostic_scalar_field
+                        }|
+                        element aliased {
+                            generic_aliased_field
+                        }
+                    )
+                }?,            
+                element scalar_field {
+                    attribute rank { "0" },
+                    attribute name { "SalinityFlux" },
+                    (
+                        element diagnostic {
+                            internal_algorithm,
+                            velocity_mesh_choice,
+                            diagnostic_scalar_field
+                        }|
+                        element aliased {
+                            generic_aliased_field
+                        }
+                    )
+                }?,
+                element scalar_field {
+                    attribute rank { "0" },
+                    attribute name { "PhotosyntheticRadiationDownward" },
+                    (
+                        element diagnostic {
+                            internal_algorithm,
+                            velocity_mesh_choice,
+                            diagnostic_scalar_field
+                        }|
+                        element aliased {
+                            generic_aliased_field
+                        }
+                    )
+                }?
+            }
         }?,
         ## Tidal forcing options 
         element tidal_forcing {

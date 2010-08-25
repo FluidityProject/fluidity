@@ -89,6 +89,14 @@ prognostic_scalar_field =
               attribute name { "zero_flux" },
               empty
             }|
+            ## Add a bulk formulae flux to the scale field. Should
+            ## really be added to Temperature, Salinity, or PhotosyntheticRadation
+            ## fields, or nothing will happen. Do not add another Neumann boundary
+            ## onto the same surface, or you will get an error.
+            element type {
+              attribute name { "bulk_formulae" },
+              empty
+            }|
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.

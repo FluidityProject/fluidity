@@ -90,7 +90,7 @@ module populate_state_module
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                   ", &
        "/material_phase[0]/subgridscale_parameterisations/k-epsilon             ", &
-       "/ocean_forcing/output_fluxes_diagnostics                                ", &
+       "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                  ", &
        "/porous_media                                                           " &
        /)
 

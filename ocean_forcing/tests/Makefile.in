@@ -33,6 +33,7 @@ CC  = @CC@
 CFLAGS  = @CFLAGS@ -I../../include
 
 CXX = @CXX@ -I../../include
+# Add -DGRAPHIC to ouput CSV files for the fluxes tests
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
 
 LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@

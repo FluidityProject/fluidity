@@ -116,6 +116,16 @@ Only applicable to control volume spatial discretisations.</a:documentation>
             <empty/>
           </element>
           <element name="type">
+            <a:documentation>Add a bulk formulae flux to the scale field. Should
+really be added to Temperature, Salinity, or PhotosyntheticRadation
+fields, or nothing will happen. Do not add another Neumann boundary
+onto the same surface, or you will get an error.</a:documentation>
+            <attribute name="name">
+              <value>bulk_formulae</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
             <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.

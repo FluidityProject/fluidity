@@ -7,14 +7,14 @@ using namespace std;
 
 
 extern "C" {
-#define test_ncar_ocean_fluxes_fc F77_FUNC(test_ncar_ocean_fluxes, TEST_NCAR_OCEAN_FLUXES)  
-    void test_ncar_ocean_fluxes_fc();
+#define test_kara_ocean_fluxes_fc F77_FUNC(test_kara_ocean_fluxes, TEST_KARA_OCEAN_FLUXES)  
+    void test_kara_ocean_fluxes_fc();
 }
 
 extern int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord);
 extern void report_test(const string& title, const bool& fail, const bool& warn, const string& msg);
 
-void test_ncar_ocean_fluxes_fc() {
+void test_kara_ocean_fluxes_fc() {
   
    
 #ifdef HAVE_LIBUDUNITS
@@ -99,7 +99,7 @@ void test_ncar_ocean_fluxes_fc() {
 
 #ifdef GRAPHIC
     ofstream test;
-    test.open("test_data_ncar.csv");
+    test.open("test_data_kara.csv");
     test.clear();
     test <<"Time,ERA40_Q,Flux_Q,ERA40_Tau_X,Flux_Tau_X,ERA40_Tau_Y,Flux_Tau_Y,ERA40_F,Flux_F" << endl; 
 #endif
@@ -124,7 +124,7 @@ void test_ncar_ocean_fluxes_fc() {
         time = t;
 
         // get fluxes for test location
-        formula = 0;
+        formula = 2;
         get_era40_fluxes_fc(&time, &X[0], &Y[0], &Z[0], &T[0], &Vx[0], &Vy[0], &Vz[0], &S[0], &F_as[0],
                             &Q_as[0], &tau_u[0], &tau_v[0], &Q_solar[0], &n, false, &formula);
 
@@ -219,53 +219,53 @@ void test_ncar_ocean_fluxes_fc() {
     double r_tauY = (nPoints * xy - sumTauY*sumTauY_era40) /
                  (sqrt(nPoints*sumTauY2-(sumTauY*sumTauY))*sqrt(nPoints*sumTauY_era402-(sumTauY_era40*sumTauY_era40)));
 
+
     // Check that we have roughly the right amount of forcing in total
     fail = true;
     warn = false;
     error = (sumQ_era40-sumQ)/sumQ;
     if (abs(error) < .75) fail = false;
     sprintf(errorMessage, "Error > .75 Is %g",error); 
-    report_test("[test_ncar_ocean_forcing: heat flux error to ERA40]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: heat flux error to ERA40]",fail,warn,errorMessage);
 
     fail = true;
     error = (sumF-sumF_era40)/sumF;
     if (abs(error) < .75) fail = false;
     error = (sumF-sumF_era40)/sumF;
     sprintf(errorMessage, "Error > .75 Is %g",error);
-    report_test("[test_ncar_ocean_forcing: salinity flux error to ERA40]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: salinity flux error to ERA40]",fail,warn,errorMessage);
 
     fail = true;
     error = (sumTauX-sumTauX_era40)/sumTauX;
     if (abs(error) < .75) fail = false;
     sprintf(errorMessage, "Error > .75 Is %g",error);
-    report_test("[test_ncar_ocean_forcing: tau x momentum error to ERA40]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: tau x momentum error to ERA40]",fail,warn,errorMessage);
 
     fail = true;
     error = (sumTauY-sumTauY_era40)/sumTauY;
     if (abs(error) < .75) fail = false;
     sprintf(errorMessage, "Error > .75 Is %g",error);
-    report_test("[test_ncar_ocean_forcing: tau y momentum error to ERA40]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: tau y momentum error to ERA40]",fail,warn,errorMessage);
 
     // check we have the right direciton of forcing
     if (r_q > .88) fail = false;
     sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_q); 
-    report_test("[test_ncar_ocean_forcing: heat flux correlation]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: heat flux correlation]",fail,warn,errorMessage);
 
     fail = true;
     if (r_f > .88) fail = false;
     sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_f); 
-    report_test("[test_ncar_ocean_forcing: freshwater flux correlation]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: freshwater flux correlation]",fail,warn,errorMessage);
 
     fail = true;
     if (r_tauX > .88) fail = false;
     sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_tauX); 
-    report_test("[test_ncar_ocean_forcing: momentum (X) flux correlation]",fail,warn,errorMessage);
+    report_test("[test_kara_ocean_forcing: momentum (X) flux correlation]",fail,warn,errorMessage);
 
     fail = true;
     if (r_tauY > .88) fail = false;
     sprintf(errorMessage, "Correlation coefficient < .88: Is %g",r_tauY); 
-    report_test("[test_ncar_ocean_forcing: momentum (Y) flux correlation]",fail,warn,errorMessage);
-
+    report_test("[test_kara_ocean_forcing: momentum (Y) flux correlation]",fail,warn,errorMessage);
 
 #endif
 }

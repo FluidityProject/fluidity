@@ -54,6 +54,9 @@ OBJS =  Calendar.o SampleNetCDF.o NetCDFReader.o NetCDFWriter.o \
 ClimateReader.o ClimateReader_interface.o FluxesReader.o NEMOReader.o forcingERA40.o  NEMOdataload.o \
 NEMOdataload_rotation.o bulk_parameterisations.o forcingERA40_fortran.o NEMO_load_fields_vars.o NEMO_load_fields.o 
 
+# cancel implicit rule that tries to make .o from .mod with m2c:
+%.o: %.mod
+
 .SUFFIXES: .c .o .cpp .F90 .a .so
 
 .F90.o:
@@ -70,10 +73,6 @@ default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 	cp *.mod ../include/
 
-# Add explicit dependency of forcingERA40_fortran on bulk_parameterisations.o. Will
-# strop race conditions on parallel builds
-forcingERA40_fortran.o: bulk_parameterisations.o
-
 test_StormMaker:
 	$(FC) $(FCFLAGS) -DDEBUG_WRITENETCDF -o testStormMaker StormMaker.F90 $(LIBFLUIDITY) $(LIBS)
 
@@ -88,3 +87,9 @@ clean:
 	rm -f *.o *.mod
 
 NEMO_load_fields.o: NEMO_load_fields_vars.o
+bulk_parameterisations.o: bulk_parameterisations.F90
+forcingERA40.o: forcingERA40_fortran.o
+# Add explicit dependency of forcingERA40_fortran on bulk_parameterisations.o. Will
+# stop race conditions on parallel builds
+forcingERA40_fortran.o: bulk_parameterisations.o
+

@@ -712,13 +712,14 @@ subroutine gls_check_options
     real                          :: min_tke, relax, nbcs
     integer                       :: dimension
 
+    ! Don't do GLS if it's not included in the model!
+    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) return
+
     ! one dimensional problems not supported
     call get_option("/geometry/dimension/", dimension) 
     if (dimension .eq. 1 .and. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         FLExit("GLS modelling is only supported for dimension > 1")
     end if
-    ! Don't do GLS if it's not included in the model!
-    if (.not.have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) return
 
     call get_option("/problem_type", buffer)
     if (buffer/="oceans") then

@@ -360,14 +360,14 @@ void ParseArguments(int argc, char** argv){
 
     ClimateReader_global.SetClimatology(option);
   }
-  if(have_option("/ocean_forcing/input_file")) {
+  if(have_option("/ocean_forcing/bulk_formulae/input_file")) {
     string option;
-    get_option("/ocean_forcing/input_file/file_name", option);
-
+    get_option("/ocean_forcing/bulk_formulae/input_file/file_name", option);
+    string dataset = "ERA40"; //default
+    if(have_option("/ocean_forcing/bulk_formulae/file_type")) {
+        get_option("/ocean_forcing/bulk_formulae/file_type/filetype/name", dataset);
+    }
     FluxesReader_global.RegisterDataFile(option);
-#ifdef DDEBUG
-    //FluxesReader_global.VerboseOn();
-#endif
     // field from NetCDF file          Index |   Physical meaning
     FluxesReader_global.AddFieldOfInterest("10u");  //  0   | 10 metre U wind component
     FluxesReader_global.AddFieldOfInterest("10v");  //  1   | 10 metre V wind component

@@ -3509,6 +3509,14 @@ want this.</a:documentation>
         <ref name="robin_velocity_components_choice"/>
       </element>
       <element name="type">
+        <a:documentation>Add a bulk formulae boundary condition. Only makes sense
+on the Velocity field.</a:documentation>
+        <attribute name="name">
+          <value>bulk_formulae</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="type">
         <attribute name="name">
           <value>free_surface</value>
         </attribute>
@@ -7730,148 +7738,177 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
     <element name="ocean_forcing">
       <a:documentation>Add forcing from ocean data
 If you enable this you MUST enable the /geometry/ocean_boundaries option too</a:documentation>
-      <element name="input_file">
-        <a:documentation>The netCDF data file downloaded from ERA-40 reanalysis</a:documentation>
-        <attribute name="file_name">
-          <data type="string"/>
-        </attribute>
-      </element>
-      <element name="mesh_choice">
-        <ref name="velocity_mesh_choice"/>
-      </element>
       <optional>
-        <element name="surface_stress">
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="temperature_flux">
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="salinity_flux">
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="solar_radiation">
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="position">
-          <a:documentation>Adding a latitude and longitude here (specified as two real numbers)
-will obtain data from the forcing file at that location. The
-mesh is not translated nor is the mesh put on the sphere, instead the
-specified lat/long is translated into cartesian coordinates and this is simply
-added to the surface mesh node coordinates when fluxes are calculated.</a:documentation>
-          <ref name="real_vector"/>
+        <element name="bulk_formulae">
           <optional>
-            <element name="single_location">
-              <a:documentation>Turning on this option will cause all nodes on the surface mesh to
-experience the same forcing, regardless of position. Only really
-useful for psuedo-1D simulations.</a:documentation>
-              <empty/>
+            <element name="bulk_formulae">
+              <a:documentation>The type of bulk formulae to use. Default is NCAR if no selection is made.</a:documentation>
+              <choice>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NCAR</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>COARE</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>Kara</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
-        </element>
-      </optional>
-      <optional>
-        <element name="external_data_boundary_conditions">
-          <a:documentation>Check this option to use an external data set for the t(0)
-and in/out boundary conditions</a:documentation>
           <element name="input_file">
-            <a:documentation>Path of the file containing the external data set</a:documentation>
+            <a:documentation>The netCDF data file downloaded from ERA-40 reanalysis</a:documentation>
             <attribute name="file_name">
               <data type="string"/>
             </attribute>
           </element>
-        </element>
-      </optional>
-      <optional>
-        <element name="output_fluxes_diagnostics">
-          <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes</a:documentation>
           <optional>
-            <element name="vector_field">
-              <attribute name="rank">
-                <value>1</value>
-              </attribute>
-              <attribute name="name">
-                <value>MomentumFlux</value>
-              </attribute>
+            <element name="input_file_type">
               <choice>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="diagnostic_scalar_field"/>
+                <element name="type">
+                  <a:documentation>What kind of file is this?</a:documentation>
+                  <attribute name="name">
+                    <value>ERA40</value>
+                  </attribute>
+                  <empty/>
                 </element>
-                <element name="aliased">
-                  <ref name="generic_aliased_field"/>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NSEP</value>
+                  </attribute>
+                  <empty/>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>ICOM</value>
+                  </attribute>
+                  <empty/>
                 </element>
               </choice>
             </element>
           </optional>
           <optional>
-            <element name="scalar_field">
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>HeatFlux</value>
-              </attribute>
-              <choice>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="diagnostic_scalar_field"/>
+            <element name="position">
+              <a:documentation>Adding a latitude and longitude here (specified as two real numbers)
+will obtain data from the forcing file at that location. The
+mesh is not translated nor is the mesh put on the sphere, instead the
+specified lat/long is translated into cartesian coordinates and this is simply
+added to the surface mesh node coordinates when fluxes are calculated.</a:documentation>
+              <ref name="real_vector"/>
+              <optional>
+                <element name="single_location">
+                  <a:documentation>Turning on this option will cause all nodes on the surface mesh to
+experience the same forcing, regardless of position. Only really
+useful for psuedo-1D simulations.</a:documentation>
+                  <empty/>
                 </element>
-                <element name="aliased">
-                  <ref name="generic_aliased_field"/>
-                </element>
-              </choice>
+              </optional>
             </element>
           </optional>
           <optional>
-            <element name="scalar_field">
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>SalinityFlux</value>
-              </attribute>
-              <choice>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="diagnostic_scalar_field"/>
-                </element>
-                <element name="aliased">
-                  <ref name="generic_aliased_field"/>
-                </element>
-              </choice>
+            <element name="external_data_boundary_conditions">
+              <a:documentation>Check this option to use an external data set for the t(0)
+and in/out boundary conditions</a:documentation>
+              <element name="input_file">
+                <a:documentation>Path of the file containing the external data set</a:documentation>
+                <attribute name="file_name">
+                  <data type="string"/>
+                </attribute>
+              </element>
             </element>
           </optional>
-          <optional>
-            <element name="scalar_field">
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>PhotosyntheticRadiationDownward</value>
-              </attribute>
-              <choice>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="diagnostic_scalar_field"/>
-                </element>
-                <element name="aliased">
-                  <ref name="generic_aliased_field"/>
-                </element>
-              </choice>
-            </element>
-          </optional>
+          <element name="output_fluxes_diagnostics">
+            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes</a:documentation>
+            <optional>
+              <element name="vector_field">
+                <attribute name="rank">
+                  <value>1</value>
+                </attribute>
+                <attribute name="name">
+                  <value>MomentumFlux</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>HeatFlux</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>SalinityFlux</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>PhotosyntheticRadiationDownward</value>
+                </attribute>
+                <choice>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                  <element name="aliased">
+                    <ref name="generic_aliased_field"/>
+                  </element>
+                </choice>
+              </element>
+            </optional>
+          </element>
         </element>
       </optional>
       <optional>

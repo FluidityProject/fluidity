@@ -142,6 +142,29 @@ where the tangential components of stress are set to zero.
 Apologies for the bad notation, $\tau$ here is the tangential direction
 vectors (two of them) and $\tautens$ is the viscous stress tensor.
 
+\subsubsection{Bulk parameterisations for oceans}
+
+In order to simulate real-world ocean scenarios, momentum, freshwater and heat fluxes 
+must be applied to the upper surface. We have implemented the bulk formulae of \citet{large2004},
+COARE 3.0 \citep{fairall2003} and \citet{kara2005} in combination with the ERA-40 reanalysis data \citep{Uppala2005}.
+
+There are three surface kinematic fluxes calculated: heat -- $\langle w\theta \rangle$,
+salt -- $\langle ws \rangle$, and momentum -- $\langle wu \rangle$ and $\langle wv \rangle$,
+, which can be related to the surface fluxes of heat $Q$, the
+freshwater $F$, and the momentum $\overrightarrow\tau=\left(\tau_u,\tau_v\right)$, via:
+\begin{align}
+\langle w\theta \rangle &= Q\left(\rho C_p \right)^{-1} \\
+\langle ws \rangle &= F\left(\rho^{-1}S_0\right) \\
+\left(\langle wu \rangle, \langle wv \rangle\right) &=
+\overrightarrow{\tau}\rho^{-1} =
+\left(\tau_u,\tau_v\right)\rho^{-1}
+\end{align}
+where $\rho$ is the ocean density, $C_p$ is the heat capacity (4000 Jk$S^{-1}$K$^{-1}$) 
+and $S_0$ is a reference ocean salinity, which is the current sea surface salinity. 
+These fluxes are then applied as upper-surface Neumann boundary conditions on
+the appropriate fields.
+
+
 \section{Momentum Equation}\label{Sect:MP-MomEqn}
 
 The state of a moving fluid can be described mathematically through means of

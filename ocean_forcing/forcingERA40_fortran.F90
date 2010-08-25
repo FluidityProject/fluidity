@@ -64,12 +64,13 @@ subroutine coare_forcing_c(points, speed, air_temp, sst, spec_humidity, &
                         thermal, solar, Q_solar, Q, F, tau_u, tau_v)
     use bulk_parameterisations
     implicit none
-    integer, intent(in)                  :: points
-    real, intent(in), dimension(points)  :: speed, air_temp, sst, spec_humidity, sea_surface_humidity
-    real, intent(in), dimension(points)  :: U, V, ppt, runoff, salinity, solar, thermal
-    real, intent(out), dimension(points) :: Q_solar, Q ! heat fluxes
-    real, intent(out), dimension(points) :: F ! Freshwater flux
-    real, intent(out), dimension(points) :: tau_u, tau_v ! momentum fluxes
+    integer, intent(in)                    :: points
+    real, intent(in), dimension(points)    :: speed, spec_humidity, sea_surface_humidity
+    real, intent(inout), dimension(points) :: air_temp, sst 
+    real, intent(in), dimension(points)    :: U, V, ppt, runoff, salinity, solar, thermal
+    real, intent(out), dimension(points)   :: Q_solar, Q ! heat fluxes
+    real, intent(out), dimension(points)   :: F ! Freshwater flux
+    real, intent(out), dimension(points)   :: tau_u, tau_v ! momentum fluxes
 
     call coare_forcing(points, speed, air_temp, sst, spec_humidity, &
                         sea_surface_humidity, U, V, ppt, runoff, salinity, &
@@ -77,4 +78,22 @@ subroutine coare_forcing_c(points, speed, air_temp, sst, spec_humidity, &
 
 end subroutine coare_forcing_c
 
+subroutine kara_forcing_c(points, speed, air_temp, sst, spec_humidity, &
+                        sea_surface_humidity, U, V, ppt, runoff, salinity, &
+                        thermal, solar, Q_solar, Q, F, tau_u, tau_v)
+    use bulk_parameterisations
+    implicit none
+    integer, intent(in)                    :: points
+    real, intent(inout), dimension(points) :: speed
+    real, intent(in), dimension(points)    :: spec_humidity, sea_surface_humidity
+    real, intent(inout), dimension(points) :: air_temp, sst 
+    real, intent(in), dimension(points)    :: U, V, ppt, runoff, salinity, solar, thermal
+    real, intent(out), dimension(points)   :: Q_solar, Q ! heat fluxes
+    real, intent(out), dimension(points)   :: F ! Freshwater flux
+    real, intent(out), dimension(points)   :: tau_u, tau_v ! momentum fluxes
 
+    call kara_forcing(points, speed, air_temp, sst, spec_humidity, &
+                        sea_surface_humidity, U, V, ppt, runoff, salinity, &
+                        thermal, solar, Q_solar, Q, F, tau_u, tau_v)
+
+end subroutine kara_forcing_c

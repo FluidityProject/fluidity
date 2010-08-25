@@ -1252,8 +1252,7 @@ applied. See section \ref{Sect:BCs} for further details.
 
 Boundary conditions are set for each field contained in state under \option{\ldots/boundary\_conditions}. 
 Multiple boundary conditions can be set for each field, such that the sides, surface and bottom can 
-have different conditions. There is only one exception to this which are the \option{/ocean\_forcing} 
-boundary conditions which are set globally. A boundary conditions is added by clicking the "+" symbol
+have different conditions. A boundary conditions is added by clicking the "+" symbol
 in the appropriate field
 
 \subsection{Selecting surfaces}\label{Sect:BCs:selecting}
@@ -1300,6 +1299,20 @@ conditions:
 
 for two constants $\alpha$ and $\beta$. In \fluidity\ these correspond to the \option{\ldots/order\_zero\_coefficient}
 and the \option{\ldots/order\_one\_coefficient} respectively.
+
+\subsubsection{Bulk formulae}
+
+These boundary conditions can be used on:
+\begin{itemize}
+\item Salinity
+\item Temperature
+\item Velocity
+\item PhotosyntheticRadiation
+\end{itemize}
+
+They use meteorological data and convert it into a Neumann or Dirichlet boundary condition
+as appropriate for the fields above. You do not need to have all the baove fields; only 
+velocity and temperature are required. More information can be found in section \ref{boundary conditions!ocean}.
 
 \subsubsection{Zero flux}
 \index{boundary conditions!zero flux}
@@ -1386,12 +1399,13 @@ the boundary conditions on the General Length Scale (GLS) turbulence model.
 Ocean surface forcing takes parameters from ERA40 datasets, passes them
 through bulk formulae and gives a boundary condition for the salinity,
 temperature, photosynthetic radiation and velocity fields. The settings for
-these options are in \option{/ocean\_forcing}. However, you must also set up
-\option{/timestepping/current\_time/time\_units} and
-\option{/geometry/ocean\_boundaries}.
+these options are in \option{/ocean\_forcing/bulk\_formulae}. However, you must also set up
+\option{/timestepping/current\_time/time\_units}.
 
-Under \option{/ocean\_forcing} an input file and a mesh must be defined. One or more of the surface
-fluxes can then be turned on. The input file must contain the following ERA40 parameters for the
+Under \option{/ocean\_forcing/bulk\_formulae} an input file must be defined. The fields on 
+which bulk formulae are to be imposed should have their upper surface set to the correct
+boundary condition type (\option{bulk\_formulae}).
+The input file must contain the following ERA40 parameters for the
 duration of the simulated time:
 \begin{itemize}
  \item 10 metre U wind component (\ms)
@@ -1405,9 +1419,10 @@ duration of the simulated time:
  \item Mean sea-level pressure (\Pa)
 \end{itemize}
 
-These variables are surface variables on data defined on the ERA40 website. Note that some parameters are accumulated values
+These variables are surface variables as defined by data files from the ERA40 website. Note that some parameters are accumulated values
 and as such are required to be divided by the ERA40 temporal resolution - \fluidity assumes 6 hour temporal resolution. 
-These parameters are used as input to the bulk forcing formulae of \citet{large2004} included in \fluidity.
+These parameters are used as input to the default bulk forcing formulae of \citet{large2004} included in \fluidity. Other
+formulae are available: COARE 3.0 \citep{fairall2003} and those of \citet{kara2005} which are based on the COARE data.
 
 Other options under ocean surface forcing include specifying a latitude and longitude, and using a single position for the
 forcing data. These options are only really useful when simulating pseudo-1D columns (see the gls-StationPapa test for an example

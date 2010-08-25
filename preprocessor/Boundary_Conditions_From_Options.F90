@@ -45,6 +45,8 @@ use spud
 use vector_tools
 use vtk_interfaces
 use pickers_inquire
+use bulk_parameterisations
+
 
 implicit none
 
@@ -146,10 +148,6 @@ contains
        
        call ocean_boundaries_stats(states(1))
 
-       if (have_option('/ocean_forcing')) then
-           call populate_ocean_forcing_boundary_conditions(states(1))
-       end if
-
     end if
 
     if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries')) then
@@ -196,6 +194,20 @@ contains
 
        ! Get type of boundary condition
        call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
+       ! If we've an bulk_formulae type, this is actually a Neumann bc
+       ! on the Temperature and Salinity, or a weak Dirichlet on
+       ! PhotosyntheticRadiation. We therefore need to amend the 
+       ! bc_type that was added
+
+       ! Re-add boundary condition with correct type
+       if (trim(field%name) .eq. "PhotosyntheticRadiation") then
+          bc_type = "weakdirichlet"
+       else
+          ! Any other scalar fields that have a bulk_formulae will be
+          ! neumann. Options check should prevent this from
+          ! being anything other than Temperature or Salinity
+          bc_type = "neumann"
+       end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
          bc_type = "weak"//trim(bc_type)
@@ -204,7 +216,6 @@ contains
        ! Add boundary condition
        call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
             surface_ids, option_path=bc_path_i)
-       deallocate(surface_ids)
 
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
@@ -249,6 +260,10 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call deallocate(surface_field)
 
+       case( "bulk_formulae" )
+
+        FLAbort("Oops, you shouldn't get a bulk_formulae type of BC. It should have been converted")
+
        case default
 
           ! This really shouldn't happen
@@ -256,6 +271,7 @@ contains
 
        end select
        
+       deallocate(surface_ids)
        call deallocate(bc_position)
 
     end do boundary_conditions
@@ -410,6 +426,17 @@ contains
              call insert_surface_field(field, i+1, scalar_surface_field)
              call deallocate(scalar_surface_field)
           end if
+
+       case ("bulk_formulae")
+
+          ! The bulk_formulae type is actually a wind forcing on velocity...
+          call add_boundary_condition(field, trim(bc_name) ,&
+                &'wind_forcing', surface_ids, option_path=bc_path_i)
+          deallocate(surface_ids)
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+          call allocate(surface_field, field%dim-1, surface_mesh, name="WindSurfaceField")
+          call insert_surface_field(field, i+1, surface_field)
+          call deallocate(surface_field)
           
        case ("free_surface", "no_normal_flow")
 
@@ -546,6 +573,12 @@ contains
 
     ewrite(1,*) "In set_boundary_conditions"
 
+    
+    if (have_option('/ocean_forcing/bulk_formulae')) then
+        call set_ocean_forcings_boundary_conditions(states(1))
+    end if
+
+
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -585,10 +618,6 @@ contains
 
     end do
 
-    if (have_option('/ocean_forcing')) then
-        call set_ocean_forcings_boundary_conditions(states(1))
-    end if
-
     if (have_option('/turbine_model')) then
         call set_dirichlet_turbine_boundary_conditions(states(1))
         call set_flux_turbine_boundary_conditions(states(1))
@@ -627,6 +656,12 @@ contains
 
        ! Get type of boundary condition
        call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
+
+       if (trim(bc_type) .eq. "bulk_formulae") then
+          ! skip bulk_formulae types; they are dealt with seperately
+          ! See set_ocean_forcing_boundary_conditions
+          cycle boundary_conditions
+       end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
          bc_type = "weak"//trim(bc_type)
@@ -778,6 +813,13 @@ contains
 
        bc_path_i=trim(bc_path_i)//'/type[0]'
        call get_option(trim(bc_path_i)//"/name", bc_type)
+
+       if (trim(bc_type) .eq. "bulk_formulae") then
+          ! skip bulk_formulae types; they are dealt with seperately
+          ! See set_ocean_forcing_boundary_conditions
+          cycle boundary_conditions
+       end if
+
 
        if(have_option(trim(bc_path_i)//"/apply_weakly")) then
          bc_type = "weak"//trim(bc_type)
@@ -1253,83 +1295,6 @@ contains
     
   end subroutine single_ocean_boundary_stats
 
- subroutine populate_ocean_forcing_boundary_conditions(state)
-    type(state_type), intent(in) :: state
-    
-    integer, dimension(:), pointer :: surface_element_list, surface_nodes
-    type(scalar_field), pointer :: distanceToTop
-    type(scalar_field) :: scalar_surface_field
-    type(vector_field) :: vector_surface_field
-    type(scalar_field), pointer :: scalar_source_field
-    type(vector_field), pointer :: vector_source_field
-    type(mesh_type) :: ocean_mesh, input_mesh
-    type(mesh_type), pointer :: surface_mesh
-    character(len=FIELD_NAME_LEN) input_mesh_name
-    integer, dimension(:), allocatable:: surface_ids
-    integer, dimension(2) :: shape_option
-
-    distanceToTop => extract_scalar_field(state, "DistanceToTop")
-    call get_option('/ocean_forcing/mesh_choice/mesh/name', input_mesh_name)
-    input_mesh = extract_mesh(state, input_mesh_name);
-    call get_boundary_condition(distanceToTop, name='top', surface_element_list=surface_element_list)
-    call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
-
-    ! Add a BC to the relavent field for each BC enabled
-    shape_option=option_shape("geometry/ocean_boundaries/top_surface_ids")
-    allocate(surface_ids(1:shape_option(1)))
-    call get_option("geometry/ocean_boundaries/top_surface_ids", surface_ids)
-
-    if (have_option('/ocean_forcing/surface_stress')) then
-      vector_source_field => extract_vector_field(state, 'Velocity')
-      call add_boundary_condition(vector_source_field, 'ocean_forcing_boundary_stress',&
-                                  'wind_forcing', surface_ids)
-      call get_boundary_condition(vector_source_field, 'ocean_forcing_boundary_stress', &
-                                  surface_mesh=surface_mesh)
-      call allocate(vector_surface_field, 2, surface_mesh, &
-                    name="WindSurfaceField")
-      call insert_surface_field(vector_source_field, 'ocean_forcing_boundary_stress', &
-                                vector_surface_field)
-      call deallocate(vector_surface_field)
-    end if
-    if (have_option('/ocean_forcing/temperature_flux')) then
-      scalar_source_field => extract_scalar_field(state, 'Temperature')
-      call add_boundary_condition(scalar_source_field, 'ocean_forcing_boundary_heat', &
-                                  'neumann', surface_ids)
-      call get_boundary_condition(scalar_source_field, 'ocean_forcing_boundary_heat', &
-                                  surface_mesh=surface_mesh)
-      call allocate(scalar_surface_field, surface_mesh, name="value");
-      call insert_surface_field(scalar_source_field, 'ocean_forcing_boundary_heat', &
-                                scalar_surface_field)
-      call deallocate(scalar_surface_field)
-    end if
-    if (have_option('/ocean_forcing/salinity_flux')) then
-      scalar_source_field => extract_scalar_field(state, 'Salinity')
-      call add_boundary_condition(scalar_source_field, 'ocean_forcing_boundary_salinity',&
-                                  'neumann', surface_ids)
-      call get_boundary_condition(scalar_source_field, 'ocean_forcing_boundary_salinity', &
-                                  surface_mesh=surface_mesh)
-      call allocate(scalar_surface_field, surface_mesh, name="value")
-      call insert_surface_field(scalar_source_field, 'ocean_forcing_boundary_salinity', &
-                                scalar_surface_field)
-      call deallocate(scalar_surface_field)
-    end if
-    if (have_option('/ocean_forcing/solar_radiation')) then
-       scalar_source_field => extract_scalar_field(state, 'PhotosyntheticRadiation')
-       call add_boundary_condition(scalar_source_field, 'ocean_forcing_boundary_solar', &
-                                   'weakdirichlet', surface_ids)
-       call get_boundary_condition(scalar_source_field, 'ocean_forcing_boundary_solar', &
-                                  surface_mesh=surface_mesh)                            
-       call allocate(scalar_surface_field, surface_mesh, name="value")
-       call insert_surface_field(scalar_source_field, 'ocean_forcing_boundary_solar', &
-                                scalar_surface_field)
-       call deallocate(scalar_surface_field)
-    end if
-
-    call deallocate(ocean_mesh)
-    deallocate(surface_ids)
-    
-  end subroutine populate_ocean_forcing_boundary_conditions
-
   subroutine set_ocean_forcings_boundary_conditions(state)
     type(state_type), intent(in) :: state
 
@@ -1346,29 +1311,29 @@ contains
 
     ! some temporary storage arrays
     ! some of this need hiding inside get_fluxes
-    real, dimension(3) :: temp_vector_3D, transformation
-    real, dimension(2) :: temp_vector_2D
+    real, dimension(3)              :: temp_vector_3D, transformation
+    real, dimension(2)              :: temp_vector_2D
     real, dimension(:), allocatable :: temp, sal, X, Y, Z, Vx, Vy, Vz
     real, dimension(:), allocatable :: F_as, Q_as, Q_s, Tau_u, Tau_v
-    real, dimension(:), allocatable :: d1, d2, d3, d4, d5
-    integer :: NNodes, i
-    integer, dimension(:), pointer :: surface_element_list, surface_nodes
-    real :: current_time
-    type(scalar_field), pointer :: scalar_source_field, sfield
-    type(vector_field), pointer :: vector_source_field, vfield
-    type(scalar_field), pointer :: scalar_surface
-    type(vector_field), pointer :: vector_surface
-    character(len=FIELD_NAME_LEN) input_mesh_name
-    type(scalar_field), pointer :: distanceToTop
-    logical*1 :: on_sphere  ! needs to be handed over to C, which has 1 bit booleans
-    real, dimension(:), allocatable:: lat_long
-    integer shape_option(2)
-    integer stat
+    integer                         :: NNodes, i
+    integer, dimension(:), pointer  :: surface_element_list, surface_nodes
+    real                            :: current_time
+    type(scalar_field), pointer     :: scalar_source_field, sfield
+    type(vector_field), pointer     :: vector_source_field, vfield
+    type(scalar_field), pointer     :: scalar_surface
+    type(vector_field), pointer     :: vector_surface
+    logical*1                       :: on_sphere  ! needs to be handed over to C, which has 1 bit booleans
+    real, dimension(:), allocatable :: lat_long
+    integer                         :: shape_option(2), stat, bulk_formula
+    integer                         :: force_temperature, force_salinity, force_velocity, force_solar
 
-    distanceToTop => extract_scalar_field(state, "DistanceToTop")
-    call get_option('/ocean_forcing/mesh_choice/mesh/name', input_mesh_name)
-    input_mesh = extract_mesh(state, input_mesh_name);
-    call get_boundary_condition(distanceToTop, name='top', surface_element_list=surface_element_list)
+
+    ! First job is to construct a mesh for the upper surface. From this
+    ! we can construct a number of temporary fields to store i/o from
+    ! the fluxes routines
+    call get_forcing_surface_element_list(state, surface_element_list, &
+                 & force_temperature, force_solar, force_velocity, force_salinity)
+    input_mesh = extract_mesh(state, "CoordinateMesh");
     call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
     NNodes = node_count(ocean_mesh) 
 
@@ -1386,24 +1351,19 @@ contains
     allocate(Q_s(NNodes))
     allocate(Tau_u(NNodes))
     allocate(Tau_v(NNodes))
-    allocate(d1(NNodes))
-    allocate(d2(NNodes))
-    allocate(d3(NNodes))
-    allocate(d4(NNodes))
-    allocate(d5(NNodes))
 
 
     ! allocate field on ocean mesh to store output of get_fluxes
-    if (have_option('/ocean_forcing/surface_stress')) then
+    if (force_velocity .ge. 0) then
       call allocate(stress_flux, 2, ocean_mesh, name="stress_flux")
     end if
-    if (have_option('/ocean_forcing/temperature_flux')) then
+    if (force_temperature .ge. 0) then
         call allocate(heat_flux, ocean_mesh, name="heat_flux")
     end if
-    if (have_option('/ocean_forcing/salinity_flux')) then
+    if (force_salinity .ge. 0) then
         call allocate(salinity_flux, ocean_mesh, name="salinity_flux")
     end if
-    if (have_option('/ocean_forcing/solar_radiation')) then
+    if (force_solar .ge. 0) then
         call allocate(solar_flux, ocean_mesh, name="solar_flux")
     end if
     ! allocate space to store current state of parameters required
@@ -1429,13 +1389,13 @@ contains
                                 surface_element_list)
 
     ! check if we are transforming the coordinates to a specified lat/long
-    if (have_option('/ocean_forcing/position')) then
-        shape_option=option_shape('/ocean_forcing/position')
+    if (have_option('/ocean_forcing/bulk_formulae/position')) then
+        shape_option=option_shape('/ocean_forcing/bulk_formulae/position')
         if (shape_option(1) .ne. 2) then
-            FLExit("Only specify a latitude and longitude under /ocean_forcing/positions, i.e. two numbers expected.")
+            FLExit("Only specify a latitude and longitude under /ocean_forcing/bulk_formulae/positions, i.e. two numbers expected.")
         end if
         allocate(lat_long(1:shape_option(1)))
-        call get_option('/ocean_forcing/position', lat_long)
+        call get_option('/ocean_forcing/bulk_formulae/position', lat_long)
         transformation(1) = lat_long(2) ! Longtitude
         transformation(2) = lat_long(1) ! latitude
         transformation(3) = 0.0
@@ -1462,7 +1422,7 @@ contains
 
     ! finally, check if the single position option is on, if so, make all
     ! positions the same
-    if (have_option('/ocean_forcing/position/single_location')) then
+    if (have_option('/ocean_forcing/bulk_formulae/position/single_location')) then
         do i=1, NNodes
             X(i) = transformation(1) 
             Y(i) = transformation(2)
@@ -1470,7 +1430,7 @@ contains
         end do
     end if
 
-    if (have_option('/ocean_forcing/salinity_flux')) then
+    if (force_salinity .ge. 0) then
         ! we only need to worry about salinity if the flux is on
         p_salinity => extract_scalar_field(state, "Salinity", stat)
         if (stat /= 0) then
@@ -1491,25 +1451,34 @@ contains
     call get_option("/timestepping/current_time", current_time)
     on_sphere=have_option('/geometry/spherical_earth')
 
+    if (have_option('/ocean_forcing/bulk_formulae/bulk_formulae/type::COARE')) then
+        bulk_formula = 1
+    else if (have_option('/ocean_forcing/bulk_formulae/bulk_formulae/type::BVW')) then
+        bulk_formula = 2
+    else if (have_option('/ocean_forcing/bulk_formulae/bulk_formulae/type::Kara')) then
+        bulk_formula = 3
+    else ! Defualt: Ncar
+        bulk_formula = 0
+    end if
+
     call get_era40_fluxes(current_time, X, Y, Z, temp, Vx, Vy, Vz, sal, &
                           F_as, Q_as, Tau_u, Tau_v, Q_s, &
-                          NNodes,on_sphere,0)
+                          NNodes, on_sphere, bulk_formula)
 
     ! finally, we need to reverse-map the temporary fields on the ocean mesh
     ! to the actual fields in state
     ! using remap for now, but this assumes the same type of field
     ! otherwise need to project
-    if (have_option('/ocean_forcing/surface_stress')) then
+    if (force_velocity .ge. 0) then
         do i=1,NNodes
             temp_vector_2D(1) = Tau_u(i)
             temp_vector_2D(2) = Tau_v(i)
             call set(stress_flux,i,temp_vector_2D)
         end do
         vector_source_field => extract_vector_field(state, 'Velocity')
-        vector_surface => extract_surface_field(vector_source_field, 'ocean_forcing_boundary_stress',&
-                                             "WindSurfaceField")
+        vector_surface => extract_surface_field(vector_source_field, force_velocity , "WindSurfaceField")
         call remap_field(stress_flux, vector_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
+        if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
             vector_source_field => extract_vector_field(state, 'MomentumFlux')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
@@ -1528,15 +1497,15 @@ contains
         end if
         call deallocate(stress_flux)                            
     end if
-    if (have_option('/ocean_forcing/temperature_flux')) then
+    if (force_temperature .ge. 0) then
         do i=1,NNodes
            call set(heat_flux,i,Q_as(i))
         end do 
         scalar_source_field => extract_scalar_field(state, 'Temperature')
-        scalar_surface => extract_surface_field(scalar_source_field, 'ocean_forcing_boundary_heat',&
+        scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
         call remap_field(heat_flux, scalar_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics/scalar_field::HeatFlux")) then
+        if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::HeatFlux")) then
             scalar_source_field => extract_scalar_field(state, 'HeatFlux')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
@@ -1549,15 +1518,15 @@ contains
         end if
         call deallocate(heat_flux)
     end if
-    if (have_option('/ocean_forcing/salinity_flux')) then
+    if (force_salinity .ge. 0) then
         do i=1,NNodes
             call set(salinity_flux,i,F_as(i))
         end do
         scalar_source_field => extract_scalar_field(state, 'Salinity')
-        scalar_surface => extract_surface_field(scalar_source_field, 'ocean_forcing_boundary_salinity',&
+        scalar_surface => extract_surface_field(scalar_source_field, force_salinity, &
                                              "value")
         call remap_field(salinity_flux, scalar_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics/scalar_field::SalinityFlux")) then
+        if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::SalinityFlux")) then
             scalar_source_field => extract_scalar_field(state, 'SalinityFlux')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
@@ -1570,20 +1539,21 @@ contains
         end if
         call deallocate(salinity_flux)
     end if
-    if (have_option('/ocean_forcing/solar_radiation')) then
+    if (force_solar .ge. 0) then
         do i=1,NNodes
             call set(solar_flux,i,Q_s(i))
         end do
         scalar_source_field => extract_scalar_field(state, 'PhotosyntheticRadiation')
-        scalar_surface => extract_surface_field(scalar_source_field, 'ocean_forcing_boundary_solar',&
+        scalar_surface => extract_surface_field(scalar_source_field, force_solar ,&
                                              "value")
         call remap_field(solar_flux, scalar_surface)
-        if (have_option("/ocean_forcing/output_fluxes_diagnostics/scalar_field::PhotosyntheticRadiationDownward")) then
+        if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::PhotosyntheticRadiationDownward")) then
             scalar_source_field => extract_scalar_field(state, 'PhotosyntheticRadiationDownward')
             ! copy the values onto the mesh using the global node id
             do i=1,size(surface_nodes)
                 call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
             end do 
+
             sfield => extract_scalar_field(state, 'OldPhotosyntheticRadiationDownward',stat)
             if (stat == 0) then
                 call set(sfield,scalar_source_field)
@@ -1610,11 +1580,6 @@ contains
     deallocate(Q_s)
     deallocate(Tau_u)
     deallocate(Tau_v)
-    deallocate(d1)
-    deallocate(d2)
-    deallocate(d3)
-    deallocate(d4)
-    deallocate(d5)
 
   end subroutine set_ocean_forcings_boundary_conditions
 
@@ -1957,7 +1922,7 @@ contains
   subroutine populate_gls_boundary_conditions(state)
     type(state_type), intent(in) :: state
     
-    integer, dimension(:), pointer     :: surface_element_list, surface_nodes
+    integer, dimension(:), pointer     :: surface_element_list
     type(scalar_field)                 :: scalar_surface_field
     type(vector_field), pointer        :: position
     type(scalar_field), pointer        :: tke, psi

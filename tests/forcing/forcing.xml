@@ -6,45 +6,115 @@
   <owner userid="jhill1"/>
   <tags>flml gls forcing</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v3 -l forcing-column.flml</command_line>
+        <command_line>fluidity -v2 -l forcing-coare.flml;
+                      fluidity -v2 -l forcing-kara.flml;
+                      fluidity -v2 -l forcing-ncar.flml;
+        </command_line>
   </problem_definition>  
   <variables>  
-    <variable name="FinalTime" language="python">
+<!-- COARE forcing --->
+    <variable name="FinalTimeCoare" language="python">
 import fluidity_tools
-FinalTime = fluidity_tools.stat_parser("column-forcing.stat")['ElapsedTime']['value'][-1]
+FinalTime = fluidity_tools.stat_parser("forcing-coare.stat")['ElapsedTime']['value'][-1]
     </variable>
-    <variable name="FinalTemperatureIntegral" language="python">
+    <variable name="FinalTemperatureIntegralCoare" language="python">
 import fluidity_tools
-FinalTemperatureIntegral = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['Temperature']['integral'][-1]
+FinalTemperatureIntegral = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Temperature']['integral'][-1]
     </variable>
-    <variable name="FirstTemperatureIntegral" language="python">
+    <variable name="FirstTemperatureIntegralCoare" language="python">
 import fluidity_tools
-FirstTemperatureIntegral = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['Temperature']['integral'][0]
+FirstTemperatureIntegral = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Temperature']['integral'][0]
     </variable>
-    <variable name="FinalSalinityMin" language="python">
+    <variable name="FinalSalinityMinCoare" language="python">
 import fluidity_tools
-FinalSalinityMin = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['Salinity']['min'][-1]
+FinalSalinityMin = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Salinity']['min'][-1]
     </variable>
-    <variable name="FinalVelocityMagnitudeMax" language="python">
+    <variable name="FinalVelocityMagnitudeMaxCoare" language="python">
 import fluidity_tools
-FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("column-forcing.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Velocity%magnitude']['max'][-1]
     </variable>
-  
+<!-- Kara forcing -->
+     <variable name="FinalTimeKara" language="python">
+import fluidity_tools
+FinalTime = fluidity_tools.stat_parser("forcing-kara.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureIntegralKara" language="python">
+import fluidity_tools
+FinalTemperatureIntegral = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Temperature']['integral'][-1]
+    </variable>
+    <variable name="FirstTemperatureIntegralKara" language="python">
+import fluidity_tools
+FirstTemperatureIntegral = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Temperature']['integral'][0]
+    </variable>
+    <variable name="FinalSalinityMinKara" language="python">
+import fluidity_tools
+FinalSalinityMin = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Salinity']['min'][-1]
+    </variable>
+    <variable name="FinalVelocityMagnitudeMaxKara" language="python">
+import fluidity_tools
+FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+    </variable> 
+<!--  forcing -->
+     <variable name="FinalTimeNcar" language="python">
+import fluidity_tools
+FinalTime = fluidity_tools.stat_parser("forcing-ncar.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureIntegralNcar" language="python">
+import fluidity_tools
+FinalTemperatureIntegral = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][-1]
+    </variable>
+    <variable name="FirstTemperatureIntegralNcar" language="python">
+import fluidity_tools
+FirstTemperatureIntegral = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][0]
+    </variable>
+    <variable name="FinalSalinityMinNcar" language="python">
+import fluidity_tools
+FinalSalinityMin = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Salinity']['min'][-1]
+    </variable>
+    <variable name="FinalVelocityMagnitudeMaxNcar" language="python">
+import fluidity_tools
+FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+    </variable>
   </variables>    
 
   <pass_tests> 
-    <test name="Final time is 1440 seconds" language="python">
-assert FinalTime ==1440 
+    <test name="Coare: Final time is 1440 seconds" language="python">
+assert FinalTimeCoare ==1440 
     </test>
-    <test name="Final temperature integral has decreased" language="python">
-assert((FinalTemperatureIntegral - FirstTemperatureIntegral) &gt; 10)
+    <test name="Coare: Final temperature integral has decreased" language="python">
+        assert((FinalTemperatureIntegralCoare - FirstTemperatureIntegralCoare) &gt; 10)
     </test>
-    <test name="Final velocity%magnitude max has increased" language="python">
-assert(FinalVelocityMagnitudeMax &gt; 0.0)
+    <test name="Coare: Final velocity%magnitude max has increased" language="python">
+assert(FinalVelocityMagnitudeMaxCoare &gt; 0.0)
     </test>
-    <test name="Final Salinity min less than 35" language="python">
-assert FinalSalinityMin &lt; 35
+    <test name="Coare: Final Salinity min less than 35" language="python">
+assert FinalSalinityMinCoare &lt; 35
     </test>
 
+    <test name="Ncar: Final time is 1440 seconds" language="python">
+assert FinalTimeNcar ==1440 
+    </test>
+    <test name="Ncar: Final temperature integral has decreased" language="python">
+        assert((FinalTemperatureIntegralNcar - FirstTemperatureIntegralNcar) &gt; 10)
+    </test>
+    <test name="Ncar: Final velocity%magnitude max has increased" language="python">
+assert(FinalVelocityMagnitudeMaxNcar &gt; 0.0)
+    </test>
+    <test name="Ncar: Final Salinity min less than 35" language="python">
+assert FinalSalinityMinNcar &lt; 35
+    </test>
+
+    <test name="Kara: Final time is 1440 seconds" language="python">
+assert FinalTimeKara ==1440 
+    </test>
+    <test name="Kara: Final temperature integral has decreased" language="python">
+        assert((FinalTemperatureIntegralKara - FirstTemperatureIntegralKara) &gt; 10)
+    </test>
+    <test name="Kara: Final velocity%magnitude max has increased" language="python">
+assert(FinalVelocityMagnitudeMaxKara &gt; 0.0)
+    </test>
+    <test name="Kara: Final Salinity min less than 35" language="python">
+assert FinalSalinityMinKara &lt; 35
+    </test>
   </pass_tests>
 </testproblem>

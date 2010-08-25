@@ -161,13 +161,11 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     switch (*bulk_formula) {
 
         case COARE3:
-            // COARE v3.1 
-            //Temperatures are need in C not K
-            for (int i=0; i<NNodes; i++) {
-                SST[i] = SST[i] - kelvin_centrigrade;
-                t_2m[i] = t_2m[i] - kelvin_centrigrade;
-            }
             coare_forcing_c_fc(&NNodes, speed, t_2m, SST, q, qs, delU_u, delU_v,
+                    ppt, runoff, salinity, thermal, solar, Q_solar, Q, F, tau_u, tau_v);
+            break;
+        case KARA:
+            kara_forcing_c_fc(&NNodes, speed, t_2m, SST, q, qs, delU_u, delU_v,
                     ppt, runoff, salinity, thermal, solar, Q_solar, Q, F, tau_u, tau_v);
             break;
 
