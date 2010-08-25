@@ -200,9 +200,9 @@ contains
        ! bc_type that was added
 
        ! Re-add boundary condition with correct type
-       if (trim(field%name) .eq. "PhotosyntheticRadiation") then
+       if (trim(bc_type) .eq. "bulk_formulae" .and. trim(field%name) .eq. "PhotosyntheticRadiation") then
           bc_type = "weakdirichlet"
-       else
+       else if (trim(bc_type) .eq. "bulk_formulae") then
           ! Any other scalar fields that have a bulk_formulae will be
           ! neumann. Options check should prevent this from
           ! being anything other than Temperature or Salinity
