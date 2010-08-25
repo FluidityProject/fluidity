@@ -2665,7 +2665,7 @@ contains
           call get_option(trim(field_path)//'/prescribed/mesh[0]/name', &
                mesh_name, stat=stat)
           if (stat/=0) then
-             FLAbort("No mesh for field "//trim(field_path))
+             FLExit("No mesh for field "//trim(field_path))
           end if
        end if
     end if
@@ -2735,43 +2735,11 @@ contains
        call check_stokes_options
     case default
        ewrite(0,*) "Problem type:", trim(problem_type)
-       FLExit("Error unknown problem_type")
+       FLAbort("Error unknown problem_type")
     end select
     ewrite(2,*) 'Done with problem type choice'
 
   end subroutine populate_state_module_check_options
-
-  character(len=OPTION_PATH_LEN) function AddFieldTypeOption(path)
-    implicit none
-    ! Auxillary function to add  prognostic/diagnostic/prescribed/aliased to field option path
-    ! to be used with checking options as we die friendly with FLExit
-    ! character(len=OPTION_PATH_LEN) :: AddFieldTypeOption
-    character(len=*), intent(in) :: path
-
-    if (have_option(trim(path) // "/prognostic")) then
-
-       AddFieldTypeOption=trim(path) // "/prognostic"
-
-    else if (have_option(trim(path) // "/diagnostic")) then
-
-       AddFieldTypeOption=trim(path) // "/diagnostic"
-
-    else if (have_option(trim(path) // "/prescribed")) then
-
-       AddFieldTypeOption=trim(path) // "/prescribed"
-
-    else if (have_option(trim(path) // "/aliased")) then
-
-       AddFieldTypeOption=trim(path)// "/aliased"
-
-    else
-
-       ewrite(0,*) "For field:", trim(path)
-       FLExit("Error: unknown field type")
-
-    end if
-
-  end function AddFieldTypeOption
 
   subroutine check_mesh_options
 
@@ -2967,7 +2935,7 @@ contains
           ! If field is not aliased check mesh name
           is_aliased=have_option(trim(path)//"/aliased")
           if(.not.is_aliased) then
-             call get_option(trim(AddFieldTypeOption(path))//"/mesh[0]/name", mesh_name)
+             call get_option(trim(complete_field_path(path))//"/mesh[0]/name", mesh_name)
 
              if (.not. have_option("/geometry/mesh::"//trim(mesh_name))) then
 
@@ -3000,7 +2968,7 @@ contains
           ! If field is not aliased check mesh name
           is_aliased=have_option(trim(path)//"/aliased")
           if(.not.is_aliased) then
-             call get_option(trim(AddFieldTypeOption(path))//"/mesh[0]/name", mesh_name)
+             call get_option(trim(complete_field_path(path))//"/mesh[0]/name", mesh_name)
 
              if (.not. have_option("/geometry/mesh::"//trim(mesh_name))) then
 
@@ -3031,7 +2999,7 @@ contains
           ! If field is not aliased check mesh name
           is_aliased=have_option(trim(path)//"/aliased")
           if(.not.is_aliased) then
-             call get_option(trim(AddFieldTypeOption(path))//"/mesh[0]/name", mesh_name)
+             call get_option(trim(complete_field_path(path))//"/mesh[0]/name", mesh_name)
 
              if (.not. have_option("/geometry/mesh::"//trim(mesh_name))) then
 
