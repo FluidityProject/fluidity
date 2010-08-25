@@ -12,7 +12,7 @@
         </command_line>
   </problem_definition>  
   <variables>  
-<!-- COARE forcing --->
+<!-- COARE forcing -->
     <variable name="FinalTimeCoare" language="python">
 import fluidity_tools
 FinalTime = fluidity_tools.stat_parser("forcing-coare.stat")['ElapsedTime']['value'][-1]
