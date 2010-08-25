@@ -1333,7 +1333,7 @@ contains
     ! the fluxes routines
     call get_forcing_surface_element_list(state, surface_element_list, &
                  & force_temperature, force_solar, force_velocity, force_salinity)
-    input_mesh = extract_mesh(state, "CoordinateMesh");
+    input_mesh = extract_mesh(state, "VelocityMesh");
     call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
     NNodes = node_count(ocean_mesh) 
 
