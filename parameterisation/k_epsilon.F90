@@ -653,16 +653,14 @@ subroutine keps_bcs(state, field)
           end do
 
           ! Set values in surface field
-          ewrite(1,*) "Applying BC values to surface field"
-          if (associated(surface_field)) then
-             surface_field => extract_surface_field(field, j, "value")
-             do i = 1, size(surface_node_list)
-                node = surface_node_list(i)
-                call set( surface_field, i, rhs_field%val(node) )
-             end do
-          else
-             ewrite(1,*) "No surface fields associated!"
-          end if
+          surface_field => extract_surface_field(field, j, "value")
+          ewrite(1,*) "Applying BC values to surface field: ", surface_field%name, surface_field%mesh%name
+
+          do i = 1, size(surface_node_list)
+             node = surface_node_list(i)
+             call set( surface_field, i, rhs_field%val(node) )
+          end do
+
           call deallocate(rhs_field)
 
        end if
