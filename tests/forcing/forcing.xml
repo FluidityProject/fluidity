@@ -15,65 +15,65 @@
 <!-- COARE forcing -->
     <variable name="FinalTimeCoare" language="python">
 import fluidity_tools
-FinalTime = fluidity_tools.stat_parser("forcing-coare.stat")['ElapsedTime']['value'][-1]
+FinalTimeCoare = fluidity_tools.stat_parser("forcing-coare.stat")['ElapsedTime']['value'][-1]
     </variable>
     <variable name="FinalTemperatureIntegralCoare" language="python">
 import fluidity_tools
-FinalTemperatureIntegral = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Temperature']['integral'][-1]
+FinalTemperatureIntegralCoare = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Temperature']['integral'][-1]
     </variable>
     <variable name="FirstTemperatureIntegralCoare" language="python">
 import fluidity_tools
-FirstTemperatureIntegral = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Temperature']['integral'][0]
+FirstTemperatureIntegralCoare = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Temperature']['integral'][0]
     </variable>
     <variable name="FinalSalinityMinCoare" language="python">
 import fluidity_tools
-FinalSalinityMin = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Salinity']['min'][-1]
+FinalSalinityMinCoare = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Salinity']['min'][-1]
     </variable>
     <variable name="FinalVelocityMagnitudeMaxCoare" language="python">
 import fluidity_tools
-FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+FinalVelocityMagnitudeMaxCoare = fluidity_tools.stat_parser("forcing-coare.stat")['Fluid']['Velocity%magnitude']['max'][-1]
     </variable>
 <!-- Kara forcing -->
      <variable name="FinalTimeKara" language="python">
 import fluidity_tools
-FinalTime = fluidity_tools.stat_parser("forcing-kara.stat")['ElapsedTime']['value'][-1]
+FinalTimeKara = fluidity_tools.stat_parser("forcing-kara.stat")['ElapsedTime']['value'][-1]
     </variable>
     <variable name="FinalTemperatureIntegralKara" language="python">
 import fluidity_tools
-FinalTemperatureIntegral = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Temperature']['integral'][-1]
+FinalTemperatureIntegralKara = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Temperature']['integral'][-1]
     </variable>
     <variable name="FirstTemperatureIntegralKara" language="python">
 import fluidity_tools
-FirstTemperatureIntegral = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Temperature']['integral'][0]
+FirstTemperatureIntegralKara = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Temperature']['integral'][0]
     </variable>
     <variable name="FinalSalinityMinKara" language="python">
 import fluidity_tools
-FinalSalinityMin = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Salinity']['min'][-1]
+FinalSalinityMinKara = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Salinity']['min'][-1]
     </variable>
     <variable name="FinalVelocityMagnitudeMaxKara" language="python">
 import fluidity_tools
-FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+FinalVelocityMagnitudeMaxKara = fluidity_tools.stat_parser("forcing-kara.stat")['Fluid']['Velocity%magnitude']['max'][-1]
     </variable> 
 <!--  forcing -->
      <variable name="FinalTimeNcar" language="python">
 import fluidity_tools
-FinalTime = fluidity_tools.stat_parser("forcing-ncar.stat")['ElapsedTime']['value'][-1]
+FinalTimeNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['ElapsedTime']['value'][-1]
     </variable>
     <variable name="FinalTemperatureIntegralNcar" language="python">
 import fluidity_tools
-FinalTemperatureIntegral = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][-1]
+FinalTemperatureIntegralNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][-1]
     </variable>
     <variable name="FirstTemperatureIntegralNcar" language="python">
 import fluidity_tools
-FirstTemperatureIntegral = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][0]
+FirstTemperatureIntegralNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][0]
     </variable>
     <variable name="FinalSalinityMinNcar" language="python">
 import fluidity_tools
-FinalSalinityMin = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Salinity']['min'][-1]
+FinalSalinityMinNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Salinity']['min'][-1]
     </variable>
     <variable name="FinalVelocityMagnitudeMaxNcar" language="python">
 import fluidity_tools
-FinalVelocityMagnitudeMax = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Velocity%magnitude']['max'][-1]
+FinalVelocityMagnitudeMaxNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Velocity%magnitude']['max'][-1]
     </variable>
   </variables>    
 
