@@ -42,29 +42,24 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   real, intent(in) :: sizing
   integer, intent(in) :: field_b_degree
   
-#ifdef DUMP_INTERSECTIONS
-  integer :: ndumped_intersections = 0
-#endif
   character(len = OPTION_PATH_LEN) :: base_path, mesh_path
-  integer :: dim, i, intersecting_element, j, k, l, nintersecting_elements, quad_degree, stat, ntests
+  integer :: dim, ele_a, ele_b, ele_b_surf, i, j, nele_as, stat, ntests
+  integer, parameter :: quad_degree = 4
   logical :: allocated_field_a
   type(csr_matrix) :: matrix
   type(csr_sparsity) :: sparsity
   type(element_type) :: field_b_shape, field_b_shape_ext
   type(element_type), pointer :: field_c_shape, positions_b_surf_shape
-  type(mesh_type) :: field_b_mesh, positions_b_mesh_ele
+  type(mesh_type) :: field_b_mesh
   type(plane_type), dimension(4) :: planes_b
   type(scalar_field) :: field_c, field_b, rhs
   type(scalar_field), pointer :: field_a
   type(state_type) :: state_a
   type(tet_type) :: tet_a, tet_b
-  type(vector_field) :: positions_b_surf_ele, positions_b_ext, positions_b_surf, &
-    & positions_c
+  type(vector_field) :: positions_b_ext, positions_b_surf, positions_c
   type(vector_field), pointer :: positions_a
   
   ewrite(1, *) "In vertical_integration"
-  
-  quad_degree = max(field_b_degree * 2, 1)
   
   ! Step 1: Read in the data
   
@@ -86,6 +81,8 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   call vtk_read_state(integrated_filename, state_a, quad_degree = quad_degree)
   positions_a => extract_vector_field(state_a, "Coordinate")
   if(positions_a%dim /= positions_b_surf%dim + 1) then
+    ewrite(-1, *) "Integrated mesh dimension: ", positions_a%dim
+    ewrite(-1, *) "Target mesh dimension: ", positions_b_surf%dim
     FLAbort("Integrated mesh must have dimension one higher than the target mesh")
   end if
   field_a => extract_scalar_field(state_a, integrated_fieldname, allocated = allocated_field_a)
@@ -106,15 +103,14 @@ subroutine vertical_integration(target_basename, target_basename_len, &
     call print_options()
   end if
 
-  ! Step 3: Extrude each element in the target mesh, supermesh and assemble
- 
-#ifdef DUMP_EXTRUSION
-  ! Using positions_b_ext as working memory here
+  ! Step 3: Extrude the target mesh, supermesh and assemble
+   
+  ! Extrude the surface mesh
   call extrude(positions_b_surf, mesh_path, positions_b_ext)
   ! and apply the offset
   positions_b_ext%val(dim)%ptr = positions_b_ext%val(dim)%ptr + top
+#ifdef DUMP_EXTRUSION
   call write_triangle_files("extruded_vertical_integration_mesh", positions_b_ext)
-  call deallocate(positions_b_ext)
 #endif
   
   sparsity = make_sparsity(field_b%mesh, field_b%mesh, name = "Sparsity")
@@ -125,105 +121,88 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   call rtree_intersection_finder_set_input(positions_a)
   call intersector_set_dimension(dim)
   call intersector_set_exactness(.false.)
-    
-  call zero(matrix)
-  call zero(rhs)
-  do i = 1, ele_count(positions_b_surf)
-    positions_b_surf_shape => ele_shape(positions_b_surf, i)
-    field_b_shape = ele_shape(field_b, i)
-    
-    ! Assemble the LHS matrix for this element
-    call assemble_mass_ele(i, positions_b_surf, field_b, matrix)
   
-    ! Generate a small surface mesh for just this element
-    call allocate(positions_b_mesh_ele, ele_loc(positions_b_surf, i), 1, positions_b_surf_shape, "ElementIntegralMesh")
-    call set_ele_nodes(positions_b_mesh_ele, 1, (/(j, j = 1, ele_loc(positions_b_surf, i))/))
-    call allocate(positions_b_surf_ele, dim - 1, positions_b_mesh_ele, "ElementIntegralCoordinate")
-    call set(positions_b_surf_ele, ele_nodes(positions_b_surf_ele, 1), ele_val(positions_b_surf, i))
+  ! Assemble the mass matrix
+  call zero(matrix)
+  do ele_b_surf = 1, ele_count(positions_b_surf)      
+    ! Assemble the LHS matrix for this element
+    call assemble_mass_ele(ele_b_surf, positions_b_surf, field_b, matrix)
+  end do
+  
+  ! Assemble the RHS
+  call zero(rhs)    
+  do ele_b = 1, ele_count(positions_b_ext)
+    ewrite(2, "(a,i0,a,i0)") "Processing element ", ele_b, " of ", ele_count(positions_b_ext)
+  
+    assert(associated(positions_b_ext%mesh%element_columns))
+    ele_b_surf = positions_b_ext%mesh%element_columns(ele_b)
+  
+    ! Find intersections with the mesh we are vertically integrating
+    call rtree_intersection_finder_find(positions_b_ext, ele_b)
+    call rtree_intersection_finder_query_output(nele_as)
     
-    ! Extrude the elemental surface mesh
-    call extrude(positions_b_surf_ele, mesh_path, positions_b_ext)
-    ! and apply the offset
-    positions_b_ext%val(dim)%ptr = positions_b_ext%val(dim)%ptr + top
+    if(nele_as > 0 .and. dim == 3) then
+      tet_b%v = ele_val(positions_b_ext, ele_b)
+      planes_b = get_planes(tet_b)
+    end if
     
-    ! Loop over the extruded elemental mesh
-    do j = 1, ele_count(positions_b_ext)
-      ! Find intersections with the mesh we are vertically integrating
-      call rtree_intersection_finder_find(positions_b_ext, j)
-      call rtree_intersection_finder_query_output(nintersecting_elements)
+    do i = 1, nele_as
+      call rtree_intersection_finder_get_output(ele_a, i)
       
-      if(nintersecting_elements > 0 .and. dim == 3) then
-        tet_b%v = ele_val(positions_b_ext, j)
-        planes_b = get_planes(tet_b)
+      ! Supermesh each intersection
+      if(dim == 3 .and. (intersector_exactness .eqv. .false.)) then
+        tet_A%v = ele_val(positions_a, ele_a)
+        call intersect_tets(tet_a, planes_b, ele_shape(positions_a, ele_a), stat = stat, output = positions_c)
+        if(stat == 1) then
+          ! No intersection to integrate
+          cycle
+        end if
+      else
+        positions_c = intersect_elements(positions_b_ext, ele_b, ele_val(positions_a, ele_a), ele_shape(positions_a, ele_a))
       end if
       
-      do k = 1, nintersecting_elements
-        call rtree_intersection_finder_get_output(intersecting_element, k)
-        
-        ! Supermesh each intersection
-        if(dim == 3 .and. (intersector_exactness .eqv. .false.)) then
-          tet_A%v = ele_val(positions_a, intersecting_element)
-          call intersect_tets(tet_a, planes_b, ele_shape(positions_a, intersecting_element), stat = stat, output = positions_c)
-          if(stat == 1) then
-            ! No intersection to integrate
-            cycle
-          end if
-        else
-          positions_c = intersect_elements(positions_b_ext, j, ele_val(positions_a, intersecting_element), ele_shape(positions_a, intersecting_element))
-        end if
-        
-        if(ele_count(positions_c) == 0) then
-          ! No intersection to integrate
+      if(ele_count(positions_c) == 0) then
+        ! No intersection to integrate
+        call deallocate(positions_c)
+        cycle
+      end if
+      if(dim /= 3 .or. (intersector_exactness .eqv. .true.)) then  ! The stat argument to intersect_tets checks this
+        if(volume(positions_c) < epsilon(0.0)) then
+          ! Negligable intersection to integrate
           call deallocate(positions_c)
           cycle
         end if
-        if(dim /= 3 .or. (intersector_exactness .eqv. .true.)) then  ! The stat argument to intersect_tets checks this
-          if(volume(positions_c) < epsilon(0.0)) then
-            ! Negligable intersection to integrate
-            call deallocate(positions_c)
-            cycle
-          end if
-        end if
-        
-        
-#ifdef DUMP_INTERSECTIONS
-        call vtk_write_fields("vertical_integration_intersections", index = ndumped_intersections, position = positions_c, model = positions_c%mesh)
-        ndumped_intersections = ndumped_intersections + 1
-#endif
-        
-        ! Project the donor field onto the supermesh
-        call allocate(field_c, positions_c%mesh, "IntersectionIntegratedField")
-        do l = 1, node_count(field_c)
-          call set(field_c, l, &
-              & dot_product( &
-                & ele_val(field_a, intersecting_element), &
-                & eval_shape(ele_shape(field_a, intersecting_element), local_coords(positions_a, intersecting_element, node_val(positions_c, l))) &
-              & ) &
-            & )
-        end do
-        
-        do l = 1, ele_count(field_c)
-          ! Project the extruded target test function onto the supermesh
-          field_c_shape => ele_shape(field_c, l)
-          field_b_shape_ext = extruded_shape_function(i, l, positions_b_surf, positions_c, field_b_shape, field_c_shape, &
-            & form_dn = .false.)
-                     
-          ! Assemble the RHS for this intersection for this element
-          call assemble_rhs_ele(l, i, field_b_shape_ext, positions_c, field_c, rhs)
-          
-          call deallocate(field_b_shape_ext)
-        end do
-        
-        call deallocate(positions_c)
-        call deallocate(field_c)
+      end if
+              
+      ! Project the donor field onto the supermesh
+      call allocate(field_c, positions_c%mesh, "IntersectionIntegratedField")
+      do j = 1, node_count(field_c)
+        call set(field_c, j, &
+            & dot_product( &
+              & ele_val(field_a, ele_a), &
+              & eval_shape(ele_shape(field_a, ele_a), local_coords(positions_a, ele_a, node_val(positions_c, j))) &
+            & ) &
+          & )
       end do
+      
+      do j = 1, ele_count(field_c)
+        ! Project the extruded target test function onto the supermesh
+        field_c_shape => ele_shape(field_c, j)
+        field_b_shape_ext = extruded_shape_function(ele_b_surf, j, positions_b_surf, positions_c, field_b_shape, field_c_shape, &
+          & form_dn = .false.)
+                   
+        ! Assemble the RHS for this intersection for this element
+        call assemble_rhs_ele(j, ele_b_surf, field_b_shape_ext, positions_c, field_c, rhs)
+        
+        call deallocate(field_b_shape_ext)
+      end do
+      
+      call deallocate(positions_c)
+      call deallocate(field_c)
     end do
-
-    call deallocate(positions_b_mesh_ele)
-    call deallocate(positions_b_surf_ele)
-    call deallocate(positions_b_ext) 
   end do
 
+  call deallocate(positions_b_ext)
   call rtree_intersection_finder_reset(ntests)
   if(dim == 3) call finalise_tet_intersector()
 
