@@ -425,8 +425,8 @@ subroutine horizontal_picker(mesh, positions, vertical_normal, &
     if (seles(i)>0) then
       seles(i)=horizontal_mesh_list(seles(i))
     else
-      ewrite(0,*) "For node with coordinate", node_val(mesh_positions, i)
-      ewrite(0,*) "no top surface node was found."
+      ewrite(-1,*) "For node with coordinate", node_val(mesh_positions, i)
+      ewrite(-1,*) "no top surface node was found."
       FLAbort("Something wrong with the geometry.")
     end if
   end do
@@ -962,9 +962,9 @@ logical, optional, intent(out):: optimal_ordering
   
   if (warning) then
     ! this warning may be reduced (in verbosity level) if it occurs frequently:
-    ewrite(0,*) "Warning: vertical_element_ordering has detected a cycle."
-    ewrite(0,*) "(deck of cards problem). This may reduce the efficiency"
-    ewrite(0,*) "of your vertically sweeping solve."
+    ewrite(-1,*) "Warning: vertical_element_ordering has detected a cycle."
+    ewrite(-1,*) "(deck of cards problem). This may reduce the efficiency"
+    ewrite(-1,*) "of your vertically sweeping solve."
   end if
   
   if (present(optimal_ordering)) then
@@ -1269,9 +1269,9 @@ subroutine vertical_extrapolation_module_check_options
   
   if (have_option("/geometry/ocean_boundaries")) then
     if (.not. have_option("/physical_parameters/gravity")) then
-      ewrite(0,*) "If you select /geometry/ocean_boundaries, you also need to &
+      ewrite(-1,*) "If you select /geometry/ocean_boundaries, you also need to &
         &set /physical_parameters/gravity"
-      FLAbort("Missing gravity!")
+      FLExit("Missing gravity!")
     end if
   end if
   

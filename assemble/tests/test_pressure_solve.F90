@@ -50,7 +50,7 @@
 
     if(io1.ne.0) then
        ewrite(-1,*) 'Looked for ', "epsilon.dat"
-       FLAbort('Could not read from .dat file')
+       FLExit('Could not read from .dat file')
     end if
 
     read(unit, epsilon_data)
@@ -136,7 +136,7 @@
       !=======================
       topdis => extract_scalar_field(state,"DistanceToTop",stat=stat)
       if(stat/=0) then
-         FLAbort('DistanceToTop is not present')
+         FLExit('DistanceToTop is not present')
       end if      
       call get_boundary_condition(topdis,1,&
            surface_element_list=top_surface_element_list)
@@ -160,7 +160,10 @@
       call zero(error)
 
       inquire(file="exact.py",exist=file_exists)  
-      if (.not.file_exists) FLAbort('Couldnt find file')
+      if (.not.file_exists) then
+          ewrite(-1,*) "Looking for file", "exact.py"
+          FLExit('Couldnt find file')
+      end if
       unit=free_unit() 
       open(unit, file="exact.py", action="read",&
            & status="old")
