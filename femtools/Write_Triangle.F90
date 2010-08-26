@@ -139,11 +139,11 @@ contains
     ! succesful return
     return
     
-41  FLAbort("Failed to open .node file for writing.")
+41  FLExit("Failed to open .node file for writing.")
     
-42  FLAbort("Error while writing .node file.")
+42  FLExit("Error while writing .node file.")
     
-43  FLAbort("Failed to close .node file for writing.")
+43  FLExit("Failed to close .node file for writing.")
     
   end subroutine write_triangle_node_file
   
@@ -175,11 +175,11 @@ contains
     ! succesful return
     return
     
-41  FLAbort("Failed to open .node file for writing.")
+41  FLExit("Failed to open .node file for writing.")
     
-42  FLAbort("Error while writing .node file.")
+42  FLExit("Error while writing .node file.")
     
-43  FLAbort("Failed to close .node file for writing.")
+43  FLExit("Failed to close .node file for writing.")
     
   end subroutine write_triangle_node_file_with_columns
   
@@ -219,11 +219,11 @@ contains
     ! succesful return
     return
     
-41  FLAbort("Failed to open .ele file for writing.")
+41  FLExit("Failed to open .ele file for writing.")
     
-42  FLAbort("Error while writing .ele file.")
+42  FLExit("Error while writing .ele file.")
     
-43  FLAbort("Failed to close .ele file for writing.")
+43  FLExit("Failed to close .ele file for writing.")
     
   end subroutine write_triangle_ele_file
   
@@ -282,11 +282,11 @@ contains
     ! succesful return
     return
     
-41  FLAbort("Failed to open .face/.edge/.bound file for writing.")
+41  FLExit("Failed to open .face/.edge/.bound file for writing.")
     
-42  FLAbort("Error while writing .face/.edge/.bound file.")
+42  FLExit("Error while writing .face/.edge/.bound file.")
     
-43  FLAbort("Failed to close .face/.edge/.bound file for writing.")
+43  FLExit("Failed to close .face/.edge/.bound file for writing.")
     
   end subroutine write_triangle_face_file_full
   
@@ -344,11 +344,11 @@ contains
     ! succesful return
     return
     
-41  FLAbort("Failed to open .face/.edge/.bound file for writing.")
+41  FLExit("Failed to open .face/.edge/.bound file for writing.")
     
-42  FLAbort("Error while writing .face/.edge/.bound file.")
+42  FLExit("Error while writing .face/.edge/.bound file.")
     
-43  FLAbort("Failed to close .face/.edge/.bound file for writing.")
+43  FLExit("Failed to close .face/.edge/.bound file for writing.")
     
   end subroutine write_triangle_face_file
   
