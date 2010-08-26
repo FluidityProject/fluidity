@@ -524,7 +524,7 @@ contains
             &/interior_penalty/edge_length_option/use_element_centres")) &
             & edge_length_option = USE_ELEMENT_CENTRES
     else
-       FLAbort("Unknown viscosity scheme.")
+       FLAbort("Unknown viscosity scheme - Options tree corrupted?")
     end if
 
     integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
@@ -2730,7 +2730,7 @@ contains
      end if
      assert(stat==0)
     else
-     FLAbort("A periodic mesh with remove_periodicity has to be used in combination with the turbine model.")
+     FLExit("A periodic mesh with remove_periodicity has to be used in combination with the turbine model.")
     end if
   end function get_periodic_mesh
 
