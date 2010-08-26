@@ -1071,7 +1071,9 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort("You're trying to remove a tensor field .. that isn't there!")
+       ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Field name: "//trim(name)
+      FLExit("You're trying to remove a tensor field .. that isn't there!")
     end if
   end if
 
@@ -1120,7 +1122,9 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort("You're trying to remove a vector field .. that isn't there!")
+       ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Field name: "//trim(name)
+      FLExit("You're trying to remove a vector field .. that isn't there!")
     end if
   end if
 
@@ -1169,7 +1173,9 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort("You're trying to remove a scalar field .. that isn't there!")
+       ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Field name: "//trim(name)
+      FLExit("You're trying to remove a scalar field .. that isn't there!")
     end if
   end if
 
@@ -1218,7 +1224,9 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort("You're trying to remove a csr sparsity .. that isn't there!")
+       ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Sparsity name: "//trim(name)
+      FLExit("You're trying to remove a csr sparsity .. that isn't there!")
     end if
   end if
 
@@ -1266,8 +1274,10 @@ contains
   if (.not. has_csr_matrix(state, name)) then
     if (present(stat)) then
       stat=1
-    else
-      FLAbort("You're trying to remove a csr matrix .. that isn't there!")
+   else
+      ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Matrix name: "//trim(name)
+      FLExit("You're trying to remove a csr matrix .. that isn't there!")
     end if
   end if
 
@@ -1316,7 +1326,9 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort("You're trying to remove a block csr matrix .. that isn't there!")
+       ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Matrix name: "//trim(name)
+      FLExit("You're trying to remove a block csr matrix .. that isn't there!")
     end if
   end if
 
@@ -1365,7 +1377,9 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort("You're trying to remove a block csr matrix .. that isn't there!")
+       ewrite(-1,*) "State: "//trim(state%name)
+       ewrite(-1,*) "Matrix name: "//trim(name)
+      FLExit("You're trying to remove a block csr matrix .. that isn't there!")
     end if
   end if
 
@@ -1434,7 +1448,7 @@ contains
       if(present(stat)) then
         stat = 1
       else
-        FLAbort(trim(name) // " is not a field name in this state") 
+        FLExit(trim(name) // " is not a field name in this state") 
       end if
     end if
   
@@ -1472,7 +1486,7 @@ contains
           ewrite(-1,*) "i: ", i, " -- ", state%tensor_names(i)
         end do
       end if
-      FLAbort(trim(name)//" is not a field name in this state") 
+      FLExit(trim(name)//" is not a field name in this state") 
     end if
     
   end function extract_tensor_field
@@ -1509,7 +1523,7 @@ contains
           ewrite(-1,*) "i: ", i, " -- ", state%vector_names(i)
         end do
       end if
-      FLAbort(trim(name)//" is not a field name in this state") 
+      FLExit(trim(name)//" is not a field name in this state") 
     end if
 
   end function extract_from_one_vector_field
@@ -1550,7 +1564,7 @@ contains
               stat = 1
             else
               ewrite(-1,*) "name: ", name
-              FLAbort("Couldn't find vector/tensor component!")
+              FLExit("Couldn't find vector/tensor component!")
             end if
           end if
           field => mem
@@ -1579,7 +1593,7 @@ contains
           ewrite(-1,*) "i: ", i, " -- ", state%scalar_names(i)
         end do
       end if
-      FLAbort(trim(name)//" is not a field name in this state") 
+      FLExit(trim(name)//" is not a field name in this state") 
     end if
 
   end function extract_from_one_scalar_field
@@ -1621,7 +1635,7 @@ contains
                 stat = 1
               else
                 ewrite(-1,*) "name: ", name
-                FLAbort("Couldn't find vector/tensor component!")
+                FLExit("Couldn't find vector/tensor component!")
               end if
             end if
             field => mem
@@ -1655,7 +1669,7 @@ contains
           end do
         end if
       end do
-      FLAbort(trim(name)//" is not a field name in these states") 
+      FLExit(trim(name)//" is not a field name in these states") 
     end if
 
   end function extract_from_any_scalar_field
@@ -1696,7 +1710,7 @@ contains
           end do
         end if
       end do
-      FLAbort(trim(name)//" is not a field name in these states") 
+      FLExit(trim(name)//" is not a field name in these states") 
     end if
 
   end function extract_from_any_vector_field
@@ -1737,7 +1751,7 @@ contains
       if(present(stat)) then
         stat = 1
       else
-        FLAbort(trim(name) // " is not a field name in this state") 
+        FLExit(trim(name) // " is not a field name in this state") 
       end if
     end if
   
@@ -1770,7 +1784,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a mesh name in this state") 
+       FLExit(trim(name)//" is not a mesh name in this state") 
     end if
 
   end function extract_mesh_from_one
@@ -1804,7 +1818,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a mesh name in these state") 
+       FLExit(trim(name)//" is not a mesh name in these state") 
     end if
 
   end function extract_mesh_from_any
@@ -1836,7 +1850,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a halo name in this state") 
+       FLExit(trim(name)//" is not a halo name in this state") 
     end if
 
   end function extract_halo
@@ -1868,7 +1882,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a sparsity name in this state") 
+       FLExit(trim(name)//" is not a sparsity name in this state") 
     end if
 
   end function extract_from_one_csr_sparsity
@@ -1902,7 +1916,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a sparsity name in this state") 
+       FLExit(trim(name)//" is not a sparsity name in this state") 
     end if
 
   end function extract_from_any_csr_sparsity
@@ -1933,7 +1947,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a matrix name in this state") 
+       FLExit(trim(name)//" is not a matrix name in this state") 
     end if
 
   end function extract_from_one_csr_matrix
@@ -1966,7 +1980,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a matrix name in these states") 
+       FLExit(trim(name)//" is not a matrix name in these states") 
     end if
 
   end function extract_from_any_csr_matrix
@@ -1997,7 +2011,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a block matrix name in this state") 
+       FLExit(trim(name)//" is not a block matrix name in this state") 
     end if
 
   end function extract_from_one_block_csr_matrix
@@ -2028,7 +2042,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a petsc matrix name in this state") 
+       FLExit(trim(name)//" is not a petsc matrix name in this state") 
     end if
 
   end function extract_from_one_petsc_csr_matrix
@@ -2061,7 +2075,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a block matrix name in these states") 
+       FLExit(trim(name)//" is not a block matrix name in these states") 
     end if
 
   end function extract_from_any_block_csr_matrix
@@ -2094,7 +2108,7 @@ contains
     if (present(stat)) then
        stat=1
     else
-       FLAbort(trim(name)//" is not a petsc matrix name in these states") 
+       FLExit(trim(name)//" is not a petsc matrix name in these states") 
     end if
 
   end function extract_from_any_petsc_csr_matrix
@@ -2513,7 +2527,7 @@ contains
     if (present(stat)) then
       stat=1
     else
-      FLAbort(name//" is not the name of any of the given states.")
+      FLExit(name//" is not the name of any of the given states.")
     end if
     
   end function get_state_index
@@ -2675,7 +2689,7 @@ contains
         return
       else
         ewrite(-1,*) "Looking for state: "//trim(name)
-        FLAbort("No such state!")
+        FLExit("No such state!")
       end if
     end if
     
