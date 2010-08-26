@@ -414,7 +414,7 @@ module python_state
     ! Cleanup
     call python_reset()
 #else
-    FLAbort("Python shell requires NumPy, which cannot be located.")
+    FLExit("Python shell requires NumPy, which cannot be located.")
 #endif
 
   end subroutine python_shell_states
@@ -495,7 +495,7 @@ module python_state
       else
         ewrite(-1, *) "Python error, Python string was:"
         ewrite(-1, *) trim(s)
-        FLAbort("Dying")
+        FLExit("Dying")
       end if
     end if
     
@@ -518,7 +518,7 @@ module python_state
       else
         ewrite(-1, *) "Python error, Python file was:"
         ewrite(-1, *) trim(s)
-        FLAbort("Dying")
+        FLExit("Dying")
       end if
     end if
     
