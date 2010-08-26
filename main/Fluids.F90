@@ -56,7 +56,6 @@ module fluids_module
   use advection_diffusion_DG
   use advection_diffusion_FV
   use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
-  use volumesource
   use vertical_extrapolation_module
   use qmesh_module
   use checkpoint

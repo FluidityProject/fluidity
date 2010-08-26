@@ -61,7 +61,6 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	$(ADJOINTOBJS) \
 	Preprocess.o \
         Solid_Configuration.o Explicit_ALE.o \
-        VolumeSource.o \
 	MeshMovement.o \
 	traffic.o \
 	Field_Equations_CV.o Assemble_CMC.o \
