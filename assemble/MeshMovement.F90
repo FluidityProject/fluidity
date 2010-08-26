@@ -269,7 +269,7 @@ contains
 
           if (lagrangian_multi>=mesh_dim_mesh(mesh)) then 
              ewrite(0,*) "The grid is blocked in all direction!"
-             ewrite(0,*) "Do you know what your doing?"
+             ewrite(0,*) "Do you know what you're doing?"
           endif
        endif
     endif
