@@ -173,8 +173,8 @@ contains
             solid_absorption_factor)
        call get_option(trim(solid_path)//"/number_of_particles",nparticles)
        if(nparticles.le.0) then
-          ewrite(-1,*) 'nparticles: ',nparticles
-          FLAbort('number of particles cannot be negative or zero')
+          ewrite(-1,*) "Your options have: ", trim(solid_path)//"/number_of_particles" , "set to: ",nparticles
+          FLExit('The number of particles cannot be negative or zero')
        end if
 
        oneway=.false.
@@ -368,7 +368,9 @@ contains
           inquire(file=trim(input_file_name),exist=got_particles)
           !Read input variables and sanity check
           if(.not.got_particles) then
-             FLAbort("No input file for particles..Dying!!!..")
+             ewrite(-1,*) "Solids configuration"
+             ewrite(-1,*) "Looking for file: ",trim(input_file_name)
+             FLExit("Unfortunately, this file was not found.")
           end if
           dat_unit=free_unit()
           open(dat_unit,file=trim(input_file_name),status='OLD')
@@ -394,7 +396,9 @@ contains
           inquire(file=trim(quad2lin_filename),exist=got_quad2lin)
           !Read input variables and sanity check
           if(.not.got_quad2lin) then
-             FLAbort("No input file for reading quadratic-to-linear info..")
+             ewrite(-1,*) "Solids configuration: reading quadratic-to-linear info"
+             ewrite(-1,*) "Looking for file: ",trim(input_file_name)
+             FLExit("Unfortunately, this file was not found.")       
           end if
           dat_unit=free_unit()
           open(dat_unit,file=trim(quad2lin_filename),status='OLD')
@@ -439,7 +443,8 @@ contains
              end do
           end do
 #else
-          FLAbort('You need to configure --with-femdem=/PATH_TO_FEMDEM3D_DIR')
+          ewrite(-1,*) "Error with your fluidity build"
+          FLExit('You need to configure --with-femdem=/PATH_TO_FEMDEM3D_DIR')
 #endif
        end select
        ewrite(0,*) 'finished reading solid_configuration parameters ...'       
@@ -951,7 +956,7 @@ contains
        case('use_simple_dynamics')
           call hookforce(state)          
        case('use_y3D')
-          FLAbort('DEM not implemented yet')
+          FLExit('DEM not implemented yet')
        case('use_3Dfemdem')
 #ifdef USING_FEMDEM
           position2=extract_vector_field(state(1),"ParticleMeshCoordinate")
@@ -979,7 +984,8 @@ contains
              end do
           end do
 #else
-          FLAbort('You need to configure --with-femdem=/PATH_TO_FEMDEM3D_DIR')
+          ewrite(-1,*) "Error with your fluidity build"
+          FLExit('You need to configure --with-femdem=/PATH_TO_FEMDEM3D_DIR')
 #endif
        end select
     end if
@@ -2149,11 +2155,13 @@ contains
     position = extract_vector_field(state(state_to_use), "Coordinate")
     matvolfrac=extract_scalar_field(state(state_to_use),"MaterialVolumeFraction",stat)
     if(stat/=0) then
-       FLAbort('could not extract matvolfrac')
+       ewrite(-1,*) 'Could not extract MaterialVolumeFraction'
+       FLExit("You need to add the MaterialVolumeFraction scalar field to your options")
     end if
     velocity=extract_vector_field(state(state_to_use),"Velocity",stat)
     if(stat/=0) then
-       FLAbort('could not extract velocity')
+       ewrite(-1,*)('could not extract Velocity')
+       FLExit("You need to add the Velocity vector field to your options")
     end if
 
     mesh=extract_mesh(state(state_to_use),'CoordinateMesh')

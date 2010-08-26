@@ -212,8 +212,8 @@ contains
          !Now check the residual
          do d1 = 1, dim
             if(maxval(abs(u_mem2%val(d1)%ptr))>1.0e-7) then
-               ewrite(0,*) 'residual of ',maxval(abs(u_mem2%val(d1)%ptr))
-               ewrite(0,*) 'in component',d1
+               ewrite(-1,*) 'residual of ',maxval(abs(u_mem2%val(d1)%ptr))
+               ewrite(-1,*) 'in component',d1
                FLAbort('check big mat failed')
             end if
          end do
