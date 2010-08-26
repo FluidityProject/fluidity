@@ -852,7 +852,7 @@ contains
        end if
 
     case default
-       FLAbort('no such discontinuity option')
+       FLExit('no such discontinuity option')
     end select
 
     if(limit_slope) then
@@ -1280,7 +1280,7 @@ contains
           normal_vec(3) = Vec1(1)*Vec2(2)-Vec1(2)*Vec2(1)
           Area = 0.5*sqrt(sum(normal_vec**2))
        case default
-          FLAbort('cant handle that case')
+          FLExit('cant handle that case - that dimension is not supported')
        end select
        normal_vec = normal_vec / sqrt(sum(normal_vec**2))
        centroid2face = sum(X_face_val,2)/size(X_face_val,2) - &
@@ -1349,7 +1349,7 @@ contains
           end do
        end do
     case default
-       FLAbort('dont know that dimension.')
+       FLExit('dont know that dimension.')
     end select
     
   end function get_H
