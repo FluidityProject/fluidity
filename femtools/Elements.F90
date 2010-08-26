@@ -164,7 +164,7 @@ contains
 
     case default
 
-      FLAbort("Illegal element type")
+      FLAbort("Attempt to select an illegal element type.")
 
     end select
 
@@ -182,7 +182,7 @@ contains
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
-       FLAbort("elements: Error allocating element")
+       FLAbort("Unable to allocate element.")
     end if
 
   end subroutine allocate_element
@@ -214,7 +214,7 @@ contains
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
-       FLAbort("elements: Error allocating element")
+       FLAbort("Unable to allocate element.")
     end if
     
     nullify(element%refcount) ! Hack for gfortran component initialisation
@@ -269,7 +269,7 @@ contains
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
-       FLAbort("elements: Error deallocating element")
+       FLAbort("Unable to deallocate element.")
     end if
 
   end subroutine deallocate_element
