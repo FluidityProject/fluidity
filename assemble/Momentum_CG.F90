@@ -203,11 +203,6 @@
 
       integer :: stat, dim, ele, sele, dim2
 
-      ! For the evaluation of the inward normal at gauss points if on the sphere
-      type(vector_field), pointer:: positions
-      
-      logical :: have_surface_fs_stabilisation
-
       ! Fields for vertical velocity relaxation
       type(scalar_field), pointer :: dtt, dtb
       type(scalar_field) :: depth
@@ -332,8 +327,6 @@
       end if
 
       on_sphere = have_option('/geometry/spherical_earth/')
-        
-      positions => extract_vector_field(state, "Coordinate")
 
       call get_option("/timestepping/timestep", dt)
       call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
@@ -453,7 +446,7 @@
       ! ----- Volume integrals over elements -------------
       
       element_loop: do ele=1, element_count(u)
-         call construct_momentum_element_cg(positions, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
+         call construct_momentum_element_cg(ele, big_m, rhs, ct_m, mass, inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
               source, absorption, buoyancy, gravity, &
@@ -498,7 +491,7 @@
             ele = face_ele(x, sele)
             
             call construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
-                 x, u, nu, ug, density, p, gravity, &
+                 inverse_masslump, x, u, nu, ug, density, p, gravity, &
                  velocity_bc, velocity_bc_type, velocity_bc_number, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix, cg_pressure, viscosity, oldu)
@@ -611,7 +604,7 @@
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, ele, big_m, rhs, ct_m, ct_rhs, &
-                                                     x, u, nu, ug, density, p, gravity, &
+                                                     masslump, x, u, nu, ug, density, p, gravity, &
                                                      velocity_bc, velocity_bc_type, velocity_bc_number, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix, cg_pressure, viscosity, &
@@ -624,6 +617,8 @@
 
       type(block_csr_matrix), pointer :: ct_m
       type(scalar_field), intent(inout) :: ct_rhs
+
+      type(vector_field), intent(inout) :: masslump
 
       type(vector_field), intent(in) :: x, oldu
       type(vector_field), intent(in) :: u, nu
@@ -641,7 +636,7 @@
       logical, intent(in) :: assemble_ct_matrix, cg_pressure
 
       ! local
-      integer :: dim, dim2
+      integer :: dim, i
 
       integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
       integer, dimension(face_loc(p, sele)) :: p_nodes_bdy
@@ -650,17 +645,23 @@
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, upwards_gi
       real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
-      real, dimension(u%dim, u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab
+      real, dimension(u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab
+      real, dimension(u%dim, face_loc(u, sele)) :: lumped_fs_surfacestab
       real, dimension(face_loc(u, sele), face_loc(u, sele)) :: adv_mat_bdy
 
       real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
+      real, dimension(face_ngi(u, sele)) :: density_gi
 
+      real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
+      real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
 
       u_shape=> face_shape(u, sele)
       p_shape=> face_shape(p, sele)
 
       u_nodes_bdy = face_global_nodes(u, sele)
       p_nodes_bdy = face_global_nodes(p, sele)
+
+      oldu_val = face_val(oldu, sele)
 
       call transform_facet_to_physical(X, sele, &
            detwei_f=detwei_bdy, normal=normal_bdy)
@@ -726,24 +727,51 @@
       end if
 
       ! Add free surface stabilisation.
+
       if (velocity_bc_type(1,sele)==4 .and. have_surface_fs_stabilisation) then
-             upwards_gi=-face_val_at_quad(gravity, sele)
+        if (on_sphere) then
+          upwards_gi=-sphere_inward_normal_at_quad_face(x, sele)
+        else
+          upwards_gi=-face_val_at_quad(gravity, sele)
+        end if
+        
+        do i=1,face_ngi(u,sele)
+          ndotk_k(:,i)=dot_product(normal_bdy(:,i),upwards_gi(:,i))*upwards_gi(:,i)
+        end do
 
-             fs_surfacestab = shape_shape_vector_outer_vector(u_shape, u_shape, &
-                 dt*gravity_magnitude*detwei_bdy*face_val_at_quad(density, sele), normal_bdy, upwards_gi)
+        density_gi=face_val_at_quad(density, ele)
 
-             do dim = 1, u%dim 
-                 do dim2 = 1, u%dim
-                    call addto(big_m, dim, dim2, u_nodes_bdy, u_nodes_bdy, dt*fs_surfacestab(dim2, dim,:,:))
-                    call addto(rhs, dim, u_nodes_bdy, matmul(fs_surfacestab(dim2, dim, :,:), face_val(nu, dim2, sele)/dt-face_val(oldu, dim2, sele)/dt))
-                 end do
-             end do
+        fs_surfacestab = shape_shape_vector(u_shape, u_shape, &
+                         detwei_bdy*density_gi, dt*gravity_magnitude*ndotk_k)
+
+        if (lump_mass) then
+          lumped_fs_surfacestab = sum(fs_surfacestab, 3)
+          do dim = 1, u%dim
+            call addto_diag(big_m, dim, dim, u_nodes_bdy, dt*theta*lumped_fs_surfacestab(dim,:))
+            call addto(rhs, dim, u_nodes_bdy, -lumped_fs_surfacestab(dim,:)*oldu_val(dim,:))
+          end do
+        else if (.not.pressure_corrected_absorption) then
+          do dim = 1, u%dim
+            call addto(big_m, dim, dim, u_nodes_bdy, u_nodes_bdy, dt*theta*fs_surfacestab(dim,:,:))
+            call addto(rhs, dim, u_nodes_bdy, -matmul(fs_surfacestab(dim,:,:), oldu_val(dim,:)))
+          end do
+        else
+           ewrite(-1,*) "Free surface stabilisation requires that mass is lumped or that"
+           FLExit("absorption is not included in the pressure correction") 
+        end if
+      end if
+      if (pressure_corrected_absorption) then
+        if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
+          call addto(masslump, u_nodes_bdy, theta*lumped_fs_surfacestab)
+        else
+          FLExit("Error?") 
+        end if
       end if
 
     end subroutine construct_momentum_surface_element_cg
 
 
-    subroutine construct_momentum_element_cg(positions, ele, big_m, rhs, ct_m, &
+    subroutine construct_momentum_element_cg(ele, big_m, rhs, ct_m, &
                                             mass, masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, p, &
@@ -755,7 +783,6 @@
     !!< and rhs for the continuous galerkin momentum equations
 
       ! current element
-      type(vector_field), intent(inout) :: positions
       integer, intent(in) :: ele
       type(petsc_csr_matrix), intent(inout) :: big_m
       type(vector_field), intent(inout) :: rhs
@@ -909,7 +936,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, on_sphere, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, on_sphere, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -919,7 +946,7 @@
 
       ! Absorption terms (sponges)
       if (have_absorption .or. have_vertical_stabilization) then
-       call add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, &
+       call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
          absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
          masslump, mass, depth=depth, gravity=gravity, buoyancy=buoyancy)
       end if
@@ -1189,7 +1216,7 @@
       ! exactly at quadrature points.
         rhs_addto = rhs_addto + &
                     shape_vector_rhs(test_function, &
-                                     sphere_inward_normal_at_quad(positions, ele), &
+                                     sphere_inward_normal_at_quad_ele(positions, ele), &
                                      detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
       else
         rhs_addto = rhs_addto + &
@@ -1225,7 +1252,7 @@
     end subroutine add_surfacetension_element_cg
     
     subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, masslump, mass, depth, gravity, buoyancy)
-      type(vector_field), intent(inout) :: positions
+      type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
@@ -1274,7 +1301,7 @@
           ! Form the vertical velocity relaxation absorption term
           if (on_sphere) then
             assert(ele_ngi(u, ele)==ele_ngi(positions, ele))
-            vvr_abs=sphere_inward_normal_at_quad(positions, ele)
+            vvr_abs=sphere_inward_normal_at_quad_ele(positions, ele)
           else
             assert(ele_ngi(u, ele)==ele_ngi(gravity, ele))
             vvr_abs=ele_val_at_quad(gravity, ele)
@@ -1282,7 +1309,7 @@
           depth_at_quads=ele_val_at_quad(depth, ele)
 
           do i=1,ele_ngi(u,ele)
-            vvr_abs(:,i)=gravity_magnitude*dt*vvr_abs(:,i)*density_gi(i)/depth_at_quads(i)
+            vvr_abs(:,i)=gravity_magnitude*dt*vvr_abs(:,i)/depth_at_quads(i)
           end do
 
         end if
@@ -1296,12 +1323,12 @@
 
           ! Calculate the gradient in the direction of gravity
           if (on_sphere) then
-            grav_at_quads=sphere_inward_normal_at_quad(positions, ele)
+            grav_at_quads=sphere_inward_normal_at_quad_ele(positions, ele)
           else
             grav_at_quads=ele_val_at_quad(gravity, ele)
           end if
           do i=1,ele_ngi(U,ele)
-            drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i))
+            drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
             if (drho_dz(i) < 0.0) drho_dz(i)=0.0
           end do
 

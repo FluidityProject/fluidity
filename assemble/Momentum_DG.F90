@@ -230,9 +230,6 @@ contains
 
     integer :: dim, dim2
 
-    ! For the evaluation of the inward normal at gauss points if on the sphere
-    type(vector_field), pointer:: positions
-
     ! Fields for vertical velocity relaxation
     type(scalar_field), pointer :: dtt, dtb
     type(scalar_field) :: depth
@@ -409,8 +406,6 @@ contains
     q_mesh=Viscosity%mesh
 
     on_sphere = have_option('/geometry/spherical_earth/')
-     
-    positions => extract_vector_field(state, "Coordinate")
 
     ! Extract model parameters from options dictionary.
     if (acceleration) then
@@ -599,7 +594,7 @@ contains
 
     element_loop: do ELE=1,element_count(U)
        
-       call construct_momentum_element_dg(positions, ele, big_m, rhs, &
+       call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
             & Source, Buoyancy, gravity, Abs, Viscosity, &
             & P, Rho, surfacetension, q_mesh, &
@@ -649,7 +644,7 @@ contains
     
   end subroutine construct_momentum_dg
 
-  subroutine construct_momentum_element_dg(positions, ele, big_m, rhs, &
+  subroutine construct_momentum_element_dg(ele, big_m, rhs, &
        &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, gravity, Abs, &
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
@@ -661,7 +656,6 @@ contains
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
     implicit none
-    type(vector_field), intent(in) :: positions
     !! Index of current element
     integer :: ele
     !! Main momentum matrix.
@@ -821,7 +815,7 @@ contains
     type(element_type), pointer :: u_cg_shape
     real, dimension(ele_ngi(u_cg, ele)) :: detwei_cg
     real, dimension(ele_loc(u_cg, ele), ele_ngi(u_cg, ele), u_cg%dim) :: du_t_cg
-    real, dimension(positions%dim, positions%dim, ele_ngi(u_cg,ele)) :: les_tensor_gi
+    real, dimension(X%dim, X%dim, ele_ngi(u_cg,ele)) :: les_tensor_gi
     real, dimension(ele_ngi(u_cg, ele)) :: les_coef_gi
     integer :: toloc, fromloc, j, gi
     real, dimension(u%mesh%shape%loc, u_cg%mesh%shape%loc) :: locweight
@@ -1163,7 +1157,7 @@ contains
       ! If were on a spherical Earth evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
-                                    sphere_inward_normal_at_quad(positions, ele), &
+                                    sphere_inward_normal_at_quad_ele(X, ele), &
                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
       else
         rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
@@ -1183,8 +1177,8 @@ contains
         
         ! Form the vertical velocity relaxation absorption term
         if (on_sphere) then
-          assert(ele_ngi(U, ele)==ele_ngi(positions, ele))
-          vvr_abs=sphere_inward_normal_at_quad(positions, ele)
+          assert(ele_ngi(U, ele)==ele_ngi(X, ele))
+          vvr_abs=sphere_inward_normal_at_quad_ele(X, ele)
         else
           assert(ele_ngi(U, ele)==ele_ngi(gravity, ele))
           vvr_abs=ele_val_at_quad(gravity, ele)
@@ -1201,12 +1195,12 @@ contains
 
         assert(ele_ngi(U, ele)==ele_ngi(buoyancy, ele))
         
-        call transform_to_physical(positions, ele, ele_shape(buoyancy,ele), dshape=dt_rho)
+        call transform_to_physical(X, ele, ele_shape(buoyancy,ele), dshape=dt_rho)
         grad_rho=ele_grad_at_quad(buoyancy, ele, dt_rho)
 
         ! Calculate the gradient in the direction of gravity
         if (on_sphere) then
-          grav_at_quads=sphere_inward_normal_at_quad(positions, ele)
+          grav_at_quads=sphere_inward_normal_at_quad_ele(X, ele)
         else
           grav_at_quads=ele_val_at_quad(gravity, ele)
         end if
