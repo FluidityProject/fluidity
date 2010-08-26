@@ -121,7 +121,7 @@ contains
     !!< At this stage only Lagrange family polynomial elements are supported.
     type(element_type) :: shape
     !! Vertices is the number of vertices of the element, not the number of nodes!
-    !! Only dim=3 is currently supported.
+    !! dim \in [1,2,3] is currently supported.
     !! Degree is the degree of the Lagrange polynomials.
     integer, intent(in) :: vertices, dim, degree
     type(quadrature_type), intent(in), target :: quad
@@ -156,7 +156,7 @@ contains
           stat=1
           return
        else
-          FLAbort('Element numbering unavailable')
+          FLAbort('Element numbering unavailable.')
        end if
     end if    
 
@@ -167,7 +167,7 @@ contains
     case (FAMILY_CUBE)
        coords=dim
     case default
-       FLAbort('Illegal element family')
+       FLAbort('Illegal element family.')
     end select
 
     shape%numbering=>ele_num
@@ -185,7 +185,7 @@ contains
             ele_num%faces, quad_s%ngi,coords,.true.)
               surface_count=ele_num%edges
            case default
-              FLAbort("Unsupported dimension count.")
+              FLAbort("Unsupported dimension count.  Can only generate surface shape functions for elements that exist in 2 or 3 dimensions.")
         end select
     else
        call allocate(shape, dim, ele_num%nodes, quad%ngi, coords)
@@ -224,7 +224,7 @@ contains
 
           case default
 
-             FLAbort('David smoked an illegal element type')
+             FLAbort('An unsupported element type has been selected.')
              
           end select
 
