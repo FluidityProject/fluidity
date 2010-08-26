@@ -59,8 +59,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
 	$(ADJOINTOBJS) \
-	Preprocess.o \
-        Solid_Configuration.o Explicit_ALE.o \
+	Solid_Configuration.o Explicit_ALE.o \
 	MeshMovement.o \
 	traffic.o \
 	Field_Equations_CV.o Assemble_CMC.o \
