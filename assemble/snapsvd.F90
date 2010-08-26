@@ -586,7 +586,7 @@ external         dnrm2, daxpy, dcopy, dscal
          DEALLOCATE(select)
                         
 #else
-  FLAbort("No ARPACK support - cannot run reduced model.")
+  FLExit("No ARPACK support, recompile with ARPACK - cannot run reduced model.")
 #endif
       return
       end subroutine snapsvd
@@ -1207,7 +1207,7 @@ external         dnrm2, daxpy, dcopy, dscal
          DEALLOCATE(ay_dz)
                         
 #else
-  FLAbort("No ARPACK support - cannot run reduced model.")
+  FLExit("No ARPACK support, recompile with ARPACK - cannot run reduced model.")
 #endif
       return
       end subroutine snapsvd_H1
