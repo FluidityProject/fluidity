@@ -68,7 +68,7 @@ contains
     dim=mesh_dim(position)
 
     if (dim/=3) then
-       FLAbort("Generic function are only supported for 3d scalar fields")
+       FLExit("Generic functions are only supported for 3d scalar fields")
     end if
 
     if (field%mesh==position%mesh) then
@@ -103,7 +103,7 @@ contains
     if (stat/=0) then
        ewrite(0,*) "Generic error, function was:"
        ewrite(0,*) func
-       FLAbort("Dying")
+       FLExit("Dying")
     end if
 
     if (has_references(lposition)) then
@@ -127,7 +127,7 @@ contains
     integer :: stat, dim
     
     if (dim/=3) then
-       FLAbort("Generic function are only supported for 3d scalar fields")
+       FLExit("Generic functions are only supported for 3d scalar fields")
     end if
        
     lx=>x
@@ -140,7 +140,7 @@ contains
     if (stat/=0) then
        ewrite(0,*) "Generic error, function was:"
        ewrite(0,*) func
-       FLAbort("Dying")
+       FLExit("Dying")
     end if
 
   end subroutine set_values_from_generic_scalar
