@@ -356,7 +356,7 @@ contains
        ! Interior nodes
        element_len=0
      case default
-       FLAbort("Invalid dimension")
+       FLAbort("Unsupported dimension specified.")
    end select
 
     ! Total nodes per element
@@ -564,7 +564,7 @@ contains
     !----------------------------------------------------------------------
     if (D3.and.face_len>0) then
        if(isparallel()) then
-         FLAbort("This is broken - blame dham")
+         FLAbort("This is broken - blame dham.")
        end if
        allocate(face_nodes(snloc), ndglno_pos(face_len))
        do ele=1,size(EEList,1)
@@ -643,7 +643,7 @@ contains
              new_ndglno(ndglno_pos(i))=n(this_receive_halo_level)
              
              if(isparallel()) then
-               FLAbort("This is broken - blame dham")
+               FLAbort("This is broken - blame dham.")
                new_receive_halo_level(ndglno_pos(i))=this_receive_halo_level
 !               new_node_owner(ndglno_pos(i))=this_node_owner
              end if
@@ -1236,7 +1236,7 @@ contains
 
     call flush_lists(visible_elements)
 #else
-    FLAbort("Communicating halo visibility makes no sense without mpi")
+    FLAbort("Communicating halo visibility makes no sense without MPI.")
 #endif
 
   end subroutine element_halo_communicate_visibility
