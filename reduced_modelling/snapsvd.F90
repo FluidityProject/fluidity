@@ -641,7 +641,7 @@ contains
     DEALLOCATE(select)
 
 #else
-    FLAbort("No ARPACK support - cannot run reduced model.")
+    FLExit("No ARPACK support, recompile with ARPACK - cannot run reduced model.")
 #endif
     return
   end subroutine snapsvd
