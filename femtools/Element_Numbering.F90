@@ -289,7 +289,7 @@ contains
 
     case default
        
-       FLAbort('Illegal element type')
+       FLAbort('Attempt to select an illegal element type.')
 
     end select
        
@@ -880,7 +880,7 @@ contains
           stat=1
           return
        else
-          FLAbort("Node is not part of element in vertex_num")
+          FLAbort("Node is not part of an element in vertex_num.")
        end if
     end if
 
@@ -971,7 +971,7 @@ contains
       
     case default
 
-       FLAbort('Unknown element shape')
+       FLAbort('Unknown element shape.')
 
     end select
     
@@ -1170,7 +1170,7 @@ contains
           stat=1
           return
        else
-          FLAbort("Nodes are not part of element in edge_num_int")
+          FLAbort("Nodes are not part of element in edge_num_int.")
        end if
     end if
     
@@ -1235,7 +1235,7 @@ contains
         end do
           
         if (j==0) then
-          FLAbort("Twice the same node given in edge_local_num.")
+          FLAbort("The same node appears more than once in edge_local_num.")
         end if
           
         ! instead of between 0 and 1, between 0 and degree
@@ -1315,7 +1315,7 @@ contains
           stat=1
           return
        else
-          FLAbort("Nodes are not part of element in face_num_int")
+          FLAbort("Nodes are not part of an element in face_num_int.")
        end if
     end if
 
@@ -1423,7 +1423,7 @@ contains
         end do
           
         if (j12==0 .or. j13==0) then
-          FLAbort("Twice the same node given in edge_local_num.")
+          FLAbort("The same node appears more than once in edge_local_num.")
         end if
           
         ! Now find the nodes on the face by walking through the count
@@ -1460,7 +1460,7 @@ contains
         
     case default
       
-        FLAbort("Unknown element family")
+        FLAbort("Unknown element family.")
         
     end select
     
@@ -1610,7 +1610,7 @@ contains
           stat=1
           return
        else
-          FLAbort("Nodes are not part of element in element_num_int")
+          FLAbort("Nodes are not part of an element in element_num_int.")
        end if
     end if
 
@@ -1682,7 +1682,7 @@ contains
     
     ! Sanity test input values.
     if (maxval(nodes)>4.or.minval(nodes)<1) then
-       FLAbort('Illegal node index in local_face_num')
+       FLAbort('Illegal node index in local_face_num.')
     end if
 
     forall(i=1:4)
@@ -1690,7 +1690,7 @@ contains
     end forall
 
     if (count(index_present)/=3) then
-       FLAbort('Nodes do not define a face in local_face_num')
+       FLAbort('Nodes do not define a face in local_face_num.')
     end if
 
     ! The face index is the index of the opposite vertex (ie the one which
@@ -1736,7 +1736,7 @@ contains
           
        case default
           
-          FLAbort('Unknown element family')
+          FLAbort('Unknown element family.')
 
        end select
 
@@ -1746,7 +1746,7 @@ contains
 
     case default
 
-       FLAbort('Illegal element type')
+       FLAbort('Illegal element type.')
 
     end select
 
