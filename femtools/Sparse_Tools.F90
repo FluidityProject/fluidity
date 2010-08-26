@@ -1262,10 +1262,8 @@ END SUBROUTINE POSINM_COLOUR
 
           sparsity%COLM(PTR) = Current%ID
           IF(Current%ID==-1) THEN
-             ewrite(-1,*) &
-                  "ERROR: Mesh contains nodes that are not associated with any elements."
              ewrite(-1,*) "ERROR: POSINM() seriously unhappy with node",IROW
-             FLAbort("Dying")
+             FLAbort("Mesh contains nodes that are not associated with any elements.")
           END IF
 
           PTR = PTR + 1
@@ -1341,7 +1339,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate sparsity")
+          FLAbort("Failed to allocate sparsity.")
        end if
     end if
 
@@ -1414,14 +1412,14 @@ END SUBROUTINE POSINM_COLOUR
 #endif
 
     case default
-       FLAbort("Unknown matrix data type")
+       FLAbort("Unknown matrix data type.")
     end select
 
     if (present(stat)) then
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix")
+          FLAbort("Failed to allocate matrix.")
        end if
     end if
 
@@ -1472,7 +1470,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to deallocate matrix")
+          FLAbort("Failed to deallocate matrix.")
        end if
     end if
 
@@ -1526,18 +1524,18 @@ END SUBROUTINE POSINM_COLOUR
     end if
     
     if (.not. associated(matrix%ksp)) then
-      FLAbort("Deallocating non-allocated or damaged csr matrix")
+      FLAbort("Attempt made to deallocate a non-allocated or damaged CSR matrix.")
     end if
     
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, lstat)
       if (lstat/=0) then
         if (present(stat)) then
-          ewrite(0,*) "Error from KSPDestroy in deallocate_csr_matrix"
+          ewrite(0,*) "Error from KSPDestroy in deallocate_csr_matrix."
           stat=lstat
           return
         end if
-        FLAbort("Error from KSPDestroy in deallocate_csr_matrix")
+        FLAbort("Error from KSPDestroy in deallocate_csr_matrix.")
       end if
     end if
     deallocate(matrix%ksp)
@@ -1546,7 +1544,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to deallocate matrix")
+          FLAbort("Failed to deallocate matrix.")
        end if
     end if
     
@@ -1581,7 +1579,7 @@ END SUBROUTINE POSINM_COLOUR
     matrix%name = lname
     
     if(present_and_true(diagonal).and.(blocks(1)/=blocks(2))) then
-      FLAbort("Attempting to allocate a nonsquare diagonal block_csr_matrix!")
+      FLAbort("Attempt made to allocate a non-square diagonal block_csr_matrix!")
     end if
     matrix%diagonal = present_and_true(diagonal)
     matrix%equal_diagonal_blocks = present_and_true(equal_diagonal_blocks)
@@ -1667,7 +1665,7 @@ END SUBROUTINE POSINM_COLOUR
     else
        if (lstat/=0) then
           
-          FLAbort("Failed to allocate matrix")
+          FLAbort("Failed to allocate matrix.")
        end if
     end if
 
@@ -1733,7 +1731,7 @@ END SUBROUTINE POSINM_COLOUR
     end if
     
     if (.not. associated(matrix%ksp)) then
-      FLAbort("Deallocating non-allocated or damaged csr matrix")
+      FLAbort("Attempt made to deallocate a non-allocated or damaged CSR matrix.")
     end if
     if (matrix%ksp/=PETSC_NULL_OBJECT) then
       call KSPDestroy(matrix%ksp, lstat)
@@ -1743,7 +1741,7 @@ END SUBROUTINE POSINM_COLOUR
           stat=lstat
           return
         end if
-        FLAbort("Error from KSPDestroy in deallocate_csr_matrix")
+        FLAbort("Error from KSPDestroy in deallocate_csr_matrix.")
       end if
     end if
     deallocate(matrix%ksp)
@@ -1787,7 +1785,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to deallocate matrix")
+          FLAbort("Failed to deallocate matrix.")
        end if
     end if
 
@@ -1833,7 +1831,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix")
+          FLAbort("Failed to allocate matrix.")
        end if
     end if    
 
@@ -1864,7 +1862,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix")
+          FLAbort("Failed to allocate matrix.")
        end if
     end if    
 
@@ -1910,7 +1908,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix")
+          FLAbort("Failed to allocate matrix.")
        end if
     end if    
 
@@ -1940,7 +1938,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to allocate matrix")
+          FLAbort("Failed to allocate matrix.")
        end if
     end if    
 
@@ -1955,7 +1953,7 @@ END SUBROUTINE POSINM_COLOUR
     integer, intent(in) :: block_i, block_j
 
     if(matrix%diagonal.and.(block_i/=block_j)) then
-      FLAbort("Attempting to extract an off diagonal block from a diagonal block_csr_matrix")
+      FLAbort("Attempting to extract an off-diagonal block from a diagonal block_csr_matrix.")
     end if
 
     block_out%clone=.true.
@@ -2030,7 +2028,7 @@ END SUBROUTINE POSINM_COLOUR
        matrix%external_val=.true.
        lstat=0
     else
-       FLAbort("Either val or ival must be provided to wrap_matrix")
+       FLAbort("Either val or ival must be provided to wrap_matrix.")
     end if
 
     ! always allocate to make sure all references see the same %ksp
@@ -2045,7 +2043,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to wrap matrix")
+          FLAbort("Failed to wrap matrix.")
        end if
     end if
 
@@ -2128,7 +2126,7 @@ END SUBROUTINE POSINM_COLOUR
        stat=lstat
     else
        if (lstat/=0) then
-          FLAbort("Failed to wrap matrix")
+          FLAbort("Failed to wrap matrix.")
        end if
     end if
 
@@ -2140,7 +2138,7 @@ END SUBROUTINE POSINM_COLOUR
     type(csr_matrix), intent(inout) :: matrix
 
     if (matrix%clone .and. matrix%external_val) then
-      FLAbort("Can't unclone this matrix as it is using externally stored values")
+      FLAbort("Can't unclone this matrix as it is using externally stored values.")
     end if
     matrix%clone=.false.
     
@@ -2554,7 +2552,7 @@ END SUBROUTINE POSINM_COLOUR
     real, dimension(:), pointer :: block_csr_row_val_ptr
     
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to retrieve values in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to retrieve values in an-off diagonal block of a diagonal block_csr_matrix!")
     end if
 
     block_csr_row_val_ptr=> &
@@ -2579,7 +2577,7 @@ END SUBROUTINE POSINM_COLOUR
     integer, dimension(:), pointer :: block_csr_row_ival_ptr
 
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to retrieve values in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to retrieve values in an off-diagonal block of a diagonal block_csr_matrix!")
     end if
 
     block_csr_row_ival_ptr=> &
@@ -2644,7 +2642,7 @@ END SUBROUTINE POSINM_COLOUR
     
     if (.not. can_have_inactive(matrix)) then
       ewrite(1,*) "Matrix: ", trim(matrix%name)
-      FLAbort("This matrix cannot have inactive rows set")
+      FLAbort("This matrix cannot have inactive rows set.")
     end if
     
     if (.not. has_inactive(matrix)) then
@@ -3193,13 +3191,13 @@ END SUBROUTINE POSINM_COLOUR
 
     if (associated(matrix%val)) then
        if(mpos==0) then
-          FLAbort("Attempting to set value in matrix outside sparsity pattern")
+          FLAbort("Attempting to set value in matrix outside sparsity pattern.")
        end if
        matrix%val(mpos)=matrix%val(mpos)+val
     else if (associated(matrix%ival)) then
        matrix%ival(mpos)=matrix%ival(mpos)+val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine csr_addto
@@ -3222,7 +3220,7 @@ END SUBROUTINE POSINM_COLOUR
     else if (associated(matrix%ival)) then
        matrix%ival(mpos)=matrix%ival(mpos)+val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine csr_iaddto
@@ -3262,7 +3260,7 @@ END SUBROUTINE POSINM_COLOUR
     integer :: mpos
 
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
     
     mpos = pos(matrix, i, j, save_pos=save_pos)
@@ -3275,7 +3273,7 @@ END SUBROUTINE POSINM_COLOUR
        matrix%ival(blocki, blockj)%ptr(mpos)&
             =matrix%ival(blocki, blockj)%ptr(mpos)+val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine block_csr_addto
@@ -3292,7 +3290,7 @@ END SUBROUTINE POSINM_COLOUR
     logical, dimension(size(i), size(j)) :: l_mask
 
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     if(present(mask)) then
@@ -3376,7 +3374,7 @@ END SUBROUTINE POSINM_COLOUR
     integer row, col
       
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
   
     if (mblock%clone .or. matrix%clone) then
@@ -3425,7 +3423,7 @@ END SUBROUTINE POSINM_COLOUR
     integer row, col
       
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     if (associated(matrix%sparsity%findrm, mblock%sparsity%findrm) .and. &
@@ -3490,10 +3488,10 @@ END SUBROUTINE POSINM_COLOUR
     do i=1, size(blocki)
        do j=1, size(blockj)
           if(matrixB%diagonal.and.(i/=j)) then
-            FLAbort("Attempting to retrive an off diagonal block of a diagonal block_csr_matrix")
+            FLAbort("Attempting to retrive an off-diagonal block of a diagonal block_csr_matrix.")
           end if
           if(matrixA%diagonal.and.(blocki(i)/=blockj(j))) then
-            FLAbort("Attempting to set values in an off diagonal block of a diagonal block_csr_matrix")
+            FLAbort("Attempting to set values in an off-diagonal block of a diagonal block_csr_matrix.")
           end if
 
           blockij=block(matrixB, i, j)
@@ -3703,7 +3701,7 @@ END SUBROUTINE POSINM_COLOUR
          matrix%ival(mpos)=matrix%ival(mpos)+val
        end if
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine csr_addto_diag
@@ -3735,7 +3733,7 @@ END SUBROUTINE POSINM_COLOUR
     integer :: mpos
 
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     if(associated(matrix%sparsity%centrm)) then
@@ -3761,7 +3759,7 @@ END SUBROUTINE POSINM_COLOUR
                 =matrix%ival(blocki, blockj)%ptr(mpos)+val
        end if
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine block_csr_addto_diag
@@ -3777,7 +3775,7 @@ END SUBROUTINE POSINM_COLOUR
     integer :: iloc
     
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
     
     do iloc=1,size(i)
@@ -3804,7 +3802,7 @@ END SUBROUTINE POSINM_COLOUR
     else if (associated(matrix%ival)) then
        matrix%ival(mpos)=val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine csr_set
@@ -3833,7 +3831,7 @@ END SUBROUTINE POSINM_COLOUR
        else if (associated(out_matrix%ival)) then
           out_matrix%ival=in_matrix%ival
        else
-          FLAbort("Attempting to set value in a matrix with no value space")
+          FLAbort("Attempting to set value in a matrix with no value space.")
        end if
     else
        ewrite(-1,*) 'Warning, not same sparsity'
@@ -3887,7 +3885,7 @@ END SUBROUTINE POSINM_COLOUR
           assert(associated(in_matrix%ival(blocki,blockj)%ptr))
           out_matrix%ival=in_matrix%ival(blocki,blockj)%ptr
        else
-          FLAbort("Attempting to set value in a matrix with no value space")
+          FLAbort("Attempting to set value in a matrix with no value space.")
        end if
     else
        ewrite(-1,*) 'Warning, not same sparsity'
@@ -3964,7 +3962,7 @@ END SUBROUTINE POSINM_COLOUR
     else if (associated(matrix%ival)) then
        matrix%ival(mpos)=val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine csr_iset
@@ -3979,7 +3977,7 @@ END SUBROUTINE POSINM_COLOUR
     integer :: iloc, jloc
     
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     do iloc=1,size(i)
@@ -4000,7 +3998,7 @@ END SUBROUTINE POSINM_COLOUR
     integer :: mpos
     
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to set value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to set value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     mpos = pos(matrix,i,j,save_pos=save_pos)
@@ -4014,7 +4012,7 @@ END SUBROUTINE POSINM_COLOUR
     else if (associated(matrix%ival)) then
        matrix%ival(blocki,blockj)%ptr(mpos)=val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine block_csr_set
@@ -4042,7 +4040,7 @@ END SUBROUTINE POSINM_COLOUR
     else if (associated(matrix%ival)) then
        matrix%ival(mpos)=val
     else
-       FLAbort("Attempting to set value in a matrix with no value space")
+       FLAbort("Attempting to set value in a matrix with no value space.")
     end if
 
   end subroutine csr_set_diag
@@ -4074,7 +4072,7 @@ END SUBROUTINE POSINM_COLOUR
        end if
 
     else
-       FLAbort("Attempting to extract value in a matrix with no value space")
+       FLAbort("Attempting to extract value in a matrix with no value space.")
     end if
 
   end function csr_val
@@ -4107,7 +4105,7 @@ END SUBROUTINE POSINM_COLOUR
        end if
 
     else
-       FLAbort("Attempting to extract value in a matrix with no value space")
+       FLAbort("Attempting to extract value in a matrix with no value space.")
     end if
 
   end function csr_ival
@@ -4122,7 +4120,7 @@ END SUBROUTINE POSINM_COLOUR
     integer :: mpos
     
     if(matrix%diagonal.and.(blocki/=blockj)) then
-      FLAbort("Attempting to retrieve value in an off diagonal block of a diagonal block_csr_matrix")
+      FLAbort("Attempting to retrieve value in an off-diagonal block of a diagonal block_csr_matrix.")
     end if
 
     mpos=pos(matrix,i,j,save_pos=save_pos)
@@ -4143,7 +4141,7 @@ END SUBROUTINE POSINM_COLOUR
        end if
 
     else
-       FLAbort("Attempting to extract value in a matrix with no value space")
+       FLAbort("Attempting to extract value in a matrix with no value space.")
     end if
 
   end function block_csr_val
@@ -4407,8 +4405,8 @@ END SUBROUTINE POSINM_COLOUR
     !locals
     integer :: i
 
-    if(size(m,1).ne.size(mv)) FLAbort('bad vec size out')
-    if(size(m,2).ne.size(v)) FLAbort('bad vec size in')
+    if(size(m,1).ne.size(mv)) FLAbort('Bad vector size out.')
+    if(size(m,2).ne.size(v)) FLAbort('Bad vector size in.')
 
     mv = 0.
 
@@ -4454,8 +4452,8 @@ END SUBROUTINE POSINM_COLOUR
     !locals
     integer :: i
 
-    if(size(m,2).ne.size(mv)) FLAbort('T: bad vec size out')
-    if(size(m,1).ne.size(v)) FLAbort('T: bad vec size in')
+    if(size(m,2).ne.size(mv)) FLAbort('Bad vector size out.')
+    if(size(m,1).ne.size(v)) FLAbort('Bad vector size in.')
 
     mv = 0.
 
@@ -4633,7 +4631,9 @@ END SUBROUTINE POSINM_COLOUR
     if(l_check) then
        allocate( vec(size(matrix2,1)) )
        allocate( m2tvec(size(matrix2,2)) )
-       if(size(matrix1,2).ne.size(matrix2,2)) FLAbort('bork')
+       if(size(matrix1,2).ne.size(matrix2,2)) then
+          FLAbort('Cannot perform multiplication when matrix sizes differ.')
+       end if
        allocate( m1m2tvec(size(matrix1,1)) )
        allocate( productvec(size(matrix1,1)) )
 
@@ -4652,7 +4652,7 @@ END SUBROUTINE POSINM_COLOUR
           ewrite(2,*) size(matrix1,1), size(matrix1,2)
           ewrite(2,*) size(matrix2,1), size(matrix2,2)
           ewrite(2,*) size(product,1), size(product,2)
-          FLAbort('Matmul_t error')
+          FLAbort('Matmul_t error.')
        end if
     end if
 
@@ -4679,7 +4679,7 @@ END SUBROUTINE POSINM_COLOUR
 
     assert(size(matrix1,2)==size(matrix2,2))
     if(.not.matrix1%sparsity%sorted_rows.or..not.matrix2%sparsity%sorted_rows) then
-      FLAbort("csr_matmul_T assumes sorted rows")
+      FLAbort("csr_matmul_T assumes sorted rows.")
     end if
 
     if(.not.present(model)) then
@@ -4768,7 +4768,7 @@ END SUBROUTINE POSINM_COLOUR
 
     assert(size(matrix1,2)==size(matrix2,2))
     if(.not.matrix1%sparsity%sorted_rows.or..not.matrix2%sparsity%sorted_rows) then
-      FLAbort("csr_matmul_T assumes sorted rows")
+      FLAbort("csr_matmul_T assumes sorted rows.")
     end if
     
     call zero(product)
@@ -4980,7 +4980,7 @@ END SUBROUTINE POSINM_COLOUR
     logical have_diag
     
     if(.not.sparsityA%sorted_rows.or..not.sparsityB%sorted_rows) then
-      FLAbort("sparsity_merge assumes sorted rows")
+      FLAbort("sparsity_merge assumes sorted rows.")
     end if
     
     assert( size(sparsityA,1)==size(sparsityB,1) )
@@ -5333,7 +5333,7 @@ END SUBROUTINE POSINM_COLOUR
         ewrite(-1,*) trim(line)
         ewrite(-1,*) "MatrixMarket file not in 'matrix coordinate", &
                       & "real general' format."
-        FLAbort("MatrixMarket foobar")
+        FLAbort("MatrixMarket file cannot be generated.")
       end if
       
       i=i+len_trim(headerword(j))
