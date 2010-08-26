@@ -239,7 +239,7 @@ END SUBROUTINE NODELE
           end if
 
           if(ErrMark.eq.4.and.totele/=1) then
-             ewrite(-1,*) '...all sur eles zero..', ele
+             ewrite(-1,*) '...all surface eles zero..', ele
              FLAbort("dieing")
           end if
 
@@ -853,7 +853,7 @@ END SUBROUTINE NODELE
                & ))
              ewrite(-1, *) "Common elements: ", debug_common_elements
              deallocate(debug_common_elements)
-             FLAbort("Invalid NEList! Something wrong with the mesh?")
+             FLExit("Invalid NEList! Something wrong with the mesh?")
           end if
 #endif
        end do
