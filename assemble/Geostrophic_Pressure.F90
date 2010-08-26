@@ -296,7 +296,7 @@ contains
       case(0)
         call assemble_geostrophic_pressure_cg(gp_rhs, state, gp_m, gp)
       case(-1)
-        FLAbort("DG GeostrophicPressure is not available")
+        FLExit("DG GeostrophicPressure is not available")
       case default
         ewrite(-1, "(a,i0)") "For mesh continuity ", continuity(gp)
         FLAbort("Unrecognised mesh continuity")
@@ -414,7 +414,7 @@ contains
     end if
           
     if(.not. any(mesh_dim(gp_rhs) == (/2, 3/))) then
-      FLAbort("GeostrophicPressure requires a 2 or 3 dimensional mesh")
+      FLExit("GeostrophicPressure requires a 2 or 3 dimensional mesh")
     end if
     
     positions => extract_vector_field(state, "Coordinate")
@@ -1725,7 +1725,7 @@ contains
     llump_rhs = present_and_true(lump_rhs)
     if(llump_rhs) then
       if(.not. coriolis%mesh == velocity%mesh) then
-        FLAbort("Velocity and Coriolis must be on the same mesh when lumping RHS")
+        FLExit("Velocity and Coriolis must be on the same mesh when lumping RHS")
       end if
     end if
     
@@ -2114,7 +2114,7 @@ contains
 #endif
     if(positions%dim /= 2) then
       ! Doing this for 3D unstructured meshes is very tricky
-      FLAbort("Conservative potential decomposition only implemented for 2D")
+      FLExit("Conservative potential decomposition only implemented for 2D")
     end if
     
     mesh => matrices%p_mesh
@@ -2312,7 +2312,7 @@ contains
 #endif
     if(positions%dim /= 2) then
       ! Doing this for 3D unstructured meshes is very tricky
-      FLAbort("Conservative potential decomposition only implemented for 2D")
+      FLExit("Conservative potential decomposition only implemented for 2D")
     end if
     
     mesh => matrices%p_mesh
