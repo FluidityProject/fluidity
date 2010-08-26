@@ -550,7 +550,7 @@ module mba2d_integration
     ewrite(1, *) "Exiting adapt_mesh_mba2d"
 
 #else
-    FLAbort("You called mba_adapt without the mba2d library. Reconfigure with --enable-2d-adaptivity")
+    FLExit("You called mba_adapt without the mba2d library. Reconfigure with --enable-2d-adaptivity")
 #endif
   end subroutine adapt_mesh_mba2d
   
