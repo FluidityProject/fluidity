@@ -166,7 +166,7 @@ contains
 
     source  => extract_vector_field(state, "VelocitySource")
     if(.not. have_option(trim(source%option_path) // "/diagnostic/algorithm::Internal")) then
-      FLAbort("Velocity source must be an internal diagnostic when using the traffic model")
+      FLExit("Velocity source must be an internal diagnostic when using the traffic model")
     end if
     sourceX = extract_scalar_field(source, 1)
     sourceY = extract_scalar_field(source, 2)
@@ -181,7 +181,7 @@ contains
 
     absorp  => extract_vector_field(state, "VelocityAbsorption")
     if(.not. have_option(trim(absorp%option_path) // "/diagnostic/algorithm::Internal")) then
-      FLAbort("Velocity absorption must be an internal diagnostic when using the traffic model")
+      FLExit("Velocity absorption must be an internal diagnostic when using the traffic model")
     end if
     absorpX = extract_scalar_field(absorp, 1)
 
