@@ -486,13 +486,12 @@ contains
 
         ! Update the options tree (required for options tree checkpointing)
         if (from_file) then
-          call set_option_attribute(trim(mesh_path) // "/from_file/format/name", "triangle")
           call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
         else if (extruded) then
           !call add_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file", stat=stat)
           !call add_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format", stat=stat)
-          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", "triangle", stat=stat1)
           call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
+
           if ((stat1/=SPUD_NO_ERROR .and. stat1/=SPUD_NEW_KEY_WARNING) .or. &
              & (stat2/=SPUD_NO_ERROR .and. stat2/=SPUD_NEW_KEY_WARNING)) then
             FLAbort("Failed to modify extrude options for checkpointing.")

@@ -88,7 +88,7 @@ contains
     ! Read node file header
     inquire(file = trim(lfilename), exist = fileExists)
     if(.not. fileExists) then
-       FLAbort("gmsh file " // trim(lfilename) // " not found")
+       FLExit("gmsh file " // trim(lfilename) // " not found")
     end if
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
@@ -136,7 +136,7 @@ contains
 
     return
 
-42  FLAbort("Unable to open "//trim(lfilename))
+42  FLExit("Unable to open "//trim(lfilename))
 
   end subroutine identify_gmsh_file
 
@@ -275,7 +275,7 @@ contains
 
     return
 
-43  FLAbort("Unable to open "//trim(lfilename))
+43  FLExit("Unable to open "//trim(lfilename))
 
   end function read_gmsh_file_to_field
 
@@ -375,19 +375,20 @@ contains
 
     read(fd, *) charBuff
     if( trim(charBuff) .ne. "$MeshFormat" ) then
-       FLAbort("Error: can't find '$MeshFormat' (GMSH mesh file?)")
+       FLExit("Error: can't find '$MeshFormat' (GMSH mesh file?)")
     end if
 
     read(fd, *) charBuff, gmshFileType, gmshDataSize
 
     read(charBuff,*) versionNumber
     if( versionNumber .lt. 2.0 .or. versionNumber .ge. 3.0 ) then
-       FLAbort("Error: GMSH mesh version must be 2.x")
+       FLExit("Error: GMSH mesh version must be 2.x")
     end if
 
 
     if( gmshDataSize .ne. doubleNumBytes ) then
-       FLAbort("Error: GMSH data size is not equal to doubleNumBytes")
+       write(charBuff,*) doubleNumBytes
+       FLExit("Error: GMSH data size does not equal "//trim(adjustl(charBuff)))
     end if
 
 
@@ -402,7 +403,7 @@ contains
 
     read(fd, *) charBuff
     if( trim(charBuff) .ne. "$EndMeshFormat" ) then
-       FLAbort("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
+       FLExit("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
     end if
 
     ! Done with error checking... set format (ie. ascii or binary)
@@ -427,13 +428,14 @@ contains
 
     read(fd, *) charBuff
     if( trim(charBuff) .ne. "$Nodes" ) then
-       FLAbort("Error: cannot find '$Nodes' in GMSH mesh file")
+       FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
 
 
     read(fd, *) numNodes
+
     if(numNodes .lt. 2) then
-       FLAbort("Error: GMSH number of nodes field < 2")
+       FLExit("Error: GMSH number of nodes field < 2")
     end if
 
     allocate( nodes(numNodes) )
@@ -464,7 +466,7 @@ contains
     ! Read in end node section
     read(fd, *) charBuff
     if( trim(charBuff) .ne. "$EndNodes" ) then
-       FLAbort("Error: cannot find '$EndNodes' in GMSH mesh file")
+       FLExit("Error: cannot find '$EndNodes' in GMSH mesh file")
     end if
 
   end subroutine read_nodes_coords
@@ -515,7 +517,7 @@ contains
 
     read(fd,*) charBuff
     if( trim(charBuff) .ne. "$Elements" ) then
-       FLAbort("Error: cannot find '$Elements' in GMSH mesh file")
+       FLExit("Error: cannot find '$Elements' in GMSH mesh file")
     end if
 
     read(fd,*) numAllElements
@@ -560,7 +562,7 @@ contains
           read(fd) groupType, groupElems, groupTags
 
           if( (e-1)+groupElems .gt. numAllElements ) then
-             FLAbort("GMSH element group contains more than the total")
+             FLExit("GMSH element group contains more than the total")
           end if
 
           ! Read in elements in a particular type block
@@ -622,7 +624,7 @@ contains
        case (15)
           ! Do nothing
        case default
-          FLAbort("read_faces_and_elements(): unsupported element type")
+          FLExit("read_faces_and_elements(): unsupported element type")
        end select
 
     end do
@@ -652,7 +654,7 @@ contains
        numFaces = numEdges
        faceType = 1
     else
-       FLAbort("Unsupported mixture of face/element types")
+       FLExit("Unsupported mixture of face/element types")
     end if
 
 
@@ -667,6 +669,7 @@ contains
 
 
   end subroutine read_faces_and_elements
+
 
 
   ! -----------------------------------------------------------------
@@ -722,6 +725,7 @@ contains
     end do
 
   end subroutine copy_to_faces_and_elements
+
 
 
 end module read_gmsh

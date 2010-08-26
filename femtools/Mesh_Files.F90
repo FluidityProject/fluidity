@@ -77,8 +77,8 @@ module mesh_files
   character(len=*), parameter :: formatOptionPath="/geometry/mesh/from_file/format/name"
 
 contains
-  
-  
+
+
   ! --------------------------------------------------------------------------
   ! Read routines first
   ! --------------------------------------------------------------------------
@@ -88,7 +88,7 @@ contains
     ! Discover the dimension and size of the mesh. Filename is 
     ! the base name of the mesh file.
     ! In parallel, filename must *include* the process number.
-    
+
     character(len=*), intent(in) :: filename
     character(len=*), optional, intent(in) :: format
     !! Dimension of mesh elements.
@@ -124,10 +124,10 @@ contains
        call identify_gmsh_file(filename, dim, loc, nodes,&
             elements, node_attributes, selements, selement_boundaries)
 
-    ! Additional mesh format subroutines go here
+       ! Additional mesh format subroutines go here
 
     case default
-       FLAbort("Identifying mesh type "//format//" not supported within Fluidity")
+       FLExit("Identifying mesh type "//format//" not supported within Fluidity")
     end select
 
   end subroutine identify_mesh_file
@@ -161,10 +161,10 @@ contains
     case("gmsh")
        field = read_gmsh_file(filename, shape)
 
-    ! Additional mesh format subroutines go here
+       ! Additional mesh format subroutines go here
 
     case default
-       FLAbort("Reading mesh type "//format//" not supported within Fluidity")
+       FLExit("Reading mesh type "//format//" not supported within Fluidity")
     end select
   end function read_mesh_files_to_field
 
@@ -206,10 +206,10 @@ contains
     case("gmsh")
        result_state = read_gmsh_file(filename, shape,shape_type,n_states)
 
-    ! Additional mesh format subroutines go here
+       ! Additional mesh format subroutines go here
 
     case default
-       FLAbort("Reading mesh type "//format//" not supported within Fluidity")
+       FLExit("Reading mesh type "//format//" not supported within Fluidity")
     end select
 
   end function read_mesh_files_to_state
@@ -260,10 +260,10 @@ contains
        field = read_gmsh_file(filename, quad_degree, quad_ngi, &
             no_faces, quad_family)
 
-    ! Additional mesh format subroutines go here
+       ! Additional mesh format subroutines go here
 
     case default
-       FLAbort("Reading mesh type "//format//" not supported within Fluidity")
+       FLExit("Reading mesh type "//format//" not supported within Fluidity")
     end select
 
   end function read_mesh_simple
@@ -273,7 +273,7 @@ contains
   ! --------------------------------------------------------------------------
   ! Write routines here
   ! --------------------------------------------------------------------------
-  
+
 
   subroutine write_mesh_to_file(filename, state, mesh, format )
     ! Write out the supplied mesh to the specified filename as mesh files.
@@ -299,13 +299,12 @@ contains
        call write_triangle_files(filename, state, mesh)
 
     case("gmsh")
-       FLExit("GMSH write functionality not supported")
-       !         call write_gmsh_file(filename, state, mesh )
+       call write_gmsh_file(filename, state, mesh )
 
-    ! Additional mesh format subroutines go here
+       ! Additional mesh format subroutines go here
 
     case default
-       FLAbort("Writing to mesh type "//format//" not supported within Fluidity")
+       FLExit("Writing to mesh type "//format//" not supported within Fluidity")
     end select
 
 
@@ -342,14 +341,13 @@ contains
             print_internal_faces )
 
     case("gmsh")
-       FLExit("GMSH write functionality not yet supported")
-       !         call write_gmsh_file( trim(filename), positions, &
-       !              print_internal_faces )
+       call write_gmsh_file( trim(filename), positions, &
+            print_internal_faces )
 
-    ! Additional mesh format subroutines go here
+       ! Additional mesh format subroutines go here
 
     case default
-       FLAbort("Writing to mesh type "//format//" not supported within Fluidity")
+       FLExit("Writing to mesh type "//format//" not supported within Fluidity")
     end select
 
   end subroutine write_positions_to_file

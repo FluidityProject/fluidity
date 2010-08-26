@@ -58,87 +58,77 @@ contains
   ! GMSH format.
   ! -----------------------------------------------------------------
 
+
   subroutine write_mesh_to_gmsh( filename, state, mesh )
-    !!< Write out the supplied mesh to the specified filename as a GMSH file
 
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
-    integer, parameter :: fileDesc = 999
+    type(vector_field) :: positions
 
-    character(len=longStringLen) :: meshFile
-    type(vector_field):: positions
-    integer numParts
+    positions = get_nodal_coordinate_field( state, mesh )
 
-
-    meshFile = filename // ".msh"
-
-    open( fileDesc, file=meshFile, &
-         access="stream", action="write", status="replace", &
-         err=101 )
-
-    ! gets a coordinate field for the given mesh, if necessary
-    ! interpolated from "Coordinate", always takes a reference:
-    positions = get_coordinate_field(state, mesh)
-
-    ! How many parts contain data?
-    numParts = get_active_nparts( ele_count(positions) )
-
-    if( getprocno() <= numParts ) then
-       ! Writing GMSH file header
-       call write_gmsh_header( fileDesc, meshFile )
-
-       ! Column stuff
-       if( associated(positions%mesh%columns) ) then
-          ! Do something here
-       else
-          ! Unstructured mesh
-          call write_gmsh_nodes( fileDesc, meshFile, positions )
-       end if
-
-       call write_gmsh_faces_and_elements( fileDesc, meshFile, positions%mesh )
-    end if
-
-
-    !    if ( present_and_true(print_internal_faces) &
-    !         .and. .not. has_faces(positions%mesh) ) then
-    !       call add_faces(positions%mesh)
-    !    end if
-
-    if( getprocno() <= numParts ) then    
-       !       if ( present_and_true(print_internal_faces) ) then
-       !          call write_gmsh_face_file_full(filename, positions%mesh)
-       !       else
-       !          call write_gmsh_face_file(filename, positions%mesh)
-       !       end if
-    end if
+    call write_gmsh_file( filename, positions )
 
     ! Deallocate node and element memory structures
     call deallocate(positions)
 
-    ! Close GMSH file
-    close( fileDesc )
     return
 
-101 FLAbort("Failed to open .msh file for writing")
   end subroutine write_mesh_to_gmsh
+
+
 
 
   ! -----------------------------------------------------------------
 
 
-  subroutine write_positions_to_gmsh( filename, positions,  &
-       print_internal_faces )
-    !!< Write out the mesh given by the position field in triangle files:
-    !!<    a .node and a .ele-file (and a .face file if the mesh has a %faces
-    !!<    component with more than 0 surface elements)
+
+  subroutine write_positions_to_gmsh(filename, positions, print_internal_faces)
+    !!< Write out the mesh given by the position field in GMSH file:
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename
+    character(len=longStringLen) :: meshFile
     type(vector_field), intent(in):: positions
     logical, intent(in), optional :: print_internal_faces
 
-    ! Here is that assumption
-    integer, parameter :: fileFormat = binaryFormat
+    integer :: numParts, fileDesc
+
+    fileDesc=free_unit()
+
+    meshFile = trim(filename) // ".msh"
+
+    open( fileDesc, file=trim(meshFile), access="stream", &
+         action="write", err=101 )
+
+    ! How many processes contain data?
+    numParts = get_active_nparts(ele_count(positions))
+
+    ! Write out data only for those processes that contain data - SPMD requires
+    ! that there be no early return
+
+    if (present_and_true(print_internal_faces) .and. .not. has_faces(positions%mesh)) then
+       call add_faces(positions%mesh)
+    end if
+
+    if( getprocno() <= numParts ) then
+       ! Writing GMSH file header
+       call write_gmsh_header( fileDesc, meshFile )
+       call write_gmsh_nodes( fileDesc, meshFile, positions )
+       call write_gmsh_faces_and_elements( fileDesc, meshFile, positions%mesh )
+
+       ! write columns data if present
+       if (associated(positions%mesh%columns)) then
+          call write_gmsh_node_columns(meshFile, fileDesc, positions)
+       end if
+       ! Close GMSH file
+    end if
+
+    close( fileDesc )
+
+    return
+
+101 FLExit("Failed to open " // trim(meshFile) // " for writing")
 
   end subroutine write_positions_to_gmsh
 
@@ -157,12 +147,14 @@ contains
     call ascii_formatting(fd, lfilename, "write")
 
     GMSHVersionStr="2.1"
+
     ! GMSH binary format 
     GMSHFileFormat="1"
 
-    write(fd, *) "$MeshFormat"
     write(GMSHdoubleNumBytes, *) doubleNumBytes
-    write(fd, *) GMSHVersionStr//' '//GMSHFileFormat//  ' '//GMSHdoubleNumBytes
+    write(fd, "(A)") "$MeshFormat"
+    write(fd, "(A)") trim(GMSHVersionStr)//" "//trim(GMSHFileFormat)//" " &
+         //trim(adjustl(GMSHdoubleNumBytes))
 
     call binary_formatting(fd, lfilename, "write")
 
@@ -170,7 +162,7 @@ contains
     write(fd) oneInt, char(10)
 
     call ascii_formatting(fd, lfilename, "write")
-    write(fd, *) "$EndMeshFormat"
+    write(fd, "(A)") "$EndMeshFormat"
 
   end subroutine write_gmsh_header
 
@@ -179,9 +171,10 @@ contains
   ! Write out GMSH nodes
 
   subroutine write_gmsh_nodes( fd, lfilename, field )
-    !!< Writes out .node-file for the given position field
+    !!< Writes out nodes for the given position field
     integer fd
-    character(len=*) lfilename
+    character(len=*) :: lfilename
+    character(len=longStringLen) :: charBuf
     type(vector_field), intent(in):: field
     integer numNodes, numDimen, numCoords, i
 
@@ -190,24 +183,26 @@ contains
     numCoords = field%dim
 
     ! header line: nodes, dim, no attributes, no boundary markers
-    write(fd, *, err=201) "$Nodes"
-    write(fd, *, err=201) numNodes 
+    write(fd, "(A)", err=201) "$Nodes"
+    ! Why am I doing this? Because Fortran won't easily left-justify integers.
+    write(charBuf, *, err=201) numNodes
+    write(fd, "(A)", err=201) trim(adjustl(charBuf))
 
     ! Write out nodes in binary format
     call binary_formatting( fd, lfilename, "write" )
     do i=1, numNodes
-       write( fd ) node_val(field, i)
+       write( fd ) i, node_val(field, i)
     end do
 
     ! Write newline character
     write(fd) char(10)
 
     call ascii_formatting(fd, lfilename, "write")
-    write( fd, err=201 ) "$EndNodes"
+    write( fd, "(A)" ) "$EndNodes"
 
     return
 
-201 FLAbort("Failed to write nodes to .msh file")  
+201 FLExit("Failed to write nodes to .msh file")
 
   end subroutine write_gmsh_nodes
 
@@ -219,54 +214,101 @@ contains
     ! Writes out elements for the given mesh
     type(mesh_type), intent(in):: mesh
 
-    character(len=*) lfilename
+    character(len=*) :: lfilename
+    character(len=longStringLen) :: charBuf
 
-    integer :: fd, numGMSHElems, numElements, numFaces, nloc
-    integer :: groupType, numTags
-    integer :: e, f
+    integer :: fd, numGMSHElems, numElements, numFaces, numTags, nloc, sloc
+    integer :: faceType, elemType
     integer, pointer :: lnodelist(:)
-    integer :: sTotal, dgTotal
 
-    FLAbort("Writing GMSH elements currently unsupported")
+    integer :: e, f
+    character, parameter :: newLineChar=char(10)
 
     numElements = ele_count(mesh)
+    numFaces = surface_element_count(mesh)
 
-    sTotal = surface_element_count(mesh)
-    dgTotal = size(mesh%faces%face_list%sparsity%colm)
-
-    numFaces = (dgTotal - sTotal) / 2 ! internal faces, only once
-    numFaces = numFaces + sTotal ! and the surface mesh
-
-    ! In the GMSH format, faces are just elements.
+    ! In the GMSH format, faces are also elements.
     numGMSHElems = numElements + numFaces
 
-    numFaces = surface_element_count(mesh)
+    ! Number of nodes for elements and faces
     nloc = ele_loc(mesh, 1)
+    sloc = face_loc(mesh,1)
 
-    ! Write out element region label
-    call ascii_formatting(fd, lfilename, "write")
-    write(fd, *) "$Elements"
-    write(fd, *) numGMSHElems
+    ! Working out face and element types now
+    faceType=0
+    elemType=0
 
-    call binary_formatting( fd, lfilename, "write" )
+    select case(mesh_dim(mesh))
+       ! Two dimensions
+    case(2)
+       if (nloc==3 .and. sloc==2) then
+          faceType=1
+          elemType=2
+       else if(nloc==4 .and. sloc==2) then
+          faceType=1
+          elemType=4
+       end if
 
-    ! Huge assumption in this section: Fluidity doesn't currently support
-    ! mixed element types (certainly with triangle), so here elements will
-    ! be written first, followed by faces.
+       ! Three dimensions
+    case(3)
+       if(nloc==4 .and. sloc==3) then
+          faceType=2
+          elemType=4
+       else if(nloc==8 .and. sloc==4) then
+          faceType=3
+          elemType=5
+       end if
+    end select
 
+    ! If we've not managed to identify the element and faces, exit
+    if(faceType==0 .and. elemType==0) then
+       FLExit("Unknown combination of elements and faces.")
+    end if
 
+    ! Number of tags associated with elements
     if(associated(mesh%region_ids)) then
        numTags = 2
     else
        numTags = 0
     end if
 
-    ! Write out regular elements first
 
-    write(fd) groupType, numElements, numTags
+    ! Write out element label
+    call ascii_formatting(fd, lfilename, "write")
+    write(fd, "(A)") "$Elements"
+
+
+    ! First, the number of GMSH elements (= elements+ faces)
+    write(charBuf, *) numGMSHElems
+    write(fd, "(A)") trim(adjustl(charBuf))
+
+    call binary_formatting( fd, lfilename, "write" )
+
+
+    ! Faces written out first
+    write(fd) faceType, numFaces, numTags
+
+    do f=1, numFaces
+       allocate( lnodelist(sloc) )
+
+       lnodelist = face_global_nodes(mesh, f)
+       call toGMSHElementNodeOrdering(lnodelist)
+
+       if(numTags .eq. 2) then
+          write(fd, err=301) f, surface_element_id(mesh, f), 0, lnodelist
+       else
+          write(fd, err=301) f, lnodelist
+       end if
+
+       deallocate(lnodelist)
+    end do
+
+
+    ! Then regular elements
+    write(fd) elemType, numElements, numTags
 
     do e=1, numElements
-       allocate( lnodelist(size(ele_nodes(mesh, e))) )
+       allocate( lnodelist(nloc) )
 
        lnodelist = ele_nodes(mesh, e)
        call toGMSHElementNodeOrdering(lnodelist)
@@ -280,20 +322,33 @@ contains
        deallocate(lnodelist)
     end do
 
+    write(fd, err=301) newLineChar
 
-    ! Write out faces elements next
 
-    write(fd) groupType, numFaces, numTags
+    ! Back to ASCII for end of elements section
+    call ascii_formatting( fd, lfilename, "write" )
+    write(fd, "(A)") "$EndElements"
 
-    do f=1, numFaces
-       ! .... to be continued
-    end do
-
-    ! succesful return
     return
 
-301 FLAbort("Error while writing elements in .msh file.")
+301 FLExit("Error while writing elements in .msh file.")
 
   end subroutine write_gmsh_faces_and_elements
+
+
+
+
+  ! -----------------------------------------------------------------
+  ! Write out node colum data
+
+  subroutine write_gmsh_node_columns(meshFile, fileDesc, positions)
+    character(len=*) meshFile
+    integer fileDesc
+    type(vector_field), intent(in) :: positions
+
+    ! Nothing here yet...
+
+  end subroutine write_gmsh_node_columns
+
 
 end module write_gmsh

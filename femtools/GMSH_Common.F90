@@ -1,4 +1,39 @@
+!    Copyright (C) 2006 Imperial College London and others.
+!
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    C.Pain@Imperial.ac.uk
+!
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation; either
+!    version 2.1 of the License, or (at your option) any later version.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
+
+#include "fdebug.h"
+
+
+
+! This module contains code and variables common to all the GMSH I/O routines
+
+
 module gmsh_common
+  use futils
 
   character(len=3), parameter :: GMSHVersionStr = "2.1"
   integer, parameter :: asciiFormat = 0
@@ -17,8 +52,8 @@ module gmsh_common
   type GMSHnode
      integer :: nodeID
      double precision :: x(3)
-! Currently unused
-! real, pointer :: properties(:)
+     ! Currently unused
+     ! real, pointer :: properties(:)
   end type GMSHnode
 
   type GMSHelement
@@ -32,17 +67,17 @@ contains
   ! -----------------------------------------------------------------
   ! Change already-open file to ASCII formatting
   ! Involves a bit of sneaky code.
-  
+
   subroutine ascii_formatting(fd, filename, readWriteStr)
     integer fd
     character(len=*) :: filename, readWriteStr
 
     integer position
-    
-    
+
+
     inquire(fd, POS=position)
     close(fd)
-    
+
     select case( trim(readWriteStr) )
     case("read")
        open( fd, file=trim(filename), action="read", form="formatted", &
@@ -50,8 +85,12 @@ contains
        read( fd, "(I1)", POS=position, ADVANCE="no" )
 
     case("write")
-       open( fd, file=trim(filename), action="write", form="formatted", &
-            access="stream")
+       open( fd, file=trim(filename), action="write",  form="formatted", &
+            access="stream", position="append")
+
+    case default
+       FLAbort("Passed wrong parameter to binary_formatting().")
+
     end select
 
 
@@ -61,14 +100,14 @@ contains
   ! -----------------------------------------------------------------
   ! Change already-open file to binary formatting
   ! Sneaky code, as above.
-  
+
   subroutine binary_formatting(fd, filename, readWriteStr)
     integer fd
     character(len=*) filename, readWriteStr
 
     integer position
 
-    
+
     inquire(fd, POS=position)
     close(fd)
 
@@ -80,7 +119,10 @@ contains
 
     case("write")
        open( fd, file=trim(filename), action="write", form="unformatted", &
-            access="stream")
+            access="stream", position="append")
+
+    case default
+       FLAbort("Passed wrong parameter to binary_formatting().")
     end select
 
   end subroutine binary_formatting
@@ -88,15 +130,15 @@ contains
 
   ! -----------------------------------------------------------------
   ! Reorder to Fluidity node ordering
-  
+
   subroutine toFluidityElementNodeOrdering( oldList )
     integer, pointer :: oldList(:), flNodeList(:), nodeOrder(:)
     integer i
-    
+
     numNodes = size(oldList)
     allocate( flNodeList(numNodes) )
     allocate( nodeOrder(numNodes) )
-    
+
     ! Specify node ordering
     select case( numNodes )
     case (3)
@@ -108,7 +150,7 @@ contains
           nodeOrder(i) = i
        end do
     end select
-    
+
     ! Reorder nodes
     do i=1, numNodes
        flNodeList(i) = oldList( nodeOrder(i) )
@@ -118,60 +160,61 @@ contains
     oldList(:) = flNodeList(:)
     deallocate( flNodeList )
     !deallocate(nodeOrder)
-    
-end subroutine toFluidityElementNodeOrdering
+
+  end subroutine toFluidityElementNodeOrdering
+
 
 
   ! -----------------------------------------------------------------
-! Reorder Fluidity node ordering to GMSH
+  ! Reorder Fluidity node ordering to GMSH
 
-subroutine toGMSHElementNodeOrdering( oldList )
-  integer, pointer :: oldList(:), gmshNodeList(:), nodeOrder(:)
-  integer i
-  
-
-  numNodes = size(oldList)
-  allocate( gmshNodeList(numNodes) )
-  allocate( nodeOrder(numNodes) )
-  
-  ! Specify node ordering
-  select case( numNodes )
-  case (3)
-     nodeOrder = (/1, 2, 3/)
-  case (6)
-     nodeOrder = (/1, 3, 6, 5, 4, 2/)
-  case default
-     do i=1, numNodes
-        nodeOrder(i) = i
-     end do
-  end select
-
-  ! Reorder nodes
-  do i=1, numNodes
-     gmshNodeList(i) = oldList( nodeOrder(i) )
-  end do
-  
-  ! Allocate to original list, and dealloc temp list.
-  oldList(:) = gmshNodeList(:)
-  
-  deallocate( gmshNodeList )
-  !deallocate( nodeOrder )
-  
-end subroutine toGMSHElementNodeOrdering
+  subroutine toGMSHElementNodeOrdering( oldList )
+    integer, pointer :: oldList(:), gmshNodeList(:), nodeOrder(:)
+    integer i
 
 
+    numNodes = size(oldList)
+    allocate( gmshNodeList(numNodes) )
+    allocate( nodeOrder(numNodes) )
 
-subroutine deallocateElementList( elements )
-  type(GMSHelement), pointer :: elements(:)
-  integer i
-  
-  do i = 1, size(elements)
-     deallocate(elements(i)%tags)
-     deallocate(elements(i)%nodeIDs)
-  end do
-  
-  deallocate( elements )
-  
-end subroutine deallocateElementList
+    ! Specify node ordering
+    select case( numNodes )
+    case (3)
+       nodeOrder = (/1, 2, 3/)
+    case (6)
+       nodeOrder = (/1, 3, 6, 5, 4, 2/)
+    case default
+       do i=1, numNodes
+          nodeOrder(i) = i
+       end do
+    end select
+
+    ! Reorder nodes
+    do i=1, numNodes
+       gmshNodeList(i) = oldList( nodeOrder(i) )
+    end do
+
+    ! Allocate to original list, and dealloc temp list.
+    oldList(:) = gmshNodeList(:)
+
+    deallocate( gmshNodeList )
+    !deallocate( nodeOrder )
+
+  end subroutine toGMSHElementNodeOrdering
+
+
+
+  subroutine deallocateElementList( elements )
+    type(GMSHelement), pointer :: elements(:)
+    integer i
+
+    do i = 1, size(elements)
+       deallocate(elements(i)%tags)
+       deallocate(elements(i)%nodeIDs)
+    end do
+
+    deallocate( elements )
+
+  end subroutine deallocateElementList
 
 end module gmsh_common
