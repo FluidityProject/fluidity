@@ -432,7 +432,7 @@ contains
       else
         ewrite(-1, *) "Python error, Python string was:"
         ewrite(-1, *) trim(function)
-        FLAbort("Dying")
+        FLExit("Dying!")
       end if
     end if
 
@@ -482,7 +482,7 @@ contains
       else
         ewrite(-1, *) "Python error, Python string was:"
         ewrite(-1, *) trim(function)
-        FLAbort("Dying")
+        FLExit("Dying!")
       end if
     end if
 
@@ -526,7 +526,7 @@ contains
       else
         ewrite(-1, *) "Python error, Python string was:"
         ewrite(-1, *) trim(function)
-        FLAbort("Dying")
+        FLExit("Dying!")
       end if
     end if
 
@@ -564,7 +564,7 @@ contains
       else
         ewrite(-1, *) "Python error, Python string was:"
         ewrite(-1, *) trim(function)
-        FLAbort("Dying")
+        FLExit("Dying!")
       end if
     end if
 
