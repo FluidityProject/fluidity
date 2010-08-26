@@ -143,7 +143,7 @@ contains
     lbf = 0
     call interleave_surface_ids(input_positions%mesh, lbf(:nf), max_coplanar_id)
     if(minval(lbf(:nf)) < 0) then
-      FLAbort("libmba3d does not permit negative surface IDs")
+      FLExit("libmba3d does not permit negative surface IDs")
     end if
     if(maxval(lbf(:nf)) >= huge(0)) then
       FLAbort("Exceeded max surface ID allowed by libmba3d")
@@ -160,10 +160,10 @@ contains
                               .or.present_and_true(force_preserve_regions))) then
       lbe(:ne) = input_positions%mesh%region_ids
       if(minval(lbe(:ne)) < 0) then
-        FLAbort("libmba3d does not permit negative region IDs")
+        FLExit("libmba3d does not permit negative region IDs")
       end if
       if(maxval(lbe(:ne)) >= huge(0)) then
-        FLAbort("Exceeded max region ID allowed by libmba3d")
+        FLExit("Exceeded max region ID allowed by libmba3d")
       end if
       ! Offset region IDs by 1, as libmba3d requires them to be positive
       lbe(:ne) = lbe(:ne) + 1
@@ -236,13 +236,13 @@ contains
       & maxwr, maxwi, rw, iw, &
       & iprint, ierr)
 #else
-    FLAbort("Fluidity compiled without libmba3d support")
+    FLExit("Fluidity compiled without libmba3d support")
 #endif
     ewrite(1, *) "Exited mbanodal"
 
     if(.not. any(ierr == (/0, 1000/))) then
       ewrite(-1, *) "libmba3d error code: ", ierr
-      FLAbort("libmba3d returned with an error")
+      FLExit("libmba3d returned with an error")
     end if
 
     deallocate(ipv)
@@ -268,7 +268,7 @@ contains
     if(isparallel()) then
       ewrite(2, *) "Constructing output halo"
 
-      FLAbort("Halo recovery not available")
+      FLExit("libmba3d not available in parallel - halo recovery not implemented")
 
       ewrite(2, *) "Finished constructing output halo"
     end if
