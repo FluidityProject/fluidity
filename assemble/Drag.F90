@@ -99,7 +99,8 @@ subroutine drag_surface(bigm, rhs, state, density)
                '/prognostic/boundary_conditions['//int2str(i-1)//']/type[0]/quadratic_drag/manning-strickler')
          if (manning_strickler) then
             if (.not. have_distance_bottom .or. .not. have_distance_top .or. .not. have_gravity) then
-               FLExit("Manning-strickler drag needs DistanceToTop and DistanceToBottom fields and gravity.")
+               ewrite(-1,*) "Manning-strickler drag needs DistanceToTop and DistanceToBottom fields and gravity."
+               FLExit("Turn on ocean_boundaries underneath geometry.")
             end if
          end if
          drag_coefficient => extract_scalar_surface_field(velocity, i, "DragCoefficient")
