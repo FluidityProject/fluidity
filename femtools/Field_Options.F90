@@ -156,7 +156,7 @@ contains
       stat = 1
     else
       ewrite(-1, *) "For mesh option path: " // trim(path)
-      FLAbort("Unknown mesh type of wrong mesh option path")
+      FLAbort("Unknown mesh type or wrong mesh option path")
     end if
 
   end function complete_mesh_path
@@ -340,7 +340,7 @@ contains
          if(have_option(trim(mesh_path)//"/from_file")) exit
       end do
       if (i>nmeshes-1) then
-         FLAbort("Options tree does not have external mesh")
+         FLExit("Options tree does not have external mesh")
       end if
       call get_option(trim(mesh_path)//"/name", linear_mesh_name)
       ! We'll assume this one is the linear mesh
@@ -410,7 +410,7 @@ contains
               trim(mesh%name)
             ewrite(0,*) "This probably means the operation you want to do on this field &
                &is not supported for a horizontal periodic mesh"
-            FLAbort("No suitable coordinate field found.")
+            FLExit("No suitable coordinate field found.")
          else
             positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
             call incref(positions)
@@ -424,7 +424,7 @@ contains
              trim(mesh%name)
          ewrite(0,*) "This probably means the operation you want to do is not&
               &supported for this mesh"
-         FLAbort("No suitable coordinate field found.")         
+         FLExit("No suitable coordinate field found.")         
       end if
     end if
     
@@ -509,7 +509,7 @@ contains
           trim(mesh%name)
       ewrite(0,*) "This probably means the operation you want to do is not&
            &supported for this mesh"
-      FLAbort("No suitable coordinate field found.")      
+      FLExit("No suitable coordinate field found.")      
       
     end subroutine give_up
     
@@ -558,7 +558,7 @@ contains
              trim(mesh%name)
          ewrite(0,*) "This probably means the operation you want to do is not&
               &supported for this mesh"
-         FLAbort("No suitable coordinate field found.")
+         FLExit("No suitable coordinate field found.")
       end if
     end if
     
@@ -880,7 +880,7 @@ contains
              trim(mesh%name)
           ewrite(-1,*) "External mesh ", trim(parent_mesh%name), &
               &" does not meet these criteria"
-          FLAbort("Linear input mesh required")
+          FLExit("Linear input mesh required")
         end if
       end if
       parent_mesh => extract_mesh(state, parent_name)
@@ -898,7 +898,7 @@ contains
     mesh => extract_mesh(state, adaptivity_mesh_name)
     
     if (mesh%shape%degree/=1 .or. mesh%continuity<0) then
-      FLAbort("For adaptivity external mesh needs to be linear and continuous.")
+      FLExit("For adaptivity external mesh needs to be linear and continuous.")
     end if
    
   end subroutine find_mesh_to_adapt
@@ -1267,13 +1267,13 @@ contains
     if(present(stat)) then
       stat = 2
     else
-      FLAbort("Multiple prognostic pressure fields.")
+      FLExit("Multiple prognostic pressure fields.")
     end if
   else
     if(present(stat)) then
       stat = 1
     else
-      FLAbort("No prognostic pressure field found.")
+      FLExit("No prognostic pressure field found.")
     end if
   end if
 
@@ -1309,13 +1309,13 @@ contains
     if(present(stat)) then
       stat = 2
     else
-      FLAbort("Multiple prognostic velocity fields.")
+      FLExit("Multiple prognostic velocity fields.")
     end if
   else
     if(present(stat)) then
       stat = 1
     else
-      FLAbort("No prognostic velocity field found.")
+      FLExit("No prognostic velocity field found.")
     end if
   end if
 
