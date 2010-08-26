@@ -299,7 +299,7 @@ contains
       & xpctel, xpctnd, xpctse, &
       & have_metric, intsiz, rlsiz)
 #else
-    FLAbort("Fluidity compiled without libadaptivity support")
+    FLExit("Fluidity compiled without libadaptivity support")
 #endif
     ewrite(1, *) "Exited adaptmem"
     
@@ -521,7 +521,7 @@ contains
       & gather, scater, ngath,  nhalo,  pnod, &
       & atosen, atorec, nproc, debug_level, dbg, chcnsy)
 #else
-    FLAbort("Fluidity compiled without libadaptivity support")
+    FLExit("Fluidity compiled without libadaptivity support")
 #endif
     call toc(TICTOC_ID_SERIAL_ADAPT)
     ewrite(1, *) "Exited adptvy"
@@ -782,7 +782,7 @@ contains
 #ifdef HAVE_ADAPTIVITY
     call mtetin(x, y, z, m, vol, areas, l, radius, qualty)
 #else
-    FLAbort("Fluidity compiled without libadaptivity support")
+    FLExit("Fluidity compiled without libadaptivity support")
 #endif
 
     func = 0.5 * (((1.0 - l(1)) ** 2) + &

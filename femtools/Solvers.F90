@@ -1613,7 +1613,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        ewrite(0,*) "Solver option diagnostics/monitors/true_error set but "
        ewrite(0,*) "petsc_solve_monitor_exact() not called. This probably means"
        ewrite(0,*) "this version of petsc_solve() doesn't support the monitor."
-       FLAbort("petsc_solve_monitor_exact() not called")
+       FLExit("petsc_solve_monitor_exact() not called")
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/iteration_vtus') &
@@ -1621,7 +1621,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        ewrite(0,*) "Solver option diagnostics/monitors/iteration_vtus set but "
        ewrite(0,*) "petsc_solve_monitor_iteration_vtus() not called. This probably means"
        ewrite(0,*) "this version of petsc_solve() doesn't support the monitor."
-       FLAbort("petsc_solve_monitor_iteration_vtus() not called")
+       FLExit("petsc_solve_monitor_iteration_vtus() not called")
     end if
     if(have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_error') .or. &
@@ -1675,7 +1675,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
            ! for big paralel problems
            ewrite(-1,*) 'Set up of mg preconditioner failed for:'
            ewrite(-1,*) trim(option_path)
-           FLAbort("MG failed: try another preconditioner or improve partioning")
+           FLExit("MG failed: try another preconditioner or improve partitioning")
          end if
          ewrite(0,*) 'Set up of mg preconditioner failed for:'
          ewrite(0,*) trim(option_path)
@@ -1696,7 +1696,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       call PCHYPRESetType(pc, hypretype, ierr)
 #else
       ewrite(0,*) 'In solver option:', option_path
-      FLAbort("The fluidity binary is built without hypre support!")
+      FLExit("The fluidity binary is built without hypre support!")
 #endif
     else if (pctype==PCKSP) then
       

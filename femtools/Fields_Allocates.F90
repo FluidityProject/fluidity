@@ -1007,7 +1007,7 @@ contains
     if (mesh%continuity>=0) then
        ! Make a continuous field.
        if (model%continuity<0) then
-          FLAbort("Unable to make continuous field from discontinuous field")
+          FLExit("Unable to derive a continuous mesh from discontinuous mesh")
        end if
 
        allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
@@ -2058,7 +2058,7 @@ contains
                    ewrite(0,*) mapX(:,nod1)
                 end do
                 ewrite(0,*) 'node position is', tmp_pos
-                FLExit('Could not find node')
+                FLExit('When deriving a periodic mesh, could not find node')
              end if
           end do
        end if
@@ -2074,7 +2074,7 @@ contains
           ewrite(-1,*) node_val(positions, local_mapping_list(1,nod))
           ewrite(-1,*) node_val(positions, local_mapping_list(2,nod))
        end do
-       FLExit('failed to perform periodic mapping')
+       FLExit('Failed to perform periodic mapping, check your periodic mappings.')
     end if
 
     !construct new numbering in mapping_list, first all the 
@@ -2136,7 +2136,7 @@ contains
                 end if
              end do
              ! If we get here then we have an unmatched face.
-             FLAbort("Unmatched face in periodic mesh creation")
+             FLExit("Unmatched face in periodic mesh creation.  Check faces on periodic boundaries conform.")
           end if
        end do face_loop_1
 
@@ -2205,7 +2205,8 @@ contains
                                   4, 5, 6,  9, 5, 7, 7, 8, &
                                   7, 8, 9, 10, 7, 8, 9, 9/), (/8,4/))
         case default
-          FLExit("unrecognised vertex count")
+          ewrite(-1,*) "Submesh only supported for simplex elements."
+          FLExit("Unsupport vertex count for the submesh.")
         end select
       case(1)
         !nothing to be done really
@@ -2223,15 +2224,16 @@ contains
           allocate(permutation(1,4))
           permutation = reshape((/1, 2, 3, 4/), (/1,4/))
         case default
-          FLExit("unrecognised vertex count")
+          ewrite(-1,*) "Submesh only supported for simplex elements."
+          FLExit("Unsupport vertex count for the submesh.")
         end select
 
       case default
-        FLExit("make_submesh only works for quadratic or lower elements")
+        FLExit("Submesh only supported for quadratic or lower elements")
       end select
 
     case default
-      FLExit("make_submesh only works for simplex elements")
+      FLExit("Submesh only supported for simplex elements")
     end select
 
     shape = make_element_shape(vertices = vertices, dim = mesh_dim(model), &
