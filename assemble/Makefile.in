@@ -49,7 +49,7 @@ ADJOINTOBJS =   \
 	Assnav_adjoint.o navsto_adjoint.o 
 endif
 
-REDUCED_OBJS = reduced_model.o snapsvd.o \
+REDUCED_OBJS = reduced_model.o 
 	reduced_model_errormeasure.o  
 
 OBJS    = Momentum_Diagnostic_Fields.o \
@@ -118,7 +118,6 @@ Adapt_State_Unittest.o: Adapt_Integration.o Mba2d_Integration.o Adapt_State.o \
   Sam_integration.o
 Explicit_ALE.o: Solid_Configuration.o
 reduced_model.o:
-support.o: snapsvd.o spaerr.o Explicit_ALE.o
 traffic.o: qmesh.o
 Mba3d_Integration.o: Adapt_Integration.o Node_Locking.o qmesh.o \
   Surface_Id_Interleaving.o
