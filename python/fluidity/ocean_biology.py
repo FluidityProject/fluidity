@@ -229,12 +229,12 @@ def check_lotka_volterra_parameters(parameters):
 #                      pczdna model                         #
 #                                                           #
 #############################################################
-def pczdna(state, parameters):
+def six_component(state, parameters):
     '''Calculate sources and sinks for pczdna biology model'''
     
     import math
 
-    if not check_pczdna_parameters(parameters):
+    if not check_six_component_parameters(parameters):
         raise TypeError("Missing Parameter")
     
     P=state.scalar_fields["Phytoplankton"]
@@ -308,8 +308,8 @@ def pczdna(state, parameters):
         if (N_n < 1e-7):
             theta = 1000.
         else:
-            theta = C_n/N_n*zeta
-        alpha = alpha_c * theta
+            theta = C_n/N_n*zeta # C=N_n*zeta
+        alpha = alpha_c * theta # diff to paper - check other paper/emails
 
         # Light limited phytoplankton growth rate.
         J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5
@@ -327,7 +327,7 @@ def pczdna(state, parameters):
         # Zooplankton grazing of phytoplankton.
         G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
 
-        # Zooplankton grazing of detritus.
+        # Zooplankton grazing of detritus. (p_D - 1-p_P)
         G_D=(g * epsilon * (1-p_P) * D_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
 
         # Death rate of phytoplankton.
@@ -351,7 +351,7 @@ def pczdna(state, parameters):
             Z_source.addto(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
             D_source.addto(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
             N_source.addto(n, -J*P_n*Q_N)
-            A_source.addto(n, -J*P_n*Q_A + De_D - (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z)
+            A_source.addto(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z)
         # below
         else:
             P_source.addto(n, -lambda_bio * P_n)
@@ -367,7 +367,7 @@ def pczdna(state, parameters):
         if PG:
             PG.set(n, G_P)
 
-def check_pczdna_parameters(parameters):
+def check_six_component_parameters(parameters):
     from sys import stderr
 
     valid=True

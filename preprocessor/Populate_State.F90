@@ -83,9 +83,10 @@ module populate_state_module
   !! A list of locations in which additional scalar fields
   !! are to be found. It is assumed that all additional scalar fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(7) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(8) :: field_locations=&
        (/ &
        "/ocean_biology/pznd                                                     ", &
+       "/ocean_biology/six_component                                            ", &
        "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada         ", &
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                   ", &

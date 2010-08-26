@@ -1,6 +1,5 @@
 input: clean
-	gmsh -3 -o column-3D.msh src/column.geo
-	../../scripts/gmsh2triangle column-3D.msh
+	../../scripts/create_aligned_mesh column-3D 10 10 -- -50 2 2 10
 
 clean:
 	rm -f  *.ele *.edge *.face *.msh *.node *.poly *.vtu *.s *.d.1 *.stat *.detectors

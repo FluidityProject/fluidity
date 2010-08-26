@@ -728,32 +728,6 @@ def val(X,t):
       </prognostic>
     </scalar_field>
   </material_phase>
-  <mesh_adaptivity>
-    <hr_adaptivity replaces="ADMESH">
-      <period_in_timesteps>
-        <integer_value rank="0">24</integer_value>
-      </period_in_timesteps>
-      <maximum_number_of_nodes replaces="MXNODS">
-        <integer_value rank="0">1000</integer_value>
-      </maximum_number_of_nodes>
-      <enable_gradation/>
-      <tensor_field name="MinimumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100.0 0.0 0.0 0.0 100.0 0.0 0.0 0.0 1</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <tensor_field name="MaximumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">100 0.0 0.0 0.0 100 0.0 0.0 0.0 500</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <preserve_mesh_regions/>
-    </hr_adaptivity>
-  </mesh_adaptivity>
   <ocean_biology>
     <lobster_model>
       <biology_algorithm>

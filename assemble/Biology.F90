@@ -69,24 +69,24 @@ contains
 
     call backup_source_terms(state)
 
-    
     ! Don't do biology if it's not included in the model!
-    if (.not.have_option("/ocean_biology/")) return
-
+    if (.not.have_option("/ocean_biology")) return
     if (have_option("/ocean_biology/pznd")) then
        prefix="/ocean_biology/pznd"
        algorithm="/source_and_sink_algorithm"
     else if (have_option("/ocean_biology/lagrangian_ensemble")) then
        prefix="/ocean_biology/lagrangian_ensemble"
        algorithm="/biology_algorithm"
-    else if (have_option("/ocean_biology/lobster_model")) then
-       prefix="/ocean_biology/pczdna"
+    else if (have_option("/ocean_biology/six_component")) then
+       prefix="/ocean_biology/six_component"
        algorithm="/source_and_sink_algorithm"
     else
        FLExit("Unknown biology algorithm")
     end if
 
     ewrite(1,*) "Solving biology sources"
+
+    ewrite(2,*) "will use ",trim(prefix)," model"
 
     ! Calculate the light field at every point.
     call solve_light_equation(state, prefix)
@@ -499,7 +499,7 @@ contains
 
     ! Don't do biology if it's not included in the model!
     if (.not.have_option("/ocean_biology/pznd") .or.  &
-        .not.have_option("/ocean_biology/pczdna")) return
+        .not.have_option("/ocean_biology/six_component")) return
 
     call get_option("/problem_type", buffer)
     if (buffer/="oceans") then
@@ -518,7 +518,7 @@ contains
             &on"
        ewrite(0, *) "Consider using ilu as a preconditioner instead."
     end if
-    if (have_option("/ocean_biology/pczdna/scalar_field&
+    if (have_option("/ocean_biology/six_component/scalar_field&
          &::PhotosyntheticRadiation/prognostic/solver/&
          &preconditioner::sor")) then
        ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&

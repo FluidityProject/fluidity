@@ -6328,18 +6328,19 @@ biology =
                )
             }?
          }|
-         ## LOBSTER biology model
-         element lobster_model {
+         ## 6 component biology model, which models Nitrates, Ammonium, 
+         ## Phytoplankton, Zooplankton, Detritus and Chlorophyll.
+         element six_component {
             (
                ## Python code specifying the biology model. This takes
                ## in velocity and light and outputs Phytoplankton, if
                ## those fields exist.
-               element biology_algorithm {
+               element source_and_sink_algorithm {
                   python_code
                }|
                ## Do not calculate biology
                ## This option is generally only useful for testing. 
-               element disable_biology {
+               element disable_sources_and_sinks {
                   empty
                }
              ),
