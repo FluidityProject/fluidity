@@ -137,7 +137,7 @@ contains
     ewrite(1, *) "In adapt_state_prescribed_internal"
     
     if(isparallel()) then
-      FLAbort("adapt_state_prescribed_internal cannot be called in parallel")
+      FLExit("Prescribed adaptivity does not work in parallel")
     end if
   
     ! Select mesh to adapt. Has to be linear and continuous.
