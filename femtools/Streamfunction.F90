@@ -225,20 +225,11 @@ contains
     integer :: mesh_movement
     integer, save :: last_mesh_movement = -1
 
-    do i = 1, 2
-       select case(i)
-       case(1)
-          X => extract_vector_field(state, "Coordinate", stat)
-       case(2)
-          U => extract_vector_field(state, "Velocity", stat)
-       case default
-          FLAbort("Invalid loop index")
-       end select
-       if(present_and_nonzero(stat)) then
-          return
-       end if
-    end do
-    
+    X => extract_vector_field(state, "Coordinate", stat)
+    if(present_and_nonzero(stat)) return
+    U => extract_vector_field(state, "Velocity", stat)
+    if(present_and_nonzero(stat)) return    
+
     if (X%dim/=2) then
        FLExit("Streamfunction is only valid in 2d")
     end if
