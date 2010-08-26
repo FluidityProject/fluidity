@@ -210,7 +210,7 @@ module hadapt_extrude_radially
               if (depth < min_depth) depth=min_depth
             end if
           else
-            FLAbort("Error with options path")
+            FLAbort("Unknown way of specifying the bottom_depth.")
           end if
         end if
         
@@ -334,7 +334,7 @@ module hadapt_extrude_radially
       node=node+1
       if (node>MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
-        FLAbort("Maximum number of vertical layers reached")
+        FLExit("Maximum number of vertical layers reached")
       end if
     end do
     elements=node-1
