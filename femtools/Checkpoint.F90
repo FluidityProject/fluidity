@@ -120,7 +120,7 @@ contains
       call get_option("/simulation_name", lprefix)
     end if
     if(len_trim(lprefix) == 0) then
-      FLAbort("Checkpoint prefix cannot have length zero")
+      FLExit("Checkpoint prefix cannot have length zero")
     end if
     
     if(present(postfix)) then
@@ -341,13 +341,13 @@ contains
        call set_option_attribute("/io/detectors/static_detector::" // trim(temp_string) // "/from_checkpoint_file/file_name", trim(filename), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set detectors options filename when checkpointing detectors with option path " // "/io/detectors/static_detector")
+            FLExit("Failed to set detectors options filename when checkpointing detectors with option path " // "/io/detectors/static_detector")
         end if
 
         call set_option("/io/detectors/static_detector::" // trim(temp_string) // "/from_checkpoint_file/format/", trim(format), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-            FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/static_detector")
+            FLExit("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/static_detector")
         end if  
     end do
 
@@ -362,13 +362,13 @@ contains
        call set_option_attribute("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/file_name", trim(filename), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set detectors options filename when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
+            FLExit("Failed to set detectors options filename when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
         end if
 
         call set_option("/io/detectors/lagrangian_detector::" // trim(temp_string) // "/from_checkpoint_file/format/", trim(format), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-            FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
+            FLExit("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/lagrangian_detector")
         end if  
     end do
 
@@ -417,13 +417,13 @@ contains
         call set_option_attribute("/io/detectors/detector_array::" // trim(temp_string) // "/from_checkpoint_file/file_name", trim(filename), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-            FLAbort("Failed to set detectors options filename when checkpointing detectors with option path " // "io/detectors/detector_array")
+            FLExit("Failed to set detectors options filename when checkpointing detectors with option path " // "io/detectors/detector_array")
         end if
 
         call set_option("/io/detectors/detector_array::" // trim(temp_string) // "/from_checkpoint_file/format/", trim(format), stat)
 
         if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-            FLAbort("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/detector_array")
+            FLExit("Failed to set detectors options format when checkpointing detectors with option path " // "/io/detectors/detector_array")
         end if  
     end do
 
@@ -601,7 +601,7 @@ contains
                        interpolate_field(s_field)) then
                 call update_value_options(trim(s_field%option_path), trim(vtu_filename), "vtu")
               else
-                FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
+                FLExit("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if
             end if
           end do
@@ -627,7 +627,7 @@ contains
                        interpolate_field(v_field)) then
                 call update_value_options(trim(v_field%option_path), trim(vtu_filename), "vtu")
               else
-                FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
+                FLExit("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if
             end if
           end do
@@ -653,7 +653,7 @@ contains
                        interpolate_field(t_field)) then
                 call update_value_options(trim(t_field%option_path), trim(vtu_filename), "vtu")
               else
-                FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
+                FLExit("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if
             end if
           end do
@@ -689,11 +689,11 @@ contains
       end do
       call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/file_name", trim(filename), stat)
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-        FLAbort("Failed to set initial condition filename when checkpointing field with option path " // trim(path))
+        FLExit("Failed to set initial condition filename when checkpointing field with option path " // trim(path))
       end if
       call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/format/name", trim(format), stat)
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-        FLAbort("Failed to set initial condition format when checkpointing field with option path " // trim(path))
+        FLExit("Failed to set initial condition format when checkpointing field with option path " // trim(path))
       end if
 
     end subroutine update_initial_condition_options
@@ -714,11 +714,11 @@ contains
       end do
       call set_option_attribute(trim(path) // "/prescribed/value::WholeMesh/from_file/file_name", trim(filename), stat)
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
-        FLAbort("Failed to set value filename when checkpointing field with option path " // trim(path))
+        FLExit("Failed to set value filename when checkpointing field with option path " // trim(path))
       end if
       call set_option_attribute(trim(path) // "/prescribed/value::WholeMesh/from_file/format/name", trim(format), stat)
       if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
-        FLAbort("Failed to set value format when checkpointing field with option path " // trim(path))
+        FLExit("Failed to set value format when checkpointing field with option path " // trim(path))
       end if
 
     end subroutine update_value_options
