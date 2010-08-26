@@ -1247,7 +1247,7 @@ contains
       if(stat==0) then
         call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
         if(found_velocity.and.(stat==0)) then
-          FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
+          FLExit("Only one prognostic velocity allowed with pseudo lagrangian mesh movement.")
         else
           found_velocity = (stat==0)
         end if
