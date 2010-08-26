@@ -324,7 +324,7 @@ contains
                &/interior_penalty/debug/remove_penalty_fluxes")
        end if
     else
-       FLExit("Unknown diffusion scheme for DG Advection Diffusion")
+       FLAbort("Unknown diffusion scheme for DG Advection Diffusion")
     end if
 
     if (have_option(trim(T%option_path)//&
@@ -549,7 +549,7 @@ contains
        case("Vertex_Based")
           limiter=LIMITER_VB
        case default
-          FLExit('No such limiter')
+          FLAbort('No such limiter')
        end select
        
     end if
@@ -704,7 +704,7 @@ contains
     end if
     if (present(diffusion_rhs)) then
        if(.not.have_diffusion_m) then
-         FLExit("diffusion_m required")
+         FLAbort("diffusion_m required")
        end if
        rhs_diff=diffusion_rhs
     else
@@ -1912,10 +1912,10 @@ contains
        FLAbort('need ele2grad mat to compute primal fluxes')
     end if
     if(do_primal_fluxes.and..not.present(diffusivity)) then
-       FLExit('Need diffusivity to compute primal fluxes')
+       FLAbort('Need diffusivity to compute primal fluxes')
     end if
     if(diffusion_scheme==IP.and..not.do_primal_fluxes) then
-       FLExit('Primal fluxes needed for IP')
+       FLAbort('Primal fluxes needed for IP')
     end if
 
     if(do_primal_fluxes) then
