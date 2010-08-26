@@ -116,7 +116,8 @@ contains
     ! And finally run the user's code
     call python_run_string(trim(pycode))    
 #else
-    FLAbort("Python biological models require NumPy, which cannot be located.")
+    ewrite(-1,*) "When configuring, make sure NumPy is found"
+    FLExit("Python biological models require NumPy")
 #endif
 
   end subroutine calculate_biology_from_python
