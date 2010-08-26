@@ -49,7 +49,7 @@ ADJOINTOBJS =   \
 	Assnav_adjoint.o navsto_adjoint.o 
 endif
 
-REDUCED_OBJS = reduced_model.o snapsvd.o support.o \
+REDUCED_OBJS = reduced_model.o snapsvd.o \
 	reduced_model_errormeasure.o  
 
 OBJS    = Momentum_Diagnostic_Fields.o \
