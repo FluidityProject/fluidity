@@ -76,10 +76,10 @@ contains
                  call get_option("/io/dump_period/python", func)
                  call real_from_python(func, current_time, real_dump_period)
               else
-                 FLAbort("Unable to determine dump period type")
+                 FLAbort("Unable to determine dump period type.")
               end if  
               if(real_dump_period < 0.0) then
-                 FLExit("Dump period cannot be negative")
+                 FLExit("Dump period cannot be negative.")
               end if
               do_write_state = .true.
               exit
@@ -94,10 +94,10 @@ contains
                 call get_option("/io/dump_period_in_timesteps/python", func)
                 call integer_from_python(func, current_time, int_dump_period)
               else
-                 FLAbort("Unable to determine dump period type")
+                 FLAbort("Unable to determine dump period type.")
               end if
               if(int_dump_period < 0) then
-                FLExit("Dump period cannot be negative")
+                FLExit("Dump period cannot be negative.")
               END if
               do_write_state = .true.
               exit
@@ -124,7 +124,7 @@ contains
             end if
           end if
         case default
-          FLAbort("Invalid loop index")
+          FLAbort("Invalid loop index.")
       end select
     end do
     
@@ -171,7 +171,7 @@ contains
        call get_option("/io/dump_period/python", func)
        call real_from_python(func, last_dump_time, real_dump_period)
        if(real_dump_period < 0.0) then
-         FLExit("Dump period cannot be negative")
+         FLExit("Dump period cannot be negative.")
        end if       
     else if(have_option("/io/dump_period_in_timesteps/constant")) then
        call get_option("/io/dump_period_in_timesteps/constant", int_dump_period)
@@ -179,10 +179,10 @@ contains
        call get_option("/io/dump_period_in_timesteps/python", func)
        call integer_from_python(func, last_dump_time, int_dump_period)
        if(int_dump_period < 0) then
-         FLExit("Dump period cannot be negative")
+         FLExit("Dump period cannot be negative.")
        end if
     else
-      FLExit("Dump period must be specified (in either simulated time or timesteps)")
+      FLExit("Dump period must be specified (in either simulated time or timesteps).")
     end if
   
   end subroutine update_dump_times
@@ -210,7 +210,7 @@ contains
          ewrite(2, *) "Writing output " // int2str(dump_no) // " to vtu"
          call vtk_write_state_new_options(dump_filename, dump_no, state)
       case default
-        FLAbort("Unrecognised dump file format")      
+        FLAbort("Unrecognised dump file format.")      
     end select
 
     dump_no = modulo(dump_no + 1, max_dump_no)
@@ -615,22 +615,22 @@ contains
       if(trim(dump_format) == "vtk") then
         call get_option("/io/output_mesh[0]/name", output_mesh_name, stat = stat)
         if(stat /= SPUD_NO_ERROR) then
-          FLExit("An output mesh must be specified if using vtk dump format")
+          FLExit("An output mesh must be specified if using a VTK dump format.")
         else if(option_count("/geometry/mesh::" // output_mesh_name) == 0) then
-          FLExit("Output mesh " // trim(output_mesh_name) // " is not defined")
+          FLExit("Output mesh " // trim(output_mesh_name) // " is not defined.")
         end if
       else
-        FLExit('Unrecognised dump format "' // trim(dump_format) // '"specified')
+        FLExit('Unrecognised dump format "' // trim(dump_format) // '"specified.')
       end if
     else
-      FLExit("Dump format must be specified")
+      FLExit("Dump format must be specified.")
     end if    
     
     if(have_option("/io/dump_period/constant")) then
       call get_option("/io/dump_period/constant", real_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(real_dump_period < 0.0) then
-          FLExit("Dump period cannot be negative")
+          FLExit("Dump period cannot be negative.")
         end if
       end if
     else if(have_option("/io/dump_period/python")) then
@@ -638,14 +638,14 @@ contains
       call real_from_python(func, current_time, real_dump_period, STAT)
       if(stat == SPUD_NO_ERROR) then
         if(real_dump_period < 0.0) then
-          FLExit("Dump period cannot be negative")
+          FLExit("Dump period cannot be negative.")
         end if
       end if
     else if(have_option("/io/dump_period_in_timesteps/constant")) then
       call get_option("/io/dump_period_in_timesteps/constant", int_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(int_dump_period < 0) then
-          FLExit("Dump period cannot be negative")
+          FLExit("Dump period cannot be negative.")
         end if
       end if
     else if(have_option("/io/dump_period_in_timesteps/python")) then
@@ -653,38 +653,38 @@ contains
       call integer_from_python(func, current_time, int_dump_period, stat)
       if(stat == SPUD_NO_ERROR) then
         if(int_dump_period < 0) then
-          FLExit("Dump period cannot be negative")
+          FLExit("Dump period cannot be negative.")
         end if
       end if
     else      
-      FLExit("Dump period must be specified (in either simulated time or timesteps)")
+      FLExit("Dump period must be specified (in either simulated time or timesteps).")
     end if
       
     call get_option("/io/cpu_dump_period", real_dump_period, stat)
     if(stat == SPUD_NO_ERROR) then
       if(real_dump_period < 0.0) then
-        FLExit("CPU dump period cannot be negative")
+        FLExit("CPU dump period cannot be negative.")
       end if
     end if
     
     call get_option("/io/wall_time_dump_period", real_dump_period, stat)
     if(stat == SPUD_NO_ERROR) then
       if(real_dump_period < 0.0) then
-        FLExit("Wall time dump period cannot be negative")
+        FLExit("Wall time dump period cannot be negative.")
       end if
       if(.not. wall_time_supported()) then
-        FLExit("Wall time dump period supplied, but wall time is not available")
+        FLExit("Wall time dump period supplied, but wall time is not available.")
       end if
     end if
     
     call get_option("/io/max_dump_file_count", max_dump_file_count, stat)
     if(stat == SPUD_NO_ERROR) then
       if(max_dump_file_count <= 0) then
-        FLExit("Max dump file count must be positive")
+        FLExit("Max dump file count must be positive.")
       end if
     end if
 
-    ewrite(2, *) "Finished checking output options"
+    ewrite(2, *) "Finished checking output options."
 
   end subroutine write_state_module_check_options
 
