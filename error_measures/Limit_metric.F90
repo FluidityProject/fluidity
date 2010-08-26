@@ -179,13 +179,13 @@ contains
       FLAbort("Negative volume")
     end if
     if((sumvol/gamma)>=huge(xpct)) then
-      ewrite(-1, *) "WARNING(well probably an ERROR): The error metric &
+      ewrite(-1, *) "ERROR: The error metric &
         & indicates that number of elements required is ", sumvol/gamma
       ewrite(-1, *) "If this is what you want then, great, congratulations, &
         &this is a record. Please ask the developers to get rid of this &
         &32bit integer that's causing trouble. Otherwise, please review your &
         &error targets"
-        FLAbort("integer overflow")
+        FLExit("integer overflow")
     end if
     xpct = int(sumvol / gamma)
     if (xpct == 0) xpct = 1

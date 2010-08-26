@@ -998,7 +998,7 @@ module metric_tools
         assert(ele_loc(positions, ele) == 4)
         func = lipnikov_functional_3d(ele, positions, metric)
       case default
-        FLAbort("Invalid dimension")
+        FLExit("The Lipnikov functional is only available in 2 or 3d.")
     end select
   
   end function lipnikov_functional

@@ -59,7 +59,7 @@ module goal_metric
       else if (have_option("/mesh_adaptivity/hr_adaptivity/goal_based_adaptivity/absolute_tolerance")) then
         call get_option("/mesh_adaptivity/hr_adaptivity/goal_based_adaptivity/absolute_tolerance", goal_tolerance)
       else
-        FLAbort("Eh? You need either an absolute tolerance or a relative tolerance, don't you?")
+        FLExit("Must specify either an absolute tolerance or a relative tolerance for goal based adaptivity.")
       end if
 
       ! We need to find out which goal we actually want ...
