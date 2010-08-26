@@ -168,7 +168,7 @@ contains
     else
        ! This really shouldn't happen (with a valid flml)
        ewrite(-1,*) "Incorrect initial or boundary condition for field ", trim(field%name)
-       FLAbort("Incorrect initial or boundary condition for field")
+       FLExit("Incorrect initial or boundary condition for field")
     end if
 
   end subroutine initialise_scalar_field
@@ -299,7 +299,7 @@ contains
     else
        ! This really shouldn't happen
        ewrite(-1,*) "Incorrect initial or boundary condition for field ", trim(field%name)
-       FLAbort("Incorrect initial or boundary condition for field")
+       FLExit("Incorrect initial or boundary condition for field")
     end if
  
   end subroutine initialise_vector_field
@@ -375,7 +375,7 @@ contains
        else if(have_option(trim(path)//"/internally_calculated")) then
           continue
        else
-          FLAbort("Incorrect initial condition for field")
+          FLExit("Incorrect initial condition for field")
        end if
        
     else if(is_diagonal) then
@@ -415,7 +415,7 @@ contains
        else if (have_option(trim(tpath)//"/generic_function")) then
           FLAbort("It is not yet possible to generate a tensor from a generic function")
        else
-          FLAbort("Incorrect initial condition for field")
+          FLExit("Incorrect initial condition for field")
        end if
 
     else
@@ -444,7 +444,7 @@ contains
        else if (have_option(trim(tpath)//"/generic_function")) then
           FLAbort("It is not yet possible to generate a tensor from a generic function")
        else
-          FLAbort("Incorrect initial condition for field")
+          FLExit("Incorrect initial condition for field")
        end if
 
     end if
