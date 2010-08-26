@@ -234,7 +234,7 @@ contains
                   &          *J_T_cache(cyc3(i+1),cyc3(k+2),ele)
           end forall
        case default
-          FLAbort("Universe is 3 dimensional (sorry Albert)")   
+          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
        
        ! Form determinant by expanding minors.
@@ -393,7 +393,7 @@ contains
              end do
              detJ=sqrt(detJ)
           case default
-             FLAbort("Universe is 3 dimensional (sorry Albert)")   
+             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
           end select
 
           ! Calculate normal.
@@ -601,7 +601,7 @@ contains
                   -J_local_T(cyc3(i+2),cyc3(k+1))*J_local_T(cyc3(i+1),cyc3(k+2))
              end forall
           case default
-             FLAbort("Universe is 3 dimensional (sorry Albert)")   
+             FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
           end select
 
           ! Form determinant by expanding minors.
@@ -721,7 +721,7 @@ contains
             detwei(gi)= det *x_shape%quadrature%weight(gi)
          end do
        case default
-          FLAbort("Universe is 3 dimensional (sorry Albert)")   
+          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
     else if (ldim<dim) then
 
@@ -759,7 +759,7 @@ contains
        end select
        
     else
-       FLAbort("Don't know how to compute higher dim. elements in lower dim. space")
+       FLAbort("Don't know how to compute higher-dimensional elements in a lower-dimensional space.")
        
     end if
     
@@ -864,7 +864,7 @@ contains
       end do
       
     case default
-      FLAbort("Universe is 3 dimensional (sorry Albert)")   
+      FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
     end select
 
     if (present(detJ)) then
@@ -959,7 +959,7 @@ contains
       end do
       
     case default
-      FLAbort("Universe is 3 dimensional (sorry Albert)")   
+      FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
     end select
 
     if (present(detJ)) then
@@ -1078,7 +1078,7 @@ contains
           end do
           detJ=sqrt(detJ)
        case default
-          FLAbort("Universe is 3 dimensional (sorry Albert)")   
+          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
 
        ! Calculate transformed quadrature weights.
@@ -1130,7 +1130,7 @@ contains
     case (3)
        normgi=cross_product(J(:,1),J(:,2))
     case default
-       FLAbort('bad choice of dimension')
+       FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
     end select
 
     ! Set correct orientation.
@@ -1248,7 +1248,7 @@ contains
           end do
           detJ=sqrt(detJ)
        case default
-          FLAbort("Universe is 3 dimensional (sorry Albert)")   
+          FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
 
        ! Calculate transformed quadrature weights.
@@ -1338,7 +1338,7 @@ contains
               end do
               detJ=sqrt(detJ)
           case default
-              FLAbort("Universe is 3 dimensional (sorry Albert)")   
+              FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
           end select
         end if
 
@@ -1376,7 +1376,7 @@ contains
       case (3)
          normgi=cross_product(J(:,1),J(:,2))
       case default
-         FLAbort('bad choice of dimension')
+         FLAbort('Unsupported dimension selected.')
       end select
       
     end function normgi
@@ -1473,7 +1473,7 @@ contains
               end do
               detJ=sqrt(detJ)
           case default
-              FLAbort("Universe is 3 dimensional (sorry Albert)")   
+              FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
           end select
        end if
 
@@ -1519,7 +1519,7 @@ contains
       case (3)
          normgi=cross_product(J(:,1),J(:,2))
       case default
-         FLAbort('bad choice of dimension')
+         FLAbort('Unsupported dimension selected.')
       end select
       
       ! Set correct orientation.
@@ -1599,7 +1599,7 @@ contains
                     -J(cyc3(i+2),cyc3(k+1))*J(cyc3(i+1),cyc3(k+2))
             end forall
          case default
-            FLAbort("Universe is 3 dimensional (sorry Albert)")   
+            FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
          end select
          
          detJ=dot_product(J(1,:),invJ(:,1))
