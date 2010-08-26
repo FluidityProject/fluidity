@@ -182,7 +182,7 @@ Pseudo_Consistent_Interpolation.o: Data_structures.o Field_Options.o Fields.o \
   Node_Ownership.o State.o
 DG_interpolation.o: Conservative_interpolation.o VTK_interfaces.o
 
-Sparsity_Patterns.o: Elements.o Fields.o Linked_Lists.o
+Sparsity_Patterns.o: Elements.o Fields_Base.o Linked_Lists.o
 
 Sparsity_Patterns_Meshes.o: Sparsity_Patterns.o Fields.o Sparse_Tools.o State.o Global_Parameters.o
 
@@ -306,7 +306,7 @@ ieee_arithmetic_dummy.o
 Global_Numbering.o: Elements.o Adjacency_Lists.o Linked_Lists.o \
   Halo_Data_Types.o Halos_Allocates.o Halos_Numbering.o Halos_Base.o \
   Halos_Debug.o Halos_Ownership.o Parallel_Tools.o MPI_Interfaces.o 
-  
+
 Sparse_Tools_Petsc.o: Sparse_Tools.o Petsc_Tools.o Reference_Counting.o \
   Reference_count_petsc_csr_matrix.F90 Halos_Allocates.o \
   Fields_Base.o Fields_Manipulation.o Parallel_Tools.o 

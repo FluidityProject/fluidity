@@ -30,7 +30,7 @@ module sparsity_patterns
   ! This module produces sparsity patterns for matrices.
   use linked_lists
   use elements
-  use fields
+  use fields_base
   implicit none
 
 contains
