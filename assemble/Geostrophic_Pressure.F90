@@ -413,8 +413,8 @@ contains
       end if
     end if
           
-    if(.not. any(mesh_dim(gp_rhs) == (/2, 3/))) then
-      FLExit("GeostrophicPressure requires a 2 or 3 dimensional mesh")
+    if((.not. any(mesh_dim(gp_rhs) == (/2, 3/))).and.include_coriolis) then
+      FLExit("GeostrophicPressure requires a 2 or 3 dimensional mesh when including coriolis.")
     end if
     
     positions => extract_vector_field(state, "Coordinate")
