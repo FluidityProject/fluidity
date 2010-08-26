@@ -46,7 +46,7 @@ LIB = ../lib/lib@FLUIDITY@.a
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
 # These are all the objects that are supposed to go into the makefile
-OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Convective_metric.o Edge_lengths.o \
+OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
 	   Gradation_metric.o Bounding_box_metric.o \
      Boundary_metric.o \
      Recovery_estimator.o Aspect_ratios.o Interpolation_error.o Geometric_constraints_metric.o Goals.o Goal_metric.o \
@@ -73,7 +73,7 @@ default: $(OBJS)
 clean:
 	rm -f *.o *.mod
 
-Assemble_metric.o: Form_metric.o Edge_lengths.o Interpolation_metric.o Convective_metric.o \
+Assemble_metric.o: Form_metric.o Edge_lengths.o Interpolation_metric.o \
 		           Gradation_metric.o Bounding_box_metric.o Boundary_metric.o \
                Geometric_constraints_metric.o Goals.o Goal_metric.o Metric_advection.o Limit_metric.o Anisotropic_gradation_metric.o \
                Richardson_metric.o Anisotropic_ZZ.o Reference_Meshes.o Aspect_ratios.o

@@ -12,7 +12,6 @@ module metric_assemble
   use interpolation_metric
   use goals
   use goal_metric
-  use convective_metric
   use gradation_metric
   use bounding_box_metric
   use boundary_metric
@@ -83,7 +82,6 @@ module metric_assemble
 
     call initialise_interpolation_metric
     call initialise_goal_metric
-    call initialise_convective_metric
     call initialise_gradation_metric
     call initialise_anisotropic_gradation
     call initialise_bounding_box_metric(positions)
@@ -111,11 +109,6 @@ module metric_assemble
       call halo_update(error_metric)
     end if
 
-    if (use_convective_metric) then
-       call form_convective_metric(state(1), error_metric)
-       call halo_update(error_metric)
-    end if
-    
     call enforce_reference_meshes(state, positions, error_metric)
 
     if (use_geometric_constraints_metric) then
