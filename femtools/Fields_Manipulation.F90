@@ -200,14 +200,10 @@ implicit none
       !!< This routine computes the second invariant of an infield tensor field
       type(tensor_field), intent(in):: source_field
       type(scalar_field), intent(inout) :: s_field
-      type(scalar_field) :: component
 
       real, dimension(source_field%dim) :: evals
-      real, dimension(source_field%dim, source_field%dim) :: evecs, t
-
-      integer, dimension(source_field%dim) :: permutation
-
-      real :: s, v1, v2, v3, a
+      real, dimension(source_field%dim, source_field%dim) :: evecs
+      real :: s, v1, v2, v3
       integer :: node
 
       ! Making sure the second invariant gets evaluated over the whole mesh
@@ -979,6 +975,7 @@ implicit none
     if(.not.(out_field%field_type==FIELD_TYPE_NORMAL .or. &
        (in_field_new%field_type==FIELD_TYPE_CONSTANT .and. &
        in_field_old%field_type==FIELD_TYPE_CONSTANT))) then
+       ewrite(-1,*) "Incompatible field types in set()"
        FLAbort("evilness unleashed")
     end if
 #endif
@@ -1144,6 +1141,7 @@ implicit none
     if(.not.(out_field%field_type==FIELD_TYPE_NORMAL .or. &
        (in_field_new%field_type==FIELD_TYPE_CONSTANT .and. &
         in_field_old%field_type==FIELD_TYPE_CONSTANT))) then
+       ewrite(-1,*) "Incompatible field types in set()"
         FLAbort("Evilness");
     end if
 #endif
@@ -1257,6 +1255,7 @@ implicit none
     if(.not.(out_field%field_type==FIELD_TYPE_NORMAL .or. &
        (in_field_new%field_type==FIELD_TYPE_CONSTANT .and. &
         in_field_old%field_type==FIELD_TYPE_CONSTANT))) then
+       ewrite(-1,*) "Incompatible field types in set()"
         FLAbort("Evil")
     end if
 #endif
@@ -1496,9 +1495,10 @@ implicit none
             & node_count(field), x, y, z, time, field%val, stat)
 
     if (stat/=0) then
-      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1, *) "Python error while setting field: "//trim(field%name)
+      ewrite(-1, *) "Python string was:"
       ewrite(-1, *) trim(func)
-      FLAbort("Dying")
+      FLExit("Dying")
     end if
 
     if (has_references(lposition)) then
@@ -1585,9 +1585,10 @@ implicit none
             & fx, fy, fz, stat)
 
     if (stat/=0) then
-      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1, *) "Python error while setting field: "//trim(field%name)
+      ewrite(-1, *) "Python string was:"
       ewrite(-1, *) trim(func)
-      FLAbort("Dying")
+      FLExit("Dying")
     end if
 
     if (has_references(lposition)) then
@@ -1660,9 +1661,10 @@ implicit none
             field%val, stat)
 
     if (stat/=0) then
-      ewrite(-1, *) "Python error, Python string was:"
+      ewrite(-1, *) "Python error while setting field: "//trim(field%name)
+      ewrite(-1, *) "Python string was:"
       ewrite(-1, *) trim(func)
-      FLAbort("Dying")
+      FLExit("Dying")
     end if
 
     if (has_references(lposition)) then
