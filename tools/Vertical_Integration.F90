@@ -83,7 +83,7 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   if(positions_a%dim /= positions_b_surf%dim + 1) then
     ewrite(-1, *) "Integrated mesh dimension: ", positions_a%dim
     ewrite(-1, *) "Target mesh dimension: ", positions_b_surf%dim
-    FLAbort("Integrated mesh must have dimension one higher than the target mesh")
+    FLExit("Integrated mesh must have dimension one higher than the target mesh")
   end if
   field_a => extract_scalar_field(state_a, integrated_fieldname, allocated = allocated_field_a)
   

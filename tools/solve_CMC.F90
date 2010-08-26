@@ -102,10 +102,12 @@ program solve_CMC
   select case(buf)
   case ('1')
      dirichlet_flag = DIRICHLET_ONES_ON_DIAGONAL
-     FLAbort('not supported in code')
+     ewrite(-1,*) "Only weak Dirichlet BCs supported. Forth argument=3"
+     FLExit('not supported in code')
   case ('2')
      dirichlet_flag = DIRICHLET_BIG_SPRING
-     FLAbort('not supported in code')
+     ewrite(-1,*) "Only weak Dirichlet BCs supported. Forth argument=3"
+     FLExit('not supported in code')
   case('3') 
      dirichlet_flag = DIRICHLET_WEAK
   end select
@@ -303,7 +305,7 @@ program solve_CMC
      call matrix2file('hmass_solve.dat',h_mass_static)
      call matrix2file('cmc_solve.dat',cmc_static)
   case default
-     FLAbort('no such output option')
+     FLExit('no such output option')
   end select
 
   ewrite(1,*) 'U dof =', node_count(u)
@@ -721,7 +723,7 @@ contains
   subroutine single_element(u_shape,u_shape_f,h_shape,h_shape_f)
     type(element_type), intent(in) :: u_shape,u_shape_f,h_shape,h_shape_f
 
-    FLAbort('Ending after single_element')
+    FLExit('Ending after single_element')
   end subroutine single_element
 
   subroutine lift_bcs(CMC,rhs,bc_marker)
