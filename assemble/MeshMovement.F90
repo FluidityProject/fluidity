@@ -268,9 +268,8 @@ contains
           endif
 
           if (lagrangian_multi>=mesh_dim_mesh(mesh)) then 
-            ! FLAbort("The grid is blocked in all direction!")
-             ewrite(3,*) "The grid is blocked in all direction!"
-             ewrite(3,*) "Do you know what your doing?"
+             ewrite(0,*) "The grid is blocked in all direction!"
+             ewrite(0,*) "Do you know what your doing?"
           endif
        endif
     endif
@@ -1188,7 +1187,7 @@ contains
       if(stat==0) then
         call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
         if(found_velocity.and.(stat==0)) then
-          FLAbort("Found two velocity fields with relaxation parameters.")
+          FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
         else
           found_velocity = (stat==0)
         end if
@@ -1248,7 +1247,7 @@ contains
       if(stat==0) then
         call get_option(trim(velocity%option_path)//"/prognostic/temporal_discretisation/relaxation", itheta, stat)
         if(found_velocity.and.(stat==0)) then
-          FLAbort("Found two velocity fields with relaxation parameters.")
+          FLExit("Only one prognostic velocity allowed with imposed mesh movement.")
         else
           found_velocity = (stat==0)
         end if
