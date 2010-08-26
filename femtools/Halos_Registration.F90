@@ -148,7 +148,7 @@ contains
     error_count = chalo_reader_set_input(filename, len_trim(filename), procno - 1, nprocs)
     call allsum(error_count, communicator = lcommunicator)
     if(error_count > 0) then
-      FLAbort("Unable to read halos with name " // trim(filename))
+      FLExit("Unable to read halos with name " // trim(filename))
     end if
     
     allocate(mesh%halos(2))
@@ -282,7 +282,7 @@ contains
     
     call allsum(error_count, communicator = communicator)
     if(error_count > 0) then
-      FLAbort("Unable to write halos with name " // trim(filename))
+      FLExit("Unable to write halos with name " // trim(filename))
     end if
 
     ewrite(1, *) "Exiting write_halos"
