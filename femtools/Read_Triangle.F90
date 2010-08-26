@@ -78,7 +78,7 @@ contains
     inquire(file = trim(filename) // ".node", exist = file_exists)
     if(.not. file_exists) then
       ewrite(-1, *) "For triangle file with base name " // trim(filename)
-      FLAbort(".node file not found")
+      FLExit(".node file not found")
     end if
     ewrite(2, *) "Opening " // trim(filename) // ".node for reading."
     node_unit = free_unit()
@@ -99,7 +99,7 @@ contains
       close(element_unit)
     else if (present(loc) .or. present(elements)) then
       ewrite(-1, *) "For triangle file with base name " // trim(filename)
-      FLAbort(".ele file not found")
+      FLExit(".ele file not found")
     end if
 
     ! Read the surface element file header
@@ -159,15 +159,15 @@ contains
 
     return
 
-42  FLAbort("Unable to open "//trim(filename)//".node")
+42  FLExit("Unable to open "//trim(filename)//".node")
 
-43  FLAbort("Unable to open "//trim(filename)//".ele")
+43  FLExit("Unable to open "//trim(filename)//".ele")
 
-44  FLAbort("Unable to open " // trim(filename) // ".bound")
+44  FLExit("Unable to open " // trim(filename) // ".bound")
 
-45  FLAbort("Unable to open " // trim(filename) // ".edge")
+45  FLExit("Unable to open " // trim(filename) // ".edge")
 
-46  FLAbort("Unable to open " // trim(filename) // ".face")
+46  FLExit("Unable to open " // trim(filename) // ".face")
     
   end subroutine identify_triangle_file
 
@@ -341,7 +341,8 @@ contains
     case(FAMILY_CUBE)
       sloc=loc/2
     case default
-      FLAbort('Illegal element family')
+       ewrite(0,*) "While reading triangle files with basename "//trim(lfilename)
+       FLAbort('Illegal element family')
     end select
 
     allocate(edge_buffer(sloc+boundaries+1,edges))
@@ -403,9 +404,9 @@ contains
 
     return
 
-42  FLAbort("Unable to open "//trim(lfilename)//".node")
+42  FLExit("Unable to open "//trim(lfilename)//".node")
 
-43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+43  FLExit("Unable to open "//trim(lfilename)//".ele")
     
     
   end function read_triangle_files_to_field
@@ -565,9 +566,9 @@ contains
 
     return
 
-42  FLAbort("Unable to open "//trim(lfilename)//".node")
+42  FLExit("Unable to open "//trim(lfilename)//".node")
 
-43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+43  FLExit("Unable to open "//trim(lfilename)//".ele")
 
   end function read_triangle_files_to_state
 
@@ -654,6 +655,7 @@ contains
         stat = io
         return
       else
+         ewrite(0,*) "While opening "//trim(filename)// "." // trim(map)
         FLAbort("Failed to read elemental mappings")
       end if
     end if
@@ -852,9 +854,9 @@ contains
 
     return
 
-42  FLAbort("Unable to open "//trim(lfilename)//".node")
+42  FLExit("Unable to open "//trim(lfilename)//".node")
 
-43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+43  FLExit("Unable to open "//trim(lfilename)//".ele")
     
     
   end function read_triangle_files_to_field_no_faces
@@ -1080,9 +1082,9 @@ contains
 
     return
 
-42  FLAbort("Unable to open "//trim(lfilename)//".node")
+42  FLExit("Unable to open "//trim(lfilename)//".node")
 
-43  FLAbort("Unable to open "//trim(lfilename)//".ele")
+43  FLExit("Unable to open "//trim(lfilename)//".ele")
 
   end function read_triangle_files_serial
 end module read_triangle
