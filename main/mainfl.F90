@@ -68,7 +68,7 @@ subroutine mainfl(filename, filename_len)
      !       Reduced Fluidity Model
      !######################################################
   
-     FLAbort("POD is disabled")      
+     FLExit("POD is disabled")      
      !call reducedfluids(filename, filename_len)
   else
      !######################################################
