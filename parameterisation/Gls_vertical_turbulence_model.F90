@@ -136,7 +136,7 @@ subroutine gls_init(state)
         cPsi3_plus = 1.0 
         cPsi3_minus = 2.53
         psi_min = 1.e-8
-        calc_fwall = .true.
+        calc_fwall = .false.
         call set( Fwall, 1.0 )  
     case ("k-epsilon")
         gls_p = 3.0
@@ -175,7 +175,7 @@ subroutine gls_init(state)
         psi_min = 1.e-12
         call set( Fwall, 1.0 ) 
     case default
-        FLExit("Unknown gls_option")           
+        FLAbort("Unknown gls_option")           
     end select
 
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/stability_function", gls_stability_function)
@@ -235,7 +235,7 @@ subroutine gls_init(state)
          ct5 =  0.3333
          ctt =  0.8000
     case default
-        FLExit("Unknown gls_stability_function") 
+        FLAbort("Unknown gls_stability_function") 
     end select
  
     ! compute the a_i's for the Algebraic Stress Model
@@ -723,12 +723,12 @@ subroutine gls_check_options
 
     call get_option("/problem_type", buffer)
     if (buffer/="oceans") then
-       FLExit("GLS modelling is only supported for problem type oceans.")
+        FLExit("GLS modelling is only supported for problem type oceans.")
     end if
 
     if (.not.have_option("/physical_parameters/gravity")) then
-       ewrite(-1, *) "GLS modelling requires gravity" 
-       FLExit("(otherwise buoyancy is a bit meaningless)")
+        ewrite(-1, *) "GLS modelling requires gravity" 
+        FLExit("(otherwise buoyancy is a bit meaningless)")
     end if
 
     ! checking for required fields
@@ -857,7 +857,7 @@ subroutine gls_check_options
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/&
                     &scalar_field::GLSTurbulentKineticEnergy/prognostic/minimum_value", min_tke, stat)
     if (stat/=0) then
-       FLExit("You need to set a minimum TKE value - recommend a value of around 1e-6")
+        FLExit("You need to set a minimum TKE value - recommend a value of around 1e-6")
     end if
 
     ! check if priorities have been set - if so warn the user this might screw
@@ -871,30 +871,30 @@ subroutine gls_check_options
         ewrite(-1,*)("WARNING: Priorities for the GLS fields are set internally. Setting them in the FLML might mess things up")
     end if
 
-   ! check the relax option is valid
-   if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity")) then
-       call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity", relax)
-       if (relax < 0 .or. relax >= 1.0) then
-           FLExit("The GLS diffusivity relaxation value should be greater than or equal to zero, but less than 1.0")
-       end if
-       if (.not. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSVerticalViscosity/")) then
-           FLExit("You will need to switch on the GLSVerticalViscosity field when using relaxation")
-       end if
-       if (.not. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSVerticalDiffusivity/")) then
-           FLExit("You will need to switch on the GLSVerticalDiffusivity field when using relaxation")
-       end if
-   end if
+    ! check the relax option is valid
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity")) then
+        call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/relax_diffusivity", relax)
+        if (relax < 0 .or. relax >= 1.0) then
+            FLExit("The GLS diffusivity relaxation value should be greater than or equal to zero, but less than 1.0")
+        end if
+        if (.not. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSVerticalViscosity/")) then
+            FLExit("You will need to switch on the GLSVerticalViscosity field when using relaxation")
+        end if
+        if (.not. have_option("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSVerticalDiffusivity/")) then
+            FLExit("You will need to switch on the GLSVerticalDiffusivity field when using relaxation")
+        end if
+    end if
    
-   ! Check that the we don't have auto boundaries and user-defined boundaries
-   if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries")) then
-       nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic/boundary_conditions"))
-       if (nbcs > 0) then
-           FLExit("You have automatic boundary conditions on, but some boundary conditions on the GLS TKE field. Not allowed")
-       end if
-       nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic/boundary_conditions"))
-       if (nbcs > 0) then
-           FLExit("You have automatic boundary conditions on, but some boundary conditions on the GLS Psi field. Not allowed")
-       end if
+    ! Check that the we don't have auto boundaries and user-defined boundaries
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries")) then
+        nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSTurbulentKineticEnergy/prognostic/boundary_conditions"))
+        if (nbcs > 0) then
+            FLExit("You have automatic boundary conditions on, but some boundary conditions on the GLS TKE field. Not allowed")
+        end if
+        nbcs=option_count(trim("/material_phase[0]/subgridscale_parameterisations/GLS/scalar_field::GLSGenericSecondQuantity/prognostic/boundary_conditions"))
+        if (nbcs > 0) then
+            FLExit("You have automatic boundary conditions on, but some boundary conditions on the GLS Psi field. Not allowed")
+        end if
     end if
 
 
