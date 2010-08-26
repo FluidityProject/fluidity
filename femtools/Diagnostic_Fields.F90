@@ -139,7 +139,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic field rank")
+          FLExit("Invalid diagnostic field rank")
         end if
     end select
 
@@ -234,7 +234,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic scalar field name supplied")
+          FLExit("Invalid diagnostic scalar field name supplied")
         end if
 
     end select
@@ -257,7 +257,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic scalar field name supplied")
+          FLExit("Invalid diagnostic scalar field name supplied")
         end if
 
     end select
@@ -324,7 +324,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic vector field name supplied")
+          FLExit("Invalid diagnostic vector field name supplied")
         end if
 
     end select
@@ -347,7 +347,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic vector field name supplied")
+          FLExit("Invalid diagnostic vector field name supplied")
         end if
 
     end select
@@ -371,7 +371,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic tensor field name supplied")
+          FLExit("Invalid diagnostic tensor field name supplied")
         end if
 
     end select
@@ -394,7 +394,7 @@ contains
           stat = 1
           return
         else
-          FLAbort("Invalid diagnostic tensor field name supplied")
+          FLExit("Invalid diagnostic tensor field name supplied")
         end if
 
     end select
@@ -562,7 +562,7 @@ contains
     
     if(stat/=0) then
 
-      FLAbort("Can't calculate Peclet number, no diffusivity")
+      FLExit("Can't calculate Peclet number, no diffusivity")
     else
 
         do ele=1, element_count(GPN)
@@ -630,7 +630,7 @@ contains
       
     if (continuity(vel_field)<0 .or. &
         element_degree(vel_field,1)/=element_degree(g_direction_field,1)) then
-      FLAbort("HorizontalVelocityDivergence does not work for discontinuous or higher order fields.")
+      FLExit("HorizontalVelocityDivergence does not work for discontinuous or higher order fields.")
     end if
 
     do i = 1, node_count(hvel_field)
@@ -855,7 +855,7 @@ contains
       if (present(stat)) then
         stat = lstat
       else
-        FLAbort("Need density")
+        FLExit("Need density")
       end if
     end if
 
@@ -864,7 +864,7 @@ contains
       if (present(stat)) then
         stat = lstat
       else
-        FLAbort("Need isopycnal coordinate")
+        FLExit("Need isopycnal coordinate")
       end if
     end if
     
@@ -873,7 +873,7 @@ contains
       if (present(stat)) then
         stat = lstat
       else
-        FLAbort("Need gravity")
+        FLExit("Need gravity")
       end if
     end if
     
@@ -932,10 +932,10 @@ contains
     ewrite(2, *) "Computing horizontal stream function for state " // trim(state%name)
 
     if(psi%mesh%continuity /= 0) then
-      FLAbort("HorizontalStreamFunction requires a continuous mesh")
+      FLExit("HorizontalStreamFunction requires a continuous mesh")
     end if
     if(mesh_dim(psi%mesh) /= 3) then
-      FLAbort("HorizontalStreamFunction only works in 3D")
+      FLExit("HorizontalStreamFunction only works in 3D")
     end if
 
     ! Extract the Coordinate field
@@ -1210,7 +1210,7 @@ contains
       if (present(stat)) then
         stat = lstat
       else
-        FLAbort("Need Velocity")
+        FLExit("Need Velocity")
       end if
     end if
     
@@ -1421,7 +1421,7 @@ contains
     ewrite(2, *) "Computing shear Richardson number for state " // trim(state%name)
 
     if(ri%mesh%continuity /= 0) then
-      FLAbort("RichardsonNumber requires a continuous mesh")
+      FLExit("RichardsonNumber requires a continuous mesh")
     end if
 
     ! Extract the Coordinate field
@@ -1688,7 +1688,7 @@ contains
     if(stat.ne.0) then    
        u=>extract_vector_field(state, "Velocity",stat)
        if(stat.ne.0) then
-          FLAbort('Missing velocity field!')
+          FLExit('Missing velocity field!')
        end if
     end if
     x=>extract_vector_field(state, "Coordinate")
@@ -2661,7 +2661,7 @@ contains
          bed_shear_stress => extract_vector_field(state, "BedShearStress", stat)  
          if(stat /= 0) then  
            ewrite(-1,*) "You need BedShearStress turned on to calculate MaxBedShearStress."
-           FLAbort("Turn on BedShearStress")
+           FLExit("Turn on BedShearStress")
          end if
 
          do i=1, max_bed_shear_stress%dim
