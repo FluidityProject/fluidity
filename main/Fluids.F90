@@ -273,7 +273,8 @@ contains
           end if
        end do phaseloop
        if(ss==0) then
-          FLAbort("Havent found a material phase containing solid concentration")
+          ewrite(-1,*) "You have /imported_solids on but..."
+          FLExit("..couldn't find a material phase containing solid concentration.")
        end if
        EWRITE(2,*) 'solid state= ',ss
     end if
@@ -291,7 +292,7 @@ contains
           end if
        end do phaseloop1
        if (fs==-1) then
-          FLAbort('No prognostic MaterialVolumeFraction was defined')
+          FLExit('No prognostic MaterialVolumeFraction was defined, which is needed for ALE')
        end if
     end if
     !     end initialise solid-fluid coupling, and ALE  -Julian 17-07-2008
@@ -304,14 +305,16 @@ contains
     !     Determine the output format.
     call get_option('/io/dump_format', option_buffer)
     if(trim(option_buffer) /= "vtk") then
-       FLAbort("You must specify a dump format and it must be vtk")
+       ewrite(-1,*) "You must specify a dump format and it must be vtk."
+       FLExit("Rejig your FLML: /io/dump_format")
     end if
 
     !        Initialisation of distance to top and bottom field
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
-          FLAbort("There are no top and bottom boundary markers.")
+          ewrite(-1,*) "There are no top and bottom boundary markers."
+          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
        end if
        call CalculateTopBottomDistance(state(1))
     end if
@@ -927,6 +930,8 @@ contains
     ! Ocean boundaries
     if (has_scalar_field(state(1), "DistanceToTop")) then
       if (.not. have_option('/geometry/ocean_boundaries')) then
+         ! Leaving this an FLAbort as there's a check up above when initilising.
+         ! If we get this error after adapting, then something went very wrong!
          FLAbort("There are no top and bottom boundary markers.")
       end if
       call CalculateTopBottomDistance(state(1))
