@@ -49,8 +49,7 @@ ADJOINTOBJS =   \
 	Assnav_adjoint.o navsto_adjoint.o 
 endif
 
-REDUCED_OBJS = reduced_model.o 
-	reduced_model_errormeasure.o  
+REDUCED_OBJS = 	reduced_model_errormeasure.o  
 
 OBJS    = Momentum_Diagnostic_Fields.o \
 	Momentum_Equation.o Momentum_CG.o \
@@ -117,14 +116,12 @@ Adapt_State.o: Adapt_Integration.o Adaptivity_1D.o \
 Adapt_State_Unittest.o: Adapt_Integration.o Mba2d_Integration.o Adapt_State.o \
   Sam_integration.o
 Explicit_ALE.o: Solid_Configuration.o
-reduced_model.o:
 traffic.o: qmesh.o
 Mba3d_Integration.o: Adapt_Integration.o Node_Locking.o qmesh.o \
   Surface_Id_Interleaving.o
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
 Advection_Diffusion_CG.o: Upwind_Stabilisation.o Petsc_Solve_State.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o Petsc_Solve_State.o
-reduced_model.o: Coriolis.o
 reduced_model_errormeasure.o: Coriolis.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o \
   Full_Projection.o
