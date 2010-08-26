@@ -1801,7 +1801,7 @@ IF(IFPG.EQ.1) THEN
 ENDIF
 
 #else
-FLAbort("No ARPACK support - cannot run reduced model.")
+FLExit("No ARPACK support, recompile with ARPACK - cannot run reduced model.")
 #endif
 
 RETURN
