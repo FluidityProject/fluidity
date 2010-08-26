@@ -151,7 +151,7 @@ character(len=*), intent(in):: fieldname
     ewrite(-1,*) "In vtk_cache_read_scalar_field"
     ewrite(-1,*) "filename: ", trim(filename)
     ewrite(-1,*) "fieldname: ", trim(fieldname)
-    FLAbort("Requested field is not in the vtu")
+    FLExit("Requested field is not in the vtu")
   end if
   
 end function vtk_cache_read_scalar_field
@@ -177,7 +177,7 @@ character(len=*), intent(in):: fieldname
     ewrite(-1,*) "In vtk_cache_read_vector_field"
     ewrite(-1,*) "filename: ", trim(filename)
     ewrite(-1,*) "fieldname: ", trim(fieldname)
-    FLAbort("Requested field is not in the vtu")
+    FLExit("Requested field is not in the vtu")
   end if
   
 end function vtk_cache_read_vector_field
@@ -203,7 +203,7 @@ character(len=*), intent(in):: fieldname
     ewrite(-1,*) "In vtk_cache_read_tensor_field"
     ewrite(-1,*) "filename: ", trim(filename)
     ewrite(-1,*) "fieldname: ", trim(fieldname)
-    FLAbort("Requested field is not in the vtu")
+    FLExit("Requested field is not in the vtu")
   end if
   
 end function vtk_cache_read_tensor_field
