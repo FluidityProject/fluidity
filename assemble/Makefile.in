@@ -47,7 +47,7 @@ LIB = ../lib/lib@FLUIDITY@.a
 ifeq (@ADJOINT@,yes)
 ADJOINTOBJS =   FsMom.o   sourceFS.o\
 	fluids_forward.o  fluids_adjoint.o   Momentum_Matrix_CG_3D_adjoint.o \
-	Assnav_adjoint.o navsto_adjoint.o sortnu.o
+	Assnav_adjoint.o navsto_adjoint.o 
 endif
 
 REDUCED_OBJS = reduced_model.o snapsvd.o support.o \
