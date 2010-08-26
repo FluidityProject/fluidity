@@ -60,7 +60,7 @@ contains
     assert(ele_count(s_field) > 0)
     shape => ele_shape(s_field, 1)
     if(shape%degree /= 0) then
-      FLAbort("element_halo diagnostic requires a degree 0 mesh")
+      FLExit("element_halo diagnostic requires a degree 0 mesh")
     end if
     
     call zero(s_field)
@@ -83,7 +83,7 @@ contains
     assert(ele_count(s_field) > 0)
     shape => ele_shape(s_field, 1)
     if(shape%degree /= 0) then
-      FLAbort("element_halo_ownership diagnostic requires a degree 0 mesh")
+      FLExit("element_halo_ownership diagnostic requires a degree 0 mesh")
     end if
     assert(node_count(s_field) == ele_count(s_field))
 
@@ -109,7 +109,7 @@ contains
     assert(ele_count(s_field) > 0)
     shape => ele_shape(s_field, 1)
     if(shape%degree /= 0) then
-      FLAbort("element_universal_numbering diagnostic requires a degree 0 mesh")
+      FLExit("element_universal_numbering diagnostic requires a degree 0 mesh")
     end if
     assert(node_count(s_field) == ele_count(s_field))
 
