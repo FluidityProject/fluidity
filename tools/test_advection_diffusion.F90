@@ -63,7 +63,7 @@ program test_advection_diffusion
 
   ! No support for multiphase or multimaterial at this stage.
   if (size(state)/=1) then
-     FLAbort("Multiple material_phases are not supported")
+     FLExit("Multiple material_phases are not supported")
   end if
 
   ! Always output the initial conditions.
@@ -140,7 +140,8 @@ contains
     have_diffusion=(stat==0)
 
     if ((.not.have_advection).and.(.not.have_diffusion)) then
-       FLAbort("Running with no advection or diffusion is pointless")
+       ewrite(-1,*)("You need a velocity field with advection or a tracer field with diffusivity.")
+       FLExit("Running with no advection or diffusion is pointless")
     end if
 
     sparsity=get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
