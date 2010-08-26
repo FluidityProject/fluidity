@@ -732,11 +732,7 @@ subroutine keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
 
        if (field%name=="TurbulentKineticEnergy") then
           ! Set Dirichlet here: what value? Must be tuned to Reynolds number.
-          ewrite(1,*) "Low-Reynolds number k bc: set to zero for now."
-          fields_sngi = 0.0
-
-          ! Perform rhs surface integration
-          rhs = shape_rhs( fshape_field, detwei_bdy * fields_sngi )
+          FLExit("Low-Reynolds number k BC: set a Dirichlet- instead of k_epsilon-type BC.")
 
        else if (field%name=="TurbulentDissipation") then
           ! Evaluate eps = f(d(k^.5)/dn) at the Gauss quadrature points on the surface.
@@ -754,7 +750,7 @@ subroutine keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
        end if
 
     ! high Re shear-stress wall functions for k and epsilon: see e.g. Wilcox (1994)
-    else
+    else if(wall_fns=="high_Re") then
        ! Evaluate stress = grad U.n at the Gauss quadrature points on the surface.
        do j = 1, sngi      ! Contract dshape gradient over snloc
           gradn_c(j) = sum(gradn(:,j), 1)
@@ -780,6 +776,8 @@ subroutine keps_wall_function(field, kk, ele, sele, positions, wall_fns, rhs)
 
        ! Perform rhs surface integration
        rhs = shape_rhs( fshape_field, detwei_bdy * fields_sngi )
+    else
+       FLAbort("Unknown wall function option for k_epsilon boundary conditions!")
     end if
 
 end subroutine keps_wall_function
