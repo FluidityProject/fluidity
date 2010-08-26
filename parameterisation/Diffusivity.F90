@@ -125,8 +125,8 @@ contains
 
        else
 
-          ewrite(-1,*) 'Calling GM without new options is a bit broken'
-          FLAbort('Calling GM without new options is a bit broken')
+          ewrite(-1,*) 'Calling Gent_McWilliams without new options is a bit broken'
+          FLAbort('Calling Gent_McWilliams without new options is a bit broken')
           unit=free_unit()
           open(unit=unit, file="diffusivity_input.dat", action="read",&
                & status="old", err=666)
