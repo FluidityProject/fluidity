@@ -324,7 +324,7 @@ contains
                &/interior_penalty/debug/remove_penalty_fluxes")
        end if
     else
-       FLAbort("Unknown diffusion scheme.")
+       FLExit("Unknown diffusion scheme for DG Advection Diffusion")
     end if
 
     if (have_option(trim(T%option_path)//&
@@ -549,7 +549,7 @@ contains
        case("Vertex_Based")
           limiter=LIMITER_VB
        case default
-          FLAbort('No such limiter')
+          FLExit('No such limiter')
        end select
        
     end if
@@ -704,7 +704,7 @@ contains
     end if
     if (present(diffusion_rhs)) then
        if(.not.have_diffusion_m) then
-         FLAbort("diffusion_m required")
+         FLExit("diffusion_m required")
        end if
        rhs_diff=diffusion_rhs
     else
@@ -727,7 +727,7 @@ contains
        ! Forcing a zero NonlinearVelocity will disable advection.
        U=extract_vector_field(state, "Velocity", stat)
        if (stat/=0) then 
-          FLAbort("Oh dear, no velocity field")
+          FLExit("Oh dear, no velocity field. A velocity field is required for advection!")
        end if
        call allocate(U_nl_backup, U%dim,  U%mesh, "BackupNonlinearVelocity", &
             FIELD_TYPE_CONSTANT)
@@ -826,7 +826,7 @@ contains
          &discontinuous_galerkin/upwind_stabilisation")) then
        stabilisation_scheme=UPWIND
        if(move_mesh) then
-          FLAbort("Haven't thought about how mesh movement works with stabilisation yet.")
+          FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
        end if
     else
        stabilisation_scheme=NONE
@@ -1225,7 +1225,6 @@ contains
                    if(test_val>gradient_test_bound) then
                       ewrite(-1,*) test_val, gradient_test_bound
                       FLAbort('ele2grad test failed')
-                           
                    end if
                 end do
              end if
@@ -1913,10 +1912,10 @@ contains
        FLAbort('need ele2grad mat to compute primal fluxes')
     end if
     if(do_primal_fluxes.and..not.present(diffusivity)) then
-       FLAbort('Need diffusivity to compute primal fluxes')
+       FLExit('Need diffusivity to compute primal fluxes')
     end if
     if(diffusion_scheme==IP.and..not.do_primal_fluxes) then
-       FLAbort('Primal fluxes needed for IP')
+       FLExit('Primal fluxes needed for IP')
     end if
 
     if(do_primal_fluxes) then
