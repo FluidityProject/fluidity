@@ -980,7 +980,7 @@ contains
       ewrite(-1,*) "nelist not initialised. I could allocate it myself,"
       ewrite(-1,*) "but you're probably calling this a lot."
       ewrite(-1,*) " call add_nelist(mesh) first"
-      FLAbort("err")
+      FLAbort("Call add_nelist(mesh) before calling node_neigh.")
     end if
 
     node_neigh => row_m_ptr(mesh%adj_lists%nelist, node_number)
@@ -2458,7 +2458,7 @@ contains
         ewrite(-1,*) "nelist not initialised. I could allocate it myself,"
         ewrite(-1,*) "but you're probably calling this a lot."
         ewrite(-1,*) " call add_nelist(mesh) first"
-        FLAbort("err")
+        FLAbort("Call add_nelist(mesh) before calling val_python.")
       end if
       
       if (.not. field%py_positions_same_mesh) then
@@ -2958,7 +2958,7 @@ contains
     case (FAMILY_CUBE)
       vert = 2**(shape%dim-1)
     case default
-      FLAbort("Add more element types")
+      FLAbort("Unknown element type.")
     end select
   end function face_vertices_shape
 
@@ -3110,7 +3110,7 @@ contains
     if(present(stat)) then
       stat = 1
     else
-      FLAbort("Failed to find local coordinate")
+      FLAbort("Failed to find local coordinate.")
     end if
     
   end function local_coords_mesh
