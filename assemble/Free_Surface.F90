@@ -165,7 +165,7 @@ contains
            surface_element_list=surface_element_list,option_path=fs_option_path)
         if (bctype=="free_surface") then
           if (grav_stat/=0) then
-             FLAbort("For a free surface you need gravity")
+             FLExit("For a free surface you need gravity")
           end if
           have_wetting_drying=have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")
           if (have_wetting_drying) then
@@ -307,7 +307,7 @@ contains
           surface_element_list=surface_element_list)
       if (bctype=="free_surface") then
         if (grav_stat/=0) then
-           FLAbort("For a free surface you need gravity")
+           FLExit("For a free surface you need gravity")
         end if
         do j=1, size(surface_element_list)
           call add_free_surface_element(surface_element_list(j))
@@ -389,7 +389,7 @@ contains
             & .not.aliased(velocity)) then
           
           if(complete) then
-            FLAbort("I've found two velocities with free surfaces!")
+            FLExit("Two velocity fields with free_surface boundary conditions are not permitted.")
           end if
           
           ewrite(1,*) "Going into move_free_surface_nodes to compute new node coordinates"
@@ -402,7 +402,7 @@ contains
           ! need to update ocean boundaries again if you've just moved the mesh
           if (has_scalar_field(states(i), "DistanceToTop")) then
             if (.not. have_option('/geometry/ocean_boundaries')) then
-                FLAbort("There are no top and bottom boundary markers.")
+                FLExit("ocean_boundaries required under geometry for mesh movement with a free_surface")
             end if
             call CalculateTopBottomDistance(states(i))
           end if
@@ -472,7 +472,9 @@ contains
       call allocate(linear_p, positions%mesh)
       call remap_field(p, linear_p, stat=stat)
       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-        FLAbort("Just remapped from a discontinuous to a continuous field!")
+        ewrite(-1,*) "Just remapped from a discontinuous to a continuous field when using free_surface mesh movement."
+        ewrite(-1,*) "This suggests the pressure is discontinuous, which isn't supported."
+        FLExit("Discontinuous pressure not permitted.")
       end if
       ! we've allowed it to remap from periodic to unperiodic and from higher order to lower order
       p => linear_p
@@ -682,7 +684,7 @@ contains
         ewrite(-1,*) "of surface nodes within completely owned surface elements. This indicates"
         ewrite(-1,*) "the parallel decomposition is not done along columns. You shouldn't be using"
         ewrite(-1,*) "mg with vertical_lumping in that case."
-        FLAbort("Vertical lumping requires 2d decomposition along columns")
+        FLExit("Vertical lumping requires 2d decomposition along columns")
       end if
       call deallocate(owned_surface_nodes)
     end if
@@ -708,7 +710,7 @@ contains
     ewrite(1, *) "Extracting list of nodes on the free surface"
     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)
     if (stat/=0) then
-       FLAbort("Need to specify the ocean_boundaries under /geometry")
+       FLExit("Need to specify the ocean_boundaries under /geometry")
     end if
     
     if (mesh==topdis%mesh) then
@@ -823,6 +825,8 @@ contains
       ! The reference density is hard-coded to be 1.0 for the Ocean Pade Approximation
       rho0=1.0
     else 
+      ewrite(-1,*) "Unless using Boussinesq Velocity, you must specify a"
+      ewrite(-1,*) "linear or pade equation of state for the free surface."
       FLExit("Error retrieving reference density from options.")
     endif
 
@@ -1151,7 +1155,7 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
            .not. have_option(trim(option_path)// &
            '/spatial_discretisation/discontinuous_galerkin')) then
          ewrite(-1,*) "With the free_surface boundary condition"
-         FLExit("you have to use continuous_galerkin or discontinuous_galerkin")
+         FLExit("you have to use continuous_galerkin or discontinuous_galerkin Velocity")
       end if
 
       ! check pressure options

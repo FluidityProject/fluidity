@@ -330,7 +330,7 @@
         state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, .false.)
       if (associated(prolongators)) then
         if (associated(surface_nodes)) then
-          FLAbort("Internal smoothing not available for inner solve")
+          FLExit("Internal smoothing not available for inner solve")
         end if
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
           inner_solver_option_path, startfromzero_in=.true., &

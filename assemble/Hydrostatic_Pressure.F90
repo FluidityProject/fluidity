@@ -150,7 +150,7 @@ module hydrostatic_pressure
     ewrite(1, *) "In calculate_hydrostatic_pressure_dg"
     
     if(.not. continuity(hp) == -1) then
-      FLExit("HydrostaticPressure requires a discontinuous mesh")
+      FLExit("HydrostaticPressure using discontinuous_galerkin requires a discontinuous mesh")
     end if
     
     positions => extract_vector_field(state, "Coordinate")
@@ -221,6 +221,10 @@ module hydrostatic_pressure
     if(continuity(buoyancy) /= 0) then
       ewrite(-1, *) "VelocityBuoyancyDensity on mesh " // trim(buoyancy%mesh%name)
       ewrite(-1, *) "With continuity: ", continuity(buoyancy)
+      ewrite(-1, *) "The buoyancy field needs to be continuous for HydrostaticPressureGradient."
+      ewrite(-1, *) "The buoyancy inherits its mesh from the Density field, if present, or from"
+      ewrite(-1, *) "the Velocity field when the Density is not found.  Try setting a Density"
+      ewrite(-1, *) "field on a continuous mesh to overcome this error."
       FLExit("HydrostaticPressureGradient requires a continuous VelocityBuoyancyDensity mesh")
     end if
     buoyancy_shape => ele_shape(buoyancy, 1)
@@ -785,7 +789,7 @@ module hydrostatic_pressure
     else
       ! should never get here... if we are then we're on an internal face with a cg
       ! test space.  Put in a bug trap until this is tested with a cg test space.
-      FLAbort("Huh? Ended up at an internal face with a cg test spacce.")
+      FLAbort("Huh? Ended up at an internal face with a cg test space.")
     end if
   
     call transform_facet_to_physical(positions, face, &
