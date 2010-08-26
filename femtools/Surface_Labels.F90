@@ -82,7 +82,7 @@ contains
     real, pointer, dimension(:, :)::tensor1, gtensor
 
     if (positions%dim/=3) then
-       FLAbort("FindGeometryConstraints currently only works in 3D.")
+       FLExit("Geometric constraints currently only work in 3D.")
     end if
     
     NNodes=node_count(positions)
