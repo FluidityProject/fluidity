@@ -63,8 +63,10 @@ contains
     assert( size(xyz)==3 )
     r = sqrt(sum(xyz**2))
     if(r<1.0) then
+       ! May need to include a tolerance here
        write(0, *) "XYZ = ", xyz
-       FLAbort("coordinate doesn't appear to be on earth surface")
+       ewrite(-1,*) "Unit vector r on Earth's surface is of size, ", r
+       FLAbort("Coordinate doesn't appear to be on the Earth's surface")
     end if
 
     if(present(height)) then
