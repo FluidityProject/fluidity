@@ -43,18 +43,11 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-ifeq (@ADJOINT@,yes)
-ADJOINTOBJS =   \
-	fluids_forward.o  fluids_adjoint.o   Momentum_Matrix_CG_3D_adjoint.o \
-	Assnav_adjoint.o navsto_adjoint.o 
-endif
-
 OBJS    = Momentum_Diagnostic_Fields.o \
 	Momentum_Equation.o Momentum_CG.o \
 	qmesh.o \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
-	$(ADJOINTOBJS) \
 	Solid_Configuration.o Explicit_ALE.o \
 	MeshMovement.o \
 	traffic.o \
