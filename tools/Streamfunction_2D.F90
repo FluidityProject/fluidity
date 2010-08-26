@@ -65,10 +65,12 @@ subroutine streamfunction_2d(input_basename, input_basename_len, &
   
   positions => extract_vector_field(state, "Coordinate")
   if(positions%dim /= 2) then
-    FLAbort("streamfunction_2d requires a 2D input vtu")
+    ewrite(-1,*) "Your problem is of dimension ", positions%dim
+    FLExit("streamfunction_2d requires a 2D input vtu")
   end if
   if(positions%mesh%continuity /= 0) then
-    FLAbort("streamfunction_2d requires a continuous input vtu")
+    ewrite(-1,*) "Your Coordinates mesh is not continuous"
+    FLExit("streamfunction_2d requires a continuous input vtu")
   end if
   
   velocity => extract_vector_field(state, "Velocity")

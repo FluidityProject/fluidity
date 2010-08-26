@@ -120,7 +120,7 @@ subroutine IGW
           
   if(io1.ne.0) then
      ewrite(-1,*) 'Looked for ', trim(trim(filename)//".dat")
-     FLAbort('Could not read from .dat file')
+     FLExit('Could not read from .dat file')
   end if
   
   read(unit, IGW_data)
@@ -293,7 +293,7 @@ subroutine IGW
 
   ewrite(2,*) 'setting h from python'
   inquire(file=trim(h_input),exist=file_exists)  
-  if (.not.file_exists) FLAbort('Couldnt find ' // trim(h_input) // ' file')
+  if (.not.file_exists) FLExit('Couldnt find ' // trim(h_input) // ' file')
   unit=free_unit() 
   open(unit, file=trim(h_input), action="read",&
        & status="old")
@@ -350,7 +350,7 @@ subroutine IGW
      
      ewrite(2,*) 'setting exact h from python'
      inquire(file=trim(exact_h_input),exist=file_exists)  
-     if (.not.file_exists) FLAbort('Couldnt find _h.py file')
+     if (.not.file_exists) FLExit('Couldnt find _h.py file')
      unit=free_unit() 
      open(unit, file=trim(exact_h_input), action="read",&
           & status="old")
@@ -385,7 +385,7 @@ subroutine IGW
           option_path="/temporary/fix")
   else
      inquire(file=trim(u_input),exist=file_exists)  
-     if (.not.file_exists) FLAbort('Couldnt find _u.py file')
+     if (.not.file_exists) FLExit('Couldnt find _u.py file')
      unit=free_unit() 
      open(unit, file=trim(u_input), action="read",&
           & status="old")
@@ -764,7 +764,7 @@ subroutine IGW
      
      ewrite(2,*) 'setting exact_h from python'
      inquire(file=trim(exact_h_input),exist=file_exists)  
-     if (.not.file_exists) FLAbort('Couldnt find ' // trim(exact_h_input) // ' file')
+     if (.not.file_exists) FLExit('Couldnt find ' // trim(exact_h_input) // ' file')
      unit=free_unit() 
      open(unit, file=trim(exact_h_input), action="read",&
           & status="old")
@@ -783,7 +783,7 @@ subroutine IGW
      
      ewrite(2,*) 'setting exact_u from python'
      inquire(file=trim(exact_u_input),exist=file_exists)  
-     if (.not.file_exists) FLAbort('Couldnt find _h.py file')
+     if (.not.file_exists) FLExit('Couldnt find _h.py file')
      unit=free_unit() 
      open(unit, file=trim(exact_u_input), action="read",&
           & status="old")

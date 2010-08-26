@@ -57,7 +57,8 @@ subroutine pseudo_mesh(filename, filename_len, target_elements)
   ewrite(1, *) "In pseudo_mesh"
   
   if(isparallel()) then
-    FLAbort("pseudo_mesh does not work in parallel")
+    ewrite(-1,*) "You are running in parallel"
+    FLExit("pseudo_mesh does not work in parallel")
   end if
   
   ewrite(2, *) "Target input elements? ", target_elements /= 0
