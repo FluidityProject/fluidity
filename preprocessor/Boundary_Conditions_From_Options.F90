@@ -262,7 +262,7 @@ contains
 
        case( "bulk_formulae" )
 
-        FLAbort("Oops, you shouldn't get a bulk_formulae type of BC. It should have been converted")
+          FLAbort("Oops, you shouldn't get a bulk_formulae type of BC. It should have been converted")
 
        case default
 
@@ -920,7 +920,7 @@ contains
             do j=1,3
                if (applies(j)) then
                   if (j>surface_field%dim) then
-                     FLExit("Too many dimensions in boundary condition")
+                     FLAbort("Too many dimensions in boundary condition")
                   end if
                   
                   bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)
@@ -960,7 +960,7 @@ contains
           surface_field2 => extract_surface_field(field, bc_name, name="order_one_coeffcient")
           do j=1,3
              if (j>surface_field%dim) then
-                FLExit("Too many dimensions in boundary condition")
+                FLAbort("Too many dimensions in boundary condition")
              end if
              bc_component_path=trim(bc_type_path)//"/"//aligned_components(j)//"/order_zero_coefficient"
              surface_field_component=extract_scalar_field(surface_field, j)
@@ -1902,7 +1902,7 @@ contains
                   vfields=(/ normal, tangent_1, tangent_2/))
             call deallocate(bc_position)
             ewrite(-1,*) "rotation matrix determinant", det
-            FLExit("rotation matrix is messed up, rotated bcs have exploded...")
+            FLAbort("rotation matrix is messed up, rotated bcs have exploded...")
           end if
        end if
        
@@ -1936,9 +1936,9 @@ contains
 
     position => extract_vector_field(state, "Coordinate")
     tke  => extract_scalar_field(state, "GLSTurbulentKineticEnergy",stat)
-    if(stat/=0) FLAbort("Need GLSTurbulentKineticEnergy field")
+    if(stat/=0) FLExit("Need GLSTurbulentKineticEnergy field")
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity",stat)
-    if(stat/=0) FLAbort("Need GLSGenericSecondQuantity field")
+    if(stat/=0) FLExit("Need GLSGenericSecondQuantity field")
     
     ! Get vector of surface ids
     shape_option=option_shape("/material_phase[0]/subgridscale_parameterisations/GLS/calculate_boundaries/top_surface_ids")
