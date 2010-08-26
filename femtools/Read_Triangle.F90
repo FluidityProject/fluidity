@@ -341,7 +341,7 @@ contains
     case(FAMILY_CUBE)
       sloc=loc/2
     case default
-       ewrite(0,*) "While reading triangle files with basename "//trim(lfilename)
+       ewrite(-1,*) "While reading triangle files with basename "//trim(lfilename)
        FLAbort('Illegal element family')
     end select
 
@@ -655,7 +655,7 @@ contains
         stat = io
         return
       else
-         ewrite(0,*) "While opening "//trim(filename)// "." // trim(map)
+         ewrite(-1,*) "While opening "//trim(filename)// "." // trim(map)
         FLAbort("Failed to read elemental mappings")
       end if
     end if
