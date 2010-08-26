@@ -287,7 +287,7 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
     ewrite(4,*), 'Found ', M, ' frequencies to analyse.'
 
    if ( M .le. 0 ) then
-      FLAbort("Internal error in calculate_tidal_harmonics(). No harmonic constituents were found in option tree.")
+      FLExit("Internal error in calculate_tidal_harmonics(). No harmonic constituents were found in option tree.")
    end if
 ! check which constituent we want to calculate
 !   call update_harmonic_analysis(state, levels, current_snapshot_index, saved_snapshots_times, sigma, M, s_field, myconstituent_id, target)
@@ -373,7 +373,7 @@ subroutine save_harmonic_x_in_fields(harmonic_x, residual, M, harmonic_fields, n
          call set( harmonic_current, node, sqrt( harmonic_x(MM+1)**2 + harmonic_x(MM+1+M)**2 ) )
       elseif (harmonic_fields(i)%target=='Phase') then
          if (harmonic_x(MM+1+M)==0 .and. harmonic_x(MM+1)==0) then
-            FLExit('Error while calculating harmonic analysis phase!')
+            FLAbort('Error while calculating harmonic analysis phase!')
          end if
          result = atan2(harmonic_x(MM+1+M),harmonic_x(MM+1))
          !*180.0/pi
