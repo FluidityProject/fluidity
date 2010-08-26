@@ -299,7 +299,7 @@ contains
        call write_triangle_files(filename, state, mesh)
 
     case("gmsh")
-       FLAbort("GMSH write functionality not yet supported")
+       FLExit("GMSH write functionality not supported")
        !         call write_gmsh_file(filename, state, mesh )
 
     ! Additional mesh format subroutines go here
@@ -342,7 +342,7 @@ contains
             print_internal_faces )
 
     case("gmsh")
-       FLAbort("GMSH write functionality not yet supported")
+       FLExit("GMSH write functionality not yet supported")
        !         call write_gmsh_file( trim(filename), positions, &
        !              print_internal_faces )
 
