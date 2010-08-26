@@ -86,7 +86,7 @@ module coriolis_module
       call update_f_plane_coriolis()
       coriolis = f0
     case default
-      ewrite(0,*) "coriolis_option:", coriolis_option
+      ewrite(-1,*) "coriolis_option:", coriolis_option
       FLAbort("Unknown coriolis option")
     end select
   
@@ -215,7 +215,7 @@ module coriolis_module
       .not. have_option("/physical_parameters/coriolis/on_sphere")) then
         
         ewrite(-1,*) "With /geometry/spherical_earth you need /physical_parameters/coriolis/on_sphere"
-        FLAbort("The end.")
+        FLExit("Fiddle with your FLML and try again...")
         
     end if
         
@@ -223,7 +223,7 @@ module coriolis_module
         .not. have_option("/geometry/spherical_earth")) then
         
         ewrite(-1,*) "With /physical_parameters/coriolis/on_sphere you need /geometry/spherical_earth."
-        FLAbort("The end.")
+        FLExit("Fiddle with your FLML and try again...")
         
     end if
     

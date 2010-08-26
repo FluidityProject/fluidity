@@ -72,7 +72,8 @@ contains
     type(vector_field) :: positions
     
     if(mesh_dim(vort_field) /= 3) then
-      FLAbort("PlanetaryVorticity only works in 3D")
+      ewrite(-1,*) "You have a mesh of dimension ",mesh_dim(vort_field)  
+      FLExit("PlanetaryVorticity only works in 3D")
     end if
     
     positions = get_nodal_coordinate_field(state, vort_field%mesh)
@@ -121,10 +122,12 @@ contains
     ewrite(2, *) "Computing PV for state " // trim(state%name)
 
     if(pv%mesh%continuity /= 0) then
-      FLAbort("PotentialVorticity requires a continuous mesh")
+      ewrite(-1,*) "Your mesh, ",trim(pv%mesh%name)," is not continuous"
+      FLExit("PotentialVorticity requires a continuous mesh")
     end if
     if(mesh_dim(pv) /= 3) then
-      FLAbort("PotentialVorticity only works in 3D")
+      ewrite(-1,*) "Your mesh is of dimension ", mesh_dim(pv)  
+      FLExit("PotentialVorticity only works in 3D")
     end if
 
     ! Extract the Coordinate field
@@ -230,7 +233,8 @@ contains
     ewrite(2, *) "Computing relative PV for state " // trim(state%name)
 
     if(rel_pv%mesh%continuity /= 0) then
-      FLAbort("RelativePotentialVorticity requires a continuous mesh")
+      ewrite(-1,*) "Your mesh ",trim(rel_pv%mesh%name)," is not continuous"
+      FLExit("RelativePotentialVorticity requires a continuous mesh")
     end if
 
     ! Extract the Coordinate field
