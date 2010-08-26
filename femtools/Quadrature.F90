@@ -313,7 +313,7 @@ contains
                stat=QUADRATURE_DEGREE_ERROR
                return
             else
-               FLAbort(quadrature_error_message)
+               FLExit(quadrature_error_message)
             end if
 
          end if
@@ -335,7 +335,7 @@ contains
                stat=QUADRATURE_NGI_ERROR
                return
             else
-               FLAbort(quadrature_error_message)
+               FLExit(quadrature_error_message)
             end if
          end if
 
@@ -376,7 +376,7 @@ contains
           stat=QUADRATURE_ARGUMENT_ERROR
           return
         else
-          FLAbort(quadrature_error_message)
+          FLExit(quadrature_error_message)
         end if
       end if
 
@@ -388,7 +388,7 @@ contains
           stat=QUADRATURE_ARGUMENT_ERROR
           return
         else
-          FLAbort(quadrature_error_message)
+          FLExit(quadrature_error_message)
         end if
       end if
 
@@ -407,7 +407,7 @@ contains
           stat=QUADRATURE_DEGREE_ERROR
           return
         else
-          FLAbort(quadrature_error_message)
+          FLExit(quadrature_error_message)
         end if
       end if
 
@@ -435,7 +435,7 @@ contains
           stat=QUADRATURE_ARGUMENT_ERROR
           return
         else
-          FLAbort(quadrature_error_message)
+          FLExit(quadrature_error_message)
         end if
       end if
 
@@ -447,7 +447,7 @@ contains
           stat=QUADRATURE_ARGUMENT_ERROR
           return
         else
-          FLAbort(quadrature_error_message)
+          FLExit(quadrature_error_message)
         end if
       end if
 
@@ -458,7 +458,7 @@ contains
           stat=QUADRATURE_DEGREE_ERROR
           return
         else
-          FLAbort(quadrature_error_message)
+          FLExit(quadrature_error_message)
         end if
       end if
 
