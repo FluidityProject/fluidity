@@ -201,7 +201,7 @@ module mba_adapt_module
     call deallocate(state)
     state = new_state
 #else
-    FLAbort("You called mba_adapt without the mba library.")
+    FLExit("You called mba_adapt but haven't compiled with the mba library.")
 #endif
   end subroutine mba_adapt
 
