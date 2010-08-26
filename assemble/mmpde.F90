@@ -53,6 +53,8 @@ public :: mmpde
 !
 contains
 !
+! A mesh movement algorithm
+!
   subroutine mmpde(state)
     implicit none
     type(state_type), intent(in) :: state
