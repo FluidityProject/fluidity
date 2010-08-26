@@ -601,8 +601,7 @@ contains
                   no_mixing_bins = size(mixing_bin_bounds)
                   deallocate(mixing_bin_bounds)
               else
-                  FLAbort("Unable to determine mixing bin bounds type")  
-                  
+                  FLExit("Unable to determine mixing bin bounds type. Check options under include_mixing_stats")                  
               end if
           
               buffer = field_tag(name=sfield%name, column=column+1, statistic="mixing_bins%" // trim(mixing_stats_name),&
@@ -934,7 +933,7 @@ contains
     else if(have_option("/timestepping/steady_state/steady_state_file/plain_text_output")) then
       binary_steady_state_output = .false.
     else
-      FLAbort("Unable to determine steady state output format")
+      FLExit("Unable to determine steady state output format. Check options under /timestepping/steady_state/steady_state_file")
     end if
     
     ! Only the first process should write steady state information
@@ -1701,8 +1700,7 @@ contains
                 no_mixing_bins = size(mixing_bin_bounds)
                 deallocate(mixing_bin_bounds)
             else
-                FLAbort("Unable to determine mixing bin bounds type")
-                
+                FLExit("Unable to determine mixing bin bounds type. Check options under include_mixing_stats")                  
             end if
                     
             allocate(f_mix_fraction(1:no_mixing_bins))
@@ -4670,7 +4668,7 @@ contains
     if (stat/=0) then
       ewrite(-1, *) "Python error, Python string was:"
       ewrite(-1 , *) trim(func)
-      FLAbort("Dying")
+      FLExit("Dying")
     end if
 
   end subroutine set_detector_coords_from_python
