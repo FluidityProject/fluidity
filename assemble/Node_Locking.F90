@@ -79,7 +79,7 @@ contains
     if(stat /= 0) then
        ewrite(-1, *) "Python error, Python string was:"
        ewrite(-1, *) trim(func)
-       FLAbort("Dying")
+       FLExit("Dying")
     end if
     
     allocate(locked_nodes(count(is_node_locked /= 0)))

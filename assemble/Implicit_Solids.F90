@@ -179,7 +179,7 @@ contains
        else if (two_way_coupling)  then
           call femdem_two_way_initialise(state)
        else
-          FLExit("implicit_solids: Don't know what to do...")
+          FLAbort("implicit_solids: Don't know what to do...")
        end if
 
        do_calculate_volume_fraction = .true.
@@ -722,7 +722,7 @@ contains
        ewrite_minmax(ext_pos_fluid_vel%val(3)%ptr)
 
     else
-       FLExit("Don't know what to interpolate...")
+       FLAbort("Don't know what to interpolate...")
     end if
     
     call deallocate(alg_ext)
