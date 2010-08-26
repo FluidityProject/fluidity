@@ -1333,7 +1333,10 @@ contains
     ! the fluxes routines
     call get_forcing_surface_element_list(state, surface_element_list, &
                  & force_temperature, force_solar, force_velocity, force_salinity)
-    input_mesh = extract_mesh(state, "VelocityMesh");
+    input_mesh = extract_velocity_mesh(state,stat)
+    if (stat /= 0) then
+        FLAbort("The ocean_forcing routines had difficulty getting a Velocity mesh.")
+    end if
     call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
     NNodes = node_count(ocean_mesh) 
 
