@@ -41,8 +41,8 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = Gent_McWilliams.o Diffusivity.o Equation_of_State.o \
-Isotropic.o Anisotropic.o Gls_vertical_turbulence_model.o \
+OBJS = Gent_McWilliams.o Equation_of_State.o \
+Gls_vertical_turbulence_model.o \
 k_epsilon.o
 
 .SUFFIXES: .f90 .F90 .c .o .a
@@ -62,5 +62,4 @@ clean:
 	rm -f *.o *.d *.mod
 
 
-Diffusivity.o: Gent_McWilliams.o Isotropic.o Anisotropic.o
 Gls_vertical_turbulence_model.o: Equation_of_State.o
