@@ -160,7 +160,7 @@
     !=======================
     topdis => extract_scalar_field(state,"DistanceToTop",stat=stat)
     if(stat/=0) then
-       FLAbort('DistanceToTop is not present')
+       FLExit('DistanceToTop is not present')
     end if
     call get_boundary_condition(topdis,1,&
          surface_element_list=top_surface_element_list)
