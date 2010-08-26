@@ -111,7 +111,7 @@
 
     ! No support for multiphase or multimaterial at this stage.
     if (size(state)/=1) then
-       FLAbort("Multiple material_phases are not supported")
+       FLExit("Multiple material_phases are not supported")
     end if
 
     call get_option("/timestepping/current_time", current_time)
@@ -241,7 +241,7 @@
             call get_option("/physical_parameters/coriolis/beta_plane/f_0",f0)
             call get_option("/physical_parameters/coriolis/beta_plane/beta",beta)
          else
-            FLAbort('Your chosen Coriolis option is not supported')
+            FLExit('Your chosen Coriolis option is not supported')
          end if
       else
          f0 = 0.
