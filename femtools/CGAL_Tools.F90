@@ -27,11 +27,11 @@ module cgal_tools
     integer :: head, i
 
     if (positions%dim /= 3) then
-      FLAbort("Sorry, have only written the CGAL for 3D. But the 2D generalisation is easy!")
+      FLExit("Sorry, have only written the CGAL for 3D. But the 2D generalisation is easy!")
     end if
 
     if (positions%mesh%shape%degree /= 1 .or. positions%mesh%shape%numbering%family /= FAMILY_SIMPLEX) then
-      FLAbort("Sorry, only written for linear tets")
+      FLExit("Sorry, only have CGAL support for linear tets")
     end if
 
     head = 1

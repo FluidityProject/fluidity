@@ -277,7 +277,7 @@ contains
     
     shape => ele_shape(sfield, 1)
     if(ele_numbering_family(shape) /= FAMILY_SIMPLEX .or. shape%degree /= 1) then
-      FLAbort("heaviside_integral_new requires a linear simplex input mesh")
+      FLExit("continuous_galerkin mixing_stats only available on linear simplex meshes")
     end if
     
     select case(positions%dim)
@@ -291,7 +291,7 @@ contains
       case(1)
         integral = heaviside_integral_line(sfield, bound, positions)
       case default
-        FLAbort("heaviside_integral_new requires a linear simplex input mesh")
+        FLAbort("Unsupported dimension count in heaviside_integral_new")
     end select
     
   end function heaviside_integral_new
@@ -619,7 +619,7 @@ contains
 
        call allsum(integral)
     else
-       FLAbort("Gone into heaviside_integral but it only works for tets")
+       FLAbort("Gone into heaviside_integral but this version only works for tets")
     endif
 
     return

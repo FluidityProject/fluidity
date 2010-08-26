@@ -601,7 +601,7 @@ contains
               ewrite(-1,*) "If positions are nonlinear, then you have to compute"
               ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
               ewrite(-1,*) "quadrature points. Sorry ..."
-              FLAbort("Positions are nonlinear and Patrick is lazy")
+              FLExit("Calculating the body drag not supported for nonlinear coordinates.")
             end if
             vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
 
