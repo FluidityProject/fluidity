@@ -214,7 +214,7 @@ contains
     ewrite(2, *) "On mesh: " // trim(v_field%mesh%name)
     
     if(v_field%dim /= 2) then
-      FLAbort("Can only calculate perp in 2D")
+      FLExit("Can only calculate perp in 2D")
     end if
     
     positions => extract_vector_field(state, "Coordinate")    
@@ -329,7 +329,7 @@ contains
     ewrite(2, *) "On mesh: " // trim(s_field%mesh%name)
         
     if(source_field%dim /= 2) then
-      FLAbort("Can only calculate 2D curl in 2D")
+      FLExit("Can only calculate 2D curl in 2D")
     end if
     
     positions => extract_vector_field(state, "Coordinate")    
@@ -437,7 +437,7 @@ contains
     ewrite(2, *) "On mesh: " // trim(v_field%mesh%name)
     
     if(source_field%dim /= 3) then
-      FLAbort("Can only calculate curl in 3D")
+      FLExit("Can only calculate curl in 3D")
     end if
     
     positions => extract_vector_field(state, "Coordinate")    
