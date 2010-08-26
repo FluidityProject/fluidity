@@ -200,7 +200,8 @@ CONTAINS
           call solve_advection_diffusion_dg(field_name='PotentialVorticity', &
                state=state(1), velocity_name=velocity_name)
        else
-          FLAbort("This spatial discretisation option is not yet supported in qg_strat. Sorry.")
+          ewrite(-1,*) "This spatial discretisation option is not yet supported in qg_strat."
+          FLExit("Only DG and CG are supported. Rejig your FLML, please.")
        end if
 
        PV => extract_scalar_field(state(1), "PotentialVorticity")
