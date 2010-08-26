@@ -112,7 +112,7 @@ contains
                 if (node>mynodes) cycle
              endif
              if (any(dnnz(node:node+(u%dim-1)*mynodes:mynodes)>1)) then
-               FLAbort("Two rotated boundary condition specifications for the same node.")
+               FLExit("Two rotated boundary condition specifications for the same node.")
              end if
              dnnz( node:node+(u%dim-1)*mynodes:mynodes)=u%dim
           end do
