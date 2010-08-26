@@ -229,11 +229,11 @@ contains
         end do
         if(lstate_index > size(states)) then
           ewrite(-1, *) "For source field name " // trim(name)
-          FLAbort("State named " // trim(split_name(1)) // " not found")
+          FLExit("State named " // trim(split_name(1)) // " not found")
         end if
       case default
         ewrite(-1, *) "For source field name " // trim(name)
-        FLAbort("Invalid source field name")
+        FLExit("Invalid source field name")
     end select
     
     if(present(allocated)) then
@@ -356,11 +356,11 @@ contains
         end do
         if(lstate_index > size(states)) then
           ewrite(-1, *) "For source field name " // trim(name)
-          FLAbort("State named " // trim(split_name(1)) // " not found")
+          FLExit("State named " // trim(split_name(1)) // " not found")
         end if
       case default
         ewrite(-1, *) "For source field name " // trim(name)
-        FLAbort("Invalid source field name")
+        FLExit("Invalid source field name")
     end select
     
     source_field => extract_vector_field(states(lstate_index), split_name(size(split_name)))
@@ -479,11 +479,11 @@ contains
         end do
         if(lstate_index > size(states)) then
           ewrite(-1, *) "For source field name " // trim(name)
-          FLAbort("State named " // trim(split_name(1)) // " not found")
+          FLExit("State named " // trim(split_name(1)) // " not found")
         end if
       case default
         ewrite(-1, *) "For source field name " // trim(name)
-        FLAbort("Invalid source field name")
+        FLExit("Invalid source field name")
     end select
     
     source_field => extract_tensor_field(states(lstate_index), split_name(size(split_name)))
