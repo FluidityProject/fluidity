@@ -215,6 +215,7 @@ module saturation_distribution_search_hookejeeves
      is_improved=.false.
      
      allocate(base_point_in(size(base_point)))
+     base_point_in=base_point
      do i=1,size(base_point)
         ! increase by step length
         base_point(i)=base_point(i)+step_length
