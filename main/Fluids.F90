@@ -81,6 +81,7 @@ module fluids_module
   use boundary_conditions
   use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential
+  use saturation_distribution_search
   use discrete_properties_module
   use gls
   use k_epsilon
@@ -494,10 +495,15 @@ contains
              call porous_media_advection(state)
              ! compute spontaneous electrical potentials (myg - 28/10/09)
              do i=1,size(state)
-                option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/coupling_coefficients/'
-                if (have_option(trim(option_buffer)//'scalar_field::Electrokinetic').or.&
-                    have_option(trim(option_buffer)//'scalar_field::Thermoelectric').or.&
-                    have_option(trim(option_buffer)//'scalar_field::Electrochemical')) then
+                option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
+                ! Option to search through a space of saturation distributions to find
+                ! best match to measured electrical data - for reservoir modelling.
+                ! Added 18 May 2010 jhs
+                if (have_option(trim(option_buffer)//'Saturation_Distribution_Search')) then
+                   call search_saturations_hookejeeves(state, i)
+                elseif (have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrokinetic').or.&
+                    have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Thermoelectric').or.&
+                    have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrochemical')) then
                    call calculate_electrical_potential(state(i), i)
                 end if
              end do

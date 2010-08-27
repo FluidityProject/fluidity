@@ -45,10 +45,11 @@ module spontaneous_potentials
   use porous_media, only: brine_salinity, normalised_saturation
 
   implicit none
+  
+  private
 
   public :: calculate_electrical_potential, &
-            calculate_formation_conductivity, &
-            calculate_phase_conductivity
+            calculate_formation_conductivity
 
   contains
 
@@ -85,16 +86,28 @@ module spontaneous_potentials
     ! extract electrical potential field
     electrical_potential => extract_scalar_field(state, "ElectricalPotential", stat=stat)
     if (stat/=0) then
-      FLAbort('Did not find an ElectricalPotential field.')
+      FLExit('Did not find an ElectricalPotential field.')
     end if
     if (i==0) call zero(electrical_potential)
 
     ! extract source for electrical potential field
     ep_source => extract_scalar_field(state, "ElectricalPotentialSource", stat=stat)
     if (stat/=0) then
-      FLAbort('Did not find an ElectricalPotentialSource field.')
+      FLExit('Did not find an ElectricalPotentialSource field.')
     end if
     call zero(ep_source)
+
+    ! determine electrical conductivity of formation
+    conductivity = extract_scalar_field(state, "ElectricalConductivity", stat=stat)
+    if (stat==0) then
+      have_sigma_fs = .true.
+    else
+      ewrite(3,*) 'Computing electrical conductivity of formation.'
+      call allocate(conductivity, vmesh, 'ElectricalConductivity')
+      call calculate_formation_conductivity(state, i, conductivity, stat)
+      ewrite_minmax(conductivity)
+      have_sigma_fs = .false.
+    end if
 
     ! ELECTROKINETIC
     if (have_option(trim(tmpstring)//'scalar_field::Electrokinetic')) then
@@ -103,13 +116,13 @@ module spontaneous_potentials
       call allocate(L_ek, vmesh, "L_ek")
 
       ! determine electrokinetic coupling term
-      call calculate_coupling_term(state, i, L_ek, 'Electrokinetic', stat)
+      call calculate_coupling_term(state, i, L_ek, 'Electrokinetic', conductivity, stat)
       ewrite_minmax(L_ek)
 
       ! extract pressure field
       pressure => extract_scalar_field(state, "Pressure", stat=stat)
       if (stat/=0) then
-        FLAbort('Did not find a Pressure field.')
+        FLExit('Did not find a Pressure field.')
       end if
 
       ! assemble electrical potential source using pressure
@@ -129,13 +142,13 @@ module spontaneous_potentials
       call allocate(L_te, vmesh, "L_te")
 
       ! determine thermoelectric coupling term
-      call calculate_coupling_term(state, i, L_te, 'Thermoelectric', stat)
+      call calculate_coupling_term(state, i, L_te, 'Thermoelectric', conductivity, stat)
       ewrite_minmax(L_te)
 
       ! extract temperature field
       temperature => extract_scalar_field(state, "Temperature", stat=stat)
       if (stat/=0) then
-        FLAbort('Did not find a Temperature field.')
+        FLExit('Did not find a Temperature field.')
       end if
 
       ! assemble electrical potential source
@@ -155,13 +168,13 @@ module spontaneous_potentials
       call allocate(L_ec, vmesh, "L_ec")
 
       ! determine electrochemical coupling term
-      call calculate_coupling_term(state, i, L_ec, 'Electrochemical', stat)
+      call calculate_coupling_term(state, i, L_ec, 'Electrochemical', conductivity, stat)
       ewrite_minmax(L_ec)
 
       ! extract salinity field
       salinity => extract_scalar_field(state, "Salinity", stat=stat)
       if (stat/=0) then
-        FLAbort('Did not find a Salinity field.')
+        FLExit('Did not find a Salinity field.')
       end if
 
       ! assemble electrical potential source
@@ -174,22 +187,10 @@ module spontaneous_potentials
       call deallocate(L_ec)
     end if
 
-    ! determine electrical conductivity of formation
-    conductivity = extract_scalar_field(state, "ElectricalConductivity", stat=stat)
-    if (stat==0) then
-      have_sigma_fs = .true.
-    else
-      ewrite(3,*) 'Computing electrical conductivity of formation.'
-      call allocate(conductivity, vmesh, 'ElectricalConductivity')
-      call calculate_formation_conductivity(state, i, conductivity, stat)
-      ewrite_minmax(conductivity)
-      have_sigma_fs = .false.
-    end if
-
     ! set electrical potential diffusivity term to the formation conductivity
     ep_diffusivity => extract_tensor_field(state, "ElectricalPotentialDiffusivity", stat)
     if (stat/=0) then
-      FLAbort('Did not find an ElectricalPotentialDiffusivity field')
+      FLExit('Did not find an ElectricalPotentialDiffusivity field')
     end if
     call zero(ep_diffusivity)
     do j=1,ep_diffusivity%dim
@@ -326,14 +327,14 @@ module spontaneous_potentials
     ! declare local variables
     logical :: have_saturation
     integer :: j, n
-    real :: sigma_o, tmp
+    real :: sigma_o, tmp, archie
     type(scalar_field), pointer :: porosity, salinity
     type(scalar_field) :: saturation, sigma_w
 
     ! extract porosity field
     porosity => extract_scalar_field(state, "Porosity", stat)
     if (stat/=0) then
-      FLAbort('Did not find a Porosity field.')
+      FLExit('Did not find a Porosity field.')
     end if
 
     ! extract phase saturation if present otherwise set to 1.0
@@ -346,6 +347,7 @@ module spontaneous_potentials
       call addto(saturation,1.0)
       have_saturation = .false.
     end if
+    ewrite_minmax(saturation)
 
     ! get electrical conductivity of oil
     ! NB: hard coding value for now
@@ -365,9 +367,18 @@ module spontaneous_potentials
     end if
 
     ! compute electrical conductivity of the formation
+    if (have_option("/material_phase["//int2str(i-1)//"]/electrical_properties/archie_exponent")) then
+      ! get electrical conductivity of brine
+      call get_option("/material_phase["//int2str(i-1)//"]/electrical_properties/archie_exponent",archie)
+    else
+      archie=1.65
+    endif
     call zero(sigma_fs)
     do j=1,n
-      tmp = saturation%val(j)*saturation%val(j)
+      if (porosity%val(j) > 0.29) then
+         saturation%val(j) = 1.0
+      endif
+      tmp = saturation%val(j)**archie
       call set(sigma_fs, j, (porosity%val(j)**1.8)*(sigma_w%val(j)*tmp+sigma_o*(1.0-tmp)))
     end do
 
@@ -411,7 +422,7 @@ module spontaneous_potentials
       ! extract salinity field
       salinity => extract_scalar_field(state, "Salinity", stat=stat)
       if (stat/=0) then
-        FLAbort('Did not find a Salinity field.')
+        FLExit('Did not find a Salinity field.')
       end if
 
       do j=1,n
@@ -432,7 +443,7 @@ module spontaneous_potentials
       end do
     elseif (have_option("/material_phase["//int2str(i-1)//"]/electrical_properties/conductivity_from_salinity_and_temperature")) then
       ! NOT YET IMPLEMENTED
-      FLAbort('Cannot currently compute electrical conductivity of fluid from salinity and temperature.  Sorry.')
+      FLExit('Cannot currently compute electrical conductivity of fluid from salinity and temperature.  Sorry.')
     else
       ! should never get here
       FLAbort('Logic error! Should never get here!')
@@ -441,7 +452,7 @@ module spontaneous_potentials
     stat = 0
   end subroutine calculate_phase_conductivity
 
-  subroutine calculate_coupling_term(state, i, L_x, coupling, stat)
+  subroutine calculate_coupling_term(state, i, L_x, coupling, sigma_fs, stat)
     !!< calculate electrokinetic, thermoelectric or electrochemical coupling
     !!< term as specified by coupling argument
     ! declare interface variables
@@ -467,21 +478,27 @@ module spontaneous_potentials
       n = node_count(L_x)
     end if
 
-    ! determine electrical conductivity of formation
-    sigma_fs = extract_scalar_field(state, "ElectricalConductivity", stat=stat)
-    if (stat==0) then
-      have_sigma_fs = .true.
-    else
-      call allocate(sigma_fs, L_x%mesh, 'ElectricalConductivity')
-      call calculate_formation_conductivity(state, i, sigma_fs, stat)
-      have_sigma_fs = .false.
-    end if
+!! Unnecessary now we're passing conductivity down into this subroutine:
 
+!    ! determine electrical conductivity of formation
+!    sigma_fs = extract_scalar_field(state, "ElectricalConductivity", stat=stat)
+!    ! ewrite(3,*) 'sigma stat',stat
+!    if (stat==0) then
+!      have_sigma_fs = .true.
+!    else
+!      ewrite(3,*) 'Computing formation conductivity for coupling coefficient'
+!      call allocate(sigma_fs, L_x%mesh, 'ElectricalConductivity')
+!      call calculate_formation_conductivity(state, i, sigma_fs, stat)
+!      have_sigma_fs = .false.
+!    end if
+!    ewrite_minmax(sigma_fs)
+    
     ! get coupling coefficient
     Cv => extract_scalar_field(state, trim(coupling)//'['//int2str(i-1)//']', stat=stat)
     if (stat/=0) then
-      FLAbort('Did not find a '//trim(coupling)//' coupling coefficient scalar field.')
+      FLExit('Did not find a '//trim(coupling)//' coupling coefficient scalar field.')
     end if
+    ewrite_minmax(Cv)
 
     ! compute coupling term
     call zero(L_x)
@@ -489,8 +506,8 @@ module spontaneous_potentials
       call set(L_x, j, Cv%val(j)*sigma_fs%val(j))
     end do
 
-    ! clean up
-    if (.not.have_sigma_fs) call deallocate(sigma_fs)
+!    ! clean up
+!    if (.not.have_sigma_fs) call deallocate(sigma_fs)
 
     stat = 0
   end subroutine calculate_coupling_term

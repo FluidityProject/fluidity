@@ -1483,7 +1483,69 @@ start =
                         }  
                      )
                   }?
-               }   
+               },
+               ## Option to do a saturation distribution search which looks for the
+               ## saturation distribution which gives the best fit of electrical potential
+               ## to measured data
+               element Saturation_Distribution_Search {
+                 ## Here we specify the extents of the search space in x, y and z directions:
+                  element search_criteria_horizontal_well {
+                    ## The minimum x-coordinate of the test space
+                     element x_min {real},
+                    ## The maximum x-coordinate of the test space
+                     element x_max {real},
+                    ## The minimum y-coordinate of the test space
+                     element y_min {real},
+                    ## The maximum y-coordinate of the test space
+                     element y_max {real},
+                    ## The minimum z-coordinate of the test space,
+                    ## usually equal to the initial position of the water front
+                     element z_min {real},
+                    ## x-coordinate of the borehole
+                     element borehole_x {real},
+                    ## z-coordinate of the borehole
+                     element borehole_z {real},
+                    ## The maximum z-coordinate of the test space,
+                    ## probably equal to the location of the borehole
+                     element z_max {real},
+                    ## The number of sections into which to divide the space
+                     element sections {integer},
+                    ## Initial step length for the Hooke and Jeeves search
+                     element initial_step_length {real},
+                    ## Set initial base_point, perhaps make this optional later
+                     element initial_base_point {real_vector}?,
+                    ## filename for target file (real potential curve)
+                     element target_filename {string}
+                  }|
+                  element search_criteria_vertical_well {
+                    ## The minimum x-coordinate of the test space
+                     element x_min {real},
+                    ## The maximum x-coordinate of the test space
+                     element x_max {real},
+                    ## The minimum y-coordinate of the test space,
+                    ## usually equal to the initial position of the water front
+                     element y_min {real},
+                    ## The maximum y-coordinate of the test space,
+                    ## probably equal to the location of the borehole
+                     element y_max {real},
+                    ## The minimum z-coordinate of the test space
+                     element z_min {real},
+                    ## The maximum z-coordinate of the test space
+                     element z_max {real},
+                    ## x-coordinate of the borehole
+                     element borehole_x {real},
+                    ## y-coordinate of the borehole
+                     element borehole_y {real},
+                    ## The number of sections into which to divide the space
+                     element sections {integer},
+                    ## Initial step length for the Hooke and Jeeves search
+                     element initial_step_length {real},
+                    ## Set initial base_point, perhaps make this optional later
+                     element initial_base_point {real_vector}?,
+                    ## filename for target file (real potential curve)
+                     element target_filename {string}
+                  }
+               }?
             }?,
             ## Parameters required to model multiphase flow in porous media
             element multiphase_properties {

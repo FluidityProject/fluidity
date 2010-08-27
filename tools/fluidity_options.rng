@@ -1953,6 +1953,124 @@ This assumes that salinity and temperature are not used.</a:documentation>
                   </element>
                 </optional>
               </element>
+              <optional>
+                <element name="Saturation_Distribution_Search">
+                  <a:documentation>Option to do a saturation distribution search which looks for the
+saturation distribution which gives the best fit of electrical potential
+to measured data</a:documentation>
+                  <choice>
+                    <element name="search_criteria_horizontal_well">
+                      <a:documentation>Here we specify the extents of the search space in x, y and z directions:</a:documentation>
+                      <element name="x_min">
+                        <a:documentation>The minimum x-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="x_max">
+                        <a:documentation>The maximum x-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="y_min">
+                        <a:documentation>The minimum y-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="y_max">
+                        <a:documentation>The maximum y-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="z_min">
+                        <a:documentation>The minimum z-coordinate of the test space,
+usually equal to the initial position of the water front</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="borehole_x">
+                        <a:documentation>x-coordinate of the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="borehole_z">
+                        <a:documentation>z-coordinate of the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="z_max">
+                        <a:documentation>The maximum z-coordinate of the test space,
+probably equal to the location of the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="sections">
+                        <a:documentation>The number of sections into which to divide the space</a:documentation>
+                        <ref name="integer"/>
+                      </element>
+                      <element name="initial_step_length">
+                        <a:documentation>Initial step length for the Hooke and Jeeves search</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <optional>
+                        <element name="initial_base_point">
+                          <a:documentation>Set initial base_point, perhaps make this optional later</a:documentation>
+                          <ref name="real_vector"/>
+                        </element>
+                      </optional>
+                      <element name="target_filename">
+                        <a:documentation>filename for target file (real potential curve)</a:documentation>
+                        <data type="string" datatypeLibrary=""/>
+                      </element>
+                    </element>
+                    <element name="search_criteria_vertical_well">
+                      <element name="x_min">
+                        <a:documentation>The minimum x-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="x_max">
+                        <a:documentation>The maximum x-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="y_min">
+                        <a:documentation>The minimum y-coordinate of the test space,
+usually equal to the initial position of the water front</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="y_max">
+                        <a:documentation>The maximum y-coordinate of the test space,
+probably equal to the location of the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="z_min">
+                        <a:documentation>The minimum z-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="z_max">
+                        <a:documentation>The maximum z-coordinate of the test space</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="borehole_x">
+                        <a:documentation>x-coordinate of the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="borehole_y">
+                        <a:documentation>y-coordinate of the borehole</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <element name="sections">
+                        <a:documentation>The number of sections into which to divide the space</a:documentation>
+                        <ref name="integer"/>
+                      </element>
+                      <element name="initial_step_length">
+                        <a:documentation>Initial step length for the Hooke and Jeeves search</a:documentation>
+                        <ref name="real"/>
+                      </element>
+                      <optional>
+                        <element name="initial_base_point">
+                          <a:documentation>Set initial base_point, perhaps make this optional later</a:documentation>
+                          <ref name="real_vector"/>
+                        </element>
+                      </optional>
+                      <element name="target_filename">
+                        <a:documentation>filename for target file (real potential curve)</a:documentation>
+                        <data type="string" datatypeLibrary=""/>
+                      </element>
+                    </element>
+                  </choice>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>

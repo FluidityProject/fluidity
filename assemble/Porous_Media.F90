@@ -39,11 +39,11 @@ module porous_media
   use fields
   use spud
   implicit none
+  
+  private
 
   public :: porous_media_advection, &
             porous_media_momentum, &
-            capillary_pressure, &
-            relative_permeability, &
             normalised_saturation, &
             brine_salinity, &
             calculate_porous_media_absorption
@@ -93,7 +93,7 @@ module porous_media
       ewrite(3,*) 'Porosity present and correct'
       ewrite_minmax(porosity)
     else
-      FLAbort("Problem reading in porosity")
+      FLExit("Problem reading in porosity")
     end if
 
 
@@ -121,7 +121,7 @@ module porous_media
         if (stat==0) then
            ewrite(3,*) 'Found a viscosity field'
         else
-           FLAbort('Need viscosity field')
+           FLExit('Need viscosity field')
         end if
         viscosityxx=extract_scalar_field_from_tensor_field(viscosity, 1, 1)
         ewrite_minmax(viscosityxx)
@@ -140,7 +140,7 @@ module porous_media
       velocity => extract_vector_field(state(1),"Velocity",stat)
       absorption => extract_vector_field(state(1),"VelocityAbsorption",stat)
       if ((stat/=0).and.have_option(trim(velocity%option_path)//"/prognostic")) then
-        FLAbort('Need to switch on velocity absorption')
+        FLExit('Need to switch on velocity absorption')
       end if
     end if
   end subroutine porous_media_momentum
@@ -207,7 +207,7 @@ module porous_media
     ! extract viscosity field as a scalar field
     t_viscosity => extract_tensor_field(state(i), "Viscosity", stat)
     if (stat/=0) then
-       FLAbort('Phase '//int2str(i)//' is missing a viscosity field.')
+       FLExit('Phase '//int2str(i)//' is missing a viscosity field.')
     end if
     s_viscosity = extract_scalar_field_from_tensor_field(t_viscosity, 1, 1)
     ewrite_minmax(s_viscosity)
@@ -233,10 +233,10 @@ module porous_media
     elseif (have_option("/porous_media/tensor_field::Permeability")) then
       ! TENSOR PERMEABILITY
       t_permeability => extract_tensor_field(state(1), "Permeability", stat)
-      FLAbort("Cannot currently solve porous media problems with a full tensor permeability.")
+      FLExit("Cannot currently solve porous media problems with a full tensor permeability.")
     end if
     if (stat/=0) then
-      FLAbort("Porous media problems require a permeability field.")
+      FLExit("Porous media problems require a permeability field.")
     end if
 
     stat = 0
