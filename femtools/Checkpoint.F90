@@ -462,6 +462,8 @@ contains
     type(mesh_type), pointer :: mesh
     logical :: from_file, extruded
     
+    character(len = OPTION_PATH_LEN) :: currentMeshFormat
+
     assert(len_trim(prefix) > 0)
 
     n_meshes = option_count("/geometry/mesh")
@@ -488,10 +490,17 @@ contains
         if (from_file) then
           call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
         else if (extruded) then
-          !call add_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file", stat=stat)
-          !call add_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format", stat=stat)
-          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
 
+           ! Lunge forth with a wild stab at what the current mesh format is
+           if( have_option("/geometry/mesh/from_file/format/name") ) then
+              call get_option("/geometry/mesh/from_file/format/name", &
+                   currentMeshFormat  )
+           else
+              currentMeshFormat = "triangle"
+           end if
+
+          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", trim(currentMeshFormat), stat=stat1)
+          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
           if ((stat1/=SPUD_NO_ERROR .and. stat1/=SPUD_NEW_KEY_WARNING) .or. &
              & (stat2/=SPUD_NO_ERROR .and. stat2/=SPUD_NEW_KEY_WARNING)) then
             FLAbort("Failed to modify extrude options for checkpointing.")
