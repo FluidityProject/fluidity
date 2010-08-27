@@ -217,7 +217,7 @@ module saturation_distribution_search_hookejeeves
      allocate(base_point_in(size(base_point)))
      do i=1,size(base_point)
         ! increase by step length
-        base_point(i)=base_point_in(i)+step_length
+        base_point(i)=base_point(i)+step_length
         base_point(i)=max(base_point(i), search_min)
         base_point(i)=min(base_point(i), search_max)
         call run_model(state, base_point, step_length, new_error)
@@ -265,7 +265,7 @@ module saturation_distribution_search_hookejeeves
      integer, allocatable, dimension(:), save :: node_list
      character(len=OPTION_PATH_LEN) :: option_buffer, target_filename
      
-     ewrite(3,*) 'running model'
+     ewrite(3,*) 'running model, base_point:',base_point
      
      ! Get all the limits etc relevant - do this fresh each time from flml
      option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/'
