@@ -63,7 +63,7 @@ module saturation_distribution_search_hookejeeves
     character(len=50) :: positions
     character(len=OPTION_PATH_LEN) :: option_buffer
     real, allocatable :: base_point(:)
-    real :: step_length, ymin, ymax, zmin, zmax, nought
+    real :: step_length, nought, search_min, search_max
     type(scalar_field) :: saturation
     type(scalar_field), pointer :: Cv
     type(vector_field), pointer :: coordinates
@@ -91,38 +91,38 @@ module saturation_distribution_search_hookejeeves
     !set dimension of coordinates (number of variables to be optimised)
     call get_option(trim(option_buffer)//'sections', sections)
     allocate(base_point(sections))
+    
+    if (is_vwell) then
+       call get_option(trim(option_buffer)//'y_min',search_min)
+       call get_option(trim(option_buffer)//'y_max',search_max)
+    else
+       call get_option(trim(option_buffer)//'z_min',search_min)
+       call get_option(trim(option_buffer)//'z_max',search_max)
+    endif
+
     if (have_option(trim(option_buffer)//'initial_base_point')) then
        call get_option(trim(option_buffer)//'initial_base_point',base_point)
        ewrite(3,*) 'Initial base point', base_point
     else
-       if (is_vwell) then
-          call get_option(trim(option_buffer)//'y_min',ymin)
-          call get_option(trim(option_buffer)//'y_max',ymax)
-          do j=1,sections
-             base_point(j)=(ymax-ymin)/2
-          end do
-       else
-          call get_option(trim(option_buffer)//'z_min',zmin)
-          call get_option(trim(option_buffer)//'z_max',zmax)
-          do j=1,sections
-             base_point(j)=(zmax-zmin)/2
-          end do
-       endif
+       do j=1,sections
+          base_point(j)=(search_max-search_min)/2
+       end do
     endif
     do_PS=.false.
     nought=0.0
-    call set_base_point(state, do_PS, base_point, step_length, base_point, nought)
+    call set_base_point(state, do_PS, base_point, step_length, base_point, nought, search_min, search_max)
     
     deallocate(base_point)
    
   end subroutine search_saturations_hookejeeves
     
-  recursive subroutine set_base_point(state, do_PS, base_point, step_length, previous_base_point, current_error)
+  recursive subroutine set_base_point(state, do_PS, base_point, step_length, previous_base_point, &
+                                      current_error, search_min, search_max)
   
      type(state_type), dimension(:), intent(inout) :: state
      real, dimension(:) :: base_point
      real, dimension(size(base_point)) :: copy_base_point
-     real :: step_length, minimum_step_length, new_error
+     real :: step_length, minimum_step_length, new_error, search_min, search_max
      logical :: do_PS, is_improved, finished
      ! optional argument previous_base_point allows us to make pattern step
      real, dimension(:) :: previous_base_point
@@ -137,7 +137,8 @@ module saturation_distribution_search_hookejeeves
   
      if (do_PS) then
 !        call write_state(dump_no, state)
-        call make_pattern_step(state, base_point, previous_base_point, step_length, minimum_step_length, current_error)
+        call make_pattern_step(state, base_point, previous_base_point, step_length, minimum_step_length, &
+                               current_error, search_min, search_max)
      else
         ! This is the first time through so need to calculate a first error
         call run_model(state, base_point, step_length, error)
@@ -145,28 +146,30 @@ module saturation_distribution_search_hookejeeves
 !        call write_state(dump_no, state)
         ! Copy current base point for pattern search in case base_point is updated by exploration
         copy_base_point=base_point
-        call make_exploration(state, base_point, step_length, is_improved, error)
+        call make_exploration(state, base_point, step_length, is_improved, error, search_min, search_max)
         if(.not.is_improved) then
-           call reduce_step_length(state, base_point, base_point, step_length, minimum_step_length, error, finished)
+           call reduce_step_length(state, base_point, base_point, step_length, minimum_step_length, &
+                                   error, finished, search_min, search_max)
            if(.not.finished) then
-              call set_base_point(state, do_PS, base_point, step_length, base_point, error)
+              call set_base_point(state, do_PS, base_point, step_length, base_point, error, search_min, search_max)
            else
               ewrite(3,*) 'Finishing search'
               return ! FINISHED! PRINT RESULTS ETC ETC
            endif
         else
-           call set_base_point(state, .TRUE., base_point, step_length, copy_base_point, error)
+           call set_base_point(state, .TRUE., base_point, step_length, copy_base_point, error, search_min, search_max)
         endif
      endif
   
   end subroutine set_base_point
   
-  subroutine make_pattern_step(state, base_point, previous_base_point, step_length, minimum_step_length, current_error)
+  subroutine make_pattern_step(state, base_point, previous_base_point, step_length, minimum_step_length, &
+                               current_error, search_min, search_max)
   
      type(state_type), dimension(:), intent(inout) :: state
      real, dimension(:) :: base_point, previous_base_point
      real, dimension(size(base_point)) :: pattern_point
-     real :: step_length, current_error, minimum_step_length
+     real :: step_length, current_error, minimum_step_length, search_min, search_max
      integer :: i
      logical :: is_improved, finished
      
@@ -175,27 +178,31 @@ module saturation_distribution_search_hookejeeves
      ! calculate pattern point based on previous success
      do i=1,size(base_point)
         pattern_point(i) = previous_base_point(i) + 2*(base_point(i)-previous_base_point(i))
+        pattern_point(i) = max(pattern_point(i), search_min)
+        pattern_point(i) = min(pattern_point(i), search_max)
      end do
      ewrite(3,*) 'base_point, pattern_point', base_point, pattern_point
      
      ! current error records error at base point we're going to try to leap over
      
      ! explore around this new point
-     call make_exploration(state, pattern_point, step_length, is_improved, current_error)
+     call make_exploration(state, pattern_point, step_length, is_improved, current_error, search_min, search_max)
      finished=.false.
      if (.not.is_improved) then
-        call reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, current_error, finished)
+        call reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, &
+                                current_error, finished, search_min, search_max)
      else
-        call set_base_point(state, .TRUE., pattern_point, step_length, base_point, current_error)
+        call set_base_point(state, .TRUE., pattern_point, step_length, base_point, current_error, search_min, search_max)
      endif
   
   end subroutine make_pattern_step
   
-  subroutine make_exploration(state, base_point, step_length, is_improved, error)
+  subroutine make_exploration(state, base_point, step_length, is_improved, error, search_min, search_max)
      
      type(state_type), dimension(:), intent(inout) :: state
      real, dimension(:) :: base_point
-     real :: step_length, error, new_error
+     real, allocatable, dimension(:) :: base_point_in
+     real :: step_length, error, new_error, search_min, search_max
      logical :: is_improved
      integer :: i
      
@@ -206,17 +213,23 @@ module saturation_distribution_search_hookejeeves
   
      ! cycle through co-ordinates:
      is_improved=.false.
+     
+     allocate(base_point_in(size(base_point)))
      do i=1,size(base_point)
         ! increase by step length
-        base_point(i)=base_point(i)+step_length
+        base_point(i)=base_point_in(i)+step_length
+        base_point(i)=max(base_point(i), search_min)
+        base_point(i)=min(base_point(i), search_max)
         call run_model(state, base_point, step_length, new_error)
         if (new_error>=error) then
            !decrease by step length
-           base_point(i)=base_point(i)-2*step_length
+           base_point(i)=base_point_in(i)-step_length
+           base_point(i)=max(base_point(i), search_min)
+           base_point(i)=min(base_point(i), search_max)
            call run_model(state, base_point, step_length, new_error)
            if (new_error>=error) then
               ! keep original
-              base_point(i)=base_point(i)+step_length
+              base_point(i)=base_point_in(i)
            else
               ! set coordinate to new value
               ewrite(3,*) 'Error at', base_point(i), new_error, 'less than error at', base_point(i)+step_length, error
@@ -230,6 +243,7 @@ module saturation_distribution_search_hookejeeves
            is_improved=.true.
         endif
      end do
+     deallocate(base_point_in)
   
   end subroutine make_exploration
   
@@ -457,11 +471,11 @@ module saturation_distribution_search_hookejeeves
   end subroutine set_saturations
   
   recursive subroutine reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, &
-                                          current_error, finished)
+                                          current_error, finished, search_min, search_max)
   
      type(state_type), dimension(:), intent(inout) :: state
      real, dimension(:) :: base_point, pattern_point
-     real :: step_length, minimum_step_length, current_error
+     real :: step_length, minimum_step_length, current_error, search_min, search_max
      logical :: finished, is_improved, from_pattern_step
      integer :: i
      
@@ -481,15 +495,18 @@ module saturation_distribution_search_hookejeeves
         end do
         if (from_pattern_step) then
            ! ignore pattern_point and return to last base_point
-           ewrite(3,*) 'Reaching minimum step length, returning to last base point'
-           call set_base_point(state, .FALSE., base_point, step_length, base_point, current_error)
+           ewrite(3,*) 'Reached minimum step length, returning to last base point'
+           call set_base_point(state, .FALSE., base_point, step_length, base_point, &
+                               current_error, search_min, search_max)
         else
            ewrite(3,*) 'Reached minimum step length, one last try'
            ! Abusing file names here!:
            pattern_point=base_point
-           call make_exploration(state, base_point, step_length, is_improved, current_error)
+           call make_exploration(state, base_point, step_length, is_improved, &
+                                 current_error, search_min, search_max)
            if (is_improved) then
-              call set_base_point(state, .TRUE., base_point, step_length, pattern_point, current_error)
+              call set_base_point(state, .TRUE., base_point, step_length, pattern_point, &
+                                  current_error, search_min, search_max)
            else
               ewrite(3,*) 'Failed to improve with minimum step length, finished'
               return
@@ -497,11 +514,14 @@ module saturation_distribution_search_hookejeeves
         endif
      else
         ewrite(3,*) 'New step length: ', step_length
-        call make_exploration(state, pattern_point, step_length, is_improved, current_error)
+        call make_exploration(state, pattern_point, step_length, is_improved, &
+                              current_error, search_min, search_max)
         if(is_improved) then
-           call set_base_point(state, .TRUE., pattern_point, step_length, base_point, current_error)
+           call set_base_point(state, .TRUE., pattern_point, step_length, base_point, &
+                               current_error, search_min, search_max)
         else
-           call reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, current_error, finished)
+           call reduce_step_length(state, base_point, pattern_point, step_length, minimum_step_length, &
+                                   current_error, finished, search_min, search_max)
         endif
      endif
   
