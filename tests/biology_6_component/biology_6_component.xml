@@ -5,7 +5,7 @@
   <name>biology-pczdna</name>
   <owner userid="jhill1"/>
   <tags>flml biology</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>fluidity biology_conservation.flml</command_line>
     <!-- PZND model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
   </problem_definition>
