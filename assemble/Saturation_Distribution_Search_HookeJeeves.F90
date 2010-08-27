@@ -266,7 +266,7 @@ module saturation_distribution_search_hookejeeves
      integer, allocatable, dimension(:), save :: node_list
      character(len=OPTION_PATH_LEN) :: option_buffer, target_filename
      
-     ewrite(3,*) 'running model, base_point:',base_point
+     ewrite(3,*) 'running model, base_point:',point
      
      ! Get all the limits etc relevant - do this fresh each time from flml
      option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/'
