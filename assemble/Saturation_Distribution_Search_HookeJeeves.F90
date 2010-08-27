@@ -484,8 +484,16 @@ module saturation_distribution_search_hookejeeves
            ewrite(3,*) 'Reaching minimum step length, returning to last base point'
            call set_base_point(state, .FALSE., base_point, step_length, base_point, current_error)
         else
-           ewrite(3,*) 'Reached minimum step length, finishing'
-           return
+           ewrite(3,*) 'Reached minimum step length, one last try'
+           ! Abusing file names here!:
+           pattern_point=base_point
+           call make_exploration(state, base_point, step_length, is_improved, current_error)
+           if (is_improved) then
+              call set_base_point(state, .TRUE., base_point, step_length, pattern_point, current_error)
+           else
+              ewrite(3,*) 'Failed to improve with minimum step length, finished'
+              return
+           endif
         endif
      else
         ewrite(3,*) 'New step length: ', step_length
@@ -532,14 +540,14 @@ module saturation_distribution_search_hookejeeves
      else
         error=1000.0
      endif
-!     ewrite(3,*) 'error is ', error
-!     ewrite(3,*) 'curve1',curve1
-!     ewrite(3,*) 'curve2',curve2
-!     ewrite(3,*) 'curve1q',curve1q
-!     ewrite(3,*) 'curve2q',curve2q
-!     ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
-!     ewrite(3,*) 'ncurve1', ncurve1
-!     ewrite(3,*) 'ncurve2', ncurve2
+     ewrite(3,*) 'error is ', error
+     ewrite(3,*) 'target',curve1
+     ewrite(3,*) 'curve2',curve2
+     ewrite(3,*) 'targetq',curve1q
+     ewrite(3,*) 'curve2q',curve2q
+     ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
+     ewrite(3,*) 'targetn', ncurve1
+     ewrite(3,*) 'ncurve2', ncurve2
      
      deallocate(curve1q)
      deallocate(curve2q)

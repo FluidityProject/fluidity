@@ -159,6 +159,7 @@ Linear_Shallow_Water.o: Assemble_CMC.o Diagnostic_fields_wrapper.o Momentum_DG.o
 Petsc_Solve_State.o: Free_Surface.o
 Spontaneous_Potentials.o: Porous_Media.o
 Zoltan_integration.o: Surface_Id_Interleaving.o
+Saturation_Distribution_Search_HookeJeeves.o : Spontaneous_Potentials.o
 
 clean:
 	rm -f *.o *.d *.mod
