@@ -25,15 +25,12 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-#include "fdebug.h"
-
 
 
 ! This module contains code and variables common to all the GMSH I/O routines
 
 
 module gmsh_common
-  use futils
 
   character(len=3), parameter :: GMSHVersionStr = "2.1"
   integer, parameter :: asciiFormat = 0
@@ -88,9 +85,6 @@ contains
        open( fd, file=trim(filename), action="write",  form="formatted", &
             access="stream", position="append")
 
-    case default
-       FLAbort("Passed wrong parameter to binary_formatting().")
-
     end select
 
 
@@ -121,8 +115,6 @@ contains
        open( fd, file=trim(filename), action="write", form="unformatted", &
             access="stream", position="append")
 
-    case default
-       FLAbort("Passed wrong parameter to binary_formatting().")
     end select
 
   end subroutine binary_formatting
