@@ -81,7 +81,7 @@ module fluids_module
   use boundary_conditions
   use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential
-  use saturation_distribution_search
+  use saturation_distribution_search_hookejeeves
   use discrete_properties_module
   use gls
   use k_epsilon
