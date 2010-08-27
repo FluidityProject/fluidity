@@ -136,7 +136,7 @@ class TestProblem:
             os.system("qsub " + self.filename[:-4] + ".pbs")
         elif self.nprocs > 1:
             # mess with command line as it's a parallel run not submitted to a PBS queue
-            self.command_line = self.command_line.replace('mpiexec', 'mpiexec -n '+str(self.nprocs)+' ')
+            self.command_line = self.command_line.replace('mpiexec', 'mpiexec -n '+str(self.nprocs)+' -x PYTHONPATH ')
             print self.command_line
             start_time=time.clock()
             os.system(self.command_line)
