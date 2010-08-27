@@ -10,7 +10,7 @@ import glob
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
-    def __init__(self, filename, verbose=False, replace=None):
+    def __init__(self, filename, verbose=False, replace=None, pbs=True):
         """Read a regression test from filename and record its details."""
         self.name = ""
         self.command = replace
@@ -24,6 +24,8 @@ class TestProblem:
         self.pass_status = []
         self.warn_status = []
         self.filename = filename.split('/')[-1]
+        self.pbs = pbs
+        
         # add dir to import path
         sys.path.insert(0, os.path.join(os.getcwd(), filename.split('/')[0]))
 
@@ -128,10 +130,17 @@ class TestProblem:
         except OSError:
           self.log("No Makefile, not calling make")
 
-        if self.nprocs > 1 or self.length == "long":
+        if self.pbs and (self.nprocs > 1 or self.length == "long"):
             ret = self.call_genpbs()
             self.log("qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
             os.system("qsub " + self.filename[:-4] + ".pbs")
+        elif self.nprocs > 1:
+            # mess with command line as it's a parallel run not submitted to a PBS queue
+            self.command_line = self.command_line.replace('mpiexec', 'mpiexec -n '+str(self.nprocs)+' ')
+            print self.command_line
+            start_time=time.clock()
+            os.system(self.command_line)
+            run_time=time.clock()-start_time
         else:
           self.log(self.command_line)
           start_time=time.clock()
