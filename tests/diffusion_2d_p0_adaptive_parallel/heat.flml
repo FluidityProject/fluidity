@@ -59,6 +59,101 @@
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>
+    <detectors>
+      <static_detector name="UpperLeftS">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">-0.75 0.5</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="UpperRightS">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">-0.25 0.5</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="LowerLeftS">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">-0.75 -0.5</real_value>
+        </location>
+      </static_detector>
+      <static_detector name="LowerRightS">
+        <location>
+          <real_value shape="2" dim1="dim" rank="1">-0.25 -0.5</real_value>
+        </location>
+      </static_detector>
+      <detector_array name="UpperLeft">
+        <number_of_detectors>
+          <integer_value rank="0">5</integer_value>
+        </number_of_detectors>
+        <static/>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+  from numpy import array
+  centre = array([-0.75,0.5])
+  pos = []
+  pos.append(centre.tolist())
+  pos.append((centre+array([-1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6.,  1./4.])).tolist())
+  pos.append((centre+array([-1./6.,  1./4.])).tolist())
+  return pos</string_value>
+        </python>
+      </detector_array>
+      <detector_array name="UpperRight">
+        <number_of_detectors>
+          <integer_value rank="0">5</integer_value>
+        </number_of_detectors>
+        <static/>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+  from numpy import array
+  centre = array([-0.25,0.5])
+  pos = []
+  pos.append(centre.tolist())
+  pos.append((centre+array([-1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6.,  1./4.])).tolist())
+  pos.append((centre+array([-1./6.,  1./4.])).tolist())
+  return pos</string_value>
+        </python>
+      </detector_array>
+      <detector_array name="LowerLeft">
+        <number_of_detectors>
+          <integer_value rank="0">5</integer_value>
+        </number_of_detectors>
+        <static/>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+  from numpy import array
+  centre = array([-0.75,-0.5])
+  pos = []
+  pos.append(centre.tolist())
+  pos.append((centre+array([-1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6.,  1./4.])).tolist())
+  pos.append((centre+array([-1./6.,  1./4.])).tolist())
+  return pos</string_value>
+        </python>
+      </detector_array>
+      <detector_array name="LowerRight">
+        <number_of_detectors>
+          <integer_value rank="0">5</integer_value>
+        </number_of_detectors>
+        <static/>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+  from numpy import array
+  centre = array([-0.25,-0.5])
+  pos = []
+  pos.append(centre.tolist())
+  pos.append((centre+array([-1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6., -1./4.])).tolist())
+  pos.append((centre+array([ 1./6.,  1./4.])).tolist())
+  pos.append((centre+array([-1./6.,  1./4.])).tolist())
+  return pos</string_value>
+        </python>
+      </detector_array>
+      <binary_output/>
+    </detectors>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
@@ -68,7 +163,7 @@
       <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">10000.0</real_value>
+      <real_value rank="0">1000.0</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters/>
@@ -81,9 +176,11 @@
             <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
           </constant>
         </value>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat>
-          <include_in_stat/>
+          <exclude_from_stat/>
         </stat>
         <detectors>
           <exclude_from_detectors/>
@@ -97,13 +194,13 @@
         <output/>
         <stat/>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
@@ -200,13 +297,13 @@
         <output/>
         <stat/>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
@@ -234,13 +331,13 @@
         <output/>
         <stat/>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
@@ -249,15 +346,93 @@
         <algorithm name="element_ownership" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
         <convergence>
-          <include_in_convergence/>
+          <exclude_from_convergence/>
         </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="RegionIDs" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="18">
+          <region_ids>
+            <integer_value shape="1" rank="1">18</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">18</real_value>
+          </constant>
+        </value>
+        <value name="19">
+          <region_ids>
+            <integer_value shape="1" rank="1">19</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">19</real_value>
+          </constant>
+        </value>
+        <value name="20">
+          <region_ids>
+            <integer_value shape="1" rank="1">20</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">20</real_value>
+          </constant>
+        </value>
+        <value name="21">
+          <region_ids>
+            <integer_value shape="1" rank="1">21</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">21</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
         <detectors>
           <include_in_detectors/>
         </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="UniversalElementNumber" rank="0">
+      <diagnostic>
+        <algorithm name="element_universal_numbering" material_phase_support="single"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="UniversalNodeNumber" rank="0">
+      <diagnostic>
+        <algorithm name="universal_numbering" material_phase_support="single"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <exclude_from_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
@@ -285,6 +460,7 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <preserve_mesh_regions/>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>

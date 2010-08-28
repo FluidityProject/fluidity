@@ -92,6 +92,9 @@ module mba2d_integration
     type(integer_hash_table) :: old_to_new
     type(integer_hash_table) :: input_face_numbering_to_mba2d_numbering
 
+    ! if we're parallel we'll need to reorder the region ids after the halo derivation
+    integer, dimension(:), allocatable :: old_new_region_ids, renumber_permutation
+    
 !#define DUMP_HALO_INTERPOLATION
 #ifdef DUMP_HALO_INTERPOLATION
     type(mesh_type) :: xmesh_pwc
@@ -410,7 +413,7 @@ module mba2d_integration
     output_positions%option_path = input_positions%option_path
     call deallocate(new_mesh)
     call set_all(output_positions, pos(:, 1:nonods))
-
+    
     if(nhalos > 0) then
       ! Flatten the old halo
       allocate(sends_starts(halo_proc_count(old_halo) + 1))
@@ -480,6 +483,8 @@ module mba2d_integration
       deallocate(new_sends)
       deallocate(new_receives)
 
+      allocate(renumber_permutation(totele))
+      
       if(nhalos == 2) then
         ! Derive remaining halos
         call derive_l1_from_l2_halo(output_positions%mesh, ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
@@ -490,7 +495,7 @@ module mba2d_integration
         ! Reorder the elements for trailing receives consistency
         call derive_element_halo_from_node_halo(output_positions%mesh, &
           & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-        call renumber_positions_elements_trailing_receives(output_positions)
+        call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       else
         ! Reorder the nodes for trailing receives consistency
         call renumber_positions_trailing_receives(output_positions)
@@ -499,8 +504,22 @@ module mba2d_integration
         ! Reorder the elements for trailing receives consistency
         call derive_element_halo_from_node_halo(output_positions%mesh, &
           & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-        call renumber_positions_elements_trailing_receives(output_positions)
+        call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       end if
+      
+      if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")&
+                                .or.present_and_true(force_preserve_regions)) then
+        ! reorder the region_ids since all out elements have been jiggled about
+        allocate(old_new_region_ids(totele))
+        old_new_region_ids = output_positions%mesh%region_ids
+        do i = 1, totele
+          output_positions%mesh%region_ids(renumber_permutation(i)) = old_new_region_ids(i)
+        end do
+        deallocate(old_new_region_ids)
+      end if
+      
+      deallocate(renumber_permutation)
+      
 
 #ifdef DUMP_HALO
       call allocate(sends_sfield, output_positions%mesh, "Sends")

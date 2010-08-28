@@ -221,7 +221,7 @@ contains
 
   end subroutine write_state
 
-  subroutine vtk_write_state_new_options(filename, index, state)
+  subroutine vtk_write_state_new_options(filename, index, state, write_region_ids)
     !!< Write the state variables out to a vtu file according to options
     !!< set in the options tree. Only fields present in the option tree
     !!< will be written, except for those disabled in the same options tree.
@@ -232,6 +232,7 @@ contains
     character(len=*), intent(in) :: filename  !! Base filename with no trailing _number.vtu
     integer, intent(in), optional :: index    !! Index number of dump for filename.
     type(state_type), dimension(:), intent(inout) :: state
+    logical, intent(in), optional :: write_region_ids
     
     type(vector_field), pointer :: model_coordinate
     type(mesh_type), pointer :: model_mesh
@@ -355,7 +356,8 @@ contains
          model_mesh,  &
          sfields=lsfields, &
          vfields=lvfields, &
-         tfields=ltfields)
+         tfields=ltfields, &
+         write_region_ids=write_region_ids)
          
     ewrite(1, *) "Exiting vtk_write_state_new_options"
     

@@ -924,7 +924,7 @@ contains
     type(vector_field) :: extruded_positions
     type(tensor_field) :: full_metric
     logical :: vertically_structured_adaptivity
-
+    
     ewrite(1, *) "In adapt_state_internal"
     
     nullify(node_ownership)
@@ -1042,12 +1042,12 @@ contains
                                              interpolate_states(1), states(1), &
                                              metric_name = metric_name)
       end if
+
       ! We're done with the old metric, so we may deallocate it / drop our
       ! reference
       call deallocate(metric)
       ! We're done with the new_positions, so we may drop our reference
       call deallocate(new_positions) 
-      
       
       ! Interpolate fields
       if(associated(node_ownership)) then
@@ -1096,7 +1096,7 @@ contains
       call alias_fields(states)      
 
       zoltan_drive_call=.false.
-
+      
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
         ! Re-load-balance using zoltan
@@ -1113,8 +1113,6 @@ contains
         end if
       end if
 
-!     call deallocate(new_positions)
-      
       if(vertical_only) then
         ewrite(2,*) "Using vertical_only adaptivity, so skipping the printing of references"
       else if (no_reserved_meshes()) then
@@ -1416,7 +1414,7 @@ contains
       ! Debug vtu output. These are output on every adapt iteration.
 
       file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)   
-      call vtk_write_state(file_name, state = states)
+      call vtk_write_state(file_name, state = states, write_region_ids=.true.)
       
       state_dump_no = state_dump_no + 1
     end if

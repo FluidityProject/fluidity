@@ -1688,6 +1688,7 @@ module sam_integration
       return
     end if
     
+#ifndef HAVE_ZOLTAN
     ewrite(2, *) "Checking libsam integration related options"
     
     if(have_option("/mesh_adaptivity/hr_adaptivity/preserve_mesh_regions")) then
@@ -1695,7 +1696,8 @@ module sam_integration
     end if
     
     ewrite(2, *) "Finished checking libsam integration related options"
-  
+#endif
+
   end subroutine sam_integration_check_options
 
 end module sam_integration

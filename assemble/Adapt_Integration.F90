@@ -262,6 +262,9 @@ contains
     ! Buffer factor for max. nodes
     real, parameter :: mxnods_buffer = 1.5
     
+    ! if we're parallel we'll need to reorder the region ids after the halo derivation
+    integer, dimension(:), allocatable :: old_new_region_ids, renumber_permutation
+    
     ewrite(1, *) "In adapt_mesh"
     
 #ifdef DDEBUG
@@ -563,9 +566,18 @@ contains
     call set_all(output_positions, 3, rlarr(nwnodz:nwnodz + nwnnod - 1))
     output_positions%option_path = input_positions%option_path
 
+    ! put the region id info in now so we can reorder it if we're parallel
+    if(have_option(base_path // "/preserve_mesh_regions")&
+              .or.present_and_true(force_preserve_regions)) then
+      allocate(output_mesh%region_ids(nwnelm))
+      output_mesh%region_ids = intarr(nwelrg:nwelrg + nwnelm - 1)
+    end if  
+
     if(nhalos > 0) then
       ewrite(2, *) "Constructing output halos"
       
+      allocate(renumber_permutation(nwnelm))
+
       allocate(output_mesh%halos(nhalos)) 
       call form_halo_from_raw_data(output_mesh%halos(nhalos), nproc, gather, atosen, scater, atorec,&
            & nowned_nodes = nwnnod - nhalo, create_caches = .true.) 
@@ -578,13 +590,27 @@ contains
         allocate(output_mesh%element_halos(2))
         call derive_element_halo_from_node_halo(output_mesh, &
           & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-        call renumber_positions_elements_trailing_receives(output_positions)
+        call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       else
         allocate(output_mesh%element_halos(1))
         call derive_element_halo_from_node_halo(output_mesh, &
           & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .false.)
-        call renumber_positions_elements_trailing_receives(output_positions)
+        call renumber_positions_elements_trailing_receives(output_positions, permutation=renumber_permutation)
       end if
+      
+      if(have_option(base_path // "/preserve_mesh_regions")&
+                .or.present_and_true(force_preserve_regions)) then
+        ! reorder the region_ids since all out elements have been jiggled about
+        allocate(old_new_region_ids(nwnelm))
+        old_new_region_ids = output_positions%mesh%region_ids
+        do i = 1, nwnelm
+          output_positions%mesh%region_ids(renumber_permutation(i)) = old_new_region_ids(i)
+        end do
+        deallocate(old_new_region_ids)
+      end if
+      
+      deallocate(renumber_permutation)
+      
       ! Adaptivity is not guaranteed to return halo elements in the same
       ! order in which they went in. We therefore need to fix this order.
       call reorder_element_numbering(output_positions)
@@ -619,12 +645,6 @@ contains
     deallocate(coplanar_ids)
           
     ewrite(2, *) "Finished constructing output surface data"  
-    
-    if(have_option(base_path // "/preserve_mesh_regions")&
-              .or.present_and_true(force_preserve_regions)) then
-      allocate(output_mesh%region_ids(nwnelm))
-      output_mesh%region_ids = intarr(nwelrg:nwelrg + nwnelm - 1)
-    end if  
     
 #ifdef DDEBUG
     call verify_positions(output_positions)

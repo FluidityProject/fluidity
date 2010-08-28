@@ -34,6 +34,7 @@ module zoltan_integration
   use pickers
   use diagnostic_variables
   use hadapt_advancing_front
+  use parallel_tools
   implicit none
 
   ! Module-level so that the Zoltan callback functions can access it
@@ -50,6 +51,7 @@ module zoltan_integration
 
   type(integer_set), save :: new_elements
   type(integer_set), dimension(:), allocatable :: new_nelist
+  
 
   integer, parameter :: integer_size = bit_size(0_zoltan_int)/8
   integer(zoltan_int), dimension(:), pointer :: my_import_procs => null(), my_import_global_ids => null()
@@ -64,6 +66,9 @@ module zoltan_integration
   type(integer_hash_table) :: universal_surface_number_to_surface_id
   type(integer_hash_table) :: universal_surface_number_to_element_owner
   type(integer_set), save :: new_surface_elements
+  
+  logical, save :: preserve_mesh_regions
+  type(integer_hash_table) :: universal_element_number_to_region_id
 
   type(scalar_field), save :: element_quality, node_quality
   integer, save :: max_coplanar_id, max_size, num_dets_to_transfer
@@ -165,7 +170,7 @@ module zoltan_integration
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_num_edges
 
-subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
+  subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
                                   &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)
     integer(zoltan_int), intent(in) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
@@ -333,11 +338,19 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
     ewrite(1,*) "In zoltan_cb_pack_node_sizes"
     do i=1,num_ids
       node = local_ids(i)
-      sizes(i) = zz_positions%dim * real_size + &
-                 1 * integer_size + row_length(zz_sparsity_one, node) * integer_size + &
-                 1 * integer_size + row_length(zz_sparsity_two, node) * integer_size * 2 + &
-                 1 * integer_size + row_length(zz_nelist, node) * integer_size + &
-                 1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
+      if(preserve_mesh_regions) then
+        sizes(i) = zz_positions%dim * real_size + &
+                  1 * integer_size + row_length(zz_sparsity_one, node) * integer_size + &
+                  1 * integer_size + row_length(zz_sparsity_two, node) * integer_size * 2 + &
+                  1 * integer_size + row_length(zz_nelist, node) * integer_size * 2 + & ! the factor of 2 is overkill amount of space for region_ids
+                  1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
+      else
+        sizes(i) = zz_positions%dim * real_size + &
+                  1 * integer_size + row_length(zz_sparsity_one, node) * integer_size + &
+                  1 * integer_size + row_length(zz_sparsity_two, node) * integer_size * 2 + &
+                  1 * integer_size + row_length(zz_nelist, node) * integer_size + &
+                  1 * integer_size + key_count(old_snelist(node)) * integer_size * 3
+      end if
     end do
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_node_sizes")) then
@@ -398,6 +411,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
       buf(head:head+row_length(zz_nelist,node)-1) = halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node))
       head = head + row_length(zz_nelist, node)
+
+      if(preserve_mesh_regions) then
+        ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
+        buf(head:head+row_length(zz_nelist,node)-1) = fetch(universal_element_number_to_region_id, halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node)))
+        head = head + row_length(zz_nelist, node)
+      end if
 
       buf(head) = key_count(old_snelist(node))
       head = head + 1
@@ -550,6 +569,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       do j=1,size(neighbours)
         call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
         call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
+        ! don't need to do anything to universal_element_number_to_region_id because we already have it
       end do
 
       ! and record the snelist information
@@ -571,6 +591,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       do j=1,size(neighbours)
         call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
         call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
+        ! don't need to do anything to universal_element_number_to_region_id because we already have it
       end do
 
       call insert(new_nodes_we_have_recorded, universal_number)
@@ -607,8 +628,15 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       do j=1,sz
         call insert(new_nelist(new_local_number), buf(head + j))
         call insert(new_elements, buf(head + j))
+        if(preserve_mesh_regions) then
+          call insert(universal_element_number_to_region_id, buf(head + j), buf(head + j + sz))
+        end if
       end do
-      head = head + sz + 1
+      if(preserve_mesh_regions) then
+        head = head + 2*sz + 1
+      else
+        head = head + sz + 1
+      end if
 
       ! And record the snelist information
       sz = buf(head)
@@ -640,6 +668,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         do j=1,size(neighbours)
           call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
           call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
+          ! don't need to do anything to universal_element_number_to_region_id because we already have it
         end do
 
         ! and record the snelist information
@@ -693,9 +722,15 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
     do i=1,num_ids
       node = fetch(universal_to_old_local_numbering, global_ids(i))
-      sizes(i) = zz_positions%dim * real_size + &
-                 2 * integer_size + row_length(zz_nelist, node) * integer_size + &
-                 1 * integer_size + key_count(old_snelist(node)) * 3 * integer_size
+      if(preserve_mesh_regions) then
+        sizes(i) = zz_positions%dim * real_size + &
+                  2 * integer_size + row_length(zz_nelist, node) * integer_size * 2 + & ! the factor of 2 is overkill space for region_ids
+                  1 * integer_size + key_count(old_snelist(node)) * 3 * integer_size
+      else
+        sizes(i) = zz_positions%dim * real_size + &
+                  2 * integer_size + row_length(zz_nelist, node) * integer_size + &
+                  1 * integer_size + key_count(old_snelist(node)) * 3 * integer_size
+      end if
     end do
 
     if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_halo_node_sizes")) then
@@ -753,6 +788,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       current_buf(head:head+row_length(zz_nelist, node)-1) = halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node))
       head = head + row_length(zz_nelist, node)
 
+      if(preserve_mesh_regions) then
+        ! put in the region_ids in the same amount of space as the nelist - this is complete overkill!
+        current_buf(head:head+row_length(zz_nelist, node)-1) = fetch(universal_element_number_to_region_id, halo_universal_number(zz_ele_halo, row_m_ptr(zz_nelist, node)))
+        head = head + row_length(zz_nelist, node)
+      end if
+
       current_buf(head) = key_count(old_snelist(node))
       head = head + 1
       current_buf(head:head+key_count(old_snelist(node))-1) = set2vector(old_snelist(node))
@@ -805,9 +846,16 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       do j=1,sz
         call insert(new_nelist(new_local_number), buf(head + j))
         call insert(new_elements, buf(head + j))
+        if(preserve_mesh_regions) then
+          call insert(universal_element_number_to_region_id, buf(head + j), buf(head + j + sz))
+        end if
       end do
-      head = head + sz + 1
-
+      if(preserve_mesh_regions) then
+        head = head + 2*sz + 1
+      else
+        head = head + sz + 1
+      end if
+      
       ! and record who owns this in the halo
       call insert(receives(new_owner+1), global_ids(i))
 
@@ -1696,9 +1744,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs)
       assert(ierr == ZOLTAN_OK)
       
-    
+      ewrite(1,*) 'exiting reset_zoltan_lists_full'
+      
     end subroutine reset_zoltan_lists_full
-    
+        
     subroutine derive_full_export_lists
     
       type(mesh_type), pointer :: full_mesh
@@ -1738,7 +1787,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       assert(last_full_node-1==p1_num_export_full)
       assert(all(p1_export_local_ids_full>0))
       assert(all(p1_export_procs_full>-1))
+      call deallocate(columns_sparsity)
     
+      ewrite(1,*) 'exiting derive_full_export_lists'
+
     end subroutine derive_full_export_lists
 
     subroutine transfer_fields
@@ -1773,6 +1825,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 
       type(detector_type), pointer :: node
       integer :: j, row_in_spar_matrix, ele, count, row, dimen, det_found, dets_in_ele
+      
+      ewrite(1,*) 'in transfer_fields'
 
       do i=1,size(sends)
         call allocate(sends(i))
@@ -1981,7 +2035,9 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       call deallocate(ihash_sparsity) 
 
       call deallocate(element_detector_list)
-      
+
+      ewrite(1,*) 'exiting transfer_fields'
+
     end subroutine transfer_fields
 
     subroutine finalise_transfer
@@ -2010,6 +2066,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       type(state_type), dimension(size(states)) :: interpolate_states
       integer(zoltan_int) :: ierr
       integer :: no_meshes
+
+      ewrite(1,*) 'in initialise_transfer'
 
       ! Set up source_states
       do i=1,size(states)
@@ -2106,6 +2164,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_PACK_OBJ_MULTI_FN_TYPE, zoltan_cb_pack_fields); assert(ierr == ZOLTAN_OK)
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
 
+      ewrite(1,*) 'exiting initialise_transfer'
+
     end subroutine initialise_transfer
 
     subroutine reconstruct_halo
@@ -2127,6 +2187,8 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       integer, dimension(ele_count(new_positions)) :: renumber_permutation
       integer :: universal_element_number, old_new_local_element_number, new_new_local_element_number
       
+      integer, dimension(ele_count(new_positions)) :: old_new_region_ids
+
       ewrite(1,*) "In reconstruct_halo"
 
       num_import = 0
@@ -2213,6 +2275,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       assert(has_ownership(new_positions%mesh%halos(2)))
       assert(has_ownership(new_positions%mesh%halos(1)))
 
+      if(preserve_mesh_regions) then
+        old_new_region_ids = new_positions%mesh%region_ids
+      end if
+
       ! The previous routine has renumbered all the local elements to put the element halos in
       ! trailing receives status. However, we need the universal element number -> local element number
       ! later in the field transfer. So we need to update our records now.
@@ -2221,6 +2287,9 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         old_new_local_element_number = i
         new_new_local_element_number = renumber_permutation(old_new_local_element_number)
         call insert(uen_to_new_local_numbering, universal_element_number, new_new_local_element_number)
+        if(preserve_mesh_regions) then
+          new_positions%mesh%region_ids(new_new_local_element_number) = old_new_region_ids(old_new_local_element_number)
+        end if
       end do
 
       do i=1,halo_count(new_positions)
@@ -2240,7 +2309,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       ewrite(1,*) "Exiting reconstruct_halo"
 
     end subroutine reconstruct_halo
-
+    
     subroutine deal_with_exports
       ! The unpack routine is the ones that do most of the heavy lifting
       ! in reconstructing the new mesh, positions, etc.
@@ -2329,6 +2398,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         do j=1,size(neighbours)
           call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
           call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
+          ! don't need to add anything to universal_element_number_to_region_id because we already have it
         end do
 
         ! and record the snelist information
@@ -2350,6 +2420,7 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         do j=1,size(neighbours)
           call insert(new_nelist(new_local_number), halo_universal_number(zz_ele_halo, neighbours(j)))
           call insert(new_elements, halo_universal_number(zz_ele_halo, neighbours(j)))
+          ! don't need to add anything to universal_element_number_to_region_id because we already have it
         end do
 
         new_owner = fetch(nodes_we_are_sending, old_local_number)
@@ -2585,6 +2656,10 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
 #ifdef HAVE_MEMORY_STATS
       call register_allocation("mesh_type", "integer", full_elements * expected_loc, name=new_positions%mesh%name)
 #endif
+      if(preserve_mesh_regions) then
+        allocate(new_positions%mesh%region_ids(full_elements))
+      end if
+      
       j = 1
       do i=1,key_count(new_elements)
         if (key_count(enlists(i)) == expected_loc) then
@@ -2592,6 +2667,9 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
           call set_ele_nodes(new_positions%mesh, j, set2vector(enlists(i)))
           call insert(new_elements_we_actually_have, universal_number)
           call insert(uen_to_new_local_numbering, universal_number, j)
+          if(preserve_mesh_regions) then
+            new_positions%mesh%region_ids(j) = fetch(universal_element_number_to_region_id, universal_number)
+          end if
           j = j + 1
         end if
       end do
@@ -2601,10 +2679,12 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
       do i=1,size(enlists)
         call deallocate(enlists(i))
       end do
-
+      
       ! New elements is no longer valid, as we have lost the degenerate elements
       call deallocate(new_elements)
       new_elements = new_elements_we_actually_have
+      
+      call deallocate(universal_element_number_to_region_id)
 
       ! Bingo! Our mesh has an enlist.
       ewrite(1,*) "Exiting reconstruct_enlist"
@@ -2818,6 +2898,18 @@ subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_o
         call set(node_quality, i, qual)
       end do
       call halo_update(node_quality)
+      
+      preserve_mesh_regions = associated(zz_mesh%region_ids)
+      ! this deals with the case where some processors have no elements
+      ! (i.e. when used to flredecomp from 1 to many processors)
+      call allor(preserve_mesh_regions) 
+      if(preserve_mesh_regions) then
+        call allocate(universal_element_number_to_region_id)
+        do i = 1, element_count(zz_positions)
+          universal_element_number = halo_universal_number(zz_ele_halo, i)
+          call insert(universal_element_number_to_region_id, universal_element_number, zz_positions%mesh%region_ids(i))
+        end do
+      end if
 
     end subroutine setup_module_variables
 

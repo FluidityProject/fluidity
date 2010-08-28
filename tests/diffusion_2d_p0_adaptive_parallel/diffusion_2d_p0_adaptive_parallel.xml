@@ -6,7 +6,7 @@
   <owner userid="cwilson"/>
   <tags>flml zoltan</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l heat.flml </command_line>
+    <command_line>mpiexec -np 3 ../../bin/fluidity -v2 -l heat.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>
@@ -30,13 +30,166 @@ from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
 tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"]
     </variable>
+    <variable name="regionids_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("heat.stat")
+regionids_integral = s["Water"]["RegionIDs"]["integral"]
+    </variable>
+    <variable name="regionid_upperleft" language="python">
+import vtktools
+import glob
+import fluidity.diagnostics.vtutools as vtutools
+from numpy import array, concatenate, zeros
+
+regionid_upperleft = []
+centre = array([-0.75,0.5])
+
+posx = []
+posx.append([centre[0]])
+posx.append([centre[0]-1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]-1./6.])
+posx = array(posx)
+
+posy = []
+posy.append([centre[1]])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]+1./4.])
+posy.append([centre[1]+1./4.])
+posy = array(posy)
+
+posz = zeros((len(posx),1))
+
+pos = concatenate((posx, posy, posz), 1)
+
+files = glob.glob("heat_*.pvtu")
+for f in files:
+  pvtu = vtktools.vtu(f)
+  vtu = vtutools.VtuFromPvtu(pvtu)
+  regionid_upperleft.append(vtu.ProbeData(pos, "RegionIDs"))
+
+regionid_upperleft = array(regionid_upperleft)
+    </variable>
+    <variable name="regionid_upperright" language="python">
+import vtktools
+import glob
+import fluidity.diagnostics.vtutools as vtutools
+from numpy import array, concatenate, zeros
+
+regionid_upperright = []
+centre = array([-0.25,0.5])
+
+posx = []
+posx.append([centre[0]])
+posx.append([centre[0]-1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]-1./6.])
+posx = array(posx)
+
+posy = []
+posy.append([centre[1]])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]+1./4.])
+posy.append([centre[1]+1./4.])
+posy = array(posy)
+
+posz = zeros((len(posx),1))
+
+pos = concatenate((posx, posy, posz), 1)
+
+files = glob.glob("heat_*.pvtu")
+for f in files:
+  pvtu = vtktools.vtu(f)
+  vtu = vtutools.VtuFromPvtu(pvtu)
+  regionid_upperright.append(vtu.ProbeData(pos, "RegionIDs"))
+
+regionid_upperright = array(regionid_upperright)
+    </variable>
+    <variable name="regionid_lowerleft" language="python">
+import vtktools
+import glob
+import fluidity.diagnostics.vtutools as vtutools
+from numpy import array, concatenate, zeros
+
+regionid_lowerleft = []
+centre = array([-0.75,-0.5])
+
+posx = []
+posx.append([centre[0]])
+posx.append([centre[0]-1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]-1./6.])
+posx = array(posx)
+
+posy = []
+posy.append([centre[1]])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]+1./4.])
+posy.append([centre[1]+1./4.])
+posy = array(posy)
+
+posz = zeros((len(posx),1))
+
+pos = concatenate((posx, posy, posz), 1)
+
+files = glob.glob("heat_*.pvtu")
+for f in files:
+  pvtu = vtktools.vtu(f)
+  vtu = vtutools.VtuFromPvtu(pvtu)
+  regionid_lowerleft.append(vtu.ProbeData(pos, "RegionIDs"))
+
+regionid_lowerleft = array(regionid_lowerleft)
+    </variable>
+    <variable name="regionid_lowerright" language="python">
+import vtktools
+import glob
+import fluidity.diagnostics.vtutools as vtutools
+from numpy import array, concatenate, zeros
+
+regionid_lowerright = []
+centre = array([-0.25,-0.5])
+
+posx = []
+posx.append([centre[0]])
+posx.append([centre[0]-1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]+1./6.])
+posx.append([centre[0]-1./6.])
+posx = array(posx)
+
+posy = []
+posy.append([centre[1]])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]-1./4.])
+posy.append([centre[1]+1./4.])
+posy.append([centre[1]+1./4.])
+posy = array(posy)
+
+posz = zeros((len(posx),1))
+
+pos = concatenate((posx, posy, posz), 1)
+
+files = glob.glob("heat_*.pvtu")
+for f in files:
+  pvtu = vtktools.vtu(f)
+  vtu = vtutools.VtuFromPvtu(pvtu)
+  regionid_lowerright.append(vtu.ProbeData(pos, "RegionIDs"))
+
+regionid_lowerright = array(regionid_lowerright)
+    </variable>
   </variables>
   <pass_tests>
     <test name="finish time is 10000" language="python">
-assert abs(finish_time - 10000) &lt; 1e-9
+assert abs(finish_time - 1000) &lt; 1e-9
     </test>
-    <test name="no. nodes is initially 220" language="python">
-assert abs(no_nodes[0] - 220) &lt; 1e-9
+    <test name="no. nodes is initially 231" language="python">
+assert abs(no_nodes[0] - 231) &lt; 1e-9
     </test>
     <test name="no. nodes is constant" language="python">
 import numpy
@@ -55,6 +208,29 @@ assert tracer_error[0] &lt; 0.01
     <test name="tracer error less than 0.01" language="python">
 import numpy
 assert(numpy.all(abs(tracer_error[1:]-tracer_error[0]) &lt; 1.e-9)) 
+    </test>
+    <test name="regionids integral is initially 39.0" language="python">
+assert abs(regionids_integral[0] - 39.0) &lt; 1e-9
+    </test>
+    <test name="regionids integral is constant" language="python">
+import numpy
+assert(numpy.all(abs(regionids_integral[1:] - regionids_integral[0]) &lt; 1e-9))
+    </test>
+    <test name="regionids upper left is 21" language="python">
+import numpy
+assert(numpy.all(abs(regionid_upperleft - 21.) &lt; 1e-9))
+    </test>
+    <test name="regionids upper right is 20" language="python">
+import numpy
+assert(numpy.all(abs(regionid_upperright - 20.) &lt; 1e-9))
+    </test>
+    <test name="regionids lower left is 18" language="python">
+import numpy
+assert(numpy.all(abs(regionid_lowerleft - 18.) &lt; 1e-9))
+    </test>
+    <test name="regionids lower right is 19" language="python">
+import numpy
+assert(numpy.all(abs(regionid_lowerright - 19.) &lt; 1e-9))
     </test>
   </pass_tests>
   <warn_tests>
