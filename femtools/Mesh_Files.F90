@@ -75,8 +75,6 @@ module mesh_files
   public :: guess_external_mesh_format
 
 
-  character(len=*), parameter :: formatOptionPath="/geometry/mesh/from_file/format/name"
-
 contains
 
 
