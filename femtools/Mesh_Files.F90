@@ -106,11 +106,7 @@ contains
     character(len=OPTION_PATH_LEN) :: meshFormat
 
     if( .not. present(format) ) then
-       if( have_option(formatOptionPath) ) then
-          call get_option(formatOptionPath, meshFormat  )
-       else
-          meshFormat = "triangle"
-       end if
+       call guess_external_mesh_format(meshFormat)
     else
        meshFormat = format
     end if
@@ -186,11 +182,7 @@ contains
     character(len=option_path_len) :: meshFormat
 
     if( .not. present(format) ) then
-       if( have_option(formatOptionPath) ) then
-          call get_option(formatOptionPath, meshFormat  )
-       else
-          meshFormat = "triangle"
-       end if
+       call guess_external_mesh_format(meshFormat)
     else
        meshFormat = format
     end if
