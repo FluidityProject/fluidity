@@ -72,6 +72,7 @@ module mesh_files
   end interface
 
   public :: read_mesh_files, identify_mesh_file, write_mesh_files
+  public :: guess_external_mesh_format
 
 
   character(len=*), parameter :: formatOptionPath="/geometry/mesh/from_file/format/name"
@@ -145,11 +146,7 @@ contains
     character(len=*), optional, intent(in) :: format
 
     if( .not. present(format) ) then
-       if( have_option(formatOptionPath) ) then
-          call get_option(formatOptionPath, meshFormat  )
-       else
-          meshFormat = "triangle"
-       end if
+       call guess_external_mesh_format(meshFormat)
     else
        meshFormat = format
     end if
@@ -241,11 +238,7 @@ contains
     character(len=option_path_len) :: meshFormat
 
     if( .not. present(format) ) then
-       if( have_option(formatOptionPath) ) then
-          call get_option(formatOptionPath, meshFormat  )
-       else
-          meshFormat = "triangle"
-       end if
+       call guess_external_mesh_format(meshFormat)
     else
        meshFormat = format
     end if
@@ -285,11 +278,7 @@ contains
     type(mesh_type), intent(in) :: mesh
 
     if( .not. present(format) ) then
-       if( have_option(formatOptionPath) ) then
-          call get_option(formatOptionPath, meshFormat  )
-       else
-          meshFormat = "triangle"
-       end if
+       call guess_external_mesh_format(meshFormat)
     else
        meshFormat = format
     end if
@@ -325,11 +314,7 @@ contains
     character(len=option_path_len) :: meshFormat
 
     if( .not. present(format) ) then
-       if( have_option(formatOptionPath) ) then
-          call get_option(formatOptionPath, meshFormat  )
-       else
-          meshFormat = "triangle"
-       end if
+       call guess_external_mesh_format(meshFormat)
     else
        meshFormat = format
     end if
@@ -352,6 +337,48 @@ contains
 
   end subroutine write_positions_to_file
 
+
+
+
+  ! --------------------------------------------------------------------------
+  ! Subroutine which finds external mesh format and puts it in 'meshFormat'
+  ! Follows similar logic to Field_Options::get_external_mesh()
+
+
+  subroutine guess_external_mesh_format(meshFormat)
+    character(len=*) :: meshFormat
+    character(len=OPTION_PATH_LEN) :: meshPath, formatPath
+    integer :: numMeshes, meshFound, i
+
+    numMeshes = option_count("/geometry/mesh")
+
+    ! Search for external meshes, and exit loop when found one
+    meshFound=0
+    do i = 0, numMeshes-1
+       meshPath = "/geometry/mesh["//int2str(i)//"]/from_file"
+
+       if(have_option(trim(meshPath))) then
+          meshFound=1
+          exit
+       end if
+    end do
+
+    ! We've found a mesh, now get its format
+    if (meshFound==1) then
+       formatPath = trim(meshPath) // "/format/name"
+
+       if(have_option(trim(formatPath))) then
+          call get_option( trim(formatPath), meshFormat )
+       else
+          ! Not having much luck today.. back to default
+          meshFormat = "triangle"
+       end if
+    else
+       ! If we can't find any external meshes, just default to "triangle"
+       meshFormat = "triangle"
+    end if
+
+  end subroutine guess_external_mesh_format
 
 end module mesh_files
 

@@ -491,13 +491,8 @@ contains
           call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
         else if (extruded) then
 
-           ! Lunge forth with a wild stab at what the current mesh format is
-           if( have_option("/geometry/mesh/from_file/format/name") ) then
-              call get_option("/geometry/mesh/from_file/format/name", &
-                   currentMeshFormat  )
-           else
-              currentMeshFormat = "triangle"
-           end if
+          ! Lunge forth with a wild stab at what the current mesh format is
+          call guess_external_mesh_format(currentMeshFormat)
 
           call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", trim(currentMeshFormat), stat=stat1)
           call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
