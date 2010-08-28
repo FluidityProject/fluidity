@@ -43,6 +43,6 @@ fluidity_tools.compare_variables(u, x, 1.0e-10)
 fluidity_tools.compare_variables(v, y, 1.0e-10)</test>
     <test name="DummyAdaptivity" language="python">import vtktools
 
-assert(vtktools.VtuMatchLocations(initialVtu, interpolatedVtu))</test>
+assert(vtktools.VtuMatchLocationsArbitrary(initialVtu, interpolatedVtu))</test>
   </pass_tests>
 </testproblem>

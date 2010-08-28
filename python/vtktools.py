@@ -616,8 +616,29 @@ class vtu:
     
 def VtuMatchLocations(vtu1, vtu2, tolerance = 1.0e-6):
   """
+  Check that the locations in the supplied vtus match exactly, returning True if they
+  match and False otherwise.
+  The locations must be in the same order.
+  """
+
+  locations1 = vtu1.GetLocations().tolist()
+  locations2 = vtu2.GetLocations()
+  if not len(locations1) == len(locations2):
+    return False
+  for i in range(len(locations1)):
+    if not len(locations1[i]) == len(locations2[i]):
+      return False
+    for j in range(len(locations1[i])):
+      if abs(locations1[i][j] - locations2[i][j]) > tolerance:
+        return False
+
+  return True
+
+def VtuMatchLocationsArbitrary(vtu1, vtu2, tolerance = 1.0e-6):
+  """
   Check that the locations in the supplied vtus match, returning True if they
   match and False otherwise.
+  The locations may be in a different order.
   """
    
   locations1 = vtu1.GetLocations()
