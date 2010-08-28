@@ -185,7 +185,7 @@ regionid_lowerright = array(regionid_lowerright)
     </variable>
   </variables>
   <pass_tests>
-    <test name="finish time is 10000" language="python">
+    <test name="finish time is 1000" language="python">
 assert abs(finish_time - 1000) &lt; 1e-9
     </test>
     <test name="no. nodes is initially 231" language="python">
