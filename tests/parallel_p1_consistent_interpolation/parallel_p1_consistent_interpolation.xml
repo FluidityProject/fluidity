@@ -1,31 +1,31 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>parallel_p2_consistent_interpolation</name>
+  <name>parallel_p1_consistent_interpolation</name>
   <owner userid="maddison"/>
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>make clean-run; mpiexec -n 2 ../../bin/fluidity -v2 -l parallel_p2_consistent_interpolation.flml</command_line>
+    <command_line>make clean-run; mpiexec -n 2 ../../bin/fluidity -v2 -l parallel_p1_consistent_interpolation.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="stat" language="python">import fluidity_tools
 
-stat = fluidity_tools.stat_parser("parallel_p2_consistent_interpolation.stat")</variable>
+stat = fluidity_tools.stat_parser("parallel_p1_consistent_interpolation.stat")</variable>
     <variable name="interpolatedpvtu" language="python">import vtktools
 import fluidity.diagnostics.vtutools as vtutools
 
-interpolatedpvtu = vtktools.vtu("parallel_p2_consistent_interpolation_1.pvtu")</variable>
+interpolatedpvtu = vtktools.vtu("parallel_p1_consistent_interpolation_1.pvtu")</variable>
     <variable name="initialpvtu" language="python">import vtktools
 import fluidity.diagnostics.vtutools as vtutools
 
-initialpvtu = vtktools.vtu("parallel_p2_consistent_interpolation_0.pvtu")</variable>
+initialpvtu = vtktools.vtu("parallel_p1_consistent_interpolation_0.pvtu")</variable>
     <variable name="interpolatedVtu" language="python">import vtktools
 import fluidity.diagnostics.vtutools as vtutools
 
-interpolatedVtu = vtutools.PvtuToVtu(vtktools.vtu("parallel_p2_consistent_interpolation_1.pvtu"))</variable>
+interpolatedVtu = vtutools.PvtuToVtu(vtktools.vtu("parallel_p1_consistent_interpolation_1.pvtu"))</variable>
     <variable name="initialVtu" language="python">import vtktools
 import fluidity.diagnostics.vtutools as vtutools
 
-initialVtu = vtutools.PvtuToVtu(vtktools.vtu("parallel_p2_consistent_interpolation_0.pvtu"))</variable>
+initialVtu = vtutools.PvtuToVtu(vtktools.vtu("parallel_p1_consistent_interpolation_0.pvtu"))</variable>
   </variables>
   <pass_tests>
     <test name="SimulationCompleted" language="python">print "Timesteps: ", len(stat["ElapsedTime"])
