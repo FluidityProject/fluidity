@@ -269,8 +269,6 @@ def six_component(state, parameters):
     except KeyError:
         PG=None
 
-    #fluidity_tools.shell()()
-    
     alpha_c=parameters["alpha_c"]
     beta_P=parameters["beta_p"]
     beta_D=parameters["beta_d"]
@@ -347,7 +345,6 @@ def six_component(state, parameters):
         if (abs(coords.node_val(n)[2]) < photicZoneDepth):
             P_source.addto(n, J*P_n*(Q_N+Q_A) - G_P - De_P)
             C_source.addto(n, ((R_P*J*P_n*(Q_N+Q_A) + (-G_P-De_P))*theta)/zeta)
-            #print C_source.node_val(n), theta, C_n, R_P,J,P_n,(Q_N+Q_A), (-G_P-De_P)
             Z_source.addto(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
             D_source.addto(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
             N_source.addto(n, -J*P_n*Q_N)
@@ -356,7 +353,6 @@ def six_component(state, parameters):
         else:
             P_source.addto(n, -lambda_bio * P_n)
             C_source.addto(n, -theta*lambda_bio*C_n)
-            #print C_source.node_val(n), theta, lambda_bio, C_n
             Z_source.addto(n, -lambda_bio*Z_n)
             D_source.addto(n, -lambda_bio*(P_n + Z_n) - mu_D*D_n**2*lambda_A)
             A_source.addto(n, -lambda_A*A_n)

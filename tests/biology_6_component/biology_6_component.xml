@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <testproblem>
-  <name>biology-pczdna</name>
+  <name>biology_6_comopnent</name>
   <owner userid="jhill1"/>
   <tags>flml biology</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>fluidity biology_conservation.flml</command_line>
-    <!-- PZND model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
+    <!-- PZNDAC model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
   </problem_definition>
   <variables>
     <variable name="phytoplankton1" language="python">
@@ -66,7 +65,7 @@ ammonium2=d["water"]["Ammonium"]["integral"][-1]
 import values_per_node
 from numpy import array, zeros
 p1,z1,n1,d1,a1 = values_per_node.values_per_node("biology_conservation_0.vtu")
-p2,z2,n2,d2,a2 = values_per_node.values_per_node("biology_conservation_6.vtu")
+p2,z2,n2,d2,a2 = values_per_node.values_per_node("biology_conservation_9.vtu")
 nNodes = len(p1)
 DifferencePerNode = zeros(nNodes)
 for i in range(0,nNodes-1):
@@ -74,6 +73,8 @@ for i in range(0,nNodes-1):
 </variable>
   </variables>
   <pass_tests>
+<!-- Note that Chlorophyll mass is already contained in the Phytoplankton, so
+     we don't need to consider it in the mass balance              -->
       <test name="Total in water column conserved" language="python">
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1 + ammonium1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2 + ammonium2

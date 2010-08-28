@@ -688,11 +688,14 @@ p={}
 p["alpha_c"]=0.02*per_day
 p["beta_p"]=0.75
 p["beta_d"]=0.75
+p["delta"]=0.7
 p["gamma"]=0.5
 p["epsilon"]=3.3
 p["g"]=1.3*per_day
 p["k_A"]=0.5
 p["k_N"]=0.5
+p["k_p"]=0.2
+p["k_z"]=3.0
 p["mu_P"]=0.05*per_day
 p["mu_Z"]=0.2*per_day
 p["mu_D"]=0.05*per_day
@@ -702,7 +705,10 @@ p["theta_m"]=0.05
 p["zeta"]=12.8
 p["photic_zone_depth"]=116
 p["psi"]=2.9
-print "Calling biology"
+p["lambda_bio"]=0.1*per_day
+p["lambda_A"]=0.03*per_day
+p["lambda_d"]=0.01*per_day
+
 biology.six_component(state, p)</string_value>
       </source_and_sink_algorithm>
       <scalar_field name="PhotosyntheticRadiation" rank="0">
@@ -739,6 +745,17 @@ biology.six_component(state, p)</string_value>
               <real_value rank="0">0.03</real_value>
             </phytoplankton>
           </absorption_coefficients>
+          <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="Sunshine">
+            <surface_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </surface_ids>
+            <type name="dirichlet">
+              <apply_weakly/>
+              <constant>
+                <real_value rank="0">100</real_value>
+              </constant>
+            </type>
+          </boundary_conditions>
           <output/>
           <stat/>
           <convergence>
