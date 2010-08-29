@@ -46,8 +46,8 @@ module mixing_statistics
   implicit none
   
   interface heaviside_integral
-    module procedure heaviside_integral_old, heaviside_integral_new, &
-      & heaviside_integral_new_options
+    module procedure heaviside_integral_single, &
+      & heaviside_integral_multiple, heaviside_integral_options
   end interface heaviside_integral
 
   interface mixing_stats
@@ -168,7 +168,7 @@ contains
 
   end subroutine control_volume_mixing
 
-  subroutine heaviside_integral_new_options(f_mix_fraction, sfield, Xfield, mixing_stats_count)
+  subroutine heaviside_integral_options(f_mix_fraction, sfield, Xfield, mixing_stats_count)
 
     real, dimension(:), intent(out) :: f_mix_fraction
     type(scalar_field), target, intent(inout) :: sfield
@@ -180,8 +180,7 @@ contains
     real, dimension(:), allocatable :: detwei
     real :: tolerance, current_time
     real, dimension(:), pointer :: mixing_bin_bounds
-    character(len = OPTION_PATH_LEN) :: func
-    type(element_type), pointer :: shape           
+    character(len = OPTION_PATH_LEN) :: func      
     integer, dimension(2) :: shape_option
 
     if(have_option(trim(complete_field_path(sfield%option_path)) // &
@@ -208,10 +207,12 @@ contains
          &// "/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/tolerance",&
          & tolerance, default = epsilon(0.0))
 
-    do j=1,size(f_mix_fraction)
-      f_mix_fraction(j) = heaviside_integral_new(sfield, mixing_bin_bounds(j), Xfield, tolerance = tolerance)
-    end do
+    f_mix_fraction = heaviside_integral_multiple(sfield, mixing_bin_bounds, Xfield, tolerance = tolerance)
     
+    do j = 1,(size(f_mix_fraction)-1)
+       f_mix_fraction(j) = (f_mix_fraction(j)-f_mix_fraction(j+1))
+    end do
+            
     ! In f_mix_fraction(j) have volume of sfield >mixing_bin_bounds(j)
     ! Subtract so that f_mix_fraction(j) has 
     ! mixing_bin_bounds(j)<volume fraction of sfield<mixing_bins_bounds(j+1) 
@@ -220,45 +221,28 @@ contains
          &"/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/continuous_galerkin/normalise")) then
 
        assert(ele_count(sfield) > 0)
-       shape => ele_shape(sfield, 1)
-       allocate(detwei(shape%ngi))
-       !positions => extract_vector_field(state, "Coordinate")
 
        total_volume = 0.0
 
+       allocate(detwei(ele_ngi(sfield, 1)))
        do ele = 1, ele_count(sfield)
           if(.not. element_owned(sfield,ele)) cycle
 
           call transform_to_physical(Xfield, ele, detwei = detwei)
           total_volume = total_volume + sum(detwei)
        end do
-       call allsum(total_volume)
-
        deallocate(detwei)
-
-       do j = 1,(size(f_mix_fraction)-1)
-          f_mix_fraction(j) = (f_mix_fraction(j)-f_mix_fraction(j+1))&
-               &/total_volume
-       end do
-       f_mix_fraction(size(f_mix_fraction)) = &
-            & f_mix_fraction(size(f_mix_fraction))/total_volume
-
-
-    else
-
-       do j = 1,(size(f_mix_fraction)-1)
-          f_mix_fraction(j) = (f_mix_fraction(j)-f_mix_fraction(j+1))
-       end do
-       f_mix_fraction(size(f_mix_fraction)) = &
-            & f_mix_fraction(size(f_mix_fraction))
-
+       
+       call allsum(total_volume, communicator = halo_communicator(sfield))
+       
+       f_mix_fraction = f_mix_fraction / total_volume
     endif
     
     deallocate(mixing_bin_bounds)
     
-  end subroutine heaviside_integral_new_options
+  end subroutine heaviside_integral_options
   
-  function heaviside_integral_new(sfield, bound, positions, tolerance) result(integral)
+  function heaviside_integral_single(sfield, bound, positions, tolerance) result(integral)
     type(scalar_field), intent(inout) :: sfield
     real, intent(in) :: bound
     type(vector_field), intent(in) :: positions
@@ -266,14 +250,39 @@ contains
     
     real :: integral
     
-    real :: ltolerance
+    real, dimension(1) :: integrals
     type(element_type), pointer :: shape
     
-    if(present(tolerance)) then
-      ltolerance = tolerance
-    else
-      ltolerance = epsilon(0.0)
+    shape => ele_shape(sfield, 1)
+    if(ele_numbering_family(shape) /= FAMILY_SIMPLEX .or. shape%degree /= 1) then
+      FLAbort("heaviside_integral requires a linear simplex input mesh")
     end if
+    
+    select case(positions%dim)
+      case(3)
+        integrals = heaviside_integral_tet(sfield, (/bound/), positions, tolerance = tolerance)
+        integral = integrals(1)
+      case(2)
+        integrals = heaviside_integral_tri(sfield, (/bound/), positions)
+        integral = integrals(1)
+      case(1)
+        integrals = heaviside_integral_line(sfield, (/bound/), positions)
+        integral = integrals(1)
+      case default
+        FLExit("heaviside_integral requires a linear simplex input mesh")
+    end select
+    
+  end function heaviside_integral_single
+  
+  function heaviside_integral_multiple(sfield, bounds, positions, tolerance) result(integrals)
+    type(scalar_field), intent(inout) :: sfield
+    real, dimension(:), intent(in) :: bounds
+    type(vector_field), intent(in) :: positions
+    real, optional, intent(in) :: tolerance
+    
+    real, dimension(size(bounds)) :: integrals
+    
+    type(element_type), pointer :: shape
     
     shape => ele_shape(sfield, 1)
     if(ele_numbering_family(shape) /= FAMILY_SIMPLEX .or. shape%degree /= 1) then
@@ -282,190 +291,233 @@ contains
     
     select case(positions%dim)
       case(3)
-        call heaviside_integral(integral = integral, scalar_field = sfield%val, &
-          & heavi_value = bound, x = positions%val(1)%ptr, y = positions%val(2)%ptr, z = positions%val(3)%ptr, nonods = node_count(sfield), &
-          & totele = ele_count(sfield), nloc = shape%loc, ndglno = sfield%mesh%ndglno, tolerance = ltolerance, &
-          & mesh = sfield%mesh)
+        integrals = heaviside_integral_tet(sfield, bounds, positions, tolerance = tolerance)
       case(2)
-        integral = heaviside_integral_tri(sfield, bound, positions)
+        integrals = heaviside_integral_tri(sfield, bounds, positions)
       case(1)
-        integral = heaviside_integral_line(sfield, bound, positions)
+        integrals = heaviside_integral_line(sfield, bounds, positions)
       case default
         FLAbort("Unsupported dimension count in heaviside_integral_new")
     end select
     
-  end function heaviside_integral_new
+  end function heaviside_integral_multiple
 
-  function heaviside_integral_line(sfield, bound, positions) result(integral)
+  function heaviside_integral_line(sfield, bounds, positions) result(integrals)
     type(scalar_field), intent(in) :: sfield
-    real, intent(in) :: bound
+    real, dimension(:), intent(in) :: bounds
     type(vector_field), intent(in) :: positions
     
-    real :: integral
+    real, dimension(size(bounds)) :: integrals
     
-    integer :: ele
+    integer :: ele, i
     logical, dimension(2) :: node_integrate
-    real :: sub_coord
+    logical, dimension(size(bounds)) :: integrate_length
+    real :: line_length, sub_coord
     real, dimension(2) :: node_vals
     real, dimension(1, 2) :: coords
     
     assert(sfield%mesh == positions%mesh)
     
-    integral = 0.0
-    do ele = 1, ele_count(sfield)
-      if(.not. element_owned(sfield, ele)) cycle
+    integrals = 0.0
+    ele_loop: do ele = 1, ele_count(sfield)
+      if(.not. element_owned(sfield, ele)) cycle ele_loop
     
       assert(ele_loc(sfield, ele) == 2)
       coords = ele_val(positions, ele)
       node_vals = ele_val(sfield, ele)
-      node_integrate = node_vals > bound
       
-      if(node_integrate(1)) then
-        if(node_integrate(2)) then
-          ! Integrate the whole element
-          integral = integral + abs(coords(1, 1) - coords(1, 2))
-        else
+      integrate_length = .false.
+      bounds_loop: do i = 1, size(bounds)      
+        node_integrate = node_vals >= bounds(i)
+      
+        if(node_integrate(1)) then
+          if(node_integrate(2)) then
+            ! Integrate the whole element
+            
+            integrate_length(i) = .true.  ! Handled outside the bounds loop (below)
+          else
+            ! Integrate part of the element
+            sub_coord = ((bounds(i) - node_vals(1)) * (coords(1, 2) - coords(1, 1)) / (node_vals(2) - node_vals(1))) + coords(1, 1)
+            integrals(i) = integrals(i) + abs(coords(1, 1) - sub_coord)
+          end if
+        else if(node_integrate(2)) then
           ! Integrate part of the element
-          sub_coord = ((bound - node_vals(1)) * (coords(1, 2) - coords(1, 1)) / (node_vals(2) - node_vals(1))) + coords(1, 1)
-          integral = integral + abs(coords(1, 1) - sub_coord)
+          sub_coord = ((bounds(i) - node_vals(2)) * (coords(1, 1) - coords(1, 2)) / (node_vals(1) - node_vals(2))) + coords(1, 2)
+          integrals(i) = integrals(i) + abs(coords(1, 2) - sub_coord)
+        !else
+        !  ! Element not integrated
         end if
-      else if(node_integrate(2)) then
-        ! Integrate part of the element
-        sub_coord = ((bound - node_vals(2)) * (coords(1, 1) - coords(1, 2)) / (node_vals(1) - node_vals(2))) + coords(1, 2)
-        integral = integral + abs(coords(1, 2) - sub_coord)
-      !else
-      !  ! Element not integrated
+      end do bounds_loop
+      
+      if(count(integrate_length) > 0) then
+        ! Integrate the whole element
+        
+        line_length = abs(coords(1, 1) - coords(1, 2))
+        
+        do i = 1, size(bounds)
+          if(integrate_length(i)) then
+            integrals(i) = integrals(i) + line_length
+          end if
+        end do
       end if
+    end do ele_loop
+    
+    call allsum(integrals, communicator = halo_communicator(sfield))
+    
+    do i = 1, size(bounds)
+      ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
+      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
     end do
-    
-    call allsum(integral, communicator = halo_communicator(sfield))
-    
-    ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bound
-    ewrite(2, *) "Heaviside integral > bound = ", integral
   
   end function heaviside_integral_line
 
-  function heaviside_integral_tri(sfield, bound, positions) result(integral)
+  function heaviside_integral_tri(sfield, bounds, positions) result(integrals)
     type(scalar_field), intent(in) :: sfield
-    real, intent(in) :: bound
+    real, dimension(:), intent(in) :: bounds
     type(vector_field), intent(in) :: positions
     
-    real :: integral
+    real, dimension(size(bounds)) :: integrals
     
-    integer :: ele, integrated_node
+    integer :: ele, i, integrated_node
     integer, dimension(2) :: non_integrated_nodes
+    integer :: node_integrate_count
     logical, dimension(3) :: node_integrate
+    logical, dimension(size(bounds)) :: integrate_area
+    real :: tet_area
     real, dimension(3) :: node_vals
     real, dimension(2, 3) :: tri_coords, sub_tri_coords
     
     assert(sfield%mesh == positions%mesh)
     
-    integral = 0.0    
-    do ele = 1, ele_count(sfield)
-      if(.not. element_owned(sfield, ele)) cycle
+    integrals = 0.0   
+    ele_loop: do ele = 1, ele_count(sfield)
+      if(.not. element_owned(sfield, ele)) cycle ele_loop
     
       assert(ele_loc(sfield, ele) == 3)
       tri_coords = ele_val(positions, ele)
       tri_coords(:, 2:) = tri_coords(:, 2:) - spread(tri_coords(:, 1), 2, 2);  tri_coords(:, 1) = 0.0
       node_vals = ele_val(sfield, ele)
-      node_integrate = node_vals > bound
       
-      select case(count(node_integrate))
+      integrate_area = .false. 
+      bounds_loop: do i = 1, size(bounds)
+        node_integrate = node_vals >= bounds(i)
+        node_integrate_count = count(node_integrate)
       
-        case(0)
-          ! Triangle not integrated     
-             
-        case(1)
-          ! Integrate one corner triangle
-          
-          if(node_integrate(1)) then
-            integrated_node = 1
-            non_integrated_nodes(1) = 2
-            non_integrated_nodes(2) = 3
-          else if(node_integrate(2)) then
-            integrated_node = 2
-            non_integrated_nodes(1) = 1
-            non_integrated_nodes(2) = 3
-          else
-            integrated_node = 3
-            non_integrated_nodes(1) = 1
-            non_integrated_nodes(2) = 2
-          end if
-          
-          sub_tri_coords(:, 1) = tri_coords(:, integrated_node)
-          sub_tri_coords(:, 2) = tri_coords(:, non_integrated_nodes(1)) + &
-            & ((bound - node_vals(non_integrated_nodes(1))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(1)))) * &
-            & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(1)))
-          sub_tri_coords(:, 3) = tri_coords(:, non_integrated_nodes(2)) + &
-            & ((bound - node_vals(non_integrated_nodes(2))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(2)))) * &
-            & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(2)))
+        select case(node_integrate_count)
+        
+          case(0)
+            ! Triangle not integrated     
+               
+          case(1)
+            ! Integrate one corner triangle
             
-          sub_tri_coords(:, 2:) = sub_tri_coords(:, 2:) - spread(sub_tri_coords(:, 1), 2, 2)
-                    
-          integral = integral + 0.5 * abs(det(sub_tri_coords(:, 2:)))
-        case(2)
-          ! Integrate one edge trapezium
-          
-          integral = integral + 0.5 * abs(det(tri_coords(:, 2:)))
-          
-          if(.not. node_integrate(1)) then
-            integrated_node = 1
-            non_integrated_nodes(1) = 2
-            non_integrated_nodes(2) = 3
-          else if(.not. node_integrate(2)) then
-            integrated_node = 2
-            non_integrated_nodes(1) = 1
-            non_integrated_nodes(2) = 3
-          else
-            integrated_node = 3
-            non_integrated_nodes(1) = 1
-            non_integrated_nodes(2) = 2
-          end if
-          
-          sub_tri_coords(:, 1) = tri_coords(:, integrated_node)
-          sub_tri_coords(:, 2) = tri_coords(:, non_integrated_nodes(1)) + &
-            & ((bound - node_vals(non_integrated_nodes(1))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(1)))) * &
-            & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(1)))
-          sub_tri_coords(:, 3) = tri_coords(:, non_integrated_nodes(2)) + &
-            & ((bound - node_vals(non_integrated_nodes(2))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(2)))) * &
-            & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(2)))
+            if(node_integrate(1)) then
+              integrated_node = 1
+              non_integrated_nodes(1) = 2
+              non_integrated_nodes(2) = 3
+            else if(node_integrate(2)) then
+              integrated_node = 2
+              non_integrated_nodes(1) = 1
+              non_integrated_nodes(2) = 3
+            else
+              integrated_node = 3
+              non_integrated_nodes(1) = 1
+              non_integrated_nodes(2) = 2
+            end if
             
-          sub_tri_coords(:, 2:) = sub_tri_coords(:, 2:) - spread(sub_tri_coords(:, 1), 2, 2)
-          integral = integral - 0.5 * abs(det(sub_tri_coords(:, 2:)))
-        case(3)
-          ! Integrate the whole triangle
-          
-          integral = integral + 0.5 * abs(det(tri_coords(:, 2:)))
-        case default
-          FLAbort("Unexpected number of integrated nodes in triangle")
-      end select
+            sub_tri_coords(:, 1) = tri_coords(:, integrated_node)
+            sub_tri_coords(:, 2) = tri_coords(:, non_integrated_nodes(1)) + &
+              & ((bounds(i) - node_vals(non_integrated_nodes(1))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(1)))) * &
+              & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(1)))
+            sub_tri_coords(:, 3) = tri_coords(:, non_integrated_nodes(2)) + &
+              & ((bounds(i) - node_vals(non_integrated_nodes(2))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(2)))) * &
+              & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(2)))
+              
+            sub_tri_coords(:, 2:) = sub_tri_coords(:, 2:) - spread(sub_tri_coords(:, 1), 2, 2)
+                      
+            integrals(i) = integrals(i) + 0.5 * abs(det(sub_tri_coords(:, 2:)))
+          case(2)
+            ! Integrate one edge trapezium
+            
+            integrate_area(i) = .true.  ! Handled outside the bounds loop (below)
+            
+            if(.not. node_integrate(1)) then
+              integrated_node = 1
+              non_integrated_nodes(1) = 2
+              non_integrated_nodes(2) = 3
+            else if(.not. node_integrate(2)) then
+              integrated_node = 2
+              non_integrated_nodes(1) = 1
+              non_integrated_nodes(2) = 3
+            else
+              integrated_node = 3
+              non_integrated_nodes(1) = 1
+              non_integrated_nodes(2) = 2
+            end if
+            
+            sub_tri_coords(:, 1) = tri_coords(:, integrated_node)
+            sub_tri_coords(:, 2) = tri_coords(:, non_integrated_nodes(1)) + &
+              & ((bounds(i) - node_vals(non_integrated_nodes(1))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(1)))) * &
+              & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(1)))
+            sub_tri_coords(:, 3) = tri_coords(:, non_integrated_nodes(2)) + &
+              & ((bounds(i) - node_vals(non_integrated_nodes(2))) / (node_vals(integrated_node) - node_vals(non_integrated_nodes(2)))) * &
+              & (tri_coords(:, integrated_node) - tri_coords(:, non_integrated_nodes(2)))
+              
+            sub_tri_coords(:, 2:) = sub_tri_coords(:, 2:) - spread(sub_tri_coords(:, 1), 2, 2)
+            integrals(i) = integrals(i) - 0.5 * abs(det(sub_tri_coords(:, 2:)))
+          case(3)
+            ! Integrate the whole triangle
+            
+            integrate_area(i) = .true.  ! Handled outside the bounds loop (below)
+          case default
+            FLAbort("Unexpected number of integrated nodes in triangle")
+        end select
+      end do bounds_loop
+      
+      if(count(integrate_area) > 0) then
+        ! Integrate the whole triangle
+        
+        tet_area = 0.5 * abs(det(tri_coords(:, 2:)))
+        
+        do i = 1, size(bounds)
+          if(integrate_area(i)) then
+            integrals(i) = integrals(i) + tet_area
+          end if
+        end do
+      end if
+    end do ele_loop
+    
+    call allsum(integrals, communicator = halo_communicator(sfield))
+    
+    do i = 1, size(bounds)
+      ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
+      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
     end do
-    
-    call allsum(integral, communicator = halo_communicator(sfield))
-    
-    ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bound
-    ewrite(2, *) "Heaviside integral > bound = ", integral
     
   end function heaviside_integral_tri
 
-  subroutine heaviside_integral_old(integral,scalar_field,heavi_value, &
-       x,y,z,nonods,totele,nloc,ndglno,tolerance, mesh)
-    real, intent(out)::integral
-    real, intent(inout) :: scalar_field(nonods)
-    real, intent(in) :: heavi_value
-    integer, intent(in)::nonods,totele,nloc,ndglno(totele*nloc)
-    real, intent(in)::x(nonods),y(nonods),z(nonods)
-    !c
-    integer number_nodes,heavi_non_zero(4),heavi_zero
-    real xele(4),yele(4),zele(4),xelesub(4),yelesub(4),zelesub(4)
-    real xpent(6),ypent(6),zpent(6)
-    integer ii,ele,iloc,globi
-    real dd,a1,a2
-    integer counter1,counter2,counter3,counter4,counter5
-    type(mesh_type), intent(in) :: mesh
+  function heaviside_integral_tet(sfield, bounds, positions, tolerance) result(integrals)
+    type(scalar_field), intent(in) :: sfield
+    real, dimension(:), intent(in) :: bounds
+    type(vector_field), intent(in) :: positions
+    real, optional, intent(in) :: tolerance
+    
+    real, dimension(size(bounds)) :: integrals
+    
+    integer :: ii, iloc, heavi_zero
+    integer, dimension(4) :: heavi_non_zero
+    real :: dd
+    real, dimension(4) :: xele, yele, zele, xelesub, yelesub, zelesub
+    real, dimension(6) :: xpent, ypent, zpent
 
-    real, intent(in), optional :: tolerance
+    integer :: ele, i, node, node_integrate_count
+    integer, dimension(:), pointer :: nodes
+    logical, dimension(size(bounds)) :: integrate_vol
+    real :: tet_vol
+
     real :: l_tolerance
+    
+    assert(sfield%mesh == positions%mesh)
 
     if(present(tolerance)) then
        l_tolerance = tolerance
@@ -473,156 +525,161 @@ contains
        l_tolerance = epsilon(0.0)
     end if
 
-    if(halo_count(mesh) > 0) then
-      call halo_update(mesh%halos(1), scalar_field)
-    end if
+    integrals = 0.0
+    ele_loop: do ele = 1, ele_count(sfield)
+       ! Check if this processor is integrating this element
+       if(.not. element_owned(sfield, ele)) cycle ele_loop
+       
+       nodes => ele_nodes(sfield, ele)
 
-    if(nloc.eq.4) then ! this only works for linear tets
-       counter1=0
-       counter2=0
-       counter3=0
-       counter4=0
-       counter5=0
-       integral = 0.0
+       integrate_vol = .false.
+       bounds_loop: do i = 1, size(bounds)
+       
+         node_integrate_count = 0
+         heavi_non_zero = 0
+         ii = 0
 
-       do ele = 1,totele
-          ! Check if this processor is integrating this element
-          if(.not. element_owned(mesh, ele)) cycle
-          
-          number_nodes = 0
-          heavi_non_zero = 0
-          ii = 0
+         do iloc = 1,4
+            node = nodes(iloc)
+            xele(iloc) = node_val(positions, X_, node)
+            yele(iloc) = node_val(positions, Y_, node)
+            zele(iloc) = node_val(positions, Z_, node)
+            if(node_val(sfield, node) >=(bounds(i)-l_tolerance)) then
+               node_integrate_count = node_integrate_count + 1
+               ii = ii + 1
+               heavi_non_zero(ii) = iloc
+            endif
+         end do
 
-          do iloc = 1,nloc
-             globi = ndglno((ele-1)*nloc+iloc)
-             xele(iloc) = x(globi)
-             yele(iloc) = y(globi)
-             zele(iloc) = z(globi)
-             if(scalar_field(globi).ge.(heavi_value-l_tolerance)) then
-                number_nodes = number_nodes+1
-                ii = ii + 1
-                heavi_non_zero(ii) = iloc
-             endif
-          enddo
+         if (node_integrate_count==4) then
+            ! heaviside funtion 1 over whole element so add entire volume
+         
+            integrate_vol(i) = .true.  ! Handled outside the bounds loop (below)
+         elseif(node_integrate_count==0) then
+            ! heaviside function zero over whole element so do nothing
 
-          if (number_nodes.eq.nloc) then
-             counter1=counter1+1     ! heaviside funtion 1 over whole element so add entire volume
-             integral = integral + abs(tetvol(xele,yele,zele))
+         elseif(node_integrate_count==1) then
+            ! heaviside function non-zero only over a sub-tet of this element
+            
+            xelesub(1) = node_val(positions, X_, nodes(heavi_non_zero(1)))
+            yelesub(1) = node_val(positions, Y_, nodes(heavi_non_zero(1)))
+            zelesub(1) = node_val(positions, Z_, nodes(heavi_non_zero(1)))
+            ! find locations of the other sub-tet vertices
+            ii = 1 ! already have the first
+            do iloc = 1,4
+               if(iloc/=heavi_non_zero(1)) then
+                  ii = ii + 1
+                  dd = (bounds(i) - node_val(sfield, nodes(heavi_non_zero(1))))/ &
+                       (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_non_zero(1))))
+                  !dd = max(min(dd,1.0),0.0)
+                  xelesub(ii) = xelesub(1) + (node_val(positions, X_, nodes(iloc))-xelesub(1))*dd
+                  yelesub(ii) = yelesub(1) + (node_val(positions, Y_, nodes(iloc))-yelesub(1))*dd
+                  zelesub(ii) = zelesub(1) + (node_val(positions, Z_, nodes(iloc))-zelesub(1))*dd
+               endif
+            end do
+            if(ii/=4) then
+              FLAbort("have not found all three other vertices of the subtet")
+            end if
+            integrals(i) = integrals(i) + abs(tetvol(xelesub,yelesub,zelesub))
 
-          elseif(number_nodes.eq.0) then
-             counter2=counter2+1  ! heaviside function zero over whole element so do nothing
+         elseif(node_integrate_count==2) then
+            ! this is the complicated case where the ele has been split into two pentahedra
+            ! split the pentahedra into 3 tets to calculate the volume
+            xpent(1) = node_val(positions, X_, nodes(heavi_non_zero(1)))
+            ypent(1) = node_val(positions, Y_, nodes(heavi_non_zero(1)))
+            zpent(1) = node_val(positions, Z_, nodes(heavi_non_zero(1)))
 
-          elseif(number_nodes.eq.1) then
-             counter3=counter3+1   ! heaviside function non-zero only over a sub-tet of this element
-             xelesub(1) = x(ndglno((ele-1)*nloc + heavi_non_zero(1)))
-             yelesub(1) = y(ndglno((ele-1)*nloc + heavi_non_zero(1)))
-             zelesub(1) = z(ndglno((ele-1)*nloc + heavi_non_zero(1)))
-             ! find locations of the other sub-tet vertices
-             ii = 1 ! already have the first
-             do iloc = 1,nloc
-                if(iloc.ne.heavi_non_zero(1)) then
-                   ii = ii + 1
-                   dd = (heavi_value - scalar_field(ndglno((ele-1)*nloc + heavi_non_zero(1))))/ &
-                        (scalar_field(ndglno((ele-1)*nloc +iloc))-scalar_field(ndglno((ele-1)*nloc + heavi_non_zero(1))))
-                   !dd = max(min(dd,1.0),0.0)
-                   xelesub(ii) = xelesub(1) + (x(ndglno((ele-1)*nloc +iloc))-xelesub(1))*dd
-                   yelesub(ii) = yelesub(1) + (y(ndglno((ele-1)*nloc +iloc))-yelesub(1))*dd
-                   zelesub(ii) = zelesub(1) + (z(ndglno((ele-1)*nloc +iloc))-zelesub(1))*dd
-                endif
-             enddo
-             if(ii.ne.4) then
-               FLAbort("have not found all three other vertices of the subtet")
-             end if
-             integral = integral + abs(tetvol(xelesub,yelesub,zelesub))
+            xpent(2) = node_val(positions, X_, nodes(heavi_non_zero(2)))
+            ypent(2) = node_val(positions, Y_, nodes(heavi_non_zero(2)))
+            zpent(2) = node_val(positions, Z_, nodes(heavi_non_zero(2)))
+            ! find locations of the other pentahedra vertices
+            ii = 2 ! already have the first two
+            do iloc = 1,4
+               if((iloc/=heavi_non_zero(1)).and.(iloc/=heavi_non_zero(2))) then
+                  ii = ii + 1
+                  dd = (bounds(i) - node_val(sfield, nodes(heavi_non_zero(1))))/ &
+                       (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_non_zero(1))))
+                  dd = max(min(dd,1.0),0.0)
+                  if(ii==3) then
+                     xpent(3) = xpent(1) + (node_val(positions, X_, nodes(iloc))-xpent(1))*dd
+                     ypent(3) = ypent(1) + (node_val(positions, Y_, nodes(iloc))-ypent(1))*dd
+                     zpent(3) = zpent(1) + (node_val(positions, Z_, nodes(iloc))-zpent(1))*dd
+                  else
+                     xpent(4) = xpent(1) + (node_val(positions, X_, nodes(iloc))-xpent(1))*dd
+                     ypent(4) = ypent(1) + (node_val(positions, Y_, nodes(iloc))-ypent(1))*dd
+                     zpent(4) = zpent(1) + (node_val(positions, Z_, nodes(iloc))-zpent(1))*dd
+                  endif
 
-          elseif(number_nodes.eq.2) then
-             counter4=counter4+1
-             ! this is the complicated case where the ele has been split into two pentahedra
-             ! split the pentahedra into 3 tets to calculate the volume
-             xpent(1) = x(ndglno((ele-1)*nloc + heavi_non_zero(1)))
-             ypent(1) = y(ndglno((ele-1)*nloc + heavi_non_zero(1)))
-             zpent(1) = z(ndglno((ele-1)*nloc + heavi_non_zero(1)))
+                  dd = (bounds(i) - node_val(sfield, nodes(heavi_non_zero(2))))/ &
+                       (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_non_zero(2))))
 
-             xpent(2) = x(ndglno((ele-1)*nloc + heavi_non_zero(2)))
-             ypent(2) = y(ndglno((ele-1)*nloc + heavi_non_zero(2)))
-             zpent(2) = z(ndglno((ele-1)*nloc + heavi_non_zero(2)))
-             ! find locations of the other pentahedra vertices
-             ii = 2 ! already have the first two
-             do iloc = 1,nloc
-                if((iloc.ne.heavi_non_zero(1)).and.(iloc.ne.heavi_non_zero(2))) then
-                   ii = ii + 1
-                   dd = (heavi_value - scalar_field(ndglno((ele-1)*nloc + heavi_non_zero(1))))/ &
-                        (scalar_field(ndglno((ele-1)*nloc +iloc))-scalar_field(ndglno((ele-1)*nloc + heavi_non_zero(1))))
-                   dd = max(min(dd,1.0),0.0)
-                   if(ii.eq.3) then
-                      xpent(3) = xpent(1) + (x(ndglno((ele-1)*nloc +iloc))-xpent(1))*dd
-                      ypent(3) = ypent(1) + (y(ndglno((ele-1)*nloc +iloc))-ypent(1))*dd
-                      zpent(3) = zpent(1) + (z(ndglno((ele-1)*nloc +iloc))-zpent(1))*dd
-                   else
-                      xpent(4) = xpent(1) + (x(ndglno((ele-1)*nloc +iloc))-xpent(1))*dd
-                      ypent(4) = ypent(1) + (y(ndglno((ele-1)*nloc +iloc))-ypent(1))*dd
-                      zpent(4) = zpent(1) + (z(ndglno((ele-1)*nloc +iloc))-zpent(1))*dd
-                   endif
+                  dd = max(min(dd,1.0),0.0)
+                  if(ii==3) then
+                     xpent(5) = xpent(2) + (node_val(positions, X_, nodes(iloc))-xpent(2))*dd
+                     ypent(5) = ypent(2) + (node_val(positions, Y_, nodes(iloc))-ypent(2))*dd
+                     zpent(5) = zpent(2) + (node_val(positions, Z_, nodes(iloc))-zpent(2))*dd
+                  else
+                     xpent(6) = xpent(2) + (node_val(positions, X_, nodes(iloc))-xpent(2))*dd
+                     ypent(6) = ypent(2) + (node_val(positions, Y_, nodes(iloc))-ypent(2))*dd
+                     zpent(6) = zpent(2) + (node_val(positions, Z_, nodes(iloc))-zpent(2))*dd
+                  endif
+               endif
+            end do
+            if(ii/=4) then
+              FLAbort("have not found all two other vertices of the pent")
+            end if
+            integrals(i) = integrals(i) + PENTAHEDRON_VOL(Xpent,Ypent,Zpent)
 
-                   dd = (heavi_value - scalar_field(ndglno((ele-1)*nloc + heavi_non_zero(2))))/ &
-                        (scalar_field(ndglno((ele-1)*nloc +iloc))-scalar_field(ndglno((ele-1)*nloc + heavi_non_zero(2))))
+         elseif(node_integrate_count==3) then
+            ! in this case there is a subtet over which the heaviside function IS ZERO so just
+            ! use (vol(big_tet) - vol(subtet)) as volume of polyhedra where heaviside function non-zero
+            heavi_zero = 10 - (heavi_non_zero(1) + heavi_non_zero(2) + heavi_non_zero(3))
+            ! heavi_zero is the local node number of the single node where the heaviside function is zero
+            xelesub(1) = node_val(positions, X_, nodes(heavi_zero))
+            yelesub(1) = node_val(positions, Y_, nodes(heavi_zero))
+            zelesub(1) = node_val(positions, Z_, nodes(heavi_zero))
+            ! find locations of the other sub-tet vertices
+            ii = 1 ! already have the first
+            do iloc = 1,4
+               if(iloc/=heavi_zero) then
+                  ii = ii + 1
+                  dd = (bounds(i) - node_val(sfield, nodes(heavi_zero)))/ &
+                       (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_zero)))
 
-                   dd = max(min(dd,1.0),0.0)
-                   if(ii.eq.3) then
-                      xpent(5) = xpent(2) + (x(ndglno((ele-1)*nloc +iloc))-xpent(2))*dd
-                      ypent(5) = ypent(2) + (y(ndglno((ele-1)*nloc +iloc))-ypent(2))*dd
-                      zpent(5) = zpent(2) + (z(ndglno((ele-1)*nloc +iloc))-zpent(2))*dd
-                   else
-                      xpent(6) = xpent(2) + (x(ndglno((ele-1)*nloc +iloc))-xpent(2))*dd
-                      ypent(6) = ypent(2) + (y(ndglno((ele-1)*nloc +iloc))-ypent(2))*dd
-                      zpent(6) = zpent(2) + (z(ndglno((ele-1)*nloc +iloc))-zpent(2))*dd
-                   endif
-                endif
-             enddo
-             if(ii.ne.4) then
-               FLAbort("have not found all two other vertices of the pent")
-             end if
-             integral = integral + PENTAHEDRON_VOL(Xpent,Ypent,Zpent)
+                  dd = max(min(dd,1.0),0.0)
 
-          elseif(number_nodes.eq.3) then
-             counter5=counter5+1
-             ! in this case there is a subtet over which the heaviside function IS ZERO so just
-             ! use (vol(big_tet) - vol(subtet)) as volume of polyhedra where heaviside function non-zero
-             heavi_zero = 10 - (heavi_non_zero(1) + heavi_non_zero(2) + heavi_non_zero(3))
-             ! heavi_zero is the local node number of the single node where the heaviside function is zero
-             xelesub(1) = x(ndglno((ele-1)*nloc + heavi_zero))
-             yelesub(1) = y(ndglno((ele-1)*nloc + heavi_zero))
-             zelesub(1) = z(ndglno((ele-1)*nloc + heavi_zero))
-             ! find locations of the other sub-tet vertices
-             ii = 1 ! already have the first
-             do iloc = 1,nloc
-                if(iloc.ne.heavi_zero) then
-                   ii = ii + 1
-                   dd = (heavi_value - scalar_field(ndglno((ele-1)*nloc + heavi_zero)))/ &
-                        (scalar_field(ndglno((ele-1)*nloc +iloc))-scalar_field(ndglno((ele-1)*nloc + heavi_zero)))
+                  xelesub(ii) = xelesub(1) + (node_val(positions, X_, nodes(iloc))-xelesub(1))*dd
+                  yelesub(ii) = yelesub(1) + (node_val(positions, Y_, nodes(iloc))-yelesub(1))*dd
+                  zelesub(ii) = zelesub(1) + (node_val(positions, Z_, nodes(iloc))-zelesub(1))*dd
+               endif
+            end do
+            if(ii/=4) then
+              FLAbort("have not found all three other vertices of the subtet")
+            end if
+            integrate_vol(i) = .true.  ! Handled outside the bounds loop (below)
+            integrals(i) = integrals(i) - abs(tetvol(xelesub,yelesub,zelesub))
+         endif
+       end do bounds_loop
+       
+       if(count(integrate_vol) > 0) then
+         tet_vol = abs(tetvol(xele,yele,zele))
+         do i = 1, size(bounds)
+           if(integrate_vol(i)) then
+             ! heaviside funtion 1 over whole element so add entire volume
+             
+             integrals(i) = integrals(i) + tet_vol
+           end if
+         end do
+       end if
+    end do ele_loop
+    
+    call allsum(integrals, communicator = halo_communicator(sfield))
+    
+    do i = 1, size(bounds)
+      ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
+      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+    end do
 
-                   dd = max(min(dd,1.0),0.0)
-
-                   xelesub(ii) = xelesub(1) + (x(ndglno((ele-1)*nloc +iloc))-xelesub(1))*dd
-                   yelesub(ii) = yelesub(1) + (y(ndglno((ele-1)*nloc +iloc))-yelesub(1))*dd
-                   zelesub(ii) = zelesub(1) + (z(ndglno((ele-1)*nloc +iloc))-zelesub(1))*dd
-                endif
-             enddo
-             if(ii.ne.4) then
-               FLAbort("have not found all three other vertices of the subtet")
-             end if
-             integral = integral + (abs(tetvol(xele,yele,zele)) - abs(tetvol(xelesub,yelesub,zelesub)))      
-             a1 = tetvol(xele,yele,zele)
-             a2 = tetvol(xelesub,yelesub,zelesub)
-          endif
-       enddo
-
-       call allsum(integral)
-    else
-       FLAbort("Gone into heaviside_integral but this version only works for tets")
-    endif
-
-    return
-  end subroutine heaviside_integral_old
-
+  end function heaviside_integral_tet
+  
 end module mixing_statistics

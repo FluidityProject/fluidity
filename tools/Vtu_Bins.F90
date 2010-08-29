@@ -78,9 +78,7 @@ subroutine vtu_bins(input_filename, input_filename_len, input_fieldname, input_f
     volume = volume + element_volume(positions, i)
   end do
   
-  do i = 1, nbounds
-    integrals(i) = heaviside_integral(field, lbounds(i), positions)
-  end do
+  integrals = heaviside_integral(field, lbounds, positions)
   integrals(nbounds + 1) = heaviside_integral(field, huge(0.0), positions)
   
   rformat = real_format()
