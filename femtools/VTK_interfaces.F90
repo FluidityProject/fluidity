@@ -513,7 +513,7 @@ contains
     
   end subroutine vtksetactivetensors_f90
   
-  subroutine vtk_write_state(filename, index, model, state, write_region_ids, stat)
+  subroutine vtk_write_state(filename, index, model, state, write_region_ids, write_columns, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -527,6 +527,7 @@ contains
     character(len=*), intent(in), optional :: model
     type(state_type), dimension(:), intent(in) :: state
     logical, intent(in), optional :: write_region_ids
+    logical, intent(in), optional :: write_columns
     integer, intent(out), optional :: stat
     type(mesh_type), pointer :: model_mesh
 
@@ -622,12 +623,13 @@ contains
          vfields=lvfields, &
          tfields=ltfields, &
          write_region_ids=write_region_ids, &
+         write_columns=write_columns, &
          stat=stat)
 
   end subroutine vtk_write_state
 
   subroutine vtk_write_fields(filename, index, position, model, sfields,&
-       & vfields, tfields, write_region_ids, write_inactive_parts, stat)
+       & vfields, tfields, write_region_ids, write_columns, write_inactive_parts, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -645,6 +647,7 @@ contains
     type(vector_field), dimension(:), intent(in), optional :: vfields
     type(tensor_field), dimension(:), intent(in), optional :: tfields
     logical, intent(in), optional :: write_region_ids
+    logical, intent(in), optional :: write_columns
     !! If not provided and true, only the local vtu for processes with at least one element are written
     !! The zero element processes are supposed to be trailing in rank. If provided and true all
     !! vtus are written:
@@ -927,6 +930,16 @@ contains
      if (present_and_true(write_region_ids)) then
        if (associated(model_mesh%region_ids)) then
          call vtkwritesc(model_mesh%region_ids, "RegionIds")
+       end if
+     end if
+
+     !----------------------------------------------------------------------
+     ! Output the columns
+     !----------------------------------------------------------------------
+
+     if (present_and_true(write_columns)) then
+       if (associated(model_mesh%columns)) then
+         call vtkwritesn(model_mesh%columns, "Columns")
        end if
      end if
 

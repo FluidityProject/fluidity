@@ -1039,8 +1039,34 @@ l2norm_algorithm =
         vector_source_field
       }
    )
+
+# Mesh
    
-scalar_diagnostic_algorithms = scalar_python_diagnostic_algorithm
+column_id_algorithm =
+   (
+      ## Convert the column_ids to a field.
+      ##
+      ## The mesh must be directly extruded.
+      element algorithm {
+        attribute name { "column_ids" },
+        attribute material_phase_support { "single" }
+      }
+   )
+
+universal_column_id_algorithm =
+   (
+      ## Convert the universal column_ids to a field.
+      ##
+      ## The mesh must be directly extruded.
+      element algorithm {
+        attribute name { "universal_column_ids" },
+        attribute material_phase_support { "single" }
+      }
+   )
+
+scalar_diagnostic_algorithms = column_id_algorithm
+scalar_diagnostic_algorithms |= universal_column_id_algorithm
+scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= extract_scalar_component_algorithm

@@ -1430,7 +1430,40 @@ No. 1 pp. 243--268, 1980</a:documentation>
       <ref name="vector_source_field"/>
     </element>
   </define>
+  <!-- Mesh -->
+  <define name="column_id_algorithm">
+    <element name="algorithm">
+      <a:documentation>Convert the column_ids to a field.
+
+The mesh must be directly extruded.</a:documentation>
+      <attribute name="name">
+        <value>column_ids</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="universal_column_id_algorithm">
+    <element name="algorithm">
+      <a:documentation>Convert the universal column_ids to a field.
+
+The mesh must be directly extruded.</a:documentation>
+      <attribute name="name">
+        <value>universal_column_ids</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="scalar_diagnostic_algorithms">
+    <ref name="column_id_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="universal_column_id_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_python_diagnostic_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">

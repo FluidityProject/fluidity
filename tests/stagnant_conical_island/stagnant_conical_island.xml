@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>stagnant_conical_island</name>
+  <owner userid="cwilson"/>
+  <tags>zoltan</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpirun -np 3 fluidity -v1 -l conical_island.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="err_n_lines" language="python">import glob
+files = glob.glob1(".","*.err-?")
+err_n_lines = {}
+for file in files:
+  fileHandle = open(file)
+  log = fileHandle.read()
+  logSplit = log.split("\n")
+  print file + ":"
+  for line in logSplit[-10:]:
+    print line
+  err_n_lines[file] = len(logSplit)
+  fileHandle.close()</variable>
+    <variable name="log_n_lines" language="python">import glob
+files = glob.glob1(".","*.log-?")
+log_n_lines = {}
+for file in files:
+  fileHandle = open(file)
+  log = fileHandle.read()
+  logSplit = log.split("\n")
+  print file + ":"
+  for line in logSplit[-10:]:
+    print line
+  log_n_lines[file] = len(logSplit)
+  fileHandle.close()</variable>
+    <variable name="domain_volume" language="python">from fluidity_tools import stat_parser as stat
+domain_volume = stat("conical_island.stat")["Water"]["Inside"]["integral"]</variable>
+    <variable name="water_volume" language="python">from fluidity_tools import stat_parser as stat
+water_volume = stat("conical_island.stat")["Water"]["MaterialVolumeFraction"]["integral"]</variable>
+    <variable name="no_nodes" language="python">from fluidity_tools import stat_parser as stat
+no_nodes = stat("conical_island.stat")["CoordinateMesh"]["nodes"]</variable>
+    <variable name="finish_time" language="python">from fluidity_tools import stat_parser as stat
+finish_time = stat("conical_island.stat")["ElapsedTime"]["value"][-1]</variable>
+    <variable name="no_h_nodes" language="python">from fluidity_tools import stat_parser as stat
+no_h_nodes = stat("conical_island.stat")["InputMesh"]["nodes"]</variable>
+    <variable name="no_v_nodes" language="python">from fluidity_tools import stat_parser as stat
+no_v_nodes = stat("conical_island.stat")["CoordinateMesh"]["nodes"]/stat("conical_island.stat")["InputMesh"]["nodes"]</variable>
+    <variable name="runups" language="python">import vtk
+import glob
+import sys
+import os
+import vtktools
+import operator
+from numpy import sqrt, sign, pi, sin, cos, array
+import fluidity.diagnostics.vtutools as vtutools
+
+def get_water_runups(filelist, values, origin, normals, R0):
+  results = []
+  for f in filelist:
+    try:
+      os.stat(f)
+    except:
+      print "No such file: %s" % f
+      sys.exit(1)
+    pvtu = vtktools.vtu(f)
+    vtu = vtutools.PvtuToVtu(pvtu)
+    num = int(f.split(".pvtu")[0].split('_')[-1])
+    time = max(vtu.GetScalarRange("Water::Time"))
+    runup = []
+    runup.append(num)
+    runup.append(time)
+    for n in range(len(normals)):
+      cutvtu = vtutools.PlanarVtuCut(vtu, origin, normals[n])
+      cutdata = cutvtu.ugrid
+      cutdata.GetPointData().SetActiveScalars("Water::MaterialVolumeFraction")
+      cutcontour = vtk.vtkContourFilter()
+      cutcontour.SetInput(cutdata)
+      for val in range(len(values)):
+        cutcontour.SetValue(0, values[val])
+        cutcontour.Update()
+        polydata = cutcontour.GetOutput()
+        npts = polydata.GetNumberOfPoints()
+        pts = []
+        for i in range(npts): pts.append(polydata.GetPoint(i))
+        pts = array(pts)
+        pts = pts.compress(sign(pts[:,1])==sign(normals[n][0]), axis=0)
+        r = sqrt(pts[:,0]**2 + pts[:,1]**2)
+        runup.append(r.min()-R0)
+    results.append(runup)
+  results.sort(key=operator.itemgetter(1))
+  return results
+
+values = [0.025, 0.5, 0.975]
+
+R0 = 2.07
+sigma = 0.4
+h = (4.45 - R0)/3.0
+a = 0.4
+b = 0.2
+c = 0.05
+
+origin = [0,0,0]
+angles = array([-14.5, -20.6, -34.3, -47.6, -60.2, -72.9])
+angles = angles*pi/180.
+normals = []
+for a in range(len(angles)): normals.append([sin(angles[a]), -cos(angles[a]), 0.0])
+
+filelist = glob.glob("conical_island_*[0-9].pvtu")
+filelist.sort()
+runups = get_water_runups(filelist, values, origin, normals, R0)
+runups = array(runups)</variable>
+  </variables>
+  <pass_tests>
+    <test name="domain_volume_constant" language="python">print '% volume change = ', max(abs(domain_volume[1:]-domain_volume[:-1]))*100/domain_volume[0]
+assert max(abs(domain_volume[1:]-domain_volume[:-1]))*100/domain_volume[0] &lt; 1.E-10</test>
+    <test name="water_volume_constant" language="python">print '% volume change = ', max(abs(water_volume[1:]-water_volume[:-1]))*100/water_volume[0]
+assert max(abs(water_volume[1:]-water_volume[:-1]))*100/water_volume[0] &lt; 1.E-10</test>
+    <test name="no_nodes_decreases" language="python">print 'change no_nodes = ', no_nodes[-1]-no_nodes[0]
+assert no_nodes[-1]-no_nodes[0] &lt; 0</test>
+    <test name="check_finish_time" language="python">assert finish_time &gt; 0.01 and finish_time &lt; 0.015</test>
+    <test name="no_h_nodes_decreases" language="python">print 'change no_h_nodes = ', no_h_nodes[-1]-no_h_nodes[0]
+assert no_h_nodes[-1]-no_h_nodes[0] &lt; 0</test>
+    <test name="no_v_nodes_doesnt_increase_a_lot" language="python">print 'change no_v_nodes = ', no_v_nodes[-1]-no_v_nodes[0]
+assert abs(no_v_nodes[-1]-no_v_nodes[0]) &lt; 1.0</test>
+    <test name="test_runups_not_large" language="python">from numpy import array
+
+angles = array([-14.5, -20.6, -34.3, -47.6, -60.2, -72.9])
+
+print "maximum runups: ", [[angles[a], max(abs(runups[:,a*3+3]))] for a in range(len(angles))]
+
+assert array([max(abs(runups[:,a*3+3])) &lt; 0.02 for a in range(len(angles))]).all()</test>
+  </pass_tests>
+  <warn_tests>
+    <test name="no_nodes_decreases_enough" language="python">print 'change no_nodes = ', no_nodes[-1]-no_nodes[0]
+assert no_nodes[-1]-no_nodes[0] &lt; -2000</test>
+  </warn_tests>
+</testproblem>

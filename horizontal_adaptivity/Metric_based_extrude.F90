@@ -200,7 +200,9 @@ module hadapt_metric_based_extrude
 
     call deallocate(oned_shape)
     do column=1,node_count(h_mesh)
-      call deallocate(out_z_meshes(column))
+      if(node_owned(h_mesh, column)) then
+        call deallocate(out_z_meshes(column))
+      end if
     end do
     
   end subroutine metric_based_extrude

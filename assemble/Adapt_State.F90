@@ -1414,7 +1414,7 @@ contains
       ! Debug vtu output. These are output on every adapt iteration.
 
       file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)   
-      call vtk_write_state(file_name, state = states, write_region_ids=.true.)
+      call vtk_write_state(file_name, state = states, write_region_ids=.true., write_columns=.true.)
       
       state_dump_no = state_dump_no + 1
     end if

@@ -968,7 +968,7 @@ contains
         if(any(mesh%name==exclude_meshes)) cycle
       end if
       call insert(mesh_states(mesh_no), mesh, trim(mesh%name))
-      call insert(refcount_to_meshno, mesh%refcount%id, i)
+      call insert(refcount_to_meshno, mesh%refcount%id, mesh_no)
       mesh_no = mesh_no + 1
     end do
 

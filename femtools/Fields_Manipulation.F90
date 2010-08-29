@@ -3362,8 +3362,9 @@ implicit none
                 &mesh%shape%loc*ele) = nodes
   end subroutine set_ele_nodes
 
-  subroutine renumber_positions_trailing_receives(positions)
+  subroutine renumber_positions_trailing_receives(positions, permutation)
     type(vector_field), intent(inout) :: positions
+    integer, dimension(:), intent(out), optional :: permutation
 
     integer :: i, j, nhalos, nonods
     integer, dimension(:), allocatable :: inverse_permutation, receive_node, &
@@ -3398,6 +3399,11 @@ implicit none
     call deallocate(positions)
     positions = positions_renumbered
 
+    if(present(permutation)) then
+      assert(size(permutation)==nonods)
+      permutation=inverse_permutation
+    end if
+
     deallocate(receive_node)
     deallocate(renumber_permutation)
     deallocate(inverse_permutation)
@@ -3429,8 +3435,6 @@ implicit none
     ewrite(1, *) "In renumber_positions"
 
     assert(size(permutation) == node_count(input_positions))
-    ! If you need this, just renumber them yourself ...
-    assert(.not. associated(input_positions%mesh%columns))
 
     if(present(node_halo_ordering_scheme)) then
       lnode_halo_ordering_scheme = node_halo_ordering_scheme
@@ -3444,6 +3448,13 @@ implicit none
     do ele=1,ele_count(input_positions)
       call set_ele_nodes(output_mesh, ele, permutation(ele_nodes(input_positions, ele)))
     end do
+    
+    if(associated(input_positions%mesh%columns)) then
+      allocate(output_mesh%columns(node_count(input_positions)))
+      do node=1,node_count(input_positions)
+        output_mesh%columns(permutation(node)) = input_positions%mesh%columns(node)
+      end do
+    end if
 
     output_mesh%periodic = input_positions%mesh%periodic
     if (associated(input_positions%mesh%region_ids)) then
@@ -3541,8 +3552,6 @@ implicit none
     ewrite(1, *) "In renumber_positions_elements"
 
     assert(size(permutation) == ele_count(input_positions))
-    ! If you need this, just renumber them yourself ...
-    assert(.not. associated(input_positions%mesh%columns))
 
     if(present(element_halo_ordering_scheme)) then
       lelement_halo_ordering_scheme = element_halo_ordering_scheme
@@ -3556,6 +3565,11 @@ implicit none
     do ele=1,ele_count(input_positions)
       call set_ele_nodes(output_mesh, permutation(ele), ele_nodes(input_positions, ele))
     end do
+
+    if(associated(input_positions%mesh%columns)) then
+      allocate(output_mesh%columns(node_count(input_positions)))
+      output_mesh%columns = input_positions%mesh%columns
+    end if
 
     output_mesh%periodic = input_positions%mesh%periodic
     if (associated(input_positions%mesh%region_ids)) then
@@ -3702,7 +3716,9 @@ implicit none
     end if
     
     nhalos = halo_count(mesh)
-    if(nhalos == 0) return
+    if((nhalos == 0).and.(.not.present(use_unns))) then
+      FLAbort("Need halos or unns to reorder the mesh.")
+    end if
 
     do ele = 1, element_count(mesh)
       nodes => ele_nodes(mesh, ele)
