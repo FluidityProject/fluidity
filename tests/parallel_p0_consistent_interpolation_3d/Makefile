@@ -5,8 +5,8 @@ default: input
 
 input: src/$(MESH).geo
 	gmsh -3 src/$(MESH).geo
-	gmsh2triangle src/$(MESH).msh
-	fldecomp -n 3 $(MESH)
+	../../scripts/gmsh2triangle src/$(MESH).msh
+	../../bin/fldecomp -n 3 $(MESH)
 
 clean: clean-mesh clean-run
 clean-mesh:
