@@ -62,10 +62,20 @@ ammonium2=d["water"]["Ammonium"]["integral"][-1]
 
 
     <variable name="DifferencePerNode" language="python">
-import values_per_node
 from numpy import array, zeros
-p1,z1,n1,d1,a1 = values_per_node.values_per_node("biology_conservation_0.vtu")
-p2,z2,n2,d2,a2 = values_per_node.values_per_node("biology_conservation_9.vtu")
+import vtktools
+u=vtktools.vtu('biology_conservation_0.vtu')
+z1 = u.GetScalarField('Zooplankton')
+p1 = u.GetScalarField('Phytoplankton')
+n1 = u.GetScalarField('Nutrient')
+d1 = u.GetScalarField('Detritus')
+a1 = u.GetScalarField('Ammonium')
+u=vtktools.vtu('biology_conservation_9.vtu')
+z2 = u.GetScalarField('Zooplankton')
+p2 = u.GetScalarField('Phytoplankton')
+n2 = u.GetScalarField('Nutrient')
+d2 = u.GetScalarField('Detritus')
+a2 = u.GetScalarField('Ammonium')
 nNodes = len(p1)
 DifferencePerNode = zeros(nNodes)
 for i in range(0,nNodes-1):
