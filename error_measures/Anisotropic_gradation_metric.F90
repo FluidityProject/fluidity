@@ -51,7 +51,7 @@ module anisotropic_gradation
 
     integer :: stat
 
-    ewrite(1,*) "Using anisotropic gradation algorithm"
+    ewrite(2,*) "Using anisotropic gradation algorithm"
     mesh => metric%mesh
 
     if (present(gamma_field)) then

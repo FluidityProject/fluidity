@@ -83,7 +83,7 @@ module project_metric_to_surface_module
 
     integer :: vdim, sdim
     
-    real, dimension(size(normal)) :: tangent1, tangent2, tangent1_dir
+    real, dimension(:), allocatable :: tangent1, tangent2, tangent1_dir
     real :: project
     
     real, dimension(size(volume_metric, 1), size(volume_metric, 2)) :: rotated_metric, &
@@ -93,11 +93,13 @@ module project_metric_to_surface_module
     vdim = size(volume_metric, 1)
     sdim = vdim - 1
 
-    tangent1 = 0.0
-    tangent2 = 0.0
-    rotation_matrix = 0.0
-    
     if(present(normal)) then
+      
+      allocate(tangent1(size(normal)), tangent2(size(normal)), tangent1_dir(size(normal)))
+      tangent1 = 0.0
+      tangent2 = 0.0
+      rotation_matrix = 0.0
+    
       if(vdim>1) then
       
         ! we want the 1st tangent to align with the x axis
