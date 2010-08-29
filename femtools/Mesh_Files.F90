@@ -360,11 +360,11 @@ contains
        if(have_option(trim(formatPath))) then
           call get_option( trim(formatPath), meshFormat )
        else
-          ! Not having much luck today.. back to default
+          ! If mesh exists but no format found, default to triangle
           meshFormat = "triangle"
        end if
     else
-       ! If we can't find any external meshes, just default to "triangle"
+       ! If we can't find any external meshes...
        meshFormat = "triangle"
     end if
 
