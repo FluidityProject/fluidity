@@ -10,6 +10,10 @@
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>
+    <variable name="detectors" language="python">
+from fluidity_tools import stat_parser
+detectors = stat_parser("heat.detectors")
+    </variable>
     <variable name="finish_time" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
@@ -232,6 +236,18 @@ assert(numpy.all(abs(regionid_lowerleft - 18.) &lt; 1e-9))
 import numpy
 assert(numpy.all(abs(regionid_lowerright - 19.) &lt; 1e-9))
     </test>
+    <test name="regionids initial" language="python">
+import numpy
+assert(numpy.array([detectors["Water"]["RegionIDs"][d][0]&gt;17
+                   for d in detectors["Water"]["RegionIDs"].keys()], dtype=bool).all())
+    </test>
+<!--    <test name="regionids detectors" language="python">
+import numpy
+for d in detectors["Water"]["RegionIDs"].keys():
+  print d, detectors["Water"]["RegionIDs"][d][0]
+assert(numpy.array([numpy.all(abs(detectors["Water"]["RegionIDs"][d][1:]-detectors["Water"]["RegionIDs"][d][0])&lt;1.e-9) 
+                              for d in detectors["Water"]["RegionIDs"].keys()], dtype=bool).all())
+    </test>-->
   </pass_tests>
   <warn_tests>
   </warn_tests>
