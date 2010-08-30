@@ -45,6 +45,7 @@ module hadapt_advancing_front
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
     logical :: top_element, bottom_element
     logical :: apply_region_ids, propagate_region_ids
+    integer, dimension(:), allocatable :: old_region_ids
     
     integer, dimension(2) :: shape_option
     integer, dimension(1) :: other_node
@@ -351,6 +352,17 @@ module hadapt_advancing_front
       do i=1, faces_seen
         element_owners(i) = fetch(old2new_ele, element_owners(i))
       end do
+      
+      ! renumber the region_ids
+      if(propagate_region_ids) then
+        allocate(old_region_ids(size(mesh%mesh%region_ids)))
+        old_region_ids = mesh%mesh%region_ids
+        do i = 1, size(mesh%mesh%region_ids)
+          mesh%mesh%region_ids(fetch(old2new_ele, i)) = old_region_ids(i)
+        end do
+        deallocate(old_region_ids)
+      end if
+      
       call deallocate(old2new_ele)
       
       call derive_other_extruded_halos(h_mesh%mesh, mesh%mesh)

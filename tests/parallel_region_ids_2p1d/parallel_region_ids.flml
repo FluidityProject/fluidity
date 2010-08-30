@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">parallel_p0_consistent_interpolation</string_value>
+    <string_value lines="1">parallel_region_ids</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -72,7 +72,11 @@
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
-    <stat/>
+    <stat>
+      <output_at_start/>
+      <output_before_adapts/>
+      <output_after_adapts/>
+    </stat>
   </io>
   <timestepping>
     <current_time replaces="ACCTIM">
@@ -106,14 +110,54 @@
         <do_not_recalculate/>
       </prescribed>
     </vector_field>
-    <vector_field name="DiagnosticCoordinate" rank="1">
+    <scalar_field name="RegionIDs" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="25">
+          <region_ids>
+            <integer_value shape="1" rank="1">25</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">25</real_value>
+          </constant>
+        </value>
+        <value name="26">
+          <region_ids>
+            <integer_value shape="1" rank="1">26</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">26</real_value>
+          </constant>
+        </value>
+        <value name="27">
+          <region_ids>
+            <integer_value shape="1" rank="1">27</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">27</real_value>
+          </constant>
+        </value>
+        <value name="28">
+          <region_ids>
+            <integer_value shape="1" rank="1">28</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">28</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="ElementOwner" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm name="element_ownership" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -124,7 +168,7 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </vector_field>
+    </scalar_field>
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
@@ -149,6 +193,7 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <preserve_mesh_regions/>
       <vertically_structured_adaptivity>
         <vertically_align_metric/>
       </vertically_structured_adaptivity>

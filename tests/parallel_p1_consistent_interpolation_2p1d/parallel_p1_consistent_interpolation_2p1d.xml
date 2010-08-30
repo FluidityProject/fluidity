@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>parallel_p1_consistent_interpolation_3d</name>
+  <name>parallel_p1_consistent_interpolation_2p1d</name>
   <owner userid="cwilson"/>
   <tags>flml zoltan</tags>
   <problem_definition length="short" nprocs="1">
