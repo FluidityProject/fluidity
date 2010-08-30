@@ -964,7 +964,7 @@ contains
       ewrite(2, *) "Mesh field to be adapted: " // trim(old_positions%name)
       
       call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
-                                                    extruded_positions, old_positions)
+                                                    old_positions, extruded_positions)
       
       call initialise_boundcount(old_linear_mesh, old_positions)
      
@@ -1100,8 +1100,42 @@ contains
       if(isparallel()) then
 #ifdef HAVE_ZOLTAN
         ! Re-load-balance using zoltan
-        call zoltan_drive(states, i, metric = metric)
-        zoltan_drive_call=.true.         
+        if(vertically_structured_adaptivity) then
+          ! if we're doing vertically strucvtured adaptivity then we need to pass zoltan the
+          ! horizontal metric, so let's derive that again but this time off the full metric 
+          ! we just interpolated...
+          ! first we need the horizontal coordinates (called old_positions here)
+          call find_mesh_to_adapt(states(1), old_linear_mesh)
+          if (mesh_periodic(old_linear_mesh)) then
+            old_positions = extract_vector_field(states(1), trim(old_linear_mesh%name) // "Coordinate")
+            call incref(old_positions)
+          else
+            ! Extract the mesh field to be adapted (takes a reference)
+            old_positions = get_coordinate_field(states(1), old_linear_mesh)
+          end if
+          
+          ! now collapse metric to a 2d version (saving the metric as full_metric in the meantime)
+          call prepare_vertically_structured_adaptivity(states, metric, full_metric, &
+                                                        old_positions)
+          
+          ! we're done with the horizontal coordinates (out here at least)
+          call deallocate(old_positions)
+
+          ! call zoltan now but we need to pass in both the 2d metric (metric) and the 3d full metric (full_metric)
+          ! the first is needed to define the element qualities while the second must be interpolated to the newly
+          ! decomposed mesh
+          call zoltan_drive(states, i, metric = metric, full_metric = full_metric)
+          zoltan_drive_call=.true.
+          
+          ! now we can deallocate the horizontal metric and point metric back at the full metric again
+          call deallocate(metric)
+          metric = full_metric
+        else
+          
+          call zoltan_drive(states, i, metric = metric)
+          zoltan_drive_call=.true.
+          
+        end if
 #else
         ! Re-load-balance using libsam
         call sam_drive(states, sam_options(i, max_adapt_iteration), metric = metric)
@@ -1252,13 +1286,13 @@ contains
   end function sam_options
 
   subroutine prepare_vertically_structured_adaptivity(states, metric, full_metric, &
-                                                      extruded_positions, old_positions)
+                                                      old_positions, extruded_positions)
     type(state_type), dimension(:), intent(inout) :: states
     ! the metric will be collapsed, and the uncollapsed full_metric stored in full_metric
     type(tensor_field), intent(inout) :: metric, full_metric
-    type(vector_field), intent(inout) :: extruded_positions
     ! old positions of the horizontal mesh
     type(vector_field), intent(in) :: old_positions
+    type(vector_field), intent(inout), optional :: extruded_positions
 
     integer, save:: adaptcnt=0
     logical :: vertically_structured_adaptivity
@@ -1304,7 +1338,7 @@ contains
         call deallocate(edge_lengths)
       end if
       
-      if (vertically_inhomogenous_adaptivity) then
+      if (vertically_inhomogenous_adaptivity.and.present(extruded_positions)) then
          ! we need the position field later on for vertical adaptivity
          ! this takes a reference so that it's prevented from the big deallocate in adapt_state
          extruded_positions = get_coordinate_field(states(1), full_metric%mesh)
@@ -1414,7 +1448,7 @@ contains
       ! Debug vtu output. These are output on every adapt iteration.
 
       file_name = adapt_state_debug_file_name("adapted_state", state_dump_no, adapt_iteration, max_adapt_iteration, add_parallel = .false.)   
-      call vtk_write_state(file_name, state = states, write_region_ids=.true., write_columns=.true.)
+      call vtk_write_state(file_name, state = states, write_region_ids=.true.)
       
       state_dump_no = state_dump_no + 1
     end if

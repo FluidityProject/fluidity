@@ -70,6 +70,9 @@ module zoltan_integration
   logical, save :: preserve_mesh_regions
   type(integer_hash_table) :: universal_element_number_to_region_id
 
+  logical, save :: vertically_structured_adaptivity
+  type(csr_sparsity), save :: columns_sparsity
+
   logical, save :: preserve_columns
   integer, dimension(:), allocatable, save :: universal_columns
   type(integer_hash_table), save :: universal_to_new_local_numbering_m1d
@@ -114,6 +117,7 @@ module zoltan_integration
     integer(zoltan_int), intent(out) :: ierr
 
     integer :: count, i
+    real(zoltan_float) :: max_obj_wgt
 
     ewrite(1,*) "In zoltan_cb_get_owned_nodes"
 
@@ -131,9 +135,22 @@ module zoltan_integration
        ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
     end if
 
-    do i=1,count
-      obj_wgts(i) = 1.0
-    end do
+    if(vertically_structured_adaptivity) then
+      ! weight the nodes according to the number of nodes in the column beneath it
+      max_obj_wgt = 1.0
+      do i=1,count
+        obj_wgts(i) = float(row_length(columns_sparsity, i))
+        max_obj_wgt = max(max_obj_wgt, obj_wgts(i))
+      end do
+      ! normalise according to the most nodes in a column
+      do i=1,count
+        obj_wgts(i) = obj_wgts(i)/max_obj_wgt
+      end do
+    else
+      do i=1,count
+        obj_wgts(i) = 1.0
+      end do
+    end if
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_owned_nodes
@@ -1629,10 +1646,14 @@ module zoltan_integration
 
   end subroutine zoltan_cb_unpack_fields
 
-  subroutine zoltan_drive(states, iteration, metric)
+  subroutine zoltan_drive(states, iteration, metric, full_metric)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
+    ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
+    ! the full_metric is the metric we need to interpolate
+    type(tensor_field), intent(inout), optional :: full_metric
+
     type(zoltan_struct), pointer :: zz
 
     logical :: changes
@@ -1651,7 +1672,6 @@ module zoltan_integration
 
     type(tensor_field) :: new_metric
     
-    logical :: vertically_structured_adaptivity
     integer(zoltan_int), dimension(:), pointer :: p1_export_local_ids_full => null()
     integer(zoltan_int), dimension(:), pointer :: p1_export_procs_full => null()
     integer(zoltan_int) :: p1_num_export_full
@@ -1660,11 +1680,14 @@ module zoltan_integration
     integer :: ind, key, key_val
 
     ewrite(1,*) "In zoltan_drive"
-    
+
     vertically_structured_adaptivity = have_option( &
-     &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
+    &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
 
     call setup_module_variables
+    
+    call setup_quality_module_variables ! this needs to be called after setup_module_variables
+                                        ! (but only on the 2d mesh with 2+1d adaptivity)
 
     call set_zoltan_parameters
 
@@ -1674,6 +1697,7 @@ module zoltan_integration
       ewrite(1,*) "Zoltan decided no change was necessary, exiting"
       call deallocate_zoltan_lists
       call cleanup_basic_module_variables
+      call cleanup_quality_module_variables
       dumpno = dumpno + 1
       return
     end if
@@ -1714,6 +1738,9 @@ module zoltan_integration
       end do
       
       call cleanup_basic_module_variables
+      ! don't clean up the quality variables now 
+      ! (they'll be deallocated later but we don't need to use them in the vertically_structured section
+      ! so we don't need to reallocate them either)
       call cleanup_other_module_variables
       
       call setup_module_variables(mesh_name = topology_mesh_name)
@@ -1759,6 +1786,7 @@ module zoltan_integration
     call finalise_transfer
 
     call cleanup_basic_module_variables
+    call cleanup_quality_module_variables
     call cleanup_other_module_variables
     
     dumpno = dumpno + 1
@@ -1806,7 +1834,6 @@ module zoltan_integration
     subroutine derive_full_export_lists
     
       type(mesh_type), pointer :: full_mesh
-      type(csr_sparsity) :: columns_sparsity
       integer :: i, column
       integer, dimension(:), pointer :: column_nodes
       
@@ -1814,10 +1841,6 @@ module zoltan_integration
       logical :: lpreserve_columns
       
       ewrite(1,*) 'in derive_full_export_lists'
-      
-      full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
-      
-      call create_columns_sparsity(columns_sparsity, full_mesh)
       
       p1_num_export_full = 0
       do i = 1, p1_num_export
@@ -1843,8 +1866,8 @@ module zoltan_integration
       assert(last_full_node-1==p1_num_export_full)
       assert(all(p1_export_local_ids_full>0))
       assert(all(p1_export_procs_full>-1))
-      call deallocate(columns_sparsity)
-      
+
+      full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
       lpreserve_columns = associated(full_mesh%columns)
       call allor(lpreserve_columns)
       if(lpreserve_columns) then
@@ -2111,7 +2134,10 @@ module zoltan_integration
       call set_dirichlet_consistent(states)
       call alias_fields(states)
 
-      if (present(metric)) then
+      if (present(full_metric)) then
+        full_metric = new_metric
+        call halo_update(full_metric)
+      else if (present(metric)) then
         metric = new_metric
         call halo_update(metric)
       end if
@@ -2140,7 +2166,10 @@ module zoltan_integration
       end do
 
       ! Interpolate the metric, too
-      if (present(metric)) then
+      if (present(full_metric)) then
+        call insert(interpolate_states(1), full_metric, "ErrorMetric")
+        call deallocate(full_metric)
+      else if (present(metric)) then
         call insert(interpolate_states(1), metric, "ErrorMetric")
         call deallocate(metric)
       end if
@@ -2181,7 +2210,7 @@ module zoltan_integration
       call insert(states, new_positions, name = new_positions%name)
 
       ! Allocate a new metric field on the new positions mesh and zero it
-      if (present(metric)) then
+      if (present(metric).or.present(full_metric)) then
         call allocate(new_metric, new_positions%mesh, "ErrorMetric")
         call set(new_metric,spread(spread(666.0, 1, new_metric%dim), 2, new_metric%dim))
       end if
@@ -2200,8 +2229,8 @@ module zoltan_integration
         call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true.)
       end do
 
-      ! Metric will be interpolated too, it is zero at this point
-      if (present(metric)) then
+      ! Metric will be interpolated too, it is 666.0 (for debugging purposes) at this point
+      if (present(metric).or.present(full_metric)) then
         call insert(interpolate_states(1), new_metric, "ErrorMetric")
       end if
 
@@ -2979,6 +3008,27 @@ module zoltan_integration
       deallocate(sndgln)
       deallocate(interleaved_surface_ids)
 
+      preserve_mesh_regions = associated(zz_mesh%region_ids)
+      ! this deals with the case where some processors have no elements
+      ! (i.e. when used to flredecomp from 1 to many processors)
+      call allor(preserve_mesh_regions) 
+      if(preserve_mesh_regions) then
+        call allocate(universal_element_number_to_region_id)
+        do i = 1, element_count(zz_positions)
+          universal_element_number = halo_universal_number(zz_ele_halo, i)
+          call insert(universal_element_number_to_region_id, universal_element_number, zz_positions%mesh%region_ids(i))
+        end do
+      end if
+
+    end subroutine setup_module_variables
+
+    subroutine setup_quality_module_variables
+      integer :: i, j
+      type(mesh_type) :: pwc_mesh
+      integer, dimension(:), pointer :: eles
+      real :: qual
+      type(mesh_type), pointer :: full_mesh
+    
       ! And the element quality measure
       if (present(metric)) then
         call element_quality_p0(zz_positions, metric, element_quality)
@@ -3000,20 +3050,13 @@ module zoltan_integration
         call set(node_quality, i, qual)
       end do
       call halo_update(node_quality)
-      
-      preserve_mesh_regions = associated(zz_mesh%region_ids)
-      ! this deals with the case where some processors have no elements
-      ! (i.e. when used to flredecomp from 1 to many processors)
-      call allor(preserve_mesh_regions) 
-      if(preserve_mesh_regions) then
-        call allocate(universal_element_number_to_region_id)
-        do i = 1, element_count(zz_positions)
-          universal_element_number = halo_universal_number(zz_ele_halo, i)
-          call insert(universal_element_number_to_region_id, universal_element_number, zz_positions%mesh%region_ids(i))
-        end do
-      end if
 
-    end subroutine setup_module_variables
+      if(vertically_structured_adaptivity) then
+        full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
+        call create_columns_sparsity(columns_sparsity, full_mesh)
+      end if
+      
+    end subroutine setup_quality_module_variables
 
     subroutine set_zoltan_parameters
       integer(zoltan_int) :: ierr
@@ -3112,8 +3155,7 @@ module zoltan_integration
     subroutine cleanup_basic_module_variables
     ! This routine deallocates everything that is guaranteed to be allocated
     ! regardless of whether Zoltan actually wants to change anything or not.
-      call deallocate(element_quality)
-      call deallocate(node_quality)
+    ! (except for the quality functions)
       call deallocate(universal_surface_number_to_surface_id)
       call deallocate(universal_surface_number_to_element_owner)
       call deallocate(old_snelist)
@@ -3136,6 +3178,15 @@ module zoltan_integration
 
       preserve_columns = .false.
     end subroutine cleanup_basic_module_variables
+
+    subroutine cleanup_quality_module_variables
+    ! This routine deallocates the module quality fields.
+      call deallocate(element_quality)
+      call deallocate(node_quality)
+      if(vertically_structured_adaptivity) then
+        call deallocate(columns_sparsity)
+      end if
+    end subroutine cleanup_quality_module_variables
 
     subroutine cleanup_other_module_variables
       call deallocate(nodes_we_are_sending)

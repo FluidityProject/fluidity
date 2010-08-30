@@ -1802,6 +1802,154 @@
         </detectors>
       </prescribed>
     </scalar_field>
+    <scalar_field name="RegionIDs" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="72">
+          <region_ids>
+            <integer_value shape="1" rank="1">72</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">72</real_value>
+          </constant>
+        </value>
+        <value name="73">
+          <region_ids>
+            <integer_value shape="1" rank="1">73</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">73</real_value>
+          </constant>
+        </value>
+        <value name="74">
+          <region_ids>
+            <integer_value shape="1" rank="1">74</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">74</real_value>
+          </constant>
+        </value>
+        <value name="75">
+          <region_ids>
+            <integer_value shape="1" rank="1">75</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">75</real_value>
+          </constant>
+        </value>
+        <value name="76">
+          <region_ids>
+            <integer_value shape="1" rank="1">76</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">76</real_value>
+          </constant>
+        </value>
+        <value name="77">
+          <region_ids>
+            <integer_value shape="1" rank="1">77</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">77</real_value>
+          </constant>
+        </value>
+        <value name="78">
+          <region_ids>
+            <integer_value shape="1" rank="1">78</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">78</real_value>
+          </constant>
+        </value>
+        <value name="79">
+          <region_ids>
+            <integer_value shape="1" rank="1">79</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">79</real_value>
+          </constant>
+        </value>
+        <value name="80">
+          <region_ids>
+            <integer_value shape="1" rank="1">80</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">80</real_value>
+          </constant>
+        </value>
+        <value name="81">
+          <region_ids>
+            <integer_value shape="1" rank="1">81</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">81</real_value>
+          </constant>
+        </value>
+        <value name="82">
+          <region_ids>
+            <integer_value shape="1" rank="1">82</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">82</real_value>
+          </constant>
+        </value>
+        <value name="83">
+          <region_ids>
+            <integer_value shape="1" rank="1">83</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">83</real_value>
+          </constant>
+        </value>
+        <value name="84">
+          <region_ids>
+            <integer_value shape="1" rank="1">84</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">84</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="ColumnIDs" rank="0">
+      <diagnostic>
+        <algorithm name="column_ids" material_phase_support="single"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="UniversalColumnIDs" rank="0">
+      <diagnostic>
+        <algorithm name="universal_column_ids" material_phase_support="single"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <material_phase name="Air">
     <equation_of_state>
