@@ -5,7 +5,7 @@
   <name>heat_2d_dg</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>fluidity -v2 -l heat.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
