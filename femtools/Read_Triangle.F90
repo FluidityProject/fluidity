@@ -266,7 +266,7 @@ contains
             field%val(j)%ptr(i)=read_buffer(j+1)
          end forall
          if (node_attributes==1) then
-           field%mesh%columns(i)=floor(read_buffer(dim+1))
+           field%mesh%columns(i)=floor(read_buffer(dim+2))
          end if
        end if
     end do
