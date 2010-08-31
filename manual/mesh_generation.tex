@@ -242,7 +242,7 @@ Since GMSH doesn't explicitly label faces or regular elements as such, internall
 \section{Mesh types}
 \subsection{Extruded meshes}
 \label{sect:extruded_meshes}
-\index{mesh!mesh types!extruded}
+\index{mesh!extruded}
 
 Given a 1D or 2D mesh file in triangle format, \fluidity\ can extrude this mesh to create a layered 2D or 3D mesh, 
 on which simulations can be performed. This is achieved by first including a new mesh that is created by reading the 1D or 2D mesh file, see \ref{Sect:Mesh}. Then, for the mesh that is to be created by extrusion, select the \option{\ldots/from mesh} and input the name of the 1D or 2D mesh. Next check the \option{extrude} option, after which, the \option{bottom\_depth} and 
@@ -257,7 +257,7 @@ check the \option{/geometry/spherical\_earth option}. With this option enabled f
 specified extrusion towards the center of the sphere.
 
 \subsection{Periodic meshes}
-\index{mesh!mesh types!periodic} 
+\index{mesh!periodic} 
 \index{periodic domain} 
 \label{mesh!mesh types!periodic} 
 Periodic meshes are those that are ``virtually'' connected in one or more directions. To make a periodic
