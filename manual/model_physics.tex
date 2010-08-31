@@ -1,7 +1,7 @@
 \chapter{Model physics}\label{chap:model_physics}
 
 \section{How to navigate this chapter}
-One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batch} and \citet{landau}. \cite{cushbook} is also a useful reference.
+One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994} is also a useful reference.
 
 \section{Advection--Diffusion Equation}\label{Sect:MP-AdvdifEqn}
 
@@ -44,7 +44,7 @@ In domains with high aspect ratio dynamics one often uses a smaller value of dif
 direction. For example, in the atmosphere or ocean we may choose a horizontal diffusivity $\kappa_H$ and a
 vertical diffusivity $\kappa_V$ so that $\kaptens = \mathrm{diag}(\kappa_H,\kappa_H,\kappa_V)$ with $\kappa_V < \kappa_H$.
 In this case the diffusion term may be written as
-\begin{equation}\label{eq:scalar_isotropic_diffusion}
+\begin{equation}\label{eq:scalar_anisotropic_diffusion}
 \nabla\cdot(\kaptens\nabla c) = \kappa_H \left(\pptt[x]{c} + \pptt[y]{c}\right) + \kappa_V \pptt[z]{c}.
 \end{equation}
 Note that this second order term is often termed Laplacian diffusion. The corresponding 4th order version is sometimes
@@ -210,7 +210,7 @@ The momentum associated with a unit volume of fluid is given by $\rho\bmu$. Init
  \frac{\partial}{\partial{t}}(\rho\bmu)=\rho\frac{\partial\bmu}{\partial{t}}+\frac{\partial\rho}{\partial{t}}\bmu.
 \end{equation}
 Using the equation of continuity \eqref{mass_conservation_2} and Euler's
-equation \citep{batch}, which is the force equation for an inviscid fluid, in the form
+equation \citep{batchelor1967}, which is the force equation for an inviscid fluid, in the form
 \begin{equation}\label{mom_cons_2}
  \frac{\partial\bmu}{\partial{t}}=-\bmu\cdot\nabla\bmu-\frac{1}{\rho}\nabla{p},
 \end{equation}
@@ -401,7 +401,7 @@ the order of magnitude of the spatial variation in the velocity field, then
 the flow field can be considered incompressible if the relative rate of
 change of density with time is much less than the spatial variation in
 velocity; \ie if $\frac{1}{\rho}\DDt{\rho}\ll U/L$ then
-$\nabla\cdot\mathbf{u}\approx 0$ \cite[][p.167]{batch}.
+$\nabla\cdot\mathbf{u}\approx 0$ \cite[][p.167]{batchelor1967}.
 
 The term incompressible flow is used to describe any such situation where
 changes in the density of a parcel of material are negligible.  Not all
@@ -465,7 +465,7 @@ hence:
 \begin{equation}
 \tautens = 2\mu(\etens - (\nabla\cdot\bmu)\bmI/3),
 \end{equation}
-where $\mu$ is the molecular viscosity. See \cite{batch} for further
+where $\mu$ is the molecular viscosity. See \cite{batchelor1967} for further
 details.
 
 \section{Extensions, assumptions and derived equation sets}\label{sect:eqn_extensions}
@@ -483,7 +483,7 @@ underlying equations within the moving frame. Extra terms then need to be consid
 which account for the fact that the acceleration of a fluid parcel relative to the 
 moving reference frame is different to the acceleration with respect to the fixed 
 inertial frame, and the latter is the one which allows us to invoke Newton's Laws.
-For useful discussions see \citep{batch,cushman1994,gill1982}.
+For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
 
 \begin{figure}\label{fig:rotating_frame}
 \centering

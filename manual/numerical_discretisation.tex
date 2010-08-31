@@ -56,7 +56,7 @@ Note that due to the Neumann boundary condition the boundary term has
 dropped out. The tracer field $c$ is now called a \emph{weak solution} of
 the equations if \eqref{eq:weak_adv_diff_simp} holds true for all $\phi$ in some
 space of test functions $V$. The choice of a suitable test space $V$ is dependent
-on the equation (for more details see \citet{elman05}).
+on the equation (for more details see \citet{elman2005}).
 
 \index{Sobolev space} An important observation is that
 \eqref{eq:weak_adv_diff} only contains first derivatives of the field $c$,
@@ -64,7 +64,7 @@ so that we can now include solutions that do not have a continuous second
 derivative. For these solutions the original equation \eqref{heat} would not
 be well-defined. All that is required is that the first derivatives of $c$
 can be integrated along with the test function. A more precise definition of
-this space, the \emph{Sobolev space}, can again be found \citet{elman05}.
+this space, the \emph{Sobolev space}, can again be found \citet{elman2005}.
 
 \subsubsection{Finite element discretisation}
 \index{trial function}
@@ -343,7 +343,7 @@ the flow is out of the element then it is the value on the interior side of
 the face while if the flow is into the element, it is the value on the
 exterior side of the face. If we denote the value of $c$ on the upwind side
 of the face by $c_{\mathrm{upw}}$ then equation \eqref{eq:adv_dg}\ becomes:
-\begin{equation}\label{eq:adv_dg}
+\begin{equation}
   \int_e \phi \ppt{c} -
     \left(\grad\cdot \phi~\vec{\hat u}\right)~c +
     \int_{\partial e} \phi\vec{n}\cdot\vec{\hat u}~c_{\mathrm{upw}} 
@@ -399,7 +399,7 @@ integrals are canceled exactly.
 \paragraph{Local Lax-Friedrichs flux}
 
 The local Lax-Friedrichs flux formulation is defined in
-\citet[p208]{Cockburn2001}. For the
+\citet[p208]{cockburn2001}. For the
 particular case of tracer advection, this is given by:
 \begin{equation}
   \widehat{\vec{n}\cdot\vec{u}~c}=\frac{1}{2}\vec{n}\cdot\vec{\hat u}
@@ -1721,7 +1721,7 @@ systems in which multiple length scales are
 present. The preconditioned iterative method will rapidly 
 reduce local variations in the error, but the larger 
 scale, smooth error only decreases very slowly. Multigrid methods 
-(see e.g. \cite for an introduction)
+(see e.g. \cite{} for an introduction)
 tackle this problem by solving the system on a hierarchy of 
 fine to coarse meshes. 
 
