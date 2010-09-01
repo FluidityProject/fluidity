@@ -341,10 +341,14 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <initial_condition name="whole_mesh">
-          <generic_function>
-            <string_value lines="1">src/set_phi</string_value>
-          </generic_function>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+   if (X[1]&lt;=0.5):
+      return 1.0
+   else:
+      return 0.0</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="incoming_vfrac">
           <surface_ids>
