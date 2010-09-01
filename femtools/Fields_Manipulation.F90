@@ -1528,13 +1528,6 @@ implicit none
 
     dim=position%dim
 
-    if (field%dim/=position%dim) then
-       ewrite(0,'(a,i0)') "Vector field "//trim(field%name)//" has dimension&
-            & ",field%dim
-       ewrite(0,'(a,i0)') "Position field "//trim(position%name)//" has dimension ",position%dim
-       FLExit("This is inconsistent")
-    end if
-
     if (mesh_dim(field)/=mesh_dim(position)) then
        ewrite(0,'(a,i0)') "Vector field "//trim(field%name)//" has mesh dimension&
             & ",mesh_dim(field)
