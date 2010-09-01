@@ -15,7 +15,7 @@ import elementtree.ElementTree as etree
 
 class TestHarness:
     def __init__(self, length="short", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False, pbs=True):
+        valgrind=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -27,7 +27,6 @@ class TestHarness:
         self.completed_tests = []
         self.justtest = justtest
         self.valgrind = valgrind
-        self.pbs = pbs
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -53,7 +52,7 @@ class TestHarness:
           for (subdir, xml_file) in [x.split('/') for x in xml_files]:
             if xml_file == file:
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                           verbose=self.verbose, replace=self.modify_command_line(),pbs=self.pbs)
+                           verbose=self.verbose, replace=self.modify_command_line())
               self.tests = [(subdir, testprob)]
               return
           print "Could not find file %s." % file
@@ -118,7 +117,7 @@ class TestHarness:
 
         for (subdir, xml_file) in [x.split(os.path.sep) for x in tagged_set]:
           testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                       verbose=self.verbose, replace=self.modify_command_line(),pbs=self.pbs)
+                       verbose=self.verbose, replace=self.modify_command_line())
           self.tests.append((subdir, testprob))
 
         if len(self.tests) == 0:
@@ -305,7 +304,6 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
-    parser.add_option("--no-pbs", action="store_false", dest="pbs", help="do not run the genpbs script. Use for testing long tests on local machines")
     (options, args) = parser.parse_args()
 
     if len(args) > 1: parser.error("Too many arguments.")
@@ -347,7 +345,7 @@ if __name__ == "__main__":
       tags = options.tags.split()
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
-        justtest=options.justtest, valgrind=options.valgrind, pbs=options.pbs)
+        justtest=options.justtest, valgrind=options.valgrind)
 
     if options.justlist:
       testharness.list()
