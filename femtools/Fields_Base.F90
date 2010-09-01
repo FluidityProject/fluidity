@@ -3420,7 +3420,7 @@ contains
           lvz => values(3,:)
        end if
     end if
-    call set_vector_field_from_python(func, len(func), dim,&
+    call set_vector_field_from_python(func, len_trim(func), dim,&
             & size(values,2), lx, ly, lz, time,size(values,1), &
             lvx,lvy,lvz, stat)
 

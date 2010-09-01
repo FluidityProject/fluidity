@@ -1528,6 +1528,21 @@ implicit none
 
     dim=position%dim
 
+    if (field%dim/=position%dim) then
+       ewrite(0,'(a,i0)') "Vector field "//trim(field%name)//" has dimension&
+            & ",field%dim
+       ewrite(0,'(a,i0)') "Position field "//trim(position%name)//" has dimension ",position%dim
+       FLExit("This is inconsistent")
+    end if
+
+    if (mesh_dim(field)/=mesh_dim(position)) then
+       ewrite(0,'(a,i0)') "Vector field "//trim(field%name)//" has mesh dimension&
+            & ",mesh_dim(field)
+       ewrite(0,'(a,i0)') "Position field "//trim(position%name)//" has mesh&
+            & dimension ",mesh_dim(position)
+       FLExit("This is inconsistent")
+    end if
+
     x=>zero
     y=>zero
     z=>zero
@@ -1580,7 +1595,7 @@ implicit none
     end if
     
 
-    call set_vector_field_from_python(func, len(func), dim,&
+    call set_vector_field_from_python(func, len_trim(func), dim,&
             & node_count(field), x, y, z, time, field%dim, &
             & fx, fy, fz, stat)
 
@@ -1917,6 +1932,16 @@ implicit none
 
     assert(to_field%dim>=from_field%dim)
     
+    if (mesh_dim(from_field)/=mesh_dim(to_field)) then
+       ewrite (0,*)"Remapping "//trim(from_field%name)//" to "&
+            &//trim(to_field%name)
+       ewrite (0,'(a,i0)')"Mesh dimension of "//trim(from_field%name)//&
+            " is ", mesh_dim(from_field)
+       ewrite (0,'(a,i0)')"Mesh dimension of "//trim(to_field%name)//&
+            " is ", mesh_dim(to_field)
+       FLExit("Mesh dimensions inconsistent")
+    end if
+
     if(from_field%mesh==to_field%mesh) then
     
       call set(to_field, from_field)
