@@ -1502,7 +1502,7 @@ module zoltan_integration
     type(vector_field), pointer :: vfield, xfield
     type(tensor_field), pointer :: tfield
     integer :: old_universal_element_number, new_local_element_number, dets_in_ele, cont_num_det
-    integer :: processor_owner, dataSize, max_size
+    integer :: processor_owner, dataSize, local_max_size
 
     type(detector_type), pointer :: node
     type(element_type), pointer :: shape
@@ -1511,18 +1511,9 @@ module zoltan_integration
 
     if (.not.variable_sizes_rbuf) then
 
-       max_size=-1
-       do i=1,num_ids
+       local_max_size=maxval(sizes(1:num_ids))
 
-          if (sizes(i)>max_size) then
-
-            max_size=sizes(i)
-     
-          end if
-
-       end do
-
-       allocate(rbuf(max_size/real_size))
+       allocate(rbuf(local_max_size/real_size))
 
     end if
     
@@ -1530,38 +1521,27 @@ module zoltan_integration
 
     shape=>ele_shape(new_positions,1)
 
-    !!! The following seems needed so that some test cases pass when compiling without debugging. 
-    !!! Without the allocation of rbuf before the loop, there was some memory issues when compiling without debugging.
-    !!! This allocation is not right for the cases when variable_sizes_rbuf=true but it is done properly as soon 
-    !!! as it enters in the loop.
 
     if (variable_sizes_rbuf) then
-         max_size=real_size*8
-         allocate(rbuf(max_size/real_size))
+       ! need something to deallocate at the beginning of the loop:
+       allocate(rbuf(0))
     end if
 
     do i=1,num_ids
 
-       if (variable_sizes_rbuf) then
-           deallocate(rbuf)
-           allocate(rbuf(sizes(i)/real_size))
-       end if
+      if (variable_sizes_rbuf) then
+          deallocate(rbuf)
+          allocate(rbuf(sizes(i)/real_size))
+      end if
 
       old_universal_element_number = global_ids(i)
       new_local_element_number = fetch(uen_to_new_local_numbering, old_universal_element_number)
-
-      ! This is bugged in gfortran 4.4:
-      !rbuf = transfer(buf(idx(i):idx(i) + (sizes(i)/real_size) - 1), rbuf, size(rbuf))
-!      call memcpy(rbuf, buf(idx(i):idx(i) + (sizes(i)/real_size) - 1), size(rbuf) * real_size)
-!      call memcpy(rbuf, buf(idx(i):idx(i) + (max_size/real_size) - 1), size(rbuf) * real_size)
 
       ! We know how big rbuf is (see above), but buf is of type Zoltan_Int - how
       ! many elements do I need to ask for? The next line tells me...
       ! Note this is the *other way around* from the actual data transfer
       ! because we need to know how many bufs == 1 rbuf.
  
-      rbuf(1:(max_size/real_size))=0.0  
-
       dataSize = size(transfer(rbuf, buf(idx(i):idx(i)+1)))
       ! ...then I can ask for the right amount of data
 
@@ -1681,8 +1661,7 @@ module zoltan_integration
 
     ewrite(1,*) "In zoltan_drive"
 
-    vertically_structured_adaptivity = have_option( &
-    &  "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity")
+    vertically_structured_adaptivity = option_count('/geometry/mesh/from_mesh/extrude') > 0
 
     call setup_module_variables
     
@@ -1702,8 +1681,6 @@ module zoltan_integration
       return
     end if
 
-    call dump_suggested_owner
-    
     if(vertically_structured_adaptivity) then
       call derive_full_export_lists
     end if
@@ -1727,7 +1704,6 @@ module zoltan_integration
     call reconstruct_enlist
     call reconstruct_senlist
     call reconstruct_halo
-    call dump_linear_mesh
     
     if(vertically_structured_adaptivity) then
       new_positions_m1d = new_positions ! save a reference to the horizontal mesh you've just load balanced
@@ -1763,7 +1739,6 @@ module zoltan_integration
       call reconstruct_enlist
       call reconstruct_senlist
       call reconstruct_halo
-      call dump_linear_mesh
 
       deallocate(universal_columns)
       call deallocate(universal_to_new_local_numbering_m1d)
@@ -2154,6 +2129,8 @@ module zoltan_integration
       integer :: i
       type(state_type), dimension(size(states)) :: interpolate_states
       integer(zoltan_int) :: ierr
+      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: mesh_names
+      type(mesh_type), pointer :: mesh
       integer :: no_meshes
 
       ewrite(1,*) 'in initialise_transfer'
@@ -2174,19 +2151,19 @@ module zoltan_integration
         call deallocate(metric)
       end if
 
-      if(vertically_structured_adaptivity) then
-        no_meshes = mesh_count(interpolate_states(1))-1
-      else
-        no_meshes = mesh_count(interpolate_states(1))
-      end if
+      allocate( mesh_names(1:mesh_count(interpolate_states(1))) )
+      no_meshes = 0
+      do i=1, mesh_count(interpolate_states(1))
+        mesh => extract_mesh(interpolate_states(1), i)
+        if (vertically_structured_adaptivity .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
+        no_meshes = no_meshes + 1
+        mesh_names(no_meshes) = mesh%name
+      end do
+        
       allocate(source_states(no_meshes))
       call halo_update(interpolate_states, level=1)
       ! Place the fields we've picked out to interpolate onto the correct meshes of source_states
-      if(vertically_structured_adaptivity) then
-        call collect_fields_by_mesh(interpolate_states, source_states, exclude_meshes=(/trim(new_positions_m1d%mesh%name)/))
-      else
-        call collect_fields_by_mesh(interpolate_states, source_states)
-      end if
+      call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), source_states)
 
       ! Finished with interpolate_states for setting up source_states
       do i=1,size(interpolate_states)
@@ -2202,6 +2179,9 @@ module zoltan_integration
       ! Put the new positions mesh into states
       
       if(vertically_structured_adaptivity) then
+        if (mesh_periodic(zz_mesh)) then
+          new_positions_m1d%mesh%periodic = .true.
+        end if
         call insert(states, new_positions_m1d%mesh, name = new_positions_m1d%mesh%name)
         call insert(states, new_positions_m1d, name = new_positions_m1d%name)
       end if
@@ -2234,17 +2214,8 @@ module zoltan_integration
         call insert(interpolate_states(1), new_metric, "ErrorMetric")
       end if
 
-      if(vertically_structured_adaptivity) then
-        no_meshes = mesh_count(interpolate_states(1))-1
-      else
-        no_meshes = mesh_count(interpolate_states(1))
-      end if
       allocate(target_states(no_meshes))
-      if(vertically_structured_adaptivity) then
-        call collect_fields_by_mesh(interpolate_states, target_states, exclude_meshes=(/trim(new_positions_m1d%mesh%name)/))
-      else
-        call collect_fields_by_mesh(interpolate_states, target_states)
-      end if
+      call collect_fields_by_mesh(interpolate_states, mesh_names(1:no_meshes), target_states)
       
       ! Finished with interpolate states for setting up target_states
       do i=1,size(interpolate_states)
@@ -2257,7 +2228,7 @@ module zoltan_integration
       ierr = Zoltan_Set_Fn(zz, ZOLTAN_UNPACK_OBJ_MULTI_FN_TYPE, zoltan_cb_unpack_fields); assert(ierr == ZOLTAN_OK)
 
       ewrite(1,*) 'exiting initialise_transfer'
-
+        
     end subroutine initialise_transfer
 
     subroutine reconstruct_halo

@@ -7,32 +7,17 @@
     <command_line>
     no_proc=2
     filename='periodic_2plus1_parallel';
-    flml_2D=${filename}'_2D';
     mesh='MMS_B';
     periodic_mesh='PeriodicMesh';
     
-    #make the periodic 2D flml from the periodic 2plus1 flml
-    ../../scripts/make_periodic_2D_flml ${filename}.flml;
+    #periodise the flml
+    ../../bin/periodise ${filename}.flml &amp;&amp;
     
-    #periodise the 2D flml
-    ../../bin/periodise ${flml_2D}.flml;
-    
-    #flredecomp the 2D flml
-    mpiexec -n 2 ../../bin/flredecomp -v -l -i 1 -o $no_proc ${flml_2D}_periodised ${flml_2D}_periodised_flredecomp;
-    
-    #periodise the 2plus1 flml
-    ../../bin/periodise ${filename}.flml;
-    
-    #make the 2plus1 flredecomp flml
-    mv ${filename}_periodised.flml ${filename}_periodised_forcedflredecomp.flml;
-    
-    #change mesh to 2D parallel mesh    
-    new_mesh_name=${flml_2D}'_periodised_flredecomp_'${periodic_mesh};
-    old_mesh_name=${mesh}'_periodic';
-    sed -i 's/'${old_mesh_name}'/'${new_mesh_name}'/' ${filename}_periodised_forcedflredecomp.flml;
-    
+    #flredecomp the flml
+    mpiexec -n 2 ../../bin/flredecomp -v -l -i 1 -o $no_proc ${filename}_periodised ${filename}_periodised_flredecomp &amp;&amp;
+        
     #run
-    mpiexec -n 2 ../../bin/fluidity -v3 -l ${filename}_periodised_forcedflredecomp.flml 
+    mpiexec -n 2 ../../bin/fluidity -v3 -l ${filename}_periodised_flredecomp.flml 
     </command_line>
   </problem_definition>
   <variables>
@@ -54,8 +39,3 @@ fluidity_tools.compare_variable(consistent_max, 1.0, 1.0e-10)
   </pass_tests>
   <warn_tests/>
 </testproblem>
-
-
-
-
-

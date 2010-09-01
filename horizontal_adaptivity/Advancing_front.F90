@@ -396,8 +396,12 @@ module hadapt_advancing_front
       FLAbort("Called create_columns_sparsity on a mesh without columns")
     end if
     
-    no_columns=maxval(mesh%columns)
     no_nodes=node_count(mesh)
+    if (no_nodes==0) then
+      no_columns = 0
+    else
+      no_columns=maxval(mesh%columns)
+    end if
     
     ! first create trivial node to column sparsity
     call allocate(node2column_sparsity, no_nodes, no_columns, no_nodes, &
@@ -449,6 +453,12 @@ module hadapt_advancing_front
     call qsort(ints, index)
     
     call get_universal_numbering(halo, unn)
+    
+    if (size(values)==0) then
+      ! we deal with this case for flredecomp, where non-active processes may have nothing to do
+      ! it's only safe to return here to avoid parallel dead-locks
+      return
+    end if
     
     ! now go through to order equal heights on universal node number
     start=1

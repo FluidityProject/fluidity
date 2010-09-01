@@ -656,9 +656,11 @@ contains
       mesh => extract_mesh(state, i)
       call insert(interpolate_state, mesh, trim(mesh%name))
 
-      vfield => extract_vector_field(state, trim(mesh%name) // 'Coordinate', stat=stat)
-      if (stat == 0) then
-        call insert(interpolate_state, vfield, trim(mesh%name) // 'Coordinate')
+      if (.not. present_and_true(no_positions)) then
+          vfield => extract_vector_field(state, trim(mesh%name) // 'Coordinate', stat=stat)
+          if (stat == 0) then
+            call insert(interpolate_state, vfield, trim(mesh%name) // 'Coordinate')
+          end if
       end if
     end do
     
@@ -948,10 +950,14 @@ contains
 
   end function equation_type_index
 
-  subroutine collect_fields_by_mesh(states, mesh_states, exclude_meshes)
+  subroutine collect_fields_by_mesh(states, mesh_names, mesh_states)
+    !! For each mesh_names(i) returns a mesh_states(i) that contains the corresponding mesh
+    !! and all fields in all states defined on that mesh. To distinguish between different fields
+    !! with the same name from different states, each field coming from states(j) gets inserted
+    !! as "State<j>FieldName", the actual field name is not changed.
     type(state_type), dimension(:), intent(in) :: states
+    character(len=*), dimension(:), intent(in) :: mesh_names
     type(state_type), dimension(:), intent(out) :: mesh_states
-    character(len=*), dimension(:), intent(in), optional :: exclude_meshes
 
     type(integer_hash_table) :: refcount_to_meshno
     integer :: i, j, mesh_no
@@ -959,17 +965,14 @@ contains
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
+      
+    assert( size(mesh_names)==size(mesh_states) )
 
     call allocate(refcount_to_meshno)
-    mesh_no = 1
-    do i=1,mesh_count(states(1))
-      mesh => extract_mesh(states(1), i)
-      if(present(exclude_meshes)) then
-        if(any(mesh%name==exclude_meshes)) cycle
-      end if
-      call insert(mesh_states(mesh_no), mesh, trim(mesh%name))
-      call insert(refcount_to_meshno, mesh%refcount%id, mesh_no)
-      mesh_no = mesh_no + 1
+    do i=1, size(mesh_names)
+      mesh => extract_mesh(states(1), mesh_names(i))
+      call insert(mesh_states(i), mesh, mesh_names(i))
+      call insert(refcount_to_meshno, mesh%refcount%id, i)
     end do
 
     do i=1,size(states)
@@ -1002,6 +1005,7 @@ contains
     end do
 
     call deallocate(refcount_to_meshno)
+    
   end subroutine collect_fields_by_mesh
 
   function constant_field_scalar(field) result (constant)
