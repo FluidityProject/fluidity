@@ -170,7 +170,7 @@ contains
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
     logical :: from_file, extruded
-    integer :: dim, loc
+    integer :: dim, loc, column_ids
     integer :: quad_family
     integer :: nprocs
     
@@ -221,16 +221,22 @@ contains
             allocate(shape)
             if (no_active_processes == 1) then
               call identify_mesh_file(trim(mesh_file_name), dim, loc, &
+                node_attributes=column_ids, &
                 format=mesh_file_format )
             else
               call identify_mesh_file(trim(mesh_file_name) // "_0", dim, loc, &
+                node_attributes=column_ids, &
                 format=mesh_file_format )
             end if
             quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
             shape=make_element_shape(loc, dim, 1, quad)
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
-            call allocate(position, dim, mesh, "EmptyCoordinate")          
+            call allocate(position, dim, mesh, "EmptyCoordinate")
             call add_faces(mesh)
+            if (column_ids>0) then
+              ! the association status of mesh%columns should be collective
+              allocate(mesh%columns(1:0))
+            end if
 
             ! Reference counting cleanups.
             call deallocate(mesh)
