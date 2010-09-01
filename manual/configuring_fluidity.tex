@@ -597,10 +597,65 @@ def val(X,t):
   \label{fig:periodic}
 \end{figure}
 
-Meshes that are required to be periodic can now be derived from this periodic mesh.
+Meshes that are required to be periodic can now be derived from this
+periodic mesh. Note that the periodic mesh must be directly derived from the
+mesh which has been read \option{from\_file}. It is not possibe to derive a
+periodic mesh from a \option{from\_mesh}\ mesh.
 
 \subsubsection{Extruded meshes}
 
+It can be advantageous to have a mesh in which all the nodes line up in
+vertical lines. To achieve this effect within \fluidity, it is possible to
+read in a mesh in $n-1$ dimensions and extrude it along the $n$-th
+dimension. An extruded mesh is specified using the
+\option{\ldots/from\_mesh/extrude}\ option. 
+
+Under this option it is necessary to set the \option{regions/bottom\_depth}. This is
+a scalar value which gives the depth, a positive value. The extent of the
+domain in $n$-th dimension will be $(0,-bottom_depth)$. This value may be
+set either as a constant or as a Python function. In the latter case,
+function will be a function of space and time. Note in this case that the
+space argument \lstinline[language=Python]+X+ will be $n-1$-dimensional. See
+section \ref{Sect:setting_with_python}\ for a full explanation of the use of Python functions to
+prescrible field values. In this case, the depth is essentially a scalar
+field over the $n-1$ dimensional parent mesh. The time argument which
+will be passed to the function is the simulation start time and the function
+will \emph{not}\ be re-evaluated during the simulation.
+
+The second option which must be set is the
+\option{\ldots/sizing\_function}. This specifies the mesh spacing
+along the $n$-th dimension. It may once again be a constant or a Python
+function. In the latter case, it will be a function of all $n$ dimensions
+which facilitates the mesh spacing varying in depth as well as in the
+horizontal. Once again, the function will be evaluated only at simulation
+start. 
+
+It will usually be advantageous to specify the surface ID to be associated
+with the top and bottom boundaries, so that boundary conditions can be
+associated with them. This is achieved using the
+\option{\ldots/top\_surface\_id}\ and
+\option{\ldots/bottom\_surface\_id}\ options. The lateral boundaries
+of the extruded mesh will inherit the surface IDs associated with the the
+boundaries of the parent (non-extruded) mesh.
+
+It is possible to specify different options for different regions of the
+mesh by adding multiple \option{\ldots/extrude/regions}\ options and changing
+them to the generic rather than the \option{regions::WholeMesh}\
+version. The new regions need to be named and the region IDs to which they
+apply specified.
+
+\subsubsection{Extruded periodic meshes}
+
+If an extruded periodic mesh is required then the periodic mesh must first
+be derived from the \option{from\_file}\ mesh. The extruded mesh is then
+derived from the periodic mesh. All other meshes are next derived from the
+extruded mesh. A special case is the \option{CoordinateMesh}. This must be
+derived from the extruded mesh by specifying
+\option{periodic\_boundary\_conditions/remove\_periodicity}. At this stage it
+is necessary to re-specify the \option{physical\_boundary\_ids},
+\option{aliased\_boundary\_ids} and \option{coordinate\_map}. Additionally, the
+\option{inverse\_coordinate\_map}\ must be given. As the name suggests, this
+function must be the inverse of the original \option{coordinate\_map}.
 
 
 \section{Material/Phase}
