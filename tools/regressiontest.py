@@ -8,6 +8,7 @@ import traceback
 import time
 import glob
 
+
 class TestProblem:
     """A test records input information as well as tests for the output."""
     def __init__(self, filename, verbose=False, replace=None):
