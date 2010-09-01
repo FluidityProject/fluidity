@@ -4,7 +4,7 @@
 
 This chapter describes how to create a mesh for your \fluidity\ simulation. There
 are many tools available, both free and commercial, that are capable to generating
-unstrucutred meshes that are stuiable for use with \fluidity. Here, we restrict ourselves
+unstructured meshes that are suitable for use with \fluidity. Here, we restrict ourselves
 to the mesh generation capabilities built into \fluidity\ and the associated script and
 tools, mentioning only briefly some of the more common tools also available.
 
@@ -254,7 +254,7 @@ As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are speci
 given a pseudo 2D mesh on a spherical shell, \fluidity\ can perform and extrusion in the radial 
 direction. To perform such an extrusion simply enable the options as noted above and additionally 
 check the \option{/geometry/spherical\_earth option}. With this option enabled fluidity will then perform the 
-specified extrusion towards the center of the sphere.
+specified extrusion towards the centre of the sphere.
 
 \subsection{Periodic meshes}
 \index{mesh!periodic} 
@@ -409,13 +409,13 @@ The output of running flredecomp is a series of mesh and vtu files as well as th
 \subsection{periodise}
 \index{mesh!meshing tools!periodise}
 %\index{Zoltan}\index{parallel!periodic domains}
-%Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libaries are installed type:
+%Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libraries are installed type:
 
 %\begin{lstlisting}[language=bash]
 %dpkg -l libzoltan*
 %\end{lstlisting}
 
-%If the libaries are not present install them with:
+%If the libraries are not present install them with:
 
 %\begin{lstlisting}[language=bash]
 %sudo apt-get install libzoltan-dev
@@ -451,7 +451,7 @@ mpiexec -n [number of processors] \
 \index{parallel!extruded mesh}
 %\ref{mesh!extruded}
 When using a periodic extruded mesh (section ??) in parallel, a number
-of steps are reqiured in order to provide flredecomp (required to make the
+of steps are required in order to provide flredecomp (required to make the
 periodic mesh) with a 2D periodic mesh:
 
 \begin{itemize}
@@ -576,7 +576,7 @@ Numbering:
 \section{Non-\fluidity\ tools}
 
 In addition to the tools and capabilities of \fluidity, there are numerous
-tools and softare packages available for mesh generation. Here, we describe 
+tools and software packages available for mesh generation. Here, we describe 
 two of the tools used by the group.
 
 \subsection{Terreno}
@@ -610,7 +610,7 @@ properties or climatology data.
 
 Gmsh is a 3D finite element grid generator with a build-in CAD engine and post-processor.
 Its design goal is to provide a fast, light and user-friendly meshing tool with parametric
-input and advanced visualization capabilities. Gmsh is built around four modules: geometry, 
+input and advanced visualisation capabilities. Gmsh is built around four modules: geometry, 
 mesh, solver and post-processing. The specification of any input to these modules is done
 either interactively using the graphical user interface or in ASCII text files using Gmsh's
 own scripting language. 
