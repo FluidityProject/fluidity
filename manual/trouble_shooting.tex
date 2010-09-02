@@ -3,9 +3,9 @@
 \section{Backtraces}
 
 When reporting problems with the model it is often useful to obtain a backtrace
-identifying the source code location of
-an error. If the model terminated via an internal abort command (a FLAbort) then a backtrace
-is output to standard error:
+identifying the source code location of an error. If the model terminated via
+an internal abort command (an FLAbort) then a backtrace is output to standard
+error:
 
 \begin{lstlisting}[language = Bash]
 *** FLUIDITY ERROR ***
@@ -33,7 +33,7 @@ addr2line -e dfluidity-debug address
 \end{lstlisting}
 
 where \lstinline[language = Bash]*address* is one of the addresses in square
-brackets.
+brackets at the end of a line of the backtrace.
 
 If the model aborts via some other error, such as a Fortran run-time error or
 a segmentation fault, then a backtrace can be obtained with gdb. First make
