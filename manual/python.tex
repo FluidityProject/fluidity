@@ -2,7 +2,7 @@
 \index{field!Python function}
 \index{Python!state interface}
 
-\fluidity\ incorporates the Python interpretted programming language as a
+\fluidity\ incorporates the Python interpreted programming language as a
 mechanism for users to customise the model without editing the main Fortran
 source of the model. There are, in fact, two distinct Python interfaces
 presented by \fluidity. The first allows users to specify prescribed fields
@@ -58,7 +58,7 @@ current and changes to field values are seen by the whole model. Field
 objects are actually of an appropriate subclass:
 \lstinline[language=Python]+ScalarField+,
 \lstinline[language=Python]+VectorField+ or
-\lstinline[language=Python]+TensorField+ however these classes differ only
+\lstinline[language=Python]+TensorField+, however, these classes differ only
 in the shape of arguments to their data routines.
 
 \lstinline+Field+ objects support the following methods and attributes:
@@ -123,7 +123,7 @@ data dimension of the field.
 \subsection{\lstinline[language=Python]+State+ objects}
 
 A \lstinline[language=Python]+State+ is a container for all of the fields in
-a single material phase. The Fields in the material phase are accessed by
+a single material phase. The fields in the material phase are accessed by
 the names given in the \fluidity\ options file.
 \lstinline[language=Python]+State+ objects contain the following data. In
 each case it is assumed that \lstinline[language=Python]+s+ is an object of
@@ -176,7 +176,7 @@ and the timestep respectively.
 The Python interpreter run by \fluidity\ is exactly the same as that used by
 the Python command line. Therefore essentially anything which is legal in
 Python is legal in the \fluidity\ Python interface. In particular, standard
-and user-defined modules can be imported includin modules for reading
+and user-defined modules can be imported including modules for reading
 external data sources. The current directory is automatically added to the
 Python search path when \fluidity\ is run so user defined modules placed in
 the directory from which \fluidity\ is launched will be found.
@@ -196,7 +196,7 @@ persistent dictionary.
 \section{Debugging with an interactive Python session}
 
 It is possible to launch an interactive Python session at runtime from
-within \fluidity. This depends on IPython being installed on the system and
+within \fluidity. This depends on iPython being installed on the system and
 is achieved by placing the following code in the flml file at the point
 within Python at which you wish to stop:
 \begin{lstlisting}[language=Python]
@@ -221,7 +221,7 @@ afterwards currently causes a crash.
 The Python state interface is essentially driven at fields which are
 pointwise functions of other fields. This is only straightforward in the
 situation where all the fields concerned are on the same mesh. Where this is
-not the case, it is possible to work around this in two different ways.
+not the case, there are two different work-arounds which can be used.
 
 If the field to be calculated is discontinuous or periodic and it is desired
 to use continuous and/or non-periodic data in the calculation (for example
