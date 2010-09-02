@@ -1330,12 +1330,20 @@ contains
     ! the fluxes routines
     call get_forcing_surface_element_list(state, surface_element_list, &
                  & force_temperature, force_solar, force_velocity, force_salinity)
+    if (force_temperature .eq. -1 .and. &
+        &force_solar .eq. -1 .and. &
+        &force_velocity .eq. -1 .and. &
+        &force_salinity .eq. -1) then
+            ewrite(-1,*)("You have bulk forcing on, but no fields have a bulk_formulae boundary condition")
+            FLExit("See the manual for more details")
+    end if
     input_mesh = extract_velocity_mesh(state,stat)
     if (stat /= 0) then
         FLAbort("The ocean_forcing routines had difficulty getting a Velocity mesh.")
     end if
     call create_surface_mesh(ocean_mesh, surface_nodes, input_mesh, surface_element_list, 'OceanSurface')
     NNodes = node_count(ocean_mesh) 
+
 
     ! temp arrays for fluxes
     allocate(temp(NNodes))
