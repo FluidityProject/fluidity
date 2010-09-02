@@ -2240,6 +2240,25 @@ geometry.</a:documentation>
                   <empty/>
                 </element>
               </choice>
+              <optional>
+                <element name="wetting_and_drying">
+                  <a:documentation>Activates wetting and drying</a:documentation>
+                  <element name="dmin">
+                    <a:documentation>Specifies the dmin value which is needed to calculate alpha. 
+A value of 1.0 shoud work in most cases.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="d0">
+                    <a:documentation>Specifies the d0 value which is used to calculate alpha.
+This option should only be used in combination with enforce_min_depth_to_d0.
+Default is 0.5</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="dry_absorption">
+                    <ref name="real_dim_vector"/>
+                  </element>
+                </element>
+              </optional>
             </element>
             <element name="imposed_grid_velocity">
               <a:documentation>Enable movement of mesh by an imposed Grid Velocity.

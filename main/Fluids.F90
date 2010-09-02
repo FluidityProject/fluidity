@@ -363,7 +363,9 @@ contains
     end if
 
     ! Initialise wetting and drying
-    call initialize_wetting_and_drying(state(1))
+    if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+       call initialize_wetting_and_drying(state(1))
+    end if
 
     ! ******************************
     ! *** Start of timestep loop ***

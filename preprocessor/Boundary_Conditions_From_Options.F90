@@ -449,8 +449,7 @@ contains
           deallocate(surface_ids)
 
           if (trim(bc_type)=="free_surface") then
-             bc_path_i=trim(bc_path_i)//"/type[0]/wetting_drying"
-             if(have_option(trim(bc_path_i))) then
+             if(have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
                   ! Wetting and drying needs an auxiliary field on the pressure mesh
                   mesh => extract_pressure_mesh(state)
                   call get_boundary_condition(field, i+1, surface_element_list=surface_element_list)
@@ -1015,9 +1014,7 @@ contains
           call deallocate(bc_position)
 
         case("free_surface")
-            
-           bc_path_i=trim(bc_path_i)//"/wetting_drying"
-           if(have_option(trim(bc_path_i))) then
+           if(have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
               scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingAlpha")
               call zero(scalar_surface_field)
               scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingOldAlpha")

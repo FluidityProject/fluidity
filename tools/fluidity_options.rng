@@ -3646,41 +3646,6 @@ IN DEVELOPMENT</a:documentation>
             <empty/>
           </element>
         </optional>
-        <optional>
-          <element name="wetting_drying">
-            <element name="dminoffset">
-              <a:documentation>Specifies the dmin value which is needed to calculate alpha. 
-A value of 0.1 shoud work in most cases.</a:documentation>
-              <element name="value">
-                <ref name="real"/>
-              </element>
-            </element>
-            <optional>
-              <element name="d0offset">
-                <a:documentation>Specifies the d0 value which is used to calculate alpha.
-This option should only be used in combination with enforce_min_depth_to_d0.
-Default is 0.0</a:documentation>
-                <element name="value">
-                  <ref name="real"/>
-                </element>
-              </element>
-            </optional>
-            <optional>
-              <element name="output_debug_vtus">
-                <a:documentation>Saves some extra vtus. For testing purposes only.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="set_alpha_constant">
-                <a:documentation>Instead of calculating alpha from the free surface heigth, always use this constant value. This should be used for testing purposes only!</a:documentation>
-                <element name="value">
-                  <ref name="real"/>
-                </element>
-              </element>
-            </optional>
-          </element>
-        </optional>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you

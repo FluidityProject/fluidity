@@ -56,15 +56,15 @@ public free_surface_module_check_options
 contains
 
   subroutine initialize_wetting_and_drying(state)
-     ! This needs to be called before the first timestep in order to get the correct distance,
-     ! since the distance calculation is based on the initial(!) DistanceToBottom field.
+     ! This needs to be called before the first timestep in order to get the correct dmin and d0 fields,
+     ! since their calculation is based on the initial(!) DistanceToBottom field.
      type(state_type), intent(in) :: state
      type(scalar_field), pointer :: pfield
      type(vector_field), pointer :: u
      logical :: have_wd
      
      u => extract_vector_field(state, "Velocity")
-     call have_wetting_drying(u, have_wd)
+     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
      if (have_wd) then
        pfield=>get_wettingdrying_dmin(state)
        pfield=>get_wettingdrying_d0(state)
@@ -100,7 +100,7 @@ contains
     type(scalar_field), optional, intent(inout) :: rhs      
     
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
-      type(scalar_field), pointer:: p, prevp, wettingdrying_alpha
+      type(scalar_field), pointer:: p, prevp
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, alpha, coef
@@ -108,7 +108,7 @@ contains
       integer:: i, j, grav_stat
       logical:: include_normals, move_mesh
       logical:: addto_cmc
-      logical:: have_wetting_drying
+      logical:: have_wd
       
       real, save :: coef_old = 0.0
 
@@ -167,16 +167,16 @@ contains
           if (grav_stat/=0) then
              FLExit("For a free surface you need gravity")
           end if
-          have_wetting_drying=have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")
-          if (have_wetting_drying) then
-             assert(get_cmc) ! sf1409 : We need to reassemble every time for now!
+          have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+          if (have_wd .and. .not. get_cmc) then
+             FLExit("Wetting and drying needs to be reassembled at each timestep at the moment! Switch this on under ... (TODO)")
           end if
           ! only add to cmc if we're reassembling it (get_cmc = .true.)
           ! or if the timestep has changed (using adaptive timestepping and coef/=coef_old)
           addto_cmc = get_cmc.or.&
                       (have_option("/timestepping/adaptive_timestep").and.(coef/=coef_old))
           do j=1, size(surface_element_list)
-            call add_free_surface_element(surface_element_list(j), j, have_wetting_drying)
+            call add_free_surface_element(surface_element_list(j), have_wd)
           end do
         end if
       end do
@@ -195,9 +195,9 @@ contains
       
     contains 
     
-    subroutine add_free_surface_element(sele, j, have_wetting_drying)
-      integer, intent(in):: sele, j
-      logical :: have_wetting_drying
+    subroutine add_free_surface_element(sele,  have_wd)
+      integer, intent(in):: sele
+      logical :: have_wd
 
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_old
@@ -205,8 +205,10 @@ contains
       integer:: ele
 
       ele=face_ele(positions, sele)
-      if (have_wetting_drying) then
+      if (have_wd) then
              call get_wettingdrying_alpha_quad(state, sele, alpha_wetdry_quad)
+             ! bound alpha to (0,1)
+             alpha_wetdry_quad=min(1.0, alpha_wetdry_quad)
       end if
       if(include_normals) then
         call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
@@ -219,9 +221,9 @@ contains
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
       end if
-      if (have_wetting_drying) then
+      if (have_wd) then
              detwei=detwei*(1.0-alpha_wetdry_quad)
-             assert(coef_old==0.0)  ! wetting and drying needs to reassemble constantly for now.
+             assert(coef_old==0.0)  ! wetting and drying needs to reassemble constantly at the moment.
       end if
 
       mass_ele=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
@@ -239,7 +241,7 @@ contains
            & normal=normals)
         ! at each gauss point multiply with inner product of gravity and surface normal
         detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
-        if (have_wetting_drying) then
+        if (have_wd) then
              detwei=detwei*(1.0-alpha_wetdry_quad)
         end if
         mass_ele_old=shape_shape(face_shape(p, sele), face_shape(p, sele), detwei)
@@ -515,7 +517,7 @@ contains
         gravity_normal, surface_element_list=surface_element_list, &
         surface_name="DistanceToTop")
 
-      call have_wetting_drying(u, have_wd)
+      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
       if (have_wd) then
          call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
          do node=1, node_count(extrapolated_p)
@@ -613,26 +615,6 @@ contains
 
   end subroutine move_free_surface_nodes
 
-  subroutine have_wetting_drying(u, have_wd)
-    type(vector_field), intent(in) :: u
-    logical, intent(out) :: have_wd
-    integer :: i
-    character(len=FIELD_NAME_LEN):: bctype
-    character(len=OPTION_PATH_LEN) fs_option_path
-    logical, save :: have_wd_, initialized
-
-    if (.not. initialized) then
-        have_wd_=.false.
-        do i=1, get_boundary_condition_count(u)
-            call get_boundary_condition(u, i, type=bctype, option_path=fs_option_path)
-            if (bctype=="free_surface" .and. have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
-                have_wd_=.true.
-                exit
-            end if
-        end do
-    end if
-    have_wd=have_wd_
-  end subroutine have_wetting_drying
 
   function vertical_prolongator_from_free_surface(state, mesh) result (vertical_prolongator)
   !! Creates a prolongation operator from the free surface mesh to
@@ -739,10 +721,11 @@ contains
     
      integer, dimension(:), pointer:: surface_element_list
      type(vector_field), pointer:: x, u, vertical_normal
-     type(scalar_field), pointer:: p, topdis
+     type(scalar_field), pointer:: p, topdis, dzero, dzero_pfield
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0
      integer:: i, j, sele, stat
+     logical :: have_wd
 
      ! the prognostic free surface is calculated elsewhere (this is the
      ! separate free surface equation approach in the old code path)
@@ -801,6 +784,22 @@ contains
           
        end do      
      end if
+
+     ! Do the wetting and drying corrections
+     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+     if (have_wd) then
+        dzero=>get_wettingdrying_d0(state)
+        allocate(dzero_pfield)
+        call allocate(dzero_pfield, p%mesh, "dzero_pfield")
+        call remap_field(dzero, dzero_pfield)
+        call scale(free_surface, -1.0)
+        call bound(free_surface, upper_bound=dzero_pfield)
+        call scale(free_surface, -1.0)
+        call deallocate(dzero_pfield)
+        deallocate(dzero_pfield)
+     end if
+
+
     
   end subroutine calculate_diagnostic_free_surface
 
@@ -833,18 +832,18 @@ contains
   end subroutine get_reference_density_from_options
 
  subroutine update_wettingdrying_alpha(state)
-  !!< calculates and updates the alpha coefficients of the wetting and drying algorithm.
+  !!< calculates and updates the alpha coefficients for wetting and drying.
   type(state_type), intent(in):: state
   type(scalar_field), pointer:: scalar_surface_field, scalar_surface_field_old
 
   integer, dimension(:), pointer :: surface_element_list
-  type(vector_field), pointer:: x, u, vertical_normal
+  type(vector_field), pointer:: u
   type(scalar_field), pointer:: p, dmin_field
   type(scalar_field), pointer:: dmin_pfield
   character(len=FIELD_NAME_LEN):: bctype
   character(len=OPTION_PATH_LEN) fs_option_path
-  real:: g, rho0, gravity_magnitude, const_alpha, dminoffset, d0offset
-  integer:: i, j, sele, stat
+  real:: rho0, gravity_magnitude, dminoffset, d0offset
+  integer:: i, j, sele
   real, dimension(:), allocatable :: alpha
 
 
@@ -864,51 +863,44 @@ contains
              call get_reference_density_from_options(state, u, rho0)
              call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
              dmin_field => get_wettingdrying_dmin(state)
-             call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/dminoffset/value", dminoffset)
-             call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/d0offset/value", d0offset)
+             call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dmin", dminoffset)
+             call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0offset)
              assert(dminoffset > d0offset)
 
-             ! For debugging purposes, alpha can be set to a constant value
-             if (have_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/set_alpha_constant")) then
-                 call get_option(trim(fs_option_path) // "/type::free_surface/wetting_drying/set_alpha_constant/value", const_alpha)
-                 call set(scalar_surface_field, const_alpha)
-             else
-                 allocate(dmin_pfield)
-                 call allocate(dmin_pfield, p%mesh, "dmin_pmesh")
-                 call remap_field(dmin_field, dmin_pfield)
-                 ! Calculate alpha for each surface element
-                 face_loop: do j=1, size(surface_element_list)
-                   sele=surface_element_list(j)
-                   call calculate_alpha(sele, gravity_magnitude, p, dmin_pfield, dminoffset, d0offset, alpha )
-                   call set(scalar_surface_field, &
+             allocate(dmin_pfield)
+             call allocate(dmin_pfield, p%mesh, "dmin_pmesh")
+             call remap_field(dmin_field, dmin_pfield)
+             ! Calculate alpha for each surface element
+             face_loop: do j=1, size(surface_element_list)
+                sele=surface_element_list(j)
+                call calculate_alpha(sele, gravity_magnitude, p, dmin_pfield, dminoffset, d0offset, alpha )
+                call set(scalar_surface_field, &
                      ele_nodes(scalar_surface_field, j), &
                      alpha)
-                 end do face_loop
-                 call deallocate(dmin_pfield)
-                 deallocate(dmin_pfield)
-             end if
+             end do face_loop
+             call deallocate(dmin_pfield)
+            deallocate(dmin_pfield)
        end if
    end do
    deallocate(alpha)
 
   contains
-   subroutine calculate_alpha(sele, gravity_magnitude, p, dmin_pfield, dminoffset, d0offset, alpha)
+   subroutine calculate_alpha(sele, gravity_magnitude, p, dmin_pfield, dmin, d0, alpha)
         type(scalar_field), pointer, intent(in) :: p, dmin_pfield
         integer, intent(in) :: sele
-        real, intent(in) :: gravity_magnitude, dminoffset, d0offset
+        real, intent(in) :: gravity_magnitude, dmin, d0
         real, dimension(face_loc(p, sele)), intent(inout) :: alpha
-        real, dimension(face_loc(p, sele)) :: dmin, d0, d
 
         !!! The calculation of alpha is based on pressure, thus pressure and free surface don't have to be coupled.
         alpha = -gravity_magnitude * face_val(dmin_pfield, sele) - face_val(p, sele)
-        alpha = alpha/(gravity_magnitude * (dminoffset - d0offset))
-        alpha = min(1.0, max(0.0, alpha))
+        alpha = alpha/(gravity_magnitude * (dmin - d0))
+        alpha = max(0.0, alpha)
     end subroutine calculate_alpha
  end subroutine update_wettingdrying_alpha
 
  subroutine get_wettingdrying_alpha_quad(state, sele, alpha_quad)
-  !!< Returns the wettingdrying alpha value at a surface element index.
-  !! Warning: This routine is inefficient! Ideally you want to loop over the WettingDryingAlpha surface field.
+  !!< Returns the wettingdrying alpha value for a surface element.
+  !! Warning: This routine is inefficient! Ideally you want to loop over the WettingDryingAlpha surface fields.
   type(state_type), intent(in):: state
   integer, intent(in) :: sele
   real, dimension(:), intent(inout) :: alpha_quad ! must have length PressureMesh%shape%ngi
@@ -918,8 +910,6 @@ contains
   type(vector_field), pointer:: u
   character(len=FIELD_NAME_LEN):: bctype
   integer:: i, j
-  logical :: have_wetting_drying_setalpha
-  real :: const_alpha
 
   u => extract_vector_field(state, "Velocity")
   do i=1, get_boundary_condition_count(u)
@@ -939,7 +929,7 @@ contains
  end subroutine get_wettingdrying_alpha_quad
 
  function get_wettingdrying_dmin(state) result(dmin)
-  !!< Returns a scalar field on the PressureMesh with the auxiliary wetting and drying dmin value.
+  !!< Returns a scalar field on the CoordinateMesh with the auxiliary wetting and drying dmin value.
   !!< In non-wetting and drying regions the value of dmin_pfield is INFINITY.
   !!< This field multiplied by -1.0*gravity_magnitude gives the free surface pressure on the d0 level.
   type(state_type), intent(in):: state
@@ -952,7 +942,7 @@ contains
   type(scalar_field), save, target  :: dmin_field
   type(scalar_field), pointer :: dmin
   type(vector_field), pointer:: u
-  character(len=OPTION_PATH_LEN) fs_option_path
+  character(len=FIELD_NAME_LEN):: bctype
   integer:: i, j, sele, stat
   integer, dimension(:), pointer:: surface_element_list
 
@@ -963,10 +953,10 @@ contains
      call allocate(dmin_field, bottomdist%mesh, "dmin")
      call set(dmin_field, INFINITY)
      do i = 1, get_boundary_condition_count(u)
-            call get_boundary_condition(u, i, &
-            surface_element_list = surface_element_list, option_path=fs_option_path)
-            if (have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
-                call get_option(trim(fs_option_path)//"/type::free_surface/wetting_drying/dminoffset/value", dminoffset)
+            call get_boundary_condition(u, i, type=bctype, &
+            surface_element_list = surface_element_list)
+            if (bctype=="free_surface") then
+                call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dmin", dminoffset)
                 dminoffset_loc=dminoffset
                 do j = 1, size(surface_element_list)
                     sele = surface_element_list(j)
@@ -996,13 +986,12 @@ contains
 
      initialized=.true.
      deallocate(dminoffset_loc)
-  else
-      dmin=>dmin_field
   end if
+      dmin=>dmin_field
 
   end function get_wettingdrying_dmin
 
- ! Returns a scalar field on the PressureMesh with the auxiliary wetting and drying d0 variable, saving the distance between
+ ! Returns a scalar field on the CoordinateMesh with the auxiliary wetting and drying d0 variable, saving the distance between
  ! steady state free surface height and bathymetry + d0 offset.
  ! In non-wetting and drying regions the value of d0_pfield is INFINITY.
  ! This field multiplied by -1.0*gravity_magnitude gives the free surface pressure on the d0 level.
@@ -1017,7 +1006,7 @@ contains
   type(scalar_field), save, target :: d0_field
   type(scalar_field), pointer :: d0
   type(vector_field), pointer:: u
-  character(len=OPTION_PATH_LEN) fs_option_path
+  character(len=FIELD_NAME_LEN):: bctype
   integer:: i, j, sele, stat
   integer, dimension(:), pointer:: surface_element_list
 
@@ -1028,10 +1017,10 @@ contains
      call allocate(d0_field, bottomdist%mesh, "d0")
      call set(d0_field, INFINITY)
      do i = 1, get_boundary_condition_count(u)
-            call get_boundary_condition(u, i, &
-            surface_element_list = surface_element_list, option_path=fs_option_path)
-            if (have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
-                call get_option(trim(fs_option_path)//"/type::free_surface/wetting_drying/d0offset/value", d0offset)
+            call get_boundary_condition(u, i, type=bctype, &
+            surface_element_list = surface_element_list)
+            if (bctype=="free_surface") then
+                call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0offset)
                 d0offset_loc=d0offset
                 do j = 1, size(surface_element_list)
                     sele = surface_element_list(j)
@@ -1061,10 +1050,9 @@ contains
 
      initialized=.true.
      deallocate(d0offset_loc)
-  else
-    d0=>d0_field
   end if
-
+  d0=>d0_field
+  
 end function get_wettingdrying_d0
 
 
@@ -1077,9 +1065,8 @@ end function get_wettingdrying_d0
 
     integer, dimension(:), pointer :: surface_element_list
     type(vector_field), pointer :: x, u, gravity_normal
-    type(scalar_field), pointer :: topdis, p
-    character(len=OPTION_PATH_LEN) :: fs_option_path
-    real :: g, rho0
+    type(scalar_field), pointer :: topdis
+    character(len=FIELD_NAME_LEN):: bctype
     integer :: i, j, sele, stat
 
     u => extract_vector_field(state, "Velocity")
@@ -1089,9 +1076,9 @@ end function get_wettingdrying_d0
   
     call zero(wettingdrying_alpha)
     do i = 1, get_boundary_condition_count(u)
-        call get_boundary_condition(u, i, &
-        surface_element_list = surface_element_list, option_path=fs_option_path)
-        if (have_option(trim(fs_option_path)//"/type::free_surface/wetting_drying")) then
+        call get_boundary_condition(u, i, type=bctype, &
+                surface_element_list = surface_element_list)
+        if (bctype=="free_surface") then
             scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
             do j = 1, size(surface_element_list)
                 sele = surface_element_list(j)

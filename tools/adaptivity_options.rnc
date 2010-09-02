@@ -1857,7 +1857,23 @@ mesh_adaptivity_options =
                   element move_whole_mesh {
                     empty
                   }
-               )
+               ),
+               ## Activates wetting and drying
+               element wetting_and_drying {
+                 ## Specifies the dmin value which is needed to calculate alpha. 
+                 ## A value of 1.0 shoud work in most cases.
+                 element dmin {
+                      real
+                 },
+                 ## Specifies the d0 value which is used to calculate alpha.
+                 ## This option should only be used in combination with enforce_min_depth_to_d0.
+                 ## Default is 0.5
+                 element d0 {
+                      real
+                 },
+                 ## Specifies the amount of absorption in dry areas.
+                 element dry_absorption {real_dim_vector}
+               }?
             }|
             ## Enable movement of mesh by an imposed Grid Velocity.
             ## Requires a prescribed GridVelocity field (see below).
