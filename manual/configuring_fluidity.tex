@@ -602,7 +602,7 @@ periodic mesh. Note that the periodic mesh must be directly derived from the
 mesh which has been read \option{from\_file}. It is not possibe to derive a
 periodic mesh from a \option{from\_mesh}\ mesh.
 
-\subsubsection{Extruded meshes}
+\subsubsection{Extruded meshes}\label{Sect:extruded}
 
 It can be advantageous to have a mesh in which all the nodes line up in
 vertical lines. To achieve this effect within \fluidity, it is possible to
@@ -643,6 +643,14 @@ mesh by adding multiple \option{\ldots/extrude/regions}\ options and changing
 them to the generic rather than the \option{regions::WholeMesh}\
 version. The new regions need to be named and the region IDs to which they
 apply specified.
+
+As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are
+specified in the triangle file), given a pseudo 2D mesh on a spherical
+shell, \fluidity\ can perform and extrusion in the radial direction. To
+perform such an extrusion simply enable the options as noted above and
+additionally check the \option{/geometry/spherical\_earth option}. With this
+option enabled fluidity will then perform the specified extrusion towards
+the centre of the sphere.
 
 \subsubsection{Extruded periodic meshes}
 

@@ -8,6 +8,57 @@ unstructured meshes that are suitable for use with \fluidity. Here, we restrict 
 to the mesh generation capabilities built into \fluidity\ and the associated script and
 tools, mentioning only briefly some of the more common tools also available.
 
+\section{Mesh data}
+
+A mesh describes the computational domain in which a simulation takes
+place. Regardless of the mesh file format in use, the information conveyed
+is essentially the same.
+
+\subsection{Node location}
+
+The locations of the element vertices are recorded. Usually, these have the
+same dimension as the topological dimension of the mesh elements. \fluidity\
+does not currently support configurations such as shells in which the node
+location dimension differs from the element topology dimension.
+
+\subsection{Element topology}
+
+The mesh is composed of elements. In one dimension these will be intervals
+with each interval joining two nodes. In two dimensions, triangles or
+quadrilaterals are supported with the elements joining three or four nodes
+respectively. In three dimensions, the elements can be tetrahedra or
+hexahedra and will join four or eight nodes.
+
+The element topology will store the indices of the nodes which make up
+each of the elements in the mesh.
+
+\subsection{Facets}
+
+Facets form the surface of elements. In one dimension, the facets of an
+element are its bounding nodes. In two dimensions, the facets are the edge
+intervals while the facets of a three-dimensional tetrahedral element are
+triangles and those of a hexahedral element are quadrilaterals. External
+mesh formats tend to only supply facet topology information for facets on
+the surface of each domain. For each facet specified, the node indices of
+that facet will be given. These surface facets are used in combination with
+surface IDs to specify the regions over which boundary conditions should be
+applied.
+
+\subsection{Surface IDs}\label{sect:surface_ids}
+\index{surface ID}
+Numbers can be assigned to label particular facets (boundary nodes, edges or
+faces in 1, 2 or 3 dimensions respectively) in order to set
+boundary conditions or other parameters. This number can then be used to
+specify which surface a particular boundary condition should be applied to
+in \fluidity. 
+
+\subsection{Region IDs}\label{sect:region_ids}
+\index{region ID} These are analogous to surface IDs, however they are
+associated with elements rather than facets. Region IDs may be used in
+\fluidity\ to specify different initial conditions or material properties to
+different parts of the domain.
+
+
 
 \section{The triangle format}\label{sect:triangle_format}
 \index{mesh!file formats}
@@ -23,9 +74,9 @@ combinations of element dimension and geometry.
 \textbf{Dimension} & \textbf{Geometry} & \textbf{Number of vertices per element} \\ \hline
 1D & Line & 2\\ 
 2D & Triangles &  3 \\ 
-2D & Quadrilateral\footnote{Limitation: at the moment, the grid must be rectangular} & 4 \\
+2D & Quadrilateral\footnote{Limitation: at the moment, the domain must be rectangular} & 4 \\
 3D & Tetrahedra & 4 \\ 
-3D & Hexahedra\footnote{Limitation: at the moment, the grid must be cuboidal} & 8 \\
+3D & Hexahedra\footnote{Limitation: at the moment, the domain must be a cuboid} & 8 \\
 \end{tabular}
 
 A complete triangle mesh consists of three files: one file defining the
@@ -155,37 +206,41 @@ points an assigns the surface IDs 1 and 2 to them.
 2 6 2
 \end{lstlisting}
 
-\subsection{Surface IDs}\label{sect:surface_ids}
-\index{surface ID}
-Numbers can be assigned to label particular surfaces in order to set boundary conditions or other parameters. This number can then be used to specify which surface a particular boundary condition should be applied to in ICOM.
-
-\subsection{Region IDs}\label{sect:region_ids}
-\index{region ID}
-These are similar to surface IDs. In general, any region (a line, surface or volume) can be labelled.
-
-
-\section{The GMSH format}\label{sect:gmsh_format}
+\section{The Gmsh format}\label{sect:gmsh_format}
 \index{mesh!file formats}
 
-Fluidity also contains built-in support for the GMSH format. GMSH is a mesh generator freely available on the World Wide Web (\href{http://geuz.org/gmsh/}{geuz.org/gmsh}), as well as being supplied by Linux distributions such as Ubuntu. Having this support means that any GMSH mesh files can be loaded directly into Fluidity without the need for preprocessing with tools such as \textbf{gmsh2triangle}. 
+\fluidity\ also contains built-in support for the Gmsh format. Gmsh is a mesh
+generator freely available on the World Wide Web
+(\url{http://geuz.org/gmsh/}), as well as being supplied with
+Linux distributions such as Ubuntu. 
 
-Unlike triangle files, GMSH meshes are contained within one file, which have the extension \textit{.msh}. This can be either binary or ASCII.
+Unlike triangle files, Gmsh meshes are contained within one file, which have
+the extension \lstinline[language=bash]+.msh+. The file contents may
+beeither binary or ASCII.
 
-\subsection{Using GMSH files with Fluidity}\label{sect:using_gmsh}
+\subsection{Using Gmsh files with \fluidity}\label{sect:using_gmsh}
 
-Fluidity needs to be told to expect a GMSH file, and you can do this within Diamond by setting the file format of the mesh type. This is typically in \textit{geometry $\rightarrow$ mesh(CoordinateMesh)  $\rightarrow$ from\_file  $\rightarrow$ format}. Once that is done, Fluidity will now look for a file with the extension \textit{.msh} when it runs.
+\fluidity\ needs to be told to expect a Gmsh file. This is achieved by
+setting the \onlypdf\linebreak\option{/geometry/mesh/from\_file/format}\ option.  \fluidity\
+will now look for a file with the extension \lstinline[language=bash]+.msh+ when it runs.
 
-For parallel simulations, you must use \textbf{fldecomp} to decompose a GMSH mesh into sub-meshes for each process. Here, only binary GMSH files can be used - see
-section \ref{mesh!meshing tools!fldecomp} for details.
+For parallel simulations, you must use \lstinline[language=bash]+fldecomp+ to decompose a Gmsh
+mesh into sub-meshes for each process. Here, only binary Gmsh files can be
+used - see section \ref{mesh!meshing tools!fldecomp}\ for details.
 
-\subsection{GMSH file format}\label{sect:gmsh_file_format}
+\subsection{Gmsh file format}\label{sect:gmsh_file_format}
 
-This section briefly describes what the GMSH format looks like. For more information, please read the official GMSH documentation (\href{http://geuz.org/gmsh/doc/texinfo/gmsh.pdf}{geuz.org/gmsh/doc/texinfo/gmsh.pdf}). Typically, GMSH files used in Fluidity contain three parts: a header, a section for nodes, and one for elements. These are explained in more detail below.
+This section briefly describes the Gmsh format. For more
+information, please read the official Gmsh documentation
+(\url{http://geuz.org/gmsh/doc/texinfo/gmsh.pdf}).
+Typically, Gmsh files used in \fluidity\ contain three parts: a header, a
+section for nodes, and one for elements. These are explained in more detail
+below.
 
 
 
 \subsubsection*{The header}\label{sect:gmsh_header_section}
-This contains GMSH file version information, and indicates whether the main data is in ASCII or binary format. This will typically look like:
+This contains Gmsh file version information, and indicates whether the main data is in ASCII or binary format. This will typically look like:
 \begin{lstlisting}
 $MeshFormat
 2.1 0 8
@@ -195,11 +250,11 @@ $EndMeshFormat
 
 From the listing above we can tell that:
 \begin{itemize}
-\item the GMSH format version is 2.1
+\item the Gmsh format version is 2.1
 \item it is in ASCII, as indicated by the 0 (1=binary)
 \item the byte size of double precision is 8
 \end{itemize}
-In addition, in binary mode the integer 1 is written as 4 raw bytes, to check that the endianness of the GMSH file and the system are the same (\textit{you will rarely have to worry about this})
+In addition, in binary mode the integer 1 is written as 4 raw bytes, to check that the endianness of the Gmsh file and the system are the same (\textit{you will rarely have to worry about this})
 
 
 
@@ -213,13 +268,18 @@ number_of_nodes
 $EndNodes
 \end{lstlisting}
 
-The \textit{[node data]} part contains the listing of nodes, with ID, followed by \textit{x}, \textit{y}, and \textit{z} co-ordinates. This part will be in binary when binary mode has been selected. Note that even with 2D problems, there will be a zeroed \textit{z} co-ordinate.
+The \lstinline+[node data]+ part contains the listing of nodes, with ID,
+followed by $x$, $y$, and $z$ coordinates. This part
+will be in binary when binary mode has been selected. Note that even with 2D
+problems, there will be a zeroed \textit{z} coordinate.
 
 
 
 \subsubsection*{The elements section}\label{sect:gmsh_elements_section}
 
-The elements section contains information on both faces (eg. sides, edges) and regular elements. It also varies between binary and ASCII formats, so we'll concentrate on ASCII. 
+The elements section contains information on both facets and regular
+elements. It also varies between binary and ASCII formats. The ASCII version
+is:
 
 \begin{lstlisting}
 $Elements
@@ -229,32 +289,28 @@ element2_id ...
 ...
 $EndElements
 \end{lstlisting}
-As you can see, it's quite straightforward -- the ID, followed by the numbered type (see GMSH or Fluidity documentation for details), then the number of tags. \textit{Tags} are integer properties ascribed to the element. In Fluidity, we are only concerned with the first one, the physical ID. This can mean one of two things:
-
+\textit{Tags} are integer properties ascribed to the element. In \fluidity,
+we are only concerned with the first one, the physical ID. This can mean one
+of two things:
 
 \begin{itemize}
 \item A region ID - in the case of elements
-\item A boundary ID - in the case of faces
+\item A surface ID - in the case of facets
 \end{itemize}
 
-Since GMSH doesn't explicitly label faces or regular elements as such, internally Fluidity works this out from type: eg, if there a mesh consists of tetrahedra and triangles, then triangles must be the faces.
+Since Gmsh doesn't explicitly label facets or regular elements as such,
+internally \fluidity\ works this out from type: eg, if there a mesh consists
+of tetrahedra and triangles, then triangles must be the facets.
 
 \section{Mesh types}
 \subsection{Extruded meshes}
 \label{sect:extruded_meshes}
 \index{mesh!extruded}
 
-Given a 1D or 2D mesh file in triangle format, \fluidity\ can extrude this mesh to create a layered 2D or 3D mesh, 
-on which simulations can be performed. This is achieved by first including a new mesh that is created by reading the 1D or 2D mesh file, see \ref{Sect:Mesh}. Then, for the mesh that is to be created by extrusion, select the \option{\ldots/from mesh} and input the name of the 1D or 2D mesh. Next check the \option{extrude} option, after which, the \option{bottom\_depth} and 
-a \option{sizing\_function} (which specifies the separation between layers) must be specified. These distances can 
-currently be entered as a constant, a generic\_function, a python function or by a NetCDF 
-file (\website). Optionally, the user can then set the surface id given to the top and bottom surfaces. 
-
-As well as extruding 2D meshes (where only the $x$ and $y$ coordinates are specified in the triangle file),
-given a pseudo 2D mesh on a spherical shell, \fluidity\ can perform and extrusion in the radial 
-direction. To perform such an extrusion simply enable the options as noted above and additionally 
-check the \option{/geometry/spherical\_earth option}. With this option enabled fluidity will then perform the 
-specified extrusion towards the centre of the sphere.
+Given a 1D or 2D mesh file in triangle format, \fluidity\ can extrude this
+mesh to create a layered 2D or 3D mesh, on which simulations can be
+performed. The extrusion is specified in the .flml file and is documented in
+section \ref{Sect:extruded}.
 
 \subsection{Periodic meshes}
 \index{mesh!periodic} 
@@ -263,7 +319,7 @@ specified extrusion towards the centre of the sphere.
 Periodic meshes are those that are ``virtually'' connected in one or more directions. To make a periodic
 mesh you must first create a triangle file where the edges that are periodic
 can be mapped exactly by a simple transformation. For example, if the mesh
-is periodic in the X-direction, the two edges must have nodes at exactly the
+is periodic in the $x$-direction, the two edges must have nodes at exactly the
 same height on each side. This can be easily accomplished using the
 \lstinline[language=Bash]+create_aligned_mesh+ script in the scripts folder.
 
@@ -290,10 +346,10 @@ This is a 1D mesh generator and is in the scripts directory. To use simply type:
 where left and right define the range of the line. It has a number of user defined input options:
 
 \begin{itemize}
-\item - -dx = constant interval spacing
-\item - -variable\_dx = interval spacing defined with a python function
-\item - -region\_ids = python function defining the region id at each point
-\item - -reverse = reverse order of mesh
+\item \lstinline+--dx+  constant interval spacing
+\item \lstinline+--variable_dx+  interval spacing defined with a python function
+\item \lstinline+--region_ids+ python function defining the region ID at each point
+\item \lstinline+--reverse+ reverse order of mesh
 \end{itemize}
 
 
@@ -301,17 +357,17 @@ where left and right define the range of the line. It has a number of user defin
 \subsection{gmsh2triangle}
 \index{mesh!meshing tools!gmsh2triangle}
 
-\textit{This script converts GMSH mesh files into triangle format. It will is no longer strictly necessary to use this, since GMSH support is now built into Fluidity -- see section \ref{sect:gmsh_format}. It is included here for historical reasons.}
+\textit{This script converts Gmsh mesh files into triangle format. It will is no longer strictly necessary to use this, since GMSH support is now built into \fluidity\ -- see section \ref{sect:gmsh_format}. It is included here for historical reasons.}
 
 \lstinline[language=Bash]{gmsh2triangle} stores the entire gmsh mesh in memory before writing it out to
 triangle file. For very large meshes this is likely to be impractical,
-and instead the \lstinline[language=Bash]{gmsh2triangle\_large script}
+and instead the \lstinline[language=Bash]{gmsh2triangle_large} script
 should be used. This stores a minimal
 amount of data in memory at any one time (it works ``out-of-core''), but
 is slower for small files as it requires the input .msh file to be read multiple
 times.
 
-\lstinline[language=Bash]{gmsh2triangle\_large} is used via:
+\lstinline[language=Bash]{gmsh2triangle_large} is used via:
 
 \begin{lstlisting}[language = Bash]
 gmsh2triangle_large input
@@ -319,7 +375,7 @@ gmsh2triangle_large input
 
 where \lstinline[language = Bash]*input* is the input .msh file.
 
-The \lstinline[language = Bash]+--2d+ flag can be used to instruct gmsh2triangle\_large
+The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle_large+
 to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
 \subsection{triangle2vtu}
@@ -330,7 +386,7 @@ This converts triangle format files in to vtu format. It is in the fluidity tool
 `\fluiditysourcepath'/tools/triangle2vtu foo
 \end{lstlisting}
 
-Where foo is the triangle file base name (\ie foo.node etc.)
+Where foo is the triangle file base name (\ie \lstinline+foo.node+ etc.)
 
 \section{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}
@@ -341,7 +397,7 @@ used to decompose the initial mesh into multiple parts. This can be made using:
 \begin{lstlisting}[language=bash]
 make fltools
 \end{lstlisting}
-inside your \fluidity\ folder. The following binaries will then be created in the bin/ directory (see section \ref{sect:fltools}).
+inside your \fluidity\ folder. The following binaries will then be created in the \lstinline+bin/+ directory (see section \ref{sect:fltools}).
 %You can then decompose the initial mesh the following command
 %\begin{lstlisting}[language=bash]
 %fluidity path /bin/fldecomp -n [PARTS] [BASENAME]
