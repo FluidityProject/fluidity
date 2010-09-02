@@ -240,7 +240,8 @@ contains
     type(vector_field) :: u_cg, u_nl_cg
 
     !! Wetting and drying
-    type(scalar_field), pointer :: alpha_u_field, wettingdrying_alpha
+    type(scalar_field), pointer :: wettingdrying_alpha
+    type(scalar_field) :: alpha_u_field
     logical :: have_wd
     real, dimension(u%dim) :: abs_wd_const
 
@@ -331,10 +332,12 @@ contains
 
     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")        
     ! Absorption term in dry zones for wetting and drying
+    call allocate(Abs_wd, U%dim, U%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
     if (have_wd) then
-       call allocate(Abs_wd, U%dim, U%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(Abs_wd, abs_wd_const)
+   ! else
+   !    call zero(Abs_wd)
     end if
 
     ! Check if we have either implicit absorption term
@@ -605,13 +608,13 @@ contains
       call lumped_mass_galerkin_projection_vector(state, u_nl_cg, advecting_velocity)
     end if
 
-    if (have_wd .and. .not. has_scalar_field(state, "WettingDryingAlpha")) then
-        FLExit("Wetting and drying needs the diagnostic field WettingDryingAlpha activated.")
-    end if
+!    allocate(alpha_u_field)
     if (have_wd) then
+      if (.not. has_scalar_field(state, "WettingDryingAlpha")) then
+        FLExit("Wetting and drying needs the diagnostic field WettingDryingAlpha activated.")
+      end if
       ! The alpha fields lives on the pressure mesh, but we need it on the velocity, so let's remap it.
       wettingdrying_alpha => extract_scalar_field(state, "WettingDryingAlpha")
-      allocate(alpha_u_field)
       call allocate(alpha_u_field, u%mesh, "alpha_u")
       call remap_field(wettingdrying_alpha, alpha_u_field)
     end if
@@ -636,7 +639,7 @@ contains
     if (have_wd) then
       ! the remapped field is not needed anymore.
       call deallocate(alpha_u_field)
-      deallocate(alpha_u_field)
+    !  deallocate(alpha_u_field)
       call deallocate(Abs_wd)
     end if
 

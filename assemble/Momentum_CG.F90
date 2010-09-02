@@ -172,7 +172,7 @@
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
       type(vector_field), pointer :: gravity
-      type(vector_field), pointer :: oldu, nu, ug, source, absorption, Abs_wd
+      type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
       type(tensor_field), pointer :: surfacetension
       type(vector_field), pointer :: x_old, x_new
@@ -209,7 +209,9 @@
       integer :: node   
 
       !! Wetting and drying
-      type(scalar_field), pointer :: alpha_u_field, wettingdrying_alpha
+      type(vector_field) :: Abs_wd
+      type(scalar_field), pointer :: wettingdrying_alpha
+      type(scalar_field) :: alpha_u_field
       logical :: have_wd
       real, dimension(u%dim) :: abs_wd_const
 
@@ -252,7 +254,6 @@
       have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
       ! Absorption term in dry zones for wetting and drying
       if (have_wd) then
-       allocate(Abs_wd)
        call allocate(Abs_wd, u%dim, u%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(Abs_wd, abs_wd_const)
@@ -463,7 +464,6 @@
       if (have_wd) then
         ! The alpha fields lives on the pressure mesh, but we need it on the velocity, so let's remap it.
         wettingdrying_alpha => extract_scalar_field(state, "WettingDryingAlpha")
-        allocate(alpha_u_field)
         call allocate(alpha_u_field, u%mesh, "alpha_u")
         call remap_field(wettingdrying_alpha, alpha_u_field)
       end if
@@ -484,9 +484,7 @@
       if (have_wd) then
         ! the remapped field is not needed anymore.
         call deallocate(alpha_u_field)
-        deallocate(alpha_u_field)
         call deallocate(Abs_wd)
-        deallocate(Abs_wd)
       end if
 
       ! ----- Surface integrals over boundaries -----------
