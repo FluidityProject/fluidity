@@ -143,7 +143,7 @@ implicit none
   end interface
   
   interface bound
-    module procedure bound_scalar_field, bound_vector_field, bound_tensor_field
+    module procedure bound_scalar_field, bound_scalar_field_field, bound_vector_field, bound_tensor_field
   end interface
     
   interface invert
@@ -2463,6 +2463,36 @@ implicit none
   
   end subroutine bound_scalar_field
   
+  subroutine bound_scalar_field_field(field, lower_bound, upper_bound)
+    !!< Bound a field by the lower and upper bounds supplied
+    type(scalar_field), intent(inout) :: field
+    type(scalar_field), intent(in), optional :: lower_bound, upper_bound
+
+    integer :: i
+
+    assert(.not. present(lower_bound) .or. field%mesh==lower_bound%mesh)
+    assert(.not. present(upper_bound) .or. field%mesh==upper_bound%mesh)
+    assert(.not. present(lower_bound) .or. lower_bound%field_type==FIELD_TYPE_NORMAL) ! The case lower_bound=FIELD_TYPE_CONSTANT should be implemented
+    assert(.not. present(upper_bound) .or. upper_bound%field_type==FIELD_TYPE_NORMAL) ! The case upper_bound=FIELD_TYPE_CONSTANT should be implemented
+    select case(field%field_type)
+    case(FIELD_TYPE_NORMAL)
+        if (present(lower_bound)) then
+            do i = 1, node_count(field)
+                field%val(i) = max(field%val(i), lower_bound%val(i))
+            end do
+        end if
+        if (present(upper_bound)) then
+            do i = 1, node_count(field)
+                field%val(i) = min(field%val(i), upper_bound%val(i))
+            end do
+        end if
+    case default
+      FLAbort("Illegal field type in bound()")
+    end select
+
+  end subroutine bound_scalar_field_field
+  
+
   subroutine bound_vector_field(field, lower_bound, upper_bound)
     !!< Bound a field by the lower and upper bounds supplied
     type(vector_field), intent(inout) :: field
