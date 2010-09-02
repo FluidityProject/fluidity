@@ -876,6 +876,7 @@ contains
     
     if (present(sfields)) then
        do i=1,size(sfields)
+          if(mesh_dim(sfields(i))/=mesh_dim(l_model)) cycle
           
           if (sfields(i)%mesh%shape%degree /= 0) then
 
@@ -966,6 +967,7 @@ contains
           if(trim(vfields(i)%name)=="Coordinate") then
              cycle
           end if
+          if(mesh_dim(vfields(i))/=mesh_dim(v_model(vfields(i)%dim))) cycle
 
           if(vfields(i)%mesh%shape%degree /= 0) then
 
@@ -1038,6 +1040,7 @@ contains
 
        do i=1,size(tfields)
           dim = tfields(i)%dim
+          if(mesh_dim(tfields(i))/=mesh_dim(t_model)) cycle
           
           if(tfields(i)%mesh%shape%degree /= 0) then
 
