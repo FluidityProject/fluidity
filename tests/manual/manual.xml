@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Fluidity_manual_test<comment>Checks the manual log for undefined references and citations.</comment></name>
+  <owner userid="dham"/>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>true<comment>Do nothing. The test is all in the regexp searches below.</comment></command_line>
+  </problem_definition>
+  <variables>
+    <variable name="logfile" language="python">logfile=file("../../manual/fluidity_manual.log","r").read()</variable>
+  </variables>
+  <pass_tests/>
+  <warn_tests>
+    <test name="UnresolvedCitations" language="python">import re
+assert(not(re.search("There were undefined citations.",logfile,re.M)))</test>
+    <test name="UndefinedReferences" language="python">import re
+# This is disabled until we get the manual reference clean.
+#assert(not(re.search("There were undefined references.",logfile,re.M)))</test>
+  </warn_tests>
+</testproblem>
