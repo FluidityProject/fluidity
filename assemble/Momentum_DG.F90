@@ -332,8 +332,8 @@ contains
 
     have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")        
     ! Absorption term in dry zones for wetting and drying
-    call allocate(Abs_wd, U%dim, U%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
     if (have_wd) then
+       call allocate(Abs_wd, U%dim, U%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(Abs_wd, abs_wd_const)
    ! else
