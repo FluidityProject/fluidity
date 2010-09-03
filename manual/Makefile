@@ -53,8 +53,8 @@ fluidity_manual.html: fluidity_manual.tex notation.tex\
 	$(addsuffix .tex, $(CHAPTERS)) \
 	$(addsuffix .png, $(XFIG_IMAGES)) \
 	$(addsuffix .png, $(IMAGES)) \
-	bibliography.bib
-	htlatex $< "fluidity_manual"
+	bibliography.bib fluidity_manual.cfg
+	htlatex $< "fluidity_manual,2" "" "-dhtml/"
 	makeindex -s index.ist $(basename $<)
 	if fgrep "Rerun to" $(basename $<.log); then $(MAKE) --assume-new $< $@;fi
 ifndef NOBIBTEX

@@ -350,7 +350,7 @@ of the face by $c_{\mathrm{upw}}$ then equation \eqref{eq:adv_dg}\ becomes:
     = 0,
 \end{equation}
 Summing over all elements, including boundary conditions and writing
-$c_\mathrm{int}$ to indicate flux terms which use the value of $c$ from the
+$c_{\mathrm{int}}$ to indicate flux terms which use the value of $c$ from the
 current element only, we have:
 \begin{equation}
   \begin{split}
@@ -1139,7 +1139,7 @@ to a tight CFL criterion. Accordingly, the timestep is split into $n$
 subtimesteps to satisfy a user-specified Courant number and the following
 equation is solved for each:
 \begin{equation}
-  \mat{M} \dvec{c}_\mathrm{new}=\left(\mat{M}-\frac{\Delta t}{n}\mat{A}(\urelax)\right) \dvec{c}_\mathrm{old}+\dvec{r}_D^{n+\theta_c}.
+  \mat{M} \dvec{c}_{\mathrm{new}}=\left(\mat{M}-\frac{\Delta t}{n}\mat{A}(\urelax)\right) \dvec{c}_{\mathrm{old}}+\dvec{r}_D^{n+\theta_c}.
 \end{equation}
 At the start of the timestep, $\dvec{c}_{\mathrm{old}}:=\cold$ and at the
 end of the timestep $\cstar:=\dvec{c}_{\mathrm{new}}$.
