@@ -33,6 +33,11 @@ IMAGES=geometry_dimension mesh_name \
 ./visualisation_and_diagnostics_images/Paraview-subwindows \
 ./visualisation_and_diagnostics_images/diamond_enable_stat  
 
+IMAGE_DIRS=examples_images numerical_discretisation_images \
+visualisation_and_diagnostics_images configuring_fluidity_images \
+examples_images/sediment\
+examples_images/lock_exchange
+
 EPS_IMAGES=./examples_images/rotating_channel/analytic_solution \
 ./examples_images/rotating_channel/convergence 
 
@@ -77,8 +82,13 @@ endif
 
 PSFILES=$(addsuffix .pdftex_t, $(XFIG_IMAGES)) \
 	$(addsuffix _tex.pdf, $(XFIG_IMAGES)) \
-	$(addsuffix .png, $(XFIG_IMAGES)) 
-
+	$(addsuffix .png, $(XFIG_IMAGES))\
+	$(addsuffix /*.tex, $(IMAGE_DIRS)) \
+	$(addsuffix /*.pstex, $(IMAGE_DIRS)) \
+	$(addsuffix /*.pstex_t, $(IMAGE_DIRS)) \
+	$(addsuffix /*.log, $(IMAGE_DIRS)) \
+	$(addsuffix /*.dvi, $(IMAGE_DIRS)) \
+	$(addsuffix /*.aux, $(IMAGE_DIRS))
 
 %.ps: %.dvi
 	dvips -o $@ $^ 
