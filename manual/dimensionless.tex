@@ -55,7 +55,8 @@ Once representative length and velocity scales have been defined this automatica
 \begin{equation*}
 \tilde{t}=\frac{t}{T},\quad T=\frac{L}{U},
 \end{equation*}
-and it makes sense now to impose that
+and the divergence-free continuity equation $\nabla\cdot\vec{u}=0$
+suggests the scaling constraint
 \begin{equation}
 \frac{W}{H}=\frac{U}{L}.
 \label{aspect99}
@@ -93,10 +94,12 @@ The viscous term takes the form
 U^{-1}L^{-1}\nu\left(\frac{\pp^2 \tilde{u}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{u}}{\pp\tilde{y}^2}\right)+H^{-2}LU^{-1}\nu \frac{\pp^2 \tilde{u}}{\pp\tilde{z}^2}
 =\Re_H^{-1}\left(\frac{\pp^2 \tilde{u}}{\pp\tilde{x}^2}+\frac{\pp^2 \tilde{u}}{\pp\tilde{y}^2}\right) + \Re_V^{-1}\frac{\pp^2 \tilde{u}}{\pp\tilde{z}^2},
 \end{equation*}
-where $\Re_H=UL/\nu$ and $\Re_V=WH/\nu$. Note that is would have been trivial in the above to use
-a tensor of viscosity values rather than a constant.
-Rescaling the free surface height in terms of the vertical coordinate ($\tilde{\eta}=\eta/H$) yields
-a free surface term
+where $\Re_H=UL/\nu$ and $\Re_V=WH/\nu$. 
+%Note that is would have been
+%trivial in the above to use a tensor of viscosity values rather than a
+%constant.  -- COLIN: not sure what this means
+Rescaling the free surface height in terms of the vertical
+coordinate ($\tilde{\eta}=\eta/H$) yields a free surface term
 \begin{equation*}
 \frac{Hg}{U^2}\nabla_{\tilde{x}}\tilde{\eta}=\Fr^{-1}\nabla_{\tilde{x}}\tilde{\eta}.
 \end{equation*}
