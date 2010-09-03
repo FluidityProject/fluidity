@@ -36,7 +36,6 @@ module traffic
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, current_time, dt
   use state_module
   use boundary_conditions
-  use generic_interface
   use fields
   use elements
   use parallel_tools
@@ -585,7 +584,6 @@ contains
 
       use FLDebug
       use parallel_tools
-      use generic_interface
       implicit none
 
       integer,intent(in):: isou,timestep
@@ -1328,7 +1326,6 @@ contains
 
       use FLDebug
       use parallel_tools
-      use generic_interface 
       
       implicit none
 

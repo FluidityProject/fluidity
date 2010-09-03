@@ -110,10 +110,6 @@ be set to use this option.</a:documentation>
         <a:documentation>Constant value</a:documentation>
         <ref name="real"/>
       </element>
-      <element name="generic_function">
-        <a:documentation>Generic function prescribing real input</a:documentation>
-        <ref name="anystring"/>
-      </element>
       <element name="python">
         <a:documentation>Python function prescribing real input. Functions should be of the form:
 
@@ -162,10 +158,6 @@ requires a distinct name for the options dictionary.</a:documentation>
       <element name="constant">
         <a:documentation>Constant value</a:documentation>
         <ref name="real"/>
-      </element>
-      <element name="generic_function">
-        <a:documentation>Generic function prescribing real input</a:documentation>
-        <ref name="anystring"/>
       </element>
       <element name="python">
         <a:documentation>Python function prescribing real input. Functions should be of the form:

@@ -30,7 +30,6 @@
 module synthetic_bc
 
 use FLDebug
-use generic_interface
 use spud
 use state_module
 use global_parameters, only: dt, option_path_len

@@ -77,10 +77,6 @@ input_choice_real_contents =
    element constant {
       real
    }|
-   ## Generic function prescribing real input
-   element generic_function {
-      anystring
-   }|
    ## Python function prescribing real input. Functions should be of the form:
    ##
    ##  def val(X, t):
@@ -122,10 +118,6 @@ input_choice_initial_condition_real =
       ## Constant value
       element constant {
          real
-      }|
-      ## Generic function prescribing real input
-      element generic_function {
-         anystring
       }|
       ## Python function prescribing real input. Functions should be of the form:
       ##

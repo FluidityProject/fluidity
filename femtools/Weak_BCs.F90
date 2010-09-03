@@ -30,7 +30,6 @@
   module Weak_BCs
 
     use FLDebug
-    use generic_interface
     use spud
     use state_module
     use global_parameters, only: option_path_len, dt

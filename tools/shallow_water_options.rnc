@@ -457,10 +457,6 @@ input_choice_real_contents =
    element constant {
       real
    }|
-   ## Generic function prescribing real input
-   element generic_function {
-      anystring
-   }|
    ## Python function prescribing real input. Functions should be of the form:
    ##
    ##  def val(X, t):
@@ -479,10 +475,6 @@ input_choice_initial_condition_real =
       ## Constant value
       element constant {
          real
-      }|
-      ## Generic function prescribing real input
-      element generic_function {
-         anystring
       }|
       ## Python function prescribing real input. Functions should be of the form:
       ##
@@ -555,10 +547,6 @@ input_choice_real_dim_minus_one_vector =
       element constant {
          real_dim_minus_one_vector
       }|
-      # ## Generic function prescribing dimensional vector input
-      # element generic_function {
-      #    anystring
-      # }|
       ## Python function prescribing dimensional vector input. Functions should be of the form:
       ##
       ##  def val(X, t):
@@ -590,10 +578,6 @@ input_choice_initial_condition_vector =
       element constant {
          real_dim_vector
       }|
-      # ## Generic function prescribing dimensional vector input
-      # element generic_function {
-      #    anystring
-      # }|
       ## Python function prescribing dimensional vector input. Functions should be of the form:
       ##
       ##  def val(X, t):
@@ -624,10 +608,6 @@ input_choice_real_dim_symmetric_tensor =
       element constant {
          real_dim_symmetric_tensor
       }|
-#      ## Generic function prescribing symmetric tensor input
-#      element generic_function {
-#         anystring
-#      }|
       ## Python command prescribing symmetric tensor input.
       ##
       ## Note that it is for the python function to determine 
@@ -652,11 +632,6 @@ input_choice_real_dim_tensor =
       element constant {
          real_dim_tensor
       }|
-#      }|
-#      ## Generic function prescribing tensor input
-#      element generic_function {
-#         anystring
-#      }|
       ## Python command prescribing tensor input.
       ##
       ## An example that returns the three-dimensional identity:

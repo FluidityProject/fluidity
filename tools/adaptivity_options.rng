@@ -2255,6 +2255,7 @@ Default is 0.5</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="dry_absorption">
+                    <a:documentation>Specifies the amount of absorption in dry areas.</a:documentation>
                     <ref name="real_dim_vector"/>
                   </element>
                 </element>
