@@ -97,7 +97,8 @@ contains
 
   end function do_checkpoint_simulation
 
-  subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name)
+  subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name, &
+    keep_initial_data)
     !!< Checkpoint the whole simulation
     
     type(state_type), dimension(:), intent(in) :: state
@@ -109,6 +110,10 @@ contains
     !! If present and .false., do not protect the simulation_name when
     !! checkpointing the options tree
     logical, optional, intent(in) :: protect_simulation_name
+    !! If present and .true.: do not checkpoint fields that can be reinitialsed and do not 
+    !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
+    !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
+    logical, optional, intent(in) :: keep_initial_data
 
     character(len = PREFIX_LEN) :: lpostfix, lprefix
 
@@ -129,7 +134,8 @@ contains
       lpostfix = "checkpoint"
     end if
 
-    call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no)  
+    call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no, &
+      keep_initial_data = keep_initial_data)
     if(have_option("/io/detectors")) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
@@ -431,20 +437,24 @@ contains
 
   end subroutine update_detectors_options
 
-  subroutine checkpoint_state(state, prefix, postfix, cp_no)
+  subroutine checkpoint_state(state, prefix, postfix, cp_no, keep_initial_data)
     !!< Checkpoint state.
 
     type(state_type), dimension(:), intent(in) :: state
     character(len = *), intent(in) :: prefix
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
+    !! If present and .true.: do not checkpoint fields that can be reinitialsed and do not 
+    !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
+    !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
+    logical, optional, intent(in) :: keep_initial_data
 
-    call checkpoint_meshes(state, prefix, postfix, cp_no)
-    call checkpoint_fields(state, prefix, postfix, cp_no)
+    call checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data)
+    call checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data)
 
   end subroutine checkpoint_state
 
-  subroutine checkpoint_meshes(state, prefix, postfix, cp_no)
+  subroutine checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data)
     !!< Checkpoint the meshes in state. Outputs to mesh files with names:
     !!<   [prefix]_[mesh_name][_cp_no][_postfix][_process].[extention]
     !!< where cp_no is optional and the process number is added in parallel.
@@ -454,6 +464,8 @@ contains
     character(len = *), intent(in) :: prefix
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
+    ! if present and true: do not checkpoint extruded meshes that can be re-extruded
+    logical, optional, intent(in) :: keep_initial_data
 
     type(vector_field), pointer:: position
     character(len = FIELD_NAME_LEN) :: mesh_name
@@ -472,8 +484,10 @@ contains
       mesh_path = "/geometry/mesh[" // int2str(i) // "]"
       
       from_file = have_option(trim(mesh_path) // "/from_file")
-      extruded = have_option(trim(mesh_path) // "/from_mesh/extrude")
-      
+      extruded = have_option(trim(mesh_path) // "/from_mesh/extrude") .and. &
+        .not. (present_and_true(keep_initial_data) .and. &
+               .not. have_option(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file"))
+        
       if(from_file .or. extruded) then
         ! Find the mesh (looking in first state)
         call get_option(trim(mesh_path) // "/name", mesh_name)
@@ -522,7 +536,7 @@ contains
 
   end subroutine checkpoint_meshes
 
-  subroutine checkpoint_fields(state, prefix, postfix, cp_no)
+  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data)
     !!< Checkpoint the fields in state. Outputs to vtu files with names:
     !!<   [prefix]_[_state name]_[mesh_name][_cp_no][_postfix][_process].vtu
     !!< where the state name is added if multiple states are passed, cp_no is
@@ -532,6 +546,8 @@ contains
     character(len = *), intent(in) :: prefix
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
+    ! if present and true: do not checkpoint fields that can be reinitialised
+    logical, optional, intent(in) :: keep_initial_data
 
     character(len = OPTION_PATH_LEN) :: vtu_filename
     integer :: i, j, k, nparts, n_ps_fields_on_mesh, n_pv_fields_on_mesh, n_pt_fields_on_mesh
@@ -592,6 +608,8 @@ contains
                 & .and. interpolate_field(s_field))) &
               & .and. .not. aliased(s_field)) then
               if(have_option(trim(complete_field_path(s_field%option_path)) // "/exclude_from_checkpointing")) cycle
+              ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
+              if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(s_field)) cycle
                             
               ewrite(2, *) "Checkpointing field " // trim(s_field%name) // " in state " // trim(state(i)%name)
 
@@ -615,9 +633,11 @@ contains
             if(trim(v_field%mesh%name) == trim(mesh%name) .and. v_field%mesh == mesh &
               & .and. (have_option(trim(v_field%option_path) // "/prognostic") &
               & .or. (have_option(trim(v_field%option_path) // "/prescribed") &
-                & .and. interpolate_field(v_field))) &
+                & .and. interpolate_field(v_field, first_time_step=keep_initial_data))) &
               & .and. .not. aliased(v_field)) then
               if(have_option(trim(complete_field_path(v_field%option_path)) // "/exclude_from_checkpointing")) cycle
+              ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
+              if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(v_field)) cycle
             
               ewrite(2, *) "Checkpointing field " // trim(v_field%name) // " in state " // trim(state(i)%name)
 
@@ -641,9 +661,11 @@ contains
             if(trim(t_field%mesh%name) == trim(mesh%name) .and. t_field%mesh == mesh &
               & .and. (have_option(trim(t_field%option_path) // "/prognostic") &
               & .or. (have_option(trim(t_field%option_path) // "/prescribed") &
-                & .and. interpolate_field(t_field))) &
+                & .and. interpolate_field(t_field, first_time_step=keep_initial_data))) &
               & .and. .not. aliased(s_field)) then
               if(have_option(trim(complete_field_path(t_field%option_path)) // "/exclude_from_checkpointing")) cycle
+              ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
+              if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(t_field)) cycle
             
               ewrite(2, *) "Checkpointing field " // trim(t_field%name) // " in state " // trim(state(i)%name)
 

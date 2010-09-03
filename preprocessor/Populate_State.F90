@@ -172,7 +172,6 @@ contains
     logical :: from_file, extruded
     integer :: dim, loc, column_ids
     integer :: quad_family
-    integer :: nprocs
     
     call tic(TICTOC_ID_IO_READ)
 
@@ -311,33 +310,12 @@ contains
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
             if (no_active_processes == 1) then
-              nprocs = getnprocs()
-              allocate(position%mesh%halos(2))
-              allocate(position%mesh%element_halos(2))
-              do j=1,2
-                ! Nodal halo
-                call allocate(position%mesh%halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
-                              data_type=HALO_TYPE_CG_NODE, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = node_count(position), &
-                              name="EmptyHalo")
-                assert(trailing_receives_consistent(position%mesh%halos(j)))
-                call create_global_to_universal_numbering(position%mesh%halos(j))
-                call create_ownership(position%mesh%halos(j))
-
-                ! Element halo
-                call allocate(position%mesh%element_halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
-                              data_type=HALO_TYPE_ELEMENT, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = ele_count(position), &
-                              name="EmptyHalo")
-                assert(trailing_receives_consistent(position%mesh%element_halos(j)))
-                call create_global_to_universal_numbering(position%mesh%element_halos(j))
-                call create_ownership(position%mesh%element_halos(j))
-              end do
-              call reorder_element_numbering(position)
-              mesh = position%mesh
+              call create_empty_halo(position)
             else
               call read_halos(mesh_file_name, position)
-              call reorder_element_numbering(position)
-              mesh = position%mesh
+              call reorder_element_numbering(position)              
             end if
+            mesh = position%mesh
           end if
           
           ! coplanar ids are create here already and stored on the mesh, 
@@ -389,10 +367,13 @@ contains
     call toc(TICTOC_ID_IO_READ)
 
   end subroutine insert_external_mesh
-
-  subroutine insert_derived_meshes(states)
+    
+  subroutine insert_derived_meshes(states, skip_extrusion)
     ! Insert derived meshes in state
     type(state_type), intent(inout), dimension(:) :: states
+    ! if present and true: skip extrusion of meshes, and insert 0 node dummy meshes 
+    ! instead (will have correct shape and dimension)
+    logical, optional, intent(in):: skip_extrusion
 
     type(mesh_type) :: mesh, model_mesh
     type(vector_field), pointer :: position, modelposition
@@ -490,7 +471,15 @@ contains
                   
                   modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
                
-                  if (have_option('/geometry/spherical_earth/')) then
+                  if (present_and_true(skip_extrusion)) then
+                    call allocate(mesh, nodes=0, elements=0, shape=modelposition%mesh%shape, name=mesh_name)
+                    allocate(mesh%columns(1:0))
+                    call add_faces(mesh)
+                    mesh%periodic=modelposition%mesh%periodic
+                    call allocate(extrudedposition, modelposition%dim, mesh, "EmptyCoordinate") ! name is fixed below
+                    call deallocate(mesh)
+                    if (IsParallel()) call create_empty_halo(extrudedposition)
+                  else if (have_option('/geometry/spherical_earth/')) then
                     call extrude_radially(modelposition, mesh_path, extrudedposition)
                   else
                     call extrude(modelposition, mesh_path, extrudedposition)
@@ -2719,6 +2708,151 @@ contains
     
   end subroutine surface_id_stats
     
+  subroutine create_empty_halo(position)
+    !!< Auxilary subroutine that creates node and element halos for position with no sends or receives
+    type(vector_field), intent(inout):: position
+    
+    integer:: nprocs, j
+    
+    nprocs = getnprocs()
+    allocate(position%mesh%halos(2))
+    allocate(position%mesh%element_halos(2))
+    do j=1,2
+      ! Nodal halo
+      call allocate(position%mesh%halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
+                    data_type=HALO_TYPE_CG_NODE, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = node_count(position), &
+                    name="EmptyHalo")
+      assert(trailing_receives_consistent(position%mesh%halos(j)))
+      call create_global_to_universal_numbering(position%mesh%halos(j))
+      call create_ownership(position%mesh%halos(j))
+
+      ! Element halo
+      call allocate(position%mesh%element_halos(j), nprocs = nprocs, nreceives = spread(0, 1, nprocs), nsends = spread(0, 1, nprocs), &
+                    data_type=HALO_TYPE_ELEMENT, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES, nowned_nodes = ele_count(position), &
+                    name="EmptyHalo")
+      assert(trailing_receives_consistent(position%mesh%element_halos(j)))
+      call create_global_to_universal_numbering(position%mesh%element_halos(j))
+      call create_ownership(position%mesh%element_halos(j))
+    end do
+    call reorder_element_numbering(position)
+    
+  end subroutine create_empty_halo
+
+
+  subroutine allocate_metric_limits(state)
+    type(state_type), intent(inout) :: state
+    type(tensor_field) :: min_edge, max_edge
+    type(tensor_field) :: min_eigen, max_eigen
+    character(len=*), parameter :: path = &
+    & "/mesh_adaptivity/hr_adaptivity/"
+    logical :: is_constant
+    type(mesh_type), pointer :: mesh
+    type(vector_field), pointer :: X
+    integer :: node
+
+    if (.not. have_option(path)) then
+      return
+    end if
+
+    X => extract_vector_field(state, "Coordinate")
+    ! We can't use the external mesh in the extruded case -- these have to go on the
+    ! CoordinateMesh.
+    !mesh => get_external_mesh((/state/))
+    mesh => extract_mesh(state, trim(topology_mesh_name))
+
+    if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths")) then
+      ewrite(-1,*) "Warning: adaptivity turned on, but no edge length limits available?"
+      return
+    end if
+
+    is_constant = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant"))
+    if (is_constant) then
+      call allocate(min_edge, mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
+      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
+      call allocate(max_eigen, mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
+      call set(max_eigen, eigenvalue_from_edge_length(node_val(min_edge, 1)))
+    else
+      call allocate(min_edge, mesh, "MinimumEdgeLengths")
+      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
+      call allocate(max_eigen, mesh, "MaxMetricEigenbound")
+      do node=1,node_count(mesh)
+        call set(max_eigen, node, eigenvalue_from_edge_length(node_val(min_edge, node)))
+      end do
+    end if
+      
+    call insert(state, max_eigen, "MaxMetricEigenbound")
+    call deallocate(min_edge)
+    call deallocate(max_eigen)
+
+    is_constant = (have_option(path // "/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant"))
+    if (is_constant) then
+      call allocate(max_edge, mesh, "MaximumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
+      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
+      call allocate(min_eigen, mesh, "MinMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
+      call set(min_eigen, eigenvalue_from_edge_length(node_val(max_edge, 1)))
+    else
+      call allocate(max_edge, mesh, "MaximumEdgeLengths")
+      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
+      call allocate(min_eigen, mesh, "MinMetricEigenbound")
+      do node=1,node_count(mesh)
+        call set(min_eigen, node, eigenvalue_from_edge_length(node_val(max_edge, node)))
+      end do
+    end if
+      
+    call insert(state, min_eigen, "MinMetricEigenbound")
+    call deallocate(max_edge)
+    call deallocate(min_eigen)
+
+  end subroutine allocate_metric_limits
+
+  function get_quad_family() result(quad_family)
+    character(len=OPTION_PATH_LEN) :: quad_family_str
+    integer :: quad_family
+
+    if (have_option("/geometry/quadrature/quadrature_family")) then
+      call get_option("/geometry/quadrature/quadrature_family", quad_family_str)
+      select case (quad_family_str)
+        case("family_cools")
+          quad_family = FAMILY_COOLS
+        case("family_grundmann_moeller")
+          quad_family = FAMILY_GM
+        case ("family_wandzura")
+          quad_family = FAMILY_WANDZURA
+      end select
+    else
+      quad_family = FAMILY_COOLS
+    end if
+  end function get_quad_family
+
+  subroutine compute_domain_statistics(states)
+    type(state_type), dimension(:), intent(in) :: states
+    integer :: dim
+    type(vector_field), pointer :: positions
+    integer :: ele
+    real :: vol
+
+    positions => extract_vector_field(states(1), "Coordinate")
+    if (allocated(domain_bbox)) then
+      deallocate(domain_bbox)
+    end if
+    allocate(domain_bbox(positions%dim, 2))
+
+    do dim=1,positions%dim
+      domain_bbox(dim, 1) = minval(positions%val(dim)%ptr)
+      domain_bbox(dim, 2) = maxval(positions%val(dim)%ptr)
+      ewrite(2,*) "domain_bbox - dim, range =", dim, domain_bbox(dim,:)
+    end do
+
+    vol = 0.0
+    do ele=1,ele_count(positions)
+      vol = vol + element_volume(positions, ele)
+    end do
+
+    domain_volume = vol
+    ewrite(2,*) "domain_volume =", domain_volume
+
+  end subroutine compute_domain_statistics
+  
   subroutine populate_state_module_check_options
 
     character(len=OPTION_PATH_LEN) :: problem_type
@@ -3412,119 +3546,5 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     pressure_path="/material_phase[0]/scalar_field::Pressure/prognostic"
 
   end subroutine check_stokes_options
-
-  subroutine allocate_metric_limits(state)
-    type(state_type), intent(inout) :: state
-    type(tensor_field) :: min_edge, max_edge
-    type(tensor_field) :: min_eigen, max_eigen
-    character(len=*), parameter :: path = &
-    & "/mesh_adaptivity/hr_adaptivity/"
-    logical :: is_constant
-    type(mesh_type), pointer :: mesh
-    type(vector_field), pointer :: X
-    integer :: node
-
-    if (.not. have_option(path)) then
-      return
-    end if
-
-    X => extract_vector_field(state, "Coordinate")
-    ! We can't use the external mesh in the extruded case -- these have to go on the
-    ! CoordinateMesh.
-    !mesh => get_external_mesh((/state/))
-    mesh => extract_mesh(state, trim(topology_mesh_name))
-
-    if (.not. have_option(path // "/tensor_field::MinimumEdgeLengths")) then
-      ewrite(-1,*) "Warning: adaptivity turned on, but no edge length limits available?"
-      return
-    end if
-
-    is_constant = (have_option(path // "/tensor_field::MinimumEdgeLengths/anisotropic_symmetric/constant"))
-    if (is_constant) then
-      call allocate(min_edge, mesh, "MinimumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
-      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
-      call allocate(max_eigen, mesh, "MaxMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
-      call set(max_eigen, eigenvalue_from_edge_length(node_val(min_edge, 1)))
-    else
-      call allocate(min_edge, mesh, "MinimumEdgeLengths")
-      call initialise_field(min_edge, path // "/tensor_field::MinimumEdgeLengths", X)
-      call allocate(max_eigen, mesh, "MaxMetricEigenbound")
-      do node=1,node_count(mesh)
-        call set(max_eigen, node, eigenvalue_from_edge_length(node_val(min_edge, node)))
-      end do
-    end if
-      
-    call insert(state, max_eigen, "MaxMetricEigenbound")
-    call deallocate(min_edge)
-    call deallocate(max_eigen)
-
-    is_constant = (have_option(path // "/tensor_field::MaximumEdgeLengths/anisotropic_symmetric/constant"))
-    if (is_constant) then
-      call allocate(max_edge, mesh, "MaximumEdgeLengths", field_type=FIELD_TYPE_CONSTANT)
-      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
-      call allocate(min_eigen, mesh, "MinMetricEigenbound", field_type=FIELD_TYPE_CONSTANT)
-      call set(min_eigen, eigenvalue_from_edge_length(node_val(max_edge, 1)))
-    else
-      call allocate(max_edge, mesh, "MaximumEdgeLengths")
-      call initialise_field(max_edge, path // "/tensor_field::MaximumEdgeLengths", X)
-      call allocate(min_eigen, mesh, "MinMetricEigenbound")
-      do node=1,node_count(mesh)
-        call set(min_eigen, node, eigenvalue_from_edge_length(node_val(max_edge, node)))
-      end do
-    end if
-      
-    call insert(state, min_eigen, "MinMetricEigenbound")
-    call deallocate(max_edge)
-    call deallocate(min_eigen)
-
-  end subroutine allocate_metric_limits
-
-  function get_quad_family() result(quad_family)
-    character(len=OPTION_PATH_LEN) :: quad_family_str
-    integer :: quad_family
-
-    if (have_option("/geometry/quadrature/quadrature_family")) then
-      call get_option("/geometry/quadrature/quadrature_family", quad_family_str)
-      select case (quad_family_str)
-        case("family_cools")
-          quad_family = FAMILY_COOLS
-        case("family_grundmann_moeller")
-          quad_family = FAMILY_GM
-        case ("family_wandzura")
-          quad_family = FAMILY_WANDZURA
-      end select
-    else
-      quad_family = FAMILY_COOLS
-    end if
-  end function get_quad_family
-
-  subroutine compute_domain_statistics(states)
-    type(state_type), dimension(:), intent(in) :: states
-    integer :: dim
-    type(vector_field), pointer :: positions
-    integer :: ele
-    real :: vol
-
-    positions => extract_vector_field(states(1), "Coordinate")
-    if (allocated(domain_bbox)) then
-      deallocate(domain_bbox)
-    end if
-    allocate(domain_bbox(positions%dim, 2))
-
-    do dim=1,positions%dim
-      domain_bbox(dim, 1) = minval(positions%val(dim)%ptr)
-      domain_bbox(dim, 2) = maxval(positions%val(dim)%ptr)
-      ewrite(2,*) "domain_bbox - dim, range =", dim, domain_bbox(dim,:)
-    end do
-
-    vol = 0.0
-    do ele=1,ele_count(positions)
-      vol = vol + element_volume(positions, ele)
-    end do
-
-    domain_volume = vol
-    ewrite(2,*) "domain_volume =", domain_volume
-
-  end subroutine compute_domain_statistics
 
 end module populate_state_module

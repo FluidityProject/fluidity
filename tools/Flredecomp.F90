@@ -35,11 +35,12 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   use checkpoint
   use fldebug
-  use global_parameters, only: is_active_process, no_active_processes
+  use global_parameters, only: is_active_process, no_active_processes, topology_mesh_name
   use parallel_tools
   use populate_state_module
   use spud
   use sam_integration
+  use fields
 #ifdef HAVE_ZOLTAN
   use zoltan
 #endif
@@ -67,7 +68,9 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   
   integer :: nprocs
   type(state_type), dimension(:), pointer :: state
-  integer :: i
+  type(vector_field) :: extruded_position
+  logical :: skip_initial_extrusion
+  integer :: i, nstates
 #ifdef HAVE_ZOLTAN
   real(zoltan_float) :: ver
   integer(zoltan_int) :: ierr
@@ -120,22 +123,53 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   ewrite(1, *) "Options sanity check successful"
 #endif
 
+  
+  ! for extruded meshes, if no checkpointed extruded mesh is present, don't bother
+  ! extruding (this may be time consuming or not fit on the input_nprocs)
+  skip_initial_extrusion = option_count('/geometry/mesh/from_mesh/extrude')>0 .and. & 
+    option_count('/geometry/mesh/from_mesh/extrude/checkpoint_from_file')==0
+        
   is_active_process = getprocno() <= input_nprocs
   no_active_processes = input_nprocs
-  call populate_state(state)
+  
+  ! ! Below is a (partial) copy of the first bit of populate_state
+  
+  ! Find out how many states there are
+  nstates=option_count("/material_phase")
+  allocate(state(1:nstates))
+  do i = 1, nstates
+     call nullify(state(i))
+  end do
+
+  call insert_external_mesh(state, save_vtk_cache = .true.)
+  
+  call insert_derived_meshes(state, skip_extrusion=skip_initial_extrusion)
+
+  call compute_domain_statistics(state)
+
+  call allocate_and_insert_fields(state)
+
+  call initialise_prognostic_fields(state, save_vtk_cache=.true., &
+    initial_mesh=.true.)
+
+  call set_prescribed_field_values(state, initial_mesh=.true.)
+  
+  ! !  End populate_state calls
+    
   is_active_process = .true.
   no_active_processes = target_nprocs
   
 #ifdef HAVE_ZOLTAN
-  call zoltan_drive(state, 1)
+  call zoltan_drive(state, 1, initialise_fields=.true., ignore_extrusion=skip_initial_extrusion)
 #else
-  call strip_level_2_halo(state)
+  call strip_level_2_halo(state, initialise_fields=.true.)
   call sam_drive(state, sam_options(target_nprocs))
 #endif
   
   ! Output
   assert(associated(state))
-  call checkpoint_simulation(state, prefix = output_basename, postfix = "", protect_simulation_name = .false.)
+  call checkpoint_simulation(state, prefix = output_basename, postfix = "", protect_simulation_name = .false., &
+    keep_initial_data=.true.)
 
   do i = 1, size(state)
     call deallocate(state(i))

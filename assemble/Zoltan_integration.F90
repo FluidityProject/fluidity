@@ -1626,13 +1626,18 @@ module zoltan_integration
 
   end subroutine zoltan_cb_unpack_fields
 
-  subroutine zoltan_drive(states, iteration, metric, full_metric)
+  subroutine zoltan_drive(states, iteration, metric, full_metric, initialise_fields, &
+    ignore_extrusion)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
     ! the full_metric is the metric we need to interpolate
     type(tensor_field), intent(inout), optional :: full_metric
+    ! if present and true: don't bother redistributing fields that can be reinitialised
+    logical, intent(in), optional :: initialise_fields
+    ! if present and true: only redistribute horizontal meshes and fields thereon
+    logical, intent(in), optional :: ignore_extrusion
 
     type(zoltan_struct), pointer :: zz
 
@@ -1656,12 +1661,14 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer :: p1_export_procs_full => null()
     integer(zoltan_int) :: p1_num_export_full
     type(vector_field) :: new_positions_m1d
+    type(mesh_type), pointer :: extruded_mesh
 
     integer :: ind, key, key_val
 
     ewrite(1,*) "In zoltan_drive"
 
-    vertically_structured_adaptivity = option_count('/geometry/mesh/from_mesh/extrude') > 0
+    vertically_structured_adaptivity = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
+      .and. .not. present_and_true(ignore_extrusion)
 
     call setup_module_variables
     
@@ -2137,7 +2144,8 @@ module zoltan_integration
 
       ! Set up source_states
       do i=1,size(states)
-        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true.)
+        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
+          first_time_step=initialise_fields)
         ! Remove the current state as we've copied the bits we need
         call deallocate(states(i))
       end do
@@ -2200,13 +2208,15 @@ module zoltan_integration
 
       ! Setup meshes and fields on states
       call restore_reserved_meshes(states)
-      call insert_derived_meshes(states)
+      call insert_derived_meshes(states, skip_extrusion=ignore_extrusion)
       call allocate_and_insert_fields(states)
       call restore_reserved_fields(states)
 
       ! And set up target_states based on states
       do i=1,size(states)
-        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true.)
+        call select_fields_to_interpolate(states(i), interpolate_states(i), no_positions=.true., &
+          first_time_step=initialise_fields)
+        
       end do
 
       ! Metric will be interpolated too, it is 666.0 (for debugging purposes) at this point
