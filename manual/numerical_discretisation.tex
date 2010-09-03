@@ -25,11 +25,14 @@ continuous, that is to say there is no assumption that the gradient of a
 field is continuous over the element boundaries.
 
 \subsubsection{Weak form}
-\index{weak form} \index{test function} \index{advection diffusion
-  equation!weak form} The finite element method always starts by writing the
-equations in \emph{weak form}.  The weak form of the advection-diffusion
-equation is obtained by multiplying it with a suitable continuous test
-function $\phi$ and integrating over the domain $\Omega$:
+\index{weak form} 
+\index{test function} 
+\index{advection-diffusion equation!weak form}
+
+The finite element method always starts by writing the equations in
+\emph{weak form}.  The weak form of the advection-diffusion equation is
+obtained by multiplying it with a suitable continuous test function $\phi$
+and integrating over the domain $\Omega$:
 \begin{equation}
   \int_\Omega \phi \left( \ppt{c} + \vec{u}\cdot\grad c - 
     \div\tensor{\mu}\cdot \grad c\right) = 0.
@@ -155,7 +158,7 @@ of the same set of basis functions. To make sure that the equation we are solvin
 tested integrates to zero with all such test functions, all we have to do is make sure
 that the equation tested with the basis functions integrate to zero. The discretised 
 version of \eqref{eq:weak_adv_diff_simp} therefore becomes
-\index{advection diffusion equation!weak form!discretised}
+\index{advection-diffusion equation!weak form!discretised}
 \begin{equation}
   \sum_j \int_\Omega \phi_i \phi_j  \ddt{c_j} -
     \grad\phi_i\cdot\vec{u}\phi_j  c_j + 
@@ -245,8 +248,9 @@ imposed boundary conditions may sometimes be necessary if the boundary
 condition needs to be imposed strictly for physical reasons.
 
 \subsection{Discontinuous Galerkin discretisation}\label{sec:NM_DG_advection}
-\index{Galerkin!discontinuous!advection-diffusion}
+\index{Galerkin!discontinuous!advection}
 \index{advection-diffusion equation!discontinuous Galerkin}
+
 Integration by parts can be used to avoid taking 
 derivatives of discontinuous functions.
 When using discontinuous test \emph{and} trial functions (see Figure \ref{fig:dgshapefunctions}) however, 
@@ -627,6 +631,9 @@ Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_
 
 \section{Advective stabilisation for DG}
 \index{stabilisation!advection!discontinuous Galerkin}
+\index{Galerkin!discontinuous!slope limiters}
+\index{discontinuous Galerkin!see{Galerkin!discontinuous}}
+\index{continuous Galerkin!see{Galerkin!continuous}}
 
 As described by \cite{cockburn2001}, the DG method with $p$-th order
 polynomials using an appropriate Riemann flux (the upwind flux in the
@@ -760,6 +767,7 @@ the efficiency of the method.
 
 \section{Diffusion term for DG}
 \label{sec:NM_DG_diffusion}
+\index{Galerkin!discontinuous!diffusion}
 \index{diffusion!discontinuous Galerkin} In this section we describe
 the discretisation of the diffusion operator using discontinuous
 Galerkin methods. We concentrate on solving the equation
@@ -978,31 +986,31 @@ sophisticated flux choices have been investigated.
 
 \subsection{Compact Discontinuous Galerkin}
 \label{CDG}
-\index{Compact Discontinuous Galerkin} \index{diffusion!discontinuous
-  Galerkin!CDG} The Compact Discontinuous Galerkin (CDG) scheme
-\cite{peraire2008} has a rather complex choice of fluxes based on
-``lifting operators'' (see the paper for more information). When
-transforming the equations to primal form, this choice of flux results
-in a sophisticated penalty function with two terms. The first term
-exactly cancels part of the flux integrals in equation
-\eqref{eq:poisson-penalty} so that all of the symmetric fluxes using
-the averaging bracket $\{\cdot\}$ are replaced by the flux evaluated
-on one particular (arbitrarily chosen) side of the facet (there are
-various schemes for making this choice). The second term only couples
-together nodes which share the same facet. Both of these terms result
-in a much smaller stencil than for the Bassi-Rebay scheme in
-particular and other LDG schemes in general. Furthermore, the scheme
-is observed to be stable, consistent, and optimally convergent
-(numerical solutions converge at order $(p+1)$). The scheme optionally
-includes the interior penalty term from equation \eqref{eq:ip}, but
-the constant may be independent of $h$. This term only appears to be
-necessary for the mathematical proofs of stability and convergence
-since in practise good results are obtained without this term (in fact
-the results are usually more accurate without this term). Since the
-penalty term has only one tunable constant (which may be set to zero)
-with does not depend on $h$, this makes the CDG scheme very attractive
-for anisotropic elements, including large aspect ratio meshes such as
-those used in large scale ocean modelling.
+\index{Compact Discontinuous Galerkin} 
+\index{diffusion!discontinuous Galerkin!CDG} 
+
+The Compact Discontinuous Galerkin (CDG) scheme
+\cite{peraire2008} has a rather complex choice of fluxes based on ``lifting
+operators'' (see the paper for more information). When transforming the
+equations to primal form, this choice of flux results in a sophisticated
+penalty function with two terms. The first term exactly cancels part of the
+flux integrals in equation \eqref{eq:poisson-penalty} so that all of the
+symmetric fluxes using the averaging bracket $\{\cdot\}$ are replaced by the
+flux evaluated on one particular (arbitrarily chosen) side of the facet
+(there are various schemes for making this choice). The second term only
+couples together nodes which share the same facet. Both of these terms
+result in a much smaller stencil than for the Bassi-Rebay scheme in
+particular and other LDG schemes in general. Furthermore, the scheme is
+observed to be stable, consistent, and optimally convergent (numerical
+solutions converge at order $(p+1)$). The scheme optionally includes the
+interior penalty term from equation \eqref{eq:ip}, but the constant may be
+independent of $h$. This term only appears to be necessary for the
+mathematical proofs of stability and convergence since in practise good
+results are obtained without this term (in fact the results are usually more
+accurate without this term). Since the penalty term has only one tunable
+constant (which may be set to zero) with does not depend on $h$, this makes
+the CDG scheme very attractive for anisotropic elements, including large
+aspect ratio meshes such as those used in large scale ocean modelling.
 
 \section{The time loop}
 \label{sect:ND_time_loop}
@@ -1070,6 +1078,8 @@ $[0,1]$. This allows us to define:
 \end{equation}
 
 \subsection{The $\theta$ scheme}
+\index{theta-scheme@$\theta$-scheme}
+\index{time!theta-scheme@$\theta$-scheme}
 
 The $\theta$ timestepping scheme requires the expression of a linear
 combination of the known field values at the present timestep and the as-yet
@@ -1119,6 +1129,7 @@ Fluidity actually uses a somewhat different rearrangement of the equations
 however this is an implementation detail which has no impact for the user.
 
 \subsection{Advection subcycling}
+\index{time!advection subcycling}
 
 The slope limiters used with the discontinuous Galerkin formulation only
 guarantee a bounded solution in conjunction with an explicit advection
@@ -1154,6 +1165,8 @@ If a slope limiter is employed, the slope limiter is applied to
 $\dvec{c}_{\mathrm{new}}$ after each subtimestep. 
 
 \section{Momentum Equation}
+\index{momentum equation!discretised}
+
 \label{Sect:ND_momentum_equation}
 The discretisation of the momentum equation in non-conservative 
 form \eqref{nonconmom} is very similar to that of the advection 
@@ -1203,6 +1216,8 @@ pressure gradient matrix is well defined for a discontinuous galerkin
 velocity.
 
 \subsection{Boussinesq approximation}
+\index{Boussinesq!approximation!discretised}
+
 The discretisation of the velocity equation \eqref{mtm} 
 in the Boussinesq approximation is given by simply 
 dropping the density in the mass and advection terms:
@@ -1231,6 +1246,8 @@ where (again assuming CG and ignoring boundary conditions):
 \end{equation*}
 
 \section{Pressure equation for incompressible flow}
+\index{pressue!discretisation}
+
 For incompressible flow the momentum equation needs to be solved 
 in conjunction with the continuity equation 
 $\div\vec u=0$. The discretised weak form of 

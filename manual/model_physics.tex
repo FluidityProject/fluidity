@@ -4,6 +4,7 @@
 One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994} is also a useful reference.
 
 \section{Advection--Diffusion Equation}\label{Sect:MP-AdvdifEqn}
+\index{advection-diffusion equation}
 
 \subsection{Derivation \& Equations}
 
@@ -71,7 +72,7 @@ T=\tilde{T},\quad \textrm{on}\quad \partial\Omega.
 
 \subsubsection{Neumann condition for a scalar field}\label{sect:bc_scalar_neumann}
 \index{boundary conditions!Neumann}
-\index{advection-diffusion equation}
+
 Taking the weak form (applying Green's theorem to the diffusion term) of the advection-diffusion equation \eqref{eq:general_scalar_eqn} leads to a surface integral of the form
 \begin{equation*}
 \int_{\partial\Omega} N_i (\kaptens\nabla T)\cdot\bmn \;d\Gamma.
@@ -379,12 +380,13 @@ term $p'/\rho_0$ is termed the perturbation pressure.
 
 \section{Equations of state \& constituative relations}
 \label{sect:equation_of_state}
+\index{equation of state}
 
 Closure of the conservation equations requires an additional equation describing how the stress tensor is related to density, temperature and any other state variables of relevance. In general, this relationship is dependent on the physical and chemical properties of the material in the domain; hence, this relationship is known as the material model (note that in multi-material simulations a different material model can and must be specified for each material).
 
 It is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the Identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{Sect:ConfigEOS}} $f(p,\rho,T)=0$ relating density to pressure, temperature, etc., and a constitutive relationship $g(\tautens,\bmu)=0$.
 
-\subsection{Equation of State for Incompressible flow}
+\subsection{Equation of state for incompressible flow}
 \label{Sect:IncompressibleFlow}
 If a material is \emph{perfectly} incompressible its density cannot change;
 in other words, the material density is independent of pressure and
@@ -439,7 +441,7 @@ For ocean modelling applications the most important compositional variation is s
 \end{equation}
 where $\beta$ is the saline contraction coefficient (Not to be confused with the beta plane parameters defined in the section \ref{sect:coriolis}.)
 
-\subsection{Pade Equation of State for Ocean Modelling}\label{Sect:PadeDescription}
+\subsection{Pade equation of state for ocean modelling}\label{Sect:PadeDescription}
 \index{equation of state!Pade approximation}
 To be described... Matt - please fill this in.
 
@@ -605,6 +607,10 @@ where the volume fraction field at time zero must be specified.
 
 
 \subsection{Absorption, Reaction and Source Terms}
+\index{absorption term}
+\index{source term}
+\index{reaction term}
+
 The absorption term in \eqref{eq:general_scalar_eqn} 
 \begin{equation}\label{eq:scalar_absorption}
 -\sigma c,
