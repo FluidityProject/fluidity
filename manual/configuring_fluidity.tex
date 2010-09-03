@@ -1,11 +1,11 @@
 \chapter{Configuring \fluidity}\label{chap:configuration}
 
 \section{Overview}
-\fluidity\ is configured by creating a \fluidity\ options (or flml) file using
-Diamond.  The left-hand pane of Diamond allows users to browse the
+A \fluidity\ simulation is configured by creating a \fluidity\ options (or flml) file using
+Diamond, which is the Graphical User Interface (GUI). 
+The left-hand pane of Diamond allows users to browse the
 \emph{options tree}, while the right-hand pane provides brief documentation
-about the option and is where users enter input data and record their own
-comments.  For more information about Diamond see ???
+about the option and is where users enter input data. 
 
 This chapter aims to provide a detailed description of all the options in
 the tree.  From section~\ref{Sect:OptionsTree} onwards, \fluidity\ options are
@@ -18,11 +18,12 @@ particular, how to work with fields in \fluidity.
 \fluidity\ options files, or flml files, are XML files whose grammar is defined by the
 fluidity options schema \verb+fluidity_options.rng+. XML files have a
 tree-like structure of elements containing other elements. This structure is
-reflected in the left hand pane of Diamond, the graphical XML editor which
+reflected in the left hand pane of Diamond, the GUI which
 is used to write flml files.
 
-In text, and in code using the Spud library on which the \fluidity\ options
-system is based, a location in the options tree can be written as a path,
+The flml file can also be edited with a standard editor and the options written
+in text and in code using the Spud library on which the \fluidity\ options
+system is based. A location in the options tree can be written as a path,
 much like the path of a file on disk. So, for example, the option
 controlling the physical dimension of the problem domain is written as
 \option{/geometry/dimension}. This should be read as the \option{dimension}
@@ -30,7 +31,7 @@ option which is found under \option{geometry} which is in turn at the top
 level of the options tree. In Diamond, and in the flml file, the absolute
 top level element is always \option{fluidity\_options} but this element is
 always discarded from paths. Figure \ref{fig:geometry_dimension}\ shows a
-Diamond screenshot open at the \option{/geometry/dimension} option.
+Diamond screen shot open at the \option{/geometry/dimension} option.
 
 \begin{figure}[ht]
   \centering
@@ -53,10 +54,10 @@ Comment boxes may contain any characters.
 \subsection{Named options}
 \index{options!names}
 Some options in the tree, such as fields and meshes, have name
-attributes. The name attribute is represented with a double colon so that,
+attributes. The name attribute is represented in the flml file with a double colon so that,
 for example, the coordinate mesh has options path\onlypdf\linebreak
 \option{/geometry/mesh::CoordinateMesh}. Note that this differs from the
-convention in Diamond in which name attributes are given in brackets. Figure
+convention in the Diamond interface in which name attributes are given in brackets. Figure
 \ref{fig:mesh_name}
 
 \begin{figure}[ht]
@@ -104,20 +105,18 @@ dimension.
 Meshes are the finite element spaces on which your problem is solved. Meshes
 are either read from file or are derived from other meshes. Mesh options are
 described in detail in section~\ref{Sect:Mesh}.  There is only one required
-mesh: the CoordinateMesh. Some settings, fields or other settings have
+mesh: the CoordinateMesh. Some settings or fields have
 specific mesh requirements. These are discussed under the appropriate
 options.
-
 
 \subsubsection{Quadrature}
 \index{quadrature!options}
 \fluidity\ uses numerical quadrature to integrate the equations over each
 element. There is a performance/accuracy trade off in quadrature: the more
-quadrature points that are employed, the more accurate the integrals are but
-the more expensive the assembly operation is. Quadrature rules in \fluidity 
-are categorised by the degree of polynomial which they will integrate
+quadrature points are employed, the more accurate the integrals are but
+the more expensive the assembly operation is. Quadrature rules in \fluidity\ are categorised by the degree of the polynomial which they will integrate
 exactly. The higher the degree of the quadrature rule, the more quadrature
-points which will be employed. As a general rule of thumb, the quadrature
+points will be employed. As a general rule of thumb, the quadrature
 degree employed should be at least $\max(2n_{\vec{u}+1},2n_p)$ where
 $n_{\vec{u}}$ is the degree of the elements employed for velocity and $n_p$
 is the degree of the elements employed for pressure. This means that degree
@@ -145,11 +144,11 @@ It is not usually necessary to change the settings for either of the scalar fiel
 These options control the frequency and form of model outputs.
 \subsubsection{Dump format}
 \index{vtk}
-The file format of used to output fields to disk. At this stage, vtu is the
+The file format used to output fields to disk. At this stage, vtu is the
 only allowed format.
 
 \subsubsection{Dump period}
-This is the interval between the state fields being output to disk. You should usually start by setting this to a rather low value (possibly as short as your timestep) for testing and then increase it for production runs once you know your configuration works. The value can be specified as either a constant or python function.
+This is the interval between the state fields being output to disk. You should usually start by setting this to a rather low value (possibly as short as your timestep) for testing and then increase it for production runs once you know how your configuration works. The value can be specified as either a constant or python function.
 
 It is possible to swap \option{/io/dump\_period} for \option{/io/dump\_period\_in\_timesteps} to specify that you wish to have a dump every fixed number of timesteps.
 
@@ -157,11 +156,11 @@ It is possible to swap \option{/io/dump\_period} for \option{/io/dump\_period\_i
 \index{mesh!output}
 
 All fields will be interpolated onto the same mesh for output. Usually the
-CoordinateMesh is the right choice. If you have fields that are 
+CoordinateMesh is the right choice. If you have fields that are of
 higher order than the selected output mesh you will lose 
 accuracy. Interpolating all fields to a higher order mesh for output may give
 very large dump files however. If any 
-of the fields in the output is discontinous, the mesh in the output file
+of the fields in the output is discontinuous, the mesh in the output file
 will be a discontinuous version of the mesh selected here.
 
 \subsubsection{Disable dump at start}
@@ -178,7 +177,7 @@ This outputs dumps at specified CPU times. Not recommended.
 
 \subsubsection{Wall time dump period}
 
-Outputs at specified walltime periods. Not recommended.
+Outputs at specified walltime (real time) periods. Not recommended.
 
 \subsubsection{Max dump file count}
 
@@ -186,20 +185,19 @@ Limits the number of dumps by overwriting the previous dumps after the number sp
 
 \subsubsection{Convergence}
 
-You can check certain fields for convergence during nonlinear iterations.  To do this switch on \option{/timestepping/nonlinear\_iterations} and \option{/timestepping/nonlinear\_iterations/tolerance} and switch on the convergence option under the fields that you want to check for convergence. 
+You can check certain fields for convergence during nonlinear iterations.  To do this switch on \option{/timestepping \\ /nonlinear\_iterations} and \option{/timestepping/nonlinear\_iterations/tolerance} and switch on the convergence option under the fields that you want to check for convergence. 
 
 It is possible to enable the creation of a convergence file, giving details of the convergence of each field over the global nonlinear iteration loop. The .convergence file is in the same format as the .stat file. In order to do this, switch on 
 \option{/io/convergence}  and \option{/io/convergence/convergence\_file}.  You still need the options in the above paragraph.
 
 \subsubsection{Checkpointing}
 \index{checkpointing} Enables checkpointing, which saves sufficient
-information (including a new flml options file) to restart a simulation. You
-must specify how often to checkpoint in terms of the number of dumps. There
+information (including a new flml options file) to restart a simulation, i.e., to continue the simulation after it stopped. You must specify how often to checkpoint in terms of the number of dumps. There
 are also options to checkpoint at the start of the simulation and at the
 end. This latter is useful when running on batch systems that have a time
 limit.
 
-Up to five sets of files are created when checkpointing from new options:
+Up to five sets of files are created when checkpointing:
 \begin{enumerate}
 \item Mesh files - The from\_file meshes, in triangle format. Surface IDs
   and (if present) region IDs are written to the mesh files, and adaptivity
@@ -208,7 +206,7 @@ Up to five sets of files are created when checkpointing from new options:
 \item Field files - A vtu is written for each mesh with prognostic fields in
   each state and (in parallel) for each process.
 \item Checkpointed option file - A new FLML file, with the from\_file mesh
-  set to read from the checkpoint mesh files and the prognostic fields set
+  set to read the checkpoint mesh files and the prognostic fields set
   to initialise from the checkpoint field files.
 \item Checkpointed detector files - Two files related to checkpointing of
   detectors are created.
@@ -222,9 +220,9 @@ checkpoint, the detectors will be read in the same order and consequently
 will be saved in that same order into the output detector file for
 consistency.  The second checkpointed detector file has the extension
 .positions.dat and contains the last position of the detectors at the time 
-of checkpointing in binary format.
+of checkpointing, in binary format.
 
-No checkpointed detectors files will be created if only static detectors are
+No checkpointed detector files will be created if only static detectors are
 defined in Diamond, since the position of these detectors remains always the
 same. This is mainly used when Lagrangian detectors are set that are
 advected by the flow and hence, their position changes as the simulation
@@ -254,7 +252,7 @@ Contains additional options for handling stat files, for example outputting
 a stat file at the start (timestep zero) and outputting stat data before and
 after an adapt.
 
-There are futher options under individual fields, for example to exclude data fro mthe stat file.
+There are futher options under individual fields, for example to exclude data from the stat file.
 
 \subsubsection{Detectors}
 \index{detectors!options}
@@ -317,7 +315,7 @@ def val(t):
 The output of the detectors is an ascii file called
 \option{name\_of\_simulation.detectors} where the name of the simulation has
 been indicated in \option{/simulation\_name}. If binary output
-\option{/io/detectors/} \option{binary\_output} option is set then the file is called
+\option{/io/detectors/} \option{binary\_output} option is enabled then the file containing the detector data is called
 \option{name\_of\_simulation.detectors.dat} and in this case \option{name\_of\_simulation.detectors} contains only the header with the
 information about the detectors (name of each detector, in which column the
 position of each detector is stored, etc.).
@@ -333,7 +331,7 @@ logging memory diagnostics can be switched on here.
 These options control the start and end time of the simulation as well as options regarding timestep size.
 
 \subsubsection{Current time}
-This is the model time at the start of the simulation. In most cases this is likely to be zero.
+This is the model time at the start of the simulation. In most cases this is likely to be zero. It can be non-zero when continuing a simulation from a checkpoint.
 
 \textbf{Time units}
 
@@ -384,14 +382,14 @@ this limit. This option is useful when coupled with
 Nonlinear quantities in the equations are represented by their last known
 values. It may be necessary to solve the equations more than once to produce
 better approximations to those last known values for reasons of accuracy or
-stability. Unless there are reasons to do otherwise, set this value to 2.
+stability. Unless there are reasons for doing this, set this value to 2.
 
 \subsubsection{Adaptive timestep}
 
 This option allows the timestep, $\Delta T$, to vary throughout the run, depending on the 
 Courant-–Friedrichs-–Lewy (CFL) number.  There are several sub-options here. The
 \option{\ldots/requested\_cfl} is the desired upper limit of the CFL. A value of 5-10 is usual
-here. \fluidity will increase the timestep if the CFL number if less than this value and decrease
+here. \fluidity\ will increase the timestep if the CFL number if less than this value and decrease
 it if the CFL is greater than this. The \option{\ldots/minimum\_timestep} and 
 \option{\ldots/maximim\_timestep} options limit the timestep. The option 
 \option{\ldots/increase\_tolerance} determines
@@ -410,7 +408,7 @@ These options control global physical quantities.
 \subsubsection{Gravity}
 \index{gravity}
 The importance of buoyancy is discussed in section \ref{sect:buoyancy}. This
-required a gravitational field to be set and involves both its magnitude
+requires a gravitational field to be set and involves both its magnitude
 (\eg \mss[9.8]) and a vector field specifying the direction in which gravity
 points. For a 3D simulation in a flat domain with gravity pointing in the
 negative z direction you would set \verb+value(WholeMesh)+ for this field to
@@ -505,7 +503,7 @@ triangle format. This is usually the \option{CoordinateMesh}. To specify the
 triangle files from which the coordinate mesh should be read, set the
 \option{file\_name} attribute of
 \option{/geometry/dimension/mesh::CoordinateMesh/from\_file} to the basename
-of the triangle files (that is, the filename without .node, .ele etc.)
+of the triangle files (that is, the filename without .node, .ele, etc.)
 
 The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
@@ -517,7 +515,7 @@ For information on generating meshes in triangle format, see chapter
 \index{mesh!derived}
 The alternative to reading a mesh from a file is to derive it from another
 mesh. This is necessary when for instance we wish to derive a mesh with
-different continuity or elements from the original mesh. 
+different continuity or elements than the original mesh. 
 For example, if we have a \option{CoordinateMesh} as our input mesh read 
 from file, it is possible to derive a \option{VelocityMesh} from it
 by adding \option{/geometry/mesh::VelocityMesh}, selecting 
@@ -689,7 +687,7 @@ The following sections (\ref{config:spatial} to \ref{config:sediments}) describe
 \subsection{Types of field}
 
 A field associates a value with every node in the domain. Examples of fields
-in a fluids simulation include the velocity and pressure. Fields in \fluidity
+in a fluids simulation include the velocity and pressure. Fields in \fluidity\
 are distinguished by the rank of the data on the field and the way in which
 that field is calculated. 
 
@@ -895,7 +893,7 @@ several options to control the face value and how diffusion is implemented. Face
 \item[UltraC] requires CFL number along with a maximum and minimum target
 \end{description}
 
-For the diffusion scheme one can choose either Bassi Rebay or the element gradient method [CROSS REF].
+For the diffusion scheme one can choose either Bassi Rebay or Compact Discontinuous Galerkin, schemes detailed in \ref{BassiRebay} and \ref{CDG} respectively.
 
 \subsubsection{Discontinuous Galerkin method for the
   advection-diffusion equation}
@@ -922,9 +920,9 @@ scalar across a face. Select one from:
 \item \option{none}: This option switches off the advection term completely.
 \end{itemize}
 
-\option{project\_velocity\_to\_continuous}
-\option{integrate\_advection\_by\_parts}
-\option{integrate\_conservation\_term\_by\_parts}
+\option{project\_velocity\_to\_continuous} \\
+\option{integrate\_advection\_by\_parts} \\
+\option{integrate\_conservation\_term\_by\_parts} 
 
 \paragraph{Diffusion scheme (\option{diffusion\_scheme})} 
 This \emph{compulsory option} selects the discretisation method used
@@ -940,7 +938,7 @@ Select one from:
   for the diffusion matrix, which can reduce computational speed and
   increase memory use. If possible one should use a different option
   with a smaller stencil.
-\item \option{compact\_discontinous\_galerkin}: The compact
+\item \option{compact\_discontinuous\_galerkin}: The compact
   discontinuous Galerkin scheme (CDG) from Peraire and Persson
   \citep{peraire2008} (see section \ref{CDG}). This scheme has the
   smallest stencil of any diffusion scheme and hence is the most
@@ -950,20 +948,20 @@ Select one from:
   Optionally, it is possible to set the
   \option{penalty\_parameter}.\index{penalty parameter!CDG} This
   optional option adds an extra term which penalises jumps across
-  faces, you must supply a multiplicative constant which is scale
+  faces. You must supply a multiplicative constant which is scale
   independent (typical value is 10). This term is required to prove
   theoretical results about the CDG scheme, but we experimentally
-  observe that it is not necessary, and hence it is \emph{recommended
+  observe that it is not necessary, and hence, it is \emph{recommended
     not to use this option}.
 \item \option{interior\_penalty}: Symmetric interior penalty (IP)
   scheme. This scheme simply integrates the diffusion operator by
   parts in each element, averages the fluxes and adds a term which
   penalises jumps. You must set the \option{penalty\_parameter}
   \index{penalty parameter!interior penalty method} which sets the
-  multiplicative constant, and the \option{edge\_length\_parameter}
+  multiplicative constant, and the \option{edge\_length\_parameter}.
   which specifies the scaling with the edge-length $h$. You must also
   select an \option{edge\_length\_option} which is either
-  \option{use\_face\_integral} which computes a lengthscale from the
+  \option{use\_face\_integral} which computes a length scale from the
   face integral, or \option{use\_element\_centres} which uses the
   distance between centres of the two elements on either side of the
   face. Both of these options only function well for nearly isotropic
@@ -994,7 +992,7 @@ Under temporal discretisation, you can set the value of theta, where $0$ is expl
 The source and absorption terms allow for external forcing of the tracer and
 momentum equations. The source is a rate of change of the tracer which is
 independent of the system state while the absorption term is linear in the
-tracer. That is to say, the source and absorption terms modify the tracer
+tracer. The source and absorption terms modify the tracer
 equation as follows:
 \begin{equation}
   \frac{\partial T}{\partial t} = F(T,u,t) - AT + S
@@ -1065,7 +1063,7 @@ If however there is a single location on the boundary where the normal
 component of velocity is not specified then there is no free constant in the
 pressure and neither \option{\ldots/reference\_node} nor
 \option{\ldots/remove\_null\_space} should be set. An example
-may be stress free outflow, or the presence of a free surface.
+may be stress free outflow or the presence of a free surface.
 
 \section{Solution of linear systems}\label{Sect:Solve}
 \index{linear solvers!options}
@@ -1075,7 +1073,7 @@ may be stress free outflow, or the presence of a free surface.
 \index{conjugate gradient}
 \index{multigrid}
 \index{PETSc}
-As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems so called iterative methods are usually employed, as they avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modeled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
+As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems, the so called iterative methods are usually employed. These methods avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modeled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
 
 \subsection{Preconditioner}
 \index{linear solvers!preconditioners}
@@ -1084,7 +1082,7 @@ The requirement for a suitable preconditioner is described in Section \ref{ND_Pr
 
 \subsubsection{Direct Solve}
 
-Note that the option to solve a system exactly is available in FLUIDITY. For this, \option{solver/iterative\_method::preonly} must be selected (preonly -- preconditioner only) and the preconditioner must be set to \option{solver/preconditioner::LU}. A full LU decomposition of the system is then carried out.
+Note that the option to solve a system exactly is available in FLUIDITY. For this, \option{solver \\ /iterative\_method::preonly} must be selected (preonly: preconditioner only) and the preconditioner must be set to \option{solver/preconditioner::LU}. A full LU decomposition of the system is then carried out.
 
 \subsection{Relative Error}
 \index{linear solvers!convergence criteria}
@@ -1097,7 +1095,7 @@ The solver finishes if the preconditioned error becomes smaller than this value.
 
 \subsection{Max Iterations}
 
-The maximum number of iterations allowed for the linear solver, before quitting.
+The maximum number of iterations allowed for the linear solver before quitting.
 
 \subsection{Start from Zero}
 
@@ -1189,7 +1187,7 @@ still represent the full density.
 \index{equation of state!Pade approximation}
 This EOS is described in section~\ref{Sect:PadeDescription}.
 This option uses mean hydrostatic pressure based on depth to calculate the
-pressure (hence why you need to provide the value of z on the top surface.
+pressure (hence why you need to provide the value of z on the top surface).
 For this option, the temp field represents potential temperature \emph{not} in
 situ temperature - so beware (see \citet{mcdougall2003} for a formula for converting
 from in-situ to potential). The units are degrees Centigrade for potential
@@ -1198,7 +1196,7 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 
 \subsubsection{Multi-material compressible EOS}\label{Sect:Multi-material compressible EOS}
 \index{equation of state!stiffened gas}
-\option{\ldots/equation\_of\_state/compressible/miegrunneisen} defines a simple compressible equation of state that can be used to describe gases, liquids and solids, known as the Mie-Gruneisen (or stiffened gas) EOS (see section~\ref{Sect:StiffenedGas}).
+\option{\ldots/equation\_of\_state/compressible/miegrunneisen} defines a simple compressible equation of state that can be used to describe gases, liquids and solids, known as the Mie-Gruneisen (or stiffened gas) EOS. %(see section~\ref{Sect:StiffenedGas}).
 
 \begin{description}
 \item\option{\ldots/miegrunneisen/reference\_density} Specifies the reference density of the material in SI units.
