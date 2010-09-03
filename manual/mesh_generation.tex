@@ -207,7 +207,7 @@ points an assigns the surface IDs 1 and 2 to them.
 \end{lstlisting}
 
 \section{The Gmsh format}\label{sect:gmsh_format}
-\index{mesh!file formats}
+
 
 \fluidity\ also contains built-in support for the Gmsh format. Gmsh is a mesh
 generator freely available on the World Wide Web
@@ -336,6 +336,7 @@ section \ref{Sect:periodic}.
 There are a number of meshing tools in both the scripts and tools directories.
 
 \subsection{interval}
+\index{mesh!meshing tools!interval}
 This is a 1D mesh generator and is in the scripts directory. To use simply type:
 
 
@@ -580,6 +581,7 @@ psuedo\_mesh is parallelised, and accepts the following options:
 \end{center}
 
 \section{Mesh verification}
+\index{mesh!verification}
 
 The tool checkmesh can be used to form a number of verification tests on a mesh
 in triangle mesh format. This tool is build as part of the fltools build target
@@ -635,7 +637,7 @@ tools and software packages available for mesh generation. Here, we describe
 two of the tools commonly used.
 
 \subsection{Terreno}
-\index{mesh!generation!Terreno}
+\index{mesh!meshing tools!Terreno}
 \index{Terreno}
 
 Terreno uses a 2D anisotropic mesh optimisation algorithm to explicitly optimise for 
@@ -660,7 +662,7 @@ properties or climatology data.
 See the \href{http://amcg.ese.ic.ac.uk/terreno}{Terreno website}\ for more information.
 
 \subsection{Gmsh}
-\index{mesh!generation!gmsh}
+\index{mesh!meshing tools!gmsh}
 \index{gmsh}
 
 Gmsh is a 3D finite element mesh generator with a build-in CAD engine and post-processor.
