@@ -3,7 +3,7 @@
 \index{grid|see{mesh}}
 
 This chapter describes how to create a mesh for your \fluidity\ simulation. There
-are many tools available, both free and commercial, that are capable to generating
+are many tools available, both free and proprietary, that are capable of generating
 unstructured meshes that are suitable for use with \fluidity. Here, we restrict ourselves
 to the mesh generation capabilities built into \fluidity\ and the associated script and
 tools, mentioning only briefly some of the more common tools also available.
@@ -99,7 +99,7 @@ First line
 \end{lstlisting}
 Remaining lines
 \begin{lstlisting}
-<vertex number> <x> [<y> <z>]
+<vertex number> <x> [<y> [<z>]]
 \end{lstlisting} 
 where x, y and z are the coordinates.
 
@@ -120,7 +120,7 @@ The elements must be numbered consecutively, starting from one. Nodes are
 indices into the corresponding .node file. For example in case of describing
 a 2D triangle mesh, the first three nodes are the corner vertices. The
 region ID can be used by \fluidity\ to set conditions on different parts of
-the mesh, see chapter \ref{sect:region_ids}.
+the mesh, see section \ref{sect:region_ids}.
 
 \item[.bound file] This file is only generated for one-dimensional meshes.
   It records the boundary points and assigns surface IDs to them. The file
@@ -211,7 +211,7 @@ points an assigns the surface IDs 1 and 2 to them.
 
 \fluidity\ also contains built-in support for the Gmsh format. Gmsh is a mesh
 generator freely available on the World Wide Web
-(\url{http://geuz.org/gmsh/}), as well as being supplied with
+(\url{http://geuz.org/gmsh/}) and is included in
 Linux distributions such as Ubuntu. 
 
 Unlike triangle files, Gmsh meshes are contained within one file, which have
@@ -324,8 +324,8 @@ same height on each side. This can be easily accomplished using the
 \lstinline[language=Bash]+create_aligned_mesh+ script in the scripts folder.
 
 Alternatively, if you require a more complex periodic mesh with some structure between the periodic 
-boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be done by 
-setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh (\website)
+boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be achieved by 
+setting up the periodic boundaries by using extrude and then deleting the 'internal' mesh.
 
 The use of periodic domains requires additional configuration options. See
 section \ref{Sect:periodic}.
@@ -345,19 +345,26 @@ This is a 1D mesh generator and is in the scripts directory. To use simply type:
 
 where left and right define the range of the line. It has a number of user defined input options:
 
-\begin{itemize}
-\item \lstinline+--dx+  constant interval spacing
-\item \lstinline+--variable_dx+  interval spacing defined with a python function
-\item \lstinline+--region_ids+ python function defining the region ID at each point
-\item \lstinline+--reverse+ reverse order of mesh
-\end{itemize}
+
+\begin{center}
+  \begin{tabular}{lp{.6\textwidth}}
+    \hline
+    \lstinline+--dx+ & constant interval spacing\\
+    \lstinline+--variable_dx+ & interval spacing defined with a python function\\
+    \lstinline+--region_ids+ & python function defining the region ID at each point\\
+    \lstinline+--reverse+ & reverse order of mesh\\
+    \hline
+  \end{tabular}
+\end{center}
 
 
 
 \subsection{gmsh2triangle}
 \index{mesh!meshing tools!gmsh2triangle}
 
-\textit{This script converts Gmsh mesh files into triangle format. It will is no longer strictly necessary to use this, since GMSH support is now built into \fluidity\ -- see section \ref{sect:gmsh_format}. It is included here for historical reasons.}
+This script converts Gmsh mesh files into triangle format. Its use is now
+deprecated in favour of directly reading Gmsh files into \fluidity. See
+section \ref{sect:gmsh_format}.
 
 \lstinline[language=Bash]{gmsh2triangle} stores the entire gmsh mesh in memory before writing it out to
 triangle file. For very large meshes this is likely to be impractical,
@@ -367,15 +374,15 @@ amount of data in memory at any one time (it works ``out-of-core''), but
 is slower for small files as it requires the input .msh file to be read multiple
 times.
 
-\lstinline[language=Bash]{gmsh2triangle_large} is used via:
+\lstinline[language=Bash]{gmsh2triangle[_large]} is used via:
 
 \begin{lstlisting}[language = Bash]
-gmsh2triangle_large input
+gmsh2triangle[_large] input
 \end{lstlisting}
 
 where \lstinline[language = Bash]*input* is the input .msh file.
 
-The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle_large+
+The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle[_large]+
 to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
 \subsection{triangle2vtu}
@@ -386,7 +393,7 @@ This converts triangle format files in to vtu format. It is in the fluidity tool
 `\fluiditysourcepath'/tools/triangle2vtu foo
 \end{lstlisting}
 
-Where foo is the triangle file base name (\ie \lstinline+foo.node+ etc.)
+Where \lstinline+foo+ is the triangle file base name (\lstinline+foo.node+ etc.)
 
 \section{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}
@@ -408,107 +415,98 @@ inside your \fluidity\ folder. The following binaries will then be created in th
 \subsection{fldecomp}
 \index{mesh!meshing tools!fldecomp}
 \label{mesh!meshing tools!fldecomp}
-This function is used to decompose a mesh into multiple regions, one per process. In order to run fldecomp, if your mesh files have the base name foo and you want to decompose into four parts, type:
+This program is used to decompose a mesh into multiple regions, one per
+process. In order to run fldecomp, if your mesh files have the base name
+\lstinline{foo}\ and you want to decompose into four parts, type:
 \begin{lstlisting}[language = Bash]
 `\fluiditysourcepath'/bin/fldecomp -n 4 -m mesh_format mesh_file
 \end{lstlisting}
 
 Where:
-\begin{itemize}
-\item \textit{mesh\_file} is the base name of your mesh file(s). Eg., \textit{foo} for \textit{foo.msh} with GMSH format, or \textit{foo.face/node/ele} with triangle format.
+\begin{center}
+  \begin{tabular}{lp{.8\textwidth}}
+    \lstinline+mesh_file+ & is the base name of your mesh file(s). For
+    example, \lstinline+foo+ for \lstinline+foo.msh+ with Gmsh format, or
+    \lstinline+foo.face/node/ele+ with triangle format.\\
+    \lstinline+mesh_format+ & is the format of the mesh file you wish to
+    decompose. It can take two values: \lstinline+gmsh+ or
+    \lstinline+triangle+. If you omit the \lstinline+-m+ option,
+    \lstinline+fldecomp+ will default to \lstinline+triangle+.
+  \end{tabular}
+\end{center}
 
-\item \textit{mesh\_format} is the format of the mesh file you wish to decompose. It can
-take two values: \textit{gmsh} or \textit{triangle}. If you omit the \textit{-m} option, \textbf{fldecomp} will default to \textit{triangle}.
-\end{itemize}
-
-%In your fluidity directory type:
-%\begin{lstlisting}[language = Bash]
-%make fltools
-%\end{lstlisting}
-%Navigate back to the directory containing your mesh files. In order to run fldecomp, if your mesh files are called square.geo etc and you want to decompose into four parts, type:
-%\begin{lstlisting}[language = Bash]
-%fludity path /bin/fldecomp -m gmsh -n 4 square
-%\end{lstlisting}
-
-\subsubsection*{Note} For performance reasons, \lstinline[language=Bash]{fldecomp} only supports binary GMSH files. Here is an example of how to generate one:
+For performance reasons, \lstinline[language=Bash]{fldecomp} supports only
+binary Gmsh files. These are generated by passing the \lstinline{-bin}\
+argument to Gmsh, for example:
 
 \begin{lstlisting}[language=bash]
 gmsh -3 -bin project.geo
 \end{lstlisting}
 
-This creates a 3D binary GMSH mesh called \textit{project.msh} from the geometry file.
+This creates a 3D binary Gmsh mesh called \lstinline{project.msh} from the geometry file.
 
 
 
 \subsection{flredecomp}
 \index{mesh!meshing tools!flredecomp}
 \label{mesh!meshing tools!flredecomp}
-This is similar to fldecomp but it runs in parallel. To use simply type, where the decomposed file has the
-name foo\_flredecomp.flml:
+This is similar to fldecomp but runs in parallel. It is invoked as follows:
+\begin{lstlisting}[language=bash]
+mpiexec -n [target number of processors] \
+   `\fluiditysourcepath'/bin/flredecomp \
+        -i [input number of processors] \
+        -o [target number of processors] [input flml] [output flml]
+\end{lstlisting}
+
+For example, to decompose the serial file \lstinline+foo.flml+
+into four parts, type:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
     -i 1 -o 4 foo foo_flredecomp
 \end{lstlisting}
 
-Where:
-
-\begin{lstlisting}[language=bash]
-mpiexec -n [target number of processors] \
-   `\fluiditysourcepath'/bin/flredecomp -i [input number of processors] \
-        -o [target number of processors] [input flml] [output flml]
-\end{lstlisting}
-
-The output of running flredecomp is a series of mesh and vtu files as well as the new flml; in this case foo\_flredecomp.flml.
+The output of running flredecomp is a series of mesh and vtu files as well
+as the new flml; in this case \lstinline+foo_flredecomp.flml+.
 
 %\subsubsection{Decomposing a periodic mesh}
 \subsection{periodise}
 \index{mesh!meshing tools!periodise}
-%\index{Zoltan}\index{parallel!periodic domains}
-%Running a periodic mesh in parallel is relatively straight forward. To begin with, fluidity must be compiled with Zoltan. To check if the Zoltan libraries are installed type:
 
-%\begin{lstlisting}[language=bash]
-%dpkg -l libzoltan*
-%\end{lstlisting}
-
-%If the libraries are not present install them with:
-
-%\begin{lstlisting}[language=bash]
-%sudo apt-get install libzoltan-dev
-%\end{lstlisting}
-
-%Then configure fluidity with zoltan:
-
-%\begin{lstlisting}[language=bash]
-%./configure --with-zoltan
-%\end{lstlisting}
-
-To be able to run a periodic mesh in parallel you have to use two tools (these tools are built as part of the fltools build target (see section \ref{sect:fltools})):
+To be able to run \fluidity\ on a periodic mesh in parallel you have to use
+two tools (these tools are built as part of the fltools build target (see
+section \ref{sect:fltools})):
 
 \begin{itemize}
 \item periodise
 \item flredecomp (\ref{mesh!meshing tools!flredecomp})
 \end{itemize}
 
-The input to periodise is your flml (in this case foo.flml), which contains the mapping for the periodic boundary as described above. Run using the command:
+The input to periodise is your flml (in this case
+\lstinline{foo.flml}). This flml file should already contain the mapping for
+the periodic boundary as described in section
+\ref{Sect:periodic}. Periodise is run with the command:
 
 \begin{lstlisting}[language=bash]
 `\fluiditysourcepath'/bin/periodise foo.flml
 \end{lstlisting}
 
-The output is a new flml called  foo\_periodised.flml and the periodic meshes. Then run flredecomp (section \ref{mesh!meshing tools!flredecomp}) to decompose the mesh for the number of processors required. It is this flml that you use to run a periodic parallel mesh. Therefore, as previously:
+The output is a new flml called \lstinline+foo_periodised.flml+ and the
+periodic meshes. Next run flredecomp (section \ref{mesh!meshing
+  tools!flredecomp}) to decompose the mesh for the number of processors
+required. The flml output by flredecomp is then used to execute the actual simulation:
 
 \begin{lstlisting}[language=bash]
 mpiexec -n [number of processors] \
-   `\fluiditysourcepath'/bin/fluidity [options] foo_periodised_flredecomp.flml
+   `\fluiditysourcepath'/bin/fluidity [options] \
+   foo_periodised_flredecomp.flml
 \end{lstlisting}
 
 \subsection{Parallel periodic extruded meshes}
 \index{parallel!extruded mesh}
 %\ref{mesh!extruded}
-When using a periodic extruded mesh (section ??) in parallel, a number
-of steps are required in order to provide flredecomp (required to make the
-periodic mesh) with a 2D periodic mesh:
+When using a periodic extruded mesh (section \ref{sect:extrudedperiodic}) in parallel, a number
+of steps are required:
 
 \begin{itemize}
 \item Make the periodic 2D flml from the periodic 2plus1 flml
@@ -555,7 +553,7 @@ cd tools
 make ../bin/pseudo_mesh
 \end{lstlisting}
 
-pseudo\_mesh is used via:
+pseudo\_mesh is invoked as:
 
 \begin{lstlisting}[language = Bash]
 pseudo_mesh [-thv] input_basename
@@ -566,17 +564,17 @@ triangle file. If the \lstinline[language = Bash]*-t* flag is supplied then
 then the metric used to form the output mesh is limited to target the element
 count of the input mesh.
 
-psuedo\_mesh is parallelised, and accepts the following flags:
+psuedo\_mesh is parallelised, and accepts the following options:
 
 \begin{center}
-  \begin{tabular}{| l | l |}
+  \begin{tabular}{lp{.6\textwidth}}
     \hline
-    Flag & Function \\
-    \hline
-    -h   & Display help \\
-    -t   & Limit the metric used to form the output mesh to target the \\
-         & element count of the input mesh \\
-    -v   & Verbose mode \\
+ %   Flag & Function \\
+ %   \hline
+    \lstinline+-h+   & Display help \\
+    \lstinline+-t+   & Limit the metric used to form the output mesh to
+    target the element count of the input mesh \\
+    \lstinline+-v+   & Verbose mode \\
     \hline
   \end{tabular}
 \end{center}
@@ -585,7 +583,7 @@ psuedo\_mesh is parallelised, and accepts the following flags:
 
 The tool checkmesh can be used to form a number of verification tests on a mesh
 in triangle mesh format. This tool is build as part of the fltools build target
-(see section \ref{sect:fltools}), and is used via:
+(see section \ref{sect:fltools}), and is invoked as:
 
 \begin{lstlisting}[language = Bash]
 checkmesh input_basename
@@ -601,15 +599,16 @@ triangle file. checkmesh tests for:
   \item\label{item:mesh_tangling} Mesh tangling.
 \end{enumerate}
 
-Test \ref{item:mesh_tangling} is performed by testing for any mesh self-intersections
-via mesh intersection (see section \ref{sec:supermeshing}).
+% Test \ref{item:mesh_tangling} is performed by testing for any mesh self-intersections
+% via mesh intersection (see section \ref{sec:supermeshing}).
 
-checkmesh is parallelised. If running in parallel, it should be launched on a number
-of processes equal to that in the mesh decomposition. In parallel checkmesh output
-is written to checkmesh.log-\[process\] and checkmesh.err-\[process\] log files.
+checkmesh is parallelised. If running in parallel, it should be launched on
+a number of processes equal to that in the mesh decomposition. In parallel
+checkmesh output is written to \onlypdf\linebreak \lstinline+checkmesh.log-[process]+
+and \lstinline+checkmesh.err-[process]+ log files.
 
 \begin{example}
-\begin{lstlisting}[language = Bash]
+\begin{lstlisting}[language = Bash,keywordstyle=]
 Checking volume elements for tangling ...
  In intersection_finder
  In advancing_front_intersection_finder
@@ -633,7 +632,7 @@ Numbering:
 
 In addition to the tools and capabilities of \fluidity, there are numerous
 tools and software packages available for mesh generation. Here, we describe 
-two of the tools used by the group.
+two of the tools commonly used.
 
 \subsection{Terreno}
 \index{mesh!generation!Terreno}
@@ -658,18 +657,19 @@ simultaneously optimise the approximation to other variables in addition to the
 bathymetry on the same mesh, such as back-scatter data from soundings, material 
 properties or climatology data. 
 
-\website.
+See the \href{http://amcg.ese.ic.ac.uk/terreno}{Terreno website}\ for more information.
 
 \subsection{Gmsh}
 \index{mesh!generation!gmsh}
 \index{gmsh}
 
-Gmsh is a 3D finite element grid generator with a build-in CAD engine and post-processor.
+Gmsh is a 3D finite element mesh generator with a build-in CAD engine and post-processor.
 Its design goal is to provide a fast, light and user-friendly meshing tool with parametric
 input and advanced visualisation capabilities. Gmsh is built around four modules: geometry, 
 mesh, solver and post-processing. The specification of any input to these modules is done
 either interactively using the graphical user interface or in ASCII text files using Gmsh's
 own scripting language. 
 
-For more information see the Gmsh website: http://geuz.org/gmsh/ or the AMCG website.
+For more information see the \href{http://geuz.org/gmsh/}{Gmsh website}\ or the \href{http://amcg.ese.ic.ac.uk}{AMCG
+website}.
 
