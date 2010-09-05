@@ -37,11 +37,11 @@ $Elements
 *operation(nsurfaces+nelem)
 *loop elems *OnlyinCond
 *format "%i %i %i %i %i %i"
-*LoopVar 2 3 *Cond(1,int) 0 0 *GlobalNodes
+*LoopVar 2 2 *Cond(1,int) *Cond(1,int) *GlobalNodes
 *end elems
 *Set Cond region_ids *elems 
 *loop elems
-*operation(nsurfaces+loopvar) *ElemsType 3 *Cond(1,int) 1 0 *ElemsConec
+*operation(nsurfaces+loopvar) *ElemsType 2 1 0 *ElemsConec
 *end elems
 $EndElements
 
