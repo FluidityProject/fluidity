@@ -1,4 +1,16 @@
 \chapter{Numerical discretisation}\label{chap:numerical_discretisation}
+\section{Introduction \& some definitions}\label{Sect:ND_Intro}
+
+In this chapter we define the domain we are solving over as $\Omega$. The boundary to 
+$\Omega$ is defined as $\dOmega$ and can be split into different sections, e.g.
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$ where $\dOmega^{N}$ is that part of the boundary over
+which Neumann conditions are applied and $\dOmega^{D}$ is that part of the boundary over
+which Dirichlet conditions are applied. For clarity a subscript showing the field in question we 
+be given on the $N$ and $D$ characters. 
+
+The unit vector \vec{n} is always assumed to be the
+outward facing normal vector to the domain, in the following both the normal vector at the boundary 
+and between elements in the interior will be used.
 
 \section{Discretisation of the advection diffusion equation}
 \label{Sect:ND_advection_diffusion_discretisation}
@@ -19,8 +31,9 @@ $\dOmega^{D_c}$ and impose boundary conditions on $c$:
 
 \subsection{Continuous Galerkin discretisation}
 
-In the continuous Galerkin method, the solution fields are constrained to be
-continuous between elements. The fields are only assumed to be $C0$
+In the continuous Galerkin (sometimes we may use the shorthand CG, which should not be confused with the conjugate gradients) method, 
+the solution fields are constrained to be
+continuous between elements. The fields are only assumed to be $C^0$
 continuous, that is to say there is no assumption that the gradient of a
 field is continuous over the element boundaries.
 
@@ -31,13 +44,13 @@ field is continuous over the element boundaries.
 
 The finite element method always starts by writing the equations in
 \emph{weak form}.  The weak form of the advection-diffusion equation is
-obtained by multiplying it with a suitable continuous test function $\phi$
+obtained by multiplying it with a test function $\phi$
 and integrating over the domain $\Omega$:
 \begin{equation}
   \int_\Omega \phi \left( \ppt{c} + \vec{u}\cdot\grad c - 
     \div\tensor{\mu}\cdot \grad c\right) = 0.
 \end{equation}
-We now integrate the advection and diffusion terms by parts:
+Integrating the advection and diffusion terms by parts yields:
 \begin{equation}\label{eq:weak_adv_diff}
   \int_\Omega 
   \phi \ppt{c} 
@@ -51,7 +64,7 @@ For simplicity sake let us first assume the boundaries are closed
 ($\vec{u}\cdot\vec{n}=0$) and we apply a homogeneous Neumann boundary
 condition everywhere: $\partial c/\partial n=0$:
 \begin{equation}\label{eq:weak_adv_diff_simp}
-  \int_\Omega \phi \frac{\partial c}{\partial t} + 
+  \int_\Omega \phi \frac{\partial c}{\partial t}  
     -\grad\phi\cdot\vec{u} c + 
     \grad\phi\cdot \tensor{\mu}\cdot\grad c = 0. 
 \end{equation}
@@ -65,13 +78,15 @@ on the equation (for more details see \citet{elman2005}).
 \eqref{eq:weak_adv_diff} only contains first derivatives of the field $c$,
 so that we can now include solutions that do not have a continuous second
 derivative. For these solutions the original equation \eqref{heat} would not
-be well-defined. All that is required is that the first derivatives of $c$
+be well-defined. These solutions are termed \emph{weak} and they do not
+have sufficient smoothness to be \emph{classical} solutions to the problem. 
+All that is required for the weak solution is that the first derivatives of $c$
 can be integrated along with the test function. A more precise definition of
 this space, the \emph{Sobolev space}, can again be found \citet{elman2005}.
 
 \subsubsection{Finite element discretisation}
 \index{trial function}
-Instead of looking for a solution in the entire Sobolev space,
+Instead of looking for a solution in the entire function (Sobolev) space,
 in finite element methods discretisation
 happens by restricting the solution to a 
 finite-dimensional subspace. Thus the solution can be 
@@ -83,17 +98,17 @@ the \emph{trial functions} $\phi_i$ that form a basis of the
 \end{equation*}
 The coefficients $c_i$ can be written in vector format. The 
 dimension of this vector equals the dimension of the trial 
-space. In the rest of the manual, any function in 
+space. In the sequel any function in 
 this way represented as a vector will be denoted as $\dvec{c}$.
 
 \index{Galerkin!methods}
 \index{Galerkin!projection}
-Because the set of trial functions is now much smaller, we also need
-a much smaller set of test functions for the equation in weak 
+Since the set of trial functions is now much smaller (or rather finite as opposed to infinite dimensional), we also need
+a much reduced set of test functions for the equation in weak 
 form \eqref{eq:weak_adv_diff_simp} to have a unique 
 solution. A common choice is in fact to choose the same
 test and trial space. Finite element methods that make this choice are 
-referred to as \emph{Galerkin methods} - the discretisation 
+referred to as \emph{Galerkin methods} --- the discretisation 
 can be seen as a so called \emph{Galerkin 
 projection} of the weak equation to a finite subspace.
 
@@ -120,16 +135,16 @@ If we choose \Pone as our test and trial functions, \ie piecewise linear
 functions, within each element we only need to know the value 
 of the function at 3 points in 2D, and 4 points in 3D. 
 In \fluidity\ these points are chosen to be the vertices of 
-the triangles (in 2D) or tetrahedra (3D). 
-For Continuous Galerkin the continuity 
+the triangles (in 2D) or tetrahedra (in 3D) tesselating the domain. 
+For continuous Galerkin the continuity 
 requirement then comes down to requiring 
-the functions to have a single value in each
+the functions to have a single value at each
 vertex. A set of basis functions $\phi_i$ 
 for this space is easily found by choosing the piecewise linear functions
 $\phi_i$ that satisfy:
 \begin{gather*}
-  \phi_i(x_i)=1\\
-  \phi_i(x_{j\neq i})=0
+  \phi_i(x_i)=1, \;\forall i\\
+  \phi_i(x_{j\neq i})=0,\;\forall i,j,
 \end{gather*}
 where $x_i$ are the vertices in the mesh. 
 This choice of basis functions has the following useful property:
@@ -152,17 +167,17 @@ nodes in the element (see Figure \ref{fig:cgshapefunctions}).
 \end{center}
 \end{figure}
 
-As discussed previously the test space in Galerkin FEM methods is the same as the 
+As discussed previously the test space in Galerkin finite element methods is the same as the 
 trial space. So for \PN the test functions can be an arbitrary linear combination 
 of the same set of basis functions. To make sure that the equation we are solving 
-tested integrates to zero with all such test functions, all we have to do is make sure
+integrates to zero with all such test functions, all we have to do is make sure
 that the equation tested with the basis functions integrate to zero. The discretised 
 version of \eqref{eq:weak_adv_diff_simp} therefore becomes
 \index{advection-diffusion equation!weak form!discretised}
 \begin{equation}
-  \sum_j \int_\Omega \phi_i \phi_j  \ddt{c_j} -
+  \sum_j \left\{ \int_\Omega \phi_i \phi_j  \ddt{c_j} -
     \grad\phi_i\cdot\vec{u}\phi_j  c_j + 
-    \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j c_j = 0,
+    \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j c_j \right\} = 0,
     \quad\text{for all }\phi_i.
 \end{equation}
 where we have substituted $c=\sum_j \phi_j c_j$. From this it is readily seen that 
@@ -222,7 +237,7 @@ boundary:
     = 0,
 \end{equation}
 where $\partial\Omega_-$ and $\partial\Omega_+$ refer to respectively 
-the inflow and outflow boundaries.
+the inflow ($\vec{n}\cdot\vec{u}>0$) and outflow boundaries ($\vec{n}\cdot\vec{u}<0$).
 
 It is to be noted that when we are applying boundary conditions weakly we
 still consider the full set of test functions, even those that don't satisfy
@@ -256,7 +271,7 @@ derivatives of discontinuous functions.
 When using discontinuous test \emph{and} trial functions (see Figure \ref{fig:dgshapefunctions}) however, 
 neither the original advection equation, equation \eqref{eq:weak_adv_diff} with $\mu=0$, 
 nor the version \eqref{eq:adv_integrated_by_parts} integrated by parts are well-defined. 
-Within an element however the functions are continuous, and everything is well defined. So within 
+Within an element $e$ however the functions are continuous, and everything is well defined. So within 
 a single element we may write
 \begin{equation}\label{eq:adv_diff_dg}
   \int_e \phi \frac{\partial c}{\partial t} -
@@ -290,17 +305,17 @@ continuous Galerkin method. The complete system of equations is formed
 by summing over all the elements. Assuming weakly applied boundary
 conditions, this results in:
 \begin{multline}
-  \sum_e \int_e \phi \frac{\partial c}{\partial t} 
+  \sum_e \left\{ \int_e \phi \frac{\partial c}{\partial t} 
   - \left(\grad\cdot \phi~\vec{u}\right)~c 
-  + \grad\phi\cdot\tensor{\mu}\cdot\grad c\\
-  + \int_{\partial e\,\cap\dOmega^{D_c}_{-}} \phi\vec{n}\cdot\vec{u}~g_D  
+  + \grad\phi\cdot\tensor{\mu}\cdot\grad c \right. \\
+  \left. + \int_{\partial e\,\cap\dOmega^{D_c}_{-}} \phi\vec{n}\cdot\vec{u}~g_D  
   + \int_{\partial e\,\cap\dOmega^{D_c}_{+}} \phi\vec{n}\cdot\vec{u}~c  
   - \int_{\partial e\,\cap\dOmega^{D_c}}
-  \phi\vec{n}\cdot\tensor{\mu}\cdot\grad c\\
-  + \int_{\partial e\,\cap\dOmega^{N_c}} \phi\vec{n}\cdot\vec{u}~c 
-  - \phi\vec{n}\cdot\tensor{\mu}\cdot\grad g_N\\
-  + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~c} 
-  - \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+  \phi\vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
+  \left. + \int_{\partial e\,\cap\dOmega^{N_c}} \phi\vec{n}\cdot\vec{u}~c 
+  - \phi\vec{n}\cdot\tensor{\mu}\cdot\grad g_N \right. \\
+  \left. + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~c} 
+  - \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
     = 0.      
 \end{multline}
 
@@ -318,7 +333,7 @@ Consider first the case in which $\tensor{\mu}=0$. In this case, equation
 and the question becomes, how do we represent the flux
 $\widehat{\vec{n}\cdot\vec{u}~c}$\ ?
 
-\fluidity\ supports two different advective fluxes for dg. Upwind and local
+\fluidity\ supports two different advective fluxes for DG. Upwind and local
 Lax-Friedrichs. For each flux scheme, there are two potentially
 discontinuous fields for which a unique value must be chosen. The first is
 the advecting velocity $\vec{u}$. The default behaviour is to average the
@@ -335,7 +350,7 @@ where the hatted symbols indicate that the quantity in question is
 continuous between elements. In the following sections, $\vec{\hat{u}}$ will
 be used to indicate the flux velocity, which will have been calculated with
 one of these methods. Note that using the averaging method,
-$\vec{\hat{u}}=\vec{u}$ on the interior of each method with only the inter-element
+$\vec{\hat{u}}=\vec{u}$ on the interior of each element with only the inter-element
 flux differing from $\vec{u}$ while for the projection method, $\vec{\hat
   u}$ and $\vec{u}$ may differ everywhere.
 
@@ -358,12 +373,12 @@ $c_{\mathrm{int}}$ to indicate flux terms which use the value of $c$ from the
 current element only, we have:
 \begin{equation}
   \begin{split}
-    \sum_e \int_e \phi \ppt{c}
-    - \left(\grad\cdot \phi~\vec{\hat u}\right)~c 
-    &+ \int_{\partial e \cap\partial\Omega^{D_c}_-} \vec{n}\cdot\vec{\hat u}~g_D \\
-    &+ \int_{\partial e \cap\partial\Omega^{N_c}\cap\partial\Omega^{D_c}_+} \vec{n}\cdot\vec{\hat u}~c_{\mathrm{int}} \\
-    &+ \int_{\partial e\setminus (\partial\Omega_D\cap\partial\Omega_N)}
-    \vec{n}\cdot\vec{\hat u}~c_{\mathrm{upw}}=0.
+    \sum_e \left\{ \int_e \phi \ppt{c}
+    - \left(\grad\cdot \phi~\vec{\hat u}\right)~c \right.
+    &+ \left. \int_{\partial e \cap\partial\Omega^{D_c}_-} \vec{n}\cdot\vec{\hat u}~g_D \right. \\
+    &+ \left. \int_{\partial e \cap\partial\Omega^{N_c}\cap\partial\Omega^{D_c}_+} \vec{n}\cdot\vec{\hat u}~c_{\mathrm{int}} \right. \\
+    &+ \left. \int_{\partial e\setminus (\partial\Omega_D\cap\partial\Omega_N)}
+    \vec{n}\cdot\vec{\hat u}~c_{\mathrm{upw}} \right\} =0.
     \label{eq:dg_adv_diff_integrated_once}
   \end{split}
 \end{equation}
@@ -373,18 +388,18 @@ current element only, we have:
 In \fluidity\ the advection term with upwinded flux may be subsequently
 integrated by parts again within each element. As this is just a local
 operation on the continuous pieces of $c$ within each element, the new
-boundary integrals take the value of the $c$ on the inside of the element,
+boundary integrals take the value of $c$ on the inside of the element,
 $c_{\mathrm{int}}$. On the outflow boundary of each element this means the
-$c_{\mathrm{int}}$ cancels against $c_{\mathrm{upw}}$. Writing $\partial
-e_-$ for the inflow part of the element boundary, we therefore obtain:
+$c_{\mathrm{int}}$ cancels against $c_{\mathrm{upw}}$ (when the summation over all elements occurs). 
+Writing $\partial e_-$ for the inflow part of the element boundary, we therefore obtain:
 \begin{equation}
 \begin{split}
-  \sum_e\int_e \phi \ppt{c}
-  - \phi~\vec{\hat u}\cdot\grad c 
-    +& \int_{\partial e_- \cap\partial\Omega^{D_c}_-} \vec{n}\cdot\vec{\hat u}~(g_D -c_{\mathrm{int}}) \\
-    +& \int_{\partial e_-\setminus (\partial\Omega_D\cap\partial\Omega_N)}
+  \sum_e \left\{ \int_e \phi \ppt{c}
+  - \phi~\vec{\hat u}\cdot\grad c \right.
+    +& \left. \int_{\partial e_- \cap\partial\Omega^{D_c}_-} \vec{n}\cdot\vec{\hat u}~(g_D -c_{\mathrm{int}}) \right. \\
+    +& \left. \int_{\partial e_-\setminus (\partial\Omega_D\cap\partial\Omega_N)}
     \vec{n}\cdot\vec{\hat u}~
-      (c_{\mathrm{upw}}-c_{\mathrm{int}})=0.
+      (c_{\mathrm{upw}}-c_{\mathrm{int}}) \right\} =0.
     \label{eq:dg_adv_diff_integrated_twice}
 \end{split}
 \end{equation}
@@ -396,9 +411,9 @@ Note that \eqref{eq:dg_adv_diff_integrated_once} and
 \eqref{eq:dg_adv_diff_integrated_twice} are completely equivalent. The
 advantage of the second form, referred to in \fluidity\ as
 ``integrated-by-parts-twice'', is that the numerical evaluation of the
-integrals (quadrature), may not be exact (incomplete quadrature). For this
+integrals (quadrature), may be chosen not be exact (incomplete quadrature). For this
 reason the second form may be more accurate as the internal outflow boundary
-integrals are canceled exactly.
+integrals are cancelled exactly.
 
 \paragraph{Local Lax-Friedrichs flux}
 
@@ -563,22 +578,22 @@ As an alternative, \citet{raymond1976} show that for
 minimises phase errors.
 
 Computing the $\xi$ factor at quadrature points is potentially expensive due to
-the evaluation of a hyperbolic-tangent. Sub-optimal but more computationally
-efficient approximations for $\xi$ are the critical rule approximation \citep{brooks1982}:
+the evaluation of a hyperbolic-tangent \eqref{eqn:xi_parameter}. Sub-optimal but more computationally
+efficient approximations for $\xi$ are the \emph{critical rule} approximation \citep{brooks1982}:
 
 \begin{equation}
   \xi = \begin{cases}
           -1 - 1 / \Pe  & \Pe < -1 \\
           0             & -1 \le \Pe \le 1 \\
-          1 + 1 / \Pe   & \Pe > 1
+          1 + 1 / \Pe   & \Pe > 1,
         \end{cases}
 \end{equation}
 
-and the doubly-asymptotic approximation \citep{DoneaBook}:
+and the \emph{doubly-asymptotic} approximation \citep{DoneaBook}:
 
 \begin{equation}
   \xi = \begin{cases}
-          \Pe / 3.0  & \left| \Pe \right| \le 3.0 \\
+          \Pe / 3  & \left| \Pe \right| \le 3 \\
           \sgn(\Pe)  & \textrm{otherwise}.
         \end{cases}
 \end{equation}
@@ -597,7 +612,7 @@ equation discretisation, but is still experimental for momentum discretisation.
 
 The following example considers pure advection of a 1D top hat of unit magnitude
 and width 0.25 in a periodic domain of unit size. The top hat is advected with a
-CFL number of $1 / 8$. Figure \ref{fig:top_hat_cg} shows the solution after
+Courant number of $1 / 8$. Figure \ref{fig:top_hat_cg} shows the solution after
 80 timesteps using a continuous Galerkin discretisation. Figure \ref{fig:top_hat_su}
 shows the solution when streamline-upwind stabilisation is applied.
 Figure \ref{fig:top_hat_supg} shows the solution when streamline-upwind
