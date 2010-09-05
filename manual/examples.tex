@@ -611,6 +611,91 @@ method to produce a common mesh suitable for the interpolation of fields from mu
 meshes, such as is necessary in time-averaging.
 
 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%----------------------Sphere------------------------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Flow past a sphere: drag calculation}
+
+In this validation test uniform flow past an isolated sphere is simulated
+and the drag on the sphere is calculated and compared to a curve optimised
+to fit a large amount of experimental data.
+
+The sphere is of unit diameter centred at the origin. The entire domain is
+the cuboid defined by $-10\le x\le 20$, $-10\le y\le 10$, $-10\le z\le 10$.
+The unsteady momentum equations with nonlinear advection and viscous terms
+along with the incompressibility constraint are solved. Free slip velocity
+boundary conditions are applied at the four lateral boundaries, $u=1$ is
+applied at the inflow boundary $x=-10$, and a free stress boundary condition
+applied to the outflow at $x=20$. A series of Reynolds numbers in the range
+$Re\in [1,1000]$ are considered. The problem is run for a long enough
+period that the low Reynolds number simulations reach steady state, and the
+higher Reynolds number runs long enough that a wake develops behind the
+sphere and boundary layers on the sphere are formed.  This is deemed
+sufficient for the purposes of this test which is not an in-depth
+investigation of the physics of this problem, nor an investigation of the optimal
+set of numerical options to use.  Here an unstructured
+tetrahedral mesh is used along with mesh optimisation (adaptivity). 
+Figure \ref{fig:drag} shows a snapshot of the
+mesh and velocity vectors taken from a Reynolds number 1000 simulation. The
+mesh can be seen to be resolving the wake and the boundary layers on the
+sphere with enhanced anisotropic resolution. At higher Reynolds numbers the
+dynamics become more complex and if a full numerical study was being
+conducted here more care would be taken is the choice of mesh optimisation
+parameters and the use of averaged values from simulations allowed to run
+for longer periods. The drag coefficient is calculated from
+\begin{equation}
+C_D = \frac{F_x}{\frac{1}{2}\rho u_0^2 A},\qquad F_x = \int_S (n_xp - n_i\tau_{ix})\;dS,
+\end{equation}
+where $\rho$ is the density, taken here to be unity; 
+$u_0$ is the inflow velocity, here unity; 
+and $A$ is the cross-sectional area of the sphere, here $\pi^2/4$. 
+$F_x$ is the force 
+exerted on the sphere in the free stream direction;
+$S$ signifies the surface of the sphere; $n$ is the 
+unit outward pointing normal to the sphere 
+($n_x$ is the $x$-component and $n_i$ the $i^{\textrm{th}}$ 
+component, here summation over repeated indices is assumed); 
+$p$ is the pressure and $\tau$ is the stress tensor;
+see \citet{panton2006}.
+
+Figure \ref{fig:drag} also shows a comparison between the computed drag coefficient with
+a correlation (to a large amount of laboratory data) taken from \citet{brown2003}:
+\begin{equation}
+C_D = \frac{24}{Re}\left(1+0.15Re^{0.681}\right) + \frac{0.407}{1+\frac{8710}{Re}}.
+\label{drag_corr}
+\end{equation}
+
+The assertions tested are that the difference between
+the computed drag coefficient and values from the correlation 
+(\ref{drag_corr}) at a number of Reynolds numbers are within acceptable bounds.
+Checks on the number of nodes produced by the adaptive algorithm for 
+given error measure choice and other options are also conducted. While
+all of these simulations can be run comfortably in serial, the Reynolds 
+number 100 and 1000 cases are performed on 8 cores both to accelerate the 
+tests and as a test of the parallel implementation.
+
+%\begin{figure*}
+%\vspace*{2mm}
+%\begin{center}
+%\includegraphics[width=12cm]{images/Drag-combined}
+%\includegraphics[width=5.5cm]{images/Sphere_Drag}
+%\end{center}
+%\caption{Left: Unstructured adapted mesh from flow past a sphere simulation at Re=$10^3$,
+%with insets showing the mesh and velocity vectors in a blown up region close to the sphere. 
+%Right:
+%Comparisons between the computed drag coefficient (circles) and the correlation (solid line) given by expression
+%(\ref{drag_corr}) in the range $Re\in [1,1000]$.}
+%\label{fig:drag}
+%\end{figure*}
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %----------------------CHANNEL------------------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
