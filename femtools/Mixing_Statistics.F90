@@ -42,6 +42,7 @@ module mixing_statistics
   use halos
   use MeshDiagnostics
   use spud
+  use unittest_tools
 
   implicit none
   
@@ -316,8 +317,6 @@ contains
     real, dimension(2) :: node_vals
     real, dimension(1, 2) :: coords
     
-    assert(sfield%mesh == positions%mesh)
-    
     integrals = 0.0
     ele_loop: do ele = 1, ele_count(sfield)
       if(.not. element_owned(sfield, ele)) cycle ele_loop
@@ -386,8 +385,6 @@ contains
     real :: tet_area
     real, dimension(3) :: node_vals
     real, dimension(2, 3) :: tri_coords, sub_tri_coords
-    
-    assert(sfield%mesh == positions%mesh)
     
     integrals = 0.0   
     ele_loop: do ele = 1, ele_count(sfield)
@@ -510,14 +507,12 @@ contains
     real, dimension(4) :: xele, yele, zele, xelesub, yelesub, zelesub
     real, dimension(6) :: xpent, ypent, zpent
 
-    integer :: ele, i, node, node_integrate_count
-    integer, dimension(:), pointer :: nodes
+    integer :: ele, i, node, node_integrate_count, xnode
+    integer, dimension(:), pointer :: nodes, xnodes
     logical, dimension(size(bounds)) :: integrate_vol
     real :: tet_vol
 
     real :: l_tolerance
-    
-    assert(sfield%mesh == positions%mesh)
 
     if(present(tolerance)) then
        l_tolerance = tolerance
@@ -530,6 +525,7 @@ contains
        ! Check if this processor is integrating this element
        if(.not. element_owned(sfield, ele)) cycle ele_loop
        
+       xnodes => ele_nodes(positions, ele)
        nodes => ele_nodes(sfield, ele)
 
        integrate_vol = .false.
@@ -541,9 +537,10 @@ contains
 
          do iloc = 1,4
             node = nodes(iloc)
-            xele(iloc) = node_val(positions, X_, node)
-            yele(iloc) = node_val(positions, Y_, node)
-            zele(iloc) = node_val(positions, Z_, node)
+            xnode = xnodes(iloc)
+            xele(iloc) = node_val(positions, X_, xnode)
+            yele(iloc) = node_val(positions, Y_, xnode)
+            zele(iloc) = node_val(positions, Z_, xnode)
             if(node_val(sfield, node) >=(bounds(i)-l_tolerance)) then
                node_integrate_count = node_integrate_count + 1
                ii = ii + 1
@@ -561,9 +558,9 @@ contains
          elseif(node_integrate_count==1) then
             ! heaviside function non-zero only over a sub-tet of this element
             
-            xelesub(1) = node_val(positions, X_, nodes(heavi_non_zero(1)))
-            yelesub(1) = node_val(positions, Y_, nodes(heavi_non_zero(1)))
-            zelesub(1) = node_val(positions, Z_, nodes(heavi_non_zero(1)))
+            xelesub(1) = node_val(positions, X_, xnodes(heavi_non_zero(1)))
+            yelesub(1) = node_val(positions, Y_, xnodes(heavi_non_zero(1)))
+            zelesub(1) = node_val(positions, Z_, xnodes(heavi_non_zero(1)))
             ! find locations of the other sub-tet vertices
             ii = 1 ! already have the first
             do iloc = 1,4
@@ -572,26 +569,25 @@ contains
                   dd = (bounds(i) - node_val(sfield, nodes(heavi_non_zero(1))))/ &
                        (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_non_zero(1))))
                   !dd = max(min(dd,1.0),0.0)
-                  xelesub(ii) = xelesub(1) + (node_val(positions, X_, nodes(iloc))-xelesub(1))*dd
-                  yelesub(ii) = yelesub(1) + (node_val(positions, Y_, nodes(iloc))-yelesub(1))*dd
-                  zelesub(ii) = zelesub(1) + (node_val(positions, Z_, nodes(iloc))-zelesub(1))*dd
+                  xelesub(ii) = xelesub(1) + (node_val(positions, X_, xnodes(iloc))-xelesub(1))*dd
+                  yelesub(ii) = yelesub(1) + (node_val(positions, Y_, xnodes(iloc))-yelesub(1))*dd
+                  zelesub(ii) = zelesub(1) + (node_val(positions, Z_, xnodes(iloc))-zelesub(1))*dd
                endif
             end do
             if(ii/=4) then
               FLAbort("have not found all three other vertices of the subtet")
             end if
             integrals(i) = integrals(i) + abs(tetvol(xelesub,yelesub,zelesub))
-
          elseif(node_integrate_count==2) then
             ! this is the complicated case where the ele has been split into two pentahedra
             ! split the pentahedra into 3 tets to calculate the volume
-            xpent(1) = node_val(positions, X_, nodes(heavi_non_zero(1)))
-            ypent(1) = node_val(positions, Y_, nodes(heavi_non_zero(1)))
-            zpent(1) = node_val(positions, Z_, nodes(heavi_non_zero(1)))
+            xpent(1) = node_val(positions, X_, xnodes(heavi_non_zero(1)))
+            ypent(1) = node_val(positions, Y_, xnodes(heavi_non_zero(1)))
+            zpent(1) = node_val(positions, Z_, xnodes(heavi_non_zero(1)))
 
-            xpent(2) = node_val(positions, X_, nodes(heavi_non_zero(2)))
-            ypent(2) = node_val(positions, Y_, nodes(heavi_non_zero(2)))
-            zpent(2) = node_val(positions, Z_, nodes(heavi_non_zero(2)))
+            xpent(2) = node_val(positions, X_, xnodes(heavi_non_zero(2)))
+            ypent(2) = node_val(positions, Y_, xnodes(heavi_non_zero(2)))
+            zpent(2) = node_val(positions, Z_, xnodes(heavi_non_zero(2)))
             ! find locations of the other pentahedra vertices
             ii = 2 ! already have the first two
             do iloc = 1,4
@@ -599,29 +595,30 @@ contains
                   ii = ii + 1
                   dd = (bounds(i) - node_val(sfield, nodes(heavi_non_zero(1))))/ &
                        (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_non_zero(1))))
+                  assert(.not. is_nan(dd))
                   dd = max(min(dd,1.0),0.0)
                   if(ii==3) then
-                     xpent(3) = xpent(1) + (node_val(positions, X_, nodes(iloc))-xpent(1))*dd
-                     ypent(3) = ypent(1) + (node_val(positions, Y_, nodes(iloc))-ypent(1))*dd
-                     zpent(3) = zpent(1) + (node_val(positions, Z_, nodes(iloc))-zpent(1))*dd
+                     xpent(3) = xpent(1) + (node_val(positions, X_, xnodes(iloc))-xpent(1))*dd
+                     ypent(3) = ypent(1) + (node_val(positions, Y_, xnodes(iloc))-ypent(1))*dd
+                     zpent(3) = zpent(1) + (node_val(positions, Z_, xnodes(iloc))-zpent(1))*dd
                   else
-                     xpent(4) = xpent(1) + (node_val(positions, X_, nodes(iloc))-xpent(1))*dd
-                     ypent(4) = ypent(1) + (node_val(positions, Y_, nodes(iloc))-ypent(1))*dd
-                     zpent(4) = zpent(1) + (node_val(positions, Z_, nodes(iloc))-zpent(1))*dd
+                     xpent(4) = xpent(1) + (node_val(positions, X_, xnodes(iloc))-xpent(1))*dd
+                     ypent(4) = ypent(1) + (node_val(positions, Y_, xnodes(iloc))-ypent(1))*dd
+                     zpent(4) = zpent(1) + (node_val(positions, Z_, xnodes(iloc))-zpent(1))*dd
                   endif
 
                   dd = (bounds(i) - node_val(sfield, nodes(heavi_non_zero(2))))/ &
                        (node_val(sfield, nodes(iloc))-node_val(sfield, nodes(heavi_non_zero(2))))
-
+                  assert(.not. is_nan(dd))
                   dd = max(min(dd,1.0),0.0)
                   if(ii==3) then
-                     xpent(5) = xpent(2) + (node_val(positions, X_, nodes(iloc))-xpent(2))*dd
-                     ypent(5) = ypent(2) + (node_val(positions, Y_, nodes(iloc))-ypent(2))*dd
-                     zpent(5) = zpent(2) + (node_val(positions, Z_, nodes(iloc))-zpent(2))*dd
+                     xpent(5) = xpent(2) + (node_val(positions, X_, xnodes(iloc))-xpent(2))*dd
+                     ypent(5) = ypent(2) + (node_val(positions, Y_, xnodes(iloc))-ypent(2))*dd
+                     zpent(5) = zpent(2) + (node_val(positions, Z_, xnodes(iloc))-zpent(2))*dd
                   else
-                     xpent(6) = xpent(2) + (node_val(positions, X_, nodes(iloc))-xpent(2))*dd
-                     ypent(6) = ypent(2) + (node_val(positions, Y_, nodes(iloc))-ypent(2))*dd
-                     zpent(6) = zpent(2) + (node_val(positions, Z_, nodes(iloc))-zpent(2))*dd
+                     xpent(6) = xpent(2) + (node_val(positions, X_, xnodes(iloc))-xpent(2))*dd
+                     ypent(6) = ypent(2) + (node_val(positions, Y_, xnodes(iloc))-ypent(2))*dd
+                     zpent(6) = zpent(2) + (node_val(positions, Z_, xnodes(iloc))-zpent(2))*dd
                   endif
                endif
             end do
@@ -629,15 +626,14 @@ contains
               FLAbort("have not found all two other vertices of the pent")
             end if
             integrals(i) = integrals(i) + PENTAHEDRON_VOL(Xpent,Ypent,Zpent)
-
          elseif(node_integrate_count==3) then
             ! in this case there is a subtet over which the heaviside function IS ZERO so just
             ! use (vol(big_tet) - vol(subtet)) as volume of polyhedra where heaviside function non-zero
             heavi_zero = 10 - (heavi_non_zero(1) + heavi_non_zero(2) + heavi_non_zero(3))
             ! heavi_zero is the local node number of the single node where the heaviside function is zero
-            xelesub(1) = node_val(positions, X_, nodes(heavi_zero))
-            yelesub(1) = node_val(positions, Y_, nodes(heavi_zero))
-            zelesub(1) = node_val(positions, Z_, nodes(heavi_zero))
+            xelesub(1) = node_val(positions, X_, xnodes(heavi_zero))
+            yelesub(1) = node_val(positions, Y_, xnodes(heavi_zero))
+            zelesub(1) = node_val(positions, Z_, xnodes(heavi_zero))
             ! find locations of the other sub-tet vertices
             ii = 1 ! already have the first
             do iloc = 1,4
@@ -648,9 +644,9 @@ contains
 
                   dd = max(min(dd,1.0),0.0)
 
-                  xelesub(ii) = xelesub(1) + (node_val(positions, X_, nodes(iloc))-xelesub(1))*dd
-                  yelesub(ii) = yelesub(1) + (node_val(positions, Y_, nodes(iloc))-yelesub(1))*dd
-                  zelesub(ii) = zelesub(1) + (node_val(positions, Z_, nodes(iloc))-zelesub(1))*dd
+                  xelesub(ii) = xelesub(1) + (node_val(positions, X_, xnodes(iloc))-xelesub(1))*dd
+                  yelesub(ii) = yelesub(1) + (node_val(positions, Y_, xnodes(iloc))-yelesub(1))*dd
+                  zelesub(ii) = zelesub(1) + (node_val(positions, Z_, xnodes(iloc))-zelesub(1))*dd
                endif
             end do
             if(ii/=4) then
