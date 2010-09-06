@@ -199,7 +199,7 @@ Memory_Diagnostics.o: Global_Parameters.o Parallel_Tools.o
 
 Mixing_Statistics.o: FETools.o Field_derivatives.o State.o  \
    Field_Options.o Boundary_Conditions.o Surface_Integrals.o \
-   Halos.o MeshDiagnostics.o 
+   Halos.o MeshDiagnostics.o Unittest_tools.o
 
 Streamfunction.o: State.o Fields.o Transform_elements.o Sparse_Tools.o \
 	Vector_Tools.o Global_Parameters.o Sparsity_Patterns.o Solvers.o \
