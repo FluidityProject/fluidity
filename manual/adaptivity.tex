@@ -35,11 +35,11 @@ adaptive framework of Rannacher and co-workers, which estimates
 the error in the computation of a given goal functional, is detailed
 in \citet{becker2001} and \citet{bangerth2003}.
 
-Once \emph{a posteriori} estimates have been computed, 
+Once \emph{a posteriori} estimates have been computed,
 there are many possible ways of modifying the discretisation
 to achieve some error target. These include $h$-adaptivity,
 which changes the connectivity of the mesh \citep{berger1989}; $p$-adaptivity,
-which increases the polynomial order of the approximation 
+which increases the polynomial order of the approximation
 \citep{babuska1994}; and $r$-adaptivity, which relocates
 the vertices of the mesh while retaining the same connectivity
 \citep{budd2009}. Combinations of these methods are also
@@ -70,7 +70,7 @@ The process of adaptive remeshing divides naturally into two parts. The first is
 decide what mesh is desired; the second is to actually generate that mesh. The form
 of communication between these two stages is a symmetric positive-definite tensor field
 which encodes the desired geometric properties of the mesh. This representation was first introduced
-in \citet{vallet1990}. 
+in \citet{vallet1990}.
 
 Let $M$ be a symmetric positive-definite tensor (not a field, for now).
 $M$ induces an inner product by
@@ -89,7 +89,7 @@ $\metric$ if every edge has unit edge length with respect to its inner product;
 $\cal{T}$ is a unit mesh with respect to this metric.
 
 In order to see how the metric representing a mesh may be derived, consider the transformation from the reference element to the physical
-element inherent in the finite element assembly procedure \citep{femtools}. 
+element inherent in the finite element assembly procedure \citep{femtools}.
 Let $K$ be an element of a linear simplicial mesh. $K$ is geometrically characterised by the affine map
 $T_K: \hat{K} \rightarrow K$, where $\hat{K}$ is the reference isotropic element. Since
 $T_K$ is assumed affine, we can write this transformation as
@@ -103,7 +103,7 @@ J_K = M_K Z_K
 \end{equation}
 where $M_K$ is a symmetric positive-definite matrix referred to as the metric,
 and $Z_K$ is orthogonal \citep{micheletti2006}. The geometric properties of a simplicial mesh can be represented
-as a piecewise constant (P0) field over it. The same argument applies to
+as a piecewise constant (\Pzero) field over it. The same argument applies to
 nonlinear or non-simplicial elements, but here the Jacobian varies over the element,
 and so the metric does too.
 
@@ -116,7 +116,7 @@ that metric: global remeshing, local remeshing, and mesh optimisation. For a tho
 of the relevant literature, see \citet{farrell2009i}.
 
 Global remeshing is the act of generating an entirely new mesh of the same domain satisfying the sizing
-specification, by means of an automatic mesh generator. This was first introduced in \citet{peraire1987} by incorporating 
+specification, by means of an automatic mesh generator. This was first introduced in \citet{peraire1987} by incorporating
 sizing and directionality inputs to an advancing front mesh generator.
 
 By contrast, local remeshing is a mechanism of adaptive remeshing in which cavities of elements are removed
@@ -139,7 +139,7 @@ and so its default inclusion would cause licensing complications.
 
 \section{Metric formation} \label{sec:metric_formation}
 The flexibility of adaptive remeshing comes at a cost.
-Adaptive remeshing is more complicated to guide than hierarchical or $p$-refinement. 
+Adaptive remeshing is more complicated to guide than hierarchical or $p$-refinement.
 To guide hierarchical or $p$-refinement, one needs element-level indicators
 measuring the contribution of the element to some quantification of
 the error. By contrast, the input to the adaptive remeshing algorithm
@@ -156,16 +156,16 @@ dimensions, this extends to the tensor of $(p+1)^{th}$ order partial
 derivatives of the function being interpolated. For linear interpolation
 ($p=1$), the interpolation error depends on the Hessian (the matrix
 of second-order partial derivatives), which naturally induces
-a metric in which to form a unit mesh. 
+a metric in which to form a unit mesh.
 
-Consider a field $u$ and its P1 projection onto a mesh $\cal{T}$,
+Consider a field $u$ and its \Pone projection onto a mesh $\cal{T}$,
 $\Pi_h u$. It can be shown \citep{frey2005} that
 \begin{equation}
 \epsilon = ||u - \Pi_h u||_{{\infty},K} \le c \cdot \max_e e^T \left| H \right| e,
 \end{equation}
 where $c$ is a constant independent of mesh size, $K$ is an element, $e$ ranges
 over the edges of $K$, and $\left| H \right|$ is the absolute Hessian (the Hessian
-with the absolute value function applied to its eigenvalues). 
+with the absolute value function applied to its eigenvalues).
 Therefore, one can write
 \begin{equation}
 \epsilon \approx c \cdot \max_e e^T \left| H \right| e,
@@ -177,11 +177,65 @@ and so if $\epsilon$ is the target error in the $L_{\infty}$ norm,
 i.e. the edges are of unit length with respect to the metric
 $\frac{c}{\epsilon} \left| H \right|$.
 
-Thus, in order to achieve a user-specified target interpolation error of $\epsilon$, 
+Thus, in order to achieve a user-specified target interpolation error of $\epsilon$,
 the metric $\frac{c}{\epsilon} \left| H \right|$ is used.
 
 Metrics for norms other than the $L_{\infty}$ norm and interpolation functions
-other than P1 are given in \citet{huang2005}. 
+other than \Pone are given in \citet{huang2005}.
+
+\subsection{Guidelines for choosing parameters which affect the metric construction}
+A number of numerical options/parameters affect the construction of the metric 
+which in turn greatly affect the adapted mesh produced by the optimisation procedure.
+
+\subsubsection{Weights}
+As described above a user-defined interpolation error must be chosen. This can also
+be interpreted as an inverse weight, so a lower value means that one will obtain a
+finer mesh. When adapting to a single field the value of this weight is the most
+important factor in the mesh that will be returned. In the case when multiple
+fields are being adapted to, and hence contribute to the single metric guiding
+adaptivity, then the relative values of these weights will also impact on the 
+mesh returned --- if one wants to place extra emphasis on adapting to one
+field over another then simply set a lower value for the weight associated with
+the first field.
+
+It is possible to define the metric to be \emph{absolute} in which case the
+weight described above will have the dimensions of the corresponding solution 
+field. A useful rule-of-thumb it to start with a weighting of approximately 5\%
+the magnitude of the solution field, if known --- a degree of trial and error
+is somewhat inevitable here.
+
+It is also possible for the metric to be \emph{relative} in which case the
+weight should be chosen between zero and one. The 5\% rule would then involve
+setting a value of $\epsilon=0.05$.
+
+\subsubsection{Maximum and minimum element sizes}
+For robustness of the mesh adaptivity procedure, and to limit refinement/coarsening of the
+mesh it is possible to set maximum and minimum allowed element sizes. The input to
+these quantities are tensors allowing one to impose different limits in different directions.
+Assuming that these directions are aligned with the coordinate axes allows one to define
+diagonal tensors.
+
+There are both good and bad reasons that one may need to impose these constraints. The good
+reasons are based on physics: a maximum size may be based on the size of the domain, or that
+resolves a spatial scale that allows an instability to develop (the latter case would be better
+handled with a more advanced a posteriori error measure of course), or simply a consequence of
+the time/memory constraints of the machine the problem is running on. The bad reason is to control
+the mesh when the above weights have been chosen poorly. Having said that it is often 
+unavoidable that the weights and max/min element sizes will be chosen in tandem to achieve 
+an appropriate mesh, especially for experienced users --- new users should be wary whenever maximum
+and particularly minimum size constraints are actually hit in the mesh and as a first stage should
+look to vary the weights to achieve the mesh they desire.
+
+Finally, note that these constraints are achieved through manipulations to the metric, which in turn
+controls an optimisation procedure. They are therefore not hard constraints and one may observe the
+constraints being broken (slightly) in places.
+
+\subsubsection{Maximum number of nodes}
+Similar to the max/min element size constraint above, it is possible to limit the maximum number of nodes
+that the mesh optimisation procedure returns. For reasons very similar to above this is dangerous
+but somewhat inevitable. For new users altering the weights should be the primary way to control the
+size of the adapted mesh.
+
 
 \section{Interpolation} \label{sec:interpolation}
 As the meshes produced by adaptive remeshing are in general entirely
@@ -194,7 +248,7 @@ at the nodes of the new mesh. This is fast, but not conservative. It can be inac
 and this approach is not well-defined for discontinuous fields.
 Galerkin projection is more expensive (but not much more), is optimally accurate,
 conservative, and well-defined for discontinuous fields \citep{farrell2009i}.
-However, Galerkin projection is not bounded; a variant is available for P1 fields
+However, Galerkin projection is not bounded; a variant is available for \Pone fields
 which approximately bounds the resulting interpolant \citep{farrell2009a}.
 
 \section{Related topics} \label{sec:adaptivity_related_topics}
