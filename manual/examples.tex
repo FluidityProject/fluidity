@@ -325,68 +325,6 @@ at 15 percent of total run time. The middle adaptive mesh simulation (correspond
 uses a maximum number of nodes which corresponds closely to the number used by the coarsest fixed mesh simulation.
 However, the adaptive simulation runs approximately 60 percent faster than the fixed mesh simulation.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------STOKES FLOW---------------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Square convection Stokes flow}
-\label{sect:stokes_flow}
-
-\subsection{Overview}
-Viscosity-driven square convection flow is a typical geodynamical Stokes problem. In particular, convection in the Earth's mantle is governed by a set of parameters which can be prescribed in computational simulations to produce simple approximations of the real physics involved. This is done using fast-iterative solvers such as finite-element adaptive meshes to compute the solutions to the equations governing the flow at the mesh nodes. Here, quantities such as temperature, velocity, heat flow and topography can be calculated. Results for simple problems such as time-independent, thermal convection in an isoviscous square cavity are initially compared to pre-existing accurate benchmark results (\citep{blankenbach1989}, \citep{davies2007}) to verify the validity of the code, as shown in this example. 
-
-\subsection{Configuration}
-The problem at hand enforces the ratio between kinematic and thermal diffusivity (the Prandtl number) as infinite inside a Cartesian box (with the origin at the bottom-left corner of the square).
-The dimensionless equations thus describing the resulting incompressible convection in this isoviscous cavity are the Momentum, Continuity (mass) and Energy equations, (\ref{squareconv1}), (\ref{squareconv2}) and (\ref{squareconv3}) in Section \ref{mantlespecifics}. Here, (\ref{squareconv4}) defines the Rayleigh number, Ra, a dimensionless parameter combining all material properties and measuring convective vigour. A more detailed discussion on Stokes flow can be found in Section \ref{stokesflow}.
-
-In our test case, initial simulations were conducted for a value of Ra = $10^4$, obtained setting the thermal expansion coefficient, density, thermal diffusivity, kinematic viscosity and temperature drop across the domain all to 1, and gravity to $10^4$. Velocity and pressure were respectively evaluated using quadratic and linear unstructured, uniform, non-adaptive meshing. In particular, sets of data were obtained for the mean surface temperature gradient, expressed by the Nusselt Number:
-
-\begin{equation}
-Nu = \int_0^{\textit{l}} \! -\frac{\partial T}{\partial y} (x,y=1) \, dx
-\end{equation}
-
-where \textit{l} is the length of the side of the square cavity (i.e., the size of the domain).
-
-Similarly, the nondimensional Root-Mean-Square velocity was computed,
-
-\begin{equation}
-V_{RMS} = \sqrt{\frac{1}{V} \int_V ||\textbf{u}||^2 }
-\end{equation}
-
-where V is the area of the computational domain.
-
-In this simple case, the boundary conditions were set so that the vertical and horizontal edges exhibited respectively free slip vertical and horizontal velocity components. Whilst the vertical edges were set to be heat insulators, temperature was fixed to 0 and 1 at the top and bottom edges, creating a temperature gradient along the vertical axis.
-
-\subsection{Results}
-
-Figure \ref{Stokessquareconv1} below shows a surface representation for the temperature field obtained using an unstructured mesh with 7719 nodes across the domain. From the data reported on table \ref{Stokessquareconv2}, the model is clearly well reproducing the problem, with the Nusselt Number and Vrms values coming increasingly closer to the benchmark results when improving the resolution by using finer and finer meshes.
-
-\begin{figure}[h!]
-  \label{Stokessquareconv1}
-  \centering
-  \fig[width=0.5\textwidth]{examples_images/stokes/stokessquareconvection2_1e4_p2p1}
-  \caption{Surface representation of the temperature field for square convection at Ra= $10^4$, with a 7719 nodes unstructured mesh.}
-\end{figure}
-
-\begin{table}[h!]
-\centering
-\begin{tabular}{lll}
-\hline
-\textbf{Mesh-Nodes} & \textbf{RMS Velocity} & \textbf{Nu} \\
-\hline
-487 & 46.12 & 4.16 \\
-\hline
-1814 & 43.62 & 4.36 \\ 
-\hline
-7719 & 43.06 & 4.58 \\
-\hline
-(BENCHMARK) & 42.86 & 4.88 \\
-\hline
-\end{tabular}
-\label{Stokessquareconv2}
-\caption{Nusselt Number and RMS Velocity values obtained with different meshes for Ra = $10^4$ Stokes square convection simulations.}
-\end{table}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------LID DRIVEN CAVITY---------------------------%
@@ -610,9 +548,6 @@ length of multiple model runs. It may be seen that pseudo-supermeshing is an eff
 method to produce a common mesh suitable for the interpolation of fields from multiple
 meshes, such as is necessary in time-averaging.
 
-
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %----------------------Sphere------------------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -808,48 +743,6 @@ second order.
   \label{fig:periodic_channel_error}
 \end{figure}
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------SEAMOUNT------------------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Flow past a seamount}
-\label{sect:seamount}
-
-Matt Piggott
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------BAROTROPIC GYRE-----------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Barotropic gyre}
-\label{sect:barotropic_gyre}
-\subsection{Overview}
-In this problem the unsteady velocity field in the domain $\Omega = L\times L$
-($L=1000\,\textrm{km}$) driven by a constant
-wind s
-tress is computed.
-The two-dimensional constant density Navier-Stokes equations in the following form are considered.
-
-\subsection{Configuration}
-The (eddy) kinematic viscosity is given by $\nu = 1000\,\textrm{m}^2\,\textrm{s}^{-1}$.
-The rotation vector is defined in terms of the beta-plane approximation
-$2\bmOmega=(0,0,f_0 + \beta y)^T$, where $f_0=0$ and $\beta=1.8\times 10^{-11}$.
-A wind stress is applied through the source term $\pmb{f}$ where $f_x = -\tau \cos (\pi y/L)$,
-$\tau = 2\times 10^{-7}$ and $f_y=0$.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------BAROCLINIC GYRE-----------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Baroclinic gyre}
-\label{sect:baroclinic_gyre}
-
-Stephan Kramer
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---------------------ANNULUS-------------------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -997,44 +890,6 @@ only the finest sediment.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------TIDES---------------------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Tides}
-\label{sect:tides}
-
-Rhodri Nelson
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------MULTIMATERIAL-------------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Multimaterial}
-\label{sect:multimaterial}
-
-Cian Wilson/Gareth Collins
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---Idealised density driven rotating overflow--------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-\section{Idealised density driven rotating overflow}
-\label{sect:DOME}
-\subsection{Overview}
-In this simulation a 3D domain following \cite{DOME} is set
-up. The model is initialized with a region of cooler water in the
-embayment which is forced via a sponge region to remain ?? degrees
-lower than the background homogenous temperature of the fluid.  The
-domain is on an $f$-plane with $f=10^{-4}\,\textrm{s}^{-1}$, the time step is ??
-minutes and the mesh is adapted every 3.5 hours. The viscosity in the
-horizontal is $??\,\textrm{m}^{2}\textrm{s}^{-1}$ and is two orders of magnitude smaller
-in the vertical. 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---Open ocean deep convection--------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1120,33 +975,4 @@ No-normal flow, free-stress boundary conditions are applied at the upper and lat
 
 
 \subsection{Results}
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------ELECTROKINETICS-----------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Electrokinetics}
-\label{sect:electrokinetics}
-
-Murtaza Gulamali
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------TRAFFIC-------------------------------------%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Traffic}
-\label{sect:traffic_eg}
-
-Dimitrios Pavlidis
-
-
-
-
-
-
-
-
 
