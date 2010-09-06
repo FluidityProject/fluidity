@@ -119,7 +119,7 @@ contains
 
        ! write columns data if present
        if (associated(positions%mesh%columns)) then
-          call write_gmsh_node_columns(meshFile, fileDesc, positions)
+          call write_gmsh_node_columns( fileDesc, meshFile, positions )
        end if
        ! Close GMSH file
     end if
@@ -182,6 +182,11 @@ contains
     numDimen = mesh_dim(field)
     numCoords = field%dim
 
+    ! Sanity check.
+    if (numNodes==0) then
+       FLAbort("write_gmsh_nodes(): no nodes to write out")
+    end if
+
     ! header line: nodes, dim, no attributes, no boundary markers
     write(fd, "(A)", err=201) "$Nodes"
     ! Why am I doing this? Because Fortran won't easily left-justify integers.
@@ -229,6 +234,12 @@ contains
 
     ! In the GMSH format, faces are also elements.
     numGMSHElems = numElements + numFaces
+
+    ! Sanity check.
+    if (numGMSHElems==0) then
+       FLAbort("write_gmsh_faces_and_elements(): none of either!")
+    end if
+
 
     ! Number of nodes for elements and faces
     nloc = ele_loc(mesh, 1)
@@ -341,12 +352,65 @@ contains
   ! -----------------------------------------------------------------
   ! Write out node colum data
 
-  subroutine write_gmsh_node_columns(meshFile, fileDesc, positions)
-    character(len=*) meshFile
-    integer fileDesc
-    type(vector_field), intent(in) :: positions
+  subroutine write_gmsh_node_columns( fileDesc, meshFile, field )
+    integer :: fileDesc
+    character(len=*) :: meshFile
+    type(vector_field), intent(in) :: field
 
-    ! Nothing here yet...
+    character(len=longStringLen) :: charBuf
+    integer :: numNodes, timeStepNum, numComponents, i
+    real :: columnID
+
+    numNodes = node_count(field)
+
+    ! Not currently used
+    timeStepNum = 0
+    ! Number of field components for node (only 1 : column ID)
+    numComponents = 1
+
+    ! Sanity check.
+    if (numNodes==0) then
+       FLAbort("write_gmsh_node_columns(): no nodes to write out")
+    end if
+
+    call ascii_formatting(fileDesc, meshFile, "write")
+
+    write(fileDesc, "(A)") "$NodeData"
+    ! Telling GMSH we have one string tag ('node_column_ids')
+    write(charBuf, *) 1
+    write(fileDesc, "(A)") trim(adjustl(charBuf))
+    write(fileDesc, "(A)") "column_ids"
+
+    ! No real number tag
+    write(charBuf, *) 0
+    write(fileDesc, "(A)") trim(adjustl(charBuf))
+
+    ! And 3 integer tags (needed)
+    write(charBuf, *) 3
+    write(fileDesc, "(A)") trim(adjustl(charBuf))
+
+    ! Which are:
+    write(charBuf, *) timeStepNum
+    write(fileDesc, "(A)") trim(adjustl(charBuf))
+
+    write(charBuf, *) numComponents
+    write(fileDesc, "(A)") trim(adjustl(charBuf))
+
+    write(charBuf, *) numNodes
+    write(fileDesc, "(A)") trim(adjustl(charBuf))
+
+    ! Switch to binary format and write out node column IDs
+    call binary_formatting(fileDesc, meshFile, "write")
+    do i=1, numNodes
+       columnID = real(field%mesh%columns(i))
+       write(fileDesc) i, columnID
+    end do
+    ! Newline
+    write(fileDesc) char(10)
+
+    ! Write out end tag and return
+    call ascii_formatting(fileDesc, meshFile, "write")
+    write(fileDesc, "(A)") "$EndNodeData"
 
   end subroutine write_gmsh_node_columns
 

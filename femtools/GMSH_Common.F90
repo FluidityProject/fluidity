@@ -47,7 +47,7 @@ module gmsh_common
        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 /)
 
   type GMSHnode
-     integer :: nodeID
+     integer :: nodeID, columnID
      double precision :: x(3)
      ! Currently unused
      ! real, pointer :: properties(:)

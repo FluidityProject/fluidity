@@ -108,8 +108,8 @@ contains
     call read_faces_and_elements( fd, lfilename, gmshFormat, &
          elements, faces )
 
-    ! According to fluidity/scripts/gmsh2triangle, Fluidity doesn't need
-    ! anything past $EndElements, so we close the file.
+    ! Try reading in node column ID data (if there is any)
+    call read_node_column_IDs( fd, lfilename, gmshFormat, nodes)
 
     close( fd )
 
@@ -230,16 +230,14 @@ contains
     do n=1, numNodes
        forall (d = 1:effDimen)
           field%val(d)%ptr(n) = nodes(n)%x(d)
+
        end forall
 
-       ! Labelling nodes for columns is unsupported in Fluidity GMSH
-       ! support. Could extend GMSH mesh file with additional information in
-       ! $NodeData section, but this is currently unsupported and not 
-       ! prescribed behaviour in gmsh2triangle.
-       !
-       ! if ( size(nodes[n]%tags) .eq. 1) then
-       ! field%mesh%columns(n) = nodes(n)%tags(1)
-       ! end if
+       ! If there's a valid node column ID, use it.
+       if ( nodes(n)%columnID .ne. -1 ) then
+          field%mesh%columns(n) = nodes(n)%columnID
+       end if
+
     end do
 
 
@@ -365,7 +363,7 @@ contains
     integer fd, gmshFormat
 
     character(len=*) :: lfilename
-    character(len=longStringLen) :: charBuff
+    character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer gmshFileType, gmshDataSize, one
     real versionNumber
@@ -373,22 +371,22 @@ contains
 
     ! Error checking ...
 
-    read(fd, *) charBuff
-    if( trim(charBuff) .ne. "$MeshFormat" ) then
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$MeshFormat" ) then
        FLExit("Error: can't find '$MeshFormat' (GMSH mesh file?)")
     end if
 
-    read(fd, *) charBuff, gmshFileType, gmshDataSize
+    read(fd, *) charBuf, gmshFileType, gmshDataSize
 
-    read(charBuff,*) versionNumber
+    read(charBuf,*) versionNumber
     if( versionNumber .lt. 2.0 .or. versionNumber .ge. 3.0 ) then
        FLExit("Error: GMSH mesh version must be 2.x")
     end if
 
 
     if( gmshDataSize .ne. doubleNumBytes ) then
-       write(charBuff,*) doubleNumBytes
-       FLExit("Error: GMSH data size does not equal "//trim(adjustl(charBuff)))
+       write(charBuf,*) doubleNumBytes
+       FLExit("Error: GMSH data size does not equal "//trim(adjustl(charBuf)))
     end if
 
 
@@ -401,8 +399,8 @@ contains
     end if
 
 
-    read(fd, *) charBuff
-    if( trim(charBuff) .ne. "$EndMeshFormat" ) then
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$EndMeshFormat" ) then
        FLExit("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
     end if
 
@@ -420,14 +418,14 @@ contains
     integer :: fd, gmshFormat
 
     character(len=*) :: filename
-    character(len=longStringLen) :: charBuff
+    character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer :: i, numNodes
     type(GMSHnode), pointer :: nodes(:)
 
 
-    read(fd, *) charBuff
-    if( trim(charBuff) .ne. "$Nodes" ) then
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$Nodes" ) then
        FLExit("Error: cannot find '$Nodes' in GMSH mesh file")
     end if
 
@@ -454,6 +452,8 @@ contains
        else
           read(fd) nodes(i)%nodeID, nodes(i)%x
        end if
+       ! Set column ID to -1: this will be changed later if $NodeData
+       nodes(i)%columnID = -1
 
     end do
 
@@ -464,12 +464,101 @@ contains
     call ascii_formatting(fd, filename, "read")
 
     ! Read in end node section
-    read(fd, *) charBuff
-    if( trim(charBuff) .ne. "$EndNodes" ) then
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$EndNodes" ) then
        FLExit("Error: cannot find '$EndNodes' in GMSH mesh file")
     end if
 
   end subroutine read_nodes_coords
+
+
+
+  ! -----------------------------------------------------------------
+  ! read in GMSH mesh nodes' column IDs (if exists)
+
+  subroutine read_node_column_IDs( fd, filename, gmshFormat, nodes )
+    integer :: fd, gmshFormat
+    character(len=*) :: filename
+    type(GMSHnode), pointer :: nodes(:)
+
+    character(len=longStringLen) :: charBuf
+    character :: newlineChar
+
+    integer :: numStringTags, numRealTags, numIntTags
+    integer :: timeStep, numComponents, numNodes
+    integer :: i, nodeIx
+    real :: rval
+
+    call ascii_formatting( fd, filename, "read" )
+
+    ! If there's no $NodeData section, don't try to read in column IDs: return
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$NodeData" ) then
+       return
+    end if
+
+    ! Sanity checking
+    read(fd, *) numStringTags
+    if(numStringTags .ne. 1) then
+       FLExit("Error: must have one string tag in GMSH file $NodeData part")
+    end if
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "node_column_ids") then
+       FLExit("Error: GMSH string tag in $NodeData section != 'column_ids'")
+    end if
+
+    ! Skip over these, not used (yet)
+    read(fd, *) numRealTags
+    do i=1, numRealTags
+       read(fd, *) rval
+    end do
+
+    read(fd,*) numIntTags
+    ! This must equal 3
+    if(numIntTags .ne. 3) then
+       FLExit("Error: must be 3 GMSH integer tags in GMSH $NodeData section")
+    end if
+
+    read(fd, *) timeStep
+    read(fd, *) numComponents
+    read(fd, *) numNodes
+
+    ! More sanity checking
+    if(numNodes .ne. size(nodes) ) then
+       FLExit("Error: number of nodes for column IDs doesn't match node array")
+    end if
+
+    ! Switch to binary if necessary
+    if(gmshFormat == binaryFormat) then
+       call binary_formatting(fd, filename, "read")
+    end if
+
+
+    ! Now read in the node column IDs
+    do i=1, numNodes
+       select case(gmshFormat)
+       case(asciiFormat)
+          read(fd, *) nodeIx, nodes(i)%columnID
+       case(binaryFormat)
+          read(fd ) nodeIx, rval
+          nodes(i)%columnID = int(rval)
+       end select
+    end do
+
+    ! Skip newline character when in binary mode
+    if( gmshFormat == binaryFormat ) read(fd), newlineChar
+
+    call ascii_formatting(fd, filename, "read")
+
+    ! Read in end node section
+    read(fd, *) charBuf
+    if( trim(charBuf) .ne. "$EndNodeData" ) then
+       FLExit("Error: cannot find '$EndNodeData' in GMSH mesh file")
+    end if
+
+  end subroutine read_node_column_IDs
+
+
 
   ! -----------------------------------------------------------------
   ! Guesstimate mesh dimensions. If any node z-coords are non-zero, then
@@ -507,7 +596,7 @@ contains
     type(GMSHelement), pointer :: allElements(:), elements(:), faces(:)
 
     integer :: numAllElements
-    character(len=longStringLen) :: charBuff
+    character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer :: numEdges, numTriangles, numQuads, numTets, numHexes
     integer :: numFaces, faceType
@@ -515,12 +604,17 @@ contains
     integer :: groupType, groupElems, groupTags
 
 
-    read(fd,*) charBuff
-    if( trim(charBuff) .ne. "$Elements" ) then
+    read(fd,*) charBuf
+    if( trim(charBuf) .ne. "$Elements" ) then
        FLExit("Error: cannot find '$Elements' in GMSH mesh file")
     end if
 
     read(fd,*) numAllElements
+
+    ! Sanity check.
+    if(numAllElements .lt. 1) then
+       FLExit("Error: number of elements in GMSH file < 1")
+    end if
 
     allocate( allElements(numAllElements) )
 
@@ -534,9 +628,9 @@ contains
 
        do e=1, numAllElements
           ! Read in whole line into a string buffer
-          read(fd, "(a)", end=888) charBuff
+          read(fd, "(a)", end=888) charBuf
           ! Now read from string buffer for main element info
-888       read(charBuff, *) allElements(e)%elementID, allElements(e)%type, &
+888       read(charBuf, *) allElements(e)%elementID, allElements(e)%type, &
                allElements(e)%numTags
 
           numLocNodes = elementNumNodes(allElements(e)%type)
@@ -544,7 +638,7 @@ contains
           allocate( allElements(e)%tags( allElements(e)%numTags) )
 
           ! Now read in tags and node IDs
-          read(charBuff, *) tmp1, tmp2, tmp3, &
+          read(charBuf, *) tmp1, tmp2, tmp3, &
                allElements(e)%tags, allElements(e)%nodeIDs
 
        end do
