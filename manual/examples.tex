@@ -60,13 +60,13 @@ is given in \cite{salari2000}.
 \subsection{Overview}
 \label{sect:lock_exchange_overview}
 
-The lock-exchange is a well-known laboratory-scale set-up that has been studied theoretically, experimentally and numerically, \citep{benjamin_68, klemp_94, hartel_00}. A channel is divided by a barrier and either side is filled to the same level with fluids of different density. The barrier (or ‘lock’) is removed and the dense fluid collapses. Two gravity currents flow in opposite directions, the denser fluid flowing below the lighter, and
-a shear instability can manifest in the interfacial layer. It provides a good test case for \fluidity\ and in particular demands the use of the non-hydrostatic Navier-Stokes equations, section \ref{sect:typical_ICOM_equations}, in order to capture the turbulent dynamics of the flow. These governing equations have also used the Boussinesq approximation, section \ref{sect:boussinesq_approximation}, and as the density differences in the flow are sufficiently small it may be adpoted. 
+The lock-exchange is a well-known laboratory-scale set-up that has been studied theoretically, experimentally and numerically \citep{benjamin_68, klemp_94, hartel_00}. A channel is divided by a barrier and either side is filled to the same level with fluids of different density. The barrier (or lock) is removed and the dense fluid collapses. Two gravity currents flow in opposite directions, the denser fluid flowing below the lighter, and
+a shear instability can manifest in the interfacial layer. It provides a good test case for \fluidity\ and in particular demands the use of the non-hydrostatic flow equations, section \ref{sect:typical_ICOM_equations}, in order to capture the turbulent dynamics of the flow. Here the Boussinesq approximation has been used, section \ref{sect:boussinesq_approximation} as the density differences in the flow are sufficiently small.
 
 \subsection{Configuration}
 \label{sect:lock_exchange_configuration}
 
-The domain and physical parameters are set up after \cite{fringer_06} and \cite{ozgokmen_07}, table \ref{tab:le_physical_parameters}. The domain is a 2D rectangular box, $0\leq x \leq 0.8\,$m, $0 \leq z \leq 0.1\,$m and the mesh used is generated with gmsh, section \ref{sect:gmsh}. Initially, dense, cold water, $T = -0.5\,^\circ$C fills one half of the domain, $x<0.4\,$m, and light, warm water $T = 0.5\,^\circ$C fills the other half, $x\geq0.4\,$m, figure \ref{fig:lock_exchange}. At $t=0\,$s, ${\bf u} = {\bf 0}$ everywhere. A no-slip boundary condition is applied along the bottom of the domain, ${\bf u = 0}$ at $z=0$, and a free-slip boundary condition is applied to the top of the domain, $w = 0$ at $z = 0.1$. A free-slip condition is applied to the end walls with $u=0$ at $x = 0.0,\, 0.8\,$m.
+The domain and physical parameters are set up after \cite{fringer_06} and \cite{ozgokmen_07}, table \ref{tab:le_physical_parameters}. The domain is a 2D rectangular box, $0\leq x \leq 0.8\,$m, $0 \leq z \leq 0.1\,$m and the mesh used is generated with gmsh, section \ref{sect:using_gmsh}. Initially, dense, cold water of $T = -0.5\,^\circ$C fills one half of the domain, $x<0.4\,$m, and light, warm water of $T = 0.5\,^\circ$C fills the other half, $x\geq0.4\,$m, see figure \ref{fig:lock_exchange}. At $t=0\,$s, ${\bf u} = {\bf 0}$ everywhere. A no-slip boundary condition is applied along the bottom of the domain, ${\bf u = 0}$ at $z=0$, and a free-slip boundary condition is applied to the top of the domain and the side walls, ${\bf u\cdot\bf n} = 0$ at $z = 0.1\,$m and $x = 0.0,\, 0.8\,$m.
 
 The basic choices for the numerical set-up are outlined in table \ref{tab:le_numerical_configuration}. They comprise a set of standard options for a buoyancy-driven flow such as the lock-exchange. The mesh is adapted before the simulation begins. The mesh is adapted to both the velocity and the temperature fields.  
 
@@ -92,7 +92,7 @@ background temperature, $T_0$                                                 & 
 \begin{tabular}[h]{llp{150mm}}  \hline
 Numerical component                           & Configuration             & Comment \\ \hline
 Geometry                                      & from gmsh 	          & section \ref{sect:gmsh}, has also been setup in 3D \\
-Time step                                      & 0.025                     & keeps CFL no $< 2.5$ \\
+Time step                                      & 0.025\,s                     & keeps CFL no $< 2.5$ \\
 Equation of state                             & linear                    & suitable approximation, section \ref{sect:equation_of_state} \\
 Momentum discretisation                       & \Poo                     & section ??? has also been set up with \PoDGPt \\
                                               & non-conservative          & section ??? \\
@@ -128,18 +128,15 @@ The expected dynamics of a lock-exchange flow are observed, figure \ref{fig:lock
 \end{figure}
 
 \subsection{Notes on the test case}
-This example has been based on the test case \lstinline[language=bash]+\ldots/tests/lock_exchange_2d_cg+. This test, as well as checking the head speed against \cite{hartel_00} has a brief test of the mixing statistics, section \ref{sect:diagnostics_stat_file}. Two bins are used for temperature ($T$) with $-0.5\leq T<0.0$ and $0.0 \leq T$. The test checks that at the start of the simulation half the material is in each bin and that at the start and end of the simulation the total amount of material is correct ($=1$ as it has been chosen to normalise the values). 
+This example has been based on the test case \lstinline[language=bash]+.../tests/lock_exchange_2d_cg+. This test, as well as checking the head speed against \cite{hartel_00} has a brief test of the mixing statistics, section \ref{sect:diagnostics_stat_file}. Two bins are used for temperature ($T$) with $-0.5\leq T<0.0$ and $T\geq 0.0$. The test checks that at the start of the simulation half the material is in each bin and that at the start and end of the simulation the total amount of material is correct ($=1$ as it has been chosen to normalise the values). 
 
-There are also several other versions of the test which are for example in 3d or use an alternative discretisation. All the names begin with \lstinline[language=bash]+lock_exchange_+ and can be found in the \lstinline[language=bash]+\ldots/tests+ and \lstinline[language=bash]+\ldots/fluidity-longtests+ directories of the \fluidity\ trunk.  
+There are also several other versions of the test which are for example in 3d or use an alternative discretisation. All the names begin with \lstinline[language=bash]+lock_exchange_+ and can be found in the \lstinline[language=bash]+.../tests+ and \lstinline[language=bash]+.../fluidity-longtests+ directories of the \fluidity\ trunk.
 
 %\option{
 \subsection{Lagrangian trajectories illustrated in the lock-exchange}
 \label{sect:lock_exchange_Lagrangian_trajectories}
 Lagrangian trajectories from moving or Lagrangian detectors have been calculated in a lock-exchange test case. The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_} \\ \option{Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
-
-In this case, the denser (cooler) fluid is on the right ($0<x \leq 5\,$m) as opposed to the lock-exchange test case described in sections \ref{sect:lock_exchange_configuration} and \ref{sect:lock_exchange_results}  where the denser fluid is on the left. This can be observed in Figure \ref{fig:lock_exchange_Lag_traject_Temp_mesh}, where the Temperature distribution and the adapted mesh at two different times are displayed.
-
-% The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
+Also, the denser (cooler) fluid is now on the right ($0<x \leq 5\,$m) as opposed to the previous example. This can be observed in Figure \ref{fig:lock_exchange_Lag_traject_Temp_mesh}, where the Temperature distribution and the adapted mesh at two different times are displayed.
 
 Figure \ref{fig:lock_exchange_Lagrangian_trajectories} illustrates the Lagrangian trajectories from three particles initially at three different positions in the interface between the fluids.
 
