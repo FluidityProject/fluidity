@@ -243,7 +243,7 @@ module metric_assemble
     type(tensor_field), intent(inout) :: full_metric
     type(vector_field), intent(in) :: horizontal_positions
     
-    integer :: column, node
+    integer :: column, node, i
     type(csr_sparsity) :: back_columns
     type(element_type) :: oned_shape
     type(quadrature_type) :: oned_quad
@@ -313,6 +313,15 @@ module metric_assemble
         call allocate(max_bound, full_metric%mesh, "MinMetricEigenbound")
         do node=1,node_count(full_metric%mesh)
           call set(max_bound, node, eigenvalue_from_edge_length(node_val(max_edge, node)))
+        end do
+      end if
+      
+      if (mesh_periodic(full_metric)) then
+        do i=1, mesh_dim(full_metric)
+          if (minval(max_edge%val(i,i,:))<0.33*(domain_bbox(i,2)-domain_bbox(i,1))) then
+            ewrite(0,*) "WARNING: Your MaximumEdgeLengths size is bigger than a third of the domain size."
+            ewrite(0,*) "With periodic adaptivity this is probably not safe."
+          end if
         end do
       end if
         
