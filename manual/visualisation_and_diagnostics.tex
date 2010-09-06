@@ -515,14 +515,12 @@ and is used via:
 
 \begin{lstlisting}[language = Bash]
 vertical_integration -b bottom -t top -s sizing [-p degree -v]
-  target source field output
+  target source output
 \end{lstlisting}
 
 where \lstinline[language = Bash]+target+ is the target surface mesh triangle base name,
-\lstinline[language = Bash]+source+ is the source vtu, \lstinline[language = Bash]+field+
-is the field in \lstinline[language = Bash]+source+ to integrate, and \lstinline[language = Bash]+output+
-is an output vtu filename. Components of vector or tensor fields may be integrated
-by specifying a \% delimited ``field\%component'' value for \lstinline[language = Bash]+field+.
+\lstinline[language = Bash]+source+ is the source vtu, and \lstinline[language = Bash]+output+
+is an output vtu filename.
 
 The compulsory flags \lstinline[language = Bash]+-b bottom+
 and \lstinline[language = Bash]+-t top+ define the lower and upper bounds of
@@ -761,35 +759,6 @@ There are many useful scripts in the \fluidity\ trunk that can be found in the \
 \caption[Table of useful diagnostic scripts]{Table of useful diagnostic scripts. They can be found in the \lstinline[language = bash]+scripts/+ directory of the \fluidity\ trunk.}
 \label{tab:useful_diagnostic_scripts}
 \end{table}
-
-%%%%%%%%%%%%%%%%%% BAROTROPIC STREAMFUNCTION %%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{barotropic\_streamfunction}
-\label{sect:barotropic_streamfunction}
-
-barotropic\_streamfunction is a wrapper script for the streamfunction\_2d tool
-(see section \ref{sect:streamfunction_2d}). It takes, as input, two vtu files containing
-the x and y component of a velocity field as scalar fields, combines them to
-form a vector field, and calls streamfunction\_2d to compute the streamfunction.
-It is generally used in conjunction with
-vertical\_integration (see section \ref{sect:vertical_integration}).
-
-barotropic\_streamfunction is used via:
-
-\begin{lstlisting}[language = Bash]
-scripts/barotropic_streamfunction [-v] ucomp vcomp output
-\end{lstlisting}
-
-where \lstinline[language = Bash]+ucomp+ and \lstinline[language = Bash]+vcomp+
-are vtu files containing the x and y component velocity fields as scalar fields
-named ``Velocity\%1'' and ``Velocity\%2'' respectively, and
-\lstinline[language = Bash]+output+ is an output vtu filename. The
-\lstinline[language = Bash]+-v+ flag enables verbose output.
-
-Note that if the velocity component fields are \Pzero, they are remapped
-to a \Pone field via nodal averaging (using the vtkCellDataToPointData vtk filter -
-see \url{http://www.vtk.org/doc/release/5.4/html/a00246.html})
-before being supplied to streamfunction\_2d.
 
 %%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

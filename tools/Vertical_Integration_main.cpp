@@ -51,7 +51,6 @@ extern "C"{
 #define vertical_integration F77_FUNC(vertical_integration, VERTICAL_INTEGRATION)
   void vertical_integration(const char* target_basename, const int* target_basename_len,
                             const char* integrated_filename, const int* integrated_filename_len,
-                            const char* integrated_fieldname, const int* integrated_fieldname_len,
                             const char* output_basename, const int* output_basename_len,
                             const real_t* top, const real_t* bottom, real_t* sizing, const int* result_degree);
 
@@ -61,7 +60,7 @@ extern "C"{
 }
 
 void Usage(){
-  cerr << "Usage: vertical_intergation [OPTIONS] ... TARGET INTEGRATED INTEGRATEDFIELD OUTPUT\n"
+  cerr << "Usage: vertical_intergation [OPTIONS] ... TARGET INTEGRATED OUTPUT\n"
        << "\n"
        << "Performs a vertical integration of a vtu via the use of supermeshing a\n"
        << "vertical extrusion.\n"
@@ -152,16 +151,14 @@ int main(int argc, char** argv){
   
   // Input / output
   string target_basename, integrated_filename, integrated_fieldname, output_basename;
-  if(argc > optind + 4){
+  if(argc > optind + 3){
     target_basename = argv[optind + 1];
     integrated_filename = argv[optind + 2];
-    integrated_fieldname = argv[optind + 3];
-    output_basename = argv[optind + 4];
-  }else if(argc == optind + 4){
+    output_basename = argv[optind + 3];
+  }else if(argc == optind + 3){
     target_basename = argv[optind];
     integrated_filename = argv[optind + 1];
-    integrated_fieldname = argv[optind + 2];
-    output_basename = argv[optind + 3];
+    output_basename = argv[optind + 2];
   }else{
     Usage();
     exit(-1);
@@ -169,11 +166,9 @@ int main(int argc, char** argv){
       
   int target_basename_len = target_basename.size();
   int integrated_filename_len = integrated_filename.size();
-  int integrated_fieldname_len = integrated_fieldname.size();
   int output_basename_len = output_basename.size();
   vertical_integration(target_basename.c_str(), &target_basename_len,
                        integrated_filename.c_str(), &integrated_filename_len,
-                       integrated_fieldname.c_str(), &integrated_fieldname_len,
                        output_basename.c_str(), &output_basename_len,
                        &top, &bottom, &sizing, &result_degree);
 

@@ -84,9 +84,14 @@
           <include_mixing_stats replaces="heaviside.dat file" name="Bins">
             <continuous_galerkin/>
             <mixing_bin_bounds>
-              <constant>
-                <real_value shape="5" rank="1">-inf 0.0 0.5 1.0 inf</real_value>
-              </constant>
+              <python>
+                <string_value type="python" lines="20">def val(t):
+  bounds = [float(i) / float(101) for i in range(100)]
+  bounds.insert(0, -float("inf"))
+  bounds.append(float("inf"))
+  
+  return bounds</string_value>
+              </python>
             </mixing_bin_bounds>
           </include_mixing_stats>
         </stat>
