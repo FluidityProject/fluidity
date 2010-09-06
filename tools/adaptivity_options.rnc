@@ -1871,7 +1871,7 @@ mesh_adaptivity_options =
                  element d0 {
                       real
                  },
-                 ## Specifies the amount of absorption in dry areas.
+                 ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
                  element dry_absorption {real_dim_vector}
                }?
             }|

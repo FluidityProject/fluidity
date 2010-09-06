@@ -2255,7 +2255,7 @@ Default is 0.5</a:documentation>
                     <ref name="real"/>
                   </element>
                   <element name="dry_absorption">
-                    <a:documentation>Specifies the amount of absorption in dry areas.</a:documentation>
+                    <a:documentation>Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).</a:documentation>
                     <ref name="real_dim_vector"/>
                   </element>
                 </element>
