@@ -1,11 +1,11 @@
 \chapter{Parameterisations}\label{chap:parameterisations}
 
-Although \fluidity\ is capable of resolving a range of scales dynamically using 
-an adaptive mesh, it is not always feasible to resolve all process that are
+Although \fluidity\ is capable of resolving a range of scales dynamically using
+an adaptive mesh, it is not always feasible to resolve all processes and spatial scales that are
 required for a simulation, and therefore some form of parameterisation is required.
 This chapter introduces the paramateristations that are available in \fluidity.
 
-\section{General length scale turbulence parameterisation}\label{Sect:GLS}
+\section{Generic length scale turbulence parameterisation}\label{Sect:GLS}
 \index{viscosity!eddy}
 \index{diffusivity!eddy}
 \index{Reynolds stress}
@@ -13,70 +13,70 @@ This chapter introduces the paramateristations that are available in \fluidity.
 \index{GLS|see{generic length scale model}}
 \index{generic length scale model}
 
-The general length scale (GLS) turbulence parameterisation is capable of simulating vertical
-turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution, 
+The generic length scale (GLS) turbulence parameterisation is capable of simulating vertical
+turbulence at a scale lower than that of the mesh. There is no dependency on the mesh resolution,
 so is ideal for adaptive ocean-scale problems. GLS has the additional advantage that it
-can be set-up to behave as a number of classical turbulence models. 
-\fluidity has four implementations of GLS available: $k-\epsilon$, $k-kl$, $k-\omega$, 
-and an additional model based on \citet{umlauf2003}, the $gen$ model. 
+can be set-up to behave as a number of classical turbulence models:
+$k-\epsilon$, $k-kl$, $k-\omega$,
+and an additional model based on \citet{umlauf2003}, the $gen$ model.
 
-Briefly, all implementations rely on a local, temporally varying, kinematic eddy 
-viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow 
-quantities (vertical shear) as, along 
+Briefly, all implementations rely on a local, temporally varying, kinematic eddy
+viscosity $K_M$ that parametrises turbulence (local Reynolds stresses) in terms of mean-flow
+quantities (vertical shear) as, along
 with a buoyancy term that parameterises the kinematic eddy diffusivity, $K_H$:
 
 \begin{equation}
-\overline{u'w'} = -K_M\frac{\partial u}{\partial z},\;\;\;
-\overline{v'w'} = -K_M\frac{\partial u}{\partial z},\;\;\;
-\overline{w'\rho'} = -K_H\frac{\partial\rho}{\partial z}
-\end{equation} 
+\overline{u'w'} = -K_M\frac{\partial u}{\partial z},\quad
+\overline{v'w'} = -K_M\frac{\partial v}{\partial z},\quad
+\overline{w'\rho'} = -K_H\frac{\partial\rho}{\partial z},
+\end{equation}
 with
 \begin{equation}
-K_M = \sqrt{k}lS_M+\nu_M^0, \;\;\;
-K_H = \sqrt{k}lS_H+\nu_H^0
+K_M = \sqrt{k}lS_M+\nu_M^0, \quad
+K_H = \sqrt{k}lS_H+\nu_H^0,
 \label{eq:diff}
 \end{equation}
-where $u$ and $v$ are the horizontal components of Reynolds-averaged velocity along the $x$- and $y$-axes, $w$ is 
-the vertical velocity along the vertical $z$-axis, positive upwards and $u'$, $v'$ and $w'$ are the components 
-of the turbulent fluctuations about mean velocity. $\nu_H^0$ is the background diffusivity, $\nu_M^0$ 
-is the background viscosity, $S_M$ and $S_H$ are stability functions, 
-$k$ is the turbulent kinetic energy, and $l$ is a general length-scale.
+where $u$ and $v$ are the horizontal components of Reynolds-averaged velocity along the $x$- and $y$-axes, $w$ is
+the vertical velocity along the vertical $z$-axis, positive upwards and $u'$, $v'$ and $w'$ are the components
+of the turbulent fluctuations about mean velocity. $\nu_H^0$ is a background diffusivity, $\nu_M^0$
+is a background viscosity, $S_M$ and $S_H$ are so-called \emph{stability functions},
+$k$ is the turbulent kinetic energy, and $l$ is a length-scale.
 
-The generic length scale turbulence closure model \citep{umlauf2003} is based in two equations, 
+The generic length scale turbulence closure model \citep{umlauf2003} is based in two equations,
 for the transport of turbulent kinetic energy (TKE, $k$) and a generic second quantity, $\Psi$. The TKE equation is:
 \begin{equation}
-\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k}\frac{\partial k}{\partial z}\right) + P + B - \epsilon 
+\frac{\partial k}{\partial t} + U_i\frac{\partial k}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_k}\frac{\partial k}{\partial z}\right) + P + B - \epsilon,
 \label{tke_one}
 \end{equation}
 \index{Schmidt number}
 where $\sigma_k$ is the turbulence Schmidt number for $k$, $P$ and $B$ represent production by shear and buoyancy as:
 \begin{equation}
-P=-\langle u'w'\rangle\frac{\partial u}{\partial z}-\langle v'w' \rangle\frac{\partial v}{\partial z}=K_MM^2, \;\;\; M^2=\left(\frac{\partial U}{\partial z}\right)^2 + \left(\frac{\partial V}{\partial z}\right)^2 
+P=-\langle u'w'\rangle\frac{\partial u}{\partial z}-\langle v'w' \rangle\frac{\partial v}{\partial z}=K_MM^2, \quad M^2=\left(\frac{\partial U}{\partial z}\right)^2 + \left(\frac{\partial V}{\partial z}\right)^2,
 \end{equation}
 \begin{equation}
-B=-\frac{g}{\rho_0}\langle\rho'w'\rangle=-K_HN^2, \;\;\; N^2= -\frac{g}{\rho_0}\frac{\partial\rho}{\partial z}
+B=-\frac{g}{\rho_0}\langle\rho'w'\rangle=-K_HN^2, \;\;\; N^2= -\frac{g}{\rho_0}\frac{\partial\rho}{\partial z},
 \end{equation}
 where $N$ is the buoyancy frequency. The dissipation is modelled as:
 \begin{equation}
-\epsilon=\left(c_\mu^0\right)^{3+\frac{p}{n}}k^{\frac{3}{2}+\frac{m}{n}}\Psi^{-\frac{1}{n}}
+\epsilon=\left(c_\mu^0\right)^{3+\frac{p}{n}}k^{\frac{3}{2}+\frac{m}{n}}\Psi^{-\frac{1}{n}},
 \end{equation}
 where $c_\mu^0$ is the stability coefficient based on experimental data for unstratified channel flow with a
 log-layer solution. It takes on a specific value when used with a stability function and other model
 parameters.
 
-The second equation is 
+The second equation is
 \begin{equation}
-\frac{\partial \Psi}{\partial t} + U_i\frac{\partial \Psi}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\Psi}\frac{\partial \Psi}{\partial z}\right) + \frac{\Psi}{k}(c_1P + c_3B - c_2\epsilon F_{\mathrm{wall}})
+\frac{\partial \Psi}{\partial t} + U_i\frac{\partial \Psi}{\partial x_i} = \frac{\partial}{\partial z}\left(\frac{K_M}{\sigma_\Psi}\frac{\partial \Psi}{\partial z}\right) + \frac{\Psi}{k}(c_1P + c_3B - c_2\epsilon F_{\mathrm{wall}}).
 \label{psi_one}
 \end{equation}
 
 The parameter $\sigma_\Psi$ is the Schmidt number for $\Psi$ and $c_i$ are constants based on experimental data. The value of $c_3$ depends on if the flow is stably stratified (in which case $c_3=c_3^-$) or unstable ($c_3=c_3^+$). Here,
 \begin{equation}
-\Psi=\left(c_\mu^0\right)^pk^ml^n
+\Psi=\left(c_\mu^0\right)^pk^ml^n,
 \end{equation}
 and
 \begin{equation}
-l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1}
+l=\left(c_\mu^0\right)^3k^{\frac{3}{2}}\epsilon^{-1}.
 \end{equation}
 
 The equation for $l$ can be derived from previous equations.
@@ -84,13 +84,13 @@ The equation for $l$ can be derived from previous equations.
 Choosing values for the parameters $p$, $m$, $n$, $\sigma_k$, $\sigma_\Psi$, $c_1$, $c_2$, $c_3$, $c_\mu^0$,
 and $F_{\mathrm{wall}}$ one can recover the exact formulation of four GLS models incorporated into
 \fluidity; the three standard GLS models,
-$k-\epsilon$, $k-kl$, $k-\omega$, and the additional model based on \citet{umlauf2003}, 
+$k-\epsilon$, $k-kl$, $k-\omega$, and the additional model based on \citet{umlauf2003},
 the \emph{gen} model. Table \ref{tab:glsparams} shows the values of the pertinent parameters for each model.
 
 \begin{table}[b]
-\begin{center} 
+\begin{center}
 \begin{tabular}{lllll}\hline
-Model: & $k-kl$   & $k-\epsilon$                  & $k-\omega$                       & \emph{gen}       \\ 
+Model: & $k-kl$   & $k-\epsilon$                  & $k-\omega$                       & \emph{gen}       \\
 $\Psi=$& $k^1l^1$ & $\left(c_\mu^0\right)^3k^{\frac{3}{2}}l^1$ & $\left(c_\mu^0\right)^{-1}k^{\frac{1}{2}}l^1$ & $\left(c_\mu^0\right)^2k^1l^{\frac{2}{3}}$  \\ \hline
 $p$                   & 0.0            & 3.0          & -1.0         & 2.0          \\
 $m$                   & 1.0            & 1.5          &  0.5         & 1.0          \\
@@ -102,6 +102,7 @@ $c_2$                 & 0.5            & 1.92         & 0.833        & 1.22     
 $c_3^+$               & 1.0            & 1.0          & 1.0          & 1.0          \\
 $k_{\mathrm{min}}$    & $5.0\times10^{-6}$    & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  & $7.6\times10^{-6}$  \\
 $\Psi_{\mathrm{min}}$ & $1.0\times10^{-8}$    & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ & $1.0\times10^{-12}$ \\
+\hline
 \end{tabular}
 \end{center}
 \caption{Generic length scale parameters}
@@ -111,34 +112,34 @@ $\Psi_{\mathrm{min}}$ & $1.0\times10^{-8}$    & $1.0\times10^{-12}$ & $1.0\times
 
 \subsection{Stability functions}
 
-Setting the parameters described above, \ie selecting which GLS model to use, closes the second-order 
-moments, bar the definition of the stability functions, $S_M$ and $S_H$, 
+Setting the parameters described above, \ie selecting which GLS model to use, closes the second-order
+moments, bar the definition of the stability functions, $S_M$ and $S_H$,
 which are a function of $\alpha_M$ and $\alpha_N$, defined as:
 \begin{equation*}
-\alpha_M=\frac{k^2}{\epsilon^2}M^2, \;\;\;
-\alpha_N=\frac{k^2}{\epsilon^2}N^2,
+\alpha_M=\frac{k^2}{\epsilon^2}M^2, \quad
+\alpha_N=\frac{k^2}{\epsilon^2}N^2.
 \end{equation*}
 
 The two stability can be defined as:
 \begin{equation*}
-S_M(\alpha_M,\alpha_N) = \frac{n_0+n_1\alpha_N+n_2\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}
+S_M(\alpha_M,\alpha_N) = \frac{n_0+n_1\alpha_N+n_2\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2},
 \end{equation*}
 and
 \begin{equation*}
-S_H(\alpha_M,\alpha_N) = \frac{n_{b0}+n_{b1}\alpha_N+n_{b2}\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}
+S_H(\alpha_M,\alpha_N) = \frac{n_{b0}+n_{b1}\alpha_N+n_{b2}\alpha_M}{d_0+d_1\alpha_N+d_2\alpha_M+d_3\alpha_N\alpha_M+d_4\alpha_N^2+d_5\alpha_M^2}.
 \end{equation*}
 
-However, using the equilibrium condition for the turbulent kinetic energy as $\frac{P+B}{\epsilon}=1$, one can write
+However, using the equilibrium condition for the turbulent kinetic energy as $(P+B)/\epsilon=1$, one can write
 $\alpha_M$ and a function of $\alpha_N$, allowing elimination of $\alpha_M$ in the above equations \citep{umlauf2005}:
 \begin{equation*}
 S_M(\alpha_M,\alpha_N)\alpha_M - S_N(\alpha_M,\alpha_N)\alpha_N=1
 \end{equation*}
-elementing some of the terms. A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative. 
+elementing some of the terms. A limit on negative values of $\alpha_N$ needs to applied to ensure $\alpha_M$ does not also become negative.
 
 The parameters $n_0$, $n_1$, $n_2$, $d_0$, $d_2$, $d_3$, $d_4$, $n_{b0}$, $n_{b1}$, $n_{b2}$ depend on
 the model parameters chosen and can be related to traditional stability functions \citep{umlauf2005}.
 
-\fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}, each of which can be used in conjection with any of the four
+\fluidity\ contains four choices of stability functions, GibsonLauder78 \citep{gibson1978}, KanthaClayson94 \citep{kantha1994}, CanutoA and CanutoB \citep{canuto2001}, each of which can be used in conjunction with any of the four
 GLS models implemented.
 
 
@@ -191,13 +192,13 @@ where $:$ denotes the double-dot product, defined for two tensors $t, s$ as:
 t : s = t_{11} s_{11} + t_{12} s_{21} + t_{13} s_{31} + t_{21} s_{12} + t_{22} s_{22} + t_{23} s_{32} + t_{31} s_{13} + t_{32} s_{23} + t_{33} s_{33}.
 \end{equation}
 
-A lengthscale is associated with the dissipation of turbulent kinetic energy by molecular viscosity. It is defined as:
+A length scale is associated with the dissipation of turbulent kinetic energy by molecular viscosity. It is defined as:
 
 \begin{equation}\label{lengthscale}
-l = k^{1.5} / \epsilon.
+l = \frac{k^{3/2}}{\epsilon}.
 \end{equation}
 
-A lengthscale limiter has been included in the model (see \citet{yap1987, craft1996}):
+A length scale limiter has been included in the model (see \citet{yap1987, craft1996}):
 
 \begin{equation}\label{yap}
 l = \text{max} \left ( 0.83 \frac{\epsilon^2}{k} \left [ \frac{k^{1.5}}{2.5 \epsilon y} -1 \right ] \left [ \frac{k^{1.5}}{2.5 \epsilon y} \right ]^2, 0 \right ),
@@ -207,7 +208,7 @@ where $y$ is the wall-normal distance. The limiter, if switched on, operates onl
 The five model coefficients are in Table \ref{tab:kepsco}. These are the default values but they can be changed in Diamond.
 
 \begin{table}[hb]
-\begin{center} 
+\begin{center}
 \begin{tabular}{ll}\hline
 Coefficient & Standard value \\ \hline
 $C_\mu$ & 0.09 \\
