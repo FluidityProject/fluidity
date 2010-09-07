@@ -688,20 +688,24 @@ website}. An online manual is available at \href{http://geuz.org/gmsh/doc/texinf
 Gmsh can be used to create a mesh of a `real' ocean domain for use with \fluidity. Several steps must be followed
 to create an ocean mesh compatible with \fluidity:
 
--Data is usually given as a list of longitude/latitude/depth co-ordinates, however, if the data 
-contains additional information such as national ordinance co-ordinates or data source information e.t.c. 
-the data must be pre-processed to remove these. (See section 11.2). 
+\begin{itemize}
 
--Once the data is in the correct format, three columns containing longitude, latitude and depth, respectively, 
+\item Data is usually given as a list of longitude/latitude/depth co-ordinates, however, if the data 
+contains additional information such as national ordinance co-ordinates or data source information e.t.c. 
+the data must be pre-processed to remove these.
+
+\item Once the data is in the correct format, three columns containing longitude, latitude and depth, respectively, 
 it must then be converted to a netCDF file using GMT (Generic Mapping Tools). Contours from this netCDF will be
 extracted for use within Gmsh and later this netCDF file will be used by \fluidity to generate bathymetry
 (see section \ref{sect:extruded_meshes}).
 
--GMT (Generic Mapping Tools) is then be used to extract the desired shoreline contours from the netCDF file. 
+\item GMT (Generic Mapping Tools) is then be used to extract the desired shoreline contours from the netCDF file. 
 
--The contours must then be imported into GMSH in order to create a mesh.
+\item The contours must then be imported into GMSH in order to create a mesh.
 
--Finally, the mesh can be entered in fluidity.
+\item Finally, the mesh can be entered in fluidity.
+
+\end{itemize}
 
 Details of these steps are given below.
 
@@ -711,7 +715,7 @@ Details of these steps are given below.
 \index{mesh!generation!gmsh}
 \index{gmsh}
 
-The horizontal co-ordinates of bathymetric data can come in many different forms: 
+Horizontal co-ordinates of bathymetric data can come in many different forms: 
 longitude/latitude, Ordinance Survey eastings/northings, Universal Mercator Transverse 
 co-ordinates, etc. and sometimes more then one of these systems are given. However, 
 in generating a mesh for use with \fluidity,
@@ -719,7 +723,7 @@ GMT (Generic Mapping Tools, available from: http://gmt.soest.hawaii.edu/ ) is us
 that the data is columnized in the format: longitude latitude depth. As such, the first step 
 required is to convert the data into this format.
 
-\subsubsection{Example}
+\subsubsection*{Example}
 \index{Pre-processing}
 \index{Entering bathymetry data into fluidity using GMSH}
 \index{Gmsh}
@@ -787,7 +791,7 @@ End Program Mersey_geo
 \end{lstlisting}
 
 For data in the netCDF format that requires pre-processing, the netCDF Operator package will be of use. See
-\href{http://nco.sourceforge.net/}{nco.sourceforge.net/} for details. 
+\href{http://nco.sourceforge.net/}{nco.sourceforge.net} for details. 
 
 \subsubsection{Making a netCDF file using GMT}
 \index{Entering bathymetry data into fluidity using GMSH}
@@ -831,9 +835,9 @@ blockmode $bbox $resolution raw.xyz > xyz
 surface $bbox $resolution -T0.75 xyz -Goutfile.grd 
 \end{lstlisting}
 
-This produces a grid of resolution 50m (to change this just change the number after 
+This produces a grid with a 50m resolution (to change the resolution just change the number after 
 resolution=-I ). To visualize the data, use the mayavi data visualizer. Before doing this, 
-the .grd file must be transformed into a file type which mayavi can read. As such the following 
+the .grd file must be converted into the vtu file type which mayavi can read. As such the following 
 command must be entered into the terminal:
 
 \begin{lstlisting}
@@ -846,14 +850,14 @@ then to visualize the data:
 \end{lstlisting}
 
 To display the map when mayavi opens, click on “Visualize”, then “Modules” and finally
-“SurfaceMap”.A box then opens called “Configure SurfaceMap” click on “Show Pipeline”, then 
-“Actor (vtkOpenGLActor)”, then on SetScale and change the last number from 1.0 to something 
-small, e.g. 0.0001. Click on Apply, then Done. This change is made as the first two co-ordinates 
+“SurfaceMap”. A box then opens named “Configure SurfaceMap”, click on “Show Pipeline”, then 
+“Actor (vtkOpenGLActor)” and then SetScale and change the last number from 1.0 to something 
+small, e.g. 0.0001. Click Apply and then Done. This change is made as the first two co-ordinates 
 are in latitude/longitude, while the last is in metres. Close the two boxes and click on +Z 
 on the main Mayavi screen. The bathymetry data will then appear. It is useful to do this in order 
 to check that the data has been correctly gridded.
 
-\subsubsection{Extracting the contours and entering the bathymetry into GMSH}
+\subsubsection{Extracting the contours and importing the bathymetry into GMSH}
 \index{Making the mesh}
 \index{Entering bathymetry data into fluidity using GMSH}
 \index{Gmsh}
@@ -863,8 +867,9 @@ to check that the data has been correctly gridded.
 Once the contour files have been extracted, a GMSH file can be automatically generated by 
 running the following program. This program will extract a specified contour from the 
 netCDF file, to be used as the shoreline, enter the shoreline into GMSH, with a plane 
-surface, physical line and physical surface. Other contours can also be extracted, 
-for bathymetry purposes. When this program is run, it prompts the user to enter several 
+surface, physical line and physical surface. It is also possbile to extract additional contours, 
+i.e. to use as attractors to increase/decrease resolution in certain regions. 
+When this program is run, it prompts the user to enter several 
 pieces of information into the terminal. These include: the name of the netCDF file; 
 the contour to be extracted as the shoreline; whether or not other contours are desired and 
 if so, how many and  which ones; the name of the .geo file which the program will write to 
@@ -1245,9 +1250,9 @@ with the closed boundary
 End Program AutomatedGMSHmeshgenerator
 \end{lstlisting}
 
-The characteristic length desired may be unknown when first making the mesh. As such, enter 0 into the terminal, 
-then when the mesh has been created to satisfaction, run the program again, using the minimum characteristic length, 
-and make the mesh again.
+The characteristic length the user desires may be unknown when first creating a mesh. If so, enter 0 into the terminal, 
+then when the mesh has been created to the users satisfaction, re-run the program using the minimum characteristic length 
+and then remake the mesh.
 
 \subsubsection{Making the mesh}
 \index{Making the mesh}
@@ -1270,20 +1275,20 @@ Background Field = 2;
 
 Next, open the file in GMSH. Click on Geometry and scroll down to “Mesh”. Click on 1-D, then 2-D (note: doing 
 this produces a better mesh than simply clicking 2-D). If the mesh is the wrong size (i.e. it is too coarse, or 
-GMSH crashes making it), open Mesh again, and click on “Define”, then “Fields” and then MathEval in the new box.
-Under “Options”, change the number higher or lower, depending on the problem, and click “Apply”.  Go back to the
-main Mesh menu and press 1-D and 2-D again. This can take some trial and error, but finding the right kind of number
- doesn't take too long. 
+GMSH crashes when making it), open Mesh again, and click on “Define”, then “Fields” and then MathEval in the new box.
+Under “Options”, change the number to be higher or lower, depending on the problem encountered, and click “Apply”.  Go back to the
+main Mesh menu and press 1-D and 2-D again. This can take some trial and error, but finding a good ball-park number
+shouldn't take too long. 
 
-If more resolution is required in specific area, click on “New”, then “Attractor”. In the box next to “NodesList”, enter 
-the point numbers of points close to the desired area (1 or 2 is enough). If resolution is needed close to a line or surface, 
+If more resolution is required in a specific area, click on “New”, then “Attractor”. In the box next to “NodesList”, enter 
+the point numbers of points close to the desired area (1 or 2 is enough). If resolution is required close to a line or surface, 
 type in the line or surface number into “LineList” or “SurfaceList”. 
 
 Click on New again, then “Threshold”. Enter numbers for “LcMax” (the largest element size), and “LcMin” (the smallest mesh size) 
 “DistMax” (the distance away from from the nodes/lines/surfaces at which the element size is given by LcMax) and “Distmin” 
 (the distance away from the node/line/surface to which the element size is given by LcMin). Next to “IField”, enter 3 
 (to specify that the new Attractor field is being used). Tick the “Set as background field” box and press “Apply”. Again, 
-reload the mesh, look at the results, then modify the Threshold numbers until satisfied. Finally, click “Save” on the Mesh menu.
+reload the mesh, look at the results and modify the Threshold numbers until satisfied. Finally, click “Save” on the Mesh menu.
 
 Note: A plug-in is currently under development with the aim of creating a mesh whose resolution is proportional to the local bathymetry.
 
@@ -1293,13 +1298,14 @@ Note: A plug-in is currently under development with the aim of creating a mesh w
 \index{mesh!generation!gmsh}
 \index{gmsh}
 
-After the mesh has been made, move the .msh and the outfile.grd files into a new folder in Fluidity. Type:
+After the mesh file has been generated, move the .msh and the outfile.grd files into a new folder in Fluidity. Type:
 \begin{lstlisting}[language = Bash]
 	 ../../scripts/gmsh2triangle file.msh
 \end{lstlisting}
 
-Then open the newly created file.node. Change the second number on the first line from a 3 to a 2 (as the mesh was made on a sphere,
-fluidity thinks it is a 3-D mesh, when it is a 2-D mesh). Finally, create a new .flml file, using the .grd file for Maximum depth.
+Open the newly created file.node. Change the second number on the first line from a 3 to a 2 (this is owing to the fact that
+the mesh has three position coordinates but is topologically a 2-D object). Finally, create a new .flml file setting the bottom depth
+to be read from the .grd file.
 
 \subsubsection{Troubleshooting}
 \index{Entering bathymetry data into fluidity using GMSH}
@@ -1307,20 +1313,26 @@ fluidity thinks it is a 3-D mesh, when it is a 2-D mesh). Finally, create a new 
 \index{mesh!generation!gmsh}
 \index{gmsh}
 
-1.Check the signs of the data. For example, if the depth is positive instead of negative.
+Some common problems encountered when generating an ocean mesh are listed below.
 
-2.If there are random spikes when visualizing the data lower the resolution in the gmmt gridding commands. The spikes
-may be points for which there is no data which GMT is setting as 0.
+\begin{itemize}
 
-3.Bathymetry data may be missing close to the shoreline (e.g. no data above -10m). To modify this, use g3data to extract a 
+\item Check the signs of the data. For example, check if the depth is positive instead of negative.
+
+\item If there are random spikes when visualizing the data try reducing the resolution used in the GMT griding commands. The spikes
+may be points for which there is no data which GMT is setting to 0.
+
+\item Bathymetry data may be missing close to the shoreline (e.g. no data above -10m). To modify this, use g3data to extract a 
 coastline from a map (e.g. an OS map), and add the co-ordinates to the file entered into GMT. There will still be gaps in the 
-information which GMT will attempt to cover for, but  this will usually give a relatively accurate representation.
+information that GMT will attempt to cover, but  this will usually give a relatively accurate representation.
 
-4.If the data comes in .grd format the first few steps can be skipped and the contours can be directly extracted.
+\item If the data comes in .grd format the first few steps can be skipped and the contours can be directly extracted.
 
-5.Due to GMSH stereographic co-ordinate projection system, if the south pole is not contained by an island when doing a global 
-simulation the GMSH will mesh the islands/continents, not the oceans. To modify this, rotate the co-ordinates of the all of the 
-points so that the south pole is contained by an island, then make the mesh. Once the mesh has been made, copy and paste the node 
-points in the .msh file into a new file, rotate them back to their original positions, and copy them back into the .msh file.
+\item Due to GMSHs stereographic co-ordinate projection system, if the south pole is not contained by an island when creating a global 
+mesh, GMSH will mesh the islands/continents and not the oceans. To correct this, rotate the co-ordinates of the all the 
+points so that the south pole is contained by an island and then generate the mesh. Once the mesh has been created, copy and paste the node 
+coordinates in the .msh file into a new file, perform a rotation back to the original orientation, then copy the rotated node locations back into the .msh file.
+
+\end{itemize}
 
 
