@@ -415,7 +415,7 @@ contains
 
   subroutine solve_advection_diffusion_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection-diffusion equation for the given
-    !!< field unsing discontinuous elements.
+    !!< field using discontinuous elements.
     
     !! Name of the field to be solved for.
     character(len=*), intent(in) :: field_name
@@ -522,7 +522,7 @@ contains
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)
-    ewrite(2,*) 'Number of subcycles for tracer eqn: ', subcycles
+       ewrite(2,*) 'Number of subcycles for tracer eqn: ', subcycles
     end if
 
     limit_slope=.false.
