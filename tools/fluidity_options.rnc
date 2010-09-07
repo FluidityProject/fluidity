@@ -4881,9 +4881,6 @@ scalar_field_choice =
                }
             )
          }|
-         ## Primary production of Phytoplankton. This is calculated by
-         ## the ocean biology module and will not be calculated unless
-         ## ocean biology is being simulated.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "HarmonicPhaseSSa" },
@@ -6114,42 +6111,54 @@ surface_integral_stats_vector.surface_integral &=
 
 forcing =
   (
-    ## Add forcing from ocean data
-    ## If you enable this you MUST enable the /geometry/ocean_boundaries option too
+    ## Force the boundary conditions of various fields in ocean simulations
     element ocean_forcing{
+        ## Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
+        ## and photosynthetic radiation to be set using data obtained from
+        ## the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)
         element bulk_formulae {
             ## The type of bulk formulae to use. Default is NCAR if no selection is made.
             element bulk_formulae {
+                ## Bulk formulae from Large and Yeager (2004)
+                ## Large, W. G. & Yeager, S. G. Diurnal to decadal global forcing 
+                ## for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.
                 element type {
                     attribute name { "NCAR" },
                     empty
                 }|
+                ## Bulk formulae from Fairall et al (2003). 
+                ## Bulk Parameterization of Air–Sea Fluxes: Updates and 
+                ## Verification for the COARE Algorithm Journal of Climate, 2003, 16, 571-591
                 element type {
                     attribute name { "COARE" },
                     empty
                 }|
+                ## Bulk formulae from Kara et al (2005).
+                ## Stability-Dependent Exchange Coefficients for Air–Sea Fluxes
+                ## Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094
                 element type {
                     attribute name { "Kara" },
                     empty
                 }
             }?,
-            ## The netCDF data file downloaded from ERA-40 reanalysis
+            ## The netCDF data file downloaded from ERA-40 reanalysis website
+            ## (see above)
             element input_file {
                attribute file_name {xsd:string} 
             },
             element input_file_type {
-                ## What kind of file is this?
+                ## What kind of file is this? Currently only ERA40 files are supported
                 element type {
                     attribute name { "ERA40" },
                     empty
-                }|
-                element type {
-                    attribute name { "NSEP" },
-                    empty
-                }|
-                element type {
-                    attribute name { "ICOM" },
-                    empty
+                #}|
+                #element type {
+                #    attribute name { "NSEP" },
+                #    empty
+                #}|
+                #element type {
+                #    attribute name { "ICOM" },
+                #    empty
                 }
             }?,
             ## Adding a latitude and longitude here (specified as two real numbers)
@@ -6460,6 +6469,10 @@ prognostic_photosynthetic_radiation =
                  empty
                },
                input_choice_real
+            }|
+            element type {
+               attribute name { "bulk_formulae" },
+               empty
             }|
             element type {
                attribute name { "neumann" },

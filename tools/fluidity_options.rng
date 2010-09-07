@@ -6328,9 +6328,6 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Primary production of Phytoplankton. This is calculated by
-the ocean biology module and will not be calculated unless
-ocean biology is being simulated.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -7819,27 +7816,38 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
   </define>
   <define name="forcing">
     <element name="ocean_forcing">
-      <a:documentation>Add forcing from ocean data
-If you enable this you MUST enable the /geometry/ocean_boundaries option too</a:documentation>
+      <a:documentation>Force the boundary conditions of various fields in ocean simulations</a:documentation>
       <optional>
         <element name="bulk_formulae">
+          <a:documentation>Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
+and photosynthetic radiation to be set using data obtained from
+the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)</a:documentation>
           <optional>
             <element name="bulk_formulae">
               <a:documentation>The type of bulk formulae to use. Default is NCAR if no selection is made.</a:documentation>
               <choice>
                 <element name="type">
+                  <a:documentation>Bulk formulae from Large and Yeager (2004)
+Large, W. G. &amp; Yeager, S. G. Diurnal to decadal global forcing 
+for ocean and sea-ice models: The data sets and flux climatologies. NCAR TR.</a:documentation>
                   <attribute name="name">
                     <value>NCAR</value>
                   </attribute>
                   <empty/>
                 </element>
                 <element name="type">
+                  <a:documentation>Bulk formulae from Fairall et al (2003). 
+Bulk Parameterization of Air–Sea Fluxes: Updates and 
+Verification for the COARE Algorithm Journal of Climate, 2003, 16, 571-591</a:documentation>
                   <attribute name="name">
                     <value>COARE</value>
                   </attribute>
                   <empty/>
                 </element>
                 <element name="type">
+                  <a:documentation>Bulk formulae from Kara et al (2005).
+Stability-Dependent Exchange Coefficients for Air–Sea Fluxes
+Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094</a:documentation>
                   <attribute name="name">
                     <value>Kara</value>
                   </attribute>
@@ -7849,34 +7857,33 @@ If you enable this you MUST enable the /geometry/ocean_boundaries option too</a:
             </element>
           </optional>
           <element name="input_file">
-            <a:documentation>The netCDF data file downloaded from ERA-40 reanalysis</a:documentation>
+            <a:documentation>The netCDF data file downloaded from ERA-40 reanalysis website
+(see above)</a:documentation>
             <attribute name="file_name">
               <data type="string"/>
             </attribute>
           </element>
           <optional>
             <element name="input_file_type">
-              <choice>
-                <element name="type">
-                  <a:documentation>What kind of file is this?</a:documentation>
+              <element name="type">
+                <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
+                <group>
                   <attribute name="name">
                     <value>ERA40</value>
                   </attribute>
                   <empty/>
-                </element>
-                <element name="type">
-                  <attribute name="name">
-                    <value>NSEP</value>
-                  </attribute>
-                  <empty/>
-                </element>
-                <element name="type">
-                  <attribute name="name">
-                    <value>ICOM</value>
-                  </attribute>
-                  <empty/>
-                </element>
-              </choice>
+                </group>
+                <!--
+                  }|
+                  element type {
+                     attribute name { "NSEP" },
+                     empty
+                  }|
+                  element type {
+                     attribute name { "ICOM" },
+                     empty
+                -->
+              </element>
             </element>
           </optional>
           <optional>
@@ -8272,6 +8279,12 @@ If not selected boundary conditions are applied strongly.</a:documentation>
               <empty/>
             </element>
             <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>bulk_formulae</value>
+            </attribute>
+            <empty/>
           </element>
           <element name="type">
             <attribute name="name">
