@@ -993,12 +993,12 @@ The source and absorption terms allow for external forcing of the tracer and
 momentum equations. The source is a rate of change of the tracer which is
 independent of the system state while the absorption term is linear in the
 tracer. The source and absorption terms modify the tracer
-equation as follows:
+equation as follows (cf. \eqref{eq:general_scalar_eqn}):
 \begin{equation}
-  \frac{\partial T}{\partial t} = F(T,u,t) - AT + S
+  \frac{\partial c}{\partial t} = F(c,u,t) - \sigma c + F,
 \end{equation}
-where $F$ represents the advection and diffusion terms, $A$ is the
-absorption and $S$ is the source. The source and absorption are usually
+where $F$ represents the advection and diffusion terms, $\sigma$ is the
+absorption and $F$ is the source. The source and absorption are usually
 prescribed fields supplied by the user but in some cases it may be necessary
 to provide a diagnostic field which will be set by a parameterisation
 somewhere in the model. If this is the case then this will be specified in
@@ -1018,9 +1018,9 @@ respectively.
 It is often useful to be able to relax momentum or a field variable to a
 given state in regions of the domain, typically in regions close to
 boundaries. This may be done using a combination of source and absorption
-terms. If $S$ is the value of the source at a point and $A$ is the
-absorption, then the value of the tracer $T$ will tend to relax to a value
-of $S/A$. The absorption, $A$, has units $1/\mathrm{time}$ and controls the
+terms. If $F$ is the value of the source at a point and $\sigma$ is the
+absorption, then the value of the scalar field $c$ will tend to relax to a value
+of $F/\sigma$. The absorption, $\sigma$, has units $1/\mathrm{time}$ and controls the
 time over which the relaxation occurs.
 
 \section{Solving for pressure}
@@ -1138,7 +1138,7 @@ Options to give extra information for each iteration of the the solve. Note that
 
 The equation of state is a relation between state 
 variables. For incompressible flows it is used to derive the density
-from other variables such as temperature and salinity. For compressible
+from other variables such as temperature and salinity (cf. section \ref{Sect:IncompressibleFlow}). For compressible
 flows it can be a more general relation between the state variables
 including density and pressure.
 
@@ -1247,7 +1247,7 @@ to a \option{diagnostic/algorithm::Internal}. The list of fields to switch is:
 
 If these fields are not set correctly, a user error will occur.
 
-\subsection{K-Epsilon Turbulence Model}\label{Sect:kepsilon_usage}
+\subsection{k-$\epsilon$ Turbulence Model}\label{Sect:kepsilon_usage}
 \index{turbulence model}
 \index{k-$\epsilon$ model}
 
@@ -1257,13 +1257,14 @@ $k-\epsilon$ option in the GLS model (see \ref{Sect:GLS}) which is only for ocea
 The user must select either implicit or explicit source and absorption terms via \option{\ldots/option}.
 If \option{explicit} is chosen, the source and absorption terms are as described in \ref{Sect:kepsilon}.
 If \option{implicit} is chosen, the source and absorption terms are calculated as follows:
-\begin{align}
-source &= -min(0.0, diss-prod), \nonumber \\
-absorption &= max(0.0, diss-prod), \nonumber \\
-\end{align}
-where $source$ is the explicitly calculated source term and $absorption$ is the explicitly calculated absorption term. Please note, it is not recommended to use the implicit option unless the simulation is very unstable.
+\begin{align*}
+\textrm{source} &= -\min(0.0, \textrm{diss}-\textrm{prod}), \\
+\textrm{absorption} &= max(0.0, \textrm{diss}-\textrm{prod}), 
+\end{align*}
+where `$\textrm{source}$' is the explicitly calculated source term and `$\textrm{absorption}$' is the explicitly calculated absorption term. 
+Please note, it is not recommended to use the implicit option unless the simulation is very unstable.
 
-In Diamond the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
+In \fluidity\ the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
 The 2 fields should use the following spatial discretisation options: \linebreak
 \option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
 with \option{\ldots/control\_volumes/diffusion\_scheme::ElementGradient}.
@@ -1331,13 +1332,14 @@ can be added, separated by a space.
 
 \subsection{Boundary condition types}\label{Sect:BCs:types}
 \index{boundary conditions!setting}
+\fluidity\ supports a wide range of boundary coditions which will be introduced in the next sections.
 
 \subsubsection{Dirichlet}
 \index{boundary conditions!Dirichlet}
 
-A Dirichlet condition sets the value of the field at each location over the surface $\partial\Omega$:
+A Dirichlet condition sets the value of the field ($c$) at each location over the surface $\partial\Omega$:
 \begin{equation*}
-y(\bmx) = f(\bmx), \;\textrm{on}\; \partial\Omega
+c(\bmx) = f(\bmx) \quad \textrm{on}\; \partial\Omega.
 \end{equation*}
 
 Dirichlet boundary conditions can also be applied weakly by selecting the \option{\ldots/apply\_weakly}
@@ -1346,12 +1348,11 @@ conditions do not force the solution on the boundary to be pointwise equal
 to the boundary condition. 
 
 \subsubsection{Neumann}
-\fluidity supports a wide range of boundary coditions which will be introduced in the next sections.
 \index{boundary conditions!Neumann}
 
-A Neumann boundary condition sets the derivative to the normal ($n$) of the surface $\partial\Omega$:
+A Neumann boundary condition sets the derivative to the normal ($\vec n$) of the surface $\partial\Omega$:
 \begin{equation*}
-\frac{\partial y}{\partial n} = \hat{\vec{n}}\cdot\nabla y = f(\bmx), \;\textrm{on}\;  \partial\Omega
+\frac{\partial y}{\partial n} \left(\equiv \vec{n}\cdot\nabla c\right) = f(\bmx) \quad \textrm{on}\;  \partial\Omega.
 \end{equation*}
 
 \subsubsection{Robin}
@@ -1360,7 +1361,7 @@ A Neumann boundary condition sets the derivative to the normal ($n$) of the surf
 A Robin boundary conditions are a weighted combination of the Dirichlet and Neumann boundary 
 conditions:
 \begin{equation*}
-\alpha y + \beta\frac{\partial y}{\partial n} = f(\bmx), \;\textrm{on}\;  \partial\Omega
+\alpha c + \beta\frac{\partial c}{\partial n} = f(\bmx) \quad \textrm{on}\;  \partial\Omega,
 \end{equation*}
 
 for two constants $\alpha$ and $\beta$. In \fluidity\ these correspond to the \option{\ldots/order\_zero\_coefficient}
@@ -1591,7 +1592,7 @@ The sediment classes can use either the template initial concentration or set th
 
 Note: To use sediment, a linear equation of state must also be enabled \option{\ldots/equation\_of\_state/fluids/linear}
 
-\section{Large scale low aspect ratio ocean Simulations}
+\section{Large scale low aspect ratio ocean simulations}
 
 This section contains advice for running a large scale ocean simulation with a large aspect ratio. This section is split into options that must be used and options that are recommended.
 
@@ -1682,11 +1683,11 @@ This can be added if required.  You should also select a free surface boundary c
 %%%%%%%%%%%%%% GFD problems %%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Geophysical Fluid Dynamics Problems}
+\section{Geophysical fluid dynamics problems}
 
 This section contains advice for running Geophysical Fluid Dynamics (GFD) problems, such as laboratory-scale flows e.g. the lock-exchange and the annulus or smaller-scale ocean problems e.g. a gravity current on an incline. This section is arranged by options for the different levels of the options tree. Both continuous-Galerkin (P1-P1) and discontinuous-Galerkin (P1DG-P2) discretisations may be used, chapter \ref{chap:numerical_discretisation}, and different options choices are distinguished where necessary.
 
-\subsection{Problem Type}
+\subsection{Problem type}
 
 The \option{\ldots/problem\_type} option should be set to \option{fluids} or \option{ocean}.
 
@@ -1714,7 +1715,7 @@ If \option{\ldots/scalar\_field::GeostrophicPressure} is to be included, cf. \re
 
 2 non-linear iterations are recommended and can be specified by setting \option{\ldots/timestepping/nonlinear\_iterations} to 2.
 
-\subsection{Material/Phase}
+\subsection{Material/phase}
 
 
 \subsubsection{Equation of state}
@@ -1763,7 +1764,7 @@ If using P1DG-P2, the following are recommended for the spatial discretisation:
 
 \subsubsection{Advected scalar fields}
 The recommended options for scalar fields are considered for P1-P1 and P1DG-P2 separately. \\ \\
-{\bf P1-P1} \\ \\
+{\bf \Poo} \\ \\
 The mesh used should be the \option{CoordinateMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
 For the spatial discretisation a control-volumes discretisation with a finite-element face value discretisation and Sweby limiter are recommended which are selected with the options, cf. \ref{Sect:CVs}:
@@ -1784,7 +1785,7 @@ For the temporal discretisation a Crank-Nicolson scheme is recommended, with the
 \item{\option{\ldots/prognostic/temporal\_discretisation/control\_volumes/limit\_theta}}
 \end{itemize}
 
-{\bf P1DG-P2} \\
+{\bf \PoDGPt} \\
 
 The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
@@ -1819,7 +1820,7 @@ If enabled a `geopressure' solver is used, \ref{Sect:config_geostrophic_balance}
 \option{\ldots/reference\_node::node\_1}
 \end{itemize}
 
-\section{Industrial CFD Problems}
+\section{Industrial CFD problems}
 \label{Sect:industrial_CFD}
 
 \section{Compressible fluid model}
@@ -1853,7 +1854,7 @@ but also an Advection-Diffusion equation is solved (and solver options need to b
 Either Continuous Galerkin or Control Volumes can be used as discretisation options for pressure and density (both fields need to have the same option). Nevertheless, 
 when using Control Volumes pressure and density have to be the same order of parent mesh.
 
-\section{Mesh Adaptivity}
+\section{Mesh adaptivity}
 
 The configuration on mesh adaptivity occurs in two places: under \option{mesh\_adaptivity} where 
 the overall adaptive settings are configured, and on a per-field basis where both the interpolation
