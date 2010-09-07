@@ -11,28 +11,33 @@ module hadapt_metric_based_extrude
   use meshdiagnostics
   use halos
   use vtk_interfaces
-  use hadapt_extrude
   use hadapt_combine_meshes
   use global_parameters
+  use quicksort
+  use data_structures
   use interpolation_module
+  use hadapt_advancing_front
   implicit none
 
   public :: metric_based_extrude, recombine_metric, get_1d_mesh, get_1d_tensor
 
   contains
 
-  subroutine metric_based_extrude(h_mesh, out_mesh, &
-                                  full_metric, full_positions)
+  subroutine metric_based_extrude(h_positions_new, h_positions_old, out_mesh, &
+                                  full_metric, full_positions, map)
   !! Given a background mesh, and a metric on that background mesh,
   !! solve a load of 1d adaptivity problems for each column's vertical
   !! resolution.
-    type(vector_field), intent(inout) :: h_mesh
+    type(vector_field), intent(inout) :: h_positions_new
+    type(vector_field), intent(inout) :: h_positions_old ! inout to allow pickers caching
     type(vector_field), intent(out) :: out_mesh
     ! the full metric, on the old full mesh
     ! (i.e. this metric is not on a mesh related to the current/new
     ! horizontal or extruded meshes)
     type(tensor_field), intent(in) :: full_metric
     type(vector_field), intent(in) :: full_positions
+    ! map from new nodal positions in h_position_new to 
+    integer, dimension(:), intent(in), optional, target :: map
     
     !! A bunch of 1d meshes for each column in the background mesh
     !! and for each column in the adapted mesh
@@ -41,169 +46,317 @@ module hadapt_metric_based_extrude
     !! want to adapt more than once with the same metric, so I won't make
     !! that assumption. Instead, we just assume that the background mesh
     !! is columnar.
-    type(vector_field), dimension(node_count(h_mesh)) :: out_z_meshes
-    type(vector_field) :: back_z_mesh, back_z_mesh_1d, out_z_mesh
-    !! and the sizing field for each column:
+    type(vector_field), dimension(node_count(h_positions_new)) :: out_z_meshes
+    type(vector_field) :: back_z_mesh
+    type(mesh_type) :: mesh
     type(scalar_field) :: back_sizing
-    type(tensor_field) :: back_z_metric
-
-    integer :: column
 
     type(element_type) :: oned_shape
     type(quadrature_type) :: oned_quad
     integer :: quadrature_degree
     integer, parameter :: loc=2
     
-    ! inline extrusion of the mesh
-    integer :: n_regions
-    logical :: apply_region_ids
+    integer :: i, column, h_old_ele, old_ele, prev_old_ele, old_face
 
-    character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
-    logical:: sizing_is_constant, depth_is_constant
-    real:: constant_sizing, depth, min_bottom_layer_frac
+    type(csr_sparsity) :: columns_sparsity
+    integer, dimension(:), pointer :: column_nodes
+    integer, dimension(:), pointer :: lmap
+    integer, dimension(:), pointer :: old_ele_nodes, old_ele_faces, &
+                                      h_old_ele_nodes, neigh_old_eles, &
+                                      old_ele_neigh
     
-    integer :: d, r, stat
-    integer, dimension(:), allocatable :: region_ids
-    logical, dimension(node_count(h_mesh)) :: column_visited
+    real, dimension(h_positions_new%dim) :: new_column_positions
     
-    integer :: it, adapt_iterations
+    type(integer_set) :: top_surface_nodes, bottom_surface_nodes
+    type(integer_set) :: shared_elements
     
-    logical :: replace_sizing_function
-    character(len=PYTHON_FUNC_LEN) :: new_sizing_function
-    logical:: new_sizing_is_constant
-    real:: new_constant_sizing
+    real :: intersection_metric_comp, intersection_pos, mesh_size
     
+    integer :: old_face_count, h_old_ele_loc
+    type(integer_set) :: face_columns
+    type(integer_hash_table) :: column_faces
 
+    ! all of this is broken for variable element types!
+    real, dimension(full_positions%dim, face_loc(full_positions, 1)) :: old_face_positions
+    real, dimension(face_loc(full_positions, 1)) :: local_coords
+    integer, dimension(face_loc(full_positions, 1)) :: current_face_global_nodes, prev_face_global_nodes
+    type(integer_set), dimension(face_loc(full_positions, 1)) :: all_elements
+    
     ewrite(1,*) "Inside metric_based_extrude"
 
     call get_option("/geometry/quadrature/degree", quadrature_degree)
     oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
     oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
     call deallocate(oned_quad)
-
-    replace_sizing_function = have_option(&
-                    "/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity"//&
-                    "/inhomogenous_vertical_resolution/initial_extrusion_sizing_function")
-    if(replace_sizing_function) then
-      ! we've selected to overrule the sizing options specified under the mesh
-      ! (probably to give a finer mesh for the interpolation)
-      call get_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity"//&
-                  "/inhomogenous_vertical_resolution/initial_extrusion_sizing_function/constant", &
-                      new_constant_sizing, stat=stat)
-      if (stat==0) then
-        new_sizing_is_constant=.true.
-      else
-        new_sizing_is_constant=.false.
-        call get_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity"//&
-                  "/inhomogenous_vertical_resolution/initial_extrusion_sizing_function/python", &
-                        new_sizing_function, stat=stat)
-        if (stat/=0) then
-          FLAbort("Unknown way of specifying the extrusion sizing function in metric based extrusion")
-        end if       
-      end if
-                  
-    end if
-
-    call get_option("/mesh_adaptivity/hr_adaptivity/vertically_structured_adaptivity"//&
-                    "/inhomogenous_vertical_resolution/adapt_iterations", &
-                    adapt_iterations, default=1)
-
-    n_regions = option_count(trim(full_positions%mesh%option_path)//&
-                             '/from_mesh/extrude/regions')
-    if(n_regions==0) then
-      FLExit("No regions options found under extrude.")
-    elseif(n_regions<0) then
-      FLAbort("Negative number of regions options found under extrude.")
-    end if
-    apply_region_ids = (n_regions>1)
-    column_visited = .false.
-
-    do r = 0, n_regions-1
     
-      call get_extrusion_options(trim(full_positions%mesh%option_path), &
-                                 r, apply_region_ids, region_ids, &
-                                 depth_is_constant, depth, depth_function, &
-                                 sizing_is_constant, constant_sizing, sizing_function, &
-                                 min_bottom_layer_frac)
-                                 
-      if(replace_sizing_function) then
-        ! we've selected to overrule the sizing options specified under the mesh
-        ! (probably to give a finer mesh for the interpolation)
-        sizing_is_constant = new_sizing_is_constant
-        if(sizing_is_constant) then
-          constant_sizing = new_constant_sizing
-        else
-          sizing_function = new_sizing_function
-        end if
-      end if
-            
-      ! create a 1d vertical mesh under each surface node
-      do column=1,node_count(h_mesh)
+    if (present(map)) then
+      assert(node_count(h_positions_new) == size(map))
+      lmap => map
+    else
+      allocate(lmap(node_count(h_positions_new)))
+      lmap = get_element_mapping(h_positions_old, h_positions_new)
+    end if
+    
+    call allocate(top_surface_nodes)
+    call allocate(bottom_surface_nodes)
+
+    ! we need to make sure that the columns are descending ordered
+    ! so pass in full_positions
+    call create_columns_sparsity(columns_sparsity, full_positions%mesh, positions=full_positions)
+    
+    do column=1,node_count(h_positions_old)
+      column_nodes => row_m_ptr(columns_sparsity, column)
+      call insert(top_surface_nodes, column_nodes(1))
+      call insert(bottom_surface_nodes, column_nodes(size(column_nodes)))
+    end do
+    
+    ! create a 1d vertical mesh under each surface node
+    do column=1,node_count(h_positions_new)
+    
+      if(.not.node_owned(h_positions_new, column)) cycle
+    
+      new_column_positions = node_val(h_positions_new, column)
+    
+      ! In what element of the old horizontal mesh does the new column lie?
+      h_old_ele = lmap(column)
+      h_old_ele_loc = ele_loc(h_positions_old, h_old_ele)
       
-        if(skip_column_extrude(h_mesh%mesh, column, &
-                               apply_region_ids, column_visited(column), region_ids)) cycle
-
-        call compute_z_nodes(back_z_mesh_1d, node_val(h_mesh, column), &
-                             min_bottom_layer_frac, &
-                             depth_is_constant, depth, depth_function, &
-                             sizing_is_constant, constant_sizing, sizing_function)
-
-        do it = 1, adapt_iterations
-
-          ! so now we have 1d vertical positions, we need a full version of this to do the interpolation
-          call allocate(back_z_mesh, full_positions%dim, back_z_mesh_1d%mesh, "FullZMeshCoordinates")
-          do d = 1, h_mesh%dim
-            call set(back_z_mesh, d, node_val(h_mesh, d, column))
-          end do
-          call set_all(back_z_mesh, full_positions%dim, back_z_mesh_1d%val(1)%ptr)
-          
-          call allocate(back_z_metric, back_z_mesh%mesh, &
-                        dim=full_metric%dim, name="BackgroundZMetric")
-          
-          ! temp. fix: old and new metric need same name for linear_interpolation -ask Patrick
-          back_z_metric%name = full_metric%name
-          call linear_interpolation( full_metric, full_positions, &
-                                    back_z_metric, back_z_mesh )
-          back_z_metric%name="BackgroundZMetric"
-          
-          call deallocate(back_z_mesh)
-          
-          call get_1d_sizing(back_z_metric, back_sizing)
-          call deallocate(back_z_metric)
-          
-          call adapt_1d(back_z_mesh_1d, back_sizing, oned_shape, out_z_mesh)
-
-          call deallocate(back_sizing)
-          call deallocate(back_z_mesh_1d)
-          
-          back_z_mesh_1d = out_z_mesh
-          call incref(back_z_mesh_1d)
-          call deallocate(out_z_mesh)
-          
-        end do
-        
-        out_z_meshes(column) = back_z_mesh_1d
-        call incref(out_z_meshes(column))
-        call deallocate(back_z_mesh_1d)
-        
+      ! we need to find the element at the top of the full mesh
+      ! first let's find out the nodes neighbouring this elements in the horizontal mesh
+      h_old_ele_nodes => ele_nodes(h_positions_old, h_old_ele)
+      
+      call allocate(all_elements)
+      do i = 1, size(h_old_ele_nodes)
+        ! then we work out the corresponding top node in the full mesh
+        column_nodes => row_m_ptr(columns_sparsity, h_old_ele_nodes(i))
+        ! and work out the full mesh elements connected to that node
+        neigh_old_eles => node_neigh(full_positions, column_nodes(1))
+        ! insert it into a set
+        call insert(all_elements(i), neigh_old_eles)
       end do
       
-      if(apply_region_ids) deallocate(region_ids)
+      call set_intersection(shared_elements, all_elements)
+      
+      ! there should now only be one entry in shared_elements
+      if(key_count(shared_elements)/=1) then
+        ewrite(-1,*) 'key_count(shared_elements) = ', key_count(shared_elements)
+        FLAbort("Something has gone wrong finding the shared element.")
+      end if
+      
+      ! and that entry will be the top element... woo!
+      old_ele = fetch(shared_elements, 1)
+      
+      call deallocate(shared_elements)
+      call deallocate(all_elements)
+
+      ! find the top facet (which won't be between any of my elements so can't
+      ! be included in the main loop)
+      old_ele_nodes => ele_nodes(full_positions, old_ele)
+      top_ele_node_loop: do i = 1, size(old_ele_nodes)
+        if(.not.has_value(top_surface_nodes, old_ele_nodes(i))) exit top_ele_node_loop
+      end do top_ele_node_loop
+      assert(i<=size(old_ele_nodes))
+      ! i is now the local face number of the face on the top surface... woo!
+      
+      ! convert this to a global face number
+      old_ele_faces => ele_faces(full_positions, old_ele)
+      old_face = old_ele_faces(i)
+      
+      call allocate(column_faces)
+      old_face_count = 1
+      ! insert the top face into the integer hash table
+      call insert(column_faces, old_face_count, old_face)
+
+      ! record the top element as visited
+      prev_old_ele = old_ele
+      
+      infinite_loop: do
+        ! in this loop we work our way down the column of elements
+        ! let's hope we get to the exit criterion eventually!
+      
+        old_ele_faces => ele_faces(full_positions, old_ele)
+        old_ele_neigh => ele_neigh(full_positions, old_ele)
         
+        face_loop: do i = 1, size(old_ele_faces)
+          call allocate(face_columns)
+          call insert(face_columns, full_positions%mesh%columns(face_global_nodes(full_positions, old_ele_faces(i))))
+          ! the face between old_ele and the next element is the one with as many vertices as
+          ! the top element and isn't facing into the abyss or the previous element
+          if ((key_count(face_columns)==h_old_ele_loc).and.&
+              (old_ele_neigh(i)>0).and.(old_ele_neigh(i)/=prev_old_ele)) then
+            exit face_loop ! we found it
+          end if
+          call deallocate(face_columns)
+        end do face_loop
+        
+        if(i==size(old_ele_faces)+1) then
+          ! we didn't find a face that meets our criterion so we must be at the bottom of the column
+          exit infinite_loop
+        else
+          ! we found a face but didn't clean up...
+          call deallocate(face_columns)
+        end if
+        
+        ! remember where we were
+        prev_old_ele = old_ele
+        ! where we are now
+        old_ele = old_ele_neigh(i)
+        
+        ! the face between them - remember it!
+        old_face = old_ele_faces(i)
+        old_face_count = old_face_count + 1
+        call insert(column_faces, old_face_count, old_face)
+      
+      end do infinite_loop
+      
+      ! the search above won't have found the bottom face so let's search for it too
+      old_ele_nodes => ele_nodes(full_positions, old_ele)
+      bottom_ele_node_loop: do i = 1, size(old_ele_nodes)
+        if(.not.has_value(bottom_surface_nodes, old_ele_nodes(i))) exit bottom_ele_node_loop
+      end do bottom_ele_node_loop
+      assert(i<=size(old_ele_nodes))
+      ! i is now the local face number of the face on the bottom surface... woo!
+      
+      ! convert this to a global face number and save it
+      old_ele_faces => ele_faces(full_positions, old_ele)
+      old_face = old_ele_faces(i)
+      old_face_count = old_face_count + 1
+      call insert(column_faces, old_face_count, old_face)
+      assert(key_count(column_faces)==old_face_count)
+
+
+      ! allocate the mesh and the fields we want
+      call allocate(mesh, old_face_count, old_face_count-1, oned_shape, "VerticalIntersectionMesh")
+      call allocate(back_z_mesh, 1, mesh, "BackVerticalMesh")
+      call allocate(back_sizing, mesh, "BackSizing")
+      call deallocate(mesh)
+
+
+      ! work out the local coordinates on the top face
+      ! only works for linear coordinates at the moment as adaptivity can
+      ! only deal with this anyway
+      local_coords(1:h_positions_new%dim) = new_column_positions
+      local_coords(h_positions_new%dim+1) = 1.0
+    
+      ! and find the values of the positions
+      old_face = fetch(column_faces, 1)
+      old_face_positions = face_val(full_positions, old_face)
+      ! wipe out the z component - i.e. assuming a horizontal face on the top surface
+      old_face_positions(h_positions_new%dim+1, :) = 1.0
+
+      ! and hey presto... we have the local_coords
+      call solve(old_face_positions, local_coords)
+
+
+      ! work out the position of the intersection of the column with the top face
+      intersection_pos = face_eval_field(old_face, full_positions, full_positions%dim, local_coords)
+      call set(back_z_mesh, 1, (/intersection_pos/))
+      ! work out the value of the dim, dim component of the full_metric at the intersection point
+      ! NOTE WELL: this is where we assume that up is in the vertical direction (i.e. not
+      ! safe on the sphere but that's not supported yet anyway and this is assumed in
+      ! lots of places)
+      intersection_metric_comp = face_eval_field(old_face, full_metric, full_metric%dim, full_metric%dim, local_coords)
+      mesh_size = edge_length_from_eigenvalue(intersection_metric_comp)
+      call set(back_sizing, 1, mesh_size)
+
+      ! finally find the global nodes of the first face
+      prev_face_global_nodes = face_global_nodes(full_positions, old_face)
+
+      do i = 2, old_face_count
+      
+        old_face = fetch(column_faces, i)
+      
+        current_face_global_nodes = face_global_nodes(full_positions, old_face)
+        
+        call permute_local_coords(local_coords, current_face_global_nodes, prev_face_global_nodes)
+        
+        ! work out the position of the intersection of the column with the old face
+        intersection_pos = face_eval_field(old_face, full_positions, full_positions%dim, local_coords)
+        call set(back_z_mesh, i, (/intersection_pos/))
+        ! work out the value of the dim, dim component of the full_metric at the intersection point
+        ! NOTE WELL: this is where we assume that up is in the vertical direction (i.e. not
+        ! safe on the sphere but that's not supported yet anyway and this is assumed in
+        ! lots of places)
+        intersection_metric_comp = face_eval_field(old_face, full_metric, full_metric%dim, full_metric%dim, local_coords)
+        mesh_size = edge_length_from_eigenvalue(intersection_metric_comp)
+        call set(back_sizing, i, mesh_size)
+
+        ! record the current global nodes as the previous ones for the next iteration
+        prev_face_global_nodes = current_face_global_nodes
+      
+      end do
+      
+      ! and we're done... we've worked out the intersection positions in back_z_mesh and the intersection sizing
+      ! function in back_sizing.
+      call deallocate(column_faces)
+      
+      ! now let's adapt that and put the adapted mesh in out_z_meshes(column)...
+      call adapt_1d(back_z_mesh, back_sizing, oned_shape, out_z_meshes(column))
+      
+      ! we're done with all that beautiful intersection work
+      call deallocate(back_z_mesh)
+      call deallocate(back_sizing)
+
     end do
+    
+    if (.not. present(map)) then
+      deallocate(lmap)
+    end if
+    call deallocate(columns_sparsity)
+    call deallocate(top_surface_nodes)
+    call deallocate(bottom_surface_nodes)
       
     ! combine these into a full mesh
-    call add_nelist(h_mesh%mesh)
-    call combine_z_meshes(h_mesh, out_z_meshes, out_mesh, &
+    call add_nelist(h_positions_new%mesh)
+    call combine_z_meshes(h_positions_new, out_z_meshes, out_mesh, &
       ele_shape(full_positions, 1), full_positions%mesh%name, &
       trim(full_positions%mesh%option_path))
 
     call deallocate(oned_shape)
-    do column=1,node_count(h_mesh)
-      if(node_owned(h_mesh, column)) then
+    do column=1,node_count(h_positions_new)
+      if(node_owned(h_positions_new, column)) then
         call deallocate(out_z_meshes(column))
       end if
     end do
+    
+  contains
+  
+    subroutine permute_local_coords(local_coords, current_face_global_nodes, prev_face_global_nodes)
+      real, dimension(:), intent(inout)  :: local_coords
+      integer, dimension(:), intent(in) :: current_face_global_nodes
+      integer, dimension(:), intent(in) :: prev_face_global_nodes
+      
+      integer :: g1, g2, missing_ind
+      integer, dimension(size(current_face_global_nodes)) :: permutation, notfound
+      
+      assert(size(current_face_global_nodes)==size(prev_face_global_nodes))
+      assert(size(current_face_global_nodes)==size(local_coords))
+      
+      ! because the local face numbers may have shifted between one face and the next
+      ! it is necessary to work out a permutation for the local coords to be valid
+      permutation = -1
+      notfound = 1
+      do g1 = 1, size(prev_face_global_nodes)
+        do g2 = 1, size(current_face_global_nodes)
+          if(prev_face_global_nodes(g1)==current_face_global_nodes(g2)) then
+            permutation(g2) = g1
+            notfound(g2) = 0
+            exit
+          end if
+        end do
+        if(g2==size(prev_face_global_nodes)+1) then
+          missing_ind = g1
+        end if
+      end do
+      assert(sum(notfound)==1) ! debugging check that only one position hasn't been found
+      permutation(minloc(permutation)) = missing_ind
+      assert(all(permutation>0))
+      
+      ! now permute the local coordinates so that the local node ordering is
+      ! correct
+      call apply_permutation(local_coords, permutation)
+
+    end subroutine permute_local_coords
     
   end subroutine metric_based_extrude
     

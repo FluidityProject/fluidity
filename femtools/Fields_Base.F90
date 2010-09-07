@@ -288,6 +288,11 @@ module fields_base
     module procedure eval_field_scalar, eval_field_vector, eval_field_tensor
   end interface eval_field
 
+  interface face_eval_field
+    module procedure face_eval_field_scalar, face_eval_field_vector, face_eval_field_tensor, &
+       face_eval_field_vector_dim, face_eval_field_tensor_dim_dim
+  end interface face_eval_field
+
   interface set_from_python_function
      module procedure set_values_from_python_scalar, set_values_from_python_scalar_pos, &
        set_values_from_python_vector, set_values_from_python_vector_pos, &
@@ -1678,7 +1683,7 @@ contains
 
  function face_local_nodes_mesh(mesh, face_number) result (face_nodes)
     ! Return a pointer to a vector containing the local node numbers of
-    ! element ele_number in mesh.
+    ! facet face_number in mesh.
     integer, dimension(:), pointer :: face_nodes
     type(mesh_type),intent(in) :: mesh
     integer, intent(in) :: face_number
@@ -1695,7 +1700,7 @@ contains
     
   function face_local_nodes_scalar(field, face_number) result (face_nodes)
     !!< Return a vector containing the local node numbers of
-    !!< element ele_number in field.
+    !!< facet face_number in field.
     type(scalar_field),intent(in) :: field
     integer, intent(in) :: face_number
     integer, dimension(face_loc(field, face_number)) :: face_nodes 
@@ -1706,7 +1711,7 @@ contains
 
   function face_local_nodes_vector(field, face_number) result (face_nodes)
     !!< Return a vector containing the local node numbers of
-    !!< element ele_number in field.
+    !!< facet face_number in field.
     type(vector_field),intent(in) :: field
     integer, intent(in) :: face_number
     integer, dimension(face_loc(field, face_number)) :: face_nodes 
@@ -1717,7 +1722,7 @@ contains
 
   function face_local_nodes_tensor(field, face_number) result (face_nodes)
     !!< Return a vector containing the local node numbers of
-    !!< element ele_number in field.
+    !!< facet face_number in field.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: face_number
     integer, dimension(face_loc(field, face_number)) :: face_nodes 
@@ -1728,7 +1733,7 @@ contains
 
   function face_global_nodes_mesh(mesh, face_number) result (face_nodes)
     !!< Return a vector containing the global node numbers of
-    !!< element ele_number in mesh.
+    !!< facet face_number in mesh.
     type(mesh_type),intent(in) :: mesh
     integer, intent(in) :: face_number
     integer, dimension(face_loc(mesh, face_number)) :: face_nodes 
@@ -1745,7 +1750,7 @@ contains
     
   function face_global_nodes_scalar(field, face_number) result (face_nodes)
     !!< Return a vector containing the global node numbers of
-    !!< element ele_number in field.
+    !!< facet face_number in field.
     type(scalar_field),intent(in) :: field
     integer, intent(in) :: face_number
     integer, dimension(face_loc(field, face_number)) :: face_nodes 
@@ -1756,7 +1761,7 @@ contains
 
   function face_global_nodes_vector(field, face_number) result (face_nodes)
     !!< Return a vector containing the global node numbers of
-    !!< element ele_number in field.
+    !!< facet face_number in field.
     type(vector_field),intent(in) :: field
     integer, intent(in) :: face_number
     integer, dimension(face_loc(field, face_number)) :: face_nodes 
@@ -1767,7 +1772,7 @@ contains
 
   function face_global_nodes_tensor(field, face_number) result (face_nodes)
     !!< Return a vector containing the global node numbers of
-    !!< element ele_number in field.
+    !!< facet face_number in field.
     type(tensor_field),intent(in) :: field
     integer, intent(in) :: face_number
     integer, dimension(face_loc(field, face_number)) :: face_nodes 
@@ -3266,6 +3271,199 @@ contains
     end do
       
   end function eval_field_tensor
+
+  function face_eval_field_scalar(face, s_field, local_coord) result(val)
+    !!< Evaluate the scalar field s_field at face local coordinate
+    !!< local_coord of the facet face.
+  
+    integer, intent(in) :: face
+    type(scalar_field), intent(in) :: s_field
+    real, dimension(:), intent(in) :: local_coord
+    
+    real :: val
+    
+    integer :: i
+    real, dimension(face_loc(s_field, face)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => face_shape(s_field, face)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    val = dot_product(face_val(s_field, face), n)
+      
+  end function face_eval_field_scalar
+  
+  function face_eval_field_vector(face, v_field, local_coord) result(val)
+    !!< Evaluate the vector field v_field at face local coordinate
+    !!< local_coord of facet face.
+  
+    integer, intent(in) :: face
+    type(vector_field), intent(in) :: v_field
+    real, dimension(:), intent(in) :: local_coord
+    
+    real, dimension(v_field%dim) :: val
+    
+    integer :: i
+    real, dimension(face_loc(v_field, face)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => face_shape(v_field, face)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    do i = 1, size(val)
+      val(i) = dot_product(face_val(v_field, i, face), n)
+    end do
+      
+  end function face_eval_field_vector
+  
+  function face_eval_field_vector_dim(face, v_field, dim, local_coord) result(val)
+    !!< Evaluate the vector field v_field at face local coordinate
+    !!< local_coord of facet face.
+  
+    integer, intent(in) :: face
+    type(vector_field), intent(in) :: v_field
+    integer, intent(in) :: dim
+    real, dimension(:), intent(in) :: local_coord
+    
+    real :: val
+    
+    integer :: i
+    real, dimension(face_loc(v_field, face)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => face_shape(v_field, face)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    val = dot_product(face_val(v_field, dim, face), n)
+      
+  end function face_eval_field_vector_dim
+  
+  function face_eval_field_tensor(face, t_field, local_coord) result(val)
+    !!< Evaluate the tensor field t_field at face local coordinate
+    !!< local_coord of facet face.
+  
+    integer, intent(in) :: face
+    type(tensor_field), intent(in) :: t_field
+    real, dimension(:), intent(in) :: local_coord
+    
+    real, dimension(t_field%dim, t_field%dim) :: val
+    
+    integer :: i, j
+    real, dimension(face_loc(t_field, face)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => face_shape(t_field, face)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    do i = 1, size(val, 1)
+      do j = 1, size(val, 2)
+        val(i, j) = dot_product(face_val(t_field, i, j, face), n)
+      end do
+    end do
+      
+  end function face_eval_field_tensor
+
+  function face_eval_field_tensor_dim_dim(face, t_field, dim1, dim2, local_coord) result(val)
+    !!< Evaluate the tensor field t_field at face local coordinate
+    !!< local_coord of facet face.
+  
+    integer, intent(in) :: face
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: dim1, dim2
+    real, dimension(:), intent(in) :: local_coord
+    
+    real :: val
+    
+    integer :: i, j
+    real, dimension(face_loc(t_field, face)) :: n
+    type(element_type), pointer :: shape
+    
+    shape => face_shape(t_field, face)
+    
+    select case(shape%degree)
+      case(0)
+        n = 1.0
+      case(1)
+        if(ele_numbering_family(shape) == FAMILY_SIMPLEX) then
+          n = local_coord
+        else
+          do i = 1, size(n)
+            n(i) = eval_shape(shape, i, local_coord)
+          end do   
+        end if
+      case default
+        do i = 1, size(n)
+          n(i) = eval_shape(shape, i, local_coord)
+        end do    
+    end select
+      
+    val = dot_product(face_val(t_field, dim1, dim2, face), n)
+      
+  end function face_eval_field_tensor_dim_dim
 
   subroutine getsndgln(mesh, sndgln)
   !! get legacy surface mesh ndglno that uses node numbering of the full mesh

@@ -70,10 +70,10 @@ module zoltan_integration
   logical, save :: preserve_mesh_regions
   type(integer_hash_table) :: universal_element_number_to_region_id
 
-  logical, save :: vertically_structured_adaptivity
+  logical, save :: migrate_extruded_mesh
   type(csr_sparsity), save :: columns_sparsity
 
-  logical, save :: preserve_columns
+  logical, save :: preserve_columns=.false.
   integer, dimension(:), allocatable, save :: universal_columns
   type(integer_hash_table), save :: universal_to_new_local_numbering_m1d
 
@@ -135,7 +135,7 @@ module zoltan_integration
        ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
     end if
 
-    if(vertically_structured_adaptivity) then
+    if(migrate_extruded_mesh) then
       ! weight the nodes according to the number of nodes in the column beneath it
       max_obj_wgt = 1.0
       do i=1,count
@@ -1667,7 +1667,7 @@ module zoltan_integration
 
     ewrite(1,*) "In zoltan_drive"
 
-    vertically_structured_adaptivity = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
+    migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
 
     call setup_module_variables
@@ -1688,7 +1688,7 @@ module zoltan_integration
       return
     end if
 
-    if(vertically_structured_adaptivity) then
+    if(migrate_extruded_mesh) then
       call derive_full_export_lists
     end if
 
@@ -1712,13 +1712,9 @@ module zoltan_integration
     call reconstruct_senlist
     call reconstruct_halo
     
-    if(vertically_structured_adaptivity) then
+    if(migrate_extruded_mesh) then
       new_positions_m1d = new_positions ! save a reference to the horizontal mesh you've just load balanced
-      call allocate(universal_to_new_local_numbering_m1d)
-      do ind = 1, key_count(universal_to_new_local_numbering) ! take a copy of this
-        call fetch_pair(universal_to_new_local_numbering, ind, key, key_val)
-        call insert(universal_to_new_local_numbering_m1d, key, key_val)
-      end do
+      call copy(universal_to_new_local_numbering_m1d, universal_to_new_local_numbering)
       
       call cleanup_basic_module_variables
       ! don't clean up the quality variables now 
@@ -1761,7 +1757,7 @@ module zoltan_integration
     call transfer_fields
 
     call deallocate(new_positions)
-    if(vertically_structured_adaptivity) then
+    if(migrate_extruded_mesh) then
       call deallocate(new_positions_m1d)
     end if
 
@@ -2163,7 +2159,7 @@ module zoltan_integration
       no_meshes = 0
       do i=1, mesh_count(interpolate_states(1))
         mesh => extract_mesh(interpolate_states(1), i)
-        if (vertically_structured_adaptivity .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
+        if (migrate_extruded_mesh .and. mesh_dim(mesh)/=mesh_dim(new_positions)) cycle
         no_meshes = no_meshes + 1
         mesh_names(no_meshes) = mesh%name
       end do
@@ -2186,7 +2182,7 @@ module zoltan_integration
 
       ! Put the new positions mesh into states
       
-      if(vertically_structured_adaptivity) then
+      if(migrate_extruded_mesh) then
         if (mesh_periodic(zz_mesh)) then
           new_positions_m1d%mesh%periodic = .true.
         end if
@@ -3032,7 +3028,7 @@ module zoltan_integration
       end do
       call halo_update(node_quality)
 
-      if(vertically_structured_adaptivity) then
+      if(migrate_extruded_mesh) then
         full_mesh => extract_mesh(states(1), trim(topology_mesh_name))
         call create_columns_sparsity(columns_sparsity, full_mesh)
       end if
@@ -3164,7 +3160,7 @@ module zoltan_integration
     ! This routine deallocates the module quality fields.
       call deallocate(element_quality)
       call deallocate(node_quality)
-      if(vertically_structured_adaptivity) then
+      if(migrate_extruded_mesh) then
         call deallocate(columns_sparsity)
       end if
     end subroutine cleanup_quality_module_variables

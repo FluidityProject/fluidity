@@ -81,13 +81,21 @@ module integer_set_module
   interface remove
     module procedure integer_set_remove
   end interface
-
+  
+  interface copy
+    module procedure integer_set_copy
+  end interface
+  
+  interface set_intersection
+    module procedure set_intersection_two, set_intersection_multiple
+  end interface
+  
   private
   public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
-          & set_complement, set2vector, set_intersection, set_minus, remove
+          & set_complement, set2vector, set_intersection, set_minus, remove, copy
 
   contains 
-
+  
   subroutine integer_set_allocate_single(iset)
     type(integer_set), intent(out) :: iset
     iset = integer_set_create()
@@ -222,7 +230,7 @@ module integer_set_module
     end do
   end subroutine set_complement
 
-  subroutine set_intersection(intersection, A, B)
+  subroutine set_intersection_two(intersection, A, B)
     ! intersection = A n B
     type(integer_set), intent(out) :: intersection
     type(integer_set), intent(in) :: A, B
@@ -235,7 +243,40 @@ module integer_set_module
         call insert(intersection, val)
       end if
     end do
-  end subroutine set_intersection
+  end subroutine set_intersection_two
+
+  subroutine set_intersection_multiple(intersection, isets)
+    ! intersection = isets(i) n isets(j), forall i /= j
+    type(integer_set), intent(out) :: intersection
+    type(integer_set), dimension(:), intent(in) :: isets
+    integer :: i
+    
+    type(integer_set) :: tmp_intersection, tmp_iset
+
+    tmp_iset = isets(1)
+    do i = 2, size(isets)
+      call set_intersection(tmp_intersection, tmp_iset, isets(i))
+      call copy(tmp_iset, tmp_intersection)
+      call deallocate(tmp_intersection)
+    end do
+    intersection = tmp_iset
+    
+  end subroutine set_intersection_multiple
+  
+  subroutine integer_set_copy(iset_copy, iset)
+    type(integer_set), intent(out) :: iset_copy
+    type(integer_set), intent(in) :: iset
+    
+    integer :: i, val
+    
+    call allocate(iset_copy)
+    
+    do i = 1, key_count(iset)
+      val = fetch(iset, i)
+      call insert(iset_copy, val)
+    end do
+  
+  end subroutine integer_set_copy
 
   subroutine set_minus(minus, A, B)
   ! minus = A \ B

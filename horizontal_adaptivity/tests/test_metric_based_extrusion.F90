@@ -10,7 +10,7 @@ subroutine test_metric_based_extrusion
   use metric_tools
   implicit none
 
-  type(vector_field) :: z_mesh, old_mesh
+  type(vector_field) :: z_mesh, old_z_mesh, old_mesh
   integer :: stat
   logical :: fail
 
@@ -29,7 +29,10 @@ subroutine test_metric_based_extrusion
   call set_option("/geometry/mesh::ExtrudedMesh/from_mesh/extrude/regions[0]/sizing_function/constant", 1.0, stat=stat)
 
   call compute_z_nodes(z_mesh, 1.0, (/ 0.0 /), min_bottom_layer_frac=1e-3, sizing=1.0)
+  call add_faces(z_mesh%mesh)
   call vtk_write_fields("data/layered_mesh", 0, z_mesh, z_mesh%mesh, vfields=(/z_mesh/))
+  call allocate(old_z_mesh, z_mesh%dim, z_mesh%mesh, "OldZMesh")
+  call set(old_z_mesh, z_mesh)
 
   call extrude(z_mesh, "/geometry/mesh::ExtrudedMesh", old_mesh)
     
@@ -39,7 +42,7 @@ subroutine test_metric_based_extrusion
   call set_from_function(metric, metric_func, old_mesh)
 
   ! OK. Now let's adapt?
-  call metric_based_extrude(z_mesh, adapted_mesh, metric, old_mesh)
+  call metric_based_extrude(z_mesh, old_z_mesh, adapted_mesh, metric, old_mesh)
   call vtk_write_fields("data/metric_based_extrusion", 0, adapted_mesh, adapted_mesh%mesh)
 
   ! .. and check some statistics

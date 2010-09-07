@@ -1003,7 +1003,14 @@ contains
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)
       
-      call perform_vertically_inhomogenous_step(states, new_positions, old_positions, full_metric, extruded_positions)
+      if(associated(node_ownership)) then
+        call perform_vertically_inhomogenous_step(states, new_positions, old_positions, &
+                                                  full_metric, extruded_positions, &
+                                                  map=node_ownership)
+      else
+        call perform_vertically_inhomogenous_step(states, new_positions, old_positions, &
+                                                  full_metric, extruded_positions)
+      end if
       ! We're done with old_positions, so we may deallocate it
       call deallocate(old_positions)
 
@@ -1018,6 +1025,12 @@ contains
         
         metric = full_metric
         new_positions = get_coordinate_field(states(1), extract_mesh(states(1), topology_mesh_name))
+        
+        if(associated(node_ownership)) then
+          ! Deallocate the node ownership mapping since it's for the lower dimensional mesh
+          deallocate(node_ownership)
+          nullify(node_ownership)
+        end if
       end if
 
       if(isparallel()) then
@@ -1322,8 +1335,10 @@ contains
       if(include_bottom_metric) call incorporate_bathymetric_metric(states(1), full_metric, old_positions, metric)
       
       if(split_gradation) then
+        call halo_update(metric)
         ! apply gradation just to the horizontal metric for now
         call apply_horizontal_gradation(states(1), metric, full_metric, old_positions)
+        call halo_update(metric)
       end if
       
       ! apply limiting to enforce maximum number of nodes
@@ -1347,11 +1362,13 @@ contains
     
   end subroutine prepare_vertically_structured_adaptivity
 
-  subroutine perform_vertically_inhomogenous_step(states, new_positions, old_positions, full_metric, extruded_positions)
+  subroutine perform_vertically_inhomogenous_step(states, new_positions, old_positions, full_metric, extruded_positions, map)
     type(state_type), intent(inout), dimension(:) :: states
     type(vector_field), intent(inout) :: new_positions, old_positions
     type(tensor_field), intent(inout) :: full_metric
     type(vector_field), intent(inout) :: extruded_positions
+    !! Map from new nodes to old elements
+    integer, dimension(:), optional, intent(in) :: map
 
     logical :: vertically_inhomogenous_adaptivity
 
@@ -1385,8 +1402,8 @@ contains
        end if
 
        ! extrude with adaptivity, computes new extruded_positions
-       call metric_based_extrude(new_positions, extruded_positions, &
-                                gradation_full_metric, full_metric_positions)
+       call metric_based_extrude(new_positions, old_positions, extruded_positions, &
+                                gradation_full_metric, full_metric_positions, map=map)
        
        ! insert the new positions in state:
        ! give it a generic temporary name, so that it'll be picked up and

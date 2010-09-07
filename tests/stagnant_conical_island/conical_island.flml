@@ -1784,7 +1784,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <no_interpolation/>
       </prognostic>
     </scalar_field>
     <scalar_field name="Inside" rank="0">
@@ -1989,7 +1989,7 @@
   <mesh_adaptivity>
     <hr_adaptivity replaces="ADMESH">
       <period_in_timesteps>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">5</integer_value>
       </period_in_timesteps>
       <maximum_number_of_nodes replaces="MXNODS">
         <integer_value rank="0">100000</integer_value>
@@ -1998,7 +1998,7 @@
         <tensor_field name="Gamma">
           <anisotropic_symmetric>
             <constant>
-              <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0</real_value>
+              <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.75</real_value>
             </constant>
           </anisotropic_symmetric>
         </tensor_field>
@@ -2024,13 +2024,7 @@
       </adapt_at_first_timestep>
       <preserve_mesh_regions/>
       <vertically_structured_adaptivity>
-        <inhomogenous_vertical_resolution>
-          <initial_extrusion_sizing_function>
-            <constant>
-              <real_value rank="0">0.005</real_value>
-            </constant>
-          </initial_extrusion_sizing_function>
-        </inhomogenous_vertical_resolution>
+        <inhomogenous_vertical_resolution/>
         <split_gradation/>
         <vertically_align_metric/>
         <include_bottom_metric/>

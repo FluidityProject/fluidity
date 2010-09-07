@@ -1235,7 +1235,7 @@ prognostic_vertical_balance_pressure_field =
       prognostic_detector_options,
       scalar_steady_state_options,
       adaptivity_options_prognostic_scalar_field,
-      interpolation_algorithm_scalar,
+      interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
    
@@ -1285,7 +1285,7 @@ prognostic_hydrostatic_pressure_field =
       prognostic_detector_options,
       scalar_steady_state_options,
       adaptivity_options_prognostic_scalar_field,
-      interpolation_algorithm_scalar,
+      interpolation_algorithm_scalar_full,
       discrete_properties_algorithm_scalar?
    )
 # Hydrostatic pressure gradient field
@@ -1301,7 +1301,7 @@ prognostic_hydrostatic_pressure_gradient_field =
       prognostic_detector_options,
       vector_steady_state_options,
       adaptivity_options_prognostic_vector_field,
-      interpolation_algorithm_vector
+      interpolation_algorithm_vector_full
    )
    
 # free surface field, this is a copy of prognostic_scalar_field above

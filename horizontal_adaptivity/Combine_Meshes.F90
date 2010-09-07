@@ -12,6 +12,7 @@ module hadapt_combine_meshes
   use sparse_tools
   use hadapt_advancing_front
   use linked_lists
+  use halos
   implicit none
 
   private

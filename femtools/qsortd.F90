@@ -9,7 +9,7 @@ module quicksort
 
   private
   
-  public :: qsort, sort, count_unique, inverse_permutation, apply_permutation
+  public :: qsort, sort, count_unique, inverse_permutation, apply_permutation, apply_reverse_permutation
 
   interface qsort
     module procedure qsortd, qsortsp, qsorti
@@ -24,6 +24,10 @@ module quicksort
       & apply_permutation_real_array, apply_permutation_integer, &
       & apply_permutation_real
   end interface apply_permutation
+
+  interface apply_reverse_permutation
+    module procedure apply_reverse_permutation_real, apply_reverse_permutation_integer
+  end interface apply_reverse_permutation
 
 contains
 
@@ -922,5 +926,43 @@ END SUBROUTINE qsorti
     end do
     
   end subroutine apply_permutation_real
+
+  subroutine apply_reverse_permutation_real(permutation, applied_permutation)
+    !!< Apply the reverse of the given applied_permutation to the array permutation
+  
+    real, dimension(:), intent(inout) :: permutation
+    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+    
+    integer :: i, length
+    real, dimension(size(permutation)) :: temp_permutation
+    
+    temp_permutation = permutation
+    
+    length = size(applied_permutation)+1
+    do i = 1, size(applied_permutation)
+      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+      permutation(i) = temp_permutation(applied_permutation(length-i))
+    end do
+    
+  end subroutine apply_reverse_permutation_real
+
+  subroutine apply_reverse_permutation_integer(permutation, applied_permutation)
+    !!< Apply the reverse of the given applied_permutation to the array permutation
+  
+    integer, dimension(:), intent(inout) :: permutation
+    integer, dimension(size(permutation)), intent(in) :: applied_permutation
+    
+    integer :: i, length
+    integer, dimension(size(permutation)) :: temp_permutation
+    
+    temp_permutation = permutation
+    
+    length = size(applied_permutation)+1
+    do i = 1, size(applied_permutation)
+      assert(applied_permutation(i) >= 1 .and. applied_permutation(i) <= size(permutation))
+      permutation(i) = temp_permutation(applied_permutation(length-i))
+    end do
+    
+  end subroutine apply_reverse_permutation_integer  
 
 end module quicksort

@@ -12,6 +12,10 @@ module hadapt_advancing_front
   use halos
   use halos_derivation
   implicit none
+  
+  private
+  
+  public :: generate_layered_mesh, create_columns_sparsity
 
   contains
 
@@ -45,7 +49,7 @@ module hadapt_advancing_front
     logical:: adjacent_to_owned_element, adjacent_to_owned_column, shared_face
     logical :: top_element, bottom_element
     logical :: apply_region_ids, propagate_region_ids
-    integer, dimension(:), allocatable :: old_region_ids
+    integer, dimension(:), allocatable :: old_element_data
     
     integer, dimension(2) :: shape_option
     integer, dimension(1) :: other_node
@@ -239,7 +243,7 @@ module hadapt_advancing_front
         end if
         
         ! we now know the relationship between the mesh element and the h_mesh surface element
-        ! save this for zoltan (particularly useful if we're parallel using zoltan)...
+        ! save this for later...
         mesh%mesh%element_columns(ele) = h_ele
 
         ! if the horizontal element has any surface faces, add them to the extruded surface mesh
@@ -353,14 +357,22 @@ module hadapt_advancing_front
         element_owners(i) = fetch(old2new_ele, element_owners(i))
       end do
       
+      ! renumber the element columns
+      allocate(old_element_data(size(mesh%mesh%element_columns)))
+      old_element_data = mesh%mesh%element_columns
+      do i = 1, size(mesh%mesh%element_columns)
+        mesh%mesh%element_columns(fetch(old2new_ele, i)) = old_element_data(i)
+      end do
+      deallocate(old_element_data)
+      
       ! renumber the region_ids
       if(propagate_region_ids) then
-        allocate(old_region_ids(size(mesh%mesh%region_ids)))
-        old_region_ids = mesh%mesh%region_ids
+        allocate(old_element_data(size(mesh%mesh%region_ids)))
+        old_element_data = mesh%mesh%region_ids
         do i = 1, size(mesh%mesh%region_ids)
-          mesh%mesh%region_ids(fetch(old2new_ele, i)) = old_region_ids(i)
+          mesh%mesh%region_ids(fetch(old2new_ele, i)) = old_element_data(i)
         end do
-        deallocate(old_region_ids)
+        deallocate(old_element_data)
       end if
       
       call deallocate(old2new_ele)
@@ -382,15 +394,20 @@ module hadapt_advancing_front
 
   end subroutine generate_layered_mesh
 
-  subroutine create_columns_sparsity(columns, mesh)
+  subroutine create_columns_sparsity(columns, mesh, positions)
     !! Auxillary routine that creates a sparsity of which the rows
     !! are the columns in a mesh, i.e. column indices of the sparsity correspond
     !! to nodes in a mesh column. This is created from the node to column map mesh%columns
     type(csr_sparsity), intent(out):: columns
     type(mesh_type), intent(in):: mesh
+    ! pass in the positions if you want to guarantee that the columns are sorted in descending order
+    type(vector_field), intent(in), optional :: positions
     
     type(csr_sparsity):: node2column_sparsity
     integer:: i, no_nodes, no_columns
+    
+    integer, dimension(:), pointer :: column_nodes
+    integer, dimension(:), allocatable :: permutation
     
     if (.not. associated(mesh%columns)) then
       FLAbort("Called create_columns_sparsity on a mesh without columns")
@@ -419,6 +436,20 @@ module hadapt_advancing_front
     columns%name=trim(mesh%name)//"ColumnsSparsity"
     
     call deallocate(node2column_sparsity)
+    
+    if(present(positions)) then
+      do i = 1, no_columns
+        column_nodes => row_m_ptr(columns, i)
+        allocate(permutation(size(column_nodes)))
+        ! NOTE WELL: here we assume that we only care about the last dimension
+        ! i.e. broken on the sphere like everything else!
+        call qsort(node_val(positions, positions%dim, column_nodes), permutation)
+        call apply_reverse_permutation(column_nodes, permutation)
+        deallocate(permutation)
+      end do
+      
+      columns%sorted_rows = .false.
+    end if
     
   end subroutine create_columns_sparsity
     

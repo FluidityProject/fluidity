@@ -72,6 +72,6 @@ Combine_Meshes.o: Advancing_front.o
 
 Extrude.o: Combine_Meshes.o
 
-Metric_based_extrude.o: Combine_Meshes.o Extrude.o
+Metric_based_extrude.o: Combine_Meshes.o Advancing_front.o
 
 Extrude_radially.o: Combine_Meshes.o

@@ -106,11 +106,11 @@ contains
     type(vector_field), intent(in) :: positions_b
     integer, dimension(node_count(positions_b)), intent(out) :: map
     
-    ewrite(2, *) "In find_node_ownership_rtree_no_tolerance"
+    ewrite(1, *) "In find_node_ownership_rtree_no_tolerance"
        
     call picker_inquire(positions_a, positions_b, map, global = .false.)  
     
-    ewrite(2, *) "Exiting find_node_ownership_rtree_no_tolerance"
+    ewrite(1, *) "Exiting find_node_ownership_rtree_no_tolerance"
     
   end subroutine find_node_ownership_rtree_no_tolerance
 

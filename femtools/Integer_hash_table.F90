@@ -96,11 +96,29 @@ module integer_hash_table_module
     module procedure print_hash_table
   end interface
 
+  interface copy
+    module procedure integer_hash_table_copy
+  end interface
+
   private
   public :: integer_hash_table, allocate, deallocate, has_key, key_count, fetch, insert, &
-            fetch_pair, print, remove
+            fetch_pair, print, remove, copy
 
   contains 
+
+  subroutine integer_hash_table_copy(ihash_copy, ihash)
+    type(integer_hash_table), intent(out) :: ihash_copy
+    type(integer_hash_table), intent(in) :: ihash
+
+    integer :: ind, key, key_val
+
+    call allocate(ihash_copy)
+    do ind = 1, key_count(ihash)
+      call fetch_pair(ihash, ind, key, key_val)
+      call insert(ihash_copy, key, key_val)
+    end do
+
+  end subroutine integer_hash_table_copy
 
   subroutine integer_hash_table_allocate(ihash)
     type(integer_hash_table), intent(out) :: ihash

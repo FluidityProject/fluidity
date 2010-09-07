@@ -864,38 +864,9 @@ hr_adaptivity =
            ## will be computed from the error metric.
            ## This will give a columnar mesh, but not a layered one.
            element inhomogenous_vertical_resolution {
-              ## Perform multiple steps of vertical adaptivity.  This may help
-              ## to overcome lower resolution in the vertical dimension caused
-              ## by the interpolation of the metric to a lower resolution initial
-              ## extruded mesh (i.e. on the first iteration the metric is interpolated
-              ## to the extruded mesh but on subsequent iteration it is interpolated
-              ## onto the improved, adapted mesh).
-              ##
-              ## Defaults to 1 iteration if unselected.
-              element adapt_iterations {
-                integer
-              }?,
               ## Ignore the horizontal adapt, and *only* adapt in the vertical
               element adapt_in_vertical_only {
                 empty
-              }?,
-              ## Before a step of vertical adaptivity takes place the metric
-              ## must be interpolated from the full mesh to an extruded mesh.
-              ## The parameters defining this extrusion default to those given
-              ## under geometry above however it is also possible to give new
-              ## parameters here (e.g. specify a finer mesh to improve the 
-              ## interpolation).
-              ##
-              ## Constant or function to specify the thickness of the
-              ## layers. The function is a function of all coordinates
-              ## (so in 2+1D: x,y and z) to specify a layer depth that
-              ## varies both in the horizontal as in the vertical.
-              ##
-              ## Note that if you are performing adapt iterations then
-              ## these extrusion parameters are only used on the first iteration.
-              ## Successive iterations use the adapted mesh from the previous iteration.
-              element initial_extrusion_sizing_function {
-                  input_choice_real
               }?
            }?,
            ## Apply a separate step of horizontal (and vertical, if using inhomogeneous_vertical_resolution)

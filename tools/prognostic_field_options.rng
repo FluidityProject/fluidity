@@ -1564,7 +1564,7 @@ This is normally be a homogeneous bc on the top surface.</a:documentation>
     <ref name="prognostic_detector_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
-    <ref name="interpolation_algorithm_scalar"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
     <optional>
       <ref name="discrete_properties_algorithm_scalar"/>
     </optional>
@@ -1620,7 +1620,7 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
     <ref name="prognostic_detector_options"/>
     <ref name="scalar_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_scalar_field"/>
-    <ref name="interpolation_algorithm_scalar"/>
+    <ref name="interpolation_algorithm_scalar_full"/>
     <optional>
       <ref name="discrete_properties_algorithm_scalar"/>
     </optional>
@@ -1637,7 +1637,7 @@ Only required for continuous_galerkin spatial_discretisations!</a:documentation>
     <ref name="prognostic_detector_options"/>
     <ref name="vector_steady_state_options"/>
     <ref name="adaptivity_options_prognostic_vector_field"/>
-    <ref name="interpolation_algorithm_vector"/>
+    <ref name="interpolation_algorithm_vector_full"/>
   </define>
   <!--
     free surface field, this is a copy of prognostic_scalar_field above
