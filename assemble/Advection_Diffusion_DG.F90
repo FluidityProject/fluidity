@@ -522,6 +522,7 @@ contains
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)
+    ewrite(2,*) 'Number of subcycles for tracer eqn: ', subcycles
     end if
 
     limit_slope=.false.
