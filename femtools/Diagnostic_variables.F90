@@ -84,7 +84,7 @@ module diagnostic_variables
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, insert_det, &
-       & remove_det_from_current_det_list, set_detector_coords_from_python
+       & remove_det_from_current_det_list, set_detector_coords_from_python, initialise_walltime
 
   public ::  detector_list, name_of_detector_groups_in_read_order, number_det_in_each_group, name_of_detector_in_read_order, zoltan_drive_call
 
@@ -509,7 +509,6 @@ contains
       column=column+1
       buffer=field_tag(name="ElapsedWallTime", column=column, statistic="value")
       write(diag_unit, '(a)') trim(buffer)
-      call initialise_walltime
 
       do i = 1, size(mesh_list)
         ! Headers for output statistics for each mesh

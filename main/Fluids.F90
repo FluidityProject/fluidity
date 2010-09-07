@@ -166,6 +166,7 @@ contains
     ewrite(1,*) "Options sanity check successful"
 
     call set_simulation_start_times()
+    call initialise_walltime
     timestep = 0
 
 #ifdef HAVE_MEMORY_STATS
