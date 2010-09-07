@@ -68,7 +68,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[ControlVolumeCFLNumber:]CFL Number as defined on a control volume mesh. It is calculated as $\triangle t \frac{1}{V} \int _{cv_{face}} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the control volume and $V$ is the volume of the control volume.
 \item[***ControlVolumeDivergence:]
 \item[DG\_CourantNumber:]CFLNumber as defined on a DG mesh. It is calculated as $\triangle t \frac{1}{V} \int _{element} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the element $V$ is the volume of the element.
-\item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
+\item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[t]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
 \item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sect:ND_hermite_weno_limiter}.
 \item[***FiniteElementDivergence:]  
 \item[FreeSurfaceHistory:] The free surface history diagnostics saves snapshots of the free surface field. The regularity and amount of snapshots can be specified in diamond. The main usage of this diagnostic is for harmonic analysis, see \ref{sec:diagnostic_algorithms}
@@ -80,8 +80,8 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\item Requires a constant gravity direction. 
 	\item The Density and GravitationalPotentialEnergyDensity fields must be on the same mesh. 
 	\end{itemize}
-\item[GridPecletNumber:]The GridPecletNumber: $Pe = U*dx/\kappa$, where $\kappa$ is the diffusivity. It is calculated as $\tensor{\kappa}^{-1}\vec{u}\mat{J}$ where $\tensor{\kappa}$ is the diffusivity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
-\item[GridReynoldsNumber:]Grid Reynolds number: $Re = U*dx/\nu$, where $\nu$ is the viscosity. It is calculated as $\tensor{\nu}^{-1}\vec{u}\mat{J}$ where $\tensor{\nu}$ is the viscosity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
+\item[GridPecletNumber:]The GridPecletNumber: $Pe = U\Delta x/\kappa$, where $\kappa$ is the diffusivity. It is calculated as $\tensor{\kappa}^{-1}\vec{u}\mat{J}$ where $\tensor{\kappa}$ is the diffusivity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
+\item[GridReynoldsNumber:]Grid Reynolds number: $Re = U\Delta x/\nu$, where $\nu$ is the viscosity. It is calculated as $\tensor{\nu}^{-1}\vec{u}\mat{J}$ where $\tensor{\nu}$ is the viscosity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
 \item[***HarmonicPhaseSSa:]
 \item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\ppx[]{\psi} = -v$ and  $\ppx[y]{\psi}  = u$ where $u$ and $v$ are the velocity components perpendicular to the gravity direction. A strong Dirichlet boundary condition of $0$ is applied on all boundaries.  
 \item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \vec{u}$. The horizontal plane is determined from the gravity field direction. 
@@ -136,7 +136,7 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[AbsoluteVorticity:] Absolute vorticity:  $f\vec{k} + \nabla \times \vec{u}$, where $f$ is the magnitude of the Coriolis force and $\vec{u}$ the velocity.
 	Limitations: Requires a geometry dimension of 3.
  \item[***Buoyancy:] 
- \item[BedShearStress :] Returns the bed shear stress, $bss = \rho*C_D*|\vec{u}|*\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.
+ \item[BedShearStress :] Returns the (vector) bed shear stress, $bss = \rhoC_D|\vec{u}|*\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.
  \item[ControlVolumeAuxiliaryGradient :] Calculate the control volume auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::ControlVolumeAuxiliaryGradient}.    
  \item[***ControlVolumeDivergenceTransposed:] Gradient of a scalar field evaluated using the transpose of the $C^T$ matrix constructed using control volumes. The related field must be in the same \option{material\_phase} as \option{vector\_field::ControlVolumeDivergenceTransposed}
   \item[***Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. lump mass matrix?
@@ -463,7 +463,7 @@ using a continuous Galerkin formulation. It applies the strong Dirichlet
 boundary condition of:
 
 \begin{equation}
-\Psi = 0 \text{ on } \partial \Omega
+\Psi = 0 \quad \text{ on } \partial \Omega,
 \end{equation}
 
 for all surfaces, and hence is only suitable for problems with a no normal flow boundary
@@ -1247,24 +1247,24 @@ There are two types of surface integrals for scalar fields, \option{value} and
 \option{\ldots/stat/surface\_integral}.
 
 The surface integral type \option{value} calculates the surface integral of the
-scalar field:
+scalar field $c$:
 
 \begin{equation}
-\int_{\partial \Omega} T,
+\int_{\partial \Omega} c,
 \end{equation}
 
 and the surface integral type \option{gradient\_normal} calculates surface integral
 of the dot product of the gradient of the field with the surface normal:
 
 \begin{equation}
-\int_{\partial \Omega} \nabla T \cdot \vec{n}.
+\int_{\partial \Omega} \nabla c \cdot \vec{n}.
 \end{equation}
 
 The \option{gradient\_normal} surface integral is calculated using the volume
 element shape function derivatives, via:
 
 \begin{equation}
-\sum_{i,j} \int_{\partial \Omega} {T_i \frac{\partial \phi_i}{\partial x_j} n_j}.
+\sum_{i,j} \int_{\partial \Omega} {c_i \frac{\partial \phi_i}{\partial x_j} n_j}.
 \end{equation}
 
 \textbf{Vector fields}
@@ -1291,15 +1291,15 @@ the integral is normalised by dividing by the surface area.
 \label{sect:stat_mixing_stats}
 Mixing stats calculates the volume fraction of the scalar field in a set of `bins' the bounds of which are specified by the user. 
 
-The mixing stats can be calculated using the control-volume mesh or for \Poo using the mesh that the scalar field is on. This is specified by setting the choice element under \option{\ldots/stat/include\_mixing\_stats[0]} to either \option{continuous\_galerkin} or \option{control\_volumes}. The bin bounds must also be specified.  The element \option{\ldots/stat/include\_mixing\_stats[0]/mixing\_bin\_bounds} requires a list of floats that are the values of the bin bounds e.g. if the list reads 0.0 1.0 2.0 3.0 4.0 then 5 bins will be returned with ($T$: the scalar field):
+The mixing stats can be calculated using the control-volume mesh or for \Poo using the mesh that the scalar field is on. This is specified by setting the choice element under \option{\ldots/stat/include\_mixing\_stats[0]} to either \option{continuous\_galerkin} or \option{control\_volumes}. The bin bounds must also be specified.  The element \option{\ldots/stat/include\_mixing\_stats[0]/mixing\_bin\_bounds} requires a list of floats that are the values of the bin bounds e.g. if the list reads 0.0 1.0 2.0 3.0 4.0 then 5 bins will be returned with ($c$: the scalar field):
 \begin{itemize}
-\item size bin 1 $=$ volume fraction of domain with $0.0\leq T < 1.0$
-\item size bin 2 $=$ volume fraction of domain with $1.0\leq T < 2.0$
+\item size bin 1 $=$ volume fraction of domain with $0.0\leq c < 1.0$
+\item size bin 2 $=$ volume fraction of domain with $1.0\leq c < 2.0$
 \item \ldots 
-\item size bin 5 $=$ volume fraction of domain with $3.0\leq T$
+\item size bin 5 $=$ volume fraction of domain with $3.0\leq c$
 \end{itemize}
 
-The volume fractions can be normalised by the total volume of the domain by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/normalise}. The `tolerance' beneath the bin bounds for which the scalar field should be included can be specified by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/tolerance} (i.e. $1.0-\mathrm{tolerance} \leq T < 2.0-\mathrm{tolerance}$). If not selected it defaults to machine tolerance epsilon(0.0). For an example of using the mixing stats see the test case in the \fluidity\ trunk \lstinline[language = bash]+.../tests/lock_exchange_2d_cg+ or \lstinline[language = bash]+.../tests/cv_mixing_bin_test_serial/+.
+The volume fractions can be normalised by the total volume of the domain by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/normalise}. The `tolerance' beneath the bin bounds for which the scalar field should be included can be specified by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/tolerance} (i.e. $1.0-\mathrm{tolerance} \leq c < 2.0-\mathrm{tolerance}$). If not selected it defaults to machine tolerance epsilon(0.0). For an example of using the mixing stats see the test case in the \fluidity\ trunk \lstinline[language = bash]+.../tests/lock_exchange_2d_cg+ or \lstinline[language = bash]+.../tests/cv_mixing_bin_test_serial/+.
 
 \subsection{Detectors}
 \label{sect:diagnostics_detectors}
