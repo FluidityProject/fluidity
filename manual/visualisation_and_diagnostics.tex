@@ -136,7 +136,7 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[AbsoluteVorticity:] Absolute vorticity:  $f\vec{k} + \nabla \times \vec{u}$, where $f$ is the magnitude of the Coriolis force and $\vec{u}$ the velocity.
 	Limitations: Requires a geometry dimension of 3.
  \item[***Buoyancy:] 
- \item[BedShearStress :] Returns the (vector) bed shear stress, $bss = \rhoC_D|\vec{u}|*\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.
+ \item[BedShearStress :] Returns the (vector) bed shear stress, $bss = \rho C_D|\vec{u}|\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.
  \item[ControlVolumeAuxiliaryGradient :] Calculate the control volume auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::ControlVolumeAuxiliaryGradient}.    
  \item[***ControlVolumeDivergenceTransposed:] Gradient of a scalar field evaluated using the transpose of the $C^T$ matrix constructed using control volumes. The related field must be in the same \option{material\_phase} as \option{vector\_field::ControlVolumeDivergenceTransposed}
   \item[***Coriolis :] Projects the Coriolis term onto the mesh of this diagnostic field. lump mass matrix?
