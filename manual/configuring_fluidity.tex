@@ -650,6 +650,16 @@ additionally check the \option{/geometry/spherical\_earth option}. With this
 option enabled fluidity will then perform the specified extrusion towards
 the centre of the sphere.
 
+Extrusions on the sphere can be performed such that the `depth' of the extrusion
+conforms to bathymetic data. To extrude according
+to bathymetry \fluidity must be provided with a netCDF data file containing
+three columns of data giving the longitude, latitude and depth
+of each point respectively. The name and location of this data file must then be
+entered under \option{\ldots/extrude/regions/bottom\_depth/from\_map}.
+To avoid the depth at coast dropping to zero the user may also enter a minimum
+depth under the \option{\ldots/from\_map/min\_depth} option. Note however, that
+if a minimum depth is specified, this will be applied throughout the domain.
+
 \subsubsection{Extruded periodic meshes}\label{sect:extrudedperiodic}
 
 If an extruded periodic mesh is required then the periodic mesh must first
