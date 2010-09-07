@@ -673,5 +673,654 @@ either interactively using the graphical user interface or in ASCII text files u
 own scripting language. 
 
 For more information see the \href{http://geuz.org/gmsh/}{Gmsh website}\ or the \href{http://amcg.ese.ic.ac.uk}{AMCG
-website}.
+website}. An online manual is available at \href{http://geuz.org/gmsh/doc/texinfo/gmsh.html}{geuz.org/gmsh/doc/texinfo/gmsh.html}.
+
+\subsection{Importing contours from bathymetric data into Gmsh}
+\index{mesh!generation!gmsh!entering! bathymetry! data! into! fluidity! using! Gmsh}
+\index{Entering bathymetry data into fluidity using Gmsh}
+
+\subsubsection{Introduction}
+\index{Entering bathymetry data into fluidity using Gmsh}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{Introduction}
+
+Gmsh can be used to create a mesh of a `real' ocean domain for use with \fluidity. Several steps must be followed
+to create an ocean mesh compatible with \fluidity:
+
+-Data is usually given as a list of longitude/latitude/depth co-ordinates, however, if the data 
+contains additional information such as national ordinance co-ordinates or data source information e.t.c. 
+the data must be pre-processed to remove these. (See section 11.2). 
+
+-Once the data is in the correct format, three columns containing longitude, latitude and depth, respectively, 
+it must then be converted to a netCDF file using GMT (Generic Mapping Tools). Contours from this netCDF will be
+extracted for use within Gmsh and later this netCDF file will be used by \fluidity to generate bathymetry
+(see section \ref{sect:extruded_meshes}).
+
+-GMT (Generic Mapping Tools) is then be used to extract the desired shoreline contours from the netCDF file. 
+
+-The contours must then be imported into GMSH in order to create a mesh.
+
+-Finally, the mesh can be entered in fluidity.
+
+Details of these steps are given below.
+
+\subsubsection{Pre-processing}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+The horizontal co-ordinates of bathymetric data can come in many different forms: 
+longitude/latitude, Ordinance Survey eastings/northings, Universal Mercator Transverse 
+co-ordinates, etc. and sometimes more then one of these systems are given. However, 
+in generating a mesh for use with \fluidity,
+GMT (Generic Mapping Tools, available from: http://gmt.soest.hawaii.edu/ ) is used, which requires 
+that the data is columnized in the format: longitude latitude depth. As such, the first step 
+required is to convert the data into this format.
+
+\subsubsection{Example}
+\index{Pre-processing}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+An example of data requiring pre-processing is data obtained for the Mersey Estuary. The raw data is in the form:
+\begin{lstlisting}[language = Bash]
+Longitude    Latitude   Easting   Northing  Depth Source 
+-2.93932242,53.31273731,337425.00,379975.00,15.64,dtm_sj37ne_xyz 
+-2.93856211,53.31229379,337475.00,379925.00,15.47,dtm_sj37ne_xyz 
+-2.93857197,53.31274321,337475.00,379975.00,14.96,dtm_sj37ne_xyz 
+-2.93780182,53.31185026,337525.00,379875.00,15.44,dtm_sj37ne_xyz 
+-2.93781167,53.31229969,337525.00,379925.00,16.74,dtm_sj37ne_xyz 
+-2.93782152,53.31274912,337525.00,379975.00,15.48,dtm_sj37ne_xyz 
+-2.93703170,53.31095731,337575.00,379775.00,16.62,dtm_sj37ne_xyz 
+-2.93704155,53.31140673,337575.00,379825.00,14.64,dtm_sj37ne_xyz 
+-2.93705139,53.31185616,337575.00,379875.00,14.23,dtm_sj37ne_xyz
+etc.
+\end{lstlisting}
+
+
+Thus the Easting, Northing and Source columns need to be removed. As such, the following program
+was run on the data file, producing three columns: longitude, latitude and depth.
+
+\begin{lstlisting}[language = Bash]
+ Program Mersey_geo 
+
+  Implicit None 
+
+  INTEGER, PARAMETER     :: kr=kind(.0d0) 
+  REAL(kr), PARAMETER    :: pi=3.141592653589793238_kr, two=2.0_kr,&
+  twopi=two*pi, zero=0.0_kr 
+  REAL(kr), DIMENSION(:), ALLOCATABLE :: lon,lat, Easting, Northing, depth 
+  INTEGER  :: data_points, i 
+
+  ! Variables for the sphere 
+  REAL(kr), PARAMETER :: RE=6378100.0_kr, dtheta=9.0_kr, dphi=9.0_kr 
+  REAL(kr), PARAMETER :: theta0=45.0_kr, phi0=45.0_kr 
+  REAL(kr) :: theta, phi 
+
+  OPEN (1,FILE='dtm_50m_xyz+.txt',STATUS='OLD') 
+  OPEN (2,FILE='Mersey50m.xyz',STATUS='Replace') 
+  REWIND (1) 
+  
+  data_points=43345 
+
+  Allocate (lon(data_points),lat(data_points), Easting(data_points),&
+  Northing(data_points), depth(data_points)) 
+
+  Do i=1,data_points 
+    READ(1,*) lon(i),lat(i), Easting(i), Northing(i), depth(i) 
+  End Do 
+
+  Do i=1,data_points 
+
+    WRITE (2,*) lon(i),' ',lat(i),' ',depth(i) 
+
+  End Do 
+
+  CLOSE (1) 
+  CLOSE (2) 
+
+End Program Mersey_geo 
+\end{lstlisting}
+
+For data in the netCDF format that requires pre-processing, the netCDF Operator package will be of use. See
+\href{http://nco.sourceforge.net/}{nco.sourceforge.net/} for details. 
+
+\subsubsection{Making a netCDF file using GMT}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+Once the data is in the correct form, GMT is used to grid the bathymetry data for input into 
+fluidity. To do this, use the following program (note that “module load 
+gmt” must first be typed into the terminal):
+
+\begin{lstlisting}[language = Bash]
+#!/bin/bash -x 
+
+infile=$1 
+
+gmtset D_FORMAT %14.10f 
+
+# Bounding box 
+bbox=`minmax -I0.5m \${}infile` 
+
+\end{lstlisting}
+\begin{lstlisting}[language = Bash]
+# Resolution of final grid, (in kilometers) 
+resolution=-I0.05k 
+
+# Search radius used in nearest-neighbour interpolation 
+search_radius=-S0.005k 
+
+cp $infile raw.xyz 
+grdmask raw.xyz -Ginfile_mask.grd -N0/NaN/NaN $resolution $bbox $search_radius   
+#-N0/NaN/NaN give depth values for points outside, on the border and inside 
+the grid, respectively
+grd2xyz infile_mask.grd | grep -v nan >> raw.xyz 
+
+# Block average soundings data to prevent aliasing 
+blockmode $bbox $resolution raw.xyz > xyz 
+     
+# Use the nearest neighbour technique to grid data. Could also 
+# use surface here and then mask out underdetermined regions 
+surface $bbox $resolution -T0.75 xyz -Goutfile.grd 
+\end{lstlisting}
+
+This produces a grid of resolution 50m (to change this just change the number after 
+resolution=-I ). To visualize the data, use the mayavi data visualizer. Before doing this, 
+the .grd file must be transformed into a file type which mayavi can read. As such the following 
+command must be entered into the terminal:
+
+\begin{lstlisting}
+				grd2vtu outfile.grd
+\end{lstlisting}
+
+then to visualize the data:
+\begin{lstlisting}		
+				mayavi -d outfile.vtu 
+\end{lstlisting}
+
+To display the map when mayavi opens, click on “Visualize”, then “Modules” and finally
+“SurfaceMap”.A box then opens called “Configure SurfaceMap” click on “Show Pipeline”, then 
+“Actor (vtkOpenGLActor)”, then on SetScale and change the last number from 1.0 to something 
+small, e.g. 0.0001. Click on Apply, then Done. This change is made as the first two co-ordinates 
+are in latitude/longitude, while the last is in metres. Close the two boxes and click on +Z 
+on the main Mayavi screen. The bathymetry data will then appear. It is useful to do this in order 
+to check that the data has been correctly gridded.
+
+\subsubsection{Extracting the contours and entering the bathymetry into GMSH}
+\index{Making the mesh}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+Once the contour files have been extracted, a GMSH file can be automatically generated by 
+running the following program. This program will extract a specified contour from the 
+netCDF file, to be used as the shoreline, enter the shoreline into GMSH, with a plane 
+surface, physical line and physical surface. Other contours can also be extracted, 
+for bathymetry purposes. When this program is run, it prompts the user to enter several 
+pieces of information into the terminal. These include: the name of the netCDF file; 
+the contour to be extracted as the shoreline; whether or not other contours are desired and 
+if so, how many and  which ones; the name of the .geo file which the program will write to 
+(note, this must be created before running the program); the characteristic length of 
+the mesh (if an island is too small it will be meshed over, causing fluidity to fail) 
+and whether or not an open boundary is desired. If an open boundary is required, the line 
+to be split and the point numbers at which to split the line must be entered.
+
+\begin{lstlisting}[language = Bash]
+Program AutomatedGMSHmeshgenerator
+
+!A program to create a coastline in GMSH. The user must enter the name
+of the netCDF file; whether or not other shorelines are to be 
+extracted, and if so how many and which ones; the name of the .geo file;
+the "resolution" i.e. how big an island has to be in order to be 
+recognized (based on the characteristic mesh length) and whether or not 
+an open boundary is desired. The program then writes a new file containing
+GMT commands for extracting the shoreline. If more contours are desired
+the file is overwritten so as to extract the new contours. The program next
+opens the geo file and writes the code needed to make an empty sphere in GMSH. 
+It then opens each contour file in turn, counts the line numbers 
+(i.e. the number of data points) and calculates the are of the "island".
+For files above the resolution threshold it opens them again, and performs 
+a stereographic projection for GMSH. It then writes the points into 
+the empty GMSH file in the format GMSH uses, and creates a line 
+around them. After all the files have been done the program writes a 
+physical line containing all of these lines, line loops around all of 
+these lines, a plane surface containing these line loops and a 
+physical surface containing the plane surface into the GMSH file. 
+Finally, the program opens the files for the other contours, and writes 
+the new points lines into the .geo file, without including these lines 
+in the plane surface or physical objects.
+
+  Implicit None
+
+
+  INTEGER, PARAMETER     :: kr=kind(.0d0)
+  REAL(kr), PARAMETER    :: pi=3.141592653589793238_kr
+  REAL(kr), PARAMETER :: degtorad=pi/180.0_kr, Rmap=1
+  INTEGER  :: z, h, j, t, status, N, I, S, P1, P2, &
+  line, intpatcharea, b, MANY
+  REAL, DIMENSION(:), ALLOCATABLE :: lon,lat,depth
+  REAL :: temp, patcharea, R
+  REAL, DIMENSION(:), ALLOCATABLE :: x, y, w, u, v, xnew, ynew, znew, latnew, lonnew
+  CHARACTER(50) :: filename, geofile, A, bathfile, contour, A1, NewC
+  LOGICAL :: ex
+
+  PRINT *, 'Whats the name of the bathymetry file?'
+  READ (5,*) bathfile
+  PRINT *, 'What contour do you want to extract?'
+  READ (5,*) contour
+  OPEN (1,FILE='contourextractGMT.sh',STATUS='REPLACE')
+  WRITE (UNIT=1,FMT='(A)')'#!/bin/bash -x'
+  WRITE (1,*)''
+  WRITE (1,*)'region=-R-5.49167/-5.05833/56.3333/56.5667'
+  WRITE (1,*)'interval=-I0.01k'
+  WRITE (1,*)'colours=-Ccolours.cpt'
+  WRITE (1,*)'file=', bathfile
+  WRITE (1,*)'PROJ=-JQ0/15c'
+  WRITE (1,*)'gmtset ANNOT_FONT_PRIMARY=Times-Roman'
+  WRITE (1,*)'gmtset ANNOT_FONT_SECONDARY=Times-Roman'
+  WRITE (1,*)'gmtset ANNOT_FONT_SIZE_PRIMARY=16'
+  WRITE (1,*)'gmtset LABEL_FONT=Times-Roman'
+  WRITE (1,*)'gmtset LABEL_FONT_SIZE=16'
+  WRITE (1,*)'gmtset HEADER_FONT=Times-Roman'
+  WRITE (1,*)'gmtset HEADER_FONT_SIZE=12'
+  WRITE (1,*)'gmtset HEADER_OFFSET=0.1c'
+  WRITE (1,*)'gmtset DEGREE_SYMBOL=degree'
+  WRITE (1,*)'gmtset PLOT_DEGREE_FORMAT=F'
+  WRITE (UNIT=1,FMT='(A)')'cat > contours.dat << EOF'
+  WRITE (1,*)contour
+  WRITE (UNIT=1,FMT='(A)')'EOF'
+  WRITE (1,*)'makecpt -C0-10-colbar.cpt -T-150/0.0/10.0 > colours.cpt'
+  WRITE (1,*)'PSFILE=output_file.ps'
+  WRITE (1,*)'grdimage $file $PROJ -P -B1a4/1a4 -Xc -Yc $colours -V -K > $PSFILE'
+  WRITE (1,*)"psscale -D7.5c/-1c/14c/0.4ch $colours -B'10.0:Bathymetry:' -K -O -V >> $PSFILE"
+  WRITE (1,*)'grdcontour -Ccontours.dat $PROJ -DContour -O -K -V $file >> $PSFILE'
+  WRITE (1,*)'pscoast $PROJ $region -A50 -N1 -Dh -W0.5p -V -K -O >> $PSFILE'
+  CLOSE (1)
+  CALL System ('./contourextractGMT.sh')
+  PRINT *, 'Do you want to add any other contours for bathymetry purposes (y/n)?'
+  READ (5,*) A1
+  If (A1=='y') Then
+   PRINT *, 'How many?'
+   READ(5,*) MANY
+   Do t=1, MANY
+    PRINT *, 'Which one?'
+    READ (5,*) NewC
+    OPEN (1,FILE='contourextractGMT.sh',STATUS='REPLACE')
+    WRITE (UNIT=1,FMT='(A)')'#!/bin/bash -x'
+    WRITE (1,*)''
+    WRITE (1,*)'region=-R-5.49167/-5.05833/56.3333/56.5667'
+    WRITE (1,*)'interval=-I0.01k'
+    WRITE (1,*)'colours=-Ccolours.cpt'
+    WRITE (1,*)'file=', bathfile
+    WRITE (1,*)'PROJ=-JQ0/15c'
+    WRITE (1,*)'gmtset ANNOT_FONT_PRIMARY=Times-Roman'
+    WRITE (1,*)'gmtset ANNOT_FONT_SECONDARY=Times-Roman'
+    WRITE (1,*)'gmtset ANNOT_FONT_SIZE_PRIMARY=16'
+    WRITE (1,*)'gmtset LABEL_FONT=Times-Roman'
+    WRITE (1,*)'gmtset LABEL_FONT_SIZE=16'
+    WRITE (1,*)'gmtset HEADER_FONT=Times-Roman'
+    WRITE (1,*)'gmtset HEADER_FONT_SIZE=12'
+    WRITE (1,*)'gmtset HEADER_OFFSET=0.1c'
+    WRITE (1,*)'gmtset DEGREE_SYMBOL=degree'
+    WRITE (1,*)'gmtset PLOT_DEGREE_FORMAT=F'
+    WRITE (UNIT=1,FMT='(A)')'cat > contours.dat << EOF'
+    WRITE (1,*)NewC
+    WRITE (UNIT=1,FMT='(A)')'EOF'
+    WRITE (1,*)'makecpt -C0-10-colbar.cpt -T-150/0.0/10.0 > colours.cpt'
+    WRITE (1,*)'PSFILE=output_file.ps'
+    WRITE (1,*)'grdimage $file $PROJ -P -B1a4/1a4 -Xc -Yc $colours -V -K > $PSFILE'
+    WRITE (1,*)"psscale -D7.5c/-1c/14c/0.4ch $colours -B'10.0:Bathymetry:' -K -O -V >> $PSFILE"
+    WRITE (1,*)'grdcontour -Ccontours.dat $PROJ -DContour -O -K -V $file >> $PSFILE'
+    WRITE (1,*)'pscoast $PROJ $region -A50 -N1 -Dh -W0.5p -V -K -O >> $PSFILE'
+    CLOSE (1)
+    CALL System ('./contourextractGMT.sh')
+   End Do
+  End If
+
+  PRINT *, 'Whats the name of the .geo file?'
+  READ (5,*) geofile
+  OPEN (2,FILE=geofile,STATUS='OLD')
+  WRITE (2,*) 'IP = newp;'
+  WRITE (2,*) 'IL = newl;'
+  WRITE (2,*) 'ILL = newll;'
+  WRITE (2,*) 'IS = news;'
+  WRITE (2,*) 'IFI = newf;'
+  WRITE (2,*) 'Point ( IP + 0 ) = {0, 0, 0 };'
+  WRITE (2,*) 'Point ( IP + 1 ) = {0, 0,6.37101e+06};'
+  WRITE (2,*) 'PolarSphere ( IS + 0 ) = {IP , IP+1};'
+!This opens a file and writes the code to create a sphere in GMSH
+  N=0
+  I=0
+  PRINT *, 'What is the Characteristic Length?'
+  READ (5,*) R
+  PRINT *, 'Do you want an open boundary? (y/n)'
+  READ (5,*) A
+  If (A=='y') Then
+   PRINT *, 'On which line? (Note: IL+0=1, IL+=1=2, etc...)'
+   READ (5,*) Line
+   PRINT *, 'Between which points? (smaller point number first)'
+   READ (5,*) P1, P2
+  Else
+  End If
+  
+  b=0
+  ex=.true.
+  Do while (ex .eqv. .true.)
+    If (b<=9) Then
+     WRITE (filename, '(A,A,A,I1,A )') 'Contour_',trim(contour),'_',b, '_i.xyz'
+    ElseIf (b<100 .AND. b>=10) Then
+     WRITE (filename, '(A,A,A,I2,A )') 'Contour_',trim(contour),'_',b, '_i.xyz'
+    Else 
+     WRITE (filename, '(A,A,A,I3,A )') 'Contour_',trim(contour),'_',b, '_i.xyz'
+    EndIf
+    INQUIRE (FILE=filename, EXIST=ex)   
+    If (ex .eqv. .true.) Then
+     b=b+1
+    End If
+  End Do
+
+  Do  h=0,b-1
+   If (h<=9) Then
+    WRITE (filename, '(A,A,A,I1,A )') 'Contour_',trim(contour),'_',h, '_i.xyz'
+   ElseIf (h<100 .AND. h>=10) Then
+    WRITE (filename, '(A,A,A,I2,A )') 'Contour_',trim(contour),'_',h, '_i.xyz'
+   Else 
+    WRITE (filename, '(A,A,A,I3,A )') 'Contour_',trim(contour),'_',h, '_i.xyz'
+   EndIf
+!Add another if for higher values for h
+   OPEN (3,FILE=filename,STATUS='OLD', IOSTAT=status)
+!This tells the program the names of the files
+   z = 0
+
+   Do while (status==0)
+    READ(3,*, IOSTAT=status) temp, temp, temp
+    If (status==0) Then
+      z=z+1
+    End If
+   End Do   
+   Close(3)
+!This counts the number of lines in the file
+   
+   OPEN (3,FILE=filename,STATUS='OLD')
+   REWIND(3)
+   Allocate(lon(z),lat(z),depth(z), xnew(z), ynew(z), znew(z) &
+   , latnew(z), lonnew(z))
+   patcharea=0.0
+
+   Do j= 1,z
+    READ(3,*) lon(j), lat(j),depth(j)
+    latnew(j)=lat(j)*degtorad
+    lonnew(j)=lon(j)*degtorad
+    xnew(j)=(6.37101e+06)*sin(pi/2.0-latnew(j))*cos(lonnew(j))
+    ynew(j)=(6.37101e+06)*sin(pi/2.0-latnew(j))*sin(lonnew(j))
+    znew(j)=(6.37101e+06)*cos(pi/2.0-latnew(j))     
+   End Do
+
+   Do   j=1, z-1
+    patcharea=patcharea+(xnew(j)*(ynew(j+1)-ynew(j))&
+    -ynew(j)*(xnew(j+1)-xnew(j)))*6.37101e+06/(6.37101e+06+znew(j))
+   End Do
+
+   patcharea=patcharea+(xnew(z)*(ynew(1)-ynew(z))&
+   -ynew(z)*(xnew(1)-xnew(z))*6.37101e+06)/(6.37101e+06+znew(z))
+   patcharea=abs(patcharea)
+   Deallocate(lat,lon, depth, xnew, ynew, znew, latnew, lonnew)
+   Close (3)
+
+   If (patcharea>(R**2.0/2.0)) Then
+!This is the resolution. In this case, any file with less than 6 points is 
+ignored, though the number of lines in the file is added to the running total
+    OPEN (3,FILE=filename,STATUS='OLD')
+    REWIND(3)
+    
+    Allocate(lon(z),lat(z),depth(z),x(z), &
+    y(z),w(z),u(z),v(z))
+
+    Do j= 1,z
+      READ(3,*) lon(j),lat(j),depth(j)
+    End Do
+
+    Do j=1,z 
+      x(j) = -Rmap*cos(lat(j)*degtorad)*cos(lon(j)*degtorad)
+      y(j) = -Rmap*cos(lat(j)*degtorad)*sin(lon(j)*degtorad)
+      w(j) = Rmap*sin(lat(j)*degtorad)
+      u(j) = ((Rmap) / (Rmap+(w(j))))*x(j)
+      v(j) = ((Rmap) / (Rmap+(w(j))))*y(j)
+    End Do
+!This is the stereographic projection system used in GMSH
+  
+    Do j=1,z
+      WRITE (2,*) 'Point(IP+',N+j+1,')=','{',u(j),',',v(j),', 0 };'
+    End Do
+!This is how points are written in GMSH
+
+    WRITE (2,*) 'BSpline(IL +',I, ') = {', N+3, ':', N+z+1, ',', N+3,'};'
+!This is how lines are written in GMSH
+    Deallocate (lon,lat,depth,x,y,w,u,v)
+    CLOSE (3)  
+   ElseIf (patcharea.LE.(R**2.0/2.0)) Then
+   End If
+
+   If (status<0 .AND. patcharea>(R**2.0/2.0)) Then
+    N=N+z
+    I=I+1
+   ElseIf (status<0 .AND. patcharea<(R**2.0/2.0)) Then
+   End If
+  End Do
+ 
+  If (A=='n') Then
+   WRITE (2,*) 'Physical Line (',I+1,') = {' 
+   Do H = 0, I-1
+    If (H<I-1) Then
+     WRITE (2,*) H, ','
+    Else
+     Write (2,*) H
+    End If
+   End Do
+   Write (2, *) '};'
+!This writes a Physical Line containing all of the Lines
+   Do H = I, 2*I-1
+    WRITE (2,*) 'Line Loop(',H+2,')={',H-I+1,'};'
+   End Do
+!Line Loops are needed for a Plane Surface
+   WRITE (2,*) 'Plane Surface (',2*I+2,') = {'
+   Do H = I+2, 2*I+1
+    If (H<2*I+1) Then
+     WRITE (2,*) H, ','
+    Else
+     Write (2,*) H
+    End If
+   End Do
+   WRITE (2, *) '};'
+   WRITE (2,*) 'Physical Surface(',2*I+3,') = {', 2*I+2,'};'
+  Else
+   WRITE (2,*) 'Split Line(',Line,') {',P1,',', P2, '};'
+   WRITE(2,*) 'Delete { '
+   WRITE(2,*) 'Line{',I+1,'};'
+   WRITE(2,*) '}'
+   WRITE (2,*) 'BSpline(',I+3,')={',P1,',',P2,'};'
+!This is the line for the open boundary
+   WRITE (2,*) 'Physical Line (',I+4,') = {' 
+   Do H = 1, I
+     WRITE (2,*) H, ','
+   End Do
+   WRITE (2,*) I+2
+   WRITE (2, *) '};'
+   WRITE (2,*) 'Physical Line (',I+5,')={',I+3,'};'
+! We now have 2 separate physical lines: 1 with the open boundary and one 
+with the closed boundary
+   WRITE(2,*) 'Line Loop(',I+6,') ={',I+2, ',', I+3,'};'
+   Do H = I-1, 2*I-3
+    WRITE (2,*) 'Line Loop(',H+8,')={',H-I+3,'};'
+   End Do
+   WRITE (2,*) 'Plane Surface (',2*I+6,') = {'
+   WRITE(2,*) I+6,','
+   Do H = I+7, 2*I+5
+    If (H<2*I+5) Then
+     WRITE (2,*) H, ','
+    Else
+     WRITE (2,*) H
+    End If
+   End Do
+   WRITE (2, *) '};'
+   WRITE (2,*) 'Physical Surface(',2*I+7,') = {', 2*I+6,'};'
+  End If
+ 
+  If (A1=='y') Then
+   b=0
+   ex=.true.
+   Do while (ex .eqv. .true.)
+    If (b<=9) Then
+     WRITE (filename, '(A,A,A,I1,A )') 'Contour_',trim(NewC),'_',b, '_i.xyz'
+    ElseIf (b<100 .AND. b>=10) Then
+     WRITE (filename, '(A,A,A,I2,A )') 'Contour_',trim(NewC),'_',b, '_i.xyz'
+    Else 
+     WRITE (filename, '(A,A,A,I3,A )') 'Contour_',trim(NewC),'_',b, '_i.xyz'
+    EndIf
+    INQUIRE (FILE=filename, EXIST=ex)   
+    If (ex .eqv. .true.) Then
+     b=b+1
+    End If
+   End Do
+
+   Do  h=0,b-1
+    If (h<=9) Then
+     WRITE (filename, '(A,A,A,I1,A )') 'Contour_',trim(NewC),'_',h, '_i.xyz'
+     ElseIf (h<100 .AND. h>=10) Then
+     WRITE (filename, '(A,A,A,I2,A )') 'Contour_',trim(NewC),'_',h, '_i.xyz'
+    Else 
+     WRITE (filename, '(A,A,A,I3,A )') 'Contour_',trim(NewC),'_',h, '_i.xyz'
+    EndIf
+
+    OPEN (3,FILE=filename,STATUS='OLD', IOSTAT=status)
+    z = 0
+
+    Do while (status==0)
+     READ(3,*, IOSTAT=status) temp, temp, temp
+     If (status==0) Then
+       z=z+1
+     End If
+    End Do   
+    Close(3)
+   
+    OPEN (3,FILE=filename,STATUS='OLD')
+    REWIND(3)
+    Allocate(lon(z),lat(z),depth(z), x(z), y(z), u(z), w(z) &
+    , v(z))
+       
+    Do j= 1,z
+      READ(3,*) lon(j),lat(j),depth(j)
+    End Do
+
+    Do j=1,z
+      x(j) = -Rmap*cos(lat(j)*degtorad)*cos(lon(j)*degtorad)
+      y(j) = -Rmap*cos(lat(j)*degtorad)*sin(lon(j)*degtorad)
+      w(j) = Rmap*sin(lat(j)*degtorad)
+      u(j) = ((Rmap) / (Rmap+(w(j))))*x(j)
+      v(j) = ((Rmap) / (Rmap+(w(j))))*y(j)
+    End Do
+  
+    Do j=1,z
+      WRITE (2,*) 'Point(IP+',N+j+1,')=','{',u(j),',',v(j),', 0 };'
+    End Do
+    WRITE (2,*) 'BSpline(IL +',I, ') = {', N+3, ':', N+z+1, ',', N+3,'};'
+    Deallocate (lon,lat,depth,x,y,w,u,v)
+    Close(3)
+
+    N=N+z 
+    I=I+1
+   End Do
+  End If
+  Close(2)
+  PRINT *, 'Enjoy- its been a pleasure ;)'
+
+End Program AutomatedGMSHmeshgenerator
+\end{lstlisting}
+
+The characteristic length desired may be unknown when first making the mesh. As such, enter 0 into the terminal, 
+then when the mesh has been created to satisfaction, run the program again, using the minimum characteristic length, 
+and make the mesh again.
+
+\subsubsection{Making the mesh}
+\index{Making the mesh}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+To make the mesh, open the .geo file, scroll down to the bottom of the file and copy:
+
+\begin{lstlisting}[language = Bash]
+Field [ IFI + 0]  = Attractor; 
+Field [ IFI + 0].NodesList  = { IP + 2 : IP + n}; 
+Field[2] = Restrict; 
+Delete Field [2]; 
+Field[2] = MathEval; 
+Field[2].F = "250"; 
+Background Field = 2; 
+\end{lstlisting}
+
+Next, open the file in GMSH. Click on Geometry and scroll down to “Mesh”. Click on 1-D, then 2-D (note: doing 
+this produces a better mesh than simply clicking 2-D). If the mesh is the wrong size (i.e. it is too coarse, or 
+GMSH crashes making it), open Mesh again, and click on “Define”, then “Fields” and then MathEval in the new box.
+Under “Options”, change the number higher or lower, depending on the problem, and click “Apply”.  Go back to the
+main Mesh menu and press 1-D and 2-D again. This can take some trial and error, but finding the right kind of number
+ doesn't take too long. 
+
+If more resolution is required in specific area, click on “New”, then “Attractor”. In the box next to “NodesList”, enter 
+the point numbers of points close to the desired area (1 or 2 is enough). If resolution is needed close to a line or surface, 
+type in the line or surface number into “LineList” or “SurfaceList”. 
+
+Click on New again, then “Threshold”. Enter numbers for “LcMax” (the largest element size), and “LcMin” (the smallest mesh size) 
+“DistMax” (the distance away from from the nodes/lines/surfaces at which the element size is given by LcMax) and “Distmin” 
+(the distance away from the node/line/surface to which the element size is given by LcMin). Next to “IField”, enter 3 
+(to specify that the new Attractor field is being used). Tick the “Set as background field” box and press “Apply”. Again, 
+reload the mesh, look at the results, then modify the Threshold numbers until satisfied. Finally, click “Save” on the Mesh menu.
+
+Note: A plug-in is currently under development with the aim of creating a mesh whose resolution is proportional to the local bathymetry.
+
+\subsubsection{Entering the mesh into fluidity}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+After the mesh has been made, move the .msh and the outfile.grd files into a new folder in Fluidity. Type:
+\begin{lstlisting}[language = Bash]
+	 ../../scripts/gmsh2triangle file.msh
+\end{lstlisting}
+
+Then open the newly created file.node. Change the second number on the first line from a 3 to a 2 (as the mesh was made on a sphere,
+fluidity thinks it is a 3-D mesh, when it is a 2-D mesh). Finally, create a new .flml file, using the .grd file for Maximum depth.
+
+\subsubsection{Troubleshooting}
+\index{Entering bathymetry data into fluidity using GMSH}
+\index{Gmsh}
+\index{mesh!generation!gmsh}
+\index{gmsh}
+
+1.Check the signs of the data. For example, if the depth is positive instead of negative.
+
+2.If there are random spikes when visualizing the data lower the resolution in the gmmt gridding commands. The spikes
+may be points for which there is no data which GMT is setting as 0.
+
+3.Bathymetry data may be missing close to the shoreline (e.g. no data above -10m). To modify this, use g3data to extract a 
+coastline from a map (e.g. an OS map), and add the co-ordinates to the file entered into GMT. There will still be gaps in the 
+information which GMT will attempt to cover for, but  this will usually give a relatively accurate representation.
+
+4.If the data comes in .grd format the first few steps can be skipped and the contours can be directly extracted.
+
+5.Due to GMSH stereographic co-ordinate projection system, if the south pole is not contained by an island when doing a global 
+simulation the GMSH will mesh the islands/continents, not the oceans. To modify this, rotate the co-ordinates of the all of the 
+points so that the south pole is contained by an island, then make the mesh. Once the mesh has been made, copy and paste the node 
+points in the .msh file into a new file, rotate them back to their original positions, and copy them back into the .msh file.
+
 
