@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>NoNormalFlow_DG</name>
+  <owner userid="dham"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity no_normal_flow.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="stats" language="python">from fluidity_tools import stat_parser
+s=stat_parser("No_normal_flow.stat")
+stats={}
+stats["UCrossMax"]=s["Water"]["VelocityCrossStream"]["max"][-1]
+stats["UL2"]=s["Water"]["Velocity%magnitude"]["l2norm"][-1]
+stats["UConstant"]=s["Water"]["Velocity%magnitude"]["max"][-1]-s["Water"]["Velocity%magnitude"]["min"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="VelocityIsConstant" language="python">assert(stats["UConstant"]&lt;2.5e-3)<comment>Check that the velocity in the domain is constant. This is part of the check that no drag is introduced ad the domain edges.</comment></test>
+    <test name="NoCrossStreamVelocity" language="python">assert(stats["UCrossMax"]&lt;6.e-4)<comment>Check that the velocity in the cross-stream direction is really zero. This checks that the boundaries are really leak-proof.</comment></test>
+    <test name="VelocityMagnitude" language="python">assert(abs(stats["UL2"]-2.0)&lt;1.e-2)<comment>Check that the L2Norm of the velocity is correct. This is another check that there is no drag imposed.</comment></test>
+  </pass_tests>
+  <comment>This problem tests a spatially constant flow through a channel at 45 degrees to the axes with free slip boundary conditions.
+The channel is periodic and the flow is driven by a sponge region near the periodic boundary.
+The flow should converge on a constant velocity of sqrt(2) along the channel.</comment>
+</testproblem>
