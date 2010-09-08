@@ -130,6 +130,10 @@ validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "test_options.
 validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "fluidity_options.rng"), testDir = "tests", depth = 2, extension = "flml", xmlRootNode = "fluidity_options")
 validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "shallow_water_options.rng"), testDir = "tests", depth = 2, extension = "swml")
 
+validator.TestXmlFiles(testDir = "examples", depth = 1)
+validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "test_options.rng"), testDir = "examples", depth = 1, xmlRootNode = "testproblem")
+validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "fluidity_options.rng"), testDir = "examples", depth = 1, extension = "flml", xmlRootNode = "fluidity_options")
+
 # QG
 #validator.TestXmlFiles(testDir = os.path.join("qg_strat", "test"), depth = 1)
 #validator.ValidateOptionsFiles(schemafile = os.path.join("tools", "test_options.rng"), testDir = testDir = os.path.join("qg_strat", "test"), depth = 1, xmlRootNode = "testproblem")
