@@ -1306,9 +1306,9 @@ Three optional diagnostic scalar fields are available within the model: LengthSc
 
 The lengthscale can be limited near selected walls using the \option{limit\_lengthscale} option (see \eqref{yap}).
 It is limited throughout the domain by the value set in \option{L\_max}, which should be the maximum possible size of an eddy (a geometric constraint, e.g. inlet height).
-However, it has no effect on the solution since the length scale is purely diagnostic [PENDING REVISION].
+However, it has no effect on the solution since the length scale is purely diagnostic.
 
-\subsubsection{Initial and Boundary Conditions}[PENDING REVISION]
+\subsubsection{Initial and Boundary Conditions}
 
 The model is sensitive to the initial conditions specified for the $k$ and $\epsilon$ fields. It is recommended to use the special boundary condition type, \option{\ldots/k\_epsilon} on any surface of interest for these fields. Different wall functions are available for low- and high-Reynolds-number flows. The cutoff between high and low Reynolds number is at the user's discretion.
 
