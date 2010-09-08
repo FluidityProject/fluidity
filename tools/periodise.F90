@@ -23,7 +23,8 @@ program periodise
   character(len=FIELD_NAME_LEN) :: external_name, periodic_name
   type(mesh_type), pointer :: periodic_mesh, external_mesh
   type(vector_field) :: periodic_positions, external_positions
-  integer :: stat
+  integer :: stat, i, nstates
+  logical :: skip_initial_extrusion
 
   call set_debug_level(0)
   call mpi_init(ierr)
@@ -48,14 +49,14 @@ program periodise
   
   ! Find out how many states there are
   nstates=option_count("/material_phase")
-  allocate(state(1:nstates))
+  allocate(states(1:nstates))
   do i = 1, nstates
-     call nullify(state(i))
+     call nullify(states(i))
   end do
 
-  call insert_external_mesh(state, save_vtk_cache = .true.)
+  call insert_external_mesh(states, save_vtk_cache = .true.)
   
-  call insert_derived_meshes(state, skip_extrusion=skip_initial_extrusion)
+  call insert_derived_meshes(states, skip_extrusion=skip_initial_extrusion)
   
   ! !  End populate_state calls
   
