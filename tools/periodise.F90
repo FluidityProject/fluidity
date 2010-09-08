@@ -38,7 +38,27 @@ program periodise
   end if
 
   call load_options(trim(filename))
-  call populate_state(states)
+  
+  ! for extruded meshes, if no checkpointed extruded mesh is present, don't bother
+  ! extruding (this may be time consuming or not fit on the input_nprocs)
+  skip_initial_extrusion = option_count('/geometry/mesh/from_mesh/extrude')>0 .and. & 
+    option_count('/geometry/mesh/from_mesh/extrude/checkpoint_from_file')==0
+        
+  ! ! Below is a (partial) copy of the first bit of populate_state
+  
+  ! Find out how many states there are
+  nstates=option_count("/material_phase")
+  allocate(state(1:nstates))
+  do i = 1, nstates
+     call nullify(state(i))
+  end do
+
+  call insert_external_mesh(state, save_vtk_cache = .true.)
+  
+  call insert_derived_meshes(state, skip_extrusion=skip_initial_extrusion)
+  
+  ! !  End populate_state calls
+  
   call check_valid_input(states, external_filename, external_name, periodic_name)
 
   external_mesh => extract_mesh(states(1), trim(external_name))
