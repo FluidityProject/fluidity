@@ -1,7 +1,8 @@
 \chapter{Model physics}\label{chap:model_physics}
 
 \section{How to navigate this chapter}
-One should navigate this chapter in the following manner: Start here and read from left to right. In about 20 minutes you will reach the end of this chapter, where you can jump to Chapter three. In Chapter three, our discretization experts will BLOW YOUR MIND with some top class numerical jargon. However, please do not let excitement get the better of you. Read this chapter first as it took two Welshmen an awful lot of time to write it, cull it and then write it again. The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994} is also a useful reference.
+
+This chapter covers the underlying physics of the Navier Stokes and associated field equations modelled by {\fluidity}.
 
 \begin{center}
 \begin{tabular}{lccc}
@@ -15,7 +16,7 @@ momentum equation & \ref{Sect:MP-MomEqn} & \ref{sect:bc_vector_dirichlet}, \ref{
 \end{tabular}
 \end{center}
 
-
+The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994} is also a useful reference.
 
 \section{Advection--Diffusion Equation}\label{Sect:MP-AdvdifEqn}
 \index{advection-diffusion equation}
@@ -27,7 +28,7 @@ The general form the equation that governs the evolution of a scalar field $c$
 \begin{equation}\label{eq:general_scalar_eqn}
 \ppt{c} + \nabla\cdot(\bmu c) = \nabla\cdot(\kaptens\nabla c) - \sigma c + F,
 \end{equation}
-where $\bmu=(u,v,w)^{T}$ is the velocity vector, $\kaptens$ is the diffusivity (tensor), $\sigma$ is an absorption coefficient ($-\sigma c$ is sometimes terms Rayleigh or linear friction) and $F$ represents any source or reaction terms.
+where $\bmu=(u,v,w)^{T}$ is the velocity vector, $\kaptens$ is the diffusivity (tensor), $\sigma$ is an absorption coefficient ($-\sigma c$ is sometimes termed Rayleigh or linear friction) and $F$ represents any source or reaction terms.
 
 \subsubsection{Advection}\label{Sect:MP-AdvdifEqn-adv}
 The advection term in \eqref{eq:general_scalar_eqn}, given by
@@ -40,8 +41,7 @@ be included in the discretisation. {\fluidity} deals with the advection term in 
 \begin{equation}\label{eq:fluidity_scalar_advection}
 \nabla\cdot(\bmu c) + (\beta-1)(\nabla\cdot\bmu)c,
 \end{equation}
-so that $\beta=1$ corresponds to the conservative form of the equation and $\beta=0$ to the non-conservative. Note also that the second term on
-the \rhs\ of \eqref{eq:scalar_advection} may be interpreted as a source term for $c$. When the velocity results in motion that is largely in the vertical direction resulting from temperature (density) differences the term convection is often used to describe this.
+so that $\beta=1$ corresponds to the conservative form of the equation and $\beta=0$ to the non-conservative.
 
 \subsubsection{Diffusion}\label{Sect:MP-AdvdifEqn-diff}
 The diffusion term in \eqref{eq:general_scalar_eqn}, given by 
@@ -62,8 +62,7 @@ In this case the diffusion term may be written as
 \begin{equation}\label{eq:scalar_anisotropic_diffusion}
 \nabla\cdot(\kaptens\nabla c) = \kappa_H \left(\pptt[x]{c} + \pptt[y]{c}\right) + \kappa_V \pptt[z]{c}.
 \end{equation}
-Note that the second-order terms defined above is often termed Laplacian diffusion. The corresponding 4th order version is sometimes
-termed hyper-diffusion and acts in a similar manner to Laplacian diffusion but is more scale selective.
+Note that the second-order terms defined above is often termed Laplacian diffusion.
 
 
 \subsubsection{Absorption, Reaction and Source Terms}\label{Sect:MP-AdvdifEqn-abs}
@@ -113,11 +112,11 @@ Taking the weak form (applying Green's theorem to the diffusion term) of the adv
 \int_{\partial\Omega} \phi (\kaptens\nabla c)\cdot\bmn \;d\Gamma,
 \end{equation*}
 where $\phi$ is a test function (see section \ref{chap:numerical_discretisation}).
-The Neumann condition is specified by assigning a value to $(\kaptens\nabla T)\cdot\bmn$, \eg
+The Neumann condition is specified by assigning a value to $(\kaptens\nabla c)\cdot\bmn$, \eg
 \begin{equation*}
 (\kaptens\nabla c)\cdot\bmn = q,\quad \textrm{on}\quad \partial\Omega,
 \end{equation*}
-and adding in this surface integral to the discretised equation. NB. $q$ is termed a flux.
+and substituting in this surface integral to the discretised equation. Note that $q$ is often termed a flux.
 
 
 \subsubsection{Robin condition for a scalar field}\label{sect:bc_scalar_robin}
@@ -132,15 +131,6 @@ on the value of the field value $c$.
 
 \section{Momentum Equation}\label{Sect:MP-MomEqn}
 
-The state of a moving fluid can be described mathematically through means of
-functions which give the distribution of velocity $\bmu=\bmu(\bmx,t)$ and
-any two thermodynamic quantities (such as the pressure $p(\bmx,t)$ and
-density $\rho(\bmx,t)$) within the fluid. All thermodynamic quantities are
-determined by the values of any two such quantities together with an
-equation of state. \fluidity\ can solve the equations of motion in varying forms, and
-with various approximations. These forms and approximations are discussed in
-the following subsections.
-
 \index{conservation!equation}
 \index{momentum equation}
 
@@ -149,12 +139,11 @@ A starting point for describing the physics of a continuum are the conservation 
  \ddt{}\left[\int_{V(t)}\theta(\bmx,t)\right]=
  \int_{V(t)}\left(\DDt{\theta}+\theta\nabla\cdot\bmu\right),
 \end{equation}
-\index{Reynolds Transport theorem}
 which is the Reynolds' Transport theorem. In \eqref{RTT} $\bmx=(x,y,z)^T$ and $\bmu=(u,v,w)^T$ are three-dimensional position and velocity vectors respectively and 
 \begin{equation}\label{MatDiv}
  \DDt{}\equiv\frac{\partial}{\partial{t}}+\bmu\cdot\nabla,
 \end{equation}
-is the \textit{material derivative} (NB. it has many other commonly-used names including the total and Lagrangian derivative).
+is the \textit{material derivative} (NB. it has many other commonly-used names including the total and Lagrangian derivative). \index{Reynolds Transport theorem}
 
 \subsubsection{Mass conservation}
 \index{conservation!mass}
@@ -197,7 +186,7 @@ By adding $-\tautens$ to the previously introduced \textit{momentum flux density
  \tensor{\Pi}=p\mathbf{I}+\rho\bmu\bmu-\tautens=-\sigtens+\rho\bmu\bmu,
 \end{equation}
 
-where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the deviatoric or viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{Sect:Rheology}. Thus, the most general form of the equations of motion of a compressible viscous fluid may be written as
+where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the deviatoric or viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{Sect:Rheology}. Thus, the most general form of the momentum equation of a compressible viscous fluid may be written as
 
 \begin{equation}\label{viscous_fluids_1}
  \rho\left(\frac{\partial\bmu}{\partial{t}}+\bmu\cdot\nabla\bmu\right)=-\nabla\cdot\sigtens+\rho\bmF,
@@ -224,16 +213,15 @@ where all three components are zero and this is referred to as no-slip.
 As for the scalar equation, applying Green's theorem to the stress term and the pressure
 gradient in \eqref{mtm} results in a surface integral of the form
 \begin{equation}\label{StressBC}
-\tautens\cdot\bmn - p\bmn = \bmF,\quad \textrm{on}\quad \partial\Omega,
+\tautens\cdot\bmn - p\bmn = \bmT,\quad \textrm{on}\quad \partial\Omega,
 \end{equation}
-where $\bmF$ is an applied `traction' force (actually a force per unit area or stress, it becomes
+where $\bmT$ is an applied `traction' force (actually a force per unit area or stress, it becomes
 a force when the surface integral in the weak form is performed). An example of this might be were we set the vertical
 component to zero (in the presence of a free surface) and impose the two tangential directions
 (\eg a wind stress).
 
 \index{boundary conditions!free stress}
-The free-stress condition
-is the case where we take $\bmF\equiv\vec{0}$.
+The free-stress condition is the case where we take $\bmT\equiv\vec{0}$.
 
 
 \subsubsection{Traction boundary condition for momentum --- free-stress as a special case}\label{sect:bc_vector_traction}
@@ -246,18 +234,15 @@ no-flow ($g=0$) through the boundary)
 \end{equation*}
 The remaining two degrees of freedom are imposed by taking the
 tangential component of \eqref{StressBC} and specifying the tangential component
-of the force $\bmF_{\tau}$, \ie
+of the force $\bmT_{\tau}$, \ie
 \begin{equation*}
-\bmtau\cdot(\tautens\cdot\bmn - p\bmn) = \bmtau\cdot\tautens\cdot\bmn = \bmF_{\tau},\quad \textrm{on}\quad \partial\Omega,
+\bmtau\cdot(\tautens\cdot\bmn - p\bmn) = \bmtau\cdot\tautens\cdot\bmn = \bmT_{\tau},\quad \textrm{on}\quad \partial\Omega,
 \end{equation*}
 An example of this might be where a rigid lid is used (so normal component is zero)
 and the tangential components are a prescribed wind stress (in which case we take
 the two tangential directions to correspond to the available stress or wind velocity
 information, \ie east-west and north-south) or bottom drag. Also, what we often term free-slip
 where the tangential components of stress are set to zero.
-
-Apologies for the bad notation, $\tau$ here is the tangential direction
-vectors (two of them) and $\tautens$ is the viscous stress tensor.
 
 \subsubsection{Bulk parameterisations for oceans}
 
@@ -296,11 +281,11 @@ This has the effect of changing mass conservation to volume conservation.
 \subsubsection{The Boussinesq approximation} \label{sect:boussinesq_approximation}
 \index{density!reference}
 \index{Boussinesq!approximation}
-As noted in the previous section, for many problems, one is able to assume that density does not vary greatly about a mean reference state \eqref{eq:densref}. The Boussinesq approximation involves two steps. The first makes use of this assumption in \eqref{mass_conservation_2}, yielding \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
+For many problems, one is able to assume that density does not vary greatly about a mean reference state. The Boussinesq approximation involves two steps. The first makes use of this assumption in \eqref{mass_conservation_2}, yielding \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
 \begin{equation}
 \rho_0\DDt{\bmu} -\nabla\cdot\sigtens = \rho \bmg + \rho_0\bmF,
 \end{equation}
-where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in cases where the $\bmk$ unit vector always points in the direction of gravity).
+where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in cases where the vertical $\bmk$ unit vector always points in the direction of gravity).
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sect:typical_ICOM_equations}
 \index{Boussinesq!equations}
@@ -342,7 +327,7 @@ Using the conservation laws outlined above the following pointwise PDE system go
 \bmq) &=& \rho\bmF\cdot\bmu,\slabel{conenergy}
 \label{conservativesystem}
 \end{subeqnarray}
-where $\tote\equiv\inte+\modu^2/2$ is the total specific energy. \eqref{conmass} is exactly the conservative form of the continuity equation given in \eqref{mass_conservation_2}, \eqref{conmom} is equation \eqref{mom_cons_4} with the internal stress of the fluid and volume forces taken into account and \eqref{conenergy} is obtained from making the substitutions $w=\inte+p/\rho$ and $\tote\equiv\inte+\modu^2/2$ in \eqref{viscous_fluids_2}.
+where $\tote\equiv\inte+\modu^2/2$ is the total specific energy. \eqref{conmass} is exactly the conservative form of the continuity equation given in \eqref{mass_conservation_2}, \eqref{conmom} is equation \eqref{viscous_fluids_1} and \eqref{conenergy} is obtained from making the substitutions $w=\inte+p/\rho$ and $\tote\equiv\inte+\modu^2/2$ in \eqref{viscous_fluids_1}.
 
 \subsubsection{Compressible equations in non-conservative form}\label{Sect:compressible_nonconservative}
 Expanding terms in \eqref{conservativesystem} yields the
@@ -400,11 +385,11 @@ and that $\rho'$ is assumed not to count in all terms but the buoyancy force.
 It is natural now to define pressure in terms of a background pressure that is
 only dependent on depth and a perturbation to this:
 \begin{equation*}
-p=p_0(z)+p'(\bmx,t),
+p=p_0(z,t)+p'(\bmx,t),
 \end{equation*}
-where $p_0(z)$ balances the constant $\rho_0$ part of buoyancy and may be written
+where $p_0(z,t)$ balances the constant $\rho_0$ part of buoyancy and may be written
 \begin{equation*}
-p_0(z) = \int_z^\eta \rho_0 g = \rho_0 g(\eta - z),
+p_0(z,t) = \int_z^\eta \rho_0 g = \rho_0 g(\eta - z),
 \end{equation*}
 where $\eta\equiv\eta(x,y)$ is the free surface height. Therefore in
 the case of a free surface an extra term of the form
