@@ -226,11 +226,17 @@ contains
 
     ! in case none (or both) selected default to family type selection
     select case(field%mesh%shape%numbering%family)
-    case (FAMILY_SIMPLEX) ! use projection
+    case (FAMILY_SIMPLEX) ! use projection unless 1d
       if((.not.project_point).and.(.not.local).and.(.not.project_grad).and.(.not.structured)) then
-        ewrite(2,*) "using simplex elements but haven't selected an upwind value method"
-        ewrite(2,*) 'defaulting to projection from a point'
-        project_point = .true.
+        if(mesh_dim(field)==1) then
+          ewrite(2,*) "using simplex elements on a 1d mesh but haven't selected an upwind value method"
+          ewrite(2,*) 'defaulting to locally bound value'
+          local = .true.
+        else
+          ewrite(2,*) "using simplex elements but haven't selected an upwind value method"
+          ewrite(2,*) 'defaulting to projection from a point'
+          project_point = .true.
+        end if
       end if
     case (FAMILY_CUBE) ! use local
       if(project_point) then
@@ -577,7 +583,7 @@ contains
     end if
 
     dim = mesh_dim(field)
-    if((dim/=2).and.(dim/=3)) then
+    if((dim/=1).and.(dim/=2).and.(dim/=3)) then
       FLExit("Unsupported control volume dimension.")
     end if
 
@@ -767,7 +773,7 @@ contains
     end if
 
     dim = mesh_dim(field)
-    if((dim/=2).and.(dim/=3)) then
+    if((dim/=1).and.(dim/=2).and.(dim/=3)) then
       FLExit("Unsupported control volume dimension.")
     end if
 
@@ -1037,7 +1043,7 @@ contains
     end if
 
     dim = mesh_dim(field)
-    if((dim/=2).and.(dim/=3)) then
+    if((dim/=1).and.(dim/=2).and.(dim/=3)) then
       FLExit("Unsupported control volume dimension.")
     end if
 
@@ -1263,7 +1269,7 @@ contains
     call zero(old_upwind_values)
 
     dim = mesh_dim(field)
-    if((dim/=2).and.(dim/=3)) then
+    if((dim/=1).and.(dim/=2).and.(dim/=3)) then
       FLExit("Unsupported control volume dimension.")
     end if
 

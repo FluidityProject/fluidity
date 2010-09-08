@@ -2112,7 +2112,7 @@ contains
       if(stat/=0) then
         oldmatdens=>matdens
       end if
-      matdens_options=get_cv_options(matdens%option_path, matdens%mesh%shape%numbering%family)
+      matdens_options=get_cv_options(matdens%option_path, matdens%mesh%shape%numbering%family, mesh_dim(matdens))
 
       ! hmmm, do we need a cfl no.?
       ! the density discretisation might need it

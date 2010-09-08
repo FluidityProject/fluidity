@@ -269,9 +269,9 @@ contains
 
       ! now we can get the options for these fields
       ! handily wrapped in a new type...
-      tfield_options=get_cv_options(tfield%option_path, tfield%mesh%shape%numbering%family)
+      tfield_options=get_cv_options(tfield%option_path, tfield%mesh%shape%numbering%family, mesh_dim(tfield))
       if(include_density) then
-        tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, coefficient_field=.true.)
+        tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, mesh_dim(tdensity),  coefficient_field=.true.)
       end if
 
       ! extract fields from state
@@ -2260,9 +2260,9 @@ contains
         
         ! now we can get the options for these fields
         ! handily wrapped in a new type...
-        tfield_options(f)=get_cv_options(tfield(f)%ptr%option_path, tfield(f)%ptr%mesh%shape%numbering%family)
+        tfield_options(f)=get_cv_options(tfield(f)%ptr%option_path, tfield(f)%ptr%mesh%shape%numbering%family, mesh_dim(tfield(f)%ptr))
         if(include_density) then
-          tdensity_options(f)=get_cv_options(tdensity_option_path(f), tdensity(f)%ptr%mesh%shape%numbering%family, coefficient_field=.true.)
+          tdensity_options(f)=get_cv_options(tdensity_option_path(f), tdensity(f)%ptr%mesh%shape%numbering%family, mesh_dim(tdensity(f)%ptr), coefficient_field=.true.)
         end if
 
         source(f)%ptr=>extract_scalar_field(state(state_indices(f)), trim(field_name)//"Source", stat=stat)

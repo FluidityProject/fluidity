@@ -97,7 +97,7 @@ module cv_options
 
 contains
 
-  function get_cv_options(option_path, element_family, coefficient_field) result(cv_options)
+  function get_cv_options(option_path, element_family, dim, coefficient_field) result(cv_options)
 
     ! This function retrieves all current control volume
     ! discretisation options wrapped in a cv_options_type.
@@ -106,7 +106,7 @@ contains
     ! are passed in.
 
     character(len=*), intent(in) :: option_path
-    integer, intent(in) :: element_family
+    integer, intent(in) :: element_family, dim
     logical, intent(in), optional :: coefficient_field
     type(cv_options_type) :: cv_options
 
@@ -180,7 +180,7 @@ contains
                     '/face_value[0]/limit_face_value/limiter[0]/slopes&
                     &/upper', cv_options%limiter_slopes(2), default=2.0)
                     
-    cv_options%upwind_scheme=cv_upwind_scheme(option_path, element_family)
+    cv_options%upwind_scheme=cv_upwind_scheme(option_path, element_family, dim)
 
   end function get_cv_options
 
@@ -277,10 +277,10 @@ contains
 
   end function cv_projection_node
 
-  function cv_upwind_scheme(option_path, element_family) result(upwind_scheme)
+  function cv_upwind_scheme(option_path, element_family, dim) result(upwind_scheme)
   
     character(len=*), intent(in) :: option_path
-    integer, intent(in) :: element_family
+    integer, intent(in) :: element_family, dim
     integer :: upwind_scheme
     
     character(len=OPTION_PATH_LEN) :: spatial_discretisation_path, upwind_value_path
@@ -312,9 +312,13 @@ contains
     
     ! in case none (or both) selected default to family type selection
     select case(element_family)
-    case (FAMILY_SIMPLEX) ! use projection
+    case (FAMILY_SIMPLEX) ! use projection except in 1d
       if((.not.project_point).and.(.not.local).and.(.not.project_grad).and.(.not.structured)) then
-        project_point = .true.
+        if(dim==1) then
+          local = .true.
+        else
+          project_point = .true.
+        end if
       end if
     case (FAMILY_CUBE) ! use local
       if((.not.project_point).and.(.not.local).and.(.not.project_grad).and.(.not.structured)) then

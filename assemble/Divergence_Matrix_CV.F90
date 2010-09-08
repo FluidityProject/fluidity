@@ -485,7 +485,7 @@ contains
 
       ! get all the relevent options for density
       ! handily wrapped in a new type...
-      dens_options = get_cv_options(dens%option_path, dens%mesh%shape%numbering%family)
+      dens_options = get_cv_options(dens%option_path, dens%mesh%shape%numbering%family, mesh_dim(dens))
 
       if(need_upwind_values(dens_options)) then
 
@@ -1027,7 +1027,7 @@ contains
 
           ! get all the relevent options for material density
           ! handily wrapped in a new type...
-          matdens_options = get_cv_options(matdens%option_path, matdens%mesh%shape%numbering%family)
+          matdens_options = get_cv_options(matdens%option_path, matdens%mesh%shape%numbering%family, mesh_dim(matdens))
 
           matvfrac=>extract_scalar_field(state(i), "MaterialVolumeFraction", stat=vstat)
           if(vstat==0) then
@@ -1064,7 +1064,7 @@ contains
           if((size(state)>1)) then
             ! only possible if we have more than 1 state (since with 1 state the volume fraction won't
             ! be prognostic and won't have the relevant options)
-            matvfrac_options = get_cv_options(vfrac_option_path, matvfrac%mesh%shape%numbering%family)
+            matvfrac_options = get_cv_options(vfrac_option_path, matvfrac%mesh%shape%numbering%family, mesh_dim(matvfrac))
           end if
 
           ! get the normalisation field (if we need one)

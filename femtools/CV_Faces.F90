@@ -39,7 +39,7 @@ module cv_faces
     ! corners = volume coordinates of corners of faces
     ! faces x coords x face vertices
     real, dimension(:,:,:), pointer :: corners, scorners
-    ! neiloc = relates faces to faces and vice versa
+    ! neiloc = relates faces to nodes and vice versa
     ! nodes x faces
     integer, dimension(:,:), pointer :: neiloc, sneiloc
     ! shape = shape function used in quadrature of faces
@@ -65,7 +65,7 @@ module cv_faces
   end type face_corner_template
 
   integer, private, parameter :: CV_TET_MAX_DEGREE=1, CV_HEX_MAX_DEGREE=1, &
-                        CV_TRI_MAX_DEGREE=2, CV_QUAD_MAX_DEGREE=1
+                        CV_TRI_MAX_DEGREE=2, CV_QUAD_MAX_DEGREE=1, CV_LINE_MAX_DEGREE=1
 
   type(corner_permutation_type), dimension(6), private, target, save :: cv_tet_face_permutations
   type(corner_permutation_type), dimension(3), private, target, save :: cv_tet_bdy_permutations
@@ -74,14 +74,18 @@ module cv_faces
   type(corner_permutation_type), dimension(12), private, target, save :: cv_tri_face_permutations
   type(corner_permutation_type), dimension(4), private, target, save :: cv_quad_face_permutations
   type(corner_permutation_type), dimension(5), private, target, save :: cv_line_bdy_permutations
+  type(corner_permutation_type), dimension(1), private, target, save :: cv_line_face_permutations
+  type(corner_permutation_type), dimension(1), private, target, save :: cv_point_bdy_permutations
 
   type(face_corner_template), dimension(CV_TET_MAX_DEGREE), private, target, save :: cv_tet_face_temp
   type(face_corner_template), dimension(CV_TET_MAX_DEGREE), private, target, save :: cv_tet_bdy_temp
   type(face_corner_template), dimension(CV_HEX_MAX_DEGREE), private, target, save :: cv_hex_face_temp
   type(face_corner_template), dimension(CV_HEX_MAX_DEGREE), private, target, save :: cv_hex_bdy_temp
   type(face_corner_template), dimension(CV_TRI_MAX_DEGREE), private, target, save :: cv_tri_face_temp
+  type(face_corner_template), dimension(CV_LINE_MAX_DEGREE), private, target, save :: cv_line_face_temp
   type(face_corner_template), dimension(CV_QUAD_MAX_DEGREE), private, target, save :: cv_quad_face_temp
   type(face_corner_template), dimension(max(CV_TRI_MAX_DEGREE,CV_QUAD_MAX_DEGREE)), private, target, save :: cv_line_bdy_temp
+  type(face_corner_template), dimension(CV_LINE_MAX_DEGREE), private, target, save :: cv_point_bdy_temp
 
   logical, private, save :: initialised=.false.
 
@@ -114,6 +118,22 @@ contains
     if (.not.initialised) call locate_controlvolume_corners
 
     select case(dimension)
+    case(1)
+      select case (vertices)
+      case (2)
+          !Line segments
+          if (polydegree>CV_LINE_MAX_DEGREE) then
+            FLExit('Invalid control volume degree')
+          else
+            cv_temp_list=>cv_line_face_temp
+            cvbdy_temp_list=> cv_point_bdy_temp
+          end if
+      case default
+      
+          FLExit('Invalid control volume type.')
+      
+      end select
+          
     case(2)
       select case (vertices)
       case (3)
@@ -136,6 +156,8 @@ contains
 
       case default
 
+          FLExit('Invalid control volume type.')
+          
       end select
 
     case(3)
@@ -289,6 +311,11 @@ contains
     call construct_cv_line_bdy_permutations
     call construct_cv_line_bdy_templates
 
+    call construct_cv_line_face_permutations
+    call construct_cv_line_face_templates
+    call construct_cv_point_bdy_permutations
+    call construct_cv_point_bdy_templates
+
   end subroutine locate_controlvolume_corners
 !< ------------------------------------------------- >!
 
@@ -438,6 +465,39 @@ contains
          coords=coords)
 
   end subroutine construct_cv_tri_face_templates
+!< ------------------------------------------------- >!
+
+!< ------------------------------------------------- >!
+  subroutine construct_cv_line_face_templates
+    ! Construct list of available templates.
+    integer :: i
+    real, dimension(5) :: coords
+
+    coords=0.0
+
+    cv_line_face_temp%dimension=1
+    cv_line_face_temp%vertices=2
+    cv_line_face_temp%ncorn=1
+    cv_line_face_temp%coords=2
+
+    i=0
+
+    !----------------------------------------------------------------------
+    ! Linear line
+    i=i+1
+    ! One generator per face.
+    allocate(cv_line_face_temp(i)%generator(1))
+
+    cv_line_face_temp(i)%faces=1
+    cv_line_face_temp(i)%degree=1
+    cv_line_face_temp(i)%nodes=2
+    coords(1)=0.5
+    cv_line_face_temp(i)%generator(1)=make_face_generator( &
+         permutation=cv_line_face_permutations(1), &
+         nodes=(/1,2/), &
+         coords=coords)
+
+  end subroutine construct_cv_line_face_templates
 !< ------------------------------------------------- >!
 
 !< ------------------------------------------------- >!
@@ -669,6 +729,39 @@ contains
 !< ------------------------------------------------- >!
 
 !< ------------------------------------------------- >!
+  subroutine construct_cv_point_bdy_templates
+    ! Construct list of available templates.
+    integer :: i
+    real, dimension(4) :: coords
+
+    coords=0.0
+
+    cv_point_bdy_temp%dimension=0
+    cv_point_bdy_temp%vertices=1
+    cv_point_bdy_temp%ncorn=1
+    cv_point_bdy_temp%coords=1
+
+    i=0
+
+    !----------------------------------------------------------------------
+    ! Linear line boundary
+    i=i+1
+    ! One generator per face.
+    allocate(cv_point_bdy_temp(i)%generator(1))
+
+    cv_point_bdy_temp(i)%faces=1
+    cv_point_bdy_temp(i)%degree=1
+    cv_point_bdy_temp(i)%nodes=1
+    coords(1)=1.0
+    cv_point_bdy_temp(i)%generator(1)=make_face_generator( &
+         permutation=cv_point_bdy_permutations(1), &
+         nodes=(/1,1/), &
+         coords=coords)
+
+  end subroutine construct_cv_point_bdy_templates
+!< ------------------------------------------------- >!
+
+!< ------------------------------------------------- >!
   subroutine construct_cv_hex_bdy_templates
     ! Construct list of available templates.
     integer :: i
@@ -851,6 +944,17 @@ contains
     ! end of quadratic faces
 
   end subroutine construct_cv_tri_face_permutations
+!< ------------------------------------------------- >!
+
+!< ------------------------------------------------- >!
+  subroutine construct_cv_line_face_permutations
+
+    allocate(cv_line_face_permutations(1)%p(2,1))
+
+    cv_line_face_permutations(1)%p=reshape((/&
+         1, 1/),(/2,1/))
+
+  end subroutine construct_cv_line_face_permutations
 !< ------------------------------------------------- >!
 
 !< ------------------------------------------------- >!
@@ -1053,6 +1157,17 @@ contains
     ! end of quadratic
 
   end subroutine construct_cv_line_bdy_permutations
+!< ------------------------------------------------- >!
+
+!< ------------------------------------------------- >!
+  subroutine construct_cv_point_bdy_permutations
+
+    allocate(cv_point_bdy_permutations(1)%p(1,1))
+
+    cv_point_bdy_permutations(1)%p=reshape((/&
+         1/),(/1,1/))
+
+  end subroutine construct_cv_point_bdy_permutations
 !< ------------------------------------------------- >!
 
 !< ------------------------------------------------- >!

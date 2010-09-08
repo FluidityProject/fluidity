@@ -165,7 +165,7 @@ contains
 
     ! now we can get the options for these fields
     ! handily wrapped in a new type...
-    tfield_options=get_cv_options(option_path, tfield%mesh%shape%numbering%family)
+    tfield_options=get_cv_options(option_path, tfield%mesh%shape%numbering%family, mesh_dim(tfield))
 
     output_subcycle_vtus = have_option(trim(option_path)//"/output/output_subcycle_vtus")
     output_final_vtus = have_option(trim(option_path)//"/output/output_final_vtus")
