@@ -2,32 +2,35 @@
 \section{Introduction \& some definitions}\label{Sect:ND_Intro}
 
 In this chapter we define the domain we are solving over as $\Omega$. The boundary to
-$\Omega$ is defined as $\dOmega$ (NB. $\Gamma$ is another common symbol for a boundary) 
+$\Omega$ is defined as $\dOmega$
+%(NB. $\Gamma$ is another common symbol for a boundary) 
 and can be split into different sections, e.g.
-$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$ where $\dOmega^{N}$ is that part of the boundary over
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$
+where $\dOmega^{N}$ is that part of the boundary over
 which Neumann conditions are applied and $\dOmega^{D}$ is that part of the boundary over
-which Dirichlet conditions are applied. For clarity a subscript showing the field in question we
+which Dirichlet conditions are applied. For clarity a subscript showing the field in question will
 be given on the $N$ and $D$ characters.
 
 The unit vector \vec{n} is always assumed to be the
-outward facing normal vector to the domain, in the following both the normal vector at the boundary
-and between elements in the interior will be used.
+outward facing normal vector to the domain.
+In the following this notation is used to describe both the normal vector at the boundary
+and between elements in the interior.
 
 \section{Discretisation of the advection-diffusion equation}
 \label{Sect:ND_advection_diffusion_discretisation}
 
-The advection-diffusion equation for a scalar tracer, $c$,
-is given in conservative form by:
+The advection-diffusion equation for a scalar tracer $c$,
+is given in conservative form by
 \begin{equation}\label{eq:advdif}
   \ppt{c} + \div\left(\vec{u} c\right) - \div\tensor{\mu}\cdot\grad c = 0
-\end{equation}
+\end{equation}.
 
-We now define a partition of the boundary $\dOmega^{N_c}$,
-$\dOmega^{D_c}$ and impose boundary conditions on $c$:
+We now define a partition of the boundary such that
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
 \begin{gather}
   \label{eq:cboundary}
-  \vec{n}\cdot\tensor{\mu}\cdot\grad c=g_{N_c} \quad\textrm{on}\quad \dOmega^{N_c}\\
-  c=g_{D_c} \quad\textrm{on}\quad \dOmega^{D_c}
+  \vec{n}\cdot\tensor{\mu}\cdot\grad c=g_{N_c} \quad\textrm{on}\quad \dOmega^{N_c},\\
+  c=g_{D_c} \quad\textrm{on}\quad \dOmega^{D_c}.
 \end{gather}
 
 \subsection{Continuous Galerkin discretisation}
@@ -36,22 +39,22 @@ In the continuous Galerkin (sometimes we may use the shorthand CG, which should 
 the solution fields are constrained to be
 continuous between elements. The fields are only assumed to be $C^0$
 continuous, that is to say there is no assumption that the gradient of a
-field is continuous over the element boundaries.
+field is continuous over element boundaries.
 
 \subsubsection{Weak form}
 \index{weak form}
 \index{test function}
 \index{advection-diffusion equation!weak form}
 
-The finite element method always starts by writing the equations in
+Development of the finite element method begins by writing the equations in
 \emph{weak form}.  The weak form of the advection-diffusion equation is
-obtained by multiplying it with a test function $\phi$
-and integrating over the domain $\Omega$:
+obtained by pre-multiplying it with a test function $\phi$
+and integrating over the domain $\Omega$, such that
 \begin{equation}
   \int_\Omega \phi \left( \ppt{c} + \vec{u}\cdot\grad c -
     \div\tensor{\mu}\cdot \grad c\right) = 0.
 \end{equation}
-Integrating the advection and diffusion terms by parts yields:
+Integrating the advection and diffusion terms by parts yields
 \begin{equation}\label{eq:weak_adv_diff}
   \int_\Omega
   \phi \ppt{c}
@@ -59,11 +62,11 @@ Integrating the advection and diffusion terms by parts yields:
   \grad\phi\cdot \tensor{\mu}\cdot\grad c
   +\int_\dOmega \vec{n}\cdot \vec{u} c
   - \vec{n}\cdot\tensor{\mu}\cdot\grad c
-  = 0
+  = 0.
 \end{equation}
 For simplicity sake let us first assume the boundaries are closed
 ($\vec{u}\cdot\vec{n}=0$) and we apply a homogeneous Neumann boundary
-condition everywhere: $\partial c/\partial n=0$:
+condition everywhere, such that $\partial c/\partial n=0$, which gives
 \begin{equation}\label{eq:weak_adv_diff_simp}
   \int_\Omega \phi \frac{\partial c}{\partial t}
     -\grad\phi\cdot\vec{u} c +
@@ -88,12 +91,11 @@ this space, the \emph{Sobolev space}, can again be found \citet{elman2005}.
 \subsubsection{Finite element discretisation}
 \index{trial function}
 Instead of looking for a solution in the entire function (Sobolev) space,
-in finite element methods discretisation
-happens by restricting the solution to a
+in finite element methods discretisation is performed by restricting the solution to a
 finite-dimensional subspace. Thus the solution can be
 written as a linear combination of a finite number of functions,
 the \emph{trial functions} $\phi_i$ that form a basis of the
-\emph{trial space}.
+\emph{trial space}, defined such that
 \begin{equation*}
   c(\vec{x})=\sum_i c_i \phi_i(\vec(x)).
 \end{equation*}
@@ -104,10 +106,10 @@ this way represented as a vector will be denoted as $\dvec{c}$.
 
 \index{Galerkin!methods}
 \index{Galerkin!projection}
-Since the set of trial functions is now much smaller (or rather finite as opposed to infinite dimensional), we also need
+Since the set of trial functions is now much smaller (or rather finite as opposed to infinite-dimensional), we also need
 a much reduced set of test functions for the equation in weak
-form \eqref{eq:weak_adv_diff_simp} to have a unique
-solution. A common choice is in fact to choose the same
+form \eqref{eq:weak_adv_diff_simp} in order to find a unique
+solution. A common choice is, in fact, to choose the same
 test and trial space. Finite element methods that make this choice are
 referred to as \emph{Galerkin methods} --- the discretisation
 can be seen as a so called \emph{Galerkin
