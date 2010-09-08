@@ -72,6 +72,9 @@ DEPTH_OBJS=import_bath_data.cpp
 dtest: $(DEPTH_OBJS)
 	$(CXX) $(CXXFLAGS) -DDEPTH_UNITTEST -o $@ $(DEPTH_OBJS) $(LIBFLUIDITY) $(LIBS)
 
+dtest2: $(DEPTH_OBJS)
+	$(CXX) $(CXXFLAGS) -DDEPTH_UNITTEST2 -o $@ $(DEPTH_OBJS) $(LIBFLUIDITY) $(LIBS)
+
 install:
 
 clean:

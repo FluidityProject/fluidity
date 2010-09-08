@@ -55,6 +55,10 @@ void get_lldepth(double x, double y, double z, double &longitude, double &latitu
 extern "C" {
 #define set_from_map_fc F77_FUNC(set_from_map, SET_FROM_MAP)
         void set_from_map_fc(const char* filename, const double *X, const double *Y, const double *Z, double *depth, int *ncolumns);
+
+#define set_from_map_beta_fc F77_FUNC(set_from_map_beta, SET_FROM_MAP_BETA)
+        void set_from_map_beta_fc(const char* filename, const double *X, const double *Y, double *depth, int *ncolumns, double *surf_h);
+
 }
 
 void set_from_map_fc(const char* filename, const double *X, const double *Y, const double *Z, double *depth, int *n){
@@ -88,6 +92,37 @@ void set_from_map_fc(const char* filename, const double *X, const double *Y, con
         for (int i=0; i<ncolumns; i++) {
 
           depth[i]=-height[i];
+
+        }
+}
+
+void set_from_map_beta_fc(const char* filename, const double *X, const double *Y, double *depth, int *n, double *surf_h){
+
+        string file=string(filename);
+        SampleNetCDF2 map(file);
+
+        const int ncolumns = *n;
+        const double sh = *surf_h;
+        double *x = new double[ncolumns];
+        double *y = new double[ncolumns];
+        double height[ncolumns];
+        for (int i = 0; i < ncolumns; i++) {
+          x[i] = X[i];
+          y[i] = Y[i];
+          if(map.HasPoint(x[i], y[i])){
+                height[i]=map.GetValue(x[i], y[i]);
+          }else{
+                cerr<<"Point not found in netcdf file\n";
+                height[i]=0.0;
+          }
+        }
+
+        delete [] x;
+        delete [] y;
+
+        for (int i=0; i<ncolumns; i++) {
+
+          depth[i]=sh-height[i];
 
         }
 }
@@ -136,6 +171,44 @@ int main(int argc, char **argv){
 
   for (int i = 0; i < columns; i++) {
     cout << "The depth at ( " << longitude[i] << " , " << latitude[i] << " ) is " << depth[i] << endl;
+  }
+  cout << "End of unit test.\n";  
+  
+}
+#endif
+
+#ifdef DEPTH_UNITTEST2
+// This is a simple test program to check the depth returned for three given x,y beta plane locations
+int main(int argc, char **argv){
+
+  double depth[3];
+  int columns=3;
+
+  string data_file="/data/myfluidity/tests/MonaiValley/outfileMonaiValley.grd";
+
+  double xloc[3], yloc[3];
+  
+  // The Monaia Valley data bounds are
+  // x:actual_range = 0., 5.4916666667
+  // y:actual_range = 0., 3.4083333333
+
+  // 1st location
+  xloc[0]=1.0;
+  yloc[0]=1.0;
+
+  // 2nd location
+  xloc[1]=2.0;
+  yloc[1]=2.0;
+
+  // 3rd location
+  xloc[2]=3.0;
+  yloc[2]=3.0;
+
+  cout << "Retrieving bathymetry data.\n";
+  set_from_map_beta_fc(data_file.c_str(), xloc, yloc, depth, &columns);
+
+  for (int i = 0; i < columns; i++) {
+    cout << "The depth at ( " << xloc[i] << " , " << yloc[i] << " ) is " << depth[i] << endl;
   }
   cout << "End of unit test.\n";  
   

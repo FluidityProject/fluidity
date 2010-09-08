@@ -13,11 +13,13 @@ module hadapt_extrude
   use vtk_interfaces
   use linked_lists
   use hadapt_combine_meshes
+  use halos
   implicit none
 
   private
   
-  public :: extrude, compute_z_nodes, hadapt_extrude_check_options, get_extrusion_options, skip_column_extrude
+  public :: extrude, compute_z_nodes, hadapt_extrude_check_options, get_extrusion_options, &             
+            populate_depth_vector, skip_column_extrude
 
   interface compute_z_nodes
     module procedure compute_z_nodes_wrapper, compute_z_nodes_sizing
@@ -36,11 +38,14 @@ module hadapt_extrude
     !!< The full extruded 3D mesh.
     type(vector_field), intent(out) :: out_mesh
 
-    character(len=FIELD_NAME_LEN):: mesh_name    
+    character(len=FIELD_NAME_LEN):: mesh_name, file_name  
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field), dimension(node_count(h_mesh)) :: z_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
+    logical:: depth_from_python, depth_from_map, have_min_depth
+    real, dimension(:), allocatable :: depth_vector
+    real:: min_depth, surface_height
     logical:: sizing_is_constant, depth_is_constant
     real:: constant_sizing, depth, min_bottom_layer_frac
     integer:: h_dim, column, quadrature_degree
@@ -78,9 +83,12 @@ module hadapt_extrude
     do r = 0, n_regions-1
     
       call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
-                                 depth_is_constant, depth, depth_function, &
-                                 sizing_is_constant, constant_sizing, sizing_function, &
-                                 min_bottom_layer_frac)
+                                 depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
+                                 file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, &
+                                 sizing_function, min_bottom_layer_frac)
+
+      allocate(depth_vector(size(z_meshes)))
+      if (depth_from_map) call populate_depth_vector(h_mesh,file_name,depth_vector,surface_height)
       
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
@@ -90,13 +98,14 @@ module hadapt_extrude
                               apply_region_ids, column_visited(column), region_ids, &
                               visited_count = visited(column))) cycle
         
-        call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), &
-                            min_bottom_layer_frac, &
-                            depth_is_constant, depth, depth_function, &
+        call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
+                            depth_is_constant, depth, depth_from_python, depth_function, &
+                            depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
                             sizing_is_constant, constant_sizing, sizing_function)
       end do
       
       if(apply_region_ids) deallocate(region_ids)
+      deallocate(depth_vector)
     
     end do
     
@@ -132,22 +141,27 @@ module hadapt_extrude
   end subroutine extrude
 
   subroutine get_extrusion_options(option_path, region_index, apply_region_ids, region_ids, &
-                                   depth_is_constant, depth, depth_function, &
-                                   sizing_is_constant, constant_sizing, sizing_function, &
-                                   min_bottom_layer_frac)
+                                   depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
+                                   file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, &
+                                   sizing_function, min_bottom_layer_frac)
+
     character(len=*), intent(in) :: option_path
     integer, intent(in) :: region_index
     logical, intent(in) :: apply_region_ids
     
     integer, dimension(:), allocatable :: region_ids
     
-    logical, intent(out) :: depth_is_constant
+    logical, intent(out) :: depth_is_constant, depth_from_python, depth_from_map
     real, intent(out) :: depth
     character(len=PYTHON_FUNC_LEN), intent(out) :: depth_function
     
     logical, intent(out) :: sizing_is_constant
     real, intent(out) :: constant_sizing
     character(len=PYTHON_FUNC_LEN), intent(out) :: sizing_function
+
+    character(len=FIELD_NAME_LEN), intent(out) :: file_name
+    logical, intent(out) :: have_min_depth
+    real, intent(out) :: min_depth, surface_height
     
     real, intent(out) :: min_bottom_layer_frac
     
@@ -161,10 +175,13 @@ module hadapt_extrude
     end if
 
     ! get the extrusion options
+    depth_from_python=.false.
+    depth_from_map=.false.
+    have_min_depth=.false.
     call get_option(trim(option_path)//&
                     '/from_mesh/extrude/regions['//int2str(region_index)//&
                     ']/bottom_depth/constant', &
-                    depth, stat=stat)
+                      depth, stat=stat)
     if (stat==0) then
       depth_is_constant = .true.
     else
@@ -172,10 +189,31 @@ module hadapt_extrude
       call get_option(trim(option_path)//&
                       '/from_mesh/extrude/regions['//int2str(region_index)//&
                       ']/bottom_depth/python', &
-                        depth_function, stat=stat)
+                       depth_function, stat=stat)
+      if (stat==0) depth_from_python = .true.
+      if (stat /= 0) then 
+        call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                         ']/bottom_depth/from_map/file_name', &
+                          file_name, stat=stat)
+        if (stat==0) depth_from_map = .true.
+      end if
       if (stat /= 0) then
         FLAbort("Unknown way of specifying bottom depth function in mesh extrusion")
       end if
+    end if
+
+    if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                                         ']/bottom_depth/from_map/min_depth')) then
+      have_min_depth=.true.
+      call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                                         ']/bottom_depth/from_map/min_depth',min_depth)
+    end if
+
+    surface_height=0.0
+    if (have_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                                         ']/bottom_depth/from_map/surface_height')) then
+      call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                                         ']/bottom_depth/from_map/surface_height',surface_height)
     end if
     
     call get_option(trim(option_path)//&
@@ -203,16 +241,46 @@ module hadapt_extrude
   
   end subroutine get_extrusion_options
 
+  subroutine populate_depth_vector(h_mesh,file_name,depth_vector,surface_height)
+
+    type(vector_field), intent(in) :: h_mesh
+    character(len=FIELD_NAME_LEN), intent(in):: file_name
+    real, intent(in) :: surface_height
+    real, dimension(:,:), allocatable :: tmp_pos_vector
+    real, dimension(:), intent(inout) :: depth_vector
+
+    integer :: column
+
+    allocate(tmp_pos_vector(mesh_dim(h_mesh),node_count(h_mesh)))
+
+    do column=1, node_count(h_mesh)
+      tmp_pos_vector(:,column) = node_val(h_mesh, column)
+    end do
+
+    call set_from_map_beta(trim(file_name)//char(0), tmp_pos_vector(1,:), tmp_pos_vector(2,:), depth_vector, node_count(h_mesh), surface_height)
+
+    if (associated(h_mesh%mesh%halos)) then
+      call halo_update(h_mesh%mesh%halos(2), depth_vector)
+    end if
+
+    deallocate(tmp_pos_vector)
+
+  end subroutine populate_depth_vector
+
   subroutine compute_z_nodes_wrapper(z_mesh, xy, min_bottom_layer_frac, &
-                                     depth_is_constant, depth, depth_function, &
+                                     depth_is_constant, depth, depth_from_python, depth_function, &
+                                     depth_from_map, map_depth, have_min_depth, min_depth, &
                                      sizing_is_constant, constant_sizing, sizing_function)
+
     type(vector_field), intent(out) :: z_mesh
     real, dimension(:), intent(in) :: xy
     real, intent(in) :: min_bottom_layer_frac
-    logical, intent(in) :: depth_is_constant, sizing_is_constant
+    logical, intent(in) :: depth_is_constant, sizing_is_constant, depth_from_python, depth_from_map
+    logical, intent(in) :: have_min_depth
+    real, intent(in) :: map_depth, min_depth
     real, intent(in) :: depth, constant_sizing
     character(len=*), intent(in) :: depth_function, sizing_function
-    
+
     real, dimension(1) :: tmp_depth
     real, dimension(size(xy), 1) :: tmp_pos
     real :: ldepth
@@ -221,8 +289,17 @@ module hadapt_extrude
       ldepth = depth
     else 
       tmp_pos(:,1) = xy
-      call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
-      ldepth = tmp_depth(1)
+      if (depth_from_python) then
+        call set_from_python_function(tmp_depth, trim(depth_function), tmp_pos, time=0.0)
+        ldepth = tmp_depth(1)
+      else if (depth_from_map) then
+         ldepth = map_depth
+         if (have_min_depth) then
+           if (ldepth < min_depth) ldepth=min_depth
+         end if
+      else
+        FLAbort("Unknown way of specifying the bottom_depth.")
+      end if
     end if
     
     if (sizing_is_constant) then
@@ -247,7 +324,7 @@ module hadapt_extrude
     real, intent(in) :: min_bottom_layer_frac
     real, optional, intent(in):: sizing
     character(len=*), optional, intent(in):: sizing_function
-    ! this is a safety gap, for people doing something stupid:
+    ! this is a safety gap:
     integer, parameter:: MAX_VERTICAL_NODES=1e6
 
     integer :: elements
@@ -413,11 +490,10 @@ module hadapt_extrude
       mesh_path="/geometry/mesh["//int2str(m)//"]"
       nregions=option_count(trim(mesh_path)//'/from_mesh/extrude/regions')
       do r = 0, nregions-1
-        if ((have_option(trim(mesh_path)//'/from_mesh/extrude/regions['//int2str(r)//']/bottom_depth/from_map')).and. &
-          (.not.have_option('/geometry/spherical_earth'))) then
-          ewrite(-1,*) "Extruding along bathymetry currently only works with radial extrusions on the sphere."
-          ewrite(-1,*) "Please turn on the geometry/spherical_earth option."
-          FLExit("Using extrude/from_map requires the gemoetry/spherical_earth option to be enabled.")
+        if ((have_option(trim(mesh_path)//'/from_mesh/extrude/regions['//int2str(r)//']/bottom_depth/from_map/surface_height')).and. &
+          (have_option('/geometry/spherical_earth'))) then
+          ewrite(-1,*) "Warning. You have selected a spherical earth geometry and have also specified a surface_height"
+          ewrite(-1,*) "in your extrusion. The surface height option will have no effect."
         end if
       end do
     end do

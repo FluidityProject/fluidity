@@ -89,6 +89,24 @@ be set to use this option.</a:documentation>
         </attribute>
         <optional>
           <element name="min_depth">
+            <a:documentation>Restricts the minimum height of the domain to the
+specified value.
+Note that in planar case, this minimum depth corresponds
+to the minimum depth below a top layer at z=0, it does
+not necessarily correspond to the data in a given file.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="surface_height">
+            <a:documentation>For use with 2D depth maps.
+If you are reading data from a file whose top layer height
+is not equal to zero, set the height of that top layer here.
+Note however that the height of the top layer in the the 
+extruded mesh will still be equal to zero, the given domain
+will in effect have been shifted down.
+This option has no effect when extruding meshes on the surface
+of a sphere.</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
