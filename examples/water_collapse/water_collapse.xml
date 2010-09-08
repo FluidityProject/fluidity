@@ -1,167 +1,42 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>water collapse<comment>Runs a 2d, low resolution (for speed) simulation of the water collapse simulation performed by Zhou, Z. Q., Kat, J. O. De, &amp; Buchner, B. 1999. A nonlinear 3-D approach to simulate green water dynamics on deck. In: Report No. 82000-NSH, vol. 7. (see also Park, I. R., Kim, K. S., Kim, J., &amp; Van, S. H. 2009. A volume-of-fluid method for incompressible free surface flows. International Journal for Numerical Methods in Fluids.)
+  <name>water collapse example<comment>Runs a 2d, low resolution (for speed) simulation of the water collapse simulation performed by Zhou, Z. Q., Kat, J. O. De, &amp; Buchner, B. 1999. A nonlinear 3-D approach to simulate green water dynamics on deck. In: Report No. 82000-NSH, vol. 7. (see also Park, I. R., Kim, K. S., Kim, J., &amp; Van, S. H. 2009. A volume-of-fluid method for incompressible free surface flows. International Journal for Numerical Methods in Fluids.)
 </comment></name>
   <owner userid="cwilson"/>
   <tags>flml 2dadapt<comment>- uses flml
 - uses 2d adaptivity</comment></tags>
-  <problem_definition length="special" nprocs="1">
-    <command_line>fluidity -v2 -l water_collapse.flml</command_line>
+  <problem_definition length="long" nprocs="1">
+    <command_line>mpiexec fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="finishtime" language="python">from fluidity_tools import stat_parser as stat
+finishtime= stat("water_collapse.stat")["ElapsedTime"]["value"][-1]</variable>
     <variable name="mindivergence" language="python">from fluidity_tools import stat_parser as stat
-mindivergence= max(abs(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["min"]))</variable>
+mindivergence= max(abs(stat("water_collapse.stat")["Water"]["ControlVolumeDivergence"]["min"]))</variable>
     <variable name="minvfrac" language="python">from fluidity_tools import stat_parser as stat
-minvfrac= max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["min"])</variable>
+minvfrac= max(stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["min"])</variable>
     <variable name="maxdivergence" language="python">from fluidity_tools import stat_parser as stat
-maxdivergence= max(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["max"])</variable>
+maxdivergence= max(stat("water_collapse.stat")["Water"]["ControlVolumeDivergence"]["max"])</variable>
     <variable name="maxvfrac" language="python">from fluidity_tools import stat_parser as stat
-maxvfrac = max(stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["max"])</variable>
+maxvfrac = max(stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["max"])</variable>
     <variable name="vfracintstart" language="python">from fluidity_tools import stat_parser as stat
-vfracintstart= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][0]</variable>
+vfracintstart= stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["integral"][0]</variable>
     <variable name="vfracintend" language="python">from fluidity_tools import stat_parser as stat
-vfracintend= stat("water_collapse.stat")["Dense"]["MaterialVolumeFraction"]["integral"][-1]</variable>
+vfracintend= stat("water_collapse.stat")["Water"]["MaterialVolumeFraction"]["integral"][-1]</variable>
     <variable name="nodesstart" language="python">from fluidity_tools import stat_parser as stat
 nodesstart= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][0]</variable>
     <variable name="nodesend" language="python">from fluidity_tools import stat_parser as stat
 nodesend= stat("water_collapse.stat")["CoordinateMesh"]["nodes"][-1]</variable>
-    <variable name="lower_contour_bounds" language="python">import vtk
-import glob
-import sys
-import os
-import scipy.stats
-import operator
-
-def get_last_dump():
-  filelist = glob.glob('water_collapse_*[0-9].vtu')
-  nums = []
-  for i in range(len(filelist)):
-    nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
-  nums.sort(key=operator.itemgetter(1))
-  print filelist[nums[-1][0]]
-  return filelist[nums[-1][0]]
-
-def get_head_pos(file):
-  try:
-    os.stat(file)
-  except:
-    print "No such file: %s" % file
-    sys.exit(1)
-  reader = vtk.vtkXMLUnstructuredGridReader();
-  reader.SetFileName(file)
-  reader.Update()
-  data = reader.GetOutput()
-  data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
-  contour = vtk.vtkContourFilter ()
-  contour.SetInput(data)
-  contour.SetValue(0, 0.025)
-  contour.Update()
-  polydata = contour.GetOutput()
-  bounding_box = polydata.GetBounds()
-  return bounding_box
-  
-lower_contour_bounds= get_head_pos(get_last_dump())</variable>
-    <variable name="mid_contour_bounds" language="python">import vtk
-import glob
-import sys
-import os
-import scipy.stats
-import operator
-
-def get_last_dump():
-  filelist = glob.glob('water_collapse_*[0-9].vtu')
-  nums = []
-  for i in range(len(filelist)):
-    nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
-  nums.sort(key=operator.itemgetter(1))
-  print filelist[nums[-1][0]]
-  return filelist[nums[-1][0]]
-
-def get_head_pos(file):
-  try:
-    os.stat(file)
-  except:
-    print "No such file: %s" % file
-    sys.exit(1)
-  reader = vtk.vtkXMLUnstructuredGridReader();
-  reader.SetFileName(file)
-  reader.Update()
-  data = reader.GetOutput()
-  data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
-  contour = vtk.vtkContourFilter ()
-  contour.SetInput(data)
-  contour.SetValue(0, 0.5)
-  contour.Update()
-  polydata = contour.GetOutput()
-  bounding_box = polydata.GetBounds()
-  return bounding_box
-  
-mid_contour_bounds= get_head_pos(get_last_dump())</variable>
-    <variable name="upper_contour_bounds" language="python">import vtk
-import glob
-import sys
-import os
-import scipy.stats
-import operator
-
-def get_last_dump():
-  filelist = glob.glob('water_collapse_*[0-9].vtu')
-  nums = []
-  for i in range(len(filelist)):
-    nums.append([i, int(filelist[i].split(".vtu")[0].split("_")[-1])])
-  nums.sort(key=operator.itemgetter(1))
-  print filelist[nums[-1][0]]
-  return filelist[nums[-1][0]]
-
-def get_head_pos(file):
-  try:
-    os.stat(file)
-  except:
-    print "No such file: %s" % file
-    sys.exit(1)
-  reader = vtk.vtkXMLUnstructuredGridReader();
-  reader.SetFileName(file)
-  reader.Update()
-  data = reader.GetOutput()
-  data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
-  contour = vtk.vtkContourFilter ()
-  contour.SetInput(data)
-  contour.SetValue(0, 0.975)
-  contour.Update()
-  polydata = contour.GetOutput()
-  bounding_box = polydata.GetBounds()
-  return bounding_box
-  
-upper_contour_bounds= get_head_pos(get_last_dump())</variable>
-    <variable name="insidecolumn" language="python">from fluidity_tools import stat_parser as stat
-insidecolumn= min(stat("water_collapse.detectors")["Dense"]["MaterialVolumeFraction"]["WaterColumn"])</variable>
   </variables>
   <pass_tests>
+    <test name="finish_time" language="python">assert finishtime &gt; 2.4</test>
     <test name="water_conservation" language="python">print 'mass loss = ', abs(vfracintend-vfracintstart)
 assert abs(vfracintend-vfracintstart) &lt; max(maxdivergence, mindivergence)</test>
     <test name="conservation_tolerance" language="python">print 'divergence tolerance = ', max(maxdivergence, mindivergence)
 assert max(maxdivergence, mindivergence) &lt; 1.E-5</test>
     <test name="max_volume_fraction_bound" language="python">assert abs(maxvfrac-1.0) &lt; 1.E-10</test>
     <test name="min_volume_fraction_bound" language="python">assert abs(minvfrac) &lt; 1.E-10</test>
-    <test name="max_x_distance" language="python">print mid_contour_bounds[1], '&lt;', -0.1
-assert mid_contour_bounds[1] &lt; -0.1</test>
-    <test name="min_x_distance" language="python">print mid_contour_bounds[1], '&gt;', -0.12
-assert mid_contour_bounds[1] &gt; -0.12</test>
-    <test name="max_y_distance" language="python">print mid_contour_bounds[3], '&lt;', 0.0
-assert mid_contour_bounds[3] &lt; 0.0</test>
-    <test name="min_y_distance" language="python">print mid_contour_bounds[3], '&gt;', -0.1
-assert mid_contour_bounds[3] &gt; -0.1</test>
-    <test name="contours_lower_x" language="python">print abs(mid_contour_bounds[1]-lower_contour_bounds[1])
-assert abs(mid_contour_bounds[1]-lower_contour_bounds[1]) &lt; 0.02</test>
-    <test name="contours_upper_x" language="python">print abs(mid_contour_bounds[1]-upper_contour_bounds[1])
-assert abs(mid_contour_bounds[1]-upper_contour_bounds[1]) &lt; 0.02</test>
-    <test name="contours_lower_y" language="python">print abs(mid_contour_bounds[3]-lower_contour_bounds[3])
-assert abs(mid_contour_bounds[3]-lower_contour_bounds[3]) &lt; 0.02</test>
-    <test name="contours_upper_y" language="python">print abs(mid_contour_bounds[3]-upper_contour_bounds[3])
-assert abs(mid_contour_bounds[3]-upper_contour_bounds[3]) &lt; 0.02</test>
     <test name="no_nodes" language="python">assert nodesend &gt; nodesstart</test>
   </pass_tests>
-  <warn_tests>
-    <test name="interior_diffusion" language="python">assert abs(insidecolumn-1.0) &lt; 1E-10</test>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>
