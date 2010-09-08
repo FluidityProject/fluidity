@@ -1355,10 +1355,7 @@ start =
                   element prognostic {
                      # in the future this can be any mesh_choice:
                      pressure_mesh_choice,
-                     prognostic_pressure_field,
-                     element profile {
-                        empty
-                     }?
+                     prognostic_pressure_field
                   }|
                   element prescribed {
                      # in the future this can be any mesh_choice:
@@ -1384,10 +1381,7 @@ start =
                   }|
                   element prognostic {
                      pressure_mesh_choice,
-                     prognostic_density_field,
-                     element profile {
-                        empty
-                     }?
+                     prognostic_density_field
                   }|
                   element aliased {
                      attribute material_phase_name { xsd:string },
