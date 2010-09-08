@@ -12,7 +12,7 @@ postprocess:
 	@echo **********Calling the data extraction and plotting python script:
 	./plot_data.py
 
-input: clean
+input: preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
