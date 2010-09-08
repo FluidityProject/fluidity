@@ -80,6 +80,10 @@ contains
         
     assert(ele_count(old_positions) > 0)
     shape => ele_shape(old_positions, 1)
+    ! since we're using the shape of the old mesh, this shape and its quadrature will survive the adapt
+    ! and should not show up in print_tagged_refences()
+    shape%refcount%tagged=.false.
+    shape%quadrature%refcount%tagged=.false.
     
     ! TODO: Sort old_positions into descending coordinate order here
     
