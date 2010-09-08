@@ -4,9 +4,7 @@ default: input
 
 input:
 	
-clean: clean-mesh clean-run-debug
-clean-mesh:
-	rm -f line.edge line.ele line.node
+clean: clean-run-debug
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
 	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
