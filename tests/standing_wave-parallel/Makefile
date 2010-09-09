@@ -9,5 +9,5 @@ clean:
 	rm -f *.vtu *.pvtu *.stat *.detectors
 	rm -f fluidity.err-? fluidity.log-?
 	rm -f *.ele *.edge *.node *.msh *.halo *.face
-	rm -f matrixdump* *_checkpoint*
+	rm -rf matrixdump* *_checkpoint*
 	rm -rf run1_logs/

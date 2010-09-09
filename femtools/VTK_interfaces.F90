@@ -1315,10 +1315,10 @@ contains
 
   end function vtk2fluidity_ordering
 
-  subroutine vtk_read_state(filename, state, quad_degree)
+  subroutine vtk_read_state(lfilename, state, quad_degree)
     !!<  This routine uses the vtkmeshio operations
     !!<  to extract mesh and field information from a VTU file.
-    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: lfilename
     type(state_type), intent(inout) :: state
     integer, intent(in), optional :: quad_degree
 
@@ -1337,10 +1337,19 @@ contains
     integer, dimension(:), allocatable :: field_components, prop_components
     integer, allocatable :: ENLBAS(:), NDGLNO(:)
     character(len=FIELD_NAME_LEN), allocatable :: field_names(:), prop_names(:)
+    character(len=1024) :: filename
 
-    integer :: nloc, quaddegree, nvertices
+    integer :: nloc, quaddegree, nvertices, loc
+    logical :: file_exists
 
     call nullify(state)
+
+    filename = trim(lfilename)
+    inquire(file = trim(filename), exist=file_exists)
+    if(.not.file_exists .and. len_trim(lfilename)>4) then
+       loc = scan(lfilename, "_", back=.true.)
+       filename(loc:loc+len_trim(lfilename)+1) = "/"//trim(lfilename)
+    end if
 
     ! needed for fgetvtksizes, to tell it to work out the dimension
     dim = 0
