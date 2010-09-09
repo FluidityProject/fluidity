@@ -13471,9 +13471,17 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
     if test "$enable_dp" = "yes" ; then
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure
+        if test "$?" -ne "0"; then
+          as_fn_error "Configuration of libadaptivity has failed." "$LINENO" 5
+          exit -1
+        fi
     else
         FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" \
             FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" FCFLAGS="${env_fcflags} $PIC_FLAG $PROFILING_FLAG" ./configure --enable-dp=no
+        if test "$?" -ne "0"; then
+          as_fn_error "Configuration of libadaptivity has failed." "$LINENO" 5
+          exit -1
+        fi
     fi
     popd
     BUILD_LIBADAPT="@cd libadaptivity; echo '    MAKE libadaptivity'; \$(MAKE) -s ; cp lib/libadaptivity.a ../lib/; cd .."
@@ -13499,6 +13507,10 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
     cd libjudy
     FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" ./configure --prefix=${PWD}/..
+    if test "$?" -ne "0"; then
+      as_fn_error "Configuration of libjudy has failed." "$LINENO" 5
+      exit -1
+    fi
     cd ..
     # The cast to long int works around a bug in the HP C Compiler
 # version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
@@ -13583,6 +13595,10 @@ $as_echo "$as_me: Building on hector xt6; disabling shared libraries" >&6;}
     echo "${env_fcflags}"
     echo "${env_fflags}"
     FC="${saved_FC}" F77="${saved_F77}" F90="${saved_F90}" LIBS="${env_libs}" FCFLAGS="${env_fcflags}" FFLAGS="${env_fflags} $PIC_FLAG $PROFILING_FLAG" CFLAGS="${env_cflags} $PIC_FLAG $PROFILING_FLAG" CXXFLAGS="${env_cxxflags} $PIC_FLAG $PROFILING_FLAG" CPPFLAGS="${env_cppflags}" ./configure --prefix=${PWD}/.. ${SHFLAG}
+    if test "$?" -ne "0"; then
+      as_fn_error "Configuration of libspud has failed." "$LINENO" 5
+      exit -1
+    fi
     cd ..
 
 cat >> confdefs.h << EOF
@@ -13624,6 +13640,10 @@ fi
 CC="${CC}" CXX="${CXX}" CFLAGS="${env_cflags}" CXXFLAGS="${env_cxxflags}" CPPFLAGS="-D_GNU_SOURCE" \
     LIBS="${env_lib}" ./configure --prefix=${PWD}/../ --disable-shared --without-pic \
     ${SPATIALINDEX_CONFIGURE_DEBUG_OPTION} ${SPATIALINDEX_CONFIGURE_PROF_OPTION}
+if test "$?" -ne "0"; then
+  as_fn_error "Configuration of spatialindex has failed." "$LINENO" 5
+  exit -1
+fi
 cd ../
 
 #*************ARPACK*********
