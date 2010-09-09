@@ -39,6 +39,7 @@ module gls
   use equation_of_state
   use state_fields_module
   use boundary_conditions
+  use Coordinates
   use FLDebug
 
   implicit none
@@ -961,79 +962,143 @@ end subroutine gls_init_surfaces
 !----------
 subroutine gls_buoyancy(state)
 
-    type(state_type), intent(inout)  :: state
-    type(scalar_field), pointer      :: pert_rho
-    type(vector_field), pointer      :: positions
-    type(vector_field), pointer      :: velocity
-    type(scalar_field)               :: NU_averaged,NV_averaged,pert_rho_averaged,inverse_lumpedmass
-    type(scalar_field), pointer      :: lumpedmass
-    type(csr_matrix), pointer        :: mass
-    real                             :: gravity_magnitude
-    integer                          :: ii
-    logical                          :: average
-    ! these are derivs, hence the dimension
-    type(scalar_field), dimension(1) :: du_dz, dv_dz, drho_dz
-  
+    type(state_type), intent(inout)       :: state
+    type(scalar_field), pointer           :: pert_rho
+    type(vector_field), pointer           :: positions, gravity
+    type(vector_field), pointer           :: velocity
+    type(scalar_field)                    :: pert_rho_averaged,inverse_lumpedmass,NU_averaged,NV_averaged
+    type(scalar_field), pointer           :: lumpedmass
+    type(csr_matrix), pointer             :: mass
+    real                                  :: g
+    logical                               :: on_sphere
+    integer                               :: ele, i, dim
+    integer, dimension(:), pointer        :: element_nodes
+    type(element_type), pointer           :: NN2_shape, MM2_shape
+    real, allocatable, dimension(:)       :: detwei, shear, drho_dz
+    real, allocatable, dimension(:,:)     :: grad_theta_gi, grav_at_quads, du_dz
+    real, allocatable, dimension(:,:,:)   :: dn_t
+    real, allocatable, dimension(:,:,:)   :: dtheta_t
+    real, allocatable, dimension(:,:,:)   :: du_t
+    type(element_type), pointer           :: theta_shape, velocity_shape
+
+
     ! grab variables required from state - already checked in init, so no need to check here
     positions => extract_vector_field(state, "Coordinate")
     velocity => extract_vector_field(state, "Velocity")
     pert_rho => extract_scalar_field(state, "PerturbationDensity")
-    
-    ! now allocate our temp fields
-    call allocate(du_dz(1),   velocity%mesh, "DuDz")
-    call allocate(dv_dz(1),   velocity%mesh, "DvDz")
-    call allocate(drho_dz(1), velocity%mesh, "DRhoDz")
-    call allocate(NU_averaged, velocity%mesh, "NU_averaged")    
-    call allocate(NV_averaged, velocity%mesh, "NV_averaged")   
-    call allocate(pert_rho_averaged, velocity%mesh, "pert_rho_averaged")   
-    
-    average = .true.
-    if (average) then
-        call allocate(inverse_lumpedmass, velocity%mesh, "InverseLumpedMass")
-        mass => get_mass_matrix(state, velocity%mesh)
-        lumpedmass => get_lumped_mass(state, velocity%mesh)
-        call invert(lumpedmass, inverse_lumpedmass)
-        call mult( pert_rho_averaged, mass, pert_rho)
-        call scale(pert_rho_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
-        call mult( NU_averaged, mass, extract_scalar_field(velocity, 1) )
-        call scale(NU_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
-        call mult( NV_averaged, mass, extract_scalar_field(velocity, 2) )
-        call scale(NV_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
-    else
-        call set( NU_averaged, extract_scalar_field(velocity, 1) )     
-        call set( NV_averaged, extract_scalar_field(velocity, 2) )     
-        call set( pert_rho_averaged, pert_rho )     
-    endif
-    
-    if(velocity%dim==2) then
-        call differentiate_field( NU_averaged, positions, (/.false., .true./), du_dz )
-        call differentiate_field( pert_rho_averaged, positions, (/.false., .true./), drho_dz )
-    else
-        call differentiate_field( NU_averaged, positions, (/.false., .false., .true./), du_dz )
-        call differentiate_field( NV_averaged, positions, (/.false., .false., .true./), dv_dz )
-        call differentiate_field( pert_rho_averaged, positions, (/.false., .false., .true./), drho_dz )    
-    endif
-    
-    call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
+    gravity => extract_vector_field(state, "GravityDirection")
 
-    do ii = 1, nNodes
-        if(velocity%dim==2) then
-            call set( MM2, ii, (node_val(du_dz(1),ii))**2  ) ! velocity shear (squared)
-        else
-            call set( MM2, ii, (node_val(du_dz(1),ii))**2 + (node_val(dv_dz(1),ii))**2 ) ! velocity shear (squared)
-        end if    
-        call set( NN2, ii, -gravity_magnitude * node_val(drho_dz(1),ii)  )    ! bouyancy frequency (squared)
-    end do      
+    ! now allocate our temp fields
+    call allocate(pert_rho_averaged, velocity%mesh, "pert_rho_averaged")   
+    call allocate(NU_averaged, velocity%mesh, "NU_averaged")    
+    call allocate(NV_averaged, velocity%mesh, "NV_averaged")
+
+
+    ! Small smoothing filter to iron out any big wiggles that might 
+    ! be spurious unstable strat
+    call allocate(inverse_lumpedmass, velocity%mesh, "InverseLumpedMass")
+    mass => get_mass_matrix(state, velocity%mesh)
+    lumpedmass => get_lumped_mass(state, velocity%mesh)
+    call invert(lumpedmass, inverse_lumpedmass)
+    call mult( pert_rho_averaged, mass, pert_rho)
+    call scale(pert_rho_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+    call mult( NU_averaged, mass, extract_scalar_field(velocity, 1) )
+    call scale(NU_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+    call mult( NV_averaged, mass, extract_scalar_field(velocity, 2) )
+    call scale(NV_averaged, inverse_lumpedmass) ! so the averaging operator is [inv(ML)*M*]
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    on_sphere = have_option('/geometry/spherical_earth/')
+    dim = mesh_dim(NN2)
+    NN2_shape => ele_shape(NN2, ele)
+    MM2_shape => ele_shape(MM2, ele)
+    velocity_shape => ele_shape(velocity, ele)
+    theta_shape => ele_shape(pert_rho_averaged, ele)
     
-    call deallocate(NU_averaged)    
-    call deallocate(NV_averaged)   
+    call zero(NN2)
+    call zero(MM2)
+    element_loop: do ele=1, element_count(velocity)
+
+        allocate(grad_theta_gi(ele_ngi(velocity, ele), dim))
+        allocate(grav_at_quads(dim,ele_ngi(velocity, ele)))
+        allocate(dn_t(ele_loc(velocity, ele), ele_ngi(velocity, ele), dim))
+        allocate(dtheta_t(ele_loc(pert_rho_averaged, ele), ele_ngi(pert_rho_averaged, ele), dim))
+        allocate(du_t(ele_loc(velocity, ele), ele_ngi(velocity, ele), dim))
+        allocate(detwei(ele_ngi(velocity, ele)))
+        allocate(shear(ele_ngi(velocity, ele)))
+        allocate(drho_dz(ele_ngi(velocity, ele)))
+        allocate(du_dz(ele_ngi(velocity, ele),dim))
+
+        call transform_to_physical(positions, ele, NN2_shape, &
+          & dshape = dn_t, detwei = detwei)
+        if(NN2_shape == velocity_shape) then
+          du_t = dn_t
+        else
+          call transform_to_physical(positions, ele, velocity_shape, dshape = du_t)
+        end if
+        if(theta_shape == velocity_shape) then
+          dtheta_t = dn_t
+        else
+          call transform_to_physical(positions, ele, theta_shape, dshape = dtheta_t)
+        end if
+      
+        if (on_sphere) then
+            grav_at_quads=sphere_inward_normal_at_quad_ele(positions, ele)
+        else
+            grav_at_quads=ele_val_at_quad(gravity, ele)
+        end if
+        grad_theta_gi=ele_grad_at_quad(pert_rho_averaged, ele, dtheta_t)
+        do i=1,ele_ngi(velocity,ele)
+            drho_dz(i)=dot_product(grad_theta_gi(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+        end do
+        grad_theta_gi=ele_grad_at_quad(NU_averaged, ele, dtheta_t)
+        do i=1,ele_ngi(velocity,ele)
+            du_dz(i,1)=dot_product(grad_theta_gi(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+        end do        
+        grad_theta_gi=ele_grad_at_quad(NV_averaged, ele, dtheta_t)
+        do i=1,ele_ngi(velocity,ele)
+            du_dz(i,2)=dot_product(grad_theta_gi(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+        end do
+        shear = 0.0
+        do i = 1, dim - 1
+          shear = shear + du_dz(:,i) ** 2
+        end do
+          
+        element_nodes => ele_nodes(NN2, ele)
+        
+        !call addto(NN2, element_nodes, &
+        !  & shape_rhs(NN2_shape, -detwei * g * grad_theta_gi(:,dim)*grav_at_quads(:,:)) &
+        !  & )
+        call addto(NN2, element_nodes, &
+          ! already in the right direction due to multipling by grav_at_quads
+          & shape_rhs(NN2_shape, detwei * g * drho_dz) &
+          & )
+
+
+        call addto(MM2, element_nodes, &
+          & shape_rhs(MM2_shape,detwei * shear) &
+          & )
+
+        deallocate(grad_theta_gi)
+        deallocate(grav_at_quads)
+        deallocate(dn_t)
+        deallocate(dtheta_t)
+        deallocate(du_t)
+        deallocate(detwei)
+        deallocate(shear)
+        deallocate(drho_dz)
+        deallocate(du_dz)
+
+    end do element_loop
+  
+    ! Solve
+    NN2%val = NN2%val / lumpedmass%val
+    MM2%val = MM2%val / lumpedmass%val
+
+ 
     call deallocate(pert_rho_averaged)
-    call deallocate(du_dz(1))
-    call deallocate(dv_dz(1))
-    call deallocate(drho_dz(1))
-    if (average) then
-        call deallocate(inverse_lumpedmass)
-    endif
+    call deallocate(inverse_lumpedmass)
+    call deallocate(NU_averaged)    
+    call deallocate(NV_averaged)
 
 end subroutine gls_buoyancy
 
