@@ -1866,39 +1866,50 @@ start =
          ##
          ## Implict Solids
          element implicit_solids {
-              ## absorption coefficient weigting factor
+              ## Absorption coefficient weighting factor.
               ##
               ## default: beta=1.
               element beta{ real }?,
+              ## Source intensity for emitting solids.
+              ## This is used to set the source term for
+              ## the Temperature field. Obviously, this
+              ## requires a prognostic Temperature field. 
+              ##
+              ## default: source_intensity=0.
+              element source_intensity{ real }?,
               (
                  element one_way_coupling{
-                      ## mesh name
-                      element mesh_name{ xsd:string },
-                      ## number of solids
+                      ## The solid mesh.
                       ##
-                      ## default: 1
-                      element number_of_solids {integer}?,
-                      ## Python function prescribing dimensional vector input. Functions should be of the form:
-                      ##
-                      ##  def val(t):
-                      ##     # Function code
-                      ##     return # Return value
-                      ##
-                      ## The return value must have length number_of_detectors.
-                      ##
-                      ## *** IMPORTANT NOTE ***
-                      ##
-                      ## The t argument is for future use only - currently solid locations are only set at simulation start.
-                      element python {
-                        python_code
+                      ## Triangle mesh format only supported.
+                      element mesh{ attribute file_name {xsd:string} },
+                      element multiple_solids{
+                           ## number of solids
+                           element number_of_solids {integer},
+                           ## Python function prescribing dimensional vector input. Functions should be of the form:
+                           ##
+                           ##  def val(t):
+                           ##     # Function code
+                           ##     return # Return value
+                           ##
+                           ## The return value must have length number_of_solids.
+                           ##
+                           ## *** IMPORTANT NOTE ***
+                           ##
+                           ## The t argument is for future use only - currently solid locations are only set at simulation start.
+                           element python {
+                                python_code
+                           }
                       }?,
-                      ## calculate drag coefficient over all
-                      ## solids and store it in a file called "drag_force"
+                      ## Calculate drag coefficient over all
+                      ## solids and store it in a file called "drag_force".
                       element print_drag { empty }?
                  }|
                  element two_way_coupling{
-                      ## mesh name
-                      element mesh_name{ xsd:string }
+                      ## The solid mesh.
+                      ##
+                      ## Y3D FEMDEM mesh format only supported.
+                      element mesh{ attribute file_name {xsd:string} }
                  }
               )
          }?

@@ -2630,54 +2630,71 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
 Implict Solids</a:documentation>
           <optional>
             <element name="beta">
-              <a:documentation>absorption coefficient weigting factor
+              <a:documentation>Absorption coefficient weighting factor.
 
 default: beta=1.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
+          <optional>
+            <element name="source_intensity">
+              <a:documentation>Source intensity for emitting solids.
+This is used to set the source term for
+the Temperature field. Obviously, this
+requires a prognostic Temperature field. 
+
+default: source_intensity=0.</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
           <choice>
             <element name="one_way_coupling">
-              <element name="mesh_name">
-                <a:documentation>mesh name</a:documentation>
-                <data type="string"/>
+              <element name="mesh">
+                <a:documentation>The solid mesh.
+
+Triangle mesh format only supported.</a:documentation>
+                <attribute name="file_name">
+                  <data type="string"/>
+                </attribute>
               </element>
               <optional>
-                <element name="number_of_solids">
-                  <a:documentation>number of solids
-
-default: 1</a:documentation>
-                  <ref name="integer"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="python">
-                  <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+                <element name="multiple_solids">
+                  <element name="number_of_solids">
+                    <a:documentation>number of solids</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="python">
+                    <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
  def val(t):
     # Function code
     return # Return value
 
-The return value must have length number_of_detectors.
+The return value must have length number_of_solids.
 
 *** IMPORTANT NOTE ***
 
 The t argument is for future use only - currently solid locations are only set at simulation start.</a:documentation>
-                  <ref name="python_code"/>
+                    <ref name="python_code"/>
+                  </element>
                 </element>
               </optional>
               <optional>
                 <element name="print_drag">
-                  <a:documentation>calculate drag coefficient over all
-solids and store it in a file called "drag_force"</a:documentation>
+                  <a:documentation>Calculate drag coefficient over all
+solids and store it in a file called "drag_force".</a:documentation>
                   <empty/>
                 </element>
               </optional>
             </element>
             <element name="two_way_coupling">
-              <element name="mesh_name">
-                <a:documentation>mesh name</a:documentation>
-                <data type="string"/>
+              <element name="mesh">
+                <a:documentation>The solid mesh.
+
+Y3D FEMDEM mesh format only supported.</a:documentation>
+                <attribute name="file_name">
+                  <data type="string"/>
+                </attribute>
               </element>
             </element>
           </choice>

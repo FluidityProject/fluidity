@@ -91,10 +91,11 @@ module implicit_solids
 
   type(scalar_field), save :: solid_local
   type(vector_field), save :: external_positions
-  real, save :: beta
+  real, save :: beta, source_intensity
   real, dimension(:,:), allocatable, save :: translation_coordinates
   integer, save :: number_of_solids
   logical, save :: one_way_coupling, two_way_coupling, multiple_solids
+  logical, save :: have_temperature
 
   private
   public:: solids
@@ -106,7 +107,7 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), pointer :: positions
     integer, intent(in) :: its
-    type(scalar_field), pointer :: solid
+    type(scalar_field), pointer :: solid, temperature
     integer, save :: itinoi
     logical, save :: print_drag, do_calculate_volume_fraction
     logical, save :: init=.false.
@@ -124,6 +125,8 @@ contains
     if (.not. init) then
 
        call get_option("/implicit_solids/beta", beta, default=1.)
+       call get_option("/implicit_solids/source_intensity", &
+            source_intensity, default=0.)
 
        call get_option("/timestepping/nonlinear_iterations", itinoi)
        one_way_coupling = have_option("/implicit_solids/one_way_coupling/")
@@ -134,17 +137,17 @@ contains
        if (one_way_coupling) then
 
           ! check for mutiple solids and get translation coordinates
-          call get_option( &
-               "/implicit_solids/one_way_coupling/number_of_solids", &
-               number_of_solids, stat)
-
-          if (stat /= 0) number_of_solids = 1
-          multiple_solids = (number_of_solids>1)
+          number_of_solids = 1
+          multiple_solids = &
+               have_option("/implicit_solids/one_way_coupling/multiple_solids")
+          if (multiple_solids) call get_option( &
+               "/implicit_solids/one_way_coupling/multiple_solids/number_of_solids", &
+               number_of_solids)
 
           allocate(translation_coordinates(dim, number_of_solids))
-          if (have_option("/implicit_solids/one_way_coupling/python")) then
+          if (multiple_solids) then
              call get_option(&
-                  "/implicit_solids/one_way_coupling/python", &
+                  "/implicit_solids/one_way_coupling/multiple_solids/python", &
                   python_function)
              call set_detector_coords_from_python(translation_coordinates, &
                   number_of_solids, python_function, current_time)
@@ -153,7 +156,7 @@ contains
           end if
 
           ! get external mesh and compare meshes dimensions
-          call get_option("/implicit_solids/one_way_coupling/mesh_name", &
+          call get_option("/implicit_solids/one_way_coupling/mesh/file_name", &
                external_mesh_name)
 
           call get_option("/geometry/quadrature/degree", quad_degree)
@@ -167,9 +170,24 @@ contains
           assert(positions%dim >= 2)
           assert(positions%dim == external_positions%dim)
 
+          temperature => extract_scalar_field(state, "Temperature", stat)
+          have_temperature = stat == 0
+
+          ! check temperature related options
+          if (have_temperature .and. &
+               .not. have_option("/implicit_solids/source_intensity")) then
+             ewrite(-1, *) "WARNING: Implicit solids are not emitting!"
+          end if
+          if (.not. have_temperature .and. &
+               have_option("/implicit_solids/source_intensity")) then
+             FLExit("You need to use a Temperature field if you want to &
+                  have emitting solids.")
+          end if
+
           ! figure out if we want to print out the drag and initialise drag file
           print_drag = have_option("/implicit_solids/one_way_coupling/print_drag")
 
+          ! initialise drag force data file
           if (GetRank() == 0 .and. print_drag) then
              dat_unit = free_unit()
              open(dat_unit, file="drag_force", status="replace")
@@ -195,6 +213,7 @@ contains
           call zero(solid_local)
 
           do i = 1, number_of_solids
+             ewrite(2, *) "  calculating volume fraction for solid", i 
              call calculate_volume_fraction(state, i)
           end do
        end if
@@ -202,6 +221,7 @@ contains
        call set(solid, solid_local)
        ewrite_minmax(solid)
 
+       call set_source(state)
        call set_absorption_coefficient(state)
 
        if (print_drag .and. its==itinoi) call print_drag_force(state)
@@ -277,11 +297,11 @@ contains
     real, dimension(:), allocatable :: detwei
     real :: vol, ele_A_vol
 
-    ewrite(2, *) "inside calculate_volume_fraction"
-
     positions => extract_vector_field(state, "Coordinate")
 
-    external_positions_local = external_positions
+    call allocate(external_positions_local, external_positions%dim, &
+         external_positions%mesh, name="LocalCoordinates")
+    call set(external_positions_local, external_positions)
 
     ! translate coordinates for multiple solids...
     if (one_way_coupling .and. multiple_solids) then
@@ -377,7 +397,7 @@ contains
     call finalise_tet_intersector
     call rtree_intersection_finder_reset(ntests)
 
-    ewrite(2, *) "leaving calculate_volume_fraction"
+    call deallocate(external_positions_local)
 
   end subroutine calculate_volume_fraction
 
@@ -387,6 +407,7 @@ contains
 
     type(state_type), intent(inout) :: state
     type(vector_field), pointer :: absorption
+    type(scalar_field), pointer :: Tabsorption
     integer :: i, j
     real :: sigma
 
@@ -402,6 +423,16 @@ contains
        end do
     end do
 
+    if (have_temperature) then
+       
+       ewrite(3, *) "  set absorption for temperature"
+
+       Tabsorption => extract_scalar_field(state, "TemperatureAbsorption")
+       call zero(Tabsorption)
+       call set(Tabsorption, absorption, 1)
+
+    end if
+
     ewrite(2, *) "leaving set_absorption_coefficient"
 
   end subroutine set_absorption_coefficient
@@ -412,23 +443,40 @@ contains
 
     type(state_type), intent(inout) :: state
     type(vector_field), pointer :: source
+    type(scalar_field), pointer :: Tsource
     integer :: i, j
     real :: sigma
 
     ewrite(2, *) "inside set_source"
 
-    source => extract_vector_field(state, "VelocitySource")
-    call zero(source)
+    if (two_way_coupling) then
 
-    do i = 1, node_count(source)
-       ! femdem does not really return: solid_velocity
-       ! but: solid_velocity*dt
-       ! that's why we divide by: dt**2 and not just dt
-       sigma = node_val(solid_local, i)*beta/dt**2
-       do j = 1, source%dim
-          call set(source, j, i, sigma * node_val(fl_pos_solid_vel, j, i))
+       source => extract_vector_field(state, "VelocitySource")
+       call zero(source)
+
+       do i = 1, node_count(source)
+          sigma = node_val(solid_local, i)*beta/dt
+          do j = 1, source%dim
+             call set(source, j, i, sigma * node_val(fl_pos_solid_vel, j, i))
+          end do
        end do
-    end do
+
+    end if
+
+    if (have_temperature) then
+
+       ewrite(3, *) "  set source for temperature"
+       ewrite(3, *) "  source intensity", source_intensity
+
+       Tsource => extract_scalar_field(state, "TemperatureSource")
+       call zero(Tsource)
+
+       do i = 1, node_count(Tsource)
+          sigma = node_val(solid_local, i)*beta/dt
+          call set(Tsource, i, sigma * source_intensity)
+       end do
+
+    end if
 
     ewrite(2, *) "leaving set_source"
 
@@ -504,7 +552,7 @@ contains
 
     ewrite(2, *) "inside femdem_two_way_initialise"
 
-    call get_option("/implicit_solids/two_way_coupling/mesh_name", &
+    call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
          external_mesh_name)
     call get_option("/geometry/quadrature/degree", quad_degree)
 
@@ -610,7 +658,7 @@ contains
     logical, save :: init=.false.
 
     if (.not. init) then
-       call get_option("/implicit_solids/two_way_coupling/mesh_name", &
+       call get_option("/implicit_solids/two_way_coupling/mesh/file_name", &
             external_mesh_name)
        call get_option('/material_phase::'//trim(state%name)// &
             '/equation_of_state/fluids/linear/reference_density', rho)
