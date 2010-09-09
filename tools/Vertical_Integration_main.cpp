@@ -145,7 +145,7 @@ int main(int argc, char** argv){
   if(args.count('t') > 0){
     top = atof(args['t'].c_str());
   }
-  int result_degree = 0;
+  int result_degree = 1;
   if(args.count('p') > 0){
     result_degree = atoi(args['p'].c_str());
   }
