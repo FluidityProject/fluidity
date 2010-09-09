@@ -294,7 +294,7 @@ void write_part_main_mesh( bool verbose, string filename, int part,
     }
   
   
-  gmshfile << "$EndElements\n";
+  gmshfile << "\n$EndElements\n";
   gmshfile.close();
 }
 
