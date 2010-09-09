@@ -87,6 +87,7 @@ module zoltan_integration
   ! The variable chooses the method of transfering data when re-loading in zoltan
   logical :: variable_sizes_rbuf = .true.
   integer, save :: zoltan_transfer_fields_count = 0
+  integer :: zoltan_iteration
  
   public :: zoltan_drive
   private
@@ -233,8 +234,31 @@ module zoltan_integration
 
     total_num_edges = sum(num_edges(1:num_obj))
 
-    head = 1
+    if (zoltan_iteration==3) then
+      
+      ! last iteration - hopefully the mesh is of sufficient quality by now
+      ! we only want to optimize the edge cut to minimize halo communication
+       ewgts(1:total_num_edges) = 1.0
+       
+       head = 1
+       do node=1,count
+!         find nodes neighbours
+          neighbours => row_m_ptr(zz_sparsity_two, local_ids(node))
+!         check the number of neighbours matches the number of edges
+          assert(size(neighbours) == num_edges(node))
+!         find global ids for each neighbour
+          nbor_global_id(head:head+size(neighbours)-1) = halo_universal_number(zz_halo, neighbours)
+!         find owning proc for each neighbour
+          nbor_procs(head:head+size(neighbours)-1) = halo_node_owners(zz_halo, neighbours) - 1
+          head = head + size(neighbours)
+       end do 
+       ierr = ZOLTAN_OK
+       return
+    end if
 
+
+    head = 1
+    
 !   Aim is to assign high edge weights to poor quality elements
 !   so that when we load balance poor quality elements are placed
 !   in the centre of partitions and can be adapted
@@ -327,7 +351,7 @@ module zoltan_integration
          end if
       end do
    end if
-
+   
    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
       write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
       open(666, file = filename)
@@ -2891,6 +2915,8 @@ module zoltan_integration
       integer, dimension(:), allocatable :: interleaved_surface_ids
 
       !call find_mesh_to_adapt(states(1), zz_mesh)
+      
+      zoltan_iteration = iteration
 
       max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
       if (stat == 0) then
@@ -3092,7 +3118,7 @@ module zoltan_integration
       end if     
 
 
-      if (iteration == 1) then
+      if (iteration < 3) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
         if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
            ! chosen to match what Sam uses
