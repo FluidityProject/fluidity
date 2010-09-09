@@ -49,10 +49,10 @@ typedef float real_t;
 
 extern "C"{
 #define vertical_integration F77_FUNC(vertical_integration, VERTICAL_INTEGRATION)
-  void vertical_integration(const char* target_basename, const int* target_basename_len,
-                            const char* integrated_filename, const int* integrated_filename_len,
-                            const char* output_basename, const int* output_basename_len,
-                            const real_t* top, const real_t* bottom, real_t* sizing, const int* result_degree);
+  void vertical_integration(const char* target_basename, int* target_basename_len,
+                            const char* integrated_filename, int* integrated_filename_len,
+                            const char* output_basename, int* output_basename_len,
+                            real_t* top, real_t* bottom, real_t* sizing, int* result_continuity, int* result_degree);
 
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
@@ -68,8 +68,9 @@ void Usage(){
        << "Options:\n"
        << "\n"
        << "-b\t\tBottom\n"
+       << "-d\t\tDiscontinuous result (default false for degree > 0, true for degree == 0)\n"
        << "-h\t\tDisplay this help\n"
-       << "-p\t\tResult degree (default 0)\n"
+       << "-p\t\tResult degree (default 1)\n"
        << "-s\t\tSizing\n"
        << "-t\t\tTop (default 0.0)\n"
        << "-v\t\tVerbose mode" << endl;
@@ -94,7 +95,7 @@ int main(int argc, char** argv){
   optarg = NULL;  
   char c;
   map<char, string> args;
-  while((c = getopt(argc, argv, "b:hp:s:t:v")) != -1){
+  while((c = getopt(argc, argv, "b:dhp:s:t:v")) != -1){
     if (c != '?'){
       if(optarg == NULL){
         args[c] = "true";
@@ -148,6 +149,7 @@ int main(int argc, char** argv){
   if(args.count('p') > 0){
     result_degree = atoi(args['p'].c_str());
   }
+  int result_continuity = args.count('d') > 0 ? -1 : (result_degree == 0 ? -1 : 0);
   
   // Input / output
   string target_basename, integrated_filename, integrated_fieldname, output_basename;
@@ -170,7 +172,7 @@ int main(int argc, char** argv){
   vertical_integration(target_basename.c_str(), &target_basename_len,
                        integrated_filename.c_str(), &integrated_filename_len,
                        output_basename.c_str(), &output_basename_len,
-                       &top, &bottom, &sizing, &result_degree);
+                       &top, &bottom, &sizing, &result_continuity, &result_degree);
 
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter

@@ -3,7 +3,7 @@
 subroutine vertical_integration(target_basename, target_basename_len, &
   & integrated_filename, integrated_filename_len, &
   & output_basename, output_basename_len, &
-  & top, bottom, sizing, field_b_degree)
+  & top, bottom, sizing, field_b_continuity, field_b_degree)
 
   use fields
   use fldebug
@@ -38,6 +38,7 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   real, intent(in) :: top
   real, intent(in) :: bottom
   real, intent(in) :: sizing
+  integer, intent(in) :: field_b_continuity
   integer, intent(in) :: field_b_degree
 
   character(len = *), parameter :: solver_path = "/temporary/solver/path"
@@ -79,9 +80,9 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   positions_b_surf_shape => ele_shape(positions_b_surf, 1)
   field_b_shape = make_element_shape(positions_b_surf_shape%loc, positions_b_surf_shape%dim, field_b_degree, quad = positions_b_surf_shape%quadrature)
   if(field_b_degree == 0) then
-    field_b_mesh = make_mesh(positions_b_surf%mesh, field_b_shape, name = "VerticalIntegralMesh", continuity = -1)
+    field_b_mesh = make_mesh(positions_b_surf%mesh, field_b_shape, name = "VerticalIntegralMesh", continuity = field_b_continuity)
   else
-    field_b_mesh = make_mesh(positions_b_surf%mesh, field_b_shape, name = "VerticalIntegralMesh")
+    field_b_mesh = make_mesh(positions_b_surf%mesh, field_b_shape, name = "VerticalIntegralMesh", continuity = field_b_continuity)
   end if
   call deallocate(field_b_shape)
 

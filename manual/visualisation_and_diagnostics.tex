@@ -514,7 +514,7 @@ vertical\_integration is built as part of the fltools build target (see section 
 and is used via:
 
 \begin{lstlisting}[language = Bash]
-vertical_integration -b bottom -t top -s sizing [-p degree -v]
+vertical_integration -b bottom -t top -s sizing [-d -p degree -v]
   target source output
 \end{lstlisting}
 
@@ -529,10 +529,11 @@ respectively, and \lstinline[language = Bash]+-s sizing+ sets the thickness of l
 used in the computation of the vertical integral (the thickness of the layers in the
 vertical extrusion of the target mesh through the source mesh). The optional
 flag \lstinline[language = Bash]+-p degree+ sets the polynomial degree of the
-output integral. By default the output field is \Pzero (discontinuous).
-If \lstinline[language = Bash]+degree+$> 0$ is specified, then the output
-field is \ensuremath{P_{degree}} (continuous). The
-\lstinline[language = Bash]+-v+ flag enables verbose output.
+output integral. If \lstinline[language = Bash]+-d+ is supplied, the integral
+is output on a discontinuous mesh. Otherwise, it is output on a continuous
+mesh for non-zero polynomial degree, and a discontinuous mesh for a \Pzero
+output mesh. By default the output field is \Pone (continuous).
+The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 vertical\_integration can only be used in serial.
 
