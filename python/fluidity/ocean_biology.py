@@ -83,22 +83,18 @@ def pznd(state, parameters):
         # Detritus remineralisation.
         De_D=mu_D*D_n
 
-        P_source.addto(n, R_P - G_P - De_P)
+        P_source.set(n, R_P - G_P - De_P)
         
         if PP:
             PP.set(n, R_P)
         if PG:
             PG.set(n, G_P)
 
-        N_source.set(n,0.0)
-        N_abs.set(n,0.0)
-
-
-        Z_source.addto(n, gamma*beta*(G_P+G_D) - De_Z)
+        Z_source.set(n, gamma*beta*(G_P+G_D) - De_Z)
         
-        N_source.addto(n, -R_P + De_D + (1-gamma)*beta*(G_P+G_D))
+        N_source.set(n, -R_P + De_D + (1-gamma)*beta*(G_P+G_D))
 
-        D_source.addto(n, -De_D + De_P + De_Z +(1-beta)*G_P - beta*G_D)    
+        D_source.set(n, -De_D + De_P + De_Z +(1-beta)*G_P - beta*G_D)    
 
 
 def check_pznd_parameters(parameters):
@@ -293,7 +289,7 @@ def six_component(state, parameters):
     photicZoneDepth=parameters["photic_zone_depth"]
     p_D=1-p_P
 
-    for n in range(coords.node_count):
+    for n in range(P.node_count):
         # Values of fields on this node.
         P_n=max(.5*(P.node_val(n)+Pnew.node_val(n)), 0.0)
         Z_n=max(.5*(Z.node_val(n)+Znew.node_val(n)), 0.0)
@@ -306,7 +302,7 @@ def six_component(state, parameters):
         if (N_n < 1e-7):
             theta = 1000.
         else:
-            theta = C_n/N_n*zeta # C=N_n*zeta
+            theta = C_n/(N_n*zeta) # C=N_n*zeta
         alpha = alpha_c * theta # diff to paper - check other paper/emails
 
         # Light limited phytoplankton growth rate.
@@ -337,27 +333,24 @@ def six_component(state, parameters):
         # Detritus remineralisation.
         De_D=mu_D*D_n
 
-        N_source.set(n,0.0)
-        N_abs.set(n,0.0)
-
         # We have 2 sources depending on whether we're below or above the photic zone
-        #above
-        if (abs(coords.node_val(n)[2]) < photicZoneDepth):
-            P_source.addto(n, J*P_n*(Q_N+Q_A) - G_P - De_P)
-            C_source.addto(n, ((R_P*J*P_n*(Q_N+Q_A) + (-G_P-De_P))*theta)/zeta)
-            Z_source.addto(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
-            D_source.addto(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
-            N_source.addto(n, -J*P_n*Q_N)
-            A_source.addto(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z)
         # below
+        if (I_n < photicZoneDepth):
+            P_source.set(n, -lambda_bio * P_n)
+            C_source.set(n, -lambda_bio*C_n)
+            Z_source.set(n, -lambda_bio*Z_n)
+            D_source.addto(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
+            A_source.set(n, -lambda_A*A_n)
+            N_source.set(n, lambda_A*A_n + mu_D*D_n)
+        # above
         else:
-            P_source.addto(n, -lambda_bio * P_n)
-            C_source.addto(n, -theta*lambda_bio*C_n)
-            Z_source.addto(n, -lambda_bio*Z_n)
-            D_source.addto(n, -lambda_bio*(P_n + Z_n) - mu_D*D_n**2*lambda_A)
-            A_source.addto(n, -lambda_A*A_n)
-            N_source.addto(n, -lambda_A*A_n - lambda_A*D_n)
-            
+            P_source.set(n, J*P_n*(Q_N+Q_A) - G_P - De_P)
+            C_source.set(n, (R_P*J*P_n*(Q_N+Q_A) + (-G_P-De_P))*theta/zeta)
+            Z_source.set(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
+            D_source.set(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
+            N_source.set(n, -J*P_n*Q_N)
+            A_source.set(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z)
+
         if PP:
             PP.set(n, R_P)
         if PG:
