@@ -973,3 +973,126 @@ No-normal flow, free-stress boundary conditions are applied at the upper and lat
 
 \subsection{Results}
 
+
+
+
+\section{Water column collapse}
+
+\subsection{Overview}
+A commonly used validation experiment for multi-material models is that of a collapsing column of liquid, normally water, within an atmosphere or vacuum \citep{lakehal_interface_2002}, also known as the dam break problem.  In the experimental set-up a reservoir of water is held behind an impermeable barrier separating it from the rest of the tank.  The barrier is then quickly removed, allowing the water column to collapse and flood the remaining sections of the tank.  In the numerical analogue the initial condition is generally taken as the trapped water column, still behind the dam.  At the start of the simulation the barrier is imagined to have been removed instantaneously and switching on gravity, $|g| = 9.81$, causes the column to collapse.   Several experimental set-ups have been published and used as comparison and validation tools for numerical models \citep{martin_part_1952, greaves_simulation_2006}.  Those with water depth gauges distributed throughout the tank are particularly useful, allowing the direct comparison of data.  Furthermore, pressure gauges located on the tank walls or on any obstacles within the tank provide another useful validation tool.
+
+In this example, \fluidity\ is used to simulate a simple dam break experiment \citep{zhou_nonlinear_1999}.  The example demonstrates the following functionality:
+
+\begin{itemize}
+\item 2D flow
+\item Multi-material flow
+\item Incompressible flow
+\item Inviscid flow
+\item Mesh adaptivity
+\item Static detectors
+\end{itemize}
+
+The simulation illustrated here took $\sim$2 hours to run in serial on a Intel Xeon X5355 2.66 GHz processor.
+
+\subsection{Problem specification}
+The experiment on which this example is based was a simple dam break problem in a $3.22\times2\times1m$ (length $\times$ height $\times$ depth) tank \citep{zhou_nonlinear_1999}.  A reservoir of water $1.2\times0.6\times1m$ (length $\times$ height $\times$ depth) was held behind a barrier at one end of the tank.  Water depth gauges were placed at two points, marked H1 and H2 in Figure \ref{fig:zhouinitial}(a), at $x_1 = 2.725m$ and $2.228m$ respectively.  Additionally, a pressure gauge was located at the point marked P2 in Figure \ref{fig:zhouinitial}(a), at $x_2=0.16m$ on the wall facing the initial water column.
+
+As no variations were introduced in the third dimension, the experiment is reproduced here numerically in two dimensions within the domain $\Omega$: $x_1 \in [0,3.22]$, $x_2 \in [0,2]$ \citep{lee_numerical_2002, colagrossi_numerical_2003, park_volume-of-fluid_2009}.  The two materials (water and air) are distinguished by scalar fields $\alpha_k$ representing their volume fraction, where the volume fraction of air $\alpha_2 = 1-\alpha_1$ and $\alpha_1$ is the volume fraction of water. The initial condition of the water volume fraction is shown in Figure \ref{fig:zhouinitial}(a).  The presence of water is indicated as a grey region and the interface to air is delineated by contours at volume fraction values of $0.025$, $0.5$ and $0.975$.  The densities of the water and air are taken as $ 1,000kg\,m^{-2}$ and $1kg\,m^{-2}$ respectively.  Both fluids are treated inviscidly. As the simulation is inviscid, free slip boundary conditions are imposed on the tank bottom, $x_2=0$, and sides, $x_1=0,\,3.22$.  The top of the tank, $x_2=2$, is left open.
+
+\begin{figure}[tbp]
+\hspace{1cm}(a)
+\begin{center}
+\input{examples_images/water_collapse/initial_setup.tex}
+\end{center}
+\hspace{1cm}(b)
+\begin{center}
+\includegraphics[width=10.2cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_0_mesh.pdf}
+\end{center}
+\caption{(a) Initial set-up of the water volume fraction, $\alpha_1$, and the velocity and pressure boundary conditions for the two-dimensional water column collapse validation problem \citep{zhou_nonlinear_1999}. The presence of water is indicated as a grey region and the interface to air is delineated by contours of the volume fraction at $0.025$, $0.5$ and $0.975$.  The locations of the pressure (P2) and water depth gauges (H1, H2) are also indicated. (b) The adapted mesh used to represent the initial conditions.}
+\label{fig:zhouinitial}
+\end{figure}
+
+The water volume fraction, $\alpha_1$, is solved for using an advection equation (REFMARKER).  It is advected using HyperC on a control volume mesh (REFMARKER), while the velocity and pressure are discretised using the P0P1$_{\text{CV}}$ element pair (REFMARKER) with $\theta=1/2$ and $\theta_i=1/2$ (REFMARKER).  
+
+This example employs an adaptive mesh (REFMARKER). The minimum edge length in the mesh is constrained to $2mm$. The upper bound on the edge lengths was specified as half the domain length and height in each dimension.  The pressure and water volume fraction were directly adapted to using interpolation error bounds, $\hat{\epsilon}$, of $1,000$ and $0.05$ respectively.  As the velocity is element centred it was first projected to the vertices before being adapted to with an interpolation error bound of $1$ for each component.  Given the ranges of these fields seen in the fixed mesh runs these correspond to desired errors of less than 5\% for each field. The volume fraction is transferred between successive meshes using a minimally diffusive bounded projection algorithm.  The velocity is transferred using a straightforward projection while the pressure is consistently interpolated using the linear basis functions from its parent mesh. For details of the remaining adaptivity settings we refer to the documented flml file.  The initial mesh using these settings is shown in Figure \ref{fig:zhouinitial}(b). 
+
+The timestep is selected to achieve a Courant number (REFMARKER) of $2.5$ while the advection equation uses approximately $10$ subcycles (REFMARKER) so the volume fraction is advected at a Courant number of $0.25$.  
+
+\subsection{Results}
+Several timesteps of the example simulation can be seen in Figure \ref{fig:zhouwholea} where the interface is represented by contours of the water volume fraction, $\alpha_1$, at $0.025$, $0.5$ and $0.975$.  Similar images can be generated by visualising the vtu files using Paraview or Mayavi2 (REFMARKER).
+
+\begin{figure}[tbp]
+\begin{center}
+% \newcolumntype{V}{>{\centering\arraybackslash} m{7cm} }
+\begin{tabular}{ll}
+(a) $t = 0.5$ & (b) $t = 1.0$   \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_100.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_200.png} \\
+(c) $t = 1.5$ & (d) $t = 1.625$ \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_300.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_325.png} \\
+(e) $t = 1.75$ & (f) $t = 1.875$ \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_350.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_375.png} \\
+(g) $t = 2.0$ & (h) $t = 2.5$ \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_400.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_500.png} \\
+\end{tabular}
+\caption{The evolution of the water volume fraction, $\alpha_1$, over several timesteps.  The presence of water, $\alpha_1=1$, is indicated as a grey region and the interface to air, $\alpha_1=0$, is delineated by contours at $\alpha_1 = 0.025$, $0.5$ and $0.975$.}
+\label{fig:zhouwholea}
+\end{center}
+\end{figure}
+
+\begin{figure}[tbp]
+\begin{center}
+% \newcolumntype{V}{>{\centering\arraybackslash} m{7cm} }
+\begin{tabular}{ll}
+(a) $t = 0.5$ & (b) $t = 1.0$\\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_100_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_200_mesh.pdf} \\
+(c) $t = 1.5$ & (d) $t = 1.625$ \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_300_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_325_mesh.pdf} \\
+(e) $t = 1.75$ & (f) $t = 1.875$ \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_350_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_375_mesh.pdf} \\
+(g) $t = 2.0$ & (h) $t = 2.5$ \\
+\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_400_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_500_mesh.pdf} \\
+\end{tabular}
+\caption{The evolution of the adaptive mesh over the same timesteps displayed in Figure \ref{fig:zhouwholea}.  The mesh can be seen to closely follow the interface between the water and air.}
+\label{fig:zhouwholemesh}
+\end{center}
+\end{figure}
+
+The images show the column collapse (Figure \ref{fig:zhouwholea}(a)), run-up against the opposing wall (Figure \ref{fig:zhouwholea}(b)) and the subsequent overturning wave (Figure \ref{fig:zhouwholea}(c, d)) and entrainment of air bubbles (Figure \ref{fig:zhouwholea}(e--h)).  
+
+\begin{figure}[tbp]
+\begin{center}
+%\newcolumntype{V}{ m{7cm} }
+\begin{tabular}{cc}
+\hspace{1cm}(i) H1 & (ii) H2  \\
+\includegraphics[width=7cm]{examples_images/water_collapse/water_gauge_H1.pdf} & \includegraphics[width=7cm]{examples_images/water_collapse/water_gauge_H2.pdf}\\
+\end{tabular}
+\caption{Comparison between the experimental (circles) and numerical water gauge data at H1 (i) and H2 (ii), $x_1 = 2.725m$ and $2.228m$ respectively.  The letters along the top of the graphs indicate the times corresponding to Figure \ref{fig:zhouwholea}(a--h).  Experimental data taken from \citet{zhou_nonlinear_1999} through \citet{park_volume-of-fluid_2009}.}
+\label{fig:zhoudepth}
+\end{center}
+\end{figure}
+
+For validation purposes, the post-processing script provided for this example extracts information from the detector file (pressure) and from the water volume fraction field stored in the vtu files (water depth) and plots these data in comparison with the experimental results. The water depth gauge data is displayed in Figure \ref{fig:zhoudepth} alongside the experimental data.  The numerical results show the total thickness of water at the points H1 and H2, discounting any air bubbles that cross the gauges.  The simulation results show a close similarity to the experimental results with the exception of a small lip of water when the initial water head passes the gauge.  It is unclear what causes this structure, though it may be related to the initial withdrawal of the barrier in the experiment or drag effects from the bottom of the tank.  All previous published attempts to model the experiment also fail to reproduce this initial lip \citep{zhou_nonlinear_1999, lee_numerical_2002, colagrossi_numerical_2003, park_volume-of-fluid_2009}.
+
+After $t=1.5s$ the overturning wave starts to pass the water gauges and the match between the experimental results and the numerical simulation deteriorates. As would be expected from such complex behaviour, all previous published attempts have also failed to reproduce the experimental depth gauge data after this point.  However, the broad pattern and average depth observed in the simulation after $t=1.5s$ can be seen in Figure \ref{fig:zhoudepth} to match the experiment reasonably well.
+
+\begin{figure}[tb]
+\begin{center}
+\includegraphics[width=10cm]{examples_images/water_collapse/pressure_gauge_P2.pdf}
+\caption{Comparison between the experimental (circles) and numerical pressure gauge data at P2, $x_1 = 3.22m$, $x_2 = 0.16m$.  The letters along the top of the graphs indicate the times corresponding to Figure \ref{fig:zhouwholea}(a--h).  Experimental data taken from \citet{zhou_nonlinear_1999} through \citet{park_volume-of-fluid_2009}.}
+\label{fig:zhoupressure}
+\end{center}
+\end{figure}
+
+Experimental pressure gauge data are also available at the point P2, $(3.22,0.16)m$, on the right wall of the tank.  This is compared to the numerical pressure results in Figure \ref{fig:zhoupressure}.  After the initial noise in the experimental data, a sudden step in pressure is seen as the water run-up reaches the pressure gauge at about $t=0.6s$.  This is also seen in the numerical simulations however it is slightly delayed, occurring at $t=0.7s$.  As upwinding is being used in the discretisation of the velocity field, the delay may be due to numerical viscosity slowing the advancing water front.  However, as the delay was not as extreme at the depth gauges H1 and H2 other factors may also play a role.  For instance, if the lip seen in the experimental water gauge data is a head on the water front, that has not been reproduced numerically, it may reach the height of the pressure gauge faster than a front with no head.
+
+Once the pressure jump occurs the experimental and numerical data are in broad agreement until the overturning wave impacts with the water layer at approximately $t=1.5s$ (Figure \ref{fig:zhouwholea}(c)).  At the point of contact a pressure pulse is transmitted to the pressure gauge resulting in a modest pressure spike in the experimental data.  This is matched by slightly delayed pressure pulses in all the numerical simulation.  However, the pulses seen in the numerical data are of a much larger magnitude than the experimental data. This discrepancy may be due to the fact that in the experiment the pressure gauge measures the pressure over a broader area than in the simulation. 
+
+\subsection{Exercises}
+To explore the functionality of \fluidity, the following variations on this example would be constructive learning exercises:
+
+\begin{itemize}
+\item Disable the adaptivity option to run on a fixed mesh
+\item Alter the water/air viscosity/density
+\item Modify the tank geometry
+\end{itemize}
+
