@@ -71,7 +71,7 @@ for x in range(len(xarray)):
   pylab.figure(x)
   pylab.axis([0.0, 2.5, 0.0, 0.5])
   pylab.legend(("Experiment", "Fluidity"), loc="upper left")
-  pylab.savefig("water_gauge_"+warray[x]+".png")
+  pylab.savefig("water_gauge_"+warray[x]+".pdf")
 
 # then the pressure gauges - this takes it data from the detectors so no
 # need for extraction from the vtus
@@ -95,7 +95,7 @@ for p in range(len(parray)):
   pylab.figure(p+len(xarray))
   pylab.axis([0.0, 2.5, -2000., 12000.])
   pylab.legend(("Experiment", "Fluidity"), loc="upper left")
-  pylab.savefig("pressure_gauge_"+parray[p]+".png")
+  pylab.savefig("pressure_gauge_"+parray[p]+".pdf")
 
 
 pylab.show()

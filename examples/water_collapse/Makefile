@@ -16,4 +16,4 @@ input: preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.png *.stat *.msh *.node *.edge *.ele adapted_mesh_*.vtu water_collapse_*.vtu *checkpoint* *convergence* *.log-0 *.err-0 matrixdump* *.detectors water_depths.npy
+	rm -rf *.pdf *.png *.stat *.msh *.node *.edge *.ele adapted_mesh_*.vtu water_collapse_*.vtu *checkpoint* *convergence* *.log-0 *.err-0 matrixdump* *.detectors water_depths.npy
