@@ -294,8 +294,15 @@ class vtu:
     
     # Fix the point data at invalid nodes
     if len(invalidNodes) > 0:
-      oldField = self.ugrid.GetPointData().GetArray(name)   
-      components = oldField.GetNumberOfComponents()
+      try:
+        oldField = self.ugrid.GetPointData().GetArray(name)
+        components = oldField.GetNumberOfComponents()
+      except:
+        try:
+          oldField = self.ugrid.GetCellData().GetArray(name)
+          components = oldField.GetNumberOfComponents()
+        except:
+          raise Exception("ERROR: couldn't find point or cell field data with name "+name+" in file "+self.filename+".")
       for invalidNode, nearest in invalidNodes:
         for comp in range(nc):
           array[invalidNode * nc + comp] = oldField.GetValue(nearest * nc + comp)
