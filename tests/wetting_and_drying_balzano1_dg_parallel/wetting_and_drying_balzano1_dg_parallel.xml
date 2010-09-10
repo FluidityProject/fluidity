@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>wetting_and_drying_balzano1_dg_parallel</name>
+  <owner userid="sf1409"/>
+  <problem_definition length="medium" nprocs="4">
+    <command_line>mpiexec -n 4 fluidity balzano1_2plus1.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors -w --save=fluidity; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="velocity" language="python">from fluidity_tools import stat_parser
+s = stat_parser("balzano1_2plus1.detectors")
+velocity=s["water"]["Velocity"]</variable>
+    <variable name="wetting_drying_alpha" language="python">from fluidity_tools import stat_parser
+s = stat_parser("balzano1_2plus1.detectors")
+wetting_drying_alpha=s["water"]["WettingDryingAlpha"]</variable>
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
+s = stat_parser("balzano1_2plus1.detectors")
+ElapsedTime=s["ElapsedTime"]["value"]</variable>
+  </variables>
+  <pass_tests>
+    <test name="endtime" language="python">assert(ElapsedTime[-1]==54000.0)</test>
+    <test name="wetting_drying_alpha" language="python">print "Checking if left third of domain is dry at last timestep...",
+for det in range(1,302):
+  det_str="det_%(#)04d" %{"#": det}
+  assert(wetting_drying_alpha[det_str][-1]&gt;=1.0)
+print "okay."
+print "Checking if right half of domain is wet at last timestep..."
+for det in range(500,1002):
+  det_str="det_%(#)04d" %{"#": det}
+  assert(wetting_drying_alpha[det_str][-1]==0.0)
+print "okay."<comment>this test checks if the wetting and drying alpa is correct at the last timestep. It should be 0 for detectors located left of X=5520 (det_01...det_4) and 1 for detectors right of that postition (det_06...det_11).</comment></test>
+    <test name="Velocity" language="python">print "Checking if left third of domain is velocity free at last timestep...",
+for det in range(1,302):
+  det_str="det_%(#)04d" %{"#": det}
+  magnitude=0.0
+  max_magnitude=0.0
+  for dim in range(0,3):
+    magnitude=magnitude+velocity[det_str][dim][-1]**2
+  magnitude=magnitude**0.5
+  max_magnitude=max(max_magnitude, magnitude)
+  print max_magnitude
+  assert(magnitude&lt;=1e-3)
+print "okay."
+print "Maximal magnitude in dry area: ", max_magnitude</test>
+  </pass_tests>
+</testproblem>
