@@ -3118,7 +3118,7 @@ module zoltan_integration
       end if     
 
 
-      if (iteration < 3) then
+      if (iteration == 3) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
         if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
            ! chosen to match what Sam uses
