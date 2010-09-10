@@ -3,7 +3,7 @@
   <name>wetting_and_drying_thacker_cg_parallel</name>
   <owner userid="sf1409"/>
   <problem_definition length="medium" nprocs="4">
-    <command_line>mpiexec -n 4 /data/sf1409/Temp/trunk4/bin/fluidity thacker.flml</command_line>
+    <command_line>mpiexec -n 4 fluidity thacker.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="integralerror" language="python">import os
