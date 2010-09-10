@@ -39,153 +39,47 @@ from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
 regionids_integral = s["Water"]["RegionIDs"]["integral"]
     </variable>
-    <variable name="regionid_upperleft" language="python">
+    <variable name="regionids" language="python">
 import vtktools
 import glob
 import fluidity.diagnostics.vtutools as vtutools
 from numpy import array, concatenate, zeros
 
-regionid_upperleft = []
-centre = array([-0.75,0.5])
+regionids = [[] for i in range(4)]
+centre = []
+centre.append(array([-0.75,0.5]))
+centre.append(array([-0.25,0.5]))
+centre.append(array([-0.75,-0.5]))
+centre.append(array([-0.25,-0.5]))
 
-posx = []
-posx.append([centre[0]])
-posx.append([centre[0]-1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]-1./6.])
-posx = array(posx)
-
-posy = []
-posy.append([centre[1]])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]+1./4.])
-posy.append([centre[1]+1./4.])
-posy = array(posy)
-
-posz = zeros((len(posx),1))
-
-pos = concatenate((posx, posy, posz), 1)
-
-files = glob.glob("heat_*.pvtu")
-for f in files:
-  pvtu = vtktools.vtu(f)
-  vtu = vtutools.VtuFromPvtu(pvtu)
-  regionid_upperleft.append(vtu.ProbeData(pos, "RegionIDs"))
-
-regionid_upperleft = array(regionid_upperleft)
-    </variable>
-    <variable name="regionid_upperright" language="python">
-import vtktools
-import glob
-import fluidity.diagnostics.vtutools as vtutools
-from numpy import array, concatenate, zeros
-
-regionid_upperright = []
-centre = array([-0.25,0.5])
-
-posx = []
-posx.append([centre[0]])
-posx.append([centre[0]-1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]-1./6.])
-posx = array(posx)
-
-posy = []
-posy.append([centre[1]])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]+1./4.])
-posy.append([centre[1]+1./4.])
-posy = array(posy)
-
-posz = zeros((len(posx),1))
-
-pos = concatenate((posx, posy, posz), 1)
+pos = []
+for i in range(4):
+  posx = []
+  posx.append([centre[i][0]])
+  posx.append([centre[i][0]-1./6.])
+  posx.append([centre[i][0]+1./6.])
+  posx.append([centre[i][0]+1./6.])
+  posx.append([centre[i][0]-1./6.])
+  posx = array(posx)
+  posy = []
+  posy.append([centre[i][1]])
+  posy.append([centre[i][1]-1./4.])
+  posy.append([centre[i][1]-1./4.])
+  posy.append([centre[i][1]+1./4.])
+  posy.append([centre[i][1]+1./4.])
+  posy = array(posy)
+  posz = zeros((len(posx),1))
+  pos.append(concatenate((posx, posy, posz), 1))
 
 files = glob.glob("heat_*.pvtu")
 for f in files:
+  print f
   pvtu = vtktools.vtu(f)
   vtu = vtutools.VtuFromPvtu(pvtu)
-  regionid_upperright.append(vtu.ProbeData(pos, "RegionIDs"))
+  for i in range(4):
+    regionids[i].append(vtu.ProbeData(pos[i], "RegionIDs"))
 
-regionid_upperright = array(regionid_upperright)
-    </variable>
-    <variable name="regionid_lowerleft" language="python">
-import vtktools
-import glob
-import fluidity.diagnostics.vtutools as vtutools
-from numpy import array, concatenate, zeros
-
-regionid_lowerleft = []
-centre = array([-0.75,-0.5])
-
-posx = []
-posx.append([centre[0]])
-posx.append([centre[0]-1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]-1./6.])
-posx = array(posx)
-
-posy = []
-posy.append([centre[1]])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]+1./4.])
-posy.append([centre[1]+1./4.])
-posy = array(posy)
-
-posz = zeros((len(posx),1))
-
-pos = concatenate((posx, posy, posz), 1)
-
-files = glob.glob("heat_*.pvtu")
-for f in files:
-  pvtu = vtktools.vtu(f)
-  vtu = vtutools.VtuFromPvtu(pvtu)
-  regionid_lowerleft.append(vtu.ProbeData(pos, "RegionIDs"))
-
-regionid_lowerleft = array(regionid_lowerleft)
-    </variable>
-    <variable name="regionid_lowerright" language="python">
-import vtktools
-import glob
-import fluidity.diagnostics.vtutools as vtutools
-from numpy import array, concatenate, zeros
-
-regionid_lowerright = []
-centre = array([-0.25,-0.5])
-
-posx = []
-posx.append([centre[0]])
-posx.append([centre[0]-1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]+1./6.])
-posx.append([centre[0]-1./6.])
-posx = array(posx)
-
-posy = []
-posy.append([centre[1]])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]-1./4.])
-posy.append([centre[1]+1./4.])
-posy.append([centre[1]+1./4.])
-posy = array(posy)
-
-posz = zeros((len(posx),1))
-
-pos = concatenate((posx, posy, posz), 1)
-
-files = glob.glob("heat_*.pvtu")
-for f in files:
-  pvtu = vtktools.vtu(f)
-  vtu = vtutools.VtuFromPvtu(pvtu)
-  regionid_lowerright.append(vtu.ProbeData(pos, "RegionIDs"))
-
-regionid_lowerright = array(regionid_lowerright)
+regionids = array(regionids)
     </variable>
   </variables>
   <pass_tests>
@@ -222,19 +116,19 @@ assert(numpy.all(abs(regionids_integral[1:] - regionids_integral[0]) &lt; 1e-9))
     </test>
     <test name="regionids upper left is 21" language="python">
 import numpy
-assert(numpy.all(abs(regionid_upperleft - 21.) &lt; 1e-9))
+assert(numpy.all(abs(regionids[0] - 21.) &lt; 1e-9))
     </test>
     <test name="regionids upper right is 20" language="python">
 import numpy
-assert(numpy.all(abs(regionid_upperright - 20.) &lt; 1e-9))
+assert(numpy.all(abs(regionids[1] - 20.) &lt; 1e-9))
     </test>
     <test name="regionids lower left is 18" language="python">
 import numpy
-assert(numpy.all(abs(regionid_lowerleft - 18.) &lt; 1e-9))
+assert(numpy.all(abs(regionids[2] - 18.) &lt; 1e-9))
     </test>
     <test name="regionids lower right is 19" language="python">
 import numpy
-assert(numpy.all(abs(regionid_lowerright - 19.) &lt; 1e-9))
+assert(numpy.all(abs(regionids[3] - 19.) &lt; 1e-9))
     </test>
     <test name="regionids initial" language="python">
 import numpy
