@@ -932,7 +932,7 @@ contains
       du_t = 0.0
     end if
     
-    if(move_mesh.and.owned_element) then
+    if(move_mesh) then
       call transform_to_physical(X_old, ele, &
           & detwei=detwei_old)
       call transform_to_physical(X_new, ele, &
