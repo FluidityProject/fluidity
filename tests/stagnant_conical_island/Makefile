@@ -4,4 +4,7 @@ input:	clean
 	../../bin/fldecomp -n 3 2d_island
 
 clean:
-	rm -f src/*.msh *.vtu *.pvtu *.stat *.log-? *.err-? *.node *.ele *.halo *.edge *_checkpoint* *.convergence *.detectors* matrixdump*
+	rm -rf *_checkpoint*
+	rm -f src/*.msh *.pvtu *.stat *.log-? *.err-? *.node *.ele *.halo *.edge *.convergence *.detectors* matrixdump*
+	rm -f */*.vtu
+	rm -rf conical_island_*
