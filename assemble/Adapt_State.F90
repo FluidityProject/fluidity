@@ -1137,7 +1137,7 @@ contains
           ! call zoltan now but we need to pass in both the 2d metric (metric) and the 3d full metric (full_metric)
           ! the first is needed to define the element qualities while the second must be interpolated to the newly
           ! decomposed mesh
-          call zoltan_drive(states, i, max_adapt_iteration, metric = metric, full_metric = full_metric)
+          call zoltan_drive(states, i, metric = metric, full_metric = full_metric)
           zoltan_drive_call=.true.
           
           ! now we can deallocate the horizontal metric and point metric back at the full metric again
@@ -1145,7 +1145,7 @@ contains
           metric = full_metric
         else
           
-          call zoltan_drive(states, i, max_adapt_iteration, metric = metric)
+          call zoltan_drive(states, i, metric = metric)
           zoltan_drive_call=.true.
           
         end if
