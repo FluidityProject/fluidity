@@ -1,0 +1,489 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">onedomain_2plus1</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension replaces="NDIM">
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="ExtrudedMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="ExternalMesh">
+      <from_file file_name="mesh/mesh_connected">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="ExtrudedMesh">
+      <from_mesh>
+        <mesh name="ExternalMesh"/>
+        <extrude>
+          <regions name="WholeMesh">
+            <bottom_depth>
+              <python>
+                <string_value lines="20" type="python">def val(X, t): 
+  h0=50
+  R=430620
+  Rmesh=450000
+  r2=X[0]**2+X[1]**2
+  # The last term is an offset term
+  return h0*(R**2-r2)/(R**2)+0.5-h0*(R**2-Rmesh**2)/(R**2)</string_value>
+              </python>
+            </bottom_depth>
+            <sizing_function>
+              <python>
+                <string_value lines="20" type="python">def val(X, t):
+  return 50000</string_value>
+              </python>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">101</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">100</integer_value>
+            </bottom_surface_id>
+          </regions>
+        </extrude>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree replaces="NGI">
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">101</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">100</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant replaces="TIMDUM">
+        <real_value rank="0">0</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+    <detectors>
+      <detector_array name="det">
+        <number_of_detectors>
+          <integer_value rank="0">1001</integer_value>
+        </number_of_detectors>
+        <static/>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+ import math
+ h0=50.0
+ R=430620.0
+ Rmesh=450000.0
+ ret=[]
+ for i in range(0,1001):
+    r2=(2.0*450000.0*float(i)/1000.0-450000.0)**2
+    # The last term is an offset term
+    depth=h0*(R**2-r2)/(R**2)+0.5-h0*(R**2-Rmesh**2)/(R**2)
+    # lets remove a small offset
+    depth=depth-0.1
+    ret.append([2.0*450000.0*float(i)/1000.0-450000.0, 0.0, -1.0*depth])
+ return ret</string_value>
+        </python>
+      </detector_array>
+      <binary_output/>
+    </detectors>
+  </io>
+  <timestepping>
+    <current_time replaces="ACCTIM">
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep replaces="DT">
+      <real_value rank="0">600</real_value>
+    </timestep>
+    <finish_time replaces="LTIME">
+      <real_value rank="0">90000</real_value>
+    </finish_time>
+    <nonlinear_iterations replaces="ITINOI">
+      <integer_value rank="0">5</integer_value>
+      <tolerance replaces="ITIERR">
+        <real_value rank="0">1.0E-5</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </nonlinear_iterations>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">9.81</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="3" dim1="dim" rank="1">0 0 -1</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="water">
+    <equation_of_state>
+      <fluids>
+        <linear replaces="EQNSTA=0 or 1">
+          <reference_density replaces="DENINI">
+            <real_value rank="0">1</real_value>
+          </reference_density>
+          <subtract_out_hydrostatic_level replaces="BHOUT"/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <remove_stabilisation_term replaces="NOFILT"/>
+            <integrate_continuity_by_parts replaces="PREOPT"/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution replaces="POISON">
+            <string_value lines="1">never</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method replaces="PROJEC"/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="mg">
+            <vertical_lumping>
+              <internal_smoother/>
+            </vertical_lumping>
+          </preconditioner>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">2000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X, t):
+  eta0=2.0
+  h0=50
+  g=9.81
+  A=((h0+eta0)**2-h0**2)/((h0+eta0)**2+h0**2)
+  R=430620
+  r2=X[0]**2+X[1]**2
+  eta=h0*((1-A**2)**0.5/(1-A)-1-r2/R**2*((1-A**2)/((1-A)**2)-1))
+  # The following bit compensates the offset defined in extrusion
+  h0=50
+  R=430620
+  Rmesh=450000
+  offset=h0*(R**2-Rmesh**2)/(R**2)  
+  return eta*g+offset*g</string_value>
+          </python>
+        </initial_condition>
+        <output>
+          <include_nonlinear_field/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <no_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="LinearMomentum"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin replaces="DISOPT">
+            <viscosity_scheme>
+              <compact_discontinuous_galerkin/>
+            </viscosity_scheme>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+          </discontinuous_galerkin>
+          <conservative_advection replaces="BETA">
+            <real_value rank="0">0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta replaces="THETA">
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <relaxation replaces="ITHETA">
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">500</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="asm">
+            <preconditioner name="lu"/>
+          </preconditioner>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="fs">
+          <surface_ids>
+            <integer_value shape="1" rank="1">101</integer_value>
+          </surface_ids>
+          <type name="free_surface"/>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="wall">
+          <surface_ids>
+            <integer_value shape="1" rank="1">4</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <boundary_conditions replaces="boundary, TMPER1 TMPER2 TMPERI" name="bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">100</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
+        <tensor_field replaces="MUPTXX MUPTYY MUPTZZ MUPTYZ MUPTXZ MUPTXY RMUPXX RMUPYY RMUPZZ RMUPYZ RMUPXZ RMUPXY CONMU ALLMU TWOMU ONEMU" name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <diagonal>
+                <constant>
+                  <real_value shape="3" dim1="dim" rank="1">0 0 0.05</real_value>
+                </constant>
+              </diagonal>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <output>
+          <include_nonlinear_field/>
+        </output>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="WettingDryingAlpha" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FreeSurface" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+  <mesh_adaptivity>
+    <mesh_movement replaces="MVMESH = TRUE, ZERQG, CMCHAN = TRUE">
+      <free_surface>
+        <move_whole_mesh/>
+        <wetting_and_drying>
+          <dmin>
+            <real_value rank="0">5</real_value>
+          </dmin>
+          <d0>
+            <real_value rank="0">0.5</real_value>
+          </d0>
+          <dry_absorption>
+            <real_value shape="3" dim1="dim" rank="1">0.1 0.1 0.1</real_value>
+          </dry_absorption>
+        </wetting_and_drying>
+      </free_surface>
+      <vector_field name="GridVelocity" rank="1">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </vector_field>
+    </mesh_movement>
+  </mesh_adaptivity>
+</fluidity_options>
