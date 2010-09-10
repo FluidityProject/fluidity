@@ -27,7 +27,7 @@ program run_zoltan
   call load_options(trim(buf))
   call populate_state(states)
 
-  call zoltan_drive(states, 1)
+  call zoltan_drive(states, 1, 1)
 
   call checkpoint_simulation(states, postfix="zoltan")
 

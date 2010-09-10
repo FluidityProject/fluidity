@@ -160,7 +160,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   no_active_processes = target_nprocs
   
 #ifdef HAVE_ZOLTAN
-  call zoltan_drive(state, 1, initialise_fields=.true., ignore_extrusion=skip_initial_extrusion)
+  call zoltan_drive(state, 1, 1, initialise_fields=.true., ignore_extrusion=skip_initial_extrusion)
 #else
   call strip_level_2_halo(state, initialise_fields=.true.)
   call sam_drive(state, sam_options(target_nprocs))

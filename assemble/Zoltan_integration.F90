@@ -88,6 +88,7 @@ module zoltan_integration
   logical :: variable_sizes_rbuf = .true.
   integer, save :: zoltan_transfer_fields_count = 0
   integer :: zoltan_iteration
+  integer :: zoltan_max_adapt_iteration
  
   public :: zoltan_drive
   private
@@ -234,7 +235,7 @@ module zoltan_integration
 
     total_num_edges = sum(num_edges(1:num_obj))
 
-    if (zoltan_iteration==3) then
+    if (zoltan_iteration==zoltan_max_adapt_iteration) then
       
       ! last iteration - hopefully the mesh is of sufficient quality by now
       ! we only want to optimize the edge cut to minimize halo communication
@@ -1650,10 +1651,11 @@ module zoltan_integration
 
   end subroutine zoltan_cb_unpack_fields
 
-  subroutine zoltan_drive(states, iteration, metric, full_metric, initialise_fields, &
+  subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
     ignore_extrusion)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
+    integer, intent(in) :: max_adapt_iteration
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
     ! the full_metric is the metric we need to interpolate
@@ -2917,6 +2919,7 @@ module zoltan_integration
       !call find_mesh_to_adapt(states(1), zz_mesh)
       
       zoltan_iteration = iteration
+      zoltan_max_adapt_iteration = max_adapt_iteration
 
       max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
       if (stat == 0) then
@@ -3117,8 +3120,10 @@ module zoltan_integration
          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
       end if     
 
-
-      if (iteration == 3) then
+      ! Choose the appropriate partitioning method based on the current adapt iteration
+      ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
+      ! iteration to produce a load balanced partitioning
+      if (iteration == max_adapt_iteration) then
         ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
         if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
            ! chosen to match what Sam uses
