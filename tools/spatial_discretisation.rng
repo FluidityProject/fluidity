@@ -23,6 +23,13 @@ conservative_advection below).</a:documentation>
                 <ref name="comment"/>
               </element>
             </optional>
+            <optional>
+              <element name="disable_advection">
+                <a:documentation>Disable advection. Note this still permits a sinking velocity.
+Useful for pseudo-1D simulations involving biology</a:documentation>
+                <empty/>
+              </element>
+            </optional>
           </element>
           <element name="mass_terms">
             <a:documentation>Discretisation options for the mass terms.</a:documentation>
@@ -467,6 +474,11 @@ Follows a new control volume code path.</a:documentation>
               <empty/>
             </element>
           </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="exclude_velocity">
+          <empty/>
         </element>
       </optional>
       <ref name="spatial_control_volume_options"/>

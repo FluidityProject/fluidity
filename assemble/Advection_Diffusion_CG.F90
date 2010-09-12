@@ -253,9 +253,16 @@ contains
       do i = 1, velocity_ptr%dim
         ewrite_minmax(velocity_ptr%val(i)%ptr)
       end do
-      
-      call allocate(velocity, velocity_ptr%dim, velocity_ptr%mesh, name = advdif_cg_velocity_name)
-      call set(velocity, velocity_ptr)
+
+      if (have_option(trim(t%option_path) // &
+        "/prognostic/spatial_discretisation/continuous_galerkin/advection_terms/disable_advection")) then
+        ewrite(2, *) "No advection set for field"
+        call allocate(velocity, mesh_dim(t), t%mesh, name = advdif_cg_velocity_name)
+        call zero(velocity)
+      else
+        call allocate(velocity, velocity_ptr%dim, velocity_ptr%mesh, name = advdif_cg_velocity_name)
+        call set(velocity, velocity_ptr)
+      end if
     else
       ewrite(2, *) "No velocity"
       call allocate(velocity, mesh_dim(t), t%mesh, name = advdif_cg_velocity_name)
@@ -294,6 +301,9 @@ contains
       gravity_direction => extract_vector_field(state, "GravityDirection")
       ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
       call addto(velocity, gravity_direction, scale = sinking_velocity)
+      do i = 1, velocity_ptr%dim
+        ewrite_minmax(velocity%val(i)%ptr)
+      end do
     else
       ewrite(2, *) "No sinking velocity"
     end if

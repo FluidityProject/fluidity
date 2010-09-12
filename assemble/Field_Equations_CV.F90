@@ -294,6 +294,10 @@ contains
         allocate(advu)
         call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
         call set(advu, nu)
+        if (have_option(trim(tfield%option_path)//"/prognostic/spatial_discretisation/control_volumes/exclude_velocity")) then
+            call zero(advu)
+            ewrite(2,*) "Removing velocity from ", trim(field_name)
+        end if
         ! add in sinking velocity
         sink=>extract_scalar_field(state(1), trim(field_name)//"SinkingVelocity"&
             &, stat=stat)
@@ -309,7 +313,20 @@ contains
         ewrite(2,*) 'Excluding advection'
         advu => dummyvector
         if(has_scalar_field(state(1), trim(field_name)//"SinkingVelocity")) then
-          FLExit("Excluding advection but have a SinkingVelocity.")
+            allocate(advu)
+            call allocate(advu, nu%dim, nu%mesh, "AdvectionVelocity")
+            call zero(advu)
+            ! add in sinking velocity
+            sink=>extract_scalar_field(state(1), trim(field_name)//"SinkingVelocity"&
+                &, stat=stat)
+            if(stat==0) then
+              gravity=>extract_vector_field(state(1), "GravityDirection")
+              ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
+              call addto(advu, gravity, scale=sink)
+            end if
+            do i = 1, advu%dim
+              ewrite_minmax(advu%val(i)%ptr)
+            end do
         end if
       end if
 

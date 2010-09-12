@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>biology_conservation_adapt</name>
+  <owner userid="jhill1"/>
+  <tags>flml biology</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity biology_conservation.flml</command_line>
+    <!-- Adaptive PZND model running in a water column not solving for any physics. Uses trick of not including
+         advection for bio feilds to they don't advect out of the domain. Adaptivity is 1D in vetical. -->
+  </problem_definition>
+  <variables>
+    <variable name="phytoplankton1" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+phytoplankton1=d["water"]["Phytoplankton"]["integral"][0]
+    </variable>
+    <variable name="phytoplankton2" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+phytoplankton2=d["water"]["Phytoplankton"]["integral"][-1]
+    </variable>    
+    <variable name="zooplankton1" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+zooplankton1=d["water"]["Zooplankton"]["integral"][0]
+    </variable>
+    <variable name="zooplankton2" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+zooplankton2=d["water"]["Zooplankton"]["integral"][-1]
+    </variable>
+    <variable name="detritus1" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+detritus1=d["water"]["Detritus"]["integral"][0]
+    </variable>
+    <variable name="detritus2" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+detritus2=d["water"]["Detritus"]["integral"][-1]
+    </variable>
+    <variable name="nutrients1" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+nutrients1=d["water"]["Nutrient"]["integral"][0]
+    </variable>
+    <variable name="nutrients2" language="python">
+from fluidity_tools import stat_parser
+d = stat_parser("biology_conservation.stat")
+nutrients2=d["water"]["Nutrient"]["integral"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+      <test name="Total in water column conserved" language="python">
+before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1
+after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2
+print before, after, before-after
+# relative error of less than 0.01% for 2100m of water column
+# over 1 month of simulation whilst adapting the mesh.
+# Should be OK.
+assert (abs(before - after)/before &lt; 0.0001)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

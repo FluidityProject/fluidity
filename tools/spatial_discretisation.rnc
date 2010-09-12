@@ -16,6 +16,11 @@ spatial_discretisation_options =
                ## conservative_advection below).
                element exclude_advection_terms {
                   comment
+               }?,
+               ## Disable advection. Note this still permits a sinking velocity.
+               ## Useful for pseudo-1D simulations involving biology
+               element disable_advection {
+                     empty
                }?
             },
             ## Discretisation options for the mass terms.
@@ -399,6 +404,9 @@ pure_cv_options =
            element exclude_mass_terms {
               empty
            }?
+         }?,
+         element exclude_velocity {
+            empty
          }?,
          spatial_control_volume_options,
          (
