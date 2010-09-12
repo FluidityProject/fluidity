@@ -114,8 +114,8 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <exclude_velocity/>
             <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" name="FiniteElement">
+              <only_sinking_velocity/>
               <limit_face_value>
                 <limiter replaces="MOD(INT(ABS(NDISOT)/1),10) = 2,3,4,5" name="Sweby"/>
               </limit_face_value>

@@ -24,8 +24,8 @@ conservative_advection below).</a:documentation>
               </element>
             </optional>
             <optional>
-              <element name="disable_advection">
-                <a:documentation>Disable advection. Note this still permits a sinking velocity.
+              <element name="only_sinking_velocity">
+                <a:documentation>Disable advection, but still permit a sinking velocity.
 Useful for pseudo-1D simulations involving biology</a:documentation>
                 <empty/>
               </element>
@@ -476,11 +476,6 @@ Follows a new control volume code path.</a:documentation>
           </optional>
         </element>
       </optional>
-      <optional>
-        <element name="exclude_velocity">
-          <empty/>
-        </element>
-      </optional>
       <ref name="spatial_control_volume_options"/>
       <choice>
         <element name="diffusion_scheme">
@@ -593,6 +588,13 @@ Finite element discretisation may become unbounded so limiting is often necessar
         <attribute name="replaces">
           <value>MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7</value>
         </attribute>
+        <optional>
+          <element name="only_sinking_velocity">
+            <a:documentation>Disable advection, but still permit a sinking velocity.
+Useful for pseudo-1D simulations involving biology</a:documentation>
+            <empty/>
+          </element>
+        </optional>
         <ref name="limiter_options"/>
       </element>
       <element name="face_value">

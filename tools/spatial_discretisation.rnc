@@ -17,9 +17,9 @@ spatial_discretisation_options =
                element exclude_advection_terms {
                   comment
                }?,
-               ## Disable advection. Note this still permits a sinking velocity.
+               ## Disable advection, but still permit a sinking velocity.
                ## Useful for pseudo-1D simulations involving biology
-               element disable_advection {
+               element only_sinking_velocity {
                      empty
                }?
             },
@@ -405,9 +405,6 @@ pure_cv_options =
               empty
            }?
          }?,
-         element exclude_velocity {
-            empty
-         }?,
          spatial_control_volume_options,
          (
             ## Use the gradient of the field constructed using the
@@ -499,6 +496,11 @@ standard_control_volume_options =
       element face_value {
         attribute name { "FiniteElement" },
         attribute replaces { "MOD(INT(ABS(NDISOT)/1),10) = 4,5,6,7" },
+        ## Disable advection, but still permit a sinking velocity.
+        ## Useful for pseudo-1D simulations involving biology
+        element only_sinking_velocity {
+            empty
+         }?,
         limiter_options
       }|
       ## First Order Downwind face value discretisation

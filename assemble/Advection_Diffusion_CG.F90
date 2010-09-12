@@ -255,7 +255,7 @@ contains
       end do
 
       if (have_option(trim(t%option_path) // &
-        "/prognostic/spatial_discretisation/continuous_galerkin/advection_terms/disable_advection")) then
+        "/prognostic/spatial_discretisation/continuous_galerkin/advection_terms/only_sinking_velocity")) then
         ewrite(2, *) "No advection set for field"
         call allocate(velocity, mesh_dim(t), t%mesh, name = advdif_cg_velocity_name)
         call zero(velocity)
