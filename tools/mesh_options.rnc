@@ -184,7 +184,6 @@ extrusion_options =
           input_choice_real_plus_list,
       ## If your sizing function only varies in z enable this options.
       ## Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. 
-      ## Will work for varying bottom depth.
           element varies_only_in_z {empty}?
       },
       ## To prevent infinitesimally thin bottom layer if sizing function

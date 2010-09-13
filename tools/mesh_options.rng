@@ -219,8 +219,7 @@ varies both in the horizontal as in the vertical.</a:documentation>
       <optional>
         <element name="varies_only_in_z">
           <a:documentation>If your sizing function only varies in z enable this options.
-Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. 
-Will work for varying bottom depth.</a:documentation>
+Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. </a:documentation>
           <empty/>
         </element>
       </optional>

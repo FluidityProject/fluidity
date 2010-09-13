@@ -101,7 +101,7 @@ module hadapt_extrude
                               visited_count = visited(column))) cycle
         
         IF(varies_only_in_z .and. depth_is_constant .and. region_id_logical) THEN 
-          CALL get_previous_z_nodes(z_meshes(column),z_meshes(column-1), node_val(h_mesh, column))
+          CALL get_previous_z_nodes(z_meshes(column),z_meshes(column-1))
         ELSE
           call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
                             depth_is_constant, depth, depth_from_python, depth_function, &
@@ -244,13 +244,9 @@ module hadapt_extrude
       end if       
     end if
 
-    IF (have_option(trim(option_path)//&
-                    '/from_mesh/extrude/regions['//int2str(region_index)//&
-                    ']/sizing_function/varies_only_in_z')) THEN
-      varies_only_in_z = .true.
-    ELSE
-      varies_only_in_z = .false.
-    END IF
+    varies_only_in_z = have_option(trim(option_path)//&
+    '/from_mesh/extrude/regions['//int2str(region_index)//&
+    ']/sizing_function/varies_only_in_z')
   
     call get_option(trim(option_path)//&
                     '/from_mesh/extrude/regions['//int2str(region_index)//&
@@ -330,64 +326,12 @@ module hadapt_extrude
     
   end subroutine compute_z_nodes_wrapper
 
-  SUBROUTINE get_previous_z_nodes(z_mesh, z_mesh_previous, xy)
-    !!get the previous values of the z_nodes
-    type(vector_field), intent(IN) :: z_mesh_previous
-    type(vector_field), intent(OUT) :: z_mesh
-    real, dimension(:), intent(in):: xy
-    integer :: j
-    
-    integer :: elements
-    
-    type(rlist):: depths
-    type(mesh_type) :: mesh
-    type(element_type) :: oned_shape
-    type(quadrature_type) :: oned_quad
-    integer :: quadrature_degree
-    integer :: ele
-    integer, parameter :: loc=2
-    integer :: node
-    real, dimension(1:size(xy)+1):: xyz
-    real :: z
-    
-    call get_option("/geometry/quadrature/degree", quadrature_degree)
-    oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
-    oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
-    call deallocate(oned_quad)
-    
-    ! first size(xy) coordinates remain fixed, 
-    xyz(1:size(xy))=xy
-    do j=1,node_count(z_mesh_previous)
-      xyz(size(xy)+1)=z
-      z=node_val(z_mesh_previous, 1, j)
-      call insert(depths, z)
-    end do
-    elements=depths%length-1
-    call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
-    call deallocate(oned_shape)
-    do ele=1,elements
-      mesh%ndglno((ele-1) * loc + 1: ele*loc) = (/ele, ele+1/)
-    end do
+  subroutine get_previous_z_nodes(z_mesh, z_mesh_previous)
+    type(vector_field), intent(inout) :: z_mesh, z_mesh_previous
 
-    call allocate(z_mesh, 1, mesh, "ZMeshCoordinates")
-    call deallocate(mesh)
-
-    call set(z_mesh, 1, (/0.0/))
-    do node=1, elements+1
-      call set(z_mesh, node,  (/ pop(depths) /))
-    end do
-
-    ! For pathological sizing functions the mesh might have gotten inverted at the last step.
-    ! If you encounter this, make this logic smarter.
-    assert(all(node_val(z_mesh, elements) > node_val(z_mesh, elements+1)))
-    
-    assert(oned_quad%refcount%count == 1)
-    assert(oned_shape%refcount%count == 1)
-    assert(z_mesh%refcount%count == 1)
-    assert(mesh%refcount%count == 1)
-    
-  
-  END SUBROUTINE get_previous_z_nodes
+    call allocate(z_mesh, 1, z_mesh_previous%mesh, "ZMeshCoordinates")
+    call set(z_mesh, z_mesh_previous)
+  end subroutine
 
   subroutine compute_z_nodes_sizing(z_mesh, depth, xy, min_bottom_layer_frac, sizing, sizing_function)
     !!< Figure out at what depths to put the layers.
