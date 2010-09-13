@@ -46,13 +46,13 @@ module hadapt_extrude
     logical:: depth_from_python, depth_from_map, have_min_depth
     real, dimension(:), allocatable :: depth_vector
     real:: min_depth, surface_height
-    logical:: sizing_is_constant, depth_is_constant
+    logical:: sizing_is_constant, depth_is_constant, varies_only_in_z
     real:: constant_sizing, depth, min_bottom_layer_frac
     integer:: h_dim, column, quadrature_degree
     
     integer :: n_regions, r
     integer, dimension(:), allocatable :: region_ids
-    logical :: apply_region_ids
+    logical :: apply_region_ids, region_id_logical
     integer, dimension(node_count(h_mesh)) :: visited
     logical, dimension(node_count(h_mesh)) :: column_visited
 
@@ -81,11 +81,13 @@ module hadapt_extrude
     column_visited = .false.
     
     do r = 0, n_regions-1
-    
+      
+      region_id_logical = .false.
+      
       call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
                                  depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
                                  file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, &
-                                 sizing_function, min_bottom_layer_frac)
+                                 sizing_function, min_bottom_layer_frac, varies_only_in_z)
 
       allocate(depth_vector(size(z_meshes)))
       if (depth_from_map) call populate_depth_vector(h_mesh,file_name,depth_vector,surface_height)
@@ -98,10 +100,17 @@ module hadapt_extrude
                               apply_region_ids, column_visited(column), region_ids, &
                               visited_count = visited(column))) cycle
         
-        call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
+        IF(varies_only_in_z .and. depth_is_constant .and. region_id_logical) THEN 
+          CALL get_previous_z_nodes(z_meshes(column),z_meshes(column-1), node_val(h_mesh, column))
+        ELSE
+          call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
                             depth_is_constant, depth, depth_from_python, depth_function, &
                             depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
                             sizing_is_constant, constant_sizing, sizing_function)
+        END IF 
+
+        region_id_logical = .true.
+
       end do
       
       if(apply_region_ids) deallocate(region_ids)
@@ -143,7 +152,7 @@ module hadapt_extrude
   subroutine get_extrusion_options(option_path, region_index, apply_region_ids, region_ids, &
                                    depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
                                    file_name, have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, &
-                                   sizing_function, min_bottom_layer_frac)
+                                   sizing_function, min_bottom_layer_frac, varies_only_in_z)
 
     character(len=*), intent(in) :: option_path
     integer, intent(in) :: region_index
@@ -162,6 +171,8 @@ module hadapt_extrude
     character(len=FIELD_NAME_LEN), intent(out) :: file_name
     logical, intent(out) :: have_min_depth
     real, intent(out) :: min_depth, surface_height
+    
+    logical, intent(out) :: varies_only_in_z
     
     real, intent(out) :: min_bottom_layer_frac
     
@@ -233,6 +244,13 @@ module hadapt_extrude
       end if       
     end if
 
+    IF (have_option(trim(option_path)//&
+                    '/from_mesh/extrude/regions['//int2str(region_index)//&
+                    ']/sizing_function/varies_only_in_z')) THEN
+      varies_only_in_z = .true.
+    ELSE
+      varies_only_in_z = .false.
+    END IF
   
     call get_option(trim(option_path)//&
                     '/from_mesh/extrude/regions['//int2str(region_index)//&
@@ -304,13 +322,72 @@ module hadapt_extrude
     
     if (sizing_is_constant) then
       call compute_z_nodes(z_mesh, ldepth, xy, &
-        min_bottom_layer_frac, sizing=constant_sizing)
+       min_bottom_layer_frac, sizing=constant_sizing)
     else
-      call compute_z_nodes(z_mesh, ldepth, xy, &
+        call compute_z_nodes(z_mesh, ldepth, xy, &
         min_bottom_layer_frac, sizing_function=sizing_function)
     end if
     
   end subroutine compute_z_nodes_wrapper
+
+  SUBROUTINE get_previous_z_nodes(z_mesh, z_mesh_previous, xy)
+    !!get the previous values of the z_nodes
+    type(vector_field), intent(IN) :: z_mesh_previous
+    type(vector_field), intent(OUT) :: z_mesh
+    real, dimension(:), intent(in):: xy
+    integer :: j
+    
+    integer :: elements
+    
+    type(rlist):: depths
+    type(mesh_type) :: mesh
+    type(element_type) :: oned_shape
+    type(quadrature_type) :: oned_quad
+    integer :: quadrature_degree
+    integer :: ele
+    integer, parameter :: loc=2
+    integer :: node
+    real, dimension(1:size(xy)+1):: xyz
+    real :: z
+    
+    call get_option("/geometry/quadrature/degree", quadrature_degree)
+    oned_quad = make_quadrature(vertices=loc, dim=1, degree=quadrature_degree)
+    oned_shape = make_element_shape(vertices=loc, dim=1, degree=1, quad=oned_quad)
+    call deallocate(oned_quad)
+    
+    ! first size(xy) coordinates remain fixed, 
+    xyz(1:size(xy))=xy
+    do j=1,node_count(z_mesh_previous)
+      xyz(size(xy)+1)=z
+      z=node_val(z_mesh_previous, 1, j)
+      call insert(depths, z)
+    end do
+    elements=depths%length-1
+    call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
+    call deallocate(oned_shape)
+    do ele=1,elements
+      mesh%ndglno((ele-1) * loc + 1: ele*loc) = (/ele, ele+1/)
+    end do
+
+    call allocate(z_mesh, 1, mesh, "ZMeshCoordinates")
+    call deallocate(mesh)
+
+    call set(z_mesh, 1, (/0.0/))
+    do node=1, elements+1
+      call set(z_mesh, node,  (/ pop(depths) /))
+    end do
+
+    ! For pathological sizing functions the mesh might have gotten inverted at the last step.
+    ! If you encounter this, make this logic smarter.
+    assert(all(node_val(z_mesh, elements) > node_val(z_mesh, elements+1)))
+    
+    assert(oned_quad%refcount%count == 1)
+    assert(oned_shape%refcount%count == 1)
+    assert(z_mesh%refcount%count == 1)
+    assert(mesh%refcount%count == 1)
+    
+  
+  END SUBROUTINE get_previous_z_nodes
 
   subroutine compute_z_nodes_sizing(z_mesh, depth, xy, min_bottom_layer_frac, sizing, sizing_function)
     !!< Figure out at what depths to put the layers.

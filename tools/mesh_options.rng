@@ -216,6 +216,14 @@ layers. The function is a function of all coordinates
 (so in 2+1D: x,y and z) to specify a layer depth that
 varies both in the horizontal as in the vertical.</a:documentation>
       <ref name="input_choice_real_plus_list"/>
+      <optional>
+        <element name="varies_only_in_z">
+          <a:documentation>If your sizing function only varies in z enable this options.
+Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. 
+Will work for varying bottom depth.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
     <optional>
       <element name="minimum_bottom_layer_fraction">
