@@ -133,7 +133,7 @@ module saturation_distribution_search_hookejeeves
      ewrite(3,*) 'setting base point', base_point
      
      ! Set minimum_step_length for now
-     minimum_step_length = 30.0
+     minimum_step_length = 10.0
   
      if (do_PS) then
 !        call write_state(dump_no, state)
@@ -262,11 +262,11 @@ module saturation_distribution_search_hookejeeves
      real :: bh_x, bh_y, bh_z, err
      logical :: is_vwell
      integer :: stat, i, j
-     integer, save :: have_target, samples, dump_no
+     integer, save :: have_target, samples, dump_no, smallest_error
      integer, allocatable, dimension(:), save :: node_list
      character(len=OPTION_PATH_LEN) :: option_buffer, target_filename
      
-     ewrite(3,*) 'running model, base_point:',point
+     ewrite(3,*) 'running model, point:',point
      
      ! Get all the limits etc relevant - do this fresh each time from flml
      option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/Saturation_Distribution_Search/'
@@ -378,10 +378,19 @@ module saturation_distribution_search_hookejeeves
      call curve_error(target_potential(1:samples,2), model_potential, error)
      
      ewrite(3,*) 'point, error: ', point, error
+     open(911, file = 'output.data', action="write", position="append")
+     write(911,*) point, error
+     close(911)
      deallocate(model_potential)
      
      dump_no=max(1,dump_no)
-     call write_state(dump_no, state)
+     if (dump_no.eq.1) then
+        smallest_error=error
+        call write_state(dump_no, state)
+     elseif (error<smallest_error) then
+        smallest_error=error
+        call write_state(dump_no, state)
+     endif
      
      ! Set saturation back to the initial condition ready for next time
      call set(saturation,temp_saturation)
@@ -510,6 +519,7 @@ module saturation_distribution_search_hookejeeves
                                   current_error, search_min, search_max)
            else
               ewrite(3,*) 'Failed to improve with minimum step length, finished'
+              ewrite(3,*) 'Final base point and RESULT:',base_point
               return
            endif
         endif
