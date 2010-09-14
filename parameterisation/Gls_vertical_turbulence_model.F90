@@ -86,9 +86,6 @@ module gls
   !  - If solve is about to do Psi, call gls_psi (which fixes TKE surfaces, set source/absorption for solve)
   !  - After Psi solve, call gls_diffusivity, which sets the diffusivity and viscosity, via the lengthscale
   !  - When done, clean-up
-  !
-  ! GLSTurbulentKineticEnergy and GLSGenericSecondQuanity need to have higher priority then other prognostic 
-  ! fields such as temperature, velocity and salinity for this to work
 
 contains
 
@@ -288,7 +285,6 @@ subroutine gls_init(state)
     ewrite(1,*) "sigma_psi: ",sigma_psi
     ewrite(1,*) "Fixing surface values: ", fix_surface_values
     ewrite(1,*) "Calculating BCs: ", calculate_bcs
-    ewrite(2,*) "Field Priorities: TKE: ", tke_pri, " Psi: ", psi_pri
     ewrite(1,*) "--------------------------------------------"
     
     ! initilise 2 GLS fields with minimum values
@@ -899,7 +895,7 @@ subroutine gls_check_options
     end if
 
 
-    ! If the user has selected kkl, we need the ocean surface and bottom fields
+    ! If the user has selected kkl we need the ocean surface and bottom fields
     ! on in ocean_boundaries
     call get_option("/material_phase[0]/subgridscale_parameterisations/GLS/option", buffer)
     if (trim(buffer) .eq. "k-kl") then
@@ -907,6 +903,7 @@ subroutine gls_check_options
             FLExit("If you use the k-kl option under GLS, you need to switch on ocean_boundaries under /geometry/ocean_boundaries")
        end if
     end if
+     
 
 
   end subroutine gls_check_options
@@ -1221,10 +1218,6 @@ subroutine gls_tke_bc(state, bc_type)
     allocate(u_taus_squared(NNodes_sur))
     allocate(u_taub_squared(NNodes_bot))
 
-
-    ! get friction
-    call gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_squared)
-    
     ! Top boundary condition
     select case(bc_type)
     case("neumann")
@@ -1235,7 +1228,8 @@ subroutine gls_tke_bc(state, bc_type)
         do i=1,NNodes_bot
             call set(bottom_surface_values,i,0.0)
         end do
-    case("dirichlet")  
+    case("dirichlet") 
+        call gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_squared) 
         ! Top TKE value set
         do i=1,NNodes_sur
             call set(top_surface_values,i,u_taus_squared(i)/cm0**2)
