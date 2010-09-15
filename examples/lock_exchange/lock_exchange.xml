@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lock exchange<comment>Runs a 2d adaptive simulation of the lock exchange, following the set-up of Hartel et al., 2000, JFM. Has basic adaptivity settings so check with in 15% of Hartel values. Also basic checks on mixing stats.
+</comment></name>
+  <owner userid="hhiester"/>
+  <tags>flml 2dadapt</tags>
+    <problem_definition length="special" nprocs="1">
+    <command_line>mpiexec fluidity -v2 -l lock_exchange_2d.flml </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="temp_bin_lower_0" language="python"> 
+from fluidity_tools import stat_parser
+stat = stat_parser("lock_exchange_2d.stat")
+temp_bin_lower_0 = stat['fluid']['Temperature']['mixing_bins%cv_normalised'][0,0]
+    </variable>
+     <variable name="temp_bin_upper_0" language="python"> 
+from fluidity_tools import stat_parser
+stat = stat_parser("lock_exchange_2d.stat")
+temp_bin_upper_0 =  stat['fluid']['Temperature']['mixing_bins%cv_normalised'][1,0]
+    </variable>
+     <variable name="temp_bin_total_0" language="python"> 
+from fluidity_tools import stat_parser
+stat = stat_parser("lock_exchange_2d.stat")
+temp_bin_total_0 = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,0])
+    </variable>
+     <variable name="temp_bin_total_end" language="python"> 
+from fluidity_tools import stat_parser
+stat = stat_parser("lock_exchange_2d.stat")
+last_val = len(stat["ElapsedTime"]["value"])-1 
+temp_bin_total_end = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,last_val])
+    </variable>
+    <variable name="hartel_no_slip_head_speed" language="python">
+hartel_no_slip_head_speed = 0.0128350
+    </variable>
+    <variable name="hartel_free_slip_head_speed" language="python">
+hartel_free_slip_head_speed = 0.01509346
+    </variable>
+ <variable name="results_head_speed" language="python">
+
+import vtk
+import glob
+import sys
+import os
+import scipy.stats
+import le_tools
+
+hartel_no_slip_head_speed = 0.0128350
+hartel_free_slip_head_speed = 0.01509346
+
+filelist = le_tools.GetFiles('./', f_log)
+
+time, X_ns, X_fs = le_tools.GetXandt(filelist)
+X_ns = [x-0.4 for x in X_ns]
+X_fs = [0.4-x for x in X_fs]
+
+U_ns = le_tools.GetU(time, X_ns)
+U_fs = le_tools.GetU(time, X_fs)
+results_head_speed = []
+for lower_lim in [0.2,0.25]:
+  start_val, end_val = le_tools.GetAverageRange(X, lower_lim, h0)
+  results_head_speed.append(average(U[start_val:end_val]))
+
+results_head_speed.append(abs(results_head_speed[0]-hartel_no_slip_head_speed))
+results_head_speed.append(abs(results_head_speed[1]-hartel_free_slip_head_speed))
+print "Speed of free slip head, no slip head and errors from literature values"
+print results_head_speed
+    </variable>
+ </variables>    
+ <pass_tests> 
+<test name ="check cg lower 2 mixing bins have roughly half material at t=0 (tol = 1e-3)" language="python">
+print (abs(temp_bin_lower_0 - 0.5))
+assert (abs(temp_bin_lower_0 - 0.5) &lt; 1e-3)
+</test>
+    <test name ="check cg upper mixing bin has half material at t=0 (tol= 1e-3)" language="python">
+print (abs(temp_bin_upper_0 - 0.5))
+assert (abs(temp_bin_upper_0 - 0.5) &lt; 1e-3)
+</test>
+   <test name="check cg mixing bins of temp sum to 1 at t=0 (tol = 1e-4)" language="python">
+print (abs(temp_bin_total_0 - 1.0))
+assert (abs(temp_bin_total_0 - 1.0) &lt; 1e-4)
+    </test>
+    <test name="check cg mixing bins of temp sum to 1 at final step (tol = 1e-5)" language="python">
+print (abs(temp_bin_total_end - 1.0))
+assert (abs(temp_bin_total_end - 1.0) &lt; 1e-5)
+    </test>
+    <test name="Speed of head at no slip boundaries (20%)" language="python">
+print (abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed))
+assert((abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed)) &lt; 0.2)
+    </test>
+    <test name="Speed of head at free slip boundaries (20%)" language="python">
+print (abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed))
+assert((abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed)) &lt; 0.2)
+    </test>
+  </pass_tests>
+  <warn_tests>
+    <test name="Speed of head at no slip boundaries (15%)" language="python">
+print (abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed))
+assert((abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed)) &lt; 0.15)
+    </test>
+    <test name="Speed of head at free slip boundaries (15%)" language="python">
+print (abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed))
+assert((abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed)) &lt; 0.15)
+    </test>
+  </warn_tests>
+</testproblem>
