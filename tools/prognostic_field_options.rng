@@ -126,6 +126,16 @@ onto the same surface, or you will get an error.</a:documentation>
             <empty/>
           </element>
           <element name="type">
+            <a:documentation>Sediment reentrainment boundary. Any sediment in the correct
+sediment class will be rentrained back into the flow
+depending on the bed shear stress and the parameters of the 
+sediment grain</a:documentation>
+            <attribute name="name">
+              <value>sediment_reentrainment</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
             <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.

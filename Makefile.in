@@ -232,6 +232,10 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@cd bathymetry; $(MAKE)
 	@echo "    MAKE ocean_forcing"
 	@cd ocean_forcing; $(MAKE)
+	@echo "    MAKE parameterisation"
+	@cd parameterisation; $(MAKE)
+	@echo "    MAKE sediments"
+	@cd sediments; $(MAKE)
 	@echo "    MAKE forward_interfaces"
 	@cd forward_interfaces;	$(MAKE)
 	@echo "    MAKE horizontal_adaptivity"
@@ -240,8 +244,6 @@ lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system
 	@cd preprocessor; $(MAKE)
 	@echo "    MAKE error_measures"
 	@cd error_measures;   	$(MAKE)
-	@echo "    MAKE parameterisation"
-	@cd parameterisation; $(MAKE)
 	@echo "    MAKE decomp"
 	@cd decomp;   	$(MAKE)
 	@echo "    MAKE assemble"

@@ -46,6 +46,7 @@ use vector_tools
 use vtk_interfaces
 use pickers_inquire
 use bulk_parameterisations
+use sediment, only: set_sediment_reentrainment
 
 
 implicit none
@@ -209,6 +210,11 @@ contains
           bc_type = "neumann"
        end if
 
+       ! Same thing for sediments. It's of type sediment_reentrainment
+       if (trim(bc_type) .eq. "sediment_reentrainment") then
+          bc_type = "neumann"
+       end if
+
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
          bc_type = "weak"//trim(bc_type)
        end if
@@ -263,6 +269,10 @@ contains
        case( "bulk_formulae" )
 
           FLAbort("Oops, you shouldn't get a bulk_formulae type of BC. It should have been converted")
+
+       case( "sediment_reentrainment" )
+
+          FLAbort("Oops, you shouldn't get a sediment_reentrainment type of BC. It should have been converted")
 
        case default
 
@@ -577,6 +587,9 @@ contains
         call set_ocean_forcings_boundary_conditions(states(1))
     end if
 
+    if (have_option('/material_phase[0]/sediment/scalar_field::SedimentTemplate/prognostic')) then
+        call set_sediment_reentrainment(states(1))
+    end if
 
     nphases = size(states)
     do p = 0, nphases-1
@@ -660,6 +673,11 @@ contains
           ! skip bulk_formulae types; they are dealt with seperately
           ! See set_ocean_forcing_boundary_conditions
           cycle boundary_conditions
+       end if
+
+       if (trim(bc_type) .eq. "sediment_reentrainment") then
+            ! skip sediment boundareis - done seperately
+            ! see assemble/Sediment.F90
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then

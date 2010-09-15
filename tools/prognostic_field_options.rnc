@@ -97,6 +97,14 @@ prognostic_scalar_field =
               attribute name { "bulk_formulae" },
               empty
             }|
+            ## Sediment reentrainment boundary. Any sediment in the correct
+            ## sediment class will be rentrained back into the flow
+            ## depending on the bed shear stress and the parameters of the 
+            ## sediment grain
+            element type {
+               attribute name { "sediment_reentrainment" },
+               empty
+            }|
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.

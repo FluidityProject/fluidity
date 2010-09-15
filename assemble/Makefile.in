@@ -71,7 +71,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Porous_Media.o Spontaneous_Potentials.o LES_viscosity.o \
         Saturation_Distribution_Search_HookeJeeves.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
-	Sediment_Diagnostics.o Linear_Shallow_Water.o Zoltan_integration.o \
+	Linear_Shallow_Water.o Zoltan_integration.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
@@ -122,7 +122,7 @@ Solve_Momentum_CG.o: solmom.o Upwind_Stabilisation.o
 Diagnostic_fields_wrapper.o: Advection_Diffusion_DG.o Multimaterials.o \
   Field_Equations_CV.o Vorticity_Diagnostics.o \
   Diagnostic_Fields_Matrices.o Free_Surface.o Porous_Media.o \
-  Spontaneous_Potentials.o Sediment_Diagnostics.o Geostrophic_Pressure.o
+  Spontaneous_Potentials.o Geostrophic_Pressure.o
 Multimaterials.o: Diagnostic_Fields_Matrices.o
 Diagnostic_Fields_Matrices.o: Gradient_Matrix_CG.o Divergence_Matrix_CG.o \
   Divergence_Matrix_CV.o State_Matrices.o

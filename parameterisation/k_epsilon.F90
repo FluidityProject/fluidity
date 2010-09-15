@@ -37,9 +37,7 @@ module k_epsilon
   use spud
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use state_fields_module
-  use populate_state_module
   use boundary_conditions
-  use boundary_conditions_from_options
   use fields_manipulation
   use surface_integrals
   use fetools
