@@ -92,16 +92,17 @@
         <mesh name="PeriodicMesh"/>
         <extrude>
           <regions name="WholeMesh">
-          <bottom_depth>
-            <constant>
-              <real_value rank="0">1.0</real_value>
-            </constant>
-          </bottom_depth>
-          <sizing_function>
-            <constant>
-              <real_value rank="0">0.1</real_value>
-            </constant>
-          </sizing_function>
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">0.1</real_value>
+              </constant>
+              <varies_only_in_z/>
+            </sizing_function>
           </regions>
         </extrude>
         <stat>

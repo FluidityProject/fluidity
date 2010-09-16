@@ -41,6 +41,7 @@ module hadapt_extrude
     character(len=FIELD_NAME_LEN):: mesh_name, file_name  
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
+    type(vector_field) :: constant_z_mesh
     type(vector_field), dimension(node_count(h_mesh)) :: z_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     logical:: depth_from_python, depth_from_map, have_min_depth
@@ -52,7 +53,7 @@ module hadapt_extrude
     
     integer :: n_regions, r
     integer, dimension(:), allocatable :: region_ids
-    logical :: apply_region_ids, region_id_logical
+    logical :: apply_region_ids, constant_z_mesh_initialised
     integer, dimension(node_count(h_mesh)) :: visited
     logical, dimension(node_count(h_mesh)) :: column_visited
 
@@ -82,7 +83,7 @@ module hadapt_extrude
     
     do r = 0, n_regions-1
       
-      region_id_logical = .false.
+      constant_z_mesh_initialised = .false.
       
       call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
                                  depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, &
@@ -100,21 +101,30 @@ module hadapt_extrude
                               apply_region_ids, column_visited(column), region_ids, &
                               visited_count = visited(column))) cycle
         
-        IF(varies_only_in_z .and. depth_is_constant .and. region_id_logical) THEN 
-          CALL get_previous_z_nodes(z_meshes(column),z_meshes(column-1))
-        ELSE
+        if(varies_only_in_z .and. depth_is_constant) then
+          if (.not. constant_z_mesh_initialised) then
+            call compute_z_nodes(constant_z_mesh, node_val(h_mesh, column), min_bottom_layer_frac, &
+                            depth_is_constant, depth, depth_from_python, depth_function, &
+                            depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
+                            sizing_is_constant, constant_sizing, sizing_function)
+            constant_z_mesh_initialised = .true.
+          end if
+          call get_previous_z_nodes(z_meshes(column), constant_z_mesh)
+        else
           call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
                             depth_is_constant, depth, depth_from_python, depth_function, &
                             depth_from_map, depth_vector(column),  have_min_depth, min_depth, &
                             sizing_is_constant, constant_sizing, sizing_function)
-        END IF 
-
-        region_id_logical = .true.
+        end if
 
       end do
       
       if(apply_region_ids) deallocate(region_ids)
       deallocate(depth_vector)
+      
+      if (constant_z_mesh_initialised) then
+        call deallocate(constant_z_mesh)
+      end if
     
     end do
     
