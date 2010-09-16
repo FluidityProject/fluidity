@@ -328,10 +328,9 @@ module hadapt_extrude
 
   subroutine get_previous_z_nodes(z_mesh, z_mesh_previous)
     type(vector_field), intent(inout) :: z_mesh, z_mesh_previous
-
-    call allocate(z_mesh, 1, z_mesh_previous%mesh, "ZMeshCoordinates")
-    call set(z_mesh, z_mesh_previous)
-  end subroutine
+    z_mesh = z_mesh_previous
+    call incref(z_mesh)
+  end subroutine get_previous_z_nodes
 
   subroutine compute_z_nodes_sizing(z_mesh, depth, xy, min_bottom_layer_frac, sizing, sizing_function)
     !!< Figure out at what depths to put the layers.
