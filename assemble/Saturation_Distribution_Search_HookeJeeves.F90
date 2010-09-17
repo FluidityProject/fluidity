@@ -265,6 +265,7 @@ module saturation_distribution_search_hookejeeves
      integer, save :: have_target, samples, dump_no, smallest_error
      integer, allocatable, dimension(:), save :: node_list
      character(len=OPTION_PATH_LEN) :: option_buffer, target_filename
+     character(len=25) :: fstr
      
      ewrite(3,*) 'running model, point:',point
      
@@ -379,7 +380,10 @@ module saturation_distribution_search_hookejeeves
      
      ewrite(3,*) 'point, error: ', point, error
      open(911, file = 'output.data', action="write", position="append")
-     write(911,*) point, error
+     write(fstr,'("(",i4,"f7.2,2x,f10.6)")') size(point)
+     ewrite(3,*) 'fstr: ',fstr
+     write(911,fstr) point, error
+!  10 FORMAT(16(F9.4))
      close(911)
      deallocate(model_potential)
      
@@ -488,6 +492,7 @@ module saturation_distribution_search_hookejeeves
      real :: step_length, minimum_step_length, current_error, search_min, search_max
      logical :: finished, is_improved, from_pattern_step
      integer :: i
+     character(len=12) :: fstr
      
      ewrite(3,*) 'reducing step length'
   
@@ -520,6 +525,12 @@ module saturation_distribution_search_hookejeeves
            else
               ewrite(3,*) 'Failed to improve with minimum step length, finished'
               ewrite(3,*) 'Final base point and RESULT:',base_point
+              open(913, file = 'output.data', action="write", position="append")
+              write(fstr,'("(",i4,"f7.2)")') size(base_point)
+              ewrite(3,*) 'fstr: ',fstr
+              write(913,fstr) 'Result: ',base_point 
+!           11 FORMAT((A8),16(F9.4))
+              close(913)
               return
            endif
         endif
@@ -571,14 +582,14 @@ module saturation_distribution_search_hookejeeves
      else
         error=1000.0
      endif
-     ewrite(3,*) 'error is ', error
-     ewrite(3,*) 'target',curve1
-     ewrite(3,*) 'curve2',curve2
-     ewrite(3,*) 'targetq',curve1q
-     ewrite(3,*) 'curve2q',curve2q
-     ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
-     ewrite(3,*) 'targetn', ncurve1
-     ewrite(3,*) 'ncurve2', ncurve2
+!     ewrite(3,*) 'error is ', error
+!     ewrite(3,*) 'target',curve1
+!     ewrite(3,*) 'curve2',curve2
+!     ewrite(3,*) 'targetq',curve1q
+!     ewrite(3,*) 'curve2q',curve2q
+!     ewrite(3,*) 'maxi1, maxi2', maxi1, maxi2
+!     ewrite(3,*) 'targetn', ncurve1
+!     ewrite(3,*) 'ncurve2', ncurve2
      
      deallocate(curve1q)
      deallocate(curve2q)
