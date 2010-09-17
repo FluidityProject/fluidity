@@ -191,8 +191,9 @@ It is possible to enable the creation of a convergence file, giving details of t
 \option{/io/convergence}  and \option{/io/convergence/convergence\_file}.  You still need the options in the above paragraph.
 
 \subsubsection{Checkpointing}
-\index{checkpointing} Enables checkpointing, which saves sufficient
-information (including a new flml options file) to restart a simulation, i.e., to continue the simulation after it stopped. You must specify how often to checkpoint in terms of the number of dumps. There
+\index{checkpointing}
+\label{sect:configuring_fluidity_checkpointing}
+Enables checkpointing, which saves sufficient information (including a new flml options file) to restart a simulation, i.e., to continue the simulation after it stopped. You must specify how often to checkpoint in terms of the number of dumps. There
 are also options to checkpoint at the start of the simulation and at the
 end. This latter is useful when running on batch systems that have a time
 limit.
@@ -888,6 +889,7 @@ For each field, the spatial discretisations can be selcted using
 of other options will open underneath this option.
 
 \subsubsection{Continuous Galerkin}
+\label{sect:configuring_fluidity_continuous_galerkin}
 
 Continuous Galerkin (CG) implements the CG scheme detailed in \ref{sec:balancing_diffusion}. If stabilisation methods are needed, the user can either select streamline upwind or streamline upwind Petrov-Galerkin. Other options include integration of advection by part, lumping of the mass matrix, or direct exclusion of both advection and mass terms.
 
@@ -993,7 +995,8 @@ selected. Please refer to section \ref{Sect:ND_momentum_equation} for a comprehe
 
 
 \subsection{Temporal discretisations}
-Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation. The discontimuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
+\label{sect:configuring_fluidity_temporal_discretisation}
+Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation. The discontinuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
 
 \subsection{Source and absorption terms}\label{Sect:Source}
 \index{source term}
@@ -1035,6 +1038,7 @@ time over which the relaxation occurs.
 
 \section{Solving for pressure}
 \index{pressure!options}
+\label{sect:configuring_fluidity_pressure}
 
 \subsection{Geostrophic pressure solvers}
 \index{pressure!geostrophic balance}
@@ -1902,6 +1906,7 @@ to perform the supermesh projection. The solver settings are configured as with 
 section \ref{Sect:Solve} for more details.
 
 \subsubsection{Creating an error metric}
+\label{sect:configuring_fluidity_error_metric}
 
 The second step for configuring adaptivity is to set up the fields that are to form the erorr metric used
 to adapt the mesh. For each field that should be considered when forming the metric the option
@@ -1917,6 +1922,8 @@ For relative interpolation error bounds a tolerance value also has to be set und
 and should be set to a small enough number that the field can effecivtly be considered zero at this value.
 
 \subsection{General adaptivity options}
+\label{sect:configuring_fluidity_adaptivity_options}
+\index{adaptivity options}
 
 These are found under \option{mesh\_adaptivity}. Here the user can specify whether to use mesh movement methods, 
 prescribed adaptivity (serial only) or hr adaptivity. hr adaptivity is the normal method for most applications.
@@ -1933,3 +1940,6 @@ global maximum number, but can be altered to be the number per process.
 \end{itemize}
 
 In addition to these mandatory settings, there are a number of other configuration options.
+
+\subsubsection{Metric advection}
+\label{sect:configuring_fluidity_metric_advection}

@@ -60,79 +60,136 @@ is given in \cite{salari2000}.
 \subsection{Overview}
 \label{sect:lock_exchange_overview}
 
-The lock-exchange is a well-known laboratory-scale set-up that has been studied theoretically, experimentally and numerically \citep{benjamin_68, klemp_94, hartel_00}. A channel is divided by a barrier and either side is filled to the same level with fluids of different density. The barrier (or lock) is removed and the dense fluid collapses. Two gravity currents flow in opposite directions, the denser fluid flowing below the lighter, and
-a shear instability can manifest in the interfacial layer. It provides a good test case for \fluidity\ and in particular demands the use of the non-hydrostatic flow equations, section \ref{sect:typical_ICOM_equations}, in order to capture the turbulent dynamics of the flow. Here the Boussinesq approximation has been used, section \ref{sect:boussinesq_approximation} as the density differences in the flow are sufficiently small.
+The lock-exchange is a classic laboratory-scale fluid dynamics problem, \citep{fannelop_94, huppert_06, simpson_87}. A flat-bottomed tank is separated into two portions by a vertical barrier. One portion, the `lock', is filled with the source fluid. This is of different density to the ambient fluid which fills the other portion. As the barrier is removed, the denser fluid collapses under the lighter. Two gravity currents form and propagate in opposite directions, one above the other, along the tank. After an initial acceleration, the gravity current fronts travel at a constant speed until the end walls exert an influence or viscous forces begin to dominate, \citep{cantero_07, hartel_99, huppert_80}. At the current front a bulbous head may develop and become taller than the trailing fluid. A shear instability can manifest at the density-interface (hereafter interface) between the two fluids, \citep{turner_73}, and this leads to the formation of Kelvin-Helmholtz billows that enhance mixing.
+
+The lock-exchange has been the subject of many theoretical, experimental and numerical studies, and the front speed (or Froude number) is commonly calculated, making it an excellent diagnostic for verification of \fluidity\, e.g. \citep{benjamin_68, klemp_94, hartel_00}. Furthermore the same physical processes are that are encountered in gravity currents over a range of scales are incorporated. Therefore, the lock-exchange presents a tractable means of studying the processes involved and contributes to our understanding of real-world flows, such as sediment-laden density currents and oceanic overflows, and their impact.
+
+In this example, \fluidity\ is used to simulate a lock-exchange and the following functionality is demonstrated:
+
+\begin{itemize}
+\item 2D flow
+\item Non-hydrostatic flow
+\item Incompressible flow
+\item Boussinesq flow
+\item Mesh adaptivity
+
+\end{itemize}
 
 \subsection{Configuration}
 \label{sect:lock_exchange_configuration}
 
-The domain and physical parameters are set up after \cite{fringer_06} and \cite{ozgokmen_07}, table \ref{tab:le_physical_parameters}. The domain is a 2D rectangular box, $0\leq x \leq 0.8\,$m, $0 \leq z \leq 0.1\,$m and the mesh used is generated with gmsh, section \ref{sect:using_gmsh}. Initially, dense, cold water of $T = -0.5\,^\circ$C fills one half of the domain, $x<0.4\,$m, and light, warm water of $T = 0.5\,^\circ$C fills the other half, $x\geq0.4\,$m, see figure \ref{fig:lock_exchange}. At $t=0\,$s, ${\bf u} = {\bf 0}$ everywhere. A no-slip boundary condition is applied along the bottom of the domain, ${\bf u = 0}$ at $z=0$, and a free-slip boundary condition is applied to the top of the domain and the side walls, ${\bf u\cdot\bf n} = 0$ at $z = 0.1\,$m and $x = 0.0,\, 0.8\,$m.
+The domain and physical parameters are set up after \cite{fringer_06} and \cite{ozgokmen_07}, table \ref{tab:le_physical_parameters}. The domain is a 2D rectangular box, $0\leq x \leq 0.8\,$m, $0 \leq z \leq 0.1\,$m. Initially, dense, cold water of $T = -0.5\,^\circ$C fills one half of the domain, $x<0.4\,$m, and light, warm water of $T = 0.5\,^\circ$C fills the other half, $x\geq0.4\,$m, figure \ref{fig:lock_exchange}. At $t=0\,$s, ${\bf u} = {\bf 0}$ everywhere. A no-slip boundary condition is applied along the bottom of the domain, ${\bf u = 0}$ at $z=0$, and a free-slip boundary condition is applied to the top of the domain and the side walls, ${\bf u\cdot\bf n} = 0$ at $z = 0.1\,$m and $x = 0.0,\, 0.8\,$m.
 
-The basic choices for the numerical set-up are outlined in table \ref{tab:le_numerical_configuration}. They comprise a set of standard options for a buoyancy-driven flow such as the lock-exchange. The mesh is adapted before the simulation begins. The mesh is adapted to both the velocity and the temperature fields.  
+The basic choices for the numerical set-up are outlined in table \ref{tab:le_numerical_configuration}. They comprise a set of standard options for a buoyancy-driven flow such as the lock-exchange. The mesh is adapted to both the velocity and the temperature fields.  
 
 \begin{table}[th]
 \centering
-\begin{tabular}[h]{ll}  \hline
-Parameter                                                                     & value \\ \hline
-gravitational acceleration, $g$                                               & $10.0$ ms$^{-2}$ \\
-background density, $\rho_0$                                                  & $1.0$ Q$\,$m$^{-3}$ \\
-reduced gravity, $g' = g\frac{\triangle \rho}{\rho_0} = g\alpha \triangle T $ & $1,0 \times 10^{-2}$ ms$^{-2}$ \\
-buoyancy velocity, $u_b = \sqrt{g'h}$                                         & $\sqrt{5 \times 10^{-4}}$ \\
-kinematic viscosity, $\bar{\bar{\bf \nu}} = \nu\bar{\bf I}$                   & $(1.0 \times 10^{-6})\bar{\bf I}$ m$^2$s$^{-1}$ \\
-Grashof number, $Gr = \left( \frac{u_bh}{\nu} \right)^2$                      & $1.25 \times 10^{-6}$\\
-thermal expansion coefficient, $\alpha$                                       & $1.0 \times 10^{-3} \;^\circ$C$^{-1}$ \\
-background temperature, $T_0$                                                 & $0.0\,^{\circ}$C \\ \hline
+\begin{tabular}[h]{l   c  c }  \hline
+gravitational acceleration (ms$^{-2}$)			& $g$ 								& $10$  \\
+kinematic viscosity (m$^2$s$^{-1}$)			& $\nu$								& $10^{-6}$  \\
+thermal diffusivity (m$^2$s$^{-1}$)					& $\kappa$ 					& 0  \\
+thermal expansion coefficient ($^\circ$C$^{-1}$)	& $\alpha$ 							& $10^{-3}$ \\ 
+domain height (m)					& $H = 2h$							& $0.1$ \\ %\hline \hline
+reduced gravity	(ms$^{-2}$)				& $g' = g\frac{\rho_1 - \rho_2}{\rho_0} = -g\alpha (T_1 - T_2)$	& $10^{-2}$  \\
+buoyancy velocity					& $u_b = \sqrt{g'H}$ 						& $\sqrt{10^{-3}}$ \\
+Grashof number						& $Gr = \left( \frac{h \sqrt{g'h}}{\nu} \right)^2$ 		& $1.25 \times 10^{6}$\\ \hline
 \end{tabular}
-\caption{Physical parameters for the lock-exchange}
+\caption{Physical parameters for the lock-exchange set-up.}
 \label{tab:le_physical_parameters}
 \end{table}
 
 \begin{table}[th]
 \centering
-\begin{tabular}[h]{llp{150mm}}  \hline
-Numerical component                           & Configuration             & Comment \\ \hline
-Geometry                                      & from gmsh 	          & section \ref{sect:gmsh}, has also been setup in 3D \\
-Time step                                      & 0.025\,s                     & keeps CFL no $< 2.5$ \\
-Equation of state                             & linear                    & suitable approximation, section \ref{sect:equation_of_state} \\
-Momentum discretisation                       & \Poo                     & section ??? has also been set up with \PoDGPt \\
-                                              & non-conservative          & section ??? \\
-                                              & Crank-Nicholson           & section ??? \\
-Temperature advection                         & control volumes           & section ??? \\
-                                              & non-conservative          & section ??? \\
-                                              & Crank-Nicholson           & section ??? \\\hline
+\begin{tabular}[h]{lll}  \hline
+Numerical component                           & Configuration                   & Section\\ \hline
+Geometry                                      & from triangle file, via gmsh    & \ref{sect:triangle_format}, \ref{sect:meshing_tools_non_fluidity_gmsh}\\
+Time step                                     & 0.025\,s                        & \\
+Time loop                                     & 2 non-linear Picard iterations  & \ref{sect:ND_time_loop} \\
+Equation of state                             & linear                          & \ref{sect:equation_of_state} \\
+Momentum and Pressure spatial discretisation  & \Poo                            & \ref{Sect:ND_momentum_equation}, \ref{Sect:ND_pressure_equation}, \ref{sect:configuring_fluidity_continuous_galerkin}, \ref{sect:configuring_fluidity_pressure} \\
+Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicholson)  & \ref{sect:ND_time_theta_scheme}, \ref{sect:configuring_fluidity_temporal_discretisation} \\
+                                              & non-linear relaxation term $=0.5$ & \ref{sect:relax} \\
+Temperature advection                         & advection-diffusion equation    & \ref{Sect:MP-AdvdifEqn} \\
+                                              & control volumes                 & \ref{Sect:CVs} \\
+Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicholson)& \ref{sect:ND_time_theta_scheme}, \ref{sect:configuring_fluidity_temporal_discretisation} \\
+                                              & advection iterations, limit theta & ??? \\\hline
 \end{tabular}
 \caption{Numerical configuration for the lock-exchange}
 \label{tab:le_numerical_configuration}
 \end{table}
 
-
 \subsection{Results} 
 \label{sect:lock_exchange_results}
 
-The expected dynamics of a lock-exchange flow are observed, figure \ref{fig:lock_exchange}: two heads propagate in opposite directions with the foremost point of the no-slip head raised above the lower boundary. Kelvin-Helmholtz billows form at the interface leading to mixing of the two fluids which would not be observed with a hydrostatic formulation. The mesh is adapted well, increasing the resolution around the interface and Kelvin-Helmholtz billows with anisotropic elements. The speed of the free-slip and no-slip heads are calculated as 0.0150 and 0.0132 respectively and gives agreement to within 5\% values of \cite{hartel_00} and the test case tests that the values are within 20\% (pass), 15\% (warn).
+The expected dynamics of a lock-exchange flow are observed, figure \ref{fig:lock_exchange}: two gravity currents propagate in opposite directions with the foremost point of the no-slip front raised above the lower boundary. Kelvin-Helmholtz billows form at the interface leading to mixing of the two fluids which would not be observed with a hydrostatic formulation. The mesh adapts well, increasing the resolution around the interface and Kelvin-Helmholtz billows with anisotropic elements. Similar images can be generated by visualising the vtu files using Paraview or Mayavi2, see the \href{http://amcg-www.ese.ic.ac.uk/}{AMCG website}\ for more information.
+
+Two diagnostics are considered. First the Froude number, $Fr = U/u_b$, is the ratio of speed, $U$, to the the buoyancy velocity, table \ref{tab:le_physical_parameters} is calculated. The speed with which the no-slip and free-slip fronts propagate along the domain, $U_{ns}$ and $U_{fs}$, are calculated from the model output and are used to give the corresponding no-slip and free-slip Froude numbers, $Fr_{ns}$ and $Fr_{fs}$, figure \ref{fig:lock_exchange_Fr}. For this basic set up the values are comparable to but generally smaller than previously published values, table \ref{tab:lock_exchange_Fr_comparison}. Spatially varying the horizontal velocity adaptivity settings as suggested in the Exercises, section \ref{sect:le_exercises}, can increase the Froude number, showing good agreement between the \fluidity\ values and previously published values. The second diagnostic, the ``domain fraction", gives an illustration of the mixing taking place, \ref{fig:lock_exchange_mixing}. The temperature ($T$) range is divided into three classes: $T<-0.4$, $-0.4<T<0.4$ and $0.4<T$. For each class the fraction of fluid in the domain that has temperature within the given range gives the domain fraction. The class with range $-0.4<T<0.4$ is considered representative of the mixed fluid. As the simulation progresses, the amount of mixed fluid increases, more rapidly at first as Kelvin-Helmholtz billows form and just after the fronts hit the end wall. Later, as the dynamics become less turbulent and the fluid oscillates back and forth in the tank the mixing is less vigorous. The increase in mixed fluid is compensated for by a decrease in non-mixed fluid.
 
 \begin{figure}[ht]
   \centering
   % For some reason tex4ht doesn't like these images.
   \onlypdf{
-  \subfigure[$t = 0\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_0_T}}
-  \subfigure[$t = 0\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_0_mesh_nice}}
-  \subfigure[$t = 12.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_10_T}}
-  \subfigure[$t = 12.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_10_mesh}}
-  \subfigure[$t = 37.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_30_T}}
+  \subfigure[$t = 0\,$s]{\fig[width=0.45\textwidth]{./examples_images/lock_exchange/le_basic_0_T}}
+  \subfigure[$t = 0\,$s]{\fig[width=0.45\textwidth]{./examples_images/lock_exchange/le_basic_0_mesh_nice}} \\
+  \subfigure[$t = 12.475\,$s]{\fig[width=0.45\textwidth]{./examples_images/lock_exchange/le_basic_10_T}}
+  \subfigure[$t = 12.475\,$s]{\fig[width=0.45\textwidth]{./examples_images/lock_exchange/le_basic_10_mesh}} \\
+  \subfigure[$t = 37.475\,$s]{\fig[width=0.45\textwidth]{./examples_images/lock_exchange/le_basic_30_T}}
   \subfigure[$t =
-  37.475\,$s]{\fig[width=0.48\textwidth]{./examples_images/lock_exchange/le_basic_30_mesh}}
+  37.475\,$s]{\fig[width=0.45\textwidth]{./examples_images/lock_exchange/le_basic_30_mesh}}
   }
   \caption{Lock-exchange temperature distribution (colour) with meshes, over time ($t$)}
   \label{fig:lock_exchange}
 \end{figure}
 
-\subsection{Notes on the test case}
-This example has been based on the test case \lstinline[language=bash]+.../tests/lock_exchange_2d_cg+. This test, as well as checking the head speed against \cite{hartel_00} has a brief test of the mixing statistics, section \ref{sect:diagnostics_stat_file}. Two bins are used for temperature ($T$) with $-0.5\leq T<0.0$ and $T\geq 0.0$. The test checks that at the start of the simulation half the material is in each bin and that at the start and end of the simulation the total amount of material is correct ($=1$ as it has been chosen to normalise the values). 
+\begin{figure}[ht]
+  \centering
+  \fig[width=1.0\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 15mm]{./examples_images/lock_exchange/front_speed}
+  \caption{Distance along the domain ($X$) and Froude number ($Fr$) for the no-slip and free-slip fronts in the lock-exchange.}
+  \label{fig:lock_exchange_Fr}
+\end{figure}
 
-There are also several other versions of the test which are for example in 3d or use an alternative discretisation. All the names begin with \lstinline[language=bash]+lock_exchange_+ and can be found in the \lstinline[language=bash]+.../tests+ and \lstinline[language=bash]+.../fluidity-longtests+ directories of the \fluidity\ trunk.
+\begin{table}[th]
+\centering
+\begin{tabular}{|c|l|c|c|c|} \hline
+& Reference 					& $Gr$ 			& no-slip $Fr$ 	& free-slip $Fr$	\\ [0.1ex] \hline
+& Adaptive 1 (\fluidity)			& $1.25 \times 10^{6}$	& 0.381	        & 0.457			\\ [0.1ex]
+& Adaptive 2 (\fluidity)			& $1.25 \times 10^{6}$	& 0.417	        & 0.482			\\ [0.1ex]\hdashline
+\multirow{4}{*}{\begin{sideways}\parbox{18mm}{numerical}\end{sideways}} &\cite{hartel_00}, 2D	& $1.25 \times 10^{6}$	& 0.406		& 0.477			\\ [0.1ex]
+& \cite{fringer_06}, 2D		                & $1.25 \times 10^{6}$ 	& 0.397 	& 0.428 		\\ [0.1ex]
+& \cite{cantero_07}, 3D	                        & $1.50 \times 10^{6}$	& 0.407		& 			\\ [0.1ex]
+& \cite{elias_08}, 3D		                & $1.50 \times 10^{6}$	& 0.409		&			\\ [0.1ex] \hdashline
+\multirow{4}{*}{\begin{sideways}\parbox{20mm}{experiment}\end{sideways}}& \cite{keulegan_57} & $7.16 \times 10^{7}$ & 0.440&	\\ [0.1ex]
+& \cite{britter_78} 	                        & $6.3 \times 10^{7}$	& 	 	& 0.518		 	\\ [0.1ex]
+& \cite{simpson_79}                             & $4.8 \times 10^{6}$   & 0.432	        &	 		\\ [0.1ex]
+& \cite{shin_04}			        & $>5 \times 10^5$	& 0.464		&			\\ [0.1ex] \hdashline
+\multirow{2}{*}{\begin{sideways}\parbox{11mm}{theory}\end{sideways}} & \cite{benjamin_68} &	inviscid	&  & 0.5	\\[0.1ex]
+& \cite{klemp_94} 		                &	inviscid	& 		& 0.527			\\ [1.0ex]\hline
+\end{tabular}
+\caption{Comparison of \fluidity\ Froude numbers with previously published results. \newline Adaptive 1: basic set up as described \newline Adaptive 2: setup with spatially varying interpolation error for the horizontal velocity as suggested in the Exercises, section \ref{sect:le_exercises}.}
+\label{tab:lock_exchange_Fr_comparison}
+\end{table} 
 
-%\option{
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.6\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 20mm]{./examples_images/lock_exchange/mixing}
+  \caption{Time evolution of fraction of domain that contains fluid in three temperature classes.}
+  \label{fig:lock_exchange_mixing}
+\end{figure}
+
+\subsection{Exercises}
+\label{sect:le_exercises}
+To explore the functionality of \fluidity, the following variations on this example would be constructive learning exercises:
+\begin{itemize}
+\item Run from the checkpoint to look at the mixing later in the simulation, section \ref{sect:configuring_fluidity_checkpointing}
+\item In the adaptivity settings include a spatially varying interpolation error for the horizontal velocity and compare Froude numbers (python can be found in the comment section for the velocity adaptivity settings), section \ref{sect:configuring_fluidity_error_metric}
+\item Change the frequency of the adapt, section \ref{sect:configuring_fluidity_adaptivity_options}
+\item Turn on metric advection, section \ref{sect:configuring_fluidity_metric_advection}
+\item Change the diffusivity and viscosity values
+\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sect:triangle_format}, \ref{sect:meshing_tools_non_fluidity_gmsh}
+\item Try adding some detectors to visualise the particle trajectories, section \ref{sect:diagnostics_detectors} or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}
+\end{itemize}
+Note to compare Froude numbers and mixing between different runs the remember to copy the images otherwise they will be overwritten.
+
 \subsection{Lagrangian trajectories illustrated in the lock-exchange}
 \label{sect:lock_exchange_Lagrangian_trajectories}
 Lagrangian trajectories from moving or Lagrangian detectors have been calculated in a lock-exchange test case. The test case can be found in \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_} \\ \option{Lagrangian\_paths}. The domain of the 2D rectangular box is in this case $-5\leq x \leq 5\,$m and $-0.5 \leq z \leq 0.5\,$m. In this case a free-slip boundary condition is applied to the top and bottom of the domain ($w = 0$) and also to the end walls ($u = 0$).
