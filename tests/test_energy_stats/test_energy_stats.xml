@@ -33,7 +33,6 @@ import math
 import vtktools
 import numpy
 from fluidity_tools import stat_parser
-import pylab
 
 ################################################################################################
 
