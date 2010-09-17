@@ -72,7 +72,7 @@
       <real_value rank="0">0.025</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">150.0</real_value>
+      <real_value rank="0">30.0</real_value>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">2</integer_value>
@@ -303,6 +303,35 @@
                 <value name="WholeMesh">
                   <constant>
                     <real_value shape="2" dim1="dim" rank="1">0.001 0.001</real_value>
+                    <comment>Python to get a spatially varying interpolation error bound for horizontal velocity
+def val(X, t):
+
+# exponential function of form p = Ae^(aq) + B, 
+# with q = q_1, p=p_1 and q = q_2, p=p_2
+# giving p = p_1 + Aexp{aq_1}(exp{a(q-q_1)} -1)
+# with A = (p_2-p_1)/(exp{aq_1}(exp{a(q_2-q_1)} -1))
+# so p = p_1 + (p_2-p_1)*(exp{a(q-q_1)} -1) /(exp{a(q_2-q_1)} -1)
+# let C = (p_2-p_1)/(exp{a(q_2-q_1)} -1)
+ 
+  import math
+  a = 100.0
+  q_1 = 0.0 
+  p_1 = 0.00001
+  q_2 = 0.05
+  p_2 = 0.001  
+
+  if(X[1]&amp;lt;=0.05):
+    C = (p_2 - p_1)/((math.exp(a*(q_2 - q_1)))-1)
+    q = X[1]
+    p = p_1 + C*((math.exp(a*(q - q_1)))-1)
+    u_val = p
+  else:
+    C = (p_2 - p_1)/((math.exp(a*(q_2 - q_1)))-1)
+    q = 0.1-X[1]
+    p = p_1 + C*((math.exp(a*(q - q_1)))-1)
+    u_val = p
+
+  return [u_val,0.001]</comment>
                   </constant>
                 </value>
                 <output/>

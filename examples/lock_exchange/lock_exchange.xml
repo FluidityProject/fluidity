@@ -12,22 +12,22 @@
   <variables>  
      <variable name="temp_bin_lower_0" language="python"> 
 from fluidity_tools import stat_parser
-stat = stat_parser("lock_exchange_2d.stat")
+stat = stat_parser("lock_exchange.stat")
 temp_bin_lower_0 = stat['fluid']['Temperature']['mixing_bins%cv_normalised'][0,0]
     </variable>
      <variable name="temp_bin_upper_0" language="python"> 
 from fluidity_tools import stat_parser
-stat = stat_parser("lock_exchange_2d.stat")
-temp_bin_upper_0 =  stat['fluid']['Temperature']['mixing_bins%cv_normalised'][1,0]
+stat = stat_parser("lock_exchange.stat")
+temp_bin_upper_0 =  stat['fluid']['Temperature']['mixing_bins%cv_normalised'][2,0]
     </variable>
      <variable name="temp_bin_total_0" language="python"> 
 from fluidity_tools import stat_parser
-stat = stat_parser("lock_exchange_2d.stat")
+stat = stat_parser("lock_exchange.stat")
 temp_bin_total_0 = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,0])
     </variable>
      <variable name="temp_bin_total_end" language="python"> 
 from fluidity_tools import stat_parser
-stat = stat_parser("lock_exchange_2d.stat")
+stat = stat_parser("lock_exchange.stat")
 last_val = len(stat["ElapsedTime"]["value"])-1 
 temp_bin_total_end = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,last_val])
     </variable>
@@ -45,11 +45,12 @@ import sys
 import os
 import scipy.stats
 import le_tools
+import numpy 
 
 hartel_no_slip_head_speed = 0.0128350
 hartel_free_slip_head_speed = 0.01509346
 
-filelist = le_tools.GetFiles('./', f_log)
+filelist = le_tools.GetFiles('./')
 
 time, X_ns, X_fs = le_tools.GetXandt(filelist)
 X_ns = [x-0.4 for x in X_ns]
@@ -58,13 +59,17 @@ X_fs = [0.4-x for x in X_fs]
 U_ns = le_tools.GetU(time, X_ns)
 U_fs = le_tools.GetU(time, X_fs)
 results_head_speed = []
-for lower_lim in [0.2,0.25]:
-  start_val, end_val = le_tools.GetAverageRange(X, lower_lim, h0)
-  results_head_speed.append(average(U[start_val:end_val]))
+
+domainheight = 0.1
+start_val, end_val = le_tools.GetAverageRange(X_ns, 0.2, domainheight)
+results_head_speed.append(numpy.average(U_ns[start_val:end_val]))
+
+start_val, end_val = le_tools.GetAverageRange(X_fs, 0.25, domainheight)
+results_head_speed.append(numpy.average(U_fs[start_val:end_val]))
 
 results_head_speed.append(abs(results_head_speed[0]-hartel_no_slip_head_speed))
 results_head_speed.append(abs(results_head_speed[1]-hartel_free_slip_head_speed))
-print "Speed of free slip head, no slip head and errors from literature values"
+print "Speed of no slip head, free slip head and errors from literature values"
 print results_head_speed
     </variable>
  </variables>    
@@ -86,22 +91,22 @@ print (abs(temp_bin_total_end - 1.0))
 assert (abs(temp_bin_total_end - 1.0) &lt; 1e-5)
     </test>
     <test name="Speed of head at no slip boundaries (20%)" language="python">
-print (abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed))
-assert((abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed)) &lt; 0.2)
+print (abs((hartel_no_slip_head_speed -  results_head_speed[0])/hartel_no_slip_head_speed))
+assert((abs((hartel_no_slip_head_speed -  results_head_speed[0])/hartel_no_slip_head_speed)) &lt; 0.2)
     </test>
     <test name="Speed of head at free slip boundaries (20%)" language="python">
-print (abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed))
-assert((abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed)) &lt; 0.2)
+print (abs((hartel_free_slip_head_speed -  results_head_speed[1])/hartel_free_slip_head_speed))
+assert((abs((hartel_free_slip_head_speed -  results_head_speed[1])/hartel_free_slip_head_speed)) &lt; 0.2)
     </test>
   </pass_tests>
   <warn_tests>
     <test name="Speed of head at no slip boundaries (15%)" language="python">
-print (abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed))
-assert((abs((hartel_no_slip_head_speed -  results_head_speed[1])/hartel_no_slip_head_speed)) &lt; 0.15)
+print (abs((hartel_no_slip_head_speed -  results_head_speed[0])/hartel_no_slip_head_speed))
+assert((abs((hartel_no_slip_head_speed -  results_head_speed[0])/hartel_no_slip_head_speed)) &lt; 0.15)
     </test>
     <test name="Speed of head at free slip boundaries (15%)" language="python">
-print (abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed))
-assert((abs((hartel_free_slip_head_speed -  results_head_speed[0])/hartel_free_slip_head_speed)) &lt; 0.15)
+print (abs((hartel_free_slip_head_speed -  results_head_speed[1])/hartel_free_slip_head_speed))
+assert((abs((hartel_free_slip_head_speed -  results_head_speed[1])/hartel_free_slip_head_speed)) &lt; 0.15)
     </test>
   </warn_tests>
 </testproblem>

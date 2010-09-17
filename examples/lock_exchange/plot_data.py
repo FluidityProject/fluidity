@@ -57,7 +57,7 @@ def Froudenumber():
   pylab.suptitle('Front speed')
 
   pylab.subplot(221)
-  pylab.plot(time,X_ns)
+  pylab.plot(time,X_ns, color = 'k')
   pylab.axis([0,45,0,0.4])
   pylab.grid("True")
   pylab.xlabel('time (s)')
@@ -65,16 +65,18 @@ def Froudenumber():
   pylab.title('no-slip')
     
   pylab.subplot(222)
-  pylab.plot([x/domainheight for x in X_ns],[U/math.sqrt(gprime*domainheight) for U in U_ns])
+  pylab.plot([x/domainheight for x in X_ns],[U/math.sqrt(gprime*domainheight) for U in U_ns], color = 'k')
+  pylab.axvline(2.0, color = 'k')
+  pylab.axvline(3.0, color = 'k')
   pylab.axis([0,4,0,0.6])
   pylab.grid("True")
-  pylab.text(0.05, 0.565, 'Average Fr (for 2.0<X/H<3.0) = '+str(U_average[0]/math.sqrt(gprime*domainheight)) , bbox=dict(facecolor='white', edgecolor='black'))
+  pylab.text(0.05, 0.01, 'Average Fr = '+str(U_average[0]/math.sqrt(gprime*domainheight))+'\n vertical lines indicate the range \n over which the average is taken', bbox=dict(facecolor='white', edgecolor='black'))
   pylab.xlabel('X/H')
   pylab.ylabel('Fr')
   pylab.title('no-slip')
   
   pylab.subplot(223)
-  pylab.plot(time,X_fs)
+  pylab.plot(time,X_fs, color = 'k')
   pylab.axis([0,45,0,0.4])
   pylab.grid("True")
   pylab.xlabel('time (s)')
@@ -82,10 +84,12 @@ def Froudenumber():
   pylab.title('free-slip')
     
   pylab.subplot(224)
-  pylab.plot([x/domainheight for x in X_fs],[U/math.sqrt(gprime*domainheight) for U in U_fs])
+  pylab.plot([x/domainheight for x in X_fs],[U/math.sqrt(gprime*domainheight) for U in U_fs], color = 'k')
+  pylab.axvline(2.5, color = 'k')
+  pylab.axvline(3.0, color = 'k')
   pylab.axis([0,4,0,0.6])
   pylab.grid("True")
-  pylab.text(0.05, 0.565, 'Average Fr (for 2.5<X/H<3.0) = '+str(U_average[1]/math.sqrt(gprime*domainheight)) , bbox=dict(facecolor='white', edgecolor='black'))
+  pylab.text(0.05, 0.01, 'Average Fr  = '+str(U_average[1]/math.sqrt(gprime*domainheight))+'\n vertical lines indicate the range \n over which the average is taken', bbox=dict(facecolor='white', edgecolor='black'))
   pylab.xlabel('X/H')
   pylab.ylabel('Fr')
   pylab.title('free-slip')
@@ -95,15 +99,28 @@ def Froudenumber():
   return
   
 def mixing_stats():
-  stat = stat_parser('lock_exchange.stat')
-  
+
   pylab.figure(num=2, figsize = (16.5, 11.5))
   pylab.suptitle('Mixing')
+   
+  times = []
+  mixing_stats_lower = [] 
+  mixing_stats_mixed = []
+  mixing_stats_upper = []
   
-  pylab.plot(stat['ElapsedTime']['value'],stat['fluid']['Temperature']['mixing_bins%cv_normalised'][0], label = 'T < -0.4')
-  pylab.plot(stat['ElapsedTime']['value'],stat['fluid']['Temperature']['mixing_bins%cv_normalised'][1], label = '-0.4 < T < 0.4')
-  pylab.plot(stat['ElapsedTime']['value'],stat['fluid']['Temperature']['mixing_bins%cv_normalised'][2], label = '0.4 < T')
   
+  stat_files, time_index_end = le_tools.GetstatFiles('./')
+  for sf in stat_files:
+    stat = stat_parser(sf)
+    for i in range(time_index_end[pylab.find(numpy.array(stat_files) == sf)]):
+      times.append(stat['ElapsedTime']['value'][i])
+      mixing_stats_lower.append(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][0][i])
+      mixing_stats_mixed.append(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][1][i])
+      mixing_stats_upper.append(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][2][i])
+  
+  pylab.plot(times,mixing_stats_lower, label = 'T < -0.4')
+  pylab.plot(times,mixing_stats_mixed, label = '-0.4 < T < 0.4')
+  pylab.plot(times,mixing_stats_upper, label = '0.4 < T')
   
   time = le_tools.ReadLog('diagnostics/logs/time.log')
   X_ns = [x-0.4 for x in le_tools.ReadLog('diagnostics/logs/X_ns.log')]
@@ -116,10 +133,11 @@ def mixing_stats():
   except IndexError: 
     print 'not plotting shaded regions on mixing plot as front has not reached end wall'
   
-  #pylab.text(0.05, 0.565, 'shaded regions show when fronts near the end wall (dark: free-slip), (light: no-slip)', bbox=dict(facecolor='white', edgecolor='black', width = 25))
   
+  pylab.axis([0,times[-1],0,0.5])
   pylab.grid("True")
   pylab.legend(loc=0)
+  pylab.text(0.5, 0.405, 'shaded regions show when \nfronts near the end wall \ndark: free-slip, light: no-slip', bbox=dict(facecolor='white', edgecolor='black'))
   pylab.xlabel('time (s)')
   pylab.ylabel('domain fraction')
   

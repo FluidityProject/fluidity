@@ -9,6 +9,7 @@ import numpy
 import vtktools
 from numpy import arange
 import pylab
+from fluidity_tools import stat_parser
 
 ################################################################################################
 #----------------------------------------------------------------------------------------------#
@@ -134,7 +135,51 @@ def ReadLog(log_name):
 ################################################################################################
 #----------------------------------------------------------------------------------------------#
 ################################################################################################  
+
+def GetstatFiles(directory):
+# gets a list of stat files, accounting for checkpointing 
+# in order of first to last (time-wise) 
+# also get a time index )time_index_end) for each stat file where
+# statfile_i['ElapsedTime']['value'][index] = statfile_i+1['ElapsedTime']['value'][0]
+
+  time_index_end = []
+  stat_files = glob.glob(directory+'*.stat')
+
+  time_end = []
+  for sf in stat_files: 
+    if 'original' in sf: stat_files.remove(sf)
+  for sf in stat_files: 
+    stat = stat_parser(sf); time_end.append(stat['ElapsedTime']['value'][-1])
+  vals = zip(time_end, stat_files)
+
+  vals.sort(key=key)
+  unzip = lambda l:tuple(apply(zip,l))
+
+  time_end, stat_files = unzip(vals)
+  for i in range(len(stat_files)-1):
+    stat_0 = stat_parser(stat_files[i])
+    time_0 = stat_0['ElapsedTime']['value']
+    stat_1 = stat_parser(stat_files[i+1])
+    time_1 = stat_1['ElapsedTime']['value']
+    try: time_index_end.append(pylab.find(numpy.array(time_0)>=time_1[0])[0])
+    except IndexError: time_index_end.append(len(time_0)) 
+
+  stat = stat_parser(stat_files[-1])
+  time_index_end.append(len(stat['ElapsedTime']['value']))
+
+# in case stat file cut short when writing out:
+  for ti in range(len(time_index_end)):
+    stat = stat_parser(stat_files[ti])
+    for bin_index in range(len(stat['fluid']['Temperature']['mixing_bins%cv_normalised'])):
+      while stat['fluid']['Temperature']['mixing_bins%cv_normalised'][bin_index][time_index_end[ti]-1] == None: time_index_end[ti] = time_index_end[ti] -1
+
+  return (stat_files, time_index_end)
   
-  
+def key(tup):
+  return tup[0]
+
+################################################################################################
+#----------------------------------------------------------------------------------------------#
+################################################################################################
   
   
