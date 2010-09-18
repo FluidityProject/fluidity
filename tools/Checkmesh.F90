@@ -143,6 +143,9 @@ contains
     integer :: i, j
     integer, dimension(:), pointer :: nodes
     logical :: all_linear_simplices
+    integer, dimension(2) :: edge_nodes
+    integer, dimension(2, 2), parameter :: edge_nodes_2d = reshape((/3, 3, 2, 1/), (/2, 2/))
+    integer, dimension(6, 2), parameter :: edge_nodes_3d = reshape((/4, 3, 2, 1, 1, 1, 2, 4, 3, 4, 3, 2/), (/6, 2/))
     real :: length, max_length, min_length
     real :: anisotropy, max_anisotropy, min_anisotropy
     real, dimension(positions%dim) :: evals
@@ -166,11 +169,33 @@ contains
       end if
       
       nodes => ele_nodes(positions, i)
-      do j = 2, shape%loc
-        length = sqrt(sum((node_val(positions, nodes(j)) - node_val(positions, nodes(1))) ** 2))
-        min_length = min(min_length, length)
-        max_length = max(max_length, length)
-      end do
+      select case(positions%dim)
+        case(3)
+          do j = 1, size(edge_nodes_3d, 1)
+            edge_nodes = (/nodes(edge_nodes_3d(j, 1)), nodes(edge_nodes_3d(j, 2))/)
+            length = sqrt(sum((node_val(positions, edge_nodes(2)) - node_val(positions, edge_nodes(1))) ** 2))
+            
+            min_length = min(min_length, length)
+            max_length = max(max_length, length)
+          end do
+        case(2)
+          do j = 1, size(edge_nodes_2d, 1)
+            edge_nodes = (/nodes(edge_nodes_2d(j, 1)), nodes(edge_nodes_2d(j, 2))/)
+            length = sqrt(sum((node_val(positions, edge_nodes(2)) - node_val(positions, edge_nodes(1))) ** 2))
+            
+            min_length = min(min_length, length)
+            max_length = max(max_length, length)
+          end do
+        case(1)
+          edge_nodes = (/nodes(2), nodes(1)/)
+          length = sqrt(sum((node_val(positions, edge_nodes(2)) - node_val(positions, edge_nodes(1))) ** 2))
+          
+          min_length = min(min_length, length)
+          max_length = max(max_length, length)
+        case default
+          ewrite(-1, *) "For dimension: ", positions%dim
+          FLAbort("Invalid dimension")
+      end select
       
       edge_lengths = edge_lengths_from_metric(simplex_tensor(positions, i))
       call eigendecomposition_symmetric(edge_lengths, evecs, evals)
