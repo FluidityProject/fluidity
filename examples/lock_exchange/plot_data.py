@@ -137,7 +137,7 @@ def mixing_stats():
   pylab.axis([0,times[-1],0,0.5])
   pylab.grid("True")
   pylab.legend(loc=0)
-  pylab.text(0.5, 0.405, 'shaded regions show when \nfronts near the end wall \ndark: free-slip, light: no-slip', bbox=dict(facecolor='white', edgecolor='black'))
+  pylab.text(times[-1]-(times[-1]/5), 0.005, 'shaded regions show when \nfronts near the end wall \ndark: free-slip, light: no-slip', bbox=dict(facecolor='white', edgecolor='black'))
   pylab.xlabel('time (s)')
   pylab.ylabel('domain fraction')
   
