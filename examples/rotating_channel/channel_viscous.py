@@ -36,15 +36,7 @@ def generate_meshfile(name,layers):
 def forcing(X):
     '''Forcing function. Must be an analytic function of X[1] only'''
 
-    return (X[1]**3,0)
-
-
-# Numeric verision of the forcing function, for efficiency.
-def numeric_forcing(X):
-    '''Forcing function. Must be an analytic function of X[1] only'''
-    from math import sin, pi
-
-    return (X[1]**3,0)
+    return (X[1]**2,0)
 
 
 #Viscosity

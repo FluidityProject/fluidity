@@ -264,7 +264,7 @@ def val(X,t):
               <python>
                 <string_value lines="20" type="python">def val(X,t):
         import channel_viscous
-        return channel_viscous.numeric_forcing(X)</string_value>
+        return channel_viscous.forcing(X)</string_value>
               </python>
             </value>
             <output/>

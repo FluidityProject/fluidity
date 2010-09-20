@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+import pylab
+import channel_viscous
+
+channel_viscous.plot_theory()
+
+pylab.show()

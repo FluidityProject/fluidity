@@ -4,7 +4,22 @@ import channel_viscous
 import sys
 import numpy
 
-layers=numpy.array(map(int,sys.argv[1:]))
+def usage():
+    print """plot_data <layers>
+
+    <layers> is a space-separated list of layer counts."""
+    
+
+try:
+    layers=numpy.array(map(int,sys.argv[1:]))
+except:
+    usage()
+    sys.exit(1)
+
+if len(layers)==0:
+    usage()
+    sys.exit(1)
+
 
 dx=1./layers
 
