@@ -81,9 +81,9 @@
     </steady_state>
   </timestepping>
   <physical_parameters>
-    <coriolis replaces="OPTOME">
-      <f_plane replaces="OPTOME = 0">
-        <f replaces="OMEGA">
+    <coriolis>
+      <f_plane>
+        <f>
           <real_value rank="0">2.0</real_value>
         </f>
       </f_plane>
@@ -331,11 +331,13 @@
       </diagnostic>
     </scalar_field>
     <vector_field name="Gradient" rank="1">
-      <diagnostic field_name="Pressure">
-        <algorithm name="Internal" material_phase_support="multiple"/>
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Pressure"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <include_in_stat/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
