@@ -2,7 +2,7 @@
 <testproblem>
   <name>wetting_and_drying_thacker_dg_parallel</name>
   <owner userid="sf1409"/>
-  <problem_definition length="medium" nprocs="4">
+  <problem_definition length="special" nprocs="4">
     <command_line>mpiexec -n 4 fluidity thacker.flml</command_line>
   </problem_definition>
   <variables>
