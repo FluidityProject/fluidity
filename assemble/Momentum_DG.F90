@@ -242,7 +242,7 @@ contains
     !! Wetting and drying
     type(scalar_field), pointer :: wettingdrying_alpha
     type(scalar_field) :: alpha_u_field
-    logical :: have_wd
+    logical :: have_wd_abs
     real, dimension(u%dim) :: abs_wd_const
 
     ewrite(1, *) "In construct_momentum_dg"
@@ -330,9 +330,9 @@ contains
        end do
     end if
 
-    have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")        
+    have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
     ! Absorption term in dry zones for wetting and drying
-    if (have_wd) then
+    if (have_wd_abs) then
        call allocate(Abs_wd, U%dim, U%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(Abs_wd, abs_wd_const)
@@ -608,8 +608,7 @@ contains
       call lumped_mass_galerkin_projection_vector(state, u_nl_cg, advecting_velocity)
     end if
 
-!    allocate(alpha_u_field)
-    if (have_wd) then
+    if (have_wd_abs) then
       if (.not. has_scalar_field(state, "WettingDryingAlpha")) then
         FLExit("Wetting and drying needs the diagnostic field WettingDryingAlpha activated.")
       end if
@@ -632,11 +631,11 @@ contains
             & inverse_masslump=inverse_masslump, &
             & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
             & subcycle_m=subcycle_m, &
-            & on_sphere=on_sphere, depth=depth, have_wd=have_wd, alpha_u_field=alpha_u_field, Abs_wd=Abs_wd)
+            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, Abs_wd=Abs_wd)
       
     end do element_loop
 
-    if (have_wd) then
+    if (have_wd_abs) then
       ! the remapped field is not needed anymore.
       call deallocate(alpha_u_field)
     !  deallocate(alpha_u_field)
@@ -685,7 +684,7 @@ contains
        &pressure_bc, pressure_bc_type, &
        &u_cg, u_nl_cg, &
        &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
-       &subcycle_m, on_sphere, depth, have_wd, alpha_u_field, Abs_wd)
+       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -725,7 +724,7 @@ contains
     type(vector_field), intent(inout), optional :: inverse_masslump
     !! Optional separate mass matrix.
     type(csr_matrix), intent(inout), optional :: mass
-    logical, intent(in), optional :: have_wd !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
+    logical, intent(in), optional :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
     type(scalar_field), intent(in), optional :: alpha_u_field
     type(vector_field), intent(in), optional :: Abs_wd 
     
@@ -1204,7 +1203,7 @@ contains
       end if
     end if
 
-    if(have_absorption.or.have_vertical_stabilization.or.have_wd) then
+    if(have_absorption.or.have_vertical_stabilization.or.have_wd_abs) then
       vvr_abs=0.0
       ib_abs=0.0
       ! Momentum absorption matrix.
@@ -1257,9 +1256,8 @@ contains
       Abs_mat = shape_shape_vector(U_shape, U_shape, detwei*rho_q, &
           &                                 ele_val_at_quad(Abs,ele)-vvr_abs-ib_abs)
           
-      if (have_wd) then
-        alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)
-        alpha_u_quad=max(0.0,alpha_u_quad-1)  !! Wetting and drying absorption becomes active when water level reaches d_0
+      if (have_wd_abs) then
+        alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)  !! Wetting and drying absorption becomes active when water level reaches d_0
         Abs_mat = Abs_mat + shape_shape_vector(U_shape, U_shape, alpha_u_quad*detwei*rho_q, &
           &                                 ele_val_at_quad(Abs_wd,ele))
       end if
@@ -1307,9 +1305,11 @@ contains
       end if
     end if
       
-    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd)) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
+    if ((((.not.have_absorption).and.(.not.have_vertical_stabilization).and.(.not.have_wd_abs)) .or. (.not.pressure_corrected_absorption)).and.(have_mass)) then
       ! no absorption: all mass matrix components are the same
       if (present(inverse_mass) .and. .not. lump_mass) then
+          !print *, "u_ele", u_ele
+          !print *, "rho_mat", rho_mat
         inverse_mass_mat=inverse(rho_mat)
         call set(inverse_mass, 1, 1, u_ele, u_ele, inverse_mass_mat)
         if (.not. inverse_mass%equal_diagonal_blocks) then

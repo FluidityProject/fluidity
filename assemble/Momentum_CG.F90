@@ -212,7 +212,7 @@
       type(vector_field) :: Abs_wd
       type(scalar_field), pointer :: wettingdrying_alpha
       type(scalar_field) :: alpha_u_field
-      logical :: have_wd
+      logical :: have_wd_abs
       real, dimension(u%dim) :: abs_wd_const
 
       ewrite(1,*) 'entering construct_momentum_cg'
@@ -251,9 +251,9 @@
         ewrite_minmax(absorption%val(dim)%ptr(:))
       end do
 
-      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
+      have_wd_abs=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption")
       ! Absorption term in dry zones for wetting and drying
-      if (have_wd) then
+      if (have_wd_abs) then
        call allocate(Abs_wd, u%dim, u%mesh, "VelocityAbsorption_WettingDrying", FIELD_TYPE_CONSTANT)
        call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/dry_absorption", abs_wd_const)
        call set(Abs_wd, abs_wd_const)
@@ -458,10 +458,10 @@
         ewrite(2,*) 'Not moving mesh'
       end if
 
-      if (have_wd .and. .not. has_scalar_field(state, "WettingDryingAlpha")) then
+      if (have_wd_abs .and. .not. has_scalar_field(state, "WettingDryingAlpha")) then
           FLExit("Wetting and drying needs the diagnostic field WettingDryingAlpha activated.")
       end if
-      if (have_wd) then
+      if (have_wd_abs) then
         ! The alpha fields lives on the pressure mesh, but we need it on the velocity, so let's remap it.
         wettingdrying_alpha => extract_scalar_field(state, "WettingDryingAlpha")
         call allocate(alpha_u_field, u%mesh, "alpha_u")
@@ -477,11 +477,11 @@
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               gp, surfacetension, &
-              assemble_ct_matrix, cg_pressure, on_sphere, depth=depth, have_wd=have_wd, alpha_u_field=alpha_u_field, Abs_wd=Abs_wd)
+              assemble_ct_matrix, cg_pressure, on_sphere, depth=depth, have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, Abs_wd=Abs_wd)
          
       end do element_loop
 
-      if (have_wd) then
+      if (have_wd_abs) then
         ! the remapped field is not needed anymore.
         call deallocate(alpha_u_field)
         call deallocate(Abs_wd)
@@ -809,7 +809,7 @@
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix, cg_pressure, on_sphere, depth, have_wd, alpha_u_field, Abs_wd)
+                                            assemble_ct_matrix, cg_pressure, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd)
     !!< Assembles the local element matrix contributions and places them in big_m
     !!< and rhs for the continuous galerkin momentum equations
 
@@ -836,7 +836,7 @@
       logical, intent(in) :: assemble_ct_matrix, cg_pressure, on_sphere
 
       ! Wetting and Drying
-      logical, intent(in), optional :: have_wd
+      logical, intent(in), optional :: have_wd_abs
       type(scalar_field), intent(in), optional :: alpha_u_field
       type(vector_field), intent(in), optional :: Abs_wd
 
@@ -981,11 +981,11 @@
       end if
 
       ! Absorption terms (sponges) and WettingDrying absorption
-      if (have_absorption .or. have_vertical_stabilization .or. have_wd) then
+      if (have_absorption .or. have_vertical_stabilization .or. have_wd_abs) then
        call add_absorption_element_cg(x, ele, test_function, u, oldu_val, density, &
          absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, &
          masslump, mass, depth=depth, gravity=gravity, buoyancy=buoyancy, &
-         have_wd=have_wd, alpha_u_field=alpha_u_field, abs_wd=Abs_wd)
+         have_wd_abs=have_wd_abs, alpha_u_field=alpha_u_field, abs_wd=Abs_wd)
       end if
       
       ! Viscous terms
@@ -1288,7 +1288,7 @@
       
     end subroutine add_surfacetension_element_cg
     
-    subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, masslump, mass, depth, gravity, buoyancy, have_wd, alpha_u_field, Abs_wd)
+    subroutine add_absorption_element_cg(positions, ele, test_function, u, oldu_val, density, absorption, detwei, big_m_diag_addto, big_m_tensor_addto, rhs_addto, masslump, mass, depth, gravity, buoyancy, have_wd_abs, alpha_u_field, Abs_wd)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1303,7 +1303,7 @@
       type(vector_field), intent(inout) :: masslump
       type(petsc_csr_matrix), optional, intent(inout) :: mass
       ! Wetting and drying parameters
-      logical, intent(in), optional :: have_wd !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
+      logical, intent(in), optional :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
       type(scalar_field), intent(in), optional :: alpha_u_field
       type(vector_field), intent(in), optional :: abs_wd
     
@@ -1394,9 +1394,8 @@
       absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
 
 
-      if (have_wd) then
-        alpha_u_quad=ele_val_at_quad(alpha_u_field, ele)
-        alpha_u_quad=max(0.0,alpha_u_quad-1)  !! Wetting and drying absorption becomes active when water level reaches d_0
+      if (have_wd_abs) then
+         alpha_u_quad=ele_val_at_quad(alpha_u_field, ele) !! Wetting and drying absorption becomes active when water level reaches d_0
          absorption_mat =  absorption_mat + &
           &                shape_shape_vector(test_function, ele_shape(u, ele), alpha_u_quad*detwei*density_gi, &
           &                                 ele_val_at_quad(abs_wd,ele))

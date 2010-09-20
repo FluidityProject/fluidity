@@ -1829,21 +1829,17 @@ mesh_adaptivity_options =
                     empty
                   }
                ),
-               ## Activates wetting and drying
+               ## Activates wetting and drying. Note: Works only with theta=1.0 and relaxation=1.0 under temporal discretisation
                element wetting_and_drying {
-                 ## Specifies the dmin value which is needed to calculate alpha. 
-                 ## A value of 1.0 shoud work in most cases.
-                 element dmin {
-                      real
-                 },
-                 ## Specifies the d0 value which is used to calculate alpha.
-                 ## This option should only be used in combination with enforce_min_depth_to_d0.
-                 ## Default is 0.5
+                 ## Specifies the d0 value which is the waterlevel kept in dry areas.
                  element d0 {
                       real
                  },
                  ## Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
-                 element dry_absorption {real_dim_vector}
+                 ## Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.
+                 element dry_absorption {real_dim_vector}?,
+                 ## Use a smooth maximum operator discretisation. This is deprecated and will be removed soon.
+                 element smooth_max_discretisation {real}?
                }?
             }|
             ## Enable movement of mesh by an imposed Grid Velocity.

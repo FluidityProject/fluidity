@@ -2209,22 +2209,24 @@ geometry.</a:documentation>
               </choice>
               <optional>
                 <element name="wetting_and_drying">
-                  <a:documentation>Activates wetting and drying</a:documentation>
-                  <element name="dmin">
-                    <a:documentation>Specifies the dmin value which is needed to calculate alpha. 
-A value of 1.0 shoud work in most cases.</a:documentation>
-                    <ref name="real"/>
-                  </element>
+                  <a:documentation>Activates wetting and drying. Note: Works only with theta=1.0 and relaxation=1.0 under temporal discretisation</a:documentation>
                   <element name="d0">
-                    <a:documentation>Specifies the d0 value which is used to calculate alpha.
-This option should only be used in combination with enforce_min_depth_to_d0.
-Default is 0.5</a:documentation>
+                    <a:documentation>Specifies the d0 value which is the waterlevel kept in dry areas.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <element name="dry_absorption">
-                    <a:documentation>Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).</a:documentation>
-                    <ref name="real_dim_vector"/>
-                  </element>
+                  <optional>
+                    <element name="dry_absorption">
+                      <a:documentation>Specifies the amount of absorption in dry areas. If a pressure corrected absorption term is desired, please add a pressure corrected absorption under Velocity (of magnitude 0).
+Note: If you double d0, this value has to be doubled as well to achieve the same amount of absorption.</a:documentation>
+                      <ref name="real_dim_vector"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="smooth_max_discretisation">
+                      <a:documentation>Use a smooth maximum operator discretisation. This is deprecated and will be removed soon.</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
             </element>
