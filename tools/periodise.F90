@@ -145,7 +145,7 @@ program periodise
     type(mesh_type), intent(in) :: external_mesh, periodic_mesh
     character(len=*), intent(in) :: new_external_filename
     character(len=*), intent(in) :: external_path, periodic_path
-    character(len=8192) :: str
+    character(len=8192) :: str, mesh_format
     integer :: stat, periodic_bc
     integer, dimension(2) :: shape_option
     integer, dimension(:), allocatable :: boundary_ids
@@ -153,6 +153,8 @@ program periodise
     ! The periodic sub-branch of the options tree has useful information that
     ! we don't want to lose just yet. So set the external mesh to be periodic
     ! first, and then overwrite
+    
+    call get_option(external_path // '/from_file/format/name',mesh_format)
 
     call delete_option(external_path // '/from_file', stat=stat)
     call set_option_attribute(external_path // '/from_mesh/mesh/name', trim(periodic_mesh%name), stat=stat)
@@ -185,7 +187,7 @@ program periodise
 
     call delete_option(periodic_path // '/from_mesh', stat=stat)
     call set_option_attribute(periodic_path // '/from_file/file_name', new_external_filename, stat=stat)
-    call set_option_attribute(periodic_path // '/from_file/format/name', 'triangle', stat=stat)
+    call set_option_attribute(periodic_path // '/from_file/format/name', mesh_format, stat=stat)
     call add_option(periodic_path // '/from_file/stat/include_in_stat', stat=stat)
     call add_option(external_path // '/from_mesh/stat/include_in_stat', stat=stat)
   end subroutine manipulate_options
