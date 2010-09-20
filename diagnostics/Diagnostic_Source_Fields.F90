@@ -39,7 +39,7 @@ module diagnostic_source_fields
  
   private
   
-  public :: scalar_source_field, vector_source_field, tensor_source_field
+  public :: scalar_source_field, vector_source_field, tensor_source_field, check_source_mesh_derivative
   
   interface scalar_source_field
     module procedure scalar_source_field_scalar_single, &
@@ -64,7 +64,11 @@ module diagnostic_source_fields
       & tensor_source_field_vector_multiple, &
       & tensor_source_field_tensor_multiple, tensor_source_field_path_multiple
   end interface tensor_source_field
- 
+    
+  interface check_source_mesh_derivative
+    module procedure check_source_mesh_derivative_scalar, check_source_mesh_derivative_vector
+  end interface check_source_mesh_derivative
+    
 contains
 
   function source_field_component(path, index)
@@ -491,5 +495,38 @@ contains
     deallocate(split_name)
     
   end function tensor_source_field_path_multiple
+  
+  subroutine check_source_mesh_derivative_scalar(source_field, algorithm)
+    ! Auxilary routine that checks if the source field is not on a discontinuous mesh
+    type(scalar_field), intent(in):: source_field
+    character(len=*), intent(in):: algorithm
+    
+    call check_derivative_mesh(source_field%mesh, source_field%name, algorithm)
+    
+  end subroutine check_source_mesh_derivative_scalar
+  
+  subroutine check_source_mesh_derivative_vector(source_field, algorithm)
+    ! Auxilary routine that checks if the source field is not on a discontinuous mesh
+    type(vector_field), intent(in):: source_field
+    character(len=*), intent(in):: algorithm
+    
+    call check_derivative_mesh(source_field%mesh, source_field%name, algorithm)
+    
+  end subroutine check_source_mesh_derivative_vector
+
+  subroutine check_derivative_mesh(source_mesh, source_field_name, algorithm)
+    type(mesh_type), intent(in):: source_mesh
+    character(len=*), intent(in):: source_field_name, algorithm
+    
+    if (source_mesh%continuity<0) then
+      ewrite(-1,*) "For diagnostic algorithm ", trim(algorithm)
+      ewrite(-1,*) "need to take the derivative of field: ", trim(source_field_name)
+      ewrite(-1,*) "which is on a discontinuous mesh. The code does not support this."
+      ewrite(-1,*) "Please use a galerkin_projection first to derive a continuous approximation"
+      ewrite(-1,*) "of this field on which the diagnostic algorithm can then be applied."
+      FLExit("Diagnostic algorithm does not support discontinuous fields")
+    end if
+    
+  end subroutine check_derivative_mesh
 
 end module diagnostic_source_fields

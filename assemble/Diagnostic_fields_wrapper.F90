@@ -190,22 +190,6 @@ contains
          end if
        end if
        
-       v_field => extract_vector_field(state(i), "TemperatureGradient", stat)
-       if(stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "TemperatureGradient", &
-             & v_field)
-         end if
-       end if
-
-       v_field => extract_vector_field(state(i), "Gradient", stat)
-       if(stat == 0) then
-         if(recalculate(trim(v_field%option_path))) then
-           call calculate_diagnostic_variable(state(i), "Gradient", &
-            & v_field)
-         end if
-       end if
-
        v_field => extract_vector_field(state(i), "InnerElementFullVelocity", stat)
        if(stat == 0) then
          if(recalculate(trim(v_field%option_path))) then

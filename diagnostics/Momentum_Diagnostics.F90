@@ -68,6 +68,8 @@ contains
     positions => extract_vector_field(state, "Coordinate")
     source_field => vector_source_field(state, t_field)
 
+    call check_source_mesh_derivative(source_field, "strain_rate")
+
     call strain_rate(source_field, positions, t_field)
 
   end subroutine calculate_strain_rate

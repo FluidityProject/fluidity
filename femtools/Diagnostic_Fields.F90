@@ -276,12 +276,6 @@ contains
 
     select case(d_field_name)
 
-      case("TemperatureGradient")
-        call calculate_temperature_gradient(state, d_field, stat)
-
-      case("Gradient")
-        call calculate_gradient(state, d_field, stat)
-
       ! Inner element fields
 
       case("InnerElementFullVelocity")
@@ -884,35 +878,6 @@ contains
     end do
 
   end subroutine calculate_back_pe_density
-  
-  subroutine calculate_temperature_gradient(state, grad_temp_field, stat)
-    !!< Calculate the temperature gradient field
-    
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: grad_temp_field
-    integer, optional, intent(out) :: stat
-    
-    integer :: i
-    type(scalar_field), pointer :: temp_field
-    type(vector_field), pointer :: positions
-    
-    do i = 1, 2
-      select case(i)
-        case(1)
-          positions => extract_vector_field(state, "Coordinate", stat)
-        case(2)
-          temp_field => extract_scalar_field(state, "Temperature", stat)
-        case default
-          FLAbort("Invalid loop index")
-      end select    
-      if(present_and_nonzero(stat)) then  
-        return
-      end if
-    end do
-
-    call grad(temp_field, positions, grad_temp_field)
-    
-  end subroutine calculate_temperature_gradient
     
   subroutine calculate_horizontal_streamfunction(state, psi)
     !!< Calculate the horizontal stream function psi where:
@@ -1034,34 +999,6 @@ contains
     call addto(rhs, element_nodes, shape_rhs(psi_shape, detwei * vorticity_h_gi))
   
   end subroutine assemble_horizontal_streamfunction_element
-
-  subroutine calculate_gradient(state, grad_field, stat)
-    !!< Calculate the gradient of a field
-    
-    type(state_type), intent(in) :: state
-    type(vector_field), intent(inout) :: grad_field
-    integer, optional, intent(out) :: stat
-    
-    type(scalar_field), pointer :: field
-    type(vector_field), pointer :: positions
-    
-    character(len=FIELD_NAME_LEN) :: field_name
-
-    positions => extract_vector_field(state, "Coordinate", stat)
-    if(present(stat)) then
-      if(stat/=0) return
-    end if
-
-    call get_option(trim(grad_field%option_path)//"/diagnostic/field_name", field_name)
-
-    field=>extract_scalar_field(state, trim(field_name), stat)
-    if(present(stat)) then
-      if(stat/=0) return
-    end if
-
-    call grad(field, positions, grad_field)
-    
-  end subroutine calculate_gradient
   
   subroutine calculate_sgs_full_velocity(state, sgs_full, stat)
     type(state_type), intent(in) :: state

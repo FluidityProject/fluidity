@@ -3677,39 +3677,6 @@ vector_field_choice =
          element ___Diagnostic_Fields_Below___ {
             empty
          }|
-         ## Temperature gradient
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "TemperatureGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-
-         ## Gradient of a scalar field.
-         ## Field must be in this material_phase.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "Gradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  attribute field_name { string },
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
 
          ## Gradient of a scalar field evaluated using the C gradient
          ## matrix constructed using finite elements.

@@ -73,6 +73,8 @@ contains
     
     positions => extract_vector_field(state, "Coordinate")
     
+    call check_source_mesh_derivative(source_field, "grad")
+    
     call grad(source_field, positions, v_field)
     
   end subroutine calculate_grad
@@ -86,6 +88,8 @@ contains
     source_field => vector_source_field(state, s_field)
     
     positions => extract_vector_field(state, "Coordinate")
+    
+    call check_source_mesh_derivative(source_field, "div")
     
     call div(source_field, positions, s_field)
     
@@ -217,6 +221,8 @@ contains
       FLExit("Can only calculate perp in 2D")
     end if
     
+    call check_source_mesh_derivative(source_field, "perp")
+    
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     
@@ -332,6 +338,8 @@ contains
       FLExit("Can only calculate 2D curl in 2D")
     end if
     
+    call check_source_mesh_derivative(source_field, "curl_2d")
+    
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     if(have_option(trim(path) // "/lump_mass")) then
@@ -439,6 +447,8 @@ contains
     if(source_field%dim /= 3) then
       FLExit("Can only calculate curl in 3D")
     end if
+    
+    call check_source_mesh_derivative(source_field, "curl")
     
     positions => extract_vector_field(state, "Coordinate")    
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
@@ -548,6 +558,8 @@ contains
       return
     end if
     
+    call check_source_mesh_derivative(source_field, "scalar_advection")
+    
     positions => extract_vector_field(state, "Coordinate")
     
     call u_dot_nabla(velocity, source_field, positions, s_field)
@@ -570,6 +582,8 @@ contains
       call zero(v_field)
       return
     end if
+    
+    call check_source_mesh_derivative(source_field, "vector_advection")
     
     positions => extract_vector_field(state, "Coordinate")
     
@@ -595,6 +609,8 @@ contains
     do i = 1, source_field%dim
       ewrite_minmax(source_field%val(i)%ptr)
     end do
+      
+    call check_source_mesh_derivative(source_field, "vector_laplacian")
     
     positions => extract_vector_field(state, "Coordinate")
     assert(ele_count(positions) == ele_count(v_field))
@@ -731,6 +747,8 @@ contains
     assert(ele_count(source_field) == ele_count(s_field))
     assert(mesh_dim(source_field) == mesh_dim(s_field))
     ewrite_minmax(source_field%val)
+    
+    call check_source_mesh_derivative(source_field, "scalar_laplacian")
     
     positions => extract_vector_field(state, "Coordinate")
     assert(ele_count(positions) == ele_count(s_field))

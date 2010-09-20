@@ -86,11 +86,11 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">0.71E+3</real_value>
         <comment>Prandtl number x Rayleigh number</comment>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
@@ -528,10 +528,12 @@
     </scalar_field>
     <vector_field name="TemperatureGradient" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Temperature"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <include_in_stat/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>

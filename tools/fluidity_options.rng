@@ -6535,48 +6535,6 @@ for VelocitySource.</a:documentation>
         <empty/>
       </element>
       <element name="vector_field">
-        <a:documentation>Temperature gradient</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>TemperatureGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Gradient of a scalar field.
-Field must be in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>Gradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="legacy_internal_algorithm"/>
-            <attribute name="field_name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
         <a:documentation>Gradient of a scalar field evaluated using the C gradient
 matrix constructed using finite elements.
 Field must be in this material_phase.</a:documentation>

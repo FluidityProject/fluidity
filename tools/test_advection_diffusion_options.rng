@@ -436,10 +436,6 @@ THIS WILL NOT WORK FOR PRESCRIBED FIELDS NOT DIRECTLY UNDERNEATH /material_phase
         <a:documentation>Constant value</a:documentation>
         <ref name="real"/>
       </element>
-      <element name="generic_function">
-        <a:documentation>Generic function prescribing real input</a:documentation>
-        <ref name="anystring"/>
-      </element>
       <element name="python">
         <a:documentation>Python function prescribing real input. Functions should be of the form:
 
@@ -461,10 +457,6 @@ where X is a tuple of length geometry dimension.</a:documentation>
       <element name="constant">
         <a:documentation>Constant value</a:documentation>
         <ref name="real"/>
-      </element>
-      <element name="generic_function">
-        <a:documentation>Generic function prescribing real input</a:documentation>
-        <ref name="anystring"/>
       </element>
       <element name="python">
         <a:documentation>Python function prescribing real input. Functions should be of the form:
@@ -555,12 +547,6 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <a:documentation>Constant value</a:documentation>
         <ref name="real_dim_minus_one_vector"/>
       </element>
-      <!--
-        ## Generic function prescribing dimensional vector input
-        element generic_function {
-           anystring
-        }|
-      -->
       <element name="python">
         <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
@@ -594,12 +580,6 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <a:documentation>Constant value</a:documentation>
         <ref name="real_dim_vector"/>
       </element>
-      <!--
-        ## Generic function prescribing dimensional vector input
-        element generic_function {
-           anystring
-        }|
-      -->
       <element name="python">
         <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
@@ -635,12 +615,6 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <a:documentation>Constant symmetric tensor</a:documentation>
         <ref name="real_dim_symmetric_tensor"/>
       </element>
-      <!--
-             ## Generic function prescribing symmetric tensor input
-             element generic_function {
-                anystring
-             }|
-      -->
       <element name="python">
         <a:documentation>Python command prescribing symmetric tensor input.
 
@@ -667,13 +641,6 @@ An example that returns the three-dimensional identity:
         <a:documentation>Constant tensor</a:documentation>
         <ref name="real_dim_tensor"/>
       </element>
-      <!--
-             }|
-             ## Generic function prescribing tensor input
-             element generic_function {
-                anystring
-             }|
-      -->
       <element name="python">
         <a:documentation>Python command prescribing tensor input.
 
@@ -6466,74 +6433,6 @@ ocean biology is being simulated.</a:documentation>
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
         <empty/>
-      </element>
-      <!--
-        
-        Insert new prescribed vector fields here using the template:
-               element vector_field {
-                   attribute rank { "1" },
-                   attribute name { "NewFieldName" },
-                   (
-                      element prescribed {
-                         mesh_choice,
-                         prescribed_vector_field
-                      }|
-                      element aliased {
-                         generic_aliased_field
-                      }
-                   )
-               }
-        
-        - - Last is a list of fields that are primarily diagnostic,
-           but can be aliased. An example is Tidal Range.
-        - - The list is in order of most frequently used.
-        
-      -->
-      <element name="___Diagnostic_Fields_Below___">
-        <a:documentation>Diagnostic vector fields below this</a:documentation>
-        <empty/>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Temperature gradient</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>TemperatureGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Gradient of a scalar field.
-Field must be in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>Gradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <attribute name="field_name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
       </element>
       <element name="vector_field">
         <a:documentation>Gradient of a scalar field evaluated using the C gradient

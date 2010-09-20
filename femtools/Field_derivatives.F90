@@ -211,7 +211,7 @@ module field_derivatives
 
     subroutine grad_scalar(infield, positions, gradient)
       !!< This routine computes the gradient of a field.
-      !!< For a continous gradient this lumps the mass matrix
+      !!< For a continuous gradient this lumps the mass matrix
       !!< in the Galerkin projection.
       type(scalar_field), intent(in) :: infield
       type(vector_field), intent(in) :: positions
@@ -1094,6 +1094,13 @@ module field_derivatives
       do i=1, size(infields)
         ! don't compute if the field is constant
         compute(i)= (maxval(infields(i)%val) /= minval(infields(i)%val))
+        ! check the infield is continuous!!!!
+        if (infields(i)%mesh%continuity<0) then
+          ewrite(0,*) "If the following error is directly due to user input"
+          ewrite(0,*) "a check and a more helpful error message should be inserted in"
+          ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
+          FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
+        end if
       end do
 
       call allocate(lumped_mass_matrix, mesh, "LumpedMassMatrix")
@@ -1278,10 +1285,17 @@ module field_derivatives
         return
       end if
       
-      ! only works if all pardiff fields are discontinous:
+      ! only works if all pardiff fields are discontinuous:
       do i=1, count(derivatives)
         assert(pardiff(i)%mesh%continuity<0)
       end do
+      ! and the infield is continuous!!!!
+      if (infield%mesh%continuity<0) then
+        ewrite(0,*) "If the following error is directly due to user input"
+        ewrite(0,*) "a check and a more helpful error message should be inserted in"
+        ewrite(0,*) "the calling routine (outside field_derivatives) - please mantis this:"
+        FLAbort("The field_derivatives code cannot take the derivative of a discontinuous field")
+      end if
       
       xshape=ele_shape(positions, 1)
       inshape=ele_shape(infield, 1)
