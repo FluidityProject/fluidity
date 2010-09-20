@@ -508,10 +508,12 @@
     </scalar_field>
     <vector_field name="TemperatureGradient" rank="1">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Temperature"/>
         <mesh name="CoordinateMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <include_in_stat/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
