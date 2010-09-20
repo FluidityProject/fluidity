@@ -1665,6 +1665,20 @@ subroutine gls_allocate_temps(state)
     call allocate(density,    vectorField%mesh, "Density")
     call allocate(tke_old,    vectorField%mesh, "Old_TKE")
 
+    call set(ll,0.)
+    call set(NN2,0.)
+    call set(MM2,0.)
+    call set(B,0.)
+    call set(P,0.)
+    call set(S_H,0.)
+    call set(S_M,0.)
+    call set(K_H,0.)
+    call set(K_M,0.)
+    call set(eps,0.)
+    call set(FWall,0.)
+    call set(density,0.)
+    call set(tke_old,0.)
+
     nNodes = node_count(vectorField)
 
 end subroutine gls_allocate_temps
