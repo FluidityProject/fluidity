@@ -164,7 +164,7 @@
       <real_value rank="0">150</real_value>
     </timestep>
     <finish_time replaces="LTIME">
-      <real_value rank="0">54000</real_value>
+      <real_value rank="0">59400</real_value>
     </finish_time>
     <nonlinear_iterations replaces="ITINOI">
       <integer_value rank="0">20</integer_value>
@@ -252,7 +252,10 @@
               <string_value lines="20" type="python">def val(X, t):
     from math import pi, sin
     g=9.81
-    return -2.0*g*sin(2*pi*t/43200) # 12h period with 2m amplitude</string_value>
+    if (t&gt;=54000):
+      return -2.0*g*sin(2*pi*54000/43200) # 12h period with 2m amplitude
+    else:
+      return -2.0*g*sin(2*pi*t/43200) # 12h period with 2m amplitude</string_value>
             </python>
           </type>
         </boundary_conditions>
@@ -455,9 +458,6 @@
       <free_surface>
         <move_whole_mesh/>
         <wetting_and_drying>
-          <dmin>
-            <real_value rank="0">0.2</real_value>
-          </dmin>
           <d0>
             <real_value rank="0">0.1</real_value>
           </d0>
