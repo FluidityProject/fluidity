@@ -5,7 +5,7 @@ default: input
 
 input: src/$(MESH).tar.bz2
 	tar -xvjf src/$(MESH).tar.bz2
-	fldecomp -n 2 $(MESH)
+	../../bin/fldecomp -n 2 $(MESH)
 
 clean: clean-mesh clean-run
 clean-mesh:
