@@ -527,9 +527,9 @@ module saturation_distribution_search_hookejeeves
               ewrite(3,*) 'Final base point and RESULT:',base_point
               open(913, file = 'output.data', action="write", position="append")
               write(fstr,'("(",i4,"f7.2)")') size(base_point)
-              ewrite(3,*) 'fstr: ',fstr
-              write(913,fstr) 'Result: ',base_point 
-!           11 FORMAT((A8),16(F9.4))
+!              ewrite(3,*) 'fstr: ',fstr
+              write(913,11) 'Result: ',base_point 
+           11 FORMAT((A8),16(F9.4))
               close(913)
               return
            endif
