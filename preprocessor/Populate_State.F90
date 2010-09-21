@@ -3236,7 +3236,7 @@ contains
 
   subroutine check_large_scale_ocean_options
   
-    character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path,continuity2, continuity1, velmesh, pressuremesh
+    character(len=OPTION_PATH_LEN) str, velocity_path, pressure_path, tmpstring, temperature_path, salinity_path,continuity2, continuity1, velmesh, pressuremesh, preconditioner
     logical on_sphere, constant_gravity
     integer iterations, poly
     if (option_count('/material_phase')/=1) then
@@ -3266,6 +3266,19 @@ contains
        if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/bassi_rebay").and. .not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/compact_discontinuous_galerkin")) then
          FLExit("Should have Bassi Rebay or compact discontinuous galerkin Viscosity scheme (under Velocity)")
        end if
+       if (have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/viscosity_scheme/compact_discontinuous_galerkin") ) then
+          call get_option(trim(velocity_path)//"/solver/preconditioner/name",preconditioner)
+          if (preconditioner .ne. "sor") then
+            FLExit("You need sor preconditioner for velocity with compact discontinuous galerkin viscosity.")
+          end if
+       end if
+       if (.not.have_option(trim(velocity_path)//"/temporal_discretisation/discontinuous_galerkin/maximum_courant_number_per_subcycle")) then
+         FLExit("You need to switch on velocity/prognostic/temporal_discretisation/discontinuous_galerkin/maximum_courant_number_per_subcycle ")
+       end if
+       if (.not.have_option(trim(velocity_path)//"/spatial_discretisation/discontinuous_galerkin/advection_scheme/project_velocity_to_continuous")) then
+         FLExit("You need to switch on velocity/prognostic/spatial_discretisation/discontinuous_galerkin/advection_scheme/project_velocity_to_continuous ")
+       end if
+  
   end if
   
 !Timestepping options
@@ -3279,13 +3292,12 @@ contains
        end if
   end if
 
-! Subtract out hydrostatic level options
+! Subtract out hydrostatic level option
   if(.not.(have_option("material_phase/equation_of_state/fluids/linear/subtract_out_hydrostatic_level"))) then
      FLExit("You should switch on material_phase/equation_of_state/subtract_out_hydrostatic_level")
   end if
 
 ! Geometry ocean boundaries
-
   if(.not.(have_option("/geometry/ocean_boundaries"))) then
      FLExit("You need to switch on geometry/ocean_boundaries")
   end if
