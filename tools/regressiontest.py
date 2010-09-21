@@ -7,7 +7,7 @@ import xml.dom.minidom
 import traceback
 import time
 import glob
-
+import threading
 
 class TestProblem:
     """A test records input information as well as tests for the output."""
@@ -116,27 +116,27 @@ class TestProblem:
         except OSError:
           self.log("No Makefile, not calling make")
 
-    def run(self):
+    def run(self, dir):
         self.log("Running")
 
         run_time=0.0
 
         try:
-          os.stat("Makefile")
+          os.stat(dir+"/Makefile")
           self.log("Calling 'make input':")
-          ret = os.system("make input")
+          ret = os.system("cd "+dir+"; make input")
           assert ret == 0
         except OSError:
           self.log("No Makefile, not calling make")
 
         if self.nprocs > 1 or self.length == "long":
             ret = self.call_genpbs()
-            self.log("qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
-            os.system("qsub " + self.filename[:-4] + ".pbs")
+            self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
+            os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
           start_time=time.clock()
-          os.system(self.command_line)
+          os.system("cd "+dir+"; "+self.command_line)
           run_time=time.clock()-start_time
 
         return run_time
@@ -262,6 +262,29 @@ class Variable(TestOrVariable):
             print "varsdict.keys() == ", varsdict.keys()
             print "self.name not found: does the variable define the right name?"
             raise Exception
+
+class ThreadIterator(list):
+    '''A thread-safe iterator over a list.'''
+    def __init__(self, seq):
+        self.list=list(seq)
+
+        self.lock=threading.Lock()
+        
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+
+        if len(self.list)==0:
+            raise StopIteration
+        
+        self.lock.acquire()
+        ans=self.list.pop()
+        self.lock.release()
+
+        return ans
+        
 
 if __name__ == "__main__":
     prob = TestProblem(filename=sys.argv[1], verbose=True)

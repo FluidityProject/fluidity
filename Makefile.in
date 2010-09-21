@@ -75,6 +75,9 @@ ifeq (@ALGENCAN@,yes)
 LIBALGENCAN = lib/libalgencan.a
 endif
 
+# Thread count for make test.
+THREADS=1
+
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
 .cpp.o:
@@ -394,33 +397,33 @@ test: fltools bin/@FLUIDITY@ serialtest
 serialtest:
 ifeq (@MBA2D@,yes)
         ifeq (@ZOLTAN@,yes)
-	        @cd tests; ../tools/testharness.py -l short -p serial -e nozoltan
+	        @cd tests; ../tools/testharness.py -l short -p serial -e nozoltan -n $(THREADS)
         else
-	        @cd tests; ../tools/testharness.py -l short -p serial -e zoltan
+	        @cd tests; ../tools/testharness.py -l short -p serial -e zoltan -n $(THREADS)
         endif
 else
         ifeq (@ZOLTAN@,yes)
-	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt nozoltan"
+	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt nozoltan" -n $(THREADS)
         else
-	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan"
+	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan" -n $(THREADS)
         endif
 endif
 
 adjtest:
-	@cd tests; ../tools/testharness.py -l any -t adjoint -p serial
+	@cd tests; ../tools/testharness.py -l any -t adjoint -p serial -n $(THREADS)
 
 mediumtest:
 ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l medium
+	@cd tests; ../tools/testharness.py -l medium -n $(THREADS)
 else
-	@cd tests; ../tools/testharness.py -l medium -e zoltan
+	@cd tests; ../tools/testharness.py -l medium -e zoltan -n $(THREADS)
 endif
 
 mediumzoltantest:
 ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l medium -t zoltan
+	@cd tests; ../tools/testharness.py -l medium -t zoltan -n $(THREADS)
 else
-	@echo "Warning: build did not have zoltan enabled, make mediumzoltantest will not run"
+	@echo "Warning: build did not have zoltan enabled, make mediumzoltantest will not run" -n $(THREADS)
 endif
 
 setuputs: 

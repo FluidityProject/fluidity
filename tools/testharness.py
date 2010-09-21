@@ -7,7 +7,7 @@ import glob
 import time
 import regressiontest
 import traceback
-
+import threading
 import xml.parsers.expat
 
 
@@ -204,31 +204,18 @@ class TestHarness:
     def run(self):
         self.log(" ")
         if not self.justtest:
-          for (dir, test) in self.tests:
-              os.chdir(dir)
-              try:
-                runtime=test.run()
-                if self.length=="short" and runtime>30.0:
-                    self.log("Warning: short test ran for %f seconds which"+
-                             " is longer than the permitted 30s run time"%runtime)
-                    self.teststatus += ['W']
-                    test.pass_status = ['W']
-                    
-              except:
-                self.log("Error: %s raised an exception while running:" % test.filename)
-                lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
-                for line in lines:
-                    self.log(line)
-                self.tests.remove((dir, test))
-                self.teststatus += ['F']
-                test.pass_status = ['F']
-                self.completed_tests += [test]
+            threadlist=[]
+            self.threadtests=regressiontest.ThreadIterator(self.tests)
+            for i in range(options.thread_count):
+                threadlist.append(threading.Thread(target=self.threadrun)) 
+                threadlist[-1].start()
+            for t in threadlist:
+                '''Wait until all threads finish'''
+                t.join()
 
-              os.chdir(os.pardir)
-
-          count = len(self.tests)
-          while True:
-              for t in self.tests:
+            count = len(self.tests)
+            while True:
+                for t in self.tests:
                   if t is None: continue
                   test = t[1]
                   os.chdir(t[0])
@@ -251,8 +238,8 @@ class TestHarness:
                       count -= 1
                   os.chdir(os.pardir)
 
-              if count == 0: break
-              time.sleep(60)                  
+                if count == 0: break
+            time.sleep(60)                  
         else:
           for t in self.tests:
             test = t[1]
@@ -286,6 +273,32 @@ class TestHarness:
             print "Exiting with error since at least one failure..."
             sys.exit(1)
 
+    def threadrun(self):
+        '''This is the portion of the loop which actually runs the
+        tests. This is split out so that it can be threaded'''
+        
+        for (dir, test) in self.threadtests:
+            #os.chdir(dir)
+            try:
+                runtime=test.run(dir)
+                if self.length=="short" and runtime>30.0:
+                    self.log("Warning: short test ran for %f seconds which"+
+                             " is longer than the permitted 30s run time"%runtime)
+                    self.teststatus += ['W']
+                    test.pass_status = ['W']
+                    
+            except:
+                self.log("Error: %s raised an exception while running:" % test.filename)
+                lines = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2] )
+                for line in lines:
+                    self.log(line)
+                self.tests.remove((dir, test))
+                self.teststatus += ['F']
+                test.pass_status = ['F']
+                self.completed_tests += [test]
+
+            #os.chdir(os.pardir)
+
     def list(self):
       for (subdir, test) in self.tests:
         print os.path.join(subdir, test.filename)
@@ -301,6 +314,8 @@ if __name__ == "__main__":
     parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default="")
     parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default="")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
+    parser.add_option("-n", "--threads", dest="thread_count", type="int",
+                      help="number of tests to run at the same time", default=1)
     parser.add_option("-v", "--valgrind", action="store_true", dest="valgrind")
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
