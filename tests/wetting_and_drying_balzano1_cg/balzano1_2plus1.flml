@@ -142,7 +142,7 @@
  import math
  ret=[]
  for i in range(0,1001):
-  ret.append([13800.0*float(i)/1000, 500.0, -5.0*float(i)/1000-0.09])
+  ret.append([13800.0*float(i)/1000, 500.0, -5.0*float(i)/1000])
  return ret</string_value>
         </python>
       </detector_array>
