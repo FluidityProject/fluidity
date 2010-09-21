@@ -454,9 +454,6 @@
       <free_surface>
         <move_whole_mesh/>
         <wetting_and_drying>
-          <dmin>
-            <real_value rank="0">5</real_value>
-          </dmin>
           <d0>
             <real_value rank="0">0.5</real_value>
           </d0>
