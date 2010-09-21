@@ -43,11 +43,62 @@ module sediment
 
   implicit none
 
-  public set_sediment_reentrainment
+  integer, dimension(:), allocatable :: sediment_boundary_condition_ids 
+  integer                            :: nSedimentClasses
+
+  public set_sediment_reentrainment, sediment_init, set_sediment_bc_id
+  public sediment_cleanup, get_sediment_bc_id
 
   private
 
 contains
+
+subroutine sediment_init()
+
+    nSedimentClasses = option_count('/material_phase[0]/sediment/sediment_class')
+    allocate(sediment_boundary_condition_ids(nSedimentClasses))
+    sediment_boundary_condition_ids = -1
+
+end subroutine sediment_init
+
+subroutine sediment_cleanup
+
+    deallocate(sediment_boundary_condition_ids)
+
+end subroutine sediment_cleanup
+
+subroutine set_sediment_bc_id(name, id)
+
+    character(len=FIELD_NAME_LEN), intent(in)  :: name
+    integer, intent(in)                        :: id
+
+    integer                        :: i
+    character(len=FIELD_NAME_LEN)  :: class_name
+    character(len=OPTION_PATH_LEN) :: option_path
+
+    do i=1,nSedimentClasses
+
+        option_path='/material_phase[0]/sediment/sediment_class['//int2str(i-1)//"]"
+        
+        call get_option(trim(option_path)//"/name", class_name)
+
+        if ("SedimentConcentration"//class_name .eq. name) then
+            sediment_boundary_condition_ids(i) = id
+            exit
+        end if
+    end do
+
+end subroutine set_sediment_bc_id
+
+function get_sediment_bc_id(i) result (id)
+    
+    integer, intent(in) :: i
+    integer             :: id
+
+
+    id = sediment_boundary_condition_ids(i)
+
+end function get_sediment_bc_id
 
 subroutine set_sediment_reentrainment(state)
 
@@ -58,32 +109,53 @@ subroutine set_sediment_reentrainment(state)
     real                               :: erodibility, porosity, critical_shear_stress, shear
     real                               :: erosion_flux, diameter, density, g, s, S_star
     real                               :: viscosity
-    integer                            :: nSediments, nNodes, i, j, k, id
-    type(scalar_field)                 :: shear_mag
-    integer, dimension(:), allocatable :: faceglobalnodes
-    integer                            :: snloc,ele,sele,globnod
+    integer                            :: nNodes, i, j
     character(len=FIELD_NAME_LEN)      :: class_name
     character(len=OPTION_PATH_LEN)     :: option_path
+    type(scalar_field)                 :: bedLoadSurface
+    type(vector_field)                 :: shearStressSurface
+    integer, dimension(:), pointer     :: surface_element_list
+    type(mesh_type), pointer           :: bottom_mesh
+    logical                            :: alloced
+
+    ewrite(1,*) "In set_sediment_bc"
 
     bedShearStress => extract_vector_field(state, "BedShearStress")
 
-
-    nSediments = option_count('/material_phase::'//trim(state%name)&
-            //'/sediment/sediment_class')
     call get_option('/material_phase::'//trim(state%name)&
-           //"ScalarField::SedimentTemplate/porosity", porosity)
+           //"ScalarField::SedimentTemplate/porosity", porosity, default=0.3)
     call get_option("/physical_parameters/gravity/magnitude", g)
     viscosity = 1. / 1000.
 
-    call allocate(shear_mag,bedShearStress%mesh,"ShearMagnitude") 
+    alloced = .false.
 
-    do i=1,nSediments
+    do i=1,nSedimentClasses
+
+        if (sediment_boundary_condition_ids(i) .eq. -1) then
+            cycle
+        end if
 
         option_path='/material_phase::'//trim(state%name)//&
                '/sediment/sediment_class['//int2str(i-1)//"]"
           
         call get_option(trim(option_path)//"/name", class_name)
-        call get_option(trim(option_path)//"/erodibility", erodibility)
+
+        SedConc => extract_scalar_field(state, "SedimentConcentration"//trim(class_name))
+        bedload => extract_scalar_field(state,"SedimentFlux"//trim(class_name))
+
+        if (.not. alloced) then
+            call get_boundary_condition(SedConc, sediment_boundary_condition_ids(i), &
+                        surface_mesh=bottom_mesh,surface_element_list=surface_element_list)         
+            !call create_surface_mesh(bottom_mesh, surface_nodes, bedShearStress%mesh, surface_element_list, 'ErosionBed')
+            call allocate(bedLoadSurface,bottom_mesh, name="bedLoadSurface")
+            call allocate(shearStressSurface,bedShearStress%dim,bottom_mesh, name="shearStressSurface")
+            call remap_field_to_surface(bedShearStress, shearStressSurface, &
+                                        surface_element_list)
+            
+            nNodes = node_count(bedLoadSurface)
+            alloced = .true.
+        end if
+        call get_option(trim(option_path)//"/erodibility", erodibility, default=1.0)
         call get_option(trim(option_path)//"/density",density)
         call get_option(trim(option_path)//"/diameter",diameter)
         if (have_option(trim(option_path)//"/critical_shear_stress")) then
@@ -95,16 +167,14 @@ subroutine set_sediment_reentrainment(state)
             critical_shear_stress = 0.105*S_star**(-0.13) + &
                                     0.045*exp(-35*S_star**(-0.59))
         end if
+        
+        
+        call remap_field_to_surface(bedload, bedLoadSurface, &
+                                        surface_element_list)
 
-        SedConc => extract_scalar_field(state, "SedimentConcentration"//trim(class_name))
-        bedload => extract_scalar_field(state,"SedimentFlux"//trim(class_name))
-        call sediment_get_boundary_condition_ids(option_path//"/prognostic/boundary_conditions",id)
-        if (id .eq. -1) then
-            cycle
-        end if
-        erosion => extract_surface_field(SedConc, id,"value")
-        nNodes = node_count(erosion)
-    
+
+        erosion => extract_surface_field(SedConc,sediment_boundary_condition_ids(i),"value")
+        
         ! we only need to add to the source the erosion of sediment from the
         ! bedload into the neumann BC term
         !
@@ -115,67 +185,34 @@ subroutine set_sediment_reentrainment(state)
         ! Each sediment class has a critical shear stress, which if exceeded
         ! by the bed shear stress, sediment is placed into suspension
 
-        snloc = face_loc(erosion, 1)
-        allocate( faceglobalnodes(1:snloc) )
         ! loop over nodes in bottom surface
-        do j=1,ele_count(erosion)
+        do j=1,nNodes
+          
+            shear = norm2(node_val(ShearStressSurface, j))
+            ! critical stress is either given by user (optional) or calculated
+            ! using Shield's formula (depends on grain size and density and
+            ! (vertical) viscosity)
+            erosion_flux = erodibility*(1-porosity)*((shear - critical_shear_stress) / critical_shear_stress)
+            if (erosion_flux < 0) then 
+                erosion_flux = 0.0
+            end if
+            ! A limit is placed depending on how much of that sediment is in the
+            ! bedload
+            if (erosion_flux > node_val(bedLoadSurface,j)) then
+                erosion_flux = node_val(bedLoadSurface,j)
+            end if
 
+            call set(erosion,j,erosion_flux)
             
-            faceglobalnodes = face_global_nodes(erosion, sele)
-            do k = 1,snloc
-                globnod = faceglobalnodes(k)
-                shear = norm2(node_val(bedShearStress, globnod))
-
-                ! critical stress is either given by user (optional) or calculated
-                ! using Shield's formula (depends on grain size and density and
-                ! (vertical) viscosity)
-                erosion_flux = erodibility*(1-porosity)*((shear - critical_shear_stress) / critical_shear_stress)
-
-                ! A limit is placed depending on how much of that sediment is in the
-                ! bedload
-                if (erosion_flux > node_val(bedload,globnod)) then
-                    erosion_flux = node_val(bedload,globnod)
-                end if
-
-                call set(erosion,globnod,erosion_flux)
-            end do
         end do
 
     end do
 
     ! leave it up to the standard solve to add this term in as a neumann BC.
-
-    call deallocate(shear_mag)
-
-
+    if (alloced) then
+        call deallocate(bedLoadSurface)
+        call deallocate(shearStressSurface)
+    end if
 end subroutine set_sediment_reentrainment
-
-
-
-!----------------------------!
-!     PRIVATE ROUTINES       !
-!----------------------------!
-
-subroutine sediment_get_boundary_condition_ids(bc_path, id)
-
-    character(len=OPTION_PATH_LEN), intent(in)  :: bc_path
-    integer, intent(out)                        :: id
-
-    integer                                     :: nBCs, i
-    character(len=OPTION_PATH_LEN)              :: bc_path_i
-    character(len=FIELD_NAME_LEN)               :: bc_type 
-    
-    id = -1
-    nbcs=option_count(trim(bc_path))
-    ! Loop over boundary conditions
-    do i=0, nbcs-1
-        bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
-        call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
-        if (trim(bc_type) .eq. "sediment_reentrainment") then
-            id = i+1
-        end if
-    end do
-    
-end subroutine sediment_get_boundary_condition_ids
 
 end module sediment

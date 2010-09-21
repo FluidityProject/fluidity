@@ -28,12 +28,15 @@
 #include "fdebug.h"
 
 module sediment_diagnostics
-  use global_parameters, only:FIELD_NAME_LEN
+  use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN
   use state_module
   use fields
   use vector_tools
   use spud
   use fetools
+  use sediment
+  use boundary_conditions
+
   implicit none
   
   private
@@ -55,13 +58,19 @@ contains
     type(scalar_field) :: masslump
     type(scalar_field_pointer), dimension(:), allocatable :: sediment_field&
          &, flux_field, sink_U
-    type(scalar_field), dimension(:), allocatable :: surface_field
+    type(scalar_field), dimension(:), allocatable :: surface_field, erosion
+    type(scalar_field), pointer :: fluxUp
 
     integer :: sediment_classes, i, node, ele, stat
     integer, dimension(2) :: surface_id_count
     real :: dt
     character(len=FIELD_NAME_LEN) :: class_name
+    character(len=OPTION_PATH_LEN) :: option_path
     integer, dimension(:), allocatable :: surface_ids
+    integer :: id
+    integer, dimension(:), pointer :: surface_element_list
+    real, dimension(:), allocatable :: values
+    integer, dimension(:), pointer :: to_nodes
     
     sediment_classes=option_count("/material_phase::"&
          //trim(state%name)//"/sediment/sediment_class")
@@ -74,6 +83,7 @@ contains
     call get_option("/timestepping/timestep", dt)
     
     allocate(sediment_field(sediment_classes))
+    allocate(erosion(sediment_classes))
     allocate(surface_field(sediment_classes))
     allocate(flux_field(sediment_classes))
     allocate(sink_U(sediment_classes))
@@ -93,9 +103,9 @@ contains
          &s", surface_ids) 
 
     do i=1, sediment_classes
-       call get_option("/material_phase::"&
-         //trim(state%name)//"/sediment/sediment_class["& 
-         //int2str(i-1)//"]/name", class_name)
+       option_path='/material_phase::'//trim(state%name)//&
+               '/sediment/sediment_class['//int2str(i-1)//"]"
+       call get_option(trim(option_path)//"/name", class_name)
 
        sediment_field(i)%ptr=>&
             extract_scalar_field(state,"SedimentConcentration"//trim(class_name))
@@ -116,6 +126,29 @@ contains
        call allocate(surface_field(i), surface_mesh, "SurfaceFlux")
 
        call zero(surface_field(i))
+
+       ! extract the sediment_reentrainment BC which will contain the
+       ! erosion flux out of the SurfaceFlux and store in erosion
+       call allocate(erosion(i), surface_mesh, "ErosionAmount")
+       allocate(values(erosion(i)%mesh%shape%loc))
+       call zero(erosion(i))
+       id = get_sediment_bc_id(i)
+       if (id .eq. -1) then
+           ! there isn't one...move along
+           cycle
+       end if
+       fluxUp => extract_surface_field(sediment_field(i)%ptr, id, "value")
+       call get_boundary_condition(sediment_field(i)%ptr, id,surface_element_list=surface_element_list)
+       do ele=1,ele_count(fluxUp)
+           to_nodes => ele_nodes(erosion(i), surface_element_list(ele))
+           values = ele_val(fluxUp,ele)
+           do node=1,size(to_nodes)
+               call set(erosion(i),to_nodes(node),values(node))
+           end do
+       end do
+       call scale(erosion(i),dt)
+       deallocate(values)
+
 
     end do
 
@@ -152,13 +185,15 @@ contains
 
        do node=1,node_count(surface_field(i))
           
+          ! Add on sediment falling in and subtract sediment coming out
           call addto(flux_field(i)%ptr, &
                flux_field(i)%ptr%mesh%faces%surface_node_list(node), &
-               node_val(surface_field(i), node))
+               node_val(surface_field(i), node) - node_val(erosion(i),node))
           
        end do
 
        call deallocate(surface_field(i))
+       call deallocate(erosion(i))
 
     end do
 

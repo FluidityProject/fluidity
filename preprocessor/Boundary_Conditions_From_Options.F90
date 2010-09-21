@@ -46,7 +46,7 @@ use vector_tools
 use vtk_interfaces
 use pickers_inquire
 use bulk_parameterisations
-use sediment, only: set_sediment_reentrainment
+use sediment, only: set_sediment_reentrainment, set_sediment_bc_id
 
 
 implicit none
@@ -213,6 +213,9 @@ contains
        ! Same thing for sediments. It's of type sediment_reentrainment
        if (trim(bc_type) .eq. "sediment_reentrainment") then
           bc_type = "neumann"
+          ! set which ID it is as sediment classes are created onthe fly so
+          ! aren't in the options tree as normal fields
+          call set_sediment_bc_id(field%name, i+1)
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
@@ -678,6 +681,7 @@ contains
        if (trim(bc_type) .eq. "sediment_reentrainment") then
             ! skip sediment boundareis - done seperately
             ! see assemble/Sediment.F90
+            cycle boundary_conditions
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then

@@ -96,6 +96,7 @@ module fluids_module
   use eventcounter
   use reduced_model_runtime
   use implicit_solids
+  use sediment
 
   implicit none
 
@@ -176,6 +177,13 @@ contains
 
     call initialise_qmesh
     call initialise_write_state
+
+
+    ! Initialise sediments
+    if (have_option("/material_phase[0]/sediment")) then
+        call sediment_init()
+    end if
+
 
     if (have_option("/geometry/disable_geometric_data_cache")) then
        ewrite(1,*) "Disabling geometric data cache"
@@ -814,6 +822,10 @@ contains
     ! cleanup k_epsilon
     if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/')) then
         call keps_cleanup()
+    end if
+
+    if (have_option("/material_phase[0]/sediment")) then
+        call sediment_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files
