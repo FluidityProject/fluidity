@@ -230,7 +230,7 @@
       logical :: subcycle
 
       logical :: apply_kmk, assemble_kmk
-      logical :: have_viscosity, stress_form, have_coriolis, diagonal_big_m
+      logical :: have_viscosity, have_les, stress_form, have_coriolis, diagonal_big_m
       logical :: pressure_debugging_vtus
       !! True if the momentum equation should be solved with the reduced model.
       logical :: reduced_model
@@ -292,9 +292,12 @@
       ! the following should include a dg option when a stress form version gets implemented
       stress_form=have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation/continuous_galerkin&
-          &/stress_terms/stress_form") 
+          &/stress_terms/stress_form")
+      have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+         &/continuous_galerkin/les_model").or.(have_option(trim(u%option_path)//&
+        &"/prognostic/spatial_discretisation/discontinuous_galerkin/les_model"))
       have_coriolis = have_option("/physical_parameters/coriolis")
-      diagonal_big_m = .not.have_coriolis.and.(.not.(have_viscosity.and.stress_form))
+      diagonal_big_m = .not.have_coriolis.and.(.not.((have_viscosity.or.have_les).and.stress_form))
 
       reduced_model= have_option("/reduced_model/execute_reduced_model")
 

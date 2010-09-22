@@ -3677,7 +3677,10 @@ on the Velocity field.</a:documentation>
             <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
 Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
 IN DEVELOPMENT</a:documentation>
-            <empty/>
+            <element name="scale_factor">
+              <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
+              <ref name="real"/>
+            </element>
           </element>
         </optional>
       </element>

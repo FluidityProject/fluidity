@@ -2690,7 +2690,10 @@ velocity_boundary_conditions =
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
               ## IN DEVELOPMENT
               element surface_stabilisation {
-                  empty
+                  ## Scale factor for the surface stabilisation.
+                  element scale_factor{
+                    real
+                  }
               }?
            )
          }|

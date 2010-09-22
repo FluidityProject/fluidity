@@ -47,7 +47,7 @@ module Coordinates
        cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
        earth_radius, higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
-       Coordinates_check_options
+       rotate_diagonal_to_sphere_gi, rotate_diagonal_to_sphere_face, Coordinates_check_options
        
   interface LongitudeLatitude
      module procedure LongitudeLatitude_single, LongitudeLatitude_multiple
@@ -232,6 +232,96 @@ contains
     end do
 
   end function sphere_inward_normal_at_quad_face
+
+  function rotate_diagonal_to_sphere_gi(positions, ele_number, diagonal) result(quad_val)
+    ! Given the diagonal of a tensor, this function rotates it to a spherical coordinate system. 
+    ! This result is given by R(diagonal)R^T where R is the matrix of Eigen vectors of the 
+    ! spherical coordinate system.
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele_number
+    real, dimension(positions%dim,ele_ngi(positions,ele_number)), intent(in) :: diagonal
+    real, dimension(positions%dim,ele_ngi(positions,ele_number)) :: X_quad
+    real, dimension(positions%dim,positions%dim) :: R, RT
+    real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
+    real :: rad, phi, theta
+    integer :: i
+
+    assert(positions%dim==3)
+
+    X_quad=ele_val_at_quad(positions, ele_number)
+
+    diagonal_T=0.0
+    do i=1,positions%dim
+      diagonal_T(i,i,:)=diagonal(i,:)
+    end do
+
+    do i=1,ele_ngi(positions,ele_number)
+      rad=sqrt(sum(X_quad(:,i)**2))
+      phi=atan2(X_quad(2,i),X_quad(1,i))
+      theta=acos(X_quad(3,i)/rad)
+
+      R(1,1)=-sin(phi)
+      R(1,2)=cos(theta)*cos(phi)
+      R(1,3)=sin(theta)*cos(phi)
+      R(2,1)=cos(phi)
+      R(2,2)=cos(theta)*sin(phi)
+      R(2,3)=sin(theta)*sin(phi)
+      R(3,1)=0
+      R(3,2)=-sin(theta)
+      R(3,3)=cos(theta)
+
+      RT=R
+      call invert(RT)
+      quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
+
+    end do
+
+  end function rotate_diagonal_to_sphere_gi
+
+function rotate_diagonal_to_sphere_face(positions, face_number, diagonal) result(quad_val)
+    ! Given the diagonal of a tensor, this function rotates it to a spherical coordinate system. 
+    ! This result is given by R(diagonal)R^T where R is the matrix of Eigen vectors of the 
+    ! spherical coordinate system.
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: face_number
+    real, dimension(positions%dim,face_ngi(positions,face_number)), intent(in) :: diagonal
+    real, dimension(positions%dim,face_ngi(positions,face_number)) :: X_quad
+    real, dimension(positions%dim,positions%dim) :: R, RT
+    real, dimension(positions%dim,positions%dim,face_ngi(positions,face_number)) :: diagonal_T, quad_val
+    real :: rad, phi, theta
+    integer :: i
+
+    assert(positions%dim==3)
+
+    X_quad=face_val_at_quad(positions, face_number)
+
+    diagonal_T=0.0
+    do i=1,positions%dim
+      diagonal_T(i,i,:)=diagonal(i,:)
+    end do
+
+    do i=1,face_ngi(positions,face_number)
+      rad=sqrt(sum(X_quad(:,i)**2))
+      phi=atan2(X_quad(2,i),X_quad(1,i))
+      theta=acos(X_quad(3,i)/rad)
+
+      R(1,1)=-sin(phi)
+      R(1,2)=cos(theta)*cos(phi)
+      R(1,3)=sin(theta)*cos(phi)
+      R(2,1)=cos(phi)
+      R(2,2)=cos(theta)*sin(phi)
+      R(2,3)=sin(theta)*sin(phi)
+      R(3,1)=0
+      R(3,2)=-sin(theta)
+      R(3,3)=cos(theta)
+
+      RT=R
+      call invert(RT)
+      quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
+
+    end do
+
+  end function rotate_diagonal_to_sphere_face
 
   ! Coordinates options checking
   subroutine Coordinates_check_options

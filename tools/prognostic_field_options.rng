@@ -961,7 +961,12 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
     </optional>
     <optional>
       <element name="vector_field">
-        <a:documentation>Absorption</a:documentation>
+        <a:documentation>Absorption
+
+Note: When in spherical geometry the absorption is now automatically rotated.
+The input values below correspond to setting the diagonal of the absorption matrix
+in the rotated frame of reference. The columns correspond to phi, theta and r 
+respectively.</a:documentation>
         <attribute name="name">
           <value>Absorption</value>
         </attribute>
@@ -1022,20 +1027,32 @@ only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
         <a:documentation>Vertical stabilization options
 
 Note: Switching on one of these options will result in all
-absorption terms being included in the pressure correction.</a:documentation>
+absorption terms being included in the pressure correction
+if running a planar simulation.</a:documentation>
         <optional>
           <element name="vertical_velocity_relaxation">
             <a:documentation>A depth dependent absorption term to
 increase stability in shallow regions 
 given by n_grav*g*dt*rho/d</a:documentation>
-            <empty/>
+            <element name="scale_factor">
+              <a:documentation>This option scales the vertical velocity
+relaxation absorption by the chosen factor.</a:documentation>
+              <ref name="real"/>
+            </element>
           </element>
         </optional>
         <optional>
           <element name="implicit_buoyancy">
             <a:documentation>Implicit buoyancy, calculated via
 theta*g*dt*drho/dr_grav</a:documentation>
-            <empty/>
+            <optional>
+              <element name="min_gradient">
+                <a:documentation>Use this option to set a 'minimum' drho/dr_grav
+to be used in the implicit buoyancy calculation.
+Note that the default value is zero. </a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
           </element>
         </optional>
       </element>
