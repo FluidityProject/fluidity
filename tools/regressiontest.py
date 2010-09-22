@@ -130,9 +130,11 @@ class TestProblem:
           self.log("No Makefile, not calling make")
 
         if self.nprocs > 1 or self.length == "long":
+            self.log("cd "+dir)
+            os.system("cd "+dir)
             ret = self.call_genpbs()
-            self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
-            os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
+            self.log("qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
+            os.system("qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
           start_time=time.clock()
