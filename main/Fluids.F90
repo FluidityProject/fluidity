@@ -262,6 +262,21 @@ contains
          & steady_state_tolerance, default = -666.01)
 
     
+    !        Initialisation of distance to top and bottom field
+    !        Currently only needed for free surface
+    if (has_scalar_field(state(1), "DistanceToTop")) then
+       if (.not. have_option('/geometry/ocean_boundaries')) then
+          ewrite(-1,*) "There are no top and bottom boundary markers."
+          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
+       end if
+       call CalculateTopBottomDistance(state(1))
+    end if
+    
+    ! move mesh according to inital free surface:
+    !    top/bottom distance needs to be up-to-date before this call, after the movement
+    !    they will be updated (inside the call)
+    call move_mesh_free_surface(state, initialise=.true.)
+    
     call run_diagnostics(state)
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -316,16 +331,6 @@ contains
     if(trim(option_buffer) /= "vtk") then
        ewrite(-1,*) "You must specify a dump format and it must be vtk."
        FLExit("Rejig your FLML: /io/dump_format")
-    end if
-
-    !        Initialisation of distance to top and bottom field
-    !        Currently only needed for free surface
-    if (has_scalar_field(state(1), "DistanceToTop")) then
-       if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(-1,*) "There are no top and bottom boundary markers."
-          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
-       end if
-       call CalculateTopBottomDistance(state(1))
     end if
 
     ! initialise the multimaterial fields
@@ -420,16 +425,15 @@ contains
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
        call copy_to_stored_values(state,"Old")
-       if (have_option('/mesh_adaptivity/mesh_movement')) then 
+       if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then 
           ! Coordinate isn't handled by the standard timeloop utility calls.
           ! During the nonlinear iterations of a timestep, Coordinate is
           ! evaluated at n+theta, i.e. (1-theta)*OldCoordinate+theta*IteratedCoordinate.
           ! At the end of the previous timestep however, the most up-to-date Coordinate, 
           ! i.e. IteratedCoordinate, has been copied into Coordinate. This value
           ! is now used as the Coordinate at the beginning of the time step.
+          ! For the free surface this is dealt with within move_mesh_free_surface() below
           call set_vector_field_in_state(state(1), "OldCoordinate", "Coordinate")
-          call set_vector_field_in_state(state(1), "OldGridVelocity", "GridVelocity")
-          call IncrementEventCounter(EVENT_MESH_MOVEMENT)
        end if
 
        ! this may already have been done in populate_state, but now
@@ -477,8 +481,26 @@ contains
           call copy_from_stored_values(state, "Old")
 
           ! move the mesh according to the free surface algorithm
-          ! (is this the right place to do this??)
-          call move_mesh_free_surface(state)
+          ! this should not be at the end of the nonlinear iteration:
+          ! if nonlinear_iterations==1:
+          !    OldCoordinate is based on p^{n-1}, as it has been moved at the beginning of the previous timestep
+          !    IteratedCoordinate will be moved to p^n, the current pressure achieved at the end of the previous timestep
+          !    GridVelocity=(IteratedCoordinate-OldCoordinate)/dt
+          !    so the coordinates and grid velocity are lagging one timestep behind the computed p, which is inevitable
+          ! if nonlinear_iteration>1:
+          !    In the first nonlinear iteration we use the same values of OldCoordinate (based on p^{n-1})
+          !    and IteratedCoordinate (based on p at the beginning of last iteration of previous timestep, say p^n*)
+          !    In subsequent iterations, we have a reasonable approximation of p^{n+1}, so we base
+          !    OldCoordinate on p^n* and IteratedCoordinate on p^(n+1)*, the best approximation p^{n+1} thus
+          !    far. Note that OldCoordinate should not be based on p^n (the value of p at the end of the 
+          !    last iteration of the previous timestep) but on p^n* (the value at the beginning of the last iteration
+          !    of previous timestep).       
+          
+          if (nonlinear_iterations==1) then
+            call move_mesh_free_surface(state)
+          else
+            call move_mesh_free_surface(state, nonlinear_iteration=its)
+          end if
 
           call compute_goals(state)
 
@@ -724,7 +746,6 @@ contains
           ! so that we can check conservation properties.
           ! Using state(1) should be safe as they are aliased across all states.
           call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
-          call set_vector_field_in_state(state(1), "GridVelocity", "IteratedGridVelocity")
           call IncrementEventCounter(EVENT_MESH_MOVEMENT)
        end if
        

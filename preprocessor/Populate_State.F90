@@ -2610,27 +2610,13 @@ contains
     end if
 
     x_mesh => extract_mesh(states(1), "CoordinateMesh")
-    ! need a GridVelocity, OldGridVelocity and an IteratedGridVelocity even if we're not moving the mesh
+    ! need a GridVelocity even if we're not moving the mesh
     if (.not.have_option('/mesh_adaptivity/mesh_movement')) then
       call allocate(aux_vfield, mesh_dim(x_mesh), x_mesh, "GridVelocity", field_type = FIELD_TYPE_CONSTANT)
       call zero(aux_vfield)
       aux_vfield%option_path = ""
       call insert(states, aux_vfield, trim(aux_vfield%name))
       call deallocate(aux_vfield)
-
-      aux_vfield = extract_vector_field(states(1), name="GridVelocity")
-      aux_vfield%name = "Old"//trim(aux_vfield%name)
-      aux_vfield%aliased = .true.
-      aux_vfield%option_path = ""
-      ! insert into states(1) and alias it to all other states.
-      call insert(states, aux_vfield, trim(aux_vfield%name))
-
-      aux_vfield = extract_vector_field(states(1), name="GridVelocity")
-      aux_vfield%name = "Iterated"//trim(aux_vfield%name)
-      aux_vfield%aliased = .true.
-      aux_vfield%option_path = ""
-      ! insert into states(1) and alias it to all other states.
-      call insert(states, aux_vfield, trim(aux_vfield%name))
     end if
 
     ! Disgusting and vomitous hack to ensure that time is output in

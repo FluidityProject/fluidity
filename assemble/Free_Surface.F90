@@ -45,7 +45,7 @@ implicit none
 private
 
 public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
-  move_free_surface_nodes, vertical_prolongator_from_free_surface, &
+  vertical_prolongator_from_free_surface, &
   free_surface_nodes, calculate_diagnostic_free_surface, &
   add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior, &
   calculate_diagnostic_wettingdrying_alpha, initialize_wetting_and_drying
@@ -189,7 +189,7 @@ contains
       if(addto_cmc) then
         ! cmc has been modified (most likely by changing the timestep)
         ! therefore we need to invalidate the solver context
-        call destroy_solver_cache(cmc)        
+        call destroy_solver_cache(cmc)
       end if
       
       ! save the coefficient with the current timestep for the next time round
@@ -214,21 +214,17 @@ contains
       real, dimension(positions%dim, face_ngi(positions, sele)):: normals
       real, dimension(face_loc(p, sele), face_loc(p, sele)):: mass_ele, mass_ele_wd, mass_ele_old, mass_ele_old_wd
       real, dimension(face_ngi(p, sele)):: detwei, alpha_wetdry_quad, alpha_wetdry_quad_prevp
-      integer:: ele
       real :: smoothmax
       
-      ele=face_ele(positions, sele)
       if(include_normals) then
         call transform_facet_to_physical(positions, sele, detwei_f=detwei,&
             & normal=normals)
+        ! at each gauss point multiply with inner product of gravity and surface normal
+        detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
       else
         call transform_facet_to_physical(positions, sele, detwei_f=detwei)
       end if
       
-      if (include_normals) then
-        ! at each gauss point multiply with inner product of gravity and surface normal
-        detwei=detwei*(-1.0)*sum(face_val_at_quad(gravity_normal,sele)*normals, dim=1)
-      end if
 
       if (have_wd) then
           assert(coef_old==0.0)  ! wetting and drying needs to reassemble constantly at the moment.
@@ -275,8 +271,8 @@ contains
         ! phi=theta^2 dt dp, so that the f.s. integral
         ! alpha M_fs dp=alpha M_fs phi/(theta^2 dt)
         call addto(cmc, &
-         face_global_nodes(p, sele), face_global_nodes(p,sele), &
-         (coef-coef_old)*mass_ele)
+          face_global_nodes(p, sele), face_global_nodes(p,sele), &
+          (coef-coef_old)*mass_ele)
       end if
       if (move_mesh) then
         ! detwei and normals at the begin of the time step
@@ -424,34 +420,67 @@ contains
       
   end subroutine copy_poisson_solution_to_interior
   
-  subroutine move_mesh_free_surface(states, initialise)
-  type(state_type), dimension(:), intent(inout) :: states
-  logical, intent(in), optional :: initialise
+  subroutine move_mesh_free_surface(states, initialise, nonlinear_iteration)
+    type(state_type), dimension(:), intent(inout) :: states
+    ! if present_and_true: zero gridvelocity and compute OldCoordinate=Coordinate=IteratedCoordinate
+    logical, intent(in), optional :: initialise
+    ! only supply if total number nonlinear_iterations>1, in which case we do something else for the first nonlinear_iteration
+    integer, intent(in), optional:: nonlinear_iteration
 
-   type(vector_field), pointer :: velocity
-   real :: itheta
-   integer :: i
+    type(vector_field), pointer :: velocity
+    real :: itheta
+    integer :: i, its
+
+    logical :: complete
     
-   logical :: complete
-    
+    if (present(nonlinear_iteration)) then
+      ! we do something different in the first nonlinear iteration, see below
+      its=nonlinear_iteration
+    else
+      ! if we don't have a non-linear loop, we do the same as
+      ! in the 2nd nonlinear iteration if we would have non-linear iterations, i.e.:
+      ! OldCoordinate gets set to IteratedCoordinate at the end of last timestep
+      ! and we compute a new IteratedCoordinate and therefore Coordinate and GridVelocity
+      its=2
+    end if
+
     complete = .false.
 
     do i=1, size(states)
       velocity => extract_vector_field(states(i), "Velocity")
+      
+      if (aliased(velocity)) cycle
+      
       if (has_boundary_condition(velocity, "free_surface") .and. &
-            & have_option('/mesh_adaptivity/mesh_movement/free_surface') .and. &
-            & .not.aliased(velocity)) then
+            & have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           
-          if(complete) then
-            FLExit("Two velocity fields with free_surface boundary conditions are not permitted.")
-          end if
+        if(complete) then
+          FLExit("Two velocity fields with free_surface boundary conditions are not permitted.")
+        end if
+        
+        call get_option( trim(velocity%option_path)//'/prognostic/temporal_discretisation/relaxation', &
+            itheta, default=0.5)
+            
+        if (its==1) then
           
+          ! The first nonlinear iteration we'll keep using the OldCoordinate and IteratedCoordinate
+          ! and GridVelocityfrom last timestep. Only Coordinate has been set to IteratedCoordinate 
+          ! at the end of last timestep, so we need to weight it again
+          call interpolate_coordinate_with_theta(states(i), itheta)
+          
+        else
+        
           ewrite(1,*) "Going into move_free_surface_nodes to compute new node coordinates"
           
-          call get_option( trim(velocity%option_path)//'/prognostic/temporal_discretisation/relaxation', &
-              itheta, default=0.5)
+          if (its==2) then
+            ! the first nonlinear iteration we've used OldCoordinate,IteratedCoordinate,GridVelocity
+            ! from previous timestep. Now we recompute IteratedCoordinate and GridVelocity, based on
+            ! the new free surface approx. calculated in the first nonlinear iteration. OldCoordinate
+            ! should be set to IteratedCoordinate of last timestep
+            call set_vector_field_in_state(states(i), "OldCoordinate", "IteratedCoordinate")
+          end if
           
-          call move_free_surface_nodes(states(i), theta = itheta, initialise = initialise)
+          call move_free_surface_nodes(states(i), itheta, initialise = initialise)
           
           ! need to update ocean boundaries again if you've just moved the mesh
           if (has_scalar_field(states(i), "DistanceToTop")) then
@@ -462,15 +491,35 @@ contains
           end if
           call update_wettingdrying_alpha(states(i))
 
-          complete = .true.
+          
+          
+        end if
+        
+        complete = .true.
+        
       end if
     end do
   
   end subroutine move_mesh_free_surface
+    
+  subroutine interpolate_coordinate_with_theta(state, theta)
+  type(state_type), intent(inout) :: state
+  real, intent(in):: theta
+  
+    type(vector_field), pointer:: positions, old_positions, iterated_positions
+    
+    call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+    
+    positions => extract_vector_field(state, "Coordinate")
+    old_positions => extract_vector_field(state, "OldCoordinate")
+    iterated_positions => extract_vector_field(state, "IteratedCoordinate")
+    call set(positions, old_positions, iterated_positions, theta)
+    
+  end subroutine interpolate_coordinate_with_theta
       
   subroutine move_free_surface_nodes(state, theta, initialise)
   type(state_type), intent(inout) :: state
-  real, intent(in), optional :: theta
+  real, intent(in):: theta
   logical, intent(in), optional :: initialise
     
     type(vector_field), pointer:: positions, u, original_positions
@@ -478,7 +527,6 @@ contains
     type(vector_field), pointer:: iterated_positions
     type(scalar_field), pointer:: p
     type(vector_field), target :: local_grid_u
-    type(vector_field), pointer :: old_grid_u, iterated_grid_u
     type(scalar_field), target:: linear_p
     character(len=FIELD_NAME_LEN):: bctype
     real g, dt, rho0, gravity_magnitude
@@ -490,7 +538,6 @@ contains
     type(scalar_field), pointer :: topdis, bottomdis
     !type(scalar_field), save :: fracdis
     type(scalar_field) :: fracdis
-    !logical :: fracdis_initialise=.true.
     type(scalar_field) :: extrapolated_p
     
     logical :: l_initialise, have_wd
@@ -529,6 +576,8 @@ contains
         ewrite(-1,*) "Just remapped from a discontinuous to a continuous field when using free_surface mesh movement."
         ewrite(-1,*) "This suggests the pressure is discontinuous, which isn't supported."
         FLExit("Discontinuous pressure not permitted.")
+      else if(stat/=0 .and. stat/=REMAP_ERR_UNPERIODIC_PERIODIC .and. stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS) then
+        FLAbort("Something went wrong mapping pressure to the CoordinateMesh")
       end if
       ! we've allowed it to remap from periodic to unperiodic and from higher order to lower order
       p => linear_p
@@ -539,14 +588,12 @@ contains
     if(.not.l_initialise) then
     ! if we're initialising then the grid velocity stays as zero
       grid_u => extract_vector_field(state, "GridVelocity")
-      old_grid_u => extract_vector_field(state, "OldGridVelocity")
-      iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
       
-      if(.not.iterated_grid_u%mesh==positions%mesh) then
+      if(.not. grid_u%mesh==positions%mesh) then
         ! allocate this on the positions mesh to calculate the values
         call allocate(local_grid_u, grid_u%dim, positions%mesh, "LocalGridVelocity")
         call zero(local_grid_u)
-        iterated_grid_u => local_grid_u
+        grid_u => local_grid_u
       end if
     end if
     
@@ -578,8 +625,8 @@ contains
           end do
       end if
 
-      ! Note:  The fractionaldistance field could be stored since it does not change with time.
-      call allocate(fracdis, topdis%mesh, "FractionalDistance")
+      ! then we need to scale it by its fractional distance from the bottom
+      call allocate(fracdis, topdis%mesh, "FractionalDistance")      
       call set(fracdis, topdis)
       call addto(fracdis, bottomdis)
       call invert(fracdis)
@@ -592,7 +639,7 @@ contains
                   node_val(original_positions, node)- &
                   node_val(extrapolated_p, node)*node_val(gravity_normal, node)/g/rho0)
                   
-        if(.not.l_initialise) call set(iterated_grid_u, node, &
+        if(.not.l_initialise) call set(grid_u, node, &
                   (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
       end do
       
@@ -620,7 +667,7 @@ contains
                   node_val(original_positions, node)- &
                   node_val(p, node)*node_val(gravity_normal, node)/g/rho0)
                 ! compute new surface node grid velocity:
-                if(.not.l_initialise) call set(iterated_grid_u, node, &
+                if(.not.l_initialise) call set(grid_u, node, &
                   (node_val(iterated_positions, node)-node_val(old_positions,node))/dt)
             end do node_loop
             
@@ -631,26 +678,19 @@ contains
       
     end if
     
-    if(.not.l_initialise) then
-      if(associated(iterated_grid_u, local_grid_u)) then
-        iterated_grid_u => extract_vector_field(state, "IteratedGridVelocity")
-        call remap_field(local_grid_u, iterated_grid_u)
+    if (l_initialise) then
+      call set(positions, iterated_positions)
+      call set(old_positions, iterated_positions)
+    else
+      call set(positions, iterated_positions, old_positions, theta)
+      if(associated(grid_u, local_grid_u)) then
+        grid_u => extract_vector_field(state, "GridVelocity")
+        call remap_field(local_grid_u, grid_u)
         call deallocate(local_grid_u)
       end if
-    end if
-
-    if(present(theta)) then
-      call set(positions, iterated_positions, old_positions, theta)
-      if(.not.l_initialise) call set(grid_u, iterated_grid_u, old_grid_u, theta)
-    else
-      call set(positions, iterated_positions)
-      if(.not.l_initialise) call set(grid_u, iterated_grid_u)
-    end if
-    
-    if(.not.l_initialise) then
       do i = 1, grid_u%dim
         ewrite_minmax(grid_u%val(i)%ptr)
-      end do
+      end do      
     end if
     
     if (associated(p, linear_p)) then
