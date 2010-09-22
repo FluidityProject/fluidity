@@ -3,7 +3,7 @@
   <name>balzano1_2plus1</name>
   <owner userid="sf1409"/>
   <problem_definition length="medium" nprocs="4">
-    <command_line>mpirun -n 4 fluidity balzano1_2plus1.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
+    <command_line>mpiexec -n 4 fluidity balzano1_2plus1.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
   </problem_definition>
   <variables>
     <variable name="velocity" language="python">from fluidity_tools import stat_parser
