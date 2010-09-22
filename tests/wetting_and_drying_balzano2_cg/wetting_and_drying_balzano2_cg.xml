@@ -17,9 +17,9 @@ s = stat_parser("balzano1_2plus1.detectors")
 ElapsedTime=s["ElapsedTime"]["value"]</variable>
   </variables>
   <pass_tests>
-    <test name="endtime" language="python">assert(ElapsedTime[-1]==55800.0)</test>
-    <test name="wetting_drying_alpha" language="python">print "Checking if left quarter of domain is dry at last timestep...",
-for det in range(1,252):
+    <test name="endtime" language="python">assert(ElapsedTime[-1]==99600.0)</test>
+    <test name="wetting_drying_alpha" language="python">print "Checking if left third of domain is dry at last timestep...",
+for det in range(1,332):
   det_str="det_%(#)04d" %{"#": det}
   assert(wetting_drying_alpha[det_str][-1]&gt;0.0)
 print "okay."
@@ -35,7 +35,7 @@ for det in range(1,252):
   for dim in range(0,3):
     magnitude=magnitude+velocity[det_str][dim][-1]**2
   magnitude=magnitude**0.5
-  assert(magnitude&lt;=0.05)
+  assert(magnitude&lt;=0.01)
 print "okay."</test>
   </pass_tests>
 </testproblem>
