@@ -392,7 +392,7 @@
             <value name="WholeMesh">
               <diagonal>
                 <constant>
-                  <real_value shape="3" dim1="dim" rank="1">0 0 0.1</real_value>
+                  <real_value shape="3" dim1="dim" rank="1">0 0 0.01</real_value>
                 </constant>
               </diagonal>
             </value>
