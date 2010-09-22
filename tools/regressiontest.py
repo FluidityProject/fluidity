@@ -85,7 +85,7 @@ class TestProblem:
         self.random = str
 
     def call_genpbs(self):
-        cmd = genpbs \"" + self.filename[:-4] + "\" \"" + self.command_line + "\" \"" + str(self.nprocs) + "\" \"" + self.random + "\""
+        cmd = "genpbs \"" + self.filename[:-4] + "\" \"" + self.command_line + "\" \"" + str(self.nprocs) + "\" \"" + self.random + "\""
         self.log("cd "+dir+"; "+cmd)
         ret = os.system("cd "+dir+"; "+cmd)
 
