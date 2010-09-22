@@ -27,6 +27,7 @@ subroutine IGW
 
   implicit none
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscmat.h"
 #include "finclude/petscvec.h"
 #include "finclude/petscviewer.h"
@@ -34,6 +35,7 @@ subroutine IGW
 #include "finclude/petscpc.h"
 #include "finclude/petscmg.h"
 #include "finclude/petscis.h"
+#endif
 
   type(vector_field), target :: u,positions, positions_h,error_u, initial_u, &
        X_surface, exact_u

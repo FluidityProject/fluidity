@@ -28,12 +28,14 @@ implicit none
 #include "finclude/petscsysdef.h"
 #else
 #include "finclude/petsc.h"
+#if PETSC_VERSION_MINOR==0
 #include "finclude/petscmat.h"
 #include "finclude/petscvec.h"
 #include "finclude/petscviewer.h"
 #include "finclude/petscksp.h"
 #include "finclude/petscpc.h"
 #include "finclude/petscsys.h"
+#endif
 #endif
 
 !! Some parameters that change the behaviour of 

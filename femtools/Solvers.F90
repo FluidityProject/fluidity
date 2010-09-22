@@ -43,10 +43,12 @@ module solvers
   use vtk_interfaces
 #ifdef HAVE_PETSC_MODULES
   use petsc 
+#if PETSC_VERSION_MINOR==0
   use petscvec 
   use petscmat 
   use petscksp 
   use petscpc
+#endif
 #endif
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
