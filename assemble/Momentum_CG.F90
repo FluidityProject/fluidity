@@ -534,7 +534,7 @@
          ! Check if we want free surface stabilisation (in development!)
          have_surface_fs_stabilisation=have_fs_stab(u)
          if (have_surface_fs_stabilisation) then
-           call get_option(trim(u%option_path)//"/type::free_surface/surface_stabilisation/scale_factor", fs_sf)
+           fs_sf=get_surface_stab_scale_factor(u)
          end if
 
          surface_element_loop: do sele=1, surface_element_count(u)
@@ -657,6 +657,22 @@
                 end if
             end do
         end function have_fs_stab
+
+        function get_surface_stab_scale_factor(u) result(scale_factor)
+            type(vector_field), intent(in) :: u
+            character(len=OPTION_PATH_LEN) :: type
+            character(len=OPTION_PATH_LEN) :: option_path
+            integer :: n
+            real :: scale_factor
+
+            do n=1,get_boundary_condition_count(u)
+                call get_boundary_condition(u, n, type=type, option_path=option_path)
+                if (have_option(trim(option_path)//"/type::free_surface/surface_stabilisation")) then
+                    call get_option(trim(option_path)//"/type::free_surface/surface_stabilisation/scale_factor", scale_factor)
+                end if
+            end do
+
+        end function get_surface_stab_scale_factor
    
     end subroutine construct_momentum_cg
 
