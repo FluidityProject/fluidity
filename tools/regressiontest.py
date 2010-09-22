@@ -132,7 +132,7 @@ class TestProblem:
         if self.nprocs > 1 or self.length == "long":
             ret = self.call_genpbs()
             self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
-            os.system("cd "+dir+"; "qsub " + self.filename[:-4] + ".pbs")
+            os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
           start_time=time.clock()
