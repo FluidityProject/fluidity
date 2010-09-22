@@ -69,6 +69,11 @@ def main(argv=None):
         timesteps=s["ElapsedTime"]["value"]
         timestep=timesteps[1]-timesteps[0]
         print "Found ", len(timesteps), " timesteps with dt=", timestep
+
+        ## Since this testcase uses a small timestep we do not want to plot the result at every timestep. Define here how big the gap between plots should be:
+        plotgap=4
+
+
         if timestep_ana==0.0:
                 timestep_ana=timestep
 
@@ -93,9 +98,12 @@ def main(argv=None):
                 plot_end=89  # in timesteps
                 plot_name='Drying'
 
-        
+        plot_start=plot_start*plotgap
+        plot_end=plot_end*plotgap
 
         for t in range(0,len(timesteps)):
+                if t%plotgap!=0:
+                        continue
                 # ignore the first waveperiod
                 if t<plot_start:
                         continue
