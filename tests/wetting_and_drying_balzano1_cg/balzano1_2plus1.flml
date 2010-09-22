@@ -50,7 +50,7 @@
             <bottom_depth>
               <python>
                 <string_value lines="20" type="python">def val(X, t):
-    return 5.0*X[0]/13800+0.1</string_value>
+    return 5.0*X[0]/13800+0.01</string_value>
               </python>
             </bottom_depth>
             <sizing_function>
@@ -319,7 +319,9 @@
               <integer_value rank="0">500</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="lu"/>
+          <preconditioner name="asm">
+            <preconditioner name="lu"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -450,11 +452,9 @@
         <move_whole_mesh/>
         <wetting_and_drying>
           <d0>
-            <real_value rank="0">0.1</real_value>
+            <real_value rank="0">0.01</real_value>
+            <comment>important: if you change d0 also change extrude!</comment>
           </d0>
-          <dry_absorption>
-            <real_value shape="3" dim1="dim" rank="1">0.1 0.1 0.1</real_value>
-          </dry_absorption>
         </wetting_and_drying>
       </free_surface>
       <vector_field name="GridVelocity" rank="1">
