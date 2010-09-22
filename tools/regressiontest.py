@@ -85,7 +85,7 @@ class TestProblem:
         self.random = str
 
     def call_genpbs(self):
-        cmd = "genpbs \"" + self.filename[:-4] + "\" \"" + self.command_line + "\" \"" + str(self.nprocs) + "\" \"" + self.random + "\""
+        cmd = "cd " + dir + "; genpbs \"" + self.filename[:-4] + "\" \"" + self.command_line + "\" \"" + str(self.nprocs) + "\" \"" + self.random + "\""
         self.log("Calling genpbs: %s" % cmd)
         ret = os.system(cmd)
 
@@ -130,11 +130,9 @@ class TestProblem:
           self.log("No Makefile, not calling make")
 
         if self.nprocs > 1 or self.length == "long":
-            self.log("cd "+dir)
-            os.system("cd "+dir)
             ret = self.call_genpbs()
-            self.log("qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
-            os.system("qsub " + self.filename[:-4] + ".pbs")
+            self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
+            os.system("cd "+dir+"; "qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
           start_time=time.clock()
