@@ -2677,12 +2677,17 @@ The return value must have length number_of_solids.
 The t argument is for future use only - currently solid locations are only set at simulation start.</a:documentation>
                     <ref name="python_code"/>
                   </element>
+                  <optional>
+                    <element name="print_diagnostics">
+                      <a:documentation>Calculate diagnostic variables for each solid.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
               <optional>
-                <element name="print_drag">
-                  <a:documentation>Calculate drag coefficient over all
-solids and store it in a file called "drag_force".</a:documentation>
+                <element name="print_diagnostics">
+                  <a:documentation>Calculate diagnostic variables associated with the solids.</a:documentation>
                   <empty/>
                 </element>
               </optional>

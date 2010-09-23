@@ -58,7 +58,7 @@ module conservative_interpolation_module
 
   subroutine galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
                                             field_counts, old_fields, old_position, new_fields, new_position, &
-                                            map_BA, inversion_matrices_A, supermesh_shape)
+                                            map_BA, inversion_matrices_A, supermesh_shape, femdem, solid)
   
     integer, intent(in) :: ele_B
     real, dimension(:,:,:), intent(inout) :: little_mass_matrix
@@ -78,7 +78,11 @@ module conservative_interpolation_module
     type(ilist), dimension(:), intent(in) :: map_BA
     real, dimension(:, :, :) :: inversion_matrices_A
     type(element_type), intent(inout) :: supermesh_shape
-    
+
+    type(scalar_field), intent(inout) :: solid
+    logical, intent(in) :: femdem
+    integer, dimension(:), pointer :: ele_B_nodes
+   
     real, dimension(ele_loc(new_position, ele_B), ele_loc(new_position, ele_B)) :: inversion_matrix_B, inversion_matrix_A
     real, dimension(ele_ngi(new_position, ele_B)) :: detwei_B
     real, dimension(supermesh_shape%ngi) :: detwei_C
@@ -245,26 +249,38 @@ module conservative_interpolation_module
         end do
 
       end do
+
+      ! calculate volume fraction for femdem this is true
+      ! only the SECOND time we call this from ImplicitSolids
+      if (femdem) then
+         ele_B_nodes => ele_nodes(new_position, ele_B)
+         do loc = 1, size(ele_B_nodes)
+            call addto(solid, ele_B_nodes(loc), vols_C / vol_B)
+         end do
+      end if
+
       llnode => llnode%next
       call deallocate(intersection)
     end do
 
-    ! Check for supermeshing failures.
-    if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. & 
+    if (.not.femdem) then
+       ! Check for supermeshing failures.
+       if (abs(vol_B - vols_C)/vol_B > conservation_tolerance .and. & 
 #ifdef DOUBLEP
-      & abs(vol_B - vols_C) > 100.0 * 1.0e-12) then
+            & abs(vol_B - vols_C) > 100.0 * 1.0e-12) then
 #else
-      & abs(vol_B - vols_C) > 100.0 * epsilon(0.0)) then
+          & abs(vol_B - vols_C) > 100.0 * epsilon(0.0)) then
 #endif
-      ewrite(0,*) 'sum(detwei_B) = ', vol_B, ', all sum(detwei_C) = ', vols_C
-      stat = 1
-    else
-      stat = 0
+          ewrite(0,*) 'sum(detwei_B) = ', vol_B, ', all sum(detwei_C) = ', vols_C
+          stat = 1
+       else
+          stat = 0
+       end if
     end if
-  
+
   end subroutine galerkin_projection_inner_loop
 
-  subroutine interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA, force_bounded)
+  subroutine interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA, force_bounded, solid)
     type(state_type), dimension(:), intent(in) :: old_fields_state
     type(vector_field), intent(in) :: old_position
 
@@ -272,6 +288,7 @@ module conservative_interpolation_module
     type(vector_field), intent(in) :: new_position
     type(ilist), dimension(:), intent(in), optional, target :: map_BA
     logical, intent(in), optional :: force_bounded
+    type(scalar_field), intent(inout), optional :: solid
 
     integer :: ele_B
     integer :: ele_A
@@ -341,6 +358,8 @@ module conservative_interpolation_module
     integer, dimension(:), pointer :: surface_node_list
     logical, dimension(:, :), allocatable :: force_bc
     integer :: bc
+
+    logical :: femdem
 
     ewrite(1, *) "In interpolation_galerkin_scalars"
 
@@ -506,32 +525,38 @@ module conservative_interpolation_module
     dump_idx = 0
 #endif
 
+    femdem = .false.
+    if (present(solid)) femdem = .true.
+
     ewrite(1, *) "Entering supermeshing loop"
     do ele_B=1,ele_count(new_position)
     
       call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
                                             field_counts, old_fields, old_position, new_fields, new_position, &
-                                            lmap_BA, inversion_matrices_A, supermesh_shape)
-      if (stat /= 0) then
-        ! Uhoh! We haven't found all the mass for ele_B :-/
-        ! The intersector has missed something (almost certainly due to
-        ! finite precision arithmetic). Geometry is hard!
-        ! So let's go all arbitrary precision on its ass.
-        ! Data, Warp 0!
+                                            lmap_BA, inversion_matrices_A, supermesh_shape, femdem, solid)
+
+      if (.not.femdem) then
+         if (stat /= 0) then
+            ! Uhoh! We haven't found all the mass for ele_B :-/
+            ! The intersector has missed something (almost certainly due to
+            ! finite precision arithmetic). Geometry is hard!
+            ! So let's go all arbitrary precision on its ass.
+            ! Data, Warp 0!
 #ifdef HAVE_CGAL
-        ewrite(0,*) "Using CGAL to try to fix conservation error"
-        call intersector_set_exactness(.true.)
-        call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
-                                              field_counts, old_fields, old_position, new_fields, new_position, &
-                                              lmap_BA, inversion_matrices_A, supermesh_shape)
-        if(stat/=0) then
-          ewrite(0,*) "Sorry, CGAL failed to fix conservation error."
-        end if
-        call intersector_set_exactness(.false.)
+            ewrite(0,*) "Using CGAL to try to fix conservation error"
+            call intersector_set_exactness(.true.)
+            call galerkin_projection_inner_loop(ele_B, little_mass_matrix, detJ, local_rhs, conservation_tolerance, stat, &
+                 field_counts, old_fields, old_position, new_fields, new_position, &
+                 lmap_BA, inversion_matrices_A, supermesh_shape)
+            if(stat/=0) then
+               ewrite(0,*) "Sorry, CGAL failed to fix conservation error."
+            end if
+            call intersector_set_exactness(.false.)
 #else
-        ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
-        ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
+            ewrite(0,*) "Warning: it appears a supermesh intersection wasn't found resulting in a conservation error."
+            ewrite(0,*) "Recompile with CGAL if you want to try to fix it."
 #endif
+         end if
       end if
 
       do mesh = 1, mesh_count
@@ -605,6 +630,7 @@ module conservative_interpolation_module
 
     end do
     ewrite(1, *) "Supermeshing complete"
+
 
     if (.not. present(map_BA)) then
       do ele_B=1,ele_count(new_position)
@@ -885,23 +911,25 @@ module conservative_interpolation_module
     
   end subroutine interpolation_galerkin_scalars
 
-  subroutine interpolation_galerkin_single_state(old_state, new_state, map_BA)
+  subroutine interpolation_galerkin_single_state(old_state, new_state, map_BA, field)
     type(state_type), intent(inout) :: old_state, new_state
     type(ilist), dimension(:), intent(in), optional :: map_BA
+    type(scalar_field), intent(inout), optional :: field
 
     type(state_type), dimension(1) :: old_states, new_states
     
     old_states = (/old_state/)
     new_states = (/new_state/)
-    call interpolation_galerkin(old_states, new_states, map_BA=map_BA)
+    call interpolation_galerkin(old_states, new_states, map_BA=map_BA, field=field)
     old_state = old_states(1)
     new_state = new_states(1)
     
   end subroutine interpolation_galerkin_single_state
 
-  subroutine interpolation_galerkin_multiple_states(old_states, new_states, map_BA)
+  subroutine interpolation_galerkin_multiple_states(old_states, new_states, map_BA, field)
     type(state_type), dimension(:), intent(inout) :: old_states, new_states
     type(ilist), dimension(:), intent(in), optional :: map_BA
+    type(scalar_field), intent(inout), optional :: field
 
     type(state_type), dimension(size(old_states)) :: old_fields_state, new_fields_state
     type(vector_field), pointer :: old_position, new_position
@@ -916,7 +944,7 @@ module conservative_interpolation_module
     old_position => extract_vector_field(old_states(1), "Coordinate")
     new_position => extract_vector_field(new_states(1), "Coordinate")
 
-    call interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA=map_BA)
+    call interpolation_galerkin_scalars(old_fields_state, old_position, new_fields_state, new_position, map_BA=map_BA, solid=field)
 
     do i = 1, size(old_fields_state)
       call deallocate(old_fields_state(i))
